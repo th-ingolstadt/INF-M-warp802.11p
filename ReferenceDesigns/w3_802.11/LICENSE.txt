@@ -1,6 +1,6 @@
 Mango Reference Design License
 
-Copyright © 2013 Mango Communications, Inc.  All rights reserved.
+Copyright (c) 2013 Mango Communications, Inc.  All rights reserved.
 
 Definitions:
 
