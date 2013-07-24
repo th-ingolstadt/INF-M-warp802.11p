@@ -23,6 +23,7 @@ XMbox ipc_mailbox;
 XMutex pkt_buf_mutex;
 
 int wlan_lib_init () {
+	u32 i;
 
 	//Initialize the pkt buffer mutex core
 	XMutex_Config *mutex_ConfigPtr;
@@ -33,6 +34,14 @@ int wlan_lib_init () {
 	XMbox_Config *mbox_ConfigPtr;
 	mbox_ConfigPtr = XMbox_LookupConfig(MAILBOX_DEVICE_ID);
 	XMbox_CfgInitialize(&ipc_mailbox, mbox_ConfigPtr, mbox_ConfigPtr->BaseAddress);
+
+	for(i=0; i < NUM_TX_PKT_BUFS; i++){
+		unlock_pkt_buf_tx(i);
+	}
+
+	for(i=0; i < NUM_RX_PKT_BUFS; i++){
+		unlock_pkt_buf_rx(i);
+	}
 
 	return 0;
 }

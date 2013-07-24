@@ -11,11 +11,13 @@
 #ifndef WLAN_MAC_HIGH_H_
 #define WLAN_MAC_HIGH_H_
 
+#define MAX_ASSOCIATIONS 8
+
 int main();
 void ethernet_receive(u8* eth_dest, u8* eth_src, u16 tx_length);
 void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length);
 int is_tx_buffer_empty();
-void mpdu_transmit(u16 length, u8 rate, u8 retry_max, u8 flags);
+void mpdu_transmit(station_info* station, u16 length, u8 retry_max, u8 flags);
 void beacon_transmit();
 void wait_for_tx_accept();
 void process_ipc_msg_from_low(wlan_ipc_msg* msg);

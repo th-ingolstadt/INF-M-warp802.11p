@@ -27,9 +27,6 @@
 #define DCF_CW_UPDATE_MPDU_RX_ACK 1
 #define DCF_CW_UPDATE_BCAST_TX 2
 
-#define max(A,B) (((A)>(B))?(A):(B))
-#define min(A,B) (((A)<(B))?(A):(B))
-
 typedef struct{
 	u8 frame_control_1;
 	u8 frame_control_2;

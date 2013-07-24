@@ -12,6 +12,10 @@
 #define WLAN_LIB_H_
 
 
+#define max(A,B) (((A)>(B))?(A):(B))
+#define min(A,B) (((A)<(B))?(A):(B))
+
+
 #define PRINT_LEVEL PL_WARNING
 
 #define PL_NONE		0
@@ -37,8 +41,11 @@ typedef struct{
 	u8 retry_count;
 	u8 retry_max;
 	u8 state_verbose;
+	u16 AID;
+	u16 reserved0;
+	u32 reserved1;
 } tx_frame_info;
-//TODO: Push max retry into per-packet tx_frame_info
+
 
 #define TX_MPDU_STATE_EMPTY			0
 #define TX_MPDU_STATE_TX_PENDING	1
@@ -57,7 +64,8 @@ typedef struct{
 	u8 rate;
 	u16 length;
 	u16 rssi;
-	u16 reserved;
+	u16 reserved0;
+	u64 reserved1;
 } rx_frame_info;
 
 #define RX_MPDU_STATE_EMPTY 	 	0
@@ -234,14 +242,14 @@ typedef struct{
 //0x66 is an arbitrary value which cannot be confused with another PHY rate
 #define WLAN_MAC_RATE_DSSS_1M	0x66
 
-#define WLAN_MAC_RATE_BPSK12	0
-#define WLAN_MAC_RATE_BPSK34	1
-#define WLAN_MAC_RATE_QPSK12	2
-#define WLAN_MAC_RATE_QPSK34	3
-#define WLAN_MAC_RATE_16QAM12	4
-#define WLAN_MAC_RATE_16QAM34	5
-#define WLAN_MAC_RATE_64QAM23	6
-#define WLAN_MAC_RATE_64QAM34	7
+#define WLAN_MAC_RATE_BPSK12	1
+#define WLAN_MAC_RATE_BPSK34	2
+#define WLAN_MAC_RATE_QPSK12	3
+#define WLAN_MAC_RATE_QPSK34	4
+#define WLAN_MAC_RATE_16QAM12	5
+#define WLAN_MAC_RATE_16QAM34	6
+#define WLAN_MAC_RATE_64QAM23	7
+#define WLAN_MAC_RATE_64QAM34	8
 
 int wlan_lib_init ();
 int lock_pkt_buf_tx(u8 pkt_buf_ind);
