@@ -357,7 +357,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 		//Delay param here is SIFS - rx latency - tx latency (determined experimentally)
 		// TODO: Confirm this TxSIFS time for various Rx lengths and rates
-		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 62);
+		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 48);
 
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
