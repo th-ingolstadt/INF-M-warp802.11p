@@ -227,12 +227,26 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 							beacon->timestamp = get_usec_timestamp();
 						}
 
+						//
 						status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
+						REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+
 						if(status == 0){
 							tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
 						} else {
 							tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_FAILURE;
 						}
+
+						//Debug
+						if(tx_mpdu->retry_count>0){
+							//TODO: Raise GPIO
+							//xil_printf("retry: %d\n",tx_mpdu->retry_count);
+						//	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+						}
+
+						//Debug
+
 						tx_mpdu->state = TX_MPDU_STATE_EMPTY;
 
 						if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
@@ -244,6 +258,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 							ipc_msg_to_high.arg0 = tx_pkt_buf;
 							ipc_mailbox_write_msg(&ipc_msg_to_high);
 						}
+
+						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+
 					}
 				break;
 			}
@@ -413,8 +430,14 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
+
+
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
+
+	//DEBUG
+	if(mpdu_info->retry_count>0) REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+
 
 	if(req_timeout == 0) update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
 
@@ -429,12 +452,15 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//Submit the MPDU for transmission
 	wlan_mac_MPDU_tx_start(1);
 	wlan_mac_MPDU_tx_start(0);
+	//FIXME: Check if this is a race condition
 
 	//Wait for the MPDU Tx to finish
 	do{
 		tx_status = wlan_mac_get_status();
 
-		if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
+		//TODO: This is a software fix for a MAC_DCF_HW race condition
+		if((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) || ((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_STATE)==WLAN_MAC_STATUS_MPDU_TX_STATE_DONE)) {
+		//if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
 			switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					//Tx didn't require timeout, completed successfully
@@ -482,6 +508,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 			}
 		} else {
 			if( (tx_status&WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE)){
+				//FIXME: Debug
+				//xil_printf("tx_status_old = 0x%08x\n",tx_status);
+				//xil_printf("tx_status_new = 0x%08x\n",wlan_mac_get_status());
 				rx_status = poll_mac_rx();
 			}
 		}
@@ -681,6 +710,7 @@ inline u32 poll_mac_rx(){
 		}
 		//wlan_mac_dcf_hw_unblock_rx_phy();
 	}
+
 	return return_status;
 }
 

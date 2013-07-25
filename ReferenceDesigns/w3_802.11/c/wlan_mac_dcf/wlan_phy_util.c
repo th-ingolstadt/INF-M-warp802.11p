@@ -110,8 +110,8 @@ void wlan_phy_init() {
 	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 4); //Disable RSSI pkt det with high thresh
 	
 	//Configure auto-corr pkt det
-//	wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
-	wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
+	wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
+//	wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
 
 	//Enable zero-tail in FEC decoder
 	//Xil_Out32(WLAN_RX_FEC_CFG, Xil_In32(WLAN_RX_FEC_CFG) | 0x4);
@@ -199,12 +199,12 @@ void wlan_radio_init() {
 
 	//Set Tx gains
 	radio_controller_setTxGainSource(RC_BASEADDR, RC_RFA, RC_GAINSRC_REG);
-//	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXGAIN_BB, 2);
-//	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 45);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXGAIN_BB, 2);
+	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 45);
 	//TODO: With this much TX gain, we are very likely seeing some clipping at the TX. That said, I haven't seen any performance
 	//degradation from it. I have seen a big boost in range with the higher power.
-	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXGAIN_BB, 3);
-	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 60);
+//	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXGAIN_BB, 3);
+//	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 60);
 	
 	//Set misc radio params
 	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXLINEARITY_PADRIVER, 0);
