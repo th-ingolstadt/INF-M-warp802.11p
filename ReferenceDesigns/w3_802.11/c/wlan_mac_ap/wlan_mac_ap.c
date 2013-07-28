@@ -18,13 +18,14 @@
 //WARP includes
 #include "wlan_lib.h"
 #include "wlan_mac_util.h"
-#include "wlan_mac_ap.h"
 #include "wlan_mac_packet_types.h"
+#include "wlan_mac_queue.h"
+#include "wlan_mac_ap.h"
 
 
 #define ENABLE_RATE_ADAPTATION 0
 
-#define BEACON_INTERVAL_MS (100)
+#define BEACON_INTERVAL_MS (10000)
 #define BEACON_INTERVAL_US (BEACON_INTERVAL_MS*1000)
 
 #define MAX_RETRY 7
@@ -77,6 +78,7 @@ int main(){
 	}
 
 	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
+	wlan_mac_util_set_mpdu_tx_callback((void*)mpdu_transmit);
 
 	//create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
@@ -134,7 +136,11 @@ int main(){
 		poll_schedule();
 
 		//Poll Ethernet
-		if(is_tx_buffer_empty()) wlan_mac_poll_eth(tx_pkt_buf);
+		//if(is_tx_buffer_empty()) wlan_mac_poll_eth(tx_pkt_buf);
+		wlan_mac_poll_eth();
+
+		//Poll Wireless Transmit Queue
+		if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0) wlan_mac_poll_tx_queue();
 
 		//Poll mailbox read msg
 		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
@@ -145,18 +151,25 @@ int main(){
 	return -1;
 }
 
-void ethernet_receive(u8* eth_dest, u8* eth_src, u16 tx_length){
+void ethernet_receive(packet_queue_element* tx_queue, u8* eth_dest, u8* eth_src, u16 tx_length){
 	//Receives the pre-encapsulated Ethernet frames
 
+//void mpdu_transmit_OLD(station_info* station, u16 length, u8 retry_max, u8 flags)
 	u32 i;
 	u8 is_associated = 0;
+	//volatile tx_frame_info frame_info = tx_queue->frame_info;
 
-	u8* mpdu_ptr_u8 = (u8*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
-
-	wlan_create_data_frame((void*) mpdu_ptr_u8, MAC_FRAME_CTRL2_FLAG_FROM_DS, (u8*)(&(eth_dest[0])), (u8*)(&(eeprom_mac_addr[0])), (u8*)(&(eth_src[0])), seq_num++);
+	wlan_create_data_frame((void*) tx_queue->frame, MAC_FRAME_CTRL2_FLAG_FROM_DS, (u8*)(&(eth_dest[0])), (u8*)(&(eeprom_mac_addr[0])), (u8*)(&(eth_src[0])), seq_num++);
+	tx_queue->frame_info.length = tx_length;
 
 	if((memcmp(&(bcast_addr[0]),&(eth_dest[0]),6)==0)){
-		mpdu_transmit(NULL,tx_length,0,0);
+		//mpdu_transmit_OLD(NULL,tx_length,0,0);
+		//TODO: Remember to sent current retry to 0 when popping from queue
+		tx_queue->station_info_ptr = NULL;
+		tx_queue->frame_info.retry_max = 0;
+		tx_queue->frame_info.flags = 0;
+		wlan_mac_queue_push(LOW_PRI_QUEUE_SEL);
+
 	} else {
 		//Check associations
 		//Is this packet meant for a station we are associated with?
@@ -167,28 +180,41 @@ void ethernet_receive(u8* eth_dest, u8* eth_src, u16 tx_length){
 			}
 		}
 		if(is_associated){
-			mpdu_transmit(&(associations[i]),tx_length,MAX_RETRY,TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+			tx_queue->station_info_ptr = &(associations[i]);
+			tx_queue->frame_info.retry_max = MAX_RETRY;
+			tx_queue->frame_info.flags = TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO;
+			wlan_mac_queue_push(LOW_PRI_QUEUE_SEL);
+
+		//	mpdu_transmit_OLD(&(associations[i]),tx_length,MAX_RETRY,TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 		}
 	}
 }
 
 void beacon_transmit(){
  	u16 tx_length;
-	if(is_tx_buffer_empty()){
-		tx_length = wlan_create_beacon_probe_frame((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET), MAC_FRAME_CTRL1_SUBTYPE_BEACON, bcast_addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
-		mpdu_transmit(NULL,tx_length,0,TX_MPDU_FLAGS_FILL_TIMESTAMP);
+ 	packet_queue_element* tx_queue;
+ 	tx_queue = wlan_mac_queue_get_write_element(LOW_PRI_QUEUE_SEL);
+ 	if(tx_queue != NULL){
+		tx_length = wlan_create_beacon_probe_frame((void*)(tx_queue->frame), MAC_FRAME_CTRL1_SUBTYPE_BEACON, bcast_addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
+		tx_queue->station_info_ptr = NULL;
+		tx_queue->frame_info.length = tx_length;
+		tx_queue->frame_info.flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
+		wlan_mac_queue_push(LOW_PRI_QUEUE_SEL);
+		//mpdu_transmit_OLD(NULL,tx_length,0,TX_MPDU_FLAGS_FILL_TIMESTAMP);
 	}
+
+
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
 }
 
-void wait_for_tx_accept(){
+//void wait_for_tx_accept(){
 	//This function blocks until the cpu_high_status is changed to no longer waiting for IPC ACCEPT
-	while(cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT){
-		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
-			process_ipc_msg_from_low(&ipc_msg_from_low);
-		}
-	}
-}
+//	while(cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT){
+//		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
+//			process_ipc_msg_from_low(&ipc_msg_from_low);
+//		}
+//	}
+//}
 
 void process_ipc_msg_from_low(wlan_ipc_msg* msg){
 	u8 rx_pkt_buf;
@@ -233,6 +259,7 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg){
 					} else {
 						tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 						tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
+						wlan_mac_poll_tx_queue();
 					}
 				break;
 				case IPC_MBOX_CMD_TX_MPDU_DONE:
@@ -254,10 +281,6 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg){
 					warp_printf(PL_ERROR, "Unknown IPC message type %d\n",IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
 				break;
 			}
-
-
-
-
 		break;
 		case IPC_MBOX_GRP_MAC_ADDR:
 			memcpy((void*) &(eeprom_mac_addr[0]), (void*) &(ipc_msg_from_low_payload[0]), 6);
@@ -266,7 +289,7 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg){
 		case IPC_MBOX_GRP_CPU_STATUS:
 			cpu_low_status = ipc_msg_from_low_payload[0];
 			if(cpu_low_status & CPU_STATUS_EXCEPTION){
-				warp_printf(PL_ERROR, "An unrecoverable exception has occured in CPU_LOW, halting...\n");
+				warp_printf(PL_ERROR, "An unrecoverable exception has occurred in CPU_LOW, halting...\n");
 				warp_printf(PL_ERROR, "Reason code: %d\n", ipc_msg_from_low_payload[1]);
 				while(1){}
 			}
@@ -286,6 +309,7 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 	mac_header_80211* rx_80211_header;
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
+	packet_queue_element* tx_queue;
 
 	u32 i;
 
@@ -330,28 +354,49 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 					}
 					mpdu_ptr_u8 += mpdu_ptr_u8[1]+2; //Move up to the next tag
 				}
-				if(send_response && is_tx_buffer_empty()){
-					tx_length = wlan_create_beacon_probe_frame((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET), MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
-					mpdu_transmit(NULL,tx_length,MAX_RETRY,(TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO));
+				if(send_response){
+					tx_queue = wlan_mac_queue_get_write_element(HIGH_PRI_QUEUE_SEL);
+					if(tx_queue != NULL){
+						tx_length = wlan_create_beacon_probe_frame((void*)(tx_queue->frame), MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
+						tx_queue->station_info_ptr = NULL;
+						tx_queue->frame_info.length = tx_length;
+						tx_queue->frame_info.retry_max = MAX_RETRY;
+						tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+						wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+					}
 					return;
 				}
 			}
 		break;
 
 		case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication Packet
-			if(memcmp(rx_80211_header->address_3,eeprom_mac_addr,6)==0 && is_tx_buffer_empty()){
+			if(memcmp(rx_80211_header->address_3,eeprom_mac_addr,6)==0){
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
 						case AUTH_ALGO_OPEN_SYSTEM:
 							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
-								tx_length = wlan_create_auth_frame((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET), AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
-								mpdu_transmit(NULL,tx_length,MAX_RETRY,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO));
+								tx_queue = wlan_mac_queue_get_write_element(HIGH_PRI_QUEUE_SEL);
+								if(tx_queue != NULL){
+									tx_length = wlan_create_auth_frame((void*)(tx_queue->frame), AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+									tx_queue->station_info_ptr = NULL;
+									tx_queue->frame_info.length = tx_length;
+									tx_queue->frame_info.retry_max = MAX_RETRY;
+									tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+									wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+								}
 								return;
 							}
 						break;
 						default:
-							tx_length = wlan_create_auth_frame((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET), AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
-							mpdu_transmit(NULL,tx_length,MAX_RETRY,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO));
+							tx_queue = wlan_mac_queue_get_write_element(HIGH_PRI_QUEUE_SEL);
+							if(tx_queue != NULL){
+								tx_length = wlan_create_auth_frame((void*)(tx_queue->frame), AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+								tx_queue->station_info_ptr = NULL;
+								tx_queue->frame_info.length = tx_length;
+								tx_queue->frame_info.retry_max = MAX_RETRY;
+								tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+								wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+							}
 							warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
 							return;
 						break;
@@ -373,13 +418,22 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 					}
 				}
 
-				if(allow_association && is_tx_buffer_empty()){
+				if(allow_association){
 					//Keep track of this association of this association
 					memcpy(&(associations[i].addr[0]),rx_80211_header->address_2,6);
 					associations[i].tx_rate = WLAN_MAC_RATE_QPSK34; //Default tx_rate for this station. Rate adaptation may change this value.
 
-					tx_length = wlan_create_association_response_frame((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET), MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, STATUS_SUCCESS, 0xC000 | associations[i].AID,eeprom_mac_addr);
-					mpdu_transmit(NULL,tx_length,MAX_RETRY,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO));
+					//tx_length = wlan_create_association_response_frame((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET), MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, STATUS_SUCCESS, 0xC000 | associations[i].AID,eeprom_mac_addr);
+					//mpdu_transmit_OLD(NULL,tx_length,MAX_RETRY,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO));
+					tx_queue = wlan_mac_queue_get_write_element(HIGH_PRI_QUEUE_SEL);
+					if(tx_queue != NULL){
+						tx_length = wlan_create_association_response_frame((void*)(tx_queue->frame), MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, STATUS_SUCCESS, 0xC000 | associations[i].AID,eeprom_mac_addr);
+						tx_queue->station_info_ptr = NULL;
+						tx_queue->frame_info.length = tx_length;
+						tx_queue->frame_info.retry_max = MAX_RETRY;
+						tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+						wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+					}
 					xil_printf("\n\nAssociation:\n");
 					print_associations();
 
@@ -433,7 +487,7 @@ int is_tx_buffer_empty(){
 	}
 }
 
-void mpdu_transmit(station_info* station, u16 length, u8 retry_max, u8 flags){
+/*void mpdu_transmit_OLD(station_info* station, u16 length, u8 retry_max, u8 flags){
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
@@ -468,16 +522,73 @@ void mpdu_transmit(station_info* station, u16 length, u8 retry_max, u8 flags){
 	} else {
 		cpu_high_status |= CPU_STATUS_WAIT_FOR_IPC_ACCEPT;
 		ipc_mailbox_write_msg(&ipc_msg_to_low);
-		wait_for_tx_accept();
+		//TODO: wait_for_tx_accept();
+	}
+	return;
+}*/
+
+void mpdu_transmit(packet_queue_element* tx_queue){
+	wlan_ipc_msg ipc_msg_to_low;
+	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	station_info* station = tx_queue->station_info_ptr;
+
+	if(is_tx_buffer_empty()){
+		//xil_printf("\nmpdu_transmit:\n");
+		//xil_printf("len = %d, flags = 0x%x, first byte: 0x%x", tx_queue->frame_info.length, tx_queue->frame_info.flags, tx_queue->frame[0]);
+
+
+		//TODO: Replace with DMA
+		memcpy((void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), (void*)&(tx_queue->frame_info), tx_queue->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+		//
+
+		if(station == NULL){
+			//Broadcast transmissions have no station information, so we default
+			//to a nominal rate
+			tx_mpdu->AID = 0;
+			tx_mpdu->rate = WLAN_MAC_RATE_BPSK12;
+		} else {
+			tx_mpdu->AID = station->AID;
+			#if ENABLE_RATE_ADAPTATION
+				tx_mpdu->rate = wlan_mac_util_get_tx_rate(station);
+			#else
+				tx_mpdu->rate = WLAN_MAC_RATE_QPSK34;
+			#endif
+		}
+
+		tx_mpdu->state = TX_MPDU_STATE_READY;
+		tx_mpdu->retry_count = 0;
+
+
+		//xil_printf("\n");
+		//xil_printf("tx_mpdu->length = %d\n",tx_mpdu->length);
+		//xil_printf("tx_mpdu->rate =   %d\n",tx_mpdu->rate);
+		//xil_printf("tx_mpdu->flags =   0x%02x\n",tx_mpdu->flags);
+		//xil_printf("tx_mpdu->retry_max =   %d\n",tx_mpdu->retry_max);
+		//xil_printf("tx_queue->frame[0] =   0x%x\n",tx_queue->frame[0]);
+
+
+		ipc_msg_to_low.msg_id = (IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CMD)) | (IPC_MBOX_MSG_ID_TO_MSG(IPC_MBOX_CMD_TX_MPDU_READY));
+		ipc_msg_to_low.arg0 = tx_pkt_buf;
+		ipc_msg_to_low.num_payload_words = 0;
+
+		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			warp_printf(PL_ERROR,"Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
+		} else {
+			cpu_high_status |= CPU_STATUS_WAIT_FOR_IPC_ACCEPT;
+			ipc_mailbox_write_msg(&ipc_msg_to_low);
+		}
+	} else {
+		warp_printf(PL_ERROR, "Bad state in mpdu_transmit. Attempting to transmit but tx_buffer %d is not empty\n",tx_pkt_buf);
 	}
 	return;
 }
+
 
 void print_associations(){
 	u64 timestamp = get_usec_timestamp();
 	u32 i;
 
-	write_hex_display(next_free_assoc_index);
+	//write_hex_display(next_free_assoc_index);
 	xil_printf("\n@[%x], current associations:\n",timestamp);
 		xil_printf("|-ID-|-----------MAC ADDR----------|\n");
 	for(i=0;i<next_free_assoc_index;i++){
@@ -490,18 +601,5 @@ void print_associations(){
 		xil_printf("|----------------------------------|\n");
 }
 
-void write_hex_display(u8 val){
-	//u8 val: 2 digit decimal value to be printed to hex
-	//CPU_LOW has the User I/O core, so this function wraps a call to the mailbox to command the CPU_LOW to display
-	//something to the hex displays
-
-	val = val&63; //[0,99]
-
-	wlan_ipc_msg ipc_msg_to_low;
-	ipc_msg_to_low.msg_id = (IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CMD)) | (IPC_MBOX_MSG_ID_TO_MSG(IPC_MBOX_CMD_WRITE_HEX));
-	ipc_msg_to_low.arg0 = val;
-	ipc_msg_to_low.num_payload_words = 0;
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-}
 
 

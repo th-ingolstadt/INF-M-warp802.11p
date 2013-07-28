@@ -15,6 +15,7 @@
 #include "wlan_lib.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
+#include "wlan_mac_queue.h"
 
 XAxiEthernet ETH_A_MAC_Instance;
 XAxiEthernet_Config *ETH_A_MAC_CFG_ptr;
@@ -23,7 +24,7 @@ XLlFifo* FIFO_INST;
 
 static XGpio GPIO_timestamp;
 
-static function_ptr_t eth_rx_callback;
+static function_ptr_t eth_rx_callback, mpdu_tx_callback;
 
 //Scheduler
 #define SCHEDULER_NUM_EVENTS 3
@@ -33,11 +34,16 @@ static u64 scheduler_timestamps[SCHEDULER_NUM_EVENTS];
 
 void wlan_mac_util_init(){
 	wlan_eth_init();
+	wlan_mac_queue_init();
 	gpio_timestamp_initialize();
 }
 
 void wlan_mac_util_set_eth_rx_callback(void(*callback)()){
 	eth_rx_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_mpdu_tx_callback(void(*callback)()){
+	mpdu_tx_callback = (function_ptr_t)callback;
 }
 
 void gpio_timestamp_initialize(){
@@ -152,7 +158,7 @@ inline void poll_schedule(){
 	}
 }
 
-inline void wlan_mac_poll_eth(u8 tx_pkt_buf){
+inline void wlan_mac_poll_eth(){
 	u32 size;
 	void * eth_start_ptr;
 	ethernet_header* eth_hdr;
@@ -163,41 +169,64 @@ inline void wlan_mac_poll_eth(u8 tx_pkt_buf){
 	u8 eth_src[6];
 
 	u8* mpdu_ptr_u8;
+	packet_queue_element* tx_queue;
+
 
 	if(XLlFifo_IsRxEmpty((XLlFifo *)FIFO_INST)){
 			return;
 	} else {
 		if(XLlFifo_RxOccupancy((XLlFifo *)FIFO_INST)) {
+			tx_queue = wlan_mac_queue_get_write_element(LOW_PRI_QUEUE_SEL);
 
-			size = XLlFifo_RxGetLen((XLlFifo *)FIFO_INST);
-			mpdu_ptr_u8 = (u8*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
-			eth_start_ptr = (void*)mpdu_ptr_u8+sizeof(mac_header_80211)+sizeof(llc_header)-sizeof(ethernet_header);
-			XLlFifo_Read((XLlFifo *)FIFO_INST, (void*) eth_start_ptr, size);
-			tx_length = size-sizeof(ethernet_header)+sizeof(llc_header)+sizeof(mac_header_80211);
-			eth_hdr = (ethernet_header*)eth_start_ptr;
-			llc_hdr = (llc_header*)((void*)mpdu_ptr_u8+sizeof(mac_header_80211));
+			if(tx_queue != NULL){
+				mpdu_ptr_u8 = tx_queue->frame;
+				size = XLlFifo_RxGetLen((XLlFifo *)FIFO_INST);
+				eth_start_ptr = (void*)mpdu_ptr_u8+sizeof(mac_header_80211)+sizeof(llc_header)-sizeof(ethernet_header);
+				XLlFifo_Read((XLlFifo *)FIFO_INST, (void*) eth_start_ptr, size);
+				tx_length = size-sizeof(ethernet_header)+sizeof(llc_header)+sizeof(mac_header_80211);
+				eth_hdr = (ethernet_header*)eth_start_ptr;
+				llc_hdr = (llc_header*)((void*)mpdu_ptr_u8+sizeof(mac_header_80211));
 
-			memcpy((&(eth_src[0])),(&(eth_hdr->address_source[0])),6);
-			memcpy((&(eth_dest[0])),(&(eth_hdr->address_destination[0])),6);
+				memcpy((&(eth_src[0])),(&(eth_hdr->address_source[0])),6);
+				memcpy((&(eth_dest[0])),(&(eth_hdr->address_destination[0])),6);
 
-			llc_hdr->dsap = LLC_SNAP;
-			llc_hdr->ssap = LLC_SNAP;
-			llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
-			bzero((void *)(&(llc_hdr->org_code[0])),3); //Org Code: Encapsulated Ethernet
+				llc_hdr->dsap = LLC_SNAP;
+				llc_hdr->ssap = LLC_SNAP;
+				llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
+				bzero((void *)(&(llc_hdr->org_code[0])),3); //Org Code: Encapsulated Ethernet
 
-			switch(eth_hdr->type){
-				case ETH_TYPE_ARP:
-					llc_hdr->type = LLC_TYPE_ARP;
-					eth_rx_callback(&(eth_dest[0]),&(eth_src[0]),tx_length);
-				break;
-				case ETH_TYPE_IP:
-					llc_hdr->type = LLC_TYPE_IP;
-					eth_rx_callback(&(eth_dest[0]),&(eth_src[0]),tx_length);
-				break;
+				switch(eth_hdr->type){
+					case ETH_TYPE_ARP:
+						llc_hdr->type = LLC_TYPE_ARP;
+						eth_rx_callback(tx_queue,&(eth_dest[0]),&(eth_src[0]),tx_length);
+					break;
+					case ETH_TYPE_IP:
+						llc_hdr->type = LLC_TYPE_IP;
+						eth_rx_callback(tx_queue,&(eth_dest[0]),&(eth_src[0]),tx_length);
+					break;
+				}
 			}
 		}
 	}
 	return;
+}
+
+inline void wlan_mac_poll_tx_queue(){
+	packet_queue_element* tx_queue;
+
+	//Poll high priority queue
+	tx_queue = wlan_mac_queue_get_read_element(HIGH_PRI_QUEUE_SEL);
+	if(tx_queue != NULL){
+		mpdu_tx_callback(tx_queue);
+		wlan_mac_queue_pop(HIGH_PRI_QUEUE_SEL);
+	} else {
+		//Poll low priority queue
+		tx_queue = wlan_mac_queue_get_read_element(LOW_PRI_QUEUE_SEL);
+		if(tx_queue != NULL){
+			mpdu_tx_callback(tx_queue);
+			wlan_mac_queue_pop(LOW_PRI_QUEUE_SEL);
+		}
+	}
 }
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
@@ -238,3 +267,18 @@ u8 wlan_mac_util_get_tx_rate(station_info* station){
 	}
 	return station->tx_rate;
 }
+
+void write_hex_display(u8 val){
+	//u8 val: 2 digit decimal value to be printed to hex
+	//CPU_LOW has the User I/O core, so this function wraps a call to the mailbox to command the CPU_LOW to display
+	//something to the hex displays
+
+	val = val&63; //[0,99]
+
+	wlan_ipc_msg ipc_msg_to_low;
+	ipc_msg_to_low.msg_id = (IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CMD)) | (IPC_MBOX_MSG_ID_TO_MSG(IPC_MBOX_CMD_WRITE_HEX));
+	ipc_msg_to_low.arg0 = val;
+	ipc_msg_to_low.num_payload_words = 0;
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+}
+

@@ -57,7 +57,7 @@ int wlan_create_beacon_probe_frame(void* pkt_buf, u8 frame_control_1, u8* addres
 	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
 	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
+	txBufferPtr_u8[1] = 5; //tag length... doesn't include the tag itself and the tag length
 	txBufferPtr_u8[2] = (0x02); 				//1Mbps  (DSSS)
 	txBufferPtr_u8[3] = RATE_BASIC | (0x0C); 				//6Mbps  (BPSK,   1/2)
 	txBufferPtr_u8[4] = RATE_BASIC | (0x12); 				//9Mbps  (BPSK,   3/4)
@@ -187,7 +187,7 @@ int wlan_create_association_response_frame(void* pkt_buf, u8 frame_control_1, u8
 	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
 	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
+	txBufferPtr_u8[1] = 5; //tag length... doesn't include the tag itself and the tag length
 	txBufferPtr_u8[2] = (0x02); 				//1Mbps  (DSSS)
 	txBufferPtr_u8[3] = RATE_BASIC | (0x0C); 				//6Mbps  (BPSK,   1/2)
 	txBufferPtr_u8[4] = RATE_BASIC | (0x12); 				//9Mbps  (BPSK,   3/4)

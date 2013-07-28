@@ -66,10 +66,13 @@ void gpio_timestamp_initialize();
 inline u64 get_usec_timestamp();
 void wlan_eth_init();
 void wlan_mac_send_eth(void* mpdu, u16 length);
-inline void wlan_mac_poll_eth(u8 tx_pkt_buf);
+inline void wlan_mac_poll_eth();
 void wlan_mac_util_set_eth_rx_callback(void(*callback)());
+void wlan_mac_util_set_mpdu_tx_callback(void(*callback)());
 void wlan_mac_schedule_event(u32 delay, void(*callback)());
 inline void poll_schedule();
+inline void wlan_mac_poll_tx_queue();
+void write_hex_display(u8 val);
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 u8 wlan_mac_util_get_tx_rate(station_info* station);
