@@ -14,6 +14,7 @@
 #include "xtmrctr.h"
 #include "xio.h"
 #include "string.h"
+#include "xaxicdma.h"
 
 //WARP includes
 #include "wlan_lib.h"
@@ -34,6 +35,8 @@
 u8 SSID[SSID_LEN] = "WARP";
 
 u16 seq_num;
+
+XAxiCdma cdma_inst;
 
 //The last entry in associations[MAX_ASSOCIATIONS][] is swap space
 //#define ASSOC_ENTRY_SIZE_BYTES 8
@@ -62,6 +65,7 @@ u8 tx_pkt_buf;
 
 int main(){
 	wlan_ipc_msg ipc_msg_to_low;
+	u32 status;
 	u32 ipc_msg_to_low_payload[1];
 	tx_frame_info* tx_mpdu;
 	u32 i;
@@ -71,6 +75,17 @@ int main(){
 
 	wlan_lib_init();
 	wlan_mac_util_init();
+
+	//Initialize the central DMA (CDMA) driver
+	XAxiCdma_Config *cdma_cfg_ptr;
+	cdma_cfg_ptr = XAxiCdma_LookupConfig(XPAR_AXI_CDMA_0_DEVICE_ID);
+	status = XAxiCdma_CfgInitialize(&cdma_inst, cdma_cfg_ptr, cdma_cfg_ptr->BaseAddress);
+	if (status != XST_SUCCESS) {
+		warp_printf(PL_ERROR,"Error initializing CDMA: %d\n", status);
+	}
+	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
+
+
 
 	for(i=0;i < NUM_TX_PKT_BUFS; i++){
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
@@ -531,15 +546,43 @@ void mpdu_transmit(packet_queue_element* tx_queue){
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station_info* station = tx_queue->station_info_ptr;
+	u32 start_addr;
+	int transfer_len;
+	int safe_transfer_len;
 
 	if(is_tx_buffer_empty()){
 		//xil_printf("\nmpdu_transmit:\n");
 		//xil_printf("len = %d, flags = 0x%x, first byte: 0x%x", tx_queue->frame_info.length, tx_queue->frame_info.flags, tx_queue->frame[0]);
 
 
-		//TODO: Replace with DMA
-		memcpy((void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), (void*)&(tx_queue->frame_info), tx_queue->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+
+		//memcpy((void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), (void*)&(tx_queue->frame_info), tx_queue->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 		//
+
+		//For now, this is just a one-shot DMA transfer that effectively blocks
+		while(XAxiCdma_IsBusy(&cdma_inst)) {}
+		XAxiCdma_SimpleTransfer(&cdma_inst, (u32)&(tx_queue->frame_info), (u32)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), tx_queue->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE, NULL, NULL);
+		while(XAxiCdma_IsBusy(&cdma_inst)) {}
+
+		//TODO:
+		//We break up the transfer from TX queue to the outgoing tx_pkt_buf into two DMA transfers.
+		//	1)	The first will cover the frame_info metadata + PHY_TX_PKT_BUF_PHY_HDR_SIZE + an 802.11 header's worth of bytes + 8 (another u64 for the timestamp in beacons)
+		//		CPU_HIGH will block on this transfer.
+		//	2)	The second will cover the rest of the frame. CPU_HIGH will not block on this transfer and will immediately notify CPU_LOW that a frame
+		//		is ready to be transmitted.
+
+		//start_addr = (u32)&(tx_queue->frame_info);
+		//transfer_len = tx_queue->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
+		//safe_transfer_len = sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE + sizeof(mac_header_80211) + 8;
+
+		//while(XAxiCdma_IsBusy(&cdma_inst)) {}
+		//XAxiCdma_SimpleTransfer(&cdma_inst, start_addr, (u32)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), min(transfer_len,safe_transfer_len), NULL, NULL);
+
+		//transfer_len -= safe_transfer_len;
+
+		//while(XAxiCdma_IsBusy(&cdma_inst)) {}
+
+		//if(transfer_len > 0) XAxiCdma_SimpleTransfer(&cdma_inst, start_addr+transfer_len, (u32)TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+transfer_len, transfer_len, NULL, NULL);
 
 		if(station == NULL){
 			//Broadcast transmissions have no station information, so we default
