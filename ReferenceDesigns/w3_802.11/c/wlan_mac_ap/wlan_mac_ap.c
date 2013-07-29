@@ -23,7 +23,7 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_ap.h"
 
-
+//TODO: This is a work-in-progress. Leave disabled for now.
 #define ENABLE_RATE_ADAPTATION 0
 
 #define BEACON_INTERVAL_MS (100)
@@ -145,6 +145,7 @@ int main(){
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
+	//wlan_mac_schedule_event(100, (void*)queue_size_print);
 
 	while(1){
 		//Poll Scheduler
@@ -220,6 +221,11 @@ void beacon_transmit(){
 
 
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
+}
+
+void queue_size_print(){
+	write_hex_display(wlan_mac_queue_get_size(LOW_PRI_QUEUE_SEL));
+	wlan_mac_schedule_event(100, (void*)queue_size_print);
 }
 
 void process_ipc_msg_from_low(wlan_ipc_msg* msg){
@@ -327,7 +333,7 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			//Check if duplicate
 			if(associations[i].seq !=0  && associations[i].seq == rx_seq){
-				xil_printf("AID: %d, Duplicate seq: %d\n",associations[i].AID,associations[i].seq);
+				//xil_printf("AID: %d, Duplicate seq: %d\n",associations[i].AID,associations[i].seq);
 				return;
 			} else {
 				associations[i].seq = rx_seq;
@@ -341,8 +347,10 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 			if(is_associated){
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) wlan_mac_send_eth(mpdu,length);
 			} else {
-				//TODO: trigger a re-association
-				warp_printf(PL_ERROR, "Data from non-associated station: [%x %x %x %x %x %x]\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
+				//TODO: trigger a re-association & handle IPv6 Multicast
+			//	xil_printf("Rx Pkt Buf Addr: 0x%08x\n", pkt_buf_addr);
+			//	warp_printf(PL_ERROR, "Data from non-associated station: [%x %x %x %x %x %x]\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
+			//	warp_printf(PL_ERROR, "destined for: 					 [%x %x %x %x %x %x]\n", rx_80211_header->address_1[0],rx_80211_header->address_1[1],rx_80211_header->address_1[2],rx_80211_header->address_1[3],rx_80211_header->address_1[4],rx_80211_header->address_1[5]);
 			}
 
 		break;
@@ -615,7 +623,7 @@ void print_associations(){
 	u64 timestamp = get_usec_timestamp();
 	u32 i;
 
-	//write_hex_display(next_free_assoc_index);
+	write_hex_display(next_free_assoc_index);
 	xil_printf("\n@[%x], current associations:\n",timestamp);
 		xil_printf("|-ID-|-----------MAC ADDR----------|\n");
 	for(i=0;i<next_free_assoc_index;i++){

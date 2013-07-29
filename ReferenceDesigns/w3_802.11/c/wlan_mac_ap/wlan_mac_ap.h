@@ -21,6 +21,7 @@ void mpdu_transmit(packet_queue_element* tx_queue);
 void beacon_transmit();
 void process_ipc_msg_from_low(wlan_ipc_msg* msg);
 void print_associations();
+void queue_size_print();
 
 
 #endif /* WLAN_MAC_LOW_H_ */
