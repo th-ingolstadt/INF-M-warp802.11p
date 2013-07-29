@@ -106,8 +106,8 @@ void wlan_phy_init() {
 	wlan_phy_rx_lts_corr_cfg(30000, 250);
 
 	//Configure RSSI pkt det
-	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*1023), 4); //Disable RSSI pkt det with high thresh
-//	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 4); //Disable RSSI pkt det with high thresh
+	//wlan_phy_rx_pktDet_RSSI_cfg(8, (8*1023), 4); //Disable RSSI pkt det with high thresh
+	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 8); //Disable RSSI pkt det with high thresh
 	
 	//Configure auto-corr pkt det
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
@@ -131,7 +131,7 @@ void wlan_phy_init() {
 	REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);//De-assert all starts
 
 	//Set Tx duration extension, in units of sample periods (120=6usec)
-	wlan_phy_tx_set_extension((120 - 31));
+	wlan_phy_tx_set_extension(120);
 
 	//Set extension from last samp output to RF Tx -> Rx transition
 	wlan_phy_tx_set_txen_extension(60);
