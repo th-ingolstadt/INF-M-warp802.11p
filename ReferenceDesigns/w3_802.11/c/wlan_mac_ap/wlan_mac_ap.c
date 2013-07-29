@@ -222,15 +222,6 @@ void beacon_transmit(){
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
 }
 
-//void wait_for_tx_accept(){
-	//This function blocks until the cpu_high_status is changed to no longer waiting for IPC ACCEPT
-//	while(cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT){
-//		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
-//			process_ipc_msg_from_low(&ipc_msg_from_low);
-//		}
-//	}
-//}
-
 void process_ipc_msg_from_low(wlan_ipc_msg* msg){
 	u8 rx_pkt_buf;
 	u16 i;
@@ -327,25 +318,31 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 	packet_queue_element* tx_queue;
 
 	u32 i;
+	u8 is_associated = 0;
+	u8 association_index;
+
+	for(i=0;i<next_free_assoc_index;i++){
+		if((memcmp(&(associations[i].addr[0]),rx_80211_header->address_2,6)==0)){
+			is_associated = 1;
+			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+			//Check if duplicate
+			if(associations[i].seq !=0  && associations[i].seq == rx_seq){
+				xil_printf("AID: %d, Duplicate seq: %d\n",associations[i].AID,associations[i].seq);
+				return;
+			} else {
+				associations[i].seq = rx_seq;
+				association_index = i;
+			}
+		}
+	}
 
 	switch(rx_80211_header->frame_control_1){
-
 		case (MAC_FRAME_CTRL1_SUBTYPE_DATA): //Data Packet
-			for(i=0;i<next_free_assoc_index;i++){
-				if((memcmp(&(associations[i].addr[0]),rx_80211_header->address_2,6)==0)){
-
-					rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-
-					//Check if duplicate
-					if(associations[i].seq !=0  && associations[i].seq == rx_seq){
-						//Data was duplicated. Here we just drop it and don't pass it up
-					} else {
-						//Data not duplicated
-						associations[i].seq = rx_seq;
-						if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) wlan_mac_send_eth(mpdu,length);
-					}
-					return;
-				}
+			if(is_associated){
+				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) wlan_mac_send_eth(mpdu,length);
+			} else {
+				//TODO: trigger a re-association
+				warp_printf(PL_ERROR, "Data from non-associated station: [%x %x %x %x %x %x]\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
 			}
 
 		break;
@@ -546,15 +543,11 @@ void mpdu_transmit(packet_queue_element* tx_queue){
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station_info* station = tx_queue->station_info_ptr;
-	u32 start_addr;
-	int transfer_len;
-	int safe_transfer_len;
+	//u32 start_addr;
+	//int transfer_len;
+	//int safe_transfer_len;
 
 	if(is_tx_buffer_empty()){
-		//xil_printf("\nmpdu_transmit:\n");
-		//xil_printf("len = %d, flags = 0x%x, first byte: 0x%x", tx_queue->frame_info.length, tx_queue->frame_info.flags, tx_queue->frame[0]);
-
-
 
 		//memcpy((void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), (void*)&(tx_queue->frame_info), tx_queue->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 		//
@@ -600,15 +593,6 @@ void mpdu_transmit(packet_queue_element* tx_queue){
 
 		tx_mpdu->state = TX_MPDU_STATE_READY;
 		tx_mpdu->retry_count = 0;
-
-
-		//xil_printf("\n");
-		//xil_printf("tx_mpdu->length = %d\n",tx_mpdu->length);
-		//xil_printf("tx_mpdu->rate =   %d\n",tx_mpdu->rate);
-		//xil_printf("tx_mpdu->flags =   0x%02x\n",tx_mpdu->flags);
-		//xil_printf("tx_mpdu->retry_max =   %d\n",tx_mpdu->retry_max);
-		//xil_printf("tx_queue->frame[0] =   0x%x\n",tx_queue->frame[0]);
-
 
 		ipc_msg_to_low.msg_id = (IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CMD)) | (IPC_MBOX_MSG_ID_TO_MSG(IPC_MBOX_CMD_TX_MPDU_READY));
 		ipc_msg_to_low.arg0 = tx_pkt_buf;

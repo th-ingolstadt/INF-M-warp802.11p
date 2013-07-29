@@ -19,7 +19,6 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length);
 int is_tx_buffer_empty();
 void mpdu_transmit(packet_queue_element* tx_queue);
 void beacon_transmit();
-void wait_for_tx_accept();
 void process_ipc_msg_from_low(wlan_ipc_msg* msg);
 void print_associations();
 
