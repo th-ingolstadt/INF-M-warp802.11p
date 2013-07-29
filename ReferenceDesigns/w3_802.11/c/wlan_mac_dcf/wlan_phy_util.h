@@ -110,6 +110,7 @@
 #define WLAN_TX_REG_SCALING		XPAR_WLAN_PHY_TX_MEMMAP_OUTPUT_SCALING
 #define WLAN_TX_REG_START		XPAR_WLAN_PHY_TX_MEMMAP_TX_START
 #define WLAN_TX_REG_FFT_CFG		XPAR_WLAN_PHY_TX_MEMMAP_FFT_CONFIG
+#define WLAN_TX_REG_TIMING		XPAR_WLAN_PHY_TX_MEMMAP_TIMING
 
 #define WLAN_AGC_REG_RESET				XPAR_WLAN_AGC_MEMMAP_RESET
 #define WLAN_AGC_REG_TIMING_AGC			XPAR_WLAN_AGC_MEMMAP_TIMING_AGC
@@ -155,10 +156,11 @@
 #define wlan_phy_rx_lts_corr_cfg(corr_thresh, corr_timeout) \
 	Xil_Out32(WLAN_RX_LTS_CFG, ( (corr_thresh & 0x3FFFF) | ((corr_timeout & 0xFF)<<24)))
 
-#define wlan_phy_tx_set_extension(d) Xil_Out32(WLAN_TX_REG_FFT_CFG, ( (Xil_In32(WLAN_TX_REG_FFT_CFG) & 0xFF00FFFF) | ((d & 0xFFFF) << 16)))
+#define wlan_phy_tx_set_extension(d) Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFFFF00) | ((d) & 0xFF)))
+#define wlan_phy_tx_set_txen_extension(d) Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFF00FF) | (((d) & 0xFF) << 8)))
 
-#define wlan_phy_rx_set_cca_thresh(d) Xil_Out32(WLAN_RX_PHY_CCA_CFG, ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0xFFFF0000) | (d & 0xFFFF)))
-#define wlan_phy_rx_set_extension(d) Xil_Out32(WLAN_RX_PHY_CCA_CFG, ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0xFF00FFFF) | ((d<<16) & 0xFF0000)))
+#define wlan_phy_rx_set_cca_thresh(d) Xil_Out32(WLAN_RX_PHY_CCA_CFG, ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0xFFFF0000) | ((d) & 0xFFFF)))
+#define wlan_phy_rx_set_extension(d) Xil_Out32(WLAN_RX_PHY_CCA_CFG, ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0xFF00FFFF) | (((d)<<16) & 0xFF0000)))
 
 
 //AGC Macros

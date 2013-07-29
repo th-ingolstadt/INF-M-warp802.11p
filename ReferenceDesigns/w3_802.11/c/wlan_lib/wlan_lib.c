@@ -35,11 +35,12 @@ int wlan_lib_init () {
 	mbox_ConfigPtr = XMbox_LookupConfig(MAILBOX_DEVICE_ID);
 	XMbox_CfgInitialize(&ipc_mailbox, mbox_ConfigPtr, mbox_ConfigPtr->BaseAddress);
 
-	for(i=0; i < NUM_TX_PKT_BUFS; i++){
+	//Unlock all mutexes this CPU might own at boot
+	// Most unlocks will fail harmlessly, but this helps cleanup state on soft reset
+	for(i=0; i < NUM_TX_PKT_BUFS; i++) {
 		unlock_pkt_buf_tx(i);
 	}
-
-	for(i=0; i < NUM_RX_PKT_BUFS; i++){
+	for(i=0; i < NUM_RX_PKT_BUFS; i++) {
 		unlock_pkt_buf_rx(i);
 	}
 

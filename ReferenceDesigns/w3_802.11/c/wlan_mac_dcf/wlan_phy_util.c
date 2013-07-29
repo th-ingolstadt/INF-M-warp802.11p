@@ -132,6 +132,9 @@ void wlan_phy_init() {
 
 	//Set Tx duration extension, in units of sample periods (120=6usec)
 	wlan_phy_tx_set_extension((120 - 31));
+
+	//Set extension from last samp output to RF Tx -> Rx transition
+	wlan_phy_tx_set_txen_extension(60);
 	
 /*********** AGC ***************/
 
@@ -201,6 +204,7 @@ void wlan_radio_init() {
 	radio_controller_setTxGainSource(RC_BASEADDR, RC_RFA, RC_GAINSRC_REG);
 	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXGAIN_BB, 2);
 	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 45);
+
 	//TODO: With this much TX gain, we are very likely seeing some clipping at the TX. That said, I haven't seen any performance
 	//degradation from it. I have seen a big boost in range with the higher power.
 //	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXGAIN_BB, 3);
