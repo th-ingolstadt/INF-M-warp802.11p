@@ -154,6 +154,43 @@ int wlan_create_auth_frame(void* pkt_buf, u16 auth_algorithm,  u16 auth_seq, u16
 
 }
 
+int wlan_create_deauth_frame(void* pkt_buf, u16 reason_code, u8* address1, u8* address2, u8* address3, u16 seq_num, u8* OUI){
+	u32 packetLen_bytes;
+	u8* txBufferPtr_u8;
+
+	txBufferPtr_u8 = (u8*)pkt_buf;
+
+	mac_header_80211* deauth_80211_header;
+	deauth_80211_header = (mac_header_80211*)(txBufferPtr_u8);
+
+	deauth_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_DEAUTH;
+	deauth_80211_header->frame_control_2 = 0;
+
+	//duration can be filled in by CPU_LOW
+	deauth_80211_header->duration_id = 0;
+	memcpy(deauth_80211_header->address_1,address1,6);
+	memcpy(deauth_80211_header->address_2,address2,6);
+	memcpy(deauth_80211_header->address_3,address3,6);
+
+	deauth_80211_header->sequence_control = ((seq_num&0xFFF)<<4);
+
+	deauthentication_frame* deauth_mgmt_header;
+	deauth_mgmt_header = (deauthentication_frame*)(pkt_buf + sizeof(mac_header_80211));
+	deauth_mgmt_header->reason_code = reason_code;
+
+	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(authentication_frame));
+
+	txBufferPtr_u8[0] = 221; //Tag 221: Vendor specific
+	txBufferPtr_u8[1] = 3; //tag length... doesn't include the tag itself and the tag length
+	memcpy(&(txBufferPtr_u8[2]),OUI,3);
+	txBufferPtr_u8+=(3+2);
+
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+
+	return packetLen_bytes;
+
+}
+
 //wlan_create_association_response_frame((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET), ASSOC_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, STATUS_SUCCESS, 0xC000 | associations[i][0],eeprom_mac_addr);
 int wlan_create_association_response_frame(void* pkt_buf, u8 frame_control_1, u8* address1, u8* address2, u8* address3, u16 seq_num, u16 status, u16 AID, u8* OUI) {
 	u32 packetLen_bytes;

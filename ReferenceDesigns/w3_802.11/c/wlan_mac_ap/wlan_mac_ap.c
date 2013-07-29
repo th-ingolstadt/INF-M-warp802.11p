@@ -47,8 +47,6 @@ station_info associations[MAX_ASSOCIATIONS+1];
 u32 next_free_assoc_index;
 
 
-
-
 static u32 mac_param_chan;
 
 wlan_ipc_msg ipc_msg_from_low;
@@ -325,7 +323,6 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 
 	u32 i;
 	u8 is_associated = 0;
-	u8 association_index;
 
 	for(i=0;i<next_free_assoc_index;i++){
 		if((memcmp(&(associations[i].addr[0]),rx_80211_header->address_2,6)==0)){
@@ -337,7 +334,6 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 				return;
 			} else {
 				associations[i].seq = rx_seq;
-				association_index = i;
 			}
 		}
 	}
@@ -347,10 +343,30 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 			if(is_associated){
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) wlan_mac_send_eth(mpdu,length);
 			} else {
-				//TODO: trigger a re-association & handle IPv6 Multicast
-			//	xil_printf("Rx Pkt Buf Addr: 0x%08x\n", pkt_buf_addr);
-			//	warp_printf(PL_ERROR, "Data from non-associated station: [%x %x %x %x %x %x]\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
-			//	warp_printf(PL_ERROR, "destined for: 					 [%x %x %x %x %x %x]\n", rx_80211_header->address_1[0],rx_80211_header->address_1[1],rx_80211_header->address_1[2],rx_80211_header->address_1[3],rx_80211_header->address_1[4],rx_80211_header->address_1[5]);
+				//TODO: Formally adopt conventions from 10.3 in 802.11-2012 for STA state transitions
+
+				if((rx_80211_header->address_3[0] = 0x33) && (rx_80211_header->address_3[1] == 0x33)){
+					//TODO: This is an IPv3 Multicast packet. It should get de-encapsulated and sent over the wire
+
+				} else {
+					warp_printf(PL_WARNING, "Data from non-associated station: [%x %x %x %x %x %x], issuing de-authentication\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
+
+					//Send De-authentication
+					tx_queue = wlan_mac_queue_get_write_element(HIGH_PRI_QUEUE_SEL);
+					if(tx_queue != NULL){
+						tx_length = wlan_create_deauth_frame((void*)(tx_queue->frame), DEAUTH_REASON_NONASSOCIATED_STA, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+						tx_queue->station_info_ptr = NULL;
+						tx_queue->frame_info.length = tx_length;
+						tx_queue->frame_info.retry_max = MAX_RETRY;
+						tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+						wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+					}
+				}
+
+
+
+
+
 			}
 
 		break;
