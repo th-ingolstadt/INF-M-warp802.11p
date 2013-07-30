@@ -136,7 +136,7 @@ void wlan_phy_init() {
 	//Set extension from last samp output to RF Tx -> Rx transition
 	wlan_phy_tx_set_txen_extension(60);
 	
-	wlan_phy_tx_set_scaling(0x5000,0x5000);
+	wlan_phy_tx_set_scaling(0x4000,0x4000);
 
 /*********** AGC ***************/
 
