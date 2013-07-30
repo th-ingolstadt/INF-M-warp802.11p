@@ -467,8 +467,11 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 						tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 						wlan_mac_enqueue(HIGH_PRI_QUEUE_SEL);
 					}
-					xil_printf("\n\nAssociation:\n");
-					print_associations();
+
+					if(is_associated == 0){
+						xil_printf("\n\nAssociation:\n");
+						print_associations();
+					}
 
 					return;
 				}
@@ -497,8 +500,11 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 							//Copy from swap space to current free index
 							memcpy(&(associations[next_free_assoc_index]),&(associations[MAX_ASSOCIATIONS]),sizeof(station_info));
 						}
-						xil_printf("\n\nDisassociation:\n");
-						print_associations();
+
+						if(is_associated == 0){
+							xil_printf("\n\nDisassociation:\n");
+							print_associations();
+						}
 					}
 				}
 		break;
