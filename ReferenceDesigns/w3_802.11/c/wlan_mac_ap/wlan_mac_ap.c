@@ -257,13 +257,12 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg){
 					}
 				break;
 				case IPC_MBOX_CMD_TX_MPDU_ACCEPT:
-					cpu_high_status &= (~CPU_STATUS_WAIT_FOR_IPC_ACCEPT);
-
 					if(tx_pkt_buf != msg->arg0){
 						warp_printf(PL_ERROR,"Received CPU_LOW acceptance of buffer %d, but was expecting buffer %d\n", tx_pkt_buf, msg->arg0);
 					}
 
 					tx_pkt_buf = (tx_pkt_buf + 1) % TX_BUFFER_NUM;
+					cpu_high_status &= (~CPU_STATUS_WAIT_FOR_IPC_ACCEPT);
 					if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 						warp_printf(PL_ERROR,"Error: unable to lock tx pkt_buf %d\n",tx_pkt_buf);
 					} else {
