@@ -349,6 +349,7 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 
 				} else {
 					warp_printf(PL_WARNING, "Data from non-associated station: [%x %x %x %x %x %x], issuing de-authentication\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
+					warp_printf(PL_WARNING, "Address 3: [%x %x %x %x %x %x]\n", rx_80211_header->address_3[0],rx_80211_header->address_3[1],rx_80211_header->address_3[2],rx_80211_header->address_3[3],rx_80211_header->address_3[4],rx_80211_header->address_3[5]);
 
 					//Send De-authentication
 					tx_queue = wlan_mac_queue_get_write_element(HIGH_PRI_QUEUE_SEL);

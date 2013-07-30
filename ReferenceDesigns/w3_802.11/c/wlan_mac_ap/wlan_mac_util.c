@@ -246,7 +246,7 @@ void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
 
 u8 wlan_mac_util_get_tx_rate(station_info* station){
 
-	xil_printf("good_acks: %d, total_missed: %d\n",station->consecutive_good_acks, station->total_missed_acks);
+	//xil_printf("good_acks: %d, total_missed: %d\n",station->consecutive_good_acks, station->total_missed_acks);
 
 	if(station->consecutive_good_acks >= MIN_CONSECUTIVE_GOOD_ACKS){
 		if(station->tx_rate < RATE_ADAPT_MAX_RATE){
