@@ -16,7 +16,7 @@
 #define min(A,B) (((A)<(B))?(A):(B))
 
 
-#define PRINT_LEVEL PL_WARNING
+#define PRINT_LEVEL PL_ERROR
 
 #define PL_NONE		0
 #define PL_ERROR 	1
