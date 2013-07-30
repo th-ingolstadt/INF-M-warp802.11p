@@ -530,10 +530,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							memcpy(&(associations[next_free_assoc_index]), &(associations[MAX_ASSOCIATIONS]), sizeof(station_info));
 						}
 
-						if(is_associated == 0){
-							xil_printf("\n\nDisassociation:\n");
-							print_associations();
-						}
+
+						xil_printf("\n\nDisassociation:\n");
+						print_associations();
+
 					}
 				}
 		break;
