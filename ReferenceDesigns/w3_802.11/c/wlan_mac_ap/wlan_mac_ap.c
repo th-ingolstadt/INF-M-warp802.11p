@@ -28,8 +28,8 @@
 
 #define MAX_RETRY 7
 
-#define SSID_LEN 4
-u8 SSID[SSID_LEN] = "WARP";
+#define SSID_LEN 7
+u8 SSID[SSID_LEN] = "WARP-AP";
 
 u16 seq_num;
 
@@ -130,7 +130,7 @@ int main(){
 
 	cpu_high_status |= CPU_STATUS_INITIALIZED;
 
-	mac_param_chan = 4;
+	mac_param_chan = 9;
 
 	//Send a message to other processor to tell it to switch channels
 	ipc_msg_to_low.msg_id = IPC_MBOX_GRP_ID(IPC_MBOX_GRP_PARAM) | IPC_MBOX_MSG_ID(IPC_MBOX_PARAM_SET_CHANNEL);
@@ -330,7 +330,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	void * mpdu = pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	u16 tx_length;
-	u8 send_response, allow_association, allow_disassociation;
+	u8 send_response, allow_association, allow_disassociation, new_association;
 	mac_header_80211* rx_80211_header;
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
@@ -338,6 +338,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	u32 i;
 	u8 is_associated = 0;
+	new_association = 0;
 
 	for(i=0; i < next_free_assoc_index; i++) {
 		if(wlan_addr_eq(associations[i].addr, (rx_80211_header->address_2))) {
@@ -468,10 +469,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				for(i=0; i <= next_free_assoc_index; i++) {
 					if(wlan_addr_eq((associations[i].addr), bcast_addr)) {
 						allow_association = 1;
+						new_association = 1;
+
 						if(next_free_assoc_index < (MAX_ASSOCIATIONS-2)) next_free_assoc_index++;
 						break;
+
 					} else if(wlan_addr_eq((associations[i].addr), rx_80211_header->address_2)) {
 						allow_association = 1;
+						new_association = 0;
 						break;
 					}
 				}
@@ -490,13 +495,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 						wlan_mac_enqueue(HIGH_PRI_QUEUE_SEL);
 					}
-					xil_printf("\n\nAssociation:\n");
 
-					//Print the updated association table to the UART (slow, but useful for observing association success)
-					print_associations();
+					if(new_association == 1) {
+						xil_printf("\n\nNew Association - ID %d\n", associations[i].AID);
 
-					if(is_associated == 0){
-						xil_printf("\n\nAssociation:\n");
+						//Print the updated association table to the UART (slow, but useful for observing association success)
 						print_associations();
 					}
 
@@ -612,16 +615,17 @@ void print_associations(){
 	u32 i;
 
 	write_hex_display(next_free_assoc_index);
-	xil_printf("\n@[%x], current associations:\n",timestamp);
-		xil_printf("|-ID-|-----------MAC ADDR----------|\n");
+	xil_printf("\n   Current Associations\n (MAC time = %d usec)\n",timestamp);
+			xil_printf("|-ID-|----- MAC ADDR ----|\n");
 	for(i=0; i < next_free_assoc_index; i++){
-		if(memcmp(&(associations[i].addr[0]),bcast_addr,6)==0){
-			xil_printf("| %02x |    |    |    |    |    |    |\n",associations[i].AID);
+		if(wlan_addr_eq(associations[i].addr, bcast_addr)) {
+			xil_printf("| %02x |                   |\n", associations[i].AID);
 		} else {
-			xil_printf("| %02x | %02x | %02x | %02x | %02x | %02x | %02x |\n",associations[i].AID,associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
+			xil_printf("| %02x | %02x:%02x:%02x:%02x:%02x:%02x |\n", associations[i].AID,
+					associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
 		}
 	}
-	xil_printf("|----------------------------------|\n");
+			xil_printf("|------------------------|\n");
 
 	return;
 }
