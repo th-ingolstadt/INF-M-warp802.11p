@@ -106,7 +106,7 @@ void wlan_phy_init() {
 	wlan_phy_rx_lts_corr_cfg(30000, 250);
 
 	//Configure RSSI pkt det
-	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*1023), 4); //Disable RSSI pkt det with high thresh
+	wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
 	//wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 8); //Disable RSSI pkt det with high thresh
 	
 	//Configure auto-corr pkt det
