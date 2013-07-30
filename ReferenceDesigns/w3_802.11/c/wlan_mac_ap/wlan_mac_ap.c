@@ -23,9 +23,6 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_ap.h"
 
-//TODO: This is a work-in-progress. Leave disabled for now.
-#define ENABLE_RATE_ADAPTATION 0
-
 #define BEACON_INTERVAL_MS (100)
 #define BEACON_INTERVAL_US (BEACON_INTERVAL_MS*1000)
 
@@ -182,7 +179,7 @@ void ethernet_receive(packet_queue_element* tx_queue, u8* eth_dest, u8* eth_src,
 		tx_queue->station_info_ptr = NULL;
 		tx_queue->frame_info.retry_max = 0;
 		tx_queue->frame_info.flags = 0;
-		wlan_mac_queue_push(LOW_PRI_QUEUE_SEL);
+		wlan_mac_enqueue(LOW_PRI_QUEUE_SEL);
 
 	} else {
 		//Check associations
@@ -197,7 +194,7 @@ void ethernet_receive(packet_queue_element* tx_queue, u8* eth_dest, u8* eth_src,
 			tx_queue->station_info_ptr = &(associations[i]);
 			tx_queue->frame_info.retry_max = MAX_RETRY;
 			tx_queue->frame_info.flags = TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO;
-			wlan_mac_queue_push(LOW_PRI_QUEUE_SEL);
+			wlan_mac_enqueue(LOW_PRI_QUEUE_SEL);
 
 		//	mpdu_transmit_OLD(&(associations[i]),tx_length,MAX_RETRY,TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 		}
@@ -213,7 +210,7 @@ void beacon_transmit(){
 		tx_queue->station_info_ptr = NULL;
 		tx_queue->frame_info.length = tx_length;
 		tx_queue->frame_info.flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
-		wlan_mac_queue_push(LOW_PRI_QUEUE_SEL);
+		wlan_mac_enqueue(LOW_PRI_QUEUE_SEL);
 		//mpdu_transmit_OLD(NULL,tx_length,0,TX_MPDU_FLAGS_FILL_TIMESTAMP);
 	}
 
@@ -359,7 +356,7 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 						tx_queue->frame_info.length = tx_length;
 						tx_queue->frame_info.retry_max = MAX_RETRY;
 						tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-						wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+						wlan_mac_enqueue(HIGH_PRI_QUEUE_SEL);
 					}
 				}
 
@@ -398,7 +395,7 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 						tx_queue->frame_info.length = tx_length;
 						tx_queue->frame_info.retry_max = MAX_RETRY;
 						tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-						wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+						wlan_mac_enqueue(HIGH_PRI_QUEUE_SEL);
 					}
 					return;
 				}
@@ -418,7 +415,7 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 									tx_queue->frame_info.length = tx_length;
 									tx_queue->frame_info.retry_max = MAX_RETRY;
 									tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-									wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+									wlan_mac_enqueue(HIGH_PRI_QUEUE_SEL);
 								}
 								return;
 							}
@@ -431,7 +428,7 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 								tx_queue->frame_info.length = tx_length;
 								tx_queue->frame_info.retry_max = MAX_RETRY;
 								tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-								wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+								wlan_mac_enqueue(HIGH_PRI_QUEUE_SEL);
 							}
 							warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
 							return;
@@ -468,7 +465,7 @@ void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length){
 						tx_queue->frame_info.length = tx_length;
 						tx_queue->frame_info.retry_max = MAX_RETRY;
 						tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-						wlan_mac_queue_push(HIGH_PRI_QUEUE_SEL);
+						wlan_mac_enqueue(HIGH_PRI_QUEUE_SEL);
 					}
 					xil_printf("\n\nAssociation:\n");
 					print_associations();
@@ -608,11 +605,8 @@ void mpdu_transmit(packet_queue_element* tx_queue){
 			tx_mpdu->rate = WLAN_MAC_RATE_BPSK12;
 		} else {
 			tx_mpdu->AID = station->AID;
-			#if ENABLE_RATE_ADAPTATION
-				tx_mpdu->rate = wlan_mac_util_get_tx_rate(station);
-			#else
-				tx_mpdu->rate = WLAN_MAC_RATE_QPSK34;
-			#endif
+			tx_mpdu->rate = wlan_mac_util_get_tx_rate(station);
+
 		}
 
 		tx_mpdu->state = TX_MPDU_STATE_READY;

@@ -32,8 +32,6 @@ typedef struct{
 	u16 AID;
 	u16 seq;
 	u8 addr[6];
-	u16 total_missed_acks;
-	u16 consecutive_good_acks;
 	u8 tx_rate;
 } station_info;
 

@@ -28,10 +28,6 @@ static u16 high_pri_queue_read_index;
 static u16 high_pri_queue_write_index;
 
 void wlan_mac_queue_init(){
-
-	//xil_printf("LOW_PRI_QUEUE_BASEADDR 	= 0x%08x\n",LOW_PRI_QUEUE_BASEADDR);
-	//xil_printf("HIGH_PRI_QUEUE_BASEADDR = 0x%08x\n",HIGH_PRI_QUEUE_BASEADDR);
-
 	low_pri_tx_queue = (packet_queue_element*)LOW_PRI_QUEUE_BASEADDR;
 	bzero(&(low_pri_tx_queue[0]),sizeof(packet_queue_element)*LOW_PRI_TX_QUEUE_LENGTH);
 	low_pri_queue_read_index = 0;
@@ -45,6 +41,10 @@ void wlan_mac_queue_init(){
 
 u16 wlan_mac_queue_get_size(u8 queue_sel){
 	u16 return_value;
+
+	//We adopt the convention that (read_index == write_index) indicates an empty buffer. Not a full buffer.
+	//The TX_QUEUE_LENGTH definitions actually contain one more element than will actually be filled in order to
+	//avoid full/empty ambiguity.
 
 	switch(queue_sel){
 		case HIGH_PRI_QUEUE_SEL:
@@ -67,9 +67,6 @@ u16 wlan_mac_queue_get_size(u8 queue_sel){
 		break;
 	}
 
-
-
-	//xil_printf("Queue size = %d\n", return_value);
 	return return_value;
 }
 
@@ -92,13 +89,9 @@ packet_queue_element* wlan_mac_queue_get_write_element(u8 queue_sel){
 			} else {
 				return_value =  NULL;
 			}
-			//if(return_value!= NULL) xil_printf("Write to 0x%08x\n",return_value);
 
 		break;
 	}
-
-
-	//xil_printf("Write to %d\n",queue_write_index);
 	return return_value;
 }
 
@@ -126,37 +119,29 @@ packet_queue_element* wlan_mac_queue_get_read_element(u8 queue_sel){
 		break;
 	}
 
-
-	//xil_printf("Read from %d\n",queue_read_index);
 	return return_value;
 }
 
-void wlan_mac_queue_push(u8 queue_sel){
+void wlan_mac_enqueue(u8 queue_sel){
 	//This command should only be called if wlan_mac_queue_get_write_addr returns non-NULL value;
 	switch(queue_sel){
 		case HIGH_PRI_QUEUE_SEL:
 			high_pri_queue_write_index = (high_pri_queue_write_index+1)%HIGH_PRI_TX_QUEUE_LENGTH;
 		break;
 		case LOW_PRI_QUEUE_SEL:
-			//xil_printf("Pushed %d\n",low_pri_queue_write_index);
 			low_pri_queue_write_index = (low_pri_queue_write_index+1)%LOW_PRI_TX_QUEUE_LENGTH;
-			//write_hex_display(wlan_mac_queue_get_size(queue_sel));
 		break;
 	}
 
-	//xil_printf("PUSH\n");
 }
 
-void wlan_mac_queue_pop(u8 queue_sel){
+void wlan_mac_dequeue(u8 queue_sel){
 	switch(queue_sel){
 		case HIGH_PRI_QUEUE_SEL:
 			high_pri_queue_read_index = (high_pri_queue_read_index+1)%HIGH_PRI_TX_QUEUE_LENGTH;
 		break;
 		case LOW_PRI_QUEUE_SEL:
-			//xil_printf("Popped %d\n",low_pri_queue_read_index);
 			low_pri_queue_read_index = (low_pri_queue_read_index+1)%LOW_PRI_TX_QUEUE_LENGTH;
-			//write_hex_display(wlan_mac_queue_get_size(queue_sel));
 		break;
 	}
-	//xil_printf("POP\n");
 }

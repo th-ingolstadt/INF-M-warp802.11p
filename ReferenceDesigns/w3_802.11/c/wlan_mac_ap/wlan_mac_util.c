@@ -218,53 +218,22 @@ inline void wlan_mac_poll_tx_queue(){
 	tx_queue = wlan_mac_queue_get_read_element(HIGH_PRI_QUEUE_SEL);
 	if(tx_queue != NULL){
 		mpdu_tx_callback(tx_queue);
-		wlan_mac_queue_pop(HIGH_PRI_QUEUE_SEL);
+		wlan_mac_dequeue(HIGH_PRI_QUEUE_SEL);
 	} else {
 		//Poll low priority queue
 		tx_queue = wlan_mac_queue_get_read_element(LOW_PRI_QUEUE_SEL);
 		if(tx_queue != NULL){
 			mpdu_tx_callback(tx_queue);
-			wlan_mac_queue_pop(LOW_PRI_QUEUE_SEL);
+			wlan_mac_dequeue(LOW_PRI_QUEUE_SEL);
 		}
 	}
 }
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
 
-	//xil_printf("TX DONE-- AID: %d, state_verbose = %d, retry_count = %d\n", frame->AID, frame->state_verbose, frame->retry_count);
-
-	if(frame->retry_count > 0){
-		//There was at least 1 missed ACK during this transmission
-		station->total_missed_acks += frame->retry_count;
-		station->consecutive_good_acks = 0;
-	}
-	if(frame->state_verbose == TX_MPDU_STATE_VERBOSE_SUCCESS){
-		(station->consecutive_good_acks)++;
-	}
-
 }
 
 u8 wlan_mac_util_get_tx_rate(station_info* station){
-
-	//xil_printf("good_acks: %d, total_missed: %d\n",station->consecutive_good_acks, station->total_missed_acks);
-
-	if(station->consecutive_good_acks >= MIN_CONSECUTIVE_GOOD_ACKS){
-		if(station->tx_rate < RATE_ADAPT_MAX_RATE){
-			(station->tx_rate)++;
-			xil_printf("STA AID %d: rate increased to %d\n",station->AID,station->tx_rate);
-		}
-		station->consecutive_good_acks = 0;
-		station->total_missed_acks = 0;
-	} else {
-		if(station->total_missed_acks >= MIN_TOTAL_MISSED_ACKS){
-			if(station->tx_rate > RATE_ADAPT_MIN_RATE){
-				(station->tx_rate)--;
-				xil_printf("STA AID %d: rate decreased to %d\n",station->AID,station->tx_rate);
-			}
-			station->consecutive_good_acks = 0;
-			station->total_missed_acks = 0;
-		}
-	}
 	return station->tx_rate;
 }
 
