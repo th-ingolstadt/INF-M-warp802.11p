@@ -106,8 +106,8 @@ void wlan_phy_init() {
 	wlan_phy_rx_lts_corr_cfg(30000, 250);
 
 	//Configure RSSI pkt det
-	//wlan_phy_rx_pktDet_RSSI_cfg(8, (8*1023), 4); //Disable RSSI pkt det with high thresh
-	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 8); //Disable RSSI pkt det with high thresh
+	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*1023), 4); //Disable RSSI pkt det with high thresh
+	//wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 8); //Disable RSSI pkt det with high thresh
 	
 	//Configure auto-corr pkt det
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
@@ -136,6 +136,8 @@ void wlan_phy_init() {
 	//Set extension from last samp output to RF Tx -> Rx transition
 	wlan_phy_tx_set_txen_extension(60);
 	
+	wlan_phy_tx_set_scaling(0x5000,0x5000);
+
 /*********** AGC ***************/
 
 	//Post Rx_done reset delays for [rxhp, g_rf, g_bb]
@@ -156,7 +158,7 @@ void wlan_phy_init() {
 	//Let PHY Tx take control of radio TXEN/RXEN
 	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 	
-	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 100);
+	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 300);
 
 	//De-assert resets
 	REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
