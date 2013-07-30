@@ -32,8 +32,8 @@ void wlan_mac_queue_init();
 u16 wlan_mac_queue_get_size(u8 queue_sel);
 packet_queue_element* wlan_mac_queue_get_write_element(u8 queue_sel);
 packet_queue_element* wlan_mac_queue_get_read_element(u8 queue_sel);
-void wlan_mac_queue_push(u8 queue_sel);
-void wlan_mac_queue_pop(u8 queue_sel);
+void wlan_mac_enqueue(u8 queue_sel);
+void wlan_mac_dequeue(u8 queue_sel);
 
 
 #endif /* WLAN_MAC_QUEUE_H_ */

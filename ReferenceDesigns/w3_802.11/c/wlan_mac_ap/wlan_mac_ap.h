@@ -15,7 +15,7 @@
 
 int main();
 void ethernet_receive(packet_queue_element* tx_queue, u8* eth_dest, u8* eth_src, u16 tx_length);
-void mpdu_process(void* pkt_buf_addr, u8 rate, u16 length);
+void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 int is_tx_buffer_empty();
 void mpdu_transmit(packet_queue_element* tx_queue);
 void beacon_transmit();
