@@ -76,8 +76,8 @@ REG_MAC_Calib_Times = ...
     0;
 
 REG_MAC_MPDU_Tx_Params = ...
-    2^0  * (0) + ... %b[3:0] - pkt buf to Tx
-    2^8  * (3) + ... %b[23:8] - pre-Tx BO slots
+    2^0  * (4) + ... %b[3:0] - pkt buf to Tx
+    2^8  * (2) + ... %b[23:8] - pre-Tx BO slots
     2^24 * (1) + ... %b[24] - post-Tx timeout
     0;
     

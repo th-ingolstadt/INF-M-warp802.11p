@@ -1,4 +1,4 @@
-addpath('./util');
+addpath('../util');
 addpath('./mcode_blocks');
 
 wifi_permute_calc
@@ -21,6 +21,7 @@ MAX_NUM_SYMS = 600;
 PHY_CONFIG_NUM_SC = 64;
 PHY_CONFIG_CP_LEN = 16;
 PHY_CONFIG_FFT_SCALING = bin2dec('101010');
+PHY_TX_ACTIVE_EXTENSION = 120;
 
 
 %Payload for simulation
@@ -68,6 +69,13 @@ sc_data_sym_map = MAX_NUM_SC*ones(1,64);
 sc_data_sym_map(sc_ind_data) = fftshift(0:47);
 
 %Register init
+PHY_TX_RF_EN_EXTENSION = 50;
+
+REG_Tx_Timing = ...
+    2^0  * (PHY_TX_ACTIVE_EXTENSION) + ... %b[7:0]
+    2^8  * (PHY_TX_RF_EN_EXTENSION) + ... %b[15:8]
+    0;
+
 REG_TX_FFT_Config = ...
     2^0  * (PHY_CONFIG_NUM_SC) +...  %b[7:0]
     2^8  * (PHY_CONFIG_CP_LEN) +...  %b[15:8]
@@ -75,7 +83,7 @@ REG_TX_FFT_Config = ...
     0;
 
 REG_TX_Config = ...
-    2^0  * 0 + ...
+    2^0  * 1 + ...
     0;
 
 REG_TX_Output_Scaling = (2^0 * 2^12) + (2^16 * 2^12); %UFix16_12 values

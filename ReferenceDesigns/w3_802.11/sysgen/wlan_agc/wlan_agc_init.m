@@ -1,9 +1,9 @@
-%Replace payload_vec with actual I/Q stream for testing in simulation
-payload_vec = [zeros(25,1)];
+xlLoadChipScopeData('../wlan_phy_rx/cs_capt/wlan_cs_capt_5.prn'); cs_interp = 1; cs_start = 1;
+payload_vec = [zeros(25,1); complex(ADC_I(cs_start:cs_interp:end), ADC_Q(cs_start:cs_interp:end));];
 raw_rx_I.time = [];
 raw_rx_Q.time = [];
 
-DCO_I = 0;
+DCO_I = 0.05;
 DCO_Q = 0;
 G_I = 2;
 G_Q = 2;

@@ -1,3 +1,7 @@
+// This file is copyright 2013 by Rice University and was ported from the
+//  original WARP OFDM Reference Design. It is distributed under the WARP license:
+//  http://warpproject.org/license
+
 //*****************************************************************
 // File:    vb_decoder_top.v
 // Author:  Yang Sun (ysun@rice.edu)

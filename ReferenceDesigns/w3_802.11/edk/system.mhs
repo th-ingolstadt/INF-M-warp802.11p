@@ -112,12 +112,12 @@
  PORT RFB_PAEn_5_pin = RFB_PAEn_5, DIR = O
  PORT RFB_AntSw_pin = RFB_AntSw, DIR = O, VEC = [0:1]
 # DEBUG
- PORT debughdr = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3 & mac_backoff_active & mac_eifs_sel & mac_idle_for_difs & mac_nav_active & dbg_dsss_rx_running & dbg_tx_running & mac_phy_rx_fcs_good_ind & dbg_rssi_det & dbg_lts_sync & dbg_lts_timeout & dbg_pkt_det & dbg_payload, DIR = O, VEC = [15:0]
+ PORT debughdr = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3 & mac_backoff_active & mac_eifs_sel & mac_idle_for_difs & mac_nav_active & dbg_dsss_rx_running & dbg_tx_running & mac_phy_rx_fcs_good_ind & dbg_rssi_det & dbg_mpdu_tx_pending & dbg_lts_timeout & dbg_pkt_det & dbg_payload, DIR = O, VEC = [15:0]
 
 
 BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 2.00.d
+ PARAMETER HW_VER = 2.00.f
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -148,7 +148,7 @@ END
 
 BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 2.00.t
+ PARAMETER HW_VER = 2.02.h
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -196,7 +196,7 @@ END
 
 BEGIN wlan_mac_dcf_hw_axiw
  PARAMETER INSTANCE = wlan_mac_dcf_hw
- PARAMETER HW_VER = 1.00.n
+ PARAMETER HW_VER = 1.00.q
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -231,11 +231,12 @@ BEGIN wlan_mac_dcf_hw_axiw
  PORT dbg_eifs_sel = mac_eifs_sel
  PORT dbg_idle_for_difs = mac_idle_for_difs
  PORT dbg_nav_active = mac_nav_active
+ PORT dbg_mpdu_tx_pending = dbg_mpdu_tx_pending
 END
 
 BEGIN wlan_agc_axiw
  PARAMETER INSTANCE = wlan_agc
- PARAMETER HW_VER = 1.00.g
+ PARAMETER HW_VER = 1.00.h
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -801,25 +802,31 @@ BEGIN clock_generator
  PARAMETER HW_VER = 4.03.a
 # 80MHz clock input (driven by AD9512 for sampling clock)
  PARAMETER C_CLKIN_FREQ = 80000000
-# MB and primary PLB
- PARAMETER C_CLKOUT0_FREQ = 160000000
+# MB and primary bus
+ PARAMETER C_CLKOUT0_FREQ = 80000000
  PARAMETER C_CLKOUT0_PHASE = 0
  PARAMETER C_CLKOUT0_GROUP = MMCM0
  PARAMETER C_CLKOUT0_BUF = TRUE
-# Sampling clock 0 deg phase
- PARAMETER C_CLKOUT1_FREQ = 20000000
+# MB and primary bus
+ PARAMETER C_CLKOUT1_FREQ = 160000000
  PARAMETER C_CLKOUT1_PHASE = 0
  PARAMETER C_CLKOUT1_GROUP = MMCM0
  PARAMETER C_CLKOUT1_BUF = TRUE
-# Sampling clock 90 deg phase
+# Sampling clock 0 deg phase
  PARAMETER C_CLKOUT2_FREQ = 20000000
- PARAMETER C_CLKOUT2_PHASE = 90
- PARAMETER C_CLKOUT2_BUF = TRUE
+ PARAMETER C_CLKOUT2_PHASE = 0
  PARAMETER C_CLKOUT2_GROUP = MMCM0
+ PARAMETER C_CLKOUT2_BUF = TRUE
+# Sampling clock 90 deg phase
+ PARAMETER C_CLKOUT3_FREQ = 20000000
+ PARAMETER C_CLKOUT3_PHASE = 90
+ PARAMETER C_CLKOUT3_BUF = TRUE
+ PARAMETER C_CLKOUT3_GROUP = MMCM0
  PORT CLKIN = ad_refclk_in
- PORT CLKOUT0 = clk_160MHz
- PORT CLKOUT1 = clk_20MHz
- PORT CLKOUT2 = clk_20MHz_90degphase
+ PORT CLKOUT0 = clk_80MHz
+ PORT CLKOUT1 = clk_160MHz
+ PORT CLKOUT2 = clk_20MHz
+ PORT CLKOUT3 = clk_20MHz_90degphase
  PORT RST = mmcm_inputs_invalid
  PORT LOCKED = clk_gen_proc_bus_clks_locked
 END

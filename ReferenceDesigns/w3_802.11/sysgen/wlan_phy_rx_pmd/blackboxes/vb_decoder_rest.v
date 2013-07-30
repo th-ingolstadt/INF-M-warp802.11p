@@ -1,3 +1,8 @@
+// This file is copyright 2013 by Rice University and was ported from the
+//  original WARP OFDM Reference Design. It is distributed under the WARP license:
+//  http://warpproject.org/license
+
+
 //**************************************************************
 // File:    unpack_m2n.v
 // Author:  Yang Sun (ysun@rice.edu)
@@ -44,7 +49,7 @@ output                  done ;
 //================================================
 reg     [BITM + BITN -1 :0]     sreg ;
 wire    [BITM + BITN -1 :0]     sreg_next ;
-reg     [LW -1 : 0]             cnt ;
+reg     [LW -1 : 0]             cnt = 0;
 wire                            rd ;
 wire    [BITN-1 :0]             data ;
 wire    [BITM + BITN -1 :0]     tmp ;
