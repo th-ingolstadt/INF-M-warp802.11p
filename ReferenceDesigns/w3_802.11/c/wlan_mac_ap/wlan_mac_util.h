@@ -33,6 +33,7 @@ typedef struct{
 	u16 seq;
 	u8 addr[6];
 	u8 tx_rate;
+	u64 rx_timestamp;
 } station_info;
 
 typedef struct{

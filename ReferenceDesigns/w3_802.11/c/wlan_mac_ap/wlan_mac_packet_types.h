@@ -40,6 +40,7 @@ typedef struct{
 #define AUTH_SEQ_RESP 0x02
 
 //Class 3 frame received from nonassociated STA
+#define DEAUTH_REASON_INACTIVITY		4
 #define DEAUTH_REASON_NONASSOCIATED_STA	7
 
 

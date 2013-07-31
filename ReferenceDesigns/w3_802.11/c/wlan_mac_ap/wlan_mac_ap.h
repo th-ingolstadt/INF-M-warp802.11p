@@ -13,6 +13,9 @@
 
 #define MAX_ASSOCIATIONS 8
 
+#define ASSOCIATION_TIMEOUT_S (300)
+#define ASSOCIATION_TIMEOUT_US (ASSOCIATION_TIMEOUT_S*1000000)
+
 int main();
 void ethernet_receive(packet_queue_element* tx_queue, u8* eth_dest, u8* eth_src, u16 tx_length);
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
@@ -21,7 +24,7 @@ void mpdu_transmit(packet_queue_element* tx_queue);
 void beacon_transmit();
 void process_ipc_msg_from_low(wlan_ipc_msg* msg);
 void print_associations();
-void queue_size_print();
+void association_timestamp_check();
 
 
 #endif /* WLAN_MAC_LOW_H_ */

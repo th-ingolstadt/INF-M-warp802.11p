@@ -26,6 +26,9 @@
 #define BEACON_INTERVAL_MS (100)
 #define BEACON_INTERVAL_US (BEACON_INTERVAL_MS*1000)
 
+#define ASSOCIATION_CHECK_INTERVAL_MS (10000)
+#define ASSOCIATION_CHECK_INTERVAL_US (ASSOCIATION_CHECK_INTERVAL_MS*1000)
+
 #define MAX_RETRY 7
 
 #define SSID_LEN 7
@@ -110,7 +113,7 @@ int main(){
 
 
 
-	//Wait for mb_low to report that it has fully initialized and is ready for traffic
+	//Wait for CPU_LOW to report that it has fully initialized and is ready for traffic
 	do{
 		//Poll mailbox read msg
 		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
@@ -140,7 +143,7 @@ int main(){
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
-	//wlan_mac_schedule_event(100, (void*)queue_size_print);
+	wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
 	while(1){
 		//Poll Scheduler
@@ -217,10 +220,57 @@ void beacon_transmit() {
  	return;
 }
 
-void queue_size_print() {
-	write_hex_display(wlan_mac_queue_get_size(LOW_PRI_QUEUE_SEL));
-	wlan_mac_schedule_event(100, (void*)queue_size_print);
+void association_timestamp_check() {
 
+	u32 i;
+	u64 time_since_last_rx;
+	packet_queue_element* tx_queue;
+	u32 tx_length;
+
+	for(i=0; i < next_free_assoc_index; i++) {
+
+		time_since_last_rx = (get_usec_timestamp() - associations[i].rx_timestamp);
+		if(time_since_last_rx > ASSOCIATION_TIMEOUT_US){
+			//xil_printf("AID: %d, last heard from %d usec ago\n", associations[i].AID, (u32)time_since_last_rx);
+			//Send De-authentication
+			tx_queue = wlan_mac_queue_get_write_element(LOW_PRI_QUEUE_SEL);
+
+			if(tx_queue != NULL){
+				tx_length = wlan_create_deauth_frame((void*)(tx_queue->frame), DEAUTH_REASON_INACTIVITY, associations[i].addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+				tx_queue->station_info_ptr = NULL;
+				tx_queue->frame_info.length = tx_length;
+				tx_queue->frame_info.retry_max = MAX_RETRY;
+				tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+				wlan_mac_enqueue(LOW_PRI_QUEUE_SEL);
+
+				//Remove this STA from association list
+				if(next_free_assoc_index > 0) next_free_assoc_index--;
+				memcpy(&(associations[i].addr[0]), bcast_addr, 6);
+				if(i < next_free_assoc_index) {
+					//Copy from current index to the swap space
+					memcpy(&(associations[MAX_ASSOCIATIONS]), &(associations[i]), sizeof(station_info));
+
+					//Shift later entries back into the freed association entry
+					memcpy(&(associations[i]), &(associations[i+1]), (next_free_assoc_index-i)*sizeof(station_info));
+
+					//Copy from swap space to current free index
+					memcpy(&(associations[next_free_assoc_index]), &(associations[MAX_ASSOCIATIONS]), sizeof(station_info));
+				}
+
+
+				xil_printf("\n\nDisassociation due to inactivity:\n");
+				print_associations();
+
+			}
+
+		}
+
+
+	}
+
+
+
+	wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 	return;
 }
 
@@ -345,6 +395,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			is_associated = 1;
 			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			//Check if duplicate
+			associations[i].rx_timestamp = get_usec_timestamp();
 			if( (associations[i].seq != 0)  && (associations[i].seq == rx_seq) ) {
 				//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
 				return;
