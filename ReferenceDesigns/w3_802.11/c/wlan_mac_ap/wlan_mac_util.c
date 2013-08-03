@@ -71,8 +71,8 @@ void wlan_eth_init(){
 		if (status != XST_SUCCESS)
 			xil_printf("*** EMAC init error\n");
 
-		status  = XAxiEthernet_ClearOptions(&ETH_A_MAC_Instance, XAE_LENTYPE_ERR_OPTION | XAE_FLOW_CONTROL_OPTION | XAE_FCS_STRIP_OPTION);// | XTE_MULTICAST_OPTION);
-		status |= XAxiEthernet_SetOptions(&ETH_A_MAC_Instance, XAE_PROMISC_OPTION | XAE_MULTICAST_OPTION | XAE_BROADCAST_OPTION | XAE_RECEIVER_ENABLE_OPTION | XAE_TRANSMITTER_ENABLE_OPTION | XAE_JUMBO_OPTION);
+		status  = XAxiEthernet_ClearOptions(&ETH_A_MAC_Instance, XAE_LENTYPE_ERR_OPTION | XAE_FLOW_CONTROL_OPTION | XAE_JUMBO_OPTION);
+		status |= XAxiEthernet_SetOptions(&ETH_A_MAC_Instance, XAE_FCS_STRIP_OPTION | XAE_PROMISC_OPTION | XAE_MULTICAST_OPTION | XAE_BROADCAST_OPTION | XAE_RECEIVER_ENABLE_OPTION | XAE_TRANSMITTER_ENABLE_OPTION);
 		if (status != XST_SUCCESS)
 			xil_printf("*** Error setting EMAC options\n, code %d", status);
 
