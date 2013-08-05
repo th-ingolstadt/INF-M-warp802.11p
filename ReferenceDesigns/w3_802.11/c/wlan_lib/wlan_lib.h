@@ -117,7 +117,6 @@ typedef struct{
 #define IPC_MBOX_CMD_TX_MPDU_READY		2
 #define IPC_MBOX_CMD_TX_MPDU_ACCEPT		3
 #define IPC_MBOX_CMD_TX_MPDU_DONE		4
-#define IPC_MBOX_CMD_WRITE_HEX			5
 
 #define IPC_MBOX_PARAM_SET_CHANNEL		0
 
