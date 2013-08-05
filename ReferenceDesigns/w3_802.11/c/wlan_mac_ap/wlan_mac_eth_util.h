@@ -40,4 +40,10 @@
 // All Eth Tx originate in wireless pkt buffers, so no dedicated Tx buffer is necessary
 #define ETH_A_RX_BUFFER_BASE	(ETH_A_RX_BD_SPACE_BASE + (ETH_A_NUM_RX_BD * XAXIDMA_BD_MINIMUM_ALIGNMENT)) //safer than sizeof(XAxiDma_Bd)?
 
+int wlan_eth_init();
+int wlan_eth_dma_init();
+int wlan_eth_send(void* mpdu, u16 length);
+int wlan_eth_dma_send(u8* pkt_ptr, u32 length);
+inline void wlan_poll_eth();
+
 #endif /* WLAN_MAC_ETH_UTIL_H_ */

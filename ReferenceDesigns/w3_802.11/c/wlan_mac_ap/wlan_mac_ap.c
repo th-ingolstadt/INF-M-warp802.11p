@@ -21,6 +21,7 @@
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
+#include "wlan_mac_eth_util.h"
 #include "wlan_mac_ap.h"
 
 #define BEACON_INTERVAL_MS (1000)
@@ -151,7 +152,7 @@ int main(){
 
 		//Poll Ethernet
 		//if(is_tx_buffer_empty()) wlan_mac_poll_eth(tx_pkt_buf);
-		wlan_mac_poll_eth();
+		wlan_poll_eth();
 
 		//Poll Wireless Transmit Queue
 		if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0) wlan_mac_poll_tx_queue();
@@ -413,7 +414,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			if(is_associated){
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
 					//MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx
-					wlan_mac_send_eth(mpdu,length);
+					wlan_eth_send(mpdu,length);
 				}
 			} else {
 				//TODO: Formally adopt conventions from 10.3 in 802.11-2012 for STA state transitions

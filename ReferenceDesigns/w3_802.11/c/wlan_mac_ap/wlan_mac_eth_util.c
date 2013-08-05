@@ -139,7 +139,7 @@ int wlan_eth_dma_init() {
 
 
 //De-encapsulate packet and send over Ethernet
-int wlan_mac_send_eth(void* mpdu, u16 length){
+int wlan_eth_send(void* mpdu, u16 length){
 	int status;
 
 	mac_header_80211* rx80211_hdr;
@@ -209,7 +209,7 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	return 0;
 }
 
-void wlan_mac_poll_eth() {
+void wlan_poll_eth() {
 	XAxiDma_BdRing *rxRing_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
 	u8* mpdu_start_ptr;

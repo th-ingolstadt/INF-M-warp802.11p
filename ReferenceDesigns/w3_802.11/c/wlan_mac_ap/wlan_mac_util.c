@@ -14,8 +14,9 @@
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
-#include "xparameters.h"
+#include "wlan_mac_eth_util.h"
 #include "w3_userio.h"
+#include "xparameters.h"
 
 #define USERIO_BASEADDR XPAR_W3_USERIO_BASEADDR
 
