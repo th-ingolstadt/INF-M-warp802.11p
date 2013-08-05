@@ -10,11 +10,11 @@
 
 //Xilinx SDK includes
 #include "xparameters.h"
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include "xtmrctr.h"
 #include "xio.h"
-#include "string.h"
+#include <string.h>
 
 //WARP includes
 #include "w3_userio.h"
@@ -150,10 +150,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 		case IPC_MBOX_GRP_CMD:
 			switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
-				case IPC_MBOX_CMD_WRITE_HEX:
-					   userio_write_hexdisp_left(USERIO_BASEADDR, ((msg->arg0)/10));
-					   userio_write_hexdisp_right(USERIO_BASEADDR, (msg->arg0)%10);
-				break;
 				case IPC_MBOX_CMD_TX_MPDU_READY:
 
 					//Message is an indication that a Tx Pkt Buf needs processing
@@ -229,8 +225,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 						//
 						status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
-						REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
-						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 
 						if(status == 0){
 							tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
@@ -435,9 +429,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
 
-	//DEBUG
-	if(mpdu_info->retry_count>0) REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
-
 
 	if(req_timeout == 0) update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
 
@@ -454,8 +445,14 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	wlan_mac_MPDU_tx_start(0);
 	//FIXME: Check if this is a race condition
 
+//	u64 start_time, cur_time;
+//	start_time = get_usec_timestamp();
+
 	//Wait for the MPDU Tx to finish
 	do{
+//		cur_time = get_usec_timestamp();
+
+//		if( (cur_time - start_time) > 500) {
 		tx_status = wlan_mac_get_status();
 
 		//TODO: This is a software fix for a MAC_DCF_HW race condition
@@ -464,14 +461,19 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 			switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					//Tx didn't require timeout, completed successfully
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 					return 0;
 				break;
 
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT:
 					//Tx required tmieout, timeout expired with no receptions
 
+					if(tx_status & WLAN_MAC_STATUS_MASK_PHY_CCA_BUSY) {
+						REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+					}
 					//Update the contention window
 					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
+						REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 						return -1;
 					}
 
@@ -482,6 +484,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 					wlan_mac_backoff_start(0);
 
 					//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 					return frame_transmit(pkt_buf, rate, length);
 
 				break;
@@ -492,15 +495,20 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
 						n_slots = rand_num_slots();
 						wlan_mac_dcf_hw_start_backoff(n_slots);
+						REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 						return 0;
 					} else {
 						if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)){
 							n_slots = rand_num_slots();
 							wlan_mac_dcf_hw_start_backoff(n_slots);
+
+							REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+
 							return -1;
 						} else{
 							n_slots = rand_num_slots();
 							wlan_mac_dcf_hw_start_backoff(n_slots);
+							REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 							return frame_transmit(pkt_buf, rate, length);
 						}
 					}
@@ -516,6 +524,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 		}
 	} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
 
+	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 	return 0;
 
 }
@@ -780,6 +789,16 @@ inline u64 get_usec_timestamp(){
 	u64 timestamp_u64;
 	timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_MSB);
 	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_LSB);
+	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+	return timestamp_u64;
+}
+
+inline u64 get_rx_start_timestamp() {
+	u32 timestamp_high_u32;
+	u32 timestamp_low_u32;
+	u64 timestamp_u64;
+	timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_RX_TIMESTAMP_MSB);
+	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_RX_TIMESTAMP_LSB);
 	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
 	return timestamp_u64;
 }

@@ -102,24 +102,23 @@ void wlan_phy_init() {
 	//Enable write-enable byte order swap
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP);
 
+	//Block Rx inputs during Tx
+	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
+
 	//Set LTS correlation threshold and timeout
 	wlan_phy_rx_lts_corr_cfg(30000, 250);
 
 	//Configure RSSI pkt det
-	wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
-	//wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 8); //Disable RSSI pkt det with high thresh
+	//wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
+	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 4); //Disable RSSI pkt det with high thresh
 	
 	//Configure auto-corr pkt det
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
 //	wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
 
-	//Enable zero-tail in FEC decoder
-	//Xil_Out32(WLAN_RX_FEC_CFG, Xil_In32(WLAN_RX_FEC_CFG) | 0x4);
-
-	//Xil_Out32(WLAN_RX_FEC_CFG, Xil_In32(WLAN_RX_FEC_CFG) & ~0x4);
-
 	wlan_phy_rx_set_cca_thresh(8*750);
 	//wlan_phy_rx_set_cca_thresh(8*1023);
+
 	wlan_phy_rx_set_extension(120); //num samp periods post done to extend CCA BUSY
 
 	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
@@ -134,9 +133,13 @@ void wlan_phy_init() {
 	wlan_phy_tx_set_extension(120);
 
 	//Set extension from last samp output to RF Tx -> Rx transition
-	wlan_phy_tx_set_txen_extension(60);
-	
-	wlan_phy_tx_set_scaling(0x4000,0x4000);
+	wlan_phy_tx_set_txen_extension(20);
+
+	//Set extension from RF Rx -> Tx to un-blocking Rx samples
+	wlan_phy_tx_set_rx_invalid_extension(100);
+
+	//Set digital scaling of preamble/payload signals before DACs (UFix12_0)
+	wlan_phy_tx_set_scaling(0x2000, 0x2000);
 
 /*********** AGC ***************/
 

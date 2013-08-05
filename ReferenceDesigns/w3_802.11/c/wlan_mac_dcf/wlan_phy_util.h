@@ -67,10 +67,11 @@
 #define WLAN_RX_REG_CTRL_RESET			0x1
 
 //RX CONFIG
-#define WLAN_RX_REG_CFG_DSSS_RX_EN			0x01
-#define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP	0x04
-#define WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD	0x10
-#define WLAN_RX_REG_CFG_CFO_EST_BYPASS		0x20
+#define WLAN_RX_REG_CFG_DSSS_RX_EN			0x01 //Enable DSSS Rx
+#define WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK	0x02 //Force I/Q/RSSI signals to zero during Tx
+#define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP	0x04 //Swap byte order at pkt buf interface
+#define WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD	0x10 //Allow active DSSS Rx to keep AGC locked
+#define WLAN_RX_REG_CFG_CFO_EST_BYPASS		0x20 //Bypass time-domain CFO correction
 
 //RX STATUS
 #define WLAN_RX_REG_STATUS_PKT_DONE			0x1
@@ -160,6 +161,7 @@
 
 #define wlan_phy_tx_set_extension(d) Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFFFF00) | ((d) & 0xFF)))
 #define wlan_phy_tx_set_txen_extension(d) Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFF00FF) | (((d) & 0xFF) << 8)))
+#define wlan_phy_tx_set_rx_invalid_extension(d) Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFF00FFFF) | (((d) & 0xFF) << 16)))
 
 #define wlan_phy_rx_set_cca_thresh(d) Xil_Out32(WLAN_RX_PHY_CCA_CFG, ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0xFFFF0000) | ((d) & 0xFFFF)))
 #define wlan_phy_rx_set_extension(d) Xil_Out32(WLAN_RX_PHY_CCA_CFG, ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0xFF00FFFF) | (((d)<<16) & 0xFF0000)))

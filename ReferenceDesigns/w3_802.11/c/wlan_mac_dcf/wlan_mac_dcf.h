@@ -45,6 +45,8 @@ typedef struct{
 #define WLAN_MAC_REG_TIMESTAMP_LSB			XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_LSB
 #define WLAN_MAC_REG_LATEST_RX_BYTE			XPAR_WLAN_MAC_DCF_HW_MEMMAP_LATEST_RX_BYTE
 #define WLAN_MAC_REG_RX_RATE_LENGTH			XPAR_WLAN_MAC_DCF_HW_MEMMAP_RX_RATE_LENGTH
+#define WLAN_MAC_REG_RX_TIMESTAMP_LSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_RX_START_TIMESTAMP_LSB
+#define WLAN_MAC_REG_RX_TIMESTAMP_MSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_RX_START_TIMESTAMP_MSB
 
 //RW:
 #define WLAN_MAC_REG_AUTO_TX_PARAMS			XPAR_WLAN_MAC_DCF_HW_MEMMAP_AUTO_TX_PARAMS
@@ -186,6 +188,7 @@ void wlan_mac_dcf_hw_start_backoff(u16 num_slots);
 int wlan_create_ack_frame(void* pkt_buf, u8* address_ra);
 inline void lock_empty_rx_pkt_buf();
 inline u64 get_usec_timestamp();
+inline u64 get_rx_start_timestamp();
 inline void send_exception(u32 reason);
 
 
