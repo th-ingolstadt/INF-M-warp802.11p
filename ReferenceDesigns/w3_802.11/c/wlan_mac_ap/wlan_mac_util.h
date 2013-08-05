@@ -63,8 +63,11 @@ typedef struct{
 void wlan_mac_util_init();
 void gpio_timestamp_initialize();
 inline u64 get_usec_timestamp();
-void wlan_eth_init();
-void wlan_mac_send_eth(void* mpdu, u16 length);
+int wlan_eth_init();
+int wlan_eth_dma_init();
+int wlan_mac_send_eth(void* mpdu, u16 length);
+void wlan_eth_dma_finish_tx();
+int wlan_eth_dma_send(u8* pkt_ptr, u32 length);
 inline void wlan_mac_poll_eth();
 void wlan_mac_util_set_eth_rx_callback(void(*callback)());
 void wlan_mac_util_set_mpdu_tx_callback(void(*callback)());

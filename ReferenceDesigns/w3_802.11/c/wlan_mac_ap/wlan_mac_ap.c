@@ -23,7 +23,7 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_ap.h"
 
-#define BEACON_INTERVAL_MS (100)
+#define BEACON_INTERVAL_MS (1000)
 #define BEACON_INTERVAL_US (BEACON_INTERVAL_MS*1000)
 
 #define ASSOCIATION_CHECK_INTERVAL_MS (10000)
