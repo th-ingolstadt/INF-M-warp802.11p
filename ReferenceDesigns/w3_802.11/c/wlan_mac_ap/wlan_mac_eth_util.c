@@ -100,7 +100,7 @@ int wlan_eth_dma_init() {
 	// No Eth packets are transmitted until actual Tx BD's are pushed to the DMA hardware
 	status = XAxiDma_BdRingStart(ETH_A_TxRing_ptr);
 
-	//Initialize the Rx buffer desciptors
+	//Initialize the Rx buffer descriptors
 	bd_count = XAxiDma_BdRingGetFreeCnt(ETH_A_RxRing_ptr);
 	if(bd_count != ETH_A_NUM_RX_BD) {xil_printf("Error in Eth Rx DMA init - not all Rx BDs were free at boot\n");}
 

@@ -32,7 +32,7 @@ static u64 scheduler_timestamps[SCHEDULER_NUM_EVENTS];
 
 void wlan_mac_util_init(){
 	wlan_eth_init();
-	wlan_mac_queue_init();
+	queue_init();
 	gpio_timestamp_initialize();
 }
 
