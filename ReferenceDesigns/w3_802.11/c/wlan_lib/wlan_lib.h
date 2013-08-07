@@ -33,6 +33,7 @@
 #define PKT_BUF_MUTEX_DEVICE_ID		XPAR_MUTEX_0_DEVICE_ID
 #define MAILBOX_DEVICE_ID			XPAR_MBOX_0_DEVICE_ID
 
+
 typedef struct{
 	u8 state;
 	u8 rate;
@@ -59,6 +60,8 @@ typedef struct{
 #define TX_MPDU_FLAGS_FILL_DURATION			0x04
 
 
+
+
 typedef struct{
 	u8 state;
 	u8 rate;
@@ -82,9 +85,11 @@ typedef struct{
 #define NUM_TX_PKT_BUFS	16
 #define NUM_RX_PKT_BUFS	16
 
+#define PKT_BUF_SIZE 4096
+
 //Tx and Rx packet buffers
-#define TX_PKT_BUF_TO_ADDR(n)	(XPAR_PKT_BUFF_TX_BRAM_CTRL_S_AXI_BASEADDR + (n)*4096)
-#define RX_PKT_BUF_TO_ADDR(n)	(XPAR_PKT_BUFF_RX_BRAM_CTRL_S_AXI_BASEADDR + (n)*4096)
+#define TX_PKT_BUF_TO_ADDR(n)	(XPAR_PKT_BUFF_TX_BRAM_CTRL_S_AXI_BASEADDR + (n)*PKT_BUF_SIZE)
+#define RX_PKT_BUF_TO_ADDR(n)	(XPAR_PKT_BUFF_RX_BRAM_CTRL_S_AXI_BASEADDR + (n)*PKT_BUF_SIZE)
 
 #define PHY_RX_PKT_BUF_PHY_HDR_OFFSET (sizeof(rx_frame_info))
 #define PHY_TX_PKT_BUF_PHY_HDR_OFFSET (sizeof(tx_frame_info))
@@ -93,6 +98,12 @@ typedef struct{
 
 #define PHY_RX_PKT_BUF_MPDU_OFFSET (PHY_TX_PKT_BUF_PHY_HDR_SIZE+PHY_RX_PKT_BUF_PHY_HDR_OFFSET)
 #define PHY_TX_PKT_BUF_MPDU_OFFSET (PHY_TX_PKT_BUF_PHY_HDR_SIZE+PHY_TX_PKT_BUF_PHY_HDR_OFFSET)
+
+typedef struct{
+	tx_frame_info frame_info;
+	u8 phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
+	u8 frame[PKT_BUF_SIZE - PHY_TX_PKT_BUF_PHY_HDR_SIZE - sizeof(tx_frame_info)];
+} tx_packet_buffer;
 
 #define PKT_BUF_MUTEX_SUCCESS 				0
 #define PKT_BUF_MUTEX_FAIL_INVALID_BUF		-1
