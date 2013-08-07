@@ -302,7 +302,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
 
 	if(length<sizeof(mac_header_80211_ACK)){
-		warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
+		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
 		wlan_mac_dcf_hw_unblock_rx_phy();
 		return return_value;
