@@ -67,7 +67,7 @@ void wlan_mac_util_set_eth_rx_callback(void(*callback)());
 void wlan_mac_util_set_mpdu_tx_callback(void(*callback)());
 void wlan_mac_schedule_event(u32 delay, void(*callback)());
 inline void poll_schedule();
-inline void wlan_mac_poll_tx_queue();
+inline void wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);

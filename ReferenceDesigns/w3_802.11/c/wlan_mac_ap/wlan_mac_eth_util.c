@@ -210,7 +210,7 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 }
 
 void wlan_poll_eth() {
-	XAxiDma_BdRing *rxRing_ptr;
+/*	XAxiDma_BdRing *rxRing_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
 	u8* mpdu_start_ptr;
 	u8* eth_start_ptr;
@@ -297,5 +297,6 @@ void wlan_poll_eth() {
 	}
 
 	return;
+	*/
 }
 

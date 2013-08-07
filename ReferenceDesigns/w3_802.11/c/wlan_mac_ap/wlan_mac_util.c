@@ -91,21 +91,16 @@ inline void poll_schedule(){
 	}
 }
 
-inline void wlan_mac_poll_tx_queue(){
-	packet_queue_element* tx_queue;
+inline void wlan_mac_poll_tx_queue(u16 queue_sel){
+	pqueue_ring dequeue;
+	pqueue_bd* tx_queue;
 
-	//Poll high priority queue
-	tx_queue = wlan_mac_queue_get_read_element(HIGH_PRI_QUEUE_SEL);
-	if(tx_queue != NULL){
+	dequeue = dequeue_from_beginning(0,1);
+
+	if(dequeue.length == 1){
+		tx_queue = dequeue.first;
 		mpdu_tx_callback(tx_queue);
-		wlan_mac_dequeue(HIGH_PRI_QUEUE_SEL);
-	} else {
-		//Poll low priority queue
-		tx_queue = wlan_mac_queue_get_read_element(LOW_PRI_QUEUE_SEL);
-		if(tx_queue != NULL){
-			mpdu_tx_callback(tx_queue);
-			wlan_mac_dequeue(LOW_PRI_QUEUE_SEL);
-		}
+		queue_checkin(&dequeue);
 	}
 }
 

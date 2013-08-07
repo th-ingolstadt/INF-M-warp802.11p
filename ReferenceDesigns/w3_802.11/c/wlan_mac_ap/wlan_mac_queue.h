@@ -18,7 +18,7 @@ struct pqueue_bd{
 	station_info* station_info_ptr;
 	pqueue_bd* next;
 	pqueue_bd* prev;
-	u8* frame_ptr;
+	tx_packet_buffer* pktbuf_ptr;
 };
 
 typedef struct {
@@ -60,37 +60,6 @@ void pqueue_remove(pqueue_ring* ring, pqueue_bd* bd);
 
 pqueue_ring pqueue_ring_init();
 void pqueue_print(pqueue_ring* ring);
-
-
-
-
-
-
-////////////////////////// OLD QUEUE /////////////////////////////
-
-
-#define MAX_PACKET_SIZE 2000
-#define LOW_PRI_TX_QUEUE_LENGTH		16
-#define HIGH_PRI_TX_QUEUE_LENGTH	8
-
-#define HIGH_PRI_QUEUE_SEL	0
-#define LOW_PRI_QUEUE_SEL	1
-
-typedef struct{
-	station_info* station_info_ptr;
-	tx_frame_info frame_info;
-	u8 phy_hdr_pad[8];
-	u8 frame[MAX_PACKET_SIZE];
-} packet_queue_element;
-
-#define HIGH_PRI_QUEUE_BASEADDR	XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR
-#define LOW_PRI_QUEUE_BASEADDR	(XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR + (sizeof(packet_queue_element)*HIGH_PRI_TX_QUEUE_LENGTH))
-
-u16 wlan_mac_queue_get_size(u8 queue_sel);
-packet_queue_element* wlan_mac_queue_get_write_element(u8 queue_sel);
-packet_queue_element* wlan_mac_queue_get_read_element(u8 queue_sel);
-void wlan_mac_enqueue(u8 queue_sel);
-void wlan_mac_dequeue(u8 queue_sel);
 
 
 #endif /* WLAN_MAC_QUEUE_H_ */
