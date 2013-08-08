@@ -1,4 +1,4 @@
-addpath('../util');
+addpath('./util');
 addpath('./mcode_blocks');
 
 wifi_permute_calc
