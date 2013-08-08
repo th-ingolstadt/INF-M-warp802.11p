@@ -13,53 +13,63 @@
 
 #define NUM_QUEUES 9 //1 for each association + 1 for non-associated packets
 
-typedef struct pqueue_bd pqueue_bd;
-struct pqueue_bd{
+typedef struct pqueue pqueue;
+struct pqueue{
 	station_info* station_info_ptr;
-	pqueue_bd* next;
-	pqueue_bd* prev;
+	pqueue* next;
+	pqueue* prev;
 	tx_packet_buffer* pktbuf_ptr;
 };
 
 typedef struct {
-	pqueue_bd* first;
-	pqueue_bd* last;
+	pqueue* first;
+	pqueue* last;
 	u16 length;
-} pqueue_ring;
+} pqueue_list;
 
 #define PQUEUE_MAX_FRAME_SIZE	0x800 	//2KB
-#define PQUEUE_LEN				20 		//Total Queue Size (bytes) = PQUEUE_LEN*(PQUEUE_MAX_FRAME_SIZE + sizeof(pqueue_bd))
+
+//If using BRAM for pqueues
+//#define PQUEUE_LEN				20 		//Total Queue Size (bytes) = PQUEUE_LEN*(PQUEUE_MAX_FRAME_SIZE + sizeof(pqueue))
+
+//If using DRAM for pqueues//
+#define PQUEUE_LEN				1000 		//Total Queue Size (bytes) = PQUEUE_LEN*(PQUEUE_MAX_FRAME_SIZE + sizeof(pqueue))
 
 //Bottom 48kB of data BRAM is used for PQUEUE
 #define PQUEUE_MEM_BASE				(XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR)
 
 //First section of pqueue memory space is the pqueue buffer descriptors
-#define PQUEUE_BD_SPACE_BASE		PQUEUE_MEM_BASE
+#define pqueue_SPACE_BASE		PQUEUE_MEM_BASE
 
 //Second section of pqueue memory space is the raw buffer space for payloads
-#define PQUEUE_BUFFER_SPACE_BASE	(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(pqueue_bd)))
+//Use BRAM for queue
+//#define PQUEUE_BUFFER_SPACE_BASE	(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(pqueue)))
+//Use DRAM for queue
+#define PQUEUE_BUFFER_SPACE_BASE	XPAR_DDR3_SODIMM_S_AXI_BASEADDR
 
 
 
 void queue_init();
 
-void enqueue_after_end(u16 queue_sel, pqueue_ring* ring);
-pqueue_ring dequeue_from_beginning(u16 queue_sel, u16 num_pqueue);
+void enqueue_after_end(u16 queue_sel, pqueue_list* ring);
+pqueue_list dequeue_from_beginning(u16 queue_sel, u16 num_pqueue);
 
 
 //Functions for checking in and out pqueues from the free ring
-pqueue_ring queue_checkout(u16 num_pqueue);
-void queue_checkin(pqueue_ring* ring);
+pqueue_list queue_checkout(u16 num_pqueue);
+void queue_checkin(pqueue_list* ring);
+inline u32 queue_num_free();
+inline u32 queue_num_queued(u16 queue_sel);
 
 //Doubly linked list helper functions
-void pqueue_insertAfter(pqueue_ring* ring, pqueue_bd* bd, pqueue_bd* bd_new);
-void pqueue_insertBefore(pqueue_ring* ring, pqueue_bd* bd, pqueue_bd* bd_new);
-void pqueue_insertBeginning(pqueue_ring* ring, pqueue_bd* bd_new);
-void pqueue_insertEnd(pqueue_ring* ring, pqueue_bd* bd_new);
-void pqueue_remove(pqueue_ring* ring, pqueue_bd* bd);
+void pqueue_insertAfter(pqueue_list* ring, pqueue* bd, pqueue* bd_new);
+void pqueue_insertBefore(pqueue_list* ring, pqueue* bd, pqueue* bd_new);
+void pqueue_insertBeginning(pqueue_list* ring, pqueue* bd_new);
+void pqueue_insertEnd(pqueue_list* ring, pqueue* bd_new);
+void pqueue_remove(pqueue_list* ring, pqueue* bd);
 
-pqueue_ring pqueue_ring_init();
-void pqueue_print(pqueue_ring* ring);
+pqueue_list pqueue_list_init();
+void pqueue_print(pqueue_list* ring);
 
 
 #endif /* WLAN_MAC_QUEUE_H_ */

@@ -18,18 +18,18 @@
 #include "wlan_mac_util.h"
 #include "wlan_mac_queue.h"
 
-//This ring holds all of the empty, free elements
-static pqueue_ring queue_free;
+//This list holds all of the empty, free elements
+static pqueue_list queue_free;
 
-//This vector of rings will get filled in with elements from the free ring
-static pqueue_ring queue[NUM_QUEUES];
+//This vector of lists will get filled in with elements from the free list
+static pqueue_list queue[NUM_QUEUES];
 
 void queue_init(){
 	u32 i;
 
-	queue_free = pqueue_ring_init();
+	queue_free = pqueue_list_init();
 
-	queue_free.first = (pqueue_bd*)PQUEUE_BD_SPACE_BASE;
+	queue_free.first = (pqueue*)pqueue_SPACE_BASE;
 
 	bzero((void*)PQUEUE_BUFFER_SPACE_BASE, PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE);
 
@@ -40,6 +40,8 @@ void queue_init(){
 	for(i=0;i<PQUEUE_LEN;i++){
 		queue_free.first[i].pktbuf_ptr = (tx_packet_buffer*)(PQUEUE_BUFFER_SPACE_BASE + (i*PQUEUE_MAX_FRAME_SIZE));
 		queue_free.first[i].station_info_ptr = NULL;
+
+		//xil_printf("pqueue %d: pktbuf_ptr = 0x%08x\n",i, queue_free.first[i].pktbuf_ptr);
 
 		if(i==(PQUEUE_LEN-1)){
 			queue_free.first[i].next = NULL;
@@ -59,7 +61,7 @@ void queue_init(){
 
 	//By default, all queues are empty.
 	for(i=0;i<NUM_QUEUES;i++){
-		queue[i] = pqueue_ring_init();
+		queue[i] = pqueue_list_init();
 		queue[i].length = 0;
 		queue[i].first = NULL;
 		queue[i].last = NULL;
@@ -71,12 +73,12 @@ void queue_init(){
 	//Simulate what would happen if we don't want all of the pqueues we checkout and want to check some back in
 	//This case will occur when dealing with Ethernet frames, where not every BD will contain a frame we intend to
 	//send (e.g. non-ARP and non-IP packets)
-	pqueue_ring checkout,checkin,dequeue;
-	pqueue_bd* curr_pqueue;
-	pqueue_bd* next_pqueue;
+	pqueue_list checkout,checkin,dequeue;
+	pqueue* curr_pqueue;
+	pqueue* next_pqueue;
 	u32 checkout_len;
 
-	checkin = pqueue_ring_init();
+	checkin = pqueue_list_init();
 
 	checkout = queue_checkout(8);
 	curr_pqueue = checkout.first;
@@ -123,25 +125,25 @@ void queue_init(){
 	 */
 }
 
-void enqueue_after_end(u16 queue_sel, pqueue_ring* ring){
-	pqueue_bd* curr_pqueue;
-	pqueue_bd* next_pqueue;
+void enqueue_after_end(u16 queue_sel, pqueue_list* list){
+	pqueue* curr_pqueue;
+	pqueue* next_pqueue;
 
-	curr_pqueue = ring->first;
+	curr_pqueue = list->first;
 
 	while(curr_pqueue != NULL){
 		next_pqueue = curr_pqueue->next;
-		pqueue_remove(ring,curr_pqueue);
+		pqueue_remove(list,curr_pqueue);
 		pqueue_insertEnd(&(queue[queue_sel]),curr_pqueue);
 		curr_pqueue = next_pqueue;
 	}
 	return;
 }
 
-pqueue_ring dequeue_from_beginning(u16 queue_sel, u16 num_pqueue){
+pqueue_list dequeue_from_beginning(u16 queue_sel, u16 num_pqueue){
 	u32 i,num_dequeue;
-	pqueue_ring new_ring = pqueue_ring_init();
-	pqueue_bd* curr_pqueue;
+	pqueue_list new_list = pqueue_list_init();
+	pqueue* curr_pqueue;
 
 	if(num_pqueue <= queue[queue_sel].length){
 		num_dequeue = num_pqueue;
@@ -151,21 +153,29 @@ pqueue_ring dequeue_from_beginning(u16 queue_sel, u16 num_pqueue){
 
 	for (i=0;i<num_dequeue;i++){
 		curr_pqueue = queue[queue_sel].first;
-		//Remove from free ring
+		//Remove from free list
 		pqueue_remove(&queue[queue_sel],curr_pqueue);
-		//Add to new checkout ring
-		pqueue_insertEnd(&new_ring,curr_pqueue);
+		//Add to new checkout list
+		pqueue_insertEnd(&new_list,curr_pqueue);
 	}
-	return new_ring;
+	return new_list;
 }
 
-pqueue_ring queue_checkout(u16 num_pqueue){
-	//Checks out up to num_pqueue number of pqueues from the free ring. If num_pqueue are not free,
+inline u32 queue_num_free(){
+	return queue_free.length;
+}
+
+inline u32 queue_num_queued(u16 queue_sel){
+	return queue[queue_sel].length;
+}
+
+pqueue_list queue_checkout(u16 num_pqueue){
+	//Checks out up to num_pqueue number of pqueues from the free list. If num_pqueue are not free,
 	//then this function will return the number that are free and only check out that many.
 
 	u32 i,num_checkout;
-	pqueue_ring new_ring = pqueue_ring_init();
-	pqueue_bd* curr_pqueue;
+	pqueue_list new_list = pqueue_list_init();
+	pqueue* curr_pqueue;
 
 	if(num_pqueue <= queue_free.length){
 		num_checkout = num_pqueue;
@@ -176,22 +186,22 @@ pqueue_ring queue_checkout(u16 num_pqueue){
 	//Traverse the queue_free and update the pointers
 	for (i=0;i<num_checkout;i++){
 		curr_pqueue = queue_free.first;
-		//Remove from free ring
+		//Remove from free list
 		pqueue_remove(&queue_free,curr_pqueue);
-		//Add to new checkout ring
-		pqueue_insertEnd(&new_ring,curr_pqueue);
+		//Add to new checkout list
+		pqueue_insertEnd(&new_list,curr_pqueue);
 	}
-	return new_ring;
+	return new_list;
 }
-void queue_checkin(pqueue_ring* ring){
-	pqueue_bd* curr_pqueue;
-	pqueue_bd* next_pqueue;
+void queue_checkin(pqueue_list* list){
+	pqueue* curr_pqueue;
+	pqueue* next_pqueue;
 
-	curr_pqueue = ring->first;
+	curr_pqueue = list->first;
 
 	while(curr_pqueue != NULL){
 		next_pqueue = curr_pqueue->next;
-		pqueue_remove(ring,curr_pqueue);
+		pqueue_remove(list,curr_pqueue);
 		pqueue_insertEnd(&queue_free,curr_pqueue);
 		curr_pqueue = next_pqueue;
 	}
@@ -199,85 +209,85 @@ void queue_checkin(pqueue_ring* ring){
 	return;
 }
 
-void pqueue_insertAfter(pqueue_ring* ring, pqueue_bd* bd, pqueue_bd* bd_new){
+void pqueue_insertAfter(pqueue_list* list, pqueue* bd, pqueue* bd_new){
 	bd_new->prev = bd;
 	bd_new->next = bd->next;
 	if(bd->next == NULL){
-		ring->last = bd_new;
+		list->last = bd_new;
 	} else {
 		bd->next->prev = bd_new;
 	}
 	bd->next = bd_new;
-	(ring->length)++;
+	(list->length)++;
 	return;
 }
 
-void pqueue_insertBefore(pqueue_ring* ring, pqueue_bd* bd, pqueue_bd* bd_new){
+void pqueue_insertBefore(pqueue_list* list, pqueue* bd, pqueue* bd_new){
 	bd_new->prev = bd->prev;
 	bd_new->next = bd;
 	if(bd->prev == NULL){
-		ring->first = bd_new;
+		list->first = bd_new;
 	} else {
 		bd->prev->next = bd_new;
 	}
 	bd->prev = bd_new;
-	(ring->length)++;
+	(list->length)++;
 	return;
 }
 
-void pqueue_insertBeginning(pqueue_ring* ring, pqueue_bd* bd_new){
-	if(ring->first == NULL){
-		ring->first = bd_new;
-		ring->last = bd_new;
+void pqueue_insertBeginning(pqueue_list* list, pqueue* bd_new){
+	if(list->first == NULL){
+		list->first = bd_new;
+		list->last = bd_new;
 		bd_new->prev = NULL;
 		bd_new->next = NULL;
-		(ring->length)++;
+		(list->length)++;
 	} else {
-		pqueue_insertBefore(ring, ring->first, bd_new);
+		pqueue_insertBefore(list, list->first, bd_new);
 	}
 	return;
 }
 
-void pqueue_insertEnd(pqueue_ring* ring, pqueue_bd* bd_new){
-	if(ring->last == NULL){
-		pqueue_insertBeginning(ring,bd_new);
+void pqueue_insertEnd(pqueue_list* list, pqueue* bd_new){
+	if(list->last == NULL){
+		pqueue_insertBeginning(list,bd_new);
 	} else {
-		pqueue_insertAfter(ring,ring->last, bd_new);
+		pqueue_insertAfter(list,list->last, bd_new);
 	}
 	return;
 }
 
-void pqueue_remove(pqueue_ring* ring, pqueue_bd* bd){
+void pqueue_remove(pqueue_list* list, pqueue* bd){
 	if(bd->prev == NULL){
-		ring->first = bd->next;
+		list->first = bd->next;
 	} else {
 		bd->prev->next = bd->next;
 	}
 
 	if(bd->next == NULL){
-		ring->last = bd->prev;
+		list->last = bd->prev;
 	} else {
 		bd->next->prev = bd->prev;
 	}
-	(ring->length)--;
+	(list->length)--;
 }
 
-pqueue_ring pqueue_ring_init(){
-	pqueue_ring ring;
-	ring.first = NULL;
-	ring.last = NULL;
-	ring.length = 0;
-	return ring;
+pqueue_list pqueue_list_init(){
+	pqueue_list list;
+	list.first = NULL;
+	list.last = NULL;
+	list.length = 0;
+	return list;
 }
 
 
-void pqueue_print(pqueue_ring* ring){
-	pqueue_bd* curr_bd = ring->first;
+void pqueue_print(pqueue_list* list){
+	pqueue* curr_bd = list->first;
 
 	xil_printf("******** pqueue_print ********\n");
-	xil_printf("ring->first:     0x%08x\n", ring->first);
-	xil_printf("ring->last:      0x%08x\n", ring->last);
-	xil_printf("ring->length:    %d\n\n", ring->length);
+	xil_printf("list->first:     0x%08x\n", list->first);
+	xil_printf("list->last:      0x%08x\n", list->last);
+	xil_printf("list->length:    %d\n\n", list->length);
 
 	while(curr_bd != NULL){
 		xil_printf("0x%08x\n", curr_bd);

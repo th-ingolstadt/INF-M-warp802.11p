@@ -21,7 +21,7 @@
 
 //Number of Tx and Rx DMA buffer descriptors
 #define ETH_A_NUM_TX_BD		1
-#define ETH_A_NUM_RX_BD		4
+#define ETH_A_NUM_RX_BD		200
 
 //Current layout of DATA_BRAM:
 // [0:48KB] : Tx Queue (managed by wlan_mac_queue.c/h)
@@ -45,5 +45,6 @@ int wlan_eth_dma_init();
 int wlan_eth_send(void* mpdu, u16 length);
 int wlan_eth_dma_send(u8* pkt_ptr, u32 length);
 inline void wlan_poll_eth();
+void wlan_eth_dma_update();
 
 #endif /* WLAN_MAC_ETH_UTIL_H_ */

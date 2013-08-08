@@ -31,8 +31,8 @@ static function_ptr_t scheduler_callbacks[SCHEDULER_NUM_EVENTS];
 static u64 scheduler_timestamps[SCHEDULER_NUM_EVENTS];
 
 void wlan_mac_util_init(){
-	wlan_eth_init();
 	queue_init();
+	wlan_eth_init();
 	gpio_timestamp_initialize();
 }
 
@@ -92,15 +92,16 @@ inline void poll_schedule(){
 }
 
 inline void wlan_mac_poll_tx_queue(u16 queue_sel){
-	pqueue_ring dequeue;
-	pqueue_bd* tx_queue;
+	pqueue_list dequeue;
+	pqueue* tx_queue;
 
-	dequeue = dequeue_from_beginning(0,1);
+	dequeue = dequeue_from_beginning(queue_sel,1);
 
 	if(dequeue.length == 1){
 		tx_queue = dequeue.first;
 		mpdu_tx_callback(tx_queue);
 		queue_checkin(&dequeue);
+		wlan_eth_dma_update();
 	}
 }
 

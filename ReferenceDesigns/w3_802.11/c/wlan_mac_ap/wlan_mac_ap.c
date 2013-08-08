@@ -85,8 +85,6 @@ int main(){
 	}
 	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
 
-
-
 	for(i=0;i < NUM_TX_PKT_BUFS; i++){
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
 		tx_mpdu->state = TX_MPDU_STATE_EMPTY;
@@ -143,9 +141,12 @@ int main(){
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
-	wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+	wlan_mac_schedule_event(1000000,(void*)print_queue_status);
 
+	//TODO: bug was reported in disassociation timeout. disabled in meantime
+	//wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
+	station_index = 0;
 	while(1){
 		//Poll Scheduler
 		poll_schedule();
@@ -154,12 +155,22 @@ int main(){
 		wlan_poll_eth();
 
 		//Poll Non-associated Queue
-		if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0) wlan_mac_poll_tx_queue(0);
+		if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0){
+			//xil_printf("Polling %d\n",0);
+			wlan_mac_poll_tx_queue(0);
+		}
 
 		//Poll Associated Queue
-		for(station_index = 0; station_index < next_free_assoc_index; station_index++){
-			if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0) wlan_mac_poll_tx_queue(associations[station_index].AID);
+		//for(station_index = 0; station_index < next_free_assoc_index; station_index++){
+		if(next_free_assoc_index>0){
+			if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0){
+				//xil_printf("Polling %d\n",associations[station_index].AID);
+				wlan_mac_poll_tx_queue(associations[station_index].AID);
+			}
+			station_index = (station_index+1)%next_free_assoc_index;
 		}
+
+		//}
 
 		//Poll mailbox read msg
 		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
@@ -170,21 +181,26 @@ int main(){
 	return -1;
 }
 
-void ethernet_receive(pqueue_bd* tx_queue, u8* eth_dest, u8* eth_src, u16 tx_length){
-/*	//Receives the pre-encapsulated Ethernet frames
+int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
+	//Receives the pre-encapsulated Ethernet frames
+
+	pqueue* tx_queue = tx_queue_list->first;
+
+//	xil_printf("   ap got an eth rx\n");
 
 	u32 i;
 	u8 is_associated = 0;
 
-	wlan_create_data_frame((void*) tx_queue->frame, MAC_FRAME_CTRL2_FLAG_FROM_DS, (u8*)(&(eth_dest[0])), (u8*)(&(eeprom_mac_addr[0])), (u8*)(&(eth_src[0])), seq_num++);
-	tx_queue->frame_info.length = tx_length;
+	wlan_create_data_frame((void*) tx_queue->pktbuf_ptr->frame, MAC_FRAME_CTRL2_FLAG_FROM_DS, (u8*)(&(eth_dest[0])), (u8*)(&(eeprom_mac_addr[0])), (u8*)(&(eth_src[0])), seq_num++);
+	tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
 		//TODO: Remember to set current retry to 0 when popping from queue
 		tx_queue->station_info_ptr = NULL;
-		tx_queue->frame_info.retry_max = 0;
-		tx_queue->frame_info.flags = 0;
-		wlan_mac_enqueue(LOW_PRI_QUEUE_SEL);
+		tx_queue->pktbuf_ptr->frame_info.retry_max = 0;
+		tx_queue->pktbuf_ptr->frame_info.flags = 0;
+//		xil_printf("   ...enqueued to %d\n",0);
+		enqueue_after_end(0, tx_queue_list);
 
 	} else {
 		//Check associations
@@ -197,31 +213,57 @@ void ethernet_receive(pqueue_bd* tx_queue, u8* eth_dest, u8* eth_src, u16 tx_len
 		}
 		if(is_associated) {
 			tx_queue->station_info_ptr = &(associations[i]);
-			tx_queue->frame_info.retry_max = MAX_RETRY;
-			tx_queue->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-			wlan_mac_enqueue(LOW_PRI_QUEUE_SEL);
+			tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
+			tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+//			xil_printf("   ...enqueued to %d\n",associations[i].AID);
+			enqueue_after_end(associations[i].AID, tx_queue_list);
+		} else {
+			//Checkin this pqueue so that it can be checked out again
+			return 0;
 		}
 	}
 
-	return;
-	*/
+	return 1;
+
+}
+
+void print_queue_status(){
+	u32 i;
+
+
+	xil_printf("\nQueue Status:\n");
+	xil_printf("FREE||   0|");
+
+	for(i=0; i<next_free_assoc_index; i++){
+		xil_printf("%04d|", associations[i].AID);
+	}
+	xil_printf("\n");
+
+	xil_printf("%04d||%04d|",queue_num_free(),queue_num_queued(0));
+
+	for(i=0; i<next_free_assoc_index; i++){
+		xil_printf("%04d|", queue_num_queued(associations[i].AID));
+	}
+	xil_printf("\n");
+
+	wlan_mac_schedule_event(1000000,(void*)print_queue_status);
 }
 
 void beacon_transmit() {
  	u16 tx_length;
- 	pqueue_ring checkout_ring;
- 	pqueue_bd*	tx_queue;
+ 	pqueue_list checkout;
+ 	pqueue*	tx_queue;
 
  	//Checkout 1 element from the queue;
- 	checkout_ring = queue_checkout(1);
+ 	checkout = queue_checkout(1);
 
- 	if(checkout_ring.length == 1){ //There was at least 1 free queue element
- 		tx_queue = checkout_ring.first;
+ 	if(checkout.length == 1){ //There was at least 1 free queue element
+ 		tx_queue = checkout.first;
  		tx_length = wlan_create_beacon_probe_frame((void*)(tx_queue->pktbuf_ptr->frame), MAC_FRAME_CTRL1_SUBTYPE_BEACON, bcast_addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
  		tx_queue->pktbuf_ptr->frame_info.length = tx_length;
  		tx_queue->station_info_ptr = NULL;
  		tx_queue->pktbuf_ptr->frame_info.flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
- 		enqueue_after_end(0, &checkout_ring);
+ 		enqueue_after_end(0, &checkout);
  	}
 
  	//Schedule the next beacon transmission
@@ -234,8 +276,8 @@ void association_timestamp_check() {
 
 	u32 i;
 	u64 time_since_last_rx;
-	pqueue_ring checkout_ring;
-	pqueue_bd* tx_queue;
+	pqueue_list checkout;
+	pqueue* tx_queue;
 	u32 tx_length;
 
 	for(i=0; i < next_free_assoc_index; i++) {
@@ -246,17 +288,17 @@ void association_timestamp_check() {
 			//Send De-authentication
 
 		 	//Checkout 1 element from the queue;
-		 	checkout_ring = queue_checkout(1);
+		 	checkout = queue_checkout(1);
 
-		 	if(checkout_ring.length == 1){ //There was at least 1 free queue element
-		 		tx_queue = checkout_ring.first;
+		 	if(checkout.length == 1){ //There was at least 1 free queue element
+		 		tx_queue = checkout.first;
 		 		//tx_length = wlan_create_beacon_probe_frame((void*)(tx_queue->pktbuf_ptr->frame), MAC_FRAME_CTRL1_SUBTYPE_BEACON, bcast_addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
 		 		tx_length = wlan_create_deauth_frame((void*)(tx_queue->pktbuf_ptr->frame), DEAUTH_REASON_INACTIVITY, associations[i].addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
 		 		tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 		 		tx_queue->station_info_ptr = &(associations[i]);
 		 		tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 		 		tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-		 		enqueue_after_end(associations[i].AID, &checkout_ring);
+		 		enqueue_after_end(associations[i].AID, &checkout);
 
 				//Remove this STA from association list
 				if(next_free_assoc_index > 0) next_free_assoc_index--;
@@ -399,8 +441,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	mac_header_80211* rx_80211_header;
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
-	pqueue_ring checkout_ring;
-	pqueue_bd*	tx_queue;
+	pqueue_list checkout;
+	pqueue*	tx_queue;
 
 	u32 i;
 	u8 is_associated = 0;
@@ -445,16 +487,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					//Send De-authentication
 					//Checkout 1 element from the queue;
-					 	checkout_ring = queue_checkout(1);
+					 	checkout = queue_checkout(1);
 
-					 	if(checkout_ring.length == 1){ //There was at least 1 free queue element
-					 		tx_queue = checkout_ring.first;
+					 	if(checkout.length == 1){ //There was at least 1 free queue element
+					 		tx_queue = checkout.first;
 					 		tx_length = wlan_create_deauth_frame((void*)(tx_queue->pktbuf_ptr->frame), DEAUTH_REASON_NONASSOCIATED_STA, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
 					 		tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 					 		tx_queue->station_info_ptr = NULL;
 					 		tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 							tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-							enqueue_after_end(0, &checkout_ring);
+							enqueue_after_end(0, &checkout);
 					 	}
 				}
 			}//END if(is_associated)
@@ -485,16 +527,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(send_response) {
 
 					//Checkout 1 element from the queue;
-					checkout_ring = queue_checkout(1);
+					checkout = queue_checkout(1);
 
-					if(checkout_ring.length == 1){ //There was at least 1 free queue element
-						tx_queue = checkout_ring.first;
+					if(checkout.length == 1){ //There was at least 1 free queue element
+						tx_queue = checkout.first;
 						tx_length = wlan_create_beacon_probe_frame((void*)(tx_queue->pktbuf_ptr->frame), MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
 						tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 						tx_queue->station_info_ptr = NULL;
 						tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 						tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-						enqueue_after_end(0, &checkout_ring);
+						enqueue_after_end(0, &checkout);
 					}
 
 					return;
@@ -510,16 +552,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
 
 								//Checkout 1 element from the queue;
-								checkout_ring = queue_checkout(1);
+								checkout = queue_checkout(1);
 
-								if(checkout_ring.length == 1){ //There was at least 1 free queue element
-									tx_queue = checkout_ring.first;
+								if(checkout.length == 1){ //There was at least 1 free queue element
+									tx_queue = checkout.first;
 									tx_length = wlan_create_auth_frame((void*)(tx_queue->pktbuf_ptr->frame), AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
 									tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 									tx_queue->station_info_ptr = NULL;
 									tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 									tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-									enqueue_after_end(0, &checkout_ring);
+									enqueue_after_end(0, &checkout);
 								}
 
 								return;
@@ -528,16 +570,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						default:
 
 							//Checkout 1 element from the queue;
-							checkout_ring = queue_checkout(1);
+							checkout = queue_checkout(1);
 
-							if(checkout_ring.length == 1){ //There was at least 1 free queue element
-								tx_queue = checkout_ring.first;
+							if(checkout.length == 1){ //There was at least 1 free queue element
+								tx_queue = checkout.first;
 								tx_length = wlan_create_auth_frame((void*)(tx_queue->pktbuf_ptr->frame), AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
 								tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 								tx_queue->station_info_ptr = NULL;
 								tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 								tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-								enqueue_after_end(0, &checkout_ring);
+								enqueue_after_end(0, &checkout);
 							}
 
 							warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
@@ -571,16 +613,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					associations[i].tx_rate = WLAN_MAC_RATE_QPSK34; //Default tx_rate for this station. Rate adaptation may change this value.
 
 					//Checkout 1 element from the queue;
-					checkout_ring = queue_checkout(1);
+					checkout = queue_checkout(1);
 
-					if(checkout_ring.length == 1){ //There was at least 1 free queue element
-						tx_queue = checkout_ring.first;
+					if(checkout.length == 1){ //There was at least 1 free queue element
+						tx_queue = checkout.first;
 						tx_length = wlan_create_association_response_frame((void*)(tx_queue->pktbuf_ptr->frame), MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, STATUS_SUCCESS, 0xC000 | associations[i].AID,eeprom_mac_addr);
 						tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 						tx_queue->station_info_ptr = &(associations[i]);
 						tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 						tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-						enqueue_after_end(associations[i].AID, &checkout_ring);
+						enqueue_after_end(associations[i].AID, &checkout);
 					}
 
 					if(new_association == 1) {
@@ -647,7 +689,7 @@ int is_tx_buffer_empty(){
 	}
 }
 
-void mpdu_transmit(pqueue_bd* tx_queue) {
+void mpdu_transmit(pqueue* tx_queue) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station_info* station = tx_queue->station_info_ptr;

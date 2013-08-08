@@ -17,13 +17,14 @@
 #define ASSOCIATION_TIMEOUT_US (ASSOCIATION_TIMEOUT_S*1000000)
 
 int main();
-void ethernet_receive(pqueue_bd* tx_queue, u8* eth_dest, u8* eth_src, u16 tx_length);
+int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 int is_tx_buffer_empty();
-void mpdu_transmit(pqueue_bd* tx_queue);
+void mpdu_transmit(pqueue* tx_queue);
 void beacon_transmit();
 void process_ipc_msg_from_low(wlan_ipc_msg* msg);
 void print_associations();
+void print_queue_status();
 void association_timestamp_check();
 
 
