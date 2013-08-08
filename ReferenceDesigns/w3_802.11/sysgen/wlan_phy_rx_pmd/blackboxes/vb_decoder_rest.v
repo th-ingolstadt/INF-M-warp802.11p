@@ -65,7 +65,7 @@ wire                            last_byte ;
 assign dout = data ;
 assign vout = rd ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     cnt <= 0 ;
   else if (start)
@@ -87,7 +87,7 @@ assign shift = BITN - cnt ;
 assign tmp2 = (tmp << shift) | sreg ;
 assign sreg_next = vin ? tmp2 : rd ? {sreg[BITM -1 : 0], {BITN{1'b0}}} : sreg ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     sreg <= 0 ;
   else if (start)
@@ -95,7 +95,7 @@ always @ (posedge clk or negedge nrst)
   else 
     sreg <= sreg_next ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     last_i <= 1'b0 ;
   else if (start)
@@ -821,7 +821,7 @@ assign rem_i = ~last_cnt_next[LW-1] ? 0 : last_cnt ;
 //assign dv_in_gate = dv_in & in_dec ;
 assign dv_in_gate = dv_in & in_dec & (~packet_end) ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     in_dec <= 1'b0 ;
   else if (packet_start)
@@ -1234,7 +1234,7 @@ assign metric_next_61 = diff_61 [M -1] ? metric_B_61 : metric_A_61 ;
 assign metric_next_62 = diff_62 [M -1] ? metric_B_62 : metric_A_62 ;
 assign metric_next_63 = diff_63 [M -1] ? metric_B_63 : metric_A_63 ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
   begin
     metric_0  <= 10 ;
@@ -1438,7 +1438,7 @@ always @ (posedge clk or negedge nrst)
     metric_63 <= metric_next_63;
   end
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     wptr <= 0 ;
   else if (packet_start)
@@ -1446,7 +1446,7 @@ always @ (posedge clk or negedge nrst)
   else if (dv_in_gate)
       wptr <= wptr + 1 ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     last_wptr <= 1'b0 ;
   else if (dv_in_gate)
@@ -1522,7 +1522,7 @@ always @ (posedge clk)
     tran_state_63 [wptr] <= diff_63 [M -1] ;
   end
   
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
   begin
     trace <= 1'b0 ;
@@ -1553,7 +1553,7 @@ always @ (posedge clk or negedge nrst)
   else
     trace <= 1'b0 ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
   begin
     flush_en <= 1'b0 ;
@@ -1574,7 +1574,7 @@ always @ (posedge clk or negedge nrst)
 
 assign flush = flush_cnt == 60 ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     done_i <= 1'b0 ;
   else if (packet_start)
@@ -1586,7 +1586,7 @@ always @ (posedge clk or negedge nrst)
     done_i <= 1'b1 ;
 
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     last_trace <= 1'b0 ;
   else if (packet_start)
@@ -1600,7 +1600,7 @@ always @ (posedge clk)
 assign trace2 = ~last_trace_s0 & last_trace ;
 assign trace_pos_i = trace | trace2 ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
   begin
     trace2_s1 <= 1'b0 ;
@@ -1619,7 +1619,7 @@ begin
   trace_pos <= trace_pos_s0 ;
 end
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if(~nrst)
     last_trace_num <= 0 ;
   else
@@ -1644,7 +1644,7 @@ end
 
 assign last_cnt_next = last_cnt - R ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if(~nrst)
   begin
     one_more_out <= 1'b0 ;
@@ -1671,7 +1671,7 @@ always @ (posedge clk or negedge nrst)
       one_more_out <= 1'b0 ;
   end
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     trace_en <= 0 ;
   else if (packet_start)
@@ -1681,7 +1681,7 @@ always @ (posedge clk or negedge nrst)
   else if (trace_cnt == L-2)
     trace_en <= 1'b0 ;
     
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if (~nrst)
     trace_cnt <= 0 ;
   else if (trace_pos)
@@ -2053,7 +2053,7 @@ max_metric_logic #(M, K) max_metric_s2_0 (
 
 assign init_state_i = state_s2_0 ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if(~nrst)
     trace_state <= 0 ;
   else
@@ -2125,7 +2125,7 @@ assign next_state = get_next_trace_state (cur_state1, tran_all_1) ;
 assign state0_bit = cur_state0 [K -2] ;
 assign state1_bit = cur_state1 [K -2] ;
 
-always @ (posedge clk or negedge nrst)
+always @ (posedge clk)
   if(~nrst)
     res <= 0 ;
   else

@@ -1,4 +1,4 @@
-function [fft_load, samp_skip_mode] = rx_fft_ctrl_fsm(lts_sync, fft_load_done, pkt_done)
+function [fft_load, fft_lts_load, samp_skip_mode] = rx_fft_ctrl_fsm(lts_sync, fft_load_done, pkt_done)
 
 persistent fsm_state, fsm_state=xl_state(0, {xlUnsigned, 3, 0});
 
@@ -31,7 +31,8 @@ switch double(fsm_state)
     case ST_LTS_WAIT
         fft_load = 0;
         samp_skip_mode = 0;
-
+        fft_lts_load = 0;
+        
         if( (pkt_done==1) )
             fsm_state = ST_LTS_WAIT;
         elseif( (lts_sync==1) )
@@ -41,7 +42,8 @@ switch double(fsm_state)
         end
 
     case ST_LTS_LOAD1
-        fft_load = 1;
+        fft_load = 0;%1;
+        fft_lts_load = 1;
         samp_skip_mode = 0;
 
         if( (pkt_done==1) )
@@ -53,7 +55,8 @@ switch double(fsm_state)
         end
 
 	case ST_LTS_LOAD2
-        fft_load = 1;
+        fft_load = 0;%1;
+        fft_lts_load = 1;
         samp_skip_mode = 1;
 
         if( (pkt_done==1) )
@@ -66,6 +69,7 @@ switch double(fsm_state)
 
 	case ST_DATA_LOAD
         fft_load = 1;
+        fft_lts_load = 0;
         samp_skip_mode = 1;
 
         if( (pkt_done==1) )
@@ -76,11 +80,13 @@ switch double(fsm_state)
 
 	case ST_DATA_DONE
         fft_load = 0;
+        fft_lts_load = 0;
         samp_skip_mode = 0;
         fsm_state = ST_LTS_WAIT;
         
     otherwise
         fft_load = 0;
+        fft_lts_load = 0;
         samp_skip_mode = 0;
         fsm_state = ST_LTS_WAIT;
 
