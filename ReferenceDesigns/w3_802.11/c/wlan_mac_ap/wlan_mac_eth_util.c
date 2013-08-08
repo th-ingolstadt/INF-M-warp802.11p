@@ -232,12 +232,14 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 void wlan_poll_eth() {
 	XAxiDma_BdRing *rxRing_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
+	XAxiDma_Bd *first_bd_ptr;
 	u8* mpdu_start_ptr;
 	u8* eth_start_ptr;
 	pqueue* tx_queue;
 	u32 eth_rx_len, eth_rx_buf;
 	u32 mpdu_tx_len;
 	pqueue_list tx_queue_list;
+	u32 i;
 
 	int bd_count;
 	int status;
@@ -248,76 +250,100 @@ void wlan_poll_eth() {
 	u8 eth_dest[6];
 	u8 eth_src[6];
 
+	static u32 max_bd_count = 0;
+
 	rxRing_ptr = XAxiDma_GetRxRing(&ETH_A_DMA_Instance);
 
 	//Check if any Rx BDs have been executed
 	//TODO: process XAXIDMA_ALL_BDS instead of 1 at a time
-	bd_count = XAxiDma_BdRingFromHw(rxRing_ptr, 1, &cur_bd_ptr);
+	//bd_count = XAxiDma_BdRingFromHw(rxRing_ptr, 1, &cur_bd_ptr);
+	bd_count = XAxiDma_BdRingFromHw(rxRing_ptr, XAXIDMA_ALL_BDS, &first_bd_ptr);
+	cur_bd_ptr = first_bd_ptr;
+
+	if(bd_count > max_bd_count){
+		max_bd_count = bd_count;
+		xil_printf("max_bd_count = %d\n",max_bd_count);
+	}
 
 	if(bd_count == 0) {
 		//No Rx BDs have been processed - no new Eth receptions waiting
 		return;
 	}
 
-	//A packet has been received and transferred by DMA
-	tx_queue = (pqueue*)XAxiDma_BdGetId(cur_bd_ptr);
+	for(i=0;i<bd_count;i++){
 
-	//xil_printf("DMA has filled in pqueue at 0x%08x\n", tx_queue);
+		//A packet has been received and transferred by DMA
+		tx_queue = (pqueue*)XAxiDma_BdGetId(cur_bd_ptr);
 
-	eth_rx_len = XAxiDma_BdGetActualLength(cur_bd_ptr, rxRing_ptr->MaxTransferLen);
-	eth_rx_buf = XAxiDma_BdGetBufAddr(cur_bd_ptr);
+		//xil_printf("DMA has filled in pqueue at 0x%08x\n", tx_queue);
 
-	//After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
-	mpdu_start_ptr = tx_queue->pktbuf_ptr->frame;
+		eth_rx_len = XAxiDma_BdGetActualLength(cur_bd_ptr, rxRing_ptr->MaxTransferLen);
+		eth_rx_buf = XAxiDma_BdGetBufAddr(cur_bd_ptr);
 
-	eth_start_ptr = (u8*)eth_rx_buf;
+		//After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
+		mpdu_start_ptr = tx_queue->pktbuf_ptr->frame;
 
-	//Calculate actual wireless Tx len (eth payload - eth header + wireless header)
-	mpdu_tx_len = eth_rx_len - sizeof(ethernet_header) + sizeof(llc_header) + sizeof(mac_header_80211);
+		eth_start_ptr = (u8*)eth_rx_buf;
 
-	//Helper pointers to interpret/fill fields in the new MPDU
-	eth_hdr = (ethernet_header*)eth_start_ptr;
-	llc_hdr = (llc_header*)(mpdu_start_ptr + sizeof(mac_header_80211));
+		//Calculate actual wireless Tx len (eth payload - eth header + wireless header)
+		mpdu_tx_len = eth_rx_len - sizeof(ethernet_header) + sizeof(llc_header) + sizeof(mac_header_80211);
 
-	//Copy the src/dest addresses from the received Eth packet to temp space
-	memcpy(eth_src, eth_hdr->address_source, 6);
-	memcpy(eth_dest, eth_hdr->address_destination, 6);
+		//Helper pointers to interpret/fill fields in the new MPDU
+		eth_hdr = (ethernet_header*)eth_start_ptr;
+		llc_hdr = (llc_header*)(mpdu_start_ptr + sizeof(mac_header_80211));
 
-	//Prepare the MPDU LLC header
-	llc_hdr->dsap = LLC_SNAP;
-	llc_hdr->ssap = LLC_SNAP;
-	llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
-	bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
+		//Copy the src/dest addresses from the received Eth packet to temp space
+		memcpy(eth_src, eth_hdr->address_source, 6);
+		memcpy(eth_dest, eth_hdr->address_destination, 6);
 
-	packet_is_queued = 0;
+		//Prepare the MPDU LLC header
+		llc_hdr->dsap = LLC_SNAP;
+		llc_hdr->ssap = LLC_SNAP;
+		llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
+		bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
 
-	tx_queue_list = pqueue_list_init();
-	pqueue_insertEnd(&tx_queue_list, tx_queue);
+		packet_is_queued = 0;
 
-	switch(eth_hdr->type) {
-		case ETH_TYPE_ARP:
-			llc_hdr->type = LLC_TYPE_ARP;
-			packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
-		break;
-		case ETH_TYPE_IP:
-			llc_hdr->type = LLC_TYPE_IP;
-			packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
-		break;
-		default:
-			//Unknown/unsupported EtherType; don't process the Eth frame
-		break;
+		tx_queue_list = pqueue_list_init();
+		pqueue_insertEnd(&tx_queue_list, tx_queue);
+
+		switch(eth_hdr->type) {
+			case ETH_TYPE_ARP:
+				llc_hdr->type = LLC_TYPE_ARP;
+				packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+			break;
+			case ETH_TYPE_IP:
+				llc_hdr->type = LLC_TYPE_IP;
+				packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+			break;
+			default:
+				//Unknown/unsupported EtherType; don't process the Eth frame
+			break;
+		}
+
+		if(packet_is_queued == 0){
+			//xil_printf("   ...checking in\n");
+			queue_checkin(&tx_queue_list);
+		}
+
+		//TODO: Option A: We free this single BD and run the routine to checkout as many queues as we can and hook them up to BDs
+		//Results: pretty good TCP performance
+		//Free this bd
+		status = XAxiDma_BdRingFree(rxRing_ptr, 1, cur_bd_ptr);
+		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree of Rx BD! Err = %d\n", status); return;}
+		wlan_eth_dma_update();
+
+		//Update cur_bd_ptr to the next BD in the chain for the next iteration
+		cur_bd_ptr = XAxiDma_BdRingNext(rxRing_ptr, cur_bd_ptr);
+
+
 	}
-
-	if(packet_is_queued == 0){
-		//xil_printf("   ...checking in\n");
-		queue_checkin(&tx_queue_list);
-	}
-
+	//TODO: Option B: We free all BDs at once and run the routine to checkout as many queues as we can and hook them up to BDs
+	//Results: pretty lackluster TCP performance. needs further investigation
 	//Free this bd
-	status = XAxiDma_BdRingFree(rxRing_ptr, bd_count, cur_bd_ptr);
-	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree of Rx BD! Err = %d\n", status); return;}
-
-	wlan_eth_dma_update();
+	//status = XAxiDma_BdRingFree(rxRing_ptr, bd_count, first_bd_ptr);
+	//if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree of Rx BD! Err = %d\n", status); return;}
+	//wlan_eth_dma_update();
 
 	return;
 }

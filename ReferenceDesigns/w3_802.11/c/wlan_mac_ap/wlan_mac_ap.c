@@ -141,7 +141,7 @@ int main(){
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
-	wlan_mac_schedule_event(1000000,(void*)print_queue_status);
+	//wlan_mac_schedule_event(1000000,(void*)print_queue_status);
 
 	//TODO: bug was reported in disassociation timeout. disabled in meantime
 	//wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
