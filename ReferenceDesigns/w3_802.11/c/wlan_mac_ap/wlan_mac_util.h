@@ -17,6 +17,7 @@
 #define TIMESTAMP_GPIO_LSB_CHAN 1
 #define TIMESTAMP_GPIO_MSB_CHAN 2
 
+#define DDR3_BASEADDR XPAR_DDR3_SODIMM_S_AXI_BASEADDR
 
 //RATE ADAPTATION PARAMETERS
 //Rate will attempt an increase after MIN_CONSECUTIVE_GOOD_ACKS consecutive good ACKs are received
@@ -69,6 +70,7 @@ void wlan_mac_schedule_event(u32 delay, void(*callback)());
 inline void poll_schedule();
 inline void wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
+int memory_test();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 u8 wlan_mac_util_get_tx_rate(station_info* station);

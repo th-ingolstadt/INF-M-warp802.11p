@@ -22,11 +22,16 @@
 static XAxiDma ETH_A_DMA_Instance;
 
 //Top-level code defines the callback, wlan_mac_util does the actual calling
-// It's sufficeint to refer to the wlan_mac_util callback by name here
+// It's sufficient to refer to the wlan_mac_util callback by name here
 extern function_ptr_t eth_rx_callback;
+
+u32 ETH_A_NUM_RX_BD;
 
 int wlan_eth_init() {
 		int status;
+
+		ETH_A_NUM_RX_BD = min(queue_total_size()/2,200);
+		xil_printf("Setting up %d DMA BDs\n", ETH_A_NUM_RX_BD);
 
 		//The TEMAC driver is only used during init - all packet interactions are handed via the DMA driver
 		XAxiEthernet_Config *ETH_A_MAC_CFG_ptr;
@@ -262,7 +267,7 @@ void wlan_poll_eth() {
 
 	if(bd_count > max_bd_count){
 		max_bd_count = bd_count;
-		xil_printf("max_bd_count = %d\n",max_bd_count);
+		//xil_printf("max_bd_count = %d\n",max_bd_count);
 	}
 
 	if(bd_count == 0) {

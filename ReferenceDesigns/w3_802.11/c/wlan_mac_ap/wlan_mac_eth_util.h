@@ -21,7 +21,7 @@
 
 //Number of Tx and Rx DMA buffer descriptors
 #define ETH_A_NUM_TX_BD		1
-#define ETH_A_NUM_RX_BD		200
+//#define ETH_A_NUM_RX_BD		200
 
 //Current layout of DATA_BRAM:
 // [0:48KB] : Tx Queue (managed by wlan_mac_queue.c/h)
@@ -37,8 +37,6 @@
 #define ETH_A_TX_BD_SPACE_BASE	(ETH_A_BUF_MEM_BASE)
 #define ETH_A_RX_BD_SPACE_BASE	(ETH_A_TX_BD_SPACE_BASE + (ETH_A_NUM_TX_BD * XAXIDMA_BD_MINIMUM_ALIGNMENT)) //safer than sizeof(XAxiDma_Bd)?
 
-// All Eth Tx originate in wireless pkt buffers, so no dedicated Tx buffer is necessary
-#define ETH_A_RX_BUFFER_BASE	(ETH_A_RX_BD_SPACE_BASE + (ETH_A_NUM_RX_BD * XAXIDMA_BD_MINIMUM_ALIGNMENT)) //safer than sizeof(XAxiDma_Bd)?
 
 int wlan_eth_init();
 int wlan_eth_dma_init();

@@ -47,7 +47,6 @@ XAxiCdma cdma_inst;
 station_info associations[MAX_ASSOCIATIONS+1];
 u32 next_free_assoc_index;
 
-
 static u32 mac_param_chan;
 
 wlan_ipc_msg ipc_msg_from_low;

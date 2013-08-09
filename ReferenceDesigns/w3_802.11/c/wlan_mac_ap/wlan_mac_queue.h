@@ -11,7 +11,7 @@
 #ifndef WLAN_MAC_QUEUE_H_
 #define WLAN_MAC_QUEUE_H_
 
-#define NUM_QUEUES 9 //1 for each association + 1 for non-associated packets
+#define NUM_QUEUES 10
 
 typedef struct pqueue pqueue;
 struct pqueue{
@@ -33,7 +33,7 @@ typedef struct {
 //#define PQUEUE_LEN				20 		//Total Queue Size (bytes) = PQUEUE_LEN*(PQUEUE_MAX_FRAME_SIZE + sizeof(pqueue))
 
 //If using DRAM for pqueues//
-#define PQUEUE_LEN				1000 		//Total Queue Size (bytes) = PQUEUE_LEN*(PQUEUE_MAX_FRAME_SIZE + sizeof(pqueue))
+//#define PQUEUE_LEN				1000 		//Total Queue Size (bytes) = PQUEUE_LEN*(PQUEUE_MAX_FRAME_SIZE + sizeof(pqueue))
 
 //Bottom 48kB of data BRAM is used for PQUEUE
 #define PQUEUE_MEM_BASE				(XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR)
@@ -45,7 +45,7 @@ typedef struct {
 //Use BRAM for queue
 //#define PQUEUE_BUFFER_SPACE_BASE	(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(pqueue)))
 //Use DRAM for queue
-#define PQUEUE_BUFFER_SPACE_BASE	XPAR_DDR3_SODIMM_S_AXI_BASEADDR
+//#define PQUEUE_BUFFER_SPACE_BASE	XPAR_DDR3_SODIMM_S_AXI_BASEADDR
 
 
 
@@ -67,6 +67,7 @@ void pqueue_insertBefore(pqueue_list* ring, pqueue* bd, pqueue* bd_new);
 void pqueue_insertBeginning(pqueue_list* ring, pqueue* bd_new);
 void pqueue_insertEnd(pqueue_list* ring, pqueue* bd_new);
 void pqueue_remove(pqueue_list* ring, pqueue* bd);
+int queue_total_size();
 
 pqueue_list pqueue_list_init();
 void pqueue_print(pqueue_list* ring);

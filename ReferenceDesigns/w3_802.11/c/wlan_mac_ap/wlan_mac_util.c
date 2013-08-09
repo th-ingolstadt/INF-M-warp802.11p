@@ -9,6 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "xgpio.h"
+#include "stdlib.h"
 
 #include "wlan_lib.h"
 #include "wlan_mac_util.h"
@@ -50,7 +51,7 @@ void gpio_timestamp_initialize(){
 	XGpio_SetDataDirection(&GPIO_timestamp, TIMESTAMP_GPIO_MSB_CHAN, 0xFFFFFFFF);
 }
 
-inline u64 get_usec_timestamp(){
+u64 get_usec_timestamp(){
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
@@ -77,7 +78,7 @@ void wlan_mac_schedule_event(u32 delay, void(*callback)()){
 	warp_printf(PL_ERROR,"ERROR: %d schedules already filled\n",SCHEDULER_NUM_EVENTS);
 }
 
-inline void poll_schedule(){
+void poll_schedule(){
 	u32 k;
 	u64 timestamp = get_usec_timestamp();
 
@@ -91,7 +92,7 @@ inline void poll_schedule(){
 	}
 }
 
-inline void wlan_mac_poll_tx_queue(u16 queue_sel){
+void wlan_mac_poll_tx_queue(u16 queue_sel){
 	pqueue_list dequeue;
 	pqueue* tx_queue;
 
@@ -117,5 +118,54 @@ void write_hex_display(u8 val){
 	//u8 val: 2 digit decimal value to be printed to hex displays
    userio_write_hexdisp_left(USERIO_BASEADDR, val/10);
    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
+}
+
+int memory_test(){
+	//Test DRAM
+	u8 i,j;
+
+	u8 test_u8;
+	u16 test_u16;
+	u32 test_u32;
+	u64 test_u64;
+
+	for(i=0;i<6;i++){
+		void* memory_ptr = (void*)DDR3_BASEADDR + (i*100000*1024);
+
+		for(j=0;j<3;j++){
+			//Test 1 byte offsets to make sure byte enables are all working
+
+			test_u8 = rand()&0xFF;
+			test_u16 = rand()&0xFFFF;
+			test_u32 = rand()&0xFFFFFFFF;
+			test_u64 = (((u64)rand()&0xFFFFFFFF)<<32) + ((u64)rand()&0xFFFFFFFF);
+
+			*((u8*)memory_ptr) = test_u8;
+
+			if(*((u8*)memory_ptr) != test_u8){
+				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u8\n",memory_ptr);
+				return -1;
+			}
+			*((u16*)memory_ptr) = test_u16;
+			if(*((u16*)memory_ptr) != test_u16){
+				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u16\n",memory_ptr);
+				return -1;
+			}
+			*((u32*)memory_ptr) = test_u32;
+			if(*((u32*)memory_ptr) != test_u32){
+				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u32\n",memory_ptr);
+				return -1;
+			}
+			*((u64*)memory_ptr) = test_u64;
+			if(*((u64*)memory_ptr) != test_u64){
+				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u64\n",memory_ptr);
+				return -1;
+			}
+
+		}
+
+	}
+
+	return 0;
 }
 

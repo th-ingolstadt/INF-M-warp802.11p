@@ -24,8 +24,34 @@ static pqueue_list queue_free;
 //This vector of lists will get filled in with elements from the free list
 static pqueue_list queue[NUM_QUEUES];
 
+
+u32 PQUEUE_LEN;
+void* PQUEUE_BUFFER_SPACE_BASE;
+
+#define USE_DRAM 1
+
 void queue_init(){
 	u32 i;
+
+#if USE_DRAM
+	if(memory_test()==0){
+		//Use DRAM
+		PQUEUE_LEN = 1000;
+		xil_printf("Queue of %d placed in DRAM: using %d kB\n", PQUEUE_LEN, (PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE)/1024);
+		PQUEUE_BUFFER_SPACE_BASE = (void*)(DDR3_BASEADDR);
+	} else {
+		//Use BRAM
+		PQUEUE_LEN = 20;
+		xil_printf("Queue of %d placed in BRAM: using %d kB\n", PQUEUE_LEN, (PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE)/1024);
+		PQUEUE_BUFFER_SPACE_BASE = (void*)(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(pqueue)));
+	}
+#else
+	//Use BRAM
+	PQUEUE_LEN = 20;
+	xil_printf("Queue of %d placed in BRAM: using %d kB\n", PQUEUE_LEN, (PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE)/1024);
+	PQUEUE_BUFFER_SPACE_BASE = (void*)(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(pqueue)));
+#endif
+
 
 	queue_free = pqueue_list_init();
 
@@ -67,62 +93,11 @@ void queue_init(){
 		queue[i].last = NULL;
 	}
 
-	/*
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	//Simulate what would happen if we don't want all of the pqueues we checkout and want to check some back in
-	//This case will occur when dealing with Ethernet frames, where not every BD will contain a frame we intend to
-	//send (e.g. non-ARP and non-IP packets)
-	pqueue_list checkout,checkin,dequeue;
-	pqueue* curr_pqueue;
-	pqueue* next_pqueue;
-	u32 checkout_len;
+}
 
-	checkin = pqueue_list_init();
-
-	checkout = queue_checkout(8);
-	curr_pqueue = checkout.first;
-	checkout_len = checkout.length;
-
-	//This for loop is only used as a way for me to pull out a few pqueues to check back in
-	//in practice, the while loop method (commented out) should be used.
-	for(i=0;i<checkout_len;i++){
-	//while(curr_pqueue != NULL){
-		next_pqueue = curr_pqueue->next;
-
-		if((i==0) || (i==3) || (i==5)){
-			pqueue_remove(&checkout,curr_pqueue);
-			pqueue_insertEnd(&checkin,curr_pqueue);
-		}
-
-		curr_pqueue = next_pqueue;
-	}
-	//xil_printf("\ncheckin\n");
-	//pqueue_print(&checkin);
-	//xil_printf("\ncheckout\n");
-	//pqueue_print(&checkout);
-	queue_checkin(&checkin);
-
-	//xil_printf("\ncheckin\n");
-	//pqueue_print(&checkin);
-	//xil_printf("\nfree\n");
-	//pqueue_print(&queue_free);
-
-	enqueue_after_end(0, &checkout);
-	//xil_printf("\ncheckout\n");
-	//pqueue_print(&checkout);
-
-
-	dequeue = dequeue_from_beginning(0,1);
-	xil_printf("\nqueue[0]\n");
-	pqueue_print(&(queue[0]));
-
-	xil_printf("\ndequeue\n");
-	pqueue_print(&(dequeue));
-
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	 */
+int queue_total_size(){
+	return PQUEUE_LEN;
 }
 
 void enqueue_after_end(u16 queue_sel, pqueue_list* list){
@@ -161,11 +136,11 @@ pqueue_list dequeue_from_beginning(u16 queue_sel, u16 num_pqueue){
 	return new_list;
 }
 
-inline u32 queue_num_free(){
+u32 queue_num_free(){
 	return queue_free.length;
 }
 
-inline u32 queue_num_queued(u16 queue_sel){
+u32 queue_num_queued(u16 queue_sel){
 	return queue[queue_sel].length;
 }
 
