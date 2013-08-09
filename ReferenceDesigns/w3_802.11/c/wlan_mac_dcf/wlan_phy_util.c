@@ -106,7 +106,8 @@ void wlan_phy_init() {
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
 
 	//Set LTS correlation threshold and timeout
-	wlan_phy_rx_lts_corr_cfg(30000, 250);
+	wlan_phy_rx_lts_corr_cfg(42000, 250);
+	//wlan_phy_rx_lts_corr_cfg(30000, 250);
 
 	//Configure RSSI pkt det
 	//wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
@@ -140,6 +141,7 @@ void wlan_phy_init() {
 
 	//Set digital scaling of preamble/payload signals before DACs (UFix12_0)
 	wlan_phy_tx_set_scaling(0x2000, 0x2000);
+	//wlan_phy_tx_set_scaling(0x1000, 0x1000);
 
 /*********** AGC ***************/
 
@@ -208,7 +210,9 @@ void wlan_radio_init() {
 	//Set Tx gains
 	radio_controller_setTxGainSource(RC_BASEADDR, RC_RFA, RC_GAINSRC_REG);
 	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXGAIN_BB, 2);
-	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 45);
+	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 50);
+
+
 
 	//TODO: With this much TX gain, we are very likely seeing some clipping at the TX. That said, I haven't seen any performance
 	//degradation from it. I have seen a big boost in range with the higher power.
