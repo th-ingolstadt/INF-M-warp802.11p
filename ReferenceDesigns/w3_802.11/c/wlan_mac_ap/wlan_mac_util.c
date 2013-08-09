@@ -129,6 +129,13 @@ int memory_test(){
 	u32 test_u32;
 	u64 test_u64;
 
+	/*
+	xil_printf("\nTesting DRAM -- Note: this function does not currently handle the case of a DDR3 SODIMM being\n");
+	xil_printf("absent from the board. If this hardware design can't reach the DRAM, this function will hang and\n");
+	xil_printf("this print will be the last thing that makes it out to uart. The USE_DRAM #define should be disabled\n");
+	xil_printf("if this occurs. In a future release, this function will handle DRAM failure better.\n\n");
+	*/
+
 	for(i=0;i<6;i++){
 		void* memory_ptr = (void*)DDR3_BASEADDR + (i*100000*1024);
 
