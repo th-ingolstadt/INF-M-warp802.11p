@@ -116,27 +116,48 @@ typedef struct{
 #define IPC_MBOX_MSG_ID_DELIM		0xF000
 #define IPC_MBOX_MAX_MSG_WORDS		255
 
-//IPC Groups
-#define IPC_MBOX_GRP_CMD			0
-#define IPC_MBOX_GRP_MAC_ADDR		1
-#define IPC_MBOX_GRP_CPU_STATUS		2
-#define IPC_MBOX_GRP_PARAM			3
-
 //IPC Messages
-#define IPC_MBOX_CMD_RX_MPDU_READY		0
-//#define IPC_MBOX_CMD_RX_MPDU_ACCEPT	1
-#define IPC_MBOX_CMD_TX_MPDU_READY		2
-#define IPC_MBOX_CMD_TX_MPDU_ACCEPT		3
-#define IPC_MBOX_CMD_TX_MPDU_DONE		4
-
-#define IPC_MBOX_PARAM_SET_CHANNEL		0
 
 
-#define IPC_MBOX_GRP_ID(id) (IPC_MBOX_MSG_ID_DELIM | ((id<<8) & 0xF00))
-#define IPC_MBOX_MSG_ID(id) (IPC_MBOX_MSG_ID_DELIM | ((id) & 0x0FF))
+#define IPC_MBOX_RX_MPDU_READY		0
+#define IPC_MBOX_TX_MPDU_READY		1
+#define IPC_MBOX_TX_MPDU_ACCEPT		2
+#define IPC_MBOX_TX_MPDU_DONE		3
+#define IPC_MBOX_MAC_ADDR			4
+#define IPC_MBOX_CPU_STATUS			5
+#define IPC_MBOX_CONFIG_RF_IFC		6
+#define IPC_MBOX_CONFIG_MAC			7
+#define IPC_MBOX_CONFIG_PHY_RX		8
+#define IPC_MBOX_CONFIG_PHY_TX		9
 
-#define IPC_MBOX_MSG_ID_TO_GRP(id) (((id) & 0xF00)>>8)
-#define IPC_MBOX_MSG_ID_TO_MSG(id) (id) & 0x0FF
+
+#define IPC_MBOX_MSG_ID(id) (IPC_MBOX_MSG_ID_DELIM | ((id) & 0xFFF))
+#define IPC_MBOX_MSG_ID_TO_MSG(id) (id) & 0xFFF
+
+
+//These config structs need to be an integer # of u32
+typedef struct{
+	u8 channel;
+	u8 reserved[3];
+} ipc_config_rf_ifc;
+
+typedef struct{
+	u8 reserved[4];
+} ipc_config_mac;
+
+typedef struct{
+	u8 reserved[4];
+} ipc_config_phy_tx;
+
+typedef struct{
+	u8 enable_dsss;
+	u8 reserved[3];
+} ipc_config_phy_rx;
+
+#define init_ipc_config(x,y,z) {										\
+									x = (z*)y;							\
+									memset((void*)x, 0xFF, sizeof(z));	\
+								}
 
 #define IPC_MBOX_SUCCESS			0
 #define IPC_MBOX_INVALID_MSG		-1
