@@ -553,7 +553,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
 						case AUTH_ALGO_OPEN_SYSTEM:
-							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ && allow_assoc){//This is an auth packet from a requester
+							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
 
 								//Checkout 1 element from the queue;
 								checkout = queue_checkout(1);
@@ -611,7 +611,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					}
 				}
 
-				if(allow_association && allow_assoc) {
+				if(allow_association) {
 					//Keep track of this association of this association
 					memcpy(&(associations[i].addr[0]), rx_80211_header->address_2, 6);
 					associations[i].tx_rate = WLAN_MAC_RATE_QPSK34; //Default tx_rate for this station. Rate adaptation may change this value.
