@@ -123,6 +123,7 @@ int wlan_eth_dma_init() {
 		tx_queue = checkout.first;
 	} else {
 		xil_printf("Error during wlan_eth_dma_init: able to check out %d of %d pqueues\n", checkout.length, ETH_A_NUM_RX_BD);
+		return -1;
 	}
 
 	//Iterate over each Rx buffer descriptor

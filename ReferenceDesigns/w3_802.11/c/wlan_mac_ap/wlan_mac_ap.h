@@ -26,6 +26,8 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg);
 void print_associations();
 void print_queue_status();
 void association_timestamp_check();
+void enable_associations();
+void disable_associations();
 
 
 #endif /* WLAN_MAC_LOW_H_ */

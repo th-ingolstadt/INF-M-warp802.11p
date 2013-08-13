@@ -30,12 +30,16 @@
 #define ASSOCIATION_CHECK_INTERVAL_MS (10000)
 #define ASSOCIATION_CHECK_INTERVAL_US (ASSOCIATION_CHECK_INTERVAL_MS*1000)
 
+#define ASSOCIATION_ALLOW_INTERVAL_MS (10000)
+#define ASSOCIATION_ALLOW_INTERVAL_US (ASSOCIATION_ALLOW_INTERVAL_MS*1000)
+
 #define MAX_RETRY 7
 
 #define SSID_LEN 7
 u8 SSID[SSID_LEN] = "WARP-AP";
 
 u16 seq_num;
+u8 allow_assoc;
 
 XAxiCdma cdma_inst;
 
@@ -68,6 +72,8 @@ int main(){
 	tx_frame_info* tx_mpdu;
 	u32 i;
 	u32 station_index;
+
+	ipc_config_rf_ifc* config_rf_ifc;
 
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
@@ -133,10 +139,13 @@ int main(){
 	mac_param_chan = 9;
 
 	//Send a message to other processor to tell it to switch channels
-	ipc_msg_to_low.msg_id = IPC_MBOX_GRP_ID(IPC_MBOX_GRP_PARAM) | IPC_MBOX_MSG_ID(IPC_MBOX_PARAM_SET_CHANNEL);
-	ipc_msg_to_low.num_payload_words = 1;
+	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
+	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
 	ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-	ipc_msg_to_low_payload[0] = mac_param_chan;
+	//config_rf_ifc = (ipc_config_rf_ifc*)ipc_msg_to_low_payload;
+	//memset((void*)config_rf_ifc, 0xFF, sizeof(config_rf_ifc));
+	init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
+	config_rf_ifc->channel = mac_param_chan;
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
@@ -144,6 +153,10 @@ int main(){
 
 	//TODO: bug was reported in disassociation timeout. disabled in meantime
 	//wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+
+	enable_associations();
+	wlan_mac_schedule_event(ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
+
 
 	station_index = 0;
 	while(1){
@@ -335,87 +348,78 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 	rx_frame_info* rx_mpdu;
 	tx_frame_info* tx_mpdu;
 
-	switch(IPC_MBOX_MSG_ID_TO_GRP(msg->msg_id)) {
-		case IPC_MBOX_GRP_CMD:
+	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
+		case IPC_MBOX_RX_MPDU_READY:
+			//This message indicates CPU Low has received an MPDU addressed to this node or to the broadcast address
+			rx_pkt_buf = msg->arg0;
 
-			switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
-				case IPC_MBOX_CMD_RX_MPDU_READY:
-					//This message indicates CPU Low has received an MPDU addressed to this node or to the broadcast address
-					rx_pkt_buf = msg->arg0;
+			//First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
+			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
+			} else {
+				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
-					//First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
-					if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-						warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
-					} else {
-						rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
+				mpdu_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
 
-						//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
-						mpdu_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
+				//Free up the rx_pkt_buf
+				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 
-						//Free up the rx_pkt_buf
-						rx_mpdu->state = RX_MPDU_STATE_EMPTY;
-
-						if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-							warp_printf(PL_ERROR, "Error: unable to unlock pkt_buf %d\n",rx_pkt_buf);
-						}
-					}
-				break;
-
-				case IPC_MBOX_CMD_TX_MPDU_ACCEPT:
-					//This message indicates CPU Low has begun the Tx process for the previously submitted MPDU
-					// CPU High is now free to begin processing its next Tx frame and submit it to CPU Low
-					// CPU Low will not accept a new frame until the previous one is complete
-
-					if(tx_pkt_buf != (msg->arg0)) {
-						warp_printf(PL_ERROR, "Received CPU_LOW acceptance of buffer %d, but was expecting buffer %d\n", tx_pkt_buf, msg->arg0);
-					}
-
-					tx_pkt_buf = (tx_pkt_buf + 1) % TX_BUFFER_NUM;
-
-					cpu_high_status &= (~CPU_STATUS_WAIT_FOR_IPC_ACCEPT);
-
-					if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
-						warp_printf(PL_ERROR,"Error: unable to lock tx pkt_buf %d\n",tx_pkt_buf);
-					} else {
-						tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-						tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
-
-						//Poll the Tx queue to retrieve the next frame for transmission
-						//TODO: I don't think this poll is necessary any more
-						//wlan_mac_poll_tx_queue();
-					}
-				break;
-
-				case IPC_MBOX_CMD_TX_MPDU_DONE:
-					//This message indicates CPU Low has finished the Tx process for the previously submitted-accepted frame
-					// CPU High should do any necessary post-processing, then recycle the packet buffer
-
-					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-
-					if(tx_mpdu->AID != 0){
-						for(i=0; i<next_free_assoc_index; i++){
-							if( (associations[i].AID) == (tx_mpdu->AID) ) {
-								//Process this TX MPDU DONE event to update any statistics used in rate adaptation
-								wlan_mac_util_process_tx_done(tx_mpdu, &(associations[i]));
-								break;
-							}
-						}
-					}
-
-				break;
-
-				default:
-					warp_printf(PL_ERROR, "Unknown IPC message type %d\n",IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
-				break;
+				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					warp_printf(PL_ERROR, "Error: unable to unlock pkt_buf %d\n",rx_pkt_buf);
+				}
 			}
-		break; //END case MSG_GROUP == IPC_MBOX_GRP_CMD
+		break;
 
-		case IPC_MBOX_GRP_MAC_ADDR:
+		case IPC_MBOX_TX_MPDU_ACCEPT:
+			//This message indicates CPU Low has begun the Tx process for the previously submitted MPDU
+			// CPU High is now free to begin processing its next Tx frame and submit it to CPU Low
+			// CPU Low will not accept a new frame until the previous one is complete
+
+			if(tx_pkt_buf != (msg->arg0)) {
+				warp_printf(PL_ERROR, "Received CPU_LOW acceptance of buffer %d, but was expecting buffer %d\n", tx_pkt_buf, msg->arg0);
+			}
+
+			tx_pkt_buf = (tx_pkt_buf + 1) % TX_BUFFER_NUM;
+
+			cpu_high_status &= (~CPU_STATUS_WAIT_FOR_IPC_ACCEPT);
+
+			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
+				warp_printf(PL_ERROR,"Error: unable to lock tx pkt_buf %d\n",tx_pkt_buf);
+			} else {
+				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
+
+				//Poll the Tx queue to retrieve the next frame for transmission
+				//TODO: I don't think this poll is necessary any more
+				//wlan_mac_poll_tx_queue();
+			}
+		break;
+
+		case IPC_MBOX_TX_MPDU_DONE:
+			//This message indicates CPU Low has finished the Tx process for the previously submitted-accepted frame
+			// CPU High should do any necessary post-processing, then recycle the packet buffer
+
+			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
+
+			if(tx_mpdu->AID != 0){
+				for(i=0; i<next_free_assoc_index; i++){
+					if( (associations[i].AID) == (tx_mpdu->AID) ) {
+						//Process this TX MPDU DONE event to update any statistics used in rate adaptation
+						wlan_mac_util_process_tx_done(tx_mpdu, &(associations[i]));
+						break;
+					}
+				}
+			}
+
+		break;
+
+		case IPC_MBOX_MAC_ADDR:
 			//CPU Low updated the node's MAC address (typically stored in the WARP v3 EEPROM, accessible only to CPU Low)
 			memcpy((void*) &(eeprom_mac_addr[0]), (void*) &(ipc_msg_from_low_payload[0]), 6);
 		break;
 
-		case IPC_MBOX_GRP_CPU_STATUS:
+		case IPC_MBOX_CPU_STATUS:
 			cpu_low_status = ipc_msg_from_low_payload[0];
 			if(cpu_low_status & CPU_STATUS_EXCEPTION){
 				warp_printf(PL_ERROR, "An unrecoverable exception has occurred in CPU_LOW, halting...\n");
@@ -425,9 +429,10 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 		break;
 
 		default:
-			warp_printf(PL_ERROR,"ERROR: Unknown IPC message group %d\n", IPC_MBOX_MSG_ID_TO_GRP(msg->msg_id));
+			warp_printf(PL_ERROR, "Unknown IPC message type %d\n",IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
 		break;
-	} //END switch(MSG_GROUP)
+	}
+
 
 	return;
 }
@@ -523,7 +528,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					}
 					mpdu_ptr_u8 += mpdu_ptr_u8[1]+2; //Move up to the next tag
 				}
-				if(send_response) {
+				if(send_response && allow_assoc) {
 
 					//Checkout 1 element from the queue;
 					checkout = queue_checkout(1);
@@ -548,7 +553,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
 						case AUTH_ALGO_OPEN_SYSTEM:
-							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
+							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ && allow_assoc){//This is an auth packet from a requester
 
 								//Checkout 1 element from the queue;
 								checkout = queue_checkout(1);
@@ -606,7 +611,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					}
 				}
 
-				if(allow_association) {
+				if(allow_association && allow_assoc) {
 					//Keep track of this association of this association
 					memcpy(&(associations[i].addr[0]), rx_80211_header->address_2, 6);
 					associations[i].tx_rate = WLAN_MAC_RATE_QPSK34; //Default tx_rate for this station. Rate adaptation may change this value.
@@ -736,7 +741,7 @@ void mpdu_transmit(pqueue* tx_queue) {
 		///Debug
 
 
-		ipc_msg_to_low.msg_id = (IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CMD)) | (IPC_MBOX_MSG_ID_TO_MSG(IPC_MBOX_CMD_TX_MPDU_READY));
+		ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
 		ipc_msg_to_low.arg0 = tx_pkt_buf;
 		ipc_msg_to_low.num_payload_words = 0;
 
@@ -772,6 +777,35 @@ void print_associations(){
 			xil_printf("|------------------------|\n");
 
 	return;
+}
+
+void enable_associations(){
+	wlan_ipc_msg ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload[1];
+	ipc_config_phy_rx* config_phy_rx;
+	//Send a message to other processor to tell it to switch channels
+	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
+	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
+	ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+	init_ipc_config(config_phy_rx,ipc_msg_to_low_payload,ipc_config_phy_rx);
+	config_phy_rx->enable_dsss = 1;
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	allow_assoc = 1;
+
+}
+
+void disable_associations(){
+	wlan_ipc_msg ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload[1];
+	ipc_config_phy_rx* config_phy_rx;
+	//Send a message to other processor to tell it to switch channels
+	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
+	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
+	ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+	init_ipc_config(config_phy_rx,ipc_msg_to_low_payload,ipc_config_phy_rx);
+	config_phy_rx->enable_dsss = 0;
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	allow_assoc = 0;
 }
 
 
