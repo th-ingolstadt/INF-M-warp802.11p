@@ -106,7 +106,7 @@ int main(){
 	
 	cpu_low_status |= CPU_STATUS_INITIALIZED;
 	//Send a message to other processor to say that this processor is initialized and ready
-	ipc_msg_to_high.msg_id = IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CPU_STATUS);
+	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
 	ipc_msg_to_high.num_payload_words = 1;
 	ipc_msg_to_high.payload_ptr = &(ipc_msg_to_high_payload[0]);
 	ipc_msg_to_high_payload[0] = cpu_low_status;
@@ -135,138 +135,132 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u16 n_dbps;
 	u32 isLocked, owner;
 
-	switch(IPC_MBOX_MSG_ID_TO_GRP(msg->msg_id)){
-		case IPC_MBOX_GRP_PARAM:
-			switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
-				case IPC_MBOX_PARAM_SET_CHANNEL:
-					mac_param_chan = ipc_msg_from_high_payload[0];
-					//TODO: allow mac_param_chan to select 5GHz channels
-					radio_controller_setCenterFrequency(RC_BASEADDR, RC_RFA, RC_24GHZ, mac_param_chan);
-					warp_printf(PL_VERBOSE, "CPU_LOW: Tuned to channel %d\n", mac_param_chan);
-				break;
-			}
 
-		break;
+		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
+			case IPC_MBOX_CONFIG_RF_IFC:
+				process_config_rf_ifc((ipc_config_rf_ifc*)ipc_msg_from_high_payload);
+			break;
 
-		case IPC_MBOX_GRP_CMD:
-			switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
-				case IPC_MBOX_CMD_TX_MPDU_READY:
+			case IPC_MBOX_CONFIG_MAC:
+				process_config_mac((ipc_config_mac*)ipc_msg_from_high_payload);
+			break;
 
-					//Message is an indication that a Tx Pkt Buf needs processing
-					tx_pkt_buf = msg->arg0;
+			case IPC_MBOX_CONFIG_PHY_TX:
+				process_config_phy_tx((ipc_config_phy_tx*)ipc_msg_from_high_payload);
+			break;
 
-					ipc_msg_to_high.msg_id = (IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CMD)) | (IPC_MBOX_MSG_ID_TO_MSG(IPC_MBOX_CMD_TX_MPDU_ACCEPT));
-					ipc_msg_to_high.num_payload_words = 0;
-					ipc_msg_to_high.arg0 = tx_pkt_buf;
-					ipc_mailbox_write_msg(&ipc_msg_to_high);
+			case IPC_MBOX_CONFIG_PHY_RX:
+				process_config_phy_rx((ipc_config_phy_rx*)ipc_msg_from_high_payload);
+			break;
+
+			case IPC_MBOX_TX_MPDU_READY:
+
+				//Message is an indication that a Tx Pkt Buf needs processing
+				tx_pkt_buf = msg->arg0;
+
+				ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_ACCEPT);
+				ipc_msg_to_high.num_payload_words = 0;
+				ipc_msg_to_high.arg0 = tx_pkt_buf;
+				ipc_mailbox_write_msg(&ipc_msg_to_high);
 
 
-					if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-						warp_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
+				if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					warp_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
 
-						status_pkt_buf_tx(tx_pkt_buf, &isLocked, &owner);
+					status_pkt_buf_tx(tx_pkt_buf, &isLocked, &owner);
 
-						warp_printf(PL_ERROR, "	TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
+					warp_printf(PL_ERROR, "	TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
 
-					} else {
+				} else {
 
-						tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-						//xil_printf("CPU_LOW: processing buffer %d, length = %d, rate = %d\n", tx_pkt_buf, tx_mpdu->length, tx_mpdu->rate);
+					//xil_printf("CPU_LOW: processing buffer %d, length = %d, rate = %d\n", tx_pkt_buf, tx_mpdu->length, tx_mpdu->rate);
 
-						//Convert human-readable rates into PHY rates
-						switch(tx_mpdu->rate){
-							case WLAN_MAC_RATE_DSSS_1M:
-								warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
-							break;
-							case WLAN_MAC_RATE_BPSK12:
-								rate = WLAN_PHY_RATE_BPSK12;
-								n_dbps = N_DBPS_R6;
-							break;
-							case WLAN_MAC_RATE_BPSK34:
-								rate = WLAN_PHY_RATE_BPSK34;
-								n_dbps = N_DBPS_R9;
-							break;
-							case WLAN_MAC_RATE_QPSK12:
-								rate = WLAN_PHY_RATE_QPSK12;
-								n_dbps = N_DBPS_R12;
-							break;
-							case WLAN_MAC_RATE_QPSK34:
-								rate = WLAN_PHY_RATE_QPSK34;
-								n_dbps = N_DBPS_R18;
-							break;
-							case WLAN_MAC_RATE_16QAM12:
-								rate = WLAN_PHY_RATE_16QAM12;
-								n_dbps = N_DBPS_R24;
-							break;
-							case WLAN_MAC_RATE_16QAM34:
-								rate = WLAN_PHY_RATE_16QAM34;
-								n_dbps = N_DBPS_R36;
-							break;
-							case WLAN_MAC_RATE_64QAM23:
-								rate = WLAN_PHY_RATE_64QAM23;
-								n_dbps = N_DBPS_R48;
-							break;
-							case WLAN_MAC_RATE_64QAM34:
-								rate = WLAN_PHY_RATE_64QAM34;
-								n_dbps = N_DBPS_R54;
-							break;
-						}
-
-						if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
-							tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
-							tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES, n_dbps) + T_SIFS;
-						}
-
-						if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-							beacon = (beacon_probe_frame*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET+sizeof(mac_header_80211));
-							beacon->timestamp = get_usec_timestamp();
-						}
-
-						//
-						status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
-
-						if(status == 0){
-							tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
-						} else {
-							tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_FAILURE;
-						}
-
-						//Debug
-						if(tx_mpdu->retry_count>0){
-							//TODO: Raise GPIO
-							//xil_printf("retry: %d\n",tx_mpdu->retry_count);
-						//	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
-						}
-
-						//Debug
-
-						tx_mpdu->state = TX_MPDU_STATE_EMPTY;
-
-						if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-							warp_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
-							send_exception(EXC_MUTEX_TX_FAILURE);
-						} else {
-							ipc_msg_to_high.msg_id = (IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CMD)) | (IPC_MBOX_MSG_ID_TO_MSG(IPC_MBOX_CMD_TX_MPDU_DONE));
-							ipc_msg_to_high.num_payload_words = 0;
-							ipc_msg_to_high.arg0 = tx_pkt_buf;
-							ipc_mailbox_write_msg(&ipc_msg_to_high);
-						}
-
-						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
-
+					//Convert human-readable rates into PHY rates
+					switch(tx_mpdu->rate){
+						case WLAN_MAC_RATE_DSSS_1M:
+							warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
+						break;
+						case WLAN_MAC_RATE_BPSK12:
+							rate = WLAN_PHY_RATE_BPSK12;
+							n_dbps = N_DBPS_R6;
+						break;
+						case WLAN_MAC_RATE_BPSK34:
+							rate = WLAN_PHY_RATE_BPSK34;
+							n_dbps = N_DBPS_R9;
+						break;
+						case WLAN_MAC_RATE_QPSK12:
+							rate = WLAN_PHY_RATE_QPSK12;
+							n_dbps = N_DBPS_R12;
+						break;
+						case WLAN_MAC_RATE_QPSK34:
+							rate = WLAN_PHY_RATE_QPSK34;
+							n_dbps = N_DBPS_R18;
+						break;
+						case WLAN_MAC_RATE_16QAM12:
+							rate = WLAN_PHY_RATE_16QAM12;
+							n_dbps = N_DBPS_R24;
+						break;
+						case WLAN_MAC_RATE_16QAM34:
+							rate = WLAN_PHY_RATE_16QAM34;
+							n_dbps = N_DBPS_R36;
+						break;
+						case WLAN_MAC_RATE_64QAM23:
+							rate = WLAN_PHY_RATE_64QAM23;
+							n_dbps = N_DBPS_R48;
+						break;
+						case WLAN_MAC_RATE_64QAM34:
+							rate = WLAN_PHY_RATE_64QAM34;
+							n_dbps = N_DBPS_R54;
+						break;
 					}
-				break;
-			}
 
+					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
+						tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
+						tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES, n_dbps) + T_SIFS;
+					}
 
-		break;
+					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+						beacon = (beacon_probe_frame*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET+sizeof(mac_header_80211));
+						beacon->timestamp = get_usec_timestamp();
+					}
 
-		default:
-			warp_printf(PL_ERROR, "ERROR: Unknown IPC message group %d\n", IPC_MBOX_MSG_ID_TO_GRP(msg->msg_id));
-		break;
+					//
+					status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
 
-	}
+					if(status == 0){
+						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
+					} else {
+						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_FAILURE;
+					}
+
+					//Debug
+					if(tx_mpdu->retry_count>0){
+						//TODO: Raise GPIO
+						//xil_printf("retry: %d\n",tx_mpdu->retry_count);
+					//	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+					}
+
+					//Debug
+
+					tx_mpdu->state = TX_MPDU_STATE_EMPTY;
+
+					if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+						warp_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
+						send_exception(EXC_MUTEX_TX_FAILURE);
+					} else {
+						ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
+						ipc_msg_to_high.num_payload_words = 0;
+						ipc_msg_to_high.arg0 = tx_pkt_buf;
+						ipc_mailbox_write_msg(&ipc_msg_to_high);
+					}
+
+					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+
+				}
+			break;
+		}
 }
 
 
@@ -365,7 +359,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 
 	//IPC_MBOX_GRP_PKT_BUF -> IPC_MBOX_GRP_RX_MPDU_DONE
-	ipc_msg_to_high.msg_id = (IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CMD)) | (IPC_MBOX_MSG_ID_TO_MSG(IPC_MBOX_CMD_RX_MPDU_READY));
+	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_RX_MPDU_READY);
 	ipc_msg_to_high.arg0 = rx_pkt_buf;
 	ipc_msg_to_high.num_payload_words = 0;
 
@@ -642,7 +636,7 @@ void mac_dcf_init(){
 	bcast_addr[5] = 0xFF;
 
 	//Send a message to other processor to identify mac_addr
-	ipc_msg_to_high.msg_id = IPC_MBOX_GRP_ID(IPC_MBOX_GRP_MAC_ADDR);
+	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_MAC_ADDR);
 	ipc_msg_to_high.num_payload_words = 2;
 	ipc_msg_to_high.payload_ptr = &(ipc_msg_to_high_payload[0]);
 
@@ -803,12 +797,27 @@ inline u64 get_rx_start_timestamp() {
 	return timestamp_u64;
 }
 
+void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc){
+
+	if((config_rf_ifc->channel)!=0xFF){
+		mac_param_chan = config_rf_ifc->channel;
+		//TODO: allow mac_param_chan to select 5GHz channels
+		radio_controller_setCenterFrequency(RC_BASEADDR, RC_RFA, RC_24GHZ, mac_param_chan);
+		warp_printf(PL_ERROR, "CPU_LOW: Tuned to channel %d\n", mac_param_chan);
+	}
+}
+
+void process_config_mac(ipc_config_mac* config_mac){
+
+}
+
+
 inline void send_exception(u32 reason){
 	wlan_ipc_msg ipc_msg_to_high;
 	u32 ipc_msg_to_high_payload[2];
 	//Send an exception to CPU_HIGH along with a reason
 	cpu_low_status |= CPU_STATUS_EXCEPTION;
-	ipc_msg_to_high.msg_id = IPC_MBOX_GRP_ID(IPC_MBOX_GRP_CPU_STATUS);
+	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
 	ipc_msg_to_high.num_payload_words = 2;
 	ipc_msg_to_high.payload_ptr = &(ipc_msg_to_high_payload[0]);
 	ipc_msg_to_high_payload[0] = cpu_low_status;

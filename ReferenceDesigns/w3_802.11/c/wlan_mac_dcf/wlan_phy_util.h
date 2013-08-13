@@ -202,6 +202,8 @@ inline void wlan_tx_buffer_sel(u8 n);
 inline int wlan_tx_isrunning();
 inline u16 wlan_ofdm_txtime(u16 length,u16 n_DBPS);
 void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length);
+void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx);
+void process_config_phy_tx(ipc_config_phy_tx* config_phy_tx);
 
 extern const u8 ones_in_chars[256];
 
