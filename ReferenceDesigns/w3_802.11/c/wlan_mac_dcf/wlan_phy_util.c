@@ -49,7 +49,8 @@ int w3_node_init() {
 	}
 
 	//Initialize the AD9963 ADCs/DACs for on-board RF interfaces
-	ad_init(AD_BASEADDR, (RFA_AD_CS | RFB_AD_CS), 2);
+	ad_init(AD_BASEADDR, (RFA_AD_CS | RFB_AD_CS), 3);
+	xil_printf("AD Readback: 0x%08x\n", ad_spi_read(AD_BASEADDR, RFA_AD_CS, 0x32));
 
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in ad_init (%d)\n", status);
@@ -80,6 +81,9 @@ int w3_node_init() {
 	// Set timer 0 to into a "count down" mode
 	XTmrCtr_SetOptions(TmrCtrInstancePtr, 0, (XTC_DOWN_COUNT_OPTION));
 
+	//Give the PHY control of the red user LEDs (PHY counts 1-hot on SIGNAL errors)
+	userio_set_ctrlSrc_hw(USERIO_BASEADDR, W3_USERIO_CTRLSRC_LEDS_RED);
+
 	return ret;
 }
 
@@ -88,6 +92,8 @@ void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length){
 }
 
 void wlan_phy_init() {
+#define PHY_RX_RSSI_SUM_LEN 8
+
 	//Assert Tx and Rx resets
 	REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
 	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
@@ -99,6 +105,8 @@ void wlan_phy_init() {
 	wlan_phy_DSSS_rx_enable();
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD);
 
+	REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS);
+
 	//Enable write-enable byte order swap
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP);
 
@@ -106,18 +114,18 @@ void wlan_phy_init() {
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
 
 	//Set LTS correlation threshold and timeout
-	wlan_phy_rx_lts_corr_cfg(42000, 250);
-	//wlan_phy_rx_lts_corr_cfg(30000, 250);
+	wlan_phy_rx_lts_corr_config(600 * PHY_RX_RSSI_SUM_LEN, 320/2);//SNR thresh, timeout/2
+	wlan_phy_rx_lts_corr_thresholds(12500, 17000);//low SNR, high SNR corr thresh
 
 	//Configure RSSI pkt det
 	//wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
-	wlan_phy_rx_pktDet_RSSI_cfg(8, (8*300), 4); //Disable RSSI pkt det with high thresh
+	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 300), 4); //Disable RSSI pkt det with high thresh
 	
 	//Configure auto-corr pkt det
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
 //	wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
 
-	wlan_phy_rx_set_cca_thresh(8*750);
+	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
 	//wlan_phy_rx_set_cca_thresh(8*1023);
 
 	wlan_phy_rx_set_extension(120); //num samp periods post done to extend CCA BUSY
@@ -141,7 +149,6 @@ void wlan_phy_init() {
 
 	//Set digital scaling of preamble/payload signals before DACs (UFix12_0)
 	wlan_phy_tx_set_scaling(0x2000, 0x2000);
-	//wlan_phy_tx_set_scaling(0x1000, 0x1000);
 
 /*********** AGC ***************/
 
@@ -210,9 +217,7 @@ void wlan_radio_init() {
 	//Set Tx gains
 	radio_controller_setTxGainSource(RC_BASEADDR, RC_RFA, RC_GAINSRC_REG);
 	radio_controller_setRadioParam(RC_BASEADDR, RC_RFA, RC_PARAMID_TXGAIN_BB, 2);
-	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 50);
-
-
+	radio_controller_setTxGainTarget(RC_BASEADDR, RC_RFA, 45);
 
 	//TODO: With this much TX gain, we are very likely seeing some clipping at the TX. That said, I haven't seen any performance
 	//degradation from it. I have seen a big boost in range with the higher power.

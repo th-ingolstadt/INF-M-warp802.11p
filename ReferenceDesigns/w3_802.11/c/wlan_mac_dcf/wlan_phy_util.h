@@ -98,12 +98,15 @@
 #define WLAN_RX_PKT_DET_CFG	XPAR_WLAN_PHY_RX_MEMMAP_PKTDET_AUTOCORR_CONFIG
 #define WLAN_RX_FEC_CFG		XPAR_WLAN_PHY_RX_MEMMAP_FEC_CONFIG
 #define WLAN_RX_LTS_CFG		XPAR_WLAN_PHY_RX_MEMMAP_LTS_CORR_CONFIG
+#define WLAN_RX_LTS_THRESH	XPAR_WLAN_PHY_RX_MEMMAP_LTS_CORR_THRESH
 #define WLAN_RX_FFT_CFG		XPAR_WLAN_PHY_RX_MEMMAP_FFT_CONFIG
 #define WLAN_RX_DSSS_CFG	XPAR_WLAN_PHY_RX_MEMMAP_DSSS_RX_CONFIG
 #define WLAN_RX_DEBUG_GPIO		XPAR_WLAN_PHY_RX_MEMMAP_DEBUG_GPIO
 #define WLAN_RX_RSSI_THRESH		XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH
 #define WLAN_RX_PKTDET_RSSI_CFG	XPAR_WLAN_PHY_RX_MEMMAP_PKTDET_RSSI_CONFIG
 #define WLAN_RX_PHY_CCA_CFG		XPAR_WLAN_PHY_RX_MEMMAP_PHY_CCA_CONFIG
+#define WLAN_RX_PKT_PWR_INFO	XPAR_WLAN_PHY_RX_MEMMAP_RX_PWR_INFO
+#define WLAN_RX_SIGNAL_FIELD	XPAR_WLAN_PHY_RX_MEMMAP_SIGNAL_FIELD
 
 #define WLAN_TX_REG_STATUS		XPAR_WLAN_PHY_TX_MEMMAP_STATUS
 #define WLAN_TX_REG_CFG			XPAR_WLAN_PHY_TX_MEMMAP_CONFIG
@@ -140,6 +143,10 @@
 #define wlan_phy_rx_pkt_buf_ofdm(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0x0000000F)) | ((d) & 0x0000000F)))
 #define wlan_phy_tx_pkt_buf(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x0000000F)) | ((d) & 0x0000000F)))
 
+#define wlan_phy_rx_get_pkt_rssi() (Xil_In32(WLAN_RX_PKT_PWR_INFO) & 0x1FFFF) //UFix17_0 - rssi*(sum length)
+#define wlan_phy_rx_get_agc_BBG() ((Xil_In32(WLAN_RX_PKT_PWR_INFO)>>17) & 0x1F) //UFix5_0
+#define wlan_phy_rx_get_agc_RFG() ((Xil_In32(WLAN_RX_PKT_PWR_INFO)>>22) & 0x3) //UFix2_0
+
 
 #define	wlan_phy_DSSS_rx_enable() Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) | WLAN_RX_REG_CFG_DSSS_RX_EN)
 #define	wlan_phy_DSSS_rx_disable() Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_DSSS_RX_EN)
@@ -156,8 +163,11 @@
 #define wlan_phy_rx_pktDet_autoCorr_cfg(corr_thresh, energy_thresh, min_dur, post_wait) \
 	Xil_Out32(WLAN_RX_PKT_DET_CFG, ( (corr_thresh & 0xFF) | ((energy_thresh & 0xFFF) << 8) | ((min_dur & 0x3F)<<20) | ( (post_wait & 0x3F)<<26)))
 
-#define wlan_phy_rx_lts_corr_cfg(corr_thresh, corr_timeout) \
-	Xil_Out32(WLAN_RX_LTS_CFG, ( (corr_thresh & 0x3FFFF) | ((corr_timeout & 0xFF)<<24)))
+#define wlan_phy_rx_lts_corr_thresholds(corr_thresh_low_snr, corr_thresh_high_snr) \
+	Xil_Out32(WLAN_RX_LTS_THRESH, (corr_thresh_low_snr & 0xFFFF) | ((corr_thresh_high_snr & 0xFFFF) << 16))
+
+#define wlan_phy_rx_lts_corr_config(snr_thresh, corr_timeout) \
+	Xil_Out32(WLAN_RX_LTS_CFG, (corr_timeout & 0xFF) | ((snr_thresh & 0xFFFF) << 8))
 
 #define wlan_phy_tx_set_extension(d) Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFFFF00) | ((d) & 0xFF)))
 #define wlan_phy_tx_set_txen_extension(d) Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFF00FF) | (((d) & 0xFF) << 8)))
