@@ -67,13 +67,13 @@ switch double(signal_rate)
         code_rate = CODE12;
         N_CBPS = N_CPBS_16QAM;
         N_DBPS = N_DBPS_16QAM12;
-        valid = 0;
+        valid = 1;
     case 11 %bin2dec('1011')
         mod_order = QAM16;
         code_rate = CODE34;
         N_CBPS = N_CPBS_16QAM;
         N_DBPS = N_DBPS_16QAM34;
-        valid = 0;
+        valid = 1;
     case 1 %bin2dec('0001')
         mod_order = QAM64;
         code_rate = CODE23;

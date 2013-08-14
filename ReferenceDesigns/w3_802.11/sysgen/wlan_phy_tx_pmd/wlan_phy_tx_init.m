@@ -25,16 +25,7 @@ PHY_TX_ACTIVE_EXTENSION = 120;
 
 
 %Payload for simulation
-Tx_Payload = [1:34];
-
-%Association request
-%Tx_Payload = sscanf('0000300040d8550420bd48f8b31f3caa40d8550420bd202e21040a000004574152500108021298243048606c32010cdd06001018020000', '%02x').';
-
-%Beacon - bad checksum received: [71 f7 81 e0] - PHY calculated [71 F7 81 60], the correct checksum
-Tx_Payload = sscanf('80000000ffffffffffff40d8550420df40d8550420df4035aa60340500000000640021040008574152502d504f4d010202980301080504000101002a01002f0100dd0340d855', '%02x')';
-
-%Beacon - good checksum [0f be 52 20] - confirmed CRC calc
-%Tx_Payload = sscanf('80000000ffffffffffff40d8550420df40d8550420df503560e7350500000000640021040008574152502d504f4d010202980301080504000101002a01002f0100dd0340d855', '%02x')';
+Tx_Payload = mod([1:1236], 256); %total bytes in pkt will be len(Tx_Payload)+3+2+4 (SIGNAL, SERVICE, FCS)
 
 Tx_Payload_len = length(Tx_Payload) + 4; %LENGTH incldues FCS
 
@@ -46,7 +37,9 @@ Tx_Payload_words = sum(Tx_Payload4 .* repmat(2.^[0:8:24]', 1, size(Tx_Payload4,2
 payload_words = zeros(1, MAX_NUM_BYTES/4);
 
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 0); %QPSK 1/2
-payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 1); %QPSK 3/4
+%payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 1); %QPSK 3/4
+payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 0); %16QAM 1/2
+%payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 1); %16QAM 3/4
 
 payload_words(2) = 0; %SERVICE is always 0
 payload_words(2+[1:length(Tx_Payload_words)]) = Tx_Payload_words;
@@ -114,3 +107,17 @@ clear scr x bit_scrambler_lfsr ii
 %% Cyclic Redundancy Check parameters
 CRCPolynomial32 = hex2dec('04c11db7'); %CRC-32
 CRC_Table32 = CRC_table_gen(CRCPolynomial32, 32);
+
+%% Constellation params
+
+Mod_Constellation_BPSK(1) = -1 * 0.95; %Scale down from spec to avoid overflow in FFT
+Mod_Constellation_BPSK(2) =  1 * 0.95; %Scale down from spec to avoid overflow in FFT
+
+Mod_Constellation_QPSK(1) = -1/sqrt(2);
+Mod_Constellation_QPSK(2) =  1/sqrt(2);
+
+Mod_Constellation_16QAM(1) = -3/sqrt(10);
+Mod_Constellation_16QAM(2) = -1/sqrt(10);
+Mod_Constellation_16QAM(3) =  3/sqrt(10);
+Mod_Constellation_16QAM(4) =  1/sqrt(10);
+

@@ -1,10 +1,14 @@
 function SIGNAL_u32 = tx_signal_calc(length, mod_order, code_rate)
 
 switch(sprintf('%d %d', mod_order, code_rate))
-    case '2 0'
+    case '2 0' %QPSK 1/2
         RATE = uint8(10); %0101 -> 1010
-    case '2 1'
+    case '2 1' %QPSK 3/4
         RATE = uint8(14); %0111 -> 1110
+    case '4 0' %16QAM 1/2
+        RATE = uint8(9); %1001 -> 1001
+    case '4 1' %16QAM 3/4
+        RATE = uint8(13); %1011 -> 1101
     otherwise
         error('Invalid mod_order or code_rate');
 end
@@ -12,7 +16,7 @@ end
 length_u = bitand(uint16(length), hex2dec('fff'));
 
 length_2to0 = uint8(bitand(length_u, 7));
-length_10to3 = uint8(bitand(bitshift(length_u, -3), 15));
+length_10to3 = uint8(bitand(bitshift(length_u, -3), 255));
 length_msb = uint8(bitshift(length_u, -11));
 
 parity = mod(sum(sum(dec2bin([uint32(length_u) uint32(RATE)]) == '1')), 2);
