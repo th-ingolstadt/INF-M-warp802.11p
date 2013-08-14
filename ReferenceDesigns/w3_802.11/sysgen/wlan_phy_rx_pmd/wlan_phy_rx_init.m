@@ -11,37 +11,44 @@ addpath('./blackboxes');
 PLCP_Preamble = PLCP_Preamble_gen;
 
 %%
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_9.prn'); cs_interp = 8; cs_start = 1;
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_10.prn'); cs_interp = 8; cs_start = 1;
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_5.prn'); cs_interp = 1; cs_start = 1;
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_12_badRxLen.prn'); cs_interp = 8; cs_start = 1;
-%xlLoadChipScopeData('cs_capt/dsss_cs_capt_3.prn'); cs_interp = 1; cs_start = 1; %DSSS
+%xlLoadChipScopeData('cs_capt/wlan_cs_capt_60_good_bad_good_16Q12.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I); %no agc
+%samps2 = complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));
 
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_23_goodFCS_18M.prn'); cs_interp = 1; cs_start = 1; cs_end = 1.8e3; %no agc
-%samps1 = complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));
+%payload_vec = [samps2; zeros(1000,1);];
+%paylod_vec_samp_time = 8;
 
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_40_permaDet.prn'); cs_interp = 1; cs_start = 1; cs_end = 11e3;
-xlLoadChipScopeData('cs_capt/wlan_cs_capt_51_longdet_nodec.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
-samps2 = complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));
 samps_rssi_avg.time = [];
-samps_rssi_avg.signals.values = RSSI(33:end);%RSSI is delayed by 2 T=16 samples before CS ILA
+samps_rssi_avg.signals.values = 0;%RSSI(cs_start:end);%RSSI is delayed by 2 T=16 samples before CS ILA
 
 samps_pkt_det.time = [];
-samps_pkt_det.signals.values = Pkt_Det2;
+samps_pkt_det.signals.values = 0;%Pkt_Det2(cs_start:end);
 
 samps_iq_valid.time = [];
-samps_iq_valid.signals.values = ADC_IQ_Valid2;
+samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
 
-payload_vec = [samps2; zeros(1000,1);];
-paylod_vec_samp_time = 1;
 
 %One CS capture
 %payload_vec = [zeros(25,1); complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));];
 
 %wlan_tx output
-%load('rx_sigs/wlan_tx_out_34PB_Q34.mat')
-%payload_vec = [zeros(100,1); wlan_tx_out; zeros(200,1); wlan_tx_out; zeros(1000,1)];
-%paylod_vec_samp_time = 8;
+load('rx_sigs/wlan_tx_out_18PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_19PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_20PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_21PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_22PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_23PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_24PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_25PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_26PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_27PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_28PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_29PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_30PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_1240PB_16Q12.mat'); tx_sig_t = 1:length(wlan_tx_out);
+
+%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
+payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(10,1); wlan_tx_out(tx_sig_t); zeros(100,1)];
+paylod_vec_samp_time = 8;
 
 %DSSS capt
 %load dsss_capt_v0.mat; t_capt = 1.25e4:3.27e4;
@@ -49,12 +56,6 @@ paylod_vec_samp_time = 1;
 %raw_rx_dec = filter(hb_filt2, 1, rx_raw);
 %raw_rx_dec = raw_rx_dec(1:2:end);
 %payload_vec = [zeros(100,1); raw_rx_dec.'; zeros(1000,1)];
-
-%Two packets
-%payload_vec = [zeros(125,1); complex(ADC_IA(cs_start:cs_interp:end), ADC_QA(cs_start:cs_interp:end));  complex(ADC_IB(cs_start:cs_interp:end), ADC_QB(cs_start:cs_interp:end))];
-
-%Perfect preamble, fuzzed first pkt
-%payload_vec = [zeros(1,125) 2.*repmat(PLCP_Preamble.STS_t, 1, 10) PLCP_Preamble.LTS_t(33:64) 1*PLCP_Preamble.LTS_t 1*PLCP_Preamble.LTS_t 0.1.*complex(randn(1,1000),randn(1,1000)) zeros(1,200) complex(ADC_IA(cs_start:cs_interp:end), ADC_QA(cs_start:cs_interp:end)).'].';
 
 simtime = 8*length(payload_vec) + 500;
 raw_rx_I.time = [];
@@ -76,26 +77,23 @@ PHY_CONFIG_NUM_SC = 64;
 PHY_CONFIG_CP_LEN = 16;
 PHY_CONFIG_FFT_OFFSET = 7;% 5 = no CP samples into FFT (5=zero actual offset)
 PHY_CONFIG_CFO_EST_OFFSET = 0;
-PHY_CONFIG_FFT_SCALING = bin2dec('010110');
+PHY_CONFIG_FFT_SCALING = bin2dec('000101');
 
 % Long correlation init
 %Fix3_0 version of longSym
 longCorr_coef_nbits = 3;
 longCorr_coef_bp = 0;
-LTS_corr = fliplr(PLCP_Preamble.LTS_t./max(abs(PLCP_Preamble.LTS_t)));
+LTS_corr = fliplr(conj(PLCP_Preamble.LTS_t./max(abs(PLCP_Preamble.LTS_t))));
 
-%longCorr_coef_i = [-4*real(LTS_corr)];
-%longCorr_coef_q = [4*imag(LTS_corr)];
-longCorr_coef_i = [8*real(LTS_corr)];
-longCorr_coef_q = [-8*imag(LTS_corr)];
-%longCorr_coef_i((longCorr_coef_i < -7.5)) = -7;
-%longCorr_coef_q((longCorr_coef_q < -7.5)) = -7;
+longCorr_coef_i = [3*real(LTS_corr)];
+longCorr_coef_q = [3*imag(LTS_corr)];
 
 %LC TESTING ONLY
 %longCorr_coef_i = ones(1,length(longCorr_coef_i));
 
 %long_cor_acc_n_bits = 6;
 long_cor_acc_n_bits = 6 * 2;
+
 
 %FFT Ctrl config
 n_bits_preFFT_sampBuff = ceil(log2(4*MAX_NUM_SC));
@@ -111,17 +109,21 @@ sc_data_sym_map = MAX_NUM_SC*ones(1,MAX_NUM_SC); %use MAX_NUM_SC to flag empty s
 sc_data_sym_map(sc_ind_data) = fftshift(0:47);
 
 %Register init
+PHY_CONFIG_RSSI_SUM_LEN = 8;
+
 PHY_MIN_PKT_LEN = 14;
 
-PHY_CONFIG_LTS_CORR_THRESH = 3e4;
+PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 1.75e4;
+PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 2.00e4;
+PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
+
 PHY_CONFIG_LTS_CORR_TIMEOUT = 250;%150;%*2 in hardware
 
 PHY_CONFIG_PKT_DET_CORR_THRESH = 200;%90;
-PHY_CONFIG_PKT_DET_ENERGY_THRESH = 250;%7; %CHANGE BACK TO 250!
+PHY_CONFIG_PKT_DET_ENERGY_THRESH = 0*250;%7; %CHANGE BACK TO 250!
 PHY_CONFIG_PKT_DET_MIN_DURR = 4;
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 
-PHY_CONFIG_RSSI_SUM_LEN = 8;
 CS_CONFIG_CS_RSSI_THRESH = 300 * PHY_CONFIG_RSSI_SUM_LEN;
 CS_CONFIG_POSTRX_EXTENSION = 120; %6usec as 120 20MHz samples
 
@@ -136,9 +138,14 @@ REG_RX_PktDet_AutoCorr_Config = ...
     2^26 *  (PHY_CONFIG_PKT_DET_RESET_EXT_DUR) + ...%b[31:26]
     0;
 
-REG_RX_LTS_Corr_Config = ...
-    2^0  *  (PHY_CONFIG_LTS_CORR_THRESH) +... %b[17:0]
-    2^24 *  (PHY_CONFIG_LTS_CORR_TIMEOUT) +... %b[31:24]
+REG_RX_LTS_Corr_Thresh = ...
+    2^0  *  (PHY_CONFIG_LTS_CORR_THRESH_LOWSNR) +... %b[15:0]
+    2^16  * (PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR) +... %b[31:16]
+    0;
+
+REG_RX_LTS_Corr_Confg = ...
+    2^0 *  (PHY_CONFIG_LTS_CORR_TIMEOUT) + ... %b[7:0]
+    2^8 *  (PHY_CONFIG_LTS_CORR_RSSI_THRESH) + ... %b[23:8]
     0;
 
 REG_RX_FFT_Config = ...

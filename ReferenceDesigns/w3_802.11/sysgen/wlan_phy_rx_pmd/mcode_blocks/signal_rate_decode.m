@@ -52,13 +52,13 @@ switch double(signal_rate)
         mod_order = QAM16;
         code_rate = CODE12;
         valid = 1;
-        supported = 0;
+        supported = 1;
         N_DBPS = 96;
     case 13 %11 %bin2dec('1011')
         mod_order = QAM16;
         code_rate = CODE34;
         valid = 1;
-        supported = 0;
+        supported = 1;
         N_DBPS = 144;
     case 8 %1 %bin2dec('0001')
         mod_order = QAM64;
