@@ -32,5 +32,6 @@ void enable_associations();
 void disable_associations();
 void animate_hex();
 void up_button();
+void uart_rx(u8 rxByte);
 
 #endif /* WLAN_MAC_LOW_H_ */

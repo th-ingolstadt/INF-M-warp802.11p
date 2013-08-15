@@ -23,6 +23,7 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_ap.h"
+#include "ascii_characters.h"
 
 #define BEACON_INTERVAL_MS (100)
 #define BEACON_INTERVAL_US (BEACON_INTERVAL_MS*1000)
@@ -30,7 +31,7 @@
 #define ASSOCIATION_CHECK_INTERVAL_MS (10000)
 #define ASSOCIATION_CHECK_INTERVAL_US (ASSOCIATION_CHECK_INTERVAL_MS*1000)
 
-#define ASSOCIATION_ALLOW_INTERVAL_MS (10000)
+#define ASSOCIATION_ALLOW_INTERVAL_MS (30000)
 #define ASSOCIATION_ALLOW_INTERVAL_US (ASSOCIATION_ALLOW_INTERVAL_MS*1000)
 
 #define MAX_RETRY 7
@@ -40,6 +41,7 @@ u8 SSID[SSID_LEN] = "WARP-AP";
 
 u16 seq_num;
 u8 allow_assoc;
+u8 perma_assoc_mode;
 
 u8 enable_animation;
 
@@ -80,6 +82,8 @@ int main(){
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
+	perma_assoc_mode = 0;
+
 	wlan_lib_init();
 	wlan_mac_util_init();
 
@@ -100,6 +104,7 @@ int main(){
 	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
 	wlan_mac_util_set_mpdu_tx_callback((void*)mpdu_transmit);
 	wlan_mac_util_set_pb_u_callback((void*)up_button);
+	wlan_mac_util_set_uart_rx_callback((void*)uart_rx);
 
 	//create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
@@ -199,8 +204,31 @@ int main(){
 }
 
 void up_button(){
-	xil_printf("up button\n");
+	if(allow_assoc == 0){
+		//AP is currently not allowing any associations to take place
+		enable_animation = 1;
+		wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
+		enable_associations();
+		wlan_mac_schedule_event(ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
+	} else if(perma_assoc_mode == 0){
+		//AP is currently allowing associations, but only for the small allow window.
+		//Go into permanent allow association mode.
+		perma_assoc_mode = 1;
+	} else {
+		//AP is permanently allowing associations. Toggle everything off.
+		perma_assoc_mode = 0;
+		disable_associations();
+	}
 }
+
+void uart_rx(u8 rxByte){
+	switch(rxByte){
+		case ASCII_a:
+			xil_printf("Today's callback brought to you by the letter 'a'\n");
+		break;
+	}
+}
+
 
 int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 	//Receives the pre-encapsulated Ethernet frames
@@ -344,8 +372,6 @@ void association_timestamp_check() {
 
 
 	}
-
-
 
 	wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 	return;
@@ -624,6 +650,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					//Keep track of this association of this association
 					memcpy(&(associations[i].addr[0]), rx_80211_header->address_2, 6);
 					associations[i].tx_rate = WLAN_MAC_RATE_QPSK34; //Default tx_rate for this station. Rate adaptation may change this value.
+					//associations[i].tx_rate = WLAN_MAC_RATE_16QAM34; //Default tx_rate for this station. Rate adaptation may change this value.
 
 					//Checkout 1 element from the queue;
 					checkout = queue_checkout(1);
@@ -772,7 +799,7 @@ void print_associations(){
 	u64 timestamp = get_usec_timestamp();
 	u32 i;
 
-	write_hex_display(next_free_assoc_index);
+	if(enable_animation == 0) write_hex_display(next_free_assoc_index);
 	xil_printf("\n   Current Associations\n (MAC time = %d usec)\n",timestamp);
 			xil_printf("|-ID-|----- MAC ADDR ----|\n");
 	for(i=0; i < next_free_assoc_index; i++){
@@ -808,15 +835,18 @@ void disable_associations(){
 	u32 ipc_msg_to_low_payload[1];
 	ipc_config_phy_rx* config_phy_rx;
 	//Send a message to other processor to tell it to switch channels
-	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
-	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
-	ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-	init_ipc_config(config_phy_rx,ipc_msg_to_low_payload,ipc_config_phy_rx);
-	config_phy_rx->enable_dsss = 0;
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-	allow_assoc = 0;
-	enable_animation = 0;
-	write_hex_display(next_free_assoc_index);
+
+	if(perma_assoc_mode == 0){
+		ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
+		ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
+		ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+		init_ipc_config(config_phy_rx,ipc_msg_to_low_payload,ipc_config_phy_rx);
+		config_phy_rx->enable_dsss = 0;
+		ipc_mailbox_write_msg(&ipc_msg_to_low);
+		allow_assoc = 0;
+		enable_animation = 0;
+		write_hex_display(next_free_assoc_index);
+	}
 }
 
 void animate_hex(){

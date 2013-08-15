@@ -14,6 +14,7 @@
 #define ETH_A_MAC_DEVICE_ID			XPAR_ETH_A_MAC_DEVICE_ID
 #define ETH_A_FIFO_DEVICE_ID		XPAR_ETH_A_FIFO_DEVICE_ID
 #define TIMESTAMP_GPIO_DEVICE_ID 	XPAR_MB_HIGH_TIMESTAMP_GPIO_DEVICE_ID
+#define UARTLITE_DEVICE_ID     		XPAR_UARTLITE_0_DEVICE_ID
 
 #define TIMESTAMP_GPIO_LSB_CHAN 1
 #define TIMESTAMP_GPIO_MSB_CHAN 2
@@ -24,6 +25,7 @@
 
 #define GPIO_DEVICE_ID			XPAR_MB_HIGH_SW_GPIO_DEVICE_ID
 #define INTC_GPIO_INTERRUPT_ID	XPAR_INTC_0_GPIO_0_VEC_ID
+#define UARTLITE_INT_IRQ_ID     XPAR_INTC_0_UARTLITE_0_VEC_ID
 
 #define GPIO_OUTPUT_CHANNEL 	1
 #define GPIO_INPUT_CHANNEL 		2
@@ -35,6 +37,8 @@
 #define GPIO_MASK_PB_U			 0x00000040
 #define GPIO_MASK_PB_M			 0x00000020
 #define GPIO_MASK_PB_D			 0x00000010
+
+#define UART_BUFFER_SIZE 1
 
 
 typedef struct{
@@ -77,6 +81,7 @@ void wlan_mac_util_set_mpdu_tx_callback(void(*callback)());
 void wlan_mac_util_set_pb_u_callback(void(*callback)());
 void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());
+void wlan_mac_util_set_uart_rx_callback(void(*callback)());
 void wlan_mac_schedule_event(u32 delay, void(*callback)());
 inline void poll_schedule();
 inline void wlan_mac_poll_tx_queue(u16 queue_sel);
@@ -85,6 +90,8 @@ int memory_test();
 void write_hex_display_raw(u8 val1,u8 val2);
 int interrupt_init();
 void GpioIsr(void *InstancePtr);
+void SendHandler(void *CallBackRef, unsigned int EventData);
+void RecvHandler(void *CallBackRef, unsigned int EventData);
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 u8 wlan_mac_util_get_tx_rate(station_info* station);

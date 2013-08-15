@@ -12,7 +12,7 @@
 #include "stdlib.h"
 #include "xil_exception.h"
 #include "xintc.h"
-#include "xintc_l.h"
+#include "xuartlite.h"
 
 #include "wlan_lib.h"
 #include "wlan_mac_util.h"
@@ -25,8 +25,11 @@
 static XGpio GPIO_timestamp;
 static XGpio Gpio;
 static XIntc InterruptController;
+XUartLite UartLite;
 
-function_ptr_t eth_rx_callback, mpdu_tx_callback, pb_u_callback, pb_m_callback, pb_d_callback;
+u8 ReceiveBuffer[UART_BUFFER_SIZE];
+
+function_ptr_t eth_rx_callback, mpdu_tx_callback, pb_u_callback, pb_m_callback, pb_d_callback, uart_callback;
 
 void nullCallback(void* param){};
 
@@ -46,6 +49,7 @@ void wlan_mac_util_init(){
 	pb_u_callback = (function_ptr_t)nullCallback;
 	pb_m_callback = (function_ptr_t)nullCallback;
 	pb_d_callback = (function_ptr_t)nullCallback;
+	uart_callback = (function_ptr_t)nullCallback;
 
 	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
 	gpio_timestamp_initialize();
@@ -54,6 +58,13 @@ void wlan_mac_util_init(){
 		warp_printf(PL_ERROR, "Error initializing GPIO\n");
 		return;
 	}
+
+	Status = XUartLite_Initialize(&UartLite, UARTLITE_DEVICE_ID);
+	if (Status != XST_SUCCESS) {
+		warp_printf(PL_ERROR, "Error initializing XUartLite\n");
+		return;
+	}
+
 
 	gpio_read = XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL);
 	if(gpio_read&GPIO_MASK_DRAM_INIT_DONE){
@@ -66,7 +77,6 @@ void wlan_mac_util_init(){
 
 		while((get_usec_timestamp() - timestamp) < 100000){
 			if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
-				xil_printf("Took %d usec to find\n",get_usec_timestamp() - timestamp);
 				xil_printf("DRAM SODIMM Detected\n");
 				queue_dram_present(1);
 				break;
@@ -110,6 +120,12 @@ int interrupt_init(){
 		return Result;
 	}
 
+	Result = XIntc_Connect(&InterruptController, UARTLITE_INT_IRQ_ID, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
+	if (Result != XST_SUCCESS) {
+		warp_printf(PL_ERROR,"Failed to connect XUartLite to XIntc\n");
+		return Result;
+	}
+
 	Result = XIntc_Start(&InterruptController, XIN_REAL_MODE);
 	if (Result != XST_SUCCESS) {
 		warp_printf(PL_ERROR,"Failed to start XIntc\n");
@@ -117,6 +133,7 @@ int interrupt_init(){
 	}
 
 	XIntc_Enable(&InterruptController, INTC_GPIO_INTERRUPT_ID);
+	XIntc_Enable(&InterruptController, UARTLITE_INT_IRQ_ID);
 
 	Xil_ExceptionInit();
 
@@ -128,7 +145,25 @@ int interrupt_init(){
 	XGpio_InterruptEnable(&Gpio, GPIO_INPUT_INTERRUPT);
 	XGpio_InterruptGlobalEnable(&Gpio);
 
+	XUartLite_SetSendHandler(&UartLite, SendHandler, &UartLite);
+	XUartLite_SetRecvHandler(&UartLite, RecvHandler, &UartLite);
+
+	XUartLite_EnableInterrupt(&UartLite);
+
+	XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
+
 	return 0;
+}
+
+void SendHandler(void *CallBackRef, unsigned int EventData){
+	xil_printf("send\n");
+}
+
+void RecvHandler(void *CallBackRef, unsigned int EventData){
+	XUartLite_DisableInterrupt(&UartLite);
+	uart_callback(ReceiveBuffer[0]);
+	XUartLite_EnableInterrupt(&UartLite);
+	XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
 }
 
 void GpioIsr(void *InstancePtr){
@@ -166,6 +201,11 @@ void wlan_mac_util_set_eth_rx_callback(void(*callback)()){
 void wlan_mac_util_set_mpdu_tx_callback(void(*callback)()){
 	mpdu_tx_callback = (function_ptr_t)callback;
 }
+
+void wlan_mac_util_set_uart_rx_callback(void(*callback)()){
+	uart_callback = (function_ptr_t)callback;
+}
+
 
 void gpio_timestamp_initialize(){
 	XGpio_Initialize(&GPIO_timestamp, TIMESTAMP_GPIO_DEVICE_ID);
