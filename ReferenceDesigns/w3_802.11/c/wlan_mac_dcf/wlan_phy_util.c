@@ -142,7 +142,8 @@ void wlan_phy_init() {
 	wlan_phy_tx_set_extension(120);
 
 	//Set extension from last samp output to RF Tx -> Rx transition
-	wlan_phy_tx_set_txen_extension(20);
+	//Note: Old value of 20 was too short for 16-QAM packets
+	wlan_phy_tx_set_txen_extension(50);
 
 	//Set extension from RF Rx -> Tx to un-blocking Rx samples
 	wlan_phy_tx_set_rx_invalid_extension(100);
