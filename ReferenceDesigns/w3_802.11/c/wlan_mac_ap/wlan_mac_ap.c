@@ -41,6 +41,8 @@ u8 SSID[SSID_LEN] = "WARP-AP";
 u16 seq_num;
 u8 allow_assoc;
 
+u8 enable_animation;
+
 XAxiCdma cdma_inst;
 
 //The last entry in associations[MAX_ASSOCIATIONS][] is swap space
@@ -136,7 +138,7 @@ int main(){
 
 	cpu_high_status |= CPU_STATUS_INITIALIZED;
 
-	mac_param_chan = 9;
+	mac_param_chan = 4;
 
 	//Send a message to other processor to tell it to switch channels
 	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
@@ -154,6 +156,8 @@ int main(){
 	//TODO: bug was reported in disassociation timeout. disabled in meantime
 	//wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
+	enable_animation = 1;
+	wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
 	enable_associations();
 	wlan_mac_schedule_event(ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 
@@ -806,8 +810,19 @@ void disable_associations(){
 	config_phy_rx->enable_dsss = 0;
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 	allow_assoc = 0;
+	enable_animation = 0;
+	write_hex_display(next_free_assoc_index);
 }
 
+void animate_hex(){
+	static u8 i = 0;
+	if(enable_animation){
+		xil_printf("enable = %d\n",enable_animation);
+		write_hex_display_raw(i,i);
+		i++;
+		wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
+	}
+}
 
 
 

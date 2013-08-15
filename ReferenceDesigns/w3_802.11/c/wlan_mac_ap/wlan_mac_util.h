@@ -71,6 +71,7 @@ inline void poll_schedule();
 inline void wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
 int memory_test();
+void write_hex_display_raw(u8 val1,u8 val2);
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 u8 wlan_mac_util_get_tx_rate(station_info* station);

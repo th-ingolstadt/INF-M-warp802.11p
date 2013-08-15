@@ -26,7 +26,7 @@ static XGpio GPIO_timestamp;
 function_ptr_t eth_rx_callback, mpdu_tx_callback;
 
 //Scheduler
-#define SCHEDULER_NUM_EVENTS 3
+#define SCHEDULER_NUM_EVENTS 5
 static u8 scheduler_in_use[SCHEDULER_NUM_EVENTS];
 static function_ptr_t scheduler_callbacks[SCHEDULER_NUM_EVENTS];
 static u64 scheduler_timestamps[SCHEDULER_NUM_EVENTS];
@@ -116,8 +116,17 @@ u8 wlan_mac_util_get_tx_rate(station_info* station){
 
 void write_hex_display(u8 val){
 	//u8 val: 2 digit decimal value to be printed to hex displays
+   userio_write_control(USERIO_BASEADDR, (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
    userio_write_hexdisp_left(USERIO_BASEADDR, val/10);
    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
+}
+
+void write_hex_display_raw(u8 val1,u8 val2){
+	//u8 val: 2 digit decimal value to be printed to hex displays
+   userio_write_control(USERIO_BASEADDR, ~(W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
+   xil_printf("%d, %d\n",val1,val2);
+   userio_write_hexdisp_left(USERIO_BASEADDR, val1);
+   userio_write_hexdisp_right(USERIO_BASEADDR, val2);
 }
 
 int memory_test(){
