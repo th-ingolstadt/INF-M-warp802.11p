@@ -10,6 +10,9 @@
 
 #include "xgpio.h"
 #include "stdlib.h"
+#include "xil_exception.h"
+#include "xintc.h"
+#include "xintc_l.h"
 
 #include "wlan_lib.h"
 #include "wlan_mac_util.h"
@@ -19,11 +22,13 @@
 #include "w3_userio.h"
 #include "xparameters.h"
 
-#define USERIO_BASEADDR XPAR_W3_USERIO_BASEADDR
-
 static XGpio GPIO_timestamp;
+static XGpio Gpio;
+static XIntc InterruptController;
 
-function_ptr_t eth_rx_callback, mpdu_tx_callback;
+function_ptr_t eth_rx_callback, mpdu_tx_callback, pb_u_callback, pb_m_callback, pb_d_callback;
+
+void nullCallback(void* param){};
 
 //Scheduler
 #define SCHEDULER_NUM_EVENTS 5
@@ -32,9 +37,126 @@ static function_ptr_t scheduler_callbacks[SCHEDULER_NUM_EVENTS];
 static u64 scheduler_timestamps[SCHEDULER_NUM_EVENTS];
 
 void wlan_mac_util_init(){
+	int Status;
+	u32 gpio_read;
+	u64 timestamp;
+
+	eth_rx_callback = (function_ptr_t)nullCallback;
+	mpdu_tx_callback = (function_ptr_t)nullCallback;
+	pb_u_callback = (function_ptr_t)nullCallback;
+	pb_m_callback = (function_ptr_t)nullCallback;
+	pb_d_callback = (function_ptr_t)nullCallback;
+
+	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
+	gpio_timestamp_initialize();
+
+	if (Status != XST_SUCCESS) {
+		warp_printf(PL_ERROR, "Error initializing GPIO\n");
+		return;
+	}
+
+	gpio_read = XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL);
+	if(gpio_read&GPIO_MASK_DRAM_INIT_DONE){
+		xil_printf("DRAM SODIMM Detected\n");
+		queue_dram_present(1);
+	} else {
+		queue_dram_present(0);
+
+		timestamp = get_usec_timestamp();
+
+		while((get_usec_timestamp() - timestamp) < 100000){
+			if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
+				xil_printf("Took %d usec to find\n",get_usec_timestamp() - timestamp);
+				xil_printf("DRAM SODIMM Detected\n");
+				queue_dram_present(1);
+				break;
+			}
+		}
+	}
+
 	queue_init();
 	wlan_eth_init();
-	gpio_timestamp_initialize();
+
+
+
+
+	//Set direction of GPIO channels
+	XGpio_SetDataDirection(&Gpio, GPIO_INPUT_CHANNEL, 0xFFFFFFFF);
+	XGpio_SetDataDirection(&Gpio, GPIO_OUTPUT_CHANNEL, 0);
+
+//	while(1){
+//		xil_printf("0x%08x\n",XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL));
+//	}
+
+
+	Status = interrupt_init();
+	if(Status != 0){
+		warp_printf(PL_ERROR, "Error initializing interrupts, status code: %d\n", Status);
+		return;
+	}
+
+}
+
+int interrupt_init(){
+	int Result;
+	Result = XIntc_Initialize(&InterruptController, INTC_DEVICE_ID);
+	if (Result != XST_SUCCESS) {
+		return Result;
+	}
+
+	Result = XIntc_Connect(&InterruptController, INTC_GPIO_INTERRUPT_ID, (XInterruptHandler)GpioIsr, &Gpio);
+	if (Result != XST_SUCCESS) {
+		warp_printf(PL_ERROR,"Failed to connect GPIO to XIntc\n");
+		return Result;
+	}
+
+	Result = XIntc_Start(&InterruptController, XIN_REAL_MODE);
+	if (Result != XST_SUCCESS) {
+		warp_printf(PL_ERROR,"Failed to start XIntc\n");
+		return Result;
+	}
+
+	XIntc_Enable(&InterruptController, INTC_GPIO_INTERRUPT_ID);
+
+	Xil_ExceptionInit();
+
+	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,(Xil_ExceptionHandler)XIntc_InterruptHandler, &InterruptController);
+
+	/* Enable non-critical exceptions */
+	Xil_ExceptionEnable();
+
+	XGpio_InterruptEnable(&Gpio, GPIO_INPUT_INTERRUPT);
+	XGpio_InterruptGlobalEnable(&Gpio);
+
+	return 0;
+}
+
+void GpioIsr(void *InstancePtr){
+	XGpio *GpioPtr = (XGpio *)InstancePtr;
+	u32 gpio_read;
+
+	XGpio_InterruptDisable(GpioPtr, GPIO_INPUT_INTERRUPT);
+	gpio_read = XGpio_DiscreteRead(GpioPtr, GPIO_INPUT_CHANNEL);
+
+	if(gpio_read & GPIO_MASK_PB_U) pb_u_callback();
+	if(gpio_read & GPIO_MASK_PB_M) pb_m_callback();
+	if(gpio_read & GPIO_MASK_PB_D) pb_d_callback();
+
+	(void)XGpio_InterruptClear(GpioPtr, GPIO_INPUT_INTERRUPT);
+	XGpio_InterruptEnable(GpioPtr, GPIO_INPUT_INTERRUPT);
+
+	return;
+}
+
+void wlan_mac_util_set_pb_u_callback(void(*callback)()){
+	pb_u_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_pb_m_callback(void(*callback)()){
+	pb_m_callback = (function_ptr_t)callback;
+}
+void wlan_mac_util_set_pb_d_callback(void(*callback)()){
+	pb_d_callback = (function_ptr_t)callback;
 }
 
 void wlan_mac_util_set_eth_rx_callback(void(*callback)()){
@@ -107,7 +229,7 @@ void wlan_mac_poll_tx_queue(u16 queue_sel){
 }
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
-
+	//Stubbed for future extensions
 }
 
 u8 wlan_mac_util_get_tx_rate(station_info* station){
@@ -116,15 +238,14 @@ u8 wlan_mac_util_get_tx_rate(station_info* station){
 
 void write_hex_display(u8 val){
 	//u8 val: 2 digit decimal value to be printed to hex displays
-   userio_write_control(USERIO_BASEADDR, (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
+   userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
    userio_write_hexdisp_left(USERIO_BASEADDR, val/10);
    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
 }
 
 void write_hex_display_raw(u8 val1,u8 val2){
 	//u8 val: 2 digit decimal value to be printed to hex displays
-   userio_write_control(USERIO_BASEADDR, ~(W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
-   xil_printf("%d, %d\n",val1,val2);
+   userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) & (~(W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE)));
    userio_write_hexdisp_left(USERIO_BASEADDR, val1);
    userio_write_hexdisp_right(USERIO_BASEADDR, val2);
 }

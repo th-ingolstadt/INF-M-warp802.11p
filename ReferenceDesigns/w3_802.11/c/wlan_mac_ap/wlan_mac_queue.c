@@ -29,22 +29,35 @@ u32 PQUEUE_LEN;
 void* PQUEUE_BUFFER_SPACE_BASE;
 
 #define USE_DRAM 1
+static u8 dram_present;
+
+void queue_dram_present(u8 present){
+	dram_present = present;
+}
 
 void queue_init(){
 	u32 i;
 
 #if USE_DRAM
-	if(memory_test()==0){
-		//Use DRAM
-		PQUEUE_LEN = 1000;
-		xil_printf("Queue of %d placed in DRAM: using %d kB\n", PQUEUE_LEN, (PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE)/1024);
-		PQUEUE_BUFFER_SPACE_BASE = (void*)(DDR3_BASEADDR);
+	if(dram_present == 1){
+		if(memory_test()==0){
+				//Use DRAM
+				PQUEUE_LEN = 1000;
+				xil_printf("Queue of %d placed in DRAM: using %d kB\n", PQUEUE_LEN, (PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE)/1024);
+				PQUEUE_BUFFER_SPACE_BASE = (void*)(DDR3_BASEADDR);
+			} else {
+				//Use BRAM
+				PQUEUE_LEN = 20;
+				xil_printf("Queue of %d placed in BRAM: using %d kB\n", PQUEUE_LEN, (PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE)/1024);
+				PQUEUE_BUFFER_SPACE_BASE = (void*)(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(pqueue)));
+			}
 	} else {
 		//Use BRAM
 		PQUEUE_LEN = 20;
 		xil_printf("Queue of %d placed in BRAM: using %d kB\n", PQUEUE_LEN, (PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE)/1024);
 		PQUEUE_BUFFER_SPACE_BASE = (void*)(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(pqueue)));
 	}
+
 #else
 	//Use BRAM
 	PQUEUE_LEN = 20;

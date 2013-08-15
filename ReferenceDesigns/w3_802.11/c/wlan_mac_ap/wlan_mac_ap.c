@@ -99,6 +99,7 @@ int main(){
 
 	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
 	wlan_mac_util_set_mpdu_tx_callback((void*)mpdu_transmit);
+	wlan_mac_util_set_pb_u_callback((void*)up_button);
 
 	//create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
@@ -195,6 +196,10 @@ int main(){
 
 	}
 	return -1;
+}
+
+void up_button(){
+	xil_printf("up button\n");
 }
 
 int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
@@ -817,9 +822,9 @@ void disable_associations(){
 void animate_hex(){
 	static u8 i = 0;
 	if(enable_animation){
-		xil_printf("enable = %d\n",enable_animation);
-		write_hex_display_raw(i,i);
-		i++;
+		//xil_printf("enable = %d\n",enable_animation);
+		write_hex_display_raw(1<<i,1<<i);
+		i = (i+1)%6;
 		wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
 	}
 }

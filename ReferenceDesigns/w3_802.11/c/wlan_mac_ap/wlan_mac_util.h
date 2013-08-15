@@ -14,19 +14,27 @@
 #define ETH_A_MAC_DEVICE_ID			XPAR_ETH_A_MAC_DEVICE_ID
 #define ETH_A_FIFO_DEVICE_ID		XPAR_ETH_A_FIFO_DEVICE_ID
 #define TIMESTAMP_GPIO_DEVICE_ID 	XPAR_MB_HIGH_TIMESTAMP_GPIO_DEVICE_ID
+
 #define TIMESTAMP_GPIO_LSB_CHAN 1
 #define TIMESTAMP_GPIO_MSB_CHAN 2
 
 #define DDR3_BASEADDR XPAR_DDR3_SODIMM_S_AXI_BASEADDR
 
-//RATE ADAPTATION PARAMETERS
-//Rate will attempt an increase after MIN_CONSECUTIVE_GOOD_ACKS consecutive good ACKs are received
-//Rate will attempt a decrease after MIN_TOTAL_MISSED_ACKS total missed ACKs occur
-#define MIN_CONSECUTIVE_GOOD_ACKS	10
-#define MIN_TOTAL_MISSED_ACKS		50
+#define USERIO_BASEADDR XPAR_W3_USERIO_BASEADDR
 
-#define RATE_ADAPT_MAX_RATE WLAN_MAC_RATE_QPSK34
-#define RATE_ADAPT_MIN_RATE WLAN_MAC_RATE_BPSK12
+#define GPIO_DEVICE_ID			XPAR_MB_HIGH_SW_GPIO_DEVICE_ID
+#define INTC_GPIO_INTERRUPT_ID	XPAR_INTC_0_GPIO_0_VEC_ID
+
+#define GPIO_OUTPUT_CHANNEL 	1
+#define GPIO_INPUT_CHANNEL 		2
+#define GPIO_INPUT_INTERRUPT XGPIO_IR_CH2_MASK  /* Channel 1 Interrupt Mask */
+
+#define INTC_DEVICE_ID	XPAR_INTC_0_DEVICE_ID
+
+#define GPIO_MASK_DRAM_INIT_DONE 0x00000100
+#define GPIO_MASK_PB_U			 0x00000040
+#define GPIO_MASK_PB_M			 0x00000020
+#define GPIO_MASK_PB_D			 0x00000010
 
 
 typedef struct{
@@ -60,18 +68,23 @@ typedef struct{
 #define LLC_TYPE_ARP					0x0608
 #define LLC_TYPE_IP						0x0008
 
-
+void nullCallback(void* param);
 void wlan_mac_util_init();
 void gpio_timestamp_initialize();
 inline u64 get_usec_timestamp();
 void wlan_mac_util_set_eth_rx_callback(void(*callback)());
 void wlan_mac_util_set_mpdu_tx_callback(void(*callback)());
+void wlan_mac_util_set_pb_u_callback(void(*callback)());
+void wlan_mac_util_set_pb_m_callback(void(*callback)());
+void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_schedule_event(u32 delay, void(*callback)());
 inline void poll_schedule();
 inline void wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
 int memory_test();
 void write_hex_display_raw(u8 val1,u8 val2);
+int interrupt_init();
+void GpioIsr(void *InstancePtr);
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 u8 wlan_mac_util_get_tx_rate(station_info* station);

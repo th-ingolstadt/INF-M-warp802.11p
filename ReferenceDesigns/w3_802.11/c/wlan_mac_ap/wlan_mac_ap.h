@@ -16,7 +16,7 @@
 #define ASSOCIATION_TIMEOUT_S (300)
 #define ASSOCIATION_TIMEOUT_US (ASSOCIATION_TIMEOUT_S*1000000)
 
-#define ANIMATION_RATE_US (100000)
+#define ANIMATION_RATE_US (50000)
 
 int main();
 int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
@@ -31,5 +31,6 @@ void association_timestamp_check();
 void enable_associations();
 void disable_associations();
 void animate_hex();
+void up_button();
 
 #endif /* WLAN_MAC_LOW_H_ */

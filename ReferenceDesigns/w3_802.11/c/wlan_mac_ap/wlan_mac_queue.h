@@ -71,6 +71,7 @@ int queue_total_size();
 
 pqueue_list pqueue_list_init();
 void pqueue_print(pqueue_list* ring);
+void queue_dram_present(u8 present);
 
 
 #endif /* WLAN_MAC_QUEUE_H_ */
