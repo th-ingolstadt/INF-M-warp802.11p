@@ -11,7 +11,7 @@ addpath('./blackboxes');
 PLCP_Preamble = PLCP_Preamble_gen;
 
 %%
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_60_good_bad_good_16Q12.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I); %no agc
+%xlLoadChipScopeData('cs_capt/wlan_cs_capt_61_16Q34.prn'); cs_interp = 1; cs_start = 6500; cs_end = length(ADC_I); %no agc
 %samps2 = complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));
 
 %payload_vec = [samps2; zeros(1000,1);];
@@ -31,23 +31,15 @@ samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
 %payload_vec = [zeros(25,1); complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));];
 
 %wlan_tx output
-load('rx_sigs/wlan_tx_out_18PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_81B_Q12.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+%load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+load('rx_sigs/wlan_tx_out_100B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+%load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_19PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_20PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_21PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_22PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_23PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_24PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_25PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_26PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_27PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_28PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_29PB_16Q12.mat'); tx_sig_t = [1:800];%good
-%load('rx_sigs/wlan_tx_out_30PB_16Q12.mat'); tx_sig_t = [1:800];%good
 %load('rx_sigs/wlan_tx_out_1240PB_16Q12.mat'); tx_sig_t = 1:length(wlan_tx_out);
 
-%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
-payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(10,1); wlan_tx_out(tx_sig_t); zeros(100,1)];
+payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
+%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(10,1); wlan_tx_out(tx_sig_t); zeros(100,1)];
 paylod_vec_samp_time = 8;
 
 %DSSS capt
@@ -267,8 +259,16 @@ j = s * floor(i/s) + mod( (i + N_CBPS - floor(16*i/N_CBPS)), s);
 interleave_16QAM = j;
 clear N_CBPS N_BPSC s k i j
 
-%FIXME:
-interleave_64QAM = interleave_16QAM;
+%% 64-QAM
+N_CBPS = 288;
+N_BPSC = 6;
+s = max(N_BPSC/2, 1);
+
+k = 0:N_CBPS-1;
+i = (N_CBPS/16) .* mod(k,16) + floor(k/16);
+j = s * floor(i/s) + mod( (i + N_CBPS - floor(16*i/N_CBPS)), s);
+interleave_64QAM = j;
+clear N_CBPS N_BPSC s k i j
 
 %FFT Shift
 interleave_BPSK = mod(interleave_BPSK + (NCBPS_BPSK/2), NCBPS_BPSK);
@@ -276,10 +276,13 @@ interleave_QPSK = mod(interleave_QPSK + (NCBPS_QPSK/2), NCBPS_QPSK);
 interleave_16QAM = mod(interleave_16QAM + (NCBPS_16QAM/2), NCBPS_16QAM);
 interleave_64QAM = mod(interleave_64QAM + (NCBPS_64QAM/2), NCBPS_64QAM);
 
+%%
 deinterleave_ROM = [];
 deinterleave_ROM = [deinterleave_ROM interleave_BPSK zeros(1, 512-length(interleave_BPSK))];
 deinterleave_ROM = [deinterleave_ROM interleave_QPSK zeros(1, 512-length(interleave_QPSK))];
 deinterleave_ROM = [deinterleave_ROM interleave_16QAM zeros(1, 512-length(interleave_16QAM))];
 deinterleave_ROM = [deinterleave_ROM interleave_64QAM zeros(1, 512-length(interleave_64QAM))];
 
-
+%Transform deint ROM vector to pairwise-packed values, so two can be read per cycle from single port ROM
+%deinterleave_ROM = deinterleave_ROM .* repmat([1 2^9], 1, length(deinterleave_ROM)/2);
+%deinterleave_ROM = sum(reshape(deinterleave_ROM, 2, length(deinterleave_ROM)/2));

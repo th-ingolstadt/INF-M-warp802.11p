@@ -64,13 +64,13 @@ switch double(signal_rate)
         mod_order = QAM64;
         code_rate = CODE23;
         valid = 1;
-        supported = 0;
+        supported = 1;
         N_DBPS = 192;
     case 12 %3 %bin2dec('0011')
         mod_order = QAM64;
         code_rate = CODE34;
         valid = 1;
-        supported = 0;
+        supported = 1;
         N_DBPS = 216;
     otherwise
         mod_order = BPSK;

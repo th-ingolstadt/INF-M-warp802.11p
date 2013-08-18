@@ -9,6 +9,10 @@ switch(sprintf('%d %d', mod_order, code_rate))
         RATE = uint8(9); %1001 -> 1001
     case '4 1' %16QAM 3/4
         RATE = uint8(13); %1011 -> 1101
+    case '6 0' %64QAM 2/3
+        RATE = uint8(8); %0001 -> 1000
+    case '6 1' %64QAM 3/4
+        RATE = uint8(12); %0011 -> 1100
     otherwise
         error('Invalid mod_order or code_rate');
 end

@@ -25,7 +25,7 @@ PHY_TX_ACTIVE_EXTENSION = 120;
 
 
 %Payload for simulation
-Tx_Payload = mod([1:1236], 256); %total bytes in pkt will be len(Tx_Payload)+3+2+4 (SIGNAL, SERVICE, FCS)
+Tx_Payload = mod(repmat([1:27],1,3), 256); %total bytes in pkt will be len(Tx_Payload)+3+2+4 (SIGNAL, SERVICE, FCS)
 
 Tx_Payload_len = length(Tx_Payload) + 4; %LENGTH incldues FCS
 
@@ -36,10 +36,12 @@ Tx_Payload_words = sum(Tx_Payload4 .* repmat(2.^[0:8:24]', 1, size(Tx_Payload4,2
 
 payload_words = zeros(1, MAX_NUM_BYTES/4);
 
-%payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 0); %QPSK 1/2
+payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 0); %QPSK 1/2
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 1); %QPSK 3/4
-payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 0); %16QAM 1/2
+%payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 0); %16QAM 1/2
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 1); %16QAM 3/4
+%payload_words(1) = tx_signal_calc(Tx_Payload_len, 6, 0); %64QAM 2/3
+%payload_words(1) = tx_signal_calc(Tx_Payload_len, 6, 1); %64QAM 3/4
 
 payload_words(2) = 0; %SERVICE is always 0
 payload_words(2+[1:length(Tx_Payload_words)]) = Tx_Payload_words;
@@ -121,3 +123,13 @@ Mod_Constellation_16QAM(2) = -1/sqrt(10);
 Mod_Constellation_16QAM(3) =  3/sqrt(10);
 Mod_Constellation_16QAM(4) =  1/sqrt(10);
 
+Mod_Constellation_64QAM(1) = -7/sqrt(42);
+Mod_Constellation_64QAM(2) = -5/sqrt(42);
+Mod_Constellation_64QAM(3) = -1/sqrt(42);
+Mod_Constellation_64QAM(4) = -3/sqrt(42);
+Mod_Constellation_64QAM(5) =  7/sqrt(42);
+Mod_Constellation_64QAM(6) =  5/sqrt(42);
+Mod_Constellation_64QAM(7) =  1/sqrt(42);
+Mod_Constellation_64QAM(8) =  3/sqrt(42);
+
+interleave_64QAM_addr = interleave_64QAM + 2*floor(interleave_64QAM/6);

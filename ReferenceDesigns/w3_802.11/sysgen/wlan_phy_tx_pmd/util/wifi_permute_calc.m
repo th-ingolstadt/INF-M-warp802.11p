@@ -49,3 +49,19 @@ j = 0:N_CBPS-1;
 i = s * floor(j/s) + mod( (j+floor(16*j/N_CBPS)), s);
 k = 16*i - (N_CBPS-1)*floor(16*i/N_CBPS);
 deinterleave_16QAM = k;
+
+%% 64-QAM
+N_CBPS = 288;
+N_BPSC = 6;
+s = max(N_BPSC/2, 1);
+
+k = 0:N_CBPS-1;
+i = (N_CBPS/16) .* mod(k,16) + floor(k/16);
+j = s * floor(i/s) + mod( (i + N_CBPS - floor(16*i/N_CBPS)), s);
+interleave_64QAM = j;
+
+%De-interleaver (j=src bit index -> k=dest bit index)
+j = 0:N_CBPS-1;
+i = s * floor(j/s) + mod( (j+floor(16*j/N_CBPS)), s);
+k = 16*i - (N_CBPS-1)*floor(16*i/N_CBPS);
+deinterleave_64QAM = k;
