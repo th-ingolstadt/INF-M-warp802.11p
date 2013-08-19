@@ -43,7 +43,10 @@ u16 seq_num;
 u8 allow_assoc;
 u8 perma_assoc_mode;
 
+u8 default_unicast_rate;
+
 u8 enable_animation;
+u8 interactive_mode;
 
 XAxiCdma cdma_inst;
 
@@ -83,6 +86,7 @@ int main(){
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
 	perma_assoc_mode = 0;
+	default_unicast_rate = WLAN_MAC_RATE_18M;
 
 	wlan_lib_init();
 	wlan_mac_util_init();
@@ -150,17 +154,13 @@ int main(){
 	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
 	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
 	ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-	//config_rf_ifc = (ipc_config_rf_ifc*)ipc_msg_to_low_payload;
-	//memset((void*)config_rf_ifc, 0xFF, sizeof(config_rf_ifc));
 	init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
 	config_rf_ifc->channel = mac_param_chan;
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 
 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
-	//wlan_mac_schedule_event(1000000,(void*)print_queue_status);
 
-	//TODO: bug was reported in disassociation timeout. disabled in meantime
-	//wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+	wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
 	enable_animation = 1;
 	wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
@@ -169,6 +169,9 @@ int main(){
 
 
 	station_index = 0;
+
+	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
+
 	while(1){
 		//Poll Scheduler
 		poll_schedule();
@@ -222,10 +225,51 @@ void up_button(){
 }
 
 void uart_rx(u8 rxByte){
-	switch(rxByte){
-		case ASCII_a:
-			xil_printf("Today's callback brought to you by the letter 'a'\n");
-		break;
+
+	if(rxByte == ASCII_ESC){
+		interactive_mode = 0;
+		print_menu();
+		return;
+	}
+
+	if(interactive_mode){
+
+	} else {
+		switch(rxByte){
+			case ASCII_1:
+				interactive_mode = 1;
+				print_station_status();
+			break;
+
+			case ASCII_2:
+				print_queue_status();
+			break;
+
+			case ASCII_c:
+				xil_printf("TODO: Decrement channel\n"); //TODO
+			break;
+			case ASCII_C:
+				xil_printf("TODO: Increment channel\n"); //TODO
+			break;
+			case ASCII_r:
+				if(default_unicast_rate > WLAN_MAC_RATE_6M){
+					default_unicast_rate--;
+				} else {
+					default_unicast_rate = WLAN_MAC_RATE_6M;
+				}
+
+				xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+			break;
+			case ASCII_R:
+				if(default_unicast_rate < WLAN_MAC_RATE_36M){
+					default_unicast_rate++;
+				} else {
+					default_unicast_rate = WLAN_MAC_RATE_36M;
+				}
+
+				xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+			break;
+		}
 	}
 }
 
@@ -244,11 +288,9 @@ int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 
 	tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
-		//TODO: Remember to set current retry to 0 when popping from queue
 		tx_queue->station_info_ptr = NULL;
 		tx_queue->pktbuf_ptr->frame_info.retry_max = 0;
 		tx_queue->pktbuf_ptr->frame_info.flags = 0;
-//		xil_printf("   ...enqueued to %d\n",0);
 		enqueue_after_end(0, tx_queue_list);
 
 	} else {
@@ -264,7 +306,6 @@ int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 
 			tx_queue->station_info_ptr = &(associations[i]);
 			tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 			tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-//			xil_printf("   ...enqueued to %d\n",associations[i].AID);
 			enqueue_after_end(associations[i].AID, tx_queue_list);
 		} else {
 			//Checkin this pqueue so that it can be checked out again
@@ -278,24 +319,21 @@ int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 
 
 void print_queue_status(){
 	u32 i;
-
-
 	xil_printf("\nQueue Status:\n");
-	xil_printf("FREE||   0|");
+	xil_printf(" FREE || BCAST|");
 
 	for(i=0; i<next_free_assoc_index; i++){
-		xil_printf("%04d|", associations[i].AID);
+		xil_printf("%6d|", associations[i].AID);
 	}
 	xil_printf("\n");
 
-	xil_printf("%04d||%04d|",queue_num_free(),queue_num_queued(0));
+	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(0));
 
 	for(i=0; i<next_free_assoc_index; i++){
-		xil_printf("%04d|", queue_num_queued(associations[i].AID));
+		xil_printf("%6d|", queue_num_queued(associations[i].AID));
 	}
 	xil_printf("\n");
 
-	wlan_mac_schedule_event(1000000,(void*)print_queue_status);
 }
 
 void beacon_transmit() {
@@ -333,7 +371,6 @@ void association_timestamp_check() {
 
 		time_since_last_rx = (get_usec_timestamp() - associations[i].rx_timestamp);
 		if(time_since_last_rx > ASSOCIATION_TIMEOUT_US){
-			//xil_printf("AID: %d, last heard from %d usec ago\n", associations[i].AID, (u32)time_since_last_rx);
 			//Send De-authentication
 
 		 	//Checkout 1 element from the queue;
@@ -341,7 +378,6 @@ void association_timestamp_check() {
 
 		 	if(checkout.length == 1){ //There was at least 1 free queue element
 		 		tx_queue = checkout.first;
-		 		//tx_length = wlan_create_beacon_probe_frame((void*)(tx_queue->pktbuf_ptr->frame), MAC_FRAME_CTRL1_SUBTYPE_BEACON, bcast_addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
 		 		tx_length = wlan_create_deauth_frame((void*)(tx_queue->pktbuf_ptr->frame), DEAUTH_REASON_INACTIVITY, associations[i].addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
 		 		tx_queue->pktbuf_ptr->frame_info.length = tx_length;
 		 		tx_queue->station_info_ptr = &(associations[i]);
@@ -424,10 +460,6 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 			} else {
 				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 				tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
-
-				//Poll the Tx queue to retrieve the next frame for transmission
-				//TODO: I don't think this poll is necessary any more
-				//wlan_mac_poll_tx_queue();
 			}
 		break;
 
@@ -649,7 +681,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(allow_association) {
 					//Keep track of this association of this association
 					memcpy(&(associations[i].addr[0]), rx_80211_header->address_2, 6);
-					associations[i].tx_rate = WLAN_MAC_RATE_QPSK34; //Default tx_rate for this station. Rate adaptation may change this value.
+					associations[i].tx_rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
+					associations[i].num_tx_total = 0;
+					associations[i].num_tx_success = 0;
+
 					//associations[i].tx_rate = WLAN_MAC_RATE_16QAM34; //Default tx_rate for this station. Rate adaptation may change this value.
 
 					//Checkout 1 element from the queue;
@@ -749,21 +784,15 @@ void mpdu_transmit(pqueue* tx_queue) {
 		XAxiCdma_SimpleTransfer(&cdma_inst, (u32)(tx_queue->pktbuf_ptr), (u32)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), tx_queue->pktbuf_ptr->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE, NULL, NULL);
 		while(XAxiCdma_IsBusy(&cdma_inst)) {}
 
-		//TODO:
-		//Consider breaking up the transfer from TX queue to the outgoing tx_pkt_buf into two DMA transfers.
-		//	1)	The first will cover the frame_info metadata + PHY_TX_PKT_BUF_PHY_HDR_SIZE + an 802.11 header's worth of bytes + 8 (another u64 for the timestamp in beacons)
-		//		CPU_HIGH will block on this transfer.
-		//	2)	The second will cover the rest of the frame. CPU_HIGH will not block on this transfer and will immediately notify CPU_LOW that a frame
-		//		is ready to be transmitted.
-
 		if(station == NULL){
 			//Broadcast transmissions have no station information, so we default to a nominal rate
 			tx_mpdu->AID = 0;
-			tx_mpdu->rate = WLAN_MAC_RATE_BPSK12;
+			tx_mpdu->rate = WLAN_MAC_RATE_6M;
 		} else {
 			//Request the rate to use for this station
 			tx_mpdu->AID = station->AID;
-			tx_mpdu->rate = wlan_mac_util_get_tx_rate(station);
+			//tx_mpdu->rate = wlan_mac_util_get_tx_rate(station);
+			tx_mpdu->rate = default_unicast_rate;
 		}
 
 		tx_mpdu->state = TX_MPDU_STATE_READY;
@@ -799,7 +828,7 @@ void print_associations(){
 	u64 timestamp = get_usec_timestamp();
 	u32 i;
 
-	if(enable_animation == 0) write_hex_display(next_free_assoc_index);
+	write_hex_display(next_free_assoc_index);
 	xil_printf("\n   Current Associations\n (MAC time = %d usec)\n",timestamp);
 			xil_printf("|-ID-|----- MAC ADDR ----|\n");
 	for(i=0; i < next_free_assoc_index; i++){
@@ -846,18 +875,57 @@ void disable_associations(){
 		allow_assoc = 0;
 		enable_animation = 0;
 		write_hex_display(next_free_assoc_index);
+		write_hex_display_dots(0);
 	}
 }
 
 void animate_hex(){
 	static u8 i = 0;
 	if(enable_animation){
-		//xil_printf("enable = %d\n",enable_animation);
-		write_hex_display_raw(1<<i,1<<i);
-		i = (i+1)%6;
+		//write_hex_display(next_free_assoc_index,i%2);
+		write_hex_display_dots(i%2);
+		i++;
 		wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
 	}
 }
 
+
+void print_menu(){
+	xil_printf("\f");
+	xil_printf("********************** AP Menu **********************\n");
+	xil_printf("[1] - Interactive AP Status\n");
+	xil_printf("[2] - Print Queue Status\n");
+	xil_printf("\n");
+	xil_printf("[c/C] - change channel (note: changing channel will\n");
+	xil_printf("        purge any associations, forcing stations to\n");
+	xil_printf("        join the network again)\n");
+	xil_printf("[r/R] - change default unicast rate\n");
+	xil_printf("*****************************************************\n");
+}
+
+void print_station_status(){
+	u32 i;
+	u64 timestamp;
+
+	if(interactive_mode){
+		timestamp = get_usec_timestamp();
+		xil_printf("\f");
+
+		for(i=0; i < next_free_assoc_index; i++){
+			xil_printf("---------------------------------------------------\n");
+			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
+					associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
+			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
+			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
+			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
+
+		}
+		    xil_printf("---------------------------------------------------\n");
+
+
+		//Update display
+		wlan_mac_schedule_event(1000000, (void*)print_station_status);
+	}
+}
 
 

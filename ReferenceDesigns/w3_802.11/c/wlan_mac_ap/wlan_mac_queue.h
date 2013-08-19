@@ -39,7 +39,7 @@ typedef struct {
 #define PQUEUE_MEM_BASE				(XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR)
 
 //First section of pqueue memory space is the pqueue buffer descriptors
-#define pqueue_SPACE_BASE		PQUEUE_MEM_BASE
+#define PQUEUE_SPACE_BASE		PQUEUE_MEM_BASE
 
 //Second section of pqueue memory space is the raw buffer space for payloads
 //Use BRAM for queue

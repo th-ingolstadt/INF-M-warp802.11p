@@ -13,10 +13,10 @@
 
 #define MAX_ASSOCIATIONS 8
 
-#define ASSOCIATION_TIMEOUT_S (300)
+#define ASSOCIATION_TIMEOUT_S (600)
 #define ASSOCIATION_TIMEOUT_US (ASSOCIATION_TIMEOUT_S*1000000)
 
-#define ANIMATION_RATE_US (50000)
+#define ANIMATION_RATE_US (100000)
 
 int main();
 int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
@@ -33,5 +33,7 @@ void disable_associations();
 void animate_hex();
 void up_button();
 void uart_rx(u8 rxByte);
+void print_menu();
+void print_station_status();
 
 #endif /* WLAN_MAC_LOW_H_ */

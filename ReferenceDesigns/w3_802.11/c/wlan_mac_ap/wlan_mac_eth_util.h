@@ -21,16 +21,6 @@
 
 //Number of Tx and Rx DMA buffer descriptors
 #define ETH_A_NUM_TX_BD		1
-//#define ETH_A_NUM_RX_BD		200
-
-//Current layout of DATA_BRAM:
-// [0:48KB] : Tx Queue (managed by wlan_mac_queue.c/h)
-// [48:64KB]:
-//   Eth Tx Buffer Descriptor(s)
-//   Eth Rx Buffer Descriptors
-//   Eth Rx Packet Buffers
-//
-// All Eth Tx come from wireless Rx packet buffers, so no extra buffer space is required here
 
 #define ETH_A_BUF_MEM_BASE		(XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR + (48*1024)) //bottom 48kB are Tx queues
 

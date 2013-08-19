@@ -47,6 +47,8 @@ typedef struct{
 	u8 addr[6];
 	u8 tx_rate;
 	u64 rx_timestamp;
+	u32 num_tx_total;
+	u32 num_tx_success;
 } station_info;
 
 typedef struct{
@@ -86,6 +88,7 @@ void wlan_mac_schedule_event(u32 delay, void(*callback)());
 inline void poll_schedule();
 inline void wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
+void write_hex_display_dots(u8 dots_on);
 int memory_test();
 void write_hex_display_raw(u8 val1,u8 val2);
 int interrupt_init();

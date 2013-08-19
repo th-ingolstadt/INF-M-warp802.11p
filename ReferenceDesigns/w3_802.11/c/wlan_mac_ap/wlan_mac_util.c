@@ -34,7 +34,7 @@ function_ptr_t eth_rx_callback, mpdu_tx_callback, pb_u_callback, pb_m_callback, 
 void nullCallback(void* param){};
 
 //Scheduler
-#define SCHEDULER_NUM_EVENTS 5
+#define SCHEDULER_NUM_EVENTS 6
 static u8 scheduler_in_use[SCHEDULER_NUM_EVENTS];
 static function_ptr_t scheduler_callbacks[SCHEDULER_NUM_EVENTS];
 static u64 scheduler_timestamps[SCHEDULER_NUM_EVENTS];
@@ -269,7 +269,10 @@ void wlan_mac_poll_tx_queue(u16 queue_sel){
 }
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
-	//Stubbed for future extensions
+	(station->num_tx_total)++;
+	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
+		(station->num_tx_success)++;
+	}
 }
 
 u8 wlan_mac_util_get_tx_rate(station_info* station){
@@ -283,13 +286,21 @@ void write_hex_display(u8 val){
    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
 }
 
-void write_hex_display_raw(u8 val1,u8 val2){
-	//u8 val: 2 digit decimal value to be printed to hex displays
-   userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) & (~(W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE)));
-   userio_write_hexdisp_left(USERIO_BASEADDR, val1);
-   userio_write_hexdisp_right(USERIO_BASEADDR, val2);
-}
+void write_hex_display_dots(u8 dots_on){
+	u32 left_hex,right_hex;
 
+	left_hex = userio_read_hexdisp_left(USERIO_BASEADDR);
+	right_hex = userio_read_hexdisp_right(USERIO_BASEADDR);
+
+	if(dots_on){
+		userio_write_hexdisp_left(USERIO_BASEADDR, W3_USERIO_HEXDISP_DP | left_hex);
+		userio_write_hexdisp_right(USERIO_BASEADDR, W3_USERIO_HEXDISP_DP | right_hex);
+	} else {
+		userio_write_hexdisp_left(USERIO_BASEADDR, (~W3_USERIO_HEXDISP_DP) & left_hex);
+		userio_write_hexdisp_right(USERIO_BASEADDR, (~W3_USERIO_HEXDISP_DP) & right_hex);
+	}
+
+}
 int memory_test(){
 	//Test DRAM
 	u8 i,j;
