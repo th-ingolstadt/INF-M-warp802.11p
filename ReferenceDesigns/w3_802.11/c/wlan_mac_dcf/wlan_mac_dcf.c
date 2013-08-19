@@ -179,38 +179,38 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					//Convert human-readable rates into PHY rates
 					switch(tx_mpdu->rate){
-						case WLAN_MAC_RATE_DSSS_1M:
+						case WLAN_MAC_RATE_1M:
 							warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
 						break;
-						case WLAN_MAC_RATE_BPSK12:
+						case WLAN_MAC_RATE_6M:
 							rate = WLAN_PHY_RATE_BPSK12;
 							n_dbps = N_DBPS_R6;
 						break;
-						case WLAN_MAC_RATE_BPSK34:
+						case WLAN_MAC_RATE_9M:
 							rate = WLAN_PHY_RATE_BPSK34;
 							n_dbps = N_DBPS_R9;
 						break;
-						case WLAN_MAC_RATE_QPSK12:
+						case WLAN_MAC_RATE_12M:
 							rate = WLAN_PHY_RATE_QPSK12;
 							n_dbps = N_DBPS_R12;
 						break;
-						case WLAN_MAC_RATE_QPSK34:
+						case WLAN_MAC_RATE_18M:
 							rate = WLAN_PHY_RATE_QPSK34;
 							n_dbps = N_DBPS_R18;
 						break;
-						case WLAN_MAC_RATE_16QAM12:
+						case WLAN_MAC_RATE_24M:
 							rate = WLAN_PHY_RATE_16QAM12;
 							n_dbps = N_DBPS_R24;
 						break;
-						case WLAN_MAC_RATE_16QAM34:
+						case WLAN_MAC_RATE_36M:
 							rate = WLAN_PHY_RATE_16QAM34;
 							n_dbps = N_DBPS_R36;
 						break;
-						case WLAN_MAC_RATE_64QAM23:
+						case WLAN_MAC_RATE_48M:
 							rate = WLAN_PHY_RATE_64QAM23;
 							n_dbps = N_DBPS_R48;
 						break;
-						case WLAN_MAC_RATE_64QAM34:
+						case WLAN_MAC_RATE_54M:
 							rate = WLAN_PHY_RATE_64QAM34;
 							n_dbps = N_DBPS_R54;
 						break;
@@ -304,31 +304,31 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 	//tx_rate will be used in the construction of ACK packets. tx_rate is set to the incoming rx_rate
 	switch(rate){
-		case WLAN_MAC_RATE_DSSS_1M:
+		case WLAN_MAC_RATE_1M:
 			tx_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
 		break;
-		case WLAN_MAC_RATE_BPSK12:
+		case WLAN_MAC_RATE_6M:
 			tx_rate = WLAN_PHY_RATE_BPSK12;
 		break;
-		case WLAN_MAC_RATE_BPSK34:
+		case WLAN_MAC_RATE_9M:
 			tx_rate = WLAN_PHY_RATE_BPSK34;
 		break;
-		case WLAN_MAC_RATE_QPSK12:
+		case WLAN_MAC_RATE_12M:
 			tx_rate = WLAN_PHY_RATE_QPSK12;
 		break;
-		case WLAN_MAC_RATE_QPSK34:
+		case WLAN_MAC_RATE_18M:
 			tx_rate = WLAN_PHY_RATE_QPSK34;
 		break;
-		case WLAN_MAC_RATE_16QAM12:
+		case WLAN_MAC_RATE_24M:
 			tx_rate = WLAN_PHY_RATE_16QAM12;
 		break;
-		case WLAN_MAC_RATE_16QAM34:
+		case WLAN_MAC_RATE_36M:
 			tx_rate = WLAN_PHY_RATE_16QAM34;
 		break;
-		case WLAN_MAC_RATE_64QAM23:
+		case WLAN_MAC_RATE_48M:
 			tx_rate = WLAN_PHY_RATE_64QAM23;
 		break;
-		case WLAN_MAC_RATE_64QAM34:
+		case WLAN_MAC_RATE_54M:
 			tx_rate = WLAN_PHY_RATE_64QAM34;
 		break;
 	}
@@ -675,31 +675,31 @@ inline u32 poll_mac_rx(){
 
 		switch(rate){
 			case WLAN_PHY_RATE_DSSS_1M:
-				rate = WLAN_MAC_RATE_DSSS_1M;
+				rate = WLAN_MAC_RATE_1M;
 			break;
 			case WLAN_PHY_RATE_BPSK12:
-				rate = WLAN_MAC_RATE_BPSK12;
+				rate = WLAN_MAC_RATE_6M;
 			break;
 			case WLAN_PHY_RATE_BPSK34:
-				rate = WLAN_MAC_RATE_BPSK34;
+				rate = WLAN_MAC_RATE_9M;
 			break;
 			case WLAN_PHY_RATE_QPSK12:
-				rate = WLAN_MAC_RATE_QPSK12;
+				rate = WLAN_MAC_RATE_12M;
 			break;
 			case WLAN_PHY_RATE_QPSK34:
-				rate = WLAN_MAC_RATE_QPSK34;
+				rate = WLAN_MAC_RATE_18M;
 			break;
 			case WLAN_PHY_RATE_16QAM12:
-				rate = WLAN_MAC_RATE_16QAM12;
+				rate = WLAN_MAC_RATE_24M;
 			break;
 			case WLAN_PHY_RATE_16QAM34:
-				rate = WLAN_MAC_RATE_16QAM34;
+				rate = WLAN_MAC_RATE_36M;
 			break;
 			case WLAN_PHY_RATE_64QAM23:
-				rate = WLAN_MAC_RATE_64QAM23;
+				rate = WLAN_MAC_RATE_48M;
 			break;
 			case WLAN_PHY_RATE_64QAM34:
-				rate = WLAN_PHY_RATE_64QAM34;
+				rate = WLAN_MAC_RATE_54M;
 			break;
 		}
 
