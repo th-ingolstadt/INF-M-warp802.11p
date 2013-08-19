@@ -66,8 +66,8 @@ typedef struct{
 	u8 state;
 	u8 rate;
 	u16 length;
-	u16 rssi;
-	u16 reserved0;
+	char rx_power;
+	u8 reserved0[3];
 	u64 reserved1;
 } rx_frame_info;
 
@@ -273,18 +273,19 @@ typedef struct{
 
 //Warning: DSSS rate is only valid for Rx. There is no DSSS transmitter.
 //0x66 is an arbitrary value which cannot be confused with another PHY rate
-#define WLAN_MAC_RATE_DSSS_1M	0x66
+#define WLAN_MAC_RATE_1M	0x66
 
-#define WLAN_MAC_RATE_BPSK12	1
-#define WLAN_MAC_RATE_BPSK34	2
-#define WLAN_MAC_RATE_QPSK12	3
-#define WLAN_MAC_RATE_QPSK34	4
-#define WLAN_MAC_RATE_16QAM12	5
-#define WLAN_MAC_RATE_16QAM34	6
-#define WLAN_MAC_RATE_64QAM23	7
-#define WLAN_MAC_RATE_64QAM34	8
+#define WLAN_MAC_RATE_6M	1
+#define WLAN_MAC_RATE_9M	2
+#define WLAN_MAC_RATE_12M	3
+#define WLAN_MAC_RATE_18M	4
+#define WLAN_MAC_RATE_24M	5
+#define WLAN_MAC_RATE_36M	6
+#define WLAN_MAC_RATE_48M	7
+#define WLAN_MAC_RATE_54M	8
 
 int wlan_lib_init ();
+inline int wlan_lib_mac_rate_to_mbps (u8 rate);
 int lock_pkt_buf_tx(u8 pkt_buf_ind);
 int lock_pkt_buf_rx(u8 pkt_buf_ind);
 int unlock_pkt_buf_tx(u8 pkt_buf_ind);

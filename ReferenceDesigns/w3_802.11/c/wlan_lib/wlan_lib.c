@@ -47,6 +47,38 @@ int wlan_lib_init () {
 	return 0;
 }
 
+inline int wlan_lib_mac_rate_to_mbps (u8 rate) {
+	switch(rate){
+		case WLAN_MAC_RATE_1M:
+			return 1;
+		break;
+		case WLAN_MAC_RATE_6M:
+			return 6;
+		break;
+		case WLAN_MAC_RATE_9M:
+			return 9;
+		break;
+		case WLAN_MAC_RATE_12M:
+			return 12;
+		break;
+		case WLAN_MAC_RATE_18M:
+			return 18;
+		break;
+		case WLAN_MAC_RATE_24M:
+			return 24;
+		break;
+		case WLAN_MAC_RATE_36M:
+			return 36;
+		break;
+		case WLAN_MAC_RATE_48M:
+			return 48;
+		break;
+		case WLAN_MAC_RATE_54M:
+			return 54;
+		break;
+	}
+}
+
 /************** Pkt Buffer Mutex Management ************/
 int lock_pkt_buf_tx(u8 pkt_buf_ind) {
 	int status;
