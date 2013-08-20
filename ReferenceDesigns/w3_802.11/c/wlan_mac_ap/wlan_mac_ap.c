@@ -515,6 +515,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	pqueue_list checkout;
 	pqueue*	tx_queue;
 
+	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
+
 	u32 i;
 	u8 is_associated = 0;
 	new_association = 0;
@@ -525,6 +527,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			//Check if duplicate
 			associations[i].rx_timestamp = get_usec_timestamp();
+			associations[i].last_rx_power = mpdu_info->rx_power;
+
 			if( (associations[i].seq != 0)  && (associations[i].seq == rx_seq) ) {
 				//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
 				return;
@@ -916,6 +920,7 @@ void print_station_status(){
 			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
 					associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
 			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
+			xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
 			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
 			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
 
