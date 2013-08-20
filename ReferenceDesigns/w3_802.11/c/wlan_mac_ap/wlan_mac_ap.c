@@ -165,6 +165,7 @@ int main(){
 	enable_animation = 1;
 	wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
 	enable_associations();
+	perma_assoc_mode = 1; //By default, associations are allowed any time.
 	wlan_mac_schedule_event(ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 
 
@@ -217,6 +218,7 @@ void up_button(){
 		//AP is currently allowing associations, but only for the small allow window.
 		//Go into permanent allow association mode.
 		perma_assoc_mode = 1;
+		xil_printf("Allowing associations indefinitely\n");
 	} else {
 		//AP is permanently allowing associations. Toggle everything off.
 		perma_assoc_mode = 0;
@@ -225,6 +227,9 @@ void up_button(){
 }
 
 void uart_rx(u8 rxByte){
+	wlan_ipc_msg ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload[1];
+	ipc_config_rf_ifc* config_rf_ifc;
 
 	if(rxByte == ASCII_ESC){
 		interactive_mode = 0;
@@ -233,7 +238,16 @@ void uart_rx(u8 rxByte){
 	}
 
 	if(interactive_mode){
-
+		switch(rxByte){
+			case ASCII_r:
+				//Reset statistics
+				reset_station_statistics();
+			break;
+			case ASCII_d:
+				//Deauthenticate all stations
+				deauthenticate_stations();
+			break;
+		}
 	} else {
 		switch(rxByte){
 			case ASCII_1:
@@ -246,10 +260,42 @@ void uart_rx(u8 rxByte){
 			break;
 
 			case ASCII_c:
-				xil_printf("TODO: Decrement channel\n"); //TODO
+
+				if(mac_param_chan > 1){
+					deauthenticate_stations();
+					(mac_param_chan--);
+
+					//Send a message to other processor to tell it to switch channels
+					ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
+					ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
+					ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+					init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
+					config_rf_ifc->channel = mac_param_chan;
+					ipc_mailbox_write_msg(&ipc_msg_to_low);
+				} else {
+
+				}
+				xil_printf("(-) Channel: %d\n", mac_param_chan);
+
+
 			break;
 			case ASCII_C:
-				xil_printf("TODO: Increment channel\n"); //TODO
+				if(mac_param_chan < 11){
+					deauthenticate_stations();
+					(mac_param_chan++);
+
+					//Send a message to other processor to tell it to switch channels
+					ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
+					ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
+					ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+					init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
+					config_rf_ifc->channel = mac_param_chan;
+					ipc_mailbox_write_msg(&ipc_msg_to_low);
+				} else {
+
+				}
+				xil_printf("(+) Channel: %d\n", mac_param_chan);
+
 			break;
 			case ASCII_r:
 				if(default_unicast_rate > WLAN_MAC_RATE_6M){
@@ -546,7 +592,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			if(is_associated){
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
 					//MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx
-					wlan_eth_send(mpdu,length);
+					wlan_mpdu_eth_send(mpdu,length);
 				}
 			} else {
 				//TODO: Formally adopt conventions from 10.3 in 802.11-2012 for STA state transitions
@@ -849,6 +895,8 @@ void print_associations(){
 }
 
 void enable_associations(){
+	xil_printf("Allowing new associations\n");
+
 	wlan_ipc_msg ipc_msg_to_low;
 	u32 ipc_msg_to_low_payload[1];
 	ipc_config_phy_rx* config_phy_rx;
@@ -864,12 +912,15 @@ void enable_associations(){
 }
 
 void disable_associations(){
+
 	wlan_ipc_msg ipc_msg_to_low;
 	u32 ipc_msg_to_low_payload[1];
 	ipc_config_phy_rx* config_phy_rx;
 	//Send a message to other processor to tell it to switch channels
 
 	if(perma_assoc_mode == 0){
+		xil_printf("Not allowing new associations\n");
+
 		ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
 		ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
 		ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
@@ -926,11 +977,62 @@ void print_station_status(){
 
 		}
 		    xil_printf("---------------------------------------------------\n");
+		    xil_printf("\n");
+		    xil_printf("[r] - reset statistics\n");
+		    xil_printf("[d] - deauthenticate all stations\n");
 
 
 		//Update display
 		wlan_mac_schedule_event(1000000, (void*)print_station_status);
 	}
+}
+
+void reset_station_statistics(){
+	u32 i;
+	for(i=0; i < next_free_assoc_index; i++){
+		associations[i].num_tx_total = 0;
+		associations[i].num_tx_success = 0;
+	}
+}
+
+void deauthenticate_stations(){
+	u32 i;
+	pqueue_list checkout;
+	pqueue* tx_queue;
+	u32 tx_length;
+
+	for(i=0; i < next_free_assoc_index; i++){
+		//Send De-authentication
+
+	 	//Checkout 1 element from the queue;
+	 	checkout = queue_checkout(1);
+
+	 	if(checkout.length == 1){ //There was at least 1 free queue element
+	 		tx_queue = checkout.first;
+	 		tx_length = wlan_create_deauth_frame((void*)(tx_queue->pktbuf_ptr->frame), DEAUTH_REASON_INACTIVITY, associations[i].addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+	 		tx_queue->pktbuf_ptr->frame_info.length = tx_length;
+	 		tx_queue->station_info_ptr = &(associations[i]);
+	 		tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
+	 		tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+	 		enqueue_after_end(associations[i].AID, &checkout);
+
+			//Remove this STA from association list
+			if(next_free_assoc_index > 0) next_free_assoc_index--;
+			memcpy(&(associations[i].addr[0]), bcast_addr, 6);
+			if(i < next_free_assoc_index) {
+				//Copy from current index to the swap space
+				memcpy(&(associations[MAX_ASSOCIATIONS]), &(associations[i]), sizeof(station_info));
+
+				//Shift later entries back into the freed association entry
+				memcpy(&(associations[i]), &(associations[i+1]), (next_free_assoc_index-i)*sizeof(station_info));
+
+				//Copy from swap space to current free index
+				memcpy(&(associations[next_free_assoc_index]), &(associations[MAX_ASSOCIATIONS]), sizeof(station_info));
+			}
+
+		}
+	}
+	write_hex_display(next_free_assoc_index);
 }
 
 

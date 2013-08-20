@@ -162,7 +162,7 @@ int wlan_eth_dma_init() {
 
 
 //De-encapsulate packet and send over Ethernet
-int wlan_eth_send(void* mpdu, u16 length){
+int wlan_mpdu_eth_send(void* mpdu, u16 length){
 	int status;
 
 	mac_header_80211* rx80211_hdr;

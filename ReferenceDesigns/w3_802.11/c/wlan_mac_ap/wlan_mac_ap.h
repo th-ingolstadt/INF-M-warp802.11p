@@ -35,5 +35,7 @@ void up_button();
 void uart_rx(u8 rxByte);
 void print_menu();
 void print_station_status();
+void reset_station_statistics();
+void deauthenticate_stations();
 
 #endif /* WLAN_MAC_LOW_H_ */
