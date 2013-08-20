@@ -407,7 +407,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 					if(length >= sizeof(mac_header_80211)){
 						mpdu_info->state = RX_MPDU_STATE_FCS_GOOD;
 
-						//TODO: Fill in RSSI, etc. to tx_frame_info
 						ipc_mailbox_write_msg(&ipc_msg_to_high);
 
 						//Find a free packet buffer and beging receiving packets there (blocks until free buf is found)
@@ -460,14 +459,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	wlan_mac_MPDU_tx_start(0);
 	//FIXME: Check if this is a race condition
 
-//	u64 start_time, cur_time;
-//	start_time = get_usec_timestamp();
-
 	//Wait for the MPDU Tx to finish
 	do{
-//		cur_time = get_usec_timestamp();
 
-//		if( (cur_time - start_time) > 500) {
 		tx_status = wlan_mac_get_status();
 
 		//TODO: This is a software fix for a MAC_DCF_HW race condition
@@ -531,9 +525,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 			}
 		} else {
 			if( (tx_status&WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE)){
-				//FIXME: Debug
-				//xil_printf("tx_status_old = 0x%08x\n",tx_status);
-				//xil_printf("tx_status_new = 0x%08x\n",wlan_mac_get_status());
 				rx_status = poll_mac_rx();
 			}
 		}
@@ -621,7 +612,6 @@ void mac_dcf_init(){
 	wlan_ipc_msg ipc_msg_to_high;
 	u32 ipc_msg_to_high_payload[2];
 	u16 i;
-	//tx_frame_info* tx_mpdu;
 	rx_frame_info* rx_mpdu;
 
 	//Enable blocking of the Rx PHY following good-FCS reception
@@ -862,6 +852,9 @@ inline void send_exception(u32 reason){
 #define RSSI_OFFSET_LNA_HIGH	(-92)
 inline int calculate_rx_power(u8 band, u16 rssi, u8 lna_gain){
 	int power = -100;
+
+	//TODO: In this version of hardware, RSSI is latched pre-AGC so we should assume a high LNA gain
+	lna_gain = 3;
 
 	if(band == RC_24GHZ){
 		switch(lna_gain){
