@@ -291,6 +291,8 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	mpdu_info->length = (u16)length;
 	mpdu_info->rate = (u8)rate;
 
+	mpdu_info->rx_power = -50; //TODO: This is a stopgap until RSSI is used
+
 
 	//Apply the mac_header_80211 template to the first bytes of the received MPDU
 	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
