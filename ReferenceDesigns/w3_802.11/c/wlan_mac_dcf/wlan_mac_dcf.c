@@ -45,6 +45,8 @@ u8 green_led_index;
 wlan_ipc_msg ipc_msg_from_high;
 u32 ipc_msg_from_high_payload[10];
 
+u8 mac_param_band;
+
 
 int main(){
 	rx_frame_info* rx_mpdu;
@@ -55,6 +57,8 @@ int main(){
 	xil_printf("\f----- wlan_mac_dcf -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
+
+	mac_param_band = RC_24GHZ;
 
 	cpu_low_status = 0;
 
@@ -279,19 +283,20 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	u32 tx_length;
 	u8 tx_rate;
 	u8 unicast_to_me, to_broadcast;
+	u16 rssi;
+	u8 lna_gain;
 
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
 	wlan_ipc_msg ipc_msg_to_high;
 
+
+
 	return_value = 0;
 
 	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
 	mpdu_info = (rx_frame_info*)pkt_buf_addr;
-	mpdu_info->length = (u16)length;
-	mpdu_info->rate = (u8)rate;
 
-	mpdu_info->rx_power = -50; //TODO: This is a stopgap until RSSI is used
 
 
 	//Apply the mac_header_80211 template to the first bytes of the received MPDU
@@ -358,6 +363,20 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 		wlan_phy_set_tx_signal(TX_PKT_BUF_ACK, tx_rate, tx_length + WLAN_PHY_FCS_NBYTES);
 
 	}
+
+	mpdu_info->length = (u16)length;
+	mpdu_info->rate = (u8)rate;
+
+	rssi = wlan_phy_rx_get_pkt_rssi();
+	lna_gain = wlan_phy_rx_get_agc_RFG();
+
+	if(rate == WLAN_MAC_RATE_1M){
+		//TODO: In this version of the hardware, RSSI is not latched on DSSS events.
+		mpdu_info->rx_power = -100;
+	} else {
+		mpdu_info->rx_power = calculate_rx_power(mac_param_band, rssi, lna_gain);
+	}
+	mpdu_info->channel = mac_param_chan;
 
 
 	//IPC_MBOX_GRP_PKT_BUF -> IPC_MBOX_GRP_RX_MPDU_DONE
@@ -804,7 +823,7 @@ void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc){
 	if((config_rf_ifc->channel)!=0xFF){
 		mac_param_chan = config_rf_ifc->channel;
 		//TODO: allow mac_param_chan to select 5GHz channels
-		radio_controller_setCenterFrequency(RC_BASEADDR, RC_RFA, RC_24GHZ, mac_param_chan);
+		radio_controller_setCenterFrequency(RC_BASEADDR, RC_RFA, mac_param_band, mac_param_chan);
 		warp_printf(PL_ERROR, "CPU_LOW: Tuned to channel %d\n", mac_param_chan);
 	}
 }
@@ -835,4 +854,34 @@ inline void send_exception(u32 reason){
 		userio_write_leds_red(USERIO_BASEADDR, 0xA);
 		usleep(250000);
 	}
+}
+
+#define RSSI_SLOPE_BITSHIFT		4
+#define RSSI_OFFSET_LNA_LOW		(-61)
+#define RSSI_OFFSET_LNA_MED		(-76)
+#define RSSI_OFFSET_LNA_HIGH	(-92)
+inline int calculate_rx_power(u8 band, u16 rssi, u8 lna_gain){
+	int power = -100;
+
+	if(band == RC_24GHZ){
+		switch(lna_gain){
+			case 0:
+			case 1:
+				//Low LNA Gain State
+				power = (rssi>>(RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + RSSI_OFFSET_LNA_LOW;
+			break;
+
+			case 2:
+				//Medium LNA Gain State
+				power = (rssi>>(RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + RSSI_OFFSET_LNA_MED;
+			break;
+
+			case 3:
+				//High LNA Gain State
+				power = (rssi>>(RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + RSSI_OFFSET_LNA_HIGH;
+			break;
+
+		}
+	}
+	return power;
 }

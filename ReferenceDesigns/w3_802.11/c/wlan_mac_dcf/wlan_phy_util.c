@@ -92,7 +92,6 @@ void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length){
 }
 
 void wlan_phy_init() {
-#define PHY_RX_RSSI_SUM_LEN 8
 
 	//Assert Tx and Rx resets
 	REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
