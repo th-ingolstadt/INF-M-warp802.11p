@@ -47,7 +47,6 @@ typedef struct{
 	u8 addr[6];
 	u8 tx_rate;
 	char last_rx_power;
-	u8 reserved;
 	u64 rx_timestamp;
 	u32 num_tx_total;
 	u32 num_tx_success;
