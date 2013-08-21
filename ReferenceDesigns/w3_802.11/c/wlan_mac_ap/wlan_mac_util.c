@@ -254,18 +254,23 @@ void poll_schedule(){
 	}
 }
 
-void wlan_mac_poll_tx_queue(u16 queue_sel){
+int wlan_mac_poll_tx_queue(u16 queue_sel){
+	int return_value = 0;;
+
 	pqueue_list dequeue;
 	pqueue* tx_queue;
 
 	dequeue = dequeue_from_beginning(queue_sel,1);
 
 	if(dequeue.length == 1){
+		return_value = 1;
 		tx_queue = dequeue.first;
 		mpdu_tx_callback(tx_queue);
 		queue_checkin(&dequeue);
 		wlan_eth_dma_update();
 	}
+
+	return return_value;
 }
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){

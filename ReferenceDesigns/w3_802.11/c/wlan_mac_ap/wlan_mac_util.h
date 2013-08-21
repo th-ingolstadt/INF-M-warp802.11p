@@ -87,7 +87,7 @@ void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_util_set_uart_rx_callback(void(*callback)());
 void wlan_mac_schedule_event(u32 delay, void(*callback)());
 inline void poll_schedule();
-inline void wlan_mac_poll_tx_queue(u16 queue_sel);
+inline int wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
 void write_hex_display_dots(u8 dots_on);
 int memory_test();

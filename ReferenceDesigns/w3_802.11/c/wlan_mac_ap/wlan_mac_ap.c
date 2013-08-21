@@ -78,7 +78,7 @@ int main(){
 	u32 ipc_msg_to_low_payload[1];
 	tx_frame_info* tx_mpdu;
 	u32 i;
-	u32 station_index;
+
 
 	ipc_config_rf_ifc* config_rf_ifc;
 
@@ -168,9 +168,6 @@ int main(){
 	perma_assoc_mode = 1; //By default, associations are allowed any time.
 	wlan_mac_schedule_event(ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 
-
-	station_index = 0;
-
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
 
 	while(1){
@@ -180,24 +177,6 @@ int main(){
 		//Poll Ethernet
 		wlan_poll_eth();
 
-		//Poll Non-associated Queue
-		if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0){
-			//xil_printf("Polling %d\n",0);
-			wlan_mac_poll_tx_queue(0);
-		}
-
-		//Poll Associated Queue
-		//for(station_index = 0; station_index < next_free_assoc_index; station_index++){
-		if(next_free_assoc_index>0){
-			if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0){
-				//xil_printf("Polling %d\n",associations[station_index].AID);
-				wlan_mac_poll_tx_queue(associations[station_index].AID);
-			}
-			station_index = (station_index+1)%next_free_assoc_index;
-		}
-
-		//}
-
 		//Poll mailbox read msg
 		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
 			process_ipc_msg_from_low(&ipc_msg_from_low);
@@ -205,6 +184,30 @@ int main(){
 
 	}
 	return -1;
+}
+
+void check_tx_queue(){
+	static u32 station_index = 0;
+	u32 i;
+	if((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0){
+
+		for(i = 0; i < (next_free_assoc_index+1); i++){
+			station_index = (station_index+1)%(next_free_assoc_index+1);
+
+			if(station_index == next_free_assoc_index){
+				//Check Broadcast Queue
+				if(wlan_mac_poll_tx_queue(0)){
+					return;
+				}
+			} else {
+				//Check Station Queue
+				if(wlan_mac_poll_tx_queue(associations[station_index].AID)){
+					return;
+				}
+			}
+		}
+
+	}
 }
 
 void up_button(){
@@ -338,6 +341,7 @@ int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 
 		tx_queue->pktbuf_ptr->frame_info.retry_max = 0;
 		tx_queue->pktbuf_ptr->frame_info.flags = 0;
 		enqueue_after_end(0, tx_queue_list);
+		check_tx_queue();
 
 	} else {
 		//Check associations
@@ -353,6 +357,7 @@ int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 
 			tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 			tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 			enqueue_after_end(associations[i].AID, tx_queue_list);
+			check_tx_queue();
 		} else {
 			//Checkin this pqueue so that it can be checked out again
 			return 0;
@@ -397,6 +402,7 @@ void beacon_transmit() {
  		tx_queue->station_info_ptr = NULL;
  		tx_queue->pktbuf_ptr->frame_info.flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
  		enqueue_after_end(0, &checkout);
+ 		check_tx_queue();
  	}
 
  	//Schedule the next beacon transmission
@@ -430,6 +436,7 @@ void association_timestamp_check() {
 		 		tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 		 		tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 		 		enqueue_after_end(associations[i].AID, &checkout);
+		 		check_tx_queue();
 
 				//Remove this STA from association list
 				if(next_free_assoc_index > 0) next_free_assoc_index--;
@@ -507,6 +514,9 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 				tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
 			}
+
+			check_tx_queue();
+
 		break;
 
 		case IPC_MBOX_TX_MPDU_DONE:
@@ -618,6 +628,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					 		tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 							tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 							enqueue_after_end(0, &checkout);
+							check_tx_queue();
 					 	}
 				}
 			}//END if(is_associated)
@@ -658,6 +669,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 						tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 						enqueue_after_end(0, &checkout);
+						check_tx_queue();
 					}
 
 					return;
@@ -683,6 +695,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 									tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 									enqueue_after_end(0, &checkout);
+									check_tx_queue();
 								}
 
 								return;
@@ -701,6 +714,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 								tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 								enqueue_after_end(0, &checkout);
+								check_tx_queue();
 							}
 
 							warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
@@ -748,6 +762,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 						tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 						enqueue_after_end(associations[i].AID, &checkout);
+						check_tx_queue();
 					}
 
 					if(new_association == 1) {
@@ -1015,6 +1030,7 @@ void deauthenticate_stations(){
 	 		tx_queue->pktbuf_ptr->frame_info.retry_max = MAX_RETRY;
 	 		tx_queue->pktbuf_ptr->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 	 		enqueue_after_end(associations[i].AID, &checkout);
+	 		check_tx_queue();
 
 			//Remove this STA from association list
 			if(next_free_assoc_index > 0) next_free_assoc_index--;

@@ -37,5 +37,6 @@ void print_menu();
 void print_station_status();
 void reset_station_statistics();
 void deauthenticate_stations();
+void check_tx_queue();
 
 #endif /* WLAN_MAC_LOW_H_ */
