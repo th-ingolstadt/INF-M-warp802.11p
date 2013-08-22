@@ -25,7 +25,9 @@ PHY_TX_ACTIVE_EXTENSION = 120;
 
 
 %Payload for simulation
-Tx_Payload = mod(repmat([1:27],1,3), 256); %total bytes in pkt will be len(Tx_Payload)+3+2+4 (SIGNAL, SERVICE, FCS)
+%Tx_Payload = [ 1:27 1:27 1:20 ];
+Tx_Payload = [1:1400];
+Tx_Payload = mod(Tx_Payload, 256); %total bytes in pkt will be len(Tx_Payload)+3+2+4 (SIGNAL, SERVICE, FCS)
 
 Tx_Payload_len = length(Tx_Payload) + 4; %LENGTH incldues FCS
 

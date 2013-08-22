@@ -11,9 +11,8 @@ addpath('./blackboxes');
 PLCP_Preamble = PLCP_Preamble_gen;
 
 %%
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_61_16Q34.prn'); cs_interp = 1; cs_start = 6500; cs_end = length(ADC_I); %no agc
+%xlLoadChipScopeData('cs_capt/wlan_cs_capt_74_badSignal.prn'); cs_interp = 8; cs_start = 1; cs_end = length(ADC_I);
 %samps2 = complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));
-
 %payload_vec = [samps2; zeros(1000,1);];
 %paylod_vec_samp_time = 8;
 
@@ -27,19 +26,17 @@ samps_iq_valid.time = [];
 samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
 
 
-%One CS capture
-%payload_vec = [zeros(25,1); complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));];
-
-%wlan_tx output
+%wlan_tx output %wlan_tx_out_74PB_64Q34 is worst case for last samp -> decode latency
 %load('rx_sigs/wlan_tx_out_81B_Q12.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-load('rx_sigs/wlan_tx_out_100B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_19PB_16Q12.mat'); tx_sig_t = [1:800];%good
+%load('rx_sigs/wlan_tx_out_3pkts_16Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_1240PB_16Q12.mat'); tx_sig_t = 1:length(wlan_tx_out);
+load('rx_sigs/wlan_tx_out_74PB_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+%load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 
-payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
-%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(10,1); wlan_tx_out(tx_sig_t); zeros(100,1)];
+%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
+%payload_vec((50+32+160+160+4)+[1:70]) = 0;%Force SIGNAL error in first pkt
+payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(10,1); wlan_tx_out(tx_sig_t); zeros(100,1)];
 paylod_vec_samp_time = 8;
 
 %DSSS capt
@@ -105,14 +102,14 @@ PHY_CONFIG_RSSI_SUM_LEN = 8;
 
 PHY_MIN_PKT_LEN = 14;
 
-PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 1.75e4;
-PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 2.00e4;
+PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 12500;
+PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 17000;
 PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 
 PHY_CONFIG_LTS_CORR_TIMEOUT = 250;%150;%*2 in hardware
 
 PHY_CONFIG_PKT_DET_CORR_THRESH = 200;%90;
-PHY_CONFIG_PKT_DET_ENERGY_THRESH = 0*250;%7; %CHANGE BACK TO 250!
+PHY_CONFIG_PKT_DET_ENERGY_THRESH = 0*250;%Set to 0 for Rx sim of sim Tx waveform
 PHY_CONFIG_PKT_DET_MIN_DURR = 4;
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 

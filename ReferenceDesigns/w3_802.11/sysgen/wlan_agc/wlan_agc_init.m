@@ -1,5 +1,6 @@
-xlLoadChipScopeData('../wlan_phy_rx/cs_capt/wlan_cs_capt_5.prn'); cs_interp = 1; cs_start = 1;
-payload_vec = [zeros(25,1); complex(ADC_I(cs_start:cs_interp:end), ADC_Q(cs_start:cs_interp:end));];
+%xlLoadChipScopeData('../wlan_phy_rx/cs_capt/wlan_cs_capt_5.prn'); cs_interp = 1; cs_start = 1;
+%payload_vec = [zeros(25,1); complex(ADC_I(cs_start:cs_interp:end), ADC_Q(cs_start:cs_interp:end));];
+payload_vec = 0;
 raw_rx_I.time = [];
 raw_rx_Q.time = [];
 

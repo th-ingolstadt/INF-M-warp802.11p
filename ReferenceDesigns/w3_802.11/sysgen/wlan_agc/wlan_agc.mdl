@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.156"
+    ComputedModelVersion    "1.159"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -30,9 +30,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "murphpo"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Sun Jul 28 13:09:54 2013"
-  RTWModifiedTimeStamp	  296916137
-  ModelVersionFormat	  "1.%<AutoIncrement:156>"
+  LastModifiedDate	  "Tue Aug 20 22:13:29 2013"
+  RTWModifiedTimeStamp	  298937609
+  ModelVersionFormat	  "1.%<AutoIncrement:159>"
   ConfigurationManager	  "None"
   SampleTimeColors	  on
   SampleTimeAnnotations	  off
@@ -800,7 +800,7 @@ Model {
     ShowPageBoundaries	    off
     ZoomFactor		    "100"
     ReportName		    "simulink-default.rpt"
-    SIDHighWatermark	    "988"
+    SIDHighWatermark	    "991"
     Block {
       BlockType		      Reference
       Name		      " System Generator"
@@ -13850,7 +13850,7 @@ Model {
 	  Position		  [1110, 165, 1155, 275]
 	  Floating		  off
 	  Location		  [1116, 626, 2305, 1529]
-	  Open			  on
+	  Open			  off
 	  NumInputPorts		  "7"
 	  ZoomMode		  "xonly"
 	  List {
@@ -23674,6 +23674,40 @@ Model {
     }
     Block {
       BlockType		      Reference
+      Name		      "RFA_AGC_DONE"
+      SID		      "989"
+      Ports		      [1, 1]
+      Position		      [1085, 370, 1145, 390]
+      LibraryVersion	      "1.2"
+      SourceBlock	      "xbsIndex_r4/Gateway Out"
+      SourceType	      "Xilinx Gateway Out Block"
+      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of ty"
+      "pe Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become top"
+      " level output ports or are discarded, depending on how they are configured."
+      inherit_from_input      off
+      hdl_port		      on
+      timing_constraint	      "None"
+      locs_specified	      off
+      LOCs		      "{}"
+      UseAsDAC		      off
+      DACChannel	      "'1'"
+      xl_use_area	      off
+      xl_area		      "[0,0,0,0,0,0,0]"
+      has_advanced_control    "0"
+      sggui_pos		      "-1,-1,-1,-1"
+      block_type	      "gatewayout"
+      sg_icon_stat	      "60,20,1,1,white,yellow,1,cc31b7ac,right,,[ ],[ ]"
+      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 60 60 0 0 ],[0 0 20 20 0 ],[0.95 0."
+      "93 0.65 ]);\nplot([0 60 60 0 0 ],[0 0 20 20 0 ]);\npatch([25.55 28.44 30.44 32.44 34.44 30.44 27.55 25.55 ],[12."
+      "22 12.22 14.22 12.22 14.22 14.22 14.22 12.22 ],[1 1 1 ]);\npatch([27.55 30.44 28.44 25.55 27.55 ],[10.22 10.22 1"
+      "2.22 12.22 10.22 ],[0.985 0.979 0.895 ]);\npatch([25.55 28.44 30.44 27.55 25.55 ],[8.22 8.22 10.22 10.22 8.22 ],"
+      "[1 1 1 ]);\npatch([27.55 34.44 32.44 30.44 28.44 25.55 27.55 ],[6.22 6.22 8.22 6.22 8.22 8.22 6.22 ],[0.985 0.97"
+      "9 0.895 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');"
+      "port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt}\\bf Out ','texmode','on');\nf"
+      "printf('','COMMENT: end icon text');"
+    }
+    Block {
+      BlockType		      Reference
       Name		      "RFA_AGC_G_RF"
       SID		      "53"
       Ports		      [1, 1]
@@ -25561,6 +25595,64 @@ Model {
       SID		      "55"
       Ports		      [1, 1]
       Position		      [935, 148, 970, 182]
+      ShowName		      off
+      LibraryVersion	      "1.2"
+      SourceBlock	      "xbsIndex_r4/Register"
+      SourceType	      "Xilinx Register Block"
+      init		      "0"
+      rst		      off
+      en		      off
+      dbl_ovrd		      off
+      xl_use_area	      off
+      xl_area		      "[0,0,0,0,0,0,0]"
+      has_advanced_control    "0"
+      sggui_pos		      "-1,-1,-1,-1"
+      block_type	      "register"
+      sg_icon_stat	      "35,34,1,1,white,blue,0,c80657c5,right,,[ ],[ ]"
+      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 34 34 0 ],[0.77 0."
+      "82 0.91 ]);\nplot([0 35 35 0 0 ],[0 0 34 34 0 ]);\npatch([8.1 13.88 17.88 21.88 25.88 17.88 12.1 8.1 ],[21.44 21"
+      ".44 25.44 21.44 25.44 25.44 25.44 21.44 ],[1 1 1 ]);\npatch([12.1 17.88 13.88 8.1 12.1 ],[17.44 17.44 21.44 21.4"
+      "4 17.44 ],[0.931 0.946 0.973 ]);\npatch([8.1 13.88 17.88 12.1 8.1 ],[13.44 13.44 17.44 17.44 13.44 ],[1 1 1 ]);\n"
+      "patch([12.1 25.88 21.88 17.88 13.88 8.1 12.1 ],[9.44 9.44 13.44 9.44 13.44 13.44 9.44 ],[0.931 0.946 0.973 ]);\n"
+      "fprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('i"
+      "nput',1,'d');\ncolor('black');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprint"
+      "f('','COMMENT: end icon text');"
+    }
+    Block {
+      BlockType		      Reference
+      Name		      "Register10"
+      SID		      "990"
+      Ports		      [1, 1]
+      Position		      [1005, 363, 1040, 397]
+      ShowName		      off
+      LibraryVersion	      "1.2"
+      SourceBlock	      "xbsIndex_r4/Register"
+      SourceType	      "Xilinx Register Block"
+      init		      "0"
+      rst		      off
+      en		      off
+      dbl_ovrd		      off
+      xl_use_area	      off
+      xl_area		      "[0,0,0,0,0,0,0]"
+      has_advanced_control    "0"
+      sggui_pos		      "-1,-1,-1,-1"
+      block_type	      "register"
+      sg_icon_stat	      "35,34,1,1,white,blue,0,c80657c5,right,,[ ],[ ]"
+      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 34 34 0 ],[0.77 0."
+      "82 0.91 ]);\nplot([0 35 35 0 0 ],[0 0 34 34 0 ]);\npatch([8.1 13.88 17.88 21.88 25.88 17.88 12.1 8.1 ],[21.44 21"
+      ".44 25.44 21.44 25.44 25.44 25.44 21.44 ],[1 1 1 ]);\npatch([12.1 17.88 13.88 8.1 12.1 ],[17.44 17.44 21.44 21.4"
+      "4 17.44 ],[0.931 0.946 0.973 ]);\npatch([8.1 13.88 17.88 12.1 8.1 ],[13.44 13.44 17.44 17.44 13.44 ],[1 1 1 ]);\n"
+      "patch([12.1 25.88 21.88 17.88 13.88 8.1 12.1 ],[9.44 9.44 13.44 9.44 13.44 13.44 9.44 ],[0.931 0.946 0.973 ]);\n"
+      "fprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('i"
+      "nput',1,'d');\ncolor('black');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprint"
+      "f('','COMMENT: end icon text');"
+    }
+    Block {
+      BlockType		      Reference
+      Name		      "Register11"
+      SID		      "991"
+      Ports		      [1, 1]
+      Position		      [935, 363, 970, 397]
       ShowName		      off
       LibraryVersion	      "1.2"
       SourceBlock	      "xbsIndex_r4/Register"
@@ -29115,8 +29207,16 @@ Model {
     Line {
       SrcBlock		      "S-R Latch"
       SrcPort		      1
-      DstBlock		      "Inverter"
-      DstPort		      1
+      Points		      [5, 0]
+      Branch {
+	DstBlock		"Inverter"
+	DstPort			1
+      }
+      Branch {
+	Points			[0, 75]
+	DstBlock		"Register11"
+	DstPort			1
+      }
     }
     Line {
       SrcBlock		      "Register8"
@@ -29134,6 +29234,18 @@ Model {
       SrcBlock		      "Inverter"
       SrcPort		      1
       DstBlock		      "Register8"
+      DstPort		      1
+    }
+    Line {
+      SrcBlock		      "Register10"
+      SrcPort		      1
+      DstBlock		      "RFA_AGC_DONE"
+      DstPort		      1
+    }
+    Line {
+      SrcBlock		      "Register11"
+      SrcPort		      1
+      DstBlock		      "Register10"
       DstPort		      1
     }
     Annotation {
@@ -29292,10 +29404,10 @@ MatData {
     "         $         $          .    0     8    (    !          %    \"     $    0     0         0    $    '1A<F=E=%"
     "]D:7)E8W1O<GD.    ,     8    (    !          %    \"                0         0          X    X    !@    @    &   "
     "       4    (     0    $    !          D    (            \\#\\.    .     8    (    !@         %    \"     $    !  "
-    "   0         )    \"               #@   #     &    \"     0         !0    @    !     0    $         $  ! &@    .  "
+    "   0         )    \"               #@   #     &    \"     0         !0    @    !     0    $         $  ! &D    .  "
     "  .     8    (    !@         %    \"     $    !     0         )    \"            / _#@   #@    &    \"     8      "
     "   !0    @    !     0    $         \"0    @               X    X    !@    @    &          4    (     0    $    !  "
-    "        D    (            6D .    .     8    (    !@         %    \"     $    !     0         )    \"            /"
+    "        D    (          ! 6D .    .     8    (    !@         %    \"     $    !     0         )    \"            /"
     " _#@   #@    &    \"     8         !0    @    !     0    $         \"0    @               X    P    !@    @    &  "
     "        4    (               !          D         #@   % Q   &    \"     (         !0    @    !     0    $        "
     " !0 $  P    !    &    '-H87)E9        &-O;7!I;&%T:6]N  X   !@!   !@    @    \"          4    (     0    $    !    "
@@ -29442,9 +29554,9 @@ MatData {
     "0    =&%R9V5T7V1I<F5C=&]R>0X    P    !@    @    $          4    (               !         !          #@   #@    & "
     "   \"     8         !0    @    !     0    $         \"0    @           #P/PX    X    !@    @    &          4    ( "
     "    0    $    !          D    (               .    ,     8    (    !          %    \"     $    !     0         0  "
-    "$ :     X    X    !@    @    &          4    (     0    $    !          D    (            \\#\\.    .     8    (  "
+    "$ :0    X    X    !@    @    &          4    (     0    $    !          D    (            \\#\\.    .     8    (  "
     "  !@         %    \"     $    !     0         )    \"               #@   #@    &    \"     8         !0    @    ! "
-    "    0    $         \"0    @           !:0 X    X    !@    @    &          4    (     0    $    !          D    (  "
+    "    0    $         \"0    @          $!:0 X    X    !@    @    &          4    (     0    $    !          D    (  "
     "          \\#\\.    .     8    (    !@         %    \"     $    !     0         )    \"               #@   #     &"
     "    \"     8         !0    @               $         \"0         "
   }
