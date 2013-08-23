@@ -57,7 +57,6 @@ int main(){
 	xil_printf("\f----- wlan_mac_dcf -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
-
 	mac_param_band = RC_24GHZ;
 
 	cpu_low_status = 0;
@@ -76,6 +75,9 @@ int main(){
 	}
 
 	wlan_lib_init();
+
+	//TODO: Debug: Wait for CPU_HIGH to set up all its interrupts
+	//usleep(5000000);
 
 	//create IPC message to receive into
 	ipc_msg_from_high.payload_ptr = &(ipc_msg_from_high_payload[0]);
