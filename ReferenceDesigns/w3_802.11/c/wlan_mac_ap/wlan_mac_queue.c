@@ -12,6 +12,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "xparameters.h"
+#include "xintc.h"
 #include "string.h"
 
 #include "wlan_lib.h"

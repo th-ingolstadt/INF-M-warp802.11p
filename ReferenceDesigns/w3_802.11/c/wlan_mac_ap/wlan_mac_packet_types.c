@@ -12,6 +12,7 @@
 #include "xio.h"
 #include "string.h"
 #include "xil_types.h"
+#include "xintc.h"
 
 //WARP includes
 #include "wlan_lib.h"

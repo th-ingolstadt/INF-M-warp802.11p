@@ -75,7 +75,6 @@ typedef struct{
 #define LLC_TYPE_ARP					0x0608
 #define LLC_TYPE_IP						0x0008
 
-void nullCallback(void* param);
 void wlan_mac_util_init();
 void gpio_timestamp_initialize();
 inline u64 get_usec_timestamp();
@@ -96,6 +95,9 @@ int interrupt_init();
 void GpioIsr(void *InstancePtr);
 void SendHandler(void *CallBackRef, unsigned int EventData);
 void RecvHandler(void *CallBackRef, unsigned int EventData);
+void wlan_mac_util_set_ipc_rx_callback(void(*callback)());
+inline int interrupt_start();
+inline void interrupt_stop();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 u8 wlan_mac_util_get_tx_rate(station_info* station);

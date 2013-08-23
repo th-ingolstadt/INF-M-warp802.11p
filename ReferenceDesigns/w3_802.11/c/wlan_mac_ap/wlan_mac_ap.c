@@ -15,6 +15,7 @@
 #include "xio.h"
 #include "string.h"
 #include "xaxicdma.h"
+#include "xintc.h"
 
 //WARP includes
 #include "wlan_lib.h"
@@ -85,11 +86,22 @@ int main(){
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
+	//create IPC message to receive into
+	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
+
 	perma_assoc_mode = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 
 	wlan_lib_init();
 	wlan_mac_util_init();
+
+	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
+	wlan_mac_util_set_mpdu_tx_callback((void*)mpdu_transmit);
+	wlan_mac_util_set_pb_u_callback((void*)up_button);
+	wlan_mac_util_set_uart_rx_callback((void*)uart_rx);
+	wlan_mac_util_set_ipc_rx_callback((void*)ipc_rx);
+
+	interrupt_init();
 
 	//Initialize the central DMA (CDMA) driver
 	XAxiCdma_Config *cdma_cfg_ptr;
@@ -104,14 +116,6 @@ int main(){
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
 		tx_mpdu->state = TX_MPDU_STATE_EMPTY;
 	}
-
-	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
-	wlan_mac_util_set_mpdu_tx_callback((void*)mpdu_transmit);
-	wlan_mac_util_set_pb_u_callback((void*)up_button);
-	wlan_mac_util_set_uart_rx_callback((void*)uart_rx);
-
-	//create IPC message to receive into
-	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
 
 	bcast_addr[0] = 0xFF;
 	bcast_addr[1] = 0xFF;
@@ -128,12 +132,14 @@ int main(){
 		associations[i].seq = 0; //seq
 	}
 
-	//Wait for CPU_LOW to report that it has fully initialized and is ready for traffic
+//	while ((cpu_low_status & CPU_STATUS_INITIALIZED) == 0);
+//	//Wait for CPU_LOW to report that it has fully initialized and is ready for traffic
 	do{
+//		xil_printf("Waiting for low to get ready\n");
 		//Poll mailbox read msg
-		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
-			process_ipc_msg_from_low(&ipc_msg_from_low);
-		}
+//		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
+//			process_ipc_msg_from_low(&ipc_msg_from_low);
+//		}
 	} while ((cpu_low_status & CPU_STATUS_INITIALIZED) == 0);
 
 	write_hex_display(0);
@@ -171,19 +177,35 @@ int main(){
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
 
 	while(1){
+		interrupt_stop();
+
 		//Poll Scheduler
 		poll_schedule();
 
 		//Poll Ethernet
 		wlan_poll_eth();
 
+		interrupt_start();
+
+
+//		xil_printf("Mailbox Empty Status: %d\n",ipc_mailbox_read_isempty());
 		//Poll mailbox read msg
-		if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
-			process_ipc_msg_from_low(&ipc_msg_from_low);
-		}
+		//if(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
+		//	process_ipc_msg_from_low(&ipc_msg_from_low);
+		//}
 
 	}
 	return -1;
+}
+
+void ipc_rx(){
+//	u32 numMsg = 0;
+//	xil_printf("Mailbox Rx\n");
+	while(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
+		process_ipc_msg_from_low(&ipc_msg_from_low);
+//		numMsg++;
+	}
+//	xil_printf("Processed %d msg in one ISR\n",numMsg);
 }
 
 void check_tx_queue(){
@@ -472,8 +494,11 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 	rx_frame_info* rx_mpdu;
 	tx_frame_info* tx_mpdu;
 
+
+
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
 		case IPC_MBOX_RX_MPDU_READY:
+
 			//This message indicates CPU Low has received an MPDU addressed to this node or to the broadcast address
 			rx_pkt_buf = msg->arg0;
 
@@ -496,6 +521,7 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 		break;
 
 		case IPC_MBOX_TX_MPDU_ACCEPT:
+
 			//This message indicates CPU Low has begun the Tx process for the previously submitted MPDU
 			// CPU High is now free to begin processing its next Tx frame and submit it to CPU Low
 			// CPU Low will not accept a new frame until the previous one is complete
@@ -520,6 +546,7 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 		break;
 
 		case IPC_MBOX_TX_MPDU_DONE:
+
 			//This message indicates CPU Low has finished the Tx process for the previously submitted-accepted frame
 			// CPU High should do any necessary post-processing, then recycle the packet buffer
 
@@ -538,12 +565,14 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 		break;
 
 		case IPC_MBOX_MAC_ADDR:
+
 			//CPU Low updated the node's MAC address (typically stored in the WARP v3 EEPROM, accessible only to CPU Low)
 			memcpy((void*) &(eeprom_mac_addr[0]), (void*) &(ipc_msg_from_low_payload[0]), 6);
 		break;
 
 		case IPC_MBOX_CPU_STATUS:
 			cpu_low_status = ipc_msg_from_low_payload[0];
+
 			if(cpu_low_status & CPU_STATUS_EXCEPTION){
 				warp_printf(PL_ERROR, "An unrecoverable exception has occurred in CPU_LOW, halting...\n");
 				warp_printf(PL_ERROR, "Reason code: %d\n", ipc_msg_from_low_payload[1]);

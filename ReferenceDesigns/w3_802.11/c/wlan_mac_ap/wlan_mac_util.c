@@ -29,9 +29,7 @@ XUartLite UartLite;
 
 u8 ReceiveBuffer[UART_BUFFER_SIZE];
 
-function_ptr_t eth_rx_callback, mpdu_tx_callback, pb_u_callback, pb_m_callback, pb_d_callback, uart_callback;
-
-void nullCallback(void* param){};
+function_ptr_t eth_rx_callback, mpdu_tx_callback, pb_u_callback, pb_m_callback, pb_d_callback, uart_callback, ipc_rx_callback;
 
 //Scheduler
 #define SCHEDULER_NUM_EVENTS 6
@@ -50,6 +48,7 @@ void wlan_mac_util_init(){
 	pb_m_callback = (function_ptr_t)nullCallback;
 	pb_d_callback = (function_ptr_t)nullCallback;
 	uart_callback = (function_ptr_t)nullCallback;
+	ipc_rx_callback = (function_ptr_t)nullCallback;
 
 	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
 	gpio_timestamp_initialize();
@@ -99,12 +98,20 @@ void wlan_mac_util_init(){
 //	}
 
 
-	Status = interrupt_init();
-	if(Status != 0){
-		warp_printf(PL_ERROR, "Error initializing interrupts, status code: %d\n", Status);
-		return;
-	}
+//	Status = interrupt_init();
+//	if(Status != 0){
+//		warp_printf(PL_ERROR, "Error initializing interrupts, status code: %d\n", Status);
+//		return;
+//	}
 
+}
+
+inline int interrupt_start(){
+	return XIntc_Start(&InterruptController, XIN_REAL_MODE);
+}
+
+inline void interrupt_stop(){
+	XIntc_Stop(&InterruptController);
 }
 
 int interrupt_init(){
@@ -126,6 +133,9 @@ int interrupt_init(){
 		return Result;
 	}
 
+	wlan_lib_setup_mailbox_interrupt(&InterruptController);
+	//wlan_lib_setup_mailbox_rx_callback((void*)ipc_rx_callback);
+
 	Result = XIntc_Start(&InterruptController, XIN_REAL_MODE);
 	if (Result != XST_SUCCESS) {
 		warp_printf(PL_ERROR,"Failed to start XIntc\n");
@@ -134,6 +144,7 @@ int interrupt_init(){
 
 	XIntc_Enable(&InterruptController, INTC_GPIO_INTERRUPT_ID);
 	XIntc_Enable(&InterruptController, UARTLITE_INT_IRQ_ID);
+
 
 	Xil_ExceptionInit();
 
@@ -181,6 +192,12 @@ void GpioIsr(void *InstancePtr){
 	XGpio_InterruptEnable(GpioPtr, GPIO_INPUT_INTERRUPT);
 
 	return;
+}
+
+void wlan_mac_util_set_ipc_rx_callback(void(*callback)()){
+	ipc_rx_callback = (function_ptr_t)callback;
+
+	wlan_lib_setup_mailbox_rx_callback((void*)ipc_rx_callback);
 }
 
 void wlan_mac_util_set_pb_u_callback(void(*callback)()){

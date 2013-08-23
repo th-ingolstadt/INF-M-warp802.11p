@@ -10,12 +10,14 @@
 
 #include "xaxiethernet.h"
 #include "xaxidma.h"
+#include "xparameters.h"
+#include "xintc.h"
 #include "wlan_lib.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_eth_util.h"
-#include "xparameters.h"
+
 #include "wlan_mac_queue.h"
 
 //Global variable for instance of the axi_dma driver, scoped to this file only
