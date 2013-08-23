@@ -286,6 +286,7 @@ typedef struct{
 #define WLAN_MAC_RATE_54M	8
 
 int wlan_lib_init ();
+inline int ipc_mailbox_read_isempty();
 inline int wlan_lib_mac_rate_to_mbps (u8 rate);
 int lock_pkt_buf_tx(u8 pkt_buf_ind);
 int lock_pkt_buf_rx(u8 pkt_buf_ind);
@@ -296,5 +297,14 @@ int status_pkt_buf_rx(u8 pkt_buf_ind, u32* Locked, u32 *Owner);
 
 int ipc_mailbox_read_msg(wlan_ipc_msg* msg);
 int ipc_mailbox_write_msg(wlan_ipc_msg* msg);
+void nullCallback(void* param);
+
+
+#ifdef XPAR_INTC_0_DEVICE_ID
+int wlan_lib_setup_mailbox_interrupt(XIntc* intc);
+void wlan_lib_setup_mailbox_rx_callback( void(*callback)());
+void MailboxIntrHandler(void *CallbackRef);
+#endif
+
 
 #endif /* WLAN_LIB_H_ */
