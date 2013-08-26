@@ -58,14 +58,15 @@ int wlan_create_beacon_probe_frame(void* pkt_buf, u8 frame_control_1, u8* addres
 	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
 	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	txBufferPtr_u8[1] = 6; //tag length... doesn't include the tag itself and the tag length
+	txBufferPtr_u8[1] = 7; //tag length... doesn't include the tag itself and the tag length
 	txBufferPtr_u8[2] = RATE_BASIC | (0x0C); 				//6Mbps  (BPSK,   1/2)
 	txBufferPtr_u8[3] = RATE_BASIC | (0x12); 				//9Mbps  (BPSK,   3/4)
 	txBufferPtr_u8[4] = RATE_BASIC | (0x18); 				//12Mbps (QPSK,   1/2)
 	txBufferPtr_u8[5] = RATE_BASIC | (0x24); 				//18Mbps (QPSK,   3/4)
 	txBufferPtr_u8[6] = (0x30); 				//24Mbps (16-QAM, 1/2)
 	txBufferPtr_u8[7] = (0x48); 				//36Mbps (16-QAM, 3/4)
-	txBufferPtr_u8+=(6+2); //Move up to next tag
+	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
+	txBufferPtr_u8+=(7+2); //Move up to next tag
 
 	//txBufferPtr_u8[9] = (0x60); 				//48Mbps (64-QAM, 2/3)
 	//txBufferPtr_u8+=(8+2); //Move up to next tag
@@ -104,10 +105,10 @@ int wlan_create_beacon_probe_frame(void* pkt_buf, u8 frame_control_1, u8* addres
 //	txBufferPtr_u8[2] = (0x6C); 				//54Mbps  (64-QAM,   3/4)
 //	txBufferPtr_u8+=(1+2);
 
-	txBufferPtr_u8[0] = 221; //Tag 221: Vendor specific
-	txBufferPtr_u8[1] = 3; //tag length... doesn't include the tag itself and the tag length
-	memcpy(&(txBufferPtr_u8[2]),OUI,3);
-	txBufferPtr_u8+=(3+2);
+//	txBufferPtr_u8[0] = 221; //Tag 221: Vendor specific
+//	txBufferPtr_u8[1] = 3; //tag length... doesn't include the tag itself and the tag length
+//	memcpy(&(txBufferPtr_u8[2]),OUI,3);
+//	txBufferPtr_u8+=(3+2);
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
@@ -225,14 +226,15 @@ int wlan_create_association_response_frame(void* pkt_buf, u8 frame_control_1, u8
 	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
 	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	txBufferPtr_u8[1] = 6; //tag length... doesn't include the tag itself and the tag length
+	txBufferPtr_u8[1] = 7; //tag length... doesn't include the tag itself and the tag length
 	txBufferPtr_u8[2] = RATE_BASIC | (0x0C); 				//6Mbps  (BPSK,   1/2)
 	txBufferPtr_u8[3] = RATE_BASIC | (0x12); 				//9Mbps  (BPSK,   3/4)
 	txBufferPtr_u8[4] = RATE_BASIC | (0x18); 				//12Mbps (QPSK,   1/2)
 	txBufferPtr_u8[5] = RATE_BASIC | (0x24); 				//18Mbps (QPSK,   3/4)
 	txBufferPtr_u8[6] = (0x30); 				//24Mbps (16-QAM, 1/2)
 	txBufferPtr_u8[7] = (0x48); 				//36Mbps (16-QAM, 3/4)
-	txBufferPtr_u8+=(6+2); //Move up to next tag
+	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
+	txBufferPtr_u8+=(7+2); //Move up to next tag
 
 	//txBufferPtr_u8[7] = (0x30); 				//24Mbps (16-QAM, 1/2)
 	//txBufferPtr_u8[8] = (0x48); 				//36Mbps  (16-QAM, 3/4)
@@ -250,10 +252,10 @@ int wlan_create_association_response_frame(void* pkt_buf, u8 frame_control_1, u8
 //	txBufferPtr_u8[2] = (0x6C); 				//54Mbps  (64-QAM,   3/4)
 //	txBufferPtr_u8+=(1+2);
 
-	txBufferPtr_u8[0] = 221; //Tag 221: Vendor specific
-	txBufferPtr_u8[1] = 3; //tag length... doesn't include the tag itself and the tag length
-	memcpy(&(txBufferPtr_u8[2]),OUI,3);
-	txBufferPtr_u8+=(3+2);
+//	txBufferPtr_u8[0] = 221; //Tag 221: Vendor specific
+//	txBufferPtr_u8[1] = 3; //tag length... doesn't include the tag itself and the tag length
+//	memcpy(&(txBufferPtr_u8[2]),OUI,3);
+//	txBufferPtr_u8+=(3+2);
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 

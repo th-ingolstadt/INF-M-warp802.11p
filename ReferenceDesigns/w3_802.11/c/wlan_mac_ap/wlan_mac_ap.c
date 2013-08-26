@@ -332,10 +332,10 @@ void uart_rx(u8 rxByte){
 				xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 			break;
 			case ASCII_R:
-				if(default_unicast_rate < WLAN_MAC_RATE_36M){
+				if(default_unicast_rate < WLAN_MAC_RATE_48M){
 					default_unicast_rate++;
 				} else {
-					default_unicast_rate = WLAN_MAC_RATE_36M;
+					default_unicast_rate = WLAN_MAC_RATE_48M;
 				}
 
 				xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
@@ -345,10 +345,10 @@ void uart_rx(u8 rxByte){
 }
 
 
-int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
+int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 	//Receives the pre-encapsulated Ethernet frames
 
-	pqueue* tx_queue = tx_queue_list->first;
+	packet_bd* tx_queue = tx_queue_list->first;
 
 //	xil_printf("   ap got an eth rx\n");
 
@@ -381,7 +381,7 @@ int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 
 			enqueue_after_end(associations[i].AID, tx_queue_list);
 			check_tx_queue();
 		} else {
-			//Checkin this pqueue so that it can be checked out again
+			//Checkin this packet_bd so that it can be checked out again
 			return 0;
 		}
 	}
@@ -411,8 +411,8 @@ void print_queue_status(){
 
 void beacon_transmit() {
  	u16 tx_length;
- 	pqueue_list checkout;
- 	pqueue*	tx_queue;
+ 	packet_bd_list checkout;
+ 	packet_bd*	tx_queue;
 
  	//Checkout 1 element from the queue;
  	checkout = queue_checkout(1);
@@ -437,8 +437,8 @@ void association_timestamp_check() {
 
 	u32 i;
 	u64 time_since_last_rx;
-	pqueue_list checkout;
-	pqueue* tx_queue;
+	packet_bd_list checkout;
+	packet_bd* tx_queue;
 	u32 tx_length;
 
 	for(i=0; i < next_free_assoc_index; i++) {
@@ -597,8 +597,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	mac_header_80211* rx_80211_header;
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
-	pqueue_list checkout;
-	pqueue*	tx_queue;
+	packet_bd_list checkout;
+	packet_bd*	tx_queue;
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
@@ -858,7 +858,7 @@ int is_tx_buffer_empty(){
 	}
 }
 
-void mpdu_transmit(pqueue* tx_queue) {
+void mpdu_transmit(packet_bd* tx_queue) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station_info* station = tx_queue->station_info_ptr;
@@ -1041,8 +1041,8 @@ void reset_station_statistics(){
 
 void deauthenticate_stations(){
 	u32 i;
-	pqueue_list checkout;
-	pqueue* tx_queue;
+	packet_bd_list checkout;
+	packet_bd* tx_queue;
 	u32 tx_length;
 
 	for(i=0; i < next_free_assoc_index; i++){

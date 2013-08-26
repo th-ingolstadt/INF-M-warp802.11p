@@ -75,8 +75,8 @@ int wlan_eth_dma_init() {
 	XAxiDma_Bd *first_bd_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
 
-	pqueue_list checkout;
-	pqueue*	tx_queue;
+	packet_bd_list checkout;
+	packet_bd*	tx_queue;
 
 	ETH_A_DMA_CFG_ptr = XAxiDma_LookupConfig(ETH_A_DMA_DEV_ID);
 	status = XAxiDma_CfgInitialize(&ETH_A_DMA_Instance, ETH_A_DMA_CFG_ptr);
@@ -118,13 +118,13 @@ int wlan_eth_dma_init() {
 	status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, bd_count, &first_bd_ptr);
 	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return -1;}
 
-	//Checkout ETH_A_NUM_RX_BD pqueues
+	//Checkout ETH_A_NUM_RX_BD packet_bds
 	checkout = queue_checkout(ETH_A_NUM_RX_BD);
 
 	if(checkout.length == ETH_A_NUM_RX_BD){
 		tx_queue = checkout.first;
 	} else {
-		xil_printf("Error during wlan_eth_dma_init: able to check out %d of %d pqueues\n", checkout.length, ETH_A_NUM_RX_BD);
+		xil_printf("Error during wlan_eth_dma_init: able to check out %d of %d packet_bds\n", checkout.length, ETH_A_NUM_RX_BD);
 		return -1;
 	}
 
@@ -144,13 +144,13 @@ int wlan_eth_dma_init() {
 		//Rx BD's don't need control flags before use; DMA populates these post-Rx
 		XAxiDma_BdSetCtrl(cur_bd_ptr, 0);
 
-		//BD ID is arbitrary; use pointer to the pqueue associated with this BD
+		//BD ID is arbitrary; use pointer to the packet_bd associated with this BD
 		XAxiDma_BdSetId(cur_bd_ptr, (u32)tx_queue);
 
 		//Update cur_bd_ptr to the next BD in the chain for the next iteration
 		cur_bd_ptr = XAxiDma_BdRingNext(ETH_A_RxRing_ptr, cur_bd_ptr);
 
-		//Traverse forward in the checked-out pqueue list
+		//Traverse forward in the checked-out packet_bd list
 		tx_queue = tx_queue->next;
 	}
 
@@ -243,10 +243,10 @@ void wlan_poll_eth() {
 	XAxiDma_Bd *first_bd_ptr;
 	u8* mpdu_start_ptr;
 	u8* eth_start_ptr;
-	pqueue* tx_queue;
+	packet_bd* tx_queue;
 	u32 eth_rx_len, eth_rx_buf;
 	u32 mpdu_tx_len;
-	pqueue_list tx_queue_list;
+	packet_bd_list tx_queue_list;
 	u32 i;
 
 	int bd_count;
@@ -281,9 +281,9 @@ void wlan_poll_eth() {
 	for(i=0;i<bd_count;i++){
 
 		//A packet has been received and transferred by DMA
-		tx_queue = (pqueue*)XAxiDma_BdGetId(cur_bd_ptr);
+		tx_queue = (packet_bd*)XAxiDma_BdGetId(cur_bd_ptr);
 
-		//xil_printf("DMA has filled in pqueue at 0x%08x\n", tx_queue);
+		//xil_printf("DMA has filled in packet_bd at 0x%08x\n", tx_queue);
 
 		eth_rx_len = XAxiDma_BdGetActualLength(cur_bd_ptr, rxRing_ptr->MaxTransferLen);
 		eth_rx_buf = XAxiDma_BdGetBufAddr(cur_bd_ptr);
@@ -312,8 +312,8 @@ void wlan_poll_eth() {
 
 		packet_is_queued = 0;
 
-		tx_queue_list = pqueue_list_init();
-		pqueue_insertEnd(&tx_queue_list, tx_queue);
+		tx_queue_list = packet_bd_list_init();
+		packet_bd_insertEnd(&tx_queue_list, tx_queue);
 
 		switch(eth_hdr->type) {
 			case ETH_TYPE_ARP:
@@ -363,24 +363,24 @@ void wlan_eth_dma_update(){
 	XAxiDma_BdRing *ETH_A_RxRing_ptr;
 	XAxiDma_Bd *first_bd_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
-	pqueue_list checkout;
-	pqueue*	tx_queue;
+	packet_bd_list checkout;
+	packet_bd*	tx_queue;
 	u32 i;
 	u32 buf_addr;
-	u32 num_available_pqueue;
+	u32 num_available_packet_bd;
 
 	ETH_A_RxRing_ptr = XAxiDma_GetRxRing(&ETH_A_DMA_Instance);
 	bd_count = XAxiDma_BdRingGetFreeCnt(ETH_A_RxRing_ptr);
 
-	num_available_pqueue = queue_num_free();
+	num_available_packet_bd = queue_num_free();
 
-	if(min(num_available_pqueue,bd_count)>0){
+	if(min(num_available_packet_bd,bd_count)>0){
 //		xil_printf("%d BDs are free\n",bd_count);
-//		xil_printf("%d pqueues are free\n", num_available_pqueue);
-//		xil_printf("Attaching %d BDs to pqueues\n",min(bd_count,num_available_pqueue));
+//		xil_printf("%d packet_bds are free\n", num_available_packet_bd);
+//		xil_printf("Attaching %d BDs to packet_bds\n",min(bd_count,num_available_packet_bd));
 
-		//Checkout ETH_A_NUM_RX_BD pqueues
-		checkout = queue_checkout(min(bd_count,num_available_pqueue));
+		//Checkout ETH_A_NUM_RX_BD packet_bds
+		checkout = queue_checkout(min(bd_count,num_available_packet_bd));
 
 		status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, min(bd_count,checkout.length), &first_bd_ptr);
 		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return;}
@@ -403,21 +403,21 @@ void wlan_eth_dma_update(){
 			//Rx BD's don't need control flags before use; DMA populates these post-Rx
 			XAxiDma_BdSetCtrl(cur_bd_ptr, 0);
 
-			//BD ID is arbitrary; use pointer to the pqueue associated with this BD
+			//BD ID is arbitrary; use pointer to the packet_bd associated with this BD
 			XAxiDma_BdSetId(cur_bd_ptr, (u32)tx_queue);
 
 			//Update cur_bd_ptr to the next BD in the chain for the next iteration
 			cur_bd_ptr = XAxiDma_BdRingNext(ETH_A_RxRing_ptr, cur_bd_ptr);
 
 			//Remove this tx_queue from the checkout list
-			//pqueue_remove(&checkout,tx_queue);
+			//packet_bd_remove(&checkout,tx_queue);
 
-			//Traverse forward in the checked-out pqueue list
+			//Traverse forward in the checked-out packet_bd list
 			tx_queue = tx_queue->next;
 		}
 
 		//Push the Rx BD ring to hardware and start receiving
-		status = XAxiDma_BdRingToHw(ETH_A_RxRing_ptr, min(num_available_pqueue,bd_count), first_bd_ptr);
+		status = XAxiDma_BdRingToHw(ETH_A_RxRing_ptr, min(num_available_packet_bd,bd_count), first_bd_ptr);
 
 		//Check any remaining unused entries from the checkout list back in
 		//queue_checkin(&checkout);

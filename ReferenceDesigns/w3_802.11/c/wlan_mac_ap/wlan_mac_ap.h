@@ -19,10 +19,10 @@
 #define ANIMATION_RATE_US (100000)
 
 int main();
-int ethernet_receive(pqueue_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
+int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 int is_tx_buffer_empty();
-void mpdu_transmit(pqueue* tx_queue);
+void mpdu_transmit(packet_bd* tx_queue);
 void beacon_transmit();
 void process_ipc_msg_from_low(wlan_ipc_msg* msg);
 void print_associations();

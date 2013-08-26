@@ -274,8 +274,8 @@ void poll_schedule(){
 int wlan_mac_poll_tx_queue(u16 queue_sel){
 	int return_value = 0;;
 
-	pqueue_list dequeue;
-	pqueue* tx_queue;
+	packet_bd_list dequeue;
+	packet_bd* tx_queue;
 
 	dequeue = dequeue_from_beginning(queue_sel,1);
 
