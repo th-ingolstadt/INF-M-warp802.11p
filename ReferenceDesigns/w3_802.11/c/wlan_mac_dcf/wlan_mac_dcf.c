@@ -639,7 +639,7 @@ void mac_dcf_init(){
 	//Clear any stale Rx events
 	wlan_mac_dcf_hw_unblock_rx_phy();
 
-	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 1, wlan_mac_addr);
+	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 0, wlan_mac_addr);
 
 	bcast_addr[0] = 0xFF;
 	bcast_addr[1] = 0xFF;
