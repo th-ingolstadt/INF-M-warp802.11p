@@ -27,7 +27,13 @@ static XAxiDma ETH_A_DMA_Instance;
 // It's sufficient to refer to the wlan_mac_util callback by name here
 extern function_ptr_t eth_rx_callback;
 
+static XIntc* Intc_ptr;
+
 u32 ETH_A_NUM_RX_BD;
+
+#define RX_INTR_ID		XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
+#define TX_INTR_ID		XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
+
 
 int wlan_eth_init() {
 		int status;
@@ -59,7 +65,42 @@ int wlan_eth_init() {
 		return 0;
 }
 
+int wlan_eth_setup_interrupt(XIntc* intc){
+	Intc_ptr = intc;
+	XAxiDma_BdRing *RxRingPtr = XAxiDma_GetRxRing(&ETH_A_DMA_Instance);
+	int Status;
 
+	Status = XIntc_Connect(Intc_ptr, RX_INTR_ID,(XInterruptHandler) RxIntrHandler, RxRingPtr);
+	if (Status != XST_SUCCESS) {
+
+		xil_printf("Failed tx connect intc\r\n");
+		return XST_FAILURE;
+	}
+
+	XIntc_Enable(Intc_ptr, RX_INTR_ID);
+
+
+
+	return 0;
+}
+
+static void RxIntrHandler(void *Callback){
+	XAxiDma_BdRing *RxRingPtr = (XAxiDma_BdRing *) Callback;
+	u32 IrqStatus;
+
+	XIntc_Stop(Intc_ptr);
+
+	IrqStatus = XAxiDma_BdRingGetIrq(RxRingPtr);
+	XAxiDma_BdRingAckIrq(RxRingPtr, IrqStatus);
+
+	if ((IrqStatus & (XAXIDMA_IRQ_DELAY_MASK | XAXIDMA_IRQ_IOC_MASK))) {
+		wlan_poll_eth();
+	}
+
+	XIntc_Start(Intc_ptr, XIN_REAL_MODE);
+
+	return;
+}
 int wlan_eth_dma_init() {
 	int status;
 	int bd_count;
@@ -156,6 +197,10 @@ int wlan_eth_dma_init() {
 
 	//Push the Rx BD ring to hardware and start receiving
 	status = XAxiDma_BdRingToHw(ETH_A_RxRing_ptr, bd_count, first_bd_ptr);
+
+	//Enable Interrupts
+	XAxiDma_BdRingIntEnable(ETH_A_RxRing_ptr, XAXIDMA_IRQ_ALL_MASK);
+
 	status |= XAxiDma_BdRingStart(ETH_A_RxRing_ptr);
 	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingToHw/XAxiDma_BdRingStart(ETH_A_RxRing_ptr)! Err = %d\n", status); return -1;}
 

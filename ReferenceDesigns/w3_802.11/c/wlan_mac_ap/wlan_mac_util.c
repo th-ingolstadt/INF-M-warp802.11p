@@ -134,7 +134,7 @@ int interrupt_init(){
 	}
 
 	wlan_lib_setup_mailbox_interrupt(&InterruptController);
-	//wlan_lib_setup_mailbox_rx_callback((void*)ipc_rx_callback);
+	wlan_eth_setup_interrupt(&InterruptController);
 
 	Result = XIntc_Start(&InterruptController, XIN_REAL_MODE);
 	if (Result != XST_SUCCESS) {

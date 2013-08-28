@@ -154,7 +154,7 @@ int main(){
 
 	cpu_high_status |= CPU_STATUS_INITIALIZED;
 
-	mac_param_chan = 4;
+	mac_param_chan = 9;
 
 	//Send a message to other processor to tell it to switch channels
 	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
@@ -183,7 +183,7 @@ int main(){
 		poll_schedule();
 
 		//Poll Ethernet
-		wlan_poll_eth();
+		//wlan_poll_eth();
 
 		interrupt_start();
 

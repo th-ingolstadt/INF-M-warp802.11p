@@ -34,5 +34,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length);
 int wlan_eth_dma_send(u8* pkt_ptr, u32 length);
 inline void wlan_poll_eth();
 void wlan_eth_dma_update();
+int wlan_eth_setup_interrupt(XIntc* intc);
+static void RxIntrHandler(void *Callback);
 
 #endif /* WLAN_MAC_ETH_UTIL_H_ */
