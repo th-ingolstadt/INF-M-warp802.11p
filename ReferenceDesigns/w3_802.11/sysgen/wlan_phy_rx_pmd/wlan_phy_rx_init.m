@@ -11,7 +11,7 @@ addpath('./blackboxes');
 PLCP_Preamble = PLCP_Preamble_gen;
 
 %%
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_74_badSignal.prn'); cs_interp = 8; cs_start = 1; cs_end = length(ADC_I);
+%xlLoadChipScopeData('cs_capt/wlan_cs_capt_81_64Q23.prn'); cs_interp = 1; cs_start = 1300; cs_end = length(ADC_I);
 %samps2 = complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));
 %payload_vec = [samps2; zeros(1000,1);];
 %paylod_vec_samp_time = 8;
@@ -28,23 +28,21 @@ samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
 
 %wlan_tx output %wlan_tx_out_74PB_64Q34 is worst case for last samp -> decode latency
 %load('rx_sigs/wlan_tx_out_81B_Q12.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+%load('rx_sigs/wlan_tx_out_120PB_64Q23.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_3pkts_16Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_1240PB_16Q12.mat'); tx_sig_t = 1:length(wlan_tx_out);
-load('rx_sigs/wlan_tx_out_74PB_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+%load('rx_sigs/wlan_tx_out_74PB_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 
-%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
+payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
+%cfo = exp(1i*2*pi*(5e-4)*(0:length(payload_vec)-1)).';
+%payload_vec = payload_vec .* cfo;
+
 %payload_vec((50+32+160+160+4)+[1:70]) = 0;%Force SIGNAL error in first pkt
-payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(10,1); wlan_tx_out(tx_sig_t); zeros(100,1)];
+%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(10,1); wlan_tx_out(tx_sig_t); zeros(100,1)];
 paylod_vec_samp_time = 8;
-
-%DSSS capt
-%load dsss_capt_v0.mat; t_capt = 1.25e4:3.27e4;
-%rx_raw = 5*rx_IQ(t_capt).';
-%raw_rx_dec = filter(hb_filt2, 1, rx_raw);
-%raw_rx_dec = raw_rx_dec(1:2:end);
-%payload_vec = [zeros(100,1); raw_rx_dec.'; zeros(1000,1)];
 
 simtime = 8*length(payload_vec) + 500;
 raw_rx_I.time = [];
@@ -150,10 +148,12 @@ REG_RX_Control = ...
     0;
 
 REG_RX_Config = ...
-    2^0  * 1 + ...; %DSSS RX EN
-    2^1  * 1 + ...; %DSSS RX Blocks
-    2^2  * 1 + ...; %Swap pkt buf byte order
-    2^3  * 0 + ...; %Block Rx on FCS bad
+    2^0  * 1 + ... %DSSS RX EN
+    2^1  * 1 + ... %Block inputs on INVALID input
+    2^2  * 1 + ... %Swap pkt buf byte order
+    2^3  * 0 + ...
+    2^4  * 1 + ... %Allow DSSS Rx to keep AGC locked
+    2^5  * 1 + ... %Bypass CFO est/correction
     0;
 
 REG_RX_DSSS_RX_CONFIG = ...
@@ -220,6 +220,15 @@ NCBPS_BPSK = 48;
 NCBPS_QPSK = 96;
 NCBPS_16QAM = 192;
 NCBPS_64QAM = 288;
+
+NDBPS_BPSK12 = 24;
+NDBPS_BPSK34 = 36;
+NDBPS_QPSK12 = 48;
+NDBPS_QPSK34 = 72;
+NDBPS_16QAM12 = 96;
+NDBPS_16QAM34 = 144;
+NDBPS_64QAM23 = 192;
+NDBPS_64QAM34 = 216;
 
 %% BPSK
 N_CBPS = 48;

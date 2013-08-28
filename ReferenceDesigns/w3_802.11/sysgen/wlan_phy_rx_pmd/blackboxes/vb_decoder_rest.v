@@ -25,12 +25,14 @@ module unpack_m2n (
         vout    ,   // O, valid output
         remain  ,   // I, remain
         last    ,   // I, last data
-        done        // O, done
+        done    ,   // O, done
+		early_trace
         ) ;
 
-parameter               BITM = 40 ;
+parameter               BITM = 48 ;
+parameter               BITM_EARLY = 24 ;
 parameter               BITN = 8 ;
-parameter               LW = 6 ;
+parameter               LW = 7 ;
 
 input                   clk ;
 input                   nrst ;
@@ -39,6 +41,7 @@ input   [BITM-1 :0]     din ;
 input                   vin ;
 input   [LW -1:0]       remain ;
 input                   last ;
+input					early_trace;
 
 output  [BITN-1 :0]     dout ;
 output                  vout ;
@@ -70,7 +73,11 @@ always @ (posedge clk)
     cnt <= 0 ;
   else if (start)
     cnt <= 0 ;
-  else if (vin)
+  else if (vin & early_trace)
+  begin
+      cnt <= cnt + BITM_EARLY ;
+  end
+  else if (vin)// & ~early_trace)
   begin
     if (~last)
       cnt <= cnt + BITM ;
@@ -145,9 +152,9 @@ module viterbi_core (
         dout        ,   // O, data out
         done        ,   // O, done pulse
         remain,          // O, remain data cnt
-		trace_now
+		early_trace
         ) ;
-        input trace_now;
+        input early_trace;
 parameter           SW = 4 ;        // soft input precision
 parameter           M = 7 ;         // metric width
 
@@ -155,6 +162,10 @@ parameter           R = 48 ;        // reliable trace
 parameter           C = 40 ;        // unreliable trace
 parameter           L = 88 ;        // total trace depth
 parameter           LW = 7 ;        // L width
+
+parameter			R_EARLY = 24; //Early total trace depth
+parameter			C_EARLY = 0;  //Early unreliable trace
+parameter			L_EARLY = 24; //Early reliable trace trace 
 
 parameter           K = 7 ;         // constraint length
 parameter           N = 64 ;        // number of states = 2^(K-1)
@@ -709,6 +720,8 @@ reg                 nd ;
 reg     [LW -1:0]   cnt ;
 reg                 trace ;
 reg                 trace_en ;
+reg					early_trace_en;
+
 wire                trace_done ;
 reg                 trace_done_s0 ;
 wire                trace_done_pos ;
@@ -1522,15 +1535,27 @@ always @ (posedge clk)
     tran_state_63 [wptr] <= diff_63 [M -1] ;
   end
   
+	reg early_trace_d0;
+	wire early_trace_pos;
+
+	always @ (posedge clk)
+	begin
+		early_trace_d0 <= early_trace;
+	end
+
+	assign early_trace_pos = (early_trace & ~early_trace_d0);
+
 always @ (posedge clk)
   if (~nrst)
   begin
+    early_trace_en <= 1'b0;
     trace <= 1'b0 ;
     cnt <= 0 ;
     trace_start_wptr <= 0 ;
   end
   else if (packet_start)
   begin
+    early_trace_en <= 1'b0;
     trace <= 1'b0 ;
     cnt <= 0 ;
   end
@@ -1538,12 +1563,21 @@ always @ (posedge clk)
   begin
     if (cnt == L-1)
     begin
+      early_trace_en <= 1'b0;
       trace <= 1'b1 ;
       trace_start_wptr <= wptr ;
       cnt <= C ;
     end
-    else
+    else if (early_trace_pos)
     begin
+	  early_trace_en <= 1'b1;
+      trace <= 1'b1 ;
+      trace_start_wptr <= wptr ;
+      cnt <= C_EARLY ;
+    end
+	else
+    begin
+      early_trace_en <= 1'b0;
       trace <= 1'b0 ;
       cnt <= cnt + 1 ;
     end
@@ -1678,7 +1712,9 @@ always @ (posedge clk)
     trace_en <= 0 ;
   else if (trace_pos)
     trace_en <= 1'b1 ;
-  else if (trace_cnt == L-2)
+  else if ((trace_cnt == L-2) & (early_trace_en == 0))
+    trace_en <= 1'b0 ;
+  else if ((trace_cnt == L_EARLY-2) & (early_trace_en == 1))
     trace_en <= 1'b0 ;
     
 always @ (posedge clk)
@@ -1689,7 +1725,8 @@ always @ (posedge clk)
   else if (trace_en)
     trace_cnt <= trace_cnt + 2; 
     
-assign trace_done = trace_cnt == L ;
+//assign trace_done = (trace_cnt == L);
+assign trace_done = early_trace_en ? (trace_cnt == L_EARLY) : (trace_cnt == L);
 
 always @ (posedge clk)
   trace_done_s0 <= trace_done ;

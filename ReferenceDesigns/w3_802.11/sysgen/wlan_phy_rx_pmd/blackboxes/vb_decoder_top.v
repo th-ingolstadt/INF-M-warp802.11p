@@ -27,23 +27,29 @@ module vb_decoder_top (
         nrst        ,   // I, n reset
         packet_start,   // I, packet start pulse
         packet_end  ,   // I, packet end pulse
-        zero_tail   ,   // I, the code is zero terminated
         vin         ,   // I, valid input
         llr_b1      ,   // I, 1st LLR
         llr_b0      ,   // I, 2nd LLR
         vout        ,   // O, valid output
         dout_in_byte,   // O, decoded output in byte
         done,            // O, decoding done
-		trace_now
+		early_trace
         ) ;
 parameter           SW = 4 ;        // soft input precision
 parameter           M = 7 ;         // Metric precision
-parameter           L = 24 ;        // total trace depth //WLAN
-parameter           R = 24 ;        // reliable trace
-parameter           C = 0 ;        // unreliable trace
-//parameter           L = 88 ;        // total trace depth
-//parameter           R = 48 ;        // reliable trace
-//parameter           C = 40 ;        // unreliable trace
+
+parameter			R_EARLY = 24; //Early total trace depth
+parameter			C_EARLY = 0;  //Early unreliable trace
+parameter			L_EARLY = 24; //Early reliable trace trace 
+
+//parameter           L = 24 ;        // total trace depth //WLAN
+//parameter           R = 24 ;        // reliable trace
+//parameter           C = 0 ;        // unreliable trace
+
+parameter           L = 88 ;        // total trace depth
+parameter           R = 48 ;        // reliable trace
+parameter           C = 40 ;        // unreliable trace
+
 parameter           LW = 7 ;        // L width
 parameter           K = 7 ;         // constraint length
 parameter           N = 64 ;        // number of states
@@ -54,12 +60,11 @@ input               clk ;           // system clock
 input				ce ;
 input               nrst ;          // active low reset
 input               packet_start ;  // start of packet pulse
-input               zero_tail ;     // 1 = the code is terminated with 0, 0 = no termination
 input               packet_end ;    // end of packet pulse
 input               vin ;           // data valid input
 input   [4 -1:0]   llr_b1 ;        // soft value for bit1
 input   [4 -1:0]   llr_b0 ;        // soft value for bit0
-input trace_now;
+input early_trace;
 
 output              done ;
 output              vout ;
@@ -72,6 +77,7 @@ wire    [LW -1:0]           remain ;
 wire                        dec_vout ;
 wire    [R-1:0]             dec_dout ;
 wire                        dec_done ;
+wire early_dec_vout;
 
 //=============================================
 // Main RTL code
@@ -80,12 +86,13 @@ wire                        dec_done ;
 //================================================================
 // Viterbi decoder core logic
 //================================================================
-viterbi_core #(SW, M, R, C, L, LW, K, N, TR, TRW) viterbi_core (
+//viterbi_core #(SW, M, R, C, L, LW, K, N, TR, TRW) viterbi_core (
+viterbi_core viterbi_core (
         .clk            (clk            ),  //IN 
         .nrst           (nrst           ),  //IN 
         .packet_start   (packet_start   ),  //IN 
         .packet_end     (packet_end     ),  //IN
-        .zero_tail      (zero_tail      ),
+        .zero_tail      (1'b1      ),
         .dv_in          (vin            ),  //IN 
         .llr1           (llr_b1         ),  //IN[SW-1:0] 
         .llr0           (llr_b0         ),  //IN[SW-1:0]        
@@ -93,13 +100,29 @@ viterbi_core #(SW, M, R, C, L, LW, K, N, TR, TRW) viterbi_core (
         .done           (dec_done       ),  //OUT
         .dv_out         (dec_vout       ),  //OUT
         .dout           (dec_dout       ),   //OUT[R -1:0]
-		.trace_now (trace_now)
+		.early_trace (early_trace)
         ) ;
+defparam viterbi_core.SW = SW;
+defparam viterbi_core.M = M;
+
+defparam viterbi_core.R = R;
+defparam viterbi_core.C = C;
+defparam viterbi_core.L = L;
+
+defparam viterbi_core.R_EARLY = R_EARLY;
+defparam viterbi_core.C_EARLY = C_EARLY;
+defparam viterbi_core.L_EARLY = L_EARLY;
+
+defparam viterbi_core.LW = LW;
+defparam viterbi_core.K = K;
+defparam viterbi_core.N = N;
+defparam viterbi_core.TR = TR;
+defparam viterbi_core.TRW = TRW;
 
 //=============================================
 // x to 8bit unpacking
 //=============================================        
-unpack_m2n #(R, 8, LW) unpack_Rto8 (
+unpack_m2n unpack_Rto8 (
         .clk    (clk            ),  //IN 
         .nrst   (nrst           ),  //IN 
         .start  (packet_start   ),  //IN 
@@ -109,7 +132,13 @@ unpack_m2n #(R, 8, LW) unpack_Rto8 (
         .remain (remain         ),  //IN[LW -1:0]
         .dout   (dout_in_byte   ),  //OUT
         .vout   (vout           ),  //OUT
-        .done   (done           )   //OUT
+        .done   (done           ),   //OUT
+		.early_trace(early_trace) //IN
         ) ;
-        
+
+		defparam unpack_Rto8.BITM = R;
+		defparam unpack_Rto8.BITM_EARLY = R_EARLY;
+		defparam unpack_Rto8.BITN = 8;
+		defparam unpack_Rto8.LW = LW;
+		
 endmodule

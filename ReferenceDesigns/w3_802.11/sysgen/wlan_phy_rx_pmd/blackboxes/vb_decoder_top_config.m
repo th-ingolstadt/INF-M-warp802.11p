@@ -17,14 +17,13 @@ function vb_decoder_top_config(this_block)
   %   if it  doesn't, then comment out the following line:
   this_block.tagAsCombinational;
 
-  this_block.addSimulinkInport('nrst');
   this_block.addSimulinkInport('llr_b1');
   this_block.addSimulinkInport('llr_b0');
   this_block.addSimulinkInport('vin');
+  this_block.addSimulinkInport('nrst');
   this_block.addSimulinkInport('packet_start');
-  this_block.addSimulinkInport('zero_tail');
   this_block.addSimulinkInport('packet_end');
-  this_block.addSimulinkInport('trace_now');
+  this_block.addSimulinkInport('early_trace');
 
   this_block.addSimulinkOutport('done');
   this_block.addSimulinkOutport('vout');
@@ -55,12 +54,6 @@ function vb_decoder_top_config(this_block)
 
     this_block.port('packet_start').useHDLVector(false);
 
-    if (this_block.port('zero_tail').width ~= 1);
-      this_block.setError('Input data type for port "zero_tail" must have width=1.');
-    end
-
-    this_block.port('zero_tail').useHDLVector(false);
-
     if (this_block.port('packet_end').width ~= 1);
       this_block.setError('Input data type for port "packet_end" must have width=1.');
     end
@@ -77,11 +70,11 @@ function vb_decoder_top_config(this_block)
 
     % (!) Port 'llr_b0' appeared to have dynamic type in the HDL -- please add type checking as appropriate;
 
-    if (this_block.port('trace_now').width ~= 1);
-      this_block.setError('Input data type for port "trace_now" must have width=1.');
+    if (this_block.port('early_trace').width ~= 1);
+      this_block.setError('Input data type for port "early_trace" must have width=1.');
     end
 
-    this_block.port('trace_now').useHDLVector(false);
+    this_block.port('early_trace').useHDLVector(false);
 
   end  % if(inputTypesKnown)
   % -----------------------------
