@@ -11,10 +11,18 @@
 #ifndef WLAN_MAC_UTIL_H_
 #define WLAN_MAC_UTIL_H_
 
+//Scheduler
+#define SCHEDULER_NUM_EVENTS 6
+#define NUM_SCHEDULERS 2
+#define SCHEDULE_FINE	0
+#define SCHEDULE_COARSE 1
+
+
 #define ETH_A_MAC_DEVICE_ID			XPAR_ETH_A_MAC_DEVICE_ID
 #define ETH_A_FIFO_DEVICE_ID		XPAR_ETH_A_FIFO_DEVICE_ID
 #define TIMESTAMP_GPIO_DEVICE_ID 	XPAR_MB_HIGH_TIMESTAMP_GPIO_DEVICE_ID
 #define UARTLITE_DEVICE_ID     		XPAR_UARTLITE_0_DEVICE_ID
+#define TMRCTR_DEVICE_ID			XPAR_TMRCTR_0_DEVICE_ID
 
 #define TIMESTAMP_GPIO_LSB_CHAN 1
 #define TIMESTAMP_GPIO_MSB_CHAN 2
@@ -26,6 +34,7 @@
 #define GPIO_DEVICE_ID			XPAR_MB_HIGH_SW_GPIO_DEVICE_ID
 #define INTC_GPIO_INTERRUPT_ID	XPAR_INTC_0_GPIO_0_VEC_ID
 #define UARTLITE_INT_IRQ_ID     XPAR_INTC_0_UARTLITE_0_VEC_ID
+#define TMRCTR_INTERRUPT_ID		XPAR_INTC_0_TMRCTR_0_VEC_ID
 
 #define GPIO_OUTPUT_CHANNEL 	1
 #define GPIO_INPUT_CHANNEL 		2
@@ -39,6 +48,13 @@
 #define GPIO_MASK_PB_D			 0x00000010
 
 #define UART_BUFFER_SIZE 1
+
+#define TIMER_FREQ          XPAR_TMRCTR_0_CLOCK_FREQ_HZ
+#define TIMER_CNTR_FAST	 0
+#define TIMER_CNTR_SLOW	 1
+
+#define	FAST_TIMER_DUR_US 1000
+#define	SLOW_TIMER_DUR_US 100000
 
 
 typedef struct{
@@ -84,7 +100,7 @@ void wlan_mac_util_set_pb_u_callback(void(*callback)());
 void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_util_set_uart_rx_callback(void(*callback)());
-void wlan_mac_schedule_event(u32 delay, void(*callback)());
+void wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)());
 inline void poll_schedule();
 inline int wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
@@ -98,6 +114,7 @@ void RecvHandler(void *CallBackRef, unsigned int EventData);
 void wlan_mac_util_set_ipc_rx_callback(void(*callback)());
 inline int interrupt_start();
 inline void interrupt_stop();
+void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 u8 wlan_mac_util_get_tx_rate(station_info* station);

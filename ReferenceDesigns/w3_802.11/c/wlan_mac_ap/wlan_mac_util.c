@@ -21,21 +21,22 @@
 #include "wlan_mac_eth_util.h"
 #include "w3_userio.h"
 #include "xparameters.h"
+#include "xtmrctr.h"
 
 static XGpio GPIO_timestamp;
 static XGpio Gpio;
 static XIntc InterruptController;
 XUartLite UartLite;
+static XTmrCtr TimerCounterInst;
 
 u8 ReceiveBuffer[UART_BUFFER_SIZE];
 
 function_ptr_t eth_rx_callback, mpdu_tx_callback, pb_u_callback, pb_m_callback, pb_d_callback, uart_callback, ipc_rx_callback;
 
-//Scheduler
-#define SCHEDULER_NUM_EVENTS 6
-static u8 scheduler_in_use[SCHEDULER_NUM_EVENTS];
-static function_ptr_t scheduler_callbacks[SCHEDULER_NUM_EVENTS];
-static u64 scheduler_timestamps[SCHEDULER_NUM_EVENTS];
+static u8 scheduler_in_use[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
+static function_ptr_t scheduler_callbacks[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
+static u64 scheduler_timestamps[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
+static u8 timer_running[NUM_SCHEDULERS];
 
 void wlan_mac_util_init(){
 	int Status;
@@ -86,24 +87,196 @@ void wlan_mac_util_init(){
 	queue_init();
 	wlan_eth_init();
 
-
-
-
 	//Set direction of GPIO channels
 	XGpio_SetDataDirection(&Gpio, GPIO_INPUT_CHANNEL, 0xFFFFFFFF);
 	XGpio_SetDataDirection(&Gpio, GPIO_OUTPUT_CHANNEL, 0);
 
-//	while(1){
-//		xil_printf("0x%08x\n",XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL));
-//	}
 
+	Status = XTmrCtr_Initialize(&TimerCounterInst, TMRCTR_DEVICE_ID);
+	if (Status != XST_SUCCESS) {
+		xil_printf("XTmrCtr failed to initialize\n");
+		return;
+	}
 
-//	Status = interrupt_init();
-//	if(Status != 0){
-//		warp_printf(PL_ERROR, "Error initializing interrupts, status code: %d\n", Status);
-//		return;
-//	}
+	//Set the handler for Timer
+	XTmrCtr_SetHandler(&TimerCounterInst, timer_handler, &TimerCounterInst);
 
+	//Enable interrupt of timer and auto-reload so it continues repeatedly
+	XTmrCtr_SetOptions(&TimerCounterInst, TIMER_CNTR_FAST, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION);
+	XTmrCtr_SetOptions(&TimerCounterInst, TIMER_CNTR_SLOW, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION);
+
+	timer_running[TIMER_CNTR_FAST] = 0;
+	timer_running[TIMER_CNTR_SLOW] = 0;
+
+	//XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
+	//XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
+
+}
+
+void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
+	//FIXME: Temporarily moved ISR to mac_util
+
+	//xil_printf("Custom Timer ISR\n");
+
+	XTmrCtr *TmrCtrPtr = NULL;
+	u8 TmrCtrNumber;
+	u32 ControlStatusReg;
+
+	/*
+	 * Verify that each of the inputs are valid.
+	 */
+	Xil_AssertVoid(InstancePtr != NULL);
+
+	/*
+	 * Convert the non-typed pointer to an timer/counter instance pointer
+	 * such that there is access to the timer/counter
+	 */
+	TmrCtrPtr = (XTmrCtr *) InstancePtr;
+
+	/*
+	 * Loop thru each timer counter in the device and call the callback
+	 * function for each timer which has caused an interrupt
+	 */
+	for (TmrCtrNumber = 0;
+		TmrCtrNumber < XTC_DEVICE_TIMER_COUNT; TmrCtrNumber++) {
+
+		ControlStatusReg = XTmrCtr_ReadReg(TmrCtrPtr->BaseAddress,
+						   TmrCtrNumber,
+						   XTC_TCSR_OFFSET);
+		/*
+		 * Check if interrupt is enabled
+		 */
+		if (ControlStatusReg & XTC_CSR_ENABLE_INT_MASK) {
+
+			/*
+			 * Check if timer expired and interrupt occured
+			 */
+			if (ControlStatusReg & XTC_CSR_INT_OCCURED_MASK) {
+				/*
+				 * Increment statistics for the number of
+				 * interrupts and call the callback to handle
+				 * any application specific processing
+				 */
+				TmrCtrPtr->Stats.Interrupts++;
+				TmrCtrPtr->Handler(TmrCtrPtr->CallBackRef,
+						   TmrCtrNumber);
+				/*
+				 * Read the new Control/Status Register content.
+				 */
+				ControlStatusReg =
+					XTmrCtr_ReadReg(TmrCtrPtr->BaseAddress,
+								TmrCtrNumber,
+								XTC_TCSR_OFFSET);
+				/*
+				 * If in compare mode and a single shot rather
+				 * than auto reload mode then disable the timer
+				 * and reset it such so that the interrupt can
+				 * be acknowledged, this should be only temporary
+				 * till the hardware is fixed
+				 */
+#if 0
+				if (((ControlStatusReg &
+					XTC_CSR_AUTO_RELOAD_MASK) == 0) &&
+					((ControlStatusReg &
+					  XTC_CSR_CAPTURE_MODE_MASK)== 0)) {
+						/*
+						 * Disable the timer counter and
+						 * reset it such that the timer
+						 * counter is loaded with the
+						 * reset value allowing the
+						 * interrupt to be acknowledged
+						 */
+						ControlStatusReg &=
+							~XTC_CSR_ENABLE_TMR_MASK;
+
+						XTmrCtr_WriteReg(
+							TmrCtrPtr->BaseAddress,
+							TmrCtrNumber,
+							XTC_TCSR_OFFSET,
+							ControlStatusReg |
+							XTC_CSR_LOAD_MASK);
+
+						/*
+						 * Clear the reset condition,
+						 * the reset bit must be
+						 * manually cleared by a 2nd write
+						 * to the register
+						 */
+						XTmrCtr_WriteReg(
+							TmrCtrPtr->BaseAddress,
+							TmrCtrNumber,
+							XTC_TCSR_OFFSET,
+							ControlStatusReg);
+				}
+#endif
+				/*
+				 * Acknowledge the interrupt by clearing the
+				 * interrupt bit in the timer control status
+				 * register, this is done after calling the
+				 * handler so the application could call
+				 * IsExpired, the interrupt is cleared by
+				 * writing a 1 to the interrupt bit of the
+				 * register without changing any of the other
+				 * bits
+				 */
+				XTmrCtr_WriteReg(TmrCtrPtr->BaseAddress,
+						 TmrCtrNumber,
+						 XTC_TCSR_OFFSET,
+						 ControlStatusReg |
+						 XTC_CSR_INT_OCCURED_MASK);
+			}
+		}
+	}
+}
+
+void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
+	u16 k;
+	u8 restart_timer;
+	u64 timestamp;
+
+	restart_timer = 0;
+	timestamp = get_usec_timestamp();
+
+	switch(TmrCtrNumber){
+		case TIMER_CNTR_FAST:
+			for(k = 0; k<SCHEDULER_NUM_EVENTS; k++){
+				if(scheduler_in_use[SCHEDULE_FINE][k] == 1){
+					if(timestamp > scheduler_timestamps[SCHEDULE_FINE][k]){
+						restart_timer = 1;
+						scheduler_in_use[SCHEDULE_FINE][k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
+						scheduler_callbacks[SCHEDULE_FINE][k]();
+					}
+				}
+			}
+			if(restart_timer){
+				timer_running[TIMER_CNTR_FAST] = 1;
+				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_FAST, FAST_TIMER_DUR_US*(TIMER_FREQ/1000000));
+				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
+			} else {
+				timer_running[TIMER_CNTR_FAST] = 0;
+			}
+		break;
+		case TIMER_CNTR_SLOW:
+		//	xil_printf("slow expiration!\n");
+			for(k = 0; k<SCHEDULER_NUM_EVENTS; k++){
+				if(scheduler_in_use[SCHEDULE_COARSE][k] == 1){
+					if(timestamp > scheduler_timestamps[SCHEDULE_COARSE][k]){
+						restart_timer = 1;
+						scheduler_in_use[SCHEDULE_COARSE][k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
+						scheduler_callbacks[SCHEDULE_COARSE][k]();
+					}
+				}
+			}
+			if(restart_timer){
+				timer_running[TIMER_CNTR_SLOW] = 1;
+				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_SLOW, SLOW_TIMER_DUR_US*(TIMER_FREQ/1000000));
+				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
+			//	xil_printf("restarting slow timer\n");
+			} else {
+				timer_running[TIMER_CNTR_SLOW] = 0;
+			}
+		break;
+	}
 }
 
 inline int interrupt_start(){
@@ -133,6 +306,15 @@ int interrupt_init(){
 		return Result;
 	}
 
+	//Connect Timer to Interrupt Controller
+	Result = XIntc_Connect(&InterruptController, TMRCTR_INTERRUPT_ID, (XInterruptHandler)XTmrCtr_CustomInterruptHandler, &TimerCounterInst);
+	//Result = XIntc_Connect(&InterruptController, TMRCTR_DEVICE_ID, (XInterruptHandler)timer_handler, &TimerCounterInst);
+
+	if (Result != XST_SUCCESS) {
+		xil_printf("Failed to connect XTmrCtr to XIntC\n");
+		return -1;
+	}
+
 	wlan_lib_setup_mailbox_interrupt(&InterruptController);
 	wlan_eth_setup_interrupt(&InterruptController);
 
@@ -144,6 +326,7 @@ int interrupt_init(){
 
 	XIntc_Enable(&InterruptController, INTC_GPIO_INTERRUPT_ID);
 	XIntc_Enable(&InterruptController, UARTLITE_INT_IRQ_ID);
+	XIntc_Enable(&InterruptController, TMRCTR_INTERRUPT_ID);
 
 
 	Xil_ExceptionInit();
@@ -241,16 +424,32 @@ u64 get_usec_timestamp(){
 }
 
 
-void wlan_mac_schedule_event(u32 delay, void(*callback)()){
+void wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 	u32 k;
 
 	u64 timestamp = get_usec_timestamp();
 
 	for (k = 0; k<SCHEDULER_NUM_EVENTS; k++){
-		if(scheduler_in_use[k] == 0){ //Found an empty schedule element
-			scheduler_in_use[k] = 1; //We are using this schedule element
-			scheduler_callbacks[k] = (function_ptr_t)callback;
-			scheduler_timestamps[k] = timestamp+(u64)delay;
+		if(scheduler_in_use[scheduler_sel][k] == 0){ //Found an empty schedule element
+			scheduler_in_use[scheduler_sel][k] = 1; //We are using this schedule element
+			scheduler_callbacks[scheduler_sel][k] = (function_ptr_t)callback;
+			scheduler_timestamps[scheduler_sel][k] = timestamp+(u64)delay;
+
+			if(scheduler_sel == SCHEDULE_FINE){
+				if(timer_running[TIMER_CNTR_FAST] == 0){
+					timer_running[TIMER_CNTR_FAST] = 1;
+					XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_FAST, FAST_TIMER_DUR_US*(TIMER_FREQ/1000000));
+					XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
+				}
+
+			} else if(scheduler_sel == SCHEDULE_COARSE) {
+				if(timer_running[TIMER_CNTR_SLOW] == 0){
+					timer_running[TIMER_CNTR_SLOW] = 1;
+					XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_SLOW, SLOW_TIMER_DUR_US*(TIMER_FREQ/1000000));
+					XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
+				}
+			}
+
 			return;
 		}
 	}
@@ -262,13 +461,25 @@ void poll_schedule(){
 	u64 timestamp = get_usec_timestamp();
 
 	for(k = 0; k<SCHEDULER_NUM_EVENTS; k++){
-		if(scheduler_in_use[k] == 1){
-			if(timestamp > scheduler_timestamps[k]){
-				scheduler_in_use[k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
-				scheduler_callbacks[k]();
+		if(scheduler_in_use[SCHEDULE_FINE][k] == 1){
+			if(timestamp > scheduler_timestamps[SCHEDULE_FINE][k]){
+				scheduler_in_use[SCHEDULE_FINE][k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
+				scheduler_callbacks[SCHEDULE_FINE][k]();
 			}
 		}
 	}
+
+	for(k = 0; k<SCHEDULER_NUM_EVENTS; k++){
+		if(scheduler_in_use[SCHEDULE_COARSE][k] == 1){
+			if(timestamp > scheduler_timestamps[SCHEDULE_COARSE][k]){
+				scheduler_in_use[SCHEDULE_COARSE][k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
+				scheduler_callbacks[SCHEDULE_COARSE][k]();
+			}
+		}
+	}
+
+
+
 }
 
 int wlan_mac_poll_tx_queue(u16 queue_sel){

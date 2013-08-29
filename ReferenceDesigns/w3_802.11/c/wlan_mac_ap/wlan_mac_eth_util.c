@@ -84,7 +84,7 @@ int wlan_eth_setup_interrupt(XIntc* intc){
 	return 0;
 }
 
-static void RxIntrHandler(void *Callback){
+void RxIntrHandler(void *Callback){
 	XAxiDma_BdRing *RxRingPtr = (XAxiDma_BdRing *) Callback;
 	u32 IrqStatus;
 

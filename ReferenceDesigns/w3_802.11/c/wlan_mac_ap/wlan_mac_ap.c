@@ -37,8 +37,8 @@
 
 #define MAX_RETRY 7
 
-#define SSID_LEN 7
-u8 SSID[SSID_LEN] = "WARP-AP";
+#define SSID_LEN 8
+u8 SSID[SSID_LEN] = "WARP-CRH";
 
 u16 seq_num;
 u8 allow_assoc;
@@ -154,7 +154,7 @@ int main(){
 
 	cpu_high_status |= CPU_STATUS_INITIALIZED;
 
-	mac_param_chan = 9;
+	mac_param_chan = 4;
 
 	//Send a message to other processor to tell it to switch channels
 	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
@@ -164,28 +164,28 @@ int main(){
 	config_rf_ifc->channel = mac_param_chan;
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 
-	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
+	wlan_mac_schedule_event(SCHEDULE_COARSE, BEACON_INTERVAL_US, (void*)beacon_transmit);
 
-	wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
 	enable_animation = 1;
-	wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
+	wlan_mac_schedule_event(SCHEDULE_COARSE, ANIMATION_RATE_US, (void*)animate_hex);
 	enable_associations();
 	perma_assoc_mode = 1; //By default, associations are allowed any time.
-	wlan_mac_schedule_event(ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
+	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
 
 	while(1){
-		interrupt_stop();
+		//interrupt_stop();
 
 		//Poll Scheduler
-		poll_schedule();
+		//poll_schedule();
 
 		//Poll Ethernet
 		//wlan_poll_eth();
 
-		interrupt_start();
+		//interrupt_start();
 
 
 //		xil_printf("Mailbox Empty Status: %d\n",ipc_mailbox_read_isempty());
@@ -236,9 +236,9 @@ void up_button(){
 	if(allow_assoc == 0){
 		//AP is currently not allowing any associations to take place
 		enable_animation = 1;
-		wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
+		wlan_mac_schedule_event(SCHEDULE_COARSE,ANIMATION_RATE_US, (void*)animate_hex);
 		enable_associations();
-		wlan_mac_schedule_event(ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
+		wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 	} else if(perma_assoc_mode == 0){
 		//AP is currently allowing associations, but only for the small allow window.
 		//Go into permanent allow association mode.
@@ -428,7 +428,7 @@ void beacon_transmit() {
  	}
 
  	//Schedule the next beacon transmission
- 	wlan_mac_schedule_event(BEACON_INTERVAL_US, (void*)beacon_transmit);
+ 	wlan_mac_schedule_event(SCHEDULE_COARSE,BEACON_INTERVAL_US, (void*)beacon_transmit);
 
  	return;
 }
@@ -484,7 +484,7 @@ void association_timestamp_check() {
 
 	}
 
-	wlan_mac_schedule_event(ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+	wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 	return;
 }
 
@@ -984,7 +984,7 @@ void animate_hex(){
 		//write_hex_display(next_free_assoc_index,i%2);
 		write_hex_display_dots(i%2);
 		i++;
-		wlan_mac_schedule_event(ANIMATION_RATE_US, (void*)animate_hex);
+		wlan_mac_schedule_event(SCHEDULE_COARSE, ANIMATION_RATE_US, (void*)animate_hex);
 	}
 }
 
@@ -1027,7 +1027,7 @@ void print_station_status(){
 
 
 		//Update display
-		wlan_mac_schedule_event(1000000, (void*)print_station_status);
+		wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
 	}
 }
 
