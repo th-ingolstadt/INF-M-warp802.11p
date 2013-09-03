@@ -292,7 +292,7 @@ int ipc_mailbox_read_msg(wlan_ipc_msg* msg) {
 	//Mailbox read functions:
 	//int XMbox_Read(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes, u32 *BytesRecvdPtr);
 	//void XMbox_ReadBlocking(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes)
-	status = XMbox_IsEmpty(&ipc_mailbox);
+	//status = XMbox_IsEmpty(&ipc_mailbox);
 
 	//DEBUG
 	//return IPC_MBOX_INVALID_MSG;
