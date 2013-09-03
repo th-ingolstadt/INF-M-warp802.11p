@@ -190,6 +190,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					//xil_printf("CPU_LOW: processing buffer %d, length = %d, rate = %d\n", tx_pkt_buf, tx_mpdu->length, tx_mpdu->rate);
 
 					//Convert human-readable rates into PHY rates
+					//n_dbps is used to calculate duration of received ACKs.
+					//This rate selection is specified in 9.7.6.5.2 of 802.11-2012
 					switch(tx_mpdu->rate){
 						case WLAN_MAC_RATE_1M:
 							warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
@@ -200,7 +202,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						break;
 						case WLAN_MAC_RATE_9M:
 							rate = WLAN_PHY_RATE_BPSK34;
-							n_dbps = N_DBPS_R9;
+							n_dbps = N_DBPS_R6;
 						break;
 						case WLAN_MAC_RATE_12M:
 							rate = WLAN_PHY_RATE_QPSK12;
@@ -208,7 +210,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						break;
 						case WLAN_MAC_RATE_18M:
 							rate = WLAN_PHY_RATE_QPSK34;
-							n_dbps = N_DBPS_R18;
+							n_dbps = N_DBPS_R12;
 						break;
 						case WLAN_MAC_RATE_24M:
 							rate = WLAN_PHY_RATE_16QAM12;
@@ -216,15 +218,15 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						break;
 						case WLAN_MAC_RATE_36M:
 							rate = WLAN_PHY_RATE_16QAM34;
-							n_dbps = N_DBPS_R36;
+							n_dbps = N_DBPS_R24;
 						break;
 						case WLAN_MAC_RATE_48M:
 							rate = WLAN_PHY_RATE_64QAM23;
-							n_dbps = N_DBPS_R48;
+							n_dbps = N_DBPS_R24;
 						break;
 						case WLAN_MAC_RATE_54M:
 							rate = WLAN_PHY_RATE_64QAM34;
-							n_dbps = N_DBPS_R54;
+							n_dbps = N_DBPS_R24;
 						break;
 					}
 
@@ -318,6 +320,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	}
 
 	//tx_rate will be used in the construction of ACK packets. tx_rate is set to the incoming rx_rate
+	//This rate selection is specified in 9.7.6.5.2 of 802.11-2012
 	switch(rate){
 		case WLAN_MAC_RATE_1M:
 			tx_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
@@ -326,25 +329,25 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 			tx_rate = WLAN_PHY_RATE_BPSK12;
 		break;
 		case WLAN_MAC_RATE_9M:
-			tx_rate = WLAN_PHY_RATE_BPSK34;
+			tx_rate = WLAN_PHY_RATE_BPSK12;
 		break;
 		case WLAN_MAC_RATE_12M:
 			tx_rate = WLAN_PHY_RATE_QPSK12;
 		break;
 		case WLAN_MAC_RATE_18M:
-			tx_rate = WLAN_PHY_RATE_QPSK34;
+			tx_rate = WLAN_PHY_RATE_QPSK12;
 		break;
 		case WLAN_MAC_RATE_24M:
 			tx_rate = WLAN_PHY_RATE_16QAM12;
 		break;
 		case WLAN_MAC_RATE_36M:
-			tx_rate = WLAN_PHY_RATE_16QAM34;
+			tx_rate = WLAN_PHY_RATE_16QAM12;
 		break;
 		case WLAN_MAC_RATE_48M:
-			tx_rate = WLAN_PHY_RATE_64QAM23;
+			tx_rate = WLAN_PHY_RATE_16QAM12;
 		break;
 		case WLAN_MAC_RATE_54M:
-			tx_rate = WLAN_PHY_RATE_64QAM34;
+			tx_rate = WLAN_PHY_RATE_16QAM12;
 		break;
 	}
 
