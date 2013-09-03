@@ -15,10 +15,10 @@
 
 typedef struct packet_bd packet_bd;
 struct packet_bd{
-	station_info* station_info_ptr;
+	void* metadata_ptr;
 	packet_bd* next;
 	packet_bd* prev;
-	tx_packet_buffer* pktbuf_ptr;
+	void* buf_ptr;
 };
 
 typedef struct {
@@ -28,12 +28,6 @@ typedef struct {
 } packet_bd_list;
 
 #define PQUEUE_MAX_FRAME_SIZE	0x800 	//2KB
-
-//If using BRAM for packet_bds
-//#define PQUEUE_LEN				20 		//Total Queue Size (bytes) = PQUEUE_LEN*(PQUEUE_MAX_FRAME_SIZE + sizeof(packet_bd))
-
-//If using DRAM for packet_bds//
-//#define PQUEUE_LEN				1000 		//Total Queue Size (bytes) = PQUEUE_LEN*(PQUEUE_MAX_FRAME_SIZE + sizeof(packet_bd))
 
 //Bottom 48kB of data BRAM is used for PQUEUE
 #define PQUEUE_MEM_BASE				(XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR)

@@ -11,22 +11,13 @@
 #ifndef WLAN_MAC_HIGH_H_
 #define WLAN_MAC_HIGH_H_
 
-#define MAX_ASSOCIATIONS 8
-
-#define ASSOCIATION_TIMEOUT_S (600)
-#define ASSOCIATION_TIMEOUT_US (ASSOCIATION_TIMEOUT_S*1000000)
-
-#define ANIMATION_RATE_US (100000)
-
 int main();
 int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
-int is_tx_buffer_empty();
-void mpdu_transmit(packet_bd* tx_queue);
 void beacon_transmit();
-void process_ipc_msg_from_low(wlan_ipc_msg* msg);
 void print_associations();
 void print_queue_status();
+void mpdu_transmit_done(tx_frame_info* tx_mpdu);
 void association_timestamp_check();
 void enable_associations();
 void disable_associations();
@@ -38,6 +29,5 @@ void print_station_status();
 void reset_station_statistics();
 void deauthenticate_stations();
 void check_tx_queue();
-void ipc_rx();
 
 #endif /* WLAN_MAC_LOW_H_ */

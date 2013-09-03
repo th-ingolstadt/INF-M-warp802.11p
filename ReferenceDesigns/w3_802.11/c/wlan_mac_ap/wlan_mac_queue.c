@@ -78,8 +78,8 @@ void queue_init(){
 	//This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
 	queue_free.length = PQUEUE_LEN;
 	for(i=0;i<PQUEUE_LEN;i++){
-		queue_free.first[i].pktbuf_ptr = (tx_packet_buffer*)(PQUEUE_BUFFER_SPACE_BASE + (i*PQUEUE_MAX_FRAME_SIZE));
-		queue_free.first[i].station_info_ptr = NULL;
+		queue_free.first[i].buf_ptr = (void*)(PQUEUE_BUFFER_SPACE_BASE + (i*PQUEUE_MAX_FRAME_SIZE));
+		queue_free.first[i].metadata_ptr = NULL;
 
 		//xil_printf("packet_bd %d: pktbuf_ptr = 0x%08x\n",i, queue_free.first[i].pktbuf_ptr);
 
@@ -282,7 +282,7 @@ void packet_bd_print(packet_bd_list* list){
 		xil_printf("0x%08x\n", curr_bd);
 		xil_printf("  |  prev:      0x%08x\n", curr_bd->prev);
 		xil_printf("  |  next:      0x%08x\n", curr_bd->next);
-		xil_printf("  |       pktbuf_ptr: 0x%08x\n", curr_bd->pktbuf_ptr);
+		xil_printf("  |       buf_ptr: 0x%08x\n", curr_bd->buf_ptr);
 		curr_bd = curr_bd->next;
 	}
 }

@@ -13,6 +13,7 @@
 #include "xil_exception.h"
 #include "xintc.h"
 #include "xuartlite.h"
+#include "xaxicdma.h"
 
 #include "wlan_lib.h"
 #include "wlan_mac_util.h"
@@ -28,10 +29,22 @@ static XGpio Gpio;
 static XIntc InterruptController;
 XUartLite UartLite;
 static XTmrCtr TimerCounterInst;
+XAxiCdma cdma_inst;
+
+static u32 cpu_low_status;
+static u32 cpu_high_status;
+
+#define TX_BUFFER_NUM 2
+u8 tx_pkt_buf;
 
 u8 ReceiveBuffer[UART_BUFFER_SIZE];
 
-function_ptr_t eth_rx_callback, mpdu_tx_callback, pb_u_callback, pb_m_callback, pb_d_callback, uart_callback, ipc_rx_callback;
+static u8 eeprom_mac_addr[6];
+
+wlan_ipc_msg ipc_msg_from_low;
+u32 ipc_msg_from_low_payload[10];
+
+function_ptr_t eth_rx_callback, mpdu_tx_done_callback, mpdu_rx_callback, pb_u_callback, pb_m_callback, pb_d_callback, uart_callback, ipc_rx_callback, check_queue_callback;
 
 static u8 scheduler_in_use[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
 static function_ptr_t scheduler_callbacks[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
@@ -40,16 +53,46 @@ static u8 timer_running[NUM_SCHEDULERS];
 
 void wlan_mac_util_init(){
 	int Status;
-	u32 gpio_read;
+	u32 gpio_read,i;
 	u64 timestamp;
+	tx_frame_info* tx_mpdu;
 
 	eth_rx_callback = (function_ptr_t)nullCallback;
-	mpdu_tx_callback = (function_ptr_t)nullCallback;
+	mpdu_rx_callback = (function_ptr_t)nullCallback;
+	mpdu_tx_done_callback = (function_ptr_t)nullCallback;
 	pb_u_callback = (function_ptr_t)nullCallback;
 	pb_m_callback = (function_ptr_t)nullCallback;
 	pb_d_callback = (function_ptr_t)nullCallback;
 	uart_callback = (function_ptr_t)nullCallback;
 	ipc_rx_callback = (function_ptr_t)nullCallback;
+	check_queue_callback = (function_ptr_t)nullCallback;
+
+	//create IPC message to receive into
+	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
+
+	for(i=0;i < NUM_TX_PKT_BUFS; i++){
+		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
+		tx_mpdu->state = TX_MPDU_STATE_EMPTY;
+	}
+
+	tx_pkt_buf = 0;
+	xil_printf("locking tx_pkt_buf = %d\n", tx_pkt_buf);
+	if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+		warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",tx_pkt_buf);
+	}
+
+	tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
+
+	//Initialize the central DMA (CDMA) driver
+	XAxiCdma_Config *cdma_cfg_ptr;
+	cdma_cfg_ptr = XAxiCdma_LookupConfig(XPAR_AXI_CDMA_0_DEVICE_ID);
+	Status = XAxiCdma_CfgInitialize(&cdma_inst, cdma_cfg_ptr, cdma_cfg_ptr->BaseAddress);
+	if (Status != XST_SUCCESS) {
+		warp_printf(PL_ERROR,"Error initializing CDMA: %d\n", Status);
+	}
+	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
+
 
 	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
 	gpio_timestamp_initialize();
@@ -107,9 +150,6 @@ void wlan_mac_util_init(){
 
 	timer_running[TIMER_CNTR_FAST] = 0;
 	timer_running[TIMER_CNTR_SLOW] = 0;
-
-	//XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
-	//XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
 
 }
 
@@ -227,6 +267,108 @@ void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
 			}
 		}
 	}
+}
+
+
+void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
+	u8 rx_pkt_buf;
+	rx_frame_info* rx_mpdu;
+	tx_frame_info* tx_mpdu;
+
+
+
+	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
+		case IPC_MBOX_RX_MPDU_READY:
+
+			//This message indicates CPU Low has received an MPDU addressed to this node or to the broadcast address
+			rx_pkt_buf = msg->arg0;
+
+			//First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
+			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
+			} else {
+				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+
+				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
+				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
+
+				//Free up the rx_pkt_buf
+				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
+
+				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					warp_printf(PL_ERROR, "Error: unable to unlock pkt_buf %d\n",rx_pkt_buf);
+				}
+			}
+		break;
+
+		case IPC_MBOX_TX_MPDU_ACCEPT:
+
+			//This message indicates CPU Low has begun the Tx process for the previously submitted MPDU
+			// CPU High is now free to begin processing its next Tx frame and submit it to CPU Low
+			// CPU Low will not accept a new frame until the previous one is complete
+
+			if(tx_pkt_buf != (msg->arg0)) {
+				warp_printf(PL_ERROR, "Received CPU_LOW acceptance of buffer %d, but was expecting buffer %d\n", tx_pkt_buf, msg->arg0);
+			}
+
+			tx_pkt_buf = (tx_pkt_buf + 1) % TX_BUFFER_NUM;
+
+			cpu_high_status &= (~CPU_STATUS_WAIT_FOR_IPC_ACCEPT);
+
+			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
+				warp_printf(PL_ERROR,"Error: unable to lock tx pkt_buf %d\n",tx_pkt_buf);
+			} else {
+				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
+			}
+
+			check_queue_callback();
+
+		break;
+
+		case IPC_MBOX_TX_MPDU_DONE:
+
+			//This message indicates CPU Low has finished the Tx process for the previously submitted-accepted frame
+			// CPU High should do any necessary post-processing, then recycle the packet buffer
+			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
+			mpdu_tx_done_callback(tx_mpdu);
+
+
+		break;
+
+		case IPC_MBOX_MAC_ADDR:
+
+			//CPU Low updated the node's MAC address (typically stored in the WARP v3 EEPROM, accessible only to CPU Low)
+			memcpy((void*) &(eeprom_mac_addr[0]), (void*) &(ipc_msg_from_low_payload[0]), 6);
+		break;
+
+		case IPC_MBOX_CPU_STATUS:
+			cpu_low_status = ipc_msg_from_low_payload[0];
+
+			if(cpu_low_status & CPU_STATUS_EXCEPTION){
+				warp_printf(PL_ERROR, "An unrecoverable exception has occurred in CPU_LOW, halting...\n");
+				warp_printf(PL_ERROR, "Reason code: %d\n", ipc_msg_from_low_payload[1]);
+				while(1){}
+			}
+		break;
+
+		default:
+			warp_printf(PL_ERROR, "Unknown IPC message type %d\n",IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
+		break;
+	}
+
+
+	return;
+}
+
+void ipc_rx(){
+//	u32 numMsg = 0;
+//	xil_printf("Mailbox Rx\n");
+	while(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
+		process_ipc_msg_from_low(&ipc_msg_from_low);
+//		numMsg++;
+	}
+//	xil_printf("Processed %d msg in one ISR\n",numMsg);
 }
 
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
@@ -398,14 +540,21 @@ void wlan_mac_util_set_eth_rx_callback(void(*callback)()){
 	eth_rx_callback = (function_ptr_t)callback;
 }
 
-void wlan_mac_util_set_mpdu_tx_callback(void(*callback)()){
-	mpdu_tx_callback = (function_ptr_t)callback;
+void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)()){
+	mpdu_tx_done_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_mpdu_rx_callback(void(*callback)()){
+	mpdu_rx_callback = (function_ptr_t)callback;
 }
 
 void wlan_mac_util_set_uart_rx_callback(void(*callback)()){
 	uart_callback = (function_ptr_t)callback;
 }
 
+void wlan_mac_util_set_check_queue_callback(void(*callback)()){
+	check_queue_callback = (function_ptr_t)callback;
+}
 
 void gpio_timestamp_initialize(){
 	XGpio_Initialize(&GPIO_timestamp, TIMESTAMP_GPIO_DEVICE_ID);
@@ -493,7 +642,7 @@ int wlan_mac_poll_tx_queue(u16 queue_sel){
 	if(dequeue.length == 1){
 		return_value = 1;
 		tx_queue = dequeue.first;
-		mpdu_tx_callback(tx_queue);
+		mpdu_transmit(tx_queue);
 		queue_checkin(&dequeue);
 		wlan_eth_dma_update();
 	}
@@ -589,4 +738,83 @@ int memory_test(){
 
 	return 0;
 }
+
+int is_tx_buffer_empty(){
+	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	if(tx_mpdu->state == TX_MPDU_STATE_TX_PENDING && ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0)){
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+void mpdu_transmit(packet_bd* tx_queue) {
+	int status;
+	wlan_ipc_msg ipc_msg_to_low;
+	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	station_info* station = (station_info*)(tx_queue->metadata_ptr);
+
+
+
+
+	///TEMP
+
+	tx_packet_buffer* temp = ((tx_packet_buffer*)(tx_queue->buf_ptr));
+	u32 temp_l = ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
+	///TEMP
+
+	if(is_tx_buffer_empty()){
+
+		//For now, this is just a one-shot DMA transfer that effectively blocks
+		while(XAxiCdma_IsBusy(&cdma_inst)) {}
+		XAxiCdma_SimpleTransfer(&cdma_inst, (u32)(tx_queue->buf_ptr), (u32)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE, NULL, NULL);
+		while(XAxiCdma_IsBusy(&cdma_inst)) {}
+
+
+		if(station == NULL){
+			//Broadcast transmissions have no station information, so we default to a nominal rate
+			tx_mpdu->AID = 0;
+			tx_mpdu->rate = WLAN_MAC_RATE_6M;
+		} else {
+			//Request the rate to use for this station
+			tx_mpdu->AID = station->AID;
+			tx_mpdu->rate = wlan_mac_util_get_tx_rate(station);
+			//tx_mpdu->rate = default_unicast_rate;
+		}
+
+		tx_mpdu->state = TX_MPDU_STATE_READY;
+		tx_mpdu->retry_count = 0;
+
+		ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
+		ipc_msg_to_low.arg0 = tx_pkt_buf;
+		ipc_msg_to_low.num_payload_words = 0;
+
+		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			warp_printf(PL_ERROR,"Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
+		} else {
+			cpu_high_status |= CPU_STATUS_WAIT_FOR_IPC_ACCEPT;
+
+			status = ipc_mailbox_write_msg(&ipc_msg_to_low);
+		}
+	} else {
+		warp_printf(PL_ERROR, "Bad state in mpdu_transmit. Attempting to transmit but tx_buffer %d is not empty\n",tx_pkt_buf);
+	}
+
+	return;
+}
+
+int cpu_low_initialized(){
+	return ((cpu_low_status & CPU_STATUS_INITIALIZED) != 0);
+}
+
+int cpu_low_ready(){
+	//xil_printf("cpu_high_status = 0x%08x\n",cpu_high_status);
+	return ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0);
+}
+
+u8* get_eeprom_mac_addr(){
+	return &(eeprom_mac_addr[0]);
+}
+
+
 

@@ -173,7 +173,7 @@ int wlan_eth_dma_init() {
 	cur_bd_ptr = first_bd_ptr;
 	for(i = 0; i < bd_count; i++) {
 		//Set the memory address for this BD's buffer
-		buf_addr = (u32)(tx_queue->pktbuf_ptr->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
+		buf_addr = (u32)((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
 
 		status = XAxiDma_BdSetBufAddr(cur_bd_ptr, buf_addr);
 		if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetBufAddr failed (bd %d, addr 0x08x)! Err = %d\n", i, buf_addr, status); return -1;}
@@ -334,7 +334,7 @@ void wlan_poll_eth() {
 		eth_rx_buf = XAxiDma_BdGetBufAddr(cur_bd_ptr);
 
 		//After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
-		mpdu_start_ptr = tx_queue->pktbuf_ptr->frame;
+		mpdu_start_ptr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 
 		eth_start_ptr = (u8*)eth_rx_buf;
 
@@ -436,7 +436,7 @@ void wlan_eth_dma_update(){
 		cur_bd_ptr = first_bd_ptr;
 		for(i = 0; i < min(bd_count,checkout.length); i++) {
 			//Set the memory address for this BD's buffer
-			buf_addr = (u32)(tx_queue->pktbuf_ptr->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
+			buf_addr = (u32)((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
 
 			status = XAxiDma_BdSetBufAddr(cur_bd_ptr, buf_addr);
 			if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetBufAddr failed (bd %d, addr 0x08x)! Err = %d\n", i, buf_addr, status); return;}

@@ -11,6 +11,8 @@
 #ifndef WLAN_MAC_UTIL_H_
 #define WLAN_MAC_UTIL_H_
 
+#include "wlan_mac_queue.h"
+
 //Scheduler
 #define SCHEDULER_NUM_EVENTS 6
 #define NUM_SCHEDULERS 2
@@ -95,11 +97,13 @@ void wlan_mac_util_init();
 void gpio_timestamp_initialize();
 inline u64 get_usec_timestamp();
 void wlan_mac_util_set_eth_rx_callback(void(*callback)());
-void wlan_mac_util_set_mpdu_tx_callback(void(*callback)());
+void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)());
+void wlan_mac_util_set_mpdu_rx_callback(void(*callback)());
 void wlan_mac_util_set_pb_u_callback(void(*callback)());
 void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_util_set_uart_rx_callback(void(*callback)());
+void wlan_mac_util_set_check_queue_callback(void(*callback)());
 void wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)());
 inline void poll_schedule();
 inline int wlan_mac_poll_tx_queue(u16 queue_sel);
@@ -115,8 +119,16 @@ void wlan_mac_util_set_ipc_rx_callback(void(*callback)());
 inline int interrupt_start();
 inline void interrupt_stop();
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
+void ipc_rx();
+void process_ipc_msg_from_low(wlan_ipc_msg* msg);
+int cpu_low_ready();
+int cpu_low_initialized();
+u8* get_eeprom_mac_addr();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 u8 wlan_mac_util_get_tx_rate(station_info* station);
+
+int is_tx_buffer_empty();
+void mpdu_transmit(packet_bd* tx_queue);
 
 #endif /* WLAN_MAC_UTIL_H_ */
