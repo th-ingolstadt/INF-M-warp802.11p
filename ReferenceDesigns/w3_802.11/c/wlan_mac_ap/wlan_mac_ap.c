@@ -53,8 +53,8 @@
 
 #define MAX_ASSOCIATIONS 8
 
-#define SSID_LEN 8
-u8 SSID[SSID_LEN] = "WARP-CRH";
+#define SSID_LEN 7
+u8 SSID[SSID_LEN] = "WARP-AP";
 
 u16 seq_num;
 u8 allow_assoc;
@@ -297,10 +297,10 @@ void uart_rx(u8 rxByte){
 				xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 			break;
 			case ASCII_R:
-				if(default_unicast_rate < WLAN_MAC_RATE_48M){
+				if(default_unicast_rate < WLAN_MAC_RATE_54M){
 					default_unicast_rate++;
 				} else {
-					default_unicast_rate = WLAN_MAC_RATE_48M;
+					default_unicast_rate = WLAN_MAC_RATE_54M;
 				}
 
 				for(i=0; i < next_free_assoc_index; i++){
@@ -402,9 +402,9 @@ void beacon_transmit() {
 
 void association_timestamp_check() {
 
-	u32 i;
+	u32 i, num_queued;
 	u64 time_since_last_rx;
-	packet_bd_list checkout;
+	packet_bd_list checkout,dequeue;
 	packet_bd* tx_queue;
 	u32 tx_length;
 
@@ -426,6 +426,14 @@ void association_timestamp_check() {
 		 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 		 		enqueue_after_end(associations[i].AID, &checkout);
 		 		check_tx_queue();
+
+		 		//Purge any packets in the queue meant for this node
+				num_queued = queue_num_queued(associations[i].AID);
+				if(num_queued>0){
+					xil_printf("purging %d packets from queue for AID %d\n",num_queued,associations[i].AID);
+					dequeue = dequeue_from_beginning(associations[i].AID,1);
+					queue_checkin(&dequeue);
+				}
 
 				//Remove this STA from association list
 				if(next_free_assoc_index > 0) next_free_assoc_index--;
@@ -838,7 +846,8 @@ void reset_station_statistics(){
 
 void deauthenticate_stations(){
 	u32 i;
-	packet_bd_list checkout;
+	packet_bd_list checkout,dequeue;
+	u32 num_queued;
 	packet_bd* tx_queue;
 	u32 tx_length;
 
@@ -857,6 +866,14 @@ void deauthenticate_stations(){
 	 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
 	 		enqueue_after_end(associations[i].AID, &checkout);
 	 		check_tx_queue();
+
+	 		//Purge any packets in the queue meant for this node
+	 		num_queued = queue_num_queued(associations[i].AID);
+	 		if(num_queued>0){
+	 			xil_printf("purging %d packets from queue for AID %d\n",num_queued,associations[i].AID);
+	 			dequeue = dequeue_from_beginning(associations[i].AID,1);
+	 			queue_checkin(&dequeue);
+	 		}
 
 			//Remove this STA from association list
 			if(next_free_assoc_index > 0) next_free_assoc_index--;
