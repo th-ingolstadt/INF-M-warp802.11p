@@ -101,6 +101,12 @@ int main(){
 		return -1;
 	}
 
+	//FIXME: Unlock tx packet buffers 0 and 1, just in case a processor reset happened when CPU_LOW owned one
+	//unlock_pkt_buf_tx(0);
+	//unlock_pkt_buf_tx(1);
+
+
+
 	//Move the PHY's starting address into the packet buffers by PHY_XX_PKT_BUF_PHY_HDR_OFFSET.
 	//This accounts for the metadata located at the front of every packet buffer (Xx_mpdu_info)
 	wlan_phy_rx_pkt_buf_phy_hdr_offset(PHY_RX_PKT_BUF_PHY_HDR_OFFSET);
@@ -141,7 +147,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u16 n_dbps;
 	u32 isLocked, owner;
 
-
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 			case IPC_MBOX_CONFIG_RF_IFC:
 				process_config_rf_ifc((ipc_config_rf_ifc*)ipc_msg_from_high_payload);
@@ -163,6 +168,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 				//Message is an indication that a Tx Pkt Buf needs processing
 				tx_pkt_buf = msg->arg0;
+
 
 				ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_ACCEPT);
 				ipc_msg_to_high.num_payload_words = 0;
