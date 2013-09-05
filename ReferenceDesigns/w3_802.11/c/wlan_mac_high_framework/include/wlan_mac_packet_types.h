@@ -12,6 +12,13 @@
 #ifndef WLAN_MAC_PACKET_TYPES_H_
 #define WLAN_MAC_PACKET_TYPES_H_
 
+typedef struct{
+	u8* address_1;
+	u8* address_2;
+	u8* address_3;
+	u16 seq_num;
+	u8 frag_num;
+} mac_header_80211_common;
 
 typedef struct{
 	u16 auth_algorithm;
@@ -43,15 +50,16 @@ typedef struct{
 #define DEAUTH_REASON_INACTIVITY		4
 #define DEAUTH_REASON_NONASSOCIATED_STA	7
 
-
 // Status Codes: Table 7-23 in 802.11-2007
 #define STATUS_SUCCESS 0
 #define STATUS_AUTH_REJECT_CHALLENGE_FAILURE 15
 
-int wlan_create_beacon_probe_frame(void* pkt_buf, u8 subtype, u8* address1, u8* address2, u8* address3, u16 seq_num, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan, u8* OUI);
-int wlan_create_auth_frame(void* pkt_buf, u16 auth_algorithm,  u16 auth_seq, u16 status_code, u8* address1, u8* address2, u8* address3, u16 seq_num, u8* OUI);
-int wlan_create_deauth_frame(void* pkt_buf, u16 reason_code, u8* address1, u8* address2, u8* address3, u16 seq_num, u8* OUI);
-int wlan_create_association_response_frame(void* pkt_buf, u8 subtype, u8* address1, u8* address2, u8* address3, u16 seq_num, u16 status, u16 AID, u8* OUI);
-int wlan_create_data_frame(void* pkt_buf, u8 flags, u8* address1, u8* address2, u8* address3, u16 seq_num);
+#define wlan_create_beacon_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_BEACON, common, beacon_interval, ssid_len, ssid, chan)
+#define wlan_create_probe_resp_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, common, beacon_interval, ssid_len, ssid, chan)
+int wlan_create_beacon_probe_frame(void* pkt_buf, u8 subtype, mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan);
+int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code);
+int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16 reason_code);
+int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID);
+int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 flags);
 
 #endif /* WLAN_MAC_PACKET_TYPES_H_ */
