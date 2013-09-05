@@ -12,6 +12,7 @@
 #define WLAN_MAC_UTIL_H_
 
 #include "wlan_mac_queue.h"
+#include "wlan_mac_misc_util.h"
 
 //Scheduler
 #define SCHEDULER_NUM_EVENTS 6

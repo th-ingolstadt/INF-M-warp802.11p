@@ -16,6 +16,7 @@
 #include "xaxicdma.h"
 
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
@@ -749,7 +750,7 @@ int is_tx_buffer_empty(){
 }
 
 void mpdu_transmit(packet_bd* tx_queue) {
-	int status;
+
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station_info* station = (station_info*)(tx_queue->metadata_ptr);
@@ -757,11 +758,6 @@ void mpdu_transmit(packet_bd* tx_queue) {
 
 
 
-	///TEMP
-
-	tx_packet_buffer* temp = ((tx_packet_buffer*)(tx_queue->buf_ptr));
-	u32 temp_l = ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
-	///TEMP
 
 	if(is_tx_buffer_empty()){
 
@@ -794,7 +790,7 @@ void mpdu_transmit(packet_bd* tx_queue) {
 		} else {
 			cpu_high_status |= CPU_STATUS_WAIT_FOR_IPC_ACCEPT;
 
-			status = ipc_mailbox_write_msg(&ipc_msg_to_low);
+			ipc_mailbox_write_msg(&ipc_msg_to_low);
 		}
 	} else {
 		warp_printf(PL_ERROR, "Bad state in mpdu_transmit. Attempting to transmit but tx_buffer %d is not empty\n",tx_pkt_buf);

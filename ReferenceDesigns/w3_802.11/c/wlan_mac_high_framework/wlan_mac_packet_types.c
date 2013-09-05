@@ -16,6 +16,7 @@
 
 //WARP includes
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_packet_types.h"
 
 int wlan_create_beacon_probe_frame(void* pkt_buf, u8 frame_control_1, u8* address1, u8* address2, u8* address3, u16 seq_num, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan, u8* OUI) {
