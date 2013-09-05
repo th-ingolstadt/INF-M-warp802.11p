@@ -17,7 +17,7 @@
 #include "xintc.h"
 
 //WARP includes
-#include "wlan_lib.h"
+#include "wlan_mac_ipc_util.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
