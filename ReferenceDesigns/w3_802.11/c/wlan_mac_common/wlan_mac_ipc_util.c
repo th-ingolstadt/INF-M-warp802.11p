@@ -22,6 +22,8 @@
 #endif
 
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_misc_util.h"
+#include "wlan_mac_802_11_defs.h"
 
 
 #ifdef XPAR_INTC_0_DEVICE_ID
