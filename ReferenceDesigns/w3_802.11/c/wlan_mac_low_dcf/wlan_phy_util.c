@@ -25,6 +25,7 @@
 
 //WLAN design includes
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_misc_util.h"
 #include "wlan_phy_util.h"
 
 //LUT of number of ones in each byte (used to calculate PARITY in SIGNAL)

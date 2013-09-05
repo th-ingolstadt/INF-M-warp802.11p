@@ -24,6 +24,8 @@
 #include "radio_controller.h"
 
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_mac_misc_util.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
 
