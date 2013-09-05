@@ -21,7 +21,7 @@
 #include "xil_exception.h"
 #endif
 
-#include "wlan_lib.h"
+#include "wlan_mac_ipc_util.h"
 
 
 #ifdef XPAR_INTC_0_DEVICE_ID
