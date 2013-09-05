@@ -12,7 +12,7 @@
 #include "xaxidma.h"
 #include "xparameters.h"
 #include "xintc.h"
-#include "wlan_lib.h"
+#include "wlan_mac_ipc_util.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"

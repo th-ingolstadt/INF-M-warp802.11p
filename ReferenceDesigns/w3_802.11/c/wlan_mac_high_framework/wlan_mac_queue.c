@@ -15,7 +15,7 @@
 #include "xintc.h"
 #include "string.h"
 
-#include "wlan_lib.h"
+#include "wlan_mac_ipc_util.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_queue.h"
 
