@@ -23,7 +23,7 @@
 #include "w3_iic_eeprom.h"
 #include "radio_controller.h"
 
-#include "wlan_lib.h"
+#include "wlan_mac_ipc_util.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
 
