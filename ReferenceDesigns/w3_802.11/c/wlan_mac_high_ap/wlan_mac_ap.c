@@ -58,7 +58,7 @@
 #define SSID_LEN 7
 u8 SSID[SSID_LEN] = "WARP-AP";
 
-u16 seq_num;
+mac_header_80211_common tx_header_common;
 u8 allow_assoc;
 u8 perma_assoc_mode;
 
@@ -121,10 +121,16 @@ int main(){
 		associations[i].seq = 0; //seq
 	}
 
+
+
 	while(cpu_low_initialized() == 0){
 		xil_printf("waiting on CPU_LOW to boot\n");
 	};
 	memcpy((void*) &(eeprom_mac_addr[0]), (void*) get_eeprom_mac_addr(), 6);
+
+	tx_header_common.address_2 = &(eeprom_mac_addr[0]);
+	tx_header_common.seq_num = 0;
+
 
 	write_hex_display(0);
 
@@ -319,12 +325,13 @@ int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u
 
 	packet_bd* tx_queue = tx_queue_list->first;
 
-//	xil_printf("   ap got an eth rx\n");
-
 	u32 i;
 	u8 is_associated = 0;
 
-	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, MAC_FRAME_CTRL2_FLAG_FROM_DS, (u8*)(&(eth_dest[0])), (u8*)(&(eeprom_mac_addr[0])), (u8*)(&(eth_src[0])), seq_num++);
+	tx_header_common.address_1 = (u8*)(&(eth_dest[0]));
+	tx_header_common.address_3 = (u8*)(&(eth_src[0]));
+
+	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
@@ -388,7 +395,9 @@ void beacon_transmit() {
 
  	if(checkout.length == 1){ //There was at least 1 free queue element
  		tx_queue = checkout.first;
- 		tx_length = wlan_create_beacon_probe_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, MAC_FRAME_CTRL1_SUBTYPE_BEACON, bcast_addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
+ 		tx_header_common.address_1 = bcast_addr;
+		tx_header_common.address_3 = eeprom_mac_addr;
+ 		tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan);
  		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
  		tx_queue->metadata_ptr = NULL;
  		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
@@ -421,7 +430,9 @@ void association_timestamp_check() {
 
 		 	if(checkout.length == 1){ //There was at least 1 free queue element
 		 		tx_queue = checkout.first;
-		 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, DEAUTH_REASON_INACTIVITY, associations[i].addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+		 		tx_header_common.address_1 = associations[i].addr;
+				tx_header_common.address_3 = eeprom_mac_addr;
+		 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
 		 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 		 		tx_queue->metadata_ptr = (void*)&(associations[i]);
 		 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
@@ -527,7 +538,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					 	if(checkout.length == 1){ //There was at least 1 free queue element
 					 		tx_queue = checkout.first;
-					 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, DEAUTH_REASON_NONASSOCIATED_STA, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+					 		tx_header_common.address_1 = rx_80211_header->address_2;
+							tx_header_common.address_3 = eeprom_mac_addr;
+					 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
 					 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 					 		tx_queue->metadata_ptr = NULL;
 					 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
@@ -568,7 +581,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(checkout.length == 1){ //There was at least 1 free queue element
 						tx_queue = checkout.first;
-						tx_length = wlan_create_beacon_probe_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++,BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan, eeprom_mac_addr);
+						tx_header_common.address_1 = rx_80211_header->address_2;
+						tx_header_common.address_3 = eeprom_mac_addr;
+						tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan);
 						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 						tx_queue->metadata_ptr = NULL;
 						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
@@ -594,7 +609,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
 									tx_queue = checkout.first;
-									tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+									tx_header_common.address_1 = rx_80211_header->address_2;
+									tx_header_common.address_3 = eeprom_mac_addr;
+									tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
 									((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 									tx_queue->metadata_ptr = NULL;
 									((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
@@ -613,7 +630,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							if(checkout.length == 1){ //There was at least 1 free queue element
 								tx_queue = checkout.first;
-								tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+								tx_header_common.address_1 = rx_80211_header->address_2;
+								tx_header_common.address_3 = eeprom_mac_addr;
+								tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE);
 								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 								tx_queue->metadata_ptr = NULL;
 								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
@@ -661,7 +680,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(checkout.length == 1){ //There was at least 1 free queue element
 						tx_queue = checkout.first;
-						tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP, rx_80211_header->address_2, eeprom_mac_addr, eeprom_mac_addr, seq_num++, STATUS_SUCCESS, 0xC000 | associations[i].AID,eeprom_mac_addr);
+						tx_header_common.address_1 = rx_80211_header->address_2;
+						tx_header_common.address_3 = eeprom_mac_addr;
+						tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, STATUS_SUCCESS, associations[i].AID);
 						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 						tx_queue->metadata_ptr = (void*)&(associations[i]);
 						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
@@ -861,7 +882,9 @@ void deauthenticate_stations(){
 
 	 	if(checkout.length == 1){ //There was at least 1 free queue element
 	 		tx_queue = checkout.first;
-	 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, DEAUTH_REASON_INACTIVITY, associations[i].addr, eeprom_mac_addr, eeprom_mac_addr, seq_num++, eeprom_mac_addr);
+	 		tx_header_common.address_1 = associations[i].addr;
+			tx_header_common.address_3 = eeprom_mac_addr;
+	 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
 	 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 	 		tx_queue->metadata_ptr = (void*)&(associations[i]);
 	 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
