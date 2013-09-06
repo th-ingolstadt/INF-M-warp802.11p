@@ -96,7 +96,6 @@ int main(){
 	wlan_mac_util_init();
 
 	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
-	//TODO wlan_mac_util_set_mpdu_tx_callback((void*)mpdu_transmit);asdasd
 	wlan_mac_util_set_mpdu_tx_done_callback((void*)mpdu_transmit_done);
 	wlan_mac_util_set_mpdu_rx_callback((void*)mpdu_rx_process);
 	wlan_mac_util_set_pb_u_callback((void*)up_button);

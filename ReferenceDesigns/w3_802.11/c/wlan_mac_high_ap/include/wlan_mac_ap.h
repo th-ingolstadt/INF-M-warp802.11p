@@ -8,8 +8,8 @@
 //				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
 
-#ifndef WLAN_MAC_HIGH_H_
-#define WLAN_MAC_HIGH_H_
+#ifndef WLAN_MAC_AP_H_
+#define WLAN_MAC_AP_H_
 
 int main();
 int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
@@ -30,4 +30,4 @@ void reset_station_statistics();
 void deauthenticate_stations();
 void check_tx_queue();
 
-#endif /* WLAN_MAC_LOW_H_ */
+#endif /* WLAN_MAC_AP_H_ */
