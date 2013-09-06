@@ -383,12 +383,12 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	rssi = wlan_phy_rx_get_pkt_rssi();
 	lna_gain = wlan_phy_rx_get_agc_RFG();
 
-	if(rate == WLAN_MAC_RATE_1M){
+	//if(rate == WLAN_MAC_RATE_1M){
 		//TODO: In this version of the hardware, RSSI is not latched on DSSS events.
-		mpdu_info->rx_power = -100;
-	} else {
+	//	mpdu_info->rx_power = -100;
+	//} else {
 		mpdu_info->rx_power = calculate_rx_power(mac_param_band, rssi, lna_gain);
-	}
+	//}
 	mpdu_info->channel = mac_param_chan;
 
 
