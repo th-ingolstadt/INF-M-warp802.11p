@@ -57,6 +57,7 @@ typedef struct{
 #define wlan_create_beacon_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_BEACON, common, beacon_interval, ssid_len, ssid, chan)
 #define wlan_create_probe_resp_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, common, beacon_interval, ssid_len, ssid, chan)
 int wlan_create_beacon_probe_frame(void* pkt_buf, u8 subtype, mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan);
+int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan);
 int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code);
 int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16 reason_code);
 int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID);

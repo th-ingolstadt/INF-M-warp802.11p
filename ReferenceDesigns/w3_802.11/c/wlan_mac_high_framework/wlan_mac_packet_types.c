@@ -100,6 +100,68 @@ int wlan_create_beacon_probe_frame(void* pkt_buf, u8 frame_control_1,mac_header_
 	return packetLen_bytes;
 }
 
+int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan){
+	u32 packetLen_bytes;
+	u8* txBufferPtr_u8;
+
+	txBufferPtr_u8 = (u8*)pkt_buf;
+
+	mac_header_80211* probe_req_80211_header;
+	probe_req_80211_header = (mac_header_80211*)(txBufferPtr_u8);
+
+	probe_req_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_PROBE_REQ;
+	probe_req_80211_header->frame_control_2 = 0;
+
+	//This field may be overwritten by CPU_LOW
+	probe_req_80211_header->duration_id = 0;
+
+	memcpy(probe_req_80211_header->address_1,common->address_1,6);
+	memcpy(probe_req_80211_header->address_2,common->address_2,6);
+	memcpy(probe_req_80211_header->address_3,common->address_3,6);
+
+	probe_req_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
+
+	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211));
+	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
+	txBufferPtr_u8[1] = ssid_len;
+	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),ssid_len);
+
+	txBufferPtr_u8+=(ssid_len+2); //Move up to next tag
+
+	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
+	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
+	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
+	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
+	txBufferPtr_u8[2] = (0x0C); 				//6Mbps  (BPSK,   1/2)
+	txBufferPtr_u8[3] = (0x12);				 	//9Mbps  (BPSK,   3/4)
+	txBufferPtr_u8[4] = (0x18); 				//12Mbps (QPSK,   1/2)
+	txBufferPtr_u8[5] = (0x24); 				//18Mbps (QPSK,   3/4)
+	txBufferPtr_u8[6] = (0x30); 				//24Mbps (16-QAM, 1/2)
+	txBufferPtr_u8[7] = (0x48); 				//36Mbps (16-QAM, 3/4)
+	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
+	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
+	txBufferPtr_u8+=(8+2); //Move up to next tag
+
+	txBufferPtr_u8[0] = 3; //Tag 3: DS Parameter set
+	txBufferPtr_u8[1] = 1; //tag length... doesn't include the tag itself and the tag length
+	txBufferPtr_u8[2] = chan;
+	txBufferPtr_u8+=(1+2);
+
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+
+	(common->seq_num)++;
+
+	//DEBUG
+	//xil_printf("\n packetLen_bytes = %d\n", packetLen_bytes);
+	//u32 i;
+	//for(i = 0; i<packetLen_bytes; i++){
+	//	xil_printf("%x ", ((u8*)pkt_buf)[i]);
+	//}
+	//xil_printf("\n");
+
+	return packetLen_bytes;
+}
+
 int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code){
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
