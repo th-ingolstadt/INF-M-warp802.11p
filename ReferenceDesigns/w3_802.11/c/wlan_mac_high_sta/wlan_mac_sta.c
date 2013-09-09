@@ -97,7 +97,7 @@ int main(){
 
 	write_hex_display(0);
 
-	mac_param_chan = 4;
+	mac_param_chan = 1;
 
 	//Send a message to other processor to tell it to switch channels
 	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
@@ -169,6 +169,9 @@ void uart_rx(u8 rxByte){
 				if(active_scan ==0){
 					num_ap_list = 0;
 					free(ap_list);
+					ap_list = NULL;
+					active_scan = 1;
+					xil_printf("+++ starting active scan\n");
 					probe_req_transmit();
 				}
 			break;
@@ -202,6 +205,8 @@ void uart_rx(u8 rxByte){
 }
 
 void probe_req_transmit(){
+	#define NUM_PROBE_REQ 5
+	u32 i;
 
 	static u8 curr_channel_index = 0;
 	wlan_ipc_msg ipc_msg_to_low;
@@ -213,7 +218,7 @@ void probe_req_transmit(){
 
 	mac_param_chan = curr_channel_index + 1; //+1 is to shift [0,10] index to [1,11] channel number
 
-	//xil_printf("mac_param_chan = %d\n", mac_param_chan);
+	xil_printf("+++ probe_req_transmit mac_param_chan = %d\n", mac_param_chan);
 
 	//Send a message to other processor to tell it to switch channels
 	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
@@ -225,26 +230,27 @@ void probe_req_transmit(){
 
 	//Send probe request
 
+	for(i = 0; i<NUM_PROBE_REQ; i++){
 	//Checkout 1 element from the queue;
 	checkout = queue_checkout(1);
-
-	if(checkout.length == 1){ //There was at least 1 free queue element
-		tx_queue = checkout.first;
-		tx_header_common.address_1 = bcast_addr;
-		tx_header_common.address_3 = bcast_addr;
-		tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, 0, 0, mac_param_chan);
-		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-		tx_queue->metadata_ptr = NULL;
-		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = 0;
-		enqueue_after_end(0, &checkout);
-		check_tx_queue();
+		if(checkout.length == 1){ //There was at least 1 free queue element
+			tx_queue = checkout.first;
+			tx_header_common.address_1 = bcast_addr;
+			tx_header_common.address_3 = bcast_addr;
+			tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, 0, 0, mac_param_chan);
+			((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
+			tx_queue->metadata_ptr = NULL;
+			((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = 0;
+			enqueue_after_end(0, &checkout);
+			check_tx_queue();
+		}
 	}
 
 	curr_channel_index = (curr_channel_index+1)%11;
 	if(curr_channel_index > 0){
-		active_scan = 1;
 		wlan_mac_schedule_event(SCHEDULE_COARSE, 100000, (void*)probe_req_transmit);
 	} else {
+		print_ap_list();
 		active_scan = 0;
 	}
 }
@@ -336,19 +342,51 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP): //Probe Response Packet
 			//xil_printf("Probe Response\n");
 			for (i=0;i<num_ap_list;i++){
+
+				xil_printf("%d -- num_ap_list = %d -- match: %d: %02x-%02x-%02x-%02x-%02x-%02x == %02x-%02x-%02x-%02x-%02x-%02x \n",i, num_ap_list, wlan_addr_eq(ap_list[i].bssid, rx_80211_header->address_3), ( ap_list[i].bssid)[0],(ap_list[i].bssid)[1],(ap_list[i].bssid)[2],(ap_list[i].bssid)[3],(ap_list[i].bssid)[4],(ap_list[i].bssid)[5], ( rx_80211_header->address_3)[0],( rx_80211_header->address_3)[1],( rx_80211_header->address_3)[2],( rx_80211_header->address_3)[3],( rx_80211_header->address_3)[4],( rx_80211_header->address_3)[5]);
+
+				if(num_ap_list>0){
+					xil_printf("ap_list = 0x%08x\n", ap_list);
+				}
+
+
+				//DEBUG DELETE ME
+		/*		char temp[33];
+				u8* mpdu_ptr_u8_tmp = (u8*)mpdu_ptr_u8;
+				xil_printf("%02x-%02x-%02x-%02x-%02x-%02x \n",( rx_80211_header->address_3)[0],( rx_80211_header->address_3)[1],( rx_80211_header->address_3)[2],( rx_80211_header->address_3)[3],( rx_80211_header->address_3)[4],( rx_80211_header->address_3)[5]);
+				mpdu_ptr_u8_tmp += (sizeof(mac_header_80211) + sizeof(beacon_probe_frame));
+				while(((u32)mpdu_ptr_u8_tmp -  (u32)mpdu)<= length){ //Loop through tagged parameters
+					switch(mpdu_ptr_u8_tmp[0]){ //What kind of tag is this?
+						case TAG_SSID_PARAMS: //SSID parameter set
+							ssid = (char*)(&(mpdu_ptr_u8_tmp[2]));
+							memcpy(temp, ssid ,mpdu_ptr_u8_tmp[1]);
+							//Terminate the string
+							(temp)[mpdu_ptr_u8_tmp[1]] = 0;
+							xil_printf("Len: %d, SSID: %s\n",mpdu_ptr_u8_tmp[1],temp);
+						break;
+					}
+					mpdu_ptr_u8_tmp += mpdu_ptr_u8_tmp[1]+2; //Move up to the next tag
+				}*/
+				//DEBUG DELETE ME
+
 				if(wlan_addr_eq(ap_list[i].bssid, rx_80211_header->address_3)){
 					curr_ap_info = &(ap_list[i]);
+					xil_printf("     Matched at 0x%08x\n", curr_ap_info);
 					break;
 				}
 			}
 
 			if(curr_ap_info == NULL){
-				ap_list = realloc(ap_list, sizeof(ap_info)*num_ap_list);
+				//xil_printf("num_ap_list = %d\n", num_ap_list);
+				ap_list = realloc(ap_list, sizeof(ap_info)*(num_ap_list+1));
+				xil_printf("%d existing entries, new entry: %x-%x-%x-%x-%x-%x \n", num_ap_list, ( rx_80211_header->address_3)[0],( rx_80211_header->address_3)[1],( rx_80211_header->address_3)[2],( rx_80211_header->address_3)[3],( rx_80211_header->address_3)[4],( rx_80211_header->address_3)[5]);
+				xil_printf("realloc ap_list = 0x%08x\n", ap_list);
 				if(ap_list != NULL){
 					num_ap_list++;
-					//xil_printf("num_ap_list = %d, ap_list = 0x%x\n", num_ap_list, ap_list);
 					curr_ap_info = &(ap_list[num_ap_list-1]);
+					xil_printf("num_ap_list = %d, ap_list = 0x%x, curr_ap_info = 0x%08x\n", num_ap_list, ap_list, curr_ap_info);
 				} else {
+					xil_printf("Reallocation of ap_list failed\n");
 					return;
 				}
 
@@ -381,7 +419,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			//strcpy(curr_ap_info->ssid,"Test");
 
-			print_ap_list();
+			//print_ap_list();
 
 
 		break;
@@ -408,9 +446,9 @@ void print_ap_list(){
 
 	for(i=0; i<num_ap_list; i++){
 		xil_printf("[%d] SSID:     %s\n", i, ap_list[i].ssid);
-		xil_printf("     BSSID:    %x-%x-%x-%x-%x-%x\n", ap_list[i].bssid[0],ap_list[i].bssid[1],ap_list[i].bssid[2],ap_list[i].bssid[3],ap_list[i].bssid[4],ap_list[i].bssid[5]);
-		xil_printf("     Channel:  %d\n",ap_list[i].chan);
-		xil_printf("     Rx Power: %d dBm\n",ap_list[i].rx_power);
+		xil_printf("    BSSID:    %02x-%02x-%02x-%02x-%02x-%02x\n", ap_list[i].bssid[0],ap_list[i].bssid[1],ap_list[i].bssid[2],ap_list[i].bssid[3],ap_list[i].bssid[4],ap_list[i].bssid[5]);
+		xil_printf("    Channel:  %d\n",ap_list[i].chan);
+		xil_printf("    Rx Power: %d dBm\n",ap_list[i].rx_power);
 	}
 
 
