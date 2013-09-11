@@ -12,12 +12,16 @@
 #define WLAN_MAC_STA_H_
 
 #define SSID_LEN_MAX 32
+#define NUM_BASIC_RATES_MAX 10
 
 typedef struct{
 	u8 bssid[6];
 	u8 chan;
-	char rx_power;
+	u8 private;
 	char ssid[SSID_LEN_MAX];
+	u8 num_basic_rates;
+	u8 basic_rates[NUM_BASIC_RATES_MAX];
+	char rx_power;
 } ap_info;
 
 int main();
@@ -27,7 +31,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu);
 void uart_rx(u8 rxByte);
 void print_menu();
+void attempt_authentication();
 void probe_req_transmit();
 void check_tx_queue();
+int str2num(char* str);
 
 #endif /* WLAN_MAC_STA_H_ */
