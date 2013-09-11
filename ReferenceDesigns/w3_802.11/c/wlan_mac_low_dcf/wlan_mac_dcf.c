@@ -867,7 +867,7 @@ inline int calculate_rx_power(u8 band, u16 rssi, u8 lna_gain){
 	int power = -100;
 
 	//TODO: In this version of hardware, RSSI is latched pre-AGC so we should assume a high LNA gain
-	lna_gain = 3;
+	//lna_gain = 3;
 
 	if(band == RC_24GHZ){
 		switch(lna_gain){
