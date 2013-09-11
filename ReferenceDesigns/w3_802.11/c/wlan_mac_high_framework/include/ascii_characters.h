@@ -98,3 +98,5 @@
 #define ASCII_SHIFT_9 ASCII_PARENSL
 
 #define ASCII_ESC 27
+#define ASCII_CR 13
+#define ASCII_DEL 127

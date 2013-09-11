@@ -131,5 +131,7 @@ u8 wlan_mac_util_get_tx_rate(station_info* station);
 
 int is_tx_buffer_empty();
 void mpdu_transmit(packet_bd* tx_queue);
+u8 valid_tagged_rate(u8 rate);
+void tagged_rate_to_readable_rate(u8 rate, char* str);
 
 #endif /* WLAN_MAC_UTIL_H_ */

@@ -32,14 +32,14 @@ typedef struct{
 
 typedef struct{
 	u16 capabilities;
-	u16 listen_interval;
-} association_request_frame;
-
-typedef struct{
-	u16 capabilities;
 	u16 status_code;
 	u16 association_id;
 } association_response_frame;
+
+typedef struct{
+	u16 capabilities;
+	u16 listen_interval;
+} association_request_frame;
 
 #define AUTH_ALGO_OPEN_SYSTEM 0x00
 
@@ -61,6 +61,8 @@ int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, 
 int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code);
 int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16 reason_code);
 int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID);
+int wlan_create_association_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 num_basic_rates, u8* basic_rates);
 int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 flags);
+u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_other, u8* rate_other);
 
 #endif /* WLAN_MAC_PACKET_TYPES_H_ */

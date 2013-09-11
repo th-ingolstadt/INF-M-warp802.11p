@@ -297,7 +297,7 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 
 				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-					warp_printf(PL_ERROR, "Error: unable to unlock pkt_buf %d\n",rx_pkt_buf);
+					warp_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n",rx_pkt_buf);
 				}
 			}
 		break;
@@ -810,6 +810,73 @@ int cpu_low_ready(){
 
 u8* get_eeprom_mac_addr(){
 	return &(eeprom_mac_addr[0]);
+}
+
+u8 valid_tagged_rate(u8 rate){
+	#define NUM_VALID_RATES 12
+	u32 i;
+	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
+	//invalid when this function is used.
+	u8 valid_rates[NUM_VALID_RATES] = {0x02, 0x04, 0x0b, 0x16, 0x0c, 0x12, 0x18, 0x24, 0x30, 0x48, 0x60, 0x6c};
+
+	for(i = 0; i < NUM_VALID_RATES; i++ ){
+		if((rate & ~RATE_BASIC) == valid_rates[i]) return 1;
+	}
+
+	return 0;
+}
+
+void tagged_rate_to_readable_rate(u8 rate, char* str){
+	#define NUM_VALID_RATES 12
+	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
+	//invalid when this function is used.
+
+
+	switch(rate & ~RATE_BASIC){
+		case 0x02:
+			strcpy(str,"1");
+		break;
+		case 0x04:
+			strcpy(str,"2");
+		break;
+		case 0x0b:
+			strcpy(str,"5.5");
+		break;
+		case 0x16:
+			strcpy(str,"11");
+		break;
+		case 0x0c:
+			strcpy(str,"6");
+		break;
+		case 0x12:
+			strcpy(str,"9");
+		break;
+		case 0x18:
+			strcpy(str,"12");
+		break;
+		case 0x24:
+			strcpy(str,"18");
+		break;
+		case 0x30:
+			strcpy(str,"24");
+		break;
+		case 0x48:
+			strcpy(str,"36");
+		break;
+		case 0x60:
+			strcpy(str,"48");
+		break;
+		case 0x6c:
+			strcpy(str,"54");
+		break;
+		default:
+			//Unknown rate
+			*str = NULL;
+		break;
+	}
+
+
+	return;
 }
 
 
