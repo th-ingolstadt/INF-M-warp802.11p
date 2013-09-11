@@ -103,8 +103,9 @@ int main(){
 	free(ap_list);
 	ap_list = NULL;
 
-	free(access_point_ssid);
-	access_point_ssid = NULL;
+	access_point_ssid = malloc(strlen(default_AP_SSID)+1);
+	strcpy(access_point_ssid,default_AP_SSID);
+
 
 	association_state = 1;
 
@@ -132,6 +133,11 @@ int main(){
 	uart_mode = UART_MODE_MAIN;
 
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
+
+	if(strlen(default_AP_SSID)>0){
+		active_scan = 1;
+		probe_req_transmit();
+	}
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
@@ -200,6 +206,8 @@ void uart_rx(u8 rxByte){
 						free(ap_list);
 						ap_list = NULL;
 						active_scan = 1;
+						access_point_ssid = realloc(access_point_ssid, 1);
+						*access_point_ssid = 0;
 						//xil_printf("+++ starting active scan\n");
 						probe_req_transmit();
 					}
@@ -263,7 +271,7 @@ void uart_rx(u8 rxByte){
 							xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
 							memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
 
-							access_point_ssid = realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid));
+							access_point_ssid = realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
 							//xil_printf("allocated %d bytes in 0x%08x\n", strlen(ap_list[ap_sel].ssid), access_point_ssid);
 							strcpy(access_point_ssid,ap_list[ap_sel].ssid);
 
@@ -471,6 +479,8 @@ void probe_req_transmit(){
 
 	//Send probe request
 
+	//xil_printf("Probe Req SSID: %s, Len: %d\n",access_point_ssid, strlen(access_point_ssid));
+
 	for(i = 0; i<NUM_PROBE_REQ; i++){
 	//Checkout 1 element from the queue;
 	checkout = queue_checkout(1);
@@ -478,7 +488,7 @@ void probe_req_transmit(){
 			tx_queue = checkout.first;
 			tx_header_common.address_1 = bcast_addr;
 			tx_header_common.address_3 = bcast_addr;
-			tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, 0, 0, mac_param_chan);
+			tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 			((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 			tx_queue->metadata_ptr = NULL;
 			((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = 0;
@@ -780,6 +790,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 void print_ap_list(){
 	u32 i,j;
 	char str[4];
+	u16 ap_sel;
+	wlan_ipc_msg ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload[1];
+	ipc_config_rf_ifc* config_rf_ifc;
 
 	uart_mode = UART_MODE_AP_LIST;
 	active_scan = 0;
@@ -807,10 +821,49 @@ void print_ap_list(){
 
 	}
 
-	xil_printf("\n(*) Private Network (not supported)\n");
-	xil_printf("\n To join a network, type the number next to the SSID that\n");
-	xil_printf("you want to join and press enter. Otherwise, press Esc to return\n");
-	xil_printf("AP Selection: ");
+
+	if(strlen(access_point_ssid) == 0){
+		xil_printf("\n(*) Private Network (not supported)\n");
+		xil_printf("\n To join a network, type the number next to the SSID that\n");
+		xil_printf("you want to join and press enter. Otherwise, press Esc to return\n");
+		xil_printf("AP Selection: ");
+	} else {
+		for(i=0; i<num_ap_list; i++){
+			if(strcmp(access_point_ssid,ap_list[i].ssid) == 0){
+				ap_sel = i;
+				if( ap_list[ap_sel].private == 0) {
+					mac_param_chan = ap_list[ap_sel].chan;
+
+					//Send a message to other processor to tell it to switch channels
+					ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
+					ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
+					ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+					init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
+					config_rf_ifc->channel = mac_param_chan;
+					ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+
+					xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
+					memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
+
+					access_point_ssid = realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
+					//xil_printf("allocated %d bytes in 0x%08x\n", strlen(ap_list[ap_sel].ssid), access_point_ssid);
+					strcpy(access_point_ssid,ap_list[ap_sel].ssid);
+
+					access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
+					memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates,access_point_num_basic_rates);
+
+					association_state = 1;
+					attempt_authentication();
+					return;
+				} else {
+					xil_printf("AP with SSID %s is private\n", access_point_ssid);
+					return;
+				}
+			}
+		}
+		xil_printf("Failed to find AP with SSID of %s\n", access_point_ssid);
+	}
 
 }
 
