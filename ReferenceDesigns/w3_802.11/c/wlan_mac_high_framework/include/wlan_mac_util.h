@@ -56,7 +56,7 @@
 #define TIMER_CNTR_FAST	 0
 #define TIMER_CNTR_SLOW	 1
 
-#define	FAST_TIMER_DUR_US 1000
+#define	FAST_TIMER_DUR_US 100
 #define	SLOW_TIMER_DUR_US 100000
 
 
@@ -93,6 +93,7 @@ typedef struct{
 #define LLC_CNTRL_UNNUMBERED			0x03
 #define LLC_TYPE_ARP					0x0608
 #define LLC_TYPE_IP						0x0008
+#define LLC_TYPE_CUSTOM					0x9090
 
 void wlan_mac_util_init();
 void gpio_timestamp_initialize();

@@ -21,6 +21,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_ltg.h"
 #include "w3_userio.h"
 #include "xparameters.h"
 #include "xtmrctr.h"
@@ -151,6 +152,8 @@ void wlan_mac_util_init(){
 
 	timer_running[TIMER_CNTR_FAST] = 0;
 	timer_running[TIMER_CNTR_SLOW] = 0;
+
+	wlan_mac_ltg_init();
 
 }
 

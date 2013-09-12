@@ -391,7 +391,6 @@ void wlan_poll_eth() {
 		//Update cur_bd_ptr to the next BD in the chain for the next iteration
 		cur_bd_ptr = XAxiDma_BdRingNext(rxRing_ptr, cur_bd_ptr);
 
-
 	}
 	//TODO: Option B: We free all BDs at once and run the routine to checkout as many queues as we can and hook them up to BDs
 	//Results: pretty lackluster TCP performance. needs further investigation
