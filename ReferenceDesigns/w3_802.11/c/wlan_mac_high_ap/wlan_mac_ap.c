@@ -22,6 +22,7 @@
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
+#include "wlan_mac_ltg.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
@@ -103,6 +104,8 @@ int main(){
 	wlan_mac_util_set_uart_rx_callback((void*)uart_rx);
 	wlan_mac_util_set_ipc_rx_callback((void*)ipc_rx);
 	wlan_mac_util_set_check_queue_callback((void*)check_tx_queue);
+
+	wlan_mac_ltg_set_callback((void*)ltg_event);
 
 	interrupt_init();
 
@@ -229,6 +232,9 @@ void uart_rx(u8 rxByte){
 	ipc_config_rf_ifc* config_rf_ifc;
 	u32 i;
 
+	static u8 ltg_mode = 0;
+	cbr_params cbr_parameters;
+
 	if(rxByte == ASCII_ESC){
 		interactive_mode = 0;
 		print_menu();
@@ -320,6 +326,68 @@ void uart_rx(u8 rxByte){
 				}
 				xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 			break;
+			case ASCII_l:
+				if(ltg_mode == 0){
+					xil_printf("Enabling backlogged LTG mode to AID 1\n");
+					cbr_parameters.interval_usec = 0; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
+					start_ltg(1, LTG_TYPE_CBR, &cbr_parameters);
+
+					ltg_mode = 1;
+
+				} else {
+					stop_ltg(1);
+					ltg_mode = 0;
+					xil_printf("Disabled LTG mode to AID 1\n");
+				}
+			break;
+		}
+	}
+}
+
+void ltg_event(u32 id){
+	u32 i;
+	packet_bd_list checkout;
+	packet_bd* tx_queue;
+	u32 tx_length;
+	u8* mpdu_ptr_u8;
+	llc_header* llc_hdr;
+
+	for(i=0; i < next_free_assoc_index; i++){
+		if(associations[i].AID == id){
+			//Send a Data packet to this station
+			//Checkout 1 element from the queue;
+			checkout = queue_checkout(1);
+
+			if(checkout.length == 1){ //There was at least 1 free queue element
+				tx_queue = checkout.first;
+				tx_header_common.address_1 = associations[i].addr;
+				tx_header_common.address_3 = eeprom_mac_addr;
+				//tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
+				mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
+				tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
+
+				mpdu_ptr_u8 += sizeof(mac_header_80211);
+				llc_hdr = (llc_header*)(mpdu_ptr_u8);
+
+				//Prepare the MPDU LLC header
+				llc_hdr->dsap = LLC_SNAP;
+				llc_hdr->ssap = LLC_SNAP;
+				llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
+				bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
+				llc_hdr->type = LLC_TYPE_CUSTOM;
+
+				tx_length += sizeof(llc_header);
+
+				tx_length = 1200; //TODO: The rest of the payload is just... whatever. This will tell the PHY to send a longer packet
+								  //and pretend the payload is something interesting
+
+				((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
+				tx_queue->metadata_ptr = (void*)&(associations[i]);
+				((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
+				((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+				enqueue_after_end(associations[i].AID, &checkout);
+				check_tx_queue();
+			}
 		}
 	}
 }
@@ -831,6 +899,7 @@ void print_menu(){
 	xil_printf("        purge any associations, forcing stations to\n");
 	xil_printf("        join the network again)\n");
 	xil_printf("[r/R] - change default unicast rate\n");
+	xil_printf("[l]	  - toggle local traffic generation to AID 1\n");
 	xil_printf("*****************************************************\n");
 }
 

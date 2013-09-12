@@ -12,6 +12,7 @@
 #define WLAN_MAC_AP_H_
 
 int main();
+void ltg_event(u32 id);
 int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 void beacon_transmit();
