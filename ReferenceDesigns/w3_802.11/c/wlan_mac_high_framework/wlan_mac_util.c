@@ -2,11 +2,14 @@
 // File   : wlan_mac_util.c
 // Authors: Patrick Murphy (murphpo [at] mangocomm.com)
 //			Chris Hunter (chunter [at] mangocomm.com)
+//          Erik Welsh (welsh [at] mangocomm.com)
 // License: Copyright 2013, Mango Communications. All rights reserved.
 //          Distributed under the Mango Communications Reference Design License
 //				See LICENSE.txt included in the design archive or
 //				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
+
+/***************************** Include Files *********************************/
 
 #include "xgpio.h"
 #include "stdlib.h"
@@ -26,48 +29,96 @@
 #include "xparameters.h"
 #include "xtmrctr.h"
 
-static XGpio GPIO_timestamp;
-static XGpio Gpio;
-static XIntc InterruptController;
-XUartLite UartLite;
-static XTmrCtr TimerCounterInst;
-XAxiCdma cdma_inst;
 
-static u32 cpu_low_status;
-static u32 cpu_high_status;
+/*************************** Constant Definitions ****************************/
 
-#define TX_BUFFER_NUM 2
-u8 tx_pkt_buf;
+// Use the WARPNet interface
+#define  USE_WARPNET_WLAN_EXP
 
-u8 ReceiveBuffer[UART_BUFFER_SIZE];
 
-static u8 eeprom_mac_addr[6];
+// UART interface defines
+#define TX_BUFFER_NUM        2
 
-wlan_ipc_msg ipc_msg_from_low;
-u32 ipc_msg_from_low_payload[10];
+// IPC defines
+#define IPC_BUFFER_SIZE      20
 
-function_ptr_t eth_rx_callback, mpdu_tx_done_callback, mpdu_rx_callback, pb_u_callback, pb_m_callback, pb_d_callback, uart_callback, ipc_rx_callback, check_queue_callback;
 
-static u8 scheduler_in_use[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
-static function_ptr_t scheduler_callbacks[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
-static u64 scheduler_timestamps[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
-static u8 timer_running[NUM_SCHEDULERS];
+/*********************** Global Variable Definitions *************************/
 
-void wlan_mac_util_init(){
-	int Status;
-	u32 gpio_read,i;
-	u64 timestamp;
+
+
+
+
+/*************************** Variable Definitions ****************************/
+
+// HW structures
+static XGpio       GPIO_timestamp;
+static XGpio       Gpio;
+static XIntc       InterruptController;
+static XTmrCtr     TimerCounterInst;
+XUartLite          UartLite;
+XAxiCdma           cdma_inst;
+
+// Status information
+static u32         cpu_low_status;
+static u32         cpu_high_status;
+
+// UART interface
+u8                 tx_pkt_buf;
+u8                 ReceiveBuffer[UART_BUFFER_SIZE];
+
+// Node information
+wlan_mac_hw_info   hw_info;
+
+// WARPNet information
+#ifdef USE_WARPNET_WLAN_EXP
+static u8          warpnet_initialized;
+#endif
+
+// IPC variables
+wlan_ipc_msg       ipc_msg_from_low;
+u32                ipc_msg_from_low_payload[IPC_BUFFER_SIZE];
+
+// Callback function pointers
+function_ptr_t     eth_rx_callback;
+function_ptr_t     mpdu_tx_done_callback;
+function_ptr_t     mpdu_rx_callback;
+function_ptr_t     pb_u_callback;
+function_ptr_t     pb_m_callback;
+function_ptr_t     pb_d_callback;
+function_ptr_t     uart_callback;
+function_ptr_t     ipc_rx_callback;
+function_ptr_t     check_queue_callback;
+
+// Scheduler variables
+static u8               scheduler_in_use    [NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
+static function_ptr_t   scheduler_callbacks [NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
+static u64              scheduler_timestamps[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
+static u8               timer_running       [NUM_SCHEDULERS];
+
+
+
+/******************************** Functions **********************************/
+
+
+
+void wlan_mac_util_init( u32 type ){
+	int            Status;
+    u32            i;
+	u32            gpio_read;
+	u64            timestamp;
 	tx_frame_info* tx_mpdu;
 
-	eth_rx_callback = (function_ptr_t)nullCallback;
-	mpdu_rx_callback = (function_ptr_t)nullCallback;
+    // Initialize callbacks
+	eth_rx_callback       = (function_ptr_t)nullCallback;
+	mpdu_rx_callback      = (function_ptr_t)nullCallback;
 	mpdu_tx_done_callback = (function_ptr_t)nullCallback;
-	pb_u_callback = (function_ptr_t)nullCallback;
-	pb_m_callback = (function_ptr_t)nullCallback;
-	pb_d_callback = (function_ptr_t)nullCallback;
-	uart_callback = (function_ptr_t)nullCallback;
-	ipc_rx_callback = (function_ptr_t)nullCallback;
-	check_queue_callback = (function_ptr_t)nullCallback;
+	pb_u_callback         = (function_ptr_t)nullCallback;
+	pb_m_callback         = (function_ptr_t)nullCallback;
+	pb_d_callback         = (function_ptr_t)nullCallback;
+	uart_callback         = (function_ptr_t)nullCallback;
+	ipc_rx_callback       = (function_ptr_t)nullCallback;
+	check_queue_callback  = (function_ptr_t)nullCallback;
 
 	//create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
@@ -152,7 +203,15 @@ void wlan_mac_util_init(){
 
 	timer_running[TIMER_CNTR_FAST] = 0;
 	timer_running[TIMER_CNTR_SLOW] = 0;
-
+    
+    // Get the type of node from the input parameter
+    hw_info.type = type;
+    
+#ifdef USE_WARPNET_WLAN_EXP
+    // We cannot initialize WARPNet until after the lower CPU sends all the HW information to us through the IPC call
+    warpnet_initialized = 0;
+#endif
+    
 	wlan_mac_ltg_init();
 
 }
@@ -279,6 +338,7 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 	rx_frame_info* rx_mpdu;
 	tx_frame_info* tx_mpdu;
 
+    u32 temp;
 
 
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
@@ -340,10 +400,26 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 
 		break;
 
-		case IPC_MBOX_MAC_ADDR:
+		case IPC_MBOX_HW_INFO:
+
+            temp = hw_info.type;
 
 			//CPU Low updated the node's MAC address (typically stored in the WARP v3 EEPROM, accessible only to CPU Low)
-			memcpy((void*) &(eeprom_mac_addr[0]), (void*) &(ipc_msg_from_low_payload[0]), 6);
+			memcpy((void*) &(hw_info), (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
+
+			hw_info.type = temp;
+
+			print_wlan_mac_hw_info( & hw_info );
+
+#ifdef USE_WARPNET_WLAN_EXP
+
+            if ( warpnet_initialized == 0 ) {
+                
+                wlan_exp_node_init( hw_info.type, hw_info.serial_number, &hw_info.fpga_dna, hw_info.wn_exp_eth_device, &hw_info.hw_addr_wn );
+            
+                warpnet_initialized = 1;
+            }
+#endif
 		break;
 
 		case IPC_MBOX_CPU_STATUS:
@@ -812,7 +888,7 @@ int cpu_low_ready(){
 }
 
 u8* get_eeprom_mac_addr(){
-	return &(eeprom_mac_addr[0]);
+	return (u8 *) &(hw_info.hw_addr_wlan);
 }
 
 u8 valid_tagged_rate(u8 rate){
@@ -883,4 +959,28 @@ void tagged_rate_to_readable_rate(u8 rate, char* str){
 }
 
 
+void print_wlan_mac_hw_info( wlan_mac_hw_info * info ) {
+	int i;
+
+	xil_printf("WLAN MAC HW INFO:  \n");
+	xil_printf("  Type             :  0x%8x\n", info->type);
+	xil_printf("  Serial Number    :  %d\n",    info->serial_number);
+	xil_printf("  FPGA DNA         :  0x%8x  0x%8x\n", info->fpga_dna[1], info->fpga_dna[0]);
+	xil_printf("  WLAN EXP ETH Dev :  %d\n",    info->wn_exp_eth_device);
+
+	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wn[0]);
+	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
+		xil_printf(":%02x", info->hw_addr_wn[i]);
+	}
+	xil_printf("\n");
+
+	xil_printf("  WLAN HW Addr     :  %02x",    info->hw_addr_wlan[0]);
+	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
+		xil_printf(":%02x", info->hw_addr_wlan[i]);
+	}
+	xil_printf("\n");
+
+	xil_printf("END \n");
+
+}
 

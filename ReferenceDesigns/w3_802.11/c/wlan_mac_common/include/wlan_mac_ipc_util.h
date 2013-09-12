@@ -33,7 +33,7 @@
 #define IPC_MBOX_TX_MPDU_READY		1
 #define IPC_MBOX_TX_MPDU_ACCEPT		2
 #define IPC_MBOX_TX_MPDU_DONE		3
-#define IPC_MBOX_MAC_ADDR			4
+#define IPC_MBOX_HW_INFO			4
 #define IPC_MBOX_CPU_STATUS			5
 #define IPC_MBOX_CONFIG_RF_IFC		6
 #define IPC_MBOX_CONFIG_MAC			7
@@ -77,6 +77,33 @@ typedef struct {
 	u8	arg0;
 	u32* payload_ptr;
 } wlan_ipc_msg;
+
+
+
+// Hardware information struct to share data between the 
+//   low and high CPUs
+
+#define WLAN_MAC_FPGA_DNA_LEN         2
+#define WLAN_MAC_ETH_ADDR_LEN         6
+
+typedef struct {
+
+    u32   type;
+
+	u32   serial_number;
+	u32   fpga_dna[WLAN_MAC_FPGA_DNA_LEN];
+
+    u32   wn_exp_eth_device;
+    u8    hw_addr_wn[WLAN_MAC_ETH_ADDR_LEN];
+    u8    hw_addr_wlan[WLAN_MAC_ETH_ADDR_LEN];
+    
+} wlan_mac_hw_info;
+
+
+
+
+
+
 
 int wlan_lib_init ();
 inline int ipc_mailbox_read_isempty();

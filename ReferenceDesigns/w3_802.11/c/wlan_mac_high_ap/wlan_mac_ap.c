@@ -29,6 +29,14 @@
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
 
+// WLAN Exp includes
+#include "wlan_exp_common.h"
+#include "wlan_exp_transport.h"
+
+#define  WLAN_EXP_ETH                  WN_ETH_B
+#define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_AP
+
+
 //Time between beacon transmissions
 #define BEACON_INTERVAL_MS (100)
 #define BEACON_INTERVAL_US (BEACON_INTERVAL_MS*1000)
@@ -57,8 +65,10 @@
 
 #define MAX_ASSOCIATIONS 8
 
+#define WLAN_CHANNEL            4
 static char default_AP_SSID[] = "WARP-AP";
 char* access_point_ssid;
+
 
 mac_header_80211_common tx_header_common;
 u8 allow_assoc;
@@ -95,7 +105,7 @@ int main(){
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 
 	wlan_lib_init();
-	wlan_mac_util_init();
+	wlan_mac_util_init( WLAN_EXP_TYPE );
 
 	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
 	wlan_mac_util_set_mpdu_tx_done_callback((void*)mpdu_transmit_done);
@@ -105,7 +115,7 @@ int main(){
 	wlan_mac_util_set_ipc_rx_callback((void*)ipc_rx);
 	wlan_mac_util_set_check_queue_callback((void*)check_tx_queue);
 
-	wlan_mac_ltg_set_callback((void*)ltg_event);
+    wlan_mac_ltg_set_callback((void*)ltg_event);
 
 	interrupt_init();
 
@@ -137,7 +147,7 @@ int main(){
 
 	write_hex_display(0);
 
-	mac_param_chan = 4;
+	mac_param_chan = WLAN_CHANNEL;
 
 	//Send a message to other processor to tell it to switch channels
 	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
@@ -150,7 +160,7 @@ int main(){
 	access_point_ssid = malloc(strlen(default_AP_SSID)+1);
 	strcpy(access_point_ssid,default_AP_SSID);
 
-
+    
 	wlan_mac_schedule_event(SCHEDULE_COARSE, BEACON_INTERVAL_US, (void*)beacon_transmit);
 
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
@@ -166,6 +176,8 @@ int main(){
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
+
+		transport_poll( WLAN_EXP_ETH );
 	}
 	return -1;
 }
@@ -232,9 +244,9 @@ void uart_rx(u8 rxByte){
 	ipc_config_rf_ifc* config_rf_ifc;
 	u32 i;
 
-	static u8 ltg_mode = 0;
+    static u8 ltg_mode = 0;
 	cbr_params cbr_parameters;
-
+    
 	if(rxByte == ASCII_ESC){
 		interactive_mode = 0;
 		print_menu();
@@ -340,9 +352,10 @@ void uart_rx(u8 rxByte){
 					xil_printf("Disabled LTG mode to AID 1\n");
 				}
 			break;
-		}
+        }
 	}
 }
+
 
 void ltg_event(u32 id){
 	u32 i;
@@ -391,6 +404,7 @@ void ltg_event(u32 id){
 		}
 	}
 }
+
 
 int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 	//Receives the pre-encapsulated Ethernet frames
@@ -469,7 +483,7 @@ void beacon_transmit() {
  		tx_queue = checkout.first;
  		tx_header_common.address_1 = bcast_addr;
 		tx_header_common.address_3 = eeprom_mac_addr;
- 		tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
+        tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
  		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
  		tx_queue->metadata_ptr = NULL;
  		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
@@ -931,6 +945,90 @@ void print_station_status(){
 		wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
 	}
 }
+
+
+// Function will populate the buffer with the following packet format:
+//   Word [0]             - number of stations
+//   Word [1 - max_words] - information for each station
+//       Word [0] - 31:16 - AID
+//                - 15: 0 - seq
+//       Word [1] - 31:16 - Reserved
+//                  15: 0 - (addr[0]<<8)  |  addr[1]
+//       Word [2] - 31: 0 - (addr[2]<<24) | (addr[3]<<16) | (addr[4]<<8) | addr[5]
+//       Word [3] - 31:16 - tx_rate
+//                  15: 0 - last_rx_power
+//       Word [4] - 31: 0 - rx_timestamp[31:0]
+//       Word [5] - 31: 0 - rx_timestamp[63:32]
+//       Word [6] - 31: 0 - num_tx_total
+//       Word [7] - 31: 0 - num_tx_success
+//
+//   Returns the number of words in the buffer
+//
+int get_station_status( u32 * buffer, u32 max_words, u8 network ) {
+
+	unsigned int i;
+	unsigned int index;
+
+	u64 temp_word;
+
+	index     = 0;
+	temp_word = 0;
+
+	if ( network == TRANSMIT_OVER_NETWORK ) {
+		buffer[ index++ ] = Xil_Htonl( next_free_assoc_index );
+		Xil_Htonl( temp_word );
+
+		for( i = 0; i < next_free_assoc_index; i++ ){
+
+			// Make sure we do not overflow the buffer
+			if ( ( index + 8 ) > max_words ) {
+				buffer[ 0 ]   = Xil_Htonl( i );
+				break;
+			}
+
+			buffer[ index++ ] = Xil_Htonl( ( associations[i].AID << 16 )  | associations[i].seq );
+			buffer[ index++ ] = Xil_Htonl( ( associations[i].addr[0]<<8 ) |  associations[i].addr[1] );
+			buffer[ index++ ] = Xil_Htonl( ( associations[i].addr[2]<<24) | (associations[i].addr[3]<<16) | (associations[i].addr[4]<<8) | associations[i].addr[5] );
+			buffer[ index++ ] = Xil_Htonl( ( associations[i].tx_rate << 16 ) | associations[i].last_rx_power );
+
+			temp_word = associations[i].rx_timestamp & 0xFFFFFFFF;
+			buffer[ index++ ] = Xil_Htonl( (u32) temp_word );
+			temp_word = associations[i].rx_timestamp >> 32;
+			buffer[ index++ ] = Xil_Htonl( (u32) temp_word );
+
+			buffer[ index++ ] = Xil_Htonl( associations[i].num_tx_total );
+			buffer[ index++ ] = Xil_Htonl( associations[i].num_tx_success );
+		}
+
+	} else {
+
+		buffer[ index++ ] = next_free_assoc_index;
+
+		for( i = 0; i < next_free_assoc_index; i++ ){
+
+			// Make sure we do not overflow the buffer
+			if ( ( index + 8 ) > max_words ) {
+				buffer[ 0 ]   = i;
+				break;
+			}
+
+			buffer[ index++ ] = ( associations[i].AID << 16 )  | associations[i].seq ;
+			buffer[ index++ ] = ( associations[i].addr[0]<<8 ) |  associations[i].addr[1];
+			buffer[ index++ ] = ( associations[i].addr[2]<<24) | (associations[i].addr[3]<<16) | (associations[i].addr[4]<<8) | associations[i].addr[5];
+			buffer[ index++ ] = ( associations[i].tx_rate << 16 ) | associations[i].last_rx_power ;
+
+			temp_word = associations[i].rx_timestamp & 0xFFFFFFFF;
+			buffer[ index++ ] = (u32) temp_word;
+			temp_word = associations[i].rx_timestamp >> 32;
+			buffer[ index++ ] = (u32) temp_word;
+
+			buffer[ index++ ] = associations[i].num_tx_total;
+			buffer[ index++ ] = associations[i].num_tx_success;
+		}
+	}
+	return index;
+}
+
 
 void reset_station_statistics(){
 	u32 i;

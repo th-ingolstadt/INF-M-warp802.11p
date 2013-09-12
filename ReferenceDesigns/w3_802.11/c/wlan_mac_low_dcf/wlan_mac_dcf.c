@@ -34,11 +34,14 @@ static u32 mac_param_chan;
 static u32 stationShortRetryCount;
 static u32 stationLongRetryCount;
 static u32 cw_exp;
-static u8 wlan_mac_addr[6];
 static u8 bcast_addr[6];
 static u8 rx_pkt_buf;
 
 static u32 cpu_low_status;
+
+
+wlan_mac_hw_info  hw_info;
+
 
 #define NUM_LEDS 4
 u8 red_led_index;
@@ -356,7 +359,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){};
 
-	unicast_to_me = wlan_addr_eq(rx_header->address_1, wlan_mac_addr);
+	unicast_to_me = wlan_addr_eq(rx_header->address_1, hw_info.hw_addr_wlan);
 	to_broadcast = wlan_addr_eq(rx_header->address_1, bcast_addr);
 
 	//Prep outgoing ACK just in case it needs to be sent
@@ -623,7 +626,6 @@ void wlan_mac_dcf_hw_start_backoff(u16 num_slots) {
 
 void mac_dcf_init(){
 	wlan_ipc_msg ipc_msg_to_high;
-	u32 ipc_msg_to_high_payload[2];
 	u16 i;
 	rx_frame_info* rx_mpdu;
 
@@ -650,8 +652,6 @@ void mac_dcf_init(){
 	//Clear any stale Rx events
 	wlan_mac_dcf_hw_unblock_rx_phy();
 
-	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 0, wlan_mac_addr);
-
 	bcast_addr[0] = 0xFF;
 	bcast_addr[1] = 0xFF;
 	bcast_addr[2] = 0xFF;
@@ -659,12 +659,16 @@ void mac_dcf_init(){
 	bcast_addr[4] = 0xFF;
 	bcast_addr[5] = 0xFF;
 
-	//Send a message to other processor to identify mac_addr
-	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_MAC_ADDR);
-	ipc_msg_to_high.num_payload_words = 2;
-	ipc_msg_to_high.payload_ptr = &(ipc_msg_to_high_payload[0]);
+	// Initialize the HW info structure
+	wlan_mac_init_hw_info();
 
-	memcpy((void*) &(ipc_msg_to_high_payload[0]), (void*) &(wlan_mac_addr[0]), 6);
+	//Send a message to other processor to identify mac_addr
+	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
+	ipc_msg_to_high.num_payload_words = 8;
+	ipc_msg_to_high.payload_ptr = (u32 *) &(hw_info);
+
+//	ipc_msg_to_high.payload_ptr = &(ipc_msg_to_high_payload[0]);
+//	memcpy((void*) &(ipc_msg_to_high_payload[0]), (void*) &(hw_info), sizeof( wlan_mac_hw_info ) );
 	ipc_mailbox_write_msg(&ipc_msg_to_high);
 
 	for(i=0;i < NUM_RX_PKT_BUFS; i++){
@@ -673,6 +677,32 @@ void mac_dcf_init(){
 	}
 
 }
+
+
+void wlan_mac_init_hw_info( void ) {
+
+	// Initialize the wlan_mac_hw_info structure to all zeros
+	//
+	memset( (void*)( &hw_info ), 0x0, sizeof( wlan_mac_hw_info ) );
+
+
+	// Set General Node information
+    hw_info.serial_number = w3_eeprom_readSerialNum(EEPROM_BASEADDR);
+    hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
+    hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);
+
+    // Set HW Addresses
+    //   - NOTE:  The w3_eeprom_readEthAddr() function handles the case when the WARP v3
+    //     hardware does not have a valid Ethernet address
+    //
+	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 0, hw_info.hw_addr_wlan);
+	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 1, hw_info.hw_addr_wn);
+
+    // WARPNet will use ethernet device 1 unless you change this function
+    hw_info.wn_exp_eth_device = 1;
+}
+
+
 
 void wlan_mac_dcf_hw_unblock_rx_phy() {
 	//Posedge on WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET unblocks PHY (clear then set here to ensure posedge)
@@ -867,7 +897,7 @@ inline int calculate_rx_power(u8 band, u16 rssi, u8 lna_gain){
 	int power = -100;
 
 	//TODO: In this version of hardware, RSSI is latched pre-AGC so we should assume a high LNA gain
-	//lna_gain = 3;
+	// lna_gain = 3;
 
 	if(band == RC_24GHZ){
 		switch(lna_gain){
