@@ -20,6 +20,12 @@
 #define WLAN_EXP_COMMON_H_
 
 
+// **********************************************************************
+// Use WARPNet Interface
+//
+//#define  USE_WARPNET_WLAN_EXP
+
+
 
 // **********************************************************************
 // WARPNet Version Information

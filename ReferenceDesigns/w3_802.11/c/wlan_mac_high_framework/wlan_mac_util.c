@@ -29,11 +29,10 @@
 #include "xparameters.h"
 #include "xtmrctr.h"
 
+#include "wlan_exp_common.h"
+
 
 /*************************** Constant Definitions ****************************/
-
-// Use the WARPNet interface
-#define  USE_WARPNET_WLAN_EXP
 
 
 // UART interface defines
@@ -409,7 +408,9 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
 
 			hw_info.type = temp;
 
+#ifdef _DEBUG_
 			print_wlan_mac_hw_info( & hw_info );
+#endif
 
 #ifdef USE_WARPNET_WLAN_EXP
 
@@ -959,6 +960,8 @@ void tagged_rate_to_readable_rate(u8 rate, char* str){
 }
 
 
+#ifdef _DEBUG_
+
 void print_wlan_mac_hw_info( wlan_mac_hw_info * info ) {
 	int i;
 
@@ -983,4 +986,6 @@ void print_wlan_mac_hw_info( wlan_mac_hw_info * info ) {
 	xil_printf("END \n");
 
 }
+
+#endif
 

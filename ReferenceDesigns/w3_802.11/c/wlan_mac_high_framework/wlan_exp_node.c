@@ -14,6 +14,8 @@
 #include "wlan_exp_node.h"
 #include "wlan_exp_transport.h"
 
+#ifdef USE_WARPNET_WLAN_EXP
+
 #include <xparameters.h>
 #include <Xio.h>
 
@@ -800,5 +802,8 @@ void print_wn_node_info( wn_node_info * info ) {
 	xil_printf("\n");
     
 }
+
+#endif
+
 
 #endif

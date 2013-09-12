@@ -42,6 +42,8 @@
 #include "wlan_exp_node.h"
 #include "wlan_exp_transport.h"
 
+#ifdef USE_WARPNET_WLAN_EXP
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -960,5 +962,8 @@ void print_XAxiEthernet_Config( XAxiEthernet_Config * ETH_CFG_ptr ) {
 }
 
 #endif
+
+#endif
+
 
 #endif
