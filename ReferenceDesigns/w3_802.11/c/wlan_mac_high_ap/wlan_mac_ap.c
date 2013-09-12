@@ -11,6 +11,7 @@
 //Xilinx SDK includes
 #include "xparameters.h"
 #include "stdio.h"
+#include "stdlib.h"
 #include "xtmrctr.h"
 #include "xio.h"
 #include "string.h"
@@ -55,8 +56,8 @@
 
 #define MAX_ASSOCIATIONS 8
 
-#define SSID_LEN 7
-u8 SSID[SSID_LEN] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP";
+char* access_point_ssid;
 
 mac_header_80211_common tx_header_common;
 u8 allow_assoc;
@@ -142,6 +143,10 @@ int main(){
 	init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
 	config_rf_ifc->channel = mac_param_chan;
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+	access_point_ssid = malloc(strlen(default_AP_SSID)+1);
+	strcpy(access_point_ssid,default_AP_SSID);
+
 
 	wlan_mac_schedule_event(SCHEDULE_COARSE, BEACON_INTERVAL_US, (void*)beacon_transmit);
 
@@ -396,7 +401,7 @@ void beacon_transmit() {
  		tx_queue = checkout.first;
  		tx_header_common.address_1 = bcast_addr;
 		tx_header_common.address_3 = eeprom_mac_addr;
- 		tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan);
+ 		tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
  		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
  		tx_queue->metadata_ptr = NULL;
  		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
@@ -559,7 +564,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= length){ //Loop through tagged parameters
 					switch(mpdu_ptr_u8[0]){ //What kind of tag is this?
 						case TAG_SSID_PARAMS: //SSID parameter set
-							if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)SSID,mpdu_ptr_u8[1])==0)) {
+							if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)access_point_ssid,mpdu_ptr_u8[1])==0)) {
 								//Broadcast SSID or my SSID - send unicast probe response
 								send_response = 1;
 							}
@@ -582,7 +587,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						tx_queue = checkout.first;
 						tx_header_common.address_1 = rx_80211_header->address_2;
 						tx_header_common.address_3 = eeprom_mac_addr;
-						tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, SSID_LEN, SSID, mac_param_chan);
+						tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 						tx_queue->metadata_ptr = NULL;
 						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
