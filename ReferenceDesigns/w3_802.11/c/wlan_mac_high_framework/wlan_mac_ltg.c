@@ -69,6 +69,12 @@ int start_ltg(u32 id, u32 type, void* params){
 				if(new_tg->params != NULL){
 					memcpy(new_tg->params, params, sizeof(cbr_params));
 					new_tg->timestamp = timestamp;
+
+					if(tg_list.length == 0){
+						//start the scheduler if it isn't already running
+						wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)check_ltg);
+					}
+
 					traffic_generator_insertEnd(&tg_list,new_tg);
 				} else {
 					xil_printf("Failed to initialize parameter struct\n");
@@ -113,10 +119,10 @@ void check_ltg(){
 
 			curr_tg = curr_tg->next;
 		}
-
+		wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)check_ltg);
 	}
 
-	wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)check_ltg);
+
 	return;
 }
 

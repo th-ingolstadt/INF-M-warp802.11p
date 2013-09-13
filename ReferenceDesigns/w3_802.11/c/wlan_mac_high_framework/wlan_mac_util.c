@@ -464,8 +464,8 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 		case TIMER_CNTR_FAST:
 			for(k = 0; k<SCHEDULER_NUM_EVENTS; k++){
 				if(scheduler_in_use[SCHEDULE_FINE][k] == 1){
+					restart_timer = 1;
 					if(timestamp > scheduler_timestamps[SCHEDULE_FINE][k]){
-						restart_timer = 1;
 						scheduler_in_use[SCHEDULE_FINE][k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
 						scheduler_callbacks[SCHEDULE_FINE][k]();
 					}
@@ -480,11 +480,10 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 			}
 		break;
 		case TIMER_CNTR_SLOW:
-		//	xil_printf("slow expiration!\n");
 			for(k = 0; k<SCHEDULER_NUM_EVENTS; k++){
 				if(scheduler_in_use[SCHEDULE_COARSE][k] == 1){
+					restart_timer = 1;
 					if(timestamp > scheduler_timestamps[SCHEDULE_COARSE][k]){
-						restart_timer = 1;
 						scheduler_in_use[SCHEDULE_COARSE][k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
 						scheduler_callbacks[SCHEDULE_COARSE][k]();
 					}
@@ -494,7 +493,6 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 				timer_running[TIMER_CNTR_SLOW] = 1;
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_SLOW, SLOW_TIMER_DUR_US*(TIMER_FREQ/1000000));
 				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
-			//	xil_printf("restarting slow timer\n");
 			} else {
 				timer_running[TIMER_CNTR_SLOW] = 0;
 			}
@@ -679,7 +677,6 @@ void wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 					XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
 				}
 			}
-
 			return;
 		}
 	}
@@ -735,11 +732,22 @@ void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
 	(station->num_tx_total)++;
 	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
 		(station->num_tx_success)++;
+		(station->rx_timestamp = get_usec_timestamp());
 	}
 }
 
 u8 wlan_mac_util_get_tx_rate(station_info* station){
-	return station->tx_rate;
+
+	u8 return_value;
+
+	if(((station->tx_rate) >= WLAN_MAC_RATE_6M) && ((station->tx_rate) <= WLAN_MAC_RATE_54M)){
+		return_value = station->tx_rate;
+	} else {
+		xil_printf("Station has invalid rate selection, defaulting to WLAN_MAC_RATE_6M\n");
+		return_value = WLAN_MAC_RATE_6M;
+	}
+
+	return return_value;
 }
 
 void write_hex_display(u8 val){
@@ -834,9 +842,6 @@ void mpdu_transmit(packet_bd* tx_queue) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station_info* station = (station_info*)(tx_queue->metadata_ptr);
-
-
-
 
 
 	if(is_tx_buffer_empty()){

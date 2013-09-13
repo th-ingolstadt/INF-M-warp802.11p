@@ -69,6 +69,8 @@ typedef struct{
 	u64 rx_timestamp;
 	u32 num_tx_total;
 	u32 num_tx_success;
+	u32 num_rx_success;
+	u32 num_rx_bytes;
 } station_info;
 
 typedef struct{
