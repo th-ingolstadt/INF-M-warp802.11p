@@ -141,6 +141,8 @@ int main(){
 	};
 	memcpy((void*) &(eeprom_mac_addr[0]), (void*) get_eeprom_mac_addr(), 6);
 
+	xil_printf("MAC Addr: %x-%x-%x-%x-%x-%x\n",eeprom_mac_addr[0],eeprom_mac_addr[1],eeprom_mac_addr[2],eeprom_mac_addr[3],eeprom_mac_addr[4],eeprom_mac_addr[5]);
+
 	tx_header_common.address_2 = &(eeprom_mac_addr[0]);
 	tx_header_common.seq_num = 0;
 
@@ -342,8 +344,9 @@ void uart_rx(u8 rxByte){
 			break;
 			case ASCII_l:
 				if(ltg_mode == 0){
-					xil_printf("Enabling backlogged LTG mode to AID 1\n");
-					cbr_parameters.interval_usec = 0; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
+					#define LTG_INTERVAL 10000
+					xil_printf("Enabling LTG mode to AID 1, interval = %d usec\n", LTG_INTERVAL);
+					cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
 					start_ltg(1, LTG_TYPE_CBR, &cbr_parameters);
 
 					ltg_mode = 1;
@@ -377,7 +380,6 @@ void ltg_event(u32 id){
 				tx_queue = checkout.first;
 				tx_header_common.address_1 = associations[i].addr;
 				tx_header_common.address_3 = eeprom_mac_addr;
-				//tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
 				mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 				tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
@@ -390,9 +392,7 @@ void ltg_event(u32 id){
 				llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
 				bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
 				llc_hdr->type = LLC_TYPE_CUSTOM;
-
 				tx_length += sizeof(llc_header);
-
 				tx_length = 1200; //TODO: The rest of the payload is just... whatever. This will tell the PHY to send a longer packet
 								  //and pretend the payload is something interesting
 
@@ -560,7 +560,8 @@ void association_timestamp_check() {
 
 	}
 
-	wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+	//FIXME: Still buggy. Removing for now.
+	//wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 	return;
 }
 
@@ -574,6 +575,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u16 rx_seq;
 	packet_bd_list checkout;
 	packet_bd*	tx_queue;
+	station_info* associated_station;
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
@@ -584,6 +586,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	for(i=0; i < next_free_assoc_index; i++) {
 		if(wlan_addr_eq(associations[i].addr, (rx_80211_header->address_2))) {
 			is_associated = 1;
+			associated_station = &(associations[i]);
 			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			//Check if duplicate
 			associations[i].rx_timestamp = get_usec_timestamp();
@@ -606,36 +609,41 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			if(is_associated){
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
 					//MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx
+
+					(associated_station->num_rx_success)++;
+					(associated_station->num_rx_bytes) += mpdu_info->length;
+
 					wlan_mpdu_eth_send(mpdu,length);
 				}
 			} else {
 				//TODO: Formally adopt conventions from 10.3 in 802.11-2012 for STA state transitions
+				if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)){
+					if((rx_80211_header->address_3[0] == 0x33) && (rx_80211_header->address_3[1] == 0x33)){
+						//TODO: This is an IPv6 Multicast packet. It should get de-encapsulated and sent over the wire
+					} else {
+						//Received a data frame from a STA that claims to be associated with this AP but is not in the AP association table
+						// Discard the MPDU and reply with a de-authentication frame to trigger re-association at the STA
 
-				if((rx_80211_header->address_3[0] == 0x33) && (rx_80211_header->address_3[1] == 0x33)){
-					//TODO: This is an IPv6 Multicast packet. It should get de-encapsulated and sent over the wire
-				} else {
-					//Received a data frame from a STA that claims to be associated with this AP but is not in the AP association table
-					// Discard the MPDU and reply with a de-authentication frame to trigger re-association at the STA
+						warp_printf(PL_WARNING, "Data from non-associated station: [%x %x %x %x %x %x], issuing de-authentication\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
+						warp_printf(PL_WARNING, "Address 3: [%x %x %x %x %x %x]\n", rx_80211_header->address_3[0],rx_80211_header->address_3[1],rx_80211_header->address_3[2],rx_80211_header->address_3[3],rx_80211_header->address_3[4],rx_80211_header->address_3[5]);
 
-					warp_printf(PL_WARNING, "Data from non-associated station: [%x %x %x %x %x %x], issuing de-authentication\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
-					warp_printf(PL_WARNING, "Address 3: [%x %x %x %x %x %x]\n", rx_80211_header->address_3[0],rx_80211_header->address_3[1],rx_80211_header->address_3[2],rx_80211_header->address_3[3],rx_80211_header->address_3[4],rx_80211_header->address_3[5]);
+						//Send De-authentication
+						//Checkout 1 element from the queue;
+							checkout = queue_checkout(1);
 
-					//Send De-authentication
-					//Checkout 1 element from the queue;
-					 	checkout = queue_checkout(1);
-
-					 	if(checkout.length == 1){ //There was at least 1 free queue element
-					 		tx_queue = checkout.first;
-					 		tx_header_common.address_1 = rx_80211_header->address_2;
-							tx_header_common.address_3 = eeprom_mac_addr;
-					 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
-					 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-					 		tx_queue->metadata_ptr = NULL;
-					 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-					 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
-							enqueue_after_end(0, &checkout);
-							check_tx_queue();
-					 	}
+							if(checkout.length == 1){ //There was at least 1 free queue element
+								tx_queue = checkout.first;
+								tx_header_common.address_1 = rx_80211_header->address_2;
+								tx_header_common.address_3 = eeprom_mac_addr;
+								tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
+								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
+								tx_queue->metadata_ptr = NULL;
+								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
+								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+								enqueue_after_end(0, &checkout);
+								check_tx_queue();
+							}
+					}
 				}
 			}//END if(is_associated)
 
@@ -686,12 +694,12 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		break;
 
 		case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication Packet
+
 			if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr)) {
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
 						case AUTH_ALGO_OPEN_SYSTEM:
 							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
-
 								//Checkout 1 element from the queue;
 								checkout = queue_checkout(1);
 
@@ -935,7 +943,7 @@ void print_station_status(){
 			xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
 			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
 			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
-
+			xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", associations[i].num_rx_success, associations[i].num_rx_bytes);
 		}
 		    xil_printf("---------------------------------------------------\n");
 		    xil_printf("\n");
@@ -1037,6 +1045,8 @@ void reset_station_statistics(){
 	for(i=0; i < next_free_assoc_index; i++){
 		associations[i].num_tx_total = 0;
 		associations[i].num_tx_success = 0;
+		associations[i].num_rx_success = 0;
+		associations[i].num_rx_bytes = 0;
 	}
 }
 
