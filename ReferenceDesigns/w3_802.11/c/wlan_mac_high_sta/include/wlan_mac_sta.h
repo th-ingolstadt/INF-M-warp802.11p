@@ -35,5 +35,8 @@ void attempt_authentication();
 void probe_req_transmit();
 void check_tx_queue();
 int str2num(char* str);
+void print_station_status();
+void reset_station_statistics();
+void ltg_event(u32 id);
 
 #endif /* WLAN_MAC_STA_H_ */
