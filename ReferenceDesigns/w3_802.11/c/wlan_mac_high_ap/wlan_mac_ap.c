@@ -709,7 +709,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					for(i=0;i<next_free_assoc_index;i++){
 						if(wlan_addr_eq(associations[i].addr, rx_80211_header->address_2)) {
 								allow_disassociation = 1;
-								if(next_free_assoc_index > 0) next_free_assoc_index--;
 							break;
 						}
 					}
@@ -887,6 +886,10 @@ void remove_station( unsigned int station_index ) {
 
 	// If there are stations in the association table and the station to remove
 	//   is in the association table, then remove it.
+
+#ifdef _DEBUG
+	xil_printf("next_free_assoc_index = %d \n", next_free_assoc_index);
+#endif
 
 	if( ( next_free_assoc_index > 0 ) && ( station_index < MAX_ASSOCIATIONS ) ) {
 
