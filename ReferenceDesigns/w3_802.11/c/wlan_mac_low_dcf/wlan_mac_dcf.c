@@ -2,6 +2,7 @@
 // File   : wlan_mac_dcf
 // Authors: Patrick Murphy (murphpo [at] mangocomm.com)
 //			Chris Hunter (chunter [at] mangocomm.com)
+//          Erik Welsh (welsh [at] mangocomm.com)
 // License: Copyright 2013, Mango Communications. All rights reserved.
 //          Distributed under the Mango Communications Reference Design License
 //				See LICENSE.txt included in the design archive or
@@ -29,6 +30,12 @@
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
 
+
+#ifdef _DEBUG_
+
+void wlan_mac_init_hw_info( void );
+
+#endif
 
 static u32 mac_param_chan;
 static u32 stationShortRetryCount;
@@ -662,6 +669,10 @@ void mac_dcf_init(){
 	// Initialize the HW info structure
 	wlan_mac_init_hw_info();
 
+#ifdef _DEBUG_
+	print_wlan_mac_hw_info( &hw_info );
+#endif
+
 	//Send a message to other processor to identify mac_addr
 	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
 	ipc_msg_to_high.num_payload_words = 8;
@@ -702,6 +713,34 @@ void wlan_mac_init_hw_info( void ) {
     hw_info.wn_exp_eth_device = 1;
 }
 
+#ifdef _DEBUG_
+
+void print_wlan_mac_hw_info( wlan_mac_hw_info * info ) {
+	int i;
+
+	xil_printf("WLAN MAC HW INFO:  \n");
+	xil_printf("  Type             :  0x%8x\n", info->type);
+	xil_printf("  Serial Number    :  %d\n",    info->serial_number);
+	xil_printf("  FPGA DNA         :  0x%8x  0x%8x\n", info->fpga_dna[1], info->fpga_dna[0]);
+	xil_printf("  WLAN EXP ETH Dev :  %d\n",    info->wn_exp_eth_device);
+
+	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wn[0]);
+	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
+		xil_printf(":%02x", info->hw_addr_wn[i]);
+	}
+	xil_printf("\n");
+
+	xil_printf("  WLAN HW Addr     :  %02x",    info->hw_addr_wlan[0]);
+	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
+		xil_printf(":%02x", info->hw_addr_wlan[i]);
+	}
+	xil_printf("\n");
+
+	xil_printf("END \n");
+
+}
+
+#endif
 
 
 void wlan_mac_dcf_hw_unblock_rx_phy() {
