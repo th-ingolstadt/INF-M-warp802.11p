@@ -47,7 +47,7 @@
 /*************************** Functions Prototypes ****************************/
 
 // #ifdef _DEBUG_
-void print_station_status( station_info * stations, unsigned int num_stations );
+void wlan_exp_print_station_status( station_info * stations, unsigned int num_stations );
 // #endif
 
 
@@ -129,7 +129,7 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
     }
 
 // #ifdef _DEBUG_
-    print_station_status( stations, num_stations );
+    wlan_exp_print_station_status( stations, num_stations );
 // #endif
 
 	return index;
@@ -157,7 +157,7 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
 * @note		None.
 *
 ******************************************************************************/
-void print_station_status( station_info * stations, unsigned int num_stations ){
+void wlan_exp_print_station_status( station_info * stations, unsigned int num_stations ){
 	u32 i;
 
 	for(i=0; i < num_stations; i++){
