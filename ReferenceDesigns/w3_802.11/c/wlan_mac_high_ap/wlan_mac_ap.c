@@ -2,11 +2,15 @@
 // File   : wlan_mac_ap.c
 // Authors: Patrick Murphy (murphpo [at] mangocomm.com)
 //			Chris Hunter (chunter [at] mangocomm.com)
+//          Erik Welsh (welsh [at] mangocomm.com)
 // License: Copyright 2013, Mango Communications. All rights reserved.
 //          Distributed under the Mango Communications Reference Design License
 //				See LICENSE.txt included in the design archive or
 //				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
+
+
+/***************************** Include Files *********************************/
 
 //Xilinx SDK includes
 #include "xparameters.h"
@@ -19,6 +23,7 @@
 
 //WARP includes
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_ipc.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
@@ -31,103 +36,117 @@
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
+#include "wlan_exp_node.h"
+#include "wlan_exp_node_ap.h"
 #include "wlan_exp_transport.h"
+
+
+/*************************** Constant Definitions ****************************/
 
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_AP
 
 
-//Time between beacon transmissions
-#define BEACON_INTERVAL_MS (100)
-#define BEACON_INTERVAL_US (BEACON_INTERVAL_MS*1000)
+#define  WLAN_CHANNEL                  4
 
-//Time between association table check
-//Periodically, the association table is culled through and
-//inactive stations are explicitly purged.
-#define ASSOCIATION_CHECK_INTERVAL_MS (10000)
-#define ASSOCIATION_CHECK_INTERVAL_US (ASSOCIATION_CHECK_INTERVAL_MS*1000)
 
-//The amount of time since the last time a station was heard from.
-//After this interval, a station can be purged from the association table
-#define ASSOCIATION_TIMEOUT_S (600)
-#define ASSOCIATION_TIMEOUT_US (ASSOCIATION_TIMEOUT_S*1000000)
 
-//When the node is in the state where it temporarily allows
-//associations, this interval defines how long the window for
-//new associations is open
-#define ASSOCIATION_ALLOW_INTERVAL_MS (30000)
-#define ASSOCIATION_ALLOW_INTERVAL_US (ASSOCIATION_ALLOW_INTERVAL_MS*1000)
+/*********************** Global Variable Definitions *************************/
 
-//Time between blinking behavior in hex displays
-#define ANIMATION_RATE_US (100000)
 
-#define MAX_RETRY 7
 
-#define MAX_ASSOCIATIONS 8
+/*************************** Variable Definitions ****************************/
 
-#define WLAN_CHANNEL            4
+// SSID variables
 static char default_AP_SSID[] = "WARP-AP";
-char* access_point_ssid;
+char*       access_point_ssid;
 
-
+// Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
+
+// Control variables
 u8 allow_assoc;
 u8 perma_assoc_mode;
-
 u8 default_unicast_rate;
-
 u8 enable_animation;
 u8 interactive_mode;
 
-//The last entry in associations[MAX_ASSOCIATIONS][] is swap space
-
-// AID - Addr[6] - Last Seq
+// Association Table variables
+//   The last entry in associations[MAX_ASSOCIATIONS][] is swap space
 station_info associations[MAX_ASSOCIATIONS+1];
-u32 next_free_assoc_index;
+u32          next_free_assoc_index;
 
-static u32 mac_param_chan;
+// AP channel
+u32 mac_param_chan;
 
+// AP MAC address / Broadcast address
 static u8 eeprom_mac_addr[6];
-static u8 bcast_addr[6];
+static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+
+
+/*************************** Functions Prototypes ****************************/
+
+
+#ifdef WLAN_USE_UART_MENU
+
+void uart_rx(u8 rxByte);
+void print_menu();
+void print_station_status();
+
+#else
+
+void uart_rx(u8 rxByte){ };
+
+#endif
+
+
+void remove_station( unsigned int station_index );
+
+
+
+
+/******************************** Functions **********************************/
+
 
 int main(){
-	wlan_ipc_msg ipc_msg_to_low;
-	u32 ipc_msg_to_low_payload[1];
 	u32 i;
-
-
-	ipc_config_rf_ifc* config_rf_ifc;
 
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
-	perma_assoc_mode = 0;
+
+    // Set Global variables
+	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 
+
+	// Initialize the utility library
 	wlan_lib_init();
 	wlan_mac_util_init( WLAN_EXP_TYPE );
 
-	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
-	wlan_mac_util_set_mpdu_tx_done_callback((void*)mpdu_transmit_done);
-	wlan_mac_util_set_mpdu_rx_callback((void*)mpdu_rx_process);
-	wlan_mac_util_set_pb_u_callback((void*)up_button);
-	wlan_mac_util_set_uart_rx_callback((void*)uart_rx);
-	wlan_mac_util_set_ipc_rx_callback((void*)ipc_rx);
-	wlan_mac_util_set_check_queue_callback((void*)check_tx_queue);
 
-    wlan_mac_ltg_set_callback((void*)ltg_event);
+	// Initialize callbacks
+	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
+	wlan_mac_util_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
+	wlan_mac_util_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
+	wlan_mac_util_set_pb_u_callback(         (void*)up_button);
+	wlan_mac_util_set_uart_rx_callback(      (void*)uart_rx);
+	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
+	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
 
+    wlan_mac_ltg_set_callback(               (void*)ltg_event);
+
+
+    // Initialize interrupts
 	interrupt_init();
 
-	bcast_addr[0] = 0xFF;
-	bcast_addr[1] = 0xFF;
-	bcast_addr[2] = 0xFF;
-	bcast_addr[3] = 0xFF;
-	bcast_addr[4] = 0xFF;
-	bcast_addr[5] = 0xFF;
 
+	// Initialize Association Table
 	next_free_assoc_index = 0;
+
 	bzero(&(associations[0]),sizeof(station_info)*(MAX_ASSOCIATIONS+1));
+
 	for(i=0;i<MAX_ASSOCIATIONS;i++){
 		associations[i].AID = (1+i); //7.3.1.8 of 802.11-2007
 		memset((void*)(&(associations[i].addr[0])), 0xFF,6);
@@ -135,45 +154,64 @@ int main(){
 	}
 
 
-
-	while(cpu_low_initialized() == 0){
+    // Wait for CPU Low to initialize
+	while( is_cpu_low_initialized() == 0 ){
 		xil_printf("waiting on CPU_LOW to boot\n");
 	};
+
+
+	// CPU Low will pass HW information to CPU High as part of the boot process
+	//   - Get necessary HW information
 	memcpy((void*) &(eeprom_mac_addr[0]), (void*) get_eeprom_mac_addr(), 6);
 
-	xil_printf("MAC Addr: %x-%x-%x-%x-%x-%x\n",eeprom_mac_addr[0],eeprom_mac_addr[1],eeprom_mac_addr[2],eeprom_mac_addr[3],eeprom_mac_addr[4],eeprom_mac_addr[5]);
 
+    // Set Header information
 	tx_header_common.address_2 = &(eeprom_mac_addr[0]);
-	tx_header_common.seq_num = 0;
+	tx_header_common.seq_num   = 0;
 
 
+    // Initialize hex display
 	write_hex_display(0);
 
+
+	// Set up channel
 	mac_param_chan = WLAN_CHANNEL;
+	set_mac_channel( mac_param_chan );
 
-	//Send a message to other processor to tell it to switch channels
-	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
-	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
-	ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-	init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
-	config_rf_ifc->channel = mac_param_chan;
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
 
+	// Set SSID
 	access_point_ssid = malloc(strlen(default_AP_SSID)+1);
 	strcpy(access_point_ssid,default_AP_SSID);
 
-    
+
+    // Schedule all events
 	wlan_mac_schedule_event(SCHEDULE_COARSE, BEACON_INTERVAL_US, (void*)beacon_transmit);
 
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
 	enable_animation = 1;
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ANIMATION_RATE_US, (void*)animate_hex);
+
 	enable_associations();
-	perma_assoc_mode = 1; //By default, associations are allowed any time.
+	perma_assoc_mode = 1;   // By default, associations are allowed any time.
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 
+
+	// Print AP information to the terminal
+    xil_printf("WLAN MAC AP boot complete: \n");
+    xil_printf("  SSID    : %s \n", access_point_ssid);
+    xil_printf("  Channel : %d \n", mac_param_chan);
+	xil_printf("  MAC Addr: %x-%x-%x-%x-%x-%x\n\n",eeprom_mac_addr[0],eeprom_mac_addr[1],eeprom_mac_addr[2],eeprom_mac_addr[3],eeprom_mac_addr[4],eeprom_mac_addr[5]);
+
+
+#ifdef WLAN_USE_UART_MENU
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
+#endif
+
+#ifdef USE_WARPNET_WLAN_EXP
+	// Set AP processing callbacks
+	node_set_process_callback( (void *)wlan_exp_node_ap_processCmd );
+#endif
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
@@ -186,11 +224,13 @@ int main(){
 	return -1;
 }
 
+
+
 void check_tx_queue(){
 
 	static u32 station_index = 0;
 	u32 i;
-	if(cpu_low_ready()){
+	if( is_cpu_low_ready() ){
 		for(i = 0; i < (next_free_assoc_index+1); i++){
 			station_index = (station_index+1)%(next_free_assoc_index+1);
 
@@ -210,6 +250,8 @@ void check_tx_queue(){
 	}
 }
 
+
+
 void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	u32 i;
 	if(tx_mpdu->AID != 0){
@@ -222,6 +264,9 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 		}
 	}
 }
+
+
+
 
 void up_button(){
 	if(allow_assoc == 0){
@@ -242,124 +287,6 @@ void up_button(){
 	}
 }
 
-void uart_rx(u8 rxByte){
-	wlan_ipc_msg ipc_msg_to_low;
-	u32 ipc_msg_to_low_payload[1];
-	ipc_config_rf_ifc* config_rf_ifc;
-	u32 i;
-
-    static u8 ltg_mode = 0;
-	cbr_params cbr_parameters;
-    
-	if(rxByte == ASCII_ESC){
-		interactive_mode = 0;
-		print_menu();
-		return;
-	}
-
-	if(interactive_mode){
-		switch(rxByte){
-			case ASCII_r:
-				//Reset statistics
-				reset_station_statistics();
-			break;
-			case ASCII_d:
-				//Deauthenticate all stations
-				deauthenticate_stations();
-			break;
-		}
-	} else {
-		switch(rxByte){
-			case ASCII_1:
-				interactive_mode = 1;
-				print_station_status();
-			break;
-
-			case ASCII_2:
-				print_queue_status();
-			break;
-
-			case ASCII_c:
-
-				if(mac_param_chan > 1){
-					deauthenticate_stations();
-					(mac_param_chan--);
-
-					//Send a message to other processor to tell it to switch channels
-					ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
-					ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
-					ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-					init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
-					config_rf_ifc->channel = mac_param_chan;
-					ipc_mailbox_write_msg(&ipc_msg_to_low);
-				} else {
-
-				}
-				xil_printf("(-) Channel: %d\n", mac_param_chan);
-
-
-			break;
-			case ASCII_C:
-				if(mac_param_chan < 11){
-					deauthenticate_stations();
-					(mac_param_chan++);
-
-					//Send a message to other processor to tell it to switch channels
-					ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
-					ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
-					ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-					init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
-					config_rf_ifc->channel = mac_param_chan;
-					ipc_mailbox_write_msg(&ipc_msg_to_low);
-				} else {
-
-				}
-				xil_printf("(+) Channel: %d\n", mac_param_chan);
-
-			break;
-			case ASCII_r:
-				if(default_unicast_rate > WLAN_MAC_RATE_6M){
-					default_unicast_rate--;
-				} else {
-					default_unicast_rate = WLAN_MAC_RATE_6M;
-				}
-
-				for(i=0; i < next_free_assoc_index; i++){
-					associations[i].tx_rate = default_unicast_rate;
-				}
-
-				xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
-			break;
-			case ASCII_R:
-				if(default_unicast_rate < WLAN_MAC_RATE_54M){
-					default_unicast_rate++;
-				} else {
-					default_unicast_rate = WLAN_MAC_RATE_54M;
-				}
-
-				for(i=0; i < next_free_assoc_index; i++){
-					associations[i].tx_rate = default_unicast_rate;
-				}
-				xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
-			break;
-			case ASCII_l:
-				if(ltg_mode == 0){
-					#define LTG_INTERVAL 10000
-					xil_printf("Enabling LTG mode to AID 1, interval = %d usec\n", LTG_INTERVAL);
-					cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
-					start_ltg(1, LTG_TYPE_CBR, &cbr_parameters);
-
-					ltg_mode = 1;
-
-				} else {
-					stop_ltg(1);
-					ltg_mode = 0;
-					xil_printf("Disabled LTG mode to AID 1\n");
-				}
-			break;
-        }
-	}
-}
 
 
 void ltg_event(u32 id){
@@ -378,8 +305,9 @@ void ltg_event(u32 id){
 
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue = checkout.first;
-				tx_header_common.address_1 = associations[i].addr;
-				tx_header_common.address_3 = eeprom_mac_addr;
+
+		 		setup_tx_header( &tx_header_common, associations[i].addr, eeprom_mac_addr );
+
 				mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 				tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
@@ -396,16 +324,16 @@ void ltg_event(u32 id){
 				tx_length = 1200; //TODO: The rest of the payload is just... whatever. This will tell the PHY to send a longer packet
 								  //and pretend the payload is something interesting
 
-				((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-				tx_queue->metadata_ptr = (void*)&(associations[i]);
-				((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-				((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+		 		setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
+		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 				enqueue_after_end(associations[i].AID, &checkout);
 				check_tx_queue();
 			}
 		}
 	}
 }
+
 
 
 int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
@@ -416,16 +344,13 @@ int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u
 	u32 i;
 	u8 is_associated = 0;
 
-	tx_header_common.address_1 = (u8*)(&(eth_dest[0]));
-	tx_header_common.address_3 = (u8*)(&(eth_src[0]));
+	setup_tx_header( &tx_header_common, (u8*)(&(eth_dest[0])), (u8*)(&(eth_src[0])) );
 
 	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
-		tx_queue->metadata_ptr = NULL;
-		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = 0;
-		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = 0;
+ 		setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
+
 		enqueue_after_end(0, tx_queue_list);
 		check_tx_queue();
 
@@ -439,9 +364,9 @@ int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u
 			}
 		}
 		if(is_associated) {
-			tx_queue->metadata_ptr = (void*)&(associations[i]);
-			((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-			((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+	 		setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
+	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 			enqueue_after_end(associations[i].AID, tx_queue_list);
 			check_tx_queue();
 		} else {
@@ -454,24 +379,7 @@ int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u
 
 }
 
-void print_queue_status(){
-	u32 i;
-	xil_printf("\nQueue Status:\n");
-	xil_printf(" FREE || BCAST|");
 
-	for(i=0; i<next_free_assoc_index; i++){
-		xil_printf("%6d|", associations[i].AID);
-	}
-	xil_printf("\n");
-
-	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(0));
-
-	for(i=0; i<next_free_assoc_index; i++){
-		xil_printf("%6d|", queue_num_queued(associations[i].AID));
-	}
-	xil_printf("\n");
-
-}
 
 void beacon_transmit() {
  	u16 tx_length;
@@ -483,12 +391,13 @@ void beacon_transmit() {
 
  	if(checkout.length == 1){ //There was at least 1 free queue element
  		tx_queue = checkout.first;
- 		tx_header_common.address_1 = bcast_addr;
-		tx_header_common.address_3 = eeprom_mac_addr;
+
+ 		setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
+
         tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
- 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
- 		tx_queue->metadata_ptr = NULL;
- 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
+
+ 		setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_MPDU_FLAGS_FILL_TIMESTAMP );
+
  		enqueue_after_end(0, &checkout);
  		check_tx_queue();
  	}
@@ -498,6 +407,8 @@ void beacon_transmit() {
 
  	return;
 }
+
+
 
 void association_timestamp_check() {
 
@@ -518,13 +429,14 @@ void association_timestamp_check() {
 
 		 	if(checkout.length == 1){ //There was at least 1 free queue element
 		 		tx_queue = checkout.first;
-		 		tx_header_common.address_1 = associations[i].addr;
-				tx_header_common.address_3 = eeprom_mac_addr;
+
+		 		setup_tx_header( &tx_header_common, associations[i].addr, eeprom_mac_addr );
+
 		 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
-		 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-		 		tx_queue->metadata_ptr = (void*)&(associations[i]);
-		 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-		 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+
+		 		setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
+		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 		 		enqueue_after_end(associations[i].AID, &checkout);
 		 		check_tx_queue();
 
@@ -537,33 +449,20 @@ void association_timestamp_check() {
 				}
 
 				//Remove this STA from association list
-				if(next_free_assoc_index > 0) next_free_assoc_index--;
-				memcpy(&(associations[i].addr[0]), bcast_addr, 6);
-				if(i < next_free_assoc_index) {
-					//Copy from current index to the swap space
-					memcpy(&(associations[MAX_ASSOCIATIONS]), &(associations[i]), sizeof(station_info));
-
-					//Shift later entries back into the freed association entry
-					memcpy(&(associations[i]), &(associations[i+1]), (next_free_assoc_index-i)*sizeof(station_info));
-
-					//Copy from swap space to current free index
-					memcpy(&(associations[next_free_assoc_index]), &(associations[MAX_ASSOCIATIONS]), sizeof(station_info));
-				}
-
+				remove_station( i );
 				xil_printf("\n\nDisassociation due to inactivity:\n");
 				print_associations();
-
 			}
-
 		}
-
-
 	}
 
 	//FIXME: Still buggy. Removing for now.
 	//wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 	return;
 }
+
+
+
 
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	void * mpdu = pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
@@ -633,13 +532,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							if(checkout.length == 1){ //There was at least 1 free queue element
 								tx_queue = checkout.first;
-								tx_header_common.address_1 = rx_80211_header->address_2;
-								tx_header_common.address_3 = eeprom_mac_addr;
+
+						 		setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
 								tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
-								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-								tx_queue->metadata_ptr = NULL;
-								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+
+						 		setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
+						 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 								enqueue_after_end(0, &checkout);
 								check_tx_queue();
 							}
@@ -677,13 +577,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(checkout.length == 1){ //There was at least 1 free queue element
 						tx_queue = checkout.first;
-						tx_header_common.address_1 = rx_80211_header->address_2;
-						tx_header_common.address_3 = eeprom_mac_addr;
+
+						setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
 						tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-						tx_queue->metadata_ptr = NULL;
-						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+
+				 		setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
+				 				         (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 						enqueue_after_end(0, &checkout);
 						check_tx_queue();
 					}
@@ -705,13 +606,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
 									tx_queue = checkout.first;
-									tx_header_common.address_1 = rx_80211_header->address_2;
-									tx_header_common.address_3 = eeprom_mac_addr;
+
+							 		setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
 									tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
-									((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-									tx_queue->metadata_ptr = NULL;
-									((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-									((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+
+							 		setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
+							 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 									enqueue_after_end(0, &checkout);
 									check_tx_queue();
 								}
@@ -726,13 +628,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							if(checkout.length == 1){ //There was at least 1 free queue element
 								tx_queue = checkout.first;
-								tx_header_common.address_1 = rx_80211_header->address_2;
-								tx_header_common.address_3 = eeprom_mac_addr;
+
+						 		setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
 								tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE);
-								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-								tx_queue->metadata_ptr = NULL;
-								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-								((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+
+						 		setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
+						 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 								enqueue_after_end(0, &checkout);
 								check_tx_queue();
 							}
@@ -776,13 +679,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(checkout.length == 1){ //There was at least 1 free queue element
 						tx_queue = checkout.first;
-						tx_header_common.address_1 = rx_80211_header->address_2;
-						tx_header_common.address_3 = eeprom_mac_addr;
+
+				 		setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
 						tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, STATUS_SUCCESS, associations[i].AID);
-						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-						tx_queue->metadata_ptr = (void*)&(associations[i]);
-						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-						((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+
+				 		setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
+				 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 						enqueue_after_end(associations[i].AID, &checkout);
 						check_tx_queue();
 					}
@@ -811,23 +715,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					}
 
 					if(allow_disassociation) {
-						//Remove this STA from association list
-						memcpy(&(associations[i].addr[0]), bcast_addr, 6);
-						if(i < next_free_assoc_index) {
-							//Copy from current index to the swap space
-							memcpy(&(associations[MAX_ASSOCIATIONS]), &(associations[i]), sizeof(station_info));
-
-							//Shift later entries back into the freed association entry
-							memcpy(&(associations[i]), &(associations[i+1]), (next_free_assoc_index-i)*sizeof(station_info));
-
-							//Copy from swap space to current free index
-							memcpy(&(associations[next_free_assoc_index]), &(associations[MAX_ASSOCIATIONS]), sizeof(station_info));
-						}
-
-
+						remove_station( i );
 						xil_printf("\n\nDisassociation:\n");
 						print_associations();
-
 					}
 				}
 		break;
@@ -841,6 +731,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	return;
 }
+
+
 
 void print_associations(){
 	u64 timestamp = get_usec_timestamp();
@@ -862,45 +754,46 @@ void print_associations(){
 	return;
 }
 
+
+
 void enable_associations(){
+	// Send a message to other processor to tell it to enable associations
+#ifdef _DEBUG_
 	xil_printf("Allowing new associations\n");
+#endif
 
-	wlan_ipc_msg ipc_msg_to_low;
-	u32 ipc_msg_to_low_payload[1];
-	ipc_config_phy_rx* config_phy_rx;
-	//Send a message to other processor to tell it to switch channels
-	ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
-	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
-	ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-	init_ipc_config(config_phy_rx,ipc_msg_to_low_payload,ipc_config_phy_rx);
-	config_phy_rx->enable_dsss = 1;
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	// Set the DSSS value in CPU Low
+	set_dsss_value( 1 );
+
+    // Set the global variables
 	allow_assoc = 1;
-
 }
+
+
 
 void disable_associations(){
 
-	wlan_ipc_msg ipc_msg_to_low;
-	u32 ipc_msg_to_low_payload[1];
-	ipc_config_phy_rx* config_phy_rx;
-	//Send a message to other processor to tell it to switch channels
-
+	// Send a message to other processor to tell it to disable associations
 	if(perma_assoc_mode == 0){
-		xil_printf("Not allowing new associations\n");
 
-		ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
-		ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
-		ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-		init_ipc_config(config_phy_rx,ipc_msg_to_low_payload,ipc_config_phy_rx);
-		config_phy_rx->enable_dsss = 0;
-		ipc_mailbox_write_msg(&ipc_msg_to_low);
-		allow_assoc = 0;
+#ifdef _DEBUG_
+		xil_printf("Not allowing new associations\n");
+#endif
+
+		// Set the DSSS value in CPU Low
+		set_dsss_value( 0 );
+
+        // Set the global variables
+		allow_assoc      = 0;
 		enable_animation = 0;
+
+		// Set the hex display
 		write_hex_display(next_free_assoc_index);
 		write_hex_display_dots(0);
 	}
 }
+
+
 
 void animate_hex(){
 	static u8 i = 0;
@@ -913,131 +806,9 @@ void animate_hex(){
 }
 
 
-void print_menu(){
-	xil_printf("\f");
-	xil_printf("********************** AP Menu **********************\n");
-	xil_printf("[1] - Interactive AP Status\n");
-	xil_printf("[2] - Print Queue Status\n");
-	xil_printf("\n");
-	xil_printf("[c/C] - change channel (note: changing channel will\n");
-	xil_printf("        purge any associations, forcing stations to\n");
-	xil_printf("        join the network again)\n");
-	xil_printf("[r/R] - change default unicast rate\n");
-	xil_printf("[l]	  - toggle local traffic generation to AID 1\n");
-	xil_printf("*****************************************************\n");
-}
-
-void print_station_status(){
-	u32 i;
-	u64 timestamp;
-
-	if(interactive_mode){
-		timestamp = get_usec_timestamp();
-		xil_printf("\f");
-
-		for(i=0; i < next_free_assoc_index; i++){
-			xil_printf("---------------------------------------------------\n");
-			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
-					associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
-			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
-			xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
-			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
-			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
-			xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", associations[i].num_rx_success, associations[i].num_rx_bytes);
-		}
-		    xil_printf("---------------------------------------------------\n");
-		    xil_printf("\n");
-		    xil_printf("[r] - reset statistics\n");
-		    xil_printf("[d] - deauthenticate all stations\n");
 
 
-		//Update display
-		wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
-	}
-}
 
-
-// Function will populate the buffer with the following packet format:
-//   Word [0]             - number of stations
-//   Word [1 - max_words] - information for each station
-//       Word [0] - 31:16 - AID
-//                - 15: 0 - seq
-//       Word [1] - 31:16 - Reserved
-//                  15: 0 - (addr[0]<<8)  |  addr[1]
-//       Word [2] - 31: 0 - (addr[2]<<24) | (addr[3]<<16) | (addr[4]<<8) | addr[5]
-//       Word [3] - 31:16 - tx_rate
-//                  15: 0 - last_rx_power
-//       Word [4] - 31: 0 - rx_timestamp[31:0]
-//       Word [5] - 31: 0 - rx_timestamp[63:32]
-//       Word [6] - 31: 0 - num_tx_total
-//       Word [7] - 31: 0 - num_tx_success
-//
-//   Returns the number of words in the buffer
-//
-int get_station_status( u32 * buffer, u32 max_words, u8 network ) {
-
-	unsigned int i;
-	unsigned int index;
-
-	u64 temp_word;
-
-	index     = 0;
-	temp_word = 0;
-
-	if ( network == TRANSMIT_OVER_NETWORK ) {
-		buffer[ index++ ] = Xil_Htonl( next_free_assoc_index );
-		Xil_Htonl( temp_word );
-
-		for( i = 0; i < next_free_assoc_index; i++ ){
-
-			// Make sure we do not overflow the buffer
-			if ( ( index + 8 ) > max_words ) {
-				buffer[ 0 ]   = Xil_Htonl( i );
-				break;
-			}
-
-			buffer[ index++ ] = Xil_Htonl( ( associations[i].AID << 16 )  | associations[i].seq );
-			buffer[ index++ ] = Xil_Htonl( ( associations[i].addr[0]<<8 ) |  associations[i].addr[1] );
-			buffer[ index++ ] = Xil_Htonl( ( associations[i].addr[2]<<24) | (associations[i].addr[3]<<16) | (associations[i].addr[4]<<8) | associations[i].addr[5] );
-			buffer[ index++ ] = Xil_Htonl( ( associations[i].tx_rate << 16 ) | associations[i].last_rx_power );
-
-			temp_word = associations[i].rx_timestamp & 0xFFFFFFFF;
-			buffer[ index++ ] = Xil_Htonl( (u32) temp_word );
-			temp_word = associations[i].rx_timestamp >> 32;
-			buffer[ index++ ] = Xil_Htonl( (u32) temp_word );
-
-			buffer[ index++ ] = Xil_Htonl( associations[i].num_tx_total );
-			buffer[ index++ ] = Xil_Htonl( associations[i].num_tx_success );
-		}
-
-	} else {
-
-		buffer[ index++ ] = next_free_assoc_index;
-
-		for( i = 0; i < next_free_assoc_index; i++ ){
-
-			// Make sure we do not overflow the buffer
-			if ( ( index + 8 ) > max_words ) {
-				buffer[ 0 ]   = i;
-				break;
-			}
-
-			buffer[ index++ ] = ( associations[i].AID << 16 )  | associations[i].seq ;
-			buffer[ index++ ] = ( associations[i].addr[0]<<8 ) |  associations[i].addr[1];
-			buffer[ index++ ] = ( associations[i].addr[2]<<24) | (associations[i].addr[3]<<16) | (associations[i].addr[4]<<8) | associations[i].addr[5];
-			buffer[ index++ ] = ( associations[i].tx_rate << 16 ) | associations[i].last_rx_power ;
-
-			temp_word = associations[i].rx_timestamp & 0xFFFFFFFF;
-			buffer[ index++ ] = (u32) temp_word;
-			temp_word = associations[i].rx_timestamp >> 32;
-			buffer[ index++ ] = (u32) temp_word;
-
-			buffer[ index++ ] = associations[i].num_tx_total;
-			buffer[ index++ ] = associations[i].num_tx_success;
-		}
-	}
-	return index;
-}
 
 
 void reset_station_statistics(){
@@ -1050,12 +821,15 @@ void reset_station_statistics(){
 	}
 }
 
+
+
+
 void deauthenticate_stations(){
 	u32 i;
-	packet_bd_list checkout,dequeue;
-	u32 num_queued;
-	packet_bd* tx_queue;
-	u32 tx_length;
+	packet_bd_list checkout, dequeue;
+	u32            num_queued;
+	packet_bd*     tx_queue;
+	u32            tx_length;
 
 	for(i=0; i < next_free_assoc_index; i++){
 		//Send De-authentication
@@ -1065,13 +839,14 @@ void deauthenticate_stations(){
 
 	 	if(checkout.length == 1){ //There was at least 1 free queue element
 	 		tx_queue = checkout.first;
-	 		tx_header_common.address_1 = associations[i].addr;
-			tx_header_common.address_3 = eeprom_mac_addr;
+
+	 		setup_tx_header( &tx_header_common, associations[i].addr, eeprom_mac_addr );
+
 	 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
-	 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length = tx_length;
-	 		tx_queue->metadata_ptr = (void*)&(associations[i]);
-	 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = MAX_RETRY;
-	 		((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags = (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO);
+
+	 		setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
+	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
 	 		enqueue_after_end(associations[i].AID, &checkout);
 	 		check_tx_queue();
 
@@ -1084,22 +859,55 @@ void deauthenticate_stations(){
 	 		}
 
 			//Remove this STA from association list
-			if(next_free_assoc_index > 0) next_free_assoc_index--;
-			memcpy(&(associations[i].addr[0]), bcast_addr, 6);
-			if(i < next_free_assoc_index) {
-				//Copy from current index to the swap space
-				memcpy(&(associations[MAX_ASSOCIATIONS]), &(associations[i]), sizeof(station_info));
-
-				//Shift later entries back into the freed association entry
-				memcpy(&(associations[i]), &(associations[i+1]), (next_free_assoc_index-i)*sizeof(station_info));
-
-				//Copy from swap space to current free index
-				memcpy(&(associations[next_free_assoc_index]), &(associations[MAX_ASSOCIATIONS]), sizeof(station_info));
-			}
-
+	 		remove_station(i);
 		}
 	}
 	write_hex_display(next_free_assoc_index);
+}
+
+
+
+
+
+/*****************************************************************************/
+/**
+* Remove Station from Association Table
+*
+* The association table is a packed list of stations.  To remove a station, we
+* need to re-pack the table.
+*
+* @param    station_index  - Index of station to remove
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void remove_station( unsigned int station_index ) {
+
+	// If there are stations in the association table and the station to remove
+	//   is in the association table, then remove it.
+
+	if( ( next_free_assoc_index > 0 ) && ( station_index < MAX_ASSOCIATIONS ) ) {
+
+		// Decrement global variable
+		next_free_assoc_index--;
+
+		// Clear Association Address
+		memcpy(&(associations[station_index].addr[0]), bcast_addr, 6);
+
+		// If this station is not the last in the table, then re-pack
+		if( station_index < next_free_assoc_index ) {
+			//Copy from current index to the swap space
+			memcpy(&(associations[MAX_ASSOCIATIONS]), &(associations[station_index]), sizeof(station_info));
+
+			//Shift later entries back into the freed association entry
+			memcpy(&(associations[station_index]), &(associations[station_index+1]), (next_free_assoc_index - station_index)*sizeof(station_info));
+
+			//Copy from swap space to current free index
+			memcpy(&(associations[next_free_assoc_index]), &(associations[MAX_ASSOCIATIONS]), sizeof(station_info));
+		}
+	}
 }
 
 
