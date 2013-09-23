@@ -11,12 +11,18 @@
 
 /***************************** Include Files *********************************/
 
-#include "xgpio.h"
 #include "stdlib.h"
+
+#include "xparameters.h"
+
+#include "xgpio.h"
 #include "xil_exception.h"
 #include "xintc.h"
 #include "xuartlite.h"
 #include "xaxicdma.h"
+
+#include "w3_userio.h"
+#include "xtmrctr.h"
 
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -24,10 +30,8 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_ipc.h"
 #include "wlan_mac_ltg.h"
-#include "w3_userio.h"
-#include "xparameters.h"
-#include "xtmrctr.h"
 
 #include "wlan_exp_common.h"
 
@@ -35,11 +39,6 @@
 /*************************** Constant Definitions ****************************/
 
 
-// UART interface defines
-#define TX_BUFFER_NUM        2
-
-// IPC defines
-#define IPC_BUFFER_SIZE      20
 
 
 /*********************** Global Variable Definitions *************************/
@@ -58,25 +57,11 @@ static XTmrCtr     TimerCounterInst;
 XUartLite          UartLite;
 XAxiCdma           cdma_inst;
 
-// Status information
-static u32         cpu_low_status;
-static u32         cpu_high_status;
-
 // UART interface
-u8                 tx_pkt_buf;
 u8                 ReceiveBuffer[UART_BUFFER_SIZE];
 
-// Node information
-wlan_mac_hw_info   hw_info;
-
-// WARPNet information
-#ifdef USE_WARPNET_WLAN_EXP
-static u8          warpnet_initialized;
-#endif
-
-// IPC variables
-wlan_ipc_msg       ipc_msg_from_low;
-u32                ipc_msg_from_low_payload[IPC_BUFFER_SIZE];
+// 802.11 Transmit packet buffer
+u8                 tx_pkt_buf;
 
 // Callback function pointers
 function_ptr_t     eth_rx_callback;
@@ -94,6 +79,22 @@ static u8               scheduler_in_use    [NUM_SCHEDULERS][SCHEDULER_NUM_EVENT
 static function_ptr_t   scheduler_callbacks [NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
 static u64              scheduler_timestamps[NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
 static u8               timer_running       [NUM_SCHEDULERS];
+
+// Node information
+wlan_mac_hw_info   hw_info;
+
+// WARPNet information
+#ifdef USE_WARPNET_WLAN_EXP
+u8                 warpnet_initialized;
+#endif
+
+
+
+/*************************** Functions Prototypes ****************************/
+
+#ifdef _DEBUG_
+void print_wlan_mac_hw_info( wlan_mac_hw_info * info );      // Function defined in wlan_mac_util.c
+#endif
 
 
 
@@ -119,8 +120,7 @@ void wlan_mac_util_init( u32 type ){
 	ipc_rx_callback       = (function_ptr_t)nullCallback;
 	check_queue_callback  = (function_ptr_t)nullCallback;
 
-	//create IPC message to receive into
-	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
+	wlan_mac_ipc_init();
 
 	for(i=0;i < NUM_TX_PKT_BUFS; i++){
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
@@ -128,7 +128,11 @@ void wlan_mac_util_init( u32 type ){
 	}
 
 	tx_pkt_buf = 0;
+
+#ifdef _DEBUG_
 	xil_printf("locking tx_pkt_buf = %d\n", tx_pkt_buf);
+#endif
+
 	if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",tx_pkt_buf);
 	}
@@ -332,125 +336,6 @@ void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
 }
 
 
-void process_ipc_msg_from_low(wlan_ipc_msg* msg) {
-	u8 rx_pkt_buf;
-	rx_frame_info* rx_mpdu;
-	tx_frame_info* tx_mpdu;
-
-    u32 temp;
-
-
-	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
-		case IPC_MBOX_RX_MPDU_READY:
-
-			//This message indicates CPU Low has received an MPDU addressed to this node or to the broadcast address
-			rx_pkt_buf = msg->arg0;
-
-			//First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
-			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
-			} else {
-				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
-
-				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
-				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
-
-				//Free up the rx_pkt_buf
-				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
-
-				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-					warp_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n",rx_pkt_buf);
-				}
-			}
-		break;
-
-		case IPC_MBOX_TX_MPDU_ACCEPT:
-
-			//This message indicates CPU Low has begun the Tx process for the previously submitted MPDU
-			// CPU High is now free to begin processing its next Tx frame and submit it to CPU Low
-			// CPU Low will not accept a new frame until the previous one is complete
-
-			if(tx_pkt_buf != (msg->arg0)) {
-				warp_printf(PL_ERROR, "Received CPU_LOW acceptance of buffer %d, but was expecting buffer %d\n", tx_pkt_buf, msg->arg0);
-			}
-
-			tx_pkt_buf = (tx_pkt_buf + 1) % TX_BUFFER_NUM;
-
-			cpu_high_status &= (~CPU_STATUS_WAIT_FOR_IPC_ACCEPT);
-
-			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
-				warp_printf(PL_ERROR,"Error: unable to lock tx pkt_buf %d\n",tx_pkt_buf);
-			} else {
-				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-				tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
-			}
-
-			check_queue_callback();
-
-		break;
-
-		case IPC_MBOX_TX_MPDU_DONE:
-
-			//This message indicates CPU Low has finished the Tx process for the previously submitted-accepted frame
-			// CPU High should do any necessary post-processing, then recycle the packet buffer
-			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-			mpdu_tx_done_callback(tx_mpdu);
-
-
-		break;
-
-		case IPC_MBOX_HW_INFO:
-
-            temp = hw_info.type;
-
-			//CPU Low updated the node's MAC address (typically stored in the WARP v3 EEPROM, accessible only to CPU Low)
-			memcpy((void*) &(hw_info), (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
-
-			hw_info.type = temp;
-
-#ifdef _DEBUG_
-			print_wlan_mac_hw_info( & hw_info );
-#endif
-
-#ifdef USE_WARPNET_WLAN_EXP
-
-            if ( warpnet_initialized == 0 ) {
-                
-                wlan_exp_node_init( hw_info.type, hw_info.serial_number, &hw_info.fpga_dna, hw_info.wn_exp_eth_device, &hw_info.hw_addr_wn );
-            
-                warpnet_initialized = 1;
-            }
-#endif
-		break;
-
-		case IPC_MBOX_CPU_STATUS:
-			cpu_low_status = ipc_msg_from_low_payload[0];
-
-			if(cpu_low_status & CPU_STATUS_EXCEPTION){
-				warp_printf(PL_ERROR, "An unrecoverable exception has occurred in CPU_LOW, halting...\n");
-				warp_printf(PL_ERROR, "Reason code: %d\n", ipc_msg_from_low_payload[1]);
-				while(1){}
-			}
-		break;
-
-		default:
-			warp_printf(PL_ERROR, "Unknown IPC message type %d\n",IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
-		break;
-	}
-
-
-	return;
-}
-
-void ipc_rx(){
-//	u32 numMsg = 0;
-//	xil_printf("Mailbox Rx\n");
-	while(ipc_mailbox_read_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS){
-		process_ipc_msg_from_low(&ipc_msg_from_low);
-//		numMsg++;
-	}
-//	xil_printf("Processed %d msg in one ISR\n",numMsg);
-}
 
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 	u16 k;
@@ -828,14 +713,19 @@ int memory_test(){
 	return 0;
 }
 
+
+
 int is_tx_buffer_empty(){
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-	if(tx_mpdu->state == TX_MPDU_STATE_TX_PENDING && ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0)){
+
+	if( ( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( is_cpu_low_ready() ) ){
 		return 1;
 	} else {
 		return 0;
 	}
 }
+
+
 
 void mpdu_transmit(packet_bd* tx_queue) {
 
@@ -873,7 +763,7 @@ void mpdu_transmit(packet_bd* tx_queue) {
 		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 			warp_printf(PL_ERROR,"Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
 		} else {
-			cpu_high_status |= CPU_STATUS_WAIT_FOR_IPC_ACCEPT;
+			set_cpu_low_not_ready();
 
 			ipc_mailbox_write_msg(&ipc_msg_to_low);
 		}
@@ -884,18 +774,13 @@ void mpdu_transmit(packet_bd* tx_queue) {
 	return;
 }
 
-int cpu_low_initialized(){
-	return ((cpu_low_status & CPU_STATUS_INITIALIZED) != 0);
-}
 
-int cpu_low_ready(){
-	//xil_printf("cpu_high_status = 0x%08x\n",cpu_high_status);
-	return ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0);
-}
 
 u8* get_eeprom_mac_addr(){
 	return (u8 *) &(hw_info.hw_addr_wlan);
 }
+
+
 
 u8 valid_tagged_rate(u8 rate){
 	#define NUM_VALID_RATES 12
@@ -910,6 +795,9 @@ u8 valid_tagged_rate(u8 rate){
 
 	return 0;
 }
+
+
+
 
 void tagged_rate_to_readable_rate(u8 rate, char* str){
 	#define NUM_VALID_RATES 12
@@ -963,6 +851,48 @@ void tagged_rate_to_readable_rate(u8 rate, char* str){
 
 	return;
 }
+
+
+
+
+
+
+/*****************************************************************************/
+/**
+* Setup TX packet
+*
+* Configure a TX packet to be enqueued
+*
+* @param    mac_channel  - Value of MAC channel
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 ) {
+
+	// Set up Addresses in common header
+	header->address_1 = addr_1;
+    header->address_3 = addr_3;
+}
+
+
+void setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  ) {
+
+    // Set up metadata
+	tx_queue->metadata_ptr     = metadata;
+
+	// Set up frame info data
+    ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length    = tx_length;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = retry;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags     = flags;
+}
+
+
+
+
+
 
 
 #ifdef _DEBUG_

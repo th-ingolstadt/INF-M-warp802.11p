@@ -3,8 +3,10 @@
 // Authors:	Chris Hunter (chunter [at] mangocomm.com)
 //			Patrick Murphy (murphpo [at] mangocomm.com)
 //          Erik Welsh (welsh [at] mangocomm.com)
-// License:	Copyright 2013, Mango Communications. All rights reserved.
-//			Distributed under the WARP license  (http://warpproject.org/license)
+// License: Copyright 2013, Mango Communications. All rights reserved.
+//          Distributed under the Mango Communications Reference Design License
+//				See LICENSE.txt included in the design archive or
+//				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -17,6 +19,7 @@
 #ifdef USE_WARPNET_WLAN_EXP
 
 #include <xparameters.h>
+#include <xil_io.h>
 #include <Xio.h>
 
 
@@ -30,19 +33,51 @@
 
 /*************************** Variable Definitions ****************************/
 
-wn_node_info     node_info;
-wn_tag_parameter node_parameters[NODE_MAX_PARAMETER];
+wn_node_info       node_info;
+wn_tag_parameter   node_parameters[NODE_MAX_PARAMETER];
 
+wn_function_ptr_t  node_process_callback;
+
+
+/*************************** Functions Prototypes ****************************/
+
+int  node_init_parameters( u32 *info );
+
+
+#ifdef _DEBUG_
+void print_wn_node_info( wn_node_info * info );
+void print_wn_parameters( wn_tag_parameter *param, int num_params );
+#endif
 
 
 
 /******************************** Functions **********************************/
 
-int  node_init_parameters( u32 *info );
+
+/*****************************************************************************/
+/**
+* Node Processes Null Callback
+*
+* This function is part of the callback system for processing node commands.
+* If there are no additional node commands, then this will return appropriate values.
+*
+* To processes additional node commands, please set the node_process_callback
+*
+* @param    void * param  - Parameters for the callback
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+int wlan_exp_null_process_callback(unsigned int cmdID, void* param){
+
+	xil_printf("Unknown node command: %d\n", cmdID);
+
+	return NO_RESP_SENT;
+};
 
 
-void print_wn_node_info( wn_node_info * info );
-void print_wn_parameters( wn_tag_parameter *param, int num_params );
 
 /*****************************************************************************/
 /**
@@ -208,14 +243,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	int           status     = 0;
 	const u32   * cmdArgs32  = cmdArgs;
 	u32         * respArgs32 = respArgs;
+
 	unsigned int  respIndex  = 0;
 	unsigned int  respSent   = NO_RESP_SENT;
+    unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
+                                                   //   If we need more, then we will need to rework this to send multiple response packets
 
     unsigned int  temp, i;
-    unsigned int  max_words;
-
-    unsigned int  num_tables;
-    unsigned int  table_freq;
     
 	unsigned int  cmdID;
     
@@ -242,11 +276,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         
     
 		case NODE_INFO:
-
 			// Return the info about the WLAN_EXP_NODE
-			//   NOTE:  We are only allowing 300 words (1200 bytes) to be used in the response packet;
-            //          If we need more, then we will need to rework this to send multiple response packets            
-            max_words = 300;
             
             // Send node parameters
             temp = node_get_parameters( &respArgs32[respIndex], max_words, TRANSMIT_OVER_NETWORK);
@@ -304,7 +334,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
                 // Only update the parameters if the serial numbers match
                 if ( node_info.serial_number ==  Xil_Ntohl(cmdArgs32[0]) ) {
 
-                    xil_printf("  Reconfiguring ETH %d \n", eth_dev_num);
+                    xil_printf("  Reconfiguring ETH %c \n", wn_conv_eth_dev_num(eth_dev_num) );
 
                 	node_info.node = Xil_Ntohl(cmdArgs32[1]) & 0xFFFF;
 
@@ -382,99 +412,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 #endif
 		break;
 
-
-		case NODE_GET_ASSN_TBL:
-            // NODE_GET_ASSN_TBL Packet Format:
-            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
-            //
-            //   - cmdArgs32[0] - 31:16 - Number of tables to transmit per minute ( 0 => stop )
-			//                  - 15:0  - Number of tables to transmit            ( 0 => infinite )
-			//
-
-			temp        = Xil_Ntohl(cmdArgs32[0]);
-			table_freq  = ( temp >> 16 );
-        	num_tables  = temp & 0xFFFF;
-
-
-			//   NOTE:  We are only allowing 300 words (1200 bytes) to be used in the response packet;
-            //          If we need more, then we will need to rework this to send multiple response packets
-            max_words = 300;
-
-
-        	// Transmit association tables
-        	if ( table_freq != 0 ) {
-
-				// Transmit num_tables association tables at the table_freq rate
-				if ( num_tables != 0 ) {
-
-//					for( i = 0; i < num_tables; i++ ) {
-
-						respIndex += get_station_status( &respArgs32[respIndex], max_words, TRANSMIT_OVER_NETWORK );
-//					}
-
-
-				// Continuously transmit association tables
-				} else {
-					// TODO:
-
-				}
-
-			// Stop transmitting association tables
-        	} else {
-
-        		// Send stop indicator
-                respArgs32[respIndex++] = Xil_Htonl( 0xFFFFFFFF );
-        	}
-
-            // NODE_GET_ASSN_TBL Response Packet Format:
-            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
-            //
-            //   - respArgs32[0] - 31:0  - Number of association table entries
-        	//   - respArgs32[1 .. N]    - Association table entries
-			//
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-
-		break;
-
         
 		default:
-			xil_printf("Unknown node command: %d\n", cmdID);
+			respSent = node_process_callback( cmdID, cmdHdr, cmdArgs, respHdr, respArgs, pktSrc, eth_dev_num);
 		break;
 	}
 
 	return respSent;
-}
-
-
-
-/*****************************************************************************/
-/**
-* WARPNet WLAN Exp usleep
-*
-* This function will wait for a set amount of microseconds before returning
-*
-* @param    duration - Sleep for "duration" microseconds
-*
-* @return	None.
-*
-* @note		None.
-*
-******************************************************************************/
-
-void usleep( unsigned int duration ){
-
-	u64 time;
-	u64 end_time;
-
-	time     = get_usec_timestamp();
-	end_time = time + duration;
-
-    while( time < end_time ) {
-	    time = get_usec_timestamp();
-    }
-
 }
 
 
@@ -527,7 +471,11 @@ int wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned 
     
     node_info.unicast_port    = NODE_UDP_UNICAST_PORT_BASE;
     node_info.broadcast_port  = NODE_UDP_MCAST_BASE;
-    
+
+
+    // Set up callback for process function
+    node_process_callback     = (wn_function_ptr_t)wlan_exp_null_process_callback;
+
     
     // Initialize Tag parameters
     node_init_parameters( (u32*)&node_info );
@@ -549,9 +497,9 @@ int wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned 
         return FAILURE;
 	}
 
-	xil_printf("  Waiting for Ethernet link...\n");
+	xil_printf("  Waiting for Ethernet link ... ");
 	while( transport_linkStatus( eth_dev_num ) != 0 );
-	xil_printf("  Initialization Successful - Waiting for Commands from MATLAB\n");
+	xil_printf("  Initialization Successful\n");
 
 	//Assign the new packet callback
 	// IMPORTANT: must be called after transport_init()
@@ -559,11 +507,28 @@ int wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned 
 
 	// If you are in configure over network mode, then indicate that to the user
 	if ( node_info.node == 0xFFFF ) {
-		xil_printf("  !!! Waiting for Network Configuration via Matlab !!! \n");
+		xil_printf("  !!! Waiting for Network Configuration !!! \n");
 	}
 
-	xil_printf("End WARPNet WLAN MONITOR initialization\n");
+	xil_printf("End WARPNet WLAN Exp initialization\n");
 	return status;
+}
+
+
+
+/*****************************************************************************/
+/**
+* Set the node process callback
+*
+* @param    Pointer to the callback
+*
+* @return	None.
+*
+* @note     None.
+*
+******************************************************************************/
+void node_set_process_callback(void(*callback)()){
+	node_process_callback = (wn_function_ptr_t)callback;
 }
 
 
@@ -716,13 +681,22 @@ int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char netw
 
 
 
+
+
+
+
+
+
+#ifdef _DEBUG_
+
 /*****************************************************************************/
 /**
 * Print Tag Parameters
 *
-* This function will print the global wl_node_info structure
+* This function will print a list of wn_tag_parameter structures
 *
-* @param    None.
+* @param    param      - pointer to the wn_tag_parameter list
+*           num_params - number of wn_tag_parameter structures in the list
 *
 * @return	None.
 *
@@ -733,7 +707,7 @@ void print_wn_parameters( wn_tag_parameter *param, int num_params ) {
 
 	int i, j;
 
-	xil_printf("WARPLab Node Information: \n");
+	xil_printf("Node Parameters: \n");
 
     for( i = 0; i < num_params; i++ ){
     	xil_printf("  Parameter %d:\n", i);
@@ -751,15 +725,13 @@ void print_wn_parameters( wn_tag_parameter *param, int num_params ) {
 
 
 
-#ifdef _DEBUG_
-
 /*****************************************************************************/
 /**
 * Print Node Info
 *
-* This function will print the global wn_node_info structure
+* This function will print a wn_node_info structure
 *
-* @param    None.
+* @param    info    - pointer to wn_node_info structure to print
 *
 * @return	None.
 *
@@ -806,4 +778,5 @@ void print_wn_node_info( wn_node_info * info ) {
 #endif
 
 
+// End USE_WARPNET_WLAN_EXP
 #endif

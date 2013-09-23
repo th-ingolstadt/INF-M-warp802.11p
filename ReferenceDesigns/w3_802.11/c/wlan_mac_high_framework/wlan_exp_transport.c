@@ -4,8 +4,10 @@
 * Authors:	Chris Hunter (chunter [at] mangocomm.com)
 *			Patrick Murphy (murphpo [at] mangocomm.com)
 *           Erik Welsh (welsh [at] mangocomm.com)
-* License:	Copyright 2013, Mango Communications. All rights reserved.
-*			Distributed under the WARP license  (http://warpproject.org/license)
+* License:  Copyright 2013, Mango Communications. All rights reserved.
+*           Distributed under the Mango Communications Reference Design License
+*				See LICENSE.txt included in the design archive or
+*				at http://mangocomm.com/802.11/license
 *
 ******************************************************************************/
 /**
@@ -313,10 +315,9 @@ int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *
 #endif
 
 
-	xil_printf("Configuring transport...\n");
-	xil_printf("  ETH %d MAC Address: %02x", eth_dev_num, hw_addr[0] );
+	xil_printf("  ETH %c MAC Address: %02x", wn_conv_eth_dev_num(eth_dev_num), hw_addr[0] );
 	for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", hw_addr[i] ); } xil_printf("\n");
-    xil_printf("  ETH %d IP  Address: %d", eth_dev_num, ip_addr[0]);
+    xil_printf("  ETH %c IP  Address: %d", wn_conv_eth_dev_num(eth_dev_num), ip_addr[0]);
 	for ( i = 1; i < IP_VERSION; i++ ) { xil_printf(".%d", ip_addr[i] ); } xil_printf("\n");
 
 
@@ -331,7 +332,7 @@ int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *
 
 	// Check to see if we are receiving on a valid interface
 	if ( eth_dev_num >= WN_NUM_ETH_DEVICES ) {
-		xil_printf("  **** ERROR:  Ethernet %d is not available on WARP HW \n", eth_dev_num);
+		xil_printf("  **** ERROR:  Ethernet %c is not available on WARP HW \n", wn_conv_eth_dev_num(eth_dev_num) );
 		return FAILURE;
 	}
 
@@ -364,7 +365,7 @@ int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *
 	// Initialize Xilnet for Ethernet device
 	status = xilnet_eth_device_init( eth_dev_num, mac_cfg_ptr->AxiDevBaseAddress, ip_addr, hw_addr );
 	if (status != SUCCESS)
-		xil_printf("*** Transport Xilnet Ethernet Device %d initialization error:  %d \n", eth_dev_num, status);
+		xil_printf("*** Transport Xilnet Ethernet Device %c initialization error:  %d \n", wn_conv_eth_dev_num(eth_dev_num), status);
 
 	xilnet_eth_init_hw_addr_tbl(eth_dev_num);
 
@@ -408,7 +409,7 @@ int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *
 	// Initialize Xilnet for Ethernet device
 	status = xilnet_eth_device_init( eth_dev_num, mac_cfg_ptr->LLDevBaseAddress, ip_addr, hw_addr );
 	if (status != SUCCESS)
-		xil_printf("*** Transport Xilnet Ethernet Device %d initialization error:  %d \n", eth_dev_num, status);
+		xil_printf("*** Transport Xilnet Ethernet Device %c initialization error:  %d \n", wn_conv_eth_dev_num(eth_dev_num), status);
 
 	xilnet_eth_init_hw_addr_tbl(eth_dev_num);
 
@@ -743,7 +744,7 @@ int transport_linkStatus(unsigned int eth_dev_num) {
 
 	// Check to see if we are receiving on a valid interface
 	if ( eth_dev_num >= WN_NUM_ETH_DEVICES ) {
-		xil_printf("  **** ERROR:  Ethernet %d is not available on WARP HW \n", eth_dev_num);
+		xil_printf("  **** ERROR:  Ethernet %c is not available on WARP HW \n", wn_conv_eth_dev_num(eth_dev_num));
 		return LINK_NOT_READY;
 	}
 

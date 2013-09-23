@@ -12,6 +12,9 @@
 #include "wlan_exp_common.h"
 
 
+// WLAN MAC includes for common functions
+#include "wlan_mac_util.h"
+
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_NODE_H_
@@ -26,7 +29,6 @@
 #define NODE_IDENTIFY           2
 #define NODE_CONFIG_SETUP       3
 #define NODE_CONFIG_RESET       4
-#define NODE_GET_ASSN_TBL       5
 
 
 // ****************************************************************************
@@ -71,9 +73,13 @@ typedef struct {
 
 /*************************** Function Prototypes *****************************/
 
-int wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned int *fpga_dna, unsigned int eth_dev_num, unsigned char *hw_addr );
+// WLAN Exp node commands
+//
+int  wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned int *fpga_dna, unsigned int eth_dev_num, unsigned char *hw_addr );
 
-int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network);
+void node_set_process_callback(void(*callback)());
+int  node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network);
+
 
 
 #endif /* WLAN_EXP_NODE_H_ */

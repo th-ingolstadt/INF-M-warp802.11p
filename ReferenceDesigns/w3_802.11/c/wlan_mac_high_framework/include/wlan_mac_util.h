@@ -12,6 +12,8 @@
 #define WLAN_MAC_UTIL_H_
 
 #include "wlan_mac_queue.h"
+#include "wlan_mac_packet_types.h"
+#include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 
 //Scheduler
@@ -19,6 +21,11 @@
 #define NUM_SCHEDULERS 2
 #define SCHEDULE_FINE	0
 #define SCHEDULE_COARSE 1
+
+
+// 802.11 Transmit interface defines
+#define TX_BUFFER_NUM        2
+
 
 
 #define ETH_A_MAC_DEVICE_ID			XPAR_ETH_A_MAC_DEVICE_ID
@@ -123,10 +130,6 @@ void wlan_mac_util_set_ipc_rx_callback(void(*callback)());
 inline int interrupt_start();
 inline void interrupt_stop();
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
-void ipc_rx();
-void process_ipc_msg_from_low(wlan_ipc_msg* msg);
-int cpu_low_ready();
-int cpu_low_initialized();
 u8* get_eeprom_mac_addr();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
@@ -136,5 +139,10 @@ int is_tx_buffer_empty();
 void mpdu_transmit(packet_bd* tx_queue);
 u8 valid_tagged_rate(u8 rate);
 void tagged_rate_to_readable_rate(u8 rate, char* str);
+
+void setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
+void setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  );
+
+
 
 #endif /* WLAN_MAC_UTIL_H_ */

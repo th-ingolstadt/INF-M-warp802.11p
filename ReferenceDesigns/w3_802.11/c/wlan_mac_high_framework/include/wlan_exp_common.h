@@ -15,6 +15,10 @@
 #include "warp_hw_ver.h"
 
 
+// WLAN includes
+#include "wlan_mac_util.h"
+
+
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_COMMON_H_
 #define WLAN_EXP_COMMON_H_
@@ -23,7 +27,7 @@
 // **********************************************************************
 // Use WARPNet Interface
 //
-//#define  USE_WARPNET_WLAN_EXP
+// #define  USE_WARPNET_WLAN_EXP
 
 
 
@@ -145,6 +149,9 @@ typedef struct{
 typedef wn_cmdHdr wn_respHdr;
 
 
+typedef int (*wn_function_ptr_t)();
+
+
 
 // **********************************************************************
 // WARPNet Tag Parameter Structure
@@ -166,7 +173,17 @@ typedef struct {
 
 void usleep( unsigned int duration );
 
+#ifdef _DEBUG_
 void print_wn_parameters( wn_tag_parameter *param, int num_params );
+#endif
+
+
+//
+// Define WLAN Exp Common Methods
+//
+int get_station_status( station_info * stations, u32 num_stations, u32 * buffer, u32 max_words );
+
+
 
 
 #endif /* WLAN_EXP_COMMON_H_ */

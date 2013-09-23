@@ -61,6 +61,8 @@
 #define WN_ETH_B_MDIO_PHYADDR       0x7
 #endif
 
+#define wn_conv_eth_dev_num(x)      (char)(((int)'A') + x)
+
 #define PAYLOAD_OFFSET              LINK_HDR_LEN+IP_HDR_LEN*4+UDP_HDR_LEN+PAYLOAD_PAD_NBYTES
 
 #define TRANSPORT_ROBUST_MASK       0x1
