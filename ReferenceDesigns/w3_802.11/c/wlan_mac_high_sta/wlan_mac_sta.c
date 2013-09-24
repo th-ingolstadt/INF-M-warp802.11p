@@ -59,9 +59,8 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*  access_point_ssid;
-
 
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
@@ -117,9 +116,21 @@ void uart_rx(u8 rxByte){ };
 
 int main(){
 
+	//This function should be executed first. It will zero out memory, and if that
+	//memory is used before calling this function, unexpected results may happen.
+	wlan_mac_util_init_data();
+
+    // Initialize AP list
+	num_ap_list = 0;
+	//free(ap_list);
+	ap_list = NULL;
+
 	xil_printf("\f----- wlan_mac_sta -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
+
+	//xil_printf("_heap_start = 0x%x, %x\n", *(char*)(_heap_start),_heap_start);
+	//xil_printf("_heap_end = 0x%x, %x\n", *(char*)(_heap_end),_heap_end);
 
     // Set Global variables
 	default_unicast_rate = WLAN_MAC_RATE_18M;
@@ -152,14 +163,6 @@ int main(){
 	memset((void*)(&(access_point.addr[0])), 0xFF,6);
 	access_point.seq = 0; //seq
 	access_point.rx_timestamp = 0;
-
-
-    // Initialize AP list
-	num_ap_list = 0;
-
-	free(ap_list);
-	ap_list = NULL;
-
 
 	// Set default SSID for AP
 	access_point_ssid = malloc(strlen(default_AP_SSID)+1);
