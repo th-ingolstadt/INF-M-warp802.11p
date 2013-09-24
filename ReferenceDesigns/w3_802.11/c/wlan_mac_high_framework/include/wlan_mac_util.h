@@ -16,6 +16,14 @@
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 
+#ifdef XPAR_MB_HIGH_INIT_DATA_CTRL_DEVICE_ID
+//Init Data Definitions
+#define INIT_DATA_BASEADDR XPAR_MB_HIGH_INIT_DATA_CTRL_S_AXI_BASEADDR
+#define INIT_DATA_DOTDATA_IDENTIFIER	0x1234ABCD
+#define INIT_DATA_DOTDATA_START (INIT_DATA_BASEADDR+0x200)
+#define INIT_DATA_DOTDATA_SIZE	(4*(XPAR_MB_HIGH_INIT_DATA_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))
+#endif
+
 //Scheduler
 #define SCHEDULER_NUM_EVENTS 6
 #define NUM_SCHEDULERS 2
@@ -104,6 +112,7 @@ typedef struct{
 #define LLC_TYPE_IP						0x0008
 #define LLC_TYPE_CUSTOM					0x9090
 
+void wlan_mac_util_init_data();
 void wlan_mac_util_init();
 void gpio_timestamp_initialize();
 inline u64 get_usec_timestamp();

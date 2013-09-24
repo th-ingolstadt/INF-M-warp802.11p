@@ -43,7 +43,12 @@
 
 /*********************** Global Variable Definitions *************************/
 
-
+extern int __data_start;
+extern int __data_end;
+extern int __bss_start;
+extern int __bss_end;
+extern int _heap_start;
+extern int _HEAP_SIZE;
 
 
 
@@ -97,8 +102,47 @@ void print_wlan_mac_hw_info( wlan_mac_hw_info * info );      // Function defined
 #endif
 
 
-
 /******************************** Functions **********************************/
+
+void wlan_mac_util_init_data(){
+	u32 data_size;
+	volatile u32* identifier = (u32*)INIT_DATA_BASEADDR;
+	data_size = 4*(&__data_end - &__data_start);
+
+	//Zero out the heap
+	bzero((void*)&_heap_start, (int)&_HEAP_SIZE);
+
+	//Zero out the bss
+	bzero((void*)&__bss_start, 4*(&__bss_end - &__bss_start));
+
+
+	#ifdef INIT_DATA_BASEADDR
+
+	if(*identifier == INIT_DATA_DOTDATA_IDENTIFIER){
+		//This program has run before. We should copy the .data out of the INIT_DATA memory.
+		if(data_size <= INIT_DATA_DOTDATA_SIZE){
+			xil_printf("Subsequent execution... copying .data from bram: 0x%08x -> 0x%08x\n",(void*)INIT_DATA_DOTDATA_START,(void*)&__data_start);
+			memcpy((void*)&__data_start, (void*)INIT_DATA_DOTDATA_START, data_size);
+		}
+
+	} else {
+		//This is the first time this program has been run.
+
+		if(data_size <= INIT_DATA_DOTDATA_SIZE){
+			xil_printf("First time execution... copying .data into bram 0x%08x -> 0x%08x\n",(void*)&__data_start, (void*)INIT_DATA_DOTDATA_START);
+			*identifier = INIT_DATA_DOTDATA_IDENTIFIER;
+			memcpy((void*)INIT_DATA_DOTDATA_START, (void*)&__data_start, data_size);
+		}
+
+	}
+
+	xil_printf("Identifier after write = 0x%x\n", *identifier);
+
+
+
+	#endif
+
+}
 
 
 
