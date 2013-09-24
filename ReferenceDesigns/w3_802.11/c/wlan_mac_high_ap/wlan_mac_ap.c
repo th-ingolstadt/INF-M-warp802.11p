@@ -58,7 +58,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -111,6 +111,10 @@ void remove_station( unsigned int station_index );
 
 int main(){
 	u32 i;
+
+	//This function should be executed first. It will zero out memory, and if that
+	//memory is used before calling this function, unexpected results may happen.
+	wlan_mac_util_init_data();
 
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
