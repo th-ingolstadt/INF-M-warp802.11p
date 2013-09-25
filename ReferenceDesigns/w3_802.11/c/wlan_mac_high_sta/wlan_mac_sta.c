@@ -138,6 +138,7 @@ int main(){
 
 	// Initialize the utility library
 	wlan_lib_init();
+	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
 	wlan_mac_util_init( WLAN_EXP_TYPE );
 
 
