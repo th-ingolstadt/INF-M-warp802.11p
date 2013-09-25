@@ -193,7 +193,7 @@ void print_menu(){
 	xil_printf("        purge any associations, forcing stations to\n");
 	xil_printf("        join the network again)\n");
 	xil_printf("[r/R] - change default unicast rate\n");
-	xil_printf("[l]	  - toggle local traffic generation to AID 1\n");
+	xil_printf("[l]   - toggle local traffic generation to AID 1\n");
 	xil_printf("*****************************************************\n");
 }
 

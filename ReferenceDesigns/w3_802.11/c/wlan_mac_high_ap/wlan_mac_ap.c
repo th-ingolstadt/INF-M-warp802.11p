@@ -47,7 +47,7 @@
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_AP
 
 
-#define  WLAN_CHANNEL                  4
+#define  WLAN_CHANNEL                  6
 
 
 
@@ -58,7 +58,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -124,9 +124,9 @@ int main(){
 	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 
-
 	// Initialize the utility library
 	wlan_lib_init();
+	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
 	wlan_mac_util_init( WLAN_EXP_TYPE );
 
 
