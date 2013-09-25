@@ -24,6 +24,10 @@
 #define INIT_DATA_DOTDATA_SIZE	(4*(XPAR_MB_HIGH_INIT_DATA_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))
 #endif
 
+//Encapsulation modes
+#define ENCAP_MODE_AP	0
+#define ENCAP_MODE_STA	1
+
 //Scheduler
 #define SCHEDULER_NUM_EVENTS 6
 #define NUM_SCHEDULERS 2
@@ -124,6 +128,7 @@ void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_util_set_uart_rx_callback(void(*callback)());
 void wlan_mac_util_set_check_queue_callback(void(*callback)());
+void wlan_mac_util_set_eth_encap_mode(u8 mode);
 void wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)());
 inline void poll_schedule();
 inline int wlan_mac_poll_tx_queue(u16 queue_sel);

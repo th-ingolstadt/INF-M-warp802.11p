@@ -28,6 +28,7 @@ static XAxiDma ETH_A_DMA_Instance;
 //Top-level code defines the callback, wlan_mac_util does the actual calling
 // It's sufficient to refer to the wlan_mac_util callback by name here
 extern function_ptr_t eth_rx_callback;
+extern u8 eth_encap_mode;
 
 static XIntc* Intc_ptr;
 
@@ -218,28 +219,35 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 	llc_header* llc_hdr;
 	ethernet_header* eth_hdr;
 
-	rx80211_hdr = (mac_header_80211*)((void *)mpdu);
-	llc_hdr = (llc_header*)((void *)mpdu + sizeof(mac_header_80211));
-	eth_hdr = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
+	switch(eth_encap_mode){
+		case ENCAP_MODE_AP:
+			rx80211_hdr = (mac_header_80211*)((void *)mpdu);
+			llc_hdr = (llc_header*)((void *)mpdu + sizeof(mac_header_80211));
+			eth_hdr = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
 
-	length = length - sizeof(mac_header_80211) - sizeof(llc_header) + sizeof(ethernet_header);
+			length = length - sizeof(mac_header_80211) - sizeof(llc_header) + sizeof(ethernet_header);
 
-	memmove(eth_hdr->address_destination, rx80211_hdr->address_3, 6);
-	memmove(eth_hdr->address_source, rx80211_hdr->address_2, 6);
+			memmove(eth_hdr->address_destination, rx80211_hdr->address_3, 6);
+			memmove(eth_hdr->address_source, rx80211_hdr->address_2, 6);
 
-	switch(llc_hdr->type){
-		case LLC_TYPE_ARP:
-			//xil_printf("Sending ARP\n");
-			eth_hdr->type = ETH_TYPE_ARP;
+			switch(llc_hdr->type){
+				case LLC_TYPE_ARP:
+					//xil_printf("Sending ARP\n");
+					eth_hdr->type = ETH_TYPE_ARP;
+				break;
+
+				case LLC_TYPE_IP:
+					//xil_printf("Sending IP\n");
+					eth_hdr->type = ETH_TYPE_IP;
+				break;
+				default:
+					//Invalid or unsupported Eth type; punt
+					return -1;
+				break;
+			}
 		break;
 
-		case LLC_TYPE_IP:
-			//xil_printf("Sending IP\n");
-			eth_hdr->type = ETH_TYPE_IP;
-		break;
-		default:
-			//Invalid or unsupported Eth type; punt
-			return -1;
+		case ENCAP_MODE_STA:
 		break;
 	}
 
@@ -362,18 +370,40 @@ void wlan_poll_eth() {
 		tx_queue_list = packet_bd_list_init();
 		packet_bd_insertEnd(&tx_queue_list, tx_queue);
 
-		switch(eth_hdr->type) {
-			case ETH_TYPE_ARP:
-				llc_hdr->type = LLC_TYPE_ARP;
-				packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+		switch(eth_encap_mode){
+			case ENCAP_MODE_AP:
+
+				switch(eth_hdr->type) {
+					case ETH_TYPE_ARP:
+						llc_hdr->type = LLC_TYPE_ARP;
+						packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+					break;
+					case ETH_TYPE_IP:
+						llc_hdr->type = LLC_TYPE_IP;
+						packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+					break;
+					default:
+						//Unknown/unsupported EtherType; don't process the Eth frame
+					break;
+				}
+
 			break;
-			case ETH_TYPE_IP:
-				llc_hdr->type = LLC_TYPE_IP;
-				packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+
+			case ENCAP_MODE_STA:
+				switch(eth_hdr->type) {
+					case ETH_TYPE_ARP:
+						xil_printf("ARP\n");
+					break;
+					case ETH_TYPE_IP:
+						xil_printf("IP\n");
+					break;
+					default:
+						//Unknown/unsupported EtherType; don't process the Eth frame
+					break;
+			}
+
 			break;
-			default:
-				//Unknown/unsupported EtherType; don't process the Eth frame
-			break;
+
 		}
 
 		if(packet_is_queued == 0){

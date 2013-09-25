@@ -93,6 +93,9 @@ wlan_mac_hw_info   hw_info;
 u8                 warpnet_initialized;
 #endif
 
+// Ethernet Encapsulation Mode
+u8					eth_encap_mode;
+
 
 
 /*************************** Functions Prototypes ****************************/
@@ -228,6 +231,7 @@ void wlan_mac_util_init( u32 type ){
 	}
 
 	queue_init();
+
 	wlan_eth_init();
 
 	//Set direction of GPIO channels
@@ -562,6 +566,10 @@ void wlan_mac_util_set_uart_rx_callback(void(*callback)()){
 
 void wlan_mac_util_set_check_queue_callback(void(*callback)()){
 	check_queue_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_eth_encap_mode(u8 mode){
+	eth_encap_mode = mode;
 }
 
 void gpio_timestamp_initialize(){
