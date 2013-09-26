@@ -258,6 +258,30 @@ void check_tx_queue(){
 
 
 void mpdu_transmit_done(tx_frame_info* tx_mpdu){
+	tx_event* tx_event_log_entry;
+
+	void * mpdu = (void*)tx_mpdu + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8* mpdu_ptr_u8 = (u8*)mpdu;
+	mac_header_80211* tx_80211_header;
+	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
+
+
+
+	tx_event_log_entry = get_curr_tx_log();
+
+	if(tx_event_log_entry != NULL){
+		tx_event_log_entry->state = tx_mpdu->state;
+		tx_event_log_entry->AID = 1;
+		tx_event_log_entry->power = 0; //TODO: I'm on the fence as to whether this should be power or Tx Gains
+		tx_event_log_entry->length = tx_mpdu->length;
+		tx_event_log_entry->rate = tx_mpdu->rate;
+		tx_event_log_entry->mac_type = tx_80211_header->frame_control_1;
+		tx_event_log_entry->seq = ((tx_80211_header->sequence_control)>>4)&0xFFF;
+		tx_event_log_entry->retry_count = tx_mpdu->retry_count;
+
+		increment_log();
+	}
+
 	wlan_mac_util_process_tx_done(tx_mpdu, &(access_point));
 }
 
@@ -465,13 +489,35 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
 
+	rx_event* rx_event_log_entry;
+
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
 	u8 is_associated = 0;
 
+	rx_event_log_entry = get_curr_rx_log();
+
+
+	if(rx_event_log_entry != NULL){
+			rx_event_log_entry->state = mpdu_info->state;
+			rx_event_log_entry->AID = 0;
+			rx_event_log_entry->power = mpdu_info->rx_power;
+			rx_event_log_entry->length = mpdu_info->length;
+			rx_event_log_entry->rate = mpdu_info->rate;
+			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
+			rx_event_log_entry->seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+			rx_event_log_entry->flags = 0; //TODO: fill in with retry flag, etc
+
+			increment_log();
+	}
+
+
 
 	if(wlan_addr_eq(access_point.addr, (rx_80211_header->address_2))) {
 		is_associated = 1;
+
+		if(rx_event_log_entry != NULL) rx_event_log_entry->AID = 1;
+
 		rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 		//Check if duplicate
 		access_point.rx_timestamp = get_usec_timestamp();
