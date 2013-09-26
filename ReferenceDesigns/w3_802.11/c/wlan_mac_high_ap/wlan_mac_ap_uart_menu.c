@@ -78,6 +78,10 @@ void uart_rx(u8 rxByte){
 				print_queue_status();
 			break;
 
+			case ASCII_e:
+				print_event_log();
+			break;
+
 			case ASCII_c:
 
 				if(mac_param_chan > 1){
