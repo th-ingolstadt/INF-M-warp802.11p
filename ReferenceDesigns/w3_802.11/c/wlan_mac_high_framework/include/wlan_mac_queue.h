@@ -43,7 +43,7 @@ typedef struct {
 
 
 
-void queue_init();
+int queue_init();
 
 void enqueue_after_end(u16 queue_sel, packet_bd_list* ring);
 packet_bd_list dequeue_from_beginning(u16 queue_sel, u16 num_packet_bd);

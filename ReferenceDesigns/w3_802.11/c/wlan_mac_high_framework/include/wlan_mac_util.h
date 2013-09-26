@@ -50,6 +50,7 @@
 #define TIMESTAMP_GPIO_MSB_CHAN 2
 
 #define DDR3_BASEADDR XPAR_DDR3_SODIMM_S_AXI_BASEADDR
+#define DDR3_SIZE 1073741824
 
 #define USERIO_BASEADDR XPAR_W3_USERIO_BASEADDR
 
@@ -77,6 +78,62 @@
 
 #define	FAST_TIMER_DUR_US 100
 #define	SLOW_TIMER_DUR_US 100000
+
+#define ENABLE_EVENT_LOGGING 1
+
+//A maximum event length of -1 is used to signal that the entire DRAM after the queue
+//should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
+//will be the maximum.
+#define MAX_EVENT_LOG -1
+
+//NOTE: rx_event, tx_event, error_event must be the same size and begin with a timestamp and event_type
+
+#define EVENT_TYPE_RX   0
+#define EVENT_TYPE_TX   1
+#define EVENT_TYPE_ERR  2
+
+typedef struct{
+	u64 timestamp;
+	u8 event_type;
+	u8 reserved[11];
+} default_event;
+
+typedef struct{
+	u64 timestamp;
+	u8 event_type;
+	u8 state;
+	u8 AID;
+	char power;
+	u16 length;
+	u8 rate;
+	u8 mac_type;
+	u8 seq;
+	u8 flags;
+	u8 reserved[2];
+} rx_event;
+
+typedef struct{
+	u64 timestamp;
+	u8 event_type;
+	u8 state;
+	u8 AID;
+	char power;
+	u16 length;
+	u8 rate;
+	u8 mac_type;
+	u8 seq;
+	u8 retry_count;
+	u8 reserved[2];
+} tx_event;
+
+typedef struct{
+	u64 timestamp;
+	u8 event_type;
+	u8 reserved[11];
+} error_event;
+
+#define EVENT_SIZE (sizeof(rx_event))
+
 
 
 typedef struct{
@@ -120,6 +177,11 @@ void wlan_mac_util_init_data();
 void wlan_mac_util_init();
 void gpio_timestamp_initialize();
 inline u64 get_usec_timestamp();
+void reset_log();
+rx_event* get_curr_rx_log();
+tx_event* get_curr_tx_log();
+void increment_log();
+void print_event_log();
 void wlan_mac_util_set_eth_rx_callback(void(*callback)());
 void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)());
 void wlan_mac_util_set_mpdu_rx_callback(void(*callback)());
