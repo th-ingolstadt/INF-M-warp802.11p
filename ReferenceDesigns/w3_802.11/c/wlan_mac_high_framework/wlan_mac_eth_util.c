@@ -38,6 +38,17 @@ u32 ETH_A_NUM_RX_BD;
 #define TX_INTR_ID		XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
 
 
+//The station code's implementation of encapsulation and de-encapsulation has an important
+//limitation: only one device may be plugged into the station's Ethernet port. The station
+//does not provide NAT. It assumes that the last received Ethernet src MAC address is used
+//as the destination MAC address on any Ethernet transmissions. This is fine when there is
+//only one device on the station's Ethernet port, but will definitely not work if the station
+//is plugged into a switch with more than one device.
+u8 eth_sta_mac_addr[6];
+
+extern wlan_mac_hw_info   	hw_info;
+
+
 int wlan_eth_init() {
 		int status;
 
@@ -248,6 +259,35 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 		break;
 
 		case ENCAP_MODE_STA:
+			rx80211_hdr = (mac_header_80211*)((void *)mpdu);
+			llc_hdr = (llc_header*)((void *)mpdu + sizeof(mac_header_80211));
+			eth_hdr = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
+
+			length = length - sizeof(mac_header_80211) - sizeof(llc_header) + sizeof(ethernet_header);
+
+			//memcpy(eth_sta_mac_addr, eth_src, 6);
+			if(wlan_addr_eq(rx80211_hdr->address_3, hw_info.hw_addr_wlan)){
+				memmove(eth_hdr->address_destination, rx80211_hdr->address_3, 6);
+			} else {
+				memcpy(eth_hdr->address_destination, eth_sta_mac_addr, 6);
+			}
+			memmove(eth_hdr->address_source, rx80211_hdr->address_2, 6);
+
+			switch(llc_hdr->type){
+				case LLC_TYPE_ARP:
+					//xil_printf("Sending ARP\n");
+					eth_hdr->type = ETH_TYPE_ARP;
+				break;
+
+				case LLC_TYPE_IP:
+					//xil_printf("Sending IP\n");
+					eth_hdr->type = ETH_TYPE_IP;
+				break;
+				default:
+					//Invalid or unsupported Eth type; punt
+					return -1;
+				break;
+			}
 		break;
 	}
 
@@ -261,7 +301,6 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	int status;
 	XAxiDma_BdRing *txRing_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
-
 
 	//Flush the data cache of the pkt buffer
 	// Comment this back in if the dcache is enabled
@@ -309,6 +348,9 @@ void wlan_poll_eth() {
 	int packet_is_queued;
 
 	ethernet_header* eth_hdr;
+	//ipv4_header* ip_hdr;
+	arp_packet* arp;
+
 	llc_header* llc_hdr;
 	u8 eth_dest[6];
 	u8 eth_src[6];
@@ -390,12 +432,33 @@ void wlan_poll_eth() {
 			break;
 
 			case ENCAP_MODE_STA:
+
+				//Save this ethernet src address for d
+				memcpy(eth_sta_mac_addr, eth_src, 6);
+				memcpy(eth_src, hw_info.hw_addr_wlan, 6);
+
 				switch(eth_hdr->type) {
 					case ETH_TYPE_ARP:
-						xil_printf("ARP\n");
+						arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+
+						//Here we hijack ARP messages and overwrite their source MAC address field with
+						//the station's wireless MAC address.
+						memcpy(arp->eth_src, hw_info.hw_addr_wlan, 6);
+
+						//xil_printf("Src: %x-%x-%x-%x-%x-%x \n", arp->eth_src[0], arp->eth_src[1], arp->eth_src[2], arp->eth_src[3], arp->eth_src[4], arp->eth_src[5]);
+						//xil_printf("Src IP: 0x%x\n", arp->ip_src);
+						//xil_printf("Dst: %x-%x-%x-%x-%x-%x \n", arp->eth_dst[0], arp->eth_dst[1], arp->eth_dst[2], arp->eth_dst[3], arp->eth_dst[4], arp->eth_dst[5]);
+						//xil_printf("Dst IP: 0x%x\n", arp->ip_dst);
+
+						llc_hdr->type = LLC_TYPE_ARP;
+						packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+
+
 					break;
 					case ETH_TYPE_IP:
-						xil_printf("IP\n");
+						llc_hdr->type = LLC_TYPE_IP;
+						packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+
 					break;
 					default:
 						//Unknown/unsupported EtherType; don't process the Eth frame

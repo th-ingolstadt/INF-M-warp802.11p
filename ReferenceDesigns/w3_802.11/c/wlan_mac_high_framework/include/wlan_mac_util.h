@@ -155,6 +155,32 @@ typedef struct{
 	u16 type;
 } ethernet_header;
 
+typedef struct{
+	u8 ver_ihl;
+	u8 tos;
+	u16 length;
+	u16 id;
+	u16 flags_fragOffset;
+	u8 ttl;
+	u8 prot;
+	u16 checksum;
+	u32 ip_src;
+	u32 ip_dest;
+} ipv4_header;
+
+typedef struct{
+	u16 htype;
+	u16 ptype;
+	u8 hlen;
+	u8 plen;
+	u16 oper;
+	u8 eth_src[6];
+	u32 ip_src;
+	u8 eth_dst[6];
+	u32 ip_dst;
+} arp_packet;
+
+
 
 #define ETH_TYPE_ARP 	0x0608
 #define ETH_TYPE_IP 	0x0008
