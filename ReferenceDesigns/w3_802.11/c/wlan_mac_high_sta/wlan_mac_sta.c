@@ -466,11 +466,34 @@ void probe_req_transmit(){
 
 int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 
-	//TODO: Ethernet mode for station is different than the AP. It requires packet and modification
-	//to spoof source MAC addresses. This is planned for a future release, but for now the STA
-	//implementation is intended to be used with the Local Traffic Generator and WARPnet.
+	//Receives the pre-encapsulated Ethernet frames
+	packet_bd* tx_queue = tx_queue_list->first;
 
-	return 0;
+	//setup_tx_header( &tx_header_common, (u8*)(&(eth_dest[0])), (u8*)(&(eth_src[0])) );
+	setup_tx_header( &tx_header_common, (u8*)access_point.addr,(u8*)(&(eth_dest[0])));
+
+	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
+
+	if(wlan_addr_eq(bcast_addr, eth_dest)){
+		setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
+
+		enqueue_after_end(0, tx_queue_list);
+		check_tx_queue();
+
+	} else {
+
+		if(access_point.AID != 0){
+			setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
+							 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+			enqueue_after_end(1, tx_queue_list);
+			check_tx_queue();
+		}
+
+	}
+
+	return 1;
+
 
 }
 
