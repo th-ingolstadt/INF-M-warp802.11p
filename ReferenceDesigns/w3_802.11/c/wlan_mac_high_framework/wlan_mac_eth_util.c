@@ -226,9 +226,20 @@ int wlan_eth_dma_init() {
 int wlan_mpdu_eth_send(void* mpdu, u16 length){
 	int status;
 
+	u8* eth_mid_ptr;
+
 	mac_header_80211* rx80211_hdr;
 	llc_header* llc_hdr;
 	ethernet_header* eth_hdr;
+
+	u8 continue_loop;
+	ipv4_header* ip_hdr;
+	arp_packet* arp;
+	udp_header* udp;
+	dhcp_packet* dhcp;
+
+	u32 i;
+
 
 	switch(eth_encap_mode){
 		case ENCAP_MODE_AP:
@@ -266,22 +277,96 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 			length = length - sizeof(mac_header_80211) - sizeof(llc_header) + sizeof(ethernet_header);
 
 			//memcpy(eth_sta_mac_addr, eth_src, 6);
-			if(wlan_addr_eq(rx80211_hdr->address_3, hw_info.hw_addr_wlan)){
-				memmove(eth_hdr->address_destination, rx80211_hdr->address_3, 6);
-			} else {
+
+			//if(wlan_addr_eq(rx80211_hdr->address_3, hw_info.hw_addr_wlan)){
+			//	memmove(eth_hdr->address_destination, rx80211_hdr->address_3, 6);
+			//} else {
+			//	memcpy(eth_hdr->address_destination, eth_sta_mac_addr, 6);
+			//}
+
+			if(wlan_addr_eq(rx80211_hdr->address_1,hw_info.hw_addr_wlan)){
 				memcpy(eth_hdr->address_destination, eth_sta_mac_addr, 6);
+			} else {
+				memmove(eth_hdr->address_destination, rx80211_hdr->address_1, 6);
 			}
-			memmove(eth_hdr->address_source, rx80211_hdr->address_2, 6);
+			memmove(eth_hdr->address_source, rx80211_hdr->address_3, 6);
 
 			switch(llc_hdr->type){
 				case LLC_TYPE_ARP:
-					//xil_printf("Sending ARP\n");
+					arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+
+					//Here we hijack ARP messages and overwrite their source MAC address field with
+					//the Ethernet-connected client's mac address
+
+					if(wlan_addr_eq(arp->eth_dst,hw_info.hw_addr_wlan)){
+						memcpy(arp->eth_dst, eth_sta_mac_addr, 6);
+					}
+
 					eth_hdr->type = ETH_TYPE_ARP;
 				break;
 
-				case LLC_TYPE_IP:
-					//xil_printf("Sending IP\n");
+				case ETH_TYPE_IP:
 					eth_hdr->type = ETH_TYPE_IP;
+					ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
+
+					if(ip_hdr->prot == IPV4_PROT_UDP){
+						udp = (udp_header*)((void*)ip_hdr + 4*((u8)(ip_hdr->ver_ihl) & 0xF));
+						udp->checksum = 0; //Disable the checksum since we are about to mess with the bytes in the packet
+
+						if(Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPC || Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPS){
+							//This is a DHCP Discover packet, which contains the source hardware address
+							//deep inside the packet (in addition to its usual location in the Eth header).
+							//For STA encapsulation, we need to overwrite this address with the MAC addr
+							//of the wireless station.
+
+							dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
+
+
+
+							if(Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE){
+
+								if(wlan_addr_eq(dhcp->chaddr,hw_info.hw_addr_wlan)){
+
+									memcpy(dhcp->chaddr,eth_sta_mac_addr,6);
+
+									eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
+
+
+									//Tagged DHCP Options
+									continue_loop = 1;
+
+									while(continue_loop){
+										switch(eth_mid_ptr[0]){
+
+											case DHCP_OPTION_TAG_TYPE:
+												switch(eth_mid_ptr[2]){
+													case DHCP_OPTION_TYPE_DISCOVER:
+													case DHCP_OPTION_TYPE_REQUEST:
+														memcpy(dhcp->chaddr,hw_info.hw_addr_wlan,6);
+													break;
+
+												}
+
+											break;
+
+											case DHCP_OPTION_TAG_IDENTIFIER:
+												memcpy(&(eth_mid_ptr[3]),eth_sta_mac_addr,6);
+
+											break;
+
+											case DHCP_OPTION_END:
+												continue_loop = 0;
+											break;
+										}
+										eth_mid_ptr += (2+eth_mid_ptr[1]);
+									}
+								}
+
+
+							}
+						}
+					}
+
 				break;
 				default:
 					//Invalid or unsupported Eth type; punt
@@ -337,19 +422,23 @@ void wlan_poll_eth() {
 	XAxiDma_Bd *first_bd_ptr;
 	u8* mpdu_start_ptr;
 	u8* eth_start_ptr;
+	u8* eth_mid_ptr;
 	packet_bd* tx_queue;
 	u32 eth_rx_len, eth_rx_buf;
 	u32 mpdu_tx_len;
 	packet_bd_list tx_queue_list;
 	u32 i;
+	u8 continue_loop;
 
 	int bd_count;
 	int status;
 	int packet_is_queued;
 
 	ethernet_header* eth_hdr;
-	//ipv4_header* ip_hdr;
+	ipv4_header* ip_hdr;
 	arp_packet* arp;
+	udp_header* udp;
+	dhcp_packet* dhcp;
 
 	llc_header* llc_hdr;
 	u8 eth_dest[6];
@@ -445,11 +534,6 @@ void wlan_poll_eth() {
 						//the station's wireless MAC address.
 						memcpy(arp->eth_src, hw_info.hw_addr_wlan, 6);
 
-						//xil_printf("Src: %x-%x-%x-%x-%x-%x \n", arp->eth_src[0], arp->eth_src[1], arp->eth_src[2], arp->eth_src[3], arp->eth_src[4], arp->eth_src[5]);
-						//xil_printf("Src IP: 0x%x\n", arp->ip_src);
-						//xil_printf("Dst: %x-%x-%x-%x-%x-%x \n", arp->eth_dst[0], arp->eth_dst[1], arp->eth_dst[2], arp->eth_dst[3], arp->eth_dst[4], arp->eth_dst[5]);
-						//xil_printf("Dst IP: 0x%x\n", arp->ip_dst);
-
 						llc_hdr->type = LLC_TYPE_ARP;
 						packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
 
@@ -457,6 +541,54 @@ void wlan_poll_eth() {
 					break;
 					case ETH_TYPE_IP:
 						llc_hdr->type = LLC_TYPE_IP;
+						ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
+
+						if(ip_hdr->prot == IPV4_PROT_UDP){
+							udp = (udp_header*)((void*)ip_hdr + 4*((u8)(ip_hdr->ver_ihl) & 0xF));
+							udp->checksum = 0; //Disable the checksum since we are about to mess with the bytes in the packet
+
+							if(Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPC || Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPS){
+								//This is a DHCP Discover packet, which contains the source hardware address
+								//deep inside the packet (in addition to its usual location in the Eth header).
+								//For STA encapsulation, we need to overwrite this address with the MAC addr
+								//of the wireless station.
+
+								dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
+
+								if(Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE){
+									eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
+
+									//Tagged DHCP Options
+									continue_loop = 1;
+
+									while(continue_loop){
+										switch(eth_mid_ptr[0]){
+
+											case DHCP_OPTION_TAG_TYPE:
+												switch(eth_mid_ptr[2]){
+													case DHCP_OPTION_TYPE_DISCOVER:
+													case DHCP_OPTION_TYPE_REQUEST:
+														memcpy(dhcp->chaddr,hw_info.hw_addr_wlan,6);
+													break;
+
+												}
+
+											break;
+
+											case DHCP_OPTION_TAG_IDENTIFIER:
+												memcpy(&(eth_mid_ptr[3]),hw_info.hw_addr_wlan,6);
+
+											break;
+
+											case DHCP_OPTION_END:
+												continue_loop = 0;
+											break;
+										}
+										eth_mid_ptr += (2+eth_mid_ptr[1]);
+									}
+								}
+							}
+						}
 						packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
 
 					break;

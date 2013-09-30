@@ -164,9 +164,11 @@ typedef struct{
 	u8 ttl;
 	u8 prot;
 	u16 checksum;
-	u32 ip_src;
-	u32 ip_dest;
+	u8 ip_src[4];
+	u8 ip_dest[4];
 } ipv4_header;
+
+#define IPV4_PROT_UDP 0x11
 
 typedef struct{
 	u16 htype;
@@ -175,10 +177,45 @@ typedef struct{
 	u8 plen;
 	u16 oper;
 	u8 eth_src[6];
-	u32 ip_src;
+	u8 ip_src[4];
 	u8 eth_dst[6];
-	u32 ip_dst;
+	u8 ip_dst[4];
 } arp_packet;
+
+typedef struct{
+	u16 src_port;
+	u16 dest_port;
+	u16 length;
+	u16 checksum;
+} udp_header;
+
+typedef struct{
+	u8 op;
+	u8 htype;
+	u8 hlen;
+	u8 hops;
+	u32 xid;
+	u16 secs;
+	u16 flags;
+	u8 ciaddr[4];
+	u8 yiaddr[4];
+	u8 siaddr[4];
+	u8 giaddr[4];
+	u8 chaddr[6];
+	u8 chaddr_padding[10];
+	u8 padding[192];
+	u32 magic_cookie;
+} dhcp_packet;
+
+#define DHCP_MAGIC_COOKIE 0x63825363
+#define DHCP_OPTION_TAG_TYPE		53
+	#define DHCP_OPTION_TYPE_DISCOVER 1
+	#define DHCP_OPTION_TYPE_REQUEST  3
+#define DHCP_OPTION_TAG_IDENTIFIER	61
+#define DHCP_OPTION_END				255
+
+#define UDP_SRC_PORT_BOOTPC 68
+#define UDP_SRC_PORT_BOOTPS 67
 
 
 
