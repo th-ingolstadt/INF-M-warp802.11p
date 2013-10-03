@@ -238,7 +238,13 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 	udp_header* udp;
 	dhcp_packet* dhcp;
 
-	u32 i;
+	u8 addr_cache[6];
+
+	u8 bcast_temp[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+	u8 addr1_temp[6];
+	u8 addr2_temp[6];
+	u8 addr3_temp[6];
+	u16 seq_temp;
 
 
 	switch(eth_encap_mode){
@@ -276,27 +282,35 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 
 			length = length - sizeof(mac_header_80211) - sizeof(llc_header) + sizeof(ethernet_header);
 
-			//memcpy(eth_sta_mac_addr, eth_src, 6);
+			if(wlan_addr_eq(rx80211_hdr->address_3, hw_info.hw_addr_wlan)){
+				//This case handles the behavior of an AP reflecting a station-sent broadcast packet back out over the air.
+				//Without this filtering, a station would see its own packet. This leads to very bad DHCP and ARP behavior.
+				return -1;
+			}
 
-			//if(wlan_addr_eq(rx80211_hdr->address_3, hw_info.hw_addr_wlan)){
-			//	memmove(eth_hdr->address_destination, rx80211_hdr->address_3, 6);
-			//} else {
-			//	memcpy(eth_hdr->address_destination, eth_sta_mac_addr, 6);
-			//}
+			///DEBUG
+
+
+
+			memcpy(addr_cache,rx80211_hdr->address_3,6);
 
 			if(wlan_addr_eq(rx80211_hdr->address_1,hw_info.hw_addr_wlan)){
 				memcpy(eth_hdr->address_destination, eth_sta_mac_addr, 6);
 			} else {
 				memmove(eth_hdr->address_destination, rx80211_hdr->address_1, 6);
 			}
-			memmove(eth_hdr->address_source, rx80211_hdr->address_3, 6);
+			//memmove(eth_hdr->address_source, rx80211_hdr->address_3, 6);
+			memcpy(eth_hdr->address_source, addr_cache,6);
+
+
+
 
 			switch(llc_hdr->type){
 				case LLC_TYPE_ARP:
 					arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
 
-					//Here we hijack ARP messages and overwrite their source MAC address field with
-					//the Ethernet-connected client's mac address
+					//	Here we hijack ARP messages and overwrite their source MAC address field with
+					//	the Ethernet-connected client's MAC address
 
 					if(wlan_addr_eq(arp->eth_dst,hw_info.hw_addr_wlan)){
 						memcpy(arp->eth_dst, eth_sta_mac_addr, 6);
@@ -321,16 +335,9 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 
 							dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
 
-
-
 							if(Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE){
 
-								if(wlan_addr_eq(dhcp->chaddr,hw_info.hw_addr_wlan)){
-
-									memcpy(dhcp->chaddr,eth_sta_mac_addr,6);
-
 									eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
-
 
 									//Tagged DHCP Options
 									continue_loop = 1;
@@ -342,7 +349,14 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 												switch(eth_mid_ptr[2]){
 													case DHCP_OPTION_TYPE_DISCOVER:
 													case DHCP_OPTION_TYPE_REQUEST:
-														memcpy(dhcp->chaddr,hw_info.hw_addr_wlan,6);
+														//memcpy(dhcp->chaddr,hw_info.hw_addr_wlan,6);
+													break;
+
+													case DHCP_OPTION_TYPE_ACK:
+													break;
+
+													case DHCP_OPTION_TYPE_OFFER:
+
 													break;
 
 												}
@@ -350,9 +364,10 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 											break;
 
 											case DHCP_OPTION_TAG_IDENTIFIER:
-												memcpy(&(eth_mid_ptr[3]),eth_sta_mac_addr,6);
+											//	memcpy(&(eth_mid_ptr[3]),eth_sta_mac_addr,6);
 
 											break;
+
 
 											case DHCP_OPTION_END:
 												continue_loop = 0;
@@ -360,7 +375,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 										}
 										eth_mid_ptr += (2+eth_mid_ptr[1]);
 									}
-								}
+							//	}
 
 
 							}
@@ -558,6 +573,8 @@ void wlan_poll_eth() {
 								if(Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE){
 									eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
 
+									dhcp->flags = Xil_Htons(DHCP_BOOTP_FLAGS_BROADCAST);
+
 									//Tagged DHCP Options
 									continue_loop = 1;
 
@@ -568,7 +585,7 @@ void wlan_poll_eth() {
 												switch(eth_mid_ptr[2]){
 													case DHCP_OPTION_TYPE_DISCOVER:
 													case DHCP_OPTION_TYPE_REQUEST:
-														memcpy(dhcp->chaddr,hw_info.hw_addr_wlan,6);
+														//memcpy(dhcp->chaddr,hw_info.hw_addr_wlan,6);
 													break;
 
 												}
@@ -576,7 +593,7 @@ void wlan_poll_eth() {
 											break;
 
 											case DHCP_OPTION_TAG_IDENTIFIER:
-												memcpy(&(eth_mid_ptr[3]),hw_info.hw_addr_wlan,6);
+												//memcpy(&(eth_mid_ptr[3]),hw_info.hw_addr_wlan,6);
 
 											break;
 
