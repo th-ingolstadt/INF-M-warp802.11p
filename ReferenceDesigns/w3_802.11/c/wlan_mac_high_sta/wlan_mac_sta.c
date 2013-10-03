@@ -59,7 +59,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -577,6 +577,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
 					association_state = 4;
 					access_point.AID = (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000;
+					write_hex_display(access_point.AID);
 					access_point.tx_rate = default_unicast_rate;
 					xil_printf("Association succeeded\n");
 				} else {
@@ -609,6 +610,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
 				access_point.AID = 0;
+				write_hex_display(access_point.AID);
 				memset((void*)(&(access_point.addr[0])), 0xFF,6);
 				access_point.seq = 0; //seq
 		break;
