@@ -1,6 +1,6 @@
 ### NOTE: DDR3 SO-DIMM contraints are not specified here!
 ###  These are pulled automatically from the MIG project during implementation
-#NET ddr_parity LOC = "AP32" | IOSTANDARD = "LVCMOS25" | TIG; #stray PAD MIG insists on including
+NET ddr_parity LOC = "H29" | IOSTANDARD = "LVCMOS25" | TIG; #stray PAD MIG insists on including, mapped to NC pin on FPGA
 
 NET "DEBUGHDR<0>" LOC = "AG27"  | IOSTANDARD = "LVCMOS25"; #pin 0
 NET "DEBUGHDR<1>" LOC = "AE26"  | IOSTANDARD = "LVCMOS25"; #pin 1
@@ -134,6 +134,23 @@ Net ETH_A_MDIO LOC=AP9  |  IOSTANDARD = "LVCMOS25" | PULLUP;
 Net ETH_A_MDC LOC=AK8  |  IOSTANDARD = "LVCMOS25";
 NET ETH_A_PD LOC = K9 |  IOSTANDARD = "LVCMOS25" | TIG;
 
+#ETH B
+Net ETH_B_RGMII_TXD<0> LOC=M10  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_TXD<1> LOC=B8  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_TXD<2> LOC=AC9  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_TXD<3> LOC=E9  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_TX_CTL LOC=D10  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_TXC LOC=AB10  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_RXD<0> LOC=A9  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_RXD<1> LOC=D9  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_RXD<2> LOC=C9  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_RXD<3> LOC=F10  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_RX_CTL LOC=A8  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_RGMII_RXC LOC=L10  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_MDC LOC=AN9  |  IOSTANDARD = LVCMOS25;
+Net ETH_B_MDIO LOC=AL8  |  IOSTANDARD = LVCMOS25 | PULLUP;
+NET ETH_B_PD LOC = E8 |  IOSTANDARD = "LVCMOS25" | TIG;
+
 NET ETH_COMA LOC = C8 |  IOSTANDARD = "LVCMOS25" | TIG;
  
 NET reset_pb LOC = "AH13"  |  IOSTANDARD = "LVCMOS15"  |  TIG;
@@ -191,6 +208,51 @@ NET "ETH_A_RGMII_RXD[3]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_A_RGMII_RXC
 NET "ETH_A_RGMII_RX_CTL" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_A_RGMII_RXC" RISING;
 NET "ETH_A_RGMII_RX_CTL" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_A_RGMII_RXC" FALLING;
 
+###############
+# ETH_B Timing
+INST "*ETH_B*gmii_interface*rxdata_bus[0].delay_rgmii_rxd"  IDELAY_VALUE = 13;
+INST "*ETH_B*gmii_interface*rxdata_bus[1].delay_rgmii_rxd"  IDELAY_VALUE = 13;
+INST "*ETH_B*gmii_interface*rxdata_bus[2].delay_rgmii_rxd"  IDELAY_VALUE = 13;
+INST "*ETH_B*gmii_interface*rxdata_bus[3].delay_rgmii_rxd"  IDELAY_VALUE = 13;
+
+INST "*ETH_B*gmii_interface*delay_rgmii_rx_ctl"            IDELAY_VALUE = 13;
+
+INST "*ETH_B*gmii_interface*delay_rgmii_tx_clk" ODELAY_VALUE = 6;
+INST "*ETH_B*gmii_interface*delay_rgmii_tx_clk" SIGNAL_PATTERN = CLOCK;
+
+# Group all IODELAY-related blocks to use a single IDELAYCTRL
+#INST "ETH_B*dlyctrl"                                       IODELAY_GROUP = ETH_rgmii_iodelay;
+INST "*ETH_B*gmii_interface*delay_rgmii_rx_ctl" IODELAY_GROUP = ETH_rgmii_iodelay;
+INST "*ETH_B*gmii_interface*rxdata_bus[?].delay_rgmii_rxd" IODELAY_GROUP = ETH_rgmii_iodelay;
+INST "*ETH_B*gmii_interface*delay_rgmii_tx_clk"     IODELAY_GROUP = ETH_rgmii_iodelay;
+
+# Spec: 1.2ns setup time, 1.2ns hold time 
+# The internal PHY delays were not used to derive the OFFSET constraints                                                                 
+# Changed NET Name
+#  This signal trace is longer than the clock trace, and arrives at the FPGA pin 64 ps after the clock
+#  Therefore the offset in constraint must have less setup time than nominal
+NET "ETH_B_RGMII_RXD[0]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" RISING;
+NET "ETH_B_RGMII_RXD[0]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" FALLING;
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin 376 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET "ETH_B_RGMII_RXD[1]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" RISING;
+NET "ETH_B_RGMII_RXD[1]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" FALLING;
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin 372 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET "ETH_B_RGMII_RXD[2]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" RISING;
+NET "ETH_B_RGMII_RXD[2]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" FALLING;
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin 115 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET "ETH_B_RGMII_RXD[3]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" RISING;
+NET "ETH_B_RGMII_RXD[3]" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" FALLING;
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin 292 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET "ETH_B_RGMII_RX_CTL" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" RISING;
+NET "ETH_B_RGMII_RX_CTL" OFFSET = IN 1.2 ns VALID 2.4 ns BEFORE "ETH_B_RGMII_RXC" FALLING;
 
 ############
 NET RFA_AD_spi_sclk_pin LOC = AB33 | IOSTANDARD = LVCMOS25;
@@ -348,13 +410,17 @@ NET "RFD_AD_spi_sdio" LOC = G23 | IOSTANDARD = LVCMOS25 | PULLDOWN; #NC pin on W
 # VALID window below assumes DDR interleaved I/Q at 20MSps rate (25nsec / half sample)
 INST "RFA_AD_TRXD<*>" TNM = RFA_AD_TRXD_group;
 NET "RFA_AD_TRXCLK" TNM_NET = RFA_AD_TRXCLK;
-TIMEGRP "RFA_AD_TRXD_group" OFFSET = IN -0.7 ns VALID 22 ns BEFORE "RFA_AD_TRXCLK" RISING;
-TIMEGRP "RFA_AD_TRXD_group" OFFSET = IN -0.7 ns VALID 22 ns BEFORE "RFA_AD_TRXCLK" FALLING;
+#TIMEGRP "RFA_AD_TRXD_group" OFFSET = IN -0.7 ns VALID 22 ns BEFORE "RFA_AD_TRXCLK" RISING;
+#TIMEGRP "RFA_AD_TRXD_group" OFFSET = IN -0.7 ns VALID 22 ns BEFORE "RFA_AD_TRXCLK" FALLING;
+TIMEGRP "RFA_AD_TRXD_group" OFFSET = IN 0.7 ns VALID 22 ns BEFORE "RFA_AD_TRXCLK" RISING;
+TIMEGRP "RFA_AD_TRXD_group" OFFSET = IN 0.7 ns VALID 22 ns BEFORE "RFA_AD_TRXCLK" FALLING;
 
 INST "RFB_AD_TRXD<*>" TNM = RFB_AD_TRXD_group;
 NET "RFB_AD_TRXCLK" TNM_NET = RFB_AD_TRXCLK;
-TIMEGRP "RFB_AD_TRXD_group" OFFSET = IN -0.7 ns VALID 22 ns BEFORE "RFB_AD_TRXCLK" RISING;
-TIMEGRP "RFB_AD_TRXD_group" OFFSET = IN -0.7 ns VALID 22 ns BEFORE "RFB_AD_TRXCLK" FALLING;
+#TIMEGRP "RFB_AD_TRXD_group" OFFSET = IN -0.7 ns VALID 22 ns BEFORE "RFB_AD_TRXCLK" RISING;
+#TIMEGRP "RFB_AD_TRXD_group" OFFSET = IN -0.7 ns VALID 22 ns BEFORE "RFB_AD_TRXCLK" FALLING;
+TIMEGRP "RFB_AD_TRXD_group" OFFSET = IN 0.7 ns VALID 22 ns BEFORE "RFB_AD_TRXCLK" RISING;
+TIMEGRP "RFB_AD_TRXD_group" OFFSET = IN 0.7 ns VALID 22 ns BEFORE "RFB_AD_TRXCLK" FALLING;
 
 #Relaxed constraints for T=8 paths through Rx PHY (mostly in DSSS Rx)
 NET "wlan_phy_rx*ce_8_sg_x*" TNM_NET = "TNM_rx_phy_CE8";
