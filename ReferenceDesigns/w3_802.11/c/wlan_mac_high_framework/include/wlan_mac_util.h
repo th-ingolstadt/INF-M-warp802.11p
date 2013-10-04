@@ -107,9 +107,9 @@ typedef struct{
 	u16 length;
 	u8 rate;
 	u8 mac_type;
-	u8 seq;
+	u16 seq;
 	u8 flags;
-	u8 reserved[2];
+	u8 reserved[1];
 } rx_event;
 
 typedef struct{
@@ -121,9 +121,9 @@ typedef struct{
 	u16 length;
 	u8 rate;
 	u8 mac_type;
-	u8 seq;
+	u16 seq;
 	u8 retry_count;
-	u8 reserved[2];
+	u8 reserved[1];
 } tx_event;
 
 typedef struct{
