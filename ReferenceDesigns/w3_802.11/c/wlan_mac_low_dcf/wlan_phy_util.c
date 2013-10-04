@@ -157,7 +157,9 @@ void wlan_phy_init() {
 	wlan_agc_set_reset_timing(4, 250, 250);
 
 	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
-	wlan_agc_set_config( (256-56), (256-35), 0, 6, 24);
+	//wlan_agc_set_config( (256-56), (256-35), 0, 6, 24);
+	wlan_agc_set_config( (256-56), (256-15), 0, 6, 24);
+
 
 	//capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
 	wlan_agc_set_AGC_timing(1, 30, 90, 96);
