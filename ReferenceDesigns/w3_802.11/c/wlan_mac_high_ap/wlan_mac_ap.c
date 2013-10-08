@@ -47,7 +47,7 @@
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_AP
 
 
-#define  WLAN_CHANNEL                  6
+#define  WLAN_CHANNEL                  4
 
 
 
@@ -508,6 +508,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	packet_bd_list checkout;
 	packet_bd*	tx_queue;
 	station_info* associated_station;
+	u8 eth_send;
 
 	rx_event* rx_event_log_entry;
 
@@ -517,9 +518,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8 is_associated = 0;
 	new_association = 0;
 
-
 	rx_event_log_entry = get_curr_rx_log();
-
 
 	if(rx_event_log_entry != NULL){
 			rx_event_log_entry->state = mpdu_info->state;
@@ -558,93 +557,63 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	}
 
 
-
 	switch(rx_80211_header->frame_control_1) {
 		case (MAC_FRAME_CTRL1_SUBTYPE_DATA): //Data Packet
 			if(is_associated){
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
-					//MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx
+					//MPDU is flagged as destined to the DS
 
 					(associated_station->num_rx_success)++;
 					(associated_station->num_rx_bytes) += mpdu_info->length;
 
-					wlan_mpdu_eth_send(mpdu,length);
+					eth_send = 1;
 
 					if(wlan_addr_eq(rx_80211_header->address_3,bcast_addr)){
-
-						xil_printf("Wireless Rx Bcast packet...\n");
-
-/*
-							xil_printf("beacon test\n");
-							checkout = queue_checkout(1);
-							if(checkout.length == 1){ //There was at least 1 free queue element
-								tx_queue = checkout.first;
-								setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
-								tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-								setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_MPDU_FLAGS_FILL_TIMESTAMP );
-								enqueue_after_end(0, &checkout);
-								check_tx_queue();
-							}
-
-*/
-
-						//This packet is a broadcast packet. It should be retransmitted wirelessly
-						//so that other stations will process it.
-						//Checkout 1 element from the queue;
-
-
 
 						 	checkout = queue_checkout(1);
 
 						 	if(checkout.length == 1){ //There was at least 1 free queue element
 						 		tx_queue = checkout.first;
-
 						 		setup_tx_header( &tx_header_common, bcast_addr, rx_80211_header->address_2);
-
-						        //tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-						 		//memcpy((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,mpdu,mpdu_info->length);
 						 		mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 								tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 								mpdu_ptr_u8 += sizeof(mac_header_80211);
-
 								memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
-
-								xil_printf("copying %d bytes 0x%x -> 0x%x\n",  mpdu_info->length - sizeof(mac_header_80211), (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_ptr_u8);
-
 						 		setup_tx_queue ( tx_queue, NULL, mpdu_info->length, 0, 0 );
-
-						 		xil_printf("sending\n");
-						 		xil_printf("Rx Seq = %d\n", ((rx_80211_header->sequence_control)>>4)&0xFFF);
-						 		xil_printf("Tx Seq = %d\n", tx_header_common.seq_num);
-
 						 		enqueue_after_end(0, &checkout);
-
 						 		check_tx_queue();
 						 	}
 
+					} else {
+						for(i=0; i < next_free_assoc_index; i++) {
+							if(wlan_addr_eq(associations[i].addr, (rx_80211_header->address_3))) {
+								checkout = queue_checkout(1);
 
-						/*
-						 	u16 tx_length;
-							packet_bd_list checkout;
-							packet_bd*	tx_queue;
+								if(checkout.length == 1){ //There was at least 1 free queue element
+									tx_queue = checkout.first;
+									setup_tx_header( &tx_header_common, rx_80211_header->address_3, rx_80211_header->address_2);
+									mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
+									tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
+									mpdu_ptr_u8 += sizeof(mac_header_80211);
+									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
+									setup_tx_queue ( tx_queue, (void*)&(associations[i]), mpdu_info->length, MAX_RETRY,
+										 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-							//Checkout 1 element from the queue;
-							checkout = queue_checkout(1);
+									enqueue_after_end(associations[i].AID,  &checkout);
 
-							if(checkout.length == 1){ //There was at least 1 free queue element
-								tx_queue = checkout.first;
+									check_tx_queue();
+									#ifndef ALLOW_ETH_TX_OF_WIRELESS_TX
+									eth_send = 0;
+									#endif
+								}
 
-								setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
-
-								tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-
-								setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_MPDU_FLAGS_FILL_TIMESTAMP );
-
-								enqueue_after_end(0, &checkout);
-								check_tx_queue();
+								break;
 							}
-						 */
+						}
+					}
 
+					if(eth_send){
+						wlan_mpdu_eth_send(mpdu,length);
 					}
 
 				}
