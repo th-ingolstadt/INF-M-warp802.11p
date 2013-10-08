@@ -59,7 +59,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
