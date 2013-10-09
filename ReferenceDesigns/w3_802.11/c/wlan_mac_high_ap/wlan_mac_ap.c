@@ -58,7 +58,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -69,7 +69,6 @@ u8 allow_assoc;
 u8 perma_assoc_mode;
 u8 default_unicast_rate;
 u8 enable_animation;
-u8 interactive_mode;
 
 // Association Table variables
 //   The last entry in associations[MAX_ASSOCIATIONS][] is swap space
@@ -83,7 +82,7 @@ u32 mac_param_chan;
 static u8 eeprom_mac_addr[6];
 static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-
+u16 ltg_packet_size[MAX_ASSOCIATIONS];
 
 /*************************** Functions Prototypes ****************************/
 
@@ -155,6 +154,9 @@ int main(){
 		associations[i].AID = (1+i); //7.3.1.8 of 802.11-2007
 		memset((void*)(&(associations[i].addr[0])), 0xFF,6);
 		associations[i].seq = 0; //seq
+		// Set default LTG parameters.
+		// These are changed by either UART interaction or WARPnet
+		ltg_packet_size[i] = 1470;
 	}
 
 
@@ -332,37 +334,44 @@ void ltg_event(u32 id){
 
 	for(i=0; i < next_free_assoc_index; i++){
 		if(associations[i].AID == id){
-			//Send a Data packet to this station
-			//Checkout 1 element from the queue;
-			checkout = queue_checkout(1);
 
-			if(checkout.length == 1){ //There was at least 1 free queue element
-				tx_queue = checkout.first;
+			//We implement a soft limit on the size of the queue allowed for any
+			//given station. This avoids the scenario where multiple backlogged
+			//LTG flows favor a single user and starve everyone else.
+			if(queue_num_queued(associations[i].AID) < (.25*queue_total_size())){
+				//Send a Data packet to this station
+				//Checkout 1 element from the queue;
+				checkout = queue_checkout(1);
 
-		 		setup_tx_header( &tx_header_common, associations[i].addr, eeprom_mac_addr );
+				if(checkout.length == 1){ //There was at least 1 free queue element
+					tx_queue = checkout.first;
 
-				mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
-				tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
+					setup_tx_header( &tx_header_common, associations[i].addr, eeprom_mac_addr );
 
-				mpdu_ptr_u8 += sizeof(mac_header_80211);
-				llc_hdr = (llc_header*)(mpdu_ptr_u8);
+					mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
+					tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
-				//Prepare the MPDU LLC header
-				llc_hdr->dsap = LLC_SNAP;
-				llc_hdr->ssap = LLC_SNAP;
-				llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
-				bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
-				llc_hdr->type = LLC_TYPE_CUSTOM;
-				tx_length += sizeof(llc_header);
-				tx_length = 1200; //TODO: The rest of the payload is just... whatever. This will tell the PHY to send a longer packet
-								  //and pretend the payload is something interesting
+					mpdu_ptr_u8 += sizeof(mac_header_80211);
+					llc_hdr = (llc_header*)(mpdu_ptr_u8);
 
-		 		setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
-		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+					//Prepare the MPDU LLC header
+					llc_hdr->dsap = LLC_SNAP;
+					llc_hdr->ssap = LLC_SNAP;
+					llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
+					bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
+					llc_hdr->type = LLC_TYPE_CUSTOM;
 
-				enqueue_after_end(associations[i].AID, &checkout);
-				check_tx_queue();
+					tx_length = ltg_packet_size[i];
+
+					setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
+									 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+					enqueue_after_end(associations[i].AID, &checkout);
+					check_tx_queue();
+				}
+
 			}
+
 		}
 	}
 }

@@ -25,6 +25,14 @@
 #define WLAN_USE_UART_MENU
 //#define ALLOW_ETH_TX_OF_WIRELESS_TX
 
+// **********************************************************************
+// UART Menu Modes
+//
+#define UART_MODE_MAIN                 0
+#define UART_MODE_INTERACTIVE          1
+#define UART_MODE_SSID_CHANGE          2
+#define UART_MODE_LTG_SIZE_CHANGE	   3
+#define UART_MODE_LTG_INTERVAL_CHANGE  4
 
 // **********************************************************************
 // Common Defines
@@ -99,6 +107,9 @@ void up_button();
 void uart_rx(u8 rxByte);
 
 void print_menu();
+void print_ltg_size_menu();
+void print_ltg_interval_menu();
+void print_ssid_menu();
 void print_associations();
 void print_queue_status();
 void print_station_status();

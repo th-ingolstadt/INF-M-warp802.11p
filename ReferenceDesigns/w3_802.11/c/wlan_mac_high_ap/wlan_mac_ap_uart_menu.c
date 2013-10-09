@@ -32,14 +32,19 @@
 
 #ifdef WLAN_USE_UART_MENU
 
-extern u8 interactive_mode;
+static u8 uart_mode = UART_MODE_MAIN;
 extern u8 default_unicast_rate;
 extern u32 mac_param_chan;
 
 extern station_info associations[MAX_ASSOCIATIONS+1];
 extern u32 next_free_assoc_index;
+u8 ltg_enable[MAX_ASSOCIATIONS];
+extern u16 ltg_packet_size[MAX_ASSOCIATIONS];
+cbr_params cbr_parameters[MAX_ASSOCIATIONS];
 
-
+extern char* access_point_ssid;
+static u8 curr_aid;
+static u8 curr_association_index;
 
 void uart_rx(u8 rxByte){
 	wlan_ipc_msg ipc_msg_to_low;
@@ -47,121 +52,292 @@ void uart_rx(u8 rxByte){
 	ipc_config_rf_ifc* config_rf_ifc;
 	u32 i;
 
-    static u8 ltg_mode = 0;
-	cbr_params cbr_parameters;
+	#define MAX_NUM_CHARS 31
+	static char text_entry[MAX_NUM_CHARS+1];
+	static u8 curr_char = 0;
     
 	if(rxByte == ASCII_ESC){
-		interactive_mode = 0;
+		uart_mode = UART_MODE_MAIN;
 		print_menu();
+
+		for(i = 0; i < MAX_ASSOCIATIONS; i++){
+			if(ltg_enable[i]){
+				ltg_enable[i] = 0;
+				stop_ltg(associations[i].AID);
+			}
+
+		}
+
 		return;
 	}
 
-	if(interactive_mode){
-		switch(rxByte){
-			case ASCII_r:
-				//Reset statistics
-				reset_station_statistics();
-			break;
-			case ASCII_d:
-				//Deauthenticate all stations
-				deauthenticate_stations();
-			break;
-		}
-	} else {
-		switch(rxByte){
-			case ASCII_1:
-				interactive_mode = 1;
-				print_station_status();
-			break;
+	switch(uart_mode){
+		case UART_MODE_MAIN:
+			switch(rxByte){
+				case ASCII_1:
+					uart_mode = UART_MODE_INTERACTIVE;
+					print_station_status();
+				break;
 
-			case ASCII_2:
-				print_queue_status();
-			break;
+				case ASCII_2:
+					print_queue_status();
+				break;
 
-			case ASCII_e:
-				print_event_log();
-			break;
+				case ASCII_e:
+					print_event_log();
+				break;
 
-			case ASCII_c:
+				case ASCII_c:
 
-				if(mac_param_chan > 1){
+					if(mac_param_chan > 1){
+						deauthenticate_stations();
+						(mac_param_chan--);
+
+						//Send a message to other processor to tell it to switch channels
+						ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
+						ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
+						ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+						init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
+						config_rf_ifc->channel = mac_param_chan;
+						ipc_mailbox_write_msg(&ipc_msg_to_low);
+					} else {
+
+					}
+					xil_printf("(-) Channel: %d\n", mac_param_chan);
+
+
+				break;
+				case ASCII_C:
+					if(mac_param_chan < 11){
+						deauthenticate_stations();
+						(mac_param_chan++);
+
+						//Send a message to other processor to tell it to switch channels
+						ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
+						ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
+						ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+						init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
+						config_rf_ifc->channel = mac_param_chan;
+						ipc_mailbox_write_msg(&ipc_msg_to_low);
+					} else {
+
+					}
+					xil_printf("(+) Channel: %d\n", mac_param_chan);
+
+				break;
+				case ASCII_r:
+					if(default_unicast_rate > WLAN_MAC_RATE_6M){
+						default_unicast_rate--;
+					} else {
+						default_unicast_rate = WLAN_MAC_RATE_6M;
+					}
+
+					for(i=0; i < next_free_assoc_index; i++){
+						associations[i].tx_rate = default_unicast_rate;
+					}
+
+					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+				break;
+				case ASCII_R:
+					if(default_unicast_rate < WLAN_MAC_RATE_54M){
+						default_unicast_rate++;
+					} else {
+						default_unicast_rate = WLAN_MAC_RATE_54M;
+					}
+
+					for(i=0; i < next_free_assoc_index; i++){
+						associations[i].tx_rate = default_unicast_rate;
+					}
+					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+				break;
+				case ASCII_s:
+					uart_mode = UART_MODE_SSID_CHANGE;
 					deauthenticate_stations();
-					(mac_param_chan--);
+					curr_char = 0;
+					print_ssid_menu();
+				break;
+		//		case ASCII_l:
+		//			if(ltg_mode == 0){
+		//				#define LTG_INTERVAL 10000
+		//				xil_printf("Enabling LTG mode to AID 1, interval = %d usec\n", LTG_INTERVAL);
+		//				cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
+		//				start_ltg(1, LTG_TYPE_CBR, &cbr_parameters);
 
-					//Send a message to other processor to tell it to switch channels
-					ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
-					ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
-					ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-					init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
-					config_rf_ifc->channel = mac_param_chan;
-					ipc_mailbox_write_msg(&ipc_msg_to_low);
-				} else {
+		//				ltg_mode = 1;
 
-				}
-				xil_printf("(-) Channel: %d\n", mac_param_chan);
+		//			} else {
+		//				stop_ltg(1);
+		//				ltg_mode = 0;
+		//				xil_printf("Disabled LTG mode to AID 1\n");
+		//			}
+				break;
+			}
+		break;
 
-
-			break;
-			case ASCII_C:
-				if(mac_param_chan < 11){
+		case UART_MODE_INTERACTIVE:
+			switch(rxByte){
+				case ASCII_r:
+					//Reset statistics
+					reset_station_statistics();
+				break;
+				case ASCII_d:
+					//Deauthenticate all stations
 					deauthenticate_stations();
-					(mac_param_chan++);
+				break;
+				default:
+					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
+						curr_aid = rxByte - 48;
 
-					//Send a message to other processor to tell it to switch channels
-					ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
-					ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
-					ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-					init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
-					config_rf_ifc->channel = mac_param_chan;
-					ipc_mailbox_write_msg(&ipc_msg_to_low);
-				} else {
 
+						//TODO - disable LTG if its running
+						for(i=0; i < next_free_assoc_index; i++){
+							if(associations[i].AID == curr_aid){
+								uart_mode = UART_MODE_LTG_SIZE_CHANGE;
+								curr_association_index = i;
+								curr_char = 0;
+
+								if(ltg_enable[i] == 0){
+									print_ltg_size_menu();
+								} else {
+									ltg_enable[i] = 0;
+									stop_ltg(associations[i].AID);
+									uart_mode = UART_MODE_INTERACTIVE;
+									print_station_status();
+								}
+
+							}
+
+						}
+
+
+					}
+				break;
+			}
+		break;
+
+		case UART_MODE_LTG_SIZE_CHANGE:
+			switch(rxByte){
+				case ASCII_CR:
+					text_entry[curr_char] = 0;
+					curr_char = 0;
+
+					//cbr_parameters[curr_association_index].interval_usec;
+					ltg_packet_size[curr_association_index] =  str2num(text_entry);
+
+					uart_mode = UART_MODE_LTG_INTERVAL_CHANGE;
+					print_ltg_interval_menu();
+
+				break;
+				case ASCII_DEL:
+					if(curr_char > 0){
+						curr_char--;
+						xil_printf("\b \b");
+					}
+				break;
+				default:
+					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
+						//the user entered a character
+						if(curr_char < MAX_NUM_CHARS){
+							xil_printf("%c", rxByte);
+							text_entry[curr_char] = rxByte;
+							curr_char++;
+						}
+					}
+				break;
+			}
+		break;
+
+		case UART_MODE_LTG_INTERVAL_CHANGE:
+				switch(rxByte){
+					case ASCII_CR:
+						text_entry[curr_char] = 0;
+						curr_char = 0;
+
+						cbr_parameters[curr_association_index].interval_usec = str2num(text_entry);
+
+						start_ltg(curr_aid, LTG_TYPE_CBR, &cbr_parameters[curr_association_index]);
+						ltg_enable[curr_association_index] = 1;
+
+						uart_mode = UART_MODE_INTERACTIVE;
+						print_station_status();
+
+					break;
+					case ASCII_DEL:
+						if(curr_char > 0){
+							curr_char--;
+							xil_printf("\b \b");
+						}
+					break;
+					default:
+						if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
+							//the user entered a character
+							if(curr_char < MAX_NUM_CHARS){
+								xil_printf("%c", rxByte);
+								text_entry[curr_char] = rxByte;
+								curr_char++;
+							}
+						}
+					break;
 				}
-				xil_printf("(+) Channel: %d\n", mac_param_chan);
-
 			break;
-			case ASCII_r:
-				if(default_unicast_rate > WLAN_MAC_RATE_6M){
-					default_unicast_rate--;
-				} else {
-					default_unicast_rate = WLAN_MAC_RATE_6M;
-				}
 
-				for(i=0; i < next_free_assoc_index; i++){
-					associations[i].tx_rate = default_unicast_rate;
-				}
+		case UART_MODE_SSID_CHANGE:
+			switch(rxByte){
+				case ASCII_CR:
 
-				xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
-			break;
-			case ASCII_R:
-				if(default_unicast_rate < WLAN_MAC_RATE_54M){
-					default_unicast_rate++;
-				} else {
-					default_unicast_rate = WLAN_MAC_RATE_54M;
-				}
 
-				for(i=0; i < next_free_assoc_index; i++){
-					associations[i].tx_rate = default_unicast_rate;
-				}
-				xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
-			break;
-			case ASCII_l:
-				if(ltg_mode == 0){
-					#define LTG_INTERVAL 10000
-					xil_printf("Enabling LTG mode to AID 1, interval = %d usec\n", LTG_INTERVAL);
-					cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
-					start_ltg(1, LTG_TYPE_CBR, &cbr_parameters);
+					text_entry[curr_char] = 0;
+					curr_char = 0;
+					uart_mode = UART_MODE_MAIN;
 
-					ltg_mode = 1;
+					access_point_ssid = realloc(access_point_ssid, strlen(text_entry)+1);
+					strcpy(access_point_ssid,text_entry);
+					xil_printf("\nSetting new SSID: %s\n", access_point_ssid);
 
-				} else {
-					stop_ltg(1);
-					ltg_mode = 0;
-					xil_printf("Disabled LTG mode to AID 1\n");
-				}
-			break;
-        }
+				break;
+				case ASCII_DEL:
+					if(curr_char > 0){
+						curr_char--;
+						xil_printf("\b \b");
+					}
+
+				break;
+				default:
+					if( (rxByte <= ASCII_z) && (rxByte >= ASCII_A) ){
+						//the user entered a character
+
+						if(curr_char < MAX_NUM_CHARS){
+							xil_printf("%c", rxByte);
+							text_entry[curr_char] = rxByte;
+							curr_char++;
+						}
+					}
+				break;
+			}
+		break;
 	}
+}
+
+void print_ltg_size_menu(){
+
+	xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AID %d\n", curr_aid);
+
+	xil_printf("\nEnter packet payload size (in bytes): ");
+
+
+}
+
+void print_ltg_interval_menu(){
+
+	xil_printf("\nEnter packet Tx interval (in microseconds): ");
+
+}
+
+void print_ssid_menu(){
+	xil_printf("\f");
+	xil_printf("Current SSID: %s\n", access_point_ssid);
+	xil_printf("To change the current SSID, please type a new string and press enter\n");
+	xil_printf(": ");
 }
 
 
@@ -184,9 +360,6 @@ void print_queue_status(){
 
 }
 
-
-
-
 void print_menu(){
 	xil_printf("\f");
 	xil_printf("********************** AP Menu **********************\n");
@@ -197,9 +370,12 @@ void print_menu(){
 	xil_printf("        purge any associations, forcing stations to\n");
 	xil_printf("        join the network again)\n");
 	xil_printf("[r/R] - change default unicast rate\n");
-	xil_printf("[l]   - toggle local traffic generation to AID 1\n");
+	xil_printf("[s]   - change SSID (note: changing SSID will purge)\n");
+	xil_printf("        any associations)\n");
 	xil_printf("*****************************************************\n");
 }
+
+
 
 
 
@@ -207,7 +383,7 @@ void print_station_status(){
 	u32 i;
 	u64 timestamp;
 
-	if(interactive_mode){
+	if(uart_mode == UART_MODE_INTERACTIVE){
 		timestamp = get_usec_timestamp();
 		xil_printf("\f");
 
@@ -215,6 +391,13 @@ void print_station_status(){
 			xil_printf("---------------------------------------------------\n");
 			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
 					associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
+
+			if(ltg_enable[i]){
+				xil_printf("  LTG Enabled\n");
+				xil_printf("  Packet Size: %d bytes\n", ltg_packet_size[i]);
+				xil_printf("  Packet Tx Interval: %d microseconds\n", cbr_parameters[i].interval_usec);
+			}
+
 			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
 			xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
 			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
@@ -224,7 +407,14 @@ void print_station_status(){
 		    xil_printf("---------------------------------------------------\n");
 		    xil_printf("\n");
 		    xil_printf("[r] - reset statistics\n");
-		    xil_printf("[d] - deauthenticate all stations\n");
+		    xil_printf("[d] - deauthenticate all stations\n\n");
+		    xil_printf(" The interactive AP menu supports sending arbitrary traffic\n");
+		    xil_printf(" to any associated station. To use this feature, press any number\n");
+		    xil_printf(" on the keyboard that corresponds to an associated station's AID\n");
+		    xil_printf(" and follow the prompts. Pressing Esc at any time will halt all\n");
+		    xil_printf(" local traffic generation and return you to the main menu.");
+
+
 
 
 		//Update display
