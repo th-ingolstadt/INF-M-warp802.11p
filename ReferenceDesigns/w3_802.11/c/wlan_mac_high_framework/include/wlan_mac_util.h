@@ -281,6 +281,7 @@ int is_tx_buffer_empty();
 void mpdu_transmit(packet_bd* tx_queue);
 u8 valid_tagged_rate(u8 rate);
 void tagged_rate_to_readable_rate(u8 rate, char* str);
+int str2num(char* str);
 
 void setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
 void setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  );
