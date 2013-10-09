@@ -97,6 +97,6 @@ void print_station_status();
 
 void uart_rx(u8 rxByte);
 
-int str2num(char* str);
+
 
 #endif /* WLAN_MAC_STA_H_ */

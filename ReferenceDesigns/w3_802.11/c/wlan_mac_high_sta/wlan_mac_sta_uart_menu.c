@@ -244,27 +244,6 @@ void print_menu(){
 
 }
 
-
-int str2num(char* str){
-	//For now this only works with non-negative values
-	int return_value = 0;
-	u8 decade_index;
-	int multiplier;
-	u8 string_length = strlen(str);
-	u32 i;
-
-	for(decade_index = 0; decade_index < string_length; decade_index++){
-		multiplier = 1;
-		for(i = 0; i < (string_length - 1 - decade_index) ; i++){
-			multiplier = multiplier*10;
-		}
-		return_value += multiplier*(u8)(str[decade_index] - 48);
-	}
-
-	return return_value;
-}
-
-
 void print_station_status(){
 
 	u64 timestamp;
