@@ -275,7 +275,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	if(tx_event_log_entry != NULL){
 		tx_event_log_entry->state = tx_mpdu->state;
 		tx_event_log_entry->AID = 1;
-		tx_event_log_entry->power = 0; //TODO: I'm on the fence as to whether this should be power or Tx Gains
+		tx_event_log_entry->power = 0; //TODO
 		tx_event_log_entry->length = tx_mpdu->length;
 		tx_event_log_entry->rate = tx_mpdu->rate;
 		tx_event_log_entry->mac_type = tx_80211_header->frame_control_1;
@@ -840,7 +840,6 @@ void print_ap_list(){
 					memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
 
 					access_point_ssid = realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
-					//xil_printf("allocated %d bytes in 0x%08x\n", strlen(ap_list[ap_sel].ssid), access_point_ssid);
 					strcpy(access_point_ssid,ap_list[ap_sel].ssid);
 
 					access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
@@ -859,9 +858,6 @@ void print_ap_list(){
 	}
 
 }
-
-
-
 
 
 void reset_station_statistics(){

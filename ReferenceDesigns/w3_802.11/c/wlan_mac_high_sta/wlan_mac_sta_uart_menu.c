@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_ap.c
+// File   : wlan_mac_sta_uart_menu.c
 // Authors: Patrick Murphy (murphpo [at] mangocomm.com)
 //			Chris Hunter (chunter [at] mangocomm.com)
 // License: Copyright 2013, Mango Communications. All rights reserved.
