@@ -56,24 +56,33 @@ extern station_info access_point;
 // AP channel
 extern u32 mac_param_chan;
 
-
+// LTG variables
+u8 ltg_enable;
+extern u16 ltg_packet_size;
+cbr_params cbr_parameters;
 
 
 void uart_rx(u8 rxByte){
 	#define MAX_NUM_AP_CHARS 4
 	static char numerical_entry[MAX_NUM_AP_CHARS+1];
 	static u8 curr_decade = 0;
-	static u8 ltg_mode = 0;
+
+	#define MAX_NUM_CHARS 31
+	static char text_entry[MAX_NUM_CHARS+1];
+	static u8 curr_char = 0;
 
 	u16 ap_sel;
 	wlan_ipc_msg ipc_msg_to_low;
 	u32 ipc_msg_to_low_payload[1];
 	ipc_config_rf_ifc* config_rf_ifc;
-	cbr_params cbr_parameters;
 
 	if(rxByte == ASCII_ESC){
 		uart_mode = UART_MODE_MAIN;
+		ltg_enable = 0;
+		stop_ltg(0);
+
 		print_menu();
+
 		return;
 	}
 
@@ -124,21 +133,6 @@ void uart_rx(u8 rxByte){
 
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 				break;
-				case ASCII_l:
-					if(ltg_mode == 0){
-						#define LTG_INTERVAL 10000
-						xil_printf("Enabling LTG mode to AP, interval = %d usec\n", LTG_INTERVAL);
-						cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
-						start_ltg(0, LTG_TYPE_CBR, &cbr_parameters);
-
-						ltg_mode = 1;
-
-					} else {
-						stop_ltg(0);
-						ltg_mode = 0;
-						xil_printf("Disabled LTG mode to AID 1\n");
-					}
-				break;
 			}
 		break;
 		case UART_MODE_INTERACTIVE:
@@ -146,6 +140,85 @@ void uart_rx(u8 rxByte){
 				case ASCII_r:
 					//Reset statistics
 					reset_station_statistics();
+				break;
+				case ASCII_1:
+					if(access_point.AID != 0){
+						uart_mode = UART_MODE_LTG_SIZE_CHANGE;
+						curr_char = 0;
+
+						if(ltg_enable == 0){
+							print_ltg_size_menu();
+						} else {
+							ltg_enable = 0;
+							stop_ltg(0);
+							uart_mode = UART_MODE_INTERACTIVE;
+							print_station_status();
+						}
+
+					}
+				break;
+			}
+		break;
+		case UART_MODE_LTG_SIZE_CHANGE:
+			switch(rxByte){
+				case ASCII_CR:
+					text_entry[curr_char] = 0;
+					curr_char = 0;
+
+					ltg_packet_size =  str2num(text_entry);
+
+					uart_mode = UART_MODE_LTG_INTERVAL_CHANGE;
+					print_ltg_interval_menu();
+
+				break;
+				case ASCII_DEL:
+					if(curr_char > 0){
+						curr_char--;
+						xil_printf("\b \b");
+					}
+				break;
+				default:
+					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
+						//the user entered a character
+						if(curr_char < MAX_NUM_CHARS){
+							xil_printf("%c", rxByte);
+							text_entry[curr_char] = rxByte;
+							curr_char++;
+						}
+					}
+				break;
+			}
+		break;
+		case UART_MODE_LTG_INTERVAL_CHANGE:
+			switch(rxByte){
+				case ASCII_CR:
+					text_entry[curr_char] = 0;
+					curr_char = 0;
+
+					cbr_parameters.interval_usec = str2num(text_entry);
+
+					start_ltg(0, LTG_TYPE_CBR, &cbr_parameters);
+					ltg_enable = 1;
+
+					uart_mode = UART_MODE_INTERACTIVE;
+					print_station_status();
+
+				break;
+				case ASCII_DEL:
+					if(curr_char > 0){
+						curr_char--;
+						xil_printf("\b \b");
+					}
+				break;
+				default:
+					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
+						//the user entered a character
+						if(curr_char < MAX_NUM_CHARS){
+							xil_printf("%c", rxByte);
+							text_entry[curr_char] = rxByte;
+							curr_char++;
+						}
+					}
 				break;
 			}
 		break;
@@ -231,6 +304,21 @@ void uart_rx(u8 rxByte){
 
 }
 
+void print_ltg_size_menu(){
+
+	xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AP\n");
+
+	xil_printf("\nEnter packet payload size (in bytes): ");
+
+
+}
+
+void print_ltg_interval_menu(){
+
+	xil_printf("\nEnter packet Tx interval (in microseconds): ");
+
+}
+
 
 void print_menu(){
 	xil_printf("\f");
@@ -240,8 +328,6 @@ void print_menu(){
 	xil_printf("\n");
 	xil_printf("[a] - 	active scan and display nearby APs\n");
 	xil_printf("[r/R] - change default unicast rate\n");
-	xil_printf("[l]	  - toggle local traffic generation to AP\n");
-
 }
 
 void print_station_status(){
@@ -255,6 +341,11 @@ void print_station_status(){
 		xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", access_point.AID,
 			access_point.addr[0],access_point.addr[1],access_point.addr[2],access_point.addr[3],access_point.addr[4],access_point.addr[5]);
 			if(access_point.AID > 0){
+				if(ltg_enable){
+					xil_printf("  LTG Enabled\n");
+					xil_printf("  Packet Size: %d bytes\n", ltg_packet_size);
+					xil_printf("  Packet Tx Interval: %d microseconds\n", cbr_parameters.interval_usec);
+				}
 				xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (access_point.rx_timestamp)))/1000);
 				xil_printf("     - Last Rx Power: %d dBm\n",access_point.last_rx_power);
 				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(access_point.AID));
@@ -263,7 +354,11 @@ void print_station_status(){
 			}
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("\n");
-		xil_printf("[r] - reset statistics\n");
+		xil_printf("[r] - reset statistics\n\n");
+		xil_printf(" The interactive STA menu supports sending arbitrary traffic\n");
+		xil_printf(" to an associated AP. To use this feature, press the number 1\n");
+		xil_printf(" Pressing Esc at any time will halt all local traffic\n");
+		xil_printf(" generation and return you to the main menu.");
 
 		//Update display
 		wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);

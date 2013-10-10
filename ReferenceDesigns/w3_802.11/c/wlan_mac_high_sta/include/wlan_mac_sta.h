@@ -40,6 +40,8 @@
 #define UART_MODE_MAIN                 0
 #define UART_MODE_INTERACTIVE          1
 #define UART_MODE_AP_LIST              2
+#define UART_MODE_LTG_SIZE_CHANGE	   3
+#define UART_MODE_LTG_INTERVAL_CHANGE  4
 
 
 
@@ -90,7 +92,8 @@ void probe_req_transmit();
 void attempt_authentication();
 
 void reset_station_statistics();
-
+void print_ltg_size_menu();
+void print_ltg_interval_menu();
 void print_menu();
 void print_ap_list();
 void print_station_status();

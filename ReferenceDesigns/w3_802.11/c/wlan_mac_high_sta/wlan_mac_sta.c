@@ -59,7 +59,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -93,6 +93,8 @@ u32 mac_param_chan;
 // AP MAC address / Broadcast address
 static u8 eeprom_mac_addr[6];
 static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+u16 ltg_packet_size;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -173,6 +175,7 @@ int main(){
 	// Set Association state for station to AP
 	association_state = 1;
 
+	ltg_packet_size = 1470;
 
     // Wait for CPU Low to initialize
 	while( is_cpu_low_initialized() == 0){
@@ -768,10 +771,7 @@ void ltg_event(u32 id){
 			bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
 			llc_hdr->type = LLC_TYPE_CUSTOM;
 
-			tx_length += sizeof(llc_header);
-
-			tx_length = 1200; //TODO: The rest of the payload is just... whatever. This will tell the PHY to send a longer packet
-							  //and pretend the payload is something interesting
+			tx_length = ltg_packet_size;
 
 	 		setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
 	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
