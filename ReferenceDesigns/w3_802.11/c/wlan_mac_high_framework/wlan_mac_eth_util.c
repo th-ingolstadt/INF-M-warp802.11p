@@ -79,6 +79,10 @@ int wlan_eth_init() {
 		return 0;
 }
 
+int eth_bd_total_size(){
+	return ETH_A_NUM_RX_BD;
+}
+
 int wlan_eth_setup_interrupt(XIntc* intc){
 	Intc_ptr = intc;
 	XAxiDma_BdRing *RxRingPtr = XAxiDma_GetRxRing(&ETH_A_DMA_Instance);

@@ -28,6 +28,7 @@
 #define ETH_A_RX_BD_SPACE_BASE	(ETH_A_TX_BD_SPACE_BASE + (ETH_A_NUM_TX_BD * XAXIDMA_BD_MINIMUM_ALIGNMENT)) //safer than sizeof(XAxiDma_Bd)?
 
 int wlan_eth_init();
+int eth_bd_total_size();
 int wlan_eth_dma_init();
 int wlan_mpdu_eth_send(void* mpdu, u16 length);
 int wlan_eth_dma_send(u8* pkt_ptr, u32 length);
