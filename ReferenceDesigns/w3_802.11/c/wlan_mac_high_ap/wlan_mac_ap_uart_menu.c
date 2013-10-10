@@ -156,21 +156,6 @@ void uart_rx(u8 rxByte){
 					curr_char = 0;
 					print_ssid_menu();
 				break;
-		//		case ASCII_l:
-		//			if(ltg_mode == 0){
-		//				#define LTG_INTERVAL 10000
-		//				xil_printf("Enabling LTG mode to AID 1, interval = %d usec\n", LTG_INTERVAL);
-		//				cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
-		//				start_ltg(1, LTG_TYPE_CBR, &cbr_parameters);
-
-		//				ltg_mode = 1;
-
-		//			} else {
-		//				stop_ltg(1);
-		//				ltg_mode = 0;
-		//				xil_printf("Disabled LTG mode to AID 1\n");
-		//			}
-				break;
 			}
 		break;
 

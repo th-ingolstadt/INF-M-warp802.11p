@@ -58,7 +58,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -74,6 +74,7 @@ u8 enable_animation;
 //   The last entry in associations[MAX_ASSOCIATIONS][] is swap space
 station_info associations[MAX_ASSOCIATIONS+1];
 u32          next_free_assoc_index;
+u32			 max_queue_size;
 
 // AP channel
 u32 mac_param_chan;
@@ -127,6 +128,8 @@ int main(){
 	wlan_lib_init();
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
 	wlan_mac_util_init( WLAN_EXP_TYPE );
+
+	max_queue_size = (queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1);
 
 
 	// Initialize callbacks
@@ -338,7 +341,7 @@ void ltg_event(u32 id){
 			//We implement a soft limit on the size of the queue allowed for any
 			//given station. This avoids the scenario where multiple backlogged
 			//LTG flows favor a single user and starve everyone else.
-			if(queue_num_queued(associations[i].AID) < (.25*queue_total_size())){
+			if(queue_num_queued(associations[i].AID) < max_queue_size){
 				//Send a Data packet to this station
 				//Checkout 1 element from the queue;
 				checkout = queue_checkout(1);
@@ -391,10 +394,14 @@ int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u
 	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
- 		setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
+		if(queue_num_queued(0) < max_queue_size){
+			setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
 
-		enqueue_after_end(0, tx_queue_list);
-		check_tx_queue();
+			enqueue_after_end(0, tx_queue_list);
+			check_tx_queue();
+		} else {
+			return 0;
+		}
 
 	} else {
 		//Check associations
@@ -406,11 +413,15 @@ int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u
 			}
 		}
 		if(is_associated) {
-	 		setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
-	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+			if(queue_num_queued(associations[i].AID) < max_queue_size){
+				setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
+								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-			enqueue_after_end(associations[i].AID, tx_queue_list);
-			check_tx_queue();
+				enqueue_after_end(associations[i].AID, tx_queue_list);
+				check_tx_queue();
+			} else {
+				return 0;
+			}
 		} else {
 			//Checkin this packet_bd so that it can be checked out again
 			return 0;
@@ -767,7 +778,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						allow_association = 1;
 						new_association = 1;
 
-						if(next_free_assoc_index < (MAX_ASSOCIATIONS-2)) next_free_assoc_index++;
+						if(next_free_assoc_index < (MAX_ASSOCIATIONS-2)) {
+							next_free_assoc_index++;
+							max_queue_size = (queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1);
+						}
 						break;
 
 					} else if(wlan_addr_eq((associations[i].addr), rx_80211_header->address_2)) {
@@ -1007,6 +1021,8 @@ void remove_station( unsigned int station_index ) {
 
 		// Decrement global variable
 		next_free_assoc_index--;
+
+		max_queue_size = (queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1);
 
 		// Clear Association Address
 		memcpy(&(associations[station_index].addr[0]), bcast_addr, 6);
