@@ -278,7 +278,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	if(tx_event_log_entry != NULL){
 		tx_event_log_entry->state = tx_mpdu->state;
 		tx_event_log_entry->AID = 0;
-		tx_event_log_entry->power = 0; //TODO: I'm on the fence as to whether this should be power or Tx Gains
+		tx_event_log_entry->power = 0; //TODO
 		tx_event_log_entry->length = tx_mpdu->length;
 		tx_event_log_entry->rate = tx_mpdu->rate;
 		tx_event_log_entry->mac_type = tx_80211_header->frame_control_1;
