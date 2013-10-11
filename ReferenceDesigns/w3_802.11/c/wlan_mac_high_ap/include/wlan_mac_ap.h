@@ -59,6 +59,7 @@
 // The amount of time since the last time a station was heard from.
 // After this interval, a station can be purged from the association table
 //
+//#define ASSOCIATION_TIMEOUT_S          (600)
 #define ASSOCIATION_TIMEOUT_S          (600)
 #define ASSOCIATION_TIMEOUT_US         (ASSOCIATION_TIMEOUT_S*1000000)
 
@@ -112,7 +113,7 @@ void print_ltg_interval_menu();
 void print_ssid_menu();
 void print_associations();
 void print_queue_status();
-void print_station_status();
+void print_station_status(u8 manual_call);
 
 
 #endif /* WLAN_MAC_AP_H_ */

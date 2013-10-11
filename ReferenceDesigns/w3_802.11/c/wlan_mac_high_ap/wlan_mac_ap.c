@@ -91,8 +91,6 @@ u16 ltg_packet_size[MAX_ASSOCIATIONS];
 #ifdef WLAN_USE_UART_MENU
 
 void uart_rx(u8 rxByte);
-void print_menu();
-void print_station_status();
 
 #else
 
@@ -196,8 +194,7 @@ int main(){
     // Schedule all events
 	wlan_mac_schedule_event(SCHEDULE_COARSE, BEACON_INTERVAL_US, (void*)beacon_transmit);
 
-	//FIXME: This is still buggy. We will add it back in a future release.
-	//wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
 	enable_animation = 1;
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ANIMATION_RATE_US, (void*)animate_hex);
@@ -336,7 +333,7 @@ void ltg_event(u32 id){
 	llc_header* llc_hdr;
 
 	for(i=0; i < next_free_assoc_index; i++){
-		if(associations[i].AID == id){
+		if((u32)(associations[i].AID) == id){
 
 			//We implement a soft limit on the size of the queue allowed for any
 			//given station. This avoids the scenario where multiple backlogged
@@ -344,7 +341,7 @@ void ltg_event(u32 id){
 			if(queue_num_queued(associations[i].AID) < max_queue_size){
 				//Send a Data packet to this station
 				//Checkout 1 element from the queue;
-				checkout = queue_checkout(1);
+				queue_checkout(&checkout,1);
 
 				if(checkout.length == 1){ //There was at least 1 free queue element
 					tx_queue = checkout.first;
@@ -440,7 +437,7 @@ void beacon_transmit() {
  	packet_bd*	tx_queue;
 
  	//Checkout 1 element from the queue;
- 	checkout = queue_checkout(1);
+ 	queue_checkout(&checkout,1);
 
  	if(checkout.length == 1){ //There was at least 1 free queue element
  		tx_queue = checkout.first;
@@ -478,7 +475,7 @@ void association_timestamp_check() {
 			//Send De-authentication
 
 		 	//Checkout 1 element from the queue;
-		 	checkout = queue_checkout(1);
+		 	queue_checkout(&checkout,1);
 
 		 	if(checkout.length == 1){ //There was at least 1 free queue element
 		 		tx_queue = checkout.first;
@@ -497,7 +494,7 @@ void association_timestamp_check() {
 				num_queued = queue_num_queued(associations[i].AID);
 				if(num_queued>0){
 					xil_printf("purging %d packets from queue for AID %d\n",num_queued,associations[i].AID);
-					dequeue = dequeue_from_beginning(associations[i].AID,1);
+					dequeue_from_beginning(&dequeue, associations[i].AID,1);
 					queue_checkin(&dequeue);
 				}
 
@@ -509,8 +506,7 @@ void association_timestamp_check() {
 		}
 	}
 
-	//FIXME: Still buggy. Removing for now.
-	//wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+	wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 	return;
 }
 
@@ -590,7 +586,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(wlan_addr_eq(rx_80211_header->address_3,bcast_addr)){
 
-						 	checkout = queue_checkout(1);
+						 	queue_checkout(&checkout,1);
 
 						 	if(checkout.length == 1){ //There was at least 1 free queue element
 						 		tx_queue = checkout.first;
@@ -607,7 +603,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					} else {
 						for(i=0; i < next_free_assoc_index; i++) {
 							if(wlan_addr_eq(associations[i].addr, (rx_80211_header->address_3))) {
-								checkout = queue_checkout(1);
+								queue_checkout(&checkout,1);
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
 									tx_queue = checkout.first;
@@ -651,7 +647,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 						//Send De-authentication
 						//Checkout 1 element from the queue;
-							checkout = queue_checkout(1);
+							queue_checkout(&checkout,1);
 
 							if(checkout.length == 1){ //There was at least 1 free queue element
 								tx_queue = checkout.first;
@@ -696,7 +692,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(send_response && allow_assoc) {
 
 					//Checkout 1 element from the queue;
-					checkout = queue_checkout(1);
+					queue_checkout(&checkout,1);
 
 					if(checkout.length == 1){ //There was at least 1 free queue element
 						tx_queue = checkout.first;
@@ -725,7 +721,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						case AUTH_ALGO_OPEN_SYSTEM:
 							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
 								//Checkout 1 element from the queue;
-								checkout = queue_checkout(1);
+								queue_checkout(&checkout,1);
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
 									tx_queue = checkout.first;
@@ -747,7 +743,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						default:
 
 							//Checkout 1 element from the queue;
-							checkout = queue_checkout(1);
+							queue_checkout(&checkout,1);
 
 							if(checkout.length == 1){ //There was at least 1 free queue element
 								tx_queue = checkout.first;
@@ -801,7 +797,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					//associations[i].tx_rate = WLAN_MAC_RATE_16QAM34; //Default tx_rate for this station. Rate adaptation may change this value.
 
 					//Checkout 1 element from the queue;
-					checkout = queue_checkout(1);
+					queue_checkout(&checkout,1);
 
 					if(checkout.length == 1){ //There was at least 1 free queue element
 						tx_queue = checkout.first;
@@ -960,7 +956,7 @@ void deauthenticate_stations(){
 		//Send De-authentication
 
 	 	//Checkout 1 element from the queue;
-	 	checkout = queue_checkout(1);
+	 	queue_checkout(&checkout,1);
 
 	 	if(checkout.length == 1){ //There was at least 1 free queue element
 	 		tx_queue = checkout.first;
@@ -979,7 +975,7 @@ void deauthenticate_stations(){
 	 		num_queued = queue_num_queued(associations[i].AID);
 	 		if(num_queued>0){
 	 			xil_printf("purging %d packets from queue for AID %d\n",num_queued,associations[i].AID);
-	 			dequeue = dequeue_from_beginning(associations[i].AID,1);
+	 			dequeue_from_beginning(&dequeue, associations[i].AID,1);
 	 			queue_checkin(&dequeue);
 	 		}
 

@@ -76,7 +76,7 @@ void uart_rx(u8 rxByte){
 			switch(rxByte){
 				case ASCII_1:
 					uart_mode = UART_MODE_INTERACTIVE;
-					print_station_status();
+					print_station_status(1);
 				break;
 
 				case ASCII_2:
@@ -173,8 +173,6 @@ void uart_rx(u8 rxByte){
 					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
 						curr_aid = rxByte - 48;
 
-
-						//TODO - disable LTG if its running
 						for(i=0; i < next_free_assoc_index; i++){
 							if(associations[i].AID == curr_aid){
 								uart_mode = UART_MODE_LTG_SIZE_CHANGE;
@@ -187,7 +185,7 @@ void uart_rx(u8 rxByte){
 									ltg_enable[i] = 0;
 									stop_ltg(associations[i].AID);
 									uart_mode = UART_MODE_INTERACTIVE;
-									print_station_status();
+									print_station_status(1);
 								}
 
 							}
@@ -244,7 +242,7 @@ void uart_rx(u8 rxByte){
 						ltg_enable[curr_association_index] = 1;
 
 						uart_mode = UART_MODE_INTERACTIVE;
-						print_station_status();
+						print_station_status(1);
 
 					break;
 					case ASCII_DEL:
@@ -364,47 +362,61 @@ void print_menu(){
 
 
 
-void print_station_status(){
+void print_station_status(u8 manual_call){
 	u32 i;
 	u64 timestamp;
+	static u8 print_scheduled = 0;
 
-	if(uart_mode == UART_MODE_INTERACTIVE){
-		timestamp = get_usec_timestamp();
-		xil_printf("\f");
 
-		for(i=0; i < next_free_assoc_index; i++){
-			xil_printf("---------------------------------------------------\n");
-			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
-					associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
+	if((manual_call == 1 && print_scheduled == 0) || (manual_call == 0 && print_scheduled == 1)){
+		//This awkward logic is to handle the fact that our event scheduler doesn't currently have a
+		//way to remove a scheduled event and stop it from occurring. Without this protection, quick
+		//UART inputs could easy begin a chain of print_station events > 1 per second. Eventually
+		//you'd run out of scheduled event slots and cause problems.
 
-			if(ltg_enable[i]){
-				xil_printf("  LTG Enabled\n");
-				xil_printf("  Packet Size: %d bytes\n", ltg_packet_size[i]);
-				xil_printf("  Packet Tx Interval: %d microseconds\n", cbr_parameters[i].interval_usec);
+		if(uart_mode == UART_MODE_INTERACTIVE){
+			timestamp = get_usec_timestamp();
+			xil_printf("\f");
+
+			for(i=0; i < next_free_assoc_index; i++){
+				xil_printf("---------------------------------------------------\n");
+				xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
+						associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
+
+				if(ltg_enable[i]){
+					xil_printf("  LTG Enabled\n");
+					xil_printf("  Packet Size: %d bytes\n", ltg_packet_size[i]);
+					xil_printf("  Packet Tx Interval: %d microseconds\n", cbr_parameters[i].interval_usec);
+				}
+
+				xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
+				xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
+				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
+				xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
+				xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", associations[i].num_rx_success, associations[i].num_rx_bytes);
 			}
+				xil_printf("---------------------------------------------------\n");
+				xil_printf("\n");
+				xil_printf("[r] - reset statistics\n");
+				xil_printf("[d] - deauthenticate all stations\n\n");
+				xil_printf(" The interactive AP menu supports sending arbitrary traffic\n");
+				xil_printf(" to any associated station. To use this feature, press any number\n");
+				xil_printf(" on the keyboard that corresponds to an associated station's AID\n");
+				xil_printf(" and follow the prompts. Pressing Esc at any time will halt all\n");
+				xil_printf(" local traffic generation and return you to the main menu.");
 
-			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
-			xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
-			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
-			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
-			xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", associations[i].num_rx_success, associations[i].num_rx_bytes);
+
+
+
+			//Update display
+			wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
+			print_scheduled = 1;
+		} else {
+			print_scheduled = 0;
 		}
-		    xil_printf("---------------------------------------------------\n");
-		    xil_printf("\n");
-		    xil_printf("[r] - reset statistics\n");
-		    xil_printf("[d] - deauthenticate all stations\n\n");
-		    xil_printf(" The interactive AP menu supports sending arbitrary traffic\n");
-		    xil_printf(" to any associated station. To use this feature, press any number\n");
-		    xil_printf(" on the keyboard that corresponds to an associated station's AID\n");
-		    xil_printf(" and follow the prompts. Pressing Esc at any time will halt all\n");
-		    xil_printf(" local traffic generation and return you to the main menu.");
-
-
-
-
-		//Update display
-		wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
 	}
+
+
 }
 
 #endif
