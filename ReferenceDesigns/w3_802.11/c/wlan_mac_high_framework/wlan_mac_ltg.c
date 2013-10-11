@@ -27,7 +27,7 @@ int wlan_mac_ltg_init(){
 
 	int return_value = 0;
 
-	tg_list = traffic_generator_list_init();
+	traffic_generator_list_init(&tg_list);
 	ltg_callback = (function_ptr_t)nullCallback;
 
 	wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)check_ltg);
@@ -227,10 +227,9 @@ void traffic_generator_remove(traffic_generator_list* list, traffic_generator* t
 	(list->length)--;
 }
 
-traffic_generator_list traffic_generator_list_init(){
-	traffic_generator_list list;
-	list.first = NULL;
-	list.last = NULL;
-	list.length = 0;
-	return list;
+void traffic_generator_list_init(traffic_generator_list* list){
+	list->first = NULL;
+	list->last = NULL;
+	list->length = 0;
+	return;
 }

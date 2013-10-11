@@ -233,7 +233,7 @@ int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16
 
 }
 
-int wlan_create_association_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 num_basic_rates, u8* basic_rates){
+int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 num_basic_rates, u8* basic_rates){
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
 	u8 num_rates;
@@ -247,7 +247,7 @@ int wlan_create_association_req_frame(void* pkt_buf, mac_header_80211_common* co
 	mac_header_80211* assoc_80211_header;
 	assoc_80211_header = (mac_header_80211*)(txBufferPtr_u8);
 
-	assoc_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ;
+	assoc_80211_header->frame_control_1 = frame_control_1;
 	assoc_80211_header->frame_control_2 = 0;
 	//duration can be filled in by CPU_LOW
 	assoc_80211_header->duration_id = 0;

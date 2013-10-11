@@ -59,8 +59,7 @@ int queue_init(){
 	PQUEUE_BUFFER_SPACE_BASE = (void*)(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(packet_bd)));
 #endif
 
-
-	queue_free = packet_bd_list_init();
+	packet_bd_list_init(&queue_free);
 
 	queue_free.first = (packet_bd*)PQUEUE_SPACE_BASE;
 
@@ -94,10 +93,7 @@ int queue_init(){
 
 	//By default, all queues are empty.
 	for(i=0;i<NUM_QUEUES;i++){
-		queue[i] = packet_bd_list_init();
-		queue[i].length = 0;
-		queue[i].first = NULL;
-		queue[i].last = NULL;
+		packet_bd_list_init(&(queue[i]));
 	}
 
 	return PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE;
@@ -123,10 +119,11 @@ void enqueue_after_end(u16 queue_sel, packet_bd_list* list){
 	return;
 }
 
-packet_bd_list dequeue_from_beginning(u16 queue_sel, u16 num_packet_bd){
+void dequeue_from_beginning(packet_bd_list* new_list, u16 queue_sel, u16 num_packet_bd){
 	u32 i,num_dequeue;
-	packet_bd_list new_list = packet_bd_list_init();
 	packet_bd* curr_packet_bd;
+
+	packet_bd_list_init(new_list);
 
 	if(num_packet_bd <= queue[queue_sel].length){
 		num_dequeue = num_packet_bd;
@@ -139,9 +136,9 @@ packet_bd_list dequeue_from_beginning(u16 queue_sel, u16 num_packet_bd){
 		//Remove from free list
 		packet_bd_remove(&queue[queue_sel],curr_packet_bd);
 		//Add to new checkout list
-		packet_bd_insertEnd(&new_list,curr_packet_bd);
+		packet_bd_insertEnd(new_list,curr_packet_bd);
 	}
-	return new_list;
+	return;
 }
 
 u32 queue_num_free(){
@@ -152,13 +149,14 @@ u32 queue_num_queued(u16 queue_sel){
 	return queue[queue_sel].length;
 }
 
-packet_bd_list queue_checkout(u16 num_packet_bd){
+void queue_checkout(packet_bd_list* new_list, u16 num_packet_bd){
 	//Checks out up to num_packet_bd number of packet_bds from the free list. If num_packet_bd are not free,
 	//then this function will return the number that are free and only check out that many.
 
 	u32 i,num_checkout;
-	packet_bd_list new_list = packet_bd_list_init();
 	packet_bd* curr_packet_bd;
+
+	packet_bd_list_init(new_list);
 
 	if(num_packet_bd <= queue_free.length){
 		num_checkout = num_packet_bd;
@@ -172,9 +170,9 @@ packet_bd_list queue_checkout(u16 num_packet_bd){
 		//Remove from free list
 		packet_bd_remove(&queue_free,curr_packet_bd);
 		//Add to new checkout list
-		packet_bd_insertEnd(&new_list,curr_packet_bd);
+		packet_bd_insertEnd(new_list,curr_packet_bd);
 	}
-	return new_list;
+	return;
 }
 void queue_checkin(packet_bd_list* list){
 	packet_bd* curr_packet_bd;
@@ -255,12 +253,11 @@ void packet_bd_remove(packet_bd_list* list, packet_bd* bd){
 	(list->length)--;
 }
 
-packet_bd_list packet_bd_list_init(){
-	packet_bd_list list;
-	list.first = NULL;
-	list.last = NULL;
-	list.length = 0;
-	return list;
+void packet_bd_list_init(packet_bd_list* list){
+	list->first = NULL;
+	list->last = NULL;
+	list->length = 0;
+	return;
 }
 
 

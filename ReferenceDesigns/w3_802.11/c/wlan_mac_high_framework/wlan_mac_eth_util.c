@@ -178,7 +178,7 @@ int wlan_eth_dma_init() {
 	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return -1;}
 
 	//Checkout ETH_A_NUM_RX_BD packet_bds
-	checkout = queue_checkout(ETH_A_NUM_RX_BD);
+	queue_checkout(&checkout, ETH_A_NUM_RX_BD);
 
 	if(checkout.length == ETH_A_NUM_RX_BD){
 		tx_queue = checkout.first;
@@ -243,13 +243,6 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 	dhcp_packet* dhcp;
 
 	u8 addr_cache[6];
-
-	u8 bcast_temp[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
-	u8 addr1_temp[6];
-	u8 addr2_temp[6];
-	u8 addr3_temp[6];
-	u16 seq_temp;
-
 
 	switch(eth_encap_mode){
 		case ENCAP_MODE_AP:
@@ -516,8 +509,8 @@ void wlan_poll_eth() {
 		bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
 
 		packet_is_queued = 0;
-
-		tx_queue_list = packet_bd_list_init();
+		packet_bd_list tx_queue_list;
+		packet_bd_list_init(&tx_queue_list);
 		packet_bd_insertEnd(&tx_queue_list, tx_queue);
 
 		switch(eth_encap_mode){
@@ -672,7 +665,7 @@ void wlan_eth_dma_update(){
 //		xil_printf("Attaching %d BDs to packet_bds\n",min(bd_count,num_available_packet_bd));
 
 		//Checkout ETH_A_NUM_RX_BD packet_bds
-		checkout = queue_checkout(min(bd_count,num_available_packet_bd));
+		queue_checkout(&checkout, min(bd_count,num_available_packet_bd));
 
 		status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, min(bd_count,checkout.length), &first_bd_ptr);
 		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return;}

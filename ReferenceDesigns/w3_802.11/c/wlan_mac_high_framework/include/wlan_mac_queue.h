@@ -46,11 +46,11 @@ typedef struct {
 int queue_init();
 
 void enqueue_after_end(u16 queue_sel, packet_bd_list* ring);
-packet_bd_list dequeue_from_beginning(u16 queue_sel, u16 num_packet_bd);
+void dequeue_from_beginning(packet_bd_list* new_list, u16 queue_sel, u16 num_packet_bd);
 
 
 //Functions for checking in and out packet_bds from the free ring
-packet_bd_list queue_checkout(u16 num_packet_bd);
+void queue_checkout(packet_bd_list* new_list, u16 num_packet_bd);
 void queue_checkin(packet_bd_list* ring);
 inline u32 queue_num_free();
 inline u32 queue_num_queued(u16 queue_sel);
@@ -63,7 +63,7 @@ void packet_bd_insertEnd(packet_bd_list* ring, packet_bd* bd_new);
 void packet_bd_remove(packet_bd_list* ring, packet_bd* bd);
 int queue_total_size();
 
-packet_bd_list packet_bd_list_init();
+void packet_bd_list_init(packet_bd_list* list);
 void packet_bd_print(packet_bd_list* ring);
 void queue_dram_present(u8 present);
 

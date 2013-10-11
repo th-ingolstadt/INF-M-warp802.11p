@@ -755,7 +755,7 @@ int wlan_mac_poll_tx_queue(u16 queue_sel){
 	packet_bd_list dequeue;
 	packet_bd* tx_queue;
 
-	dequeue = dequeue_from_beginning(queue_sel,1);
+	dequeue_from_beginning(&dequeue, queue_sel,1);
 
 	if(dequeue.length == 1){
 		return_value = 1;

@@ -51,7 +51,7 @@ void traffic_generator_insertBefore(traffic_generator_list* ring, traffic_genera
 void traffic_generator_insertBeginning(traffic_generator_list* ring, traffic_generator* tg_new);
 void traffic_generator_insertEnd(traffic_generator_list* ring, traffic_generator* tg_new);
 void traffic_generator_remove(traffic_generator_list* ring, traffic_generator* tg);
-traffic_generator_list traffic_generator_list_init();
+void traffic_generator_list_init(traffic_generator_list* list);
 
 
 #endif /* WLAN_MAC_LTG_H_ */
