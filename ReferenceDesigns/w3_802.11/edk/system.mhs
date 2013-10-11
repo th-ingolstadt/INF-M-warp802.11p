@@ -785,10 +785,9 @@ BEGIN axi_gpio
 END
 
 BEGIN bram_block
- PARAMETER INSTANCE = mb_high_lmb_bram
+ PARAMETER INSTANCE = mb_high_ilmb_bram
  PARAMETER HW_VER = 1.00.a
- BUS_INTERFACE PORTA = mb_high_ilmb_bram_PORT
- BUS_INTERFACE PORTB = mb_high_dlmb_bram_PORT
+ BUS_INTERFACE PORTA = mb_high_ilmb_bram_cntlr_BRAM_PORT
 END
 
 BEGIN axi_intc
@@ -830,8 +829,8 @@ BEGIN lmb_bram_if_cntlr
  PARAMETER HW_VER = 3.10.c
  PARAMETER C_BASEADDR = 0x00000000
  PARAMETER C_HIGHADDR = 0x0001FFFF
- BUS_INTERFACE BRAM_PORT = mb_high_ilmb_bram_PORT
  BUS_INTERFACE SLMB = mb_high_ilmb
+ BUS_INTERFACE BRAM_PORT = mb_high_ilmb_bram_cntlr_BRAM_PORT
 END
 
 BEGIN lmb_v10
@@ -890,10 +889,11 @@ END
 BEGIN lmb_bram_if_cntlr
  PARAMETER INSTANCE = mb_high_dlmb_bram_cntlr
  PARAMETER HW_VER = 3.10.c
- PARAMETER C_BASEADDR = 0x00000000
- PARAMETER C_HIGHADDR = 0x0001FFFF
- BUS_INTERFACE BRAM_PORT = mb_high_dlmb_bram_PORT
+ PARAMETER C_BASEADDR = 0x00020000
+ PARAMETER C_HIGHADDR = 0x0002FFFF
+ PARAMETER C_NUM_LMB = 1
  BUS_INTERFACE SLMB = mb_high_dlmb
+ BUS_INTERFACE BRAM_PORT = mb_high_dlmb_bram_cntlr_BRAM_PORT
 END
 
 BEGIN lmb_v10
@@ -1357,5 +1357,11 @@ BEGIN axi_v6_ddrx
  PORT ddr_dqs_p = ddr3_sodimm_dqs_p
  PORT ddr_dqs_n = ddr3_sodimm_dqs_n
  PORT phy_init_done = dram_init_done
+END
+
+BEGIN bram_block
+ PARAMETER INSTANCE = mb_high_dlmb_bram
+ PARAMETER HW_VER = 1.00.a
+ BUS_INTERFACE PORTA = mb_high_dlmb_bram_cntlr_BRAM_PORT
 END
 
