@@ -96,7 +96,7 @@ void print_ltg_size_menu();
 void print_ltg_interval_menu();
 void print_menu();
 void print_ap_list();
-void print_station_status();
+void print_station_status(u8 manual_call);
 
 void uart_rx(u8 rxByte);
 

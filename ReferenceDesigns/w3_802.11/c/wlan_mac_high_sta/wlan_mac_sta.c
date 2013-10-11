@@ -71,6 +71,7 @@ u8  default_unicast_rate;
 int association_state;                      // Section 10.3 of 802.11-2012
 u8  uart_mode;
 u8  active_scan;
+u8 pause_queue;
 
 
 // Access point information
@@ -88,6 +89,7 @@ station_info access_point;
 
 // AP channel
 u32 mac_param_chan;
+u32 mac_param_chan_save;
 
 
 // AP MAC address / Broadcast address
@@ -103,8 +105,6 @@ u16 ltg_packet_size;
 #ifdef WLAN_USE_UART_MENU
 
 void uart_rx(u8 rxByte);
-void print_menu();
-void print_station_status();
 
 #else
 
@@ -126,6 +126,9 @@ int main(){
 	num_ap_list = 0;
 	//free(ap_list);
 	ap_list = NULL;
+
+	//Unpause the queue
+	pause_queue = 0;
 
 	xil_printf("\f----- wlan_mac_sta -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
@@ -199,6 +202,7 @@ int main(){
 
 	// Set up channel
 	mac_param_chan = WLAN_CHANNEL;
+	mac_param_chan_save = mac_param_chan;
 	set_mac_channel( mac_param_chan );
 
 
@@ -246,16 +250,20 @@ int main(){
 void check_tx_queue(){
 
 	u8 i;
-	static u32 queue_index = 0;
-	if( is_cpu_low_ready() ){
-		for(i=0;i<2;i++){
-			//Alternate between checking the unassociated queue and the associated queue
-			queue_index = (queue_index+1)%2;
-			if(wlan_mac_poll_tx_queue(queue_index)){
-				return;
+
+	if(pause_queue == 0){
+		static u32 queue_index = 0;
+		if( is_cpu_low_ready() ){
+			for(i=0;i<2;i++){
+				//Alternate between checking the unassociated queue and the associated queue
+				queue_index = (queue_index+1)%2;
+				if(wlan_mac_poll_tx_queue(queue_index)){
+					return;
+				}
 			}
 		}
 	}
+
 }
 
 
@@ -312,7 +320,7 @@ void attempt_association(){
 			//Authenticated, not associated
 			curr_try = 0;
 			//Checkout 1 element from the queue;
-			checkout = queue_checkout(1);
+			queue_checkout(&checkout,1);
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue = checkout.first;
 
@@ -368,7 +376,7 @@ void attempt_authentication(){
 		case 1:
 			//Initial start state, unauthenticated, unassociated
 			//Checkout 1 element from the queue;
-			checkout = queue_checkout(1);
+			queue_checkout(&checkout,1);
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue = checkout.first;
 
@@ -439,7 +447,7 @@ void probe_req_transmit(){
 
 	for(i = 0; i<NUM_PROBE_REQ; i++){
 	//Checkout 1 element from the queue;
-	checkout = queue_checkout(1);
+	queue_checkout(&checkout,1);
 		if(checkout.length == 1){ //There was at least 1 free queue element
 			tx_queue = checkout.first;
 
@@ -612,10 +620,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		break;
 
 		case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
-				access_point.AID = 0;
-				write_hex_display(access_point.AID);
-				memset((void*)(&(access_point.addr[0])), 0xFF,6);
-				access_point.seq = 0; //seq
+				if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)){
+					access_point.AID = 0;
+					write_hex_display(access_point.AID);
+					//memset((void*)(&(access_point.addr[0])), 0xFF,6);
+					access_point.seq = 0; //seq
+
+					//Attempt reauthentication
+					association_state = 1;
+					attempt_authentication();
+				}
 		break;
 
 		case (MAC_FRAME_CTRL1_SUBTYPE_BEACON): //Beacon Packet
@@ -751,7 +765,7 @@ void ltg_event(u32 id){
 	if(id == 0 && (access_point.AID > 0)){
 		//Send a Data packet to AP
 		//Checkout 1 element from the queue;
-		checkout = queue_checkout(1);
+		queue_checkout(&checkout,1);
 
 		if(checkout.length == 1){ //There was at least 1 free queue element
 			tx_queue = checkout.first;
@@ -795,6 +809,11 @@ void print_ap_list(){
 
 	uart_mode = UART_MODE_AP_LIST;
 	active_scan = 0;
+	pause_queue = 0;
+
+	//Revert to the previous channel that we were on prior to the active scan
+	mac_param_chan = mac_param_chan_save;
+	set_mac_channel( mac_param_chan );
 
 //	xil_printf("\f");
 
