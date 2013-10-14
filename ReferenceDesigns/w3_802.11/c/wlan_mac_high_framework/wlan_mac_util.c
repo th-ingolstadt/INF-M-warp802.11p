@@ -309,6 +309,7 @@ rx_event* get_curr_rx_log(){
 	if((log_index+1) < max_event_log && enable_event_logging){
 		return_value = &(((rx_event*)event_log)[log_index]);
 		return_value->event_type = EVENT_TYPE_RX;
+		return_value->event_length = sizeof(rx_event) - 12; //12 bytes of event header
 		return_value->timestamp = get_usec_timestamp();
 	}
 
@@ -321,6 +322,7 @@ tx_event* get_curr_tx_log(){
 	if((log_index+1) < max_event_log && enable_event_logging){
 		return_value = &(((tx_event*)event_log)[log_index]);
 		return_value->event_type = EVENT_TYPE_TX;
+		return_value->event_length = sizeof(tx_event) - 12; //12 bytes of event header
 		return_value->timestamp = get_usec_timestamp();
 	}
 

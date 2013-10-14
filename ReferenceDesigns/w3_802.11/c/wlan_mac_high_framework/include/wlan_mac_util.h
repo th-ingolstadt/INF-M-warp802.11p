@@ -94,42 +94,46 @@
 
 typedef struct{
 	u64 timestamp;
-	u8 event_type;
-	u8 reserved[11];
+	u16 event_type;
+	u16 event_length;
+	u8 reserved[12];
 } default_event;
 
 typedef struct{
 	u64 timestamp;
-	u8 event_type;
+	u16 event_type;
+	u16 event_length;
 	u8 state;
 	u8 AID;
 	char power;
-	u16 length;
 	u8 rate;
-	u8 mac_type;
+	u16 length;
 	u16 seq;
+	u8 mac_type;
 	u8 flags;
-	u8 reserved[1];
+	u8 reserved[2];
 } rx_event;
 
 typedef struct{
 	u64 timestamp;
-	u8 event_type;
+	u16 event_type;
+	u16 event_length;
 	u8 state;
 	u8 AID;
 	char power;
-	u16 length;
 	u8 rate;
-	u8 mac_type;
+	u16 length;
 	u16 seq;
+	u8 mac_type;
 	u8 retry_count;
-	u8 reserved[1];
+	u8 reserved[2];
 } tx_event;
 
 typedef struct{
 	u64 timestamp;
-	u8 event_type;
-	u8 reserved[11];
+	u16 event_type;
+	u16 event_length;
+	u8 reserved[12];
 } error_event;
 
 #define EVENT_SIZE (sizeof(rx_event))

@@ -39,14 +39,11 @@ void wlan_mac_ltg_set_callback(void(*callback)()){
 	ltg_callback = (function_ptr_t)callback;
 }
 
-
 int start_ltg(u32 id, u32 type, void* params){
 	u32 i;
 	u64 timestamp = get_usec_timestamp();
 	traffic_generator* curr_tg;
 	traffic_generator* new_tg;
-
-	int return_value = 0;
 
 	//First, loop through the tg_list and see if this id event is already present.
 	curr_tg = tg_list.first;
@@ -96,7 +93,7 @@ int start_ltg(u32 id, u32 type, void* params){
 		return -1;
 	}
 
-	return return_value;
+	return 0;
 }
 
 void check_ltg(){
