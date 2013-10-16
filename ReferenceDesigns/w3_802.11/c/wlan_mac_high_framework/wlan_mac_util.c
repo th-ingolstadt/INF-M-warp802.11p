@@ -299,7 +299,7 @@ void wlan_mac_util_init( u32 type ){
     warpnet_initialized = 0;
 #endif
     
-	wlan_mac_ltg_init();
+    wlan_mac_ltg_sched_init();
 
 }
 

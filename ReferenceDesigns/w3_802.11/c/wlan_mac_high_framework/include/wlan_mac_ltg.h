@@ -11,47 +11,109 @@
 #ifndef WLAN_MAC_LTG_H_
 #define WLAN_MAC_LTG_H_
 
-#define LTG_TYPE_CBR 1
+//LTG Schedules define the times when LTG event callbacks are called.
+#define LTG_SCHED_TYPE_PERIODIC			1
+#define LTG_SCHED_TYPE_UNIFORM_RAND	 	2
 
+//LTG Payloads define how payloads are constructed once the LTG event callbacks
+//are called. For example, the LTG_SCHED_TYPE_PERIODIC schedule that employs the
+//LTG_PYLD_TYPE_FIXED would result in a constant bit rate (CBR) traffic
+//profile
+#define LTG_PYLD_TYPE_FIXED				1
+#define LTG_PYLD_TYPE_UNIFORM_RAND		2
 
-typedef struct traffic_generator traffic_generator;
-struct traffic_generator{
+#define LTG_REMOVE_ALL 0xFFFFFFFF
+
+typedef struct tg_schedule tg_schedule;
+struct tg_schedule{
 	u32 id;
 	u32 type;
 	u64 timestamp;
 	void* params;
-	traffic_generator* next;
-	traffic_generator* prev;
+	void* callback_arg;
+	function_ptr_t cleanup_callback;
+	tg_schedule* next;
+	tg_schedule* prev;
+	void* state;
 };
 
 typedef struct {
-	traffic_generator* first;
-	traffic_generator* last;
+	tg_schedule* first;
+	tg_schedule* last;
 	u16 length;
-} traffic_generator_list;
+} tg_schedule_list;
+
+//LTG Schedules
+
+typedef struct {
+	u8 enabled;
+	u8 reserved[3];
+} ltg_sched_state_hdr;
 
 typedef struct {
 	u32 interval_usec;
-} cbr_params;
+} ltg_sched_periodic_params;
 
+typedef struct {
+	ltg_sched_state_hdr hdr;
+	u32 time_to_next_usec;
+} ltg_sched_periodic_state;
 
-int wlan_mac_ltg_init();
-void wlan_mac_ltg_set_callback(void(*callback)());
-int start_ltg(u32 id, u32 type, void* params);
-int stop_ltg(u32 id);
-void check_ltg();
+typedef struct {
+	u32 min_interval;
+	u32 max_interval;
+} ltg_sched_uniform_rand_params;
 
+typedef struct {
+	ltg_sched_state_hdr hdr;
+	u32 time_to_next_usec;
+} ltg_sched_uniform_rand_state;
 
+//LTG Payload Profiles
 
-traffic_generator* create_ltg();
-void destroy_ltg(traffic_generator* tg);
+typedef struct {
+	u32 type;
+} ltg_pyld_hdr;
 
-void traffic_generator_insertAfter(traffic_generator_list* ring, traffic_generator* tg, traffic_generator* tg_new);
-void traffic_generator_insertBefore(traffic_generator_list* ring, traffic_generator* tg, traffic_generator* tg_new);
-void traffic_generator_insertBeginning(traffic_generator_list* ring, traffic_generator* tg_new);
-void traffic_generator_insertEnd(traffic_generator_list* ring, traffic_generator* tg_new);
-void traffic_generator_remove(traffic_generator_list* ring, traffic_generator* tg);
-void traffic_generator_list_init(traffic_generator_list* list);
+typedef struct {
+	ltg_pyld_hdr hdr;
+	u16 length;
+	u8 reserved[2];
+} ltg_pyld_fixed_length;
 
+typedef struct {
+	ltg_pyld_hdr hdr;
+	u16 length;
+	u8 reserved[2];
+} ltg_pyld_fixed;
+
+typedef struct {
+	ltg_pyld_hdr hdr;
+	u16 min_length;
+	u16 max_length;
+} ltg_pyld_uniform_rand;
+
+//External function to LTG -- user code interacts with the LTG via these functions
+int wlan_mac_ltg_sched_init();
+void wlan_mac_ltg_sched_set_callback(void(*callback)());
+int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void(*callback)());
+int ltg_sched_remove(u32 id);
+int ltg_sched_start(u32 id);
+int ltg_sched_stop(u32 id);
+int ltg_sched_get_state(u32 id, u32* type, void** state);
+int ltg_sched_get_params(u32 id, u32* type, void** params);
+int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
+
+//Internal functions to LTG -- users should not need to call these directly
+void ltg_sched_check();
+tg_schedule* ltg_sched_create();
+void ltg_sched_destroy(tg_schedule* tg);
+tg_schedule* ltg_sched_find_tg_schedule(u32 id);
+void tg_schedule_insertAfter(tg_schedule_list* ring, tg_schedule* tg, tg_schedule* tg_new);
+void tg_schedule_insertBefore(tg_schedule_list* ring, tg_schedule* tg, tg_schedule* tg_new);
+void tg_schedule_insertBeginning(tg_schedule_list* ring, tg_schedule* tg_new);
+void tg_schedule_insertEnd(tg_schedule_list* ring, tg_schedule* tg_new);
+void tg_schedule_remove(tg_schedule_list* ring, tg_schedule* tg);
+void tg_schedule_list_init(tg_schedule_list* list);
 
 #endif /* WLAN_MAC_LTG_H_ */

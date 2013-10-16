@@ -19,86 +19,133 @@
 #include "wlan_mac_util.h"
 #include "wlan_mac_ltg.h"
 
-static traffic_generator_list tg_list;
+static tg_schedule_list tg_list;
 
 static function_ptr_t ltg_callback;
 
-int wlan_mac_ltg_init(){
+int wlan_mac_ltg_sched_init(){
 
 	int return_value = 0;
 
-	traffic_generator_list_init(&tg_list);
+	ltg_sched_remove(LTG_REMOVE_ALL);
+
+	tg_schedule_list_init(&tg_list);
 	ltg_callback = (function_ptr_t)nullCallback;
 
-	wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)check_ltg);
+	wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
 
 	return return_value;
 }
 
-void wlan_mac_ltg_set_callback(void(*callback)()){
+void wlan_mac_ltg_sched_set_callback(void(*callback)()){
 	ltg_callback = (function_ptr_t)callback;
 }
 
-int start_ltg(u32 id, u32 type, void* params){
-	u32 i;
-	u64 timestamp = get_usec_timestamp();
-	traffic_generator* curr_tg;
-	traffic_generator* new_tg;
+int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void(*callback)()){
+	//This function can be called on uninitalized schedule IDs or on schedule IDs that had
+	//been previously configured. In the event that they had been previously configured, care
+	//must be taken by the calling application to free previous the previous callback_arg if
+	//applicable.
 
-	//First, loop through the tg_list and see if this id event is already present.
-	curr_tg = tg_list.first;
-	for(i = 0; i < tg_list.length; i++ ){
-		if( (curr_tg->id)==id){
-			xil_printf("Error in LTG: Type %d is already started. Use stop_ltg\n", id);
-			return -1;
-		}
-		curr_tg = curr_tg->next;
+	tg_schedule* curr_tg;
+	u8 create_new = 1;
+	u8 is_enabled = 0;
+
+	curr_tg = ltg_sched_find_tg_schedule(id);
+	if(curr_tg != NULL){
+		//A schedule with this ID has already been configured. We'll destroy it
+		//and overwrite its parameters.
+		create_new = 0;
+		is_enabled = ((ltg_sched_state_hdr*)(curr_tg->state))->enabled;
+
+		//Stop this LTG to make this function interrupt safe. The ltg_sched_check function
+		//might be called at any point during this function. A partially-configured LTG
+		//that is currently running would result in very difficult-to-debug results if
+		//it happens to execute.
+		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+		ltg_sched_destroy(curr_tg);
 	}
 
-	//Create a new tg for this id
-	new_tg = create_ltg();
-	if(new_tg != NULL){
-		new_tg->id = id;
-		new_tg->type = type;
+	//Create a new tg for this id if we didn't find it in the list
+	if(create_new){
+		curr_tg = ltg_sched_create();
+		tg_schedule_insertEnd(&tg_list,curr_tg);
+		if(tg_list.length == 1){
+			//start the scheduler if the only thing in it is what we just added
+			wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
+		}
+	}
+
+	if(curr_tg != NULL){
+		curr_tg->id = id;
+		curr_tg->type = type;
+		curr_tg->cleanup_callback = (function_ptr_t)callback;
 		switch(type){
-			case LTG_TYPE_CBR:
-				new_tg->params = malloc(sizeof(cbr_params));
-				if(new_tg->params != NULL){
-					memcpy(new_tg->params, params, sizeof(cbr_params));
-					new_tg->timestamp = timestamp;
+			case LTG_SCHED_TYPE_PERIODIC:
+				curr_tg->params = malloc(sizeof(ltg_sched_periodic_params));
+				curr_tg->state = malloc(sizeof(ltg_sched_periodic_state));
 
-					if(tg_list.length == 0){
-						//start the scheduler if it isn't already running
-						wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)check_ltg);
-					}
-
-					traffic_generator_insertEnd(&tg_list,new_tg);
+				((ltg_sched_state_hdr*)(curr_tg->state))->enabled = is_enabled;
+				if(curr_tg->params != NULL){
+					memcpy(curr_tg->params, params, sizeof(ltg_sched_periodic_params));
+					curr_tg->callback_arg = callback_arg;
 				} else {
 					xil_printf("Failed to initialize parameter struct\n");
-					destroy_ltg(new_tg);
+					ltg_sched_destroy(curr_tg);
 					return -1;
 				}
 
 			break;
 			default:
-				xil_printf("Unknown type %d, destroying traffic_generator struct\n");
-				destroy_ltg(new_tg);
+				xil_printf("Unknown type %d, destroying tg_schedule struct\n");
+				ltg_sched_destroy(curr_tg);
 				return -1;
 			break;
 		}
 
 
 	} else {
-		xil_printf("Failed to initialize traffic_generator struct\n");
+		xil_printf("Failed to initialize tg_schedule struct\n");
 		return -1;
 	}
 
 	return 0;
 }
 
-void check_ltg(){
+int ltg_sched_start(u32 id){
+	u64 timestamp = get_usec_timestamp();
+	tg_schedule* curr_tg;
+	u8 found_entry = 0;
+
+	curr_tg = ltg_sched_find_tg_schedule(id);
+	if(curr_tg != NULL){
+		found_entry = 1;
+	}
+	if(found_entry){
+		switch(curr_tg->type){
+			case LTG_SCHED_TYPE_PERIODIC:
+
+				curr_tg->timestamp = timestamp;
+				((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 1;
+
+			break;
+
+			default:
+				xil_printf("Unknown type %d, destroying tg_schedule struct\n");
+				ltg_sched_destroy(curr_tg);
+				return -1;
+			break;
+		}
+	} else {
+		xil_printf("Failed to start LTG ID: %d. Please ensure LTG is configured before starting\n", id);
+		return -1;
+	}
+	return 0;
+}
+
+void ltg_sched_check(){
 	u64 timestamp;
-	traffic_generator* curr_tg;
+	tg_schedule* curr_tg;
 	u32 i;
 
 	if(tg_list.length > 0){
@@ -106,62 +153,153 @@ void check_ltg(){
 		curr_tg = tg_list.first;
 		for(i = 0; i < tg_list.length; i++ ){
 			switch(curr_tg->type){
-				case LTG_TYPE_CBR:
-					if(timestamp >= (((cbr_params*)(curr_tg->params))->interval_usec  + curr_tg->timestamp) ){
+				case LTG_SCHED_TYPE_PERIODIC:
+					if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled && timestamp >= (((ltg_sched_periodic_params*)(curr_tg->params))->interval_usec  + curr_tg->timestamp) ){
 						curr_tg->timestamp = timestamp;
-						ltg_callback(curr_tg->id);
+						ltg_callback(curr_tg->id, curr_tg->callback_arg);
 					}
 				break;
 			}
-
 			curr_tg = curr_tg->next;
 		}
-		wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)check_ltg);
+		wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
 	}
-
-
 	return;
 }
 
-int stop_ltg(u32 id){
+int ltg_sched_stop(u32 id){
+	tg_schedule* curr_tg;
 
+	curr_tg = ltg_sched_find_tg_schedule(id);
+	if(curr_tg != NULL){
+		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+		return 0;
+	}
+
+	return -1;
+}
+
+int ltg_sched_get_state(u32 id, u32* type, void** state){
+	//This function returns the type of schedule corresponding to the id argument
+	//It fills in the state argument with the state of the schedule
+
+	u64 timestamp = get_usec_timestamp();
+	tg_schedule* curr_tg;
+
+	curr_tg = ltg_sched_find_tg_schedule(id);
+	if(curr_tg == NULL){
+		return -1;
+	}
+
+	*type = curr_tg->type;
+	*state = curr_tg->state;
+
+
+	switch(curr_tg->type){
+		case LTG_SCHED_TYPE_PERIODIC:
+
+			if(timestamp < (((ltg_sched_periodic_params*)(curr_tg->params))->interval_usec  + curr_tg->timestamp) ){
+				((ltg_sched_periodic_state*)state)->time_to_next_usec = (u32)(timestamp - (((ltg_sched_periodic_params*)(curr_tg->params))->interval_usec  + curr_tg->timestamp));
+			} else {
+				((ltg_sched_periodic_state*)state)->time_to_next_usec = 0;
+			}
+
+		break;
+		default:
+			xil_printf("Unknown type %d\n", curr_tg->type);
+			return -1;
+		break;
+	}
+
+	return 0;
+
+}
+int ltg_sched_get_params(u32 id, u32* type, void** params){
+	//This function returns the type of the schedule corresponding to the id argument
+	//It fills in the current parameters of the schedule into the params argument
+	tg_schedule* curr_tg;
+
+	curr_tg = ltg_sched_find_tg_schedule(id);
+	if(curr_tg == NULL){
+		return -1;
+	}
+
+	*params = curr_tg->params;
+
+	return 0;
+}
+
+int ltg_sched_get_callback_arg(u32 id, void** callback_arg){
+	tg_schedule* curr_tg;
+
+	curr_tg = ltg_sched_find_tg_schedule(id);
+	if(curr_tg == NULL){
+		return -1;
+	}
+
+	*callback_arg = curr_tg->callback_arg;
+
+	return 0;
+}
+
+
+
+int ltg_sched_remove(u32 id){
 	u32 i;
-	traffic_generator* curr_tg;
+	tg_schedule* curr_tg;
 
 	curr_tg = tg_list.first;
 	for(i = 0; i < tg_list.length; i++ ){
-		if( (curr_tg->id)==id){
-			traffic_generator_remove(&tg_list, curr_tg);
-			destroy_ltg(curr_tg);
-			return 0;
+		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
+			curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
+			ltg_sched_destroy(curr_tg);
+			tg_schedule_remove(&tg_list, curr_tg);
+			if(id != LTG_REMOVE_ALL) return 0;
 		}
 		curr_tg = curr_tg->next;
 	}
 
 
-	xil_printf("Error: LTG ID %d not present\n", id);
-	return -1;
+	if(id != LTG_REMOVE_ALL){
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
-
-traffic_generator* create_ltg(){
-	return (traffic_generator*)malloc(sizeof(traffic_generator));
+tg_schedule* ltg_sched_create(){
+	return (tg_schedule*)malloc(sizeof(tg_schedule));
 }
 
-void destroy_ltg(traffic_generator* tg){
+void ltg_sched_destroy(tg_schedule* tg){
 
 	switch(tg->type){
-		case LTG_TYPE_CBR:
+		case LTG_SCHED_TYPE_PERIODIC:
+		case LTG_SCHED_TYPE_UNIFORM_RAND:
 			free(tg->params);
+			free(tg->state);
 		break;
 	}
 
-	free(tg);
+	//free(tg);
 	return;
 }
 
+tg_schedule* ltg_sched_find_tg_schedule(u32 id){
+	u32 i;
+	tg_schedule* curr_tg;
 
-void traffic_generator_insertAfter(traffic_generator_list* list, traffic_generator* tg, traffic_generator* tg_new){
+	curr_tg = tg_list.first;
+	for(i = 0; i < tg_list.length; i++ ){
+		if( (curr_tg->id)==id){
+			return curr_tg;
+		}
+		curr_tg = curr_tg->next;
+	}
+	return NULL;
+}
+
+void tg_schedule_insertAfter(tg_schedule_list* list, tg_schedule* tg, tg_schedule* tg_new){
 	tg_new->prev = tg;
 	tg_new->next = tg->next;
 	if(tg->next == NULL){
@@ -174,7 +312,7 @@ void traffic_generator_insertAfter(traffic_generator_list* list, traffic_generat
 	return;
 }
 
-void traffic_generator_insertBefore(traffic_generator_list* list, traffic_generator* tg, traffic_generator* tg_new){
+void tg_schedule_insertBefore(tg_schedule_list* list, tg_schedule* tg, tg_schedule* tg_new){
 	tg_new->prev = tg->prev;
 	tg_new->next = tg;
 	if(tg->prev == NULL){
@@ -187,7 +325,7 @@ void traffic_generator_insertBefore(traffic_generator_list* list, traffic_genera
 	return;
 }
 
-void traffic_generator_insertBeginning(traffic_generator_list* list, traffic_generator* tg_new){
+void tg_schedule_insertBeginning(tg_schedule_list* list, tg_schedule* tg_new){
 	if(list->first == NULL){
 		list->first = tg_new;
 		list->last = tg_new;
@@ -195,21 +333,21 @@ void traffic_generator_insertBeginning(traffic_generator_list* list, traffic_gen
 		tg_new->next = NULL;
 		(list->length)++;
 	} else {
-		traffic_generator_insertBefore(list, list->first, tg_new);
+		tg_schedule_insertBefore(list, list->first, tg_new);
 	}
 	return;
 }
 
-void traffic_generator_insertEnd(traffic_generator_list* list, traffic_generator* tg_new){
+void tg_schedule_insertEnd(tg_schedule_list* list, tg_schedule* tg_new){
 	if(list->last == NULL){
-		traffic_generator_insertBeginning(list,tg_new);
+		tg_schedule_insertBeginning(list,tg_new);
 	} else {
-		traffic_generator_insertAfter(list,list->last, tg_new);
+		tg_schedule_insertAfter(list,list->last, tg_new);
 	}
 	return;
 }
 
-void traffic_generator_remove(traffic_generator_list* list, traffic_generator* tg){
+void tg_schedule_remove(tg_schedule_list* list, tg_schedule* tg){
 	if(tg->prev == NULL){
 		list->first = tg->next;
 	} else {
@@ -224,7 +362,7 @@ void traffic_generator_remove(traffic_generator_list* list, traffic_generator* t
 	(list->length)--;
 }
 
-void traffic_generator_list_init(traffic_generator_list* list){
+void tg_schedule_list_init(tg_schedule_list* list){
 	list->first = NULL;
 	list->last = NULL;
 	list->length = 0;
