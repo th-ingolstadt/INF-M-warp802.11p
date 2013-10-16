@@ -83,8 +83,6 @@ u32 mac_param_chan;
 static u8 eeprom_mac_addr[6];
 static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-u16 ltg_packet_size[MAX_ASSOCIATIONS];
-
 /*************************** Functions Prototypes ****************************/
 
 
@@ -139,7 +137,7 @@ int main(){
 	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
 
-    wlan_mac_ltg_set_callback(               (void*)ltg_event);
+    wlan_mac_ltg_sched_set_callback(               (void*)ltg_event);
 
 
     // Initialize interrupts
@@ -157,7 +155,6 @@ int main(){
 		associations[i].seq = 0; //seq
 		// Set default LTG parameters.
 		// These are changed by either UART interaction or WARPnet
-		ltg_packet_size[i] = 1470;
 	}
 
 
@@ -208,7 +205,7 @@ int main(){
     xil_printf("WLAN MAC AP boot complete: \n");
     xil_printf("  SSID    : %s \n", access_point_ssid);
     xil_printf("  Channel : %d \n", mac_param_chan);
-	xil_printf("  MAC Addr: %x-%x-%x-%x-%x-%x\n\n",eeprom_mac_addr[0],eeprom_mac_addr[1],eeprom_mac_addr[2],eeprom_mac_addr[3],eeprom_mac_addr[4],eeprom_mac_addr[5]);
+	xil_printf("  MAC Addr: %02x-%02x-%02x-%02x-%02x-%02x\n\n",eeprom_mac_addr[0],eeprom_mac_addr[1],eeprom_mac_addr[2],eeprom_mac_addr[3],eeprom_mac_addr[4],eeprom_mac_addr[5]);
 
 
 #ifdef WLAN_USE_UART_MENU
@@ -324,16 +321,29 @@ void up_button(){
 
 
 
-void ltg_event(u32 id){
+void ltg_event(u32 id, void* callback_arg){
 	u32 i;
 	packet_bd_list checkout;
 	packet_bd* tx_queue;
 	u32 tx_length;
+	u32 payload_length = 0;
 	u8* mpdu_ptr_u8;
 	llc_header* llc_hdr;
 
+	switch(((ltg_pyld_hdr*)callback_arg)->type){
+		case LTG_PYLD_TYPE_FIXED:
+			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
+		break;
+		default:
+		break;
+
+	}
+
 	for(i=0; i < next_free_assoc_index; i++){
-		if((u32)(associations[i].AID) == id){
+		if((u32)(associations[i].AID) == LTG_ID_TO_AID(id)){
+			//The AID <-> LTG ID connection is arbitrary. In this design, we use the LTG_ID_TO_AID
+			//macro to map multiple different LTG IDs onto an AID for a specific station. This allows
+			//multiple LTG flows to target a single user in the network.
 
 			//We implement a soft limit on the size of the queue allowed for any
 			//given station. This avoids the scenario where multiple backlogged
@@ -361,7 +371,8 @@ void ltg_event(u32 id){
 					bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
 					llc_hdr->type = LLC_TYPE_CUSTOM;
 
-					tx_length = ltg_packet_size[i];
+					tx_length += sizeof(llc_header);
+					tx_length += payload_length;
 
 					setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
 									 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
@@ -369,9 +380,7 @@ void ltg_event(u32 id){
 					enqueue_after_end(associations[i].AID, &checkout);
 					check_tx_queue();
 				}
-
 			}
-
 		}
 	}
 }

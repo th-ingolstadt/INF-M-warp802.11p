@@ -78,6 +78,16 @@
 /*********************** Global Structure Definitions ************************/
 
 
+/****************************** Helper Macros ********************************/
+#define LTG_ID_TO_AID(ltg_id) (ltg_id)
+#define AID_TO_LTG_ID(aid)	  (aid)
+//#define AID_SCHED_PYLD_GRP_TO_LTG_ID(aid,sched,pyld) ( ((pyld&0xFF)<<24) + ((sched&0xFF)<<16) + (aid&0xFFFF) )
+
+#define LTG_ID_GRP_SCHED_CONSTANT 1
+#define LTG_ID_GRP_SCHED_RANDOM	  2
+
+#define LTG_ID_GRP_PYLD_FIXED	  1
+#define LTG_ID_GRP_PYLD_RANDOM	  2
 
 
 /*************************** Function Prototypes *****************************/
@@ -85,7 +95,7 @@
 
 int  main();
 
-void ltg_event(u32 id);
+void ltg_event(u32 id, void* callback_arg);
 
 int  ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
 
@@ -114,6 +124,7 @@ void print_ssid_menu();
 void print_associations();
 void print_queue_status();
 void print_station_status(u8 manual_call);
+void ltg_cleanup(u32 id, void* callback_arg);
 
 
 #endif /* WLAN_MAC_AP_H_ */
