@@ -41,7 +41,7 @@ void wlan_mac_ltg_sched_set_callback(void(*callback)()){
 	ltg_callback = (function_ptr_t)callback;
 }
 
-int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void(*callback)()){
+int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void(*cleanup_callback)()){
 	//This function can be called on uninitalized schedule IDs or on schedule IDs that had
 	//been previously configured. In the event that they had been previously configured, care
 	//must be taken by the calling application to free previous the previous callback_arg if
@@ -79,13 +79,12 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 	if(curr_tg != NULL){
 		curr_tg->id = id;
 		curr_tg->type = type;
-		curr_tg->cleanup_callback = (function_ptr_t)callback;
+		curr_tg->cleanup_callback = (function_ptr_t)cleanup_callback;
 		switch(type){
 			case LTG_SCHED_TYPE_PERIODIC:
 				curr_tg->params = malloc(sizeof(ltg_sched_periodic_params));
 				curr_tg->state = malloc(sizeof(ltg_sched_periodic_state));
 
-				((ltg_sched_state_hdr*)(curr_tg->state))->enabled = is_enabled;
 				if(curr_tg->params != NULL){
 					memcpy(curr_tg->params, params, sizeof(ltg_sched_periodic_params));
 					curr_tg->callback_arg = callback_arg;
@@ -94,7 +93,19 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 					ltg_sched_destroy(curr_tg);
 					return -1;
 				}
+			break;
+			case LTG_SCHED_TYPE_UNIFORM_RAND:
+				curr_tg->params = malloc(sizeof(ltg_sched_uniform_rand_params));
+				curr_tg->state = malloc(sizeof(ltg_sched_uniform_rand_params));
 
+				if(curr_tg->params != NULL){
+					memcpy(curr_tg->params, params, sizeof(ltg_sched_uniform_rand_params));
+					curr_tg->callback_arg = callback_arg;
+				} else {
+					xil_printf("Failed to initialize parameter struct\n");
+					ltg_sched_destroy(curr_tg);
+					return -1;
+				}
 			break;
 			default:
 				xil_printf("Unknown type %d, destroying tg_schedule struct\n");
@@ -102,6 +113,7 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 				return -1;
 			break;
 		}
+		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = is_enabled;
 
 
 	} else {
@@ -113,35 +125,42 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 }
 
 int ltg_sched_start(u32 id){
-	u64 timestamp = get_usec_timestamp();
 	tg_schedule* curr_tg;
-	u8 found_entry = 0;
 
 	curr_tg = ltg_sched_find_tg_schedule(id);
 	if(curr_tg != NULL){
-		found_entry = 1;
+		return ltg_sched_start_l(curr_tg);
 	}
-	if(found_entry){
-		switch(curr_tg->type){
-			case LTG_SCHED_TYPE_PERIODIC:
-
-				curr_tg->timestamp = timestamp;
-				((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 1;
-
-			break;
-
-			default:
-				xil_printf("Unknown type %d, destroying tg_schedule struct\n");
-				ltg_sched_destroy(curr_tg);
-				return -1;
-			break;
-		}
-	} else {
+	else {
 		xil_printf("Failed to start LTG ID: %d. Please ensure LTG is configured before starting\n", id);
 		return -1;
 	}
+
+}
+int ltg_sched_start_l(tg_schedule* curr_tg){
+	u64 timestamp = get_usec_timestamp();
+	u64 random_timestamp;
+
+	switch(curr_tg->type){
+		case LTG_SCHED_TYPE_PERIODIC:
+			curr_tg->timestamp = timestamp + ((ltg_sched_periodic_params*)(curr_tg->params))->interval_usec;
+			((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 1;
+		break;
+		case LTG_SCHED_TYPE_UNIFORM_RAND:
+			random_timestamp = (rand()%(((ltg_sched_uniform_rand_params*)(curr_tg->params))->max_interval - ((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval))+((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval;
+			curr_tg->timestamp = timestamp + random_timestamp;
+			((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 1;
+		break;
+
+		default:
+			xil_printf("Unknown type %d, destroying tg_schedule struct\n");
+			ltg_sched_destroy(curr_tg);
+			return -1;
+		break;
+	}
 	return 0;
 }
+
 
 void ltg_sched_check(){
 	u64 timestamp;
@@ -152,13 +171,10 @@ void ltg_sched_check(){
 		timestamp = get_usec_timestamp();
 		curr_tg = tg_list.first;
 		for(i = 0; i < tg_list.length; i++ ){
-			switch(curr_tg->type){
-				case LTG_SCHED_TYPE_PERIODIC:
-					if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled && timestamp >= (((ltg_sched_periodic_params*)(curr_tg->params))->interval_usec  + curr_tg->timestamp) ){
-						curr_tg->timestamp = timestamp;
-						ltg_callback(curr_tg->id, curr_tg->callback_arg);
-					}
-				break;
+			if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled && timestamp >= ( curr_tg->timestamp) ){
+				ltg_sched_stop_l(curr_tg);
+				ltg_sched_start_l(curr_tg);
+				ltg_callback(curr_tg->id, curr_tg->callback_arg);
 			}
 			curr_tg = curr_tg->next;
 		}
@@ -172,11 +188,14 @@ int ltg_sched_stop(u32 id){
 
 	curr_tg = ltg_sched_find_tg_schedule(id);
 	if(curr_tg != NULL){
-		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
-		return 0;
+		return ltg_sched_stop_l(curr_tg);
 	}
-
 	return -1;
+}
+
+int ltg_sched_stop_l(tg_schedule* curr_tg){
+	((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+	return 0;
 }
 
 int ltg_sched_get_state(u32 id, u32* type, void** state){
@@ -197,13 +216,12 @@ int ltg_sched_get_state(u32 id, u32* type, void** state){
 
 	switch(curr_tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
-
-			if(timestamp < (((ltg_sched_periodic_params*)(curr_tg->params))->interval_usec  + curr_tg->timestamp) ){
-				((ltg_sched_periodic_state*)state)->time_to_next_usec = (u32)(timestamp - (((ltg_sched_periodic_params*)(curr_tg->params))->interval_usec  + curr_tg->timestamp));
+		case LTG_SCHED_TYPE_UNIFORM_RAND:
+			if(timestamp < (curr_tg->timestamp) ){
+				((ltg_sched_periodic_state*)state)->time_to_next_usec = (u32)(timestamp - curr_tg->timestamp);
 			} else {
 				((ltg_sched_periodic_state*)state)->time_to_next_usec = 0;
 			}
-
 		break;
 		default:
 			xil_printf("Unknown type %d\n", curr_tg->type);

@@ -100,6 +100,8 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 int ltg_sched_remove(u32 id);
 int ltg_sched_start(u32 id);
 int ltg_sched_stop(u32 id);
+int ltg_sched_start_l(tg_schedule* curr_tg);
+int ltg_sched_stop_l(tg_schedule* curr_tg);
 int ltg_sched_get_state(u32 id, u32* type, void** state);
 int ltg_sched_get_params(u32 id, u32* type, void** params);
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
