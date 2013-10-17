@@ -334,6 +334,9 @@ void ltg_event(u32 id, void* callback_arg){
 		case LTG_PYLD_TYPE_FIXED:
 			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
 		break;
+		case LTG_PYLD_TYPE_UNIFORM_RAND:
+			payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
+		break;
 		default:
 		break;
 

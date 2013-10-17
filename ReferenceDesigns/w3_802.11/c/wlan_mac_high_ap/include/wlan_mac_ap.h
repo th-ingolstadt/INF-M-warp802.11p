@@ -118,13 +118,15 @@ void up_button();
 void uart_rx(u8 rxByte);
 
 void print_menu();
-void print_ltg_size_menu();
-void print_ltg_interval_menu();
+//void print_ltg_size_menu();
+//void print_ltg_interval_menu();
 void print_ssid_menu();
 void print_associations();
 void print_queue_status();
 void print_station_status(u8 manual_call);
 void ltg_cleanup(u32 id, void* callback_arg);
+int is_qwerty_row(u8 rxByte);
+int qwerty_row_to_number(u8 rxByte);
 
 
 #endif /* WLAN_MAC_AP_H_ */

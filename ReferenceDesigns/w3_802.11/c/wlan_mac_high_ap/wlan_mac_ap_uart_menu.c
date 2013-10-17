@@ -58,6 +58,7 @@ void uart_rx(u8 rxByte){
 
 	void* ltg_callback_arg;
 	ltg_sched_periodic_params periodic_params;
+	ltg_sched_uniform_rand_params rand_params;
 
 	#define MAX_NUM_CHARS 31
 	static char text_entry[MAX_NUM_CHARS+1];
@@ -89,7 +90,6 @@ void uart_rx(u8 rxByte){
 				break;
 
 				case ASCII_c:
-
 					if(mac_param_chan > 1){
 						deauthenticate_stations();
 						(mac_param_chan--);
@@ -172,6 +172,8 @@ void uart_rx(u8 rxByte){
 				break;
 				default:
 					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
+						//This if range covers the numbers [1,...,9,0] on a keyboard.
+
 						curr_aid = rxByte - 48;
 						curr_traffic_type = TRAFFIC_TYPE_PERIODIC_FIXED;
 
@@ -191,10 +193,41 @@ void uart_rx(u8 rxByte){
 										return;
 									}
 								}
-								print_ltg_size_menu();
+								xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AID %d\n", curr_aid);
+								xil_printf("\nEnter packet payload size (in bytes): ");
 							}
 						}
 					}
+					if( is_qwerty_row(rxByte) ){
+						//This if range covers the range [q,p] on a keyboard (the letters directly below [1,...,9,0])
+						//This is a "hidden" UART feature to show how other kinds of LTG traffic sources can be set up.
+						//Specifically, this will set up a random interval, random payload length traffic source.
+
+						curr_aid = qwerty_row_to_number(rxByte);
+						curr_traffic_type = TRAFFIC_TYPE_RAND_RAND;
+
+						for(i=0; i < next_free_assoc_index; i++){
+							if(associations[i].AID == curr_aid){
+								uart_mode = UART_MODE_LTG_SIZE_CHANGE;
+								curr_association_index = i;
+								curr_char = 0;
+
+								if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_type,&ltg_sched_state) == 0){
+									//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
+									if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
+										//This LTG is currently running. We'll turn it off.
+										ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
+										uart_mode = UART_MODE_INTERACTIVE;
+										print_station_status(1);
+										return;
+									}
+								}
+								xil_printf("\n\n Configuring Random Local Traffic Generator (LTG) for AID %d\n", curr_aid);
+								xil_printf("\nEnter maximum payload size (in bytes): ");
+							}
+						}
+					}
+
 				break;
 			}
 		break;
@@ -221,6 +254,30 @@ void uart_rx(u8 rxByte){
 								//simply an artifact of the sequential nature of UART entry. We won't start the scheduler until we call configure again with that updated
 								//entry.
 								ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
+
+								uart_mode = UART_MODE_LTG_INTERVAL_CHANGE;
+								xil_printf("\nEnter packet Tx interval (in microseconds): ");
+							} else {
+								xil_printf("Error allocating memory for ltg_callback_arg\n");
+								uart_mode = UART_MODE_INTERACTIVE;
+								print_station_status(1);
+							}
+
+						break;
+						case TRAFFIC_TYPE_RAND_RAND:
+							ltg_callback_arg = malloc(sizeof(ltg_pyld_uniform_rand));
+							if(ltg_callback_arg != NULL){
+								((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
+								((ltg_pyld_uniform_rand*)ltg_callback_arg)->min_length = 0;
+								((ltg_pyld_uniform_rand*)ltg_callback_arg)->max_length = str2num(text_entry);
+
+								//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
+								//simply an artifact of the sequential nature of UART entry. We won't start the scheduler until we call configure again with that updated
+								//entry.
+								ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_UNIFORM_RAND, &rand_params, ltg_callback_arg, &ltg_cleanup);
+
+								uart_mode = UART_MODE_LTG_INTERVAL_CHANGE;
+								xil_printf("\nEnter maximum packet Tx interval (in microseconds): ");
 							} else {
 								xil_printf("Error allocating memory for ltg_callback_arg\n");
 								uart_mode = UART_MODE_INTERACTIVE;
@@ -230,8 +287,7 @@ void uart_rx(u8 rxByte){
 						break;
 					}
 
-					uart_mode = UART_MODE_LTG_INTERVAL_CHANGE;
-					print_ltg_interval_menu();
+
 
 				break;
 				case ASCII_DEL:
@@ -268,6 +324,17 @@ void uart_rx(u8 rxByte){
 								if(ltg_callback_arg != NULL){
 									periodic_params.interval_usec = str2num(text_entry);
 									ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
+									ltg_sched_start(AID_TO_LTG_ID(curr_aid));
+								} else {
+									xil_printf("Error: ltg_callback_arg was NULL\n");
+								}
+
+							break;
+							case TRAFFIC_TYPE_RAND_RAND:
+								if(ltg_callback_arg != NULL){
+									rand_params.min_interval = 0;
+									rand_params.max_interval = str2num(text_entry);
+									ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_UNIFORM_RAND, &rand_params, ltg_callback_arg, &ltg_cleanup);
 									ltg_sched_start(AID_TO_LTG_ID(curr_aid));
 								} else {
 									xil_printf("Error: ltg_callback_arg was NULL\n");
@@ -336,20 +403,20 @@ void uart_rx(u8 rxByte){
 	}
 }
 
-void print_ltg_size_menu(){
+//void print_ltg_size_menu(){
 
-	xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AID %d\n", curr_aid);
+//	xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AID %d\n", curr_aid);
 
-	xil_printf("\nEnter packet payload size (in bytes): ");
+//	xil_printf("\nEnter packet payload size (in bytes): ");
 
 
-}
+//}
 
-void print_ltg_interval_menu(){
+//void print_ltg_interval_menu(){
 
-	xil_printf("\nEnter packet Tx interval (in microseconds): ");
+//	xil_printf("\nEnter packet Tx interval (in microseconds): ");
 
-}
+//}
 
 void print_ssid_menu(){
 	xil_printf("\f");
@@ -434,11 +501,18 @@ void print_station_status(u8 manual_call){
 								xil_printf("  Periodic LTG Schedule Enabled\n");
 								xil_printf("  Packet Tx Interval: %d microseconds\n", ((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_usec);
 							break;
+							case LTG_SCHED_TYPE_UNIFORM_RAND:
+								xil_printf("  Uniform Random LTG Schedule Enabled\n");
+								xil_printf("  Packet Tx Interval: Uniform over range of [%d,%d] microseconds\n", ((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->min_interval,((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->max_interval);
+							break;
 						}
 
 						switch(((ltg_pyld_hdr*)(ltg_sched_state))->type){
 							case LTG_PYLD_TYPE_FIXED:
 								xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed_length*)(ltg_pyld_callback_arg))->length);
+							break;
+							case LTG_PYLD_TYPE_UNIFORM_RAND:
+								xil_printf("  Random Packet Length: Uniform over [%d,%d] bytes\n", ((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->min_length,((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->max_length);
 							break;
 						}
 
@@ -479,6 +553,65 @@ void ltg_cleanup(u32 id, void* callback_arg){
 	free(callback_arg);
 }
 
+int is_qwerty_row(u8 rxByte){
+	int return_value = 0;
+
+	switch(rxByte){
+		case ASCII_Q:
+		case ASCII_W:
+		case ASCII_E:
+		case ASCII_R:
+		case ASCII_T:
+		case ASCII_Y:
+		case ASCII_U:
+		case ASCII_I:
+		case ASCII_O:
+		case ASCII_P:
+			return_value = 1;
+		break;
+	}
+
+	return return_value;
+}
+
+int qwerty_row_to_number(u8 rxByte){
+	int return_value = -1;
+
+	switch(rxByte){
+		case ASCII_Q:
+			return_value = 1;
+		break;
+		case ASCII_W:
+			return_value = 2;
+		break;
+		case ASCII_E:
+			return_value = 3;
+		break;
+		case ASCII_R:
+			return_value = 4;
+		break;
+		case ASCII_T:
+			return_value = 5;
+		break;
+		case ASCII_Y:
+			return_value = 6;
+		break;
+		case ASCII_U:
+			return_value = 7;
+		break;
+		case ASCII_I:
+			return_value = 8;
+		break;
+		case ASCII_O:
+			return_value = 9;
+		break;
+		case ASCII_P:
+			return_value = 0;
+		break;
+	}
+
+	return return_value;
+}
 
 #endif
 
