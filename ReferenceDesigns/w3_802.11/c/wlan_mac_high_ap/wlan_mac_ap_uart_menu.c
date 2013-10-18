@@ -490,10 +490,10 @@ void print_station_status(u8 manual_call){
 				xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
 						associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
 
-				if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_type,&ltg_sched_state) == 0){
+				if(ltg_sched_get_state(AID_TO_LTG_ID(associations[i].AID),&ltg_type,&ltg_sched_state) == 0){
 
-					ltg_sched_get_params(AID_TO_LTG_ID(curr_aid), &ltg_type, &ltg_sched_parameters);
-					ltg_sched_get_callback_arg(AID_TO_LTG_ID(curr_aid),&ltg_pyld_callback_arg);
+					ltg_sched_get_params(AID_TO_LTG_ID(associations[i].AID), &ltg_type, &ltg_sched_parameters);
+					ltg_sched_get_callback_arg(AID_TO_LTG_ID(associations[i].AID),&ltg_pyld_callback_arg);
 
 					if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
 						switch(ltg_type){
