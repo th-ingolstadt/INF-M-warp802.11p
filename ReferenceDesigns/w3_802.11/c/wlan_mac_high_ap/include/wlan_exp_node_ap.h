@@ -22,7 +22,10 @@
 // ****************************************************************************
 // Define WLAN Exp Node AP Commands
 //
-#define NODE_GET_ASSN_TBL       5
+#define NODE_ALLOW_ASSOCIATIONS        32
+#define NODE_DISALLOW_ASSOCIATIONS     33
+#define NODE_GET_SSID                  34
+#define NODE_SET_SSID                  35
 
 
 // ****************************************************************************

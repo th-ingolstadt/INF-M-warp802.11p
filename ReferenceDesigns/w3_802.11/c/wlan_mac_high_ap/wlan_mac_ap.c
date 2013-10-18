@@ -31,6 +31,7 @@
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_event_log.h"
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
 
@@ -115,7 +116,6 @@ int main(){
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
-
     // Set Global variables
 	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
@@ -123,7 +123,7 @@ int main(){
 	// Initialize the utility library
 	wlan_lib_init();
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
-	wlan_mac_util_init( WLAN_EXP_TYPE );
+	wlan_mac_util_init( WLAN_EXP_TYPE, WLAN_EXP_ETH );
 
 	max_queue_size = (queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1);
 
@@ -196,8 +196,7 @@ int main(){
 	enable_animation = 1;
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ANIMATION_RATE_US, (void*)animate_hex);
 
-	enable_associations();
-	perma_assoc_mode = 1;   // By default, associations are allowed any time.
+	enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 
 
@@ -267,19 +266,17 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 
 
 
-	tx_event_log_entry = get_curr_tx_log();
+	tx_event_log_entry = get_next_empty_rx_event();
 
 	if(tx_event_log_entry != NULL){
-		tx_event_log_entry->state = tx_mpdu->state;
-		tx_event_log_entry->AID = 0;
-		tx_event_log_entry->power = 0; //TODO
-		tx_event_log_entry->length = tx_mpdu->length;
-		tx_event_log_entry->rate = tx_mpdu->rate;
-		tx_event_log_entry->mac_type = tx_80211_header->frame_control_1;
-		tx_event_log_entry->seq = ((tx_80211_header->sequence_control)>>4)&0xFFF;
+		tx_event_log_entry->state       = tx_mpdu->state;
+		tx_event_log_entry->AID         = 0;
+		tx_event_log_entry->power       = 0; //TODO
+		tx_event_log_entry->length      = tx_mpdu->length;
+		tx_event_log_entry->rate        = tx_mpdu->rate;
+		tx_event_log_entry->mac_type    = tx_80211_header->frame_control_1;
+		tx_event_log_entry->seq         = ((tx_80211_header->sequence_control)>>4)&0xFFF;
 		tx_event_log_entry->retry_count = tx_mpdu->retry_count;
-
-		increment_log();
 	}
 
 
@@ -301,22 +298,31 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 
 
 void up_button(){
-	if(allow_assoc == 0){
-		//AP is currently not allowing any associations to take place
-		enable_animation = 1;
-		wlan_mac_schedule_event(SCHEDULE_COARSE,ANIMATION_RATE_US, (void*)animate_hex);
-		enable_associations();
-		wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
-	} else if(perma_assoc_mode == 0){
-		//AP is currently allowing associations, but only for the small allow window.
-		//Go into permanent allow association mode.
-		perma_assoc_mode = 1;
-		xil_printf("Allowing associations indefinitely\n");
-	} else {
-		//AP is permanently allowing associations. Toggle everything off.
-		perma_assoc_mode = 0;
-		disable_associations();
+
+	switch ( get_associations_status() ) {
+
+        case ASSOCIATION_ALLOW_NONE:
+    		// AP is currently not allowing any associations to take place
+    		enable_animation = 1;
+    		wlan_mac_schedule_event(SCHEDULE_COARSE,ANIMATION_RATE_US, (void*)animate_hex);
+    		enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
+    		wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
+        break;
+
+        case ASSOCIATION_ALLOW_TEMPORARY:
+    		// AP is currently allowing associations, but only for the small allow window.
+    		//   Go into permanent allow association mode.
+    		enable_associations( ASSOCIATION_ALLOW_PERMANENT );
+    		xil_printf("Allowing associations indefinitely\n");
+        break;
+
+        case ASSOCIATION_ALLOW_PERMANENT:
+    		// AP is permanently allowing associations. Toggle everything off.
+    		enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
+    		disable_associations();
+        break;
 	}
+
 }
 
 
@@ -546,7 +552,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8 is_associated = 0;
 	new_association = 0;
 
-	rx_event_log_entry = get_curr_rx_log();
+	rx_event_log_entry = get_next_empty_rx_event();
 
 	if(rx_event_log_entry != NULL){
 			rx_event_log_entry->state = mpdu_info->state;
@@ -557,8 +563,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
 			rx_event_log_entry->seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			rx_event_log_entry->flags = 0; //TODO: fill in with retry flag, etc
-
-			increment_log();
 	}
 
 	for(i=0; i < next_free_assoc_index; i++) {
@@ -889,7 +893,23 @@ void print_associations(){
 
 
 
-void enable_associations(){
+
+
+
+
+
+u32  get_associations_status() {
+	// Get the status of associations for the AP
+	//   - 00 -> Associations not allowed
+	//   - 01 -> Associations allowed for a window
+	//   - 11 -> Associations allowed permanently
+
+	return ( perma_assoc_mode * 2 ) + allow_assoc;
+}
+
+
+
+void enable_associations( u32 permanent_association ){
 	// Send a message to other processor to tell it to enable associations
 #ifdef _DEBUG_
 	xil_printf("Allowing new associations\n");
@@ -898,14 +918,25 @@ void enable_associations(){
 	// Set the DSSS value in CPU Low
 	set_dsss_value( 1 );
 
-    // Set the global variables
+    // Set the global variable
 	allow_assoc = 1;
+
+	// Set the global variable for permanently allowing associations
+	switch ( permanent_association ) {
+
+        case ASSOCIATION_ALLOW_PERMANENT:
+        	perma_assoc_mode = 1;
+        break;
+
+        case ASSOCIATION_ALLOW_TEMPORARY:
+        	perma_assoc_mode = 0;
+        break;
+	}
 }
 
 
 
 void disable_associations(){
-
 	// Send a message to other processor to tell it to disable associations
 	if(perma_assoc_mode == 0){
 
@@ -928,6 +959,10 @@ void disable_associations(){
 
 
 
+
+
+
+
 void animate_hex(){
 	static u8 i = 0;
 	if(enable_animation){
@@ -944,6 +979,19 @@ void animate_hex(){
 
 
 
+/*****************************************************************************/
+/**
+* Reset Station Statistics
+*
+* Reset all statistics being kept for all stations
+*
+* @param    None.
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
 void reset_station_statistics(){
 	u32 i;
 	for(i=0; i < next_free_assoc_index; i++){
@@ -956,49 +1004,128 @@ void reset_station_statistics(){
 
 
 
-
-void deauthenticate_stations(){
+/*****************************************************************************/
+/**
+* Find the index of an Association Table entry
+*
+* Given an AID, this function will return the index into the association table
+* of the association corresponding to the AID.  If the AID does not exist, then
+* the function will return -1.
+*
+* @param    u32   - AID
+*
+* @return	u32   - Index into association table of assocation with corresponding AID
+*                     will return -1 if index does not exist
+*
+* @note		None.
+*
+******************************************************************************/
+u32  find_association_index( u32 aid ) {
 	u32 i;
+
+	for( i = 0; i < next_free_assoc_index; i++) {
+		if ( associations[i].AID == aid ) {
+		    return i;
+		}
+	}
+
+	return -1;
+}
+
+
+
+/*****************************************************************************/
+/**
+* Deauthenticate a station in the Association Table
+*
+* Given an index in to the association table (not an AID), this function will
+* remove that association from the table.  To get the association index from the
+* AID, please use find_association_index().
+*
+* @param    u32   - Index into the Association Table
+*
+* @return	u32   - AID of Association Table entry that was removed
+*                     will return -1 if index does not exist
+*
+* @note		None.
+*
+******************************************************************************/
+u32  deauthenticate_station( u32 association_index ) {
+
 	packet_bd_list checkout, dequeue;
 	u32            num_queued;
 	packet_bd*     tx_queue;
 	u32            tx_length;
+	u32            aid;
 
-	for(i=0; i < next_free_assoc_index; i++){
-		//Send De-authentication
-
-	 	//Checkout 1 element from the queue;
-	 	queue_checkout(&checkout,1);
-
-	 	if(checkout.length == 1){ //There was at least 1 free queue element
-	 		tx_queue = checkout.first;
-
-	 		setup_tx_header( &tx_header_common, associations[i].addr, eeprom_mac_addr );
-
-	 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
-
-	 		setup_tx_queue ( tx_queue, (void*)&(associations[i]), tx_length, MAX_RETRY,
-	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-	 		enqueue_after_end(associations[i].AID, &checkout);
-	 		check_tx_queue();
-
-	 		//Purge any packets in the queue meant for this node
-	 		num_queued = queue_num_queued(associations[i].AID);
-	 		if(num_queued>0){
-	 			xil_printf("purging %d packets from queue for AID %d\n",num_queued,associations[i].AID);
-	 			dequeue_from_beginning(&dequeue, associations[i].AID,1);
-	 			queue_checkin(&dequeue);
-	 		}
-
-			//Remove this STA from association list
-	 		remove_station(i);
-		}
+	if ( association_index > next_free_assoc_index ) {
+		return -1;
 	}
+
+	// Get the AID
+	aid = associations[association_index].AID;
+
+	// Checkout 1 element from the queue
+	queue_checkout(&checkout,1);
+
+	if(checkout.length == 1){ //There was at least 1 free queue element
+		tx_queue = checkout.first;
+
+		// Create deauthentication packet
+		setup_tx_header( &tx_header_common, associations[association_index].addr, eeprom_mac_addr );
+
+		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
+
+		setup_tx_queue ( tx_queue, (void*)&(associations[association_index]), tx_length, MAX_RETRY,
+						 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+		//
+		enqueue_after_end(aid, &checkout);
+		check_tx_queue();
+
+		//Purge any packets in the queue meant for this node
+		num_queued = queue_num_queued(aid);
+
+		if( num_queued > 0 ){
+			xil_printf("purging %d packets from queue for AID %d\n", num_queued, aid);
+			dequeue_from_beginning(&dequeue, aid, 1);
+			queue_checkin(&dequeue);
+		}
+
+		// Remove this STA from association list
+		remove_station(association_index);
+	}
+
 	write_hex_display(next_free_assoc_index);
+
+	return aid;
 }
 
 
+
+/*****************************************************************************/
+/**
+* Deauthenticate all stations in the Association Table
+*
+* Loop through all associations in the table and deauthenticate the stations
+*
+* @param    None.
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void deauthenticate_stations(){
+	u32 i;
+
+	// Start at the back of the list and deauthenticate the stations so there
+	//   are not unnecessary copies when compacting the assocation table.
+	//
+	for( i = next_free_assoc_index; i > 0; i--) {
+		deauthenticate_station( i );
+	}
+}
 
 
 

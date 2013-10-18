@@ -74,6 +74,13 @@
 #define ANIMATION_RATE_US              (100000)
 
 
+// **********************************************************************
+// Association defines
+//
+#define ASSOCIATION_ALLOW_NONE          0x0
+#define ASSOCIATION_ALLOW_TEMPORARY     0x1
+#define ASSOCIATION_ALLOW_PERMANENT     0x3
+
 
 /*********************** Global Structure Definitions ************************/
 
@@ -105,11 +112,15 @@ void check_tx_queue();
 
 void beacon_transmit();
 
+u32  get_associations_status();
 void enable_associations();
 void disable_associations();
 void association_timestamp_check();
 
 void reset_station_statistics();
+
+u32  find_association_index( u32 aid );
+u32  deauthenticate_station( u32 association_index );
 void deauthenticate_stations();
 
 void animate_hex();

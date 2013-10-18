@@ -50,7 +50,7 @@
 
 extern station_info associations[MAX_ASSOCIATIONS+1];
 extern u32          next_free_assoc_index;
-
+extern char       * access_point_ssid;
 
 /*************************** Variable Definitions ****************************/
 
@@ -113,8 +113,8 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 	switch(cmdID){
 
-		case NODE_GET_ASSN_TBL:
-            // NODE_GET_ASSN_TBL Packet Format:
+		case NODE_GET_ASSN_STATUS:
+            // NODE_GET_ASSN_STATUS Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
             //   - cmdArgs32[0] - 31:16 - Number of tables to transmit per minute ( 0 => stop )
@@ -163,7 +163,155 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 		break;
 
+
+		case NODE_DISASSOCIATE:
+            // NODE_DISASSOCIATE Packet Format:
+            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
+            //
+            //   - cmdArgs32[0] - AID
+			//                  - 0xFFFF - Disassociate all
+			//
+			//   - Returns      0      - AID not found
+            //                  AID    - AID that was disassociated
+			//                  0xFFFF - All AIDs)
+            //
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			// Check argument to see if we are diassociating one or all AIDs
+			if ( temp == 0xFFFF ) {
+				deauthenticate_stations();                     // Deauthenticate all stations
+			} else {
+				u32 index = find_association_index( temp );
+
+				if ( index != -1 ) {
+					deauthenticate_station( index );           // Deauthenticate station
+				} else {
+					temp = 0;                                  // Set return value to 0
+				}
+			}
+
+			// Print message to the UART to show which node was disassociated
+			xil_printf("Node Disassociate - AP - 0x%x\n", temp);
+
+			// Send response of current channel
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
         
+		case NODE_RESET_STATS:
+			xil_printf("Reseting Statistics - AP\n");
+
+			reset_station_statistics();
+		break;
+
+
+
+        case NODE_ALLOW_ASSOCIATIONS:
+            // NODE_ALLOW_ASSOCIATIONS Packet Format:
+            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
+            //
+            //   - cmdArgs32[0] - 0xFFFF - Permanently turn on associations
+			//                  - Others - Temporarily turn on associations
+			//
+			//   - Returns the status of the associations
+            //
+			xil_printf("Associations     Allowed - AP - ");
+
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			if ( temp == 0xFFFF ) {
+	    		enable_associations( ASSOCIATION_ALLOW_PERMANENT );
+				xil_printf("Permanent \n");
+			} else {
+	    		enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
+				xil_printf("Temporary \n");
+			}
+
+            respArgs32[respIndex++] = Xil_Htonl( get_associations_status() );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+        break;
+
+
+
+		case NODE_DISALLOW_ASSOCIATIONS:
+            // NODE_DISALLOW_ASSOCIATIONS Packet Format:
+			//
+			//   - Returns the status of the associations
+            //
+			disable_associations();
+
+			temp = get_associations_status();
+
+			if ( temp == ASSOCIATION_ALLOW_NONE ) {
+				xil_printf("Associations NOT Allowed - AP\n");
+			} else {
+				xil_printf("Associations     Allowed - AP - Failed to Disable Associations\n");
+			}
+
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+
+		case NODE_GET_SSID:
+            // NODE_GET_SSID Packet Format:
+			//
+            //   - respArgs32[0] - Number of characters the new SSID
+            //   - respArgs32[1] - Packed array of ascii character values
+			//                       NOTE: The characters are copied with a straight strcpy and must
+			//                         be correctly processed on the host side
+            //
+			xil_printf("Get SSID - AP - %s\n", access_point_ssid);
+
+			// Get the number of characters in the SSID
+			temp = strlen(access_point_ssid);
+
+			// Send response of current channel
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+
+			strcpy( (char *)&respArgs32[respIndex], access_point_ssid );
+
+			respIndex       += ( temp / sizeof(respArgs32) ) + 1;
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+
+		case NODE_SET_SSID:
+            // NODE_SET_SSID Packet Format:
+			//
+            //   - cmdArgs32[0] - Number of characters in the new SSID
+            //   - cmdArgs32[1] - Packed array of ascii character values
+			//                      NOTE: The characters are assumed to be in the correct order
+			//
+			//   - Returns nothing
+            //
+			temp        = Xil_Ntohl(cmdArgs32[0]);
+			char * ssid = (char *)&cmdArgs32[1];
+
+			// Deauthenticate all stations since we are changing the SSID
+			deauthenticate_stations();
+
+			// Re-allocate memory for the new SSID and copy the characters of the new SSID
+			access_point_ssid = realloc(access_point_ssid, (temp + 1));
+			strcpy(access_point_ssid, ssid);
+
+			xil_printf("Set SSID - AP:  %s\n", access_point_ssid);
+		break;
+
+
+
 		default:
 			xil_printf("Unknown node command: %d\n", cmdID);
 		break;
@@ -173,7 +321,36 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 }
 
 
+#if 0
+if(default_unicast_rate < WLAN_MAC_RATE_54M){
+	default_unicast_rate++;
+} else {
+	default_unicast_rate = WLAN_MAC_RATE_54M;
+}
 
+for(i=0; i < next_free_assoc_index; i++){
+	associations[i].tx_rate = default_unicast_rate;
+}
+
+
+
+if(ltg_mode == 0){
+	#define LTG_INTERVAL 10000
+	xil_printf("Enabling LTG mode to AID 1, interval = %d usec\n", LTG_INTERVAL);
+	cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
+	start_ltg(1, LTG_TYPE_CBR, &cbr_parameters);
+
+	ltg_mode = 1;
+
+} else {
+	stop_ltg(1);
+	ltg_mode = 0;
+	xil_printf("Disabled LTG mode to AID 1\n");
+}
+
+
+
+#endif
 
 
 
