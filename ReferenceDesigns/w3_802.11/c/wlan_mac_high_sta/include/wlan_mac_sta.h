@@ -20,7 +20,7 @@
 // **********************************************************************
 // Enable the WLAN UART Menu
 //    NOTE:  To enable the WLAN Exp framework, please modify wlan_exp_common.h
-// #define WLAN_USE_UART_MENU
+ #define WLAN_USE_UART_MENU
 
 
 
