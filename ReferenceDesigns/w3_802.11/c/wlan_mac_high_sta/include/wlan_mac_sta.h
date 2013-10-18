@@ -79,7 +79,7 @@ typedef struct{
 
 int main();
 
-void ltg_event(u32 id);
+void ltg_event(u32 id, void* callback_arg);
 
 int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
 
@@ -92,11 +92,10 @@ void probe_req_transmit();
 void attempt_authentication();
 
 void reset_station_statistics();
-void print_ltg_size_menu();
-void print_ltg_interval_menu();
 void print_menu();
 void print_ap_list();
 void print_station_status(u8 manual_call);
+void ltg_cleanup(u32 id, void* callback_arg);
 
 void uart_rx(u8 rxByte);
 
