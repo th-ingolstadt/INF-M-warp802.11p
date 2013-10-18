@@ -130,6 +130,14 @@ void wlan_phy_init() {
 
 	wlan_phy_rx_set_extension(120); //num samp periods post done to extend CCA BUSY
 
+	//Configure channel estimate capture
+	// sizeof(rx_frame_info) - sizeof(chan_est) = 16
+	//  <<2 is kludge for now
+	wlan_phy_rx_pkt_buf_h_est_offset((16)<<2);
+	
+	//Disable chan est recording by default
+	REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_RECORD_CHAN_EST);
+	
 	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
 	wlan_phy_DSSS_rx_config(0x600, 200, 5, 5);
 	//wlan_phy_DSSS_rx_config(0xFFFF, 150, 5, 5);

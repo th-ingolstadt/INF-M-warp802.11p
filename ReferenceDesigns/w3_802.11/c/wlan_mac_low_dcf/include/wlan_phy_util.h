@@ -75,6 +75,7 @@
 #define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP	0x04 //Swap byte order at pkt buf interface
 #define WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD	0x10 //Allow active DSSS Rx to keep AGC locked
 #define WLAN_RX_REG_CFG_CFO_EST_BYPASS		0x20 //Bypass time-domain CFO correction
+#define WLAN_RX_REG_CFG_RECORD_CHAN_EST		0x40
 
 //RX STATUS
 #define WLAN_RX_REG_STATUS_PKT_DONE			0x1
@@ -138,6 +139,8 @@
 //The PHY header offsets deal in units of u64 words, so the << 13 is like a << 16 and >> 3 to convert u8 words to u64 words
 #define wlan_phy_rx_pkt_buf_phy_hdr_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0x00FF0000)) | (((d)<<13) & 0x00FF0000)))
 #define wlan_phy_tx_pkt_buf_phy_hdr_offset(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x00FF0000)) | (((d)<<13) & 0x00FF0000)))
+
+#define wlan_phy_rx_pkt_buf_h_est_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0xFF000000)) | (((d)<<24) & 0xFF000000)))
 
 #define wlan_phy_tx_set_scaling(pre, pay) Xil_Out32(WLAN_TX_REG_SCALING, ( ( (pre) & 0xFFFF) | (( (pay)&0xFFFF)<<16)))
 
