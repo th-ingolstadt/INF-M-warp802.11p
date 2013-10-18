@@ -97,8 +97,6 @@ u32 mac_param_chan_save;
 static u8 eeprom_mac_addr[6];
 static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-u16 ltg_packet_size;
-
 
 /*************************** Functions Prototypes ****************************/
 
@@ -178,8 +176,6 @@ int main(){
 
 	// Set Association state for station to AP
 	association_state = 1;
-
-	ltg_packet_size = 1470;
 
     // Wait for CPU Low to initialize
 	while( is_cpu_low_initialized() == 0){
@@ -752,12 +748,24 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 
 
-void ltg_event(u32 id){
+void ltg_event(u32 id, void* callback_arg){
 	packet_bd_list checkout;
 	packet_bd* tx_queue;
 	u32 tx_length;
 	u8* mpdu_ptr_u8;
 	llc_header* llc_hdr;
+	u32 payload_length = 0;
+
+	switch(((ltg_pyld_hdr*)callback_arg)->type){
+		case LTG_PYLD_TYPE_FIXED:
+			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
+		break;
+		case LTG_PYLD_TYPE_UNIFORM_RAND:
+			payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
+		break;
+		default:
+		break;
+	}
 
 	if(id == 0 && (access_point.AID > 0)){
 		//Send a Data packet to AP
@@ -782,7 +790,8 @@ void ltg_event(u32 id){
 			bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
 			llc_hdr->type = LLC_TYPE_CUSTOM;
 
-			tx_length = ltg_packet_size;
+			tx_length += sizeof(llc_header);
+			tx_length += payload_length;
 
 	 		setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
 	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
