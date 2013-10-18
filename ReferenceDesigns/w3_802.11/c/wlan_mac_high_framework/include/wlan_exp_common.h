@@ -30,7 +30,8 @@
 // Note: Please leave this undefined. WARPnet functionality will be added
 // to a future release.
 //
-// #define  USE_WARPNET_WLAN_EXP
+
+#define  USE_WARPNET_WLAN_EXP
 
 
 

@@ -44,6 +44,8 @@
 #include "wlan_exp_node.h"
 #include "wlan_exp_transport.h"
 
+
+
 #ifdef USE_WARPNET_WLAN_EXP
 
 #include <stdlib.h>
@@ -86,6 +88,14 @@ int                 sock_trig     = -1; // UDP socket
 struct sockaddr_in  addr_trig;
 
 u8                  node_group_ID_membership;
+
+
+// WLAN Exp Additions:
+//   - Asynchronous transmit buffer - Used to transmit messages asynchronously back to a node and
+//                                      not interfere with normal transport function.
+//
+
+
 
 
 /*************************** Function Prototypes *****************************/
@@ -671,7 +681,7 @@ void transport_send(wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int e
 
 	int                   len_to_send;
 	wn_transport_header   tmp_hdr;
-	wn_transport_header * wn_header_tx = wn_eth_devices[eth_dev_num].wn_header_tx;
+	wn_transport_header * wn_header_tx = (wn_transport_header *)(currMsg->buffer + PAYLOAD_OFFSET);
 
 #ifdef _DEBUG_
 	xil_printf("BEGIN transport_send() \n");
@@ -681,11 +691,10 @@ void transport_send(wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int e
 
 	memcpy(&tmp_hdr, wn_header_tx, sizeof(wn_transport_header));
 
-	// Update length field in outgoing transport header
-	//FIXME: why do this subtraction?
+	// Update length field in outgoing transport header (size of the payload)
 	wn_header_tx->length = currMsg->length - sizeof(wn_transport_header);
 
-	//Make the outgoing transport header endian safe
+	// Make the outgoing transport header endian safe for sending on the network
 	wn_header_tx->destID = Xil_Htons(wn_header_tx->destID);
 	wn_header_tx->srcID  = Xil_Htons(wn_header_tx->srcID);
 	wn_header_tx->length = Xil_Htons(wn_header_tx->length);
@@ -700,13 +709,28 @@ void transport_send(wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int e
 
 #ifdef _DEBUG_
 	xil_printf("sendAddr.sin_addr.s_addr = %d.%d.%d.%d\n",(sendAddr.sin_addr.s_addr>>24)&0xFF,(sendAddr.sin_addr.s_addr>>16)&0xFF,(sendAddr.sin_addr.s_addr>>8)&0xFF,(sendAddr.sin_addr.s_addr)&0xFF);
-	xil_printf("sendAddr.sin_family = %d\n",sendAddr.sin_family);
-	xil_printf("sendAddr.sin_port = %d\n",sendAddr.sin_port);
+	xil_printf("sendAddr.sin_family      = %d\n",sendAddr.sin_family);
+	xil_printf("sendAddr.sin_port        = %d\n",sendAddr.sin_port);
+
+	xil_printf("buffer                   = 0x%x;\n", currMsg->buffer );
+	xil_printf("len                      = %d;  \n", len_to_send );
 
 //	print_pkt((unsigned char *)eth_device[eth_dev_num].sendbuf, len_to_send);
 #endif
 
-	xilsock_sendto(sock_msg, (unsigned char *)eth_device[eth_dev_num].sendbuf, len_to_send, (struct sockaddr *)&sendAddr, eth_dev_num);
+	// Check the interrupt status; Disable interrupts if enabled
+    // TODO
+
+
+	// NOTE:  This command is not safe to execute when interrupts are enabled when commands can
+	//        arbitrarily send ethernet packets.  Technically, we only have to wrap the xilnet_eth_send_frame() call
+	//        but that would require modifying the WARPxilnet driver and having it understand interrupts
+	//
+	xilsock_sendto(sock_msg, (unsigned char *)currMsg->buffer, len_to_send, (struct sockaddr *)&sendAddr, eth_dev_num);
+
+	// Restore interrupts
+    // TODO
+
 
 	//Restore wn_header_tx
 	memcpy(wn_header_tx, &tmp_hdr, sizeof(wn_transport_header));

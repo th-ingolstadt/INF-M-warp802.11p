@@ -25,10 +25,21 @@
 // ****************************************************************************
 // Define WLAN Exp Node Commands
 //
-#define NODE_INFO               1
-#define NODE_IDENTIFY           2
-#define NODE_CONFIG_SETUP       3
-#define NODE_CONFIG_RESET       4
+#define NODE_INFO                       1
+#define NODE_IDENTIFY                   2
+#define NODE_CONFIG_SETUP               3
+#define NODE_CONFIG_RESET               4
+#define NODE_GET_ASSN_STATUS            5
+#define NODE_DISASSOCIATE               6
+#define NODE_TX_POWER                   7
+#define NODE_TX_RATE                    8
+#define NODE_CHANNEL                    9
+#define NODE_CONFIG_LTG                10
+#define NODE_START_LTG                 11
+#define NODE_STOP_LTG                  12
+#define NODE_RESET_STATS               13
+#define NODE_GET_EVENTS                14
+
 
 
 // ****************************************************************************

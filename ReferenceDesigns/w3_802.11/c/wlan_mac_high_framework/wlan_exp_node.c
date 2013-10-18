@@ -23,11 +23,22 @@
 #include <Xio.h>
 
 
+// WLAN includes
+#include "wlan_mac_ipc.h"
+#include "wlan_mac_event_log.h"
+
+
+
+
 /*************************** Constant Definitions ****************************/
 
 // #define _DEBUG_
 
 /*********************** Global Variable Definitions *************************/
+
+// NOTE:  All Extensions of the WLAN framework must have a parameter called mac_param_chan
+extern u32 mac_param_chan;
+
 
 
 
@@ -42,12 +53,15 @@ wn_function_ptr_t  node_process_callback;
 /*************************** Functions Prototypes ****************************/
 
 int  node_init_parameters( u32 *info );
+int  node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, unsigned int eth_dev_num);
 
 
 #ifdef _DEBUG_
 void print_wn_node_info( wn_node_info * info );
 void print_wn_parameters( wn_tag_parameter *param, int num_params );
 #endif
+
+
 
 
 
@@ -192,7 +206,7 @@ void node_sendEarlyResp(wn_respHdr* respHdr, void* pktSrc, unsigned int eth_dev_
 #endif
 
 	 nodeResp.payload = (void*) respHdr;
-	 nodeResp.buffer  = (void*) respHdr - sizeof(wn_transport_header);
+	 nodeResp.buffer  = (void*) respHdr - ( PAYLOAD_OFFSET + sizeof(wn_transport_header) );
 	 nodeResp.length  = PAYLOAD_PAD_NBYTES + respHdr->length + sizeof(wn_cmdHdr); //Extra 2 bytes is for alignment
 
 	//Endian swap the response header before before transport sends it
@@ -246,11 +260,24 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 	unsigned int  respIndex  = 0;
 	unsigned int  respSent   = NO_RESP_SENT;
-    unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
+    unsigned int  max_words  = 350;                // Max number of u32 words that can be sent in the packet (~1400 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
     unsigned int  temp, i;
-    
+
+    // Variables for functions
+	u32           start_address;
+	u32           curr_address;
+	u32           next_address;
+	u32           transfer_address;
+	u32           size;
+	u32           evt_log_size;
+	u32           transfer_size;
+	u32           bytes_per_pkt;
+	u32           num_bytes;
+	u32           num_pkts;
+
+
 	unsigned int  cmdID;
     
 	cmdID = WN_CMD_TO_CMDID(cmdHdr->cmd);
@@ -412,6 +439,173 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 #endif
 		break;
 
+
+		// Case NODE_GET_ASSN_TBL is implemented in the child classes
+
+
+		// Case NODE_DISASSOCIATE is implemented in the child classes
+
+
+		case NODE_TX_POWER:
+			xil_printf("Node TX Power\n");
+		break;
+
+		case NODE_TX_RATE:
+			xil_printf("Node TX Rate\n");
+		break;
+
+		case NODE_CHANNEL:
+			// Get channel parameter
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			// If parameter is not the magic number, then set the mac channel
+			//   NOTE:  We modulate temp so that we always have a valid channel
+			if ( temp != 0xFFFF ) {
+				temp = temp % 12;          // Get a channel number between 0 - 11
+				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
+
+//				deauthenticate_stations(); // First deauthenticate all stations
+
+				mac_param_chan = temp;
+				set_mac_channel( mac_param_chan );
+
+			    xil_printf("Setting Channel = %d\n", mac_param_chan);
+			}
+
+			// Send response of current channel
+            respArgs32[respIndex++] = Xil_Htonl( mac_param_chan );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+		case NODE_CONFIG_LTG:
+			xil_printf("Node Config LTG\n");
+
+//			ltg_packet_size[curr_association_index] =  str2num(text_entry);
+
+
+		break;
+
+		case NODE_START_LTG:
+			xil_printf("Node Start LTG\n");
+
+//			ltg_enable[curr_association_index] = 1;
+
+
+
+		break;
+
+		case NODE_STOP_LTG:
+			xil_printf("Node Stop LTG\n");
+
+//			ltg_enable[i] = 0;
+//			stop_ltg(associations[i].AID);
+
+
+		break;
+
+
+		// Case NODE_RESET_STATS is implemented in the child classes
+
+
+		case NODE_GET_EVENTS:
+            // NODE_GET_EVENTS Packet Format:
+            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
+            //
+            //   - cmdArgs32[0] - start_address of transfer
+			//   - cmdArgs32[1] - size of transfer (in bytes)
+			//                      0xFFFF_FFFF  -> Get everything in the event log
+			//
+            //   - respArgs32[0] - Total Packets
+            //   - respArgs32[1] - Current Packet Number
+            //   - respArgs32[2] - Total Bytes
+            //   - respArgs32[3] - Current byte
+            //   - respArgs32[4] - Size of data
+			//
+			// NOTE;  The address passed via the command is the address relative to the current
+			//   start of the event log.  It is not an absolute address and should not be treated
+			//   as such.
+			//
+			//     When you transferring "everything" in the event log, the command will take a
+			//   snapshot of the size of the log at the time the command is received.  It will then
+			//   only transfer those events and not any new events that are added to the log while
+			//   we are transferring the current log.
+            //
+
+
+
+			start_address     = Xil_Ntohl(cmdArgs32[0]);
+            size              = Xil_Ntohl(cmdArgs32[1]);
+
+            // Get the current size of the event log
+            evt_log_size      = event_log_get_size();
+
+            // Check if we should transfer everything or if the request was larger than the current log
+            if ( ( size == 0xFFFFFFFF ) || ( size > evt_log_size ) ) {
+                size = evt_log_size;
+            }
+
+            bytes_per_pkt     = max_words * 4;
+            num_pkts          = size / bytes_per_pkt + 1;
+            curr_address      = start_address;
+
+			xil_printf("WLAN EXP NODE_GET_EVENTS \n");
+			xil_printf("    start_address    = 0x%8x\n    size             = %10d\n    num_pkts         = %10d\n", start_address, size, num_pkts);
+
+			// Initialize constant parameters
+            respArgs32[0] = Xil_Htonl( num_pkts );
+            // respArgs32[1] - Current Packet Number
+            respArgs32[2] = Xil_Htonl( size );
+            // respArgs32[3] - Current byte
+            // respArgs32[4] - Size of transfer
+
+			respHdr->numArgs = 5;
+
+			for( i = 0; i < num_pkts; i++ ) {
+
+				// Get the next address
+				next_address  = curr_address + bytes_per_pkt;
+
+				// Compute the transfer size (us the full buffer unless you run out of space)
+				if( next_address > ( start_address + size ) ) {
+                    transfer_size = (start_address + size) - curr_address;
+
+				} else {
+					transfer_size = bytes_per_pkt;
+				}
+
+				// Set response args that change per packet
+	            respArgs32[1]   = Xil_Htonl( i );
+	            respArgs32[3]   = Xil_Htonl( curr_address - start_address );
+                respArgs32[4]   = Xil_Htonl( transfer_size );
+
+	            respHdr->length = 20 + transfer_size;
+
+				// Transfer data
+	            transfer_address = event_log_get_address_from_head( curr_address );
+
+				num_bytes = event_log_get_data( transfer_address, transfer_size, (char *) &respArgs32[5] );
+
+				xil_printf("Packet %8d: \n", i);
+				xil_printf("    transfer_address = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", transfer_address, transfer_size, num_bytes);
+
+				// Check that we copied everything
+				if ( num_bytes == transfer_size ) {
+
+					// Send the packet
+					node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+				} else {
+					xil_printf("ERROR:  NODE_GET_EVENTS tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_address );
+
+				}
+
+				// Update our current address
+				curr_address = next_address;
+			}
+
+			respSent = RESP_SENT;
+		break;
         
 		default:
 			respSent = node_process_callback( cmdID, cmdHdr, cmdArgs, respHdr, respArgs, pktSrc, eth_dev_num);
@@ -678,9 +872,6 @@ int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char netw
     return num_total_words;
 
 }
-
-
-
 
 
 

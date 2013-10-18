@@ -154,7 +154,7 @@ void process_ipc_msg_from_low( wlan_ipc_msg* msg ) {
 	tx_frame_info* tx_mpdu;
 
 	u8  rx_pkt_buf;
-    u32 temp;
+    u32 temp_1, temp_2;
 
 
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
@@ -219,13 +219,15 @@ void process_ipc_msg_from_low( wlan_ipc_msg* msg ) {
 		case IPC_MBOX_HW_INFO:
 			// This message indicates CPU low is passing up node hardware information that only it has access to
 
-            temp = hw_info.type;
+			temp_1 = hw_info.type;
+			temp_2 = hw_info.wn_exp_eth_device;
 
 			// CPU Low updated the node's HW information
             //   NOTE:  this information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
 			memcpy((void*) &(hw_info), (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
 
-			hw_info.type = temp;
+			hw_info.type              = temp_1;
+			hw_info.wn_exp_eth_device = temp_2;
 
 #ifdef _DEBUG_
 			print_wlan_mac_hw_info( & hw_info );
