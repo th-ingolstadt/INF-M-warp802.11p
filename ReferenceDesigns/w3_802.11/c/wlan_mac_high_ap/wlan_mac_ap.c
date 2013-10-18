@@ -137,7 +137,7 @@ int main(){
 	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
 
-    wlan_mac_ltg_sched_set_callback(               (void*)ltg_event);
+    wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
 
     // Initialize interrupts
@@ -266,7 +266,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 
 
 
-	tx_event_log_entry = get_next_empty_rx_event();
+	tx_event_log_entry = get_next_empty_tx_event();
 
 	if(tx_event_log_entry != NULL){
 		tx_event_log_entry->state       = tx_mpdu->state;
