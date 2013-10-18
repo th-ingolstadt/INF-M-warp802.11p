@@ -34,6 +34,7 @@
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
+#include "wlan_mac_event_log.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
@@ -110,8 +111,8 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 	switch(cmdID){
 
-		case NODE_GET_ASSN_TBL:
-            // NODE_GET_ASSN_TBL Packet Format:
+		case NODE_GET_ASSN_STATUS:
+            // NODE_GET_ASSN_STATUS Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
             //   - cmdArgs32[0] - 31:16 - Number of tables to transmit per minute ( 0 => stop )
@@ -161,6 +162,27 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 		break;
 
         
+		case NODE_DISASSOCIATE:
+            // NODE_DISASSOCIATE Packet Format:
+            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
+            //
+            //   - cmdArgs32[0] - AID
+			//                  - 0xFFFF - Disassociate all
+			//
+			//   - Returns AID that was disassociated
+            //
+			xil_printf("Node Disassociate - STA\n");
+
+		break;
+
+
+		case NODE_RESET_STATS:
+			xil_printf("Reseting Statistics - STA\n");
+
+			reset_station_statistics();
+		break;
+
+
 		default:
 			xil_printf("Unknown node command: %d\n", cmdID);
 		break;
@@ -168,6 +190,112 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 	return respSent;
 }
+
+
+
+#if 0
+
+//Send bcast probe requests across all channels
+if(active_scan ==0){
+	num_ap_list = 0;
+	//xil_printf("- Free 0x%08x\n",ap_list);
+	free(ap_list);
+	ap_list = NULL;
+	active_scan = 1;
+	access_point_ssid = realloc(access_point_ssid, 1);
+	*access_point_ssid = 0;
+	//xil_printf("+++ starting active scan\n");
+	probe_req_transmit();
+}
+
+
+
+
+
+if(default_unicast_rate > WLAN_MAC_RATE_6M){
+	default_unicast_rate--;
+} else {
+	default_unicast_rate = WLAN_MAC_RATE_6M;
+}
+
+
+access_point.tx_rate = default_unicast_rate;
+
+
+
+
+
+
+if(ltg_mode == 0){
+	#define LTG_INTERVAL 10000
+	xil_printf("Enabling LTG mode to AP, interval = %d usec\n", LTG_INTERVAL);
+	cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
+	start_ltg(0, LTG_TYPE_CBR, &cbr_parameters);
+
+	ltg_mode = 1;
+
+} else {
+	stop_ltg(0);
+	ltg_mode = 0;
+	xil_printf("Disabled LTG mode to AID 1\n");
+}
+
+
+
+
+
+
+
+
+
+numerical_entry[curr_decade] = 0;
+curr_decade = 0;
+
+ap_sel = str2num(numerical_entry);
+
+if( (ap_sel >= 0) && (ap_sel <= (num_ap_list-1))){
+
+	if( ap_list[ap_sel].private == 0) {
+		uart_mode = UART_MODE_MAIN;
+		mac_param_chan = ap_list[ap_sel].chan;
+
+		//Send a message to other processor to tell it to switch channels
+		ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
+		ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
+		ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
+		init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
+		config_rf_ifc->channel = mac_param_chan;
+		ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+
+		xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
+		memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
+
+		access_point_ssid = realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
+		//xil_printf("allocated %d bytes in 0x%08x\n", strlen(ap_list[ap_sel].ssid), access_point_ssid);
+		strcpy(access_point_ssid,ap_list[ap_sel].ssid);
+
+		access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
+		memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates,access_point_num_basic_rates);
+
+		association_state = 1;
+		attempt_authentication();
+
+	} else {
+		xil_printf("\nInvalid selection, please choose an AP that is not private: ");
+	}
+
+
+} else {
+
+	xil_printf("\nInvalid selection, please choose a number between [0,%d]: ", num_ap_list-1);
+
+}
+
+
+#endif
+
+
 
 
 

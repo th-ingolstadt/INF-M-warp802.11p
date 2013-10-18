@@ -26,6 +26,7 @@
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
+#include "wlan_mac_event_log.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
@@ -144,7 +145,7 @@ int main(){
 	// Initialize the utility library
 	wlan_lib_init();
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
-	wlan_mac_util_init( WLAN_EXP_TYPE );
+    wlan_mac_util_init( WLAN_EXP_TYPE, WLAN_EXP_ETH );
 
 
 	// Initialize callbacks
@@ -155,7 +156,7 @@ int main(){
 	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
 
-    wlan_mac_ltg_set_callback(               (void*)ltg_event);
+	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
 
     // Initialize interrupts
@@ -278,19 +279,17 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 
 
 
-	tx_event_log_entry = get_curr_tx_log();
+	tx_event_log_entry = get_next_empty_tx_event();
 
 	if(tx_event_log_entry != NULL){
-		tx_event_log_entry->state = tx_mpdu->state;
-		tx_event_log_entry->AID = 1;
-		tx_event_log_entry->power = 0; //TODO
-		tx_event_log_entry->length = tx_mpdu->length;
-		tx_event_log_entry->rate = tx_mpdu->rate;
-		tx_event_log_entry->mac_type = tx_80211_header->frame_control_1;
-		tx_event_log_entry->seq = ((tx_80211_header->sequence_control)>>4)&0xFFF;
+		tx_event_log_entry->state       = tx_mpdu->state;
+		tx_event_log_entry->AID         = 1;
+		tx_event_log_entry->power       = 0; //TODO
+		tx_event_log_entry->length      = tx_mpdu->length;
+		tx_event_log_entry->rate        = tx_mpdu->rate;
+		tx_event_log_entry->mac_type    = tx_80211_header->frame_control_1;
+		tx_event_log_entry->seq         = ((tx_80211_header->sequence_control)>>4)&0xFFF;
 		tx_event_log_entry->retry_count = tx_mpdu->retry_count;
-
-		increment_log();
 	}
 
 	wlan_mac_util_process_tx_done(tx_mpdu, &(access_point));
@@ -529,7 +528,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	u8 is_associated = 0;
 
-	rx_event_log_entry = get_curr_rx_log();
+	rx_event_log_entry = get_next_empty_rx_event();
 
 
 	if(rx_event_log_entry != NULL){
@@ -541,8 +540,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
 			rx_event_log_entry->seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			rx_event_log_entry->flags = 0; //TODO: fill in with retry flag, etc
-
-			increment_log();
 	}
 
 

@@ -22,7 +22,8 @@
 // ****************************************************************************
 // Define WLAN Exp Node Station Commands
 //
-#define NODE_GET_ASSN_TBL       5
+#define NODE_GET_AP_LIST               14
+#define NODE_ASSOCIATE                 15
 
 
 // ****************************************************************************
