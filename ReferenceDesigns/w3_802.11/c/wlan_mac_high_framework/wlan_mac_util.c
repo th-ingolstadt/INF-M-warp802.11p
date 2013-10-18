@@ -32,6 +32,7 @@
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_ipc.h"
 #include "wlan_mac_ltg.h"
+#include "wlan_mac_event_log.h"
 
 #include "wlan_exp_common.h"
 
@@ -88,12 +89,6 @@ static u8               timer_running       [NUM_SCHEDULERS];
 // Node information
 wlan_mac_hw_info   	hw_info;
 u8					dram_present;
-
-// Event list
-void* event_log;
-u32 max_event_log;
-u8 enable_event_logging;
-u32 log_index;
 
 // WARPNet information
 #ifdef USE_WARPNET_WLAN_EXP
@@ -156,7 +151,7 @@ void wlan_mac_util_init_data(){
 
 
 
-void wlan_mac_util_init( u32 type ){
+void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	int            Status;
     u32            i;
 	u32            gpio_read;
@@ -254,18 +249,11 @@ void wlan_mac_util_init( u32 type ){
 
 	if(dram_present){
 		//The event_list lives in DRAM immediately following the queue payloads.
-		event_log = (void*)DDR3_BASEADDR + queue_len;
-		if(ENABLE_EVENT_LOGGING) enable_event_logging = 1;
 		if(MAX_EVENT_LOG == -1){
-			max_event_log = DDR3_SIZE - queue_len;
+			event_log_init( (void*)(DDR3_BASEADDR + queue_len), (DDR3_SIZE - queue_len) );
 		} else {
-			max_event_log = min(DDR3_SIZE - queue_len, MAX_EVENT_LOG);
+			event_log_init( (void*)(DDR3_BASEADDR + queue_len), min( (DDR3_SIZE - queue_len), MAX_EVENT_LOG ) );
 		}
-
-		max_event_log = max_event_log / EVENT_SIZE;
-
-		reset_log();
-
 	}
 
 	wlan_eth_init();
@@ -292,7 +280,8 @@ void wlan_mac_util_init( u32 type ){
 	timer_running[TIMER_CNTR_SLOW] = 0;
     
     // Get the type of node from the input parameter
-    hw_info.type = type;
+    hw_info.type              = type;
+    hw_info.wn_exp_eth_device = eth_dev_num;
     
 #ifdef USE_WARPNET_WLAN_EXP
     // We cannot initialize WARPNet until after the lower CPU sends all the HW information to us through the IPC call
@@ -303,74 +292,7 @@ void wlan_mac_util_init( u32 type ){
 
 }
 
-rx_event* get_curr_rx_log(){
-	rx_event* return_value = NULL;
 
-	if((log_index+1) < max_event_log && enable_event_logging){
-		return_value = &(((rx_event*)event_log)[log_index]);
-		return_value->event_type = EVENT_TYPE_RX;
-		return_value->event_length = sizeof(rx_event) - 12; //12 bytes of event header
-		return_value->timestamp = get_usec_timestamp();
-	}
-
-	return return_value;
-}
-
-tx_event* get_curr_tx_log(){
-	tx_event* return_value = NULL;
-
-	if((log_index+1) < max_event_log && enable_event_logging){
-		return_value = &(((tx_event*)event_log)[log_index]);
-		return_value->event_type = EVENT_TYPE_TX;
-		return_value->event_length = sizeof(tx_event) - 12; //12 bytes of event header
-		return_value->timestamp = get_usec_timestamp();
-	}
-
-	return return_value;
-}
-
-void increment_log(){
-	if((log_index+1) < max_event_log){
-		log_index++;
-	}
-}
-
-void reset_log(){
-	log_index = 0;
-}
-
-void print_event_log(){
-	u32 i;
-	rx_event* rx_event_log_item;
-	tx_event* tx_event_log_item;
-
-	for(i=0;i<log_index;i++){
-		switch( (((default_event*)event_log)[i]).event_type ){
-			case EVENT_TYPE_RX:
-				rx_event_log_item = &(((rx_event*)event_log)[i]);
-				xil_printf("%d: [%d] - Rx Event\n", i, (u32)rx_event_log_item->timestamp);
-				xil_printf("   Pow:      %d\n", rx_event_log_item->power);
-				xil_printf("   Seq:      %d\n", rx_event_log_item->seq);
-				xil_printf("   Rate:     %d\n", rx_event_log_item->rate);
-				xil_printf("   Length:   %d\n", rx_event_log_item->length);
-				xil_printf("   State:    %d\n", rx_event_log_item->state);
-				xil_printf("   MAC Type: 0x%x\n", rx_event_log_item->mac_type);
-				xil_printf("   Flags:    0x%x\n", rx_event_log_item->flags);
-			break;
-			case EVENT_TYPE_TX:
-				tx_event_log_item = &(((tx_event*)event_log)[i]);
-				xil_printf("%d: [%d] - Tx Event\n", i, (u32)tx_event_log_item->timestamp);
-				xil_printf("   Pow:      %d\n", tx_event_log_item->power);
-				xil_printf("   Seq:      %d\n", tx_event_log_item->seq);
-				xil_printf("   Rate:     %d\n", tx_event_log_item->rate);
-				xil_printf("   Length:   %d\n", tx_event_log_item->length);
-				xil_printf("   State:    %d\n", tx_event_log_item->state);
-				xil_printf("   MAC Type: 0x%x\n", tx_event_log_item->mac_type);
-				xil_printf("   Retry:    %d\n", tx_event_log_item->retry_count);
-			break;
-		}
-	}
-}
 
 void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
 	//FIXME: Temporarily moved ISR to mac_util
@@ -687,9 +609,11 @@ u64 get_usec_timestamp(){
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
+
 	timestamp_high_u32 = XGpio_DiscreteRead(&GPIO_timestamp,TIMESTAMP_GPIO_MSB_CHAN);
-	timestamp_low_u32 = XGpio_DiscreteRead(&GPIO_timestamp,TIMESTAMP_GPIO_LSB_CHAN);
-	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+	timestamp_low_u32  = XGpio_DiscreteRead(&GPIO_timestamp,TIMESTAMP_GPIO_LSB_CHAN);
+	timestamp_u64      = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+
 	return timestamp_u64;
 }
 
