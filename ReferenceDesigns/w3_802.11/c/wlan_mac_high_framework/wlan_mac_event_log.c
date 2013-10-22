@@ -14,22 +14,28 @@
 // events that occur within a WLAN node.  If the buffer is full, then events
 // will be dropped with only a single warning printed to the screen.
 //
-//   Internally, the event log is just an array of bytes.  When a new event
-// is requested, the size of the event is allocated from the buffer and a pointer
-// to the allocated event is provided so that the caller can fill in the event
-// information.
+//   There are configuration options to enable / disable wrapping (ie if
+// wrapping is enabled, then the buffer is never "full" and the oldest
+// events will be overwritten when there is no more free space).  Wrapping
+// is disabled by default.
+//
+//   Internally, the event log is just an array of bytes which can be externally
+// viewed as indexed from 0 to log_size (address translation is done internally).
+// When a new event is requested, the size of the event is allocated from the
+// buffer and a pointer to the allocated event is provided so that the caller
+// can fill in the event information.  By default, the event log will set up all
+// header information (defined in wlan_mac_event_log.h) and that information
+// will not be exposed to user code.
 //
 //   The event log will always provide a contiguous piece of memory for events.
 // Therefore, some space could be wasted at the wrap boundary since a single event
 // will never wrap.
 //
 //   Also, if an event cannot be allocated due to it overflowing the array, then
+// the event log will check to see if wrapping is enabled.  If wrapping is disabled,
 // the event log will set the full flag and not allow any more events to be
-// allocated until event_log_delete() is called to free up space.  One limitation
-// of this approach is that if a large event fails to be allocated, the event
-// log will lock out all subsequent events even if there was sufficient space
-// for them.  However, this should not cause too many issues given that events
-// are extremely small relative to the event log.
+// allocated.  Otherwise, the event log will wrap and begin to overwrite the
+// oldest events.
 //
 //   Finally, the log does not keep track of event entries and it is up to
 // calling functions to interpret the bytes within the log correctly.
@@ -46,6 +52,7 @@
 
 // WLAN includes
 #include "wlan_mac_event_log.h"
+#include "wlan_mac_events.h"
 #include "wlan_mac_util.h"
 
 
@@ -67,12 +74,16 @@ static u32   log_max_address;          // Absolute end address of the log
 static u32   log_size;                 // Size of the log in bytes
 
 // Log index variables
-static u32   log_head_address;         // Theoretically:  log_tail_address = ( log_head_address - 1 ) % log_max_address;
+static u32   log_head_address;         // Pointer to the oldest event
 static u32   log_curr_address;
+
+// Log config variables
+static u8    log_wrap_enabled;         // Will the log wrap or stop; By default wrapping is DISABLED
 
 // Log status variables
 static u8    log_empty;                // log_empty = (log_head_address == log_curr_address);
 static u8    log_full;                 // log_full  = (log_tail_address == log_curr_address);
+static u32   log_count;
 
 // Variable to control if events are recorded in to the log
 u8           enable_event_logging;
@@ -86,9 +97,8 @@ static u8    allocation_mutex;
 
 // Internal functions;  Should not be called externally
 //
-u32             event_log_increment_head_address( u32 size );
+void            event_log_increment_head_address( u32 size );
 int             event_log_get_next_empty_address( u32 size, u32 * address );
-default_event * event_log_get_next_empty_event( u32 size );
 
 
 /******************************** Functions **********************************/
@@ -121,10 +131,13 @@ void event_log_init( char * start_address, u32 size ) {
 	log_start_address = (u32) start_address;
 	log_max_address   = log_start_address + log_size - 1;
 
+	// Set wrapping to be disabled
+	log_wrap_enabled  = 0;
+
 	// Reset all the event log variables
 	event_log_reset();
 
-#ifdef _DEBUG_
+// #ifdef _DEBUG_
 	xil_printf("    log_size             = 0x%x;\n", log_size );
 	xil_printf("    log_start_address    = 0x%x;\n", log_start_address );
 	xil_printf("    log_max_address      = 0x%x;\n", log_max_address );
@@ -134,7 +147,7 @@ void event_log_init( char * start_address, u32 size ) {
 	xil_printf("    log_empty            = 0x%x;\n", log_empty );
 	xil_printf("    log_full             = 0x%x;\n", log_full );
 	xil_printf("    allocation_mutex     = 0x%x;\n", allocation_mutex );
-#endif
+// #endif
 }
 
 
@@ -147,7 +160,7 @@ void event_log_init( char * start_address, u32 size ) {
 *
 * @return	None.
 *
-* @note		None.
+* @note		This will not change the state of the wrapping configuration
 *
 ******************************************************************************/
 void event_log_reset(){
@@ -158,6 +171,7 @@ void event_log_reset(){
 
 	log_empty            = 1;
 	log_full             = 0;
+	log_count            = 0;
 
 	allocation_mutex     = 0;
 }
@@ -166,33 +180,36 @@ void event_log_reset(){
 
 /*****************************************************************************/
 /**
-* Returns bytes that have been allocated in the event log to the free pool
-*   so they can be reallocated for new entries
+* Set the wrap configuration parameter
 *
-* @param    size        - Number of bytes of entries to "delete"
+* @param    enable    - Is wrapping enabled?
+*                           EVENT_LOG_WRAP_ENABLE
+*                           EVENT_LOG_WRAP_DISABLE
 *
-* @return	-1          - If the log is empty, this function will return -1
-*           num_bytes   - The number of bytes deleted from the log
+* @return	status    - SUCCESS = 0
+*                       FAILURE = -1
 *
 * @note		None.
 *
 ******************************************************************************/
-int  event_log_delete( u32 size ) {
+int       event_log_config_wrap( u32 enable ) {
+	int ret_val = 0;
 
-	int return_value = -1;
+	switch ( enable ) {
+	    case EVENT_LOG_WRAP_ENABLE:
+	    	log_wrap_enabled  = 1;
+	        break;
 
-	// If the log is empty, return -1
-	if ( log_empty ) { return return_value; }
+	    case EVENT_LOG_WRAP_DISABLE:
+	    	log_wrap_enabled  = 0;
+	        break;
 
-	// Move the log_head_address; All wrapping is handled in the function; Empty flag is set if necessary
-	return_value = event_log_increment_head_address( size );
-
-	// Remove the full flag if set
-	if ( return_value > 0 ) {
-		if ( log_full ) { log_full = 0; }
+        default:
+        	ret_val = -1;
+            break;
 	}
 
-	return return_value;
+	return ret_val;
 }
 
 
@@ -201,28 +218,23 @@ int  event_log_delete( u32 size ) {
 /**
 * Get event log data
 *   Based on the start address and the size, the function will fill in the
-* appropriate number of bytes in to the buffer.  Only "valid" bytes (ie bytes
-* between log_head_address and log_curr_address will be returned.
-*
-*   This function hides all aspects that this is implemented as a circular buffer.
+* appropriate number of bytes in to the buffer.  It is up to the caller
+* to determine if the bytes are "valid".
 *
 * @param    start_address    - Address in the event log to start the transfer
+*                                (ie byte index from 0 to log_size)
 *           size             - Size in bytes of the buffer
 *           buffer           - Pointer to the buffer to be filled in with event data
+*                                (buffer must be pre-allocated and be at least size bytes)
 *
 * @return	num_bytes        - The number of bytes filled in to the buffer
 *
-* @note		Callers should only use start addresses provided by either:
-*               event_log_get_head_address()
-*               event_log_get_address_from_head( size )
-*           these functions will perform the appropriate wrapping so there
-*           is no worry about overflowing a u32.
+* @note		Any requests for data that is out of bounds will print a warning and
+*           return 0 bytes.  If a request exceeds the size of the array, then
+*           the request will be truncated.
 *
 ******************************************************************************/
 u32  event_log_get_data( u32 start_address, u32 size, char * buffer ) {
-
-	u32 temp_size;
-	u32 temp_address;
 
 	u64 end_address;
 	u32 num_bytes     = 0;
@@ -230,75 +242,28 @@ u32  event_log_get_data( u32 start_address, u32 size, char * buffer ) {
 	// If the log is empty, then return 0
     if ( log_empty == 1 ) { return num_bytes; }
 
-    // Compute the end address for validity checks
-    end_address = start_address + size;
-
-    if ( log_curr_address >= log_head_address ) {
-    	// The log has not wrapped
-
-    	// Check that the start address is valid
-    	if ( ( start_address >= log_head_address ) && ( start_address < log_curr_address ) ) {
-
-    		if ( end_address < log_curr_address ) {
-        		// There is enough data for a full transfer
-				num_bytes = size;
-    		} else {
-    			// There is not enough data for a full transfer
-    			num_bytes = log_curr_address - start_address;
-    		}
-
-			// Copy the data in to the buffer
-			memcpy( (void *) buffer, (void *) start_address, num_bytes );
-
-    	} else {
-        	xil_printf("ERROR:  Invalid Log request:  Address = 0x%x   Size = 0x%x \n", start_address, size);
-    	}
-    } else {
-    	// The log has wrapped
-
-    	// Check that the start address is valid
-    	if ( ( ( start_address >= log_start_address ) && ( start_address < log_curr_address     ) ) ||
-             ( ( start_address >= log_head_address  ) && ( start_address < log_soft_end_address ) ) ) {
-
-			if ( end_address <= log_soft_end_address ) {
-				// The transfer does not need to wrap
-
-				// There is guaranteed to be enough data since the buffer wraps but the transfer does not
-				num_bytes = size;
-
-				// Copy the data in to the buffer
-				memcpy( (void *) buffer, (void *) start_address, num_bytes );
-
-			} else {
-				// The transfer needs to wrap
-
-				// Transfer all data before the wrap
-				temp_size = log_soft_end_address - start_address;
-				memcpy( (void *) buffer, (void *) start_address, temp_size );
-
-				// Get the remaining bytes to transfer
-				temp_size = size - temp_size;
-
-				// Compute the wrapped end address
-				temp_address = log_start_address + temp_size;
-
-				// Transfer the remaining bytes
-	    		if ( temp_address < log_curr_address ) {
-	        		// There is enough data for a full transfer
-					num_bytes = size;
-	    		} else {
-	    			// There is not enough data for a full transfer
-	    			temp_size = temp_size - (temp_address - log_curr_address);
-	    			num_bytes = size - (temp_address - log_curr_address);
-	    		}
-
-				// Copy the data in to the buffer
-				memcpy( (void *) buffer, (void *) start_address, temp_size );
-			}
-    	} else {
-        	xil_printf("ERROR:  Invalid Log request:  Address = 0x%x   Size = 0x%x \n", start_address, size);
-    	}
+    // Check that the start_address is less than the log_size
+    if ( start_address > log_size ) {
+    	xil_printf("WARNING:  EVENT LOG - Index out of bounds\n");
+    	xil_printf("          Data request from %d when the log only has %d bytes\n", start_address, log_size);
+    	return num_bytes;
     }
+
+    // Translate the start address from an index to the actual memory location
+    start_address = start_address + log_start_address;
+
+    // Compute the end address for validity checks
+    end_address = log_start_address + start_address + size;
+
+    // Check that the end address is less than the end of the buffer
+    if ( end_address > log_soft_end_address ) {
+    	num_bytes = log_soft_end_address - start_address;
+    } else {
+    	num_bytes = size;
+    }
+
+	// Copy the data in to the buffer
+	memcpy( (void *) buffer, (void *) start_address, num_bytes );
 
     return num_bytes;
 }
@@ -327,11 +292,11 @@ u32  event_log_get_size( void ) {
 		size = log_size - ( log_head_address - log_curr_address );
 	}
 
-#ifdef _DEBUG_
+// #ifdef _DEBUG_
 	xil_printf("Event Log:  size             = 0x%x\n", size );
 	xil_printf("Event Log:  log_curr_address = 0x%x\n", log_curr_address );
 	xil_printf("Event Log:  log_head_address = 0x%x\n", log_head_address );
-#endif
+// #endif
 
 	return size;
 }
@@ -340,50 +305,34 @@ u32  event_log_get_size( void ) {
 
 /*****************************************************************************/
 /**
-* Get the address of the head of the log
+* Get the address of the current write pointer
 *
 * @param    None.
 *
-* @return	u32    - Address of the head of the log
+* @return	u32    - Index of the event log of the current write pointer
 *
 * @note		None.
 *
 ******************************************************************************/
-u32  event_log_get_head_address( void ) {
-    return log_head_address;
+u32  event_log_get_current_index( void ) {
+    return ( log_curr_address - log_start_address );
 }
 
 
 
 /*****************************************************************************/
 /**
-* Get the address of the head of the log
+* Get the index of the oldest event
 *
 * @param    None.
 *
-* @return	u32    - Address of the head of the log
+* @return	u32    - Index of the event log of the oldest event
 *
 * @note		None.
 *
 ******************************************************************************/
-u32  event_log_get_address_from_head( u32 size ) {
-
-	u64 end_address;
-	u32 temp_size;
-	u32 return_address;
-
-	// Calculate end address (need to make sure we don't overflow u32)
-	end_address = log_head_address + size;
-
-	if ( end_address > log_soft_end_address ) {
-		// Wrap the address
-        temp_size      = size - ( log_soft_end_address - log_head_address );
-        return_address = (u32) (log_start_address + temp_size);
-	} else {
-	    return_address = (u32) end_address;
-	}
-
-	return return_address;
+u32  event_log_get_oldest_event_index( void ) {
+    return ( log_head_address - log_start_address );
 }
 
 
@@ -396,70 +345,55 @@ u32  event_log_get_address_from_head( u32 size ) {
 *
 * @return	num_bytes   - Number of bytes that the head address moved
 *
-* @note		None.
+* @note		This function will blindly increment the head address by 'size'
+*           bytes (ie it does not check the log_head_address relative to the
+*           log_curr_address).  It is the responsibility of the calling
+*           function to make sure this is only called when appropriate.
 *
 ******************************************************************************/
-u32 event_log_increment_head_address( u32 size ) {
+void event_log_increment_head_address( u32 size ) {
 
-    u64 end_address;
-	u32 temp_size;
-	u32 return_value = 0;
+    u64            end_address;
+    event_header * event;
 
 	// Calculate end address (need to make sure we don't overflow u32)
     end_address = log_head_address + size;
 
-    // Check if the log has wrapped
-    if ( log_curr_address >= log_head_address ) {
-    	// The log has not wrapped
+    // Check to see if we will wrap with the current increment
+    if ( end_address > log_soft_end_address ) {
+        // We will wrap the log
 
-        // Check that we don't pass the log_curr_address
-    	if ( end_address < log_curr_address ) {
+    	// Reset the log_soft_end_address to the end of the array
+    	log_soft_end_address = log_max_address;
 
-    		// Move the log_head_address
-           	return_value     = size;
-			log_head_address = (u32) end_address;
-    	} else {
+    	// Move the log_soft_head_address to the beginning of the array and move it
+    	//   at least 'size' bytes from the front of the array.  This is done to mirror
+    	//   how allocation of the log_curr_address works.  Also, b/c of this allocation
+    	//   scheme, we are guaranteed that log_start_address is the beginning of an event.
+    	log_head_address = log_start_address;
+    	end_address      = log_start_address + size;
 
-    		// Set the head equal to the curr and return the size
-    		return_value     = log_head_address - log_curr_address;
-    		log_head_address = log_curr_address;
-    		log_empty        = 1;
-    	}
+		// Move the head address an integer number of events until it points to the
+		//   first event after the allocation
+		event = (event_header *) log_head_address;
+
+		while ( log_head_address < end_address ) {
+			log_head_address += ( event->event_length + sizeof( event_header ) );
+			event             = (event_header *) log_head_address;
+		}
+
     } else {
-    	// The log has wrapped
+    	// We will not wrap
 
-        if ( end_address > log_soft_end_address ) {
-        	// Wrap the address
-            temp_size        = size - ( log_soft_end_address - log_head_address );
-            end_address      = log_start_address + temp_size;
+		// Move the head address an integer number of events until it points to the
+		//   first event after the allocation
+		event = (event_header *) log_head_address;
 
-            // Check that we don't pass the log_curr_address
-        	if ( end_address < log_curr_address ) {
-
-        		// Move the log_head_address
-            	return_value     = size;
-            	log_head_address = (u32) end_address;
-        	} else {
-
-        		// Set the head equal to the curr and return the size
-        		return_value     = size - ( end_address - log_curr_address );
-        		log_head_address = log_curr_address;
-        		log_empty        = 1;
-        	}
-
-            // Reset the log_soft_end_address back to the end of the buffer since we wrapped
-        	//   log_head_address back to the beginning of the buffer
-            log_soft_end_address = log_max_address;
-        } else {
-            // Address does not wrap; also since log_curr_address <= log_head_address we
-        	//   do not have to check that we pass log_curr_address
-
-        	log_head_address = (u32) end_address;
-        	return_value     = size;
-        }
+		while ( log_head_address < end_address ) {
+			log_head_address += ( event->event_length + sizeof( event_header ) );
+			event             = (event_header *) log_head_address;
+		}
     }
-
-    return return_value;
 }
 
 
@@ -483,10 +417,10 @@ u32 event_log_increment_head_address( u32 size ) {
 ******************************************************************************/
 int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 
-	int status         = 1;            // Initialize status to FAILED
-	u32 return_address = 0;
+	int   status         = 1;            // Initialize status to FAILED
+	u32   return_address = 0;
 
-	u64 end_address;
+	u64   end_address;
 
 	// If the log is empty, then set the flag to zero to indicate the log is not empty
 	if ( log_empty ) { log_empty = 0; }
@@ -509,21 +443,29 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    if ( end_address > log_soft_end_address ) {
 		    	// Current allocation will wrap the log
 
-		    	// Compute new end address
-		    	end_address = log_start_address + size;
+		    	// Check to see if wrapping is enabled
+		    	if ( log_wrap_enabled ) {
 
-		    	// Check that we have enough space in the buffer for the allocation
-		    	if ( end_address < log_head_address ) {
-			    	// Set the log_soft_end_address and allocate the new event from the beginning of the buffer
-		    		log_soft_end_address = log_curr_address;
-		    		log_curr_address     = end_address;
+					// Compute new end address
+					end_address = log_start_address + size;
 
-		    		// Return address is the beginning of the buffer
-		    		return_address = log_start_address;
-		    		status         = 0;
+					// Check that we are not going to pass the head address
+					if ( end_address > log_head_address ) {
+
+						event_log_increment_head_address( size );
+					}
+
+					// Set the log_soft_end_address and allocate the new event from the beginning of the buffer
+					log_soft_end_address = log_curr_address;
+					log_curr_address     = end_address;
+
+					// Return address is the beginning of the buffer
+					return_address = log_start_address;
+					status         = 0;
+
 		    	} else {
-		    		// Set the full flag and fail
-		    		log_full = 1;
+					// Set the full flag and fail
+					log_full = 1;
 
 					// Log is now full, print warning
 					xil_printf("---------------------------------------- \n");
@@ -533,7 +475,8 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    } else {
 		    	// Current allocation does not wrap
 
-		    	// NOTE: This should be the most common case
+		    	// NOTE: This should be the most common case; since we know the log has not wrapped
+		    	//   we do not need to increment the log_head_address.
 
 	    		// Set the return address and then move the log_curr_address
 	    		return_address   = log_curr_address;
@@ -542,24 +485,56 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    }
 	    } else {
 	    	// The log has wrapped
+	    	//   NOTE:  Even though the log has wrapped, we cannot assume that the wrap flag
+	    	//     continues to allow the log to wrap.
 
-	    	// Check that we have enough space in the buffer for the allocation
-	    	if ( end_address < log_head_address ) {
+			// Check that we are not going to pass the head address
+	    	//   NOTE:  This will set the log_soft_end_address if the head_address passes the end of the array
+			if ( end_address > log_head_address ) {
+
+				event_log_increment_head_address( size );
+			}
+
+		    // Check to see if we will wrap with the current allocation
+		    if ( end_address > log_soft_end_address ) {
+		    	// Current allocation will wrap the log
+
+		    	// Check to see if wrapping is enabled
+		    	if ( log_wrap_enabled ) {
+
+					// Compute new end address
+					end_address = log_start_address + size;
+
+					// NOTE:  We have already incremented the log_head_address by size.  Since the
+					//   event_log_increment_head_address() function follows the same allocation scheme
+					//   we are guaranteed that at least 'size' bytes are available at the beginning of the
+					//   array if we wrapped.  Therefore, we do not need to check the log_head_address again.
+
+					// Set the log_soft_end_address and allocate the new event from the beginning of the buffer
+					log_soft_end_address = log_curr_address;
+					log_curr_address     = end_address;
+
+					// Return address is the beginning of the buffer
+					return_address = log_start_address;
+					status         = 0;
+
+		    	} else {
+					// Set the full flag and fail
+					log_full = 1;
+
+					// Log is now full, print warning
+					xil_printf("---------------------------------------- \n");
+					xil_printf("EVENT LOG:  WARNING - Event Log FULL !!! \n");
+					xil_printf("---------------------------------------- \n");
+		    	}
+		    } else {
+		    	// Current allocation does not wrap
 
 	    		// Set the return address and then move the log_curr_address
 	    		return_address   = log_curr_address;
 	    		log_curr_address = end_address;
 	    		status           = 0;
-
-	    	} else {
-	    		// Set the full flag and fail
-	    		log_full = 1;
-
-				// Log is now full, print warning
-				xil_printf("---------------------------------------- \n");
-				xil_printf("EVENT LOG:  WARNING - Event Log FULL !!! \n");
-				xil_printf("---------------------------------------- \n");
-	    	}
+		    }
 	    }
 
 		// Set the mutex to '0' to allow for future allocations
@@ -578,95 +553,52 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 /**
 * Get the next empty event
 *
-* @param    None.
+* @param    event_type  - Type of event
+*           event_size  - Size of the event payload
 *
-* @return	default_event *   - Pointer to the next event
+* @return	void *      - Pointer to the next event payload
 *
 * @note		None.
 *
 ******************************************************************************/
-default_event * event_log_get_next_empty_event( u32 size ) {
+void * event_log_get_next_empty_event( u16 event_type, u16 event_size ) {
 
 	u32            log_address;
-	default_event* return_event = NULL;
+	u32            total_size;
+	event_header * header       = NULL;
+	void *         return_event = NULL;
 
     // If Event Logging is enabled, then allocate event
 	if( enable_event_logging ){
 
+		total_size = event_size + sizeof( event_header );
+
 		// Try to allocate the next event
-	    if ( !event_log_get_next_empty_address( size, &log_address ) ) {
+	    if ( !event_log_get_next_empty_address( total_size, &log_address ) ) {
 
 	    	// Use successfully allocated address for the event entry
-			return_event = (default_event*) log_address;
+			header = (event_header*) log_address;
 
 			// Zero out event
-			bzero( (void *) return_event, size );
+			bzero( (void *) header, total_size );
 
-			// Set common parameters and leave the type as an invalid value
-			return_event->timestamp    = get_usec_timestamp();
-			return_event->event_length = size;
+			// Set header parameters
+			//   - Use the upper 16 bits of the timestamp to place a magic number
+			header->timestamp    = EVENT_LOG_MAGIC_NUMBER + ( 0x0000FFFFFFFFFFFF & get_usec_timestamp() );
+			header->event_type   = event_type;
+			header->event_length = event_size;
+            header->event_id     = log_count++;
+
+            // Get a pointer to the event payload
+            return_event         = (void *) ( header + sizeof( event_header ) );
 
 #ifdef _DEBUG_
-			xil_printf("Event (%6d bytes) = 0x%x  \n", size, return_event );
+			xil_printf("Event (%6d bytes) = 0x%x  \n", event_size, return_event );
 #endif
 	    }
 	}
 
 	return return_event;
-}
-
-
-
-/*****************************************************************************/
-/**
-* Get the next empty RX event
-*
-* @param    None.
-*
-* @return	rx_event *   - Pointer to the next "empty" RX event or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-rx_event* get_next_empty_rx_event(){
-	rx_event* return_value;
-
-	// Get the next empty event
-	return_value = (rx_event *)event_log_get_next_empty_event( EVENT_SIZE );
-
-	// Set the event type; other parameters set by call to get_next_empty_event()
-	if ( return_value != NULL ) {
-		return_value->event_type = EVENT_TYPE_RX;
-	}
-
-	return return_value;
-}
-
-
-
-/*****************************************************************************/
-/**
-* Get the next empty TX event
-*
-* @param    None.
-*
-* @return	tx_event *   - Pointer to the next "empty" TX event or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-tx_event* get_next_empty_tx_event(){
-	tx_event* return_value;
-
-	// Get the next empty event
-	return_value = (tx_event *)event_log_get_next_empty_event( EVENT_SIZE );
-
-	// Set the event type; other parameters set by call to get_next_empty_event()
-	if ( return_value != NULL ) {
-		return_value->event_type = EVENT_TYPE_TX;
-	}
-
-	return return_value;
 }
 
 
@@ -682,112 +614,97 @@ tx_event* get_next_empty_tx_event(){
 * @note		None.
 *
 ******************************************************************************/
-void print_event_log(){
-	u64             i;
-	u32             event_count;
-	default_event * default_event_log_item;
+void print_event_log( u32 num_events ) {
+	u32            i;
+	u32            event_address;
+	u32            event_count;
+	event_header * event_hdr;
+	void         * event;
 
 	// Initialize count
-	event_count = 0;
+	event_count   = 0;
+	event_address = log_head_address;
 
     // Check if the log has wrapped
     if ( log_curr_address >= log_head_address ) {
     	// The log has not wrapped
 
     	// Print the log from log_head_address to log_curr_address
-    	for( i = log_head_address; i < log_curr_address; ){
-    		default_event_log_item = (default_event*) ((u32) i);
+    	for( i = event_count; i < num_events; i++ ){
 
-    		// Print event
-    		print_event( event_count, default_event_log_item);
+    		// Check that the current event address is less than log_curr_address
+    		if ( event_address < log_curr_address ) {
 
-    		// Increment event count
-    	    event_count++;
+    			event_hdr = (event_header*) event_address;
+    			event     = (void * ) ( event_hdr + sizeof( event_header ) );
 
-    	    // Increment loop variable
-    		i += default_event_log_item->event_length;
+        		// Print event
+    		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
+
+        	    // Get the next event
+        		event_address += ( event_hdr->event_length + sizeof( event_header ) );
+
+    		} else {
+    			// Exit the loop
+    			break;
+    		}
     	}
 
     } else {
     	// The log has wrapped
 
     	// Print the log from log_head_address to the end of the buffer
-    	for( i = log_head_address; i < log_soft_end_address; ){
-    		default_event_log_item = (default_event*) ((u32) i);
+    	for( i = event_count; i < num_events; i++ ){
 
-    		// Print event
-    		print_event( event_count, default_event_log_item);
+    		// Check that the current event address is less than the end of the log
+    		if ( event_address < log_soft_end_address ) {
 
-    		// Increment event count
-    	    event_count++;
+    			event_hdr = (event_header*) event_address;
+    			event     = (void * ) ( event_hdr + sizeof( event_header ) );
 
-    	    // Increment loop variable
-    		i += default_event_log_item->event_length;
+        		// Print event
+    		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
+
+        	    // Get the next event
+        		event_address += ( event_hdr->event_length + sizeof( event_header ) );
+
+    		} else {
+    			// Exit the loop and set the event to the beginning of the buffer
+    			event_address  = log_start_address;
+    			event_count    = i;
+    			break;
+    		}
     	}
 
-    	// Print the log from the start of the buffer to log_curr_address
-    	for( i = log_start_address; i < log_curr_address; ){
-    		default_event_log_item = (default_event*) ((u32) i);
 
-    		// Print event
-    		print_event( event_count, default_event_log_item);
+    	// If we still have events to print, then start at the beginning
+    	if ( event_count < num_events ) {
 
-    		// Increment event count
-    	    event_count++;
+			// Print the log from the beginning to log_curr_address
+			for( i = event_count; i < num_events; i++ ){
 
-    	    // Increment loop variable
-    		i += default_event_log_item->event_length;
+				// Check that the current event address is less than log_curr_address
+				if ( event_address < log_curr_address ) {
+
+	    			event_hdr = (event_header*) event_address;
+	    			event     = (void * ) ( event_hdr + sizeof( event_header ) );
+
+	        		// Print event
+	    		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
+
+					// Get the next event
+	        		event_address += ( event_hdr->event_length + sizeof( event_header ) );
+
+				} else {
+					// Exit the loop
+					break;
+				}
+			}
     	}
     }
 }
 
 
-
-/*****************************************************************************/
-/**
-* Prints an event
-*
-* @param    None.
-*
-* @return	None.
-*
-* @note		None.
-*
-******************************************************************************/
-void print_event( u32 event_number, default_event * event ){
-	rx_event      * rx_event_log_item;
-	tx_event      * tx_event_log_item;
-
-	switch( event->event_type ){
-		case EVENT_TYPE_RX:
-			rx_event_log_item = (rx_event*) event;
-			xil_printf("%d: [%d] - Rx Event\n", event_number, (u32)rx_event_log_item->timestamp);
-			xil_printf("   Pow:      %d\n",     rx_event_log_item->power);
-			xil_printf("   Seq:      %d\n",     rx_event_log_item->seq);
-			xil_printf("   Rate:     %d\n",     rx_event_log_item->rate);
-			xil_printf("   Length:   %d\n",     rx_event_log_item->length);
-			xil_printf("   State:    %d\n",     rx_event_log_item->state);
-			xil_printf("   MAC Type: 0x%x\n",   rx_event_log_item->mac_type);
-			xil_printf("   Flags:    0x%x\n",   rx_event_log_item->flags);
-		break;
-
-		case EVENT_TYPE_TX:
-			tx_event_log_item = (tx_event*) event;
-			xil_printf("%d: [%d] - Tx Event\n", event_number, (u32)tx_event_log_item->timestamp);
-			xil_printf("   Pow:      %d\n",     tx_event_log_item->power);
-			xil_printf("   Seq:      %d\n",     tx_event_log_item->seq);
-			xil_printf("   Rate:     %d\n",     tx_event_log_item->rate);
-			xil_printf("   Length:   %d\n",     tx_event_log_item->length);
-			xil_printf("   State:    %d\n",     tx_event_log_item->state);
-			xil_printf("   MAC Type: 0x%x\n",   tx_event_log_item->mac_type);
-			xil_printf("   Retry:    %d\n",     tx_event_log_item->retry_count);
-		break;
-
-		default:
-			xil_printf("%d: [%d] - Unknown Event\n", event_number, (u32)event->timestamp);
-		break;
-	}
-}
 
 
 

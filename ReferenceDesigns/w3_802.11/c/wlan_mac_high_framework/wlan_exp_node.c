@@ -269,7 +269,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           start_address;
 	u32           curr_address;
 	u32           next_address;
-	u32           transfer_address;
 	u32           size;
 	u32           evt_log_size;
 	u32           transfer_size;
@@ -583,12 +582,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	            respHdr->length = 20 + transfer_size;
 
 				// Transfer data
-	            transfer_address = event_log_get_address_from_head( curr_address );
-
-				num_bytes = event_log_get_data( transfer_address, transfer_size, (char *) &respArgs32[5] );
+				num_bytes = event_log_get_data( curr_address, transfer_size, (char *) &respArgs32[5] );
 
 				xil_printf("Packet %8d: \n", i);
-				xil_printf("    transfer_address = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", transfer_address, transfer_size, num_bytes);
+				xil_printf("    transfer_address = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", curr_address, transfer_size, num_bytes);
 
 				// Check that we copied everything
 				if ( num_bytes == transfer_size ) {

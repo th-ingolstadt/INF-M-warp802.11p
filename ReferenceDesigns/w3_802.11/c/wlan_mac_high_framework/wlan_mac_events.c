@@ -1,0 +1,146 @@
+////////////////////////////////////////////////////////////////////////////////
+// File   : wlan_mac_events.c
+// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
+//			Chris Hunter (chunter [at] mangocomm.com)
+//          Erik Welsh (welsh [at] mangocomm.com)
+// License: Copyright 2013, Mango Communications. All rights reserved.
+//          Distributed under the Mango Communications Reference Design License
+//				See LICENSE.txt included in the design archive or
+//				at http://mangocomm.com/802.11/license
+////////////////////////////////////////////////////////////////////////////////
+//
+// Notes:
+//   This is the only code that the user should modify in order to add events
+// to the event log.  To add a new event, please follow the template provided
+// and create:
+//   1) A new event type in wlan_mac_events.h
+//   2) Wrapper function:  get_next_empty_*_event()
+//   3) Update the print function so that it is easy to print the log to the
+//        terminal
+//
+////////////////////////////////////////////////////////////////////////////////
+
+/***************************** Include Files *********************************/
+
+// SDK includes
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+#include "xil_types.h"
+
+// WLAN includes
+#include "wlan_mac_event_log.h"
+#include "wlan_mac_events.h"
+
+
+/*************************** Constant Definitions ****************************/
+
+
+
+/*********************** Global Variable Definitions *************************/
+
+
+
+/*************************** Variable Definitions ****************************/
+
+
+
+/*************************** Functions Prototypes ****************************/
+
+
+
+/******************************** Functions **********************************/
+
+
+
+/*****************************************************************************/
+/**
+* Get the next empty RX event
+*
+* @param    None.
+*
+* @return	rx_event *   - Pointer to the next "empty" RX event or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+rx_event* get_next_empty_rx_event(){
+
+	// Get the next empty event
+	return (rx_event *)event_log_get_next_empty_event( EVENT_TYPE_RX, sizeof(rx_event) );
+}
+
+
+
+/*****************************************************************************/
+/**
+* Get the next empty TX event
+*
+* @param    None.
+*
+* @return	tx_event *   - Pointer to the next "empty" TX event or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+tx_event* get_next_empty_tx_event(){
+
+	// Get the next empty event
+	return (tx_event *)event_log_get_next_empty_event( EVENT_TYPE_TX, sizeof(tx_event) );
+
+}
+
+
+
+
+/*****************************************************************************/
+/**
+* Prints an event
+*
+* @param    event_number     - Index of event in the log
+*           event_type       - Type of event
+*           timestamp        - Lower 32 bits of the timestamp
+*           event            - Pointer to the event
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event ){
+	rx_event      * rx_event_log_item;
+	tx_event      * tx_event_log_item;
+
+	switch( event_type ){
+		case EVENT_TYPE_RX:
+			rx_event_log_item = (rx_event*) event;
+			xil_printf("%d: [%d] - Rx Event\n", event_number, timestamp );
+			xil_printf("   Pow:      %d\n",     rx_event_log_item->power);
+			xil_printf("   Seq:      %d\n",     rx_event_log_item->seq);
+			xil_printf("   Rate:     %d\n",     rx_event_log_item->rate);
+			xil_printf("   Length:   %d\n",     rx_event_log_item->length);
+			xil_printf("   State:    %d\n",     rx_event_log_item->state);
+			xil_printf("   MAC Type: 0x%x\n",   rx_event_log_item->mac_type);
+			xil_printf("   Flags:    0x%x\n",   rx_event_log_item->flags);
+		break;
+
+		case EVENT_TYPE_TX:
+			tx_event_log_item = (tx_event*) event;
+			xil_printf("%d: [%d] - Tx Event\n", event_number, timestamp);
+			xil_printf("   Pow:      %d\n",     tx_event_log_item->power);
+			xil_printf("   Seq:      %d\n",     tx_event_log_item->seq);
+			xil_printf("   Rate:     %d\n",     tx_event_log_item->rate);
+			xil_printf("   Length:   %d\n",     tx_event_log_item->length);
+			xil_printf("   State:    %d\n",     tx_event_log_item->state);
+			xil_printf("   MAC Type: 0x%x\n",   tx_event_log_item->mac_type);
+			xil_printf("   Retry:    %d\n",     tx_event_log_item->retry_count);
+		break;
+
+		default:
+			xil_printf("%d: [%d] - Unknown Event\n", event_number, timestamp);
+		break;
+	}
+}
+
+
+
