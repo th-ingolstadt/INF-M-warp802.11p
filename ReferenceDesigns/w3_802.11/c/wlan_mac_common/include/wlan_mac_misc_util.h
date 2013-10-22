@@ -56,6 +56,9 @@ typedef struct{
 #define TX_MPDU_FLAGS_FILL_TIMESTAMP		0x02
 #define TX_MPDU_FLAGS_FILL_DURATION			0x04
 
+
+//The rx_frame_info struct is padded to give space for the PHY to fill in channel estimates. The offset where
+//the PHY fills in this information must be written to the wlan_phy_rx_pkt_buf_h_est_offset macro
 typedef struct{
 	u8 state;
 	u8 rate;
@@ -63,7 +66,7 @@ typedef struct{
 	char rx_power;
 	u8 channel;
 	u8 reserved0[2];
-	u64 reserved1;
+	u32 channel_est[64];
 } rx_frame_info;
 
 #define RX_MPDU_STATE_EMPTY 	 	0
