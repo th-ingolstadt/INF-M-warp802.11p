@@ -22,6 +22,8 @@
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
+#include "wlan_mac_event_log.h"
+#include "wlan_mac_events.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
@@ -86,7 +88,8 @@ void uart_rx(u8 rxByte){
 				break;
 
 				case ASCII_e:
-					print_event_log();
+					print_event_log( 0xFFFF );
+					print_event_log_size();
 				break;
 
 				case ASCII_c:

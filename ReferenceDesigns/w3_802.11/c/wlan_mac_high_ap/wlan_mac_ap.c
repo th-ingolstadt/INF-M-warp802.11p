@@ -32,6 +32,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_event_log.h"
+#include "wlan_mac_events.h"
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
 
@@ -555,14 +556,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	rx_event_log_entry = get_next_empty_rx_event();
 
 	if(rx_event_log_entry != NULL){
-			rx_event_log_entry->state = mpdu_info->state;
-			rx_event_log_entry->AID = 0;
-			rx_event_log_entry->power = mpdu_info->rx_power;
-			rx_event_log_entry->length = mpdu_info->length;
-			rx_event_log_entry->rate = mpdu_info->rate;
+			rx_event_log_entry->state    = mpdu_info->state;
+			rx_event_log_entry->AID      = 0;
+			rx_event_log_entry->power    = mpdu_info->rx_power;
+			rx_event_log_entry->length   = mpdu_info->length;
+			rx_event_log_entry->rate     = mpdu_info->rate;
 			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
-			rx_event_log_entry->seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-			rx_event_log_entry->flags = 0; //TODO: fill in with retry flag, etc
+			rx_event_log_entry->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+			rx_event_log_entry->flags    = 0; //TODO: fill in with retry flag, etc
 	}
 
 	for(i=0; i < next_free_assoc_index; i++) {
