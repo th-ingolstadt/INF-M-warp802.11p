@@ -806,6 +806,22 @@ int is_tx_buffer_empty(){
 	}
 }
 
+int wlan_mac_cdma_start_transfer(void* dest, void* src, u32 size){
+	//This is a wrapper function around the central DMA simple transfer call. It's arguments
+	//are intended to be similar to memcpy. Note: This function does not block on the transfer.
+
+	int return_value;
+
+	while(XAxiCdma_IsBusy(&cdma_inst)) {}
+	return_value = XAxiCdma_SimpleTransfer(&cdma_inst, (u32)src, (u32)dest, size, NULL, NULL);
+
+	return return_value;
+}
+
+void wlan_mac_cdma_finish_transfer(){
+	while(XAxiCdma_IsBusy(&cdma_inst)) {}
+	return;
+}
 
 
 void mpdu_transmit(packet_bd* tx_queue) {
