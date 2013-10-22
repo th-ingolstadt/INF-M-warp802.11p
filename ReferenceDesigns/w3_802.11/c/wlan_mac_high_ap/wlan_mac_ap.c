@@ -549,32 +549,38 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
-	u32 i;
+	u32 i, j;
 	u8 is_associated = 0;
 	new_association = 0;
 
 	rx_event_log_entry = get_next_empty_rx_event();
 
 	if(rx_event_log_entry != NULL){
-			rx_event_log_entry->state    = mpdu_info->state;
-			rx_event_log_entry->AID      = 0;
-			rx_event_log_entry->power    = mpdu_info->rx_power;
-			rx_event_log_entry->length   = mpdu_info->length;
-			rx_event_log_entry->rate     = mpdu_info->rate;
-			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
-			rx_event_log_entry->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-			rx_event_log_entry->flags    = 0; //TODO: fill in with retry flag, etc
+		rx_event_log_entry->state    = mpdu_info->state;
+		rx_event_log_entry->AID      = 0;
+		rx_event_log_entry->power    = mpdu_info->rx_power;
+		rx_event_log_entry->length   = mpdu_info->length;
+		rx_event_log_entry->rate     = mpdu_info->rate;
+		rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
+		rx_event_log_entry->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+		rx_event_log_entry->flags    = 0; //TODO: fill in with retry flag, etc
 
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
 			//memcpy(rx_event_log_entry->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
 
 			xil_printf("rx_event_log_entry->seq = %d\n", rx_event_log_entry->seq);
 
-			memcpy(rx_event_log_entry->channel_est, mpdu_info->channel_est, 64*4);
+			memcpy( rx_event_log_entry->channel_est, mpdu_info->channel_est, 64*4);
 
+			xil_printf("    rx_event = 0x%8x;   channe_est = 0x%8x \n", rx_event_log_entry, rx_event_log_entry->channel_est );
 
-			for(i = 0; i < 64; i++){
-				xil_printf("%x\n", (rx_event_log_entry->channel_est)[i]);
+			xil_printf("    Channel Est:\n");
+			for( i = 0; i < 16; i++) {
+				xil_printf("        ");
+				for( j = 0; j < 4; j++){
+					xil_printf("0x%8x ", (rx_event_log_entry->channel_est)[4*i + j]);
+				}
+				xil_printf("\n");
 			}
 
 #endif
