@@ -137,7 +137,7 @@ void event_log_init( char * start_address, u32 size ) {
 	// Reset all the event log variables
 	event_log_reset();
 
-// #ifdef _DEBUG_
+#ifdef _DEBUG_
 	xil_printf("    log_size             = 0x%x;\n", log_size );
 	xil_printf("    log_start_address    = 0x%x;\n", log_start_address );
 	xil_printf("    log_max_address      = 0x%x;\n", log_max_address );
@@ -147,7 +147,7 @@ void event_log_init( char * start_address, u32 size ) {
 	xil_printf("    log_empty            = 0x%x;\n", log_empty );
 	xil_printf("    log_full             = 0x%x;\n", log_full );
 	xil_printf("    allocation_mutex     = 0x%x;\n", allocation_mutex );
-// #endif
+#endif
 }
 
 
@@ -292,11 +292,11 @@ u32  event_log_get_size( void ) {
 		size = log_size - ( log_head_address - log_curr_address );
 	}
 
-// #ifdef _DEBUG_
+#ifdef _DEBUG_
 	xil_printf("Event Log:  size             = 0x%x\n", size );
 	xil_printf("Event Log:  log_curr_address = 0x%x\n", log_curr_address );
 	xil_printf("Event Log:  log_head_address = 0x%x\n", log_head_address );
-// #endif
+#endif
 
 	return size;
 }
