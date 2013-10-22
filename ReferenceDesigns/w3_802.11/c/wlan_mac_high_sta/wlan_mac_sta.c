@@ -537,6 +537,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
 			rx_event_log_entry->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			rx_event_log_entry->flags    = 0; //TODO: fill in with retry flag, etc
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+		if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_start_transfer(rx_event_log_entry->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+#endif
 	}
 
 
@@ -553,6 +556,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		if( (access_point.seq != 0)  && (access_point.seq == rx_seq) ) {
 			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+			if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 			return;
 
 		} else {
@@ -604,7 +610,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									association_state = 2;
 									attempt_association();
 								}
-
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+								if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 								return;
 							}
 						break;
@@ -653,6 +661,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						curr_ap_info = &(ap_list[num_ap_list-1]);
 					} else {
 						xil_printf("Reallocation of ap_list failed\n");
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+						if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 						return;
 					}
 
@@ -742,7 +753,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 		break;
 	}
-
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+	if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 	return;
 }
 
