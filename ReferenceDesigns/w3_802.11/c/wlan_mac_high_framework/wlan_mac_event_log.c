@@ -339,6 +339,86 @@ u32  event_log_get_oldest_event_index( void ) {
 
 /*****************************************************************************/
 /**
+* Update the event type
+*
+* @param    event_ptr   - Pointer to event contents
+*           event_type  - Value to update event_type field
+*
+* @return	u32         -  0 - Success
+*                         -1 - Failure
+*
+* @note		None.
+*
+******************************************************************************/
+int       event_log_update_type( void * event_ptr, u16 event_type ) {
+    int            return_value = -1;
+    event_header * event_hdr;
+
+    // If the event_ptr is within the event log, then update the type field of the event
+    if ( ( ((u32) event_ptr) > log_start_address ) && ( ((u32) event_ptr) < log_max_address ) ) {
+
+    	event_hdr = (event_header *) ( ((u32) event_ptr) - sizeof( event_header ) );
+
+    	// Check to see if the event has a valid magic number
+    	if ( ( event_hdr->timestamp & 0xFFFF000000000000 ) == EVENT_LOG_MAGIC_NUMBER ) {
+
+        	event_hdr->event_type = event_type;
+
+        	return_value = 0;
+    	} else {
+    		xil_printf("WARNING:  event_log_update_type() - event_ptr (0x%8x) is not valid \n", event_ptr );
+    	}
+    } else {
+		xil_printf("WARNING:  event_log_update_type() - event_ptr (0x%8x) is not in event log \n", event_ptr );
+    }
+
+    return return_value;
+}
+
+
+
+/*****************************************************************************/
+/**
+* Update the event timestamp
+*
+* @param    event_ptr   - Pointer to event contents
+*           event_type  - Value to update event_type field
+*
+* @return	u32         -  0 - Success
+*                         -1 - Failure
+*
+* @note		None.
+*
+******************************************************************************/
+int       event_log_update_timestamp( void * event_ptr ) {
+    int            return_value = -1;
+    event_header * event_hdr;
+
+    // If the event_ptr is within the event log, then update the type field of the event
+    if ( ( ((u32) event_ptr) > log_start_address ) && ( ((u32) event_ptr) < log_max_address ) ) {
+
+    	event_hdr = (event_header *) ( ((u32) event_ptr) - sizeof( event_header ) );
+
+    	// Check to see if the event has a valid magic number
+    	if ( ( event_hdr->timestamp & 0xFFFF000000000000 ) == EVENT_LOG_MAGIC_NUMBER ) {
+
+    		event_hdr->timestamp  = EVENT_LOG_MAGIC_NUMBER + ( 0x0000FFFFFFFFFFFF & get_usec_timestamp() );
+
+        	return_value = 0;
+    	} else {
+    		xil_printf("WARNING:  event_log_update_timestamp() - event_ptr (0x%8x) is not valid \n", event_ptr );
+    	}
+    } else {
+		xil_printf("WARNING:  event_log_update_timestamp() - event_ptr (0x%8x) is not in event log \n", event_ptr );
+    }
+
+    return return_value;
+}
+
+
+
+/*****************************************************************************/
+/**
 * Increment the head address
 *
 * @param    size        - Number of bytes to increment the head address
