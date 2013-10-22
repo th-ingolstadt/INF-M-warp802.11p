@@ -549,7 +549,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
-	u32 i, j;
+	u32 i;
 	u8 is_associated = 0;
 	new_association = 0;
 
@@ -566,23 +566,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		rx_event_log_entry->flags    = 0; //TODO: fill in with retry flag, etc
 
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-			//memcpy(rx_event_log_entry->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
-
-			xil_printf("rx_event_log_entry->seq = %d\n", rx_event_log_entry->seq);
-
-			memcpy( rx_event_log_entry->channel_est, mpdu_info->channel_est, 64*4);
-
-			xil_printf("    rx_event = 0x%8x;   channe_est = 0x%8x \n", rx_event_log_entry, rx_event_log_entry->channel_est );
-
-			xil_printf("    Channel Est:\n");
-			for( i = 0; i < 16; i++) {
-				xil_printf("        ");
-				for( j = 0; j < 4; j++){
-					xil_printf("0x%8x ", (rx_event_log_entry->channel_est)[4*i + j]);
-				}
-				xil_printf("\n");
-			}
-
+		if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_start_transfer(rx_event_log_entry->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
 #endif
 
 	}
@@ -598,6 +582,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			if( (associations[i].seq != 0)  && (associations[i].seq == rx_seq) ) {
 				//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+				if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 				return;
 
 			} else {
@@ -755,7 +742,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						enqueue_after_end(0, &checkout);
 						check_tx_queue();
 					}
-
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+					if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 					return;
 				}
 			}
@@ -784,7 +773,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									enqueue_after_end(0, &checkout);
 									check_tx_queue();
 								}
-
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+								if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 								return;
 							}
 						break;
@@ -808,6 +799,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							}
 
 							warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
+							#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+								if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+							#endif
 							return;
 						break;
 					}
@@ -867,7 +861,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						//Print the updated association table to the UART (slow, but useful for observing association success)
 						print_associations();
 					}
-
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+						if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 					return;
 				}
 
@@ -897,7 +893,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 		break;
 	}
-
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+	if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+#endif
 	return;
 }
 
