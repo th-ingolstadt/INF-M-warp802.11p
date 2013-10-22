@@ -9,7 +9,7 @@
 //				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
 
-//Xilinx SDK includes
+// Xilinx SDK includes
 #include "xparameters.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +17,7 @@
 #include "xio.h"
 #include <string.h>
 
-//WARP includes
+// WARP includes
 #include "w3_userio.h"
 #include "w3_ad_controller.h"
 #include "w3_clock_controller.h"
@@ -444,7 +444,24 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 				}
 			} //END if(not control packet)
 		} //END if (to_me or to_broadcast)
-	} //END if (FCS good)
+	}  else { //END if (FCS good)
+		mpdu_info->state = RX_MPDU_STATE_FCS_BAD;
+		ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_RX_BAD_FCS);
+		ipc_msg_to_high.arg0 = rx_pkt_buf;
+		ipc_msg_to_high.num_payload_words = 0;
+
+		//Unlock the pkt buf mutex before passing the packet up
+		// If this fails, something has gone horribly wrong
+		if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
+			send_exception(EXC_MUTEX_RX_FAILURE);
+		} else {
+			ipc_mailbox_write_msg(&ipc_msg_to_high);
+
+			//Find a free packet buffer and beging receiving packets there (blocks until free buf is found)
+			lock_empty_rx_pkt_buf();
+		}
+	} //END else (FCS bad)
 
 	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
 	wlan_mac_dcf_hw_unblock_rx_phy();
