@@ -199,6 +199,7 @@ u64  get_usec_timestamp();
 void wlan_mac_util_set_eth_rx_callback(void(*callback)());
 void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)());
 void wlan_mac_util_set_mpdu_rx_callback(void(*callback)());
+void wlan_mac_util_set_fcs_bad_rx_callback(void(*callback)());
 void wlan_mac_util_set_pb_u_callback(void(*callback)());
 void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());

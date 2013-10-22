@@ -25,7 +25,7 @@
 // Event Types
 #define EVENT_TYPE_RX                  1
 #define EVENT_TYPE_TX                  2
-#define EVENT_TYPE_ERR                 3
+#define EVENT_TYPE_BAD_FCS_RX          3
 
 
 
@@ -68,11 +68,13 @@ typedef struct{
 
 
 //-----------------------------------------------
-// Error Event
+// Bad FCS Event
 //
 typedef struct{
-	u8 reserved[4];
-} error_event;
+	u8  rate;
+	u8  reserved;
+	u16  length;
+} bad_fcs_event;
 
 
 /*************************** Function Prototypes *****************************/
@@ -83,6 +85,7 @@ typedef struct{
 //
 rx_event* get_next_empty_rx_event();
 tx_event* get_next_empty_tx_event();
+bad_fcs_event* get_next_empty_bad_fcs_event();
 
 
 //-----------------------------------------------

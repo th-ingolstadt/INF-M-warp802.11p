@@ -73,6 +73,7 @@ u8                 tx_pkt_buf;
 function_ptr_t     eth_rx_callback;
 function_ptr_t     mpdu_tx_done_callback;
 function_ptr_t     mpdu_rx_callback;
+function_ptr_t     fcs_bad_rx_callback;
 function_ptr_t     pb_u_callback;
 function_ptr_t     pb_m_callback;
 function_ptr_t     pb_d_callback;
@@ -162,6 +163,7 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
     // Initialize callbacks
 	eth_rx_callback       = (function_ptr_t)nullCallback;
 	mpdu_rx_callback      = (function_ptr_t)nullCallback;
+	fcs_bad_rx_callback   = (function_ptr_t)nullCallback;
 	mpdu_tx_done_callback = (function_ptr_t)nullCallback;
 	pb_u_callback         = (function_ptr_t)nullCallback;
 	pb_m_callback         = (function_ptr_t)nullCallback;
@@ -581,6 +583,10 @@ void wlan_mac_util_set_eth_rx_callback(void(*callback)()){
 
 void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)()){
 	mpdu_tx_done_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_fcs_bad_rx_callback(void(*callback)()){
+	fcs_bad_rx_callback = (function_ptr_t)callback;
 }
 
 void wlan_mac_util_set_mpdu_rx_callback(void(*callback)()){

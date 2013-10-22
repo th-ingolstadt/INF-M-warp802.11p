@@ -37,6 +37,7 @@
 extern function_ptr_t     mpdu_tx_done_callback;
 extern function_ptr_t     mpdu_rx_callback;
 extern function_ptr_t     check_queue_callback;
+extern function_ptr_t     fcs_bad_rx_callback;
 
 // 802.11 Transmit packet buffer
 extern u8                 tx_pkt_buf;
@@ -182,6 +183,28 @@ void process_ipc_msg_from_low( wlan_ipc_msg* msg ) {
 			}
 		break;
 
+		case IPC_MBOX_RX_BAD_FCS:
+			//This message indicates CPU Low has received a frame whose FCS failed
+
+			rx_pkt_buf = msg->arg0;
+
+			//First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
+			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
+			} else {
+				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+
+				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
+				fcs_bad_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
+
+				//Free up the rx_pkt_buf
+				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
+
+				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					warp_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n",rx_pkt_buf);
+				}
+			}
+		break;
 
 		case IPC_MBOX_TX_MPDU_ACCEPT:
 			//This message indicates CPU Low has begun the Tx process for the previously submitted MPDU

@@ -90,7 +90,22 @@ tx_event* get_next_empty_tx_event(){
 
 }
 
+/*****************************************************************************/
+/**
+* Get the next empty bad FCS event
+*
+* @param    None.
+*
+* @return	bad_fcs_event *   - Pointer to the next "empty" TX event or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+bad_fcs_event* get_next_empty_bad_fcs_event(){
 
+	// Get the next empty event
+	return (bad_fcs_event *)event_log_get_next_empty_event( EVENT_TYPE_BAD_FCS_RX, sizeof(bad_fcs_event) );
+}
 
 
 /*****************************************************************************/
@@ -111,6 +126,7 @@ void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event 
 	u32 i, j;
 	rx_event      * rx_event_log_item;
 	tx_event      * tx_event_log_item;
+	bad_fcs_event * bad_fcs_event_log_item;
 
 	switch( event_type ){
 		case EVENT_TYPE_RX:
@@ -147,6 +163,13 @@ void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event 
 			xil_printf("   State:    %d\n",     tx_event_log_item->state);
 			xil_printf("   MAC Type: 0x%x\n",   tx_event_log_item->mac_type);
 			xil_printf("   Retry:    %d\n",     tx_event_log_item->retry_count);
+		break;
+
+		case EVENT_TYPE_BAD_FCS_RX:
+			bad_fcs_event_log_item = (bad_fcs_event*) event;
+			xil_printf("%d: [%d] - FCS Bad Rx Event\n", event_number, timestamp);
+			xil_printf("   Rate:     %d\n",     bad_fcs_event_log_item->rate);
+			xil_printf("   Length:   %d\n",     bad_fcs_event_log_item->length);
 		break;
 
 		default:
