@@ -140,7 +140,9 @@
 #define wlan_phy_rx_pkt_buf_phy_hdr_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0x00FF0000)) | (((d)<<13) & 0x00FF0000)))
 #define wlan_phy_tx_pkt_buf_phy_hdr_offset(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x00FF0000)) | (((d)<<13) & 0x00FF0000)))
 
-#define wlan_phy_rx_pkt_buf_h_est_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0xFF000000)) | (((d)<<24) & 0xFF000000)))
+//The same restriction of u64 words applied for the channel estimates. Currently, the -1 is temporary. In future hardware it
+//will be -3 just like the hdr_offset macros above.
+#define wlan_phy_rx_pkt_buf_h_est_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0xFF000000)) | (((d)<<(24-1)) & 0xFF000000)))
 
 #define wlan_phy_tx_set_scaling(pre, pay) Xil_Out32(WLAN_TX_REG_SCALING, ( ( (pre) & 0xFFFF) | (( (pay)&0xFFFF)<<16)))
 

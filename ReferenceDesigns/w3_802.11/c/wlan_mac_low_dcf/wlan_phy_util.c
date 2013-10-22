@@ -103,7 +103,7 @@ void wlan_phy_init() {
 
 	//Enable DSSS Rx by default
 	wlan_phy_DSSS_rx_enable();
-	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD);
+	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD | WLAN_RX_REG_CFG_RECORD_CHAN_EST);
 
 	REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS);
 
@@ -133,10 +133,12 @@ void wlan_phy_init() {
 	//Configure channel estimate capture
 	// sizeof(rx_frame_info) - sizeof(chan_est) = 16
 	//  <<2 is kludge for now
-	wlan_phy_rx_pkt_buf_h_est_offset((16)<<2);
+	//wlan_phy_rx_pkt_buf_h_est_offset((16)<<2);
+	//xil_printf("PHY_RX_PKT_BUF_PHY_HDR_OFFSET - (64*4) = %d\n", PHY_RX_PKT_BUF_PHY_HDR_OFFSET - (64*4));
+	wlan_phy_rx_pkt_buf_h_est_offset((PHY_RX_PKT_BUF_PHY_HDR_OFFSET - (64*4)));
 	
 	//Disable chan est recording by default
-	REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_RECORD_CHAN_EST);
+	//REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_RECORD_CHAN_EST);
 	
 	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
 	wlan_phy_DSSS_rx_config(0x600, 200, 5, 5);
