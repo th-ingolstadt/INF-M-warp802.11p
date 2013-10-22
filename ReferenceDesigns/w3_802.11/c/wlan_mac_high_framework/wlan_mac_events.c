@@ -108,7 +108,7 @@ tx_event* get_next_empty_tx_event(){
 *
 ******************************************************************************/
 void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event ){
-	u32 i;
+	u32 i, j;
 	rx_event      * rx_event_log_item;
 	tx_event      * tx_event_log_item;
 
@@ -125,8 +125,12 @@ void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event 
 			xil_printf("   Flags:    0x%x\n",   rx_event_log_item->flags);
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
 			xil_printf("   Channel Estimates:\n");
-			for(i=0; i<64; i++){
-				xil_printf("0x%x\n", (rx_event_log_item->channel_est)[i]);
+
+			for( i = 0; i < 16; i++) {
+				for( j = 0; j < 4; j++){
+					xil_printf("0x%8x ", (rx_event_log_item->channel_est)[4*i + j]);
+				}
+				xil_printf("\n");
 			}
 #endif
 

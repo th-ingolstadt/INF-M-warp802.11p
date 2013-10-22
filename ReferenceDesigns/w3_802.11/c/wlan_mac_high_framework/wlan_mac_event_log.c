@@ -646,12 +646,14 @@ void * event_log_get_next_empty_event( u16 event_type, u16 event_size ) {
 	u32            log_address;
 	u32            total_size;
 	event_header * header       = NULL;
+	u32            header_size  = sizeof( event_header );
 	void *         return_event = NULL;
+
 
     // If Event Logging is enabled, then allocate event
 	if( enable_event_logging ){
 
-		total_size = event_size + sizeof( event_header );
+		total_size = event_size + header_size;
 
 		// Try to allocate the next event
 	    if ( !event_log_get_next_empty_address( total_size, &log_address ) ) {
@@ -670,10 +672,10 @@ void * event_log_get_next_empty_event( u16 event_type, u16 event_size ) {
             header->event_id     = log_count++;
 
             // Get a pointer to the event payload
-            return_event         = (void *) ( header + sizeof( event_header ) );
+            return_event         = (void *) ( log_address + header_size );
 
 #ifdef _DEBUG_
-			xil_printf("Event (%6d bytes) = 0x%x  \n", event_size, return_event );
+			xil_printf("Event (%6d bytes) = 0x%8x    0x%8x    0x%6x\n", event_size, return_event, header, total_size );
 #endif
 	    }
 	}
@@ -699,11 +701,13 @@ void print_event_log( u32 num_events ) {
 	u32            event_address;
 	u32            event_count;
 	event_header * event_hdr;
+	u32            event_hdr_size;
 	void         * event;
 
 	// Initialize count
-	event_count   = 0;
-	event_address = log_head_address;
+	event_hdr_size = sizeof( event_header );
+	event_count    = 0;
+	event_address  = log_head_address;
 
     // Check if the log has wrapped
     if ( log_curr_address >= log_head_address ) {
@@ -716,13 +720,17 @@ void print_event_log( u32 num_events ) {
     		if ( event_address < log_curr_address ) {
 
     			event_hdr = (event_header*) event_address;
-    			event     = (void * ) ( event_hdr + sizeof( event_header ) );
+    			event     = (void *) ( event_address + event_hdr_size );
+
+#ifdef _DEBUG_
+                xil_printf(" Event [%d] - addr = 0x%8x;  size = 0x%4x \n", i, event_address, event_hdr->event_length );
+#endif
 
         		// Print event
     		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
 
         	    // Get the next event
-        		event_address += ( event_hdr->event_length + sizeof( event_header ) );
+        		event_address += ( event_hdr->event_length + event_hdr_size );
 
     		} else {
     			// Exit the loop
@@ -740,13 +748,13 @@ void print_event_log( u32 num_events ) {
     		if ( event_address < log_soft_end_address ) {
 
     			event_hdr = (event_header*) event_address;
-    			event     = (void * ) ( event_hdr + sizeof( event_header ) );
+    			event     = (void * ) ( event_hdr + event_hdr_size );
 
         		// Print event
     		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
 
         	    // Get the next event
-        		event_address += ( event_hdr->event_length + sizeof( event_header ) );
+        		event_address += ( event_hdr->event_length + event_hdr_size );
 
     		} else {
     			// Exit the loop and set the event to the beginning of the buffer
@@ -767,13 +775,13 @@ void print_event_log( u32 num_events ) {
 				if ( event_address < log_curr_address ) {
 
 	    			event_hdr = (event_header*) event_address;
-	    			event     = (void * ) ( event_hdr + sizeof( event_header ) );
+	    			event     = (void * ) ( event_hdr + event_hdr_size );
 
 	        		// Print event
 	    		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
 
 					// Get the next event
-	        		event_address += ( event_hdr->event_length + sizeof( event_header ) );
+	        		event_address += ( event_hdr->event_length + event_hdr_size );
 
 				} else {
 					// Exit the loop
