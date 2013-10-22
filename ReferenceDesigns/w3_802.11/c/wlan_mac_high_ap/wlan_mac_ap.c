@@ -60,7 +60,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -133,6 +133,7 @@ int main(){
 	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
 	wlan_mac_util_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
 	wlan_mac_util_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
+	wlan_mac_util_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
 	wlan_mac_util_set_pb_u_callback(         (void*)up_button);
 	wlan_mac_util_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
@@ -899,7 +900,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	return;
 }
 
-
+void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
+	bad_fcs_event* bad_fcs_event_log_entry = get_next_empty_bad_fcs_event();
+	bad_fcs_event_log_entry->length = length;
+	bad_fcs_event_log_entry->rate = rate;
+}
 
 void print_associations(){
 	u64 timestamp = get_usec_timestamp();
