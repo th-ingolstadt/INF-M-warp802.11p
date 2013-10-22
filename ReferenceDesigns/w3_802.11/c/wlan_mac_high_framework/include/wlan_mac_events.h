@@ -16,7 +16,7 @@
 #ifndef WLAN_MAC_EVENTS_H_
 #define WLAN_MAC_EVENTS_H_
 
-
+#define WLAN_MAC_EVENTS_LOG_CHAN_EST
 
 // ****************************************************************************
 // Define Event Constants
@@ -45,6 +45,9 @@ typedef struct{
 	u8   mac_type;
 	u8   flags;
 	u8   reserved[2];
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+	u32	 channel_est[64];
+#endif
 } rx_event;
 
 
@@ -70,7 +73,6 @@ typedef struct{
 typedef struct{
 	u8 reserved[4];
 } error_event;
-
 
 
 /*************************** Function Prototypes *****************************/
