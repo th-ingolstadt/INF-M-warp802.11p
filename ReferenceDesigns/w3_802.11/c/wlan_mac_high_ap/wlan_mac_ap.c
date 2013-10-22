@@ -595,6 +595,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
 					//MPDU is flagged as destined to the DS
 
+					///TODO: TEMP
+					//xil_printf("(mpdu_info->channel_est) - mpdu_info = %d:\n", (void*)(mpdu_info->channel_est) - (void*)mpdu_info);
+					//for(i = 0; i < 64; i++){
+						//xil_printf("%d\n", (mpdu_info->channel_est)[i]);
+					//	xil_printf("%d\n", (mpdu_info->channel_est)[i]);
+
+					//}
+					//xil_printf("\n");
+					///TODO: TEMP
+
 					(associated_station->num_rx_success)++;
 					(associated_station->num_rx_bytes) += mpdu_info->length;
 
