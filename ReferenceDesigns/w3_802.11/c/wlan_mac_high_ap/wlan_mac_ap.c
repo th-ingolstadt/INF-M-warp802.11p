@@ -564,6 +564,21 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
 			rx_event_log_entry->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			rx_event_log_entry->flags    = 0; //TODO: fill in with retry flag, etc
+
+#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+			//memcpy(rx_event_log_entry->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+
+			xil_printf("rx_event_log_entry->seq = %d\n", rx_event_log_entry->seq);
+
+			memcpy(rx_event_log_entry->channel_est, mpdu_info->channel_est, 64*4);
+
+
+			for(i = 0; i < 64; i++){
+				xil_printf("%x\n", (rx_event_log_entry->channel_est)[i]);
+			}
+
+#endif
+
 	}
 
 	for(i=0; i < next_free_assoc_index; i++) {
