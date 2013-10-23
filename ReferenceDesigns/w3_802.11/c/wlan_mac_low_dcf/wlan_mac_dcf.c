@@ -199,6 +199,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
+					tx_mpdu->tx_mpdu_accept_timestamp = get_usec_timestamp();
+
 					//xil_printf("CPU_LOW: processing buffer %d, length = %d, rate = %d\n", tx_pkt_buf, tx_mpdu->length, tx_mpdu->rate);
 
 					//Convert human-readable rates into PHY rates
@@ -254,6 +256,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					//
 					status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
+
+					tx_mpdu->tx_mpdu_done_timestamp = get_usec_timestamp();
 
 					if(status == 0){
 						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
