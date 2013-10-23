@@ -60,7 +60,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -552,7 +552,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	station_info* associated_station;
 	u8 eth_send;
 
-	rx_event* rx_event_log_entry;
+	void* rx_event_log_entry;
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
@@ -560,22 +560,37 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8 is_associated = 0;
 	new_association = 0;
 
-	rx_event_log_entry = get_next_empty_rx_event();
+	if(rate != WLAN_MAC_RATE_1M){
+		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_event();
 
-	if(rx_event_log_entry != NULL){
-		rx_event_log_entry->state    = mpdu_info->state;
-		rx_event_log_entry->AID      = 0;
-		rx_event_log_entry->power    = mpdu_info->rx_power;
-		rx_event_log_entry->length   = mpdu_info->length;
-		rx_event_log_entry->rate     = mpdu_info->rate;
-		rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
-		rx_event_log_entry->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-		rx_event_log_entry->flags    = mpdu_info->flags;
+		if(rx_event_log_entry != NULL){
+			((rx_ofdm_event*)rx_event_log_entry)->state    = mpdu_info->state;
+			((rx_ofdm_event*)rx_event_log_entry)->AID      = 0;
+			((rx_ofdm_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
+			((rx_ofdm_event*)rx_event_log_entry)->length   = mpdu_info->length;
+			((rx_ofdm_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
+			((rx_ofdm_event*)rx_event_log_entry)->mac_type = rx_80211_header->frame_control_1;
+			((rx_ofdm_event*)rx_event_log_entry)->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+			((rx_ofdm_event*)rx_event_log_entry)->flags    = mpdu_info->flags;
 
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-		if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_start_transfer(rx_event_log_entry->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
-#endif
+	#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+			if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_start_transfer(((rx_ofdm_event*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+	#endif
 
+		}
+	} else {
+		rx_event_log_entry = (void*)get_next_empty_rx_dsss_event();
+
+		if(rx_event_log_entry != NULL){
+			((rx_dsss_event*)rx_event_log_entry)->state    = mpdu_info->state;
+			((rx_dsss_event*)rx_event_log_entry)->AID      = 0;
+			((rx_dsss_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
+			((rx_dsss_event*)rx_event_log_entry)->length   = mpdu_info->length;
+			((rx_dsss_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
+			((rx_dsss_event*)rx_event_log_entry)->mac_type = rx_80211_header->frame_control_1;
+			((rx_dsss_event*)rx_event_log_entry)->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+			((rx_dsss_event*)rx_event_log_entry)->flags    = mpdu_info->flags;
+		}
 	}
 
 	for(i=0; i < next_free_assoc_index; i++) {
@@ -597,9 +612,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			} else {
 				associations[i].seq = rx_seq;
 			}
-
-			if(rx_event_log_entry != NULL) rx_event_log_entry->AID = associations[i].AID;
-
+			if(rate != WLAN_MAC_RATE_1M){
+				if(rx_event_log_entry != NULL) ((rx_ofdm_event*)rx_event_log_entry)->AID = associations[i].AID;
+			} else {
+				if(rx_event_log_entry != NULL) ((rx_dsss_event*)rx_event_log_entry)->AID = associations[i].AID;
+			}
 			break;
 		}
 	}
