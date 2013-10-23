@@ -323,8 +323,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
 	mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
-
-
 	//Apply the mac_header_80211 template to the first bytes of the received MPDU
 	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
 
@@ -391,6 +389,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 	}
 
+	mpdu_info->flags = 0;
 	mpdu_info->length = (u16)length;
 	mpdu_info->rate = (u8)rate;
 
@@ -423,6 +422,15 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 			if(!WLAN_IS_CTRL_FRAME(rx_header)) {
 				//This packet should be passed up to CPU_high for further processing
+
+				if(unicast_to_me){
+					//This good FCS, unicast, noncontrol packet was ACKed.
+					mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
+				}
+
+				if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
+					mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
+				}
 
 				//Unlock the pkt buf mutex before passing the packet up
 				// If this fails, something has gone horribly wrong
