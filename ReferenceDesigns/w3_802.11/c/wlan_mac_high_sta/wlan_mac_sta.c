@@ -61,7 +61,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -270,7 +270,7 @@ void check_tx_queue(){
 void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	tx_event* tx_event_log_entry;
 
-	void * mpdu = (void*)tx_mpdu + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	void * mpdu = (void*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
@@ -539,7 +539,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			rx_event_log_entry->rate     = mpdu_info->rate;
 			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
 			rx_event_log_entry->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-			rx_event_log_entry->flags    = 0; //TODO: fill in with retry flag, etc
+			rx_event_log_entry->flags    = mpdu_info->flags;
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
 		if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_start_transfer(rx_event_log_entry->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
 #endif
