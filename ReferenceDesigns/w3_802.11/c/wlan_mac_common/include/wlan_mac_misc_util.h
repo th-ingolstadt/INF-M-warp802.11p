@@ -42,6 +42,8 @@ typedef struct{
 	u16 AID;
 	u16 reserved0;
 	u32 reserved1;
+	u64 tx_mpdu_accept_timestamp;
+	u64 tx_mpdu_done_timestamp;
 } tx_frame_info;
 
 
