@@ -21,11 +21,14 @@
 #include <xparameters.h>
 #include <xil_io.h>
 #include <Xio.h>
+#include <stdlib.h>
 
 
 // WLAN includes
 #include "wlan_mac_ipc.h"
 #include "wlan_mac_event_log.h"
+#include "wlan_mac_events.h"
+#include "wlan_mac_ltg.h"
 
 
 
@@ -36,8 +39,6 @@
 
 /*********************** Global Variable Definitions *************************/
 
-// NOTE:  All Extensions of the WLAN framework must have a parameter called mac_param_chan
-extern u32 mac_param_chan;
 
 
 
@@ -55,6 +56,7 @@ wn_function_ptr_t  node_process_callback;
 int  node_init_parameters( u32 *info );
 int  node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, unsigned int eth_dev_num);
 
+void node_ltg_cleanup(u32 id, void* callback_arg);
 
 #ifdef _DEBUG_
 void print_wn_node_info( wn_node_info * info );
@@ -266,6 +268,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     unsigned int  temp, i;
 
     // Variables for functions
+    u32           id;
+    u32           flags;
 	u32           start_address;
 	u32           curr_address;
 	u32           next_address;
@@ -275,6 +279,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           bytes_per_pkt;
 	u32           num_bytes;
 	u32           num_pkts;
+
+	u32           interval;
 
 
 	unsigned int  cmdID;
@@ -291,16 +297,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 	switch(cmdID){
 
+	    //---------------------------------------------------------------------
         case WARPNET_TYPE:
-
+        	// Return the WARPNet Type
             respArgs32[respIndex++] = Xil_Htonl( node_info.type );    
         
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
-            
         break;
         
     
+	    //---------------------------------------------------------------------
 		case NODE_INFO:
 			// Return the info about the WLAN_EXP_NODE
             
@@ -315,7 +322,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             respIndex += temp;
             max_words -= temp;
             if ( max_words <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
-            
 
 #ifdef _DEBUG_
             xil_printf("NODE INFO: \n");
@@ -332,19 +338,23 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             // Finalize response
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
-
 		break;
         
 
+	    //---------------------------------------------------------------------
 		case NODE_IDENTIFY:
 			// Return Null Response
-			//   The WLAN_EXP_NODE does not have access to an LEDs 
+			//   The WLAN_EXP_NODE currently does not have access to LEDs
 
             xil_printf("  Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
 
+            // --------------------------------
+            // TODO:  Add in visual identifiers for the node
+            // --------------------------------
         break;
 
 
+	    //---------------------------------------------------------------------
 		case NODE_CONFIG_SETUP:
             // NODE_CONFIG_SETUP Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
@@ -355,7 +365,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             //   - cmdArgs32[3] - Unicast Port
             //   - cmdArgs32[4] - Broadcast Port
             // 
-#ifdef WARP_HW_VER_v3
             if ( node_info.node == 0xFFFF ) {
                 // Only update the parameters if the serial numbers match
                 if ( node_info.serial_number ==  Xil_Ntohl(cmdArgs32[0]) ) {
@@ -387,15 +396,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
                     if(status != 0) {
         				xil_printf("Error binding transport...\n");
         			}
-
                 } else {
                     xil_printf("NODE_IP_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
                 }
             }
-#endif
 		break;
 
         
+	    //---------------------------------------------------------------------
 		case NODE_CONFIG_RESET:
             // NODE_CONFIG_RESET Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
@@ -403,7 +411,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             //   - cmdArgs32[0] - Serial Number
             // 
             
-#ifdef WARP_HW_VER_v3
             // Send the response early so that M-Code does not hang when IP address changes
 			node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
 			respSent = RESP_SENT;
@@ -435,94 +442,331 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             } else {
                 xil_printf("NODE_IP_RESET Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
             }
-#endif
 		break;
 
 
-		// Case NODE_GET_ASSN_TBL is implemented in the child classes
+		// Case NODE_ASSN_GET_STATUS  is implemented in the child classes
+
+		// Case NODE_ASSN_SET_TABLE   is implemented in the child classes
+
+		// Case NODE_ASSN_RESET_STATS is implemented in the child classes
+
+		// Case NODE_DISASSOCIATE     is implemented in the child classes
 
 
-		// Case NODE_DISASSOCIATE is implemented in the child classes
-
-
+	    //---------------------------------------------------------------------
+		// TODO:  THIS FUNCTION IS NOT COMPLETE
 		case NODE_TX_POWER:
-			xil_printf("Node TX Power\n");
-		break;
-
-		case NODE_TX_RATE:
-			xil_printf("Node TX Rate\n");
-		break;
-
-		case NODE_CHANNEL:
-			// Get channel parameter
+			// Get node TX power
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
-			// If parameter is not the magic number, then set the mac channel
-			//   NOTE:  We modulate temp so that we always have a valid channel
+			// If parameter is not the magic number, then set the TX power
 			if ( temp != 0xFFFF ) {
-				temp = temp % 12;          // Get a channel number between 0 - 11
-				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
 
-//				deauthenticate_stations(); // First deauthenticate all stations
-
-				mac_param_chan = temp;
-				set_mac_channel( mac_param_chan );
-
-			    xil_printf("Setting Channel = %d\n", mac_param_chan);
+				// TODO: Set the TX power
+			    xil_printf("Setting TX power = %d\n", temp);
 			}
 
-			// Send response of current channel
-            respArgs32[respIndex++] = Xil_Htonl( mac_param_chan );
+			// Send response of current power
+            respArgs32[respIndex++] = Xil_Htonl( temp );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
 
-		case NODE_CONFIG_LTG:
-			xil_printf("Node Config LTG\n");
 
-//			ltg_packet_size[curr_association_index] =  str2num(text_entry);
+	    //---------------------------------------------------------------------
+		// TODO:  THIS FUNCTION IS NOT COMPLETE
+		case NODE_TX_RATE:
+			// Get node TX rate
+			temp = Xil_Ntohl(cmdArgs32[0]);
 
+			// If parameter is not the magic number, then set the TX rate
+			if ( temp != 0xFFFF ) {
 
-		break;
+				// TODO: Set the TX rate
+			    xil_printf("Setting TX rate = %d\n", temp);
+			}
 
-		case NODE_START_LTG:
-			xil_printf("Node Start LTG\n");
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( temp );
 
-//			ltg_enable[curr_association_index] = 1;
-
-
-
-		break;
-
-		case NODE_STOP_LTG:
-			xil_printf("Node Stop LTG\n");
-
-//			ltg_enable[i] = 0;
-//			stop_ltg(associations[i].AID);
-
-
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
 		break;
 
 
-		// Case NODE_RESET_STATS is implemented in the child classes
+		// Case NODE_CHANNEL is implemented in the child classes
 
 
-		case NODE_GET_EVENTS:
+	    //---------------------------------------------------------------------
+		case NODE_LTG_CONFIG_CBR:
+            // NODE_LTG_START Packet Format:
+			//   - cmdArgs32[0]  - LTG ID
+			//   - cmdArgs32[1]  - traffic interval (us)
+			//   - cmdArgs32[2]  - traffic length   (bytes)
+			//
+            //   - respArgs32[0] - 0           - Success
+			//                     0xFFFF_FFFF - Failure
+
+			// Get arguments
+			id       = Xil_Ntohl(cmdArgs32[0]);
+			interval = Xil_Ntohl(cmdArgs32[1]);
+            size     = Xil_Ntohl(cmdArgs32[2]);
+
+            // Check arguments
+            if ( size > 1500 ) { size = 1500; }       // TODO: This should be LTG_PAYLOAD_MAX and not a magic number
+
+            // Local variables
+			void*                       ltg_callback_arg;
+        	ltg_sched_periodic_params   periodic_params;
+
+            // Check to see if LTG ID already exists
+			if( ltg_sched_get_callback_arg( id, &ltg_callback_arg ) == 0 ) {
+				// This LTG has already been configured. We need to free the old callback argument so we can create a new one.
+				ltg_sched_stop( id );
+				free( ltg_callback_arg );
+			}
+
+			// Set up CBR traffic flow
+			periodic_params.interval_usec = interval;
+
+			ltg_callback_arg = malloc(sizeof(ltg_pyld_fixed));
+
+			if( ltg_callback_arg != NULL ) {
+				((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
+				((ltg_pyld_fixed*)ltg_callback_arg)->length   = size;
+
+				// Configure the LTG
+				status = ltg_sched_configure( id, LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &node_ltg_cleanup );
+
+				xil_printf("CBR LTG %d configured:  interval of %d (us) with size of %d bytes\n", id, interval, size);
+
+			} else {
+				xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg\n");
+				status = 0xFFFFFFFF;
+			}
+
+			// Send response of current channel
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LTG_START:
+            // NODE_LTG_START Packet Format:
+			//   - cmdArgs32[0]  - ltg id
+			//                       0xFFFF_FFFF  -> Start all IDs
+			//
+            //   - respArgs32[0] - 0           - Success
+			//                     0xFFFF_FFFF - Failure
+
+			// Get ID
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			// If parameter is not the magic number, then start the LTG
+			if ( temp != 0xFFFFFFFF ) {
+                // Try to start the ID
+		        status = ltg_sched_start( temp );
+
+		        if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - LTG %d failed to start.\n", temp);
+		        	status = 0xFFFFFFFF;
+		        } else {
+					xil_printf("Starting LTG %d.\n", temp);
+			    }
+			} else {
+				// Start all LTGs
+
+				// TODO: Need ltg_sched_start_all()
+				xil_printf("WARNING:  LTG - LTG 0x%8x failed to start.\n", temp);
+				status = 0xFFFFFFFF;
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LTG_STOP:
+            // NODE_LTG_STOP Packet Format:
+			//   - cmdArgs32[0]  - ltg id
+			//                       0xFFFF_FFFF  -> Stop all IDs
+			//
+            //   - respArgs32[0] - 0           - Success
+			//                     0xFFFF_FFFF - Failure
+
+			// Get ID
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			// If parameter is not the magic number, then stop the LTG
+			if ( temp != 0xFFFFFFFF ) {
+                // Try to stop the ID
+		        status = ltg_sched_stop( temp );
+
+		        if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - LTG %d failed to stop.\n", temp);
+		        	status = 0xFFFFFFFF;
+		        } else {
+					xil_printf("Stopping LTG %d.\n", temp);
+			    }
+			} else {
+				// Stop all LTGs
+
+				// TODO: Need ltg_sched_stop_all()
+				xil_printf("WARNING:  LTG - LTG 0x%8x failed to stop.\n", temp);
+				status = 0xFFFFFFFF;
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LTG_REMOVE:
+            // NODE_LTG_REMOVE Packet Format:
+			//   - cmdArgs32[0]  - ltg id
+			//                       0xFFFF_FFFF  -> Remove all IDs
+			//
+            //   - respArgs32[0] - 0           - Success
+			//                     0xFFFF_FFFF - Failure
+
+			// Get ID
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			// If parameter is not the magic number, then remove the LTG
+			if ( temp != 0xFFFFFFFF ) {
+                // Try to remove the ID
+		        status = ltg_sched_remove( temp );
+
+		        if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - LTG %d failed to remove.\n", temp);
+		        	status = 0xFFFFFFFF;
+		        } else {
+					xil_printf("Removing LTG %d.\n", temp);
+			    }
+			} else {
+				// Remove all LTGs
+		        status = ltg_sched_remove( LTG_REMOVE_ALL );
+
+		        if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
+		        	status = 0xFFFFFFFF;
+		        } else {
+					xil_printf("Removing All LTGs.\n");
+			    }
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LOG_RESET:
+			xil_printf("EVENT LOG:  Reset log\n");
+
+			event_log_reset();
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LOG_CONFIG:
+            // NODE_LOG_CONFIG Packet Format:
+			//   - cmdArgs32[0]  - flags
+			//                       - [ 0] - Wrap = 1; No Wrap = 0;
+			//
+            //   - respArgs32[0] - 0           - Success
+			//                     0xFFFF_FFFF - Failure
+
+			// Set the return value
+			status = 0;
+
+			// Get flags
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+            // Local Defines for flag bits
+            #define NODE_LTG_FLAG_WRAP      0x00000001
+
+			// Configure the LTG based on the flag bits
+			if ( ( temp & NODE_LTG_FLAG_WRAP ) == NODE_LTG_FLAG_WRAP ) {
+				event_log_config_wrap( EVENT_LOG_WRAP_ENABLE );
+			} else {
+				event_log_config_wrap( EVENT_LOG_WRAP_DISABLE );
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LOG_GET_CURR_IDX:
+			// Get the current index of the log
+			temp = event_log_get_current_index();
+
+			xil_printf("EVENT LOG:  Current index = %d\n", temp);
+
+			// Send response of current index
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LOG_GET_OLDEST_IDX:
+			// Get the current index of the log
+			temp = event_log_get_oldest_event_index();
+
+			xil_printf("EVENT LOG:  Oldest index  = %d\n", temp);
+
+			// Send response of oldest index
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LOG_GET_EVENTS:
             // NODE_GET_EVENTS Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
-            //   - cmdArgs32[0] - start_address of transfer
-			//   - cmdArgs32[1] - size of transfer (in bytes)
+			//   - cmdArgs32[0] - buffer id
+			//   - cmdArgs32[1] - flags
+            //   - cmdArgs32[2] - start_address of transfer
+			//   - cmdArgs32[3] - size of transfer (in bytes)
 			//                      0xFFFF_FFFF  -> Get everything in the event log
 			//
-            //   - respArgs32[0] - Total Packets
-            //   - respArgs32[1] - Current Packet Number
-            //   - respArgs32[2] - Total Bytes
-            //   - respArgs32[3] - Current byte
-            //   - respArgs32[4] - Size of data
+			//   Return Value:
+			//     - wn_buffer
+            //       - buffer_id  - uint32  - ID of the buffer
+			//       - flags      - uint32  - Flags
+			//       - start_byte - uint32  - Byte index of the first byte in this packet
+			//       - size       - uint32  - Number of payload bytes in this packet
+			//       - byte[]     - uint8[] - Array of payload bytes
 			//
-			// NOTE;  The address passed via the command is the address relative to the current
+			// NOTE:  The address passed via the command is the address relative to the current
 			//   start of the event log.  It is not an absolute address and should not be treated
 			//   as such.
 			//
@@ -532,10 +776,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			//   we are transferring the current log.
             //
 
-
-
-			start_address     = Xil_Ntohl(cmdArgs32[0]);
-            size              = Xil_Ntohl(cmdArgs32[1]);
+			id                = Xil_Ntohl(cmdArgs32[0]);
+			flags             = Xil_Ntohl(cmdArgs32[1]);
+			start_address     = Xil_Ntohl(cmdArgs32[2]);
+            size              = Xil_Ntohl(cmdArgs32[3]);
 
             // Get the current size of the event log
             evt_log_size      = event_log_get_size();
@@ -553,20 +797,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			xil_printf("    start_address    = 0x%8x\n    size             = %10d\n    num_pkts         = %10d\n", start_address, size, num_pkts);
 
 			// Initialize constant parameters
-            respArgs32[0] = Xil_Htonl( num_pkts );
-            // respArgs32[1] - Current Packet Number
-            respArgs32[2] = Xil_Htonl( size );
-            // respArgs32[3] - Current byte
-            // respArgs32[4] - Size of transfer
+            respArgs32[0] = Xil_Htonl( id );
+            respArgs32[1] = Xil_Htonl( flags );
 
-			respHdr->numArgs = 5;
+			respHdr->numArgs = 4;
 
 			for( i = 0; i < num_pkts; i++ ) {
 
 				// Get the next address
 				next_address  = curr_address + bytes_per_pkt;
 
-				// Compute the transfer size (us the full buffer unless you run out of space)
+				// Compute the transfer size (use the full buffer unless you run out of space)
 				if( next_address > ( start_address + size ) ) {
                     transfer_size = (start_address + size) - curr_address;
 
@@ -575,26 +816,23 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				}
 
 				// Set response args that change per packet
-	            respArgs32[1]   = Xil_Htonl( i );
-	            respArgs32[3]   = Xil_Htonl( curr_address - start_address );
-                respArgs32[4]   = Xil_Htonl( transfer_size );
+	            respArgs32[2]   = Xil_Htonl( curr_address );
+                respArgs32[3]   = Xil_Htonl( transfer_size );
 
-	            respHdr->length = 20 + transfer_size;
+	            respHdr->length = 16 + transfer_size;
 
 				// Transfer data
-				num_bytes = event_log_get_data( curr_address, transfer_size, (char *) &respArgs32[5] );
+				num_bytes = event_log_get_data( curr_address, transfer_size, (char *) &respArgs32[4] );
 
 				xil_printf("Packet %8d: \n", i);
 				xil_printf("    transfer_address = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", curr_address, transfer_size, num_bytes);
 
 				// Check that we copied everything
 				if ( num_bytes == transfer_size ) {
-
 					// Send the packet
 					node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
 				} else {
 					xil_printf("ERROR:  NODE_GET_EVENTS tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_address );
-
 				}
 
 				// Update our current address
@@ -603,8 +841,25 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 			respSent = RESP_SENT;
 		break;
-        
+
+
+		//---------------------------------------------------------------------
+		// TODO:  THIS FUNCTION IS NOT COMPLETE
+		case NODE_LOG_ADD_EVENT:
+			xil_printf("EVENT LOG:  Add Event not supported\n");
+	    break;
+
+
+		//---------------------------------------------------------------------
+		// TODO:  THIS FUNCTION IS NOT COMPLETE
+		case NODE_LOG_ENABLE_EVENT:
+			xil_printf("EVENT LOG:  Enable Event not supported\n");
+	    break;
+
+
+		//---------------------------------------------------------------------
 		default:
+			// Call standard function in child class to parse parameters implmented there
 			respSent = node_process_callback( cmdID, cmdHdr, cmdArgs, respHdr, respArgs, pktSrc, eth_dev_num);
 		break;
 	}
@@ -649,6 +904,10 @@ int wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned 
         node_info.fpga_dna[i] = fpga_dna[i];
     }
     
+    // WLAN Exp Parameters are assumed to be initialize already
+    //    node_info.wlan_max_assn
+    //    node_info.wlan_event_log_size
+
     node_info.eth_device      = eth_dev_num;
     
 	node_info.ip_addr[0]      = (NODE_IP_ADDR_BASE >> 24) & 0xFF;
@@ -672,10 +931,10 @@ int wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned 
     node_init_parameters( (u32*)&node_info );
     
 
-#ifdef _DEBUG_    
+#ifdef _DEBUG_
     print_wn_node_info( &node_info );
     print_wn_parameters( (wn_tag_parameter *)&node_parameters, NODE_MAX_PARAMETER );
-#endif 
+#endif
 
     
     // Transport initialization
@@ -688,9 +947,24 @@ int wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned 
         return FAILURE;
 	}
 
+#ifdef 	WLAN_EXP_WAIT_FOR_ETH
+
 	xil_printf("  Waiting for Ethernet link ... ");
 	while( transport_linkStatus( eth_dev_num ) != 0 );
 	xil_printf("  Initialization Successful\n");
+
+#else
+
+	xil_printf("  Not waiting for Ethernet link.  Current status is: ");
+
+	if ( transport_linkStatus( eth_dev_num ) == LINK_READY ) {
+		xil_printf("ready.\n");
+	} else {
+		xil_printf("not ready.\n");
+		xil_printf("    Make sure link is ready before using WARPNet.\n");
+	}
+
+#endif
 
 	//Assign the new packet callback
 	// IMPORTANT: must be called after transport_init()
@@ -871,6 +1145,39 @@ int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char netw
 }
 
 
+
+/*****************************************************************************/
+/**
+* These are helper functions to set some node_info fields
+*
+* @param    field value
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void node_info_set_max_assn      ( u32 max_assn ) { node_info.wlan_max_assn       = max_assn; }
+void node_info_set_event_log_size( u32 log_size ) { node_info.wlan_event_log_size = log_size; }
+
+
+
+
+/*****************************************************************************/
+/**
+* This is a helper function to clean up the LTGs owned by WLAN Exp
+*
+* @param    id            - LTG id
+*           callback_arg  - Callback argument for LTG
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void node_ltg_cleanup(u32 id, void* callback_arg){
+	free( callback_arg );
+}
 
 
 

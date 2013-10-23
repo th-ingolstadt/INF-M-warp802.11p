@@ -128,9 +128,9 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
         memcpy( &buffer[1], stations, size );
     }
 
-// #ifdef _DEBUG_
+#ifdef _DEBUG_
     wlan_exp_print_station_status( stations, num_stations );
-// #endif
+#endif
 
 	return index;
 }

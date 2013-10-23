@@ -35,6 +35,7 @@
 #include "wlan_mac_event_log.h"
 
 #include "wlan_exp_common.h"
+#include "wlan_exp_node.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -158,6 +159,7 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	u32            gpio_read;
 	u32            queue_len;
 	u64            timestamp;
+	u32            log_size;
 	tx_frame_info* tx_mpdu;
 
     // Initialize callbacks
@@ -249,14 +251,24 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 
 	queue_len = queue_init();
 
-	if(dram_present){
+	if( dram_present ) {
 		//The event_list lives in DRAM immediately following the queue payloads.
 		if(MAX_EVENT_LOG == -1){
-			event_log_init( (void*)(DDR3_BASEADDR + queue_len), (DDR3_SIZE - queue_len) );
+			log_size = (DDR3_SIZE - queue_len);
 		} else {
-			event_log_init( (void*)(DDR3_BASEADDR + queue_len), min( (DDR3_SIZE - queue_len), MAX_EVENT_LOG ) );
+			log_size = min( (DDR3_SIZE - queue_len), MAX_EVENT_LOG );
 		}
+
+		event_log_init( (void*)(DDR3_BASEADDR + queue_len), log_size );
+
+	} else {
+		log_size = 0;
 	}
+
+#ifdef USE_WARPNET_WLAN_EXP
+	// Communicate the log size to WARPNet
+	node_info_set_event_log_size( log_size );
+#endif
 
 	wlan_eth_init();
 

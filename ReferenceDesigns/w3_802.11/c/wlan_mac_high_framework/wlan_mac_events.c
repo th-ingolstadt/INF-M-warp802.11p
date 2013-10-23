@@ -143,6 +143,7 @@ void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event 
 			xil_printf("   Channel Estimates:\n");
 
 			for( i = 0; i < 16; i++) {
+				xil_printf("        ");
 				for( j = 0; j < 4; j++){
 					xil_printf("0x%8x ", (rx_event_log_item->channel_est)[4*i + j]);
 				}
