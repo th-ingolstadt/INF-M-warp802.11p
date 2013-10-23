@@ -121,6 +121,10 @@ int main(){
 	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 
+#ifdef USE_WARPNET_WLAN_EXP
+	node_info_set_max_assn( MAX_ASSOCIATIONS );
+#endif
+
 	// Initialize the utility library
 	wlan_lib_init();
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);

@@ -32,6 +32,7 @@
 
 //WARP includes
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_ipc.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
@@ -51,6 +52,9 @@
 extern station_info associations[MAX_ASSOCIATIONS+1];
 extern u32          next_free_assoc_index;
 extern char       * access_point_ssid;
+
+extern u32          mac_param_chan;
+
 
 /*************************** Variable Definitions ****************************/
 
@@ -113,8 +117,9 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 	switch(cmdID){
 
-		case NODE_GET_ASSN_STATUS:
-            // NODE_GET_ASSN_STATUS Packet Format:
+		//---------------------------------------------------------------------
+		case NODE_ASSN_GET_STATUS:
+            // NODE_ASSN_GET_STATUS Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
             //   - cmdArgs32[0] - 31:16 - Number of tables to transmit per minute ( 0 => stop )
@@ -164,6 +169,22 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		break;
 
 
+		//---------------------------------------------------------------------
+		// TODO:  THIS FUNCTION IS NOT COMPLETE
+		case NODE_ASSN_SET_TABLE:
+			xil_printf("AP - Set association table not supported\n");
+		break;
+
+
+		//---------------------------------------------------------------------
+		case NODE_ASSN_RESET_STATS:
+			xil_printf("Reseting Statistics - AP\n");
+
+			reset_station_statistics();
+		break;
+
+
+		//---------------------------------------------------------------------
 		case NODE_DISASSOCIATE:
             // NODE_DISASSOCIATE Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
@@ -191,7 +212,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 			}
 
 			// Print message to the UART to show which node was disassociated
-			xil_printf("Node Disassociate - AP - 0x%x\n", temp);
+			xil_printf("Node Disassociate - AP  - 0x%x\n", temp);
 
 			// Send response of current channel
             respArgs32[respIndex++] = Xil_Htonl( temp );
@@ -200,18 +221,38 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 			respHdr->numArgs = respIndex;
 		break;
 
-
         
-		case NODE_RESET_STATS:
-			xil_printf("Reseting Statistics - AP\n");
+		//---------------------------------------------------------------------
+		case NODE_CHANNEL:
+			// Get channel parameter
+			temp = Xil_Ntohl(cmdArgs32[0]);
 
-			reset_station_statistics();
+			// If parameter is not the magic number, then set the mac channel
+			//   NOTE:  We modulate temp so that we always have a valid channel
+			if ( temp != 0xFFFF ) {
+				temp = temp % 12;          // Get a channel number between 0 - 11
+				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
+
+				// NOTE:  This function must be implemented in all child classes
+				deauthenticate_stations(); // First deauthenticate all stations
+
+				mac_param_chan = temp;
+				set_mac_channel( mac_param_chan );
+
+			    xil_printf("Setting Channel = %d\n", mac_param_chan);
+			}
+
+			// Send response of current channel
+            respArgs32[respIndex++] = Xil_Htonl( mac_param_chan );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
 		break;
 
 
-
-        case NODE_ALLOW_ASSOCIATIONS:
-            // NODE_ALLOW_ASSOCIATIONS Packet Format:
+		//---------------------------------------------------------------------
+        case NODE_AP_ALLOW_ASSOCIATIONS:
+            // NODE_AP_ALLOW_ASSOCIATIONS Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
             //   - cmdArgs32[0] - 0xFFFF - Permanently turn on associations
@@ -238,9 +279,9 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
         break;
 
 
-
-		case NODE_DISALLOW_ASSOCIATIONS:
-            // NODE_DISALLOW_ASSOCIATIONS Packet Format:
+		//---------------------------------------------------------------------
+		case NODE_AP_DISALLOW_ASSOCIATIONS:
+            // NODE_AP_DISALLOW_ASSOCIATIONS Packet Format:
 			//
 			//   - Returns the status of the associations
             //
@@ -261,9 +302,9 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		break;
 
 
-
-		case NODE_GET_SSID:
-            // NODE_GET_SSID Packet Format:
+		//---------------------------------------------------------------------
+		case NODE_AP_GET_SSID:
+            // NODE_AP_GET_SSID Packet Format:
 			//
             //   - respArgs32[0] - Number of characters the new SSID
             //   - respArgs32[1] - Packed array of ascii character values
@@ -287,9 +328,9 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		break;
 
 
-
-		case NODE_SET_SSID:
-            // NODE_SET_SSID Packet Format:
+		//---------------------------------------------------------------------
+		case NODE_AP_SET_SSID:
+            // NODE_AP_SET_SSID Packet Format:
 			//
             //   - cmdArgs32[0] - Number of characters in the new SSID
             //   - cmdArgs32[1] - Packed array of ascii character values
@@ -311,7 +352,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		break;
 
 
-
+		//---------------------------------------------------------------------
 		default:
 			xil_printf("Unknown node command: %d\n", cmdID);
 		break;
@@ -319,47 +360,6 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 	return respSent;
 }
-
-
-#if 0
-if(default_unicast_rate < WLAN_MAC_RATE_54M){
-	default_unicast_rate++;
-} else {
-	default_unicast_rate = WLAN_MAC_RATE_54M;
-}
-
-for(i=0; i < next_free_assoc_index; i++){
-	associations[i].tx_rate = default_unicast_rate;
-}
-
-
-
-if(ltg_mode == 0){
-	#define LTG_INTERVAL 10000
-	xil_printf("Enabling LTG mode to AID 1, interval = %d usec\n", LTG_INTERVAL);
-	cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
-	start_ltg(1, LTG_TYPE_CBR, &cbr_parameters);
-
-	ltg_mode = 1;
-
-} else {
-	stop_ltg(1);
-	ltg_mode = 0;
-	xil_printf("Disabled LTG mode to AID 1\n");
-}
-
-
-
-#endif
-
-
-
-
-
-
-
-
-
 
 
 #endif
