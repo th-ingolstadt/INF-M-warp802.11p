@@ -33,8 +33,8 @@ samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
 %load('rx_sigs/wlan_tx_out_3pkts_16Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_1240PB_16Q12.mat'); tx_sig_t = 1:length(wlan_tx_out);
 %load('rx_sigs/wlan_tx_out_74PB_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+%load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)]; %%%FCS BAD IN RX SIM?!
 
 payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
 %cfo = exp(1i*2*pi*(5e-4)*(0:length(payload_vec)-1)).';
@@ -151,9 +151,12 @@ REG_RX_Config = ...
     2^0  * 1 + ... %DSSS RX EN
     2^1  * 1 + ... %Block inputs on INVALID input
     2^2  * 1 + ... %Swap pkt buf byte order
-    2^3  * 0 + ...
+    2^3  * 0 + ... %Swap order of chan est u32 writes
     2^4  * 1 + ... %Allow DSSS Rx to keep AGC locked
     2^5  * 1 + ... %Bypass CFO est/correction
+    2^6  * 1 + ... %Enable chan est recording to pkt buf
+    2^7  * 1 + ... %Enable switching diversity
+    2^8  * 0 + ... %Force selection of Ant B
     0;
 
 REG_RX_DSSS_RX_CONFIG = ...
@@ -173,7 +176,12 @@ REG_RX_CCA_CONFIG = ...
     2^16 * (CS_CONFIG_POSTRX_EXTENSION) + ... %b[23:16]
     0;
 
-
+REG_RX_PktBuf_Sel = ...
+    2^0 *  0 + ... %b[3:0]: OFDM Pkt Buf
+    2^8 *  0 + ... %b[11:8]: DSSS Pkt Buf
+    2^16 * 0 + ... %b[23:16]: Pkt buf offset for Rx bytes (u64 words)
+    2^24 * (8/8) + ... %b[31:24]: Pkt buf offset for chan est (u64 words)
+    0;
 
 REG_RX_FEC_Config = ...
     2^0  * (SOFT_DEMAP_SCALE_QPSK) + ...

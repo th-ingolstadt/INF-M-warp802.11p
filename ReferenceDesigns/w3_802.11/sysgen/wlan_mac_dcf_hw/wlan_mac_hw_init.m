@@ -1,4 +1,3 @@
-addpath('../util');
 addpath('./mcode_blocks');
 
 %Maximum interval values in usec
@@ -91,4 +90,6 @@ REG_MAC_Backoff_Control = ...
     2^0  * (25) + ... %b[15:0] - num BO slots
     2^31 * (0) + ... %b[31] - Start backoff period immediately
     0;
-    
+
+REG_MAC_Log_Config = 0;
+
