@@ -67,9 +67,13 @@ typedef struct{
 	u16 length;
 	char rx_power;
 	u8 channel;
-	u8 reserved0[2];
+	u8 flags;
+	u8 reserved0;
 	u32 channel_est[64];
 } rx_frame_info;
+
+#define RX_MPDU_FLAGS_ACKED		0x1
+#define RX_MPDU_FLAGS_RETRY		0x2
 
 #define RX_MPDU_STATE_EMPTY 	 	0
 #define RX_MPDU_STATE_RX_PENDING	1
