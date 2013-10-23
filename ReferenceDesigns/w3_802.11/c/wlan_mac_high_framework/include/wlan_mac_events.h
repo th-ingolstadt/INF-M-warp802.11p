@@ -38,7 +38,7 @@
 typedef struct{
 	u8   state;
 	u8   AID;
-	char power;
+	s8   power;
 	u8   rate;
 	u16  length;
 	u16  seq;
@@ -57,13 +57,15 @@ typedef struct{
 typedef struct{
 	u8   state;
 	u8   AID;
-	char power;
+	s8 	 power;
 	u8   rate;
 	u16  length;
 	u16  seq;
+	u64	 tx_mpdu_accept_timestamp;
+	u64	 tx_mpdu_done_timestamp;
 	u8   mac_type;
 	u8   retry_count;
-	u8   reserved[2];
+	u8   reserved[6];
 } tx_event;
 
 

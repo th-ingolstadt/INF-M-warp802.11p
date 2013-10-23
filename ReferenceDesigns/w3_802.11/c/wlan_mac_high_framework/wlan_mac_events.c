@@ -156,13 +156,14 @@ void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event 
 		case EVENT_TYPE_TX:
 			tx_event_log_item = (tx_event*) event;
 			xil_printf("%d: [%d] - Tx Event\n", event_number, timestamp);
-			xil_printf("   Pow:      %d\n",     tx_event_log_item->power);
-			xil_printf("   Seq:      %d\n",     tx_event_log_item->seq);
-			xil_printf("   Rate:     %d\n",     tx_event_log_item->rate);
-			xil_printf("   Length:   %d\n",     tx_event_log_item->length);
-			xil_printf("   State:    %d\n",     tx_event_log_item->state);
-			xil_printf("   MAC Type: 0x%x\n",   tx_event_log_item->mac_type);
-			xil_printf("   Retry:    %d\n",     tx_event_log_item->retry_count);
+			xil_printf("   Pow:              %d\n",     tx_event_log_item->power);
+			xil_printf("   Seq:              %d\n",     tx_event_log_item->seq);
+			xil_printf("   Rate:             %d\n",     tx_event_log_item->rate);
+			xil_printf("   Length:           %d\n",     tx_event_log_item->length);
+			xil_printf("   State:            %d\n",     tx_event_log_item->state);
+			xil_printf("   MAC Type:         0x%x\n",   tx_event_log_item->mac_type);
+			xil_printf("   Retry:            %d\n",     tx_event_log_item->retry_count);
+			xil_printf("   MPDU Duration:    %d usec\n",     (u32)(tx_event_log_item->tx_mpdu_done_timestamp - tx_event_log_item->tx_mpdu_accept_timestamp));
 		break;
 
 		case EVENT_TYPE_BAD_FCS_RX:
