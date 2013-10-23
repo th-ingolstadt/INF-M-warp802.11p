@@ -61,7 +61,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -525,36 +525,54 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
 
-	rx_event* rx_event_log_entry;
+	void* rx_event_log_entry;
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
 	u8 is_associated = 0;
 
-	rx_event_log_entry = get_next_empty_rx_event();
+	if(rate != WLAN_MAC_RATE_1M){
+			rx_event_log_entry = (void*)get_next_empty_rx_ofdm_event();
 
+			if(rx_event_log_entry != NULL){
+				((rx_ofdm_event*)rx_event_log_entry)->state    = mpdu_info->state;
+				((rx_ofdm_event*)rx_event_log_entry)->AID      = 0;
+				((rx_ofdm_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
+				((rx_ofdm_event*)rx_event_log_entry)->length   = mpdu_info->length;
+				((rx_ofdm_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
+				((rx_ofdm_event*)rx_event_log_entry)->mac_type = rx_80211_header->frame_control_1;
+				((rx_ofdm_event*)rx_event_log_entry)->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+				((rx_ofdm_event*)rx_event_log_entry)->flags    = mpdu_info->flags;
 
-	if(rx_event_log_entry != NULL){
-			rx_event_log_entry->state    = mpdu_info->state;
-			rx_event_log_entry->AID      = 0;
-			rx_event_log_entry->power    = mpdu_info->rx_power;
-			rx_event_log_entry->length   = mpdu_info->length;
-			rx_event_log_entry->rate     = mpdu_info->rate;
-			rx_event_log_entry->mac_type = rx_80211_header->frame_control_1;
-			rx_event_log_entry->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-			rx_event_log_entry->flags    = mpdu_info->flags;
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-		if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_start_transfer(rx_event_log_entry->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
-#endif
-	}
+		#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+				if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_start_transfer(((rx_ofdm_event*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+		#endif
 
+			}
+		} else {
+			rx_event_log_entry = (void*)get_next_empty_rx_dsss_event();
+
+			if(rx_event_log_entry != NULL){
+				((rx_dsss_event*)rx_event_log_entry)->state    = mpdu_info->state;
+				((rx_dsss_event*)rx_event_log_entry)->AID      = 0;
+				((rx_dsss_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
+				((rx_dsss_event*)rx_event_log_entry)->length   = mpdu_info->length;
+				((rx_dsss_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
+				((rx_dsss_event*)rx_event_log_entry)->mac_type = rx_80211_header->frame_control_1;
+				((rx_dsss_event*)rx_event_log_entry)->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+				((rx_dsss_event*)rx_event_log_entry)->flags    = mpdu_info->flags;
+			}
+		}
 
 
 	if(wlan_addr_eq(access_point.addr, (rx_80211_header->address_2))) {
 		is_associated = 1;
 
-		if(rx_event_log_entry != NULL) rx_event_log_entry->AID = 1;
-
+		if(rate != WLAN_MAC_RATE_1M){
+			if(rx_event_log_entry != NULL) ((rx_ofdm_event*)rx_event_log_entry)->AID = 1;
+		} else {
+			if(rx_event_log_entry != NULL) ((rx_dsss_event*)rx_event_log_entry)->AID = 1;
+		}
 		rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 		//Check if duplicate
 		access_point.rx_timestamp = get_usec_timestamp();
@@ -961,7 +979,9 @@ int get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words ) {
     }
 
 // #ifdef _DEBUG_
+	#ifdef USE_WARPNET_WLAN_EXP
     wlan_exp_print_ap_list( ap_list, num_ap );
+	#endif
 // #endif
 
 	return index;
