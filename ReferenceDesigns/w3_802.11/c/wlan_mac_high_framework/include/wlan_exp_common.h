@@ -31,7 +31,7 @@
 // to a future release.
 //
 
-#define  USE_WARPNET_WLAN_EXP
+// #define  USE_WARPNET_WLAN_EXP
 
 // #define  WLAN_EXP_WAIT_FOR_ETH
 
