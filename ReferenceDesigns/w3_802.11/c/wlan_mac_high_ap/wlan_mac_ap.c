@@ -271,14 +271,16 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	tx_event_log_entry = get_next_empty_tx_event();
 
 	if(tx_event_log_entry != NULL){
-		tx_event_log_entry->state       = tx_mpdu->state;
-		tx_event_log_entry->AID         = 0;
-		tx_event_log_entry->power       = 0; //TODO
-		tx_event_log_entry->length      = tx_mpdu->length;
-		tx_event_log_entry->rate        = tx_mpdu->rate;
-		tx_event_log_entry->mac_type    = tx_80211_header->frame_control_1;
-		tx_event_log_entry->seq         = ((tx_80211_header->sequence_control)>>4)&0xFFF;
-		tx_event_log_entry->retry_count = tx_mpdu->retry_count;
+		tx_event_log_entry->state                    = tx_mpdu->state;
+		tx_event_log_entry->AID                      = 0;
+		tx_event_log_entry->power                    = 0; //TODO
+		tx_event_log_entry->length                   = tx_mpdu->length;
+		tx_event_log_entry->rate                     = tx_mpdu->rate;
+		tx_event_log_entry->mac_type                 = tx_80211_header->frame_control_1;
+		tx_event_log_entry->seq                      = ((tx_80211_header->sequence_control)>>4)&0xFFF;
+		tx_event_log_entry->retry_count              = tx_mpdu->retry_count;
+		tx_event_log_entry->tx_mpdu_accept_timestamp = tx_mpdu->tx_mpdu_accept_timestamp;
+		tx_event_log_entry->tx_mpdu_done_timestamp   = tx_mpdu->tx_mpdu_done_timestamp;
 	}
 
 
