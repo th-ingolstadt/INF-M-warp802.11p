@@ -31,6 +31,7 @@
 
 //WARP includes
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_ipc.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
@@ -48,14 +49,27 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern station_info access_point;
+extern station_info   access_point;
+extern char*          access_point_ssid;
+
+extern ap_info      * ap_list;
+extern u8             num_ap_list;
+extern u8             active_scan;
+extern u8             pause_queue;
+
+extern int            association_state;
+
+extern u32            mac_param_chan;
+extern u32            mac_param_chan_save;
+
+extern u8             access_point_num_basic_rates;
+extern u8             access_point_basic_rates[NUM_BASIC_RATES_MAX];
 
 
 /*************************** Variable Definitions ****************************/
 
 
 /*************************** Functions Prototypes ****************************/
-
 
 
 /******************************** Functions **********************************/
@@ -96,6 +110,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 	unsigned int  respSent   = NO_RESP_SENT;       // Initialize return value to NO_RESP_SENT
     unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
+    unsigned int  status;
     unsigned int  temp, i;
     unsigned int  num_tables;
     unsigned int  table_freq;
@@ -111,7 +126,8 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 	switch(cmdID){
 
-		case NODE_GET_ASSN_STATUS:
+		//---------------------------------------------------------------------
+		case NODE_ASSN_GET_STATUS:
             // NODE_GET_ASSN_STATUS Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
@@ -161,28 +177,157 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 		break;
 
-        
-		case NODE_DISASSOCIATE:
-            // NODE_DISASSOCIATE Packet Format:
-            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
-            //
-            //   - cmdArgs32[0] - AID
-			//                  - 0xFFFF - Disassociate all
-			//
-			//   - Returns AID that was disassociated
-            //
-			xil_printf("Node Disassociate - STA\n");
 
+		//---------------------------------------------------------------------
+		// TODO:  THIS FUNCTION IS NOT COMPLETE
+		case NODE_ASSN_SET_TABLE:
+			xil_printf("STA - Set association table not supported\n");
 		break;
 
-
-		case NODE_RESET_STATS:
+        
+		//---------------------------------------------------------------------
+		case NODE_ASSN_RESET_STATS:
 			xil_printf("Reseting Statistics - STA\n");
 
 			reset_station_statistics();
 		break;
 
 
+		//---------------------------------------------------------------------
+		case NODE_DISASSOCIATE:
+            // NODE_DISASSOCIATE Packet Format:
+            //   Since a station is only associated to one AP, this command will
+			//     disassociate from that AP.
+            //
+			//   - Returns AID of AP that was disassociated
+
+			xil_printf("Node Disassociate - STA - Not Supported \n");
+
+			// Send response of current channel
+            respArgs32[respIndex++] = Xil_Htonl( 0 );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
+		case NODE_CHANNEL:
+			// Get channel parameter
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			// If parameter is not the magic number, then set the mac channel
+			//   NOTE:  We modulate temp so that we always have a valid channel
+			if ( temp != 0xFFFF ) {
+				temp = temp % 12;          // Get a channel number between 0 - 11
+				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
+
+				// TODO:  Disassociate from the current AP
+
+				mac_param_chan = temp;
+				set_mac_channel( mac_param_chan );
+
+			    xil_printf("Setting Channel = %d\n", mac_param_chan);
+			}
+
+			// Send response of current channel
+            respArgs32[respIndex++] = Xil_Htonl( mac_param_chan );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
+		case NODE_STA_GET_AP_LIST:
+            // NODE_STA_GET_AP_LIST Response Packet Format:
+			//
+            //   - respArgs32[0] - 31:0  - Number of APs
+        	//   - respArgs32[1 .. N]    - AP Info List
+			//
+
+			//Send broadcast probe requests across all channels
+			if(active_scan ==0){
+
+				free( ap_list );
+
+				// Clean up current state
+				ap_list             = NULL;
+				num_ap_list         = 0;
+				access_point_ssid   = realloc(access_point_ssid, 1);
+				*access_point_ssid  = 0;
+
+				// Start scan
+				active_scan         = 1;
+				pause_queue         = 1;
+				mac_param_chan_save = mac_param_chan;
+
+				probe_req_transmit();
+
+				respIndex += get_ap_list( ap_list, num_ap_list, &respArgs32[respIndex], max_words );
+			} else {
+				xil_printf("WARNING:  STA - Cannot get AP List.  Currently in active scan.\n");
+
+				respArgs32[respIndex++] = 0;
+			}
+
+			// Finalize response
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
+		case NODE_STA_ASSOCIATE:
+            // NODE_STA_ASSOCIATE Packet Format:
+			//
+            //   - cmdArgs32[0] - AP list index
+            //
+            //   - respArgs32[0] - 0           - Success
+			//                     0xFFFF_FFFF - Failure
+			//
+
+			status      = 0;
+			temp        = Xil_Ntohl(cmdArgs32[0]);
+
+			if( ( temp >= 0 ) && ( temp <= (num_ap_list-1) ) ) {
+
+				if( ap_list[temp].private == 0) {
+
+					mac_param_chan = ap_list[temp].chan;
+					set_mac_channel( mac_param_chan );
+
+					xil_printf("Attempting to join %s\n", ap_list[temp].ssid);
+					memcpy(access_point.addr, ap_list[temp].bssid, 6);
+
+					access_point_ssid = realloc(access_point_ssid, strlen(ap_list[temp].ssid)+1);
+					strcpy(access_point_ssid,ap_list[temp].ssid);
+
+					access_point_num_basic_rates = ap_list[temp].num_basic_rates;
+					memcpy(access_point_basic_rates, ap_list[temp].basic_rates, access_point_num_basic_rates);
+
+					association_state = 1;
+					attempt_authentication();
+
+				} else {
+					xil_printf("WARNING:  STA - Invalid AP selection %d.  Please choose an AP that is not private.\n", temp);
+					status = 0xFFFFFFFF;
+				}
+
+			} else {
+				xil_printf("WARNING:  STA - Invalid AP selection.  Please choose a number between [0,%d].\n", (num_ap_list-1));
+				status = 0xFFFFFFFF;
+			}
+
+			// Send response of current status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
 		default:
 			xil_printf("Unknown node command: %d\n", cmdID);
 		break;
@@ -193,110 +338,46 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 
 
-#if 0
-
-//Send bcast probe requests across all channels
-if(active_scan ==0){
-	num_ap_list = 0;
-	//xil_printf("- Free 0x%08x\n",ap_list);
-	free(ap_list);
-	ap_list = NULL;
-	active_scan = 1;
-	access_point_ssid = realloc(access_point_ssid, 1);
-	*access_point_ssid = 0;
-	//xil_printf("+++ starting active scan\n");
-	probe_req_transmit();
-}
 
 
+// #ifdef _DEBUG_
 
+/*****************************************************************************/
+/**
+* Print Station Status
+*
+* This function will print a list of station_info structures
+*
+* @param    stations     - pointer to the station_info list
+*           num_stations - number of station_info structures in the list
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wlan_exp_print_ap_list( ap_info * ap_list, u32 num_ap ){
+	u32  i, j;
+	char str[4];
 
+	for( i = 0; i < num_ap; i++ ) {
+		xil_printf("---------------------------------------------------\n");
+		xil_printf(" AP: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", i,
+				ap_list[i].bssid[0],ap_list[i].bssid[1],ap_list[i].bssid[2],ap_list[i].bssid[3],ap_list[i].bssid[4],ap_list[i].bssid[5]);
+		xil_printf("     - SSID             : %s  (private = %d)\n", ap_list[i].ssid, ap_list[i].private);
+		xil_printf("     - Channel          : %d\n", ap_list[i].chan);
+		xil_printf("     - Rx Power         : %d\n", ap_list[i].rx_power);
+		xil_printf("     - Rates            : ");
 
-if(default_unicast_rate > WLAN_MAC_RATE_6M){
-	default_unicast_rate--;
-} else {
-	default_unicast_rate = WLAN_MAC_RATE_6M;
-}
-
-
-access_point.tx_rate = default_unicast_rate;
-
-
-
-
-
-
-if(ltg_mode == 0){
-	#define LTG_INTERVAL 10000
-	xil_printf("Enabling LTG mode to AP, interval = %d usec\n", LTG_INTERVAL);
-	cbr_parameters.interval_usec = LTG_INTERVAL; //Time between calls to the packet generator in usec. 0 represents backlogged... go as fast as you can.
-	start_ltg(0, LTG_TYPE_CBR, &cbr_parameters);
-
-	ltg_mode = 1;
-
-} else {
-	stop_ltg(0);
-	ltg_mode = 0;
-	xil_printf("Disabled LTG mode to AID 1\n");
-}
-
-
-
-
-
-
-
-
-
-numerical_entry[curr_decade] = 0;
-curr_decade = 0;
-
-ap_sel = str2num(numerical_entry);
-
-if( (ap_sel >= 0) && (ap_sel <= (num_ap_list-1))){
-
-	if( ap_list[ap_sel].private == 0) {
-		uart_mode = UART_MODE_MAIN;
-		mac_param_chan = ap_list[ap_sel].chan;
-
-		//Send a message to other processor to tell it to switch channels
-		ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
-		ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
-		ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-		init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
-		config_rf_ifc->channel = mac_param_chan;
-		ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-
-		xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
-		memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
-
-		access_point_ssid = realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
-		//xil_printf("allocated %d bytes in 0x%08x\n", strlen(ap_list[ap_sel].ssid), access_point_ssid);
-		strcpy(access_point_ssid,ap_list[ap_sel].ssid);
-
-		access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
-		memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates,access_point_num_basic_rates);
-
-		association_state = 1;
-		attempt_authentication();
-
-	} else {
-		xil_printf("\nInvalid selection, please choose an AP that is not private: ");
+		for( j = 0; j < ap_list[i].num_basic_rates; j++ ) {
+			tagged_rate_to_readable_rate(ap_list[i].basic_rates[j], str);
+			xil_printf("%s, ",str);
+		}
+        xil_printf("\n");
 	}
-
-
-} else {
-
-	xil_printf("\nInvalid selection, please choose a number between [0,%d]: ", num_ap_list-1);
-
 }
 
-
-#endif
-
-
-
+// #endif
 
 
 #endif

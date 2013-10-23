@@ -140,6 +140,9 @@ int main(){
     // Set Global variables
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 
+#ifdef USE_WARPNET_WLAN_EXP
+	node_info_set_max_assn( 1 );
+#endif
 
 	// Initialize the utility library
 	wlan_lib_init();
@@ -913,3 +916,55 @@ void reset_station_statistics(){
 	access_point.num_rx_success = 0;
 	access_point.num_rx_bytes = 0;
 }
+
+
+
+
+/*****************************************************************************/
+/**
+* Get AP List
+*
+* This function will populate the buffer with:
+*   buffer[0]      = Number of stations
+*   buffer[1 .. N] = memcpy of the station information structure
+* where N is less than max_words
+*
+* @param    stations      - Station info pointer
+*           num_stations  - Number of stations to copy
+*           buffer        - u32 pointer to the buffer to transfer the data
+*           max_words     - The maximum number of words in the buffer
+*
+* @return	Number of words copied in to the buffer
+*
+* @note     None.
+*
+******************************************************************************/
+int get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words ) {
+
+	unsigned int size;
+	unsigned int index;
+
+	index     = 0;
+
+	// Set number of Association entries
+	buffer[ index++ ] = num_ap;
+
+	// Get total size (in bytes) of data to be transmitted
+	size   = num_ap * sizeof( ap_info );
+
+	// Get total size of data (in words) to be transmitted
+	index += size / sizeof( u32 );
+
+    if ( (size > 0 ) && (index < max_words) ) {
+
+        memcpy( &buffer[1], ap_list, size );
+    }
+
+// #ifdef _DEBUG_
+    wlan_exp_print_ap_list( ap_list, num_ap );
+// #endif
+
+	return index;
+}
+
+
