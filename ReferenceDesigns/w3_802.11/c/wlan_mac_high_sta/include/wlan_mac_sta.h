@@ -96,7 +96,7 @@ void print_menu();
 void print_ap_list();
 void print_station_status(u8 manual_call);
 void ltg_cleanup(u32 id, void* callback_arg);
-
+void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 void uart_rx(u8 rxByte);
 
 

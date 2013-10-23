@@ -151,6 +151,7 @@ int main(){
 	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
 	wlan_mac_util_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
 	wlan_mac_util_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
+	wlan_mac_util_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
 	wlan_mac_util_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
@@ -279,14 +280,16 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	tx_event_log_entry = get_next_empty_tx_event();
 
 	if(tx_event_log_entry != NULL){
-		tx_event_log_entry->state       = tx_mpdu->state;
-		tx_event_log_entry->AID         = 1;
-		tx_event_log_entry->power       = 0; //TODO
-		tx_event_log_entry->length      = tx_mpdu->length;
-		tx_event_log_entry->rate        = tx_mpdu->rate;
-		tx_event_log_entry->mac_type    = tx_80211_header->frame_control_1;
-		tx_event_log_entry->seq         = ((tx_80211_header->sequence_control)>>4)&0xFFF;
-		tx_event_log_entry->retry_count = tx_mpdu->retry_count;
+		tx_event_log_entry->state                    = tx_mpdu->state;
+		tx_event_log_entry->AID                      = 1;
+		tx_event_log_entry->power                    = 0; //TODO
+		tx_event_log_entry->length                   = tx_mpdu->length;
+		tx_event_log_entry->rate                     = tx_mpdu->rate;
+		tx_event_log_entry->mac_type                 = tx_80211_header->frame_control_1;
+		tx_event_log_entry->seq                      = ((tx_80211_header->sequence_control)>>4)&0xFFF;
+		tx_event_log_entry->retry_count              = tx_mpdu->retry_count;
+		tx_event_log_entry->tx_mpdu_accept_timestamp = tx_mpdu->tx_mpdu_accept_timestamp;
+		tx_event_log_entry->tx_mpdu_done_timestamp   = tx_mpdu->tx_mpdu_done_timestamp;
 	}
 
 	wlan_mac_util_process_tx_done(tx_mpdu, &(access_point));
@@ -898,6 +901,11 @@ void print_ap_list(){
 
 }
 
+void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
+	bad_fcs_event* bad_fcs_event_log_entry = get_next_empty_bad_fcs_event();
+	bad_fcs_event_log_entry->length = length;
+	bad_fcs_event_log_entry->rate = rate;
+}
 
 void reset_station_statistics(){
 	access_point.num_tx_total = 0;
