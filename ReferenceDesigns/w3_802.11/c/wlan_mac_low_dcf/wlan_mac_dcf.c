@@ -311,6 +311,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	u8 unicast_to_me, to_broadcast;
 	u16 rssi;
 	u8 lna_gain;
+	u8 active_rx_ant;
 
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
@@ -393,8 +394,9 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	mpdu_info->length = (u16)length;
 	mpdu_info->rate = (u8)rate;
 
-	rssi = wlan_phy_rx_get_pkt_rssi();
-	lna_gain = wlan_phy_rx_get_agc_RFG();
+	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
+	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
+	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 
 	//if(rate == WLAN_MAC_RATE_1M){
 		//TODO: In this version of the hardware, RSSI is not latched on DSSS events.
@@ -924,7 +926,7 @@ void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc){
 	if((config_rf_ifc->channel)!=0xFF){
 		mac_param_chan = config_rf_ifc->channel;
 		//TODO: allow mac_param_chan to select 5GHz channels
-		radio_controller_setCenterFrequency(RC_BASEADDR, RC_RFA, mac_param_band, mac_param_chan);
+		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_RFA | RC_RFB), mac_param_band, mac_param_chan);
 		warp_printf(PL_ERROR, "CPU_LOW: Tuned to channel %d\n", mac_param_chan);
 	}
 }
@@ -957,7 +959,7 @@ inline void send_exception(u32 reason){
 	}
 }
 
-#define RSSI_SLOPE_BITSHIFT		4
+#define RSSI_SLOPE_BITSHIFT		3 //Was 4 in old PHY; sliced 16MSB in v31
 #define RSSI_OFFSET_LNA_LOW		(-61)
 #define RSSI_OFFSET_LNA_MED		(-76)
 #define RSSI_OFFSET_LNA_HIGH	(-92)

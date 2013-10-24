@@ -70,22 +70,31 @@
 #define WLAN_RX_REG_CTRL_RESET			0x1
 
 //RX CONFIG
-#define WLAN_RX_REG_CFG_DSSS_RX_EN			0x01 //Enable DSSS Rx
-#define WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK	0x02 //Force I/Q/RSSI signals to zero during Tx
-#define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP	0x04 //Swap byte order at pkt buf interface
-#define WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD	0x10 //Allow active DSSS Rx to keep AGC locked
-#define WLAN_RX_REG_CFG_CFO_EST_BYPASS		0x20 //Bypass time-domain CFO correction
-#define WLAN_RX_REG_CFG_RECORD_CHAN_EST		0x40
+#define WLAN_RX_REG_CFG_DSSS_RX_EN			0x001 //Enable DSSS Rx
+#define WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK	0x002 //Force I/Q/RSSI signals to zero during Tx
+#define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP	0x004 //Swap byte order at pkt buf interface
+#define WLAN_RX_REG_CFG_CHAN_EST_WEN_SWAP	0x008 //Swap the order of H est writes per u64 ([0,1] vs [1,0])
+#define WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD	0x010 //Allow active DSSS Rx to keep AGC locked
+#define WLAN_RX_REG_CFG_CFO_EST_BYPASS		0x020 //Bypass time-domain CFO correction
+#define WLAN_RX_REG_CFG_RECORD_CHAN_EST		0x040 //Enable recording channel estimates to the Rx pkt buffer
+#define WLAN_RX_REG_CFG_SWITCHING_DIV_EN	0x080 //Enable switching diversity per-Rx
+#define WLAN_RX_REG_CFG_FORCE_SEL_ANT_B		0x100 //Force selection of RF B (ignored if switching div is enabled)
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A	0x200 //Enable pkt detection on RF A
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B	0x400 //Enable pkt detection on RF B
+
 
 //RX STATUS
-#define WLAN_RX_REG_STATUS_PKT_DONE			0x1
-#define WLAN_RX_REG_STATUS_OFDM_FCS_GOOD	0x2
-#define WLAN_RX_REG_STATUS_DSSS_RX_DONE		0x4
+#define WLAN_RX_REG_STATUS_OFDM_FCS_GOOD	0x1
+#define WLAN_RX_REG_STATUS_DSSS_FCS_GOOD	0x2
+#define WLAN_RX_REG_STATUS_ACTIVE_ANT		0x4
 
 
 //TX CONFIG
-#define WLAN_TX_REG_CFG_SET_RC_RXEN		0x1
-#define WLAN_TX_REG_CFG_RESET			0x80000000
+#define WLAN_TX_REG_CFG_SET_RC_RXEN					0x1
+#define WLAN_TX_REG_CFG_RESET_SCRAMBLING_PER_PKT	0x2
+#define WLAN_TX_REG_CFG_ANT_A_TXEN					0x4
+#define WLAN_TX_REG_CFG_ANT_B_TXEN					0x8
+#define WLAN_TX_REG_CFG_RESET						0x80000000
 
 //TX STATUS
 #define WLAN_TX_REG_STATUS_TX_RUNNING	0x1
@@ -109,8 +118,9 @@
 #define WLAN_RX_RSSI_THRESH		XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH
 #define WLAN_RX_PKTDET_RSSI_CFG	XPAR_WLAN_PHY_RX_MEMMAP_PKTDET_RSSI_CONFIG
 #define WLAN_RX_PHY_CCA_CFG		XPAR_WLAN_PHY_RX_MEMMAP_PHY_CCA_CONFIG
-#define WLAN_RX_PKT_PWR_INFO	XPAR_WLAN_PHY_RX_MEMMAP_RX_PWR_INFO
 #define WLAN_RX_SIGNAL_FIELD	XPAR_WLAN_PHY_RX_MEMMAP_SIGNAL_FIELD
+#define WLAN_RX_PKT_RSSI_AB		XPAR_WLAN_PHY_RX_MEMMAP_RX_PKT_RSSI_AB
+#define WLAN_RX_PKT_AGC_GAINS	XPAR_WLAN_PHY_RX_MEMMAP_RX_PKT_AGC_GAINS
 
 #define WLAN_TX_REG_STATUS		XPAR_WLAN_PHY_TX_MEMMAP_STATUS
 #define WLAN_TX_REG_CFG			XPAR_WLAN_PHY_TX_MEMMAP_CONFIG
@@ -133,6 +143,13 @@
 #define REG_CLEAR_BITS(addr, mask)	Xil_Out32(addr, (Xil_In32(addr) & ~mask))
 #define REG_SET_BITS(addr, mask)	Xil_Out32(addr, (Xil_In32(addr) | mask))
 
+//Antenna modes
+#define RX_ANTMODE_SISO_ANTA	0x1
+#define RX_ANTMODE_SISO_ANTB	0x2
+#define RX_ANTMODE_SISO_SELDIV	0x4
+
+#define TX_ANTMODE_SISO_ANTA	0x10
+#define TX_ANTMODE_SISO_ANTB	0x20
 
 
 //PHY Macros
@@ -140,9 +157,8 @@
 #define wlan_phy_rx_pkt_buf_phy_hdr_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0x00FF0000)) | (((d)<<13) & 0x00FF0000)))
 #define wlan_phy_tx_pkt_buf_phy_hdr_offset(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x00FF0000)) | (((d)<<13) & 0x00FF0000)))
 
-//The same restriction of u64 words applied for the channel estimates. Currently, the -1 is temporary. In future hardware it
-//will be -3 just like the hdr_offset macros above.
-#define wlan_phy_rx_pkt_buf_h_est_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0xFF000000)) | (((d)<<(24-1)) & 0xFF000000)))
+//Chan est offset is specified in units of u64 words; this macros converts a byte offset to u64 offset (hence the implicit >>3)
+#define wlan_phy_rx_pkt_buf_h_est_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0xFF000000)) | (((d)<<(24-3)) & 0xFF000000)))
 
 #define wlan_phy_tx_set_scaling(pre, pay) Xil_Out32(WLAN_TX_REG_SCALING, ( ( (pre) & 0xFFFF) | (( (pay)&0xFFFF)<<16)))
 
@@ -151,10 +167,20 @@
 #define wlan_phy_rx_pkt_buf_ofdm(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0x0000000F)) | ((d) & 0x0000000F)))
 #define wlan_phy_tx_pkt_buf(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x0000000F)) | ((d) & 0x0000000F)))
 
-#define wlan_phy_rx_get_pkt_rssi() (Xil_In32(WLAN_RX_PKT_PWR_INFO) & 0x1FFFF) //UFix17_0 - rssi*(sum length)
-#define wlan_phy_rx_get_agc_BBG() ((Xil_In32(WLAN_RX_PKT_PWR_INFO)>>17) & 0x1F) //UFix5_0
-#define wlan_phy_rx_get_agc_RFG() ((Xil_In32(WLAN_RX_PKT_PWR_INFO)>>22) & 0x3) //UFix2_0
+#define wlan_phy_rx_get_active_rx_ant()  ((Xil_In32(WLAN_RX_STATUS) & WLAN_RX_REG_STATUS_ACTIVE_ANT) == WLAN_RX_REG_STATUS_ACTIVE_ANT)
 
+//RSSI reg: b[15:0]=RFA, b[31:16]=RFB
+#define wlan_phy_rx_get_pkt_rssi(ant) ( (ant==0) ? (Xil_In32(WLAN_RX_PKT_RSSI_AB) & 0xFFFF) : ((Xil_In32(WLAN_RX_PKT_RSSI_AB)>>16) & 0xFFFF) )
+
+//AGC gains reg:
+// [4:0]: RF A BBG
+// [6:5]: RF A RFG
+// [7]:   0
+// [12:8]: RF B BBG
+// [14:13]: RF B RFG
+
+#define wlan_phy_rx_get_agc_BBG(ant) ( (ant==0) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) & 0x1F) : ((Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>8) & 0x1F))
+#define wlan_phy_rx_get_agc_RFG(ant) ( (ant==0) ? ((Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>5) & 0x3) : ((Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>13) & 0x3))
 
 #define	wlan_phy_DSSS_rx_enable() Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) | WLAN_RX_REG_CFG_DSSS_RX_EN)
 #define	wlan_phy_DSSS_rx_disable() Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_DSSS_RX_EN)
@@ -222,6 +248,9 @@ inline u16 wlan_ofdm_txtime(u16 length,u16 n_DBPS);
 void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length);
 void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx);
 void process_config_phy_tx(ipc_config_phy_tx* config_phy_tx);
+
+void wlan_tx_config_ant_mode(u32 ant_mode);
+void wlan_rx_config_ant_mode(u32 ant_mode);
 
 extern const u8 ones_in_chars[256];
 
