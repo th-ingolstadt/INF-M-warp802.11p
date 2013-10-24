@@ -30,7 +30,7 @@ typedef struct {
 #define PQUEUE_MAX_FRAME_SIZE	0x800 	//2KB
 
 //Bottom 48kB of data BRAM is used for PQUEUE
-#define PQUEUE_MEM_BASE				(XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR)
+#define PQUEUE_MEM_BASE				(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
 
 //First section of packet_bd memory space is the packet_bd buffer descriptors
 #define PQUEUE_SPACE_BASE		PQUEUE_MEM_BASE

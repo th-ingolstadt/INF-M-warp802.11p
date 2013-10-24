@@ -22,7 +22,7 @@
 //Number of Tx and Rx DMA buffer descriptors
 #define ETH_A_NUM_TX_BD		1
 
-#define ETH_A_BUF_MEM_BASE		(XPAR_MB_HIGH_DATA_BRAM_CTRL_S_AXI_BASEADDR + (48*1024)) //bottom 48kB are Tx queues
+#define ETH_A_BUF_MEM_BASE		(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + (48*1024)) //bottom 48kB are Tx queues
 
 #define ETH_A_TX_BD_SPACE_BASE	(ETH_A_BUF_MEM_BASE)
 #define ETH_A_RX_BD_SPACE_BASE	(ETH_A_TX_BD_SPACE_BASE + (ETH_A_NUM_TX_BD * XAXIDMA_BD_MINIMUM_ALIGNMENT)) //safer than sizeof(XAxiDma_Bd)?
