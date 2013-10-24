@@ -127,7 +127,7 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 }
 
 void wlan_tx_config_ant_mode(u32 ant_mode) {
-	REG_CLEAR_BITS(WLAN_RX_REG_CFG, (WLAN_TX_REG_CFG_ANT_A_TXEN | WLAN_TX_REG_CFG_ANT_B_TXEN));
+	REG_CLEAR_BITS(WLAN_TX_REG_CFG, (WLAN_TX_REG_CFG_ANT_A_TXEN | WLAN_TX_REG_CFG_ANT_B_TXEN));
 	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_TXEN_CTRLSRC, RC_CTRLSRC_REG);
 
 	switch(ant_mode) {
