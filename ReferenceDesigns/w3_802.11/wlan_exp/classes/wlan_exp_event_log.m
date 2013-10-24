@@ -285,7 +285,7 @@ classdef wlan_exp_event_log < handle_light
 
                     numEvents      = numel( varargin{1} );
                     current_index  = numel( log.event_list );
-                    log.event_list = [ log.event_list; varargin{1} ];
+                    log.event_list = [ log.event_list, varargin{1} ];
                     
                     % TODO:  Add some class checking
                     % if( strcmp( superclasses(  ),'wlan_exp_event') )
