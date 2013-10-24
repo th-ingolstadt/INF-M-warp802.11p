@@ -262,7 +262,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 	unsigned int  respIndex  = 0;
 	unsigned int  respSent   = NO_RESP_SENT;
-    unsigned int  max_words  = 350;                // Max number of u32 words that can be sent in the packet (~1400 bytes)
+    unsigned int  max_words  = 320;                // Max number of u32 words that can be sent in the packet (~1400 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
     unsigned int  temp, i;
@@ -798,11 +798,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			xil_printf("    start_address    = 0x%8x\n    size             = %10d\n    num_pkts         = %10d\n", start_address, size, num_pkts);
 #endif
 
-			// Initialize constant parameters
-            respArgs32[0] = Xil_Htonl( id );
-            respArgs32[1] = Xil_Htonl( flags );
 
-			respHdr->numArgs = 4;
+
 
 			for( i = 0; i < num_pkts; i++ ) {
 
@@ -817,11 +814,18 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					transfer_size = bytes_per_pkt;
 				}
 
+				// Initialize constant parameters
+				respArgs32[0] = Xil_Htonl( id );
+				respArgs32[1] = Xil_Htonl( flags );
+
+
 				// Set response args that change per packet
 	            respArgs32[2]   = Xil_Htonl( curr_address );
                 respArgs32[3]   = Xil_Htonl( transfer_size );
 
 	            respHdr->length = 16 + transfer_size;
+	            respHdr->cmd     = cmdHdr->cmd;
+				respHdr->numArgs = 4;
 
 				// Transfer data
 				num_bytes = event_log_get_data( curr_address, transfer_size, (char *) &respArgs32[4] );
