@@ -30,6 +30,8 @@ classdef wn_resp < wn_msg_helper
             obj.numArgs = bitand(65535,vec(2));
             obj.len = bitshift(vec(2),-16);
             
+            fprintf('Len = %d    Size of vec = %d\n', obj.len, length(vec) );
+            
             if(length(vec)>2)
                 obj.args = {vec(3:(2+(obj.len/4)))};
             end

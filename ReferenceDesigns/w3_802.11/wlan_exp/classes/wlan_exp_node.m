@@ -630,7 +630,7 @@ classdef wlan_exp_node < wn_node
 
                     
                     % bytes = receive_buffer( obj, cmd, id, flags, start_address, size )
-                    resp = node.transport.receive_buffer( myCmd, 0, 0, 0, 1000 );
+                    resp = node.transport.receive_buffer( myCmd, 0, 0, 0, 10000 );
                     
                     % out = { obj.event_log.process_events( 0, resp( 5:end ) ) };
                     out = { obj.event_log.process_events( 0, resp ) };
