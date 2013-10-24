@@ -125,7 +125,8 @@ function network = wlan_exp_initNodes(varargin)
             resp  = wn_resp( transport_unicast.send( myCmd.serialize() ) );
             resp  = resp.getArgs();
 
-            transport_unicast.delete();
+            % TODO:  This should only be deleted for MEX transport
+            % transport_unicast.delete();
 
             if ( resp ~= currNode.type ) 
                 error(generatemsgid('TypeMismatch'),'Type mismatch.  Node reports type %d while %s is of type %d ', resp, nodeIDs(n).nodeClass, currNode.type);
