@@ -28,7 +28,7 @@ classdef wlan_exp_event_rx_ofdm < wlan_exp_event_rx
     
     properties(Hidden = true,Constant = true)
         % Number of uint32 words in the event.  This corresponds to the size of the structure in "wlan_mac_events.h"
-        EVENT_NUM_WORDS                = 67;
+        EVENT_NUM_WORDS_OFDM           = 67;
     end
     
     
@@ -74,7 +74,7 @@ classdef wlan_exp_event_rx_ofdm < wlan_exp_event_rx
             num_words            = length( words );
             index                = 1;
             
-            if ( num_words >= obj.EVENT_NUM_WORDS )
+            if ( num_words >= obj.EVENT_NUM_WORDS_OFDM )
             
                 % Set the unique fields of the event
                 obj.channel_est      = words( (index + 4):end );
