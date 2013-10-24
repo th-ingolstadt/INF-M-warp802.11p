@@ -793,8 +793,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             num_pkts          = size / bytes_per_pkt + 1;
             curr_address      = start_address;
 
+#ifdef _DEBUG_
 			xil_printf("WLAN EXP NODE_GET_EVENTS \n");
 			xil_printf("    start_address    = 0x%8x\n    size             = %10d\n    num_pkts         = %10d\n", start_address, size, num_pkts);
+#endif
 
 			// Initialize constant parameters
             respArgs32[0] = Xil_Htonl( id );
@@ -824,8 +826,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				// Transfer data
 				num_bytes = event_log_get_data( curr_address, transfer_size, (char *) &respArgs32[4] );
 
+#ifdef _DEBUG_
 				xil_printf("Packet %8d: \n", i);
 				xil_printf("    transfer_address = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", curr_address, transfer_size, num_bytes);
+#endif
 
 				// Check that we copied everything
 				if ( num_bytes == transfer_size ) {
