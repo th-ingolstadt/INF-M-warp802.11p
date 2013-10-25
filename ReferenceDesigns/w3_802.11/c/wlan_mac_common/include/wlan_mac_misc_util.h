@@ -66,9 +66,11 @@ typedef struct{
 	u8 rate;
 	u16 length;
 	char rx_power;
+	u8 rf_gain;
+	u8 bb_gain;
 	u8 channel;
 	u8 flags;
-	u8 reserved0;
+	u8 reserved[7];
 	u32 channel_est[64];
 } rx_frame_info;
 
