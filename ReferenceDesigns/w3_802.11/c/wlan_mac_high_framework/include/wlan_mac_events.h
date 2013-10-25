@@ -45,7 +45,8 @@ typedef struct{
 	u16  seq;
 	u8   mac_type;
 	u8   flags;
-	u8   reserved[2];
+	u8   rf_gain;
+	u8   bb_gain;
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
 	u32	 channel_est[64];
 #endif
@@ -60,7 +61,8 @@ typedef struct{
 	u16  seq;
 	u8   mac_type;
 	u8   flags;
-	u8   reserved[2];
+	u8   rf_gain;
+	u8   bb_gain;
 } rx_dsss_event;
 
 
