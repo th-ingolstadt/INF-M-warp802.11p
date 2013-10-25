@@ -161,9 +161,9 @@ fprintf('   adding path ''%s''\n',myPath);
 addpath(myPath)
 
 % Add  .../M_Code_Reference/warpnet/config
-configPath = sprintf('%s%sconfig',pwd,filesep);
-fprintf('   adding path ''%s''\n',configPath);
-addpath(configPath)
+config_path = sprintf('%s%sconfig',pwd,filesep);
+fprintf('   adding path ''%s''\n',config_path);
+addpath(config_path)
 
 % Add  .../M_Code_Reference/warpnet/mex
 myPath = sprintf('%s%smex',pwd,filesep);
@@ -190,7 +190,7 @@ savepath
 %   - Config file is now part of the WARPNet installation
 %   - Use the 'configPath' variable from above since wn_config.ini may not exist
 
-configFile = sprintf('%s%swn_config.ini',config_path,filesep);
+configFile = sprintf('%s%swn_config.ini', config_path, filesep);
 
 
 %------------------------------------------------------------------------------
@@ -267,12 +267,23 @@ fprintf('Please enter a WARPNet Ethernet interface address.\n\n')
 fprintf('Pressing enter without typing an input will use a default\n')
 fprintf('IP address of: %s\n\n',IP);
 
-temp = input('WARPNet Ethernet Interface Address: ','s');
-if(isempty(temp))
-   temp = IP; 
-   fprintf('   defaulting to %s\n',temp);
-else
-   fprintf('   setting to %s\n',temp); 
+ip_valid = 0;
+
+while( ip_valid == 0 ) 
+
+    temp = input('WARPNet Ethernet Interface Address: ','s');
+    if( isempty(temp) )
+       temp     = IP; 
+       ip_valid = 1;
+       fprintf('   defaulting to %s\n',temp);
+    else
+       if ( regexp( temp, '\d+\.\d+\.\d+\.\d+' ) == 1 ) 
+           ip_valid = 1;
+           fprintf('   setting to %s\n',temp)
+       else
+           fprintf('   %s is not a valid IP address.  Please enter a valid IP address.\n',temp); 
+       end
+    end
 end
 
 if(ispc)
