@@ -11,8 +11,6 @@ classdef wlan_exp_event < handle_light
     %
     
     properties (SetAccess = protected)
-        node;                  % Node association came from
-
         id;                    % Event ID
         timestamp;             % Timestamp of Event
     end
@@ -23,10 +21,9 @@ classdef wlan_exp_event < handle_light
     
     
     methods
-        function obj = wlan_exp_event( node, id, timestamp )
+        function obj = wlan_exp_event( id, timestamp )
             % The constructor sets common fields from the event header.  
             %
-            obj.node        = node;
             obj.id          = id;
             obj.timestamp   = timestamp;
         end
@@ -58,14 +55,14 @@ classdef wlan_exp_event < handle_light
             %procCmd(obj, index, event, command _tring, varargin)
             % obj      : event object
             % eventInd : index of the current event, when wlan_exp_event is iterating over nodes
-            % node     : current event object
+            % evet     : current event object
             % varargin :
             out = [];            
             cmdStr = lower(cmdStr);
             switch(cmdStr)
 
                 otherwise
-                    error(generatemsgid('UnknownCommand'), 'unknown node command %s', cmdStr);
+                    error(generatemsgid('UnknownCommand'), 'unknown event command %s', cmdStr);
             end
             
             if(iscell(out)==0 && numel(out)~=1)

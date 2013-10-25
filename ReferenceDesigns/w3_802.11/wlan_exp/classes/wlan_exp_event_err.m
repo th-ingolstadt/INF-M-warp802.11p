@@ -18,11 +18,11 @@ classdef wlan_exp_event_err < wlan_exp_event
     
     
     methods
-        function obj = wlan_exp_event_err( node, id, timestamp, values )
+        function obj = wlan_exp_event_err( id, timestamp, values )
             % The constructor sets all the fields after calling the parent constructor
             
             % Call the parent object
-            obj = obj@wlan_exp_event( node, id, timestamp );
+            obj = obj@wlan_exp_event( id, timestamp );
 
             % Set all the fields
             obj.parse_event( values );

@@ -210,19 +210,19 @@ classdef wlan_exp_event_log < handle_light
                             %
                             switch ( type ) 
                                 case obj.EVENT_TYPE_DEFAULT
-                                    out{ event_index } = wlan_exp_event( obj.node, id, timestamp );
+                                    out{ event_index } = wlan_exp_event( id, timestamp );
                                 
                                 case obj.EVENT_TYPE_RX_OFDM
-                                    out{ event_index } = wlan_exp_event_rx_ofdm( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
+                                    out{ event_index } = wlan_exp_event_rx_ofdm( id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
                                 
                                 case obj.EVENT_TYPE_RX_DSSS
-                                    out{ event_index } = wlan_exp_event_rx_dsss( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
+                                    out{ event_index } = wlan_exp_event_rx_dsss( id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
                                 
                                 case obj.EVENT_TYPE_TX
-                                    out{ event_index } = wlan_exp_event_tx( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
+                                    out{ event_index } = wlan_exp_event_tx( id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
                                 
                                 case obj.EVENT_TYPE_ERR_BAD_FCS_RX
-                                    out{ event_index } = wlan_exp_event_err_bad_fcs_rx( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
+                                    out{ event_index } = wlan_exp_event_err_bad_fcs_rx( id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
                                 
                                 otherwise
                                     warning(generatemsgid('EventInvalidType'),'Event type %d is unknown.', type);

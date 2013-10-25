@@ -24,11 +24,11 @@ classdef wlan_exp_event_err_bad_fcs_rx < wlan_exp_event_err
     
     
     methods
-        function obj = wlan_exp_event_err_bad_fcs_rx( node, id, timestamp, values )
+        function obj = wlan_exp_event_err_bad_fcs_rx( id, timestamp, values )
             % The constructor sets all the fields after calling the parent constructor
             
             % Call the parent object
-            obj = obj@wlan_exp_event_err( node, id, timestamp, values );
+            obj = obj@wlan_exp_event_err( id, timestamp, values );
 
             % Set all the fields
             obj.parse_event( values );
