@@ -374,7 +374,7 @@ classdef wn_transport_eth_udp_java < wn_transport_eth_udp
                 end
 
                 % Fail-safe timeout, in case indexing is broken (in m or C), to keep read_baseband_buffers from running forever
-                if( toc( start_time ) > 5 )
+                if( toc( start_time ) > 30 )
                     error(generatemsgid('ReadBuffer_Timeout'), 'receive_buffers took too long to retrieve bytes; check for indexing errors in C and M code');
                 end
             end %end while ~(all samples received)
