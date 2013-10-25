@@ -60,7 +60,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP-DEMO";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -567,6 +567,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			((rx_ofdm_event*)rx_event_log_entry)->state    = mpdu_info->state;
 			((rx_ofdm_event*)rx_event_log_entry)->AID      = 0;
 			((rx_ofdm_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
+			((rx_ofdm_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
+			((rx_ofdm_event*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
 			((rx_ofdm_event*)rx_event_log_entry)->length   = mpdu_info->length;
 			((rx_ofdm_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
 			((rx_ofdm_event*)rx_event_log_entry)->mac_type = rx_80211_header->frame_control_1;
@@ -598,6 +600,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			is_associated = 1;
 			associated_station = &(associations[i]);
 			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+
+			if(rate != WLAN_MAC_RATE_1M){
+				if(rx_event_log_entry != NULL) ((rx_ofdm_event*)rx_event_log_entry)->AID = associations[i].AID;
+			} else {
+				if(rx_event_log_entry != NULL) ((rx_dsss_event*)rx_event_log_entry)->AID = associations[i].AID;
+			}
+
 			//Check if duplicate
 			associations[i].rx_timestamp = get_usec_timestamp();
 			associations[i].last_rx_power = mpdu_info->rx_power;
@@ -612,11 +621,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			} else {
 				associations[i].seq = rx_seq;
 			}
-			if(rate != WLAN_MAC_RATE_1M){
-				if(rx_event_log_entry != NULL) ((rx_ofdm_event*)rx_event_log_entry)->AID = associations[i].AID;
-			} else {
-				if(rx_event_log_entry != NULL) ((rx_dsss_event*)rx_event_log_entry)->AID = associations[i].AID;
-			}
+
 			break;
 		}
 	}
