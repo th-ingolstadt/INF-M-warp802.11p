@@ -1,4 +1,4 @@
 serialNumber,    ID,       ipAddress,   unicastPort,   bcastPort,                nodeClass,       name
 # W3-a-00027,    27,      10.0.0.105,          9001,       10000,         wlan_exp_node_ap,   Node  27
   W3-a-00006,     1,      10.0.0.110,          9002,       10000,         wlan_exp_node_ap,   Node   6
-# W3-a-00189,     2,      10.0.0.115,          9003,       10000,    wlan_exp_node_station,   Node 189
+  W3-a-00189,     2,      10.0.0.115,          9003,       10000,    wlan_exp_node_station,   Node 189

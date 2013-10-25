@@ -161,9 +161,9 @@ fprintf('   adding path ''%s''\n',myPath);
 addpath(myPath)
 
 % Add  .../M_Code_Reference/warpnet/config
-myPath = sprintf('%s%sconfig',pwd,filesep);
-fprintf('   adding path ''%s''\n',myPath);
-addpath(myPath)
+configPath = sprintf('%s%sconfig',pwd,filesep);
+fprintf('   adding path ''%s''\n',configPath);
+addpath(configPath)
 
 % Add  .../M_Code_Reference/warpnet/mex
 myPath = sprintf('%s%smex',pwd,filesep);
@@ -188,9 +188,7 @@ savepath
 %------------------------------------------------------------------------------
 % Find Config File
 %   - Config file is now part of the WARPNet installation
-%
-
-[config_path,ig,ig] = fileparts(which('wn_config.ini'));
+%   - Use the 'configPath' variable from above since wn_config.ini may not exist
 
 configFile = sprintf('%s%swn_config.ini',config_path,filesep);
 
