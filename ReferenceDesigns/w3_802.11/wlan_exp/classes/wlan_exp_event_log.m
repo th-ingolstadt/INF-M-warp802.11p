@@ -210,19 +210,19 @@ classdef wlan_exp_event_log < handle_light
                             %
                             switch ( type ) 
                                 case obj.EVENT_TYPE_DEFAULT
-                                    out{ event_index } =  wlan_exp_event( obj.node, id, timestamp ) ;
+                                    out{ event_index } = wlan_exp_event( obj.node, id, timestamp );
                                 
                                 case obj.EVENT_TYPE_RX_OFDM
-                                    out{ event_index } =  wlan_exp_event_rx_ofdm( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) ) ;
+                                    out{ event_index } = wlan_exp_event_rx_ofdm( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
                                 
                                 case obj.EVENT_TYPE_RX_DSSS
-                                    out{ event_index } =  wlan_exp_event_rx_dsss( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) ) ;
+                                    out{ event_index } = wlan_exp_event_rx_dsss( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
                                 
                                 case obj.EVENT_TYPE_TX
-                                    out{ event_index } =  wlan_exp_event_tx( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) ) ;
+                                    out{ event_index } = wlan_exp_event_tx( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
                                 
                                 case obj.EVENT_TYPE_ERR_BAD_FCS_RX
-                                    out{ event_index } =  wlan_exp_event_err_bad_fcs_rx( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) ) ;
+                                    out{ event_index } = wlan_exp_event_err_bad_fcs_rx( obj.node, id, timestamp, bytes( bytes_index_start : bytes_index_end ) );
                                 
                                 otherwise
                                     warning(generatemsgid('EventInvalidType'),'Event type %d is unknown.', type);
@@ -253,8 +253,8 @@ classdef wlan_exp_event_log < handle_light
             obj.oldest_index = 0;
         end
 
-        
         function delete(obj)
+            % cellfun( @(x) x.delete(), obj.event_list );
             obj.event_list   = {};
         end
     end
@@ -301,21 +301,20 @@ classdef wlan_exp_event_log < handle_light
                     search_class = varargin{1};
  
                     index        = 1;
-                    resp         = {};                                       
                     
                     if ( strcmp( class( varargin{1} ), 'char' ) )                     
                         for n = 1:numEvents
                             if ( strcmp( class( log.event_list{n} ), search_class ) )
-                                resp( index ) = { log.event_list{n} };
+                                resp( index ) = log.event_list{n};
                                 index         = index + 1;
                             end
                         end
                         
-                        if ( isempty( resp ) ) 
+                        if ( ~exist( 'resp', 'var' ) ) 
                             % TODO:  print warning if you did not get any nodes of the class
                             out = [];
                         else
-                            out = resp{:};
+                            out = resp(:);
                         end
                         
                     else

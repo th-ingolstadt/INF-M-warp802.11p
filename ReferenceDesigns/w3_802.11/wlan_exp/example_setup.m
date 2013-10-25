@@ -22,7 +22,7 @@ log_oldest  = wn_nodeCmd( ap_nodes(1), 'log_get_oldest_event_index');           
 log_current = wn_nodeCmd( ap_nodes(1), 'log_get_current_event_index');                   % Get the index of the current event
 log_size    = log_current - log_oldest;                                                  % Compute the size of the log
 
-output      = wn_nodeCmd( ap_nodes(1), 'log_get_events', 10000000 );                     % Get event log 
+output      = wn_nodeCmd( ap_nodes(1), 'log_get_events', log_size );                     % Get event log 
 wlan_exp_event_logCmd( ap_nodes(1).event_log, 'add_event', output );                     % Add events to node event log
 
 % Get the different types of events
@@ -31,8 +31,7 @@ rx_dsss_log    = wlan_exp_event_logCmd( ap_nodes(1).event_log, 'get_events', 'wl
 tx_log         = wlan_exp_event_logCmd( ap_nodes(1).event_log, 'get_events', 'wlan_exp_event_tx');
 bad_fcs_rx_log = wlan_exp_event_logCmd( ap_nodes(1).event_log, 'get_events', 'wlan_exp_event_err_bad_fcs_rx');
 
-wlan_exp_event_logCmd( ap_nodes(1).event_log, 'add_event', output );             % Add events to node event log
-ap_nodes(1).event_log.disp()                                                     % Display event log
+% ap_nodes(1).event_log.disp()                                                   % Display event log
 
 
 

@@ -77,7 +77,7 @@ classdef wlan_exp_event_rx_ofdm < wlan_exp_event_rx
             if ( num_words >= obj.EVENT_NUM_WORDS_OFDM )
             
                 % Set the unique fields of the event
-                obj.channel_est      = words( (index + 4):end );
+                obj.channel_est      = words( (index + 3):end );
 
                 % Call parent class in case something common is added to the event
                 parse_event@wlan_exp_event_rx( obj, bytes );
