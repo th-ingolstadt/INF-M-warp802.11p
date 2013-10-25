@@ -123,15 +123,20 @@ classdef wlan_exp_event_log < handle_light
 
         
         function set_size( obj, size )
-            obj.size = size;                               % Set the size of the event log
+            obj.size = size;                               % Set the size of the event log (in bytes)
         end
         
+
+        function out = get_num_events( obj )
+            out = numel( obj.event_list );;                % Get the number of events in the log
+        end
+
 
         function out = get_last_index( obj )
-            out = obj.last_index;                          % Set the last index
+            out = obj.last_index;                          % Get the last index
         end
 
-        
+
         function out = process_events( obj, index, values )
             % Function will iterate through the array of doubles and attempt to create events 
             %   from the values.  By default, all events will have the following fields:

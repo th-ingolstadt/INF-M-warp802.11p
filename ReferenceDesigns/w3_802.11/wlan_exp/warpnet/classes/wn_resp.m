@@ -26,11 +26,14 @@ classdef wn_resp < wn_msg_helper
        
        function deserialize(obj,vec)
             vec = uint32(vec);
+
+            % fprintf('Size of vec = %d ', length(vec) );
+
             obj.cmd = vec(1);
             obj.numArgs = bitand(65535,vec(2));
             obj.len = bitshift(vec(2),-16);
-            
-            % fprintf('Len = %d    Size of vec = %d\n', obj.len, length(vec) );
+
+            % fprintf('        Len = %d\n', obj.len );
             
             if(length(vec)>2)
                 obj.args = {vec(3:(2+(obj.len/4)))};

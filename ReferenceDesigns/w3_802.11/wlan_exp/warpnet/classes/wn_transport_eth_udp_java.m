@@ -252,7 +252,8 @@ classdef wn_transport_eth_udp_java < wn_transport_eth_udp
                     if(recv_len > 1000)
                         %keyboard
                     end
-                    reply8 = [recv_data8(3:recv_len) zeros(mod(-(recv_len-2),4),1,'int8')].';
+                    
+                    reply8 = [recv_data8(3:recv_len); zeros(mod(-(recv_len-2),4),1,'int8')].';
                     reply = swapbytes(typecast(reply8, 'uint32'));
                     if(obj.hdr.isReply(reply(1:obj.hdr.length)))
                         reply = reply((obj.hdr.length+1):end);
@@ -280,7 +281,9 @@ classdef wn_transport_eth_udp_java < wn_transport_eth_udp
             numloops         = 0;                          % Detect if we lost packets
 
             % TODO:  Support Jumbo Frames
-            maxPayload_uint8 = 1400;                       % Should match value in 'wlan_exp_node.c'
+            maxPayload_uint8 = 1280;                       % Should match value in 'wlan_exp_node.c'
+
+            % fprintf('receive_buffer args:   start = %d     size = %d \n', start_address, size );
             
             while ~all( rx_bytes_valid(:) )
             
@@ -313,11 +316,13 @@ classdef wn_transport_eth_udp_java < wn_transport_eth_udp
                 if( num_bytes_this_req > ( USEFULBUFFERSIZE * obj.rxBufferSize ) )
                     % If the number of bytes we need from the board exceeds the receive buffer size of our transport, we are going to drop
                     % packets. We should reduce our request to minimize dropping.
-                    num_bytes_this_req = floor( USEFULBUFFERSIZE * obj.rxBufferSize );
+                    num_bytes_this_req = floor( ( USEFULBUFFERSIZE * obj.rxBufferSize ) / 4 ) * 4;
                 end
 
                 % Calculate how many transport packets are required
                 num_pkts_required = ceil( double( num_bytes_this_req ) / double( maxPayload_uint8 ) );
+
+                % fprintf('receive_buffer cmd args:   start = %d     size = %d \n', first_missing_bytes_hw_index, num_bytes_this_req );
 
                 % Construct and send the argument to the node
                 cmd.setArgs( id, flags, first_missing_bytes_hw_index, num_bytes_this_req );

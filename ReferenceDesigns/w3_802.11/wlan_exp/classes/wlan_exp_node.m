@@ -628,12 +628,20 @@ classdef wlan_exp_node < wn_node
 
                     % Process arguments
 
+                    start_time = tic;
+
                     % bytes = receive_buffer( obj, cmd, id, flags, start_address, size )
                     resp = node.transport.receive_buffer( myCmd, 0, 0, 0, varargin{1}{1} );
+
+                    total_time = toc(start_time);
+                    fprintf('Transfer Time  :  %.2f sec for %d bytes\n', total_time, numel( resp ) );
+                    start_time = tic;
                     
                     % out = { obj.event_log.process_events( 0, resp( 5:end ) ) };
                     out = { obj.event_log.process_events( 0, resp ) };
 
+                    total_time = toc(start_time);
+                    fprintf('Processing Time:  %.2f sec for %d events\n', total_time, numel( out ) );
 
                 %------------------------------------------------------------------------------------------------------
                 case 'log_add_event'

@@ -96,8 +96,8 @@ classdef wlan_exp_event_tx < wlan_exp_event
 
                 obj.done_timestamp   = 2^32 * double( words(index + 5) ) + double( words(index + 4) );
 
-                obj.mac_type         = double( bitand( bitshift( swapbytes( words(index + 6) ),   0 ), 255 ) );
-                obj.retry_count      = double( bitand( bitshift( swapbytes( words(index + 6) ),  -8 ), 255 ) );
+                obj.mac_type         = double( bitand( bitshift( words(index + 6),   0 ), 255 ) );
+                obj.retry_count      = double( bitand( bitshift( words(index + 6),  -8 ), 255 ) );
 
                 % Call parent class in case something common is added to the event
                 parse_event@wlan_exp_event( obj, bytes );
