@@ -395,7 +395,22 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	mpdu_info->rate = (u8)rate;
 
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
+
+	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
+	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
+
 	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
+
+//	if(rate != WLAN_MAC_RATE_1M){
+
+//		xil_printf("active_rx_ant = %d\n", active_rx_ant);
+//		xil_printf("RF Gain: %d, BB Gain: %d\n", wlan_phy_rx_get_agc_RFG(active_rx_ant), wlan_phy_rx_get_agc_BBG(active_rx_ant));
+//		xil_printf("rssi = %d\n", rssi);
+//		xil_printf("Reg: 0x%x\n", Xil_In32(WLAN_RX_PKT_AGC_GAINS));
+//	}
+
+
+
 	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 
 	//if(rate == WLAN_MAC_RATE_1M){
