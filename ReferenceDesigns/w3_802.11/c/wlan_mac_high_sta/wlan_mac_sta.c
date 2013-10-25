@@ -61,7 +61,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP-DEMO";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -556,6 +556,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				((rx_dsss_event*)rx_event_log_entry)->state    = mpdu_info->state;
 				((rx_dsss_event*)rx_event_log_entry)->AID      = 0;
 				((rx_dsss_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
+				((rx_ofdm_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
+				((rx_ofdm_event*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
 				((rx_dsss_event*)rx_event_log_entry)->length   = mpdu_info->length;
 				((rx_dsss_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
 				((rx_dsss_event*)rx_event_log_entry)->mac_type = rx_80211_header->frame_control_1;
