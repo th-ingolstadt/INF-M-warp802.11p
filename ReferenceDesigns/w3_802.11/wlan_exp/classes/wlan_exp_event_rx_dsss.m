@@ -13,7 +13,8 @@ classdef wlan_exp_event_rx_dsss < wlan_exp_event_rx
     %     	u16  seq;
     %     	u8   mac_type;
     %     	u8   flags;
-    %     	u8   reserved[2];
+    %     	u8   rf_gain;
+    %     	u8   bb_gain;
     %     } rx_dsss_event;
     % 
     %  NOTE:  this is equivalent to wlan_exp_event_rx in the M code.

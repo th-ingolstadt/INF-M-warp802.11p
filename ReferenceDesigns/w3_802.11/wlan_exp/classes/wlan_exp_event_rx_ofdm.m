@@ -13,7 +13,8 @@ classdef wlan_exp_event_rx_ofdm < wlan_exp_event_rx
     %     	u16  seq;
     %     	u8   mac_type;
     %     	u8   flags;
-    %     	u8   reserved[2];
+    %     	u8   rf_gain;
+    %     	u8   bb_gain;
     %     	u32	 channel_est[64];
     %     } rx_ofdm_event;
     %

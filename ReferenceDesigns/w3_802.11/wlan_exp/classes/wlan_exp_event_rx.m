@@ -13,7 +13,8 @@ classdef wlan_exp_event_rx < wlan_exp_event
     %     	u16  seq;
     %     	u8   mac_type;
     %     	u8   flags;
-    %     	u8   reserved[2];
+    %     	u8   rf_gain;
+    %     	u8   bb_gain;
     %     } rx_event;
     % 
     %  NOTE:  this is equivalent to rx_dsss_event in the C code.
@@ -28,6 +29,8 @@ classdef wlan_exp_event_rx < wlan_exp_event
         seq;                      % Sequence number
         mac_type;                 % Mac type
         flags;                    % Flags
+        rf_gain;                  % RF Gain
+        bb_gain;                  % BB Gain
     end
     
     properties (SetAccess = public)
@@ -82,8 +85,7 @@ classdef wlan_exp_event_rx < wlan_exp_event
             num_words            = length( words );
             index                = 1;
             
-            if ( num_words >= obj.EVENT_NUM_WORDS )
-            
+            if ( num_words >= obj.EVENT_NUM_WORDS )            
                 % Set the fields
                 obj.state            = double( bitand( bitshift( words(index),   0 ), 255 ) );
                 obj.aid              = double( bitand( bitshift( words(index),  -8 ), 255 ) );
@@ -95,6 +97,8 @@ classdef wlan_exp_event_rx < wlan_exp_event
 
                 obj.mac_type         = double( bitand( bitshift( swapbytes( words(index + 2) ),   0 ), 255 ) );
                 obj.flags            = double( bitand( bitshift( swapbytes( words(index + 2) ),  -8 ), 255 ) );
+                obj.rf_gain            = double( bitand( bitshift( swapbytes( words(index + 2) ),  -16 ), 255 ) );
+                obj.bb_gain            = double( bitand( bitshift( swapbytes( words(index + 2) ),  -24 ), 255 ) );
 
                 % Call parent class in case something common is added to the event
                 parse_event@wlan_exp_event( obj, bytes );
