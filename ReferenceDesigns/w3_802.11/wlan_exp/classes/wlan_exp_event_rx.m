@@ -95,10 +95,10 @@ classdef wlan_exp_event_rx < wlan_exp_event
                 obj.length           = double( bitand( bitshift( words(index + 1),   0 ), 65535 ) );
                 obj.seq              = double( bitand( bitshift( words(index + 1), -16 ), 65535 ) );
 
-                obj.mac_type         = double( bitand( bitshift( swapbytes( words(index + 2) ),   0 ), 255 ) );
-                obj.flags            = double( bitand( bitshift( swapbytes( words(index + 2) ),  -8 ), 255 ) );
-                obj.rf_gain            = double( bitand( bitshift( swapbytes( words(index + 2) ),  -16 ), 255 ) );
-                obj.bb_gain            = double( bitand( bitshift( swapbytes( words(index + 2) ),  -24 ), 255 ) );
+                obj.mac_type         = double( bitand( bitshift( words(index + 2),   0 ), 255 ) );
+                obj.flags            = double( bitand( bitshift( words(index + 2),  -8 ), 255 ) );
+                obj.rf_gain          = double( bitand( bitshift( words(index + 2),  -16 ), 255 ) );
+                obj.bb_gain          = double( bitand( bitshift( words(index + 2),  -24 ), 255 ) );
 
                 % Call parent class in case something common is added to the event
                 parse_event@wlan_exp_event( obj, bytes );
