@@ -798,9 +798,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			xil_printf("    start_address    = 0x%8x\n    size             = %10d\n    num_pkts         = %10d\n", start_address, size, num_pkts);
 #endif
 
+            // Initialize constant parameters
+            respArgs32[0] = Xil_Htonl( id );
+            respArgs32[1] = Xil_Htonl( flags );
 
-
-
+            // Iterate through all the packets
 			for( i = 0; i < num_pkts; i++ ) {
 
 				// Get the next address
@@ -814,17 +816,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					transfer_size = bytes_per_pkt;
 				}
 
-				// Initialize constant parameters
-				respArgs32[0] = Xil_Htonl( id );
-				respArgs32[1] = Xil_Htonl( flags );
-
-
 				// Set response args that change per packet
 	            respArgs32[2]   = Xil_Htonl( curr_address );
                 respArgs32[3]   = Xil_Htonl( transfer_size );
 
-	            respHdr->length = 16 + transfer_size;
+                // Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all 
+                //   three command parameters for each packet that is sent.
 	            respHdr->cmd     = cmdHdr->cmd;
+	            respHdr->length  = 16 + transfer_size;
 				respHdr->numArgs = 4;
 
 				// Transfer data
