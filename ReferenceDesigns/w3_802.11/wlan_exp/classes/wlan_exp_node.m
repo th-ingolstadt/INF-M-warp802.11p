@@ -33,7 +33,7 @@ classdef wlan_exp_node < wn_node
         CMD_TX_RATE                    = 31;
         CMD_CHANNEL                    = 32;
 
-        CMD_LTG_CONFIG_CBF             = 40;
+        CMD_LTG_CONFIG_CBR             = 40;
         CMD_LTG_START                  = 41;
         CMD_LTG_STOP                   = 42;
         CMD_LTG_REMOVE                 = 43;
@@ -641,7 +641,7 @@ classdef wlan_exp_node < wn_node
                     out = { obj.event_log.process_events( 0, resp ) };
 
                     total_time = toc(start_time);
-                    fprintf('Processing Time:  %.2f sec for %d events\n', total_time, numel( out ) );
+                    fprintf('Processing Time:  %.2f sec for %d events\n', total_time, numel( out{:} ) );
 
                 %------------------------------------------------------------------------------------------------------
                 case 'log_add_event'
