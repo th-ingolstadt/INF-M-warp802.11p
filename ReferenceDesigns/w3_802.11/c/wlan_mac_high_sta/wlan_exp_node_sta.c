@@ -221,6 +221,8 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			// If parameter is not the magic number, then set the TX rate
 			if ( temp != 0xFFFF ) {
 
+				default_unicast_rate = temp;
+
 				if( default_unicast_rate < WLAN_MAC_RATE_6M ){
 					default_unicast_rate = WLAN_MAC_RATE_6M;
 				}
