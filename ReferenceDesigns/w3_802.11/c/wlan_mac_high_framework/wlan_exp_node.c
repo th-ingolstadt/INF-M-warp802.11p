@@ -42,7 +42,6 @@
 
 
 
-
 /*************************** Variable Definitions ****************************/
 
 wn_node_info       node_info;
@@ -475,26 +474,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		break;
 
 
-	    //---------------------------------------------------------------------
-		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_TX_RATE:
-			// Get node TX rate
-			temp = Xil_Ntohl(cmdArgs32[0]);
-
-			// If parameter is not the magic number, then set the TX rate
-			if ( temp != 0xFFFF ) {
-
-				// TODO: Set the TX rate
-			    xil_printf("Setting TX rate = %d\n", temp);
-			}
-
-			// Send response of current rate
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
+		// Case NODE_TX_RATE is implemented in the child classes
 
 		// Case NODE_CHANNEL is implemented in the child classes
 
