@@ -60,7 +60,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-DEMO";
+static char default_AP_SSID[] = "WARP-AP-WLANTEST";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -275,7 +275,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	tx_event_log_entry = get_next_empty_tx_event();
 
 	if(tx_event_log_entry != NULL){
-		tx_event_log_entry->state                    = tx_mpdu->state;
+		tx_event_log_entry->state                    = tx_mpdu->state_verbose;
 		tx_event_log_entry->AID                      = 0;
 		tx_event_log_entry->power                    = 0; //TODO
 		tx_event_log_entry->length                   = tx_mpdu->length;
