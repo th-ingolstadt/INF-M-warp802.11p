@@ -65,6 +65,8 @@ extern u32            mac_param_chan_save;
 extern u8             access_point_num_basic_rates;
 extern u8             access_point_basic_rates[NUM_BASIC_RATES_MAX];
 
+extern u8             default_unicast_rate;
+
 
 /*************************** Variable Definitions ****************************/
 
@@ -205,6 +207,35 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 			// Send response of current channel
             respArgs32[respIndex++] = Xil_Htonl( 0 );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_TX_RATE:
+			// Get node TX rate
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			// If parameter is not the magic number, then set the TX rate
+			if ( temp != 0xFFFF ) {
+
+				if( default_unicast_rate < WLAN_MAC_RATE_6M ){
+					default_unicast_rate = WLAN_MAC_RATE_6M;
+				}
+
+				if(default_unicast_rate > WLAN_MAC_RATE_54M){
+					default_unicast_rate = WLAN_MAC_RATE_54M;
+				}
+
+				access_point.tx_rate = default_unicast_rate;
+
+			    xil_printf("Setting TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate) );
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( default_unicast_rate );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
