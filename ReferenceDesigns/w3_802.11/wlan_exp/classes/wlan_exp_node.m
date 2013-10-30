@@ -354,10 +354,7 @@ classdef wlan_exp_node < wn_node
                     myCmd = wn_cmd(node.calcCmd(obj.GRP, obj.CMD_TX_RATE));                    
                     myCmd.addArgs( uint32( 65535 ) );                          % Send special value to get the response  
                     resp  = node.sendCmd(myCmd);
-                    resp  = resp.getArgs();
-                    
-                    % TODO:  Need to finish infrastructure inside node C code
-                    warning(generatemsgid('CommandNotSupported'),'Currently this command is not supported.');
+                    out   = resp.getArgs();
                     
                     
                 %------------------------------------------------------------------------------------------------------
@@ -366,12 +363,21 @@ classdef wlan_exp_node < wn_node
                     %
                     % Arguments: Tx rate of the node
                     % Returns:   none
+                    rate = varargin{1}{1};
+
+                    switch( class( rate ) ) 
+                        case 'double'
+                            if ( ( rate < 1) && ( rate > 8 ) ) 
+                                error(generatemsgid('ParameterSyntaxError'),'Rate not valid.\n  Syntax:  wn_nodeCmd( nodes, <set_tx_rate>, <rate: 1 to 8> )');
+                            end
+                            
+                        otherwise
+                            error(generatemsgid('ParameterSyntaxError'),'Rate not a valid value.\n  Syntax:  wn_nodeCmd( nodes, <set_tx_rate>, <rate: 1 to 8> )');
+                    end
+
                     myCmd = wn_cmd(node.calcCmd(obj.GRP, obj.CMD_TX_RATE));                    
-                    myCmd.addArgs( uint32( node.WLAN_MAC_RATE_6M ) );  
+                    myCmd.addArgs( uint32( rate ) );  
                     node.sendCmd(myCmd);
-                    
-                    % TODO:  Need to finish infrastructure inside node C code
-                    warning(generatemsgid('CommandNotSupported'),'Currently this command is not supported.');
                     
                     
                 %------------------------------------------------------------------------------------------------------
@@ -426,14 +432,14 @@ classdef wlan_exp_node < wn_node
                     %   - Sets up a traffic flow to a given destination
                     %
                     % Arguments: LTG ID          - Destination LTG ID for the traffic
-                    %            pkt_size        - Size of the traffic packet (bytes)
                     %            pkt_interval    - How often should the packet be sent (us)
+                    %            pkt_size        - Size of the traffic packet (bytes)
                     %
                     % Returns:   none
 
                     ltg_id       = varargin{1}{1};
-                    ltg_size     = varargin{1}{2};
-                    ltg_interval = varargin{1}{3};
+                    ltg_interval = varargin{1}{2};
+                    ltg_size     = varargin{1}{3};
 
                     if ( ( strcmp( class( ltg_id ), 'double' ) == 0 ) || ( strcmp( class( ltg_size ), 'double' ) == 0 ) || ( strcmp( class( ltg_interval ), 'double' ) == 0 ) ) 
                         error(generatemsgid('ParameterSyntaxError'),'LTG ID not a valid value.\n  Syntax:  wn_nodeCmd( nodes, <ltg_config_cbr>, <ltg id>, <ltg_size>, <ltg_interval> )');
@@ -441,8 +447,8 @@ classdef wlan_exp_node < wn_node
 
                     myCmd = wn_cmd(node.calcCmd(obj.GRP, obj.CMD_LTG_CONFIG_CBR));                    
                     myCmd.addArgs( ltg_id );                                   % Send ltg id
-                    myCmd.addArgs( ltg_size );                                 % Send ltg size (bytes)
                     myCmd.addArgs( ltg_interval );                             % Send ltg interval (us)
+                    myCmd.addArgs( ltg_size );                                 % Send ltg size (bytes)
                     
                     resp  = node.sendCmd(myCmd);
                     resp  = resp.getArgs();
