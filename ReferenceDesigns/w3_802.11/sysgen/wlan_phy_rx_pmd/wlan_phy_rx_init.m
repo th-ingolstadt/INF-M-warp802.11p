@@ -34,9 +34,10 @@ samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
 %load('rx_sigs/wlan_tx_out_1240PB_16Q12.mat'); tx_sig_t = 1:length(wlan_tx_out);
 %load('rx_sigs/wlan_tx_out_74PB_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:1000];
+%load('rx_sigs/wlan_tx_out_ManyPkts_16Q12.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 
-payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
+payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
 %cfo = exp(1i*2*pi*(5e-4)*(0:length(payload_vec)-1)).';
 %payload_vec = payload_vec .* cfo;
 
