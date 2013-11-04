@@ -9,6 +9,9 @@
 //				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
 
+
+/***************************** Include Files *********************************/
+
 // Xilinx SDK includes
 #include "xparameters.h"
 #include <stdio.h>
@@ -30,35 +33,46 @@
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
 
+/*************************** Constant Definitions ****************************/
 
-#ifdef _DEBUG_
+#define NUM_LEDS 4
+
+/*********************** Global Variable Definitions *************************/
+
+
+/*************************** Variable Definitions ****************************/
+
+static u32              mac_param_chan;
+static u32              stationShortRetryCount;
+static u32              stationLongRetryCount;
+static u32              cw_exp;
+static u8               bcast_addr[6];
+static u8               rx_pkt_buf;
+
+static u32              cpu_low_status;
+
+wlan_mac_hw_info        hw_info;
+
+u8                      red_led_index;
+u8                      green_led_index;
+
+wlan_ipc_msg            ipc_msg_from_high;
+u32                     ipc_msg_from_high_payload[10];
+
+u8                      mac_param_band;
+
+/*************************** Functions Prototypes ****************************/
 
 void wlan_mac_init_hw_info( void );
 
+
+#ifdef _DEBUG_
+
+void print_wlan_mac_init_hw_info( void );
+
 #endif
 
-static u32 mac_param_chan;
-static u32 stationShortRetryCount;
-static u32 stationLongRetryCount;
-static u32 cw_exp;
-static u8 bcast_addr[6];
-static u8 rx_pkt_buf;
-
-static u32 cpu_low_status;
-
-
-wlan_mac_hw_info  hw_info;
-
-
-#define NUM_LEDS 4
-u8 red_led_index;
-u8 green_led_index;
-
-wlan_ipc_msg ipc_msg_from_high;
-u32 ipc_msg_from_high_payload[10];
-
-u8 mac_param_band;
-
+/******************************** Functions **********************************/
 
 int main(){
 	rx_frame_info* rx_mpdu;
