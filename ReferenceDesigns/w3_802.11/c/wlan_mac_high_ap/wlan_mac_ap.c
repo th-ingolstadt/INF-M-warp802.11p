@@ -142,7 +142,6 @@ int main(){
 	wlan_mac_util_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
-
     wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
 
@@ -269,8 +268,6 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
-
-
 
 	tx_event_log_entry = get_next_empty_tx_event();
 
@@ -1117,8 +1114,7 @@ u32  find_association_index( u32 aid ) {
 ******************************************************************************/
 u32  deauthenticate_station( u32 association_index ) {
 
-	packet_bd_list checkout, dequeue;
-	u32            num_queued;
+	packet_bd_list checkout;
 	packet_bd*     tx_queue;
 	u32            tx_length;
 	u32            aid;
@@ -1136,6 +1132,8 @@ u32  deauthenticate_station( u32 association_index ) {
 	if(checkout.length == 1){ //There was at least 1 free queue element
 		tx_queue = checkout.first;
 
+		purge_queue(aid);
+
 		// Create deauthentication packet
 		setup_tx_header( &tx_header_common, associations[association_index].addr, eeprom_mac_addr );
 
@@ -1147,15 +1145,6 @@ u32  deauthenticate_station( u32 association_index ) {
 		//
 		enqueue_after_end(aid, &checkout);
 		check_tx_queue();
-
-		//Purge any packets in the queue meant for this node
-		num_queued = queue_num_queued(aid);
-
-		if( num_queued > 0 ){
-			xil_printf("purging %d packets from queue for AID %d\n", num_queued, aid);
-			dequeue_from_beginning(&dequeue, aid, 1);
-			queue_checkin(&dequeue);
-		}
 
 		// Remove this STA from association list
 		remove_station(association_index);

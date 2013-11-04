@@ -268,7 +268,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
 
 				// NOTE:  This function must be implemented in all child classes
-				deauthenticate_stations(); // First deauthenticate all stations
+				// deauthenticate_stations(); // First deauthenticate all stations //TODO: not sure this should be here for WARPnet
 
 				mac_param_chan = temp;
 				set_mac_channel( mac_param_chan );
