@@ -104,6 +104,19 @@ int queue_total_size(){
 	return PQUEUE_LEN;
 }
 
+void purge_queue(u16 queue_sel){
+	packet_bd_list dequeue;
+	u32            num_queued;
+
+	num_queued = queue_num_queued(queue_sel);
+
+	if( num_queued > 0 ){
+		xil_printf("purging %d packets from queue for queue ID %d\n", num_queued, queue_sel);
+		dequeue_from_beginning(&dequeue, queue_sel, 1);
+		queue_checkin(&dequeue);
+	}
+}
+
 void enqueue_after_end(u16 queue_sel, packet_bd_list* list){
 	packet_bd* curr_packet_bd;
 	packet_bd* next_packet_bd;

@@ -62,6 +62,7 @@ void packet_bd_insertBeginning(packet_bd_list* ring, packet_bd* bd_new);
 void packet_bd_insertEnd(packet_bd_list* ring, packet_bd* bd_new);
 void packet_bd_remove(packet_bd_list* ring, packet_bd* bd);
 int queue_total_size();
+void purge_queue(u16 queue_sel);
 
 void packet_bd_list_init(packet_bd_list* list);
 void packet_bd_print(packet_bd_list* ring);

@@ -597,8 +597,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		        } else {
 					xil_printf("Stopping LTG %d.\n", temp);
 			    }
+
+		        purge_queue(temp);
+
 			} else {
 				// Stop all LTGs
+
+				//TODO: need a purge_queue(ALL)
 
 				// TODO: Need ltg_sched_stop_all()
 				xil_printf("WARNING:  LTG - LTG 0x%8x failed to stop.\n", temp);

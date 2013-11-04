@@ -205,6 +205,7 @@ void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_util_set_uart_rx_callback(void(*callback)());
 void wlan_mac_util_set_check_queue_callback(void(*callback)());
+void wlan_mac_util_set_mpdu_accept_callback(void(*callback)());
 
 void wlan_mac_util_set_eth_encap_mode(u8 mode);
 void wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)());

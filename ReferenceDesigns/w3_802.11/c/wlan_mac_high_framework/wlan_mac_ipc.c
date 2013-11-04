@@ -38,6 +38,7 @@ extern function_ptr_t     mpdu_tx_done_callback;
 extern function_ptr_t     mpdu_rx_callback;
 extern function_ptr_t     check_queue_callback;
 extern function_ptr_t     fcs_bad_rx_callback;
+extern function_ptr_t     mpdu_tx_accept_callback;
 
 // 802.11 Transmit packet buffer
 extern u8                 tx_pkt_buf;
@@ -227,6 +228,9 @@ void process_ipc_msg_from_low( wlan_ipc_msg* msg ) {
 			}
 
 			check_queue_callback();
+
+			mpdu_tx_accept_callback(TX_PKT_BUF_TO_ADDR(msg->arg0));
+
 		break;
 
 		//TODO: case

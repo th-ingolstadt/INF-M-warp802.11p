@@ -81,6 +81,7 @@ function_ptr_t     pb_d_callback;
 function_ptr_t     uart_callback;
 function_ptr_t     ipc_rx_callback;
 function_ptr_t     check_queue_callback;
+function_ptr_t     mpdu_tx_accept_callback;
 
 // Scheduler variables
 static u8               scheduler_in_use    [NUM_SCHEDULERS][SCHEDULER_NUM_EVENTS];
@@ -163,16 +164,17 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	tx_frame_info* tx_mpdu;
 
     // Initialize callbacks
-	eth_rx_callback       = (function_ptr_t)nullCallback;
-	mpdu_rx_callback      = (function_ptr_t)nullCallback;
-	fcs_bad_rx_callback   = (function_ptr_t)nullCallback;
-	mpdu_tx_done_callback = (function_ptr_t)nullCallback;
-	pb_u_callback         = (function_ptr_t)nullCallback;
-	pb_m_callback         = (function_ptr_t)nullCallback;
-	pb_d_callback         = (function_ptr_t)nullCallback;
-	uart_callback         = (function_ptr_t)nullCallback;
-	ipc_rx_callback       = (function_ptr_t)nullCallback;
-	check_queue_callback  = (function_ptr_t)nullCallback;
+	eth_rx_callback         = (function_ptr_t)nullCallback;
+	mpdu_rx_callback        = (function_ptr_t)nullCallback;
+	fcs_bad_rx_callback     = (function_ptr_t)nullCallback;
+	mpdu_tx_done_callback   = (function_ptr_t)nullCallback;
+	pb_u_callback           = (function_ptr_t)nullCallback;
+	pb_m_callback           = (function_ptr_t)nullCallback;
+	pb_d_callback           = (function_ptr_t)nullCallback;
+	uart_callback           = (function_ptr_t)nullCallback;
+	ipc_rx_callback         = (function_ptr_t)nullCallback;
+	check_queue_callback    = (function_ptr_t)nullCallback;
+	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
 
 	wlan_mac_ipc_init();
 
@@ -611,6 +613,10 @@ void wlan_mac_util_set_uart_rx_callback(void(*callback)()){
 
 void wlan_mac_util_set_check_queue_callback(void(*callback)()){
 	check_queue_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_mpdu_accept_callback(void(*callback)()){
+	mpdu_tx_accept_callback = (function_ptr_t)callback;
 }
 
 void wlan_mac_util_set_eth_encap_mode(u8 mode){
