@@ -41,14 +41,13 @@
 
 
 
-
 /*************************** Variable Definitions ****************************/
 
 wn_node_info       node_info;
 wn_tag_parameter   node_parameters[NODE_MAX_PARAMETER];
 
 wn_function_ptr_t  node_process_callback;
-
+extern function_ptr_t check_queue_callback;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -598,7 +597,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					xil_printf("Stopping LTG %d.\n", temp);
 			    }
 
+//TODO DISABLE INTERRUPTS
 		        purge_queue(temp);
+		        check_queue_callback();
+//TODO ENABLE INTERRUPTS
 
 			} else {
 				// Stop all LTGs
