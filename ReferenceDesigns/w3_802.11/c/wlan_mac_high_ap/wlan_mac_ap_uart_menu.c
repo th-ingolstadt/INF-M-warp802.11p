@@ -46,6 +46,7 @@ extern char* access_point_ssid;
 static u8 curr_aid;
 static u8 curr_association_index;
 static u8 curr_traffic_type;
+static u32 cpu_high_status;
 #define TRAFFIC_TYPE_PERIODIC_FIXED		1
 #define TRAFFIC_TYPE_PERIODIC_RAND		2
 #define TRAFFIC_TYPE_RAND_FIXED			3
@@ -147,6 +148,9 @@ void uart_rx(u8 rxByte){
 					deauthenticate_stations();
 					curr_char = 0;
 					print_ssid_menu();
+				break;
+				case ASCII_h:
+					xil_printf("cpu_high_status = 0x%08x\n", cpu_high_status);
 				break;
 			}
 		break;
