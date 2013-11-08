@@ -77,6 +77,7 @@ u8 enable_animation;
 station_info associations[MAX_ASSOCIATIONS+1];
 u32          next_free_assoc_index;
 u32			 max_queue_size;
+#define		 MAX_PER_FLOW_QUEUE	150
 
 // AP channel
 u32 mac_param_chan;
@@ -130,7 +131,7 @@ int main(){
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
 	wlan_mac_util_init( WLAN_EXP_TYPE, WLAN_EXP_ETH );
 
-	max_queue_size = (queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1);
+	max_queue_size = min((queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1),MAX_PER_FLOW_QUEUE);
 
 
 	// Initialize callbacks
@@ -189,7 +190,7 @@ int main(){
 
 
 	// Set SSID
-	access_point_ssid = malloc(strlen(default_AP_SSID)+1);
+	access_point_ssid = wlan_malloc(strlen(default_AP_SSID)+1);
 	strcpy(access_point_ssid,default_AP_SSID);
 
 
@@ -227,7 +228,9 @@ int main(){
 		//will spin in this loop until an interrupt happens
 
 #ifdef USE_WARPNET_WLAN_EXP
+		//interrupt_stop();
 		transport_poll( WLAN_EXP_ETH );
+		//interrupt_start();
 #endif
 	}
 	return -1;
@@ -847,7 +850,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 						if(next_free_assoc_index < (MAX_ASSOCIATIONS-2)) {
 							next_free_assoc_index++;
-							max_queue_size = (queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1);
+							max_queue_size = min((queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1),MAX_PER_FLOW_QUEUE);
 						}
 						break;
 
@@ -1212,7 +1215,7 @@ void remove_station( unsigned int station_index ) {
 		// Decrement global variable
 		next_free_assoc_index--;
 
-		max_queue_size = (queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1);
+		max_queue_size = min((queue_total_size()- eth_bd_total_size()) / (next_free_assoc_index+1),MAX_PER_FLOW_QUEUE);
 
 		// Clear Association Address
 		memcpy(&(associations[station_index].addr[0]), bcast_addr, 6);

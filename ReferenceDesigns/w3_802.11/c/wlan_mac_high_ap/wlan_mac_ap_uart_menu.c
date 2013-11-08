@@ -236,11 +236,11 @@ void uart_rx(u8 rxByte){
 					if(ltg_sched_get_callback_arg(AID_TO_LTG_ID(curr_aid),&ltg_callback_arg) == 0){
 						//This LTG has already been configured. We need to free the old callback argument so we can create a new one.
 						ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
-						free(ltg_callback_arg);
+						wlan_free(ltg_callback_arg);
 					}
 					switch(curr_traffic_type){
 						case TRAFFIC_TYPE_PERIODIC_FIXED:
-							ltg_callback_arg = malloc(sizeof(ltg_pyld_fixed));
+							ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_fixed));
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
 								((ltg_pyld_fixed*)ltg_callback_arg)->length = str2num(text_entry);
@@ -260,7 +260,7 @@ void uart_rx(u8 rxByte){
 
 						break;
 						case TRAFFIC_TYPE_RAND_RAND:
-							ltg_callback_arg = malloc(sizeof(ltg_pyld_uniform_rand));
+							ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_uniform_rand));
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->min_length = 0;
@@ -370,7 +370,7 @@ void uart_rx(u8 rxByte){
 					curr_char = 0;
 					uart_mode = UART_MODE_MAIN;
 
-					access_point_ssid = realloc(access_point_ssid, strlen(text_entry)+1);
+					access_point_ssid = wlan_realloc(access_point_ssid, strlen(text_entry)+1);
 					strcpy(access_point_ssid,text_entry);
 					xil_printf("\nSetting new SSID: %s\n", access_point_ssid);
 
@@ -483,6 +483,7 @@ void print_station_status(u8 manual_call){
 		if(uart_mode == UART_MODE_INTERACTIVE){
 			timestamp = get_usec_timestamp();
 			xil_printf("\f");
+			xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
 
 			for(i=0; i < next_free_assoc_index; i++){
 				xil_printf("---------------------------------------------------\n");
@@ -549,7 +550,7 @@ void print_station_status(u8 manual_call){
 }
 
 void ltg_cleanup(u32 id, void* callback_arg){
-	free(callback_arg);
+	wlan_free(callback_arg);
 }
 
 int is_qwerty_row(u8 rxByte){
