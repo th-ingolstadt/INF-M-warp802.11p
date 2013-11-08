@@ -269,7 +269,10 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					}
 
 					//
+
+
 					status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
+
 
 					tx_mpdu->tx_mpdu_done_timestamp = get_usec_timestamp();
 
@@ -392,7 +395,9 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 		//Delay param here is SIFS - rx latency - tx latency (determined experimentally)
 		// TODO: Confirm this TxSIFS time for various Rx lengths and rates
-		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 48);
+		//wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 48);
+		//FIXME: DEBUGGING
+		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 38);
 
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
@@ -512,6 +517,8 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	return return_value;
 }
 
+static u8 DEBUG_SKIP_BACKOFF = 0;
+
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
 
@@ -521,11 +528,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
-
-
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
-
 
 	if(req_timeout == 0) update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
 
@@ -534,12 +538,19 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 	wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
 
+	if(DEBUG_SKIP_BACKOFF){
 	//Write the Tx params to the mac_dcf_hw core
-	wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
+		DEBUG_SKIP_BACKOFF = 0;
+		wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout);
+	} else {
+		wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
+	}
 
+	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
 	//Submit the MPDU for transmission
 	wlan_mac_MPDU_tx_start(1);
 	wlan_mac_MPDU_tx_start(0);
+	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
 	//FIXME: Check if this is a race condition
 
 	//Wait for the MPDU Tx to finish
@@ -553,7 +564,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 			switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					//Tx didn't require timeout, completed successfully
-					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 					return 0;
 				break;
 
@@ -561,11 +572,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 					//Tx required tmieout, timeout expired with no receptions
 
 					if(tx_status & WLAN_MAC_STATUS_MASK_PHY_CCA_BUSY) {
-						REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+						//REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 					}
 					//Update the contention window
 					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
-						REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 						return -1;
 					}
 
@@ -576,7 +587,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 					wlan_mac_backoff_start(0);
 
 					//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
-					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 					return frame_transmit(pkt_buf, rate, length);
 
 				break;
@@ -586,21 +597,25 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 					if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
 						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
 						n_slots = rand_num_slots();
-						wlan_mac_dcf_hw_start_backoff(n_slots);
-						REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+						if(n_slots == 0) {
+							DEBUG_SKIP_BACKOFF = 1;
+						} else {
+							wlan_mac_dcf_hw_start_backoff(n_slots);
+						}
+						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 						return 0;
 					} else {
 						if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)){
 							n_slots = rand_num_slots();
 							wlan_mac_dcf_hw_start_backoff(n_slots);
 
-							REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+							//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 
 							return -1;
 						} else{
 							n_slots = rand_num_slots();
 							wlan_mac_dcf_hw_start_backoff(n_slots);
-							REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+							//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 							return frame_transmit(pkt_buf, rate, length);
 						}
 					}
@@ -613,7 +628,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 		}
 	} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
 
-	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+	//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 	return 0;
 
 }
@@ -672,9 +687,10 @@ inline unsigned int rand_num_slots(){
 // |	4		|	[0, 15]		|
 // |	5       |	[0, 31]		|
 // |	6		|	[0, 63]		|
-// |	7		|	[0, 123]		|
-// |	8		|	[0, 511]		|
-// |	9		|	[0, 1023]	|
+// |	7		|	[0, 123]	|
+// |	8		|	[0, 255]	|
+// |	9		|	[0, 511]	|
+// |	10		|	[0, 1023]	|
 	volatile u32 n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
 	return n_slots;
 }
@@ -700,15 +716,28 @@ void mac_dcf_init(){
 	REG_SET_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN | WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX));
 	REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_DISABLE_NAV);
 
+	//DEBUG
+	//REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_DISABLE_NAV);
+	//DEBUG
+
+
 	//TODO: These values need tweaking with scope to match the 802.11 standard
 	wlan_mac_set_slot(9*10);
 	wlan_mac_set_SIFS(10*10);
-	wlan_mac_set_DIFS(28*10);
+	//wlan_mac_set_SIFS(8*10);
+	//wlan_mac_set_DIFS(28*10);
+	wlan_mac_set_DIFS(17*10);
 	wlan_mac_set_EIFS(128*10);
 	wlan_mac_set_timeout(80*10);
 	wlan_mac_set_TxDIFS(26*10);
+	//wlan_mac_set_TxDIFS(20*10);
 	wlan_mac_set_MAC_slot(8*10);
 	wlan_mac_set_NAV_adj(0*10);
+
+	//DEBUG
+	//wlan_mac_set_NAV_adj(4);
+	//DEBUG
+
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;

@@ -195,6 +195,7 @@ void wlan_phy_init() {
 	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
 
 	wlan_phy_rx_set_extension(120); //num samp periods post done to extend CCA BUSY
+	//wlan_phy_rx_set_extension(80); //num samp periods post done to extend CCA BUSY
 
 	//Configure channel estimate capture
 	// Chan ests start at sizeof(rx_frame_info) - sizeof(chan_est)
