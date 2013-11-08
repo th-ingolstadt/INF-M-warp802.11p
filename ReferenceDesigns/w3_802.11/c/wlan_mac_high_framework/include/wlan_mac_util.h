@@ -227,6 +227,9 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
 u8* get_eeprom_mac_addr();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
+void* wlan_malloc(u32 size);
+void* wlan_realloc(void* addr, u32 size);
+void wlan_free(void* addr);
 u8 wlan_mac_util_get_tx_rate(station_info* station);
 
 int is_tx_buffer_empty();

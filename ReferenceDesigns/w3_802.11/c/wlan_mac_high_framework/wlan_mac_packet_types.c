@@ -407,7 +407,7 @@ u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_o
 	char str[4];
 
 	u8 num_rate_other_temp = num_rate_other;
-	u8* rate_other_temp = malloc(num_rate_other);
+	u8* rate_other_temp = wlan_malloc(num_rate_other);
 
 	memcpy(rate_other_temp, rate_other, num_rate_other);
 
@@ -437,7 +437,7 @@ u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_o
 
 	memcpy(rate_vec_out + num_rate_basic, rate_other_temp, num_rate_other_temp);
 
-	free(rate_other_temp);
+	wlan_free(rate_other_temp);
 
 	return (num_rate_other_temp + num_rate_basic);
 }

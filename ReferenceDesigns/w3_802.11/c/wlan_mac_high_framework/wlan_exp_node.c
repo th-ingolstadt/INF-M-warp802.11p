@@ -504,13 +504,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			if( ltg_sched_get_callback_arg( id, &ltg_callback_arg ) == 0 ) {
 				// This LTG has already been configured. We need to free the old callback argument so we can create a new one.
 				ltg_sched_stop( id );
-				free( ltg_callback_arg );
+				wlan_free( ltg_callback_arg );
 			}
 
 			// Set up CBR traffic flow
 			periodic_params.interval_usec = interval;
 
-			ltg_callback_arg = malloc(sizeof(ltg_pyld_fixed));
+			ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_fixed));
 
 			if( ltg_callback_arg != NULL ) {
 				((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
@@ -1170,7 +1170,7 @@ void node_info_set_event_log_size( u32 log_size ) { node_info.wlan_event_log_siz
 *
 ******************************************************************************/
 void node_ltg_cleanup(u32 id, void* callback_arg){
-	free( callback_arg );
+	wlan_free( callback_arg );
 }
 
 

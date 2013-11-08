@@ -101,6 +101,9 @@ u8                 warpnet_initialized;
 // Ethernet Encapsulation Mode
 u8					eth_encap_mode;
 
+// Memory Allocation Debug
+int mem_alloc_debug;
+
 
 
 /*************************** Functions Prototypes ****************************/
@@ -724,6 +727,34 @@ void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
 		(station->num_tx_success)++;
 		(station->rx_timestamp = get_usec_timestamp());
 	}
+}
+
+void* wlan_malloc(u32 size){
+	//This is just a simple wrapper around malloc to aid in debugging memory leak issues
+	void* return_value;
+	return_value = malloc(size);
+	mem_alloc_debug++;
+	xil_printf("++++ %d: malloc(%d) = 0x%08x\n", mem_alloc_debug, size, (u32)return_value);
+
+	return return_value;
+}
+
+void* wlan_realloc(void* addr, u32 size){
+	//This is just a simple wrapper around realloc to aid in debugging memory leak issues
+	void* return_value;
+	return_value = realloc(addr, size);
+
+	xil_printf("++++ %d: realloc(0x%08x, %d) = 0x%08x\n", mem_alloc_debug, (u32)addr, size, (u32)return_value);
+
+	return return_value;
+}
+
+void wlan_free(void* addr){
+	//This is just a simple wrapper around free to aid in debugging memory leak issues
+
+	free(addr);
+	mem_alloc_debug--;
+	xil_printf("---- %d: free(0x%08x)\n",mem_alloc_debug, (u32)addr);
 }
 
 u8 wlan_mac_util_get_tx_rate(station_info* station){
