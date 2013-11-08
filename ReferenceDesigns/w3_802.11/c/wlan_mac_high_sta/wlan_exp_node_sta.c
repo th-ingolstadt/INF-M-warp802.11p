@@ -282,12 +282,12 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			//Send broadcast probe requests across all channels
 			if(active_scan ==0){
 
-				free( ap_list );
+				wlan_free( ap_list );
 
 				// Clean up current state
 				ap_list             = NULL;
 				num_ap_list         = 0;
-				access_point_ssid   = realloc(access_point_ssid, 1);
+				access_point_ssid   = wlan_realloc(access_point_ssid, 1);
 				*access_point_ssid  = 0;
 
 				// Start scan
@@ -333,7 +333,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 					xil_printf("Attempting to join %s\n", ap_list[temp].ssid);
 					memcpy(access_point.addr, ap_list[temp].bssid, 6);
 
-					access_point_ssid = realloc(access_point_ssid, strlen(ap_list[temp].ssid)+1);
+					access_point_ssid = wlan_realloc(access_point_ssid, strlen(ap_list[temp].ssid)+1);
 					strcpy(access_point_ssid,ap_list[temp].ssid);
 
 					access_point_num_basic_rates = ap_list[temp].num_basic_rates;

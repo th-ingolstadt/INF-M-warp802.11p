@@ -88,6 +88,9 @@ u8       access_point_basic_rates[NUM_BASIC_RATES_MAX];
 //   The last entry in associations[MAX_ASSOCIATIONS][] is swap space
 station_info access_point;
 
+u32			 max_queue_size;
+#define		 MAX_PER_FLOW_QUEUE	150
+
 
 // AP channel
 u32 mac_param_chan;
@@ -126,6 +129,8 @@ int main(){
 	num_ap_list = 0;
 	//free(ap_list);
 	ap_list = NULL;
+
+	max_queue_size = MAX_PER_FLOW_QUEUE;
 
 	//Unpause the queue
 	pause_queue = 0;
@@ -174,7 +179,7 @@ int main(){
 	access_point.rx_timestamp = 0;
 
 	// Set default SSID for AP
-	access_point_ssid = malloc(strlen(default_AP_SSID)+1);
+	access_point_ssid = wlan_malloc(strlen(default_AP_SSID)+1);
 	strcpy(access_point_ssid,default_AP_SSID);
 
 
@@ -239,7 +244,9 @@ int main(){
 		//will spin in this loop until an interrupt happens
 
 #ifdef USE_WARPNET_WLAN_EXP
+		interrupt_stop();
 		transport_poll( WLAN_EXP_ETH );
+		interrupt_start();
 #endif
 	}
 	return -1;
@@ -487,19 +494,29 @@ int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u
 	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
-		setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
+		if(queue_num_queued(0) < max_queue_size){
+			setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
 
-		enqueue_after_end(0, tx_queue_list);
-		check_tx_queue();
+			enqueue_after_end(0, tx_queue_list);
+			check_tx_queue();
+		} else {
+			return 0;
+		}
 
 	} else {
 
 		if(access_point.AID != 0){
-			setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
-							 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-			enqueue_after_end(1, tx_queue_list);
-			check_tx_queue();
+			if(queue_num_queued(1) < max_queue_size){
+
+				setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
+								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+				enqueue_after_end(1, tx_queue_list);
+				check_tx_queue();
+			} else {
+				return 0;
+			}
 		}
 
 	}
@@ -678,9 +695,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(curr_ap_info == NULL){
 
 					if(ap_list == NULL){
-						ap_list = malloc(sizeof(ap_info)*(num_ap_list+1));
+						ap_list = wlan_malloc(sizeof(ap_info)*(num_ap_list+1));
 					} else {
-						ap_list = realloc(ap_list, sizeof(ap_info)*(num_ap_list+1));
+						ap_list = wlan_realloc(ap_list, sizeof(ap_info)*(num_ap_list+1));
 					}
 
 					if(ap_list != NULL){
@@ -905,7 +922,7 @@ void print_ap_list(){
 					xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
 					memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
 
-					access_point_ssid = realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
+					access_point_ssid = wlan_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
 					strcpy(access_point_ssid,ap_list[ap_sel].ssid);
 
 					access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
