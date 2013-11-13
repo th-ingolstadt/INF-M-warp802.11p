@@ -298,7 +298,15 @@ void wlan_radio_init() {
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLINEARITY_UPCONV, 0);
 
 	//Set Tx state machine timing (dly_GainRamp, dly_PA, dly_TX, dly_PHY)
-	radio_controller_setTxDelays(RC_BASEADDR, 100, 50, 2, 150);
+	//radio_controller_setTxDelays(RC_BASEADDR, 100, 50, 2, 150);
+	//80
+
+	//Set Tx state machine timing             (dly_GainRamp, dly_PA, dly_TX, dly_PHY)
+	//radio_controller_setTxDelays(RC_BASEADDR, 50, 25, 0, TX_PHY_DLY);//TODO;
+	//radio_controller_setTxDelays(RC_BASEADDR, 20, 10, 0, TX_PHY_DLY);//TODO;
+	//radio_controller_setTxDelays(RC_BASEADDR, 253, 200, 180, TX_PHY_DLY);//TODO; //240 PA time after 180 PHY time is critical point
+
+	radio_controller_setTxDelays(RC_BASEADDR, 40, 20, 0, TX_PHY_DLY);//TODO; //240 PA time after 180 PHY time is critical point
 
 	//Give the TX PHY control of RXEN and TXEN (defaults to SISO on A)
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_HW);

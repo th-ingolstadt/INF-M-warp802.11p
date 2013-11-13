@@ -49,6 +49,11 @@ static u32              cw_exp;
 static u8               bcast_addr[6];
 static u8               rx_pkt_buf;
 
+//debug_num_slots
+//	[0, 1023]        - MAC will always choose this value as a backoff slot (not random). CW is ignored.
+//	SLOT_CONFIG_RAND - MAC will use the standard random backoff behavior.
+static u32				debug_num_slots;
+
 static u32              cpu_low_status;
 
 wlan_mac_hw_info        hw_info;
@@ -88,7 +93,9 @@ int main(){
 	cpu_low_status = 0;
 
 	red_led_index = 0;
-	red_led_index = 0;
+	green_led_index = 0;
+
+	debug_num_slots = SLOT_CONFIG_RAND;
 
 	userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
 	userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
@@ -270,9 +277,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					//
 
-
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
 					status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
-
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
 
 					tx_mpdu->tx_mpdu_done_timestamp = get_usec_timestamp();
 
@@ -393,11 +400,10 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	// ACKs are only sent for non-control frames addressed to this node
 	if(unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header)) {
 
-		//Delay param here is SIFS - rx latency - tx latency (determined experimentally)
-		// TODO: Confirm this TxSIFS time for various Rx lengths and rates
-		//wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 48);
-		//FIXME: DEBUGGING
-		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 38);
+		//wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 38);
+
+		//wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, (T_SIFS*10)-((TX_PHY_DLY_USEC*10)+ 83));
+		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, (T_SIFS*10)-((TX_PHY_DLY_100NSEC)+ 83));
 
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
@@ -522,6 +528,8 @@ static u8 DEBUG_SKIP_BACKOFF = 0;
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
 
+	if(rate == WLAN_PHY_RATE_BPSK12) REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+
 	u8 req_timeout;
 	u16 n_slots;
 	u32 tx_status, rx_status;
@@ -546,11 +554,12 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 		wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
 	}
 
-	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+	//usleep(2);
+	//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
 	//Submit the MPDU for transmission
 	wlan_mac_MPDU_tx_start(1);
 	wlan_mac_MPDU_tx_start(0);
-	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+	//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
 	//FIXME: Check if this is a race condition
 
 	//Wait for the MPDU Tx to finish
@@ -565,6 +574,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					//Tx didn't require timeout, completed successfully
 					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+					if(rate == WLAN_PHY_RATE_BPSK12) REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 					return 0;
 				break;
 
@@ -691,7 +701,16 @@ inline unsigned int rand_num_slots(){
 // |	8		|	[0, 255]	|
 // |	9		|	[0, 511]	|
 // |	10		|	[0, 1023]	|
-	volatile u32 n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
+	volatile u32 n_slots;
+
+	if(debug_num_slots == SLOT_CONFIG_RAND){
+		n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
+	} else {
+		n_slots = debug_num_slots;
+	}
+
+	//xil_printf("debug_num_slots = %d, n_slots = %d\n", debug_num_slots, n_slots);
+
 	return n_slots;
 }
 
@@ -722,16 +741,27 @@ void mac_dcf_init(){
 
 
 	//TODO: These values need tweaking with scope to match the 802.11 standard
-	wlan_mac_set_slot(9*10);
-	wlan_mac_set_SIFS(10*10);
-	//wlan_mac_set_SIFS(8*10);
+	wlan_mac_set_slot(9*10);	;
 	//wlan_mac_set_DIFS(28*10);
-	wlan_mac_set_DIFS(17*10);
+
+	//wlan_mac_set_DIFS(24*10 - 31);
+	//wlan_mac_set_TxDIFS(24*10 - 31);
+	//wlan_mac_set_DIFS(24*10 - 31 + 49);
+	//wlan_mac_set_TxDIFS(24*10 - 31 + 49);
+
+
+
+	wlan_mac_set_DIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));
+	wlan_mac_set_TxDIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));
+
 	wlan_mac_set_EIFS(128*10);
 	wlan_mac_set_timeout(80*10);
-	wlan_mac_set_TxDIFS(26*10);
-	//wlan_mac_set_TxDIFS(20*10);
-	wlan_mac_set_MAC_slot(8*10);
+	//wlan_mac_set_TxDIFS(26*10);
+	//wlan_mac_set_TxDIFS(28*10);
+
+
+	//wlan_mac_set_MAC_slot(8*10);
+	wlan_mac_set_MAC_slot(9*10);
 	wlan_mac_set_NAV_adj(0*10);
 
 	//DEBUG
@@ -990,7 +1020,7 @@ void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc){
 }
 
 void process_config_mac(ipc_config_mac* config_mac){
-
+	debug_num_slots = config_mac->slot_config;
 }
 
 

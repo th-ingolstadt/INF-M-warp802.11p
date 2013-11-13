@@ -39,6 +39,11 @@
 #define TXTIME_T_SYM 4
 #define WLAN_PHY_FCS_NBYTES	4
 
+
+//#define TX_PHY_DLY 0 // 0 seems to work for WARP Rx, but fails with L Rx
+#define TX_PHY_DLY 0
+#define TX_PHY_DLY_100NSEC ((40*TX_PHY_DLY)/160000000)
+
 #define PHY_RX_RSSI_SUM_LEN 8
 #define PHY_RX_RSSI_SUM_LEN_BITS 3 //LOG2(PHY_RX_RSSI_SUM_LEN)
 
