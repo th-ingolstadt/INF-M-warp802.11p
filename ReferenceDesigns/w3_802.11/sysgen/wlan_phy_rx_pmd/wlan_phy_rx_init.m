@@ -34,7 +34,7 @@ samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
 %load('rx_sigs/wlan_tx_out_1240PB_16Q12.mat'); tx_sig_t = 1:length(wlan_tx_out);
 %load('rx_sigs/wlan_tx_out_74PB_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:1000];
+load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
 %load('rx_sigs/wlan_tx_out_ManyPkts_16Q12.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 
 payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(100,1);];
@@ -63,7 +63,7 @@ MAX_NCBPS = 288;
 
 PHY_CONFIG_NUM_SC = 64;
 PHY_CONFIG_CP_LEN = 16;
-PHY_CONFIG_FFT_OFFSET = 7;% 5 = no CP samples into FFT (5=zero actual offset)
+PHY_CONFIG_FFT_OFFSET = 1;% 1 = no CP samples into FFT (5=zero actual offset)
 PHY_CONFIG_CFO_EST_OFFSET = 0;
 PHY_CONFIG_FFT_SCALING = bin2dec('000101');
 
