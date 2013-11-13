@@ -28,7 +28,7 @@
 #define ENCAP_MODE_STA	1
 
 //Scheduler
-#define SCHEDULER_NUM_EVENTS 6
+#define SCHEDULER_NUM_EVENTS 10
 #define NUM_SCHEDULERS 2
 #define SCHEDULE_FINE	0
 #define SCHEDULE_COARSE 1
@@ -95,6 +95,7 @@ typedef struct{
 	u64 rx_timestamp;
 	u32 num_tx_total;
 	u32 num_tx_success;
+	u32 num_retry;
 	u32 num_rx_success;
 	u32 num_rx_bytes;
 } station_info;

@@ -19,6 +19,7 @@ void process_ipc_msg_from_low(wlan_ipc_msg* msg);
 
 void set_mac_channel( unsigned int mac_channel );
 void set_dsss_value( unsigned int dsss_value );
+void set_backoff_slot_value( u32 num_slots );
 
 void set_cpu_low_not_ready();
 void set_cpu_low_ready();

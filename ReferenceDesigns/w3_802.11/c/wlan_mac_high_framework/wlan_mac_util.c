@@ -554,10 +554,13 @@ void SendHandler(void *CallBackRef, unsigned int EventData){
 }
 
 void RecvHandler(void *CallBackRef, unsigned int EventData){
+	u32 numBytesRx;
+
 	XUartLite_DisableInterrupt(&UartLite);
 	uart_callback(ReceiveBuffer[0]);
 	XUartLite_EnableInterrupt(&UartLite);
-	XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
+	numBytesRx = XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
+	xil_printf("numBytesRx = %d\n", numBytesRx);
 }
 
 void GpioIsr(void *InstancePtr){
@@ -723,6 +726,7 @@ int wlan_mac_poll_tx_queue(u16 queue_sel){
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
 	(station->num_tx_total)++;
+	(station->num_retry) += (frame->retry_count);
 	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
 		(station->num_tx_success)++;
 		(station->rx_timestamp = get_usec_timestamp());
