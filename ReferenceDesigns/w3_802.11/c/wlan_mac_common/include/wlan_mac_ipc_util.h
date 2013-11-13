@@ -50,9 +50,12 @@ typedef struct{
 	u8 reserved[3];
 } ipc_config_rf_ifc;
 
+
 typedef struct{
-	u8 reserved[4];
+	u32 slot_config;
 } ipc_config_mac;
+
+#define SLOT_CONFIG_RAND 0xFFFFFFFF
 
 typedef struct{
 	u8 reserved[4];
