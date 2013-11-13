@@ -951,6 +951,7 @@ void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 void reset_station_statistics(){
 	access_point.num_tx_total = 0;
 	access_point.num_tx_success = 0;
+	access_point.num_retry = 0;
 	access_point.num_rx_success = 0;
 	access_point.num_rx_bytes = 0;
 }

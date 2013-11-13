@@ -67,6 +67,8 @@ static u8 curr_traffic_type;
 #define TRAFFIC_TYPE_RAND_FIXED			3
 #define TRAFFIC_TYPE_RAND_RAND			4
 
+u32 num_slots = SLOT_CONFIG_RAND;
+
 void uart_rx(u8 rxByte){
 	#define MAX_NUM_AP_CHARS 4
 	static char numerical_entry[MAX_NUM_AP_CHARS+1];
@@ -145,6 +147,30 @@ void uart_rx(u8 rxByte){
 					access_point.tx_rate = default_unicast_rate;
 
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+				break;
+				case ASCII_n:
+					if(num_slots == 0 || num_slots == SLOT_CONFIG_RAND){
+						num_slots = SLOT_CONFIG_RAND;
+						xil_printf("num_slots = SLOT_CONFIG_RAND\n");
+					} else {
+						num_slots--;
+						xil_printf("num_slots = %d\n", num_slots);
+					}
+
+
+					set_backoff_slot_value(num_slots);
+				break;
+
+				case ASCII_N:
+					if(num_slots == SLOT_CONFIG_RAND){
+						num_slots = 0;
+					} else {
+						num_slots++;
+					}
+
+					xil_printf("num_slots = %d\n", num_slots);
+
+					set_backoff_slot_value(num_slots);
 				break;
 			}
 		break;
@@ -478,8 +504,9 @@ void print_station_status(u8 manual_call){
 					}
 					xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (access_point.rx_timestamp)))/1000);
 					xil_printf("     - Last Rx Power: %d dBm\n",access_point.last_rx_power);
-					xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(access_point.AID));
+					xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(1));
 					xil_printf("     - # Tx MPDUs: %d (%d successful)\n", access_point.num_tx_total, access_point.num_tx_success);
+					xil_printf("     - # Tx Retry: %d\n", access_point.num_retry);
 					xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", access_point.num_rx_success, access_point.num_rx_bytes);
 				}
 			xil_printf("---------------------------------------------------\n");
