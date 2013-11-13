@@ -102,10 +102,8 @@ typedef struct{
 
 //WLAN_MAC_IFS_1:
 // b[9:0]: Slot
-// b[19:10]: SIFS
 // b[29:20]: DIFS
 #define wlan_mac_set_slot(d) Xil_Out32(WLAN_MAC_REG_IFS_1, ((Xil_In32(WLAN_MAC_REG_IFS_1) & (~0x000003FF)) | ((d) & 0x000003FF)))
-#define wlan_mac_set_SIFS(d) Xil_Out32(WLAN_MAC_REG_IFS_1, ((Xil_In32(WLAN_MAC_REG_IFS_1) & (~0x000FFC00)) | (((d)<<10) & 0x000FFC00)))
 #define wlan_mac_set_DIFS(d) Xil_Out32(WLAN_MAC_REG_IFS_1, ((Xil_In32(WLAN_MAC_REG_IFS_1) & (~0x3FF00000)) | (((d)<<20) & 0x3FF00000)))
 
 //WLAN_MAC_IFS_2:
@@ -116,11 +114,9 @@ typedef struct{
 
 //WLAN_MAC_CALIB_TIMES:
 // b[9:0]: TxDIFS
-// b[19:10]: MAC Slot
-// b[29:20]: NAV Adj
+// b[31:24]: NAV Adj (Fix8_0 - signed char!)
 #define wlan_mac_set_TxDIFS(d) Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0x000003FF)) | ((d) & 0x000003FF)))
-#define wlan_mac_set_MAC_slot(d) Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0x000FFC00)) | (((d)<<10) & 0x000FFC00)))
-#define wlan_mac_set_NAV_adj(d) Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0x3FF00000)) | (((d)<<20) & 0x3FF00000)))
+#define wlan_mac_set_NAV_adj(d) Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0xFF000000)) | (((d)<<20) & 0xFF000000)))
 
 //WLAN_MAC_REG_AUTO_TX_PARAMS:
 // b[3:0]: Pkt buf

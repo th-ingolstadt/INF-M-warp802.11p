@@ -86,6 +86,7 @@
 #define WLAN_RX_REG_CFG_FORCE_SEL_ANT_B		0x100 //Force selection of RF B (ignored if switching div is enabled)
 #define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A	0x200 //Enable pkt detection on RF A
 #define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B	0x400 //Enable pkt detection on RF B
+#define WLAN_RX_REG_CFG_PKT_DET_EN_EXT		0x800 //Enable pkt detection via pkt_det_in port
 
 
 //RX STATUS

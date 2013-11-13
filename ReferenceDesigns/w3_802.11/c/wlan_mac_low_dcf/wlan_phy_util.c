@@ -243,8 +243,10 @@ void wlan_phy_init() {
 	//Let PHY Tx take control of radio TXEN/RXEN
 	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 	
-	//Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 300);
+
+	//Set MSB of RSSI_THRESH register to use summed RSSI for debug output
 	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 250);
+	//Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<32) | (PHY_RX_RSSI_SUM_LEN * 250));
 
 	//De-assert resets
 	REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);

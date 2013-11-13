@@ -751,17 +751,13 @@ void mac_dcf_init(){
 
 
 
-	wlan_mac_set_DIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));
+	wlan_mac_set_DIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));//FIXME: DIFS should  now be actual DIFS, no PHY delays embedded
 	wlan_mac_set_TxDIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));
 
 	wlan_mac_set_EIFS(128*10);
 	wlan_mac_set_timeout(80*10);
-	//wlan_mac_set_TxDIFS(26*10);
-	//wlan_mac_set_TxDIFS(28*10);
 
-
-	//wlan_mac_set_MAC_slot(8*10);
-	wlan_mac_set_MAC_slot(9*10);
+	//NAV adjust time - signed char (Fix8_0) value
 	wlan_mac_set_NAV_adj(0*10);
 
 	//DEBUG
