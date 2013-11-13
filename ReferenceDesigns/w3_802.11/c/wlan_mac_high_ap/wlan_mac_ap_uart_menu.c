@@ -52,6 +52,8 @@ static u32 cpu_high_status;
 #define TRAFFIC_TYPE_RAND_FIXED			3
 #define TRAFFIC_TYPE_RAND_RAND			4
 
+u32 num_slots = SLOT_CONFIG_RAND;
+
 void uart_rx(u8 rxByte){
 	void* ltg_sched_state;
 	u32 ltg_type;
@@ -151,6 +153,31 @@ void uart_rx(u8 rxByte){
 				break;
 				case ASCII_h:
 					xil_printf("cpu_high_status = 0x%08x\n", cpu_high_status);
+				break;
+
+				case ASCII_n:
+					if(num_slots == 0 || num_slots == SLOT_CONFIG_RAND){
+						num_slots = SLOT_CONFIG_RAND;
+						xil_printf("num_slots = SLOT_CONFIG_RAND\n");
+					} else {
+						num_slots--;
+						xil_printf("num_slots = %d\n", num_slots);
+					}
+
+
+					set_backoff_slot_value(num_slots);
+				break;
+
+				case ASCII_N:
+					if(num_slots == SLOT_CONFIG_RAND){
+						num_slots = 0;
+					} else {
+						num_slots++;
+					}
+
+					xil_printf("num_slots = %d\n", num_slots);
+
+					set_backoff_slot_value(num_slots);
 				break;
 			}
 		break;
@@ -473,6 +500,7 @@ void print_station_status(u8 manual_call){
 
 	u32 ltg_type;
 
+	xil_printf("manual_call = %d, print_scheduled = %d\n", manual_call,print_scheduled);
 
 	if((manual_call == 1 && print_scheduled == 0) || (manual_call == 0 && print_scheduled == 1)){
 		//This awkward logic is to handle the fact that our event scheduler doesn't currently have a
@@ -523,6 +551,7 @@ void print_station_status(u8 manual_call){
 				xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
 				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
 				xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
+				xil_printf("     - # Tx Retry: %d\n", associations[i].num_retry);
 				xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", associations[i].num_rx_success, associations[i].num_rx_bytes);
 			}
 				xil_printf("---------------------------------------------------\n");

@@ -203,8 +203,8 @@ int main(){
 	enable_animation = 1;
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ANIMATION_RATE_US, (void*)animate_hex);
 
-	enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
-	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
+	enable_associations( ASSOCIATION_ALLOW_PERMANENT );
+	//wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 
 
 	// Print AP information to the terminal
@@ -867,6 +867,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					associations[i].tx_rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
 					associations[i].num_tx_total = 0;
 					associations[i].num_tx_success = 0;
+					associations[i].num_retry = 0;
 
 					//associations[i].tx_rate = WLAN_MAC_RATE_16QAM34; //Default tx_rate for this station. Rate adaptation may change this value.
 
@@ -1063,6 +1064,7 @@ void reset_station_statistics(){
 	for(i=0; i < next_free_assoc_index; i++){
 		associations[i].num_tx_total = 0;
 		associations[i].num_tx_success = 0;
+		associations[i].num_retry = 0;
 		associations[i].num_rx_success = 0;
 		associations[i].num_rx_bytes = 0;
 	}
