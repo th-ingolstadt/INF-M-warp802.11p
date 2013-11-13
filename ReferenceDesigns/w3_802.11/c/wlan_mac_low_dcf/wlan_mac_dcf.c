@@ -546,13 +546,13 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 	wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
 
-	if(DEBUG_SKIP_BACKOFF){
-	//Write the Tx params to the mac_dcf_hw core
-		DEBUG_SKIP_BACKOFF = 0;
-		wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout);
-	} else {
+//	if(DEBUG_SKIP_BACKOFF){
+//	//Write the Tx params to the mac_dcf_hw core
+//		DEBUG_SKIP_BACKOFF = 0;
+//		wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout);
+//	} else {
 		wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
-	}
+//	}
 
 	//usleep(2);
 	//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
@@ -607,11 +607,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 					if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
 						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
 						n_slots = rand_num_slots();
-						if(n_slots == 0) {
-							DEBUG_SKIP_BACKOFF = 1;
-						} else {
+						//if(n_slots == 0) {
+						//	DEBUG_SKIP_BACKOFF = 1;
+						//} else {
 							wlan_mac_dcf_hw_start_backoff(n_slots);
-						}
+						//}
 						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 						return 0;
 					} else {

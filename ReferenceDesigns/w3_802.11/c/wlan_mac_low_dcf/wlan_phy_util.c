@@ -243,7 +243,8 @@ void wlan_phy_init() {
 	//Let PHY Tx take control of radio TXEN/RXEN
 	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 	
-	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 300);
+	//Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 300);
+	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 250);
 
 	//De-assert resets
 	REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
@@ -272,7 +273,8 @@ void wlan_radio_init() {
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXLPF_BW, 1);
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLPF_BW, 1);
 
-#if 0
+	//FIXME: This should be 0
+#if 1
 	//MGC
 	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
 	radio_controller_setRxHP(RC_BASEADDR, (RC_RFA | RC_RFB), RC_RXHP_OFF);
@@ -281,6 +283,7 @@ void wlan_radio_init() {
 	//Set Rx gains
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXGAIN_RF, 3);
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXGAIN_BB, 9);
+
 #else
 	//AGC
 	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_HW);
