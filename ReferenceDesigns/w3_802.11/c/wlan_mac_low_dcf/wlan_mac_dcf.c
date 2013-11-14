@@ -277,9 +277,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					//
 
-					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x22);
 					status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
-					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x22);
 
 					tx_mpdu->tx_mpdu_done_timestamp = get_usec_timestamp();
 
@@ -528,7 +528,7 @@ static u8 DEBUG_SKIP_BACKOFF = 0;
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
 
-	if(rate == WLAN_PHY_RATE_BPSK12) REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+	//if(rate == WLAN_PHY_RATE_BPSK12) REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 
 	u8 req_timeout;
 	u16 n_slots;
@@ -555,11 +555,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 //	}
 
 	//usleep(2);
-	//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
 	//Submit the MPDU for transmission
 	wlan_mac_MPDU_tx_start(1);
 	wlan_mac_MPDU_tx_start(0);
-	//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
 	//FIXME: Check if this is a race condition
 
 	//Wait for the MPDU Tx to finish
@@ -574,7 +574,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					//Tx didn't require timeout, completed successfully
 					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
-					if(rate == WLAN_PHY_RATE_BPSK12) REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+					//if(rate == WLAN_PHY_RATE_BPSK12) REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 					return 0;
 				break;
 
@@ -592,9 +592,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 					//Start a random backoff interval using the updated CW
 					n_slots = rand_num_slots();
-					wlan_mac_set_backoff_num_slots(n_slots);
-					wlan_mac_backoff_start(1);
-					wlan_mac_backoff_start(0);
+					wlan_mac_dcf_hw_start_backoff(n_slots);
 
 					//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
 					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
@@ -603,7 +601,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 				break;
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED:
 					expect_ack = 1;
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 					rx_status = poll_mac_rx();
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 					if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
 						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
 						n_slots = rand_num_slots();
@@ -751,7 +751,9 @@ void mac_dcf_init(){
 
 
 
-	wlan_mac_set_DIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));//FIXME: DIFS should  now be actual DIFS, no PHY delays embedded
+	//wlan_mac_set_DIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));//FIXME: DIFS should  now be actual DIFS, no PHY delays embedded
+	//wlan_mac_set_DIFS(28*10);
+	wlan_mac_set_DIFS(28*10);
 	wlan_mac_set_TxDIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));
 
 	wlan_mac_set_EIFS(128*10);

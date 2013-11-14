@@ -245,8 +245,8 @@ void wlan_phy_init() {
 	
 
 	//Set MSB of RSSI_THRESH register to use summed RSSI for debug output
-	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 250);
-	//Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<32) | (PHY_RX_RSSI_SUM_LEN * 250));
+	//Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 250);
+	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<32) | (PHY_RX_RSSI_SUM_LEN * 250)));
 
 	//De-assert resets
 	REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
@@ -276,7 +276,7 @@ void wlan_radio_init() {
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLPF_BW, 1);
 
 	//FIXME: This should be 0
-#if 1
+#if 0
 	//MGC
 	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
 	radio_controller_setRxHP(RC_BASEADDR, (RC_RFA | RC_RFB), RC_RXHP_OFF);
