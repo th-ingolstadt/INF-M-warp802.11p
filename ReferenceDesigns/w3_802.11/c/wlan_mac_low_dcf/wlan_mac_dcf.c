@@ -568,36 +568,14 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 		tx_status = wlan_mac_get_status();
 
 		//TODO: This is a software fix for a MAC_DCF_HW race condition
-		if((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) || ((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_STATE)==WLAN_MAC_STATUS_MPDU_TX_STATE_DONE)) {
-		//if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
+		//if((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) || ((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_STATE)==WLAN_MAC_STATUS_MPDU_TX_STATE_DONE)) {
+		if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
 			switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					//Tx didn't require timeout, completed successfully
 					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
 					//if(rate == WLAN_PHY_RATE_BPSK12) REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 					return 0;
-				break;
-
-				case WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT:
-					//Tx required tmieout, timeout expired with no receptions
-
-					if(tx_status & WLAN_MAC_STATUS_MASK_PHY_CCA_BUSY) {
-						//REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
-					}
-					//Update the contention window
-					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
-						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
-						return -1;
-					}
-
-					//Start a random backoff interval using the updated CW
-					n_slots = rand_num_slots();
-					wlan_mac_dcf_hw_start_backoff(n_slots);
-
-					//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
-					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
-					return frame_transmit(pkt_buf, rate, length);
-
 				break;
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED:
 					expect_ack = 1;
@@ -630,6 +608,30 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 						}
 					}
 				break;
+				case WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT:
+					//Tx required tmieout, timeout expired with no receptions
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x11);
+					//if(tx_status & WLAN_MAC_STATUS_MASK_PHY_CCA_BUSY) {
+						//REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+					//}
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x11);
+					//Update the contention window
+					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
+						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+						return -1;
+					}
+
+					//Start a random backoff interval using the updated CW
+					n_slots = rand_num_slots();
+					wlan_mac_dcf_hw_start_backoff(n_slots);
+
+
+					//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
+					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+					return frame_transmit(pkt_buf, rate, length);
+
+				break;
+
 			}
 		} else {
 			if( (tx_status&WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE)){
