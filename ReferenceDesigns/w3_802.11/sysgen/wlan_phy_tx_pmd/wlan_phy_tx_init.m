@@ -25,6 +25,7 @@ PHY_TX_ACTIVE_EXTENSION = 120;
 
 
 %Payload for simulation
+%Tx_Payload = [1:24];
 Tx_Payload = [1:30+24];%+24 simulates MAC header
 Tx_Payload = mod(Tx_Payload, 256); %total bytes in pkt will be len(Tx_Payload)+3+2+4 (SIGNAL, SERVICE, FCS)
 
@@ -37,6 +38,7 @@ Tx_Payload_words = sum(Tx_Payload4 .* repmat(2.^[0:8:24]', 1, size(Tx_Payload4,2
 
 payload_words = zeros(1, MAX_NUM_BYTES/4);
 
+%payload_words(1) = tx_signal_calc(Tx_Payload_len, 1, 0); %BPSK 1/2
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 0); %QPSK 1/2
 payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 1); %QPSK 3/4
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 0); %16QAM 1/2

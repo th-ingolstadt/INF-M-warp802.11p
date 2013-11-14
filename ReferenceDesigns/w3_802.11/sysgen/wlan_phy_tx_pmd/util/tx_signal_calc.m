@@ -1,6 +1,10 @@
 function SIGNAL_u32 = tx_signal_calc(length, mod_order, code_rate)
 
 switch(sprintf('%d %d', mod_order, code_rate))
+    case '1 0' %BPSK 1/2
+        RATE = uint8(11); %1101 -> 1011
+    case '1 1' %BPSK 3/4
+        RATE = uint8(15); %1111 -> 1111
     case '2 0' %QPSK 1/2
         RATE = uint8(10); %0101 -> 1010
     case '2 1' %QPSK 3/4
