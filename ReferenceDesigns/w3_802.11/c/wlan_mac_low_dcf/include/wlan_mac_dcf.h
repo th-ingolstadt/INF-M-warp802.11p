@@ -34,7 +34,16 @@ typedef struct{
 	u8 address_ra[6];
 } mac_header_80211_ACK;
 
+
+//MAC Timing Parameters
+#define T_SLOT 9
 #define T_SIFS 16
+#define T_DIFS (T_SIFS + 2*T_SLOT)
+#define T_EIFS 128
+#define T_TIMEOUT 80
+
+
+
 #define MAC_HW_LASTBYTE_ADDR1 (13)
 
 /*************** WLAN MAC HW ***************/

@@ -109,9 +109,6 @@ int main(){
 
 	wlan_lib_init();
 
-	//TODO: Debug: Wait for CPU_HIGH to set up all its interrupts
-	//usleep(5000000);
-
 	//create IPC message to receive into
 	ipc_msg_from_high.payload_ptr = &(ipc_msg_from_high_payload[0]);
 
@@ -133,12 +130,6 @@ int main(){
 		send_exception(EXC_MUTEX_TX_FAILURE);
 		return -1;
 	}
-
-	//FIXME: Unlock tx packet buffers 0 and 1, just in case a processor reset happened when CPU_LOW owned one
-	//unlock_pkt_buf_tx(0);
-	//unlock_pkt_buf_tx(1);
-
-
 
 	//Move the PHY's starting address into the packet buffers by PHY_XX_PKT_BUF_PHY_HDR_OFFSET.
 	//This accounts for the metadata located at the front of every packet buffer (Xx_mpdu_info)
@@ -400,10 +391,8 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	// ACKs are only sent for non-control frames addressed to this node
 	if(unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header)) {
 
-		//wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, 38);
-
-		//wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, (T_SIFS*10)-((TX_PHY_DLY_USEC*10)+ 83));
-		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, (T_SIFS*10)-((TX_PHY_DLY_100NSEC)+ 83));
+		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceeding reception.
+		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC)+(PHY_RX_SIG_EXT_USEC*10))));
 
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
@@ -523,8 +512,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	return return_value;
 }
 
-static u8 DEBUG_SKIP_BACKOFF = 0;
-
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
 
@@ -546,21 +533,13 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 	wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
 
-//	if(DEBUG_SKIP_BACKOFF){
-//	//Write the Tx params to the mac_dcf_hw core
-//		DEBUG_SKIP_BACKOFF = 0;
-//		wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout);
-//	} else {
-		wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
-//	}
+	wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
 
-	//usleep(2);
-	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+
+
 	//Submit the MPDU for transmission
 	wlan_mac_MPDU_tx_start(1);
 	wlan_mac_MPDU_tx_start(0);
-	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
-	//FIXME: Check if this is a race condition
 
 	//Wait for the MPDU Tx to finish
 	do{
@@ -610,11 +589,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 				break;
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT:
 					//Tx required tmieout, timeout expired with no receptions
-					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x11);
-					//if(tx_status & WLAN_MAC_STATUS_MASK_PHY_CCA_BUSY) {
-						//REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
-					//}
-					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x11);
+
 					//Update the contention window
 					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
 						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
@@ -741,39 +716,20 @@ void mac_dcf_init(){
 	//REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_DISABLE_NAV);
 	//DEBUG
 
+	//MAC timing parameters are in terms of units of 100 nanoseconds
+	wlan_mac_set_slot(T_SLOT*10);
+	wlan_mac_set_DIFS((T_DIFS-PHY_RX_SIG_EXT_USEC)*10);
+	wlan_mac_set_TxDIFS(((T_DIFS-PHY_RX_SIG_EXT_USEC)*10) - (TX_PHY_DLY_100NSEC));
+	wlan_mac_set_timeout(T_TIMEOUT*10);
 
-	//TODO: These values need tweaking with scope to match the 802.11 standard
-	wlan_mac_set_slot(9*10);	;
-	//wlan_mac_set_DIFS(28*10);
-
-	//wlan_mac_set_DIFS(24*10 - 31);
-	//wlan_mac_set_TxDIFS(24*10 - 31);
-	//wlan_mac_set_DIFS(24*10 - 31 + 49);
-	//wlan_mac_set_TxDIFS(24*10 - 31 + 49);
-
-
-
-	//wlan_mac_set_DIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));//FIXME: DIFS should  now be actual DIFS, no PHY delays embedded
-	//wlan_mac_set_DIFS(28*10);
-	wlan_mac_set_DIFS(28*10);
-	wlan_mac_set_TxDIFS(24*10 + 18 - (TX_PHY_DLY_100NSEC));
-
-	wlan_mac_set_EIFS(128*10);
-	wlan_mac_set_timeout(80*10);
-
+	//TODO: NAV adjust needs verification
 	//NAV adjust time - signed char (Fix8_0) value
 	wlan_mac_set_NAV_adj(0*10);
-
-	//DEBUG
-	//wlan_mac_set_NAV_adj(4);
-	//DEBUG
-
+	wlan_mac_set_EIFS(T_EIFS*10);
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
 	cw_exp = DCF_CW_EXP_MIN;
-
-	wlan_mac_auto_tx_params(0, (20*10));
 
 	//Clear any stale Rx events
 	wlan_mac_dcf_hw_unblock_rx_phy();

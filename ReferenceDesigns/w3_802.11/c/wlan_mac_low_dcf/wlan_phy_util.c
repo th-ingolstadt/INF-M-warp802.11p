@@ -197,7 +197,7 @@ void wlan_phy_init() {
 
 	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
 
-	wlan_phy_rx_set_extension(120); //num samp periods post done to extend CCA BUSY
+	wlan_phy_rx_set_extension(PHY_RX_SIG_EXT_USEC*20); //num samp periods post done to extend CCA BUSY
 	//wlan_phy_rx_set_extension(80); //num samp periods post done to extend CCA BUSY
 
 	//Configure channel estimate capture
@@ -212,7 +212,7 @@ void wlan_phy_init() {
 	REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);//De-assert all starts
 
 	//Set Tx duration extension, in units of sample periods (120=6usec)
-	wlan_phy_tx_set_extension(120);
+	wlan_phy_tx_set_extension(PHY_TX_SIG_EXT_USEC*20);
 
 	//Set extension from last samp output to RF Tx -> Rx transition
 	//Note: Old value of 20 was too short for 16-QAM packets
@@ -298,7 +298,6 @@ void wlan_radio_init() {
 	//Set Tx gains
 	radio_controller_setTxGainSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_GAINSRC_REG);
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXGAIN_BB, 2);
-	//radio_controller_setTxGainTarget(RC_BASEADDR, (RC_RFA | RC_RFB), 45);
 	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_RFA | RC_RFB), 45);
 	
 	//Set misc radio params
@@ -315,7 +314,7 @@ void wlan_radio_init() {
 	//radio_controller_setTxDelays(RC_BASEADDR, 20, 10, 0, TX_PHY_DLY);//TODO;
 	//radio_controller_setTxDelays(RC_BASEADDR, 253, 200, 180, TX_PHY_DLY);//TODO; //240 PA time after 180 PHY time is critical point
 
-	radio_controller_setTxDelays(RC_BASEADDR, 40, 20, 0, TX_PHY_DLY);//TODO; //240 PA time after 180 PHY time is critical point
+	radio_controller_setTxDelays(RC_BASEADDR, 40, 20, 0, TX_RC_PHYSTART_DLY);//TODO; //240 PA time after 180 PHY time is critical point
 
 	//Give the TX PHY control of RXEN and TXEN (defaults to SISO on A)
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_HW);
