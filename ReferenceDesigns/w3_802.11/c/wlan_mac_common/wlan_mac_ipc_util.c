@@ -114,21 +114,10 @@ void MailboxIntrHandler(void *CallbackRef){
 
 	XMbox_ClearInterrupt(MboxInstPtr, XMB_IX_RTA);
 
-//	xil_printf("INTERRUPT: 0x%x\n",Mask);
-
-//	if (Mask & XMB_IX_STA) {
-		//Send interrupt. Do nothing.
-//	}
-
 	if (Mask & XMB_IX_RTA) {
-		//xil_printf("CAALLLL BAAACCKKK addr = 0x%08x\n", mailbox_rx_callback);
+
 		mailbox_rx_callback();
 	}
-
-//	if (Mask & XMB_IX_ERR) {
-//		xil_printf("Error = 0x%x\n", XMbox_ReadReg(MboxInstPtr->Config.BaseAddress,XMB_ERROR_REG_OFFSET));
-//		warp_printf(PL_ERROR, "Error reported by Mailbox via interrupt\n");
-//	}
 
 	XIntc_Start(Intc_ptr, XIN_REAL_MODE);
 
