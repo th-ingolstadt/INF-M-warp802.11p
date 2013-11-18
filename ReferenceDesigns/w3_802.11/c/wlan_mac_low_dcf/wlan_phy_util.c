@@ -176,6 +176,9 @@ void wlan_phy_init() {
 	//Block Rx inputs during Tx
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
 
+	//FFT window shift
+	Xil_Out32(WLAN_RX_FFT_CFG, 0x5031040);
+
 	//Set LTS correlation threshold and timeout
 	wlan_phy_rx_lts_corr_config(600 * PHY_RX_RSSI_SUM_LEN, 320/2);//SNR thresh, timeout/2
 	wlan_phy_rx_lts_corr_thresholds(12500, 17000);//low SNR, high SNR corr thresh
@@ -246,7 +249,7 @@ void wlan_phy_init() {
 
 	//Set MSB of RSSI_THRESH register to use summed RSSI for debug output
 	//Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 250);
-	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<32) | (PHY_RX_RSSI_SUM_LEN * 250)));
+	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<32) | (PHY_RX_RSSI_SUM_LEN * 150)));
 
 	//De-assert resets
 	REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
@@ -295,6 +298,7 @@ void wlan_radio_init() {
 	//Set Tx gains
 	radio_controller_setTxGainSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_GAINSRC_REG);
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXGAIN_BB, 2);
+	//radio_controller_setTxGainTarget(RC_BASEADDR, (RC_RFA | RC_RFB), 45);
 	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_RFA | RC_RFB), 45);
 	
 	//Set misc radio params
