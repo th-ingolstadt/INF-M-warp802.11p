@@ -738,7 +738,7 @@ void* wlan_malloc(u32 size){
 	void* return_value;
 	return_value = malloc(size);
 	mem_alloc_debug++;
-	xil_printf("++++ %d: malloc(%d) = 0x%08x\n", mem_alloc_debug, size, (u32)return_value);
+	//xil_printf("++++ %d: malloc(%d) = 0x%08x\n", mem_alloc_debug, size, (u32)return_value);
 
 	return return_value;
 }
@@ -748,7 +748,7 @@ void* wlan_realloc(void* addr, u32 size){
 	void* return_value;
 	return_value = realloc(addr, size);
 
-	xil_printf("++++ %d: realloc(0x%08x, %d) = 0x%08x\n", mem_alloc_debug, (u32)addr, size, (u32)return_value);
+	//xil_printf("++++ %d: realloc(0x%08x, %d) = 0x%08x\n", mem_alloc_debug, (u32)addr, size, (u32)return_value);
 
 	return return_value;
 }
@@ -758,7 +758,7 @@ void wlan_free(void* addr){
 
 	free(addr);
 	mem_alloc_debug--;
-	xil_printf("---- %d: free(0x%08x)\n",mem_alloc_debug, (u32)addr);
+	//xil_printf("---- %d: free(0x%08x)\n",mem_alloc_debug, (u32)addr);
 }
 
 u8 wlan_mac_util_get_tx_rate(station_info* station){
