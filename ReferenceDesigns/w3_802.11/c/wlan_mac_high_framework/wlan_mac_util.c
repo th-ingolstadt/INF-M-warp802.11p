@@ -560,7 +560,7 @@ void RecvHandler(void *CallBackRef, unsigned int EventData){
 	uart_callback(ReceiveBuffer[0]);
 	XUartLite_EnableInterrupt(&UartLite);
 	numBytesRx = XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
-	xil_printf("numBytesRx = %d\n", numBytesRx);
+	//xil_printf("numBytesRx = %d\n", numBytesRx);
 }
 
 void GpioIsr(void *InstancePtr){
