@@ -500,7 +500,7 @@ void print_station_status(u8 manual_call){
 
 	u32 ltg_type;
 
-	xil_printf("manual_call = %d, print_scheduled = %d\n", manual_call,print_scheduled);
+	//xil_printf("manual_call = %d, print_scheduled = %d\n", manual_call,print_scheduled);
 
 	if((manual_call == 1 && print_scheduled == 0) || (manual_call == 0 && print_scheduled == 1)){
 		//This awkward logic is to handle the fact that our event scheduler doesn't currently have a
@@ -511,7 +511,7 @@ void print_station_status(u8 manual_call){
 		if(uart_mode == UART_MODE_INTERACTIVE){
 			timestamp = get_usec_timestamp();
 			xil_printf("\f");
-			xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
+			//xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
 
 			for(i=0; i < next_free_assoc_index; i++){
 				xil_printf("---------------------------------------------------\n");
