@@ -26,12 +26,12 @@ PHY_RX_START_DLY = 25;
 
 %D1: RxRfDelay + RxPLCPDelay
 % After pkt reception, D1 is delay from actual medium IDLE to PHY_RX_END
-hw_time_D1 = 4;
+hw_time_D1 = 1;
 
 %RxTx Turnaround
 % Time from PHY_TX_START.IND to PHY_TX_START.CONFIRM
 %  (delay from "transmit now" signal to first energy on medium)
-hw_time_rxtx_turnaround = 4;
+hw_time_rxtx_turnaround = 1;
 
 
 ticks_per_usec = 10;
@@ -51,15 +51,10 @@ INTERVAL_ACKTIMEOUT = INTERVAL_SIFS + INTERVAL_SLOT + PHY_RX_START_DLY;
 calib_time_TxDIFS = INTERVAL_DIFS - hw_time_D1 - hw_time_rxtx_turnaround;
 
 %Adjustment for NAV times, to compensate dealy from actual idle to RX_END+FCS
-calib_time_NAV_adj = hw_time_D1;
-
-%Time from start of slot to instant MAC must decide slot was idle enough
-% to trigger transmission beginning at next slot boundary
-calib_time_MAC_slot = INTERVAL_SLOT - hw_time_D1;
+calib_time_NAV_adj = 0;
 
 REG_MAC_Intervals_1 = ...
     2^0  * (10*INTERVAL_SLOT) + ... %b[9:0]
-    2^10 * (10*INTERVAL_SIFS) + ... %b[19:10]
     2^20 * (10*INTERVAL_DIFS) + ... %b[29:20]
     0;
     
@@ -70,13 +65,12 @@ REG_MAC_Intervals_2 = ...
 
 REG_MAC_Calib_Times = ...
     2^0  * (10*calib_time_TxDIFS) + ... %b[9:0]
-    2^10 * (10*calib_time_MAC_slot) + ... %b[19:10]
-    2^20 * (10*calib_time_NAV_adj) + ... %b[29:20]
+    2^24 * (10*calib_time_NAV_adj) + ... %b[31:24]
     0;
 
 REG_MAC_MPDU_Tx_Params = ...
     2^0  * (4) + ... %b[3:0] - pkt buf to Tx
-    2^8  * (2) + ... %b[23:8] - pre-Tx BO slots
+    2^8  * (3) + ... %b[23:8] - pre-Tx BO slots
     2^24 * (1) + ... %b[24] - post-Tx timeout
     0;
     
@@ -87,7 +81,7 @@ REG_MAC_Auto_Tx_Params = ...
     0;
     
 REG_MAC_Backoff_Control = ...
-    2^0  * (25) + ... %b[15:0] - num BO slots
+    2^0  * (0) + ... %b[15:0] - num BO slots
     2^31 * (0) + ... %b[31] - Start backoff period immediately
     0;
 

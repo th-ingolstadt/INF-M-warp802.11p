@@ -66,7 +66,7 @@ MAX_NCBPS = 288;
 
 PHY_CONFIG_NUM_SC = 64;
 PHY_CONFIG_CP_LEN = 16;
-PHY_CONFIG_FFT_OFFSET = 1;% 1 = no CP samples into FFT (5=zero actual offset)
+PHY_CONFIG_FFT_OFFSET = 3;% 1 = no CP samples into FFT (5=zero actual offset)
 PHY_CONFIG_CFO_EST_OFFSET = 0;
 PHY_CONFIG_FFT_SCALING = bin2dec('000101');
 
