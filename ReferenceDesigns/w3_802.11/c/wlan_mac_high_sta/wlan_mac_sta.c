@@ -161,6 +161,7 @@ int main(){
 	wlan_mac_util_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
 	wlan_mac_util_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
+	//wlan_mac_util_set_fmc_ipc_rx_callback(   (void*)fmc_ipc_rx);
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
 	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
