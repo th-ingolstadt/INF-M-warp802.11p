@@ -29,6 +29,7 @@
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
+#include "wlan_mac_fmc_pkt.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_ipc.h"
 #include "wlan_mac_ltg.h"
@@ -59,7 +60,7 @@ extern int _HEAP_SIZE;
 // HW structures
 static XGpio       GPIO_timestamp;
 static XGpio       Gpio;
-static XIntc       InterruptController;
+XIntc       InterruptController;
 static XTmrCtr     TimerCounterInst;
 XUartLite          UartLite;
 XAxiCdma           cdma_inst;
@@ -180,6 +181,10 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
 
 	wlan_mac_ipc_init();
+
+#ifdef FMC_PKT_EN
+	wlan_fmc_pkt_init();
+#endif
 
 	for(i=0;i < NUM_TX_PKT_BUFS; i++){
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
@@ -516,6 +521,10 @@ int interrupt_init(){
 	}
 
 	wlan_lib_setup_mailbox_interrupt(&InterruptController);
+#ifdef FMC_PKT_EN
+	wlan_fmc_pkt_setup_mailbox_interrupt();
+#endif
+
 	wlan_eth_setup_interrupt(&InterruptController);
 
 	Result = XIntc_Start(&InterruptController, XIN_REAL_MODE);

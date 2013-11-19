@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_util.c
+// File   : wlan_mac_ipc.c
 // Authors: Patrick Murphy (murphpo [at] mangocomm.com)
 //			Chris Hunter (chunter [at] mangocomm.com)
 //          Erik Welsh (welsh [at] mangocomm.com)
@@ -63,7 +63,6 @@ static u32         cpu_high_status;
 // IPC variables
 wlan_ipc_msg       ipc_msg_from_low;
 u32                ipc_msg_from_low_payload[IPC_BUFFER_SIZE];
-
 
 
 /*************************** Functions Prototypes ****************************/

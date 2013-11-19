@@ -22,6 +22,8 @@
 #define INIT_DATA_DOTDATA_START (INIT_DATA_BASEADDR+0x200)
 #define INIT_DATA_DOTDATA_SIZE	(4*(XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))
 
+//FMC PKT MBOX Enable
+//#define FMC_PKT_EN
 
 //Encapsulation modes
 #define ENCAP_MODE_AP	0
@@ -222,6 +224,7 @@ void GpioIsr(void *InstancePtr);
 void SendHandler(void *CallBackRef, unsigned int EventData);
 void RecvHandler(void *CallBackRef, unsigned int EventData);
 void wlan_mac_util_set_ipc_rx_callback(void(*callback)());
+void wlan_mac_util_set_fmc_ipc_rx_callback(void(*callback)());
 inline int interrupt_start();
 inline void interrupt_stop();
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
