@@ -30,10 +30,8 @@
 
 #define MAILBOX_RIT	0	/* mailbox receive interrupt threshold */
 #define MAILBOX_SIT	0	/* mailbox send interrupt threshold */
-#define MBOX_DEVICE_ID		XPAR_MBOX_0_DEVICE_ID
-#define INTC_DEVICE_ID		XPAR_INTC_0_DEVICE_ID
-#define MBOX_INTR_ID		XPAR_INTC_0_MBOX_0_VEC_ID
-
+//#define MBOX_INTR_ID		XPAR_INTC_0_MBOX_0_VEC_ID
+#define MBOX_INTR_ID		XPAR_MB_HIGH_INTC_MB_MAILBOX_INTERRUPT_0_INTR
 static XIntc* Intc_ptr;
 function_ptr_t mailbox_rx_callback;
 
@@ -44,8 +42,6 @@ void nullCallback(void* param){};
 
 XMbox ipc_mailbox;
 XMutex pkt_buf_mutex;
-
-
 
 int wlan_lib_init () {
 	u32 i;
@@ -120,7 +116,6 @@ void MailboxIntrHandler(void *CallbackRef){
 	}
 
 	XIntc_Start(Intc_ptr, XIN_REAL_MODE);
-
 
 }
 
