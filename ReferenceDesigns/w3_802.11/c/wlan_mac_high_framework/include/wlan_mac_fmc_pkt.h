@@ -43,6 +43,7 @@ typedef struct {
 int fmc_ipc_rx();
 int wlan_fmc_pkt_eth_send(u8* eth_hdr, u16 length);
 void wlan_XMbox_WriteBlocking(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes);
+int wlan_XMbox_Read(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes, u32 *BytesRecvdPtr);
 int wlan_fmc_pkt_setup_mailbox_interrupt();
 void FMCMailboxIntrHandler(void *CallbackRef);
 

@@ -72,7 +72,7 @@ int fmc_ipc_rx(){
 		}
 
 		//Attempt to read one 32b word from the mailbox
-		status = XMbox_Read(&fmc_ipc_mailbox, (u32*)&ipc_msg_from_fmc, 4, &bytes_read);
+		status = wlan_XMbox_Read(&fmc_ipc_mailbox, (u32*)&ipc_msg_from_fmc, 4, &bytes_read);
 		if((status != XST_SUCCESS) || (bytes_read != 4) ) {
 			//Failed to read a full word. Flush the mailbox and quit out of the ISR.
 			XMbox_Flush(&fmc_ipc_mailbox);
@@ -85,7 +85,7 @@ int fmc_ipc_rx(){
 			//This is the start of a valid FMC IPC message
 			//Read the next 4 bytes into t he ipc_msg_from_fmc struct
 
-			status = XMbox_Read(&fmc_ipc_mailbox, (u32*)((u8*)&ipc_msg_from_fmc + 4), 4, &bytes_read);
+			status = wlan_XMbox_Read(&fmc_ipc_mailbox, (u32*)((u8*)&ipc_msg_from_fmc + 4), 4, &bytes_read);
 			if((status != XST_SUCCESS) || (bytes_read != 4) ) {
 				//Failed to read a full word. Flush the mailbox and quit out of the ISR.
 				XMbox_Flush(&fmc_ipc_mailbox);
@@ -119,7 +119,7 @@ int fmc_ipc_rx(){
 								return 0; //Stuff is still in the mailbox. Returning 0 tells the ISR to not clear the interrupt.
 							}
 
-							status = XMbox_Read(&fmc_ipc_mailbox, (u32*)((u8*)buf_addr + pkt_bytes_read), (num_words<<2)-pkt_bytes_read, &bytes_read);
+							status = wlan_XMbox_Read(&fmc_ipc_mailbox, (u32*)((u8*)buf_addr + pkt_bytes_read), (num_words<<2)-pkt_bytes_read, &bytes_read);
 
 							pkt_bytes_read += bytes_read;
 
@@ -229,6 +229,61 @@ int wlan_fmc_pkt_eth_send(u8* eth_hdr, u16 length){
 	wlan_XMbox_WriteBlocking(&fmc_ipc_mailbox, (u32*)((u8*)eth_hdr - MBOX_ALIGN_OFFSET), (4*num_words) );
 
 	return return_value;
+}
+
+int wlan_XMbox_Read(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes, u32 *BytesRecvdPtr){
+	u32 NumBytes;
+
+	Xil_AssertNonvoid(InstancePtr != NULL);
+	Xil_AssertNonvoid(!((u32) BufferPtr & 0x3));
+	Xil_AssertNonvoid(RequestedBytes != 0);
+	Xil_AssertNonvoid((RequestedBytes %4) == 0);
+	Xil_AssertNonvoid(BytesRecvdPtr != NULL);
+
+	NumBytes = 0;
+
+	if (InstancePtr->Config.UseFSL == 0) {
+		/* For memory mapped IO */
+		if (XMbox_IsEmptyHw(InstancePtr->Config.BaseAddress))
+			return XST_NO_DATA;
+
+		/*
+		 * Read the Mailbox until empty or the length requested is
+		 * satisfied
+		 */
+		do {
+			//*BufferPtr++ = XMbox_ReadMBox(InstancePtr->Config.BaseAddress);
+			*BufferPtr = XMbox_ReadMBox(InstancePtr->Config.BaseAddress);
+			if(*(u32*)BufferPtr == FMC_IPC_DELIMITER){
+				xil_printf("Read found a delimiter at NumBytes = %d\n", NumBytes);
+			}
+			BufferPtr++;
+			NumBytes += 4;
+		} while ((NumBytes != RequestedBytes) &&
+			 !(XMbox_IsEmptyHw(InstancePtr->Config.BaseAddress)));
+
+		*BytesRecvdPtr = NumBytes;
+	} else {
+
+		/* FSL based Access */
+		if (XMbox_FSLIsEmpty(InstancePtr->Config.RecvID))
+			return XST_NO_DATA;
+
+		/*
+		 * Read the Mailbox until empty or the length requested is
+		 * satisfied
+		 */
+		do {
+			*BufferPtr++ =
+				XMbox_FSLReadMBox(InstancePtr->Config.RecvID);
+			NumBytes += 4;
+		} while ((NumBytes != RequestedBytes) &&
+			 !(XMbox_FSLIsEmpty(InstancePtr->Config.RecvID)));
+
+		*BytesRecvdPtr = NumBytes;
+	}
+
+	return XST_SUCCESS;
 }
 
 void wlan_XMbox_WriteBlocking(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes){
