@@ -112,6 +112,7 @@ int fmc_ipc_rx(){
 
 						pkt_bytes_read = 0;
 						//xil_printf("\n");
+						timestamp = get_usec_timestamp();
 						while(pkt_bytes_read < (num_words<<2)){
 							if(get_usec_timestamp() > (timestamp+FMC_TIMEOUT_USEC)){
 								xil_printf("Timeout in packet read!\n");
@@ -164,6 +165,8 @@ int fmc_ipc_rx(){
 						//	xil_printf("   ...checking in\n");
 							queue_checkin(&checkout);
 						}
+
+						return 0;
 
 
 					}
@@ -255,7 +258,7 @@ int wlan_XMbox_Read(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes, u32 
 			//*BufferPtr++ = XMbox_ReadMBox(InstancePtr->Config.BaseAddress);
 			*BufferPtr = XMbox_ReadMBox(InstancePtr->Config.BaseAddress);
 			if(*(u32*)BufferPtr == FMC_IPC_DELIMITER){
-				xil_printf("Read found a delimiter at NumBytes = %d\n", NumBytes);
+				//xil_printf("Read found a delimiter at NumBytes = %d\n", NumBytes);
 			}
 			BufferPtr++;
 			NumBytes += 4;
@@ -377,7 +380,8 @@ void FMCMailboxIntrHandler(void *CallbackRef){
 		is_empty = fmc_ipc_rx();
 	}
 
-	if(is_empty == 1) XMbox_ClearInterrupt(MboxInstPtr, XMB_IX_RTA);
+	//if(is_empty == 1) XMbox_ClearInterrupt(MboxInstPtr, XMB_IX_RTA);
+	XMbox_ClearInterrupt(MboxInstPtr, XMB_IX_RTA);
 
 	XMbox_SetReceiveThreshold(&fmc_ipc_mailbox, FMC_MBOX_RIT);
 
