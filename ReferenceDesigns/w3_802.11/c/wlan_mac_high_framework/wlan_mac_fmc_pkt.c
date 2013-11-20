@@ -262,6 +262,8 @@ void FMCMailboxIntrHandler(void *CallbackRef){
 
 	u8 is_empty;
 
+	XMbox_SetReceiveThreshold(&fmc_ipc_mailbox, 0xFFFFFFFF);
+
 	//xil_printf("FMCMailboxIntrHandler\n");
 
 	u32 Mask;
@@ -278,6 +280,8 @@ void FMCMailboxIntrHandler(void *CallbackRef){
 	}
 
 	if(is_empty == 1) XMbox_ClearInterrupt(MboxInstPtr, XMB_IX_RTA);
+
+	XMbox_SetReceiveThreshold(&fmc_ipc_mailbox, FMC_MBOX_RIT);
 
 	XIntc_Start(&InterruptController, XIN_REAL_MODE);
 }
