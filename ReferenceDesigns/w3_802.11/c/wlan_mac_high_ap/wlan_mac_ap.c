@@ -170,6 +170,7 @@ int main(){
 	};
 
 
+
 	// CPU Low will pass HW information to CPU High as part of the boot process
 	//   - Get necessary HW information
 	memcpy((void*) &(eeprom_mac_addr[0]), (void*) get_eeprom_mac_addr(), 6);
@@ -221,6 +222,9 @@ int main(){
 	// Set AP processing callbacks
 	node_set_process_callback( (void *)wlan_exp_node_ap_processCmd );
 #endif
+
+	//This function blocks until FMC is ready
+	fmc_interrupt_init();
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
