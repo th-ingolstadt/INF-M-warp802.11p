@@ -104,7 +104,7 @@ int fmc_ipc_rx(){
 						tx_queue = checkout.first;
 						buf_addr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header) - MBOX_ALIGN_OFFSET;
 
-						if(ipc_msg_from_fmc.size_bytes & 0x3){
+                        if( ( ipc_msg_from_fmc.size_bytes + MBOX_ALIGN_OFFSET ) & 0x3){
 							num_words = (ipc_msg_from_fmc.size_bytes+4+MBOX_ALIGN_OFFSET)>>2; //Division by 4
 						} else {
 							num_words = (ipc_msg_from_fmc.size_bytes+MBOX_ALIGN_OFFSET)>>2; //Division by 4
