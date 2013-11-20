@@ -40,7 +40,7 @@ wlan_fmc_ipc_msg   ipc_msg_from_fmc;
 //u8                 ipc_msg_from_fmc_payload[FMC_IPC_BUFFER_SIZE];
 
 
-#define FMC_TIMEOUT_USEC 10000
+#define FMC_TIMEOUT_USEC 1000000
 int fmc_ipc_rx(){
 	int status;
 	u32 bytes_read;
