@@ -85,7 +85,9 @@ int fmc_ipc_rx(){
 			//This is the start of a valid FMC IPC message
 			//Read the next 4 bytes into t he ipc_msg_from_fmc struct
 
-			while((XMbox_IsEmpty(&fmc_ipc_mailbox)==1)){}
+			while((XMbox_IsEmpty(&fmc_ipc_mailbox)==1)){
+				// xil_printf("FIFO empty\n");
+			}
 
 			status = wlan_XMbox_Read(&fmc_ipc_mailbox, (u32*)((u8*)&ipc_msg_from_fmc + 4), 4, &bytes_read);
 			if((status != XST_SUCCESS) || (bytes_read != 4) ) {
@@ -120,6 +122,10 @@ int fmc_ipc_rx(){
 								xil_printf("Timeout in packet read!\n");
 								queue_checkin(&checkout);
 								return 0; //Stuff is still in the mailbox. Returning 0 tells the ISR to not clear the interrupt.
+							}
+
+							while((XMbox_IsEmpty(&fmc_ipc_mailbox)==1)){
+								// xil_printf("FIFO empty\n");
 							}
 
 							status = wlan_XMbox_Read(&fmc_ipc_mailbox, (u32*)((u8*)buf_addr + pkt_bytes_read), (num_words<<2)-pkt_bytes_read, &bytes_read);
@@ -260,7 +266,7 @@ int wlan_XMbox_Read(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes, u32 
 			//*BufferPtr++ = XMbox_ReadMBox(InstancePtr->Config.BaseAddress);
 			*BufferPtr = XMbox_ReadMBox(InstancePtr->Config.BaseAddress);
 			if(*(u32*)BufferPtr == FMC_IPC_DELIMITER){
-				//xil_printf("Read found a delimiter at NumBytes = %d\n", NumBytes);
+				// xil_printf("Read found a delimiter at NumBytes = %d  %d\n", NumBytes, RequestedBytes);
 			}
 			BufferPtr++;
 			NumBytes += 4;
