@@ -11,6 +11,9 @@
 #ifndef WLAN_MAC_FMC_PKT_H_
 #define WLAN_MAC_FMC_PKT_H_
 
+//TODO: This is a temporary inclusion so we can overwrite a driver call
+#include "xmbox.h"
+
 #define FMC_MBOX_DEVICE_ID			XPAR_MBOX_0_DEVICE_ID
 
 #define MBOX_ALIGN_OFFSET 2
@@ -39,6 +42,7 @@ typedef struct {
 
 int fmc_ipc_rx();
 int wlan_fmc_pkt_eth_send(u8* eth_hdr, u16 length);
+void wlan_XMbox_WriteBlocking(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes);
 int wlan_fmc_pkt_setup_mailbox_interrupt();
 void FMCMailboxIntrHandler(void *CallbackRef);
 

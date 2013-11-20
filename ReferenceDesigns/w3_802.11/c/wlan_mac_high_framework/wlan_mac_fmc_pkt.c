@@ -186,6 +186,8 @@ int fmc_ipc_rx(){
 
 
 
+		} else {
+			xil_printf("Incorrect Delimiter: 0x%x\n", ipc_msg_from_fmc.delimiter);
 		}
 
 
@@ -218,16 +220,57 @@ int wlan_fmc_pkt_eth_send(u8* eth_hdr, u16 length){
 	xil_printf("Length = %d     num_words = %d \n", length, num_words);
 #endif
 
-	XMbox_WriteBlocking(&fmc_ipc_mailbox, (u32*)(&ipc_msg_to_fmc), 8);
+	wlan_XMbox_WriteBlocking(&fmc_ipc_mailbox, (u32*)(&ipc_msg_to_fmc), 8);
 
 	//This is a little fast and loose, but we know its safe to reach before the
 	//eth_hdr argument to fix the memory alignment issue with the mailbox because
 	//this whole function is only ever called in the context that there is other
 	//802.11 wireless stuff before eth_hdr anyway.
-	XMbox_WriteBlocking(&fmc_ipc_mailbox, (u32*)((u8*)eth_hdr - MBOX_ALIGN_OFFSET), (4*num_words) );
+	wlan_XMbox_WriteBlocking(&fmc_ipc_mailbox, (u32*)((u8*)eth_hdr - MBOX_ALIGN_OFFSET), (4*num_words) );
 
 	return return_value;
 }
+
+void wlan_XMbox_WriteBlocking(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes){
+	u32 NumBytes;
+
+	Xil_AssertVoid(InstancePtr != NULL);
+	Xil_AssertVoid(!((u32) BufferPtr & 0x3));
+	Xil_AssertVoid(RequestedBytes != 0);
+	Xil_AssertVoid((RequestedBytes %4) == 0);
+
+	NumBytes = 0;
+
+	if (InstancePtr->Config.UseFSL == 0) {
+		/* For memory mapped IO */
+		/* Block while the mailbox FIFO becomes free to transfer
+		 * at-least one word
+		 */
+		do {
+			while (XMbox_IsFullHw(InstancePtr->Config.BaseAddress)){
+				xil_printf("mbox write paused at byte write %d: FIFO is full\n",NumBytes);
+			}
+
+			XMbox_WriteMBox(InstancePtr->Config.BaseAddress,
+					 *BufferPtr++);
+			NumBytes += 4;
+		} while (NumBytes != RequestedBytes);
+	} else {
+
+		/* FSL based Access */
+		/* Block while the mailbox FIFO becomes free to transfer
+		 * at-least one word
+		 */
+		do {
+			while (XMbox_FSLIsFull(InstancePtr->Config.SendID));
+
+			XMbox_FSLWriteMBox(InstancePtr->Config.SendID,
+					    *BufferPtr++);
+			NumBytes += 4;
+		} while (NumBytes != RequestedBytes);
+	}
+}
+
 
 int wlan_fmc_pkt_init () {
 	//Initialize the inter-processor mailbox core
