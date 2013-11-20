@@ -85,6 +85,8 @@ int fmc_ipc_rx(){
 			//This is the start of a valid FMC IPC message
 			//Read the next 4 bytes into t he ipc_msg_from_fmc struct
 
+			while((XMbox_IsEmpty(&fmc_ipc_mailbox)==1)){}
+
 			status = wlan_XMbox_Read(&fmc_ipc_mailbox, (u32*)((u8*)&ipc_msg_from_fmc + 4), 4, &bytes_read);
 			if((status != XST_SUCCESS) || (bytes_read != 4) ) {
 				//Failed to read a full word. Flush the mailbox and quit out of the ISR.
