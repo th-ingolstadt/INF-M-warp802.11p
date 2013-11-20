@@ -360,8 +360,9 @@ int wlan_fmc_pkt_setup_mailbox_interrupt(){
 	}
 
 	//XMbox_SetInterruptEnable(&ipc_mailbox, XMB_IX_STA | XMB_IX_RTA | XMB_IX_ERR);
-	XMbox_SetInterruptEnable(&fmc_ipc_mailbox, XMB_IX_RTA);
 
+	XMbox_Flush(&fmc_ipc_mailbox);
+	XMbox_SetInterruptEnable(&fmc_ipc_mailbox, XMB_IX_RTA);
 	XIntc_Enable(&InterruptController, FMC_MBOX_INTR_ID);
 
 	return 0;

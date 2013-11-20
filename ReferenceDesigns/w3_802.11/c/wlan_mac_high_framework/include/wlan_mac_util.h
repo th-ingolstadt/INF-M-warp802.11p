@@ -219,6 +219,7 @@ void write_hex_display(u8 val);
 void write_hex_display_dots(u8 dots_on);
 int memory_test();
 void write_hex_display_raw(u8 val1,u8 val2);
+int fmc_interrupt_init();
 int interrupt_init();
 void GpioIsr(void *InstancePtr);
 void SendHandler(void *CallBackRef, unsigned int EventData);

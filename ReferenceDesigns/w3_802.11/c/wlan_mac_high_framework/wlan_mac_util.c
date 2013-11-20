@@ -492,6 +492,16 @@ inline void interrupt_stop(){
 	XIntc_Stop(&InterruptController);
 }
 
+int fmc_interrupt_init(){
+	//TODO: This function should block until FMC reports ready
+
+#ifdef FMC_PKT_EN
+	wlan_fmc_pkt_setup_mailbox_interrupt();
+#endif
+
+	return 0;
+}
+
 int interrupt_init(){
 	int Result;
 	Result = XIntc_Initialize(&InterruptController, INTC_DEVICE_ID);
@@ -521,9 +531,6 @@ int interrupt_init(){
 	}
 
 	wlan_lib_setup_mailbox_interrupt(&InterruptController);
-#ifdef FMC_PKT_EN
-	wlan_fmc_pkt_setup_mailbox_interrupt();
-#endif
 
 	wlan_eth_setup_interrupt(&InterruptController);
 
