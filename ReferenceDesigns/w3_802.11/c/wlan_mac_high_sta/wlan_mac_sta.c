@@ -239,6 +239,9 @@ int main(){
 #endif
 
 
+	fmc_interrupt_init();
+
+
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
