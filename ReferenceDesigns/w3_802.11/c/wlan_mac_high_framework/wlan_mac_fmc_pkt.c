@@ -51,7 +51,7 @@ int fmc_ipc_rx(){
 	packet_bd*	tx_queue;
 	void* buf_addr;
 	u8 packet_is_queued = 0;
-	//u32 i;
+	u32 i;
 
 	u8 eth_dest[6];
 	u8 eth_src[6];
@@ -126,18 +126,18 @@ int fmc_ipc_rx(){
 							//xil_printf("+%d (%d / %d) \n", bytes_read, pkt_bytes_read, num_words<<2 );
 						}
 
-						//xil_printf("pkt_bytes_read = %d\n", pkt_bytes_read);
+#if 0
+						xil_printf("pkt_bytes_read = %d\n", pkt_bytes_read);
 
-						//for(i=0;i<100;i++){
-						//	xil_printf("%x ", ((u8*)buf_addr)[i]);
-						//}
+						for(i=0; i < 0x2c;i++){
+							xil_printf("%x ", ((u8*)buf_addr)[i]);
+						}
 
-						//xil_printf("\n\n");
-
-
+						xil_printf("\n\n");
+#endif
 
 						eth_rx_len = ipc_msg_from_fmc.size_bytes;
-						eth_rx_buf = (u32)buf_addr;
+						eth_rx_buf = (u32)((u8 *)buf_addr + MBOX_ALIGN_OFFSET);
 
 						//After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
 						mpdu_start_ptr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
@@ -148,11 +148,15 @@ int fmc_ipc_rx(){
 
 						mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 
+#if 0
 						xil_printf("Encapsulated %d bytes\n", mpdu_tx_len);
+#endif
 
 						if(mpdu_tx_len>0){
+#if 0
 							xil_printf("     eth_dest: %02x-%02x-%02x-%02x-%02x-%02x\n", eth_dest[0],eth_dest[1],eth_dest[2],eth_dest[3],eth_dest[4],eth_dest[5]);
 							xil_printf("     eth_src:  %02x-%02x-%02x-%02x-%02x-%02x\n", eth_src[0],eth_src[1],eth_src[2],eth_src[3],eth_src[4],eth_src[5]);
+#endif
 							packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
 						}
 
@@ -170,7 +174,12 @@ int fmc_ipc_rx(){
 
 			break;
 			default:
-				xil_printf("Unknown FMC IPC message ID\n");
+				xil_printf("Unknown FMC IPC message \n" );
+				xil_printf("    Delimiter: %x \n", ipc_msg_from_fmc.delimiter);
+				xil_printf("    MSG ID   : %x \n", ipc_msg_from_fmc.msg_id);
+				xil_printf("    BYTES    : %x \n", ipc_msg_from_fmc.size_bytes);
+
+
 			break;
 
 			}
@@ -191,15 +200,23 @@ int wlan_fmc_pkt_eth_send(u8* eth_hdr, u16 length){
 	wlan_fmc_ipc_msg   ipc_msg_to_fmc;
 	u16 num_words;
 
+#if 0
+	xil_printf("Sending FMC packet: 0x%x bytes \n", length);
+#endif
+
 	ipc_msg_to_fmc.delimiter = FMC_IPC_DELIMITER;
 	ipc_msg_to_fmc.msg_id = FMC_IPC_MSG_ID_PKT_FROM_W3;
 	ipc_msg_to_fmc.size_bytes = length;
 
-	if(length & 0x3){
+	if( (length + MBOX_ALIGN_OFFSET) & 0x3){
 		num_words = (length+4+MBOX_ALIGN_OFFSET)>>2; //Division by 4
 	} else {
 		num_words = (length+MBOX_ALIGN_OFFSET)>>2; //Division by 4
 	}
+
+#if 0
+	xil_printf("Length = %d     num_words = %d \n", length, num_words);
+#endif
 
 	XMbox_WriteBlocking(&fmc_ipc_mailbox, (u32*)(&ipc_msg_to_fmc), 8);
 
@@ -207,7 +224,7 @@ int wlan_fmc_pkt_eth_send(u8* eth_hdr, u16 length){
 	//eth_hdr argument to fix the memory alignment issue with the mailbox because
 	//this whole function is only ever called in the context that there is other
 	//802.11 wireless stuff before eth_hdr anyway.
-	XMbox_WriteBlocking(&fmc_ipc_mailbox, (u32*)((u8*)eth_hdr - MBOX_ALIGN_OFFSET), 8);
+	XMbox_WriteBlocking(&fmc_ipc_mailbox, (u32*)((u8*)eth_hdr - MBOX_ALIGN_OFFSET), (4*num_words) );
 
 	return return_value;
 }
