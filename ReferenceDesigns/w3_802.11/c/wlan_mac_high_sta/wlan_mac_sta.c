@@ -34,6 +34,7 @@
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_sta.h"
 #include "ascii_characters.h"
+#include "wlan_mac_schedule.h"
 
 
 // WLAN Exp includes
@@ -60,7 +61,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "Linksys-AP";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
