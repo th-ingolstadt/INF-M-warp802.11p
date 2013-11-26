@@ -8,6 +8,8 @@
 //				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
 
+//TODO: Adopt wlan_mac_dl_list for all doubly-linked list handling
+
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"

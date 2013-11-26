@@ -29,12 +29,6 @@
 #define ENCAP_MODE_AP	0
 #define ENCAP_MODE_STA	1
 
-//Scheduler
-#define SCHEDULER_NUM_EVENTS 10
-#define NUM_SCHEDULERS 2
-#define SCHEDULE_FINE	0
-#define SCHEDULE_COARSE 1
-
 
 // 802.11 Transmit interface defines
 #define TX_BUFFER_NUM        2
@@ -45,7 +39,6 @@
 #define ETH_A_FIFO_DEVICE_ID		XPAR_ETH_A_FIFO_DEVICE_ID
 #define TIMESTAMP_GPIO_DEVICE_ID 	XPAR_MB_HIGH_TIMESTAMP_GPIO_DEVICE_ID
 #define UARTLITE_DEVICE_ID     		XPAR_UARTLITE_0_DEVICE_ID
-#define TMRCTR_DEVICE_ID			XPAR_TMRCTR_0_DEVICE_ID
 
 #define TIMESTAMP_GPIO_LSB_CHAN 1
 #define TIMESTAMP_GPIO_MSB_CHAN 2
@@ -72,13 +65,6 @@
 #define GPIO_MASK_PB_D			 0x00000010
 
 #define UART_BUFFER_SIZE 1
-
-#define TIMER_FREQ          XPAR_TMRCTR_0_CLOCK_FREQ_HZ
-#define TIMER_CNTR_FAST	 0
-#define TIMER_CNTR_SLOW	 1
-
-#define	FAST_TIMER_DUR_US 100
-#define	SLOW_TIMER_DUR_US 100000
 
 
 //A maximum event length of -1 is used to signal that the entire DRAM after the queue
@@ -211,7 +197,6 @@ void wlan_mac_util_set_check_queue_callback(void(*callback)());
 void wlan_mac_util_set_mpdu_accept_callback(void(*callback)());
 
 void wlan_mac_util_set_eth_encap_mode(u8 mode);
-void wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)());
 
 inline void poll_schedule();
 inline int wlan_mac_poll_tx_queue(u16 queue_sel);
@@ -228,7 +213,6 @@ void wlan_mac_util_set_ipc_rx_callback(void(*callback)());
 void wlan_mac_util_set_fmc_ipc_rx_callback(void(*callback)());
 inline int interrupt_start();
 inline void interrupt_stop();
-void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
 u8* get_eeprom_mac_addr();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);

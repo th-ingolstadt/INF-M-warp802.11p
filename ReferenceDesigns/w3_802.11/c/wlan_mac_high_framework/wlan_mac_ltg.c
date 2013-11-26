@@ -8,6 +8,8 @@
 //				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
 
+//TODO: Adopt wlan_mac_dl_list for all doubly-linked list handling
+
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -18,6 +20,7 @@
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_ltg.h"
+#include "wlan_mac_schedule.h"
 
 static tg_schedule_list tg_list;
 
