@@ -35,6 +35,7 @@
 #include "wlan_mac_events.h"
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
+#include "wlan_mac_schedule.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"

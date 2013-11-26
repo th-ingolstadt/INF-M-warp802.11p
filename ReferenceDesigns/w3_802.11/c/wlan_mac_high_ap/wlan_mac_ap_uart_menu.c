@@ -31,6 +31,7 @@
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
+#include "wlan_mac_schedule.h"
 
 
 #ifdef WLAN_USE_UART_MENU
