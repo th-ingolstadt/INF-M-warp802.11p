@@ -114,6 +114,22 @@ u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 	return id;
 }
 
+void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
+	wlan_sched* curr_sched_ptr;
+	wlan_sched* next_sched_ptr;
+
+	//TODO: Finish me. Still need to handle the edge condition of stopping the XTmrCtr if we are removing the last entry.
+
+	switch(scheduler_sel){
+		case SCHEDULE_COARSE:
+
+		break;
+		case SCHEDULE_FINE:
+
+		break;
+	}
+}
+
 
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 	u32 i;
