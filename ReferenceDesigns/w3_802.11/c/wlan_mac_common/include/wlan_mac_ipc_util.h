@@ -9,6 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef WLAN_MAC_IPC_UTIL_H_
+
 #define WLAN_MAC_IPC_UTIL_H_
 
 #define PKT_BUF_MUTEX_DEVICE_ID		XPAR_MUTEX_0_DEVICE_ID
@@ -17,6 +18,7 @@
 //of an interrupt controller for that, but there has to be a better way
 
 #ifdef XPAR_INTC_0_DEVICE_ID
+#include "xintc.h"
 #define MAILBOX_DEVICE_ID			XPAR_MBOX_1_DEVICE_ID
 #else
 #define MAILBOX_DEVICE_ID			XPAR_MBOX_0_DEVICE_ID
