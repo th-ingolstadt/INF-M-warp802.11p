@@ -48,6 +48,9 @@ static u8 curr_aid;
 static u8 curr_association_index;
 static u8 curr_traffic_type;
 static u32 cpu_high_status;
+static u32 schedule_ID;
+static u8 print_scheduled = 0;
+
 #define TRAFFIC_TYPE_PERIODIC_FIXED		1
 #define TRAFFIC_TYPE_PERIODIC_RAND		2
 #define TRAFFIC_TYPE_RAND_FIXED			3
@@ -70,6 +73,10 @@ void uart_rx(u8 rxByte){
     
 	if(rxByte == ASCII_ESC){
 		uart_mode = UART_MODE_MAIN;
+		if(print_scheduled){
+			wlan_mac_remove_schedule(SCHEDULE_COARSE, schedule_ID);
+		}
+
 		print_menu();
 
 		ltg_sched_remove(LTG_REMOVE_ALL);
@@ -494,86 +501,74 @@ void print_menu(){
 void print_station_status(u8 manual_call){
 	u32 i;
 	u64 timestamp;
-	static u8 print_scheduled = 0;
 	void* ltg_sched_state;
 	void* ltg_sched_parameters;
 	void* ltg_pyld_callback_arg;
 
 	u32 ltg_type;
 
-	//xil_printf("manual_call = %d, print_scheduled = %d\n", manual_call,print_scheduled);
+	if(uart_mode == UART_MODE_INTERACTIVE){
+		timestamp = get_usec_timestamp();
+		xil_printf("\f");
+		//xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
 
-	if((manual_call == 1 && print_scheduled == 0) || (manual_call == 0 && print_scheduled == 1)){
-		//This awkward logic is to handle the fact that our event scheduler doesn't currently have a
-		//way to remove a scheduled event and stop it from occurring. Without this protection, quick
-		//UART inputs could easy begin a chain of print_station events > 1 per second. Eventually
-		//you'd run out of scheduled event slots and cause problems.
+		for(i=0; i < next_free_assoc_index; i++){
+			xil_printf("---------------------------------------------------\n");
+			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
+					associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
 
-		if(uart_mode == UART_MODE_INTERACTIVE){
-			timestamp = get_usec_timestamp();
-			xil_printf("\f");
-			//xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
+			if(ltg_sched_get_state(AID_TO_LTG_ID(associations[i].AID),&ltg_type,&ltg_sched_state) == 0){
 
-			for(i=0; i < next_free_assoc_index; i++){
-				xil_printf("---------------------------------------------------\n");
-				xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
-						associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
+				ltg_sched_get_params(AID_TO_LTG_ID(associations[i].AID), &ltg_type, &ltg_sched_parameters);
+				ltg_sched_get_callback_arg(AID_TO_LTG_ID(associations[i].AID),&ltg_pyld_callback_arg);
 
-				if(ltg_sched_get_state(AID_TO_LTG_ID(associations[i].AID),&ltg_type,&ltg_sched_state) == 0){
-
-					ltg_sched_get_params(AID_TO_LTG_ID(associations[i].AID), &ltg_type, &ltg_sched_parameters);
-					ltg_sched_get_callback_arg(AID_TO_LTG_ID(associations[i].AID),&ltg_pyld_callback_arg);
-
-					if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
-						switch(ltg_type){
-							case LTG_SCHED_TYPE_PERIODIC:
-								xil_printf("  Periodic LTG Schedule Enabled\n");
-								xil_printf("  Packet Tx Interval: %d microseconds\n", ((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_usec);
-							break;
-							case LTG_SCHED_TYPE_UNIFORM_RAND:
-								xil_printf("  Uniform Random LTG Schedule Enabled\n");
-								xil_printf("  Packet Tx Interval: Uniform over range of [%d,%d] microseconds\n", ((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->min_interval,((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->max_interval);
-							break;
-						}
-
-						switch(((ltg_pyld_hdr*)(ltg_sched_state))->type){
-							case LTG_PYLD_TYPE_FIXED:
-								xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed_length*)(ltg_pyld_callback_arg))->length);
-							break;
-							case LTG_PYLD_TYPE_UNIFORM_RAND:
-								xil_printf("  Random Packet Length: Uniform over [%d,%d] bytes\n", ((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->min_length,((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->max_length);
-							break;
-						}
-
+				if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
+					switch(ltg_type){
+						case LTG_SCHED_TYPE_PERIODIC:
+							xil_printf("  Periodic LTG Schedule Enabled\n");
+							xil_printf("  Packet Tx Interval: %d microseconds\n", ((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_usec);
+						break;
+						case LTG_SCHED_TYPE_UNIFORM_RAND:
+							xil_printf("  Uniform Random LTG Schedule Enabled\n");
+							xil_printf("  Packet Tx Interval: Uniform over range of [%d,%d] microseconds\n", ((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->min_interval,((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->max_interval);
+						break;
 					}
+
+					switch(((ltg_pyld_hdr*)(ltg_sched_state))->type){
+						case LTG_PYLD_TYPE_FIXED:
+							xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed_length*)(ltg_pyld_callback_arg))->length);
+						break;
+						case LTG_PYLD_TYPE_UNIFORM_RAND:
+							xil_printf("  Random Packet Length: Uniform over [%d,%d] bytes\n", ((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->min_length,((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->max_length);
+						break;
+					}
+
 				}
-
-				xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
-				xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
-				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
-				xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
-				xil_printf("     - # Tx Retry: %d\n", associations[i].num_retry);
-				xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", associations[i].num_rx_success, associations[i].num_rx_bytes);
 			}
-				xil_printf("---------------------------------------------------\n");
-				xil_printf("\n");
-				xil_printf("[r] - reset statistics\n");
-				xil_printf("[d] - deauthenticate all stations\n\n");
-				xil_printf(" The interactive AP menu supports sending arbitrary traffic\n");
-				xil_printf(" to any associated station. To use this feature, press any number\n");
-				xil_printf(" on the keyboard that corresponds to an associated station's AID\n");
-				xil_printf(" and follow the prompts. Pressing Esc at any time will halt all\n");
-				xil_printf(" local traffic generation and return you to the main menu.");
 
-
-
-
-			//Update display
-			wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
-			print_scheduled = 1;
-		} else {
-			print_scheduled = 0;
+			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
+			xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
+			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
+			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
+			xil_printf("     - # Tx Retry: %d\n", associations[i].num_retry);
+			xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", associations[i].num_rx_success, associations[i].num_rx_bytes);
 		}
+			xil_printf("---------------------------------------------------\n");
+			xil_printf("\n");
+			xil_printf("[r] - reset statistics\n");
+			xil_printf("[d] - deauthenticate all stations\n\n");
+			xil_printf(" The interactive AP menu supports sending arbitrary traffic\n");
+			xil_printf(" to any associated station. To use this feature, press any number\n");
+			xil_printf(" on the keyboard that corresponds to an associated station's AID\n");
+			xil_printf(" and follow the prompts. Pressing Esc at any time will halt all\n");
+			xil_printf(" local traffic generation and return you to the main menu.");
+
+
+
+
+		//Update display
+		schedule_ID = wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
+		print_scheduled = 1;
 	}
 
 
