@@ -115,16 +115,47 @@ u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 }
 
 void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
+	u32 i;
 	wlan_sched* curr_sched_ptr;
 	wlan_sched* next_sched_ptr;
 
-	//TODO: Finish me. Still need to handle the edge condition of stopping the XTmrCtr if we are removing the last entry.
-
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
+			next_sched_ptr = (wlan_sched*)((wlan_sched_coarse.first)->container);
+
+			for(i=0; i<(wlan_sched_coarse.length); i++){
+				curr_sched_ptr = next_sched_ptr;
+				next_sched_ptr = (wlan_sched*)(((curr_sched_ptr->node).next)->container);
+				if(id == (curr_sched_ptr->id)){
+					dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
+					wlan_free(curr_sched_ptr);
+				}
+			}
+
+			if(wlan_sched_coarse.length == 0){
+				//We just removed the last schedule, but the timer is still running. We should stop it.
+				//When a future schedule is added, it will restart the timer at that time.
+				XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_SLOW);
+			}
 
 		break;
 		case SCHEDULE_FINE:
+			next_sched_ptr = (wlan_sched*)((wlan_sched_fine.first)->container);
+
+			for(i=0; i<(wlan_sched_fine.length); i++){
+				curr_sched_ptr = next_sched_ptr;
+				next_sched_ptr = (wlan_sched*)(((curr_sched_ptr->node).next)->container);
+				if(id == (curr_sched_ptr->id)){
+					dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
+					wlan_free(curr_sched_ptr);
+				}
+			}
+
+			if(wlan_sched_fine.length == 0){
+				//We just removed the last schedule, but the timer is still running. We should stop it.
+				//When a future schedule is added, it will restart the timer at that time.
+				XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_FAST);
+			}
 
 		break;
 	}

@@ -41,6 +41,8 @@ int wlan_mac_schedule_init();
 int wlan_mac_schedule_setup_interrupt(XIntc* intc);
 
 u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)());
+void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id);
+
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
 void XTmrCtr_CustomInterruptHandler(void *InstancePtr);
 
