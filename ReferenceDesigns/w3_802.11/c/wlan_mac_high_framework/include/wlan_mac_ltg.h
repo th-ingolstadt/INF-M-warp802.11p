@@ -11,6 +11,8 @@
 #ifndef WLAN_MAC_LTG_H_
 #define WLAN_MAC_LTG_H_
 
+#include "wlan_mac_dl_list.h"
+
 //LTG Schedules define the times when LTG event callbacks are called.
 #define LTG_SCHED_TYPE_PERIODIC			1
 #define LTG_SCHED_TYPE_UNIFORM_RAND	 	2
@@ -26,22 +28,15 @@
 
 typedef struct tg_schedule tg_schedule;
 struct tg_schedule{
+	dl_node node;
 	u32 id;
 	u32 type;
 	u64 timestamp;
 	void* params;
 	void* callback_arg;
 	function_ptr_t cleanup_callback;
-	tg_schedule* next;
-	tg_schedule* prev;
 	void* state;
 };
-
-typedef struct {
-	tg_schedule* first;
-	tg_schedule* last;
-	u16 length;
-} tg_schedule_list;
 
 //LTG Schedules
 
@@ -111,11 +106,5 @@ void ltg_sched_check();
 tg_schedule* ltg_sched_create();
 void ltg_sched_destroy(tg_schedule* tg);
 tg_schedule* ltg_sched_find_tg_schedule(u32 id);
-void tg_schedule_insertAfter(tg_schedule_list* ring, tg_schedule* tg, tg_schedule* tg_new);
-void tg_schedule_insertBefore(tg_schedule_list* ring, tg_schedule* tg, tg_schedule* tg_new);
-void tg_schedule_insertBeginning(tg_schedule_list* ring, tg_schedule* tg_new);
-void tg_schedule_insertEnd(tg_schedule_list* ring, tg_schedule* tg_new);
-void tg_schedule_remove(tg_schedule_list* ring, tg_schedule* tg);
-void tg_schedule_list_init(tg_schedule_list* list);
 
 #endif /* WLAN_MAC_LTG_H_ */

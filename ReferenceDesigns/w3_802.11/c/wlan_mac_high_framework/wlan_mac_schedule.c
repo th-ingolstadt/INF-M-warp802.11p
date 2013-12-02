@@ -7,6 +7,10 @@
 //          Distributed under the Mango Communications Reference Design License
 //				See LICENSE.txt included in the design archive or
 //				at http://mangocomm.com/802.11/license
+//
+// Description: This set of functions allows upper-level MAC implementations
+// 				to schedule the execution of a provided callback for some point
+//				in the future.
 ////////////////////////////////////////////////////////////////////////////////
 
 /***************************** Include Files *********************************/
@@ -19,15 +23,6 @@
 #include "xil_exception.h"
 #include "xintc.h"
 
-
-/*************************** Constant Definitions ****************************/
-
-
-
-
-/*********************** Global Variable Definitions *************************/
-
-
 /*************************** Variable Definitions ****************************/
 static XTmrCtr     TimerCounterInst;
 static XIntc*      InterruptController_ptr;
@@ -36,11 +31,19 @@ static u32 schedule_count;
 static dl_list wlan_sched_coarse;
 static dl_list wlan_sched_fine;
 
-/*************************** Functions Prototypes ****************************/
-
-
 /******************************** Functions **********************************/
 
+/*****************************************************************************/
+/**
+* Initializes the schedulers.
+*
+* @param    None
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
 int wlan_mac_schedule_init(){
 	int Status;
 
@@ -67,12 +70,36 @@ int wlan_mac_schedule_init(){
 	return 0;
 }
 
+/*****************************************************************************/
+/**
+* Prints an event
+*
+* @param    intc             - pointer to instance of interrupt controller
+*
+* @return	status			 - success or failure of attempt to connect
+*
+* @note		None.
+*
+******************************************************************************/
 int wlan_mac_schedule_setup_interrupt(XIntc* intc){
 	//Connect Timer to Interrupt Controller
 	InterruptController_ptr = intc;
 	return XIntc_Connect(InterruptController_ptr, TMRCTR_INTERRUPT_ID, (XInterruptHandler)XTmrCtr_CustomInterruptHandler, &TimerCounterInst);
 }
 
+/*****************************************************************************/
+/**
+* Schedules the execution of a callback for some time in the future
+*
+* @param    scheduler_sel    - SCHEDULE_COARSE or SCHEDULE_FINE
+* 			delay			 - interval (in microseconds) until callback should be called
+* 			callback		 - function pointer to callback
+*
+* @return	id  			 - ID of scheduled event or SCHEDULE_FAILURE if error
+*
+* @note		None.
+*
+******************************************************************************/
 u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 	u64 timestamp;
 	u32 id;
@@ -105,7 +132,7 @@ u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 		case SCHEDULE_FINE:
 			if(wlan_sched_fine.length == 0){
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_FAST, FAST_TIMER_DUR_US*(TIMER_FREQ/1000000));
-				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
+				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
 			}
 			dl_node_insertEnd(&wlan_sched_fine, &(sched_ptr->node));
 		break;
@@ -114,6 +141,19 @@ u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 	return id;
 }
 
+/*****************************************************************************/
+/**
+* Schedules the execution of a callback for some time in the future
+*
+* @param    scheduler_sel    - SCHEDULE_COARSE or SCHEDULE_FINE
+* 			id			 	 - ID of schedule that should be removed
+*
+* @return	None
+*
+* @note		This function will fail silently if the ID parameter does not match
+* 			any currently running schedule event IDs.
+*
+******************************************************************************/
 void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 	u32 i;
 	wlan_sched* curr_sched_ptr;
@@ -161,7 +201,19 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 	}
 }
 
-
+/*****************************************************************************/
+/**
+* Internal callback used by the timer interrupt handler. This function should
+* not be called by the upper-level MAC.
+*
+* @param    CallBackRef    - reserved
+* 			TmrCtrNumber   - ID of which timer has expired
+*
+* @return	None
+*
+* @note     None
+*
+******************************************************************************/
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 	u32 i;
 	u64 timestamp;
@@ -217,10 +269,20 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 	}
 }
 
+/*****************************************************************************/
+/**
+* Timer interrupt handler
+*
+* @param    InstancePtr    - pointer to the timer instance
+*
+* @return	None
+*
+* @note     This function is a modified implementation of XTmrCtr_InterruptHandler
+* 			in the xtmrctr_intr.c driver. It has been modified to remove an explicit
+* 			reset of the timer.
+*
+******************************************************************************/
 void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
-	//FIXME: Temporarily moved ISR to MAC framework
-
-	//xil_printf("Custom Timer ISR\n");
 
 	XTmrCtr *TmrCtrPtr = NULL;
 	u8 TmrCtrNumber;
@@ -271,48 +333,6 @@ void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
 					XTmrCtr_ReadReg(TmrCtrPtr->BaseAddress,
 								TmrCtrNumber,
 								XTC_TCSR_OFFSET);
-				/*
-				 * If in compare mode and a single shot rather
-				 * than auto reload mode then disable the timer
-				 * and reset it such so that the interrupt can
-				 * be acknowledged, this should be only temporary
-				 * till the hardware is fixed
-				 */
-#if 0
-				if (((ControlStatusReg &
-					XTC_CSR_AUTO_RELOAD_MASK) == 0) &&
-					((ControlStatusReg &
-					  XTC_CSR_CAPTURE_MODE_MASK)== 0)) {
-						/*
-						 * Disable the timer counter and
-						 * reset it such that the timer
-						 * counter is loaded with the
-						 * reset value allowing the
-						 * interrupt to be acknowledged
-						 */
-						ControlStatusReg &=
-							~XTC_CSR_ENABLE_TMR_MASK;
-
-						XTmrCtr_WriteReg(
-							TmrCtrPtr->BaseAddress,
-							TmrCtrNumber,
-							XTC_TCSR_OFFSET,
-							ControlStatusReg |
-							XTC_CSR_LOAD_MASK);
-
-						/*
-						 * Clear the reset condition,
-						 * the reset bit must be
-						 * manually cleared by a 2nd write
-						 * to the register
-						 */
-						XTmrCtr_WriteReg(
-							TmrCtrPtr->BaseAddress,
-							TmrCtrNumber,
-							XTC_TCSR_OFFSET,
-							ControlStatusReg);
-				}
-#endif
 				/*
 				 * Acknowledge the interrupt by clearing the
 				 * interrupt bit in the timer control status

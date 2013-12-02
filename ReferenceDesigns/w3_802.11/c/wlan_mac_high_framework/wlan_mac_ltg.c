@@ -8,21 +8,20 @@
 //				at http://mangocomm.com/802.11/license
 ////////////////////////////////////////////////////////////////////////////////
 
-//TODO: Adopt wlan_mac_dl_list for all doubly-linked list handling
-
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"
 #include "xparameters.h"
 #include "xintc.h"
 #include "string.h"
+#include "wlan_mac_dl_list.h"
 
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
 
-static tg_schedule_list tg_list;
+static dl_list tg_list;
 
 static function_ptr_t ltg_callback;
 
@@ -32,10 +31,11 @@ int wlan_mac_ltg_sched_init(){
 
 	ltg_sched_remove(LTG_REMOVE_ALL);
 
-	tg_schedule_list_init(&tg_list);
+	dl_list_init(&tg_list);
 	ltg_callback = (function_ptr_t)nullCallback;
 
-	wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
+	//FIXME: Is this necessary?
+	//wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
 
 	return return_value;
 }
@@ -55,6 +55,7 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 	u8 is_enabled = 0;
 
 	curr_tg = ltg_sched_find_tg_schedule(id);
+
 	if(curr_tg != NULL){
 		//A schedule with this ID has already been configured. We'll destroy it
 		//and overwrite its parameters.
@@ -72,7 +73,8 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 	//Create a new tg for this id if we didn't find it in the list
 	if(create_new){
 		curr_tg = ltg_sched_create();
-		tg_schedule_insertEnd(&tg_list,curr_tg);
+		(curr_tg->node).container = (void*)curr_tg;
+		dl_node_insertEnd(&tg_list,&(curr_tg->node));
 		if(tg_list.length == 1){
 			//start the scheduler if the only thing in it is what we just added
 			wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
@@ -171,15 +173,16 @@ void ltg_sched_check(){
 	u32 i;
 
 	if(tg_list.length > 0){
+
 		timestamp = get_usec_timestamp();
-		curr_tg = tg_list.first;
+		curr_tg = (tg_schedule*)((tg_list.first)->container);
 		for(i = 0; i < tg_list.length; i++ ){
 			if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled && timestamp >= ( curr_tg->timestamp) ){
 				ltg_sched_stop_l(curr_tg);
 				ltg_sched_start_l(curr_tg);
 				ltg_callback(curr_tg->id, curr_tg->callback_arg);
 			}
-			curr_tg = curr_tg->next;
+			curr_tg = ((curr_tg->node).next)->container;
 		}
 		wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
 	}
@@ -269,15 +272,15 @@ int ltg_sched_remove(u32 id){
 	u32 i;
 	tg_schedule* curr_tg;
 
-	curr_tg = tg_list.first;
+	curr_tg = (tg_schedule*)((tg_list.first)->container);
 	for(i = 0; i < tg_list.length; i++ ){
 		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
 			curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
 			ltg_sched_destroy(curr_tg);
-			tg_schedule_remove(&tg_list, curr_tg);
+			dl_node_remove(&tg_list, &(curr_tg->node));
 			if(id != LTG_REMOVE_ALL) return 0;
 		}
-		curr_tg = curr_tg->next;
+		curr_tg = ((curr_tg->node).next)->container;
 	}
 
 
@@ -301,8 +304,6 @@ void ltg_sched_destroy(tg_schedule* tg){
 			wlan_free(tg->state);
 		break;
 	}
-
-	//free(tg);
 	return;
 }
 
@@ -310,82 +311,12 @@ tg_schedule* ltg_sched_find_tg_schedule(u32 id){
 	u32 i;
 	tg_schedule* curr_tg;
 
-	curr_tg = tg_list.first;
+	curr_tg = (tg_schedule*)((tg_list.first)->container);
 	for(i = 0; i < tg_list.length; i++ ){
 		if( (curr_tg->id)==id){
 			return curr_tg;
 		}
-		curr_tg = curr_tg->next;
+		curr_tg = ((curr_tg->node).next)->container;
 	}
 	return NULL;
-}
-
-void tg_schedule_insertAfter(tg_schedule_list* list, tg_schedule* tg, tg_schedule* tg_new){
-	tg_new->prev = tg;
-	tg_new->next = tg->next;
-	if(tg->next == NULL){
-		list->last = tg_new;
-	} else {
-		tg->next->prev = tg_new;
-	}
-	tg->next = tg_new;
-	(list->length)++;
-	return;
-}
-
-void tg_schedule_insertBefore(tg_schedule_list* list, tg_schedule* tg, tg_schedule* tg_new){
-	tg_new->prev = tg->prev;
-	tg_new->next = tg;
-	if(tg->prev == NULL){
-		list->first = tg_new;
-	} else {
-		tg->prev->next = tg_new;
-	}
-	tg->prev = tg_new;
-	(list->length)++;
-	return;
-}
-
-void tg_schedule_insertBeginning(tg_schedule_list* list, tg_schedule* tg_new){
-	if(list->first == NULL){
-		list->first = tg_new;
-		list->last = tg_new;
-		tg_new->prev = NULL;
-		tg_new->next = NULL;
-		(list->length)++;
-	} else {
-		tg_schedule_insertBefore(list, list->first, tg_new);
-	}
-	return;
-}
-
-void tg_schedule_insertEnd(tg_schedule_list* list, tg_schedule* tg_new){
-	if(list->last == NULL){
-		tg_schedule_insertBeginning(list,tg_new);
-	} else {
-		tg_schedule_insertAfter(list,list->last, tg_new);
-	}
-	return;
-}
-
-void tg_schedule_remove(tg_schedule_list* list, tg_schedule* tg){
-	if(tg->prev == NULL){
-		list->first = tg->next;
-	} else {
-		tg->prev->next = tg->next;
-	}
-
-	if(tg->next == NULL){
-		list->last = tg->prev;
-	} else {
-		tg->next->prev = tg->prev;
-	}
-	(list->length)--;
-}
-
-void tg_schedule_list_init(tg_schedule_list* list){
-	list->first = NULL;
-	list->last = NULL;
-	list->length = 0;
-	return;
 }
