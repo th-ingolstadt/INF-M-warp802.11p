@@ -18,7 +18,6 @@ typedef struct dl_node dl_node;
 struct dl_node{
 	dl_node* next;
 	dl_node* prev;
-	void*	 container;
 };
 
 typedef struct {

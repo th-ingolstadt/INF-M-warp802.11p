@@ -73,7 +73,6 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 	//Create a new tg for this id if we didn't find it in the list
 	if(create_new){
 		curr_tg = ltg_sched_create();
-		(curr_tg->node).container = (void*)curr_tg;
 		dl_node_insertEnd(&tg_list,&(curr_tg->node));
 		if(tg_list.length == 1){
 			//start the scheduler if the only thing in it is what we just added
@@ -175,14 +174,14 @@ void ltg_sched_check(){
 	if(tg_list.length > 0){
 
 		timestamp = get_usec_timestamp();
-		curr_tg = (tg_schedule*)((tg_list.first)->container);
+		curr_tg = (tg_schedule*)(tg_list.first);
 		for(i = 0; i < tg_list.length; i++ ){
 			if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled && timestamp >= ( curr_tg->timestamp) ){
 				ltg_sched_stop_l(curr_tg);
 				ltg_sched_start_l(curr_tg);
 				ltg_callback(curr_tg->id, curr_tg->callback_arg);
 			}
-			curr_tg = ((curr_tg->node).next)->container;
+			curr_tg = (tg_schedule*)((curr_tg->node).next);
 		}
 		wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
 	}
@@ -272,7 +271,7 @@ int ltg_sched_remove(u32 id){
 	u32 i;
 	tg_schedule* curr_tg;
 
-	curr_tg = (tg_schedule*)((tg_list.first)->container);
+	curr_tg = (tg_schedule*)(tg_list.first);
 	for(i = 0; i < tg_list.length; i++ ){
 		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
 			curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
@@ -280,7 +279,7 @@ int ltg_sched_remove(u32 id){
 			dl_node_remove(&tg_list, &(curr_tg->node));
 			if(id != LTG_REMOVE_ALL) return 0;
 		}
-		curr_tg = ((curr_tg->node).next)->container;
+		curr_tg = (tg_schedule*)((curr_tg->node).next);
 	}
 
 
@@ -311,12 +310,12 @@ tg_schedule* ltg_sched_find_tg_schedule(u32 id){
 	u32 i;
 	tg_schedule* curr_tg;
 
-	curr_tg = (tg_schedule*)((tg_list.first)->container);
+	curr_tg = (tg_schedule*)(tg_list.first);
 	for(i = 0; i < tg_list.length; i++ ){
 		if( (curr_tg->id)==id){
 			return curr_tg;
 		}
-		curr_tg = ((curr_tg->node).next)->container;
+		curr_tg = (tg_schedule*)((curr_tg->node).next);
 	}
 	return NULL;
 }

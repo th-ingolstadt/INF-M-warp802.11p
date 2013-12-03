@@ -26,6 +26,13 @@
 
 #define LTG_REMOVE_ALL 0xFFFFFFFF
 
+
+//In spirit, tg_schedule is derived from dl_node. Since C
+//lacks a formal notion of inheritance, we adopt a popular
+//alternative idiom for inheritance where the dl_node
+//is the first entry in the new structure. Since structures
+//will never be padded before their first entry, it is safe
+//to cast back and forth between the tg_schedule and dl_node.
 typedef struct tg_schedule tg_schedule;
 struct tg_schedule{
 	dl_node node;

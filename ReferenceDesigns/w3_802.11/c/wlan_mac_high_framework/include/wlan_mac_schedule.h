@@ -14,6 +14,12 @@
 #include "xintc.h"
 #include "wlan_mac_dl_list.h"
 
+//In spirit, wlan_sched is derived from dl_node. Since C
+//lacks a formal notion of inheritance, we adopt a popular
+//alternative idiom for inheritance where the dl_node
+//is the first entry in the new structure. Since structures
+//will never be padded before their first entry, it is safe
+//to cast back and forth between the wlan_sched and dl_node.
 typedef struct {
 	dl_node node;
 	u32 id;

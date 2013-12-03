@@ -117,10 +117,6 @@ u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 	sched_ptr->callback = (function_ptr_t)callback;
 	sched_ptr->target = timestamp + (u64)delay;
 
-	//This seems circular, but it's a way to be able to figure out what kind of
-	//node this is even if all you have is a pointer to the generic dl_node.
-	sched_ptr->node.container = sched_ptr;
-
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
 			if(wlan_sched_coarse.length == 0){
@@ -161,11 +157,11 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
-			next_sched_ptr = (wlan_sched*)((wlan_sched_coarse.first)->container);
+			next_sched_ptr = (wlan_sched*)(wlan_sched_coarse.first);
 
 			for(i=0; i<(wlan_sched_coarse.length); i++){
 				curr_sched_ptr = next_sched_ptr;
-				next_sched_ptr = (wlan_sched*)(((curr_sched_ptr->node).next)->container);
+				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
 				if(id == (curr_sched_ptr->id)){
 					dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
 					wlan_free(curr_sched_ptr);
@@ -180,11 +176,11 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 
 		break;
 		case SCHEDULE_FINE:
-			next_sched_ptr = (wlan_sched*)((wlan_sched_fine.first)->container);
+			next_sched_ptr = (wlan_sched*)(wlan_sched_fine.first);
 
 			for(i=0; i<(wlan_sched_fine.length); i++){
 				curr_sched_ptr = next_sched_ptr;
-				next_sched_ptr = (wlan_sched*)(((curr_sched_ptr->node).next)->container);
+				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
 				if(id == (curr_sched_ptr->id)){
 					dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
 					wlan_free(curr_sched_ptr);
@@ -225,11 +221,11 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 	switch(TmrCtrNumber){
 		case TIMER_CNTR_FAST:
 
-			next_sched_ptr = (wlan_sched*)((wlan_sched_fine.first)->container);
+			next_sched_ptr = (wlan_sched*)(wlan_sched_fine.first);
 
 			for(i=0; i<(wlan_sched_fine.length); i++){
 				curr_sched_ptr = next_sched_ptr;
-				next_sched_ptr = (wlan_sched*)(((curr_sched_ptr->node).next)->container);
+				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
 				if(timestamp > (curr_sched_ptr->target)){
 					curr_sched_ptr->callback();
 					dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
@@ -247,11 +243,11 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 		case TIMER_CNTR_SLOW:
 
-			next_sched_ptr = (wlan_sched*)((wlan_sched_coarse.first)->container);
+			next_sched_ptr = (wlan_sched*)(wlan_sched_coarse.first);
 
 			for(i=0; i<(wlan_sched_coarse.length); i++){
 				curr_sched_ptr = next_sched_ptr;
-				next_sched_ptr = (wlan_sched*)(((curr_sched_ptr->node).next)->container);
+				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
 				if(timestamp > (curr_sched_ptr->target)){
 					curr_sched_ptr->callback();
 					dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
