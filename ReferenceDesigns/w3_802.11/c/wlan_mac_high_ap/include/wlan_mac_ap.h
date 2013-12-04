@@ -18,6 +18,8 @@
 #ifndef WLAN_MAC_AP_H_
 #define WLAN_MAC_AP_H_
 
+#include "wlan_mac_dl_list.h"
+
 
 // **********************************************************************
 // Enable the WLAN UART Menu
@@ -104,7 +106,7 @@ int  main();
 
 void ltg_event(u32 id, void* callback_arg);
 
-int  ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
+int  ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
 
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length);

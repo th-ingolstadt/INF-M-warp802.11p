@@ -36,6 +36,7 @@
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_dl_list.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
@@ -340,7 +341,7 @@ void up_button(){
 
 void ltg_event(u32 id, void* callback_arg){
 	u32 i;
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd* tx_queue;
 	u32 tx_length;
 	u32 payload_length = 0;
@@ -374,7 +375,7 @@ void ltg_event(u32 id, void* callback_arg){
 				queue_checkout(&checkout,1);
 
 				if(checkout.length == 1){ //There was at least 1 free queue element
-					tx_queue = checkout.first;
+					tx_queue = (packet_bd*)(checkout.first);
 
 					setup_tx_header( &tx_header_common, associations[i].addr, eeprom_mac_addr );
 
@@ -407,10 +408,10 @@ void ltg_event(u32 id, void* callback_arg){
 
 
 
-int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
+int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 	//Receives the pre-encapsulated Ethernet frames
 
-	packet_bd* tx_queue = tx_queue_list->first;
+	packet_bd* tx_queue = (packet_bd*)(tx_queue_list->first);
 
 	u32 i;
 	u8 is_associated = 0;
@@ -462,14 +463,14 @@ int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u
 
 void beacon_transmit() {
  	u16 tx_length;
- 	packet_bd_list checkout;
+ 	dl_list checkout;
  	packet_bd*	tx_queue;
 
  	//Checkout 1 element from the queue;
  	queue_checkout(&checkout,1);
 
  	if(checkout.length == 1){ //There was at least 1 free queue element
- 		tx_queue = checkout.first;
+ 		tx_queue = (packet_bd*)(checkout.first);
 
  		setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
 
@@ -478,6 +479,7 @@ void beacon_transmit() {
  		setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_MPDU_FLAGS_FILL_TIMESTAMP );
 
  		enqueue_after_end(0, &checkout);
+
  		check_tx_queue();
  	}
 
@@ -493,7 +495,7 @@ void association_timestamp_check() {
 
 	u32 i, num_queued;
 	u64 time_since_last_rx;
-	packet_bd_list checkout,dequeue;
+	dl_list checkout,dequeue;
 	packet_bd* tx_queue;
 	u32 tx_length;
 
@@ -507,7 +509,7 @@ void association_timestamp_check() {
 		 	queue_checkout(&checkout,1);
 
 		 	if(checkout.length == 1){ //There was at least 1 free queue element
-		 		tx_queue = checkout.first;
+		 		tx_queue = (packet_bd*)(checkout.first);
 
 		 		setup_tx_header( &tx_header_common, associations[i].addr, eeprom_mac_addr );
 
@@ -550,7 +552,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	mac_header_80211* rx_80211_header;
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd*	tx_queue;
 	station_info* associated_station;
 	u8 eth_send;
@@ -638,16 +640,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
 					//MPDU is flagged as destined to the DS
 
-					///TODO: TEMP
-					//xil_printf("(mpdu_info->channel_est) - mpdu_info = %d:\n", (void*)(mpdu_info->channel_est) - (void*)mpdu_info);
-					//for(i = 0; i < 64; i++){
-						//xil_printf("%d\n", (mpdu_info->channel_est)[i]);
-					//	xil_printf("%d\n", (mpdu_info->channel_est)[i]);
-
-					//}
-					//xil_printf("\n");
-					///TODO: TEMP
-
 					(associated_station->num_rx_success)++;
 					(associated_station->num_rx_bytes) += mpdu_info->length;
 
@@ -658,7 +650,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						 	queue_checkout(&checkout,1);
 
 						 	if(checkout.length == 1){ //There was at least 1 free queue element
-						 		tx_queue = checkout.first;
+						 		tx_queue = (packet_bd*)(checkout.first);
 						 		setup_tx_header( &tx_header_common, bcast_addr, rx_80211_header->address_2);
 						 		mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 								tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
@@ -675,7 +667,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								queue_checkout(&checkout,1);
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
-									tx_queue = checkout.first;
+									tx_queue = (packet_bd*)(checkout.first);
 									setup_tx_header( &tx_header_common, rx_80211_header->address_3, rx_80211_header->address_2);
 									mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 									tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
@@ -719,7 +711,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							queue_checkout(&checkout,1);
 
 							if(checkout.length == 1){ //There was at least 1 free queue element
-								tx_queue = checkout.first;
+								tx_queue = (packet_bd*)(checkout.first);
 
 						 		setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
@@ -764,7 +756,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					queue_checkout(&checkout,1);
 
 					if(checkout.length == 1){ //There was at least 1 free queue element
-						tx_queue = checkout.first;
+						tx_queue = (packet_bd*)(checkout.first);
 
 						setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
@@ -795,7 +787,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								queue_checkout(&checkout,1);
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
-									tx_queue = checkout.first;
+									tx_queue = (packet_bd*)(checkout.first);
 
 							 		setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
@@ -819,7 +811,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							queue_checkout(&checkout,1);
 
 							if(checkout.length == 1){ //There was at least 1 free queue element
-								tx_queue = checkout.first;
+								tx_queue = (packet_bd*)(checkout.first);
 
 						 		setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
@@ -877,7 +869,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					queue_checkout(&checkout,1);
 
 					if(checkout.length == 1){ //There was at least 1 free queue element
-						tx_queue = checkout.first;
+						tx_queue = (packet_bd*)(checkout.first);
 
 				 		setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
@@ -1122,7 +1114,7 @@ u32  find_association_index( u32 aid ) {
 ******************************************************************************/
 u32  deauthenticate_station( u32 association_index ) {
 
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd*     tx_queue;
 	u32            tx_length;
 	u32            aid;
@@ -1138,7 +1130,7 @@ u32  deauthenticate_station( u32 association_index ) {
 	queue_checkout(&checkout,1);
 
 	if(checkout.length == 1){ //There was at least 1 free queue element
-		tx_queue = checkout.first;
+		tx_queue = (packet_bd*)(checkout.first);
 
 		purge_queue(aid);
 
