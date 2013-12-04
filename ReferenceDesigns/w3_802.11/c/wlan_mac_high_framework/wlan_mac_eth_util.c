@@ -17,6 +17,7 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
+#include "wlan_mac_dl_list.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_fmc_pkt.h"
 #include "wlan_mac_eth_util.h"
@@ -135,7 +136,7 @@ int wlan_eth_dma_init() {
 	XAxiDma_Bd *first_bd_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
 
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd*	tx_queue;
 
 	ETH_A_DMA_CFG_ptr = XAxiDma_LookupConfig(ETH_A_DMA_DEV_ID);
@@ -182,7 +183,7 @@ int wlan_eth_dma_init() {
 	queue_checkout(&checkout, ETH_A_NUM_RX_BD);
 
 	if(checkout.length == ETH_A_NUM_RX_BD){
-		tx_queue = checkout.first;
+		tx_queue = (packet_bd*)(checkout.first);
 	} else {
 		xil_printf("Error during wlan_eth_dma_init: able to check out %d of %d packet_bds\n", checkout.length, ETH_A_NUM_RX_BD);
 		return -1;
@@ -211,7 +212,7 @@ int wlan_eth_dma_init() {
 		cur_bd_ptr = XAxiDma_BdRingNext(ETH_A_RxRing_ptr, cur_bd_ptr);
 
 		//Traverse forward in the checked-out packet_bd list
-		tx_queue = tx_queue->next;
+		tx_queue = (packet_bd*)((tx_queue->node).next);
 	}
 
 	//Push the Rx BD ring to hardware and start receiving
@@ -444,7 +445,7 @@ void wlan_poll_eth() {
 	packet_bd* tx_queue;
 	u32 eth_rx_len, eth_rx_buf;
 	u32 mpdu_tx_len;
-	packet_bd_list tx_queue_list;
+	dl_list tx_queue_list;
 	u32 i;
 
 	int bd_count;
@@ -488,8 +489,8 @@ void wlan_poll_eth() {
 		mpdu_start_ptr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 		eth_start_ptr = (u8*)eth_rx_buf;
 
-		packet_bd_list_init(&tx_queue_list);
-		packet_bd_insertEnd(&tx_queue_list, tx_queue);
+		dl_list_init(&tx_queue_list);
+		dl_node_insertEnd(&tx_queue_list, &(tx_queue->node));
 
 		mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 
@@ -665,7 +666,7 @@ void wlan_eth_dma_update(){
 	XAxiDma_BdRing *ETH_A_RxRing_ptr;
 	XAxiDma_Bd *first_bd_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd*	tx_queue;
 	u32 i;
 	u32 buf_addr;
@@ -687,7 +688,7 @@ void wlan_eth_dma_update(){
 		status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, min(bd_count,checkout.length), &first_bd_ptr);
 		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return;}
 
-		tx_queue = checkout.first;
+		tx_queue = (packet_bd*)(checkout.first);
 
 		//Iterate over each Rx buffer descriptor
 		cur_bd_ptr = first_bd_ptr;
@@ -715,7 +716,7 @@ void wlan_eth_dma_update(){
 			//packet_bd_remove(&checkout,tx_queue);
 
 			//Traverse forward in the checked-out packet_bd list
-			tx_queue = tx_queue->next;
+			tx_queue = (packet_bd*)((tx_queue->node).next);
 		}
 
 		//Push the Rx BD ring to hardware and start receiving

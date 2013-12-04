@@ -22,7 +22,7 @@
 #include "xaxicdma.h"
 
 #include "w3_userio.h"
-
+#include "wlan_mac_dl_list.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_util.h"
@@ -379,6 +379,7 @@ void SendHandler(void *CallBackRef, unsigned int EventData){
 }
 
 void RecvHandler(void *CallBackRef, unsigned int EventData){
+	//FIXME: Handle multiple rx bytes
 	u32 numBytesRx;
 
 	XUartLite_DisableInterrupt(&UartLite);
@@ -503,14 +504,15 @@ void poll_schedule(){
 int wlan_mac_poll_tx_queue(u16 queue_sel){
 	int return_value = 0;;
 
-	packet_bd_list dequeue;
+	dl_list dequeue;
 	packet_bd* tx_queue;
 
 	dequeue_from_beginning(&dequeue, queue_sel,1);
 
 	if(dequeue.length == 1){
 		return_value = 1;
-		tx_queue = dequeue.first;
+		tx_queue = (packet_bd*)(dequeue.first);
+
 		mpdu_transmit(tx_queue);
 		queue_checkin(&dequeue);
 		wlan_eth_dma_update();
@@ -683,7 +685,6 @@ void mpdu_transmit(packet_bd* tx_queue) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station_info* station = (station_info*)(tx_queue->metadata_ptr);
-
 
 	if(is_tx_buffer_empty()){
 

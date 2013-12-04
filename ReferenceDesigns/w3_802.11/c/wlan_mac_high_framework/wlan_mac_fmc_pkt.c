@@ -48,7 +48,7 @@ int fmc_ipc_rx(){
 	u32 pkt_bytes_read;
 	u16 num_words;
 	u64 timestamp = get_usec_timestamp();
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd*	tx_queue;
 	void* buf_addr;
 	u8 packet_is_queued = 0;
@@ -59,7 +59,7 @@ int fmc_ipc_rx(){
 	u8* mpdu_start_ptr;
 	u8* eth_start_ptr;
 	u32 eth_rx_len, eth_rx_buf;
-	packet_bd_list tx_queue_list;
+	dl_list tx_queue_list;
 	u32 mpdu_tx_len;
 
 	//while((XMbox_IsEmpty(&fmc_ipc_mailbox)==0)  &&   (get_usec_timestamp() < (timestamp+FMC_TIMEOUT_USEC))){
@@ -106,7 +106,7 @@ int fmc_ipc_rx(){
 					queue_checkout(&checkout, 1);
 
 					if(checkout.length == 1){
-						tx_queue = checkout.first;
+						tx_queue = (packet_bd*)(checkout.first);
 						buf_addr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header) - MBOX_ALIGN_OFFSET;
 
                         if( ( ipc_msg_from_fmc.size_bytes + MBOX_ALIGN_OFFSET ) & 0x3){
@@ -153,8 +153,8 @@ int fmc_ipc_rx(){
 						mpdu_start_ptr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 						eth_start_ptr = (u8*)eth_rx_buf;
 
-						packet_bd_list_init(&tx_queue_list);
-						packet_bd_insertEnd(&tx_queue_list, tx_queue);
+						dl_list_init(&tx_queue_list);
+						dl_node_insertEnd(&tx_queue_list, &(tx_queue->node));
 
 						mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 
