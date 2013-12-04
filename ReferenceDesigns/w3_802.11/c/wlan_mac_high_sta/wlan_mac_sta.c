@@ -35,6 +35,7 @@
 #include "wlan_mac_sta.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_dl_list.h"
 
 
 // WLAN Exp includes
@@ -317,7 +318,7 @@ void attempt_association(){
 
 	static u8      curr_try = 0;
 	u16            tx_length;
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd*	   tx_queue;
 
 	switch(association_state){
@@ -334,7 +335,7 @@ void attempt_association(){
 			//Checkout 1 element from the queue;
 			queue_checkout(&checkout,1);
 			if(checkout.length == 1){ //There was at least 1 free queue element
-				tx_queue = checkout.first;
+				tx_queue = (packet_bd*)(checkout.first);
 
 		 		setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
 
@@ -380,7 +381,7 @@ void attempt_authentication(){
 
 	static u8      curr_try = 0;
 	u16            tx_length;
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd*	   tx_queue;
 
 	switch(association_state){
@@ -390,7 +391,7 @@ void attempt_authentication(){
 			//Checkout 1 element from the queue;
 			queue_checkout(&checkout,1);
 			if(checkout.length == 1){ //There was at least 1 free queue element
-				tx_queue = checkout.first;
+				tx_queue = (packet_bd*)(checkout.first);
 
 		 		setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
 
@@ -443,7 +444,7 @@ void probe_req_transmit(){
 
 	static u8 curr_channel_index = 0;
 	u16 tx_length;
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd*	tx_queue;
 
 	mac_param_chan = curr_channel_index + 1; //+1 is to shift [0,10] index to [1,11] channel number
@@ -461,7 +462,7 @@ void probe_req_transmit(){
 	//Checkout 1 element from the queue;
 	queue_checkout(&checkout,1);
 		if(checkout.length == 1){ //There was at least 1 free queue element
-			tx_queue = checkout.first;
+			tx_queue = (packet_bd*)(checkout.first);
 
 			setup_tx_header( &tx_header_common, bcast_addr, bcast_addr );
 
@@ -487,10 +488,10 @@ void probe_req_transmit(){
 
 
 
-int ethernet_receive(packet_bd_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
+int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 
 	//Receives the pre-encapsulated Ethernet frames
-	packet_bd* tx_queue = tx_queue_list->first;
+	packet_bd* tx_queue = (packet_bd*)(tx_queue_list->first);
 
 	//setup_tx_header( &tx_header_common, (u8*)(&(eth_dest[0])), (u8*)(&(eth_src[0])) );
 	setup_tx_header( &tx_header_common, (u8*)access_point.addr,(u8*)(&(eth_dest[0])));
@@ -811,7 +812,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 
 void ltg_event(u32 id, void* callback_arg){
-	packet_bd_list checkout;
+	dl_list checkout;
 	packet_bd* tx_queue;
 	u32 tx_length;
 	u8* mpdu_ptr_u8;
@@ -835,7 +836,7 @@ void ltg_event(u32 id, void* callback_arg){
 		queue_checkout(&checkout,1);
 
 		if(checkout.length == 1){ //There was at least 1 free queue element
-			tx_queue = checkout.first;
+			tx_queue = (packet_bd*)(checkout.first);
 
 	 		setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
 
