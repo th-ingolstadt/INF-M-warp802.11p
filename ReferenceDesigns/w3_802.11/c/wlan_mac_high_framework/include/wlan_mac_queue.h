@@ -13,8 +13,6 @@
 
 #include "wlan_mac_dl_list.h"
 
-#define NUM_QUEUES 10
-
 //In spirit, packet_bd is derived from dl_node. Since C
 //lacks a formal notion of inheritance, we adopt a popular
 //alternative idiom for inheritance where the dl_node

@@ -23,8 +23,17 @@
 //This list holds all of the empty, free elements
 static dl_list queue_free;
 
-//This vector of lists will get filled in with elements from the free list
-static dl_list queue[NUM_QUEUES];
+//This queue_tx vector will get filled in with elements from the queue_free list
+//Note: this implementation sparsely packs the queue_tx array to allow fast
+//indexing at the cost of some wasted memory. The queue_tx array will be
+//reallocated whenever the uppler-level MAC asks to enqueue at an index
+//that is larger than the current size of the array. It is assumed that this
+//index will not continue to grow over the course of execution, otherwise
+//this array will continue to grow and eventually be unable to be reallocated.
+//Practically speaking, this means an AP needs to re-use the AIDs it issues
+//stations if it wants to use the AIDs as an index into the tx queue.
+static dl_list* queue_tx;
+static u16 num_queue_tx;
 
 
 u32 PQUEUE_LEN;
@@ -62,10 +71,6 @@ int queue_init(){
 
 	dl_list_init(&queue_free);
 
-	//queue_free.first = (dl_node*)PQUEUE_SPACE_BASE;
-	//queue_free.last  = (dl_node*)PQUEUE_SPACE_BASE;
-	//queue_free.length = 1;
-
 	bzero((void*)PQUEUE_BUFFER_SPACE_BASE, PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE);
 
 	//At boot, every packet_bd buffer descriptor is free
@@ -76,10 +81,6 @@ int queue_init(){
 	//packet_bd_base = (packet_bd*)(queue_free.first);
 	packet_bd_base = (packet_bd*)(PQUEUE_SPACE_BASE);
 
-	//dl_node_insertEnd(&queue_free, &(packet_bd_base->node));
-
-	//xil_printf("   [first, last, length] = [0x%08x, 0x%08x, %d]\n", queue_free.first,queue_free.last,queue_free.length);
-
 	for(i=0;i<PQUEUE_LEN;i++){
 
 		packet_bd_base[i].buf_ptr = (void*)(PQUEUE_BUFFER_SPACE_BASE + (i*PQUEUE_MAX_FRAME_SIZE));
@@ -89,10 +90,8 @@ int queue_init(){
 
 	}
 
-	//By default, all queues are empty.
-	for(i=0;i<NUM_QUEUES;i++){
-		dl_list_init(&(queue[i]));
-	}
+	num_queue_tx = 0;
+	queue_tx = NULL;
 
 	return PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE;
 
@@ -116,15 +115,31 @@ void purge_queue(u16 queue_sel){
 }
 
 void enqueue_after_end(u16 queue_sel, dl_list* list){
+	u32 i;
 	packet_bd* curr_packet_bd;
 	packet_bd* next_packet_bd;
 
 	curr_packet_bd = (packet_bd*)(list->first);
 
+    if((queue_sel+1) > num_queue_tx){
+    	queue_tx = wlan_realloc(queue_tx, (queue_sel+1)*sizeof(dl_list));
+
+    	if(queue_tx == NULL){
+    		xil_printf("Error in reallocating %d bytes for tx queue\n", (queue_sel+1)*sizeof(dl_list));
+    	}
+
+    	for(i = num_queue_tx; i <= queue_sel; i++){
+    		dl_list_init(&(queue_tx[i]));
+    	}
+
+    	num_queue_tx = queue_sel+1;
+
+    }
+
 	while(curr_packet_bd != NULL){
 		next_packet_bd = (packet_bd*)((curr_packet_bd->node).next);
 		dl_node_remove(list,&(curr_packet_bd->node));
-		dl_node_insertEnd(&(queue[queue_sel]),&(curr_packet_bd->node));
+		dl_node_insertEnd(&(queue_tx[queue_sel]),&(curr_packet_bd->node));
 		curr_packet_bd = next_packet_bd;
 	}
 	return;
@@ -136,18 +151,29 @@ void dequeue_from_beginning(dl_list* new_list, u16 queue_sel, u16 num_packet_bd)
 
 	dl_list_init(new_list);
 
-	if(num_packet_bd <= queue[queue_sel].length){
-		num_dequeue = num_packet_bd;
+	if((queue_sel+1) > num_queue_tx){
+		//The calling function is asking to empty from a queue_tx element that is
+		//outside of the bounds that are currently allocated. This is not an error
+		//condition, as it can happen when an AP checks to see if any packets are
+		//ready to send to a station before any have ever been queued up for that
+		//station. In this case, we simply return the newly initialized new_list
+		//that says that no packets are currently in the queue_sel queue_tx.
+		return;
 	} else {
-		num_dequeue = queue[queue_sel].length;
-	}
 
-	for (i=0;i<num_dequeue;i++){
-		curr_packet_bd = (packet_bd*)(queue[queue_sel].first);
-		//Remove from free list
-		dl_node_remove(&queue[queue_sel],&(curr_packet_bd->node));
-		//Add to new checkout list
-		dl_node_insertEnd(new_list,&(curr_packet_bd->node));
+		if(num_packet_bd <= queue_tx[queue_sel].length){
+			num_dequeue = num_packet_bd;
+		} else {
+			num_dequeue = queue_tx[queue_sel].length;
+		}
+
+		for (i=0;i<num_dequeue;i++){
+			curr_packet_bd = (packet_bd*)(queue_tx[queue_sel].first);
+			//Remove from free list
+			dl_node_remove(&queue_tx[queue_sel],&(curr_packet_bd->node));
+			//Add to new checkout list
+			dl_node_insertEnd(new_list,&(curr_packet_bd->node));
+		}
 	}
 	return;
 }
@@ -157,7 +183,11 @@ u32 queue_num_free(){
 }
 
 u32 queue_num_queued(u16 queue_sel){
-	return queue[queue_sel].length;
+	if((queue_sel+1) > num_queue_tx){
+		return 0;
+	} else {
+		return queue_tx[queue_sel].length;
+	}
 }
 
 void queue_checkout(dl_list* new_list, u16 num_packet_bd){
