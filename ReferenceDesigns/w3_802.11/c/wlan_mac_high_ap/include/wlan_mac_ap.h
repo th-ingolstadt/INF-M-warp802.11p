@@ -39,7 +39,7 @@
 // **********************************************************************
 // Common Defines
 //
-#define MAX_ASSOCIATIONS               8
+//#define MAX_ASSOCIATIONS               8
 #define MAX_RETRY                      7
 
 
@@ -123,9 +123,14 @@ void association_timestamp_check();
 
 void reset_station_statistics();
 
-u32  find_association_index( u32 aid );
-u32  deauthenticate_station( u32 association_index );
+u32  deauthenticate_station( station_info* station );
 void deauthenticate_stations();
+
+station_info* add_association(dl_list* assoc_tbl, u8* addr);
+int remove_association(dl_list* assoc_tbl, u8* addr);
+station_info* find_station_AID(dl_list* assoc_tbl, u32 aid);
+station_info* find_station_ADDR(dl_list* assoc_tbl, u8* addr);
+u8 is_valid_association(dl_list* assoc_tbl, station_info* station);
 
 void animate_hex();
 void up_button();
@@ -133,10 +138,8 @@ void up_button();
 void uart_rx(u8 rxByte);
 
 void print_menu();
-//void print_ltg_size_menu();
-//void print_ltg_interval_menu();
 void print_ssid_menu();
-void print_associations();
+void print_associations(dl_list* assoc_tbl);
 void print_queue_status();
 void print_station_status(u8 manual_call);
 void ltg_cleanup(u32 id, void* callback_arg);

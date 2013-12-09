@@ -40,12 +40,10 @@ static u8 uart_mode = UART_MODE_MAIN;
 extern u8 default_unicast_rate;
 extern u32 mac_param_chan;
 
-extern station_info associations[MAX_ASSOCIATIONS+1];
-extern u32 next_free_assoc_index;
+extern dl_list association_table;
 
 extern char* access_point_ssid;
 static u8 curr_aid;
-static u8 curr_association_index;
 static u8 curr_traffic_type;
 static u32 cpu_high_status;
 static u32 schedule_ID;
@@ -62,6 +60,7 @@ void uart_rx(u8 rxByte){
 	void* ltg_sched_state;
 	u32 ltg_type;
 	u32 i;
+	station_info* curr_station_info;
 
 	void* ltg_callback_arg;
 	ltg_sched_periodic_params periodic_params;
@@ -135,8 +134,10 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_6M;
 					}
 
-					for(i=0; i < next_free_assoc_index; i++){
-						associations[i].tx_rate = default_unicast_rate;
+					curr_station_info = (station_info*)(association_table.first);
+					for(i=0; i < association_table.length; i++){
+						curr_station_info->tx_rate = default_unicast_rate;
+						curr_station_info = (station_info*)((curr_station_info->node).next);
 					}
 
 					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
@@ -148,8 +149,10 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_54M;
 					}
 
-					for(i=0; i < next_free_assoc_index; i++){
-						associations[i].tx_rate = default_unicast_rate;
+					curr_station_info = (station_info*)(association_table.first);
+					for(i=0; i < association_table.length; i++){
+						curr_station_info->tx_rate = default_unicast_rate;
+						curr_station_info = (station_info*)((curr_station_info->node).next);
 					}
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 				break;
@@ -187,6 +190,9 @@ void uart_rx(u8 rxByte){
 
 					set_backoff_slot_value(num_slots);
 				break;
+				case ASCII_m:
+					wlan_display_mallinfo();
+				break;
 			}
 		break;
 
@@ -207,26 +213,26 @@ void uart_rx(u8 rxByte){
 						curr_aid = rxByte - 48;
 						curr_traffic_type = TRAFFIC_TYPE_PERIODIC_FIXED;
 
-						for(i=0; i < next_free_assoc_index; i++){
-							if(associations[i].AID == curr_aid){
-								uart_mode = UART_MODE_LTG_SIZE_CHANGE;
-								curr_association_index = i;
-								curr_char = 0;
+						curr_station_info = find_station_AID(&association_table, curr_aid);
 
-								if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_type,&ltg_sched_state) == 0){
-									//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
-									if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
-										//This LTG is currently running. We'll turn it off.
-										ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
-										uart_mode = UART_MODE_INTERACTIVE;
-										print_station_status(1);
-										return;
-									}
+						if(curr_station_info != NULL){
+							uart_mode = UART_MODE_LTG_SIZE_CHANGE;
+							curr_char = 0;
+
+							if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_type,&ltg_sched_state) == 0){
+								//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
+								if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
+									//This LTG is currently running. We'll turn it off.
+									ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
+									uart_mode = UART_MODE_INTERACTIVE;
+									print_station_status(1);
+									return;
 								}
-								xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AID %d\n", curr_aid);
-								xil_printf("\nEnter packet payload size (in bytes): ");
 							}
+							xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AID %d\n", curr_aid);
+							xil_printf("\nEnter packet payload size (in bytes): ");
 						}
+
 					}
 					if( is_qwerty_row(rxByte) ){
 						//This if range covers the range [q,p] on a keyboard (the letters directly below [1,...,9,0])
@@ -236,26 +242,26 @@ void uart_rx(u8 rxByte){
 						curr_aid = qwerty_row_to_number(rxByte);
 						curr_traffic_type = TRAFFIC_TYPE_RAND_RAND;
 
-						for(i=0; i < next_free_assoc_index; i++){
-							if(associations[i].AID == curr_aid){
-								uart_mode = UART_MODE_LTG_SIZE_CHANGE;
-								curr_association_index = i;
-								curr_char = 0;
+						curr_station_info = find_station_AID(&association_table, curr_aid);
 
-								if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_type,&ltg_sched_state) == 0){
-									//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
-									if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
-										//This LTG is currently running. We'll turn it off.
-										ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
-										uart_mode = UART_MODE_INTERACTIVE;
-										print_station_status(1);
-										return;
-									}
+						if(curr_station_info != NULL){
+							uart_mode = UART_MODE_LTG_SIZE_CHANGE;
+							curr_char = 0;
+
+							if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_type,&ltg_sched_state) == 0){
+								//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
+								if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
+									//This LTG is currently running. We'll turn it off.
+									ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
+									uart_mode = UART_MODE_INTERACTIVE;
+									print_station_status(1);
+									return;
 								}
-								xil_printf("\n\n Configuring Random Local Traffic Generator (LTG) for AID %d\n", curr_aid);
-								xil_printf("\nEnter maximum payload size (in bytes): ");
 							}
+							xil_printf("\n\n Configuring Random Local Traffic Generator (LTG) for AID %d\n", curr_aid);
+							xil_printf("\nEnter maximum payload size (in bytes): ");
 						}
+
 					}
 
 				break;
@@ -462,18 +468,23 @@ void print_ssid_menu(){
 
 void print_queue_status(){
 	u32 i;
+	station_info* curr_station_info;
 	xil_printf("\nQueue Status:\n");
 	xil_printf(" FREE || BCAST|");
 
-	for(i=0; i<next_free_assoc_index; i++){
-		xil_printf("%6d|", associations[i].AID);
+	curr_station_info = (station_info*)association_table.first;
+	for(i=0; i < association_table.length; i++){
+		xil_printf("%6d|", curr_station_info->AID);
+		curr_station_info = (station_info*)((curr_station_info->node).next);
 	}
 	xil_printf("\n");
 
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(0));
 
-	for(i=0; i<next_free_assoc_index; i++){
-		xil_printf("%6d|", queue_num_queued(associations[i].AID));
+	curr_station_info = (station_info*)association_table.first;
+	for(i=0; i < association_table.length; i++){
+		xil_printf("%6d|", queue_num_queued(curr_station_info->AID));
+		curr_station_info = (station_info*)((curr_station_info->node).next);
 	}
 	xil_printf("\n");
 
@@ -500,6 +511,7 @@ void print_menu(){
 
 void print_station_status(u8 manual_call){
 	u32 i;
+	station_info* curr_station_info;
 	u64 timestamp;
 	void* ltg_sched_state;
 	void* ltg_sched_parameters;
@@ -512,15 +524,16 @@ void print_station_status(u8 manual_call){
 		xil_printf("\f");
 		//xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
 
-		for(i=0; i < next_free_assoc_index; i++){
+		curr_station_info = (station_info*)association_table.first;
+		for(i=0; i < association_table.length; i++){
 			xil_printf("---------------------------------------------------\n");
-			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", associations[i].AID,
-					associations[i].addr[0],associations[i].addr[1],associations[i].addr[2],associations[i].addr[3],associations[i].addr[4],associations[i].addr[5]);
+			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->AID,
+					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 
-			if(ltg_sched_get_state(AID_TO_LTG_ID(associations[i].AID),&ltg_type,&ltg_sched_state) == 0){
+			if(ltg_sched_get_state(AID_TO_LTG_ID(curr_station_info->AID),&ltg_type,&ltg_sched_state) == 0){
 
-				ltg_sched_get_params(AID_TO_LTG_ID(associations[i].AID), &ltg_type, &ltg_sched_parameters);
-				ltg_sched_get_callback_arg(AID_TO_LTG_ID(associations[i].AID),&ltg_pyld_callback_arg);
+				ltg_sched_get_params(AID_TO_LTG_ID(curr_station_info->AID), &ltg_type, &ltg_sched_parameters);
+				ltg_sched_get_callback_arg(AID_TO_LTG_ID(curr_station_info->AID),&ltg_pyld_callback_arg);
 
 				if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
 					switch(ltg_type){
@@ -546,12 +559,15 @@ void print_station_status(u8 manual_call){
 				}
 			}
 
-			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (associations[i].rx_timestamp)))/1000);
-			xil_printf("     - Last Rx Power: %d dBm\n",associations[i].last_rx_power);
-			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(associations[i].AID));
-			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", associations[i].num_tx_total, associations[i].num_tx_success);
-			xil_printf("     - # Tx Retry: %d\n", associations[i].num_retry);
-			xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", associations[i].num_rx_success, associations[i].num_rx_bytes);
+			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (curr_station_info->rx_timestamp)))/1000);
+			xil_printf("     - Last Rx Power: %d dBm\n",curr_station_info->last_rx_power);
+			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(curr_station_info->AID));
+			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", curr_station_info->num_tx_total, curr_station_info->num_tx_success);
+			xil_printf("     - # Tx Retry: %d\n", curr_station_info->num_retry);
+			xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", curr_station_info->num_rx_success, curr_station_info->num_rx_bytes);
+
+			curr_station_info = (station_info*)((curr_station_info->node).next);
+
 		}
 			xil_printf("---------------------------------------------------\n");
 			xil_printf("\n");
