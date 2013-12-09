@@ -15,6 +15,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
+#include "wlan_mac_dl_list.h"
 
 //Init Data Definitions
 #define INIT_DATA_BASEADDR XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_BASEADDR
@@ -32,8 +33,6 @@
 
 // 802.11 Transmit interface defines
 #define TX_BUFFER_NUM        2
-
-
 
 #define ETH_A_MAC_DEVICE_ID			XPAR_ETH_A_MAC_DEVICE_ID
 #define ETH_A_FIFO_DEVICE_ID		XPAR_ETH_A_FIFO_DEVICE_ID
@@ -72,9 +71,8 @@
 //will be the maximum.
 #define MAX_EVENT_LOG -1
 
-
-
 typedef struct{
+	dl_node node;
 	u16 AID;
 	u16 seq;
 	u8 addr[6];
@@ -216,6 +214,7 @@ inline void interrupt_stop();
 u8* get_eeprom_mac_addr();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
+void wlan_display_mallinfo();
 void* wlan_malloc(u32 size);
 void* wlan_realloc(void* addr, u32 size);
 void wlan_free(void* addr);

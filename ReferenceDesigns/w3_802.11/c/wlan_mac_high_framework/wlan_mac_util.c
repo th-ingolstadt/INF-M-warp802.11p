@@ -34,6 +34,7 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
+#include "malloc.h"
 
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
@@ -95,8 +96,8 @@ u8                 warpnet_initialized;
 // Ethernet Encapsulation Mode
 u8					eth_encap_mode;
 
-// Memory Allocation Debug
-int mem_alloc_debug;
+// Memory Allocation Debugging
+int					malloc_free_diff;
 
 
 
@@ -172,6 +173,8 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	ipc_rx_callback         = (function_ptr_t)nullCallback;
 	check_queue_callback    = (function_ptr_t)nullCallback;
 	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
+
+	malloc_free_diff = 0;
 
 	wlan_mac_ipc_init();
 
@@ -495,9 +498,6 @@ void poll_schedule(){
 			}
 		}
 	}
-
-
-
 }
 */
 
@@ -508,6 +508,8 @@ int wlan_mac_poll_tx_queue(u16 queue_sel){
 	packet_bd* tx_queue;
 
 	dequeue_from_beginning(&dequeue, queue_sel,1);
+
+	//xil_printf("wlan_mac_poll_tx_queue(%d)\n", queue_sel);
 
 	if(dequeue.length == 1){
 		return_value = 1;
@@ -530,11 +532,41 @@ void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
 	}
 }
 
+void wlan_display_mallinfo(){
+	struct mallinfo mi;
+	mi = mallinfo();
+
+	xil_printf("\n");
+	xil_printf("--- Malloc Info ---\n");
+	xil_printf("Summary:\n");
+	xil_printf("   malloc/free call spread: %d\n", malloc_free_diff);
+	xil_printf("   System:                  %d bytes\n", mi.arena);
+	xil_printf("   Total Allocated Space:   %d bytes\n", mi.uordblks);
+	xil_printf("   Total Free Space:        %d bytes\n", mi.fordblks);
+	xil_printf("Details:\n");
+	xil_printf("   arena:                   %d\n", mi.arena);
+	xil_printf("   ordblks:                 %d\n", mi.ordblks);
+	xil_printf("   smblks:                  %d\n", mi.smblks);
+	xil_printf("   hblks:                   %d\n", mi.hblks);
+	xil_printf("   hblkhd:                  %d\n", mi.hblkhd);
+	xil_printf("   usmblks:                 %d\n", mi.usmblks);
+	xil_printf("   fsmblks:                 %d\n", mi.fsmblks);
+	xil_printf("   uordblks:                %d\n", mi.uordblks);
+	xil_printf("   fordblks:                %d\n", mi.fordblks);
+	xil_printf("   keepcost:                %d\n", mi.keepcost);
+}
+
 void* wlan_malloc(u32 size){
 	//This is just a simple wrapper around malloc to aid in debugging memory leak issues
 	void* return_value;
 	return_value = malloc(size);
-	mem_alloc_debug++;
+
+	if(return_value == NULL){
+		xil_printf("Malloc error. Try increasing heap size in linker script.\n");
+		wlan_display_mallinfo();
+	} else {
+		malloc_free_diff++;
+	}
 
 	return return_value;
 }
@@ -543,15 +575,13 @@ void* wlan_realloc(void* addr, u32 size){
 	//This is just a simple wrapper around realloc to aid in debugging memory leak issues
 	void* return_value;
 	return_value = realloc(addr, size);
-
 	return return_value;
 }
 
 void wlan_free(void* addr){
 	//This is just a simple wrapper around free to aid in debugging memory leak issues
-
 	free(addr);
-	mem_alloc_debug--;
+	malloc_free_diff--;
 	//xil_printf("---- %d: free(0x%08x)\n",mem_alloc_debug, (u32)addr);
 }
 
@@ -562,7 +592,7 @@ u8 wlan_mac_util_get_tx_rate(station_info* station){
 	if(((station->tx_rate) >= WLAN_MAC_RATE_6M) && ((station->tx_rate) <= WLAN_MAC_RATE_54M)){
 		return_value = station->tx_rate;
 	} else {
-		xil_printf("Station has invalid rate selection, defaulting to WLAN_MAC_RATE_6M\n");
+		xil_printf("Station 0x%08x has invalid rate selection (%d), defaulting to WLAN_MAC_RATE_6M\n",station,station->tx_rate);
 		return_value = WLAN_MAC_RATE_6M;
 	}
 
