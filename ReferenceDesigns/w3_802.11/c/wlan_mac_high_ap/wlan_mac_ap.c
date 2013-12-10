@@ -175,7 +175,7 @@ int main(){
 
 
     // Schedule all events
-	wlan_mac_schedule_event(SCHEDULE_COARSE, BEACON_INTERVAL_US, (void*)beacon_transmit);
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 
 	//FIXME: Temporarily disabled
 	//wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
@@ -511,9 +511,6 @@ void beacon_transmit() {
 
  		check_tx_queue();
  	}
-
- 	//Schedule the next beacon transmission
- 	wlan_mac_schedule_event(SCHEDULE_COARSE,BEACON_INTERVAL_US, (void*)beacon_transmit);
 
  	return;
 }
