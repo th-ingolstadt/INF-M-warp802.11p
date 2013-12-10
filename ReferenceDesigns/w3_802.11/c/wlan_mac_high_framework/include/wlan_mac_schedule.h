@@ -23,14 +23,19 @@
 typedef struct {
 	dl_node node;
 	u32 id;
+	u32 delay;
+	u32 num_calls;
 	u64 target;
 	function_ptr_t callback;
 } wlan_sched;
 
+//Special value for num_calls parameter of wlan_sched
+#define SCHEDULE_REPEAT_FOREVER 0xFFFFFFFF
+
 #define SCHEDULE_FINE	0
 #define SCHEDULE_COARSE 1
 
-#define TMRCTR_DEVICE_ID			XPAR_TMRCTR_0_DEVICE_ID
+#define TMRCTR_DEVICE_ID	XPAR_TMRCTR_0_DEVICE_ID
 
 #define TIMER_FREQ          XPAR_TMRCTR_0_CLOCK_FREQ_HZ
 #define TIMER_CNTR_FAST	 0
@@ -42,12 +47,16 @@ typedef struct {
 //Return value from wlan_mac_schedule_event
 #define SCHEDULE_FAILURE 0xFFFFFFFF
 
+
 int wlan_mac_schedule_init();
 int wlan_mac_schedule_setup_interrupt(XIntc* intc);
 
-u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)());
+#define CALL_FOREVER 0xFFFFFF
+#define wlan_mac_schedule_event(scheduler_sel,delay,callback) wlan_mac_schedule_event_repeated(scheduler_sel,delay,1,callback)
+u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls, void(*callback)());
 void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id);
 
+wlan_sched* find_schedule(u8 scheduler_sel, u32 id);
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
 void XTmrCtr_CustomInterruptHandler(void *InstancePtr);
 

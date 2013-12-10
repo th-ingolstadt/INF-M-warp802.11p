@@ -93,6 +93,7 @@ int wlan_mac_schedule_setup_interrupt(XIntc* intc){
 *
 * @param    scheduler_sel    - SCHEDULE_COARSE or SCHEDULE_FINE
 * 			delay			 - interval (in microseconds) until callback should be called
+* 			num_calls		 - number of repetitions or CALL_FOREVER for permanent periodic
 * 			callback		 - function pointer to callback
 *
 * @return	id  			 - ID of scheduled event or SCHEDULE_FAILURE if error
@@ -100,9 +101,17 @@ int wlan_mac_schedule_setup_interrupt(XIntc* intc){
 * @note		None.
 *
 ******************************************************************************/
-u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
+u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls, void(*callback)()){
 	u64 timestamp;
 	u32 id;
+
+	//TODO:
+	// - add support for num_calls
+	// - add delay to structure so poll can reschedule
+	// - pass ID into callback during poll
+	// - allow poll to kill an event if num_calls = 0
+	//       ^ this allows an event to effectively be cancelled within the context of the callback if it is set to 0
+	// - provide a user function that returns the wlan_sched* when provided an ID
 
 	wlan_sched* sched_ptr = wlan_malloc(sizeof(wlan_sched));
 
@@ -113,7 +122,10 @@ u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 
 	timestamp = get_usec_timestamp();
 	id = (schedule_count++);
+	if(id == SCHEDULE_FAILURE) id = 0; //SCHEDULE_FAILURE is not a valid ID, so we wrap back to 0 and start again
 	sched_ptr->id = id;
+	sched_ptr->delay = delay;
+	sched_ptr->num_calls = num_calls;
 	sched_ptr->callback = (function_ptr_t)callback;
 	sched_ptr->target = timestamp + (u64)delay;
 
@@ -151,23 +163,15 @@ u32 wlan_mac_schedule_event(u8 scheduler_sel, u32 delay, void(*callback)()){
 *
 ******************************************************************************/
 void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
-	u32 i;
 	wlan_sched* curr_sched_ptr;
-	wlan_sched* next_sched_ptr;
+	curr_sched_ptr = find_schedule(scheduler_sel, id);
+	if(curr_sched_ptr != NULL){
+		dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
+		wlan_free(curr_sched_ptr);
+	}
 
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
-			next_sched_ptr = (wlan_sched*)(wlan_sched_coarse.first);
-
-			for(i=0; i<(wlan_sched_coarse.length); i++){
-				curr_sched_ptr = next_sched_ptr;
-				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
-				if(id == (curr_sched_ptr->id)){
-					dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
-					wlan_free(curr_sched_ptr);
-				}
-			}
-
 			if(wlan_sched_coarse.length == 0){
 				//We just removed the last schedule, but the timer is still running. We should stop it.
 				//When a future schedule is added, it will restart the timer at that time.
@@ -176,17 +180,6 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 
 		break;
 		case SCHEDULE_FINE:
-			next_sched_ptr = (wlan_sched*)(wlan_sched_fine.first);
-
-			for(i=0; i<(wlan_sched_fine.length); i++){
-				curr_sched_ptr = next_sched_ptr;
-				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
-				if(id == (curr_sched_ptr->id)){
-					dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
-					wlan_free(curr_sched_ptr);
-				}
-			}
-
 			if(wlan_sched_fine.length == 0){
 				//We just removed the last schedule, but the timer is still running. We should stop it.
 				//When a future schedule is added, it will restart the timer at that time.
@@ -227,9 +220,16 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 				curr_sched_ptr = next_sched_ptr;
 				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
 				if(timestamp > (curr_sched_ptr->target)){
-					curr_sched_ptr->callback();
-					dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
-					wlan_free(curr_sched_ptr);
+					curr_sched_ptr->callback(curr_sched_ptr->id);
+					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
+						(curr_sched_ptr->num_calls)--;
+					}
+					if(curr_sched_ptr->num_calls == 0){
+						dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
+						wlan_free(curr_sched_ptr);
+					} else {
+						curr_sched_ptr->target = timestamp + curr_sched_ptr->delay;
+					}
 				}
 			}
 
@@ -249,9 +249,16 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 				curr_sched_ptr = next_sched_ptr;
 				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
 				if(timestamp > (curr_sched_ptr->target)){
-					curr_sched_ptr->callback();
-					dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
-					wlan_free(curr_sched_ptr);
+					curr_sched_ptr->callback(curr_sched_ptr->id);
+					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
+						(curr_sched_ptr->num_calls)--;
+					}
+					if(curr_sched_ptr->num_calls == 0){
+						dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
+						wlan_free(curr_sched_ptr);
+					} else {
+						curr_sched_ptr->target = timestamp + curr_sched_ptr->delay;
+					}
 				}
 			}
 
@@ -263,6 +270,47 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 		break;
 	}
+}
+
+/*****************************************************************************/
+/**
+* Find schedule that corresponds to a given ID
+*
+* @param    scheduler_sel   - SCHEDULE_COARSE or SCHEDULE_FINE
+* 			id    			- id of the scheduler that should be returned
+*
+* @return   wlan_sched*     - pointer to schedule containing given ID
+*
+* @note     This function is a modified implementation of XTmrCtr_InterruptHandler
+* 			in the xtmrctr_intr.c driver. It has been modified to remove an explicit
+* 			reset of the timer.
+*
+******************************************************************************/
+wlan_sched* find_schedule(u8 scheduler_sel, u32 id){
+	wlan_sched* curr_wlan_sched;
+	u32 i;
+
+	switch(scheduler_sel){
+		case SCHEDULE_COARSE:
+			curr_wlan_sched = (wlan_sched*)(wlan_sched_coarse.first);
+			for(i = 0 ; i < wlan_sched_coarse.length ; i++){
+				if(curr_wlan_sched->id == id){
+					return curr_wlan_sched;
+				}
+				curr_wlan_sched = (wlan_sched*)((curr_wlan_sched->node).next);
+			}
+		break;
+		case SCHEDULE_FINE:
+			curr_wlan_sched = (wlan_sched*)(wlan_sched_fine.first);
+			for(i = 0 ; i < wlan_sched_fine.length ; i++){
+				if(curr_wlan_sched->id == id){
+					return curr_wlan_sched;
+				}
+				curr_wlan_sched = (wlan_sched*)((curr_wlan_sched->node).next);
+			}
+		break;
+	}
+	return NULL;
 }
 
 /*****************************************************************************/

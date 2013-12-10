@@ -97,7 +97,9 @@ u8                 warpnet_initialized;
 u8					eth_encap_mode;
 
 // Memory Allocation Debugging
-int					malloc_free_diff;
+static u32			num_malloc;
+static u32			num_free;
+static u32			num_realloc;
 
 
 
@@ -174,7 +176,9 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	check_queue_callback    = (function_ptr_t)nullCallback;
 	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
 
-	malloc_free_diff = 0;
+	num_malloc = 0;
+	num_realloc = 0;
+	num_free = 0;
 
 	wlan_mac_ipc_init();
 
@@ -539,7 +543,10 @@ void wlan_display_mallinfo(){
 	xil_printf("\n");
 	xil_printf("--- Malloc Info ---\n");
 	xil_printf("Summary:\n");
-	xil_printf("   malloc/free call spread: %d\n", malloc_free_diff);
+	xil_printf("   num_malloc:              %d\n", num_malloc);
+	xil_printf("   num_realloc:             %d\n", num_realloc);
+	xil_printf("   num_free:                %d\n", num_free);
+	xil_printf("   num_malloc-num_free:     %d\n", (int)num_malloc - (int)num_free);
 	xil_printf("   System:                  %d bytes\n", mi.arena);
 	xil_printf("   Total Allocated Space:   %d bytes\n", mi.uordblks);
 	xil_printf("   Total Free Space:        %d bytes\n", mi.fordblks);
@@ -562,10 +569,10 @@ void* wlan_malloc(u32 size){
 	return_value = malloc(size);
 
 	if(return_value == NULL){
-		xil_printf("Malloc error. Try increasing heap size in linker script.\n");
+		xil_printf("malloc error. Try increasing heap size in linker script.\n");
 		wlan_display_mallinfo();
 	} else {
-		malloc_free_diff++;
+		num_malloc++;
 	}
 
 	return return_value;
@@ -575,13 +582,21 @@ void* wlan_realloc(void* addr, u32 size){
 	//This is just a simple wrapper around realloc to aid in debugging memory leak issues
 	void* return_value;
 	return_value = realloc(addr, size);
+
+	if(return_value == NULL){
+		xil_printf("realloc error. Try increasing heap size in linker script.\n");
+		wlan_display_mallinfo();
+	} else {
+		num_realloc++;
+	}
+
 	return return_value;
 }
 
 void wlan_free(void* addr){
 	//This is just a simple wrapper around free to aid in debugging memory leak issues
 	free(addr);
-	malloc_free_diff--;
+	num_free++;
 	//xil_printf("---- %d: free(0x%08x)\n",mem_alloc_debug, (u32)addr);
 }
 
