@@ -25,17 +25,19 @@ static dl_list tg_list;
 
 static function_ptr_t ltg_callback;
 
+static u32 schedule_id;
+static u8  schedule_running;
+
 int wlan_mac_ltg_sched_init(){
 
 	int return_value = 0;
+
+	schedule_running = 0;
 
 	ltg_sched_remove(LTG_REMOVE_ALL);
 
 	dl_list_init(&tg_list);
 	ltg_callback = (function_ptr_t)nullCallback;
-
-	//FIXME: Is this necessary?
-	//wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
 
 	return return_value;
 }
@@ -67,17 +69,13 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 		//that is currently running would result in very difficult-to-debug results if
 		//it happens to execute.
 		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
-		ltg_sched_destroy(curr_tg);
+		ltg_sched_destroy_params(curr_tg);
 	}
 
 	//Create a new tg for this id if we didn't find it in the list
 	if(create_new){
 		curr_tg = ltg_sched_create();
 		dl_node_insertEnd(&tg_list,&(curr_tg->node));
-		if(tg_list.length == 1){
-			//start the scheduler if the only thing in it is what we just added
-			wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
-		}
 	}
 
 	if(curr_tg != NULL){
@@ -162,6 +160,12 @@ int ltg_sched_start_l(tg_schedule* curr_tg){
 			return -1;
 		break;
 	}
+
+	if(schedule_running == 0){
+		schedule_running = 1;
+		schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, 0, SCHEDULE_REPEAT_FOREVER, (void*)ltg_sched_check);
+	}
+
 	return 0;
 }
 
@@ -170,6 +174,8 @@ void ltg_sched_check(){
 	u64 timestamp;
 	tg_schedule* curr_tg;
 	u32 i;
+
+	//xil_printf("ltg_sched_check\n");
 
 	if(tg_list.length > 0){
 
@@ -183,7 +189,7 @@ void ltg_sched_check(){
 			}
 			curr_tg = (tg_schedule*)((curr_tg->node).next);
 		}
-		wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
+		//wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
 	}
 	return;
 }
@@ -200,6 +206,10 @@ int ltg_sched_stop(u32 id){
 
 int ltg_sched_stop_l(tg_schedule* curr_tg){
 	((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+	if(tg_list.length == 0 && schedule_running == 1){
+		wlan_mac_remove_schedule(SCHEDULE_FINE, schedule_id);
+		schedule_running = 0;
+	}
 	return 0;
 }
 
@@ -269,19 +279,26 @@ int ltg_sched_get_callback_arg(u32 id, void** callback_arg){
 
 int ltg_sched_remove(u32 id){
 	u32 i;
+	u32 list_len;
 	tg_schedule* curr_tg;
+	tg_schedule* next_tg;
 
-	curr_tg = (tg_schedule*)(tg_list.first);
-	for(i = 0; i < tg_list.length; i++ ){
+	//xil_printf("\n1: tg_list.length = %d\n", tg_list.length);
+
+	list_len = tg_list.length;
+
+	next_tg = (tg_schedule*)(tg_list.first);
+	for(i = 0; i < list_len; i++ ){
+		curr_tg = next_tg;
+		next_tg = (tg_schedule*)((curr_tg->node).next);
 		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
+			ltg_sched_stop_l(curr_tg);
 			curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
-			ltg_sched_destroy(curr_tg);
 			dl_node_remove(&tg_list, &(curr_tg->node));
+			ltg_sched_destroy(curr_tg);
 			if(id != LTG_REMOVE_ALL) return 0;
 		}
-		curr_tg = (tg_schedule*)((curr_tg->node).next);
 	}
-
 
 	if(id != LTG_REMOVE_ALL){
 		return -1;
@@ -294,8 +311,7 @@ tg_schedule* ltg_sched_create(){
 	return (tg_schedule*)wlan_malloc(sizeof(tg_schedule));
 }
 
-void ltg_sched_destroy(tg_schedule* tg){
-
+void ltg_sched_destroy_params(tg_schedule *tg){
 	switch(tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
 		case LTG_SCHED_TYPE_UNIFORM_RAND:
@@ -303,6 +319,11 @@ void ltg_sched_destroy(tg_schedule* tg){
 			wlan_free(tg->state);
 		break;
 	}
+}
+
+void ltg_sched_destroy(tg_schedule* tg){
+	ltg_sched_destroy_params(tg);
+	wlan_free(tg);
 	return;
 }
 

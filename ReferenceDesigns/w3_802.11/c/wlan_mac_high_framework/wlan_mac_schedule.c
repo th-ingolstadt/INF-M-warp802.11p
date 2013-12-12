@@ -165,13 +165,14 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 	wlan_sched* curr_sched_ptr;
 	curr_sched_ptr = find_schedule(scheduler_sel, id);
-	if(curr_sched_ptr != NULL){
-		dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
-		wlan_free(curr_sched_ptr);
-	}
 
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
+			if(curr_sched_ptr != NULL){
+				dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
+				wlan_free(curr_sched_ptr);
+			}
+
 			if(wlan_sched_coarse.length == 0){
 				//We just removed the last schedule, but the timer is still running. We should stop it.
 				//When a future schedule is added, it will restart the timer at that time.
@@ -180,6 +181,11 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 
 		break;
 		case SCHEDULE_FINE:
+			if(curr_sched_ptr != NULL){
+				dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
+				wlan_free(curr_sched_ptr);
+			}
+
 			if(wlan_sched_fine.length == 0){
 				//We just removed the last schedule, but the timer is still running. We should stop it.
 				//When a future schedule is added, it will restart the timer at that time.

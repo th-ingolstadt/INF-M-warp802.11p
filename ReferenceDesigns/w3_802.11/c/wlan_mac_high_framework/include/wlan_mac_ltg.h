@@ -112,6 +112,7 @@ int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
 void ltg_sched_check();
 tg_schedule* ltg_sched_create();
 void ltg_sched_destroy(tg_schedule* tg);
+void ltg_sched_destroy_params(tg_schedule *tg);
 tg_schedule* ltg_sched_find_tg_schedule(u32 id);
 
 #endif /* WLAN_MAC_LTG_H_ */

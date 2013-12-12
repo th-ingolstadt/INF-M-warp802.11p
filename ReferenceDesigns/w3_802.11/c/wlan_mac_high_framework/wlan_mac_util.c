@@ -568,6 +568,8 @@ void* wlan_malloc(u32 size){
 	void* return_value;
 	return_value = malloc(size);
 
+	//xil_printf("MALLOC 0x%08x %d bytes\n", return_value, size);
+
 	if(return_value == NULL){
 		xil_printf("malloc error. Try increasing heap size in linker script.\n");
 		wlan_display_mallinfo();
@@ -595,9 +597,9 @@ void* wlan_realloc(void* addr, u32 size){
 
 void wlan_free(void* addr){
 	//This is just a simple wrapper around free to aid in debugging memory leak issues
+	//xil_printf("FREE 0x%08x\n", addr);
 	free(addr);
 	num_free++;
-	//xil_printf("---- %d: free(0x%08x)\n",mem_alloc_debug, (u32)addr);
 }
 
 u8 wlan_mac_util_get_tx_rate(station_info* station){
