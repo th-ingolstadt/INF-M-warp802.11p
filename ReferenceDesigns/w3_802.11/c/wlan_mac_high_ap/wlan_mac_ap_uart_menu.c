@@ -72,14 +72,9 @@ void uart_rx(u8 rxByte){
     
 	if(rxByte == ASCII_ESC){
 		uart_mode = UART_MODE_MAIN;
-		if(print_scheduled){
-			wlan_mac_remove_schedule(SCHEDULE_COARSE, schedule_ID);
-		}
-
+		stop_periodic_print();
 		print_menu();
-
 		ltg_sched_remove(LTG_REMOVE_ALL);
-
 		return;
 	}
 
@@ -88,7 +83,7 @@ void uart_rx(u8 rxByte){
 			switch(rxByte){
 				case ASCII_1:
 					uart_mode = UART_MODE_INTERACTIVE;
-					print_station_status(1);
+					start_periodic_print();
 				break;
 
 				case ASCII_2:
@@ -225,7 +220,8 @@ void uart_rx(u8 rxByte){
 									//This LTG is currently running. We'll turn it off.
 									ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
 									uart_mode = UART_MODE_INTERACTIVE;
-									print_station_status(1);
+
+									start_periodic_print();
 									return;
 								}
 							}
@@ -254,7 +250,8 @@ void uart_rx(u8 rxByte){
 									//This LTG is currently running. We'll turn it off.
 									ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
 									uart_mode = UART_MODE_INTERACTIVE;
-									print_station_status(1);
+
+									start_periodic_print();
 									return;
 								}
 							}
@@ -281,6 +278,7 @@ void uart_rx(u8 rxByte){
 					}
 					switch(curr_traffic_type){
 						case TRAFFIC_TYPE_PERIODIC_FIXED:
+							xil_printf("UART MALLOC\n");
 							ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_fixed));
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
@@ -296,11 +294,12 @@ void uart_rx(u8 rxByte){
 							} else {
 								xil_printf("Error allocating memory for ltg_callback_arg\n");
 								uart_mode = UART_MODE_INTERACTIVE;
-								print_station_status(1);
+								start_periodic_print();
 							}
 
 						break;
 						case TRAFFIC_TYPE_RAND_RAND:
+							xil_printf("UART MALLOC\n");
 							ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_uniform_rand));
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
@@ -317,7 +316,7 @@ void uart_rx(u8 rxByte){
 							} else {
 								xil_printf("Error allocating memory for ltg_callback_arg\n");
 								uart_mode = UART_MODE_INTERACTIVE;
-								print_station_status(1);
+								start_periodic_print();
 							}
 
 						break;
@@ -380,7 +379,7 @@ void uart_rx(u8 rxByte){
 						}
 
 						uart_mode = UART_MODE_INTERACTIVE;
-						print_station_status(1);
+						start_periodic_print();
 
 					break;
 					case ASCII_DEL:
@@ -439,25 +438,6 @@ void uart_rx(u8 rxByte){
 	}
 }
 
-
-
-
-
-//void print_ltg_size_menu(){
-
-//	xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AID %d\n", curr_aid);
-
-//	xil_printf("\nEnter packet payload size (in bytes): ");
-
-
-//}
-
-//void print_ltg_interval_menu(){
-
-//	xil_printf("\nEnter packet Tx interval (in microseconds): ");
-
-//}
-
 void print_ssid_menu(){
 	xil_printf("\f");
 	xil_printf("Current SSID: %s\n", access_point_ssid);
@@ -509,7 +489,7 @@ void print_menu(){
 
 
 
-void print_station_status(u8 manual_call){
+void print_station_status(){
 	u32 i;
 	station_info* curr_station_info;
 	u64 timestamp;
@@ -578,19 +558,28 @@ void print_station_status(u8 manual_call){
 			xil_printf(" on the keyboard that corresponds to an associated station's AID\n");
 			xil_printf(" and follow the prompts. Pressing Esc at any time will halt all\n");
 			xil_printf(" local traffic generation and return you to the main menu.");
-
-
-
-
-		//Update display
-		schedule_ID = wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
-		print_scheduled = 1;
 	}
 
 
 }
 
+void start_periodic_print(){
+	stop_periodic_print();
+	print_station_status();
+	print_scheduled = 1;
+	schedule_ID = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 1000000, SCHEDULE_REPEAT_FOREVER, (void*)print_station_status);
+}
+
+void stop_periodic_print(){
+	if(print_scheduled){
+		print_scheduled = 0;
+		wlan_mac_remove_schedule(SCHEDULE_COARSE, schedule_ID);
+	}
+}
+
+
 void ltg_cleanup(u32 id, void* callback_arg){
+	xil_printf("UART FREE\n");
 	wlan_free(callback_arg);
 }
 

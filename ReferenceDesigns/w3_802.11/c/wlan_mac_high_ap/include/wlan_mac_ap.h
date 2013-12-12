@@ -141,8 +141,10 @@ void print_menu();
 void print_ssid_menu();
 void print_associations(dl_list* assoc_tbl);
 void print_queue_status();
-void print_station_status(u8 manual_call);
+void print_station_status();
 void ltg_cleanup(u32 id, void* callback_arg);
+void start_periodic_print();
+void stop_periodic_print();
 int is_qwerty_row(u8 rxByte);
 int qwerty_row_to_number(u8 rxByte);
 

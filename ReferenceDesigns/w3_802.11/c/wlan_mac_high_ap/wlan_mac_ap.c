@@ -70,7 +70,6 @@ mac_header_80211_common tx_header_common;
 u8 allow_assoc;
 u8 perma_assoc_mode;
 u8 default_unicast_rate;
-u8 enable_animation;
 
 // Association table variables
 dl_list		 association_table;
@@ -85,6 +84,9 @@ u32 mac_param_chan;
 // AP MAC address / Broadcast address
 static u8 eeprom_mac_addr[6];
 static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+// Misc
+u32 animation_schedule_id;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -180,11 +182,9 @@ int main(){
 	//FIXME: Temporarily disabled
 	//wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
-	enable_animation = 1;
-	wlan_mac_schedule_event(SCHEDULE_COARSE, ANIMATION_RATE_US, (void*)animate_hex);
+	animation_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ANIMATION_RATE_US, SCHEDULE_REPEAT_FOREVER, (void*)animate_hex);
 
 	enable_associations( ASSOCIATION_ALLOW_PERMANENT );
-	//wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
 
 
 	// Print AP information to the terminal
@@ -350,8 +350,7 @@ void up_button(){
 
         case ASSOCIATION_ALLOW_NONE:
     		// AP is currently not allowing any associations to take place
-    		enable_animation = 1;
-    		wlan_mac_schedule_event(SCHEDULE_COARSE,ANIMATION_RATE_US, (void*)animate_hex);
+        	animation_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ANIMATION_RATE_US, SCHEDULE_REPEAT_FOREVER, (void*)animate_hex);
     		enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
     		wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
         break;
@@ -579,7 +578,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	void * mpdu = pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	u16 tx_length;
-	u8 send_response, allow_disassociation;
+	u8 send_response;
 	mac_header_80211* rx_80211_header;
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
@@ -592,7 +591,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
-	u32 i;
 	u8 is_associated = 0;
 
 	if(rate != WLAN_MAC_RATE_1M){
@@ -994,7 +992,9 @@ void disable_associations(){
 
         // Set the global variables
 		allow_assoc      = 0;
-		enable_animation = 0;
+
+		// Stop the animation on the hex displays from continuing
+		wlan_mac_remove_schedule(SCHEDULE_COARSE, animation_schedule_id);
 
 		// Set the hex display
 		write_hex_display(association_table.length);
@@ -1010,18 +1010,10 @@ void disable_associations(){
 
 void animate_hex(){
 	static u8 i = 0;
-	if(enable_animation){
-		//write_hex_display(next_free_assoc_index,i%2);
-		write_hex_display_dots(i%2);
-		i++;
-		wlan_mac_schedule_event(SCHEDULE_COARSE, ANIMATION_RATE_US, (void*)animate_hex);
-	}
+	//write_hex_display(next_free_assoc_index,i%2);
+	write_hex_display_dots(i%2);
+	i++;
 }
-
-
-
-
-
 
 
 /*****************************************************************************/
