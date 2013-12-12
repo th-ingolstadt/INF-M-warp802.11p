@@ -151,7 +151,7 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 
 /*****************************************************************************/
 /**
-* Schedules the execution of a callback for some time in the future
+* Cancels the execution of a scheduled callback
 *
 * @param    scheduler_sel    - SCHEDULE_COARSE or SCHEDULE_FINE
 * 			id			 	 - ID of schedule that should be removed

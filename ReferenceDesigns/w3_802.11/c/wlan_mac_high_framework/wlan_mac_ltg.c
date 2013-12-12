@@ -292,9 +292,9 @@ int ltg_sched_remove(u32 id){
 		curr_tg = next_tg;
 		next_tg = (tg_schedule*)((curr_tg->node).next);
 		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
+			dl_node_remove(&tg_list, &(curr_tg->node));
 			ltg_sched_stop_l(curr_tg);
 			curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
-			dl_node_remove(&tg_list, &(curr_tg->node));
 			ltg_sched_destroy(curr_tg);
 			if(id != LTG_REMOVE_ALL) return 0;
 		}
