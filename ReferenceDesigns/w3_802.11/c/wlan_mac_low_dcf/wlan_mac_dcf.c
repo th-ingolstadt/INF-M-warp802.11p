@@ -218,6 +218,10 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					//Convert human-readable rates into PHY rates
 					//n_dbps is used to calculate duration of received ACKs.
 					//This rate selection is specified in 9.7.6.5.2 of 802.11-2012
+
+					//xil_printf("\nRate %d\n", tx_mpdu->rate);
+					//xil_printf("Len %d\n", tx_mpdu->length);
+
 					switch(tx_mpdu->rate){
 						case WLAN_MAC_RATE_1M:
 							warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
@@ -253,6 +257,10 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						case WLAN_MAC_RATE_54M:
 							rate = WLAN_PHY_RATE_64QAM34;
 							n_dbps = N_DBPS_R24;
+						break;
+						default:
+							xil_printf("Rate %d\n", tx_mpdu->rate);
+							xil_printf("Len %d\n", tx_mpdu->length);
 						break;
 					}
 
@@ -517,11 +525,16 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 	//if(rate == WLAN_PHY_RATE_BPSK12) REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 
+	u32 temp;
+
 	u8 req_timeout;
 	u16 n_slots;
 	u32 tx_status, rx_status;
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+
+	wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
+	xil_printf("frame_transmit(%d,%d,%d), (mpdu_info->flags) = 0x%08x\n", pkt_buf, rate, length, (mpdu_info->flags));
 
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
@@ -532,6 +545,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 	wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
+	temp = Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET));
 
 	wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
 
@@ -545,7 +559,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	do{
 
 		tx_status = wlan_mac_get_status();
-
+		//DEBUG
+		if(temp != WLAN_TX_SIGNAL_CALC(rate, (length + WLAN_PHY_FCS_NBYTES))){
+			xil_printf("ERR: SIGNAL FIELD CHANGED -- 0x%08x -> 0x%08x\n", WLAN_TX_SIGNAL_CALC(rate, length), temp);
+		}
+		//DEBUG
 		//TODO: This is a software fix for a MAC_DCF_HW race condition
 		//if((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) || ((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_STATE)==WLAN_MAC_STATUS_MPDU_TX_STATE_DONE)) {
 		if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
