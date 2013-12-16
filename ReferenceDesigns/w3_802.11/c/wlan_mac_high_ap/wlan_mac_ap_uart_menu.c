@@ -278,7 +278,6 @@ void uart_rx(u8 rxByte){
 					}
 					switch(curr_traffic_type){
 						case TRAFFIC_TYPE_PERIODIC_FIXED:
-							xil_printf("UART MALLOC\n");
 							ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_fixed));
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
@@ -299,7 +298,6 @@ void uart_rx(u8 rxByte){
 
 						break;
 						case TRAFFIC_TYPE_RAND_RAND:
-							xil_printf("UART MALLOC\n");
 							ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_uniform_rand));
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
@@ -579,7 +577,6 @@ void stop_periodic_print(){
 
 
 void ltg_cleanup(u32 id, void* callback_arg){
-	xil_printf("UART FREE\n");
 	wlan_free(callback_arg);
 }
 

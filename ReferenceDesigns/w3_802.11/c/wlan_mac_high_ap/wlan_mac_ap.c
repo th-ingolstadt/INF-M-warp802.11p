@@ -71,12 +71,11 @@ u8 allow_assoc;
 u8 perma_assoc_mode;
 u8 default_unicast_rate;
 
-// Association table variables
+// Association table variable
 dl_list		 association_table;
 
 // Tx queue variables;
 u32			 max_queue_size;
-#define		 MAX_PER_FLOW_QUEUE	150
 
 // AP channel
 u32 mac_param_chan;
@@ -137,13 +136,12 @@ int main(){
 	wlan_mac_util_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
 	wlan_mac_util_set_pb_u_callback(         (void*)up_button);
 	wlan_mac_util_set_uart_rx_callback(      (void*)uart_rx);
-	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
     wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
 
     // Initialize interrupts
-	interrupt_init();
+    wlan_mac_util_interrupt_init();
 
     // Wait for CPU Low to initialize
 	while( is_cpu_low_initialized() == 0 ){
@@ -203,17 +201,17 @@ int main(){
 	node_set_process_callback( (void *)wlan_exp_node_ap_processCmd );
 #endif
 
-	//This function blocks until FMC is ready
-	fmc_interrupt_init();
+
+	wlan_mac_util_finish_setup();
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
 
 #ifdef USE_WARPNET_WLAN_EXP
-		//interrupt_stop();
+		//wlan_mac_interrupt_stop();
 		transport_poll( WLAN_EXP_ETH );
-		//interrupt_start();
+		//wlan_mac_interrupt_start();
 #endif
 	}
 	return -1;
@@ -253,7 +251,7 @@ void check_tx_queue(){
 						//We've reached the end of the table, so we wrap around to the beginning
 						next_station_info = NULL;
 					} else {
-						next_station_info = (station_info*)((curr_station_info->node).next);
+						next_station_info = station_info_next(curr_station_info);
 					}
 
 					//xil_printf("1 -> %d\n", next_station_info != 0);
@@ -530,7 +528,7 @@ void association_timestamp_check() {
 
 	for(i=0; i < association_table.length; i++) {
 		curr_station_info = next_station_info;
-		next_station_info = (station_info*)((next_station_info->node).next);
+		next_station_info = station_info_next(curr_station_info);
 
 		time_since_last_rx = (get_usec_timestamp() - curr_station_info->rx_timestamp);
 		if(time_since_last_rx > ASSOCIATION_TIMEOUT_US){
@@ -927,7 +925,7 @@ void print_associations(dl_list* assoc_tbl){
 	for(i=0; i<(assoc_tbl->length); i++){
 		xil_printf("| %02x | %02x:%02x:%02x:%02x:%02x:%02x |\n", curr_station_info->AID,
 				curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
-		curr_station_info = (station_info*)((curr_station_info->node).next);
+		curr_station_info = station_info_next(curr_station_info);
 	}
 	xil_printf("|------------------------|\n");
 
@@ -1039,7 +1037,7 @@ void reset_station_statistics(){
 		curr_station_info->num_retry = 0;
 		curr_station_info->num_rx_success = 0;
 		curr_station_info->num_rx_bytes = 0;
-		curr_station_info = (station_info*)((curr_station_info->node).next);
+		curr_station_info = station_info_next(curr_station_info);
 	}
 }
 
@@ -1106,7 +1104,7 @@ void deauthenticate_stations(){
 	next_station_info = (station_info*)(association_table.first);
 	for (i = 0; i < association_table.length ; i++){
 		curr_station_info = next_station_info;
-		next_station_info = (station_info*)((next_station_info->node).next);
+		next_station_info = station_info_next(curr_station_info);
 		deauthenticate_station(curr_station_info);
 	}
 }
@@ -1160,7 +1158,7 @@ station_info* add_association(dl_list* assoc_tbl, u8* addr){
 				curr_AID = curr_station_info->AID;
 			}
 
-			curr_station_info = (station_info*)((curr_station_info->node).next);
+			curr_station_info = station_info_next(curr_station_info);
 		}
 
 		if(station->AID == 0){
@@ -1207,7 +1205,7 @@ station_info* find_station_AID(dl_list* assoc_tbl, u32 aid){
 		if(curr_station_info->AID == aid){
 			return curr_station_info;
 		} else {
-			curr_station_info = (station_info*)((curr_station_info->node).next);
+			curr_station_info = station_info_next(curr_station_info);
 		}
 	}
 	return NULL;
@@ -1221,7 +1219,7 @@ station_info* find_station_ADDR(dl_list* assoc_tbl, u8* addr){
 		if(wlan_addr_eq(curr_station_info->addr, addr)){
 			return curr_station_info;
 		} else {
-			curr_station_info = (station_info*)((curr_station_info->node).next);
+			curr_station_info = station_info_next(curr_station_info);
 		}
 	}
 	return NULL;
@@ -1235,7 +1233,7 @@ u8 is_valid_association(dl_list* assoc_tbl, station_info* station){
 		if(station == curr_station_info){
 			return 1;
 		}
-		curr_station_info = (station_info*)((curr_station_info->node).next);
+		curr_station_info = station_info_next(curr_station_info);
 	}
 	return 0;
 }
