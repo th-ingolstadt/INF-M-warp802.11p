@@ -62,7 +62,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -162,14 +162,12 @@ int main(){
 	wlan_mac_util_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
 	wlan_mac_util_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
 	wlan_mac_util_set_uart_rx_callback(      (void*)uart_rx);
-	wlan_mac_util_set_ipc_rx_callback(       (void*)ipc_rx);
-	//wlan_mac_util_set_fmc_ipc_rx_callback(   (void*)fmc_ipc_rx);
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
 	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
 
     // Initialize interrupts
-	interrupt_init();
+	wlan_mac_util_interrupt_init();
 
 
 	// Initialize Association Table
@@ -241,17 +239,16 @@ int main(){
 #endif
 
 
-	fmc_interrupt_init();
-
+	wlan_mac_util_finish_setup();
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
 
 #ifdef USE_WARPNET_WLAN_EXP
-		interrupt_stop();
+		wlan_mac_interrupt_stop();
 		transport_poll( WLAN_EXP_ETH );
-		interrupt_start();
+		wlan_mac_interrupt_start();
 #endif
 	}
 	return -1;
