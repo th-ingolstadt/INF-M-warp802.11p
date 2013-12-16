@@ -13,39 +13,29 @@
 #include "wlan_mac_dl_list.h"
 
 
-/*************************** Constant Definitions ****************************/
-
-/*********************** Global Variable Definitions *************************/
-
-
-/*************************** Variable Definitions ****************************/
-
-/*************************** Functions Prototypes ****************************/
-
-
 /******************************** Functions **********************************/
 void dl_node_insertAfter(dl_list* list, dl_node* node, dl_node* node_new){
-	node_new->prev = node;
-	node_new->next = node->next;
-	if(node->next == NULL){
+	dl_node_prev(node_new) = node;
+	dl_node_next(node_new) = dl_node_next(node);
+	if(dl_node_next(node) == NULL){
 		list->last = node_new;
 	} else {
-		node->next->prev = node_new;
+		dl_node_prev(dl_node_next(node)) = node_new;
 	}
-	node->next = node_new;
+	dl_node_next(node) = node_new;
 	(list->length)++;
 	return;
 }
 
 void dl_node_insertBefore(dl_list* list, dl_node* node, dl_node* node_new){
-	node_new->prev = node->prev;
-	node_new->next = node;
-	if(node->prev == NULL){
+	dl_node_prev(node_new) = dl_node_prev(node);
+	dl_node_next(node_new) = node;
+	if(dl_node_prev(node) == NULL){
 		list->first = node_new;
 	} else {
-		node->prev->next = node_new;
+		dl_node_next(dl_node_prev(node)) = node_new;
 	}
-	node->prev = node_new;
+	dl_node_prev(node) = node_new;
 	(list->length)++;
 	return;
 }
@@ -54,8 +44,8 @@ void dl_node_insertBeginning(dl_list* list, dl_node* node_new){
 	if(list->first == NULL){
 		list->first = node_new;
 		list->last = node_new;
-		node_new->prev = NULL;
-		node_new->next = NULL;
+		dl_node_prev(node_new) = NULL;
+		dl_node_next(node_new) = NULL;
 		(list->length)++;
 	} else {
 		dl_node_insertBefore(list, list->first, node_new);
@@ -73,16 +63,16 @@ void dl_node_insertEnd(dl_list* list, dl_node* node_new){
 }
 
 void dl_node_remove(dl_list* list, dl_node* node){
-	if(node->prev == NULL){
-		list->first = node->next;
+	if(dl_node_prev(node) == NULL){
+		list->first = dl_node_next(node);
 	} else {
-		node->prev->next = node->next;
+		dl_node_next(dl_node_prev(node)) = dl_node_next(node);
 	}
 
-	if(node->next == NULL){
-		list->last = node->prev;
+	if(dl_node_next(node) == NULL){
+		list->last = dl_node_prev(node);
 	} else {
-		node->next->prev = node->prev;
+		dl_node_prev(dl_node_next(node)) = dl_node_prev(node);
 	}
 	(list->length)--;
 }

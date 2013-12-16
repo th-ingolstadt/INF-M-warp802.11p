@@ -83,8 +83,12 @@ int wlan_mac_schedule_init(){
 ******************************************************************************/
 int wlan_mac_schedule_setup_interrupt(XIntc* intc){
 	//Connect Timer to Interrupt Controller
+	int status;
+
 	InterruptController_ptr = intc;
-	return XIntc_Connect(InterruptController_ptr, TMRCTR_INTERRUPT_ID, (XInterruptHandler)XTmrCtr_CustomInterruptHandler, &TimerCounterInst);
+	status =  XIntc_Connect(InterruptController_ptr, TMRCTR_INTERRUPT_ID, (XInterruptHandler)XTmrCtr_CustomInterruptHandler, &TimerCounterInst);
+	XIntc_Enable(InterruptController_ptr, TMRCTR_INTERRUPT_ID);
+	return status;
 }
 
 /*****************************************************************************/
@@ -224,7 +228,8 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 			for(i=0; i<(wlan_sched_fine.length); i++){
 				curr_sched_ptr = next_sched_ptr;
-				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
+				next_sched_ptr = wlan_sched_next(curr_sched_ptr);
+
 				if(timestamp > (curr_sched_ptr->target)){
 					curr_sched_ptr->callback(curr_sched_ptr->id);
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
@@ -253,7 +258,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 			for(i=0; i<(wlan_sched_coarse.length); i++){
 				curr_sched_ptr = next_sched_ptr;
-				next_sched_ptr = (wlan_sched*)((curr_sched_ptr->node).next);
+				next_sched_ptr = wlan_sched_next(curr_sched_ptr);
 				if(timestamp > (curr_sched_ptr->target)){
 					curr_sched_ptr->callback(curr_sched_ptr->id);
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
@@ -303,7 +308,7 @@ wlan_sched* find_schedule(u8 scheduler_sel, u32 id){
 				if(curr_wlan_sched->id == id){
 					return curr_wlan_sched;
 				}
-				curr_wlan_sched = (wlan_sched*)((curr_wlan_sched->node).next);
+				curr_wlan_sched = wlan_sched_next(curr_wlan_sched);
 			}
 		break;
 		case SCHEDULE_FINE:
@@ -312,7 +317,7 @@ wlan_sched* find_schedule(u8 scheduler_sel, u32 id){
 				if(curr_wlan_sched->id == id){
 					return curr_wlan_sched;
 				}
-				curr_wlan_sched = (wlan_sched*)((curr_wlan_sched->node).next);
+				curr_wlan_sched = wlan_sched_next(curr_wlan_sched);
 			}
 		break;
 	}

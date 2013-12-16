@@ -29,6 +29,10 @@ typedef struct {
 	function_ptr_t callback;
 } wlan_sched;
 
+//Helper macros for traversing the doubly-linked list
+#define wlan_sched_next(x) ( (wlan_sched*)dl_node_next(&(x->node)) )
+#define wlan_sched_prev(x) ( (wlan_sched*)dl_node_prev(&(x->node)) )
+
 //Special value for num_calls parameter of wlan_sched
 #define SCHEDULE_REPEAT_FOREVER 0xFFFFFFFF
 

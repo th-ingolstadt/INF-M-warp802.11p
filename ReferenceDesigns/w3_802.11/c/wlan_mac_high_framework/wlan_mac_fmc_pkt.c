@@ -26,7 +26,7 @@
 #define FMC_MBOX_SIT	0	/* mailbox send interrupt threshold */
 #define FMC_MBOX_INTR_ID		XPAR_MB_HIGH_INTC_MAILBOX_FMC_INTERRUPT_0_INTR
 
-extern XIntc       InterruptController;
+static XIntc*      InterruptController_ptr;
 extern function_ptr_t	   fmc_ipc_rx_callback;
 extern function_ptr_t      eth_rx_callback;
 
@@ -35,9 +35,6 @@ XMbox fmc_ipc_mailbox;
 // IPC variables
 #define FMC_IPC_BUFFER_SIZE 1600
 wlan_fmc_ipc_msg   ipc_msg_from_fmc;
-
-//TODO: shouldn't need local memory for the payload... put it directly in DRAM queue
-//u8                 ipc_msg_from_fmc_payload[FMC_IPC_BUFFER_SIZE];
 
 
 #define FMC_TIMEOUT_USEC 10000
@@ -52,7 +49,6 @@ int fmc_ipc_rx(){
 	packet_bd*	tx_queue;
 	void* buf_addr;
 	u8 packet_is_queued = 0;
-	u32 i;
 
 	u8 eth_dest[6];
 	u8 eth_src[6];
@@ -340,60 +336,56 @@ void wlan_XMbox_WriteBlocking(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedB
 
 
 int wlan_fmc_pkt_init () {
+#ifdef FMC_PKT_EN
 	//Initialize the inter-processor mailbox core
 	XMbox_Config *mbox_ConfigPtr;
 	mbox_ConfigPtr = XMbox_LookupConfig(FMC_MBOX_DEVICE_ID);
 	XMbox_CfgInitialize(&fmc_ipc_mailbox, mbox_ConfigPtr, mbox_ConfigPtr->BaseAddress);
-
+#endif
 	return 0;
 }
 
-int wlan_fmc_pkt_setup_mailbox_interrupt(){
+int wlan_fmc_pkt_mailbox_setup_interrupt(XIntc* intc){
+
+#ifdef FMC_PKT_EN
 	int Status;
+	InterruptController_ptr = intc;
 
 	XMbox_SetSendThreshold(&fmc_ipc_mailbox, FMC_MBOX_SIT);
 	XMbox_SetReceiveThreshold(&fmc_ipc_mailbox, FMC_MBOX_RIT);
 
-	Status = XIntc_Connect(&InterruptController, FMC_MBOX_INTR_ID, (XInterruptHandler)FMCMailboxIntrHandler, (void *)&fmc_ipc_mailbox);
+	Status = XIntc_Connect(InterruptController_ptr, FMC_MBOX_INTR_ID, (XInterruptHandler)FMCMailboxIntrHandler, (void *)&fmc_ipc_mailbox);
 
 	if (Status != XST_SUCCESS) {
 		return XST_FAILURE;
 	}
 
-	//XMbox_SetInterruptEnable(&ipc_mailbox, XMB_IX_STA | XMB_IX_RTA | XMB_IX_ERR);
-
 	XMbox_Flush(&fmc_ipc_mailbox);
 	XMbox_SetInterruptEnable(&fmc_ipc_mailbox, XMB_IX_RTA);
-	XIntc_Enable(&InterruptController, FMC_MBOX_INTR_ID);
+	XIntc_Enable(InterruptController_ptr, FMC_MBOX_INTR_ID);
+#endif
 
 	return 0;
 }
 
 void FMCMailboxIntrHandler(void *CallbackRef){
-
-	u8 is_empty;
+	u32 Mask;
 
 	XMbox_SetReceiveThreshold(&fmc_ipc_mailbox, 0xFFFFFFFF);
 
-	//xil_printf("FMCMailboxIntrHandler\n");
-
-	u32 Mask;
 	XMbox *MboxInstPtr = (XMbox *)CallbackRef;
 
-	XIntc_Stop(&InterruptController);
+	XIntc_Stop(InterruptController_ptr);
 
 	Mask = XMbox_GetInterruptStatus(MboxInstPtr);
 
-	//XMbox_ClearInterrupt(MboxInstPtr, XMB_IX_RTA);
-
 	if (Mask & XMB_IX_RTA) {
-		is_empty = fmc_ipc_rx();
+		fmc_ipc_rx();
 	}
 
-	//if(is_empty == 1) XMbox_ClearInterrupt(MboxInstPtr, XMB_IX_RTA);
 	XMbox_ClearInterrupt(MboxInstPtr, XMB_IX_RTA);
 
 	XMbox_SetReceiveThreshold(&fmc_ipc_mailbox, FMC_MBOX_RIT);
 
-	XIntc_Start(&InterruptController, XIN_REAL_MODE);
+	XIntc_Start(InterruptController_ptr, XIN_REAL_MODE);
 }

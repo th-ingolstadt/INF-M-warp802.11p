@@ -23,9 +23,6 @@
 #define INIT_DATA_DOTDATA_START (INIT_DATA_BASEADDR+0x200)
 #define INIT_DATA_DOTDATA_SIZE	(4*(XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))
 
-//FMC PKT MBOX Enable
-//#define FMC_PKT_EN
-
 //Encapsulation modes
 #define ENCAP_MODE_AP	0
 #define ENCAP_MODE_STA	1
@@ -85,6 +82,10 @@ typedef struct{
 	u32 num_rx_success;
 	u32 num_rx_bytes;
 } station_info;
+
+//Helper macros for traversing the doubly-linked list
+#define station_info_next(x) ( (station_info*)dl_node_next(&(x->node)) )
+#define station_info_prev(x) ( (station_info*)dl_node_prev(&(x->node)) )
 
 typedef struct{
 	u8 address_destination[6];
@@ -176,6 +177,7 @@ typedef struct{
 #define LLC_TYPE_IP						0x0008
 #define LLC_TYPE_CUSTOM					0x9090
 
+void print_wlan_mac_hw_info( wlan_mac_hw_info * info );
 void wlan_mac_util_init_data();
 void wlan_mac_util_init();
 
@@ -183,19 +185,14 @@ void gpio_timestamp_initialize();
 
 u64  get_usec_timestamp();
 
-void wlan_mac_util_set_eth_rx_callback(void(*callback)());
-void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)());
-void wlan_mac_util_set_mpdu_rx_callback(void(*callback)());
-void wlan_mac_util_set_fcs_bad_rx_callback(void(*callback)());
 void wlan_mac_util_set_pb_u_callback(void(*callback)());
 void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_util_set_uart_rx_callback(void(*callback)());
 void wlan_mac_util_set_check_queue_callback(void(*callback)());
-void wlan_mac_util_set_mpdu_accept_callback(void(*callback)());
+int wlan_mac_util_interrupt_init();
 
-void wlan_mac_util_set_eth_encap_mode(u8 mode);
-
+void wlan_mac_util_finish_setup();
 inline void poll_schedule();
 inline int wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
@@ -203,14 +200,12 @@ void write_hex_display_dots(u8 dots_on);
 int memory_test();
 void write_hex_display_raw(u8 val1,u8 val2);
 int fmc_interrupt_init();
-int interrupt_init();
 void GpioIsr(void *InstancePtr);
 void SendHandler(void *CallBackRef, unsigned int EventData);
 void RecvHandler(void *CallBackRef, unsigned int EventData);
-void wlan_mac_util_set_ipc_rx_callback(void(*callback)());
 void wlan_mac_util_set_fmc_ipc_rx_callback(void(*callback)());
-inline int interrupt_start();
-inline void interrupt_stop();
+inline int wlan_mac_interrupt_start();
+inline void wlan_mac_interrupt_stop();
 u8* get_eeprom_mac_addr();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);

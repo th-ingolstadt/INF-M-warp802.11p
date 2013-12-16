@@ -45,6 +45,10 @@ struct tg_schedule{
 	void* state;
 };
 
+//Helper macros for traversing the doubly-linked list
+#define tg_schedule_next(x) ( (tg_schedule*)dl_node_next(&(x->node)) )
+#define tg_schedule_prev(x) ( (tg_schedule*)dl_node_prev(&(x->node)) )
+
 //LTG Schedules
 
 typedef struct {

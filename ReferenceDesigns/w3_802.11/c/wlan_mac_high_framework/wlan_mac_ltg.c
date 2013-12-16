@@ -187,7 +187,7 @@ void ltg_sched_check(){
 				ltg_sched_start_l(curr_tg);
 				ltg_callback(curr_tg->id, curr_tg->callback_arg);
 			}
-			curr_tg = (tg_schedule*)((curr_tg->node).next);
+			curr_tg = tg_schedule_next(curr_tg);
 		}
 		//wlan_mac_schedule_event(SCHEDULE_FINE, 0, (void*)ltg_sched_check);
 	}
@@ -283,14 +283,12 @@ int ltg_sched_remove(u32 id){
 	tg_schedule* curr_tg;
 	tg_schedule* next_tg;
 
-	//xil_printf("\n1: tg_list.length = %d\n", tg_list.length);
-
 	list_len = tg_list.length;
 
 	next_tg = (tg_schedule*)(tg_list.first);
 	for(i = 0; i < list_len; i++ ){
 		curr_tg = next_tg;
-		next_tg = (tg_schedule*)((curr_tg->node).next);
+		next_tg = tg_schedule_next(curr_tg);
 		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
 			dl_node_remove(&tg_list, &(curr_tg->node));
 			ltg_sched_stop_l(curr_tg);
@@ -336,7 +334,7 @@ tg_schedule* ltg_sched_find_tg_schedule(u32 id){
 		if( (curr_tg->id)==id){
 			return curr_tg;
 		}
-		curr_tg = (tg_schedule*)((curr_tg->node).next);
+		curr_tg = tg_schedule_next(curr_tg);
 	}
 	return NULL;
 }

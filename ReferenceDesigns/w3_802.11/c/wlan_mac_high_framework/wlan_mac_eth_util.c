@@ -29,8 +29,8 @@ static XAxiDma ETH_A_DMA_Instance;
 
 //Top-level code defines the callback, wlan_mac_util does the actual calling
 // It's sufficient to refer to the wlan_mac_util callback by name here
-extern function_ptr_t eth_rx_callback;
-extern u8 eth_encap_mode;
+function_ptr_t eth_rx_callback;
+u8 eth_encap_mode;
 
 static XIntc* Intc_ptr;
 
@@ -50,10 +50,10 @@ u8 eth_sta_mac_addr[6];
 
 extern wlan_mac_hw_info   	hw_info;
 
-
 int wlan_eth_init() {
 		int status;
 
+		eth_rx_callback = (function_ptr_t)nullCallback;
 		ETH_A_NUM_RX_BD = min(queue_total_size()/2,200);
 		xil_printf("Setting up %d DMA BDs\n", ETH_A_NUM_RX_BD);
 
@@ -79,6 +79,14 @@ int wlan_eth_init() {
 		XAxiEthernet_Start(&ETH_A_MAC_Instance);
 
 		return 0;
+}
+
+void wlan_mac_util_set_eth_rx_callback(void(*callback)()){
+	eth_rx_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_eth_encap_mode(u8 mode){
+	eth_encap_mode = mode;
 }
 
 int eth_bd_total_size(){
@@ -157,6 +165,7 @@ int wlan_eth_dma_init() {
 	//Disable delays and coalescing (for now - these will be useful when we transition to interrupts)
 	XAxiDma_BdRingSetCoalesce(ETH_A_TxRing_ptr, 1, 0);
 	XAxiDma_BdRingSetCoalesce(ETH_A_RxRing_ptr, 1, 0);
+	//XAxiDma_BdRingSetCoalesce(ETH_A_RxRing_ptr, 201, 255);
 
 	//Setup Tx/Rx buffer descriptor rings in memory
 	status =  XAxiDma_BdRingCreate(ETH_A_TxRing_ptr, ETH_A_TX_BD_SPACE_BASE, ETH_A_TX_BD_SPACE_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, ETH_A_NUM_TX_BD);

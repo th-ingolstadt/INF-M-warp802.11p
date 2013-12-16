@@ -34,11 +34,11 @@
 /*********************** Global Variable Definitions *************************/
 
 // Callback function pointers
-extern function_ptr_t     mpdu_tx_done_callback;
-extern function_ptr_t     mpdu_rx_callback;
+function_ptr_t     mpdu_tx_done_callback;
+function_ptr_t     mpdu_rx_callback;
+function_ptr_t     fcs_bad_rx_callback;
+function_ptr_t     mpdu_tx_accept_callback;
 extern function_ptr_t     check_queue_callback;
-extern function_ptr_t     fcs_bad_rx_callback;
-extern function_ptr_t     mpdu_tx_accept_callback;
 
 // 802.11 Transmit packet buffer
 extern u8                 tx_pkt_buf;
@@ -90,12 +90,31 @@ void print_wlan_mac_hw_info( wlan_mac_hw_info * info );      // Function defined
 *
 ******************************************************************************/
 void wlan_mac_ipc_init( void ) {
-
+	mpdu_rx_callback        = (function_ptr_t)nullCallback;
+	fcs_bad_rx_callback     = (function_ptr_t)nullCallback;
+	mpdu_tx_done_callback   = (function_ptr_t)nullCallback;
+	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
 	//create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
 
 }
 
+
+void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)()){
+	mpdu_tx_done_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_fcs_bad_rx_callback(void(*callback)()){
+	fcs_bad_rx_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_mpdu_rx_callback(void(*callback)()){
+	mpdu_rx_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_mpdu_accept_callback(void(*callback)()){
+	mpdu_tx_accept_callback = (function_ptr_t)callback;
+}
 
 
 
@@ -422,6 +441,7 @@ void set_cpu_low_ready() {
 ******************************************************************************/
 
 int is_cpu_low_initialized(){
+	ipc_rx();
 	return ( (cpu_low_status & CPU_STATUS_INITIALIZED) != 0 );
 }
 

@@ -12,7 +12,10 @@
 #define WLAN_MAC_IPC_H_
 
 void wlan_mac_ipc_init(void);
-
+void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)());
+void wlan_mac_util_set_fcs_bad_rx_callback(void(*callback)());
+void wlan_mac_util_set_mpdu_rx_callback(void(*callback)());
+void wlan_mac_util_set_mpdu_accept_callback(void(*callback)());
 void ipc_rx();
 
 void process_ipc_msg_from_low(wlan_ipc_msg* msg);

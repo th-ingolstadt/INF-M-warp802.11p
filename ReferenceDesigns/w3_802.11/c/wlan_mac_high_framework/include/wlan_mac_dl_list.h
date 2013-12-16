@@ -20,11 +20,17 @@ struct dl_node{
 	dl_node* prev;
 };
 
+//Helper macros for traversing the doubly-linked list
+#define dl_node_next(x) (((dl_node*)x)->next)
+#define dl_node_prev(x) (((dl_node*)x)->prev)
+
 typedef struct {
 	dl_node* first;
 	dl_node* last;
 	u16 length;
 } dl_list;
+
+
 
 void dl_node_insertAfter(dl_list* list, dl_node* node, dl_node* node_new);
 void dl_node_insertBefore(dl_list* list, dl_node* node, dl_node* node_new);

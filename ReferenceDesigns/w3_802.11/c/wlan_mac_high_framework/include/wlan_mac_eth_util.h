@@ -28,6 +28,8 @@
 #define ETH_A_RX_BD_SPACE_BASE	(ETH_A_TX_BD_SPACE_BASE + (ETH_A_NUM_TX_BD * XAXIDMA_BD_MINIMUM_ALIGNMENT)) //safer than sizeof(XAxiDma_Bd)?
 
 int wlan_eth_init();
+void wlan_mac_util_set_eth_rx_callback(void(*callback)());
+void wlan_mac_util_set_eth_encap_mode(u8 mode);
 int eth_bd_total_size();
 int wlan_eth_dma_init();
 int wlan_mpdu_eth_send(void* mpdu, u16 length);

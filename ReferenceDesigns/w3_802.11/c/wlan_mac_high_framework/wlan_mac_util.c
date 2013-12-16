@@ -11,16 +11,16 @@
 
 /***************************** Include Files *********************************/
 
+//Xilinx Includes
 #include "stdlib.h"
-
 #include "xparameters.h"
-
 #include "xgpio.h"
 #include "xil_exception.h"
 #include "xintc.h"
 #include "xuartlite.h"
 #include "xaxicdma.h"
 
+//WARP Includes
 #include "w3_userio.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_ipc_util.h"
@@ -39,12 +39,6 @@
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 
-
-/*************************** Constant Definitions ****************************/
-
-
-
-
 /*********************** Global Variable Definitions *************************/
 
 extern int __data_start;
@@ -55,13 +49,12 @@ extern int _heap_start;
 extern int _HEAP_SIZE;
 
 
-
 /*************************** Variable Definitions ****************************/
 
 // HW structures
-static XGpio       GPIO_timestamp;
+static XGpio       Gpio_timestamp;
 static XGpio       Gpio;
-XIntc       InterruptController;
+XIntc       	   InterruptController;
 XUartLite          UartLite;
 XAxiCdma           cdma_inst;
 
@@ -72,17 +65,11 @@ u8                 ReceiveBuffer[UART_BUFFER_SIZE];
 u8                 tx_pkt_buf;
 
 // Callback function pointers
-function_ptr_t     eth_rx_callback;
-function_ptr_t     mpdu_tx_done_callback;
-function_ptr_t     mpdu_rx_callback;
-function_ptr_t     fcs_bad_rx_callback;
 function_ptr_t     pb_u_callback;
 function_ptr_t     pb_m_callback;
 function_ptr_t     pb_d_callback;
 function_ptr_t     uart_callback;
-function_ptr_t     ipc_rx_callback;
 function_ptr_t     check_queue_callback;
-function_ptr_t     mpdu_tx_accept_callback;
 
 // Node information
 wlan_mac_hw_info   	hw_info;
@@ -93,22 +80,10 @@ u8					dram_present;
 u8                 warpnet_initialized;
 #endif
 
-// Ethernet Encapsulation Mode
-u8					eth_encap_mode;
-
 // Memory Allocation Debugging
 static u32			num_malloc;
 static u32			num_free;
 static u32			num_realloc;
-
-
-
-/*************************** Functions Prototypes ****************************/
-
-#ifdef _DEBUG_
-void print_wlan_mac_hw_info( wlan_mac_hw_info * info );      // Function defined in wlan_mac_util.c
-#endif
-
 
 /******************************** Functions **********************************/
 
@@ -123,33 +98,22 @@ void wlan_mac_util_init_data(){
 	//Zero out the bss
 	bzero((void*)&__bss_start, 4*(&__bss_end - &__bss_start));
 
-
 	#ifdef INIT_DATA_BASEADDR
-
 	if(*identifier == INIT_DATA_DOTDATA_IDENTIFIER){
 		//This program has run before. We should copy the .data out of the INIT_DATA memory.
 		if(data_size <= INIT_DATA_DOTDATA_SIZE){
-			xil_printf("Subsequent execution... copying .data from bram: 0x%08x -> 0x%08x\n",(void*)INIT_DATA_DOTDATA_START,(void*)&__data_start);
 			memcpy((void*)&__data_start, (void*)INIT_DATA_DOTDATA_START, data_size);
 		}
 
 	} else {
 		//This is the first time this program has been run.
-
 		if(data_size <= INIT_DATA_DOTDATA_SIZE){
-			xil_printf("First time execution... copying .data into bram 0x%08x -> 0x%08x\n",(void*)&__data_start, (void*)INIT_DATA_DOTDATA_START);
 			*identifier = INIT_DATA_DOTDATA_IDENTIFIER;
 			memcpy((void*)INIT_DATA_DOTDATA_START, (void*)&__data_start, data_size);
 		}
 
 	}
-
-	xil_printf("Identifier after write = 0x%x\n", *identifier);
-
-
-
 	#endif
-
 }
 
 
@@ -157,53 +121,47 @@ void wlan_mac_util_init_data(){
 void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	int            Status;
     u32            i;
-	u32            gpio_read;
 	u32            queue_len;
 	u64            timestamp;
 	u32            log_size;
 	tx_frame_info* tx_mpdu;
 
-    // Initialize callbacks
-	eth_rx_callback         = (function_ptr_t)nullCallback;
-	mpdu_rx_callback        = (function_ptr_t)nullCallback;
-	fcs_bad_rx_callback     = (function_ptr_t)nullCallback;
-	mpdu_tx_done_callback   = (function_ptr_t)nullCallback;
+	// ***************************************************
+    // Initialize callbacks and global state variables
+	// ***************************************************
 	pb_u_callback           = (function_ptr_t)nullCallback;
 	pb_m_callback           = (function_ptr_t)nullCallback;
 	pb_d_callback           = (function_ptr_t)nullCallback;
 	uart_callback           = (function_ptr_t)nullCallback;
-	ipc_rx_callback         = (function_ptr_t)nullCallback;
 	check_queue_callback    = (function_ptr_t)nullCallback;
-	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
+
+	wlan_lib_mailbox_set_rx_callback((void*)ipc_rx);
 
 	num_malloc = 0;
 	num_realloc = 0;
 	num_free = 0;
 
-	wlan_mac_ipc_init();
 
-#ifdef FMC_PKT_EN
-	wlan_fmc_pkt_init();
-#endif
-
+	// ***************************************************
+	// Initialize Transmit Packet Buffers
+	// ***************************************************
 	for(i=0;i < NUM_TX_PKT_BUFS; i++){
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
 		tx_mpdu->state = TX_MPDU_STATE_EMPTY;
 	}
-
 	tx_pkt_buf = 0;
-
-#ifdef _DEBUG_
-	xil_printf("locking tx_pkt_buf = %d\n", tx_pkt_buf);
-#endif
-
+	warp_printf(PL_VERBOSE, "locking tx_pkt_buf = %d\n", tx_pkt_buf);
 	if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",tx_pkt_buf);
 	}
-
 	tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
 
+
+
+	// ***************************************************
+	// Initialize CDMA, GPIO, and UART drivers
+	// ***************************************************
 	//Initialize the central DMA (CDMA) driver
 	XAxiCdma_Config *cdma_cfg_ptr;
 	cdma_cfg_ptr = XAxiCdma_LookupConfig(XPAR_AXI_CDMA_0_DEVICE_ID);
@@ -213,7 +171,7 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	}
 	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
 
-
+	//Initialize the GPIO driver
 	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
 	gpio_timestamp_initialize();
 
@@ -221,44 +179,39 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 		warp_printf(PL_ERROR, "Error initializing GPIO\n");
 		return;
 	}
+	//Set direction of GPIO channels
+	XGpio_SetDataDirection(&Gpio, GPIO_INPUT_CHANNEL, 0xFFFFFFFF);
+	XGpio_SetDataDirection(&Gpio, GPIO_OUTPUT_CHANNEL, 0);
 
+	//Initialize the UART driver
 	Status = XUartLite_Initialize(&UartLite, UARTLITE_DEVICE_ID);
 	if (Status != XST_SUCCESS) {
 		warp_printf(PL_ERROR, "Error initializing XUartLite\n");
 		return;
 	}
 
+	//Test to see if DRAM SODIMM is connected to board
+	queue_dram_present(0);
+	dram_present = 0;
+	timestamp = get_usec_timestamp();
 
-	gpio_read = XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL);
-	if(gpio_read&GPIO_MASK_DRAM_INIT_DONE){
-		xil_printf("DRAM SODIMM Detected\n");
-		if(memory_test()==0){
-			queue_dram_present(1);
-			dram_present = 1;
-		} else {
-			queue_dram_present(0);
-			dram_present = 0;
-		}
-	} else {
-		queue_dram_present(0);
-		dram_present = 0;
-		timestamp = get_usec_timestamp();
-
-		while((get_usec_timestamp() - timestamp) < 100000){
-			if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
-				xil_printf("DRAM SODIMM Detected\n");
-				if(memory_test()==0){
-					queue_dram_present(1);
-					dram_present = 1;
-				} else {
-					queue_dram_present(0);
-					dram_present = 0;
-				}
-				break;
+	while((get_usec_timestamp() - timestamp) < 100000){
+		if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
+			xil_printf("DRAM SODIMM Detected\n");
+			if(memory_test()==0){
+				queue_dram_present(1);
+				dram_present = 1;
+			} else {
+				queue_dram_present(0);
+				dram_present = 0;
 			}
+			break;
 		}
 	}
 
+	// ***************************************************
+	// Initialize various subsystems in the MAC High Framework
+	// ***************************************************
 	queue_len = queue_init();
 
 	if( dram_present ) {
@@ -272,6 +225,7 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 		event_log_init( (void*)(DDR3_BASEADDR + queue_len), log_size );
 
 	} else {
+		//No DRAM, so the log has nowhere to be stored.
 		log_size = 0;
 	}
 
@@ -280,14 +234,12 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	node_info_set_event_log_size( log_size );
 #endif
 
+	wlan_fmc_pkt_init();
+	wlan_mac_ipc_init();
 	wlan_eth_init();
-
-	//Set direction of GPIO channels
-	XGpio_SetDataDirection(&Gpio, GPIO_INPUT_CHANNEL, 0xFFFFFFFF);
-	XGpio_SetDataDirection(&Gpio, GPIO_OUTPUT_CHANNEL, 0);
-
 	wlan_mac_schedule_init();
-    
+	wlan_mac_ltg_sched_init();
+
     // Get the type of node from the input parameter
     hw_info.type              = type;
     hw_info.wn_exp_eth_device = eth_dev_num;
@@ -297,92 +249,95 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
     warpnet_initialized = 0;
 #endif
     
-    wlan_mac_ltg_sched_init();
-
 }
 
-inline int interrupt_start(){
+void wlan_mac_util_finish_setup(){
+	fmc_interrupt_init();
+	wlan_mac_interrupt_start();
+}
+
+inline int wlan_mac_interrupt_start(){
 	return XIntc_Start(&InterruptController, XIN_REAL_MODE);
 }
 
-inline void interrupt_stop(){
+inline void wlan_mac_interrupt_stop(){
 	XIntc_Stop(&InterruptController);
 }
 
 int fmc_interrupt_init(){
 	//TODO: This function should block until FMC reports ready
-
-#ifdef FMC_PKT_EN
-	wlan_fmc_pkt_setup_mailbox_interrupt();
-#endif
-
+	wlan_fmc_pkt_mailbox_setup_interrupt(&InterruptController);
 	return 0;
 }
 
-int interrupt_init(){
+int wlan_mac_util_interrupt_init(){
 	int Result;
+
+	// ***************************************************
+	// Initialize XIntc
+	// ***************************************************
 	Result = XIntc_Initialize(&InterruptController, INTC_DEVICE_ID);
 	if (Result != XST_SUCCESS) {
 		return Result;
 	}
 
+	// ***************************************************
+	// Connect interrupt devices "owned" by wlan_mac_util
+	// ***************************************************
 	Result = XIntc_Connect(&InterruptController, INTC_GPIO_INTERRUPT_ID, (XInterruptHandler)GpioIsr, &Gpio);
 	if (Result != XST_SUCCESS) {
 		warp_printf(PL_ERROR,"Failed to connect GPIO to XIntc\n");
 		return Result;
 	}
+	XIntc_Enable(&InterruptController, INTC_GPIO_INTERRUPT_ID);
+	XGpio_InterruptEnable(&Gpio, GPIO_INPUT_INTERRUPT);
+	XGpio_InterruptGlobalEnable(&Gpio);
 
 	Result = XIntc_Connect(&InterruptController, UARTLITE_INT_IRQ_ID, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
 	if (Result != XST_SUCCESS) {
 		warp_printf(PL_ERROR,"Failed to connect XUartLite to XIntc\n");
 		return Result;
 	}
+	XIntc_Enable(&InterruptController, UARTLITE_INT_IRQ_ID);
+	XUartLite_SetRecvHandler(&UartLite, RecvHandler, &UartLite);
+	XUartLite_EnableInterrupt(&UartLite);
+	XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
 
 
-	wlan_mac_schedule_setup_interrupt(&InterruptController);
-
+	// ***************************************************
+	// Connect interrupt devices in other subsystems
+	// ***************************************************
+	Result = wlan_mac_schedule_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
-		xil_printf("Failed to connect XTmrCtr to XIntC\n");
+		xil_printf("Failed to set up scheduler interrupt\n");
 		return -1;
 	}
 
-	wlan_lib_setup_mailbox_interrupt(&InterruptController);
-
-	wlan_eth_setup_interrupt(&InterruptController);
-
-	Result = XIntc_Start(&InterruptController, XIN_REAL_MODE);
+	Result = wlan_lib_mailbox_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
-		warp_printf(PL_ERROR,"Failed to start XIntc\n");
+		xil_printf("Failed to set up wlan_lib mailbox interrupt\n");
+		return -1;
+	}
+
+	Result = wlan_eth_setup_interrupt(&InterruptController);
+	if (Result != XST_SUCCESS) {
+		warp_printf(PL_ERROR,"Failed to set up Ethernet interrupt\n");
 		return Result;
 	}
 
-	XIntc_Enable(&InterruptController, INTC_GPIO_INTERRUPT_ID);
-	XIntc_Enable(&InterruptController, UARTLITE_INT_IRQ_ID);
-	XIntc_Enable(&InterruptController, TMRCTR_INTERRUPT_ID);
+	// ***************************************************
+	// Start the interrupt controller
+	// ***************************************************
+	//wlan_mac_interrupt_start();
 
-
+	// ***************************************************
+	// Enable MicroBlaze exceptions
+	// ***************************************************
 	Xil_ExceptionInit();
-
 	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,(Xil_ExceptionHandler)XIntc_InterruptHandler, &InterruptController);
-
-	/* Enable non-critical exceptions */
 	Xil_ExceptionEnable();
 
-	XGpio_InterruptEnable(&Gpio, GPIO_INPUT_INTERRUPT);
-	XGpio_InterruptGlobalEnable(&Gpio);
-
-	XUartLite_SetSendHandler(&UartLite, SendHandler, &UartLite);
-	XUartLite_SetRecvHandler(&UartLite, RecvHandler, &UartLite);
-
-	XUartLite_EnableInterrupt(&UartLite);
-
-	XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
-
 	return 0;
-}
-
-void SendHandler(void *CallBackRef, unsigned int EventData){
-	xil_printf("send\n");
 }
 
 void RecvHandler(void *CallBackRef, unsigned int EventData){
@@ -393,7 +348,10 @@ void RecvHandler(void *CallBackRef, unsigned int EventData){
 	uart_callback(ReceiveBuffer[0]);
 	XUartLite_EnableInterrupt(&UartLite);
 	numBytesRx = XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
-	//xil_printf("numBytesRx = %d\n", numBytesRx);
+
+	if(numBytesRx>1){
+		xil_printf("numBytesRx = %d\n", numBytesRx);
+	}
 }
 
 void GpioIsr(void *InstancePtr){
@@ -413,12 +371,6 @@ void GpioIsr(void *InstancePtr){
 	return;
 }
 
-void wlan_mac_util_set_ipc_rx_callback(void(*callback)()){
-	ipc_rx_callback = (function_ptr_t)callback;
-
-	wlan_lib_setup_mailbox_rx_callback((void*)ipc_rx_callback);
-}
-
 void wlan_mac_util_set_pb_u_callback(void(*callback)()){
 	pb_u_callback = (function_ptr_t)callback;
 }
@@ -430,22 +382,6 @@ void wlan_mac_util_set_pb_d_callback(void(*callback)()){
 	pb_d_callback = (function_ptr_t)callback;
 }
 
-void wlan_mac_util_set_eth_rx_callback(void(*callback)()){
-	eth_rx_callback = (function_ptr_t)callback;
-}
-
-void wlan_mac_util_set_mpdu_tx_done_callback(void(*callback)()){
-	mpdu_tx_done_callback = (function_ptr_t)callback;
-}
-
-void wlan_mac_util_set_fcs_bad_rx_callback(void(*callback)()){
-	fcs_bad_rx_callback = (function_ptr_t)callback;
-}
-
-void wlan_mac_util_set_mpdu_rx_callback(void(*callback)()){
-	mpdu_rx_callback = (function_ptr_t)callback;
-}
-
 void wlan_mac_util_set_uart_rx_callback(void(*callback)()){
 	uart_callback = (function_ptr_t)callback;
 }
@@ -454,18 +390,12 @@ void wlan_mac_util_set_check_queue_callback(void(*callback)()){
 	check_queue_callback = (function_ptr_t)callback;
 }
 
-void wlan_mac_util_set_mpdu_accept_callback(void(*callback)()){
-	mpdu_tx_accept_callback = (function_ptr_t)callback;
-}
 
-void wlan_mac_util_set_eth_encap_mode(u8 mode){
-	eth_encap_mode = mode;
-}
 
 void gpio_timestamp_initialize(){
-	XGpio_Initialize(&GPIO_timestamp, TIMESTAMP_GPIO_DEVICE_ID);
-	XGpio_SetDataDirection(&GPIO_timestamp, TIMESTAMP_GPIO_LSB_CHAN, 0xFFFFFFFF);
-	XGpio_SetDataDirection(&GPIO_timestamp, TIMESTAMP_GPIO_MSB_CHAN, 0xFFFFFFFF);
+	XGpio_Initialize(&Gpio_timestamp, TIMESTAMP_GPIO_DEVICE_ID);
+	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_LSB_CHAN, 0xFFFFFFFF);
+	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_MSB_CHAN, 0xFFFFFFFF);
 }
 
 u64 get_usec_timestamp(){
@@ -473,37 +403,12 @@ u64 get_usec_timestamp(){
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
 
-	timestamp_high_u32 = XGpio_DiscreteRead(&GPIO_timestamp,TIMESTAMP_GPIO_MSB_CHAN);
-	timestamp_low_u32  = XGpio_DiscreteRead(&GPIO_timestamp,TIMESTAMP_GPIO_LSB_CHAN);
+	timestamp_high_u32 = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_MSB_CHAN);
+	timestamp_low_u32  = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_LSB_CHAN);
 	timestamp_u64      = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
 
 	return timestamp_u64;
 }
-
-/*
-void poll_schedule(){
-	u32 k;
-	u64 timestamp = get_usec_timestamp();
-
-	for(k = 0; k<SCHEDULER_NUM_EVENTS; k++){
-		if(scheduler_in_use[SCHEDULE_FINE][k] == 1){
-			if(timestamp > scheduler_timestamps[SCHEDULE_FINE][k]){
-				scheduler_in_use[SCHEDULE_FINE][k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
-				scheduler_callbacks[SCHEDULE_FINE][k]();
-			}
-		}
-	}
-
-	for(k = 0; k<SCHEDULER_NUM_EVENTS; k++){
-		if(scheduler_in_use[SCHEDULE_COARSE][k] == 1){
-			if(timestamp > scheduler_timestamps[SCHEDULE_COARSE][k]){
-				scheduler_in_use[SCHEDULE_COARSE][k] = 0; //Free up schedule element before calling callback in case that function wants to reschedule
-				scheduler_callbacks[SCHEDULE_COARSE][k]();
-			}
-		}
-	}
-}
-*/
 
 int wlan_mac_poll_tx_queue(u16 queue_sel){
 	int return_value = 0;;
@@ -910,7 +815,7 @@ int str2num(char* str){
 
 
 
-#ifdef _DEBUG_
+
 
 void print_wlan_mac_hw_info( wlan_mac_hw_info * info ) {
 	int i;
@@ -937,5 +842,4 @@ void print_wlan_mac_hw_info( wlan_mac_hw_info * info ) {
 
 }
 
-#endif
 
