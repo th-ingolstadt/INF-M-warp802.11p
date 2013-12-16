@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_lib.c
+// File   : wlan_mac_ipc_util.c
 // Authors: Patrick Murphy (murphpo [at] mangocomm.com)
 //			Chris Hunter (chunter [at] mangocomm.com)
 // License: Copyright 2013, Mango Communications. All rights reserved.
@@ -74,7 +74,7 @@ int wlan_lib_init () {
 
 #ifdef XPAR_INTC_0_DEVICE_ID
 
-int wlan_lib_setup_mailbox_interrupt(XIntc* intc){
+int wlan_lib_mailbox_setup_interrupt(XIntc* intc){
 	int Status;
 
 	Intc_ptr = intc;
@@ -96,7 +96,7 @@ int wlan_lib_setup_mailbox_interrupt(XIntc* intc){
 	return 0;
 }
 
-void wlan_lib_setup_mailbox_rx_callback( void(*callback)()){
+void wlan_lib_mailbox_set_rx_callback( void(*callback)()){
 	mailbox_rx_callback = (function_ptr_t)callback;
 }
 

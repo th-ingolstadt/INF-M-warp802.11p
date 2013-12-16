@@ -135,8 +135,8 @@ void nullCallback(void* param);
 
 
 #ifdef XPAR_INTC_0_DEVICE_ID
-int wlan_lib_setup_mailbox_interrupt(XIntc* intc);
-void wlan_lib_setup_mailbox_rx_callback( void(*callback)());
+int wlan_lib_mailbox_setup_interrupt(XIntc* intc);
+void wlan_lib_mailbox_set_rx_callback( void(*callback)());
 void MailboxIntrHandler(void *CallbackRef);
 #endif
 
