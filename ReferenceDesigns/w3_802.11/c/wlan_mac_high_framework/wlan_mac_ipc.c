@@ -38,17 +38,17 @@ function_ptr_t     mpdu_tx_done_callback;
 function_ptr_t     mpdu_rx_callback;
 function_ptr_t     fcs_bad_rx_callback;
 function_ptr_t     mpdu_tx_accept_callback;
-extern function_ptr_t     check_queue_callback;
+function_ptr_t     check_queue_callback;
 
 // 802.11 Transmit packet buffer
-extern u8                 tx_pkt_buf;
+extern u8          tx_pkt_buf;
 
 // Node information
-extern wlan_mac_hw_info   hw_info;
+wlan_mac_hw_info*   hw_info_ptr;
 
 // WARPNet information
 #ifdef USE_WARPNET_WLAN_EXP
-extern u8                 warpnet_initialized;
+u8                 warpnet_initialized;
 #endif
 
 
@@ -94,9 +94,13 @@ void wlan_mac_ipc_init( void ) {
 	fcs_bad_rx_callback     = (function_ptr_t)nullCallback;
 	mpdu_tx_done_callback   = (function_ptr_t)nullCallback;
 	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
+	check_queue_callback    = (function_ptr_t)nullCallback;
 	//create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
-
+#ifdef USE_WARPNET_WLAN_EXP
+	warpnet_initialized = 0;
+#endif
+	hw_info_ptr = wlan_mac_util_get_hw_info();
 }
 
 
@@ -114,6 +118,10 @@ void wlan_mac_util_set_mpdu_rx_callback(void(*callback)()){
 
 void wlan_mac_util_set_mpdu_accept_callback(void(*callback)()){
 	mpdu_tx_accept_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_util_set_check_queue_callback(void(*callback)()){
+	check_queue_callback = (function_ptr_t)callback;
 }
 
 
@@ -266,18 +274,18 @@ void process_ipc_msg_from_low( wlan_ipc_msg* msg ) {
 		case IPC_MBOX_HW_INFO:
 			// This message indicates CPU low is passing up node hardware information that only it has access to
 
-			temp_1 = hw_info.type;
-			temp_2 = hw_info.wn_exp_eth_device;
+			temp_1 = hw_info_ptr->type;
+			temp_2 = hw_info_ptr->wn_exp_eth_device;
 
 			// CPU Low updated the node's HW information
             //   NOTE:  this information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
-			memcpy((void*) &(hw_info), (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
+			memcpy((void*) hw_info_ptr, (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
 
-			hw_info.type              = temp_1;
-			hw_info.wn_exp_eth_device = temp_2;
+			hw_info_ptr->type              = temp_1;
+			hw_info_ptr->wn_exp_eth_device = temp_2;
 
 #ifdef _DEBUG_
-			print_wlan_mac_hw_info( & hw_info );
+			print_wlan_mac_hw_info( hw_info_ptr );
 #endif
 
 #ifdef USE_WARPNET_WLAN_EXP
@@ -285,7 +293,7 @@ void process_ipc_msg_from_low( wlan_ipc_msg* msg ) {
         	// Initialize WLAN Exp if it is being used
             if ( warpnet_initialized == 0 ) {
 
-                wlan_exp_node_init( hw_info.type, hw_info.serial_number, &hw_info.fpga_dna, hw_info.wn_exp_eth_device, &hw_info.hw_addr_wn );
+                wlan_exp_node_init( hw_info_ptr->type, hw_info_ptr->serial_number, &(hw_info_ptr->fpga_dna), hw_info_ptr->wn_exp_eth_device, &(hw_info_ptr->hw_addr_wn) );
 
                 warpnet_initialized = 1;
             }

@@ -177,8 +177,13 @@ typedef struct{
 #define LLC_TYPE_IP						0x0008
 #define LLC_TYPE_CUSTOM					0x9090
 
+
+
+void initialize_heap();
+
+
 void print_wlan_mac_hw_info( wlan_mac_hw_info * info );
-void wlan_mac_util_init_data();
+
 void wlan_mac_util_init();
 
 void gpio_timestamp_initialize();
@@ -189,7 +194,7 @@ void wlan_mac_util_set_pb_u_callback(void(*callback)());
 void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_util_set_uart_rx_callback(void(*callback)());
-void wlan_mac_util_set_check_queue_callback(void(*callback)());
+
 int wlan_mac_util_interrupt_init();
 
 void wlan_mac_util_finish_setup();
@@ -199,9 +204,9 @@ void write_hex_display(u8 val);
 void write_hex_display_dots(u8 dots_on);
 int memory_test();
 void write_hex_display_raw(u8 val1,u8 val2);
-int fmc_interrupt_init();
 void GpioIsr(void *InstancePtr);
 void SendHandler(void *CallBackRef, unsigned int EventData);
+wlan_mac_hw_info* wlan_mac_util_get_hw_info();
 void RecvHandler(void *CallBackRef, unsigned int EventData);
 void wlan_mac_util_set_fmc_ipc_rx_callback(void(*callback)());
 inline int wlan_mac_interrupt_start();

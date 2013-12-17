@@ -69,16 +69,10 @@ function_ptr_t     pb_u_callback;
 function_ptr_t     pb_m_callback;
 function_ptr_t     pb_d_callback;
 function_ptr_t     uart_callback;
-function_ptr_t     check_queue_callback;
 
 // Node information
 wlan_mac_hw_info   	hw_info;
 u8					dram_present;
-
-// WARPNet information
-#ifdef USE_WARPNET_WLAN_EXP
-u8                 warpnet_initialized;
-#endif
 
 // Memory Allocation Debugging
 static u32			num_malloc;
@@ -87,7 +81,7 @@ static u32			num_realloc;
 
 /******************************** Functions **********************************/
 
-void wlan_mac_util_init_data(){
+void initialize_heap(){
 	u32 data_size;
 	volatile u32* identifier = (u32*)INIT_DATA_BASEADDR;
 	data_size = 4*(&__data_end - &__data_start);
@@ -118,7 +112,7 @@ void wlan_mac_util_init_data(){
 
 
 
-void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
+void wlan_mac_util_init(){
 	int            Status;
     u32            i;
 	u32            queue_len;
@@ -127,13 +121,17 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	tx_frame_info* tx_mpdu;
 
 	// ***************************************************
+	// Initialize the utility library
+	// ***************************************************
+	wlan_lib_init();
+
+	// ***************************************************
     // Initialize callbacks and global state variables
 	// ***************************************************
 	pb_u_callback           = (function_ptr_t)nullCallback;
 	pb_m_callback           = (function_ptr_t)nullCallback;
 	pb_d_callback           = (function_ptr_t)nullCallback;
 	uart_callback           = (function_ptr_t)nullCallback;
-	check_queue_callback    = (function_ptr_t)nullCallback;
 
 	wlan_lib_mailbox_set_rx_callback((void*)ipc_rx);
 
@@ -239,20 +237,12 @@ void wlan_mac_util_init( u32 type, u32 eth_dev_num ){
 	wlan_eth_init();
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
-
-    // Get the type of node from the input parameter
-    hw_info.type              = type;
-    hw_info.wn_exp_eth_device = eth_dev_num;
-    
-#ifdef USE_WARPNET_WLAN_EXP
-    // We cannot initialize WARPNet until after the lower CPU sends all the HW information to us through the IPC call
-    warpnet_initialized = 0;
-#endif
     
 }
 
 void wlan_mac_util_finish_setup(){
-	fmc_interrupt_init();
+	//TODO: This function should block until FMC reports ready
+	wlan_fmc_pkt_mailbox_setup_interrupt(&InterruptController);
 	wlan_mac_interrupt_start();
 }
 
@@ -262,12 +252,6 @@ inline int wlan_mac_interrupt_start(){
 
 inline void wlan_mac_interrupt_stop(){
 	XIntc_Stop(&InterruptController);
-}
-
-int fmc_interrupt_init(){
-	//TODO: This function should block until FMC reports ready
-	wlan_fmc_pkt_mailbox_setup_interrupt(&InterruptController);
-	return 0;
 }
 
 int wlan_mac_util_interrupt_init(){
@@ -340,6 +324,10 @@ int wlan_mac_util_interrupt_init(){
 	return 0;
 }
 
+wlan_mac_hw_info* wlan_mac_util_get_hw_info(){
+	return &hw_info;
+}
+
 void RecvHandler(void *CallBackRef, unsigned int EventData){
 	//FIXME: Handle multiple rx bytes
 	u32 numBytesRx;
@@ -385,12 +373,6 @@ void wlan_mac_util_set_pb_d_callback(void(*callback)()){
 void wlan_mac_util_set_uart_rx_callback(void(*callback)()){
 	uart_callback = (function_ptr_t)callback;
 }
-
-void wlan_mac_util_set_check_queue_callback(void(*callback)()){
-	check_queue_callback = (function_ptr_t)callback;
-}
-
-
 
 void gpio_timestamp_initialize(){
 	XGpio_Initialize(&Gpio_timestamp, TIMESTAMP_GPIO_DEVICE_ID);

@@ -15,7 +15,7 @@
 #include "wlan_exp_common.h"
 
 
-#ifdef USE_WARPNET_WLAN_EXP
+
 
 // Xilinx / Standard library includes
 
@@ -29,8 +29,17 @@
 
 #include "wlan_mac_util.h"
 
+wlan_mac_hw_info* hw_info_ptr;
 
+void wlan_mac_exp_configure(u32 type, u32 eth_dev_num){
+	hw_info_ptr = wlan_mac_util_get_hw_info();
 
+	hw_info_ptr->type              = type;
+	hw_info_ptr->wn_exp_eth_device = eth_dev_num;
+
+}
+
+#ifdef USE_WARPNET_WLAN_EXP
 
 /*************************** Constant Definitions ****************************/
 

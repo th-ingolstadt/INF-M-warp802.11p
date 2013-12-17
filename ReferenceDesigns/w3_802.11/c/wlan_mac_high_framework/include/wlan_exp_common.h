@@ -175,7 +175,7 @@ typedef struct {
 // 
 // Define WARPNet Common Methods
 //
-
+void wlan_mac_exp_configure(u32 type, u32 eth_dev_num);
 void usleep( unsigned int duration );
 
 #ifdef _DEBUG_
