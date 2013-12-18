@@ -28,7 +28,7 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_ltg.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_event_log.h"
@@ -100,7 +100,6 @@ void uart_rx(u8 rxByte){ };
 
 #endif
 
-
 /******************************** Functions **********************************/
 
 
@@ -108,7 +107,8 @@ int main(){
 
 	//This function should be executed first. It will zero out memory, and if that
 	//memory is used before calling this function, unexpected results may happen.
-	wlan_mac_util_init_data();
+	initialize_heap();
+	wlan_mac_high_init();
 
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
@@ -118,13 +118,9 @@ int main(){
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 
 #ifdef USE_WARPNET_WLAN_EXP
-	node_info_set_max_assn( MAX_ASSOCIATIONS );
+	//node_info_set_max_assn( MAX_ASSOCIATIONS );
+	wlan_mac_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
 #endif
-
-	// Initialize the utility library
-	wlan_lib_init();
-	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
-	wlan_mac_util_init( WLAN_EXP_TYPE, WLAN_EXP_ETH );
 
 	dl_list_init(&association_table);
 	max_queue_size = min((queue_total_size()- eth_bd_total_size()) / (association_table.length+1),MAX_PER_FLOW_QUEUE);
@@ -139,9 +135,10 @@ int main(){
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
     wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
+    wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
 
     // Initialize interrupts
-    wlan_mac_util_interrupt_init();
+    wlan_mac_high_interrupt_init();
 
     // Wait for CPU Low to initialize
 	while( is_cpu_low_initialized() == 0 ){
@@ -202,16 +199,16 @@ int main(){
 #endif
 
 
-	wlan_mac_util_finish_setup();
+	wlan_mac_high_interrupt_start();
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
 
 #ifdef USE_WARPNET_WLAN_EXP
-		//wlan_mac_interrupt_stop();
+		wlan_mac_high_interrupt_stop();
 		transport_poll( WLAN_EXP_ETH );
-		//wlan_mac_interrupt_start();
+		wlan_mac_high_interrupt_start();
 #endif
 	}
 	return -1;

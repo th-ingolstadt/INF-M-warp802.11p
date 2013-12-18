@@ -26,7 +26,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_events.h"
 #include "wlan_mac_ltg.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_ap.h"
