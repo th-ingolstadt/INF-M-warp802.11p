@@ -16,7 +16,7 @@
 
 
 // WLAN includes
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -176,7 +176,6 @@ typedef struct {
 // Define WARPNet Common Methods
 //
 void wlan_mac_exp_configure(u32 type, u32 eth_dev_num);
-void usleep( unsigned int duration );
 
 #ifdef _DEBUG_
 void print_wn_parameters( wn_tag_parameter *param, int num_params );

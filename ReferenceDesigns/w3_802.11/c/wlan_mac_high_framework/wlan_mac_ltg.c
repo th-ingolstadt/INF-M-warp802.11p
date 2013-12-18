@@ -17,7 +17,7 @@
 #include "wlan_mac_dl_list.h"
 
 #include "wlan_mac_ipc_util.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
 

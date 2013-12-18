@@ -17,7 +17,7 @@
 #include "xparameters.h"
 #include "stdlib.h"
 #include "xil_types.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 #include "wlan_mac_schedule.h"
 #include "xtmrctr.h"
 #include "xil_exception.h"

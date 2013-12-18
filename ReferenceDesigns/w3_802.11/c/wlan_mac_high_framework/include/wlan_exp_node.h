@@ -13,7 +13,7 @@
 
 
 // WLAN MAC includes for common functions
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 
 
 /*************************** Constant Definitions ****************************/

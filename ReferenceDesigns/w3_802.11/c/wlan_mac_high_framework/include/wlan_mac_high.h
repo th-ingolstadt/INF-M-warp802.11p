@@ -180,11 +180,18 @@ typedef struct{
 
 
 void initialize_heap();
+void wlan_mac_high_init();
+int wlan_mac_high_interrupt_init();
+inline int wlan_mac_high_interrupt_start();
+inline void wlan_mac_high_interrupt_stop();
+wlan_mac_hw_info* wlan_mac_high_get_hw_info();
+void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
+void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 
 
-void print_wlan_mac_hw_info( wlan_mac_hw_info * info );
 
-void wlan_mac_util_init();
+
+
 
 void gpio_timestamp_initialize();
 
@@ -195,9 +202,7 @@ void wlan_mac_util_set_pb_m_callback(void(*callback)());
 void wlan_mac_util_set_pb_d_callback(void(*callback)());
 void wlan_mac_util_set_uart_rx_callback(void(*callback)());
 
-int wlan_mac_util_interrupt_init();
 
-void wlan_mac_util_finish_setup();
 inline void poll_schedule();
 inline int wlan_mac_poll_tx_queue(u16 queue_sel);
 void write_hex_display(u8 val);
@@ -206,11 +211,9 @@ int memory_test();
 void write_hex_display_raw(u8 val1,u8 val2);
 void GpioIsr(void *InstancePtr);
 void SendHandler(void *CallBackRef, unsigned int EventData);
-wlan_mac_hw_info* wlan_mac_util_get_hw_info();
-void RecvHandler(void *CallBackRef, unsigned int EventData);
+
 void wlan_mac_util_set_fmc_ipc_rx_callback(void(*callback)());
-inline int wlan_mac_interrupt_start();
-inline void wlan_mac_interrupt_stop();
+
 u8* get_eeprom_mac_addr();
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
@@ -229,6 +232,8 @@ int wlan_mac_cdma_start_transfer(void* dest, void* src, u32 size);
 void wlan_mac_cdma_finish_transfer();
 void setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
 void setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  );
+
+void usleep(u64 delay);
 
 
 

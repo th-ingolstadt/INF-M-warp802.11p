@@ -53,7 +53,7 @@
 // WLAN includes
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_events.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 
 
 /*************************** Constant Definitions ****************************/

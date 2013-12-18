@@ -19,7 +19,7 @@
 #include "xparameters.h"
 
 #include "wlan_mac_ipc_util.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 #include "wlan_mac_ipc.h"
 
 #include "wlan_exp_common.h"
@@ -100,7 +100,7 @@ void wlan_mac_ipc_init( void ) {
 #ifdef USE_WARPNET_WLAN_EXP
 	warpnet_initialized = 0;
 #endif
-	hw_info_ptr = wlan_mac_util_get_hw_info();
+	hw_info_ptr = wlan_mac_high_get_hw_info();
 }
 
 

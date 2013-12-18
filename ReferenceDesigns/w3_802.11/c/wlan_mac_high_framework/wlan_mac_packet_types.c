@@ -16,6 +16,7 @@
 #include "xintc.h"
 
 //WARP includes
+#include "wlan_mac_high.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_packet_types.h"
@@ -237,7 +238,6 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
 	u8 num_rates;
-	u32 i;
 
 	#define NUM_STA_SUPPORTED_RATES 8
 	u8 sta_supported_rates[NUM_STA_SUPPORTED_RATES] = {0x0c, 0x12, 0x18, 0x24, 0x30, 0x48, 0x60, 0x6c};
@@ -404,8 +404,6 @@ int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 fl
 u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_other, u8* rate_other){
 
 	u32 i,j;
-	char str[4];
-
 	u8 num_rate_other_temp = num_rate_other;
 	u8* rate_other_temp = wlan_malloc(num_rate_other);
 
@@ -430,10 +428,6 @@ u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_o
 			}
 		}
 	}
-
-//	for(i = 0; i < num_rate_other_temp; i++ ){
-//		xil_printf("0x%x\n", rate_other_temp[i]);
-//	}
 
 	memcpy(rate_vec_out + num_rate_basic, rate_other_temp, num_rate_other_temp);
 

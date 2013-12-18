@@ -14,7 +14,7 @@
 #include "stdlib.h"
 #include "xintc.h"
 #include "xil_exception.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 #include "xmbox.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_eth_util.h"

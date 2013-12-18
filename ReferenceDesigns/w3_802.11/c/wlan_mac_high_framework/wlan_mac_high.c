@@ -25,7 +25,7 @@
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_fmc_pkt.h"
@@ -59,7 +59,7 @@ XUartLite          UartLite;
 XAxiCdma           cdma_inst;
 
 // UART interface
-u8                 ReceiveBuffer[UART_BUFFER_SIZE];
+u8                 uart_rx_buffer[UART_BUFFER_SIZE];
 
 // 802.11 Transmit packet buffer
 u8                 tx_pkt_buf;
@@ -112,7 +112,7 @@ void initialize_heap(){
 
 
 
-void wlan_mac_util_init(){
+void wlan_mac_high_init(){
 	int            Status;
     u32            i;
 	u32            queue_len;
@@ -240,21 +240,7 @@ void wlan_mac_util_init(){
     
 }
 
-void wlan_mac_util_finish_setup(){
-	//TODO: This function should block until FMC reports ready
-	wlan_fmc_pkt_mailbox_setup_interrupt(&InterruptController);
-	wlan_mac_interrupt_start();
-}
-
-inline int wlan_mac_interrupt_start(){
-	return XIntc_Start(&InterruptController, XIN_REAL_MODE);
-}
-
-inline void wlan_mac_interrupt_stop(){
-	XIntc_Stop(&InterruptController);
-}
-
-int wlan_mac_util_interrupt_init(){
+int wlan_mac_high_interrupt_init(){
 	int Result;
 
 	// ***************************************************
@@ -283,10 +269,8 @@ int wlan_mac_util_interrupt_init(){
 		return Result;
 	}
 	XIntc_Enable(&InterruptController, UARTLITE_INT_IRQ_ID);
-	XUartLite_SetRecvHandler(&UartLite, RecvHandler, &UartLite);
+	XUartLite_SetRecvHandler(&UartLite, wlan_mac_high_uart_rx_handler, &UartLite);
 	XUartLite_EnableInterrupt(&UartLite);
-	XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
-
 
 	// ***************************************************
 	// Connect interrupt devices in other subsystems
@@ -309,6 +293,12 @@ int wlan_mac_util_interrupt_init(){
 		return Result;
 	}
 
+	wlan_fmc_pkt_mailbox_setup_interrupt(&InterruptController);
+	if (Result != XST_SUCCESS) {
+		warp_printf(PL_ERROR,"Failed to set up FMC Pkt interrupt\n");
+		return Result;
+	}
+
 	// ***************************************************
 	// Start the interrupt controller
 	// ***************************************************
@@ -324,22 +314,47 @@ int wlan_mac_util_interrupt_init(){
 	return 0;
 }
 
-wlan_mac_hw_info* wlan_mac_util_get_hw_info(){
+inline int wlan_mac_high_interrupt_start(){
+	return XIntc_Start(&InterruptController, XIN_REAL_MODE);
+}
+
+inline void wlan_mac_high_interrupt_stop(){
+	XIntc_Stop(&InterruptController);
+}
+
+wlan_mac_hw_info* wlan_mac_high_get_hw_info(){
 	return &hw_info;
 }
 
-void RecvHandler(void *CallBackRef, unsigned int EventData){
-	//FIXME: Handle multiple rx bytes
-	u32 numBytesRx;
+void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info ) {
+	int i;
 
-	XUartLite_DisableInterrupt(&UartLite);
-	uart_callback(ReceiveBuffer[0]);
-	XUartLite_EnableInterrupt(&UartLite);
-	numBytesRx = XUartLite_Recv(&UartLite, ReceiveBuffer, UART_BUFFER_SIZE);
+	xil_printf("WLAN MAC HW INFO:  \n");
+	xil_printf("  Type             :  0x%8x\n", info->type);
+	xil_printf("  Serial Number    :  %d\n",    info->serial_number);
+	xil_printf("  FPGA DNA         :  0x%8x  0x%8x\n", info->fpga_dna[1], info->fpga_dna[0]);
+	xil_printf("  WLAN EXP ETH Dev :  %d\n",    info->wn_exp_eth_device);
 
-	if(numBytesRx>1){
-		xil_printf("numBytesRx = %d\n", numBytesRx);
+	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wn[0]);
+	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
+		xil_printf(":%02x", info->hw_addr_wn[i]);
 	}
+	xil_printf("\n");
+
+	xil_printf("  WLAN HW Addr     :  %02x",    info->hw_addr_wlan[0]);
+	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
+		xil_printf(":%02x", info->hw_addr_wlan[i]);
+	}
+	xil_printf("\n");
+
+	xil_printf("END \n");
+
+}
+
+
+void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData){
+	XUartLite_Recv(&UartLite, uart_rx_buffer, UART_BUFFER_SIZE);
+	uart_callback(uart_rx_buffer[0]);
 }
 
 void GpioIsr(void *InstancePtr){
@@ -680,8 +695,6 @@ u8 valid_tagged_rate(u8 rate){
 }
 
 
-
-
 void tagged_rate_to_readable_rate(u8 rate, char* str){
 	#define NUM_VALID_RATES 12
 	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
@@ -791,37 +804,14 @@ int str2num(char* str){
 	return return_value;
 }
 
-
-
-
-
-
-
-
-
-void print_wlan_mac_hw_info( wlan_mac_hw_info * info ) {
-	int i;
-
-	xil_printf("WLAN MAC HW INFO:  \n");
-	xil_printf("  Type             :  0x%8x\n", info->type);
-	xil_printf("  Serial Number    :  %d\n",    info->serial_number);
-	xil_printf("  FPGA DNA         :  0x%8x  0x%8x\n", info->fpga_dna[1], info->fpga_dna[0]);
-	xil_printf("  WLAN EXP ETH Dev :  %d\n",    info->wn_exp_eth_device);
-
-	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wn[0]);
-	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
-		xil_printf(":%02x", info->hw_addr_wn[i]);
-	}
-	xil_printf("\n");
-
-	xil_printf("  WLAN HW Addr     :  %02x",    info->hw_addr_wlan[0]);
-	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
-		xil_printf(":%02x", info->hw_addr_wlan[i]);
-	}
-	xil_printf("\n");
-
-	xil_printf("END \n");
-
+void usleep(u64 delay){
+	u64 timestamp = get_usec_timestamp();
+	while(get_usec_timestamp() < (timestamp+delay)){}
+	return;
 }
+
+
+
+
 
 

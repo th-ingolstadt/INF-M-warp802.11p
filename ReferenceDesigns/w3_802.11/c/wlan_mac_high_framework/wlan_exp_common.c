@@ -27,12 +27,12 @@
 
 // WLAN includes
 
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 
 wlan_mac_hw_info* hw_info_ptr;
 
 void wlan_mac_exp_configure(u32 type, u32 eth_dev_num){
-	hw_info_ptr = wlan_mac_util_get_hw_info();
+	hw_info_ptr = wlan_mac_high_get_hw_info();
 
 	hw_info_ptr->type              = type;
 	hw_info_ptr->wn_exp_eth_device = eth_dev_num;
@@ -63,38 +63,6 @@ void wlan_exp_print_station_status( station_info * stations, unsigned int num_st
 
 
 /**************************** Common Functions *******************************/
-
-
-
-/*****************************************************************************/
-/**
-* WARPNet WLAN Exp usleep
-*
-* This function will wait for a set amount of microseconds before returning
-*
-* @param    duration - Sleep for "duration" microseconds
-*
-* @return	None.
-*
-* @note		None.
-*
-******************************************************************************/
-
-void usleep( unsigned int duration ){
-
-	u64 time;
-	u64 end_time;
-
-	time     = get_usec_timestamp();
-	end_time = time + duration;
-
-    while( time < end_time ) {
-	    time = get_usec_timestamp();
-    }
-
-}
-
-
 
 
 /*****************************************************************************/
