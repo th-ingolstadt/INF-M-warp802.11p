@@ -29,7 +29,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_events.h"
 #include "wlan_mac_ltg.h"
-#include "wlan_mac_util.h"
+#include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_sta.h"
@@ -50,7 +50,7 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_STATION
 
-#define  WLAN_CHANNEL                  1
+#define  WLAN_CHANNEL                  4
 
 
 
@@ -124,7 +124,7 @@ int main(){
 
 	//This function should be executed first. It will zero out memory, and if that
 	//memory is used before calling this function, unexpected results may happen.
-	wlan_mac_util_init_data();
+	initialize_heap();
 
     // Initialize AP list
 	num_ap_list = 0;
@@ -146,14 +146,12 @@ int main(){
     // Set Global variables
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 
-#ifdef USE_WARPNET_WLAN_EXP
-	node_info_set_max_assn( 1 );
-#endif
-
 	// Initialize the utility library
-	wlan_lib_init();
-	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
-    wlan_mac_util_init( WLAN_EXP_TYPE, WLAN_EXP_ETH );
+    wlan_mac_high_init();
+#ifdef USE_WARPNET_WLAN_EXP
+	//node_info_set_max_assn( 1 );
+	wlan_mac_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
+#endif
 
 
 	// Initialize callbacks
@@ -165,9 +163,11 @@ int main(){
 	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
 	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
+	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
+
 
     // Initialize interrupts
-	wlan_mac_util_interrupt_init();
+	wlan_mac_high_interrupt_init();
 
 
 	// Initialize Association Table
@@ -239,16 +239,16 @@ int main(){
 #endif
 
 
-	wlan_mac_util_finish_setup();
+	wlan_mac_high_interrupt_start();
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
 
 #ifdef USE_WARPNET_WLAN_EXP
-		wlan_mac_interrupt_stop();
+		wlan_mac_high_interrupt_stop();
 		transport_poll( WLAN_EXP_ETH );
-		wlan_mac_interrupt_start();
+		wlan_mac_high_interrupt_start();
 #endif
 	}
 	return -1;
