@@ -100,7 +100,9 @@ int main(){
 	userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
 	userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
 
+	radio_controller_setTxDelays(RC_BASEADDR, 255, 255, 255, 255);//FIXME
 	status = w3_node_init();
+
 
 	if(status != 0) {
 		xil_printf("Error in w3_node_init()! Exiting\n");
@@ -533,8 +535,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
+	//DEBUG FIXME
 	wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
-	xil_printf("frame_transmit(%d,%d,%d), (mpdu_info->flags) = 0x%08x\n", pkt_buf, rate, length, (mpdu_info->flags));
+	//xil_printf("frame_transmit(%d,%d,%d), (mpdu_info->flags) = 0x%08x\n", pkt_buf, rate, length, (mpdu_info->flags));
 
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
