@@ -22,10 +22,21 @@
 
 
 // **********************************************************************
+// Switches for various modes
+//
+
 // Enable the WLAN UART Menu
 //    NOTE:  To enable the WLAN Exp framework, please modify wlan_exp_common.h
 #define WLAN_USE_UART_MENU
+
+// Allow Ethernet transmission of packets received by an associated station
+// destined for another associated station
 //#define ALLOW_ETH_TX_OF_WIRELESS_TX
+
+// Allow promiscuous statistics kept for unassociated stations. Note: this mode
+// has an unbounded memory usage depending on the number of devices surrounding the
+// AP.
+#define ALLOW_PROMISC_STATISTICS
 
 // **********************************************************************
 // UART Menu Modes
@@ -41,6 +52,9 @@
 //
 #define MAX_RETRY                      7
 #define MAX_PER_FLOW_QUEUE	           150
+#define MAX_NUM_ASSOC				   32
+//50
+#define MAX_NUM_PROMISC_STATS		   3 //TODO
 
 
 // **********************************************************************
@@ -126,10 +140,8 @@ void reset_station_statistics();
 u32  deauthenticate_station( station_info* station );
 void deauthenticate_stations();
 
-station_info* add_association(dl_list* assoc_tbl, u8* addr);
-int remove_association(dl_list* assoc_tbl, u8* addr);
-station_info* find_station_AID(dl_list* assoc_tbl, u32 aid);
-station_info* find_station_ADDR(dl_list* assoc_tbl, u8* addr);
+station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
+int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
 u8 is_valid_association(dl_list* assoc_tbl, station_info* station);
 
 void animate_hex();
@@ -144,6 +156,7 @@ void print_queue_status();
 void print_station_status();
 void ltg_cleanup(u32 id, void* callback_arg);
 void start_periodic_print();
+void print_all_observed_statistics();
 void stop_periodic_print();
 int is_qwerty_row(u8 rxByte);
 int qwerty_row_to_number(u8 rxByte);
