@@ -53,6 +53,7 @@ typedef struct{
 // Status Codes: Table 7-23 in 802.11-2007
 #define STATUS_SUCCESS 0
 #define STATUS_AUTH_REJECT_CHALLENGE_FAILURE 15
+#define STATUS_REJECT_TOO_MANY_ASSOCIATIONS 17
 
 #define wlan_create_beacon_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_BEACON, common, beacon_interval, ssid_len, ssid, chan)
 #define wlan_create_probe_resp_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, common, beacon_interval, ssid_len, ssid, chan)

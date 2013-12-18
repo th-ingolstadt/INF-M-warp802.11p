@@ -357,6 +357,49 @@ void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData){
 	uart_callback(uart_rx_buffer[0]);
 }
 
+station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
+	u32 i;
+	station_info* curr_station_info = (station_info*)(list->first);
+
+	for( i = 0; i < list->length; i++){
+		if(curr_station_info->AID == aid){
+			return curr_station_info;
+		} else {
+			curr_station_info = station_info_next(curr_station_info);
+		}
+	}
+	return NULL;
+}
+
+station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
+	u32 i;
+	station_info* curr_station_info = (station_info*)(list->first);
+
+	for( i = 0; i < list->length; i++){
+		if(wlan_addr_eq(curr_station_info->addr, addr)){
+			return curr_station_info;
+		} else {
+			curr_station_info = station_info_next(curr_station_info);
+		}
+	}
+	return NULL;
+}
+
+statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
+	u32 i;
+	statistics* curr_statistics = (statistics*)(list->first);
+
+	for( i = 0; i < list->length; i++){
+		if(wlan_addr_eq(curr_statistics->addr, addr)){
+			return curr_statistics;
+		} else {
+			curr_statistics = statistics_next(curr_statistics);
+		}
+	}
+	return NULL;
+}
+
+
 void GpioIsr(void *InstancePtr){
 	XGpio *GpioPtr = (XGpio *)InstancePtr;
 	u32 gpio_read;
@@ -430,11 +473,13 @@ int wlan_mac_poll_tx_queue(u16 queue_sel){
 }
 
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
-	(station->num_tx_total)++;
-	(station->num_retry) += (frame->retry_count);
+	(station->stats->num_tx_total)++;
+	(station->stats->num_retry) += (frame->retry_count);
 	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
-		(station->num_tx_success)++;
-		(station->rx_timestamp = get_usec_timestamp());
+		(station->stats->num_tx_success)++;
+		//If this transmission was successful, then we have implicitly received an
+		//ACK for it. So, we should update the last RX timestamp
+		(station->rx.last_timestamp = get_usec_timestamp());
 	}
 }
 
@@ -478,14 +523,28 @@ void* wlan_malloc(u32 size){
 	} else {
 		num_malloc++;
 	}
-
 	return return_value;
 }
+
+void* wlan_calloc(u32 size){
+	//This is just a simple wrapper around calloc to aid in debugging memory leak issues
+	void* return_value;
+	return_value = wlan_malloc(size);
+
+	if(return_value == NULL){
+	} else {
+		memset(return_value, 0 , size);
+	}
+	return return_value;
+}
+
 
 void* wlan_realloc(void* addr, u32 size){
 	//This is just a simple wrapper around realloc to aid in debugging memory leak issues
 	void* return_value;
 	return_value = realloc(addr, size);
+
+	//xil_printf("REALLOC 0x%08x %d bytes\n", return_value, size);
 
 	if(return_value == NULL){
 		xil_printf("realloc error. Try increasing heap size in linker script.\n");
@@ -499,7 +558,9 @@ void* wlan_realloc(void* addr, u32 size){
 
 void wlan_free(void* addr){
 	//This is just a simple wrapper around free to aid in debugging memory leak issues
+
 	//xil_printf("FREE 0x%08x\n", addr);
+
 	free(addr);
 	num_free++;
 }
@@ -508,10 +569,10 @@ u8 wlan_mac_util_get_tx_rate(station_info* station){
 
 	u8 return_value;
 
-	if(((station->tx_rate) >= WLAN_MAC_RATE_6M) && ((station->tx_rate) <= WLAN_MAC_RATE_54M)){
-		return_value = station->tx_rate;
+	if(((station->tx.rate) >= WLAN_MAC_RATE_6M) && ((station->tx.rate) <= WLAN_MAC_RATE_54M)){
+		return_value = station->tx.rate;
 	} else {
-		xil_printf("Station 0x%08x has invalid rate selection (%d), defaulting to WLAN_MAC_RATE_6M\n",station,station->tx_rate);
+		xil_printf("Station 0x%08x has invalid rate selection (%d), defaulting to WLAN_MAC_RATE_6M\n",station,station->tx.rate);
 		return_value = WLAN_MAC_RATE_6M;
 	}
 

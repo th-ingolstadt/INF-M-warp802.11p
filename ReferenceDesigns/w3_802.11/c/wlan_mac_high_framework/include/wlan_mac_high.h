@@ -69,18 +69,43 @@
 #define MAX_EVENT_LOG -1
 
 typedef struct{
+	u64     last_timestamp;
+	u8      last_seq;
+	char    last_power;
+	u8      last_rate; 	//TODO: fill in
+	u8      reserved;
+} rx_info;
+
+typedef struct{
+	u8      rate;
+	u8      antenna_mode;
+	u8	    max_retry;
+	u8      reserved;
+} tx_params;
+
+typedef struct{
 	dl_node node;
-	u16 AID;
-	u16 seq;
-	u8 addr[6];
-	u8 tx_rate;
-	char last_rx_power;
-	u64 rx_timestamp;
-	u32 num_tx_total;
-	u32 num_tx_success;
-	u32 num_retry;
-	u32 num_rx_success;
-	u32 num_rx_bytes;
+	u64     last_timestamp;
+	u8      addr[6];
+	u32     num_tx_total;
+	u32     num_tx_success;
+	u32     num_retry;
+	u32     num_rx_success;
+	u32     num_rx_bytes;
+} statistics;
+
+//Helper macros for traversing the doubly-linked list
+#define statistics_next(x) ( (statistics*)dl_node_next(&(x->node)) )
+#define statistics_prev(x) ( (statistics*)dl_node_prev(&(x->node)) )
+
+typedef struct{
+	dl_node     node;
+	u8          addr[6];
+	u16         AID;
+	u32			flags; //TODO - Disable assoc check
+	rx_info     rx;
+	tx_params   tx;
+	statistics* stats;
 } station_info;
 
 //Helper macros for traversing the doubly-linked list
@@ -187,6 +212,9 @@ inline void wlan_mac_high_interrupt_stop();
 wlan_mac_hw_info* wlan_mac_high_get_hw_info();
 void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
 void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
+station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
+station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
+statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
 
 
 
@@ -219,6 +247,7 @@ u8* get_eeprom_mac_addr();
 void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
 void wlan_display_mallinfo();
 void* wlan_malloc(u32 size);
+void* wlan_calloc(u32 size);
 void* wlan_realloc(void* addr, u32 size);
 void wlan_free(void* addr);
 u8 wlan_mac_util_get_tx_rate(station_info* station);
