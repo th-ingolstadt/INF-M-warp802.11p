@@ -60,7 +60,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -105,14 +105,15 @@ void uart_rx(u8 rxByte){ };
 
 
 int main(){
+	xil_printf("\f----- wlan_mac_ap -----\n");
+	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
 	//This function should be executed first. It will zero out memory, and if that
 	//memory is used before calling this function, unexpected results may happen.
 	initialize_heap();
 	wlan_mac_high_init();
 
-	xil_printf("\f----- wlan_mac_ap -----\n");
-	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
+
 
     // Set Global variables
 	perma_assoc_mode     = 0;
@@ -148,31 +149,24 @@ int main(){
 		xil_printf("waiting on CPU_LOW to boot\n");
 	};
 
-
-
 	// CPU Low will pass HW information to CPU High as part of the boot process
 	//   - Get necessary HW information
 	memcpy((void*) &(eeprom_mac_addr[0]), (void*) get_eeprom_mac_addr(), 6);
-
 
     // Set Header information
 	tx_header_common.address_2 = &(eeprom_mac_addr[0]);
 	tx_header_common.seq_num   = 0;
 
-
     // Initialize hex display
 	write_hex_display(0);
-
 
 	// Set up channel
 	mac_param_chan = WLAN_CHANNEL;
 	set_mac_channel( mac_param_chan );
 
-
 	// Set SSID
 	access_point_ssid = wlan_malloc(strlen(default_AP_SSID)+1);
 	strcpy(access_point_ssid,default_AP_SSID);
-
 
     // Schedule all events
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
