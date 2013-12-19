@@ -109,14 +109,6 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 	u64 timestamp;
 	u32 id;
 
-	//TODO:
-	// - add support for num_calls
-	// - add delay to structure so poll can reschedule
-	// - pass ID into callback during poll
-	// - allow poll to kill an event if num_calls = 0
-	//       ^ this allows an event to effectively be cancelled within the context of the callback if it is set to 0
-	// - provide a user function that returns the wlan_sched* when provided an ID
-
 	wlan_sched* sched_ptr = wlan_malloc(sizeof(wlan_sched));
 
 	if(sched_ptr == NULL){
