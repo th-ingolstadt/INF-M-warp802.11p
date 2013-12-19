@@ -371,7 +371,7 @@ inline void wlan_tx_buffer_sel(u8 n) {
 	// are initiated via wlan_tx_start(); normal MAC transmissions will use
 	// the mac_hw Tx functions, which override this pkt buf selection
 
-	Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, n);
+	Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & ~0xF) | (n&0xF)) );
 	return;
 }
 

@@ -527,7 +527,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 	//if(rate == WLAN_PHY_RATE_BPSK12) REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 
-	u32 temp;
+	//u32 temp;
 
 	u8 req_timeout;
 	u16 n_slots;
@@ -536,7 +536,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
 	//DEBUG FIXME
-	wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
+	//wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
 	//xil_printf("frame_transmit(%d,%d,%d), (mpdu_info->flags) = 0x%08x\n", pkt_buf, rate, length, (mpdu_info->flags));
 
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
@@ -548,11 +548,16 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 	wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
-	temp = Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET));
+	//temp = Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET));
 
 	wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
 
+	//FIXME
+	//if(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_PHY_TX_ACTIVE){
+	//	xil_printf("err: phy is active\n");
+	//}
 
+	//FIXME
 
 	//Submit the MPDU for transmission
 	wlan_mac_MPDU_tx_start(1);
@@ -563,9 +568,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 		tx_status = wlan_mac_get_status();
 		//DEBUG
-		if(temp != WLAN_TX_SIGNAL_CALC(rate, (length + WLAN_PHY_FCS_NBYTES))){
-			xil_printf("ERR: SIGNAL FIELD CHANGED -- 0x%08x -> 0x%08x\n", WLAN_TX_SIGNAL_CALC(rate, length), temp);
-		}
+		//if(Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET)) != WLAN_TX_SIGNAL_CALC(rate, (length + WLAN_PHY_FCS_NBYTES))){
+		//	xil_printf("ERR: SIGNAL FIELD CHANGED -- 0x%08x -> 0x%08x\n", WLAN_TX_SIGNAL_CALC(rate, length), Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET)));
+		//}
 		//DEBUG
 		//TODO: This is a software fix for a MAC_DCF_HW race condition
 		//if((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) || ((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_STATE)==WLAN_MAC_STATUS_MPDU_TX_STATE_DONE)) {
