@@ -176,9 +176,7 @@ int main(){
 
     // Schedule all events
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
-
-	//FIXME: Temporarily disabled
-	//wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
+	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
 	animation_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ANIMATION_RATE_US, SCHEDULE_REPEAT_FOREVER, (void*)animate_hex);
 
@@ -225,21 +223,12 @@ void check_tx_queue(){
 	station_info* curr_station_info;
 
 	if( is_cpu_low_ready() ){
-
 		curr_station_info = next_station_info;
-
-		//xil_printf("**** curr_station_info = 0x%08x, association_table.length= %d\n", curr_station_info, association_table.length);
-
-		//xil_printf("*\n");
-
 		for(i = 0; i < (association_table.length + 1) ; i++){
 			//Loop through all associated stations' queues + the broadcast queue
 			if(curr_station_info == NULL){
 				//Check the broadcast queue
 				next_station_info = (station_info*)(association_table.first);
-
-				//xil_printf("0 -> %d\n", next_station_info != 0);
-				//xil_printf("  null: next_station_info = 0x%08x\n", next_station_info);
 				if(wlan_mac_poll_tx_queue(0)){
 					return;
 				} else {
@@ -253,10 +242,6 @@ void check_tx_queue(){
 					} else {
 						next_station_info = station_info_next(curr_station_info);
 					}
-
-					//xil_printf("1 -> %d\n", next_station_info != 0);
-
-					//xil_printf("  valid: next_station_info = 0x%08x\n", next_station_info);
 
 					if(wlan_mac_poll_tx_queue(curr_station_info->AID)){
 						return;
@@ -273,36 +258,8 @@ void check_tx_queue(){
 				}
 			}
 		}
-
-		//if(wlan_mac_poll_tx_queue(1)){
-		//	return;
-		//}
-		//if(wlan_mac_poll_tx_queue(0)){
-		//	return;
-		//}
-
-		//xil_printf("nothing queued\n");
 	}
 }
-/*
-void check_tx_queue(){
-
-	//FIXME: FAST CHECK. This is hardcoded to 1 station just for performance testing.
-	u32 i = 0;
-	static u8 pollIndex = 0;
-
-	if( is_cpu_low_ready() ){
-		for(i = 0; i < 2; i++){
-			pollIndex = (pollIndex+1)%2;
-			if(wlan_mac_poll_tx_queue(pollIndex)){
-				return;
-			}
-		}
-
-
-	}
-}
-*/
 
 
 void mpdu_transmit_done(tx_frame_info* tx_mpdu){
@@ -659,18 +616,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			associated_station->rx.last_seq = rx_seq;
 		}
 	} else {
-		station_stats = wlan_mac_high_find_statistics_ADDR(&statistics_table, (rx_80211_header->address_2));
-#ifdef ALLOW_PROMISC_STATISTICS
-		if(station_stats == NULL){
-			//Note: This memory allocation has no corresponding free. It is by definition a memory leak.
-			//The reason for this is that it allows the node to monitor statistics on surrounding devices.
-			//In a busy environment, this promiscuous statistics gathering can be disabled by commenting
-			//out the ALLOW_PROMISC_STATISTICS.
-			station_stats = wlan_calloc(sizeof(statistics));
-			memcpy(station_stats->addr, (rx_80211_header->address_2), 6);
-			dl_node_insertEnd(&statistics_table, &(station_stats->node));
-		}
-#endif
+		station_stats = add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
 	}
 
 	if(station_stats != NULL){
@@ -978,8 +924,6 @@ u32  get_associations_status() {
 	return ( perma_assoc_mode * 2 ) + allow_assoc;
 }
 
-
-
 void enable_associations( u32 permanent_association ){
 	// Send a message to other processor to tell it to enable associations
 #ifdef _DEBUG_
@@ -1161,17 +1105,21 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 			station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
 			if(station_stats == NULL){
 				station_stats = wlan_calloc(sizeof(statistics));
+				if(station_stats == NULL){
+					//malloc failed. Passing that failure on to calling function
+					return NULL;
+				}
 				memcpy(station_stats->addr, addr, 6);
 				dl_node_insertEnd(stat_tbl, &(station_stats->node));
 			}
-
-			station->stats = station_stats;
 
 			if(station == NULL){
 				//malloc failed. Passing that failure on to calling function.
 				return NULL;
 			}
 
+			station->stats = station_stats;
+			station->stats->is_associated = 1;
 			memcpy(station->addr, addr, 6);
 			station->tx.rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
 			station->AID = 0;
@@ -1224,6 +1172,67 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 	}
 }
 
+statistics* add_statistics(dl_list* stat_tbl, station_info* station, u8* addr){
+	u32 i;
+	statistics* station_stats = NULL;
+	statistics* curr_statistics = NULL;
+	statistics* oldest_statistics = NULL;
+
+	if(station == NULL){
+#ifndef ALLOW_PROMISC_STATISTICS
+		//This statistics struct isn't being added to an associated station. Furthermore,
+		//Promiscuous statistics are now allowed, so we will return NULL to the calling function.
+		return NULL;
+#endif
+	}
+
+	station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
+
+	if(station_stats == NULL){
+		//Note: This memory allocation has no corresponding free. It is by definition a memory leak.
+		//The reason for this is that it allows the node to monitor statistics on surrounding devices.
+		//In a busy environment, this promiscuous statistics gathering can be disabled by commenting
+		//out the ALLOW_PROMISC_STATISTICS.
+
+		if(stat_tbl->length >= MAX_NUM_PROMISC_STATS){
+			//There are too many statistics being tracked. We'll get rid of the oldest that isn't currently associated.
+			curr_statistics = (statistics*)(stat_tbl->first);
+			for(i=0; i<stat_tbl->length; i++){
+
+				if( (oldest_statistics == NULL) ){
+					if(curr_statistics->is_associated == 0){
+						oldest_statistics = curr_statistics;
+					}
+				} else if(( (curr_statistics->last_timestamp) < (oldest_statistics->last_timestamp)) ){
+					if(curr_statistics->is_associated == 0){
+						oldest_statistics = curr_statistics;
+					}
+				}
+				curr_statistics = statistics_next(curr_statistics);
+			}
+
+			if(oldest_statistics == NULL){
+				xil_printf("Error: could not find deletable oldest statistics. Ensure that MAX_NUM_PROMISC_STATS > MAX_NUM_ASSOC\n");
+				xil_printf("if using ALLOW_PROMISC_STATISTICS\n");
+			} else {
+				dl_node_remove(stat_tbl, &(oldest_statistics->node));
+				wlan_free(oldest_statistics);
+			}
+		}
+
+		station_stats = wlan_calloc(sizeof(statistics));
+		memcpy(station_stats->addr, addr, 6);
+		dl_node_insertEnd(&statistics_table, &(station_stats->node));
+
+	}
+	if(station != NULL){
+		station->stats = station_stats;
+	}
+
+	return station_stats;
+
+}
+
 int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 	station_info* station;
 
@@ -1236,9 +1245,14 @@ int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 	} else {
 		//Remove station from the association table;
 		dl_node_remove(assoc_tbl, &(station->node));
+
+#ifndef ALLOW_PROMISC_STATISTICS
 		//Remove station's statistics from statististics table
 		dl_node_remove(stat_tbl, &(station->stats->node));
 		wlan_free(station->stats);
+#else
+		station->stats->is_associated = 0;
+#endif
 		wlan_free(station);
 		print_associations(assoc_tbl);
 		write_hex_display(assoc_tbl->length);

@@ -53,8 +53,7 @@
 #define MAX_RETRY                      7
 #define MAX_PER_FLOW_QUEUE	           150
 #define MAX_NUM_ASSOC				   32
-//50
-#define MAX_NUM_PROMISC_STATS		   3 //TODO
+#define MAX_NUM_PROMISC_STATS		   50
 
 
 // **********************************************************************
@@ -141,6 +140,7 @@ u32  deauthenticate_station( station_info* station );
 void deauthenticate_stations();
 
 station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
+statistics* add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
 int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
 u8 is_valid_association(dl_list* assoc_tbl, station_info* station);
 

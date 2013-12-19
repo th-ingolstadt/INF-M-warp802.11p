@@ -576,6 +576,8 @@ void print_all_observed_statistics(){
 	for(i=0; i<statistics_table.length; i++){
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
+		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_timestamp);
+		xil_printf("     - Associated? %d\n", curr_statistics->is_associated);
 		xil_printf("     - # Tx MPDUs: %d (%d successful)\n", curr_statistics->num_tx_total, curr_statistics->num_tx_success);
 		xil_printf("     - # Tx Retry: %d\n", curr_statistics->num_retry);
 		xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", curr_statistics->num_rx_success, curr_statistics->num_rx_bytes);
