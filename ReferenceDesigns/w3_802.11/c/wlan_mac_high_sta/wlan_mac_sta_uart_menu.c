@@ -24,6 +24,7 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_high.h"
+#include "wlan_mac_ipc.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_sta.h"
@@ -139,7 +140,7 @@ void uart_rx(u8 rxByte){
 					}
 
 
-					access_point.tx_rate = default_unicast_rate;
+					access_point.tx.rate = default_unicast_rate;
 
 
 					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
@@ -151,7 +152,7 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_54M;
 					}
 
-					access_point.tx_rate = default_unicast_rate;
+					access_point.tx.rate = default_unicast_rate;
 
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 				break;
@@ -502,12 +503,12 @@ void print_station_status(u8 manual_call){
 
 					}
 				}
-				xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (access_point.rx_timestamp)))/1000);
-				xil_printf("     - Last Rx Power: %d dBm\n",access_point.last_rx_power);
+				xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (access_point.rx.last_timestamp)))/1000);
+				xil_printf("     - Last Rx Power: %d dBm\n",access_point.rx.last_power);
 				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(1));
-				xil_printf("     - # Tx MPDUs: %d (%d successful)\n", access_point.num_tx_total, access_point.num_tx_success);
-				xil_printf("     - # Tx Retry: %d\n", access_point.num_retry);
-				xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", access_point.num_rx_success, access_point.num_rx_bytes);
+				xil_printf("     - # Tx MPDUs: %d (%d successful)\n", access_point.stats->num_tx_total, access_point.stats->num_tx_success);
+				xil_printf("     - # Tx Retry: %d\n", access_point.stats->num_retry);
+				xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", access_point.stats->num_rx_success, access_point.stats->num_rx_bytes);
 			}
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("\n");

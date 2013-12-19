@@ -62,7 +62,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -74,7 +74,7 @@ u8  default_unicast_rate;
 int association_state;                      // Section 10.3 of 802.11-2012
 u8  uart_mode;
 u8  active_scan;
-u8 pause_queue;
+u8  pause_queue;
 
 
 // Access point information
@@ -88,6 +88,7 @@ u8       access_point_basic_rates[NUM_BASIC_RATES_MAX];
 // Association Table variables
 //   The last entry in associations[MAX_ASSOCIATIONS][] is swap space
 station_info access_point;
+statistics	 access_point_stat;
 
 u32			 max_queue_size;
 #define		 MAX_PER_FLOW_QUEUE	150
@@ -175,8 +176,11 @@ int main(){
 
 	access_point.AID = 0; //7.3.1.8 of 802.11-2007
 	memset((void*)(&(access_point.addr[0])), 0xFF,6);
-	access_point.seq = 0; //seq
-	access_point.rx_timestamp = 0;
+
+	access_point.stats = &access_point_stat;
+
+	access_point.rx.last_seq = 0; //seq
+	access_point.rx.last_timestamp = 0;
 
 	// Set default SSID for AP
 	access_point_ssid = wlan_malloc(strlen(default_AP_SSID)+1);
@@ -597,10 +601,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		}
 		rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 		//Check if duplicate
-		access_point.rx_timestamp = get_usec_timestamp();
-		access_point.last_rx_power = mpdu_info->rx_power;
+		access_point.rx.last_timestamp = get_usec_timestamp();
+		access_point.rx.last_power = mpdu_info->rx_power;
 
-		if( (access_point.seq != 0)  && (access_point.seq == rx_seq) ) {
+		if( (access_point.rx.last_seq != 0)  && (access_point.rx.last_seq == rx_seq) ) {
 			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
 			if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
@@ -608,7 +612,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			return;
 
 		} else {
-			access_point.seq = rx_seq;
+			access_point.rx.last_seq = rx_seq;
 		}
 	}
 
@@ -619,8 +623,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
 				//MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
 
-				(access_point.num_rx_success)++;
-				(access_point.num_rx_bytes) += mpdu_info->length;
+				(access_point.stats->num_rx_success)++;
+				(access_point.stats->num_rx_bytes) += mpdu_info->length;
 
 				wlan_mpdu_eth_send(mpdu,length);
 			}
@@ -635,7 +639,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					association_state = 4;
 					access_point.AID = (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000;
 					write_hex_display(access_point.AID);
-					access_point.tx_rate = default_unicast_rate;
+					access_point.tx.rate = default_unicast_rate;
 					xil_printf("Association succeeded\n");
 				} else {
 					association_state = -1;
@@ -672,7 +676,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					access_point.AID = 0;
 					write_hex_display(access_point.AID);
 					//memset((void*)(&(access_point.addr[0])), 0xFF,6);
-					access_point.seq = 0; //seq
+					access_point.rx.last_seq = 0; //seq
 
 					//Attempt reauthentication
 					association_state = 1;
@@ -951,11 +955,11 @@ void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 }
 
 void reset_station_statistics(){
-	access_point.num_tx_total = 0;
-	access_point.num_tx_success = 0;
-	access_point.num_retry = 0;
-	access_point.num_rx_success = 0;
-	access_point.num_rx_bytes = 0;
+	access_point.stats->num_tx_total = 0;
+	access_point.stats->num_tx_success = 0;
+	access_point.stats->num_retry = 0;
+	access_point.stats->num_rx_success = 0;
+	access_point.stats->num_rx_bytes = 0;
 }
 
 
