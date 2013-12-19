@@ -87,6 +87,8 @@ typedef struct{
 	dl_node node;
 	u64     last_timestamp;
 	u8      addr[6];
+	u8      is_associated;
+	u8      reserved;
 	u32     num_tx_total;
 	u32     num_tx_success;
 	u32     num_retry;
