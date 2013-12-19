@@ -62,7 +62,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -74,6 +74,9 @@ u8  default_unicast_rate;
 int association_state;                      // Section 10.3 of 802.11-2012
 u8  uart_mode;
 u8  active_scan;
+
+u8  repeated_active_scan_scheduled;
+u32 active_scan_schedule_id;
 u8  pause_queue;
 
 
@@ -131,6 +134,7 @@ int main(){
 	num_ap_list = 0;
 	//free(ap_list);
 	ap_list = NULL;
+	repeated_active_scan_scheduled = 0;
 
 	max_queue_size = MAX_PER_FLOW_QUEUE;
 
@@ -231,10 +235,8 @@ int main(){
 
 
 	// If there is a default SSID, initiate a probe request
-	if( strlen(default_AP_SSID) > 0 ) {
-		active_scan = 1;
-		probe_req_transmit();
-	}
+	if( strlen(access_point_ssid) > 0 ) start_active_scan();
+
 
 
 #ifdef USE_WARPNET_WLAN_EXP
@@ -353,6 +355,7 @@ void attempt_association(){
 				curr_try++;
 			} else {
 				curr_try = 0;
+				if( strlen(access_point_ssid) > 0 ) start_active_scan();
 			}
 
 		break;
@@ -409,6 +412,7 @@ void attempt_authentication(){
 				curr_try++;
 			} else {
 				curr_try = 0;
+				if( strlen(access_point_ssid) > 0 ) start_active_scan();
 			}
 
 
@@ -437,7 +441,24 @@ void attempt_authentication(){
 }
 
 
+void start_active_scan(){
+	//Purge any knowledge of existing APs
+	num_ap_list = 0;
+	wlan_free(ap_list);
+	ap_list = NULL;
+	association_state = 1;
 
+	active_scan = 1;
+	repeated_active_scan_scheduled = 1;
+	active_scan_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ACTIVE_SCAN_UPDATE_RATE, SCHEDULE_REPEAT_FOREVER, (void*)probe_req_transmit);
+	probe_req_transmit();
+}
+
+void stop_active_scan(){
+	if(repeated_active_scan_scheduled) wlan_mac_remove_schedule(SCHEDULE_COARSE, active_scan_schedule_id);
+	active_scan = 0;
+	repeated_active_scan_scheduled = 0;
+}
 
 
 void probe_req_transmit(){
@@ -479,9 +500,9 @@ void probe_req_transmit(){
 	curr_channel_index = (curr_channel_index+1)%11;
 
 	if(curr_channel_index > 0){
-		wlan_mac_schedule_event(SCHEDULE_COARSE, 100000, (void*)probe_req_transmit);
+		wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)probe_req_transmit);
 	} else {
-		wlan_mac_schedule_event(SCHEDULE_COARSE, 100000, (void*)print_ap_list);
+		wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)print_ap_list);
 	}
 }
 
@@ -677,10 +698,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					write_hex_display(access_point.AID);
 					//memset((void*)(&(access_point.addr[0])), 0xFF,6);
 					access_point.rx.last_seq = 0; //seq
-
-					//Attempt reauthentication
-					association_state = 1;
-					attempt_authentication();
+					if( strlen(access_point_ssid) > 0 ) start_active_scan();
 				}
 		break;
 
@@ -762,8 +780,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									}
 								}
 							}
-
-
 						break;
 						case TAG_EXT_SUPPORTED_RATES: //Extended supported rates
 							for(i=0;i < mpdu_ptr_u8[1]; i++){
@@ -934,6 +950,7 @@ void print_ap_list(){
 					access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
 					memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates,access_point_num_basic_rates);
 
+					stop_active_scan();
 					association_state = 1;
 					attempt_authentication();
 					return;
@@ -996,12 +1013,9 @@ int get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words ) {
 
 	// Get total size (in bytes) of data to be transmitted
 	size   = num_ap * sizeof( ap_info );
-
 	// Get total size of data (in words) to be transmitted
 	index += size / sizeof( u32 );
-
     if ( (size > 0 ) && (index < max_words) ) {
-
         memcpy( &buffer[1], ap_list, size );
     }
 

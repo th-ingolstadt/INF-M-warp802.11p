@@ -58,6 +58,15 @@
 
 #define NUM_PROBE_REQ                  5
 
+//The amount of time the active scan procedure will dwell on each channel before
+//moving to the next channel.
+#define ACTIVE_SCAN_DWELL			   100000
+
+//The amount of time between full active scans when looking for a particular SSID
+//Note: This value must be larger than the maximum amount of time it takes for
+//a single active scan. For an active scan over 11 channels, this value must be larger
+//than 11*ACTIVE_SCAN_DWELL.
+#define ACTIVE_SCAN_UPDATE_RATE		  5000000
 
 
 
@@ -89,6 +98,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu);
 void check_tx_queue();
 
+void start_active_scan();
+void stop_active_scan();
 void probe_req_transmit();
 
 void attempt_authentication();

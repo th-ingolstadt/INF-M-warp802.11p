@@ -117,7 +117,7 @@ void uart_rx(u8 rxByte){
 
 				case ASCII_a:
 					//Send bcast probe requests across all channels
-					if(active_scan ==0){
+					if(active_scan == 0){
 						num_ap_list = 0;
 						//xil_printf("- Free 0x%08x\n",ap_list);
 						wlan_free(ap_list);
