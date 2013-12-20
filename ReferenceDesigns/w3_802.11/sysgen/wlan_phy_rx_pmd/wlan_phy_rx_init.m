@@ -12,8 +12,10 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %%
 %xlLoadChipScopeData('cs_capt/wlan_cs_capt_81_64Q23.prn'); cs_interp = 1; cs_start = 1300; cs_end = length(ADC_I);
-%samps2 = complex(ADC_I(cs_start:cs_interp:cs_end), ADC_Q(cs_start:cs_interp:cs_end));
-%payload_vec = [samps2; zeros(1000,1);];
+xlLoadChipScopeData('wonky_beacons.prn'); cs_interp = 1; cs_start = 950; cs_end = 4500;
+samps2 = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
+%samps2 = [samps2(1:370); samps2(372:end)]; %HACK to debug extra sample in Tx
+payload_vec = [samps2; zeros(1000,1);];
 %paylod_vec_samp_time = 8;
 
 samps_rssi_avg.time = [];
@@ -36,10 +38,10 @@ samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
 %load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 %load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
 %load('rx_sigs/wlan_tx_out_ManyPkts_16Q12.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-load('wlan_tx_out.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+%load('wlan_tx_out.mat'); tx_sig_t = [1:length(wlan_tx_out)];
 
 %payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
-payload_vec = [zeros(50,1); wlan_tx_out; zeros(50,1); ];
+%payload_vec = [zeros(50,1); wlan_tx_out; zeros(50,1); ];
 %payload_vec = [payload_vec;payload_vec;payload_vec];
 %cfo = exp(1i*2*pi*(5e-4)*(0:length(payload_vec)-1)).';
 %payload_vec = payload_vec .* cfo;
@@ -104,15 +106,15 @@ PHY_CONFIG_RSSI_SUM_LEN = 8;
 
 PHY_MIN_PKT_LEN = 14;
 
-PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 12500;
+PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 12000;
 PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 17000;
 PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 
 PHY_CONFIG_LTS_CORR_TIMEOUT = 250;%150;%*2 in hardware
 
-PHY_CONFIG_PKT_DET_CORR_THRESH = 200;%90;
-PHY_CONFIG_PKT_DET_ENERGY_THRESH = 0*250;%Set to 0 for Rx sim of sim Tx waveform
-PHY_CONFIG_PKT_DET_MIN_DURR = 4;
+PHY_CONFIG_PKT_DET_CORR_THRESH = (0.75) * 2^8; %UFix8_8 threshold
+PHY_CONFIG_PKT_DET_ENERGY_THRESH = 8; %UFix14_8 thresh; set to low non-zero value
+PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 
 CS_CONFIG_CS_RSSI_THRESH = 300 * PHY_CONFIG_RSSI_SUM_LEN;
@@ -157,7 +159,7 @@ REG_RX_Config = ...
     2^2  * 1 + ... %Swap pkt buf byte order
     2^3  * 0 + ... %Swap order of chan est u32 writes
     2^4  * 1 + ... %Allow DSSS Rx to keep AGC locked
-    2^5  * 1 + ... %Bypass CFO est/correction
+    2^5  * 0 + ... %Bypass CFO est/correction
     2^6  * 1 + ... %Enable chan est recording to pkt buf
     2^7  * 1 + ... %Enable switching diversity
     2^8  * 0 + ... %Force selection of Ant B
