@@ -79,7 +79,7 @@ dl_list		 statistics_table;
 u32			 max_queue_size;
 
 // AP channel
-u32 mac_param_chan;
+u32 		 mac_param_chan;
 
 // AP MAC address / Broadcast address
 static u8 eeprom_mac_addr[6];
@@ -112,8 +112,6 @@ int main(){
 	//memory is used before calling this function, unexpected results may happen.
 	initialize_heap();
 	wlan_mac_high_init();
-
-
 
     // Set Global variables
 	perma_assoc_mode     = 0;
