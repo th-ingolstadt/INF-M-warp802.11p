@@ -97,6 +97,8 @@ void uart_rx(u8 rxByte){
 	if(rxByte == ASCII_ESC){
 		uart_mode = UART_MODE_MAIN;
 
+		stop_active_scan();
+
 		if(print_scheduled){
 			wlan_mac_remove_schedule(SCHEDULE_COARSE, schedule_ID);
 		}

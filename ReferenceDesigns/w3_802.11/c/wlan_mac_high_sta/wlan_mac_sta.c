@@ -57,7 +57,6 @@
 /*********************** Global Variable Definitions *************************/
 
 
-
 /*************************** Variable Definitions ****************************/
 
 // If you want this station to try to associate to a known AP at boot, type
@@ -236,8 +235,6 @@ int main(){
 
 	// If there is a default SSID, initiate a probe request
 	if( strlen(access_point_ssid) > 0 ) start_active_scan();
-
-
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Set AP processing callbacks
@@ -447,7 +444,6 @@ void start_active_scan(){
 	wlan_free(ap_list);
 	ap_list = NULL;
 	association_state = 1;
-
 	active_scan = 1;
 	repeated_active_scan_scheduled = 1;
 	active_scan_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ACTIVE_SCAN_UPDATE_RATE, SCHEDULE_REPEAT_FOREVER, (void*)probe_req_transmit);
@@ -894,7 +890,7 @@ void print_ap_list(){
 	u16 ap_sel;
 
 	uart_mode = UART_MODE_AP_LIST;
-	active_scan = 0;
+	//active_scan = 0;
 	pause_queue = 0;
 
 	//Revert to the previous channel that we were on prior to the active scan
