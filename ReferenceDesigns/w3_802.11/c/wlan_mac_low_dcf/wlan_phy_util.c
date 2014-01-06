@@ -180,7 +180,8 @@ void wlan_phy_init() {
 	Xil_Out32(WLAN_RX_FFT_CFG, 0x5031040);
 
 	//Set LTS correlation threshold and timeout
-	wlan_phy_rx_lts_corr_config(600 * PHY_RX_RSSI_SUM_LEN, 320/2);//SNR thresh, timeout/2
+	//wlan_phy_rx_lts_corr_config(600 * PHY_RX_RSSI_SUM_LEN, 320/2);//SNR thresh, timeout/2
+	wlan_phy_rx_lts_corr_config(600 * PHY_RX_RSSI_SUM_LEN, 330/2);//SNR thresh, timeout/2
 	wlan_phy_rx_lts_corr_thresholds(12500, 17000);//low SNR, high SNR corr thresh
 
 	//Configure RSSI pkt det
@@ -231,10 +232,10 @@ void wlan_phy_init() {
 	wlan_agc_set_reset_timing(4, 250, 250);
 
 	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
-	wlan_agc_set_config( (256-56), (256-45), 0, 6, 24);
+	wlan_agc_set_config( (256-56), (256-15), 0, 6, 24);
 	//wlan_agc_set_config( (256-56), (256-15), 0, 6, 24);
 
-	wlan_agc_set_RSSI_pwr_calib(100, 85, 50); //70
+	wlan_agc_set_RSSI_pwr_calib(100, 85, 70); //70
 
 
 	//capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
@@ -282,7 +283,7 @@ void wlan_radio_init() {
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLPF_BW, 1);
 
 	//FIXME: This should be 0
-#if 1
+#if 0
 	//MGC
 	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
 	radio_controller_setRxHP(RC_BASEADDR, (RC_RFA | RC_RFB), RC_RXHP_OFF);
