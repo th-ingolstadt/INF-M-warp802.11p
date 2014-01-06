@@ -238,7 +238,9 @@
 			((v_db_adj & 0x3F) << 18) | \
 			((init_g_bb & 0x1F) << 24))
 
-#define wlan_agc_set_reset_timing(rxhp, g_rf, g_bb) \
+#define wlan_agc_set_RSSI_pwr_calib(g3, g2, g1) Xil_Out32(WLAN_AGC_REG_RSSI_PWR_CALIB, ( (g3 & 0xFF) | ((g2 & 0xFF)<<8) | ((g1 & 0xFF)<<16)))
+
+#define wlan_agc_set_reset_timing(rxhp,g_rf, g_bb) \
 	Xil_Out32(WLAN_AGC_TIMING_RESET, ((rxhp & 0xFF) | ( (g_rf & 0xFF)<<8) | ( (g_bb & 0xFF) << 16)))
 
 //CCA STATE

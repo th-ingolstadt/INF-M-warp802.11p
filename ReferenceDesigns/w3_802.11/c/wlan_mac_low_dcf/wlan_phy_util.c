@@ -186,9 +186,10 @@ void wlan_phy_init() {
 	//Configure RSSI pkt det
 	//wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
 	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 300), 4); //Disable RSSI pkt det with high thresh
+	//wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 300), 4); //Disable RSSI pkt det with high thresh //TODO: DEBUG ONLY
 	
 	//Configure auto-corr pkt det
-	//	wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
+	//wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
 
 	//Configure the default antenna selections
@@ -230,8 +231,10 @@ void wlan_phy_init() {
 	wlan_agc_set_reset_timing(4, 250, 250);
 
 	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
-	//wlan_agc_set_config( (256-56), (256-35), 0, 6, 24);
-	wlan_agc_set_config( (256-56), (256-15), 0, 6, 24);
+	wlan_agc_set_config( (256-56), (256-45), 0, 6, 24);
+	//wlan_agc_set_config( (256-56), (256-15), 0, 6, 24);
+
+	wlan_agc_set_RSSI_pwr_calib(100, 85, 50); //70
 
 
 	//capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
@@ -268,7 +271,7 @@ void wlan_radio_init() {
 	radio_controller_TxRxDisable(RC_BASEADDR, (RC_RFA | RC_RFB));
 	radio_controller_apply_TxDCO_calibration(AD_BASEADDR, EEPROM_BASEADDR, (RC_RFA | RC_RFB));
 
-	radio_controller_setCenterFrequency(RC_BASEADDR, (RC_RFA | RC_RFB), RC_24GHZ, 9);
+	radio_controller_setCenterFrequency(RC_BASEADDR, (RC_RFA | RC_RFB), RC_24GHZ, 4);
 
 
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RSSI_HIGH_BW_EN, 0);
@@ -279,15 +282,15 @@ void wlan_radio_init() {
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLPF_BW, 1);
 
 	//FIXME: This should be 0
-#if 0
+#if 1
 	//MGC
 	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
 	radio_controller_setRxHP(RC_BASEADDR, (RC_RFA | RC_RFB), RC_RXHP_OFF);
 	radio_controller_setRxGainSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_GAINSRC_SPI);
 
 	//Set Rx gains
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXGAIN_RF, 3);
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXGAIN_BB, 9);
+	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXGAIN_RF, 1);
+	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXGAIN_BB, 8);
 
 #else
 	//AGC

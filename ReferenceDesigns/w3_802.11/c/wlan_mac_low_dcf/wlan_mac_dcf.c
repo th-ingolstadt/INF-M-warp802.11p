@@ -423,6 +423,11 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
 
+
+	//DEBUG
+	//xil_printf("RX GAIN: %d, %d \n", mpdu_info->rf_gain, mpdu_info->bb_gain);
+	//DEBUG
+
 	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
 
 //	if(rate != WLAN_MAC_RATE_1M){
