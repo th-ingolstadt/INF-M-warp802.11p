@@ -22,7 +22,6 @@
 
 //WARP includes
 #include "wlan_mac_ipc_util.h"
-#include "wlan_mac_ipc.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
@@ -127,7 +126,7 @@ int main(){
 
 	//This function should be executed first. It will zero out memory, and if that
 	//memory is used before calling this function, unexpected results may happen.
-	initialize_heap();
+	wlan_mac_high_heap_init();
 
     // Initialize AP list
 	num_ap_list = 0;
@@ -160,11 +159,11 @@ int main(){
 
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
-	wlan_mac_util_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
-	wlan_mac_util_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
-	wlan_mac_util_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
-	wlan_mac_util_set_uart_rx_callback(      (void*)uart_rx);
-	wlan_mac_util_set_check_queue_callback(  (void*)check_tx_queue);
+	wlan_mac_high_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
+	wlan_mac_high_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
+	wlan_mac_high_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
+	wlan_mac_high_set_uart_rx_callback(      (void*)uart_rx);
+	wlan_mac_high_set_check_queue_callback(  (void*)check_tx_queue);
 	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
@@ -186,7 +185,7 @@ int main(){
 	access_point.rx.last_timestamp = 0;
 
 	// Set default SSID for AP
-	access_point_ssid = wlan_malloc(strlen(default_AP_SSID)+1);
+	access_point_ssid = wlan_mac_high_malloc(strlen(default_AP_SSID)+1);
 	strcpy(access_point_ssid,default_AP_SSID);
 
 
@@ -194,14 +193,14 @@ int main(){
 	association_state = 1;
 
     // Wait for CPU Low to initialize
-	while( is_cpu_low_initialized() == 0){
+	while( wlan_mac_high_is_cpu_low_initialized() == 0){
 		xil_printf("waiting on CPU_LOW to boot\n");
 	};
 
 
 	// CPU Low will pass HW information to CPU High as part of the boot process
 	//   - Get necessary HW information
-	memcpy((void*) &(eeprom_mac_addr[0]), (void*) get_eeprom_mac_addr(), 6);
+	memcpy((void*) &(eeprom_mac_addr[0]), (void*) wlan_mac_high_get_eeprom_mac_addr(), 6);
 
 
     // Set Header information
@@ -210,13 +209,13 @@ int main(){
 
 
     // Initialize hex display
-	write_hex_display(0);
+	wlan_mac_high_write_hex_display(0);
 
 
 	// Set up channel
 	mac_param_chan = WLAN_CHANNEL;
 	mac_param_chan_save = mac_param_chan;
-	set_mac_channel( mac_param_chan );
+	wlan_mac_high_set_channel( mac_param_chan );
 
 
 	// Print Station information to the terminal
@@ -270,7 +269,7 @@ void check_tx_queue(){
 			for(i=0;i<2;i++){
 				//Alternate between checking the unassociated queue and the associated queue
 				queue_index = (queue_index+1)%2;
-				if(wlan_mac_poll_tx_queue(queue_index)){
+				if(wlan_mac_queue_poll(queue_index)){
 					return;
 				}
 			}
@@ -306,7 +305,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 		tx_event_log_entry->tx_mpdu_done_timestamp   = tx_mpdu->tx_mpdu_done_timestamp;
 	}
 
-	wlan_mac_util_process_tx_done(tx_mpdu, &(access_point));
+	wlan_mac_high_process_tx_done(tx_mpdu, &(access_point));
 }
 
 
@@ -337,11 +336,11 @@ void attempt_association(){
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue = (packet_bd*)(checkout.first);
 
-		 		setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
+				wlan_mac_high_setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
 
 				tx_length = wlan_create_association_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
 
-		 		setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
+		 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(0, &checkout);
@@ -394,11 +393,11 @@ void attempt_authentication(){
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue = (packet_bd*)(checkout.first);
 
-		 		setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
+				wlan_mac_high_setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
 
 				tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
 
-		 		setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
+		 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(0, &checkout);
@@ -441,7 +440,7 @@ void attempt_authentication(){
 void start_active_scan(){
 	//Purge any knowledge of existing APs
 	num_ap_list = 0;
-	wlan_free(ap_list);
+	wlan_mac_high_free(ap_list);
 	ap_list = NULL;
 	association_state = 1;
 	active_scan = 1;
@@ -470,7 +469,7 @@ void probe_req_transmit(){
 	//xil_printf("+++ probe_req_transmit mac_param_chan = %d\n", mac_param_chan);
 
 	//Send a message to other processor to tell it to switch channels
-	set_mac_channel( mac_param_chan );
+	wlan_mac_high_set_channel( mac_param_chan );
 
 	//Send probe request
 
@@ -482,11 +481,11 @@ void probe_req_transmit(){
 		if(checkout.length == 1){ //There was at least 1 free queue element
 			tx_queue = (packet_bd*)(checkout.first);
 
-			setup_tx_header( &tx_header_common, bcast_addr, bcast_addr );
+			wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, bcast_addr );
 
 			tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
-	 		setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
+	 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
 
 			enqueue_after_end(0, &checkout);
 			check_tx_queue();
@@ -511,14 +510,13 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 	//Receives the pre-encapsulated Ethernet frames
 	packet_bd* tx_queue = (packet_bd*)(tx_queue_list->first);
 
-	//setup_tx_header( &tx_header_common, (u8*)(&(eth_dest[0])), (u8*)(&(eth_src[0])) );
-	setup_tx_header( &tx_header_common, (u8*)access_point.addr,(u8*)(&(eth_dest[0])));
+	wlan_mac_high_setup_tx_header( &tx_header_common, (u8*)access_point.addr,(u8*)(&(eth_dest[0])));
 
 	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
 		if(queue_num_queued(0) < max_queue_size){
-			setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
+			wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
 
 			enqueue_after_end(0, tx_queue_list);
 			check_tx_queue();
@@ -532,7 +530,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 			if(queue_num_queued(1) < max_queue_size){
 
-				setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
+				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(1, tx_queue_list);
@@ -586,7 +584,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				((rx_ofdm_event*)rx_event_log_entry)->flags    = mpdu_info->flags;
 
 		#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-				if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_start_transfer(((rx_ofdm_event*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+				if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_event*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
 		#endif
 
 			}
@@ -624,7 +622,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		if( (access_point.rx.last_seq != 0)  && (access_point.rx.last_seq == rx_seq) ) {
 			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-			if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
 #endif
 			return;
 
@@ -655,7 +653,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
 					association_state = 4;
 					access_point.AID = (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000;
-					write_hex_display(access_point.AID);
+					wlan_mac_high_write_hex_display(access_point.AID);
 					access_point.tx.rate = default_unicast_rate;
 					xil_printf("Association succeeded\n");
 				} else {
@@ -678,7 +676,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									attempt_association();
 								}
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-								if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+								if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
 #endif
 								return;
 							}
@@ -691,7 +689,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
 				if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)){
 					access_point.AID = 0;
-					write_hex_display(access_point.AID);
+					wlan_mac_high_write_hex_display(access_point.AID);
 					//memset((void*)(&(access_point.addr[0])), 0xFF,6);
 					access_point.rx.last_seq = 0; //seq
 					if( strlen(access_point_ssid) > 0 ) start_active_scan();
@@ -715,9 +713,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(curr_ap_info == NULL){
 
 					if(ap_list == NULL){
-						ap_list = wlan_malloc(sizeof(ap_info)*(num_ap_list+1));
+						ap_list = wlan_mac_high_malloc(sizeof(ap_info)*(num_ap_list+1));
 					} else {
-						ap_list = wlan_realloc(ap_list, sizeof(ap_info)*(num_ap_list+1));
+						ap_list = wlan_mac_high_realloc(ap_list, sizeof(ap_info)*(num_ap_list+1));
 					}
 
 					if(ap_list != NULL){
@@ -726,7 +724,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					} else {
 						xil_printf("Reallocation of ap_list failed\n");
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-						if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+						if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
 #endif
 						return;
 					}
@@ -765,7 +763,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									//This is a basic rate. It is required by the AP in order to associate.
 									if((curr_ap_info->num_basic_rates) < NUM_BASIC_RATES_MAX){
 
-										if(valid_tagged_rate(mpdu_ptr_u8[2+i])){
+										if(wlan_mac_high_valid_tagged_rate(mpdu_ptr_u8[2+i])){
 
 											(curr_ap_info->basic_rates)[(curr_ap_info->num_basic_rates)] = mpdu_ptr_u8[2+i];
 											(curr_ap_info->num_basic_rates)++;
@@ -783,7 +781,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 										//This is a basic rate. It is required by the AP in order to associate.
 										if((curr_ap_info->num_basic_rates) < NUM_BASIC_RATES_MAX){
 
-											if(valid_tagged_rate(mpdu_ptr_u8[2+i])){
+											if(wlan_mac_high_valid_tagged_rate(mpdu_ptr_u8[2+i])){
 											//	xil_printf("Basic rate #%d: 0x%x\n", (curr_ap_info->num_basic_rates), mpdu_ptr_u8[2+i]);
 
 												(curr_ap_info->basic_rates)[(curr_ap_info->num_basic_rates)] = mpdu_ptr_u8[2+i];
@@ -816,7 +814,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		break;
 	}
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-	if(rate != WLAN_MAC_RATE_1M) wlan_mac_cdma_finish_transfer();
+	if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
 #endif
 	return;
 }
@@ -851,7 +849,7 @@ void ltg_event(u32 id, void* callback_arg){
 		if(checkout.length == 1){ //There was at least 1 free queue element
 			tx_queue = (packet_bd*)(checkout.first);
 
-	 		setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
+			wlan_mac_high_setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
 
 			mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 			tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
@@ -869,7 +867,7 @@ void ltg_event(u32 id, void* callback_arg){
 			tx_length += sizeof(llc_header);
 			tx_length += payload_length;
 
-	 		setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
+	 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
 	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 			enqueue_after_end(1, &checkout);
@@ -895,7 +893,7 @@ void print_ap_list(){
 
 	//Revert to the previous channel that we were on prior to the active scan
 	mac_param_chan = mac_param_chan_save;
-	set_mac_channel( mac_param_chan );
+	wlan_mac_high_set_channel( mac_param_chan );
 
 //	xil_printf("\f");
 
@@ -914,7 +912,7 @@ void print_ap_list(){
 		xil_printf("    Rx Power:      %d dBm\n",ap_list[i].rx_power);
 		xil_printf("    Basic Rates:   ");
 		for(j = 0; j < (ap_list[i].num_basic_rates); j++ ){
-			tagged_rate_to_readable_rate(ap_list[i].basic_rates[j], str);
+			wlan_mac_high_tagged_rate_to_readable_rate(ap_list[i].basic_rates[j], str);
 			xil_printf("%s, ",str);
 		}
 		xil_printf("\b\b \n");
@@ -935,12 +933,12 @@ void print_ap_list(){
 					mac_param_chan = ap_list[ap_sel].chan;
 
 					//Send a message to other processor to tell it to switch channels
-					set_mac_channel( mac_param_chan );
+					wlan_mac_high_set_channel( mac_param_chan );
 
 					xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
 					memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
 
-					access_point_ssid = wlan_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
+					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
 					strcpy(access_point_ssid,ap_list[ap_sel].ssid);
 
 					access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;

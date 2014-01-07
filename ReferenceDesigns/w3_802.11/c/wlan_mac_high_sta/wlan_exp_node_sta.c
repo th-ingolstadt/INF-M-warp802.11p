@@ -258,7 +258,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 				// TODO:  Disassociate from the current AP
 
 				mac_param_chan = temp;
-				set_mac_channel( mac_param_chan );
+				wlan_mac_high_set_channel( mac_param_chan );
 
 			    xil_printf("Setting Channel = %d\n", mac_param_chan);
 			}
@@ -328,7 +328,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 				if( ap_list[temp].private == 0) {
 
 					mac_param_chan = ap_list[temp].chan;
-					set_mac_channel( mac_param_chan );
+					wlan_mac_high_set_channel( mac_param_chan );
 
 					xil_printf("Attempting to join %s\n", ap_list[temp].ssid);
 					memcpy(access_point.addr, ap_list[temp].bssid, 6);
@@ -403,7 +403,7 @@ void wlan_exp_print_ap_list( ap_info * ap_list, u32 num_ap ){
 		xil_printf("     - Rates            : ");
 
 		for( j = 0; j < ap_list[i].num_basic_rates; j++ ) {
-			tagged_rate_to_readable_rate(ap_list[i].basic_rates[j], str);
+			wlan_mac_high_tagged_rate_to_readable_rate(ap_list[i].basic_rates[j], str);
 			xil_printf("%s, ",str);
 		}
         xil_printf("\n");

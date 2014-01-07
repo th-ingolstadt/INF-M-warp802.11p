@@ -24,7 +24,6 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_high.h"
-#include "wlan_mac_ipc.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_sta.h"
@@ -122,10 +121,10 @@ void uart_rx(u8 rxByte){
 					if(active_scan == 0){
 						num_ap_list = 0;
 						//xil_printf("- Free 0x%08x\n",ap_list);
-						wlan_free(ap_list);
+						wlan_mac_high_free(ap_list);
 						ap_list = NULL;
 						active_scan = 1;
-						access_point_ssid = wlan_realloc(access_point_ssid, 1);
+						access_point_ssid = wlan_mac_high_realloc(access_point_ssid, 1);
 						*access_point_ssid = 0;
 						//xil_printf("+++ starting active scan\n");
 						pause_queue = 1;
@@ -168,7 +167,7 @@ void uart_rx(u8 rxByte){
 					}
 
 
-					set_backoff_slot_value(num_slots);
+					wlan_mac_high_set_backoff_slot_value(num_slots);
 				break;
 
 				case ASCII_N:
@@ -180,7 +179,7 @@ void uart_rx(u8 rxByte){
 
 					xil_printf("num_slots = %d\n", num_slots);
 
-					set_backoff_slot_value(num_slots);
+					wlan_mac_high_set_backoff_slot_value(num_slots);
 				break;
 			}
 		break;
@@ -241,11 +240,11 @@ void uart_rx(u8 rxByte){
 					if(ltg_sched_get_callback_arg(0,&ltg_callback_arg) == 0){
 						//This LTG has already been configured. We need to free the old callback argument so we can create a new one.
 						ltg_sched_stop(0);
-						wlan_free(ltg_callback_arg);
+						wlan_mac_high_free(ltg_callback_arg);
 					}
 					switch(curr_traffic_type){
 							case TRAFFIC_TYPE_PERIODIC_FIXED:
-								ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_fixed));
+								ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_fixed));
 								if(ltg_callback_arg != NULL){
 									((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
 									((ltg_pyld_fixed*)ltg_callback_arg)->length = str2num(text_entry);
@@ -265,7 +264,7 @@ void uart_rx(u8 rxByte){
 
 							break;
 							case TRAFFIC_TYPE_RAND_RAND:
-								ltg_callback_arg = wlan_malloc(sizeof(ltg_pyld_uniform_rand));
+								ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_uniform_rand));
 								if(ltg_callback_arg != NULL){
 									((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
 									((ltg_pyld_uniform_rand*)ltg_callback_arg)->min_length = 0;
@@ -389,7 +388,7 @@ void uart_rx(u8 rxByte){
 							xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
 							memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
 
-							access_point_ssid = wlan_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
+							access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
 							//xil_printf("allocated %d bytes in 0x%08x\n", strlen(ap_list[ap_sel].ssid), access_point_ssid);
 							strcpy(access_point_ssid,ap_list[ap_sel].ssid);
 
@@ -527,7 +526,7 @@ void print_station_status(u8 manual_call){
 }
 
 void ltg_cleanup(u32 id, void* callback_arg){
-	wlan_free(callback_arg);
+	wlan_mac_high_free(callback_arg);
 }
 
 
