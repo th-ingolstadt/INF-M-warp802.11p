@@ -271,7 +271,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 				// deauthenticate_stations(); // First deauthenticate all stations //TODO: not sure this should be here for WARPnet
 
 				mac_param_chan = temp;
-				set_mac_channel( mac_param_chan );
+				wlan_mac_high_set_channel( mac_param_chan );
 
 			    xil_printf("Setting Channel = %d\n", mac_param_chan);
 			}
@@ -379,7 +379,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 			deauthenticate_stations();
 
 			// Re-allocate memory for the new SSID and copy the characters of the new SSID
-			access_point_ssid = wlan_realloc(access_point_ssid, (temp + 1));
+			access_point_ssid = wlan_mac_high_realloc(access_point_ssid, (temp + 1));
 			strcpy(access_point_ssid, ssid);
 
 			xil_printf("Set SSID - AP:  %s\n", access_point_ssid);
