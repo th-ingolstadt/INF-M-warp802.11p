@@ -405,18 +405,18 @@ u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_o
 
 	u32 i,j;
 	u8 num_rate_other_temp = num_rate_other;
-	u8* rate_other_temp = wlan_malloc(num_rate_other);
+	u8* rate_other_temp = wlan_mac_high_malloc(num_rate_other);
 
 	memcpy(rate_other_temp, rate_other, num_rate_other);
 
 	for(i = 0; i < num_rate_basic; i++ ){
 
-		//tagged_rate_to_readable_rate(rate_basic[i] & ~RATE_BASIC, str);
+		//wlan_mac_high_tagged_rate_to_readable_rate(rate_basic[i] & ~RATE_BASIC, str);
 		//xil_printf(" %d: rate: 0x%x, (%s Mbps)\n",i, rate_basic[i] & ~RATE_BASIC, str);
 		rate_vec_out[i] = RATE_BASIC | rate_basic[i];
 
 		for(j = 0; j < num_rate_other_temp; j++ ){
-			//tagged_rate_to_readable_rate(rate_other_temp[j] & ~RATE_BASIC, str);
+			//wlan_mac_high_tagged_rate_to_readable_rate(rate_other_temp[j] & ~RATE_BASIC, str);
 			//xil_printf("    %d: rate_other: 0x%x, (%s Mbps)\n", j, rate_other_temp[j],str);
 			if(rate_other_temp[j] == (rate_basic[i] & ~RATE_BASIC )){
 				//We have a duplicate rate. Remove it from the rate_other_temp vector
@@ -431,7 +431,7 @@ u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_o
 
 	memcpy(rate_vec_out + num_rate_basic, rate_other_temp, num_rate_other_temp);
 
-	wlan_free(rate_other_temp);
+	wlan_mac_high_free(rate_other_temp);
 
 	return (num_rate_other_temp + num_rate_basic);
 }

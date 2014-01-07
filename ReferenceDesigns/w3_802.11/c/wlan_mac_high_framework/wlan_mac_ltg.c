@@ -84,8 +84,8 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 		curr_tg->cleanup_callback = (function_ptr_t)cleanup_callback;
 		switch(type){
 			case LTG_SCHED_TYPE_PERIODIC:
-				curr_tg->params = wlan_malloc(sizeof(ltg_sched_periodic_params));
-				curr_tg->state = wlan_malloc(sizeof(ltg_sched_periodic_state));
+				curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_params));
+				curr_tg->state = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_state));
 
 				if(curr_tg->params != NULL){
 					memcpy(curr_tg->params, params, sizeof(ltg_sched_periodic_params));
@@ -97,8 +97,8 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 				}
 			break;
 			case LTG_SCHED_TYPE_UNIFORM_RAND:
-				curr_tg->params = wlan_malloc(sizeof(ltg_sched_uniform_rand_params));
-				curr_tg->state = wlan_malloc(sizeof(ltg_sched_uniform_rand_params));
+				curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
+				curr_tg->state = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
 
 				if(curr_tg->params != NULL){
 					memcpy(curr_tg->params, params, sizeof(ltg_sched_uniform_rand_params));
@@ -306,22 +306,22 @@ int ltg_sched_remove(u32 id){
 }
 
 tg_schedule* ltg_sched_create(){
-	return (tg_schedule*)wlan_malloc(sizeof(tg_schedule));
+	return (tg_schedule*)wlan_mac_high_malloc(sizeof(tg_schedule));
 }
 
 void ltg_sched_destroy_params(tg_schedule *tg){
 	switch(tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
 		case LTG_SCHED_TYPE_UNIFORM_RAND:
-			wlan_free(tg->params);
-			wlan_free(tg->state);
+			wlan_mac_high_free(tg->params);
+			wlan_mac_high_free(tg->state);
 		break;
 	}
 }
 
 void ltg_sched_destroy(tg_schedule* tg){
 	ltg_sched_destroy_params(tg);
-	wlan_free(tg);
+	wlan_mac_high_free(tg);
 	return;
 }
 

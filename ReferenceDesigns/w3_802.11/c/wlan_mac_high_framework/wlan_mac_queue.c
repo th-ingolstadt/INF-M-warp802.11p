@@ -19,6 +19,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_dl_list.h"
+#include "wlan_mac_eth_util.h"
 
 //This list holds all of the empty, free elements
 static dl_list queue_free;
@@ -122,7 +123,7 @@ void enqueue_after_end(u16 queue_sel, dl_list* list){
 	curr_packet_bd = (packet_bd*)(list->first);
 
     if((queue_sel+1) > num_queue_tx){
-    	queue_tx = wlan_realloc(queue_tx, (queue_sel+1)*sizeof(dl_list));
+    	queue_tx = wlan_mac_high_realloc(queue_tx, (queue_sel+1)*sizeof(dl_list));
 
     	if(queue_tx == NULL){
     		xil_printf("Error in reallocating %d bytes for tx queue\n", (queue_sel+1)*sizeof(dl_list));
@@ -216,6 +217,7 @@ void queue_checkout(dl_list* new_list, u16 num_packet_bd){
 	}
 	return;
 }
+
 void queue_checkin(dl_list* list){
 	packet_bd* curr_packet_bd;
 	packet_bd* next_packet_bd;
@@ -230,4 +232,26 @@ void queue_checkin(dl_list* list){
 	}
 
 	return;
+}
+
+int wlan_mac_queue_poll(u16 queue_sel){
+	int return_value = 0;;
+
+	dl_list dequeue;
+	packet_bd* tx_queue;
+
+	dequeue_from_beginning(&dequeue, queue_sel,1);
+
+	//xil_printf("wlan_mac_poll_tx_queue(%d)\n", queue_sel);
+
+	if(dequeue.length == 1){
+		return_value = 1;
+		tx_queue = (packet_bd*)(dequeue.first);
+
+		wlan_mac_high_mpdu_transmit(tx_queue);
+		queue_checkin(&dequeue);
+		wlan_eth_dma_update();
+	}
+
+	return return_value;
 }

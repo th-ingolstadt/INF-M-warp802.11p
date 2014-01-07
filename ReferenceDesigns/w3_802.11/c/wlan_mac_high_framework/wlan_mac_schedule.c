@@ -109,7 +109,7 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 	u64 timestamp;
 	u32 id;
 
-	wlan_sched* sched_ptr = wlan_malloc(sizeof(wlan_sched));
+	wlan_sched* sched_ptr = wlan_mac_high_malloc(sizeof(wlan_sched));
 
 	if(sched_ptr == NULL){
 		//malloc has failed. Return failure condition
@@ -166,7 +166,7 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 		case SCHEDULE_COARSE:
 			if(curr_sched_ptr != NULL){
 				dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
-				wlan_free(curr_sched_ptr);
+				wlan_mac_high_free(curr_sched_ptr);
 			}
 
 			if(wlan_sched_coarse.length == 0){
@@ -179,7 +179,7 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 		case SCHEDULE_FINE:
 			if(curr_sched_ptr != NULL){
 				dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
-				wlan_free(curr_sched_ptr);
+				wlan_mac_high_free(curr_sched_ptr);
 			}
 
 			if(wlan_sched_fine.length == 0){
@@ -229,7 +229,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 					}
 					if(curr_sched_ptr->num_calls == 0){
 						dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
-						wlan_free(curr_sched_ptr);
+						wlan_mac_high_free(curr_sched_ptr);
 					} else {
 						curr_sched_ptr->target = timestamp + curr_sched_ptr->delay;
 					}
@@ -258,7 +258,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 					}
 					if(curr_sched_ptr->num_calls == 0){
 						dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
-						wlan_free(curr_sched_ptr);
+						wlan_mac_high_free(curr_sched_ptr);
 					} else {
 						curr_sched_ptr->target = timestamp + curr_sched_ptr->delay;
 					}

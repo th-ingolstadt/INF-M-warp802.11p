@@ -58,6 +58,6 @@ int queue_total_size();
 void purge_queue(u16 queue_sel);
 
 void queue_dram_present(u8 present);
-
+inline int wlan_mac_queue_poll(u16 queue_sel);
 
 #endif /* WLAN_MAC_QUEUE_H_ */

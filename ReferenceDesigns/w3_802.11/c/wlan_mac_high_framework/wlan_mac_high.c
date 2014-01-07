@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_util.c
+// File   : wlan_mac_high.c
 // Authors: Patrick Murphy (murphpo [at] mangocomm.com)
 //			Chris Hunter (chunter [at] mangocomm.com)
 //          Erik Welsh (welsh [at] mangocomm.com)
@@ -30,7 +30,6 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_fmc_pkt.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_ipc.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
@@ -69,10 +68,29 @@ function_ptr_t     pb_u_callback;
 function_ptr_t     pb_m_callback;
 function_ptr_t     pb_d_callback;
 function_ptr_t     uart_callback;
+function_ptr_t     mpdu_tx_done_callback;
+function_ptr_t     mpdu_rx_callback;
+function_ptr_t     fcs_bad_rx_callback;
+function_ptr_t     mpdu_tx_accept_callback;
+function_ptr_t     check_queue_callback;
 
 // Node information
 wlan_mac_hw_info   	hw_info;
 u8					dram_present;
+
+// Status information
+static u32         cpu_low_status;
+static u32         cpu_high_status;
+
+
+// WARPNet information
+#ifdef USE_WARPNET_WLAN_EXP
+u8                 warpnet_initialized;
+#endif
+
+// IPC variables
+wlan_ipc_msg       ipc_msg_from_low;
+u32                ipc_msg_from_low_payload[IPC_BUFFER_SIZE];
 
 // Memory Allocation Debugging
 static u32			num_malloc;
@@ -81,7 +99,7 @@ static u32			num_realloc;
 
 /******************************** Functions **********************************/
 
-void initialize_heap(){
+void wlan_mac_high_heap_init(){
 	u32 data_size;
 	volatile u32* identifier = (u32*)INIT_DATA_BASEADDR;
 	data_size = 4*(&__data_end - &__data_start);
@@ -132,8 +150,13 @@ void wlan_mac_high_init(){
 	pb_m_callback           = (function_ptr_t)nullCallback;
 	pb_d_callback           = (function_ptr_t)nullCallback;
 	uart_callback           = (function_ptr_t)nullCallback;
+	mpdu_rx_callback        = (function_ptr_t)nullCallback;
+	fcs_bad_rx_callback     = (function_ptr_t)nullCallback;
+	mpdu_tx_done_callback   = (function_ptr_t)nullCallback;
+	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
+	check_queue_callback    = (function_ptr_t)nullCallback;
 
-	wlan_lib_mailbox_set_rx_callback((void*)ipc_rx);
+	wlan_lib_mailbox_set_rx_callback((void*)wlan_mac_high_ipc_rx);
 
 	num_malloc = 0;
 	num_realloc = 0;
@@ -171,7 +194,7 @@ void wlan_mac_high_init(){
 
 	//Initialize the GPIO driver
 	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
-	gpio_timestamp_initialize();
+	wlan_mac_high_gpio_timestamp_init();
 
 	if (Status != XST_SUCCESS) {
 		warp_printf(PL_ERROR, "Error initializing GPIO\n");
@@ -196,7 +219,7 @@ void wlan_mac_high_init(){
 	while((get_usec_timestamp() - timestamp) < 100000){
 		if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
 			xil_printf("DRAM SODIMM Detected\n");
-			if(memory_test()==0){
+			if(wlan_mac_high_memory_test()==0){
 				queue_dram_present(1);
 				dram_present = 1;
 			} else {
@@ -230,14 +253,16 @@ void wlan_mac_high_init(){
 #ifdef USE_WARPNET_WLAN_EXP
 	// Communicate the log size to WARPNet
 	node_info_set_event_log_size( log_size );
+	warpnet_initialized = 0;
 #endif
 
 	wlan_fmc_pkt_init();
-	wlan_mac_ipc_init();
 	wlan_eth_init();
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
-    
+
+	//Create IPC message to receive into
+	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
 }
 
 int wlan_mac_high_interrupt_init(){
@@ -254,7 +279,7 @@ int wlan_mac_high_interrupt_init(){
 	// ***************************************************
 	// Connect interrupt devices "owned" by wlan_mac_util
 	// ***************************************************
-	Result = XIntc_Connect(&InterruptController, INTC_GPIO_INTERRUPT_ID, (XInterruptHandler)GpioIsr, &Gpio);
+	Result = XIntc_Connect(&InterruptController, INTC_GPIO_INTERRUPT_ID, (XInterruptHandler)wlan_mac_high_gpio_handler, &Gpio);
 	if (Result != XST_SUCCESS) {
 		warp_printf(PL_ERROR,"Failed to connect GPIO to XIntc\n");
 		return Result;
@@ -351,7 +376,6 @@ void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info ) {
 
 }
 
-
 void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData){
 	XUartLite_Recv(&UartLite, uart_rx_buffer, UART_BUFFER_SIZE);
 	uart_callback(uart_rx_buffer[0]);
@@ -400,7 +424,7 @@ statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
 }
 
 
-void GpioIsr(void *InstancePtr){
+void wlan_mac_high_gpio_handler(void *InstancePtr){
 	XGpio *GpioPtr = (XGpio *)InstancePtr;
 	u32 gpio_read;
 
@@ -417,22 +441,42 @@ void GpioIsr(void *InstancePtr){
 	return;
 }
 
-void wlan_mac_util_set_pb_u_callback(void(*callback)()){
+void wlan_mac_high_set_pb_u_callback(void(*callback)()){
 	pb_u_callback = (function_ptr_t)callback;
 }
 
-void wlan_mac_util_set_pb_m_callback(void(*callback)()){
+void wlan_mac_high_set_pb_m_callback(void(*callback)()){
 	pb_m_callback = (function_ptr_t)callback;
 }
-void wlan_mac_util_set_pb_d_callback(void(*callback)()){
+void wlan_mac_high_set_pb_d_callback(void(*callback)()){
 	pb_d_callback = (function_ptr_t)callback;
 }
 
-void wlan_mac_util_set_uart_rx_callback(void(*callback)()){
+void wlan_mac_high_set_uart_rx_callback(void(*callback)()){
 	uart_callback = (function_ptr_t)callback;
 }
 
-void gpio_timestamp_initialize(){
+void wlan_mac_high_set_mpdu_tx_done_callback(void(*callback)()){
+	mpdu_tx_done_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_high_set_fcs_bad_rx_callback(void(*callback)()){
+	fcs_bad_rx_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_high_set_mpdu_rx_callback(void(*callback)()){
+	mpdu_rx_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_high_set_mpdu_accept_callback(void(*callback)()){
+	mpdu_tx_accept_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_high_set_check_queue_callback(void(*callback)()){
+	check_queue_callback = (function_ptr_t)callback;
+}
+
+void wlan_mac_high_gpio_timestamp_init(){
 	XGpio_Initialize(&Gpio_timestamp, TIMESTAMP_GPIO_DEVICE_ID);
 	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_LSB_CHAN, 0xFFFFFFFF);
 	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_MSB_CHAN, 0xFFFFFFFF);
@@ -450,29 +494,9 @@ u64 get_usec_timestamp(){
 	return timestamp_u64;
 }
 
-int wlan_mac_poll_tx_queue(u16 queue_sel){
-	int return_value = 0;;
+void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station){
+	//This is a good place to add an extension for automatic rate control
 
-	dl_list dequeue;
-	packet_bd* tx_queue;
-
-	dequeue_from_beginning(&dequeue, queue_sel,1);
-
-	//xil_printf("wlan_mac_poll_tx_queue(%d)\n", queue_sel);
-
-	if(dequeue.length == 1){
-		return_value = 1;
-		tx_queue = (packet_bd*)(dequeue.first);
-
-		mpdu_transmit(tx_queue);
-		queue_checkin(&dequeue);
-		wlan_eth_dma_update();
-	}
-
-	return return_value;
-}
-
-void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
 	(station->stats->num_tx_total)++;
 	(station->stats->num_retry) += (frame->retry_count);
 	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
@@ -483,7 +507,7 @@ void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station){
 	}
 }
 
-void wlan_display_mallinfo(){
+void wlan_mac_high_display_mallinfo(){
 	struct mallinfo mi;
 	mi = mallinfo();
 
@@ -510,7 +534,7 @@ void wlan_display_mallinfo(){
 	xil_printf("   keepcost:                %d\n", mi.keepcost);
 }
 
-void* wlan_malloc(u32 size){
+void* wlan_mac_high_malloc(u32 size){
 	//This is just a simple wrapper around malloc to aid in debugging memory leak issues
 	void* return_value;
 	return_value = malloc(size);
@@ -519,17 +543,17 @@ void* wlan_malloc(u32 size){
 
 	if(return_value == NULL){
 		xil_printf("malloc error. Try increasing heap size in linker script.\n");
-		wlan_display_mallinfo();
+		wlan_mac_high_display_mallinfo();
 	} else {
 		num_malloc++;
 	}
 	return return_value;
 }
 
-void* wlan_calloc(u32 size){
+void* wlan_mac_high_calloc(u32 size){
 	//This is just a simple wrapper around calloc to aid in debugging memory leak issues
 	void* return_value;
-	return_value = wlan_malloc(size);
+	return_value = wlan_mac_high_malloc(size);
 
 	if(return_value == NULL){
 	} else {
@@ -539,7 +563,7 @@ void* wlan_calloc(u32 size){
 }
 
 
-void* wlan_realloc(void* addr, u32 size){
+void* wlan_mac_high_realloc(void* addr, u32 size){
 	//This is just a simple wrapper around realloc to aid in debugging memory leak issues
 	void* return_value;
 	return_value = realloc(addr, size);
@@ -548,7 +572,7 @@ void* wlan_realloc(void* addr, u32 size){
 
 	if(return_value == NULL){
 		xil_printf("realloc error. Try increasing heap size in linker script.\n");
-		wlan_display_mallinfo();
+		wlan_mac_high_display_mallinfo();
 	} else {
 		num_realloc++;
 	}
@@ -556,7 +580,7 @@ void* wlan_realloc(void* addr, u32 size){
 	return return_value;
 }
 
-void wlan_free(void* addr){
+void wlan_mac_high_free(void* addr){
 	//This is just a simple wrapper around free to aid in debugging memory leak issues
 
 	//xil_printf("FREE 0x%08x\n", addr);
@@ -565,7 +589,8 @@ void wlan_free(void* addr){
 	num_free++;
 }
 
-u8 wlan_mac_util_get_tx_rate(station_info* station){
+u8 wlan_mac_high_get_tx_rate(station_info* station){
+	//This is also a good place to add extensions to automatic rate control
 
 	u8 return_value;
 
@@ -579,14 +604,14 @@ u8 wlan_mac_util_get_tx_rate(station_info* station){
 	return return_value;
 }
 
-void write_hex_display(u8 val){
+void wlan_mac_high_write_hex_display(u8 val){
 	//u8 val: 2 digit decimal value to be printed to hex displays
    userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
    userio_write_hexdisp_left(USERIO_BASEADDR, val/10);
    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
 }
 
-void write_hex_display_dots(u8 dots_on){
+void wlan_mac_high_write_hex_display_dots(u8 dots_on){
 	u32 left_hex,right_hex;
 
 	left_hex = userio_read_hexdisp_left(USERIO_BASEADDR);
@@ -601,7 +626,7 @@ void write_hex_display_dots(u8 dots_on){
 	}
 
 }
-int memory_test(){
+int wlan_mac_high_memory_test(){
 	//Test DRAM
 	u8 i,j;
 
@@ -609,13 +634,6 @@ int memory_test(){
 	u16 test_u16;
 	u32 test_u32;
 	u64 test_u64;
-
-	/*
-	xil_printf("\nTesting DRAM -- Note: this function does not currently handle the case of a DDR3 SODIMM being\n");
-	xil_printf("absent from the board. If this hardware design can't reach the DRAM, this function will hang and\n");
-	xil_printf("this print will be the last thing that makes it out to uart. The USE_DRAM #define should be disabled\n");
-	xil_printf("if this occurs. In a future release, this function will handle DRAM failure better.\n\n");
-	*/
 
 	for(i=0;i<6;i++){
 		void* memory_ptr = (void*)DDR3_BASEADDR + (i*100000*1024);
@@ -659,7 +677,7 @@ int memory_test(){
 
 
 
-int is_tx_buffer_empty(){
+int wlan_mac_high_is_tx_buffer_empty(){
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
 	if( ( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( is_cpu_low_ready() ) ){
@@ -669,10 +687,9 @@ int is_tx_buffer_empty(){
 	}
 }
 
-int wlan_mac_cdma_start_transfer(void* dest, void* src, u32 size){
+int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	//This is a wrapper function around the central DMA simple transfer call. It's arguments
 	//are intended to be similar to memcpy. Note: This function does not block on the transfer.
-
 	int return_value;
 
 	while(XAxiCdma_IsBusy(&cdma_inst)) {}
@@ -681,25 +698,20 @@ int wlan_mac_cdma_start_transfer(void* dest, void* src, u32 size){
 	return return_value;
 }
 
-void wlan_mac_cdma_finish_transfer(){
+void wlan_mac_high_cdma_finish_transfer(){
 	while(XAxiCdma_IsBusy(&cdma_inst)) {}
 	return;
 }
 
-
-void mpdu_transmit(packet_bd* tx_queue) {
+void wlan_mac_high_mpdu_transmit(packet_bd* tx_queue) {
 
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station_info* station = (station_info*)(tx_queue->metadata_ptr);
 
-	if(is_tx_buffer_empty()){
-
-		//For now, this is just a one-shot DMA transfer that effectively blocks
-		while(XAxiCdma_IsBusy(&cdma_inst)) {}
-		XAxiCdma_SimpleTransfer(&cdma_inst, (u32)(tx_queue->buf_ptr), (u32)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE, NULL, NULL);
-		while(XAxiCdma_IsBusy(&cdma_inst)) {}
-
+	if(wlan_mac_high_is_tx_buffer_empty()){
+		wlan_mac_high_cdma_start_transfer( (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), (void*)(tx_queue->buf_ptr), ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+		wlan_mac_high_cdma_finish_transfer();
 
 		if(station == NULL){
 			//Broadcast transmissions have no station information, so we default to a nominal rate
@@ -708,7 +720,7 @@ void mpdu_transmit(packet_bd* tx_queue) {
 		} else {
 			//Request the rate to use for this station
 			tx_mpdu->AID = station->AID;
-			tx_mpdu->rate = wlan_mac_util_get_tx_rate(station);
+			tx_mpdu->rate = wlan_mac_high_get_tx_rate(station);
 			//tx_mpdu->rate = default_unicast_rate;
 		}
 
@@ -722,12 +734,12 @@ void mpdu_transmit(packet_bd* tx_queue) {
 		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 			warp_printf(PL_ERROR,"Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
 		} else {
-			set_cpu_low_not_ready();
+			cpu_high_status |= CPU_STATUS_WAIT_FOR_IPC_ACCEPT;
 
 			ipc_mailbox_write_msg(&ipc_msg_to_low);
 		}
 	} else {
-		warp_printf(PL_ERROR, "Bad state in mpdu_transmit. Attempting to transmit but tx_buffer %d is not empty\n",tx_pkt_buf);
+		warp_printf(PL_ERROR, "Bad state in wlan_mac_high_mpdu_transmit. Attempting to transmit but tx_buffer %d is not empty\n",tx_pkt_buf);
 	}
 
 	return;
@@ -735,13 +747,13 @@ void mpdu_transmit(packet_bd* tx_queue) {
 
 
 
-u8* get_eeprom_mac_addr(){
+u8* wlan_mac_high_get_eeprom_mac_addr(){
 	return (u8 *) &(hw_info.hw_addr_wlan);
 }
 
 
 
-u8 valid_tagged_rate(u8 rate){
+u8 wlan_mac_high_valid_tagged_rate(u8 rate){
 	#define NUM_VALID_RATES 12
 	u32 i;
 	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
@@ -756,7 +768,7 @@ u8 valid_tagged_rate(u8 rate){
 }
 
 
-void tagged_rate_to_readable_rate(u8 rate, char* str){
+void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str){
 	#define NUM_VALID_RATES 12
 	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
 	//invalid when this function is used.
@@ -827,7 +839,7 @@ void tagged_rate_to_readable_rate(u8 rate, char* str){
 * @note		None.
 *
 ******************************************************************************/
-void setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 ) {
+void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 ) {
 
 	// Set up Addresses in common header
 	header->address_1 = addr_1;
@@ -835,7 +847,7 @@ void setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3
 }
 
 
-void setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  ) {
+void wlan_mac_high_setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  ) {
 
     // Set up metadata
 	tx_queue->metadata_ptr     = metadata;
@@ -870,6 +882,316 @@ void usleep(u64 delay){
 	while(get_usec_timestamp() < (timestamp+delay)){}
 	return;
 }
+
+
+
+
+/*****************************************************************************/
+/**
+* WLAN MAC IPC receive
+*
+* IPC receive function that will poll the mailbox for as many messages as are
+*   available and then call the CPU high IPC processing function on each message
+*
+* @param    None.
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wlan_mac_high_ipc_rx(){
+
+#ifdef _DEBUG_
+	u32 numMsg = 0;
+	xil_printf("Mailbox Rx:  ");
+#endif
+
+	while( ipc_mailbox_read_msg( &ipc_msg_from_low ) == IPC_MBOX_SUCCESS ) {
+		wlan_mac_high_process_ipc_msg(&ipc_msg_from_low);
+
+#ifdef _DEBUG_
+		numMsg++;
+#endif
+	}
+
+#ifdef _DEBUG_
+	xil_printf("Processed %d msg in one ISR\n", numMsg);
+#endif
+}
+
+
+
+
+/*****************************************************************************/
+/**
+* WLAN MAC IPC processing function for CPU High
+*
+* Process all IPC messages from CPU low
+*
+* @param    msg   - IPC message from CPU low
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
+
+	rx_frame_info* rx_mpdu;
+	tx_frame_info* tx_mpdu;
+
+	u8  rx_pkt_buf;
+    u32 temp_1, temp_2;
+
+
+	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
+
+		case IPC_MBOX_RX_MPDU_READY:
+			//This message indicates CPU Low has received an MPDU addressed to this node or to the broadcast address
+
+			rx_pkt_buf = msg->arg0;
+
+			//First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
+			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
+			} else {
+				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+
+				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
+				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
+
+				//Free up the rx_pkt_buf
+				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
+
+				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					warp_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n",rx_pkt_buf);
+				}
+			}
+		break;
+
+		case IPC_MBOX_RX_BAD_FCS:
+			//This message indicates CPU Low has received a frame whose FCS failed
+
+			rx_pkt_buf = msg->arg0;
+
+			//First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
+			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
+			} else {
+				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+
+				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
+				fcs_bad_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
+
+				//Free up the rx_pkt_buf
+				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
+
+				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					warp_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n",rx_pkt_buf);
+				}
+			}
+		break;
+
+		case IPC_MBOX_TX_MPDU_ACCEPT:
+			//This message indicates CPU Low has begun the Tx process for the previously submitted MPDU
+			// CPU High is now free to begin processing its next Tx frame and submit it to CPU Low
+			// CPU Low will not accept a new frame until the previous one is complete
+
+			if(tx_pkt_buf != (msg->arg0)) {
+				warp_printf(PL_ERROR, "Received CPU_LOW acceptance of buffer %d, but was expecting buffer %d\n", tx_pkt_buf, msg->arg0);
+			}
+
+			tx_pkt_buf = (tx_pkt_buf + 1) % TX_BUFFER_NUM;
+
+			cpu_high_status &= (~CPU_STATUS_WAIT_FOR_IPC_ACCEPT);
+
+			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
+				warp_printf(PL_ERROR,"Error: unable to lock tx pkt_buf %d\n",tx_pkt_buf);
+			} else {
+				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
+			}
+
+			check_queue_callback();
+			mpdu_tx_accept_callback(TX_PKT_BUF_TO_ADDR(msg->arg0));
+
+		break;
+
+		case IPC_MBOX_TX_MPDU_DONE:
+			//This message indicates CPU Low has finished the Tx process for the previously submitted-accepted frame
+			// CPU High should do any necessary post-processing, then recycle the packet buffer
+
+			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
+			mpdu_tx_done_callback(tx_mpdu);
+		break;
+
+
+		case IPC_MBOX_HW_INFO:
+			// This message indicates CPU low is passing up node hardware information that only it has access to
+
+			temp_1 = hw_info.type;
+			temp_2 = hw_info.wn_exp_eth_device;
+
+			// CPU Low updated the node's HW information
+            //   NOTE:  this information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
+			memcpy((void*) &hw_info, (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
+
+			hw_info.type              = temp_1;
+			hw_info.wn_exp_eth_device = temp_2;
+
+#ifdef USE_WARPNET_WLAN_EXP
+
+        	// Initialize WLAN Exp if it is being used
+            if ( warpnet_initialized == 0 ) {
+
+                wlan_exp_node_init( hw_info_ptr->type, hw_info_ptr->serial_number, &(hw_info_ptr->fpga_dna), hw_info_ptr->wn_exp_eth_device, &(hw_info_ptr->hw_addr_wn) );
+
+                warpnet_initialized = 1;
+            }
+#endif
+		break;
+
+
+		case IPC_MBOX_CPU_STATUS:
+			// This message indicates CPU low's status
+
+			cpu_low_status = ipc_msg_from_low_payload[0];
+
+			if(cpu_low_status & CPU_STATUS_EXCEPTION){
+				warp_printf(PL_ERROR, "An unrecoverable exception has occurred in CPU_LOW, halting...\n");
+				warp_printf(PL_ERROR, "Reason code: %d\n", ipc_msg_from_low_payload[1]);
+				while(1){}
+			}
+		break;
+
+
+		default:
+			warp_printf(PL_ERROR, "Unknown IPC message type %d\n",IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
+		break;
+	}
+
+	return;
+}
+
+
+
+
+
+/*****************************************************************************/
+/**
+* Set MAC Channel
+*
+* Send an IPC message to CPU Low to set the MAC Channel
+*
+* @param    mac_channel  - Value of MAC channel
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wlan_mac_high_set_channel( unsigned int mac_channel ) {
+
+	wlan_ipc_msg       ipc_msg_to_low;
+	u32                ipc_msg_to_low_payload[1];
+	ipc_config_rf_ifc* config_rf_ifc;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
+	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
+
+	// Initialize the payload
+	init_ipc_config(config_rf_ifc, ipc_msg_to_low_payload, ipc_config_rf_ifc);
+
+	config_rf_ifc->channel = mac_channel;
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+}
+
+
+
+/*****************************************************************************/
+/**
+* Set DSSS
+*
+* Send an IPC message to CPU Low to set the DSSS value
+*
+* @param    dsss_value  - Value of DSSS to send to CPU Low
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wlan_mac_high_set_dsss( unsigned int dsss_value ) {
+
+	wlan_ipc_msg       ipc_msg_to_low;
+	u32                ipc_msg_to_low_payload[1];
+	ipc_config_phy_rx* config_phy_rx;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
+	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
+
+	// Initialize the payload
+	init_ipc_config(config_phy_rx, ipc_msg_to_low_payload, ipc_config_phy_rx);
+
+	config_phy_rx->enable_dsss = dsss_value;
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+}
+
+void wlan_mac_high_set_backoff_slot_value( u32 num_slots ) {
+
+	wlan_ipc_msg       ipc_msg_to_low;
+	u32                ipc_msg_to_low_payload[1];
+	ipc_config_mac*    config_mac;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_MAC);
+	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
+
+	// Initialize the payload
+	config_mac = (ipc_config_mac*) ipc_msg_to_low_payload;
+	config_mac->slot_config = num_slots;
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+}
+
+
+
+
+
+/*****************************************************************************/
+/**
+* Check variables on CPU low's state
+*
+* @param    None.
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+
+int wlan_mac_high_is_cpu_low_initialized(){
+	wlan_mac_high_ipc_rx();
+	return ( (cpu_low_status & CPU_STATUS_INITIALIZED) != 0 );
+}
+
+int is_cpu_low_ready(){
+	// xil_printf("cpu_high_status = 0x%08x\n",cpu_high_status);
+	return ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0);
+}
+
+
+
+
+
 
 
 

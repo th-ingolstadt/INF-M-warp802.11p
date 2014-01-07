@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_util.h
+// File   : wlan_mac_high.h
 // Authors: Patrick Murphy (murphpo [at] mangocomm.com)
 //			Chris Hunter (chunter [at] mangocomm.com)
 // License: Copyright 2013, Mango Communications. All rights reserved.
@@ -205,8 +205,11 @@ typedef struct{
 #define LLC_TYPE_CUSTOM					0x9090
 
 
+// IPC defines
+#define IPC_BUFFER_SIZE      20
 
-void initialize_heap();
+
+void wlan_mac_high_heap_init();
 void wlan_mac_high_init();
 int wlan_mac_high_interrupt_init();
 inline int wlan_mac_high_interrupt_start();
@@ -217,54 +220,66 @@ void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
 station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
 statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
-
-
-
-
-
-
-void gpio_timestamp_initialize();
-
+void wlan_mac_high_gpio_handler(void *InstancePtr);
+void wlan_mac_high_set_pb_u_callback(void(*callback)());
+void wlan_mac_high_set_pb_m_callback(void(*callback)());
+void wlan_mac_high_set_pb_d_callback(void(*callback)());
+void wlan_mac_high_set_uart_rx_callback(void(*callback)());
+void wlan_mac_high_set_mpdu_tx_done_callback(void(*callback)());
+void wlan_mac_high_set_fcs_bad_rx_callback(void(*callback)());
+void wlan_mac_high_set_mpdu_rx_callback(void(*callback)());
+void wlan_mac_high_set_mpdu_accept_callback(void(*callback)());
+void wlan_mac_high_set_check_queue_callback(void(*callback)());
+void wlan_mac_high_gpio_timestamp_init();
 u64  get_usec_timestamp();
+void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station);
+void wlan_mac_high_display_mallinfo();
+void* wlan_mac_high_malloc(u32 size);
+void* wlan_mac_high_calloc(u32 size);
+void* wlan_mac_high_realloc(void* addr, u32 size);
+void wlan_mac_high_free(void* addr);
+u8 wlan_mac_high_get_tx_rate(station_info* station);
+void wlan_mac_high_write_hex_display(u8 val);
+void wlan_mac_high_write_hex_display_dots(u8 dots_on);
+int wlan_mac_high_memory_test();
+int wlan_mac_high_is_tx_buffer_empty();
+int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size);
+void wlan_mac_high_cdma_finish_transfer();
+void wlan_mac_high_mpdu_transmit(packet_bd* tx_queue);
+u8* wlan_mac_high_get_eeprom_mac_addr();
+u8 wlan_mac_high_valid_tagged_rate(u8 rate);
+void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
+void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
+void wlan_mac_high_setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  );
 
-void wlan_mac_util_set_pb_u_callback(void(*callback)());
-void wlan_mac_util_set_pb_m_callback(void(*callback)());
-void wlan_mac_util_set_pb_d_callback(void(*callback)());
-void wlan_mac_util_set_uart_rx_callback(void(*callback)());
 
-
-inline void poll_schedule();
-inline int wlan_mac_poll_tx_queue(u16 queue_sel);
-void write_hex_display(u8 val);
-void write_hex_display_dots(u8 dots_on);
-int memory_test();
-void write_hex_display_raw(u8 val1,u8 val2);
-void GpioIsr(void *InstancePtr);
-void SendHandler(void *CallBackRef, unsigned int EventData);
-
-void wlan_mac_util_set_fmc_ipc_rx_callback(void(*callback)());
-
-u8* get_eeprom_mac_addr();
-
-void wlan_mac_util_process_tx_done(tx_frame_info* frame,station_info* station);
-void wlan_display_mallinfo();
-void* wlan_malloc(u32 size);
-void* wlan_calloc(u32 size);
-void* wlan_realloc(void* addr, u32 size);
-void wlan_free(void* addr);
-u8 wlan_mac_util_get_tx_rate(station_info* station);
-
-int is_tx_buffer_empty();
-void mpdu_transmit(packet_bd* tx_queue);
-u8 valid_tagged_rate(u8 rate);
-void tagged_rate_to_readable_rate(u8 rate, char* str);
 int str2num(char* str);
-int wlan_mac_cdma_start_transfer(void* dest, void* src, u32 size);
-void wlan_mac_cdma_finish_transfer();
-void setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
-void setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  );
-
 void usleep(u64 delay);
+
+
+
+
+
+
+
+
+
+
+
+
+void wlan_mac_high_ipc_rx();
+
+void wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
+
+void wlan_mac_high_set_channel( unsigned int mac_channel );
+void wlan_mac_high_set_dsss( unsigned int dsss_value );
+void wlan_mac_high_set_backoff_slot_value( u32 num_slots );
+
+
+int  wlan_mac_high_is_cpu_low_initialized();
+int  wlan_mac_high_is_cpu_low_ready();
+
+
 
 
 
