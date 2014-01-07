@@ -1,13 +1,18 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_high.c
-// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
-//			Chris Hunter (chunter [at] mangocomm.com)
-//          Erik Welsh (welsh [at] mangocomm.com)
-// License: Copyright 2013, Mango Communications. All rights reserved.
-//          Distributed under the Mango Communications Reference Design License
-//				See LICENSE.txt included in the design archive or
-//				at http://mangocomm.com/802.11/license
-////////////////////////////////////////////////////////////////////////////////
+/** @file wlan_mac_high.c
+ *  @brief Top-level WLAN MAC High Framework
+ *  
+ *  This contains the top-level code for accessing the WLAN MAC High Framework.
+ *  
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug No known bugs.
+ */
 
 /***************************** Include Files *********************************/
 
