@@ -12,9 +12,9 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %%
 %xlLoadChipScopeData('cs_capt/wlan_cs_capt_81_64Q23.prn'); cs_interp = 1; cs_start = 1300; cs_end = length(ADC_I);
-xlLoadChipScopeData('wonky_beacons.prn'); cs_interp = 1; cs_start = 950; cs_end = 4500;
+xlLoadChipScopeData('cs_capt/bad_beacon_caps/agc_off_bad_sig_3.prn');cs_interp = 1; cs_start = 950; cs_end = 4000;
 samps2 = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
-%samps2 = [samps2(1:370); samps2(372:end)]; %HACK to debug extra sample in Tx
+samps2 = [samps2(1:360); samps2(362:end)]; %HACK to debug extra sample in Tx
 payload_vec = [samps2; zeros(1000,1);];
 %paylod_vec_samp_time = 8;
 
@@ -113,7 +113,7 @@ PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 PHY_CONFIG_LTS_CORR_TIMEOUT = 250;%150;%*2 in hardware
 
 PHY_CONFIG_PKT_DET_CORR_THRESH = (0.75) * 2^8; %UFix8_8 threshold
-PHY_CONFIG_PKT_DET_ENERGY_THRESH = 8; %UFix14_8 thresh; set to low non-zero value
+PHY_CONFIG_PKT_DET_ENERGY_THRESH = 0; %UFix14_8 thresh; set to low non-zero value
 PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 

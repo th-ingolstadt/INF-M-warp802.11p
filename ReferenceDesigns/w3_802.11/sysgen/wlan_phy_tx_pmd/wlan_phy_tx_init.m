@@ -42,9 +42,9 @@ payload_words = zeros(1, MAX_NUM_BYTES/4);
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 0); %QPSK 1/2
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 2, 1); %QPSK 3/4
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 0); %16QAM 1/2
-%payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 1); %16QAM 3/4
+payload_words(1) = tx_signal_calc(Tx_Payload_len, 4, 1); %16QAM 3/4
 %payload_words(1) = tx_signal_calc(Tx_Payload_len, 6, 0); %64QAM 2/3
-payload_words(1) = tx_signal_calc(Tx_Payload_len, 6, 1); %64QAM 3/4
+%payload_words(1) = tx_signal_calc(Tx_Payload_len, 6, 1); %64QAM 3/4
 
 payload_words(2) = 0; %SERVICE is always 0
 payload_words(2+[1:length(Tx_Payload_words)]) = Tx_Payload_words;
@@ -58,7 +58,7 @@ n_bits_preFFT_sampBuff = ceil(log2(4*MAX_NUM_SC));
 train_sym_f = sign(PLCP_Preamble.LTS_f);
 
 Preamble_IQ = PLCP_Preamble.Preamble_t;
-Preamble_IQ(end) = +1;%HACK for testing preamble->payload transition
+%Preamble_IQ(end) = +1;%HACK for testing preamble->payload transition
 
 
 %Data-bearing subcarrier map
