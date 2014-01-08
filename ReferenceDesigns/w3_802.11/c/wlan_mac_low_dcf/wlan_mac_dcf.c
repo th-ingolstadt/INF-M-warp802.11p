@@ -224,6 +224,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					//xil_printf("\nRate %d\n", tx_mpdu->rate);
 					//xil_printf("Len %d\n", tx_mpdu->length);
 
+					//xil_printf("gain target: %d\n", tx_mpdu->gain_target);
+
 					switch(tx_mpdu->rate){
 						case WLAN_MAC_RATE_1M:
 							warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
@@ -278,9 +280,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					//
 
-					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x22);
+					//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x22);
 					status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
-					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x22);
+					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x22);
 
 					tx_mpdu->tx_mpdu_done_timestamp = get_usec_timestamp();
 
@@ -342,9 +344,13 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	mac_header_80211* rx_header;
 	wlan_ipc_msg ipc_msg_to_high;
 
-
-
 	return_value = 0;
+
+	//DEBUG
+	//wlan_mac_dcf_hw_rx_finish();
+	//wlan_mac_dcf_hw_unblock_rx_phy();
+	//return return_value;
+	//DEBUG
 
 	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
 	mpdu_info = (rx_frame_info*)pkt_buf_addr;
@@ -503,6 +509,8 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 			} //END if(not control packet)
 		} //END if (to_me or to_broadcast)
 	}  else { //END if (FCS good)
+
+		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 		mpdu_info->state = RX_MPDU_STATE_FCS_BAD;
 		ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_RX_BAD_FCS);
 		ipc_msg_to_high.arg0 = rx_pkt_buf;
@@ -519,6 +527,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 			//Find a free packet buffer and beging receiving packets there (blocks until free buf is found)
 			lock_empty_rx_pkt_buf();
 		}
+		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 	} //END else (FCS bad)
 
 	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
@@ -539,6 +548,12 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	u32 tx_status, rx_status;
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+
+	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_RFA | RC_RFB), mpdu_info->gain_target);
+
+	//FIXME DEBUG
+	//bzero(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET + PHY_TX_PKT_BUF_PHY_HDR_SIZE, 1000);
+	//
 
 	//DEBUG FIXME
 	//wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
@@ -589,9 +604,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 				break;
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED:
 					expect_ack = 1;
-					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+					//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 					rx_status = poll_mac_rx();
-					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
 					if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
 						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
 						n_slots = rand_num_slots();

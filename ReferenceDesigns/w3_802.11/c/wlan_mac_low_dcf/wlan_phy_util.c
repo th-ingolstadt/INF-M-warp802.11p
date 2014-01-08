@@ -161,6 +161,7 @@ void wlan_phy_init() {
 
 	//Enable DSSS Rx by default
 	wlan_phy_DSSS_rx_enable();
+	//wlan_phy_DSSS_rx_disable();
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD);
 
 	//Enable LTS-based CFO correction
@@ -181,17 +182,25 @@ void wlan_phy_init() {
 
 	//Set LTS correlation threshold and timeout
 	//wlan_phy_rx_lts_corr_config(600 * PHY_RX_RSSI_SUM_LEN, 320/2);//SNR thresh, timeout/2
-	wlan_phy_rx_lts_corr_config(600 * PHY_RX_RSSI_SUM_LEN, 330/2);//SNR thresh, timeout/2
-	wlan_phy_rx_lts_corr_thresholds(12500, 17000);//low SNR, high SNR corr thresh
+	wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2);//SNR thresh, timeout/2 //350/2
+	//wlan_phy_rx_lts_corr_config(750 * PHY_RX_RSSI_SUM_LEN, 350/2);
+
+
+	//wlan_phy_rx_lts_corr_thresholds(12500, 17000);//low SNR, high SNR corr thresh
+	wlan_phy_rx_lts_corr_thresholds(12500, 14500);//low SNR, high SNR corr thresh
 
 	//Configure RSSI pkt det
 	//wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
-	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 300), 4); //Disable RSSI pkt det with high thresh
-	//wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 300), 4); //Disable RSSI pkt det with high thresh //TODO: DEBUG ONLY
 	
+	//wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 300), 4); //Disable RSSI pkt det with high thresh
+	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 1023), 0xFFFF); //Disable RSSI pkt det with high thresh //TODO: DEBUG ONLY
+	//wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 600), 4); //Disable RSSI pkt det with high thresh //TODO: DEBUG ONLY
+
 	//Configure auto-corr pkt det
 	//wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
-	wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
+
+	//wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
+	wlan_phy_rx_pktDet_autoCorr_cfg(200, 50, 4, 0x3F);
 
 	//Configure the default antenna selections
 	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
@@ -226,13 +235,15 @@ void wlan_phy_init() {
 	//Set digital scaling of preamble/payload signals before DACs (UFix12_0)
 	wlan_phy_tx_set_scaling(0x2000, 0x2000);
 
+	//REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET_SCRAMBLING_PER_PKT); //TODO: REMOVE
+
 /*********** AGC ***************/
 
 	//Post Rx_done reset delays for [rxhp, g_rf, g_bb]
 	wlan_agc_set_reset_timing(4, 250, 250);
 
 	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
-	wlan_agc_set_config( (256-56), (256-15), 0, 6, 24);
+	wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
 	//wlan_agc_set_config( (256-56), (256-15), 0, 6, 24);
 
 	wlan_agc_set_RSSI_pwr_calib(100, 85, 70); //70
@@ -401,10 +412,10 @@ void usleep(u32 duration){
 void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx){
 	if(config_phy_rx->enable_dsss != 0xFF){
 		if(config_phy_rx->enable_dsss == 1){
-			//xil_printf("Enabling DSSS\n");
+			xil_printf("Enabling DSSS\n");
 			wlan_phy_DSSS_rx_enable();
 		} else {
-			//xil_printf("Disabling DSSS\n");
+			xil_printf("Disabling DSSS\n");
 			wlan_phy_DSSS_rx_disable();
 		}
 	}
