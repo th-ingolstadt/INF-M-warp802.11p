@@ -39,6 +39,7 @@ extern char*  access_point_ssid;
 
 // Control variables
 extern u8  default_unicast_rate;
+extern u8  default_tx_gain_target;
 extern int association_state;                      // Section 10.3 of 802.11-2012
 extern u8  uart_mode;
 extern u8  active_scan;
@@ -156,6 +157,26 @@ void uart_rx(u8 rxByte){
 					access_point.tx.rate = default_unicast_rate;
 
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+				break;
+				case ASCII_g:
+					if(default_tx_gain_target > 0){
+						default_tx_gain_target--;
+					} else {
+						default_tx_gain_target = 0;
+					}
+
+					xil_printf("(-) Default Tx Gain Target: %d \n", default_tx_gain_target);
+
+				break;
+				case ASCII_G:
+					if(default_tx_gain_target < 63){
+						default_tx_gain_target++;
+					} else {
+						default_tx_gain_target = 63;
+					}
+
+					xil_printf("(+) Default Tx Gain Target: %d \n", default_tx_gain_target);
+
 				break;
 				case ASCII_n:
 					if(num_slots == 0 || num_slots == SLOT_CONFIG_RAND){

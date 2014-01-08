@@ -50,7 +50,7 @@
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_STATION
 
 #define  WLAN_CHANNEL                  4
-
+#define  TX_GAIN_TARGET				   45
 
 
 /*********************** Global Variable Definitions *************************/
@@ -69,6 +69,7 @@ mac_header_80211_common tx_header_common;
 
 // Control variables
 u8  default_unicast_rate;
+u8  default_tx_gain_target;
 int association_state;                      // Section 10.3 of 802.11-2012
 u8  uart_mode;
 u8  active_scan;
@@ -148,6 +149,7 @@ int main(){
 
     // Set Global variables
 	default_unicast_rate = WLAN_MAC_RATE_18M;
+	default_tx_gain_target = TX_GAIN_TARGET;
 
 	// Initialize the utility library
     wlan_mac_high_init();
@@ -243,6 +245,7 @@ int main(){
 
 	wlan_mac_high_interrupt_start();
 
+
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
@@ -265,7 +268,7 @@ void check_tx_queue(){
 
 	if(pause_queue == 0){
 		static u32 queue_index = 0;
-		if( is_cpu_low_ready() ){
+		if( wlan_mac_high_is_cpu_low_ready() ){
 			for(i=0;i<2;i++){
 				//Alternate between checking the unassociated queue and the associated queue
 				queue_index = (queue_index+1)%2;
@@ -340,7 +343,7 @@ void attempt_association(){
 
 				tx_length = wlan_create_association_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
 
-		 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
+		 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, TX_GAIN_TARGET,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(0, &checkout);
@@ -397,7 +400,7 @@ void attempt_authentication(){
 
 				tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
 
-		 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY,
+		 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, TX_GAIN_TARGET,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(0, &checkout);
@@ -485,7 +488,7 @@ void probe_req_transmit(){
 
 			tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
-	 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
+	 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_GAIN_TARGET, 0 );
 
 			enqueue_after_end(0, &checkout);
 			check_tx_queue();
@@ -516,7 +519,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
 		if(queue_num_queued(0) < max_queue_size){
-			wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, 0 );
+			wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_GAIN_TARGET, 0 );
 
 			enqueue_after_end(0, tx_queue_list);
 			check_tx_queue();
@@ -530,7 +533,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 			if(queue_num_queued(1) < max_queue_size){
 
-				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
+				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY, TX_GAIN_TARGET,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(1, tx_queue_list);
@@ -618,6 +621,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		//Check if duplicate
 		access_point.rx.last_timestamp = get_usec_timestamp();
 		access_point.rx.last_power = mpdu_info->rx_power;
+
+		//xil_printf("%d ? %d\n", access_point.rx.last_seq, rx_seq);
 
 		if( (access_point.rx.last_seq != 0)  && (access_point.rx.last_seq == rx_seq) ) {
 			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
@@ -867,7 +872,7 @@ void ltg_event(u32 id, void* callback_arg){
 			tx_length += sizeof(llc_header);
 			tx_length += payload_length;
 
-	 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY,
+	 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY, TX_GAIN_TARGET,
 	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 			enqueue_after_end(1, &checkout);
