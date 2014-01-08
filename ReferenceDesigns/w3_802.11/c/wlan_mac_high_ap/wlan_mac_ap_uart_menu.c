@@ -37,6 +37,7 @@
 
 static u8 uart_mode = UART_MODE_MAIN;
 extern u8 default_unicast_rate;
+extern u8 default_tx_gain_target;
 extern u32 mac_param_chan;
 
 extern dl_list association_table;
@@ -124,6 +125,26 @@ void uart_rx(u8 rxByte){
 
 					}
 					xil_printf("(+) Channel: %d\n", mac_param_chan);
+
+				break;
+				case ASCII_g:
+					if(default_tx_gain_target > 0){
+						default_tx_gain_target--;
+					} else {
+						default_tx_gain_target = 0;
+					}
+
+					xil_printf("(-) Default Tx Gain Target: %d \n", default_tx_gain_target);
+
+				break;
+				case ASCII_G:
+					if(default_tx_gain_target < 63){
+						default_tx_gain_target++;
+					} else {
+						default_tx_gain_target = 63;
+					}
+
+					xil_printf("(+) Default Tx Gain Target: %d \n", default_tx_gain_target);
 
 				break;
 				case ASCII_r:
