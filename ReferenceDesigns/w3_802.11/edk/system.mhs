@@ -137,28 +137,12 @@
  PORT ddr3_sodimm_reset_n = ddr3_sodimm_reset_n, DIR = O
  PORT ddr3_sodimm_dqs_p = ddr3_sodimm_dqs_p, DIR = IO, VEC = [7:0]
  PORT ddr3_sodimm_dqs_n = ddr3_sodimm_dqs_n, DIR = IO, VEC = [7:0]
-# #FMC-BB-4DA pins
-# PORT FMC_4DA_DAC_AB_DB = FMC_4DA_DAC_AB_DB, DIR = O, VEC = [0:13]
-# PORT FMC_4DA_DAC_CD_DB = FMC_4DA_DAC_CD_DB, DIR = O, VEC = [0:13]
-# DAC_AB clock/control
-# PORT FMC_4DA_DAC_AB_CLK = FMC_4DA_DAC_AB_CLK, DIR = O
-# PORT FMC_4DA_DAC_AB_PINMD = FMC_4DA_DAC_AB_PINMD, DIR = O
-# PORT FMC_4DA_DAC_AB_PWDN = FMC_4DA_DAC_AB_PWDN, DIR = O
-# PORT FMC_4DA_DAC_AB_CLKMD = FMC_4DA_DAC_AB_CLKMD, DIR = O
-# PORT FMC_4DA_DAC_AB_FORMAT = FMC_4DA_DAC_AB_FORMAT, DIR = O
-# DAC_CD clock/control
-# PORT FMC_4DA_DAC_CD_CLK = FMC_4DA_DAC_CD_CLK, DIR = O
-# PORT FMC_4DA_DAC_CD_PINMD = FMC_4DA_DAC_CD_PINMD, DIR = O
-# PORT FMC_4DA_DAC_CD_PWDN = FMC_4DA_DAC_CD_PWDN, DIR = O
-# PORT FMC_4DA_DAC_CD_CLKMD = FMC_4DA_DAC_CD_CLKMD, DIR = O
-# PORT FMC_4DA_DAC_CD_FORMAT = FMC_4DA_DAC_CD_FORMAT, DIR = O
-# DEBUG
  PORT debughdr = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3 & mac_backoff_active & mac_eifs_sel & mac_idle_for_difs & mac_nav_active & dbg_dsss_rx_running & dbg_tx_running & mac_phy_rx_fcs_good_ind & dbg_rssi_det & dbg_mpdu_tx_pending & dbg_lts_timeout & dbg_pkt_det & dbg_payload, DIR = O, VEC = [15:0]
 
 
 BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 2.00.m
+ PARAMETER HW_VER = 2.00.n
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -170,6 +154,7 @@ BEGIN wlan_phy_tx_pmd_axiw
  BUS_INTERFACE S_AXI = mb_low_axi_periph
  PORT axi_aclk = clk_160MHz
  PORT sysgen_clk = clk_160MHz
+ PORT dac_tx_clk = clk_20MHz
  PORT rfa_dac_i = RFA_TX_I
  PORT rfa_dac_q = RFA_TX_Q
  PORT rfb_dac_i = RFB_TX_I
@@ -191,7 +176,7 @@ END
 
 BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 2.03.m
+ PARAMETER HW_VER = 2.03.o
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -256,7 +241,6 @@ BEGIN wlan_mac_dcf_hw_axiw
  PARAMETER C_BASEADDR = 0x7be00000
  PARAMETER C_HIGHADDR = 0x7be0ffff
  BUS_INTERFACE S_AXI = mb_low_axi_periph
- BUS_INTERFACE PORTB = WLAN_MAC_HW_LOG_BRAM_PORTB
  PORT axi_aclk = clk_160MHz
  PORT sysgen_clk = clk_160MHz
  PORT phy_cca_ind_busy = mac_phy_cca_ind_busy
@@ -597,33 +581,6 @@ BEGIN bram_block
  BUS_INTERFACE PORTB = INIT_BRAM_CTRL_PORT_B
 END
 
-BEGIN axi_bram_ctrl
- PARAMETER INSTANCE = mac_log_bram_ctrl
- PARAMETER HW_VER = 1.03.a
- PARAMETER C_SINGLE_PORT_BRAM = 1
- PARAMETER C_S_AXI_DATA_WIDTH = 64
- PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 1
- PARAMETER C_INTERCONNECT_S_AXI_R_REGISTER = 1
- PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_MASTERS = mb_low.M_AXI_DC & mb_high.M_AXI_DC & axi_cdma_0.M_AXI
- PARAMETER C_S_AXI_BASEADDR = 0x90000000
- PARAMETER C_S_AXI_HIGHADDR = 0x90001FFF
- BUS_INTERFACE BRAM_PORTA = MAC_LOG_BRAM_CTRL_PORT_A
- BUS_INTERFACE S_AXI = mb_shared_axi
- PORT S_AXI_ACLK = clk_160MHz
-END
-
-BEGIN bram_block
- PARAMETER INSTANCE = mac_log_bram
- PARAMETER HW_VER = 1.00.a
- BUS_INTERFACE PORTA = MAC_LOG_BRAM_CTRL_PORT_A
- BUS_INTERFACE PORTB = WLAN_MAC_HW_LOG_BRAM_PORTB
- PORT BRAM_Clk_B = clk_160MHz
- PORT BRAM_Rst_B = net_gnd
-END
-
 # #####################
 # Shared Cores
 # #####################
@@ -742,9 +699,6 @@ BEGIN axi_interconnect
  PORT INTERCONNECT_ARESETN = sys_reset_Interconnect_aresetn
 END
 
-# #########################################
-# Microblaze Low
-# ##################
 BEGIN microblaze
  PARAMETER INSTANCE = mb_low
  PARAMETER HW_VER = 8.40.b
@@ -851,7 +805,7 @@ BEGIN axi_intc
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 8
  BUS_INTERFACE S_AXI = mb_high_axi_periph
  BUS_INTERFACE INTERRUPT = mb_high_interrupt
- PORT Intr = ETH_B_MAC_INTERRUPT & mb_high_sw_gpio_IP2INTC_Irpt & mb_high_uart_Interrupt & ETH_A_MAC_INTERRUPT & axi_cdma_0_cdma_introut & ETH_B_FIFO_INTERRUPT & mb_high_eth_dma_mm2s_introut & mb_high_timer_Interrupt & mb_mailbox_Interrupt_0 & mb_high_eth_dma_s2mm_introut
+ PORT Intr = ETH_B_MAC_INTERRUPT & mb_high_eth_dma_mm2s_introut & ETH_A_MAC_INTERRUPT & mb_high_sw_gpio_IP2INTC_Irpt & mb_high_eth_dma_s2mm_introut & mb_high_uart_Interrupt & axi_cdma_0_cdma_introut & ETH_B_FIFO_INTERRUPT & mb_high_timer_Interrupt & mb_mailbox_Interrupt_0
  PORT S_AXI_ACLK = clk_160MHz
 END
 
@@ -1049,9 +1003,6 @@ BEGIN microblaze
  PORT CLK = clk_160MHz
 END
 
-# ########################
-# Clocks, Debug & Reset
-# ########################
 BEGIN mdm
  PARAMETER INSTANCE = debug_module
  PARAMETER HW_VER = 2.10.a
@@ -1104,23 +1055,11 @@ BEGIN clock_generator
  PARAMETER C_CLKOUT3_PHASE = 90
  PARAMETER C_CLKOUT3_BUF = TRUE
  PARAMETER C_CLKOUT3_GROUP = MMCM0
-# FMC-BB-4DA DAC clock
- PARAMETER C_CLKOUT4_FREQ = 40000000
- PARAMETER C_CLKOUT4_PHASE = 0
- PARAMETER C_CLKOUT4_GROUP = MMCM0
- PARAMETER C_CLKOUT4_BUF = TRUE
-# FMC-BB-4DA DAC clock out
- PARAMETER C_CLKOUT5_FREQ = 40000000
- PARAMETER C_CLKOUT5_PHASE = 90
- PARAMETER C_CLKOUT5_GROUP = MMCM0
- PARAMETER C_CLKOUT5_BUF = TRUE
  PORT CLKIN = ad_refclk_in
  PORT CLKOUT0 = clk_80MHz
  PORT CLKOUT1 = clk_160MHz
  PORT CLKOUT2 = clk_20MHz
  PORT CLKOUT3 = clk_20MHz_90degphase
- PORT CLKOUT4 = clk_40MHz
- PORT CLKOUT5 = clk_40MHz_90degphase
  PORT RST = mmcm_inputs_invalid
  PORT LOCKED = clk_gen_proc_bus_clks_locked
 END
@@ -1173,9 +1112,6 @@ BEGIN axi_cdma
  PORT cdma_introut = axi_cdma_0_cdma_introut
 END
 
-# ####################
-# MB Low Periph Cores
-# ####################
 BEGIN w3_userio_axi
  PARAMETER INSTANCE = W3_USERIO
  PARAMETER HW_VER = 1.00.a
@@ -1211,9 +1147,6 @@ BEGIN w3_userio_axi
  PORT usr_leds_red = dbg_signal_err_disp
 END
 
-# ######################
-# MB High Periph Cores
-# ######################
 BEGIN axi_ethernet
  PARAMETER INSTANCE = ETH_A_MAC
  PARAMETER HW_VER = 3.01.a
@@ -1430,20 +1363,22 @@ BEGIN axi_gpio
  PARAMETER HW_VER = 1.01.b
  PARAMETER C_BASEADDR = 0x40100000
  PARAMETER C_HIGHADDR = 0x4010FFFF
- PARAMETER C_GPIO_WIDTH = 4
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 8
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 8
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 8
  PARAMETER C_INTERCONNECT_S_AXI_R_REGISTER = 8
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 8
  PARAMETER C_IS_DUAL = 1
+ PARAMETER C_GPIO_WIDTH = 4
  PARAMETER C_GPIO2_WIDTH = 9
  PARAMETER C_ALL_INPUTS_2 = 1
  PARAMETER C_INTERRUPT_PRESENT = 1
  BUS_INTERFACE S_AXI = mb_high_axi_periph
  PORT S_AXI_ACLK = clk_160MHz
+# PORT GPIO_IO_O = board_det_out & cpuh_gpio_b0 & cpuh_gpio_b1 & cpuh_gpio_b2 & cpuh_gpio_b3
  PORT GPIO_IO_O = cpuh_gpio_b0 & cpuh_gpio_b1 & cpuh_gpio_b2 & cpuh_gpio_b3
  PORT GPIO_IO_I = net_gnd
+# PORT GPIO2_IO_I = board_det_in & dram_init_done & 0b0 & userio_pb_u & userio_pb_m & userio_pb_d & userio_dipsw_b0 & userio_dipsw_b1 & userio_dipsw_b2 & userio_dipsw_b3
  PORT GPIO2_IO_I = dram_init_done & 0b0 & userio_pb_u & userio_pb_m & userio_pb_d & userio_dipsw_b0 & userio_dipsw_b1 & userio_dipsw_b2 & userio_dipsw_b3
  PORT IP2INTC_Irpt = mb_high_sw_gpio_IP2INTC_Irpt
 END
@@ -1457,36 +1392,3 @@ BEGIN util_vector_logic
  PORT RES = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3
 END
 
-BEGIN fmc_bb_4da_bridge
- PARAMETER INSTANCE = fmc_bb_4da_bridge_inst
- PARAMETER HW_VER = 1.00.b
-# # Widths of user data ports
- PARAMETER USER_DAC_A_BITS = 14
- PARAMETER USER_DAC_B_BITS = 14
- PARAMETER USER_DAC_C_BITS = 14
- PARAMETER USER_DAC_D_BITS = 14
-# # Internal clocks
- PORT sys_samp_clk = clk_40MHz
- PORT sys_samp_clk_90 = clk_40MHz_90degphase
-# # User data ports
- PORT user_DAC_A = rx_dbg_EQ_I
- PORT user_DAC_B = rx_dbg_EQ_Q
- PORT user_DAC_C = net_gnd
- PORT user_DAC_D = net_gnd
-END
-
-# # Data outputs
-# PORT DAC_AB_DB = FMC_4DA_DAC_AB_DB
-# PORT DAC_CD_DB = FMC_4DA_DAC_CD_DB
-# # Clock outputs
-# PORT DAC_AB_CLK = FMC_4DA_DAC_AB_CLK
-# PORT DAC_CD_CLK = FMC_4DA_DAC_CD_CLK
-# # Control outputs
-# PORT DAC_AB_PINMD = FMC_4DA_DAC_AB_PINMD
-# PORT DAC_AB_PWDN = FMC_4DA_DAC_AB_PWDN
-# PORT DAC_AB_CLKMD = FMC_4DA_DAC_AB_CLKMD
-# PORT DAC_AB_FORMAT = FMC_4DA_DAC_AB_FORMAT
-# PORT DAC_CD_PINMD = FMC_4DA_DAC_CD_PINMD
-# PORT DAC_CD_PWDN = FMC_4DA_DAC_CD_PWDN
-# PORT DAC_CD_CLKMD = FMC_4DA_DAC_CD_CLKMD
-# PORT DAC_CD_FORMAT = FMC_4DA_DAC_CD_FORMAT
