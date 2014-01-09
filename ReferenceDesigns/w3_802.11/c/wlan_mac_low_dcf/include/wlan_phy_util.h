@@ -32,17 +32,13 @@
 #define TIMER_COUNTER_0	 0
 
 //Util macros for creating SIGNAL fields for transmission
+#define WLAN_TX_SIGNAL_CALC(rate, length) (((rate) & 0xF) | (((length)&0xFFF)<<5) | (WLAN_TX_SIGNAL_PARITY_CALC(rate,length)))
 #define WLAN_TX_SIGNAL_PARITY_CALC(rate, length) ((0x1 & (ones_in_chars[rate] + ones_in_chars[length&0xFF] + ones_in_chars[(length)>>8]))<<17)
 
-#define WLAN_TX_SIGNAL_CALC(rate, length) (((rate) & 0xF) | (((length)&0xFFF)<<5) | (WLAN_TX_SIGNAL_PARITY_CALC(rate,length)))
-
-//Macros to interpret received SIGNAL values
-#define WLAN_SIGNAL_TO_RATE(s) (s&0xF)
-#define WLAN_SIGNAL_TO_LENGTH(s) ((s>>5)&0xFFF)
-
-#define TXTIME_T_PREAMBLE 16
-#define TXTIME_T_SIGNAL 4
-#define TXTIME_T_SYM 4
+//Times (in microseconds) for various PHY-level events, used by the MAC in its duration calculations
+#define TXTIME_T_PREAMBLE 16	//320 samples @ 20MHz
+#define TXTIME_T_SIGNAL 4		//80 samples @ 20MHz
+#define TXTIME_T_SYM 4			//80 samples @ 20MHz
 #define WLAN_PHY_FCS_NBYTES	4
 
 #define PHY_RX_SIG_EXT_USEC 6
@@ -67,7 +63,7 @@
 #define WLAN_PHY_RATE_64QAM23	0x8
 #define WLAN_PHY_RATE_64QAM34	0xC
 
-//data bytes per OFDM symbol
+//Data bytes per OFDM symbol
 //Table 17-3 of 2007 IEEE 802.11
 #define N_DBPS_R6	24
 #define N_DBPS_R9	36
@@ -184,6 +180,14 @@
 
 #define wlan_phy_rx_get_active_rx_ant()  ((Xil_In32(WLAN_RX_STATUS) & WLAN_RX_REG_STATUS_ACTIVE_ANT) == WLAN_RX_REG_STATUS_ACTIVE_ANT)
 
+//WLAN_RX_FFT_CFG register fields:
+// [ 7: 0] Number of subcarriers (MUST BE 64 - OTHER VALUES UNTESTED)
+// [15: 8] Cyclic prefix length (MUST BE 16 - OTHER VALUES UNTESTED)
+// [23:16] FFT window offset - number of samples of CP to use on average (must be in [0,CP_LENGTH))
+// [31:24] FFT scaling - UFix6_0 value; see Xilinx FFT datasheet for scaling details
+#define wlan_phy_rx_set_fft_window_offset(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & ~0xFF00FFFF) | ((d & 0xFF) << 16)))
+#define wlan_phy_rx_set_fft_scaling(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & ~0x00FFFFFF) | ((d & 0xFF) << 24)))
+
 //RSSI reg: b[15:0]=RFA, b[31:16]=RFB
 #define wlan_phy_rx_get_pkt_rssi(ant) ( (ant==0) ? (Xil_In32(WLAN_RX_PKT_RSSI_AB) & 0xFFFF) : ((Xil_In32(WLAN_RX_PKT_RSSI_AB)>>16) & 0xFFFF) )
 
@@ -201,10 +205,6 @@
 #define	wlan_phy_DSSS_rx_disable() Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_DSSS_RX_EN)
 #define	wlan_phy_DSSS_rx_config(code_corr, timeout, despread_dly, length_pad) Xil_Out32(WLAN_RX_DSSS_CFG,  \
 	((code_corr & 0xFFFF) | ((timeout & 0xFF)<<16) | ((despread_dly & 0x1F)<<24) | ((length_pad & 0x7)<<29)))
-
-//#define	wlan_phy_rx_status() Xil_In32(WLAN_RX_STATUS)
-//#define wlan_phy_rx_SIGNAL() Xil_In32(WLAN_RX_SIGNAL)
-
 
 #define wlan_phy_rx_pktDet_RSSI_cfg(sum_len, sum_thresh, min_dur) \
 	Xil_Out32(WLAN_RX_PKTDET_RSSI_CFG, ( (sum_len & 0x1F) | ((sum_thresh & 0x7FFF) << 5) | ((min_dur & 0x1F)<<20)))
@@ -249,10 +249,8 @@
 #define wlan_agc_set_reset_timing(rxhp,g_rf, g_bb) \
 	Xil_Out32(WLAN_AGC_TIMING_RESET, ((rxhp & 0xFF) | ( (g_rf & 0xFF)<<8) | ( (g_bb & 0xFF) << 16)))
 
-//CCA STATE
-#define CCA_IDLE	0
-#define CCA_BUSY	1
 
+/* Function Prototypes for wlan_phy_util.c */
 u32 wlan_phy_cca_indication();
 void wlan_phy_init();
 void wlan_radio_init();

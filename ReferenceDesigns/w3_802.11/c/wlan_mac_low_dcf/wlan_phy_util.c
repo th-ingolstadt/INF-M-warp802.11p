@@ -94,8 +94,9 @@ int w3_node_init() {
 	return ret;
 }
 
-void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length){
+inline void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length) {
 	Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(rate, length));
+	return;
 }
 
 
@@ -168,12 +169,17 @@ void wlan_phy_init() {
 	//Enable DSSS Rx by default
 	wlan_phy_DSSS_rx_enable();
 	//wlan_phy_DSSS_rx_disable();
+
+	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
+	wlan_phy_DSSS_rx_config(0x600, 200, 5, 5);
+
+	//Allow the DSSS receiver to keep the AGC locked (otherwise AGC resets when OFDM LTS corr times out)
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD);
 
 	//Enable LTS-based CFO correction
 	REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS);
 
-	//Enable write-enable byte order swap for payloads and chan ests
+	//Enable byte order swap for payloads and chan ests
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP);
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CHAN_EST_WEN_SWAP);
 
@@ -183,52 +189,50 @@ void wlan_phy_init() {
 	//Block Rx inputs during Tx
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
 
-	//FFT window shift
-	Xil_Out32(WLAN_RX_FFT_CFG, 0x5031040);
+	//FFT config
+	wlan_phy_rx_set_fft_window_offset(3);
+	wlan_phy_rx_set_fft_scaling(5);
 
 	//Set LTS correlation threshold and timeout
-	//Note, the LTS supports having different thresholds for high and low SNR
-	//regimes. This does not appear to be necessary, so the threshold for the high
-	//regime is raised to max value to effectively disable it.
-	wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2);//SNR thresh, timeout/2 //350/2
-	wlan_phy_rx_lts_corr_thresholds(12500, 12500);//low SNR, high SNR corr thresh
+	// 1023 disables LTS threshold switch (one threshold worked across SNRs in our testing)
+	// Timeout value is doubled in hardware (350/2 becomes a timeout of 350 sample periods)
+	wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2);
+
+	//LTS correlation thresholds (low NSR, high SNR)
+	wlan_phy_rx_lts_corr_thresholds(12500, 12500);
 
 	//Configure RSSI pkt det
-	//wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
-	
-	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 1023), 0xFFFF); //Disable RSSI pkt det with high thresh
+ 	// RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
+ 	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 1023), 4);
 
-	//Configure auto-corr pkt det
-	//wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
-
-	//wlan_phy_rx_pktDet_autoCorr_cfg(200, 250, 4, 0x3F);
+	//Configure auto-corr pkt det (corr, energy, min-duration, post-reset-wait)
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 50, 4, 0x3F);
 
-	//Configure the default antenna selections
+	//Configure the default antenna selections as SISO Tx/Rx on RF A
 	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
 	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
+	//Set physical carrier sensing threshold
 	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
 
+	//Set post Rx extension (number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for decoding latency at 64QAM 3/4)
 	wlan_phy_rx_set_extension(PHY_RX_SIG_EXT_USEC*20); //num samp periods post done to extend CCA BUSY
-	//wlan_phy_rx_set_extension(80); //num samp periods post done to extend CCA BUSY
 
-	//Configure channel estimate capture
+	//Configure channel estimate capture (64 subcarriers, 4 bytes each)
 	// Chan ests start at sizeof(rx_frame_info) - sizeof(chan_est)
 	wlan_phy_rx_pkt_buf_h_est_offset((PHY_RX_PKT_BUF_PHY_HDR_OFFSET - (64*4)));
 	
-	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
-	wlan_phy_DSSS_rx_config(0x600, 200, 5, 5);
-
 /************ PHY Tx ************/
-	//Setup PHY Tx
-	REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);//De-assert all starts
+	
+	//De-assert all starts
+	REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);
 
-	//Set Tx duration extension, in units of sample periods (120=6usec)
+	//Set Tx duration extension, in units of sample periods
 	wlan_phy_tx_set_extension(PHY_TX_SIG_EXT_USEC*20);
 
 	//Set extension from last samp output to RF Tx -> Rx transition
-	//Note: Old value of 20 was too short for 16-QAM packets
+	// This delay allows the Tx pipeline to finish driving samples into DACs
+	//  and for DAC->RF frontend to finish output Tx waveform
 	wlan_phy_tx_set_txen_extension(50);
 
 	//Set extension from RF Rx -> Tx to un-blocking Rx samples
@@ -242,24 +246,26 @@ void wlan_phy_init() {
 	//Post Rx_done reset delays for [rxhp, g_rf, g_bb]
 	wlan_agc_set_reset_timing(4, 250, 250);
 
+	//AGC config:
 	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
 	wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
 
-	wlan_agc_set_RSSI_pwr_calib(100, 85, 70); //70
+	//AGC RSSI->Rx power offsets
+	wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
 
-
-	//capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
+	//AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
 	wlan_agc_set_AGC_timing(1, 30, 90, 96);
 
-	//start_dco, en_iir_filt
+	//AGC timing: start_dco, en_iir_filt
 	wlan_agc_set_DCO_timing(100, (100+34));
 
+	//AGC target output power (log scale)
 	wlan_agc_set_target( (64-16) );
 
 /************ Wrap Up ************/
 	//Let PHY Tx take control of radio TXEN/RXEN
 	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
-	
+
 	//Set MSB of RSSI_THRESH register to use summed RSSI for debug output
 	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<31) | (PHY_RX_RSSI_SUM_LEN * 150)));
 
