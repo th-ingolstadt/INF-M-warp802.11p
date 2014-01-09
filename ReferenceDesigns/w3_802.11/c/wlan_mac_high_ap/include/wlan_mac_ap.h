@@ -1,4 +1,4 @@
-/** @file wlan_mac_ap.c
+/** @file wlan_mac_ap.h
  *  @brief Access Point
  *
  *  This contains code for the 802.11 Access Point.
