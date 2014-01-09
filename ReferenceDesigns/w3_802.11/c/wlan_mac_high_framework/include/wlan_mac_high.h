@@ -1,12 +1,18 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_high.h
-// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
-//			Chris Hunter (chunter [at] mangocomm.com)
-// License: Copyright 2013, Mango Communications. All rights reserved.
-//          Distributed under the Mango Communications Reference Design License
-//				See LICENSE.txt included in the design archive or
-//				at http://mangocomm.com/802.11/license
-////////////////////////////////////////////////////////////////////////////////
+/** @file wlan_mac_high.h
+ *  @brief Top-level WLAN MAC High Framework
+ *
+ *  This contains the top-level code for accessing the WLAN MAC High Framework.
+ *
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug No known bugs.
+ */
 
 #ifndef WLAN_MAC_UTIL_H_
 #define WLAN_MAC_UTIL_H_
@@ -18,36 +24,35 @@
 #include "wlan_mac_dl_list.h"
 
 //Init Data Definitions
-#define INIT_DATA_BASEADDR XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_BASEADDR
-#define INIT_DATA_DOTDATA_IDENTIFIER	0x1234ABCD
-#define INIT_DATA_DOTDATA_START (INIT_DATA_BASEADDR+0x200)
-#define INIT_DATA_DOTDATA_SIZE	(4*(XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))
+#define INIT_DATA_BASEADDR XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_BASEADDR   ///< Base address of memory used for storing boot data
+#define INIT_DATA_DOTDATA_IDENTIFIER	0x1234ABCD                      ///< "Magic number" used as an identifier in boot data memory
+#define INIT_DATA_DOTDATA_START (INIT_DATA_BASEADDR+0x200)              ///< Offset into memory for boot data
+#define INIT_DATA_DOTDATA_SIZE	(4*(XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))  ///< Amount of space available in boot data memory
 
 //Encapsulation modes
-#define ENCAP_MODE_AP	0
-#define ENCAP_MODE_STA	1
+#define ENCAP_MODE_AP	0   ///< Used as a flag for AP encapsulation and de-encapsulation
+#define ENCAP_MODE_STA	1   ///< Used as a flag for STA encapsulation and de-encapsulation
 
 
 // 802.11 Transmit interface defines
-#define TX_BUFFER_NUM        2
+#define TX_BUFFER_NUM        2  ///< Number of PHY transmit buffers to use. This should remain 2 (ping/pong buffering).
 
-#define ETH_A_MAC_DEVICE_ID			XPAR_ETH_A_MAC_DEVICE_ID
-#define ETH_A_FIFO_DEVICE_ID		XPAR_ETH_A_FIFO_DEVICE_ID
-#define TIMESTAMP_GPIO_DEVICE_ID 	XPAR_MB_HIGH_TIMESTAMP_GPIO_DEVICE_ID
-#define UARTLITE_DEVICE_ID     		XPAR_UARTLITE_0_DEVICE_ID
+#define ETH_A_MAC_DEVICE_ID			XPAR_ETH_A_MAC_DEVICE_ID                ///< XParameters rename for ETH A
+#define TIMESTAMP_GPIO_DEVICE_ID 	XPAR_MB_HIGH_TIMESTAMP_GPIO_DEVICE_ID   ///< XParameters rename for GPIO used as usec timestamp
+#define UARTLITE_DEVICE_ID     		XPAR_UARTLITE_0_DEVICE_ID               ///< XParameters rename for UART
 
-#define TIMESTAMP_GPIO_LSB_CHAN 1
-#define TIMESTAMP_GPIO_MSB_CHAN 2
+#define TIMESTAMP_GPIO_LSB_CHAN 1   ///< GPIO channel used for lower 32 bits of 64-bit timestamp
+#define TIMESTAMP_GPIO_MSB_CHAN 2   ///< GPIO channel used for upper 32 bits of 64-bit timestamp
 
-#define DDR3_BASEADDR XPAR_DDR3_SODIMM_S_AXI_BASEADDR
-#define DDR3_SIZE 1073741824
+#define DDR3_BASEADDR XPAR_DDR3_SODIMM_S_AXI_BASEADDR               ///< XParameters rename for base address of DDR3 SODIMM
+#define DDR3_SIZE 1073741824                                        ///< Available space in DDR3 SODIMM
 
-#define USERIO_BASEADDR XPAR_W3_USERIO_BASEADDR
+#define USERIO_BASEADDR XPAR_W3_USERIO_BASEADDR                     ///< XParameters rename of base address of User I/O
 
-#define GPIO_DEVICE_ID			XPAR_MB_HIGH_SW_GPIO_DEVICE_ID
-#define INTC_GPIO_INTERRUPT_ID	XPAR_INTC_0_GPIO_0_VEC_ID
-#define UARTLITE_INT_IRQ_ID     XPAR_INTC_0_UARTLITE_0_VEC_ID
-#define TMRCTR_INTERRUPT_ID		XPAR_INTC_0_TMRCTR_0_VEC_ID
+#define GPIO_DEVICE_ID			XPAR_MB_HIGH_SW_GPIO_DEVICE_ID      ///< XParameters rename of device ID of GPIO
+#define INTC_GPIO_INTERRUPT_ID	XPAR_INTC_0_GPIO_0_VEC_ID           ///< XParameters rename of GPIO interrupt ID
+#define UARTLITE_INT_IRQ_ID     XPAR_INTC_0_UARTLITE_0_VEC_ID       ///< XParameters rename of UART interrupt ID
+#define TMRCTR_INTERRUPT_ID		XPAR_INTC_0_TMRCTR_0_VEC_ID         ///< XParameters rename of timer interrupt ID
 
 #define GPIO_OUTPUT_CHANNEL 	1
 #define GPIO_INPUT_CHANNEL 		2
@@ -68,11 +73,17 @@
 //will be the maximum.
 #define MAX_EVENT_LOG -1
 
+/**
+ * @brief Reception Information Structure
+ *
+ * This structure contains information about the previous reception. It is used in high
+ * level MACs to de-duplicate incoming receptions.
+ */
 typedef struct{
-	u64     last_timestamp;
-	u8      last_seq;
-	char    last_power;
-	u8      last_rate; 	//TODO: fill in
+	u64     last_timestamp; ///< Timestamp of the last frame reception
+	u8      last_seq;       ///< Sequence number of the last MPDU reception
+	char    last_power;     ///< Power of last frame reception (in dBm)
+	u8      last_rate;      ///< Rate of last MPDU reception (TODO: Needs to be filled in)
 	u8      reserved;
 } rx_info;
 
