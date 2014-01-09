@@ -685,7 +685,7 @@ int wlan_mac_high_memory_test(){
 int wlan_mac_high_is_tx_buffer_empty(){
 	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-	if( ( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( is_cpu_low_ready() ) ){
+	if( ( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_cpu_low_ready() ) ){
 		return 1;
 	} else {
 		return 0;
@@ -852,7 +852,7 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
 }
 
 
-void wlan_mac_high_setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  ) {
+void wlan_mac_high_setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 gain_target, u8 flags  ) {
 
     // Set up metadata
 	tx_queue->metadata_ptr     = metadata;
@@ -860,6 +860,7 @@ void wlan_mac_high_setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx
 	// Set up frame info data
     ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length    = tx_length;
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = retry;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.gain_target = gain_target;
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags     = flags;
 }
 
@@ -1188,7 +1189,7 @@ int wlan_mac_high_is_cpu_low_initialized(){
 	return ( (cpu_low_status & CPU_STATUS_INITIALIZED) != 0 );
 }
 
-int is_cpu_low_ready(){
+int wlan_mac_high_is_cpu_low_ready(){
 	// xil_printf("cpu_high_status = 0x%08x\n",cpu_high_status);
 	return ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0);
 }
