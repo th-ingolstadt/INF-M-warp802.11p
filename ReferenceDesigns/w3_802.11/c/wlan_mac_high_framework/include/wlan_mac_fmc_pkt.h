@@ -1,7 +1,7 @@
 /** @file wlan_mac_fmc_pkt.h
  *  @brief FMC Packet Exchange
  *
- *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2014, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license
