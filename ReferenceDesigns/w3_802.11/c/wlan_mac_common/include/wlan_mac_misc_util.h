@@ -39,8 +39,9 @@ typedef struct{
 	u8 retry_count;
 	u8 retry_max;
 	u8 state_verbose;
+	u8 gain_target;
+	u8 reserved0;
 	u16 AID;
-	u16 reserved0;
 	u32 reserved1;
 	u64 tx_mpdu_accept_timestamp;
 	u64 tx_mpdu_done_timestamp;
