@@ -185,8 +185,8 @@
 // [15: 8] Cyclic prefix length (MUST BE 16 - OTHER VALUES UNTESTED)
 // [23:16] FFT window offset - number of samples of CP to use on average (must be in [0,CP_LENGTH))
 // [31:24] FFT scaling - UFix6_0 value; see Xilinx FFT datasheet for scaling details
-#define wlan_phy_rx_set_fft_window_offset(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & ~0xFF00FFFF) | ((d & 0xFF) << 16)))
-#define wlan_phy_rx_set_fft_scaling(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & ~0x00FFFFFF) | ((d & 0xFF) << 24)))
+#define wlan_phy_rx_set_fft_window_offset(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0xFF00FFFF) | ((d & 0xFF) << 16)))
+#define wlan_phy_rx_set_fft_scaling(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0x00FFFFFF) | ((d & 0xFF) << 24)))
 
 //RSSI reg: b[15:0]=RFA, b[31:16]=RFB
 #define wlan_phy_rx_get_pkt_rssi(ant) ( (ant==0) ? (Xil_In32(WLAN_RX_PKT_RSSI_AB) & 0xFFFF) : ((Xil_In32(WLAN_RX_PKT_RSSI_AB)>>16) & 0xFFFF) )
