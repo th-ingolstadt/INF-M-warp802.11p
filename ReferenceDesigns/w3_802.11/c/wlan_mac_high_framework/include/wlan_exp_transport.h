@@ -1,11 +1,23 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   :	wlan_exp_transport.h
-// Authors:	Chris Hunter (chunter [at] mangocomm.com)
-//			Patrick Murphy (murphpo [at] mangocomm.com)
-//          Erik Welsh (welsh [at] mangocomm.com)
-// License:	Copyright 2013, Mango Communications. All rights reserved.
-//			Distributed under the WARP license  (http://warpproject.org/license)
-////////////////////////////////////////////////////////////////////////////////
+/** @file wlan_exp_transport.c
+ *  @brief Experiment Framework (Transport)
+ *
+ * Implements the WARPNet Transport protocol layer for the embedded processor
+ * on the WARP Hardware.
+ *
+ * This implementation supports both WARP v2 and WARP v3 hardware and also
+ * supports both the use of the AXI FIFO as well as the AXI DMA in order
+ * to transport packets to/from the Ethernet controller.
+ *
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug No known bugs.
+ */
 
 
 /***************************** Include Files *********************************/

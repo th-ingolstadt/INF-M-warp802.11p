@@ -1,12 +1,27 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_util.h
-// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
-//			Chris Hunter (chunter [at] mangocomm.com)
-// License: Copyright 2013, Mango Communications. All rights reserved.
-//          Distributed under the Mango Communications Reference Design License
-//				See LICENSE.txt included in the design archive or
-//				at http://mangocomm.com/802.11/license
-////////////////////////////////////////////////////////////////////////////////
+/** @file wlan_mac_events.h
+ *  @brief Event log
+ *
+ *  This contains the code for accessing event log.
+ *
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *	@note
+ *  This is the only code that the user should modify in order to add events
+ *  to the event log.  To add a new event, please follow the template provided
+ *  and create:
+ *    1) A new event type in wlan_mac_events.h
+ *    2) Wrapper function:  get_next_empty_*_event()
+ *    3) Update the print function so that it is easy to print the log to the
+ *    terminal
+ *
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug No known bugs.
+ */
 
 /***************************** Include Files *********************************/
 

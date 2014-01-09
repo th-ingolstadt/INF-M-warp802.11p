@@ -1,17 +1,20 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_schedule.c
-// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
-//			Chris Hunter (chunter [at] mangocomm.com)
-//          Erik Welsh (welsh [at] mangocomm.com)
-// License: Copyright 2013, Mango Communications. All rights reserved.
-//          Distributed under the Mango Communications Reference Design License
-//				See LICENSE.txt included in the design archive or
-//				at http://mangocomm.com/802.11/license
-//
-// Description: This set of functions allows upper-level MAC implementations
-// 				to schedule the execution of a provided callback for some point
-//				in the future.
-////////////////////////////////////////////////////////////////////////////////
+/** @file wlan_mac_schedule.c
+ *  @brief Scheduler
+ *
+ *  This set of functions allows upper-level MAC implementations
+ *	to schedule the execution of a provided callback for some point
+ *	in the future.
+ *
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug No known bugs.
+ */
 
 /***************************** Include Files *********************************/
 #include "xparameters.h"

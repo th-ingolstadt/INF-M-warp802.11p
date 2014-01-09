@@ -8,8 +8,8 @@
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license
  *
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  *  @bug No known bugs.
  */
