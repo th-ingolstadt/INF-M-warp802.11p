@@ -1,13 +1,18 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_sta.c
-// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
-//			Chris Hunter (chunter [at] mangocomm.com)
-//          Erik Welsh (welsh [at] mangocomm.com)
-// License: Copyright 2013, Mango Communications. All rights reserved.
-//          Distributed under the Mango Communications Reference Design License
-//				See LICENSE.txt included in the design archive or
-//				at http://mangocomm.com/802.11/license
-////////////////////////////////////////////////////////////////////////////////
+/** @file wlan_mac_sta.c
+ *  @brief Station
+ *
+ *  This contains code for the 802.11 Station.
+ *
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug No known bugs
+ */
 
 /***************************** Include Files *********************************/
 
@@ -442,6 +447,8 @@ void attempt_authentication(){
 
 void start_active_scan(){
 	//Purge any knowledge of existing APs
+	stop_active_scan();
+	xil_printf("Starting active scan\n");
 	num_ap_list = 0;
 	wlan_mac_high_free(ap_list);
 	ap_list = NULL;
@@ -453,6 +460,7 @@ void start_active_scan(){
 }
 
 void stop_active_scan(){
+	xil_printf("Stopping active scan\n");
 	if(repeated_active_scan_scheduled) wlan_mac_remove_schedule(SCHEDULE_COARSE, active_scan_schedule_id);
 	active_scan = 0;
 	repeated_active_scan_scheduled = 0;
