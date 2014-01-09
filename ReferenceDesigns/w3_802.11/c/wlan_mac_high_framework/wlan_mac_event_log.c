@@ -12,30 +12,25 @@
  *	  The event log implements a circular buffer that will record various
  *  events that occur within a WLAN node.  If the buffer is full, then events
  * will be dropped with only a single warning printed to the screen.
- *
- *   There are configuration options to enable / disable wrapping (ie if
+ *    There are configuration options to enable / disable wrapping (ie if
  * wrapping is enabled, then the buffer is never "full" and the oldest
  * events will be overwritten when there is no more free space).  Wrapping
  * is disabled by default.
- *
- *   Internally, the event log is just an array of bytes which can be externally
+ *    Internally, the event log is just an array of bytes which can be externally
  * viewed as indexed from 0 to log_size (address translation is done internally).
  * When a new event is requested, the size of the event is allocated from the
  * buffer and a pointer to the allocated event is provided so that the caller
  * can fill in the event information.  By default, the event log will set up all
  * header information (defined in wlan_mac_event_log.h) and that information
  * will not be exposed to user code.
- *
- *   The event log will always provide a contiguous piece of memory for events.
+ *    The event log will always provide a contiguous piece of memory for events.
  * Therefore, some space could be wasted at the wrap boundary since a single event
  * will never wrap.
- *
- *   Also, if an event cannot be allocated due to it overflowing the array, then
+ *    Also, if an event cannot be allocated due to it overflowing the array, then
  * the event log will check to see if wrapping is enabled.  If wrapping is disabled,
  * the event log will set the full flag and not allow any more events to be
  * allocated.  Otherwise, the event log will wrap and begin to overwrite the
  * oldest events.
- *
  *   Finally, the log does not keep track of event entries and it is up to
  * calling functions to interpret the bytes within the log correctly.
  *
