@@ -1,12 +1,18 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_phy_util.h
-// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
-//			Chris Hunter (chunter [at] mangocomm.com)
-// License: Copyright 2013, Mango Communications. All rights reserved.
-//          Distributed under the Mango Communications Reference Design License
-//				See LICENSE.txt included in the design archive or
-//				at http://mangocomm.com/802.11/license
-////////////////////////////////////////////////////////////////////////////////
+/** @file wlan_phy_util.h
+ *  @brief Physical Layer Utility
+ *
+ *  This contains code for configuring low-level parameters in the PHY and hardware.
+ *
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug No known bugs
+ */
 
 #ifndef WLAN_PHY_UTIL_H_
 #define WLAN_PHY_UTIL_H_

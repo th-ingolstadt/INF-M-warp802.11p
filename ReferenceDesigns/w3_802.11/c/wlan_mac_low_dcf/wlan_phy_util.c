@@ -1,12 +1,18 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_phy_util.c
-// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
-//			Chris Hunter (chunter [at] mangocomm.com)
-// License: Copyright 2013, Mango Communications. All rights reserved.
-//          Distributed under the Mango Communications Reference Design License
-//				See LICENSE.txt included in the design archive or
-//				at http://mangocomm.com/802.11/license
-////////////////////////////////////////////////////////////////////////////////
+/** @file wlan_phy_util.c
+ *  @brief Physical Layer Utility
+ *
+ *  This contains code for configuring low-level parameters in the PHY and hardware.
+ *
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug No known bugs
+ */
 
 //Xilinx SDK includes
 #include "xparameters.h"
@@ -181,20 +187,16 @@ void wlan_phy_init() {
 	Xil_Out32(WLAN_RX_FFT_CFG, 0x5031040);
 
 	//Set LTS correlation threshold and timeout
-	//wlan_phy_rx_lts_corr_config(600 * PHY_RX_RSSI_SUM_LEN, 320/2);//SNR thresh, timeout/2
+	//Note, the LTS supports having different thresholds for high and low SNR
+	//regimes. This does not appear to be necessary, so the threshold for the high
+	//regime is raised to max value to effectively disable it.
 	wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2);//SNR thresh, timeout/2 //350/2
-	//wlan_phy_rx_lts_corr_config(750 * PHY_RX_RSSI_SUM_LEN, 350/2);
-
-
-	//wlan_phy_rx_lts_corr_thresholds(12500, 17000);//low SNR, high SNR corr thresh
-	wlan_phy_rx_lts_corr_thresholds(12500, 14500);//low SNR, high SNR corr thresh
+	wlan_phy_rx_lts_corr_thresholds(12500, 12500);//low SNR, high SNR corr thresh
 
 	//Configure RSSI pkt det
 	//wlan_phy_rx_pktDet_RSSI_cfg(8, 0xFFFF, 4); //Disable RSSI pkt det with high thresh
 	
-	//wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 300), 4); //Disable RSSI pkt det with high thresh
-	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 1023), 0xFFFF); //Disable RSSI pkt det with high thresh //TODO: DEBUG ONLY
-	//wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 600), 4); //Disable RSSI pkt det with high thresh //TODO: DEBUG ONLY
+	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 1023), 0xFFFF); //Disable RSSI pkt det with high thresh
 
 	//Configure auto-corr pkt det
 	//wlan_phy_rx_pktDet_autoCorr_cfg(255, 4095, 4, 0x3F); //Disable auto-corr with high thresh
@@ -235,8 +237,6 @@ void wlan_phy_init() {
 	//Set digital scaling of preamble/payload signals before DACs (UFix12_0)
 	wlan_phy_tx_set_scaling(0x2000, 0x2000);
 
-	//REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET_SCRAMBLING_PER_PKT); //TODO: REMOVE
-
 /*********** AGC ***************/
 
 	//Post Rx_done reset delays for [rxhp, g_rf, g_bb]
@@ -244,7 +244,6 @@ void wlan_phy_init() {
 
 	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
 	wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
-	//wlan_agc_set_config( (256-56), (256-15), 0, 6, 24);
 
 	wlan_agc_set_RSSI_pwr_calib(100, 85, 70); //70
 
@@ -261,10 +260,8 @@ void wlan_phy_init() {
 	//Let PHY Tx take control of radio TXEN/RXEN
 	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 	
-
 	//Set MSB of RSSI_THRESH register to use summed RSSI for debug output
-	//Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, 250);
-	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<32) | (PHY_RX_RSSI_SUM_LEN * 150)));
+	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<31) | (PHY_RX_RSSI_SUM_LEN * 150)));
 
 	//De-assert resets
 	REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
@@ -293,7 +290,6 @@ void wlan_radio_init() {
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXLPF_BW, 1);
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLPF_BW, 1);
 
-	//FIXME: This should be 0
 #if 0
 	//MGC
 	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
@@ -320,16 +316,8 @@ void wlan_radio_init() {
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLINEARITY_VGA, 0);
 	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLINEARITY_UPCONV, 0);
 
-	//Set Tx state machine timing (dly_GainRamp, dly_PA, dly_TX, dly_PHY)
-	//radio_controller_setTxDelays(RC_BASEADDR, 100, 50, 2, 150);
-	//80
-
 	//Set Tx state machine timing             (dly_GainRamp, dly_PA, dly_TX, dly_PHY)
-	//radio_controller_setTxDelays(RC_BASEADDR, 50, 25, 0, TX_PHY_DLY);//TODO;
-	//radio_controller_setTxDelays(RC_BASEADDR, 20, 10, 0, TX_PHY_DLY);//TODO;
-	//radio_controller_setTxDelays(RC_BASEADDR, 253, 200, 180, TX_PHY_DLY);//TODO; //240 PA time after 180 PHY time is critical point
-
-	radio_controller_setTxDelays(RC_BASEADDR, 40, 20, 0, TX_RC_PHYSTART_DLY);//TODO; //240 PA time after 180 PHY time is critical point
+	radio_controller_setTxDelays(RC_BASEADDR, 40, 20, 0, TX_RC_PHYSTART_DLY); //240 PA time after 180 PHY time is critical point
 
 	//Give the TX PHY control of RXEN and TXEN (defaults to SISO on A)
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_HW);
@@ -345,9 +333,6 @@ inline void wlan_tx_start() {
 	// This should only be used for debug - normal transmissions should use mac_hw
 	REG_SET_BITS(WLAN_TX_REG_START, WLAN_TX_REG_START_VIA_RC);
 	REG_CLEAR_BITS(WLAN_TX_REG_START, WLAN_TX_REG_START_VIA_RC);
-
-	//TODO: I removed this usleep, and nothing seemed to break. Is it critical?
-	//usleep(3);
 
 	return;
 }

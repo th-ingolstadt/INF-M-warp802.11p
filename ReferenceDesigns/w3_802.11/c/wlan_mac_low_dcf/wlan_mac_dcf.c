@@ -1,14 +1,18 @@
-////////////////////////////////////////////////////////////////////////////////
-// File   : wlan_mac_dcf
-// Authors: Patrick Murphy (murphpo [at] mangocomm.com)
-//			Chris Hunter (chunter [at] mangocomm.com)
-//          Erik Welsh (welsh [at] mangocomm.com)
-// License: Copyright 2013, Mango Communications. All rights reserved.
-//          Distributed under the Mango Communications Reference Design License
-//				See LICENSE.txt included in the design archive or
-//				at http://mangocomm.com/802.11/license
-////////////////////////////////////////////////////////////////////////////////
-
+/** @file wlan_mac_dcf.c
+ *  @brief Distributed Coordination Function
+ *
+ *  This contains code to implement the 802.11 DCF.
+ *
+ *  @copyright Copyright 2013, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  @bug NAV timing needs to be verified and 5 GHz support needs to be added.
+ */
 
 /***************************** Include Files *********************************/
 
@@ -91,7 +95,6 @@ int main(){
 	mac_param_band = RC_24GHZ;
 
 	cpu_low_status = 0;
-
 	red_led_index = 0;
 	green_led_index = 0;
 
@@ -100,7 +103,6 @@ int main(){
 	userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
 	userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
 
-	radio_controller_setTxDelays(RC_BASEADDR, 255, 255, 255, 255);//FIXME
 	status = w3_node_init();
 
 
@@ -215,16 +217,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					tx_mpdu->tx_mpdu_accept_timestamp = get_usec_timestamp();
 
-					//xil_printf("CPU_LOW: processing buffer %d, length = %d, rate = %d\n", tx_pkt_buf, tx_mpdu->length, tx_mpdu->rate);
-
 					//Convert human-readable rates into PHY rates
 					//n_dbps is used to calculate duration of received ACKs.
 					//This rate selection is specified in 9.7.6.5.2 of 802.11-2012
-
-					//xil_printf("\nRate %d\n", tx_mpdu->rate);
-					//xil_printf("Len %d\n", tx_mpdu->length);
-
-					//xil_printf("gain target: %d\n", tx_mpdu->gain_target);
 
 					switch(tx_mpdu->rate){
 						case WLAN_MAC_RATE_1M:
@@ -278,11 +273,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						beacon->timestamp = get_usec_timestamp();
 					}
 
-					//
-
-					//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x22);
 					status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
-					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x22);
+
 
 					tx_mpdu->tx_mpdu_done_timestamp = get_usec_timestamp();
 
@@ -291,15 +283,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					} else {
 						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_FAILURE;
 					}
-
-					//Debug
-					if(tx_mpdu->retry_count>0){
-						//TODO: Raise GPIO
-						//xil_printf("retry: %d\n",tx_mpdu->retry_count);
-					//	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x88);
-					}
-
-					//Debug
 
 					tx_mpdu->state = TX_MPDU_STATE_EMPTY;
 
@@ -313,7 +296,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						ipc_mailbox_write_msg(&ipc_msg_to_high);
 					}
 
-					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x88);
+
 
 				}
 			break;
@@ -345,12 +328,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	wlan_ipc_msg ipc_msg_to_high;
 
 	return_value = 0;
-
-	//DEBUG
-	//wlan_mac_dcf_hw_rx_finish();
-	//wlan_mac_dcf_hw_unblock_rx_phy();
-	//return return_value;
-	//DEBUG
 
 	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
 	mpdu_info = (rx_frame_info*)pkt_buf_addr;
@@ -429,31 +406,11 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
 
-
-	//DEBUG
-	//xil_printf("RX GAIN: %d, %d \n", mpdu_info->rf_gain, mpdu_info->bb_gain);
-	//DEBUG
-
 	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
-
-//	if(rate != WLAN_MAC_RATE_1M){
-
-//		xil_printf("active_rx_ant = %d\n", active_rx_ant);
-//		xil_printf("RF Gain: %d, BB Gain: %d\n", wlan_phy_rx_get_agc_RFG(active_rx_ant), wlan_phy_rx_get_agc_BBG(active_rx_ant));
-//		xil_printf("rssi = %d\n", rssi);
-//		xil_printf("Reg: 0x%x\n", Xil_In32(WLAN_RX_PKT_AGC_GAINS));
-//	}
-
-
 
 	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 
-	//if(rate == WLAN_MAC_RATE_1M){
-		//TODO: In this version of the hardware, RSSI is not latched on DSSS events.
-	//	mpdu_info->rx_power = -100;
-	//} else {
-		mpdu_info->rx_power = calculate_rx_power(mac_param_band, rssi, lna_gain);
-	//}
+	mpdu_info->rx_power = calculate_rx_power(mac_param_band, rssi, lna_gain);
 	mpdu_info->channel = mac_param_chan;
 
 
@@ -500,9 +457,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 						lock_empty_rx_pkt_buf();
 
 					} else {
-						//TODO: This is a software fix to a known issue whose root cause is still a mystery. Occasionally, the PHY will report receptions of non-control packets
-						//whose length is less than a full 801.11 header. This should not be possible, so this code is only to catch this case and not send these packets up
-						//to CPU_HIGH.
 						warp_printf(PL_ERROR, "Error: received non-control packet of length %d, which is not valid\n", length);
 					}
 				}
@@ -510,7 +464,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 		} //END if (to_me or to_broadcast)
 	}  else { //END if (FCS good)
 
-		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
+
 		mpdu_info->state = RX_MPDU_STATE_FCS_BAD;
 		ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_RX_BAD_FCS);
 		ipc_msg_to_high.arg0 = rx_pkt_buf;
@@ -527,7 +481,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 			//Find a free packet buffer and beging receiving packets there (blocks until free buf is found)
 			lock_empty_rx_pkt_buf();
 		}
-		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
+
 	} //END else (FCS bad)
 
 	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
@@ -539,10 +493,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
 
-	//if(rate == WLAN_PHY_RATE_BPSK12) REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
-
-	//u32 temp;
-
 	u8 req_timeout;
 	u16 n_slots;
 	u32 tx_status, rx_status;
@@ -550,14 +500,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
 	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_RFA | RC_RFB), mpdu_info->gain_target);
-
-	//FIXME DEBUG
-	//bzero(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET + PHY_TX_PKT_BUF_PHY_HDR_SIZE, 1000);
-	//
-
-	//DEBUG FIXME
-	//wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
-	//xil_printf("frame_transmit(%d,%d,%d), (mpdu_info->flags) = 0x%08x\n", pkt_buf, rate, length, (mpdu_info->flags));
 
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
@@ -572,13 +514,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 	wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
 
-	//FIXME
-	//if(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_PHY_TX_ACTIVE){
-	//	xil_printf("err: phy is active\n");
-	//}
-
-	//FIXME
-
 	//Submit the MPDU for transmission
 	wlan_mac_MPDU_tx_start(1);
 	wlan_mac_MPDU_tx_start(0);
@@ -587,48 +522,40 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	do{
 
 		tx_status = wlan_mac_get_status();
-		//DEBUG
-		//if(Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET)) != WLAN_TX_SIGNAL_CALC(rate, (length + WLAN_PHY_FCS_NBYTES))){
-		//	xil_printf("ERR: SIGNAL FIELD CHANGED -- 0x%08x -> 0x%08x\n", WLAN_TX_SIGNAL_CALC(rate, length), Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET)));
-		//}
-		//DEBUG
-		//TODO: This is a software fix for a MAC_DCF_HW race condition
-		//if((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) || ((tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_STATE)==WLAN_MAC_STATUS_MPDU_TX_STATE_DONE)) {
+
 		if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
 			switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					//Tx didn't require timeout, completed successfully
-					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
-					//if(rate == WLAN_PHY_RATE_BPSK12) REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+
+
 					return 0;
 				break;
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED:
 					expect_ack = 1;
-					//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+
 					rx_status = poll_mac_rx();
-					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x44);
+
 					if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
 						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
 						n_slots = rand_num_slots();
-						//if(n_slots == 0) {
-						//	DEBUG_SKIP_BACKOFF = 1;
-						//} else {
-							wlan_mac_dcf_hw_start_backoff(n_slots);
-						//}
-						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+
+						wlan_mac_dcf_hw_start_backoff(n_slots);
+
+
 						return 0;
 					} else {
 						if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)){
 							n_slots = rand_num_slots();
 							wlan_mac_dcf_hw_start_backoff(n_slots);
 
-							//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+
 
 							return -1;
 						} else{
 							n_slots = rand_num_slots();
 							wlan_mac_dcf_hw_start_backoff(n_slots);
-							//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+
 							return frame_transmit(pkt_buf, rate, length);
 						}
 					}
@@ -638,7 +565,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 					//Update the contention window
 					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
-						//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+
 						return -1;
 					}
 
@@ -648,7 +575,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 
 					//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
-					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+
 					return frame_transmit(pkt_buf, rate, length);
 
 				break;
@@ -661,7 +588,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 		}
 	} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
 
-	//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0xFF);
+
 	return 0;
 
 }
@@ -732,8 +659,6 @@ inline unsigned int rand_num_slots(){
 		n_slots = debug_num_slots;
 	}
 
-	//xil_printf("debug_num_slots = %d, n_slots = %d\n", debug_num_slots, n_slots);
-
 	return n_slots;
 }
 
@@ -757,10 +682,6 @@ void mac_dcf_init(){
 	//Enable blocking of the Rx PHY following good-FCS reception
 	REG_SET_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN | WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX));
 	REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_DISABLE_NAV);
-
-	//DEBUG
-	//REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_DISABLE_NAV);
-	//DEBUG
 
 	//MAC timing parameters are in terms of units of 100 nanoseconds
 	wlan_mac_set_slot(T_SLOT*10);
@@ -799,8 +720,6 @@ void mac_dcf_init(){
 	ipc_msg_to_high.num_payload_words = 8;
 	ipc_msg_to_high.payload_ptr = (u32 *) &(hw_info);
 
-//	ipc_msg_to_high.payload_ptr = &(ipc_msg_to_high_payload[0]);
-//	memcpy((void*) &(ipc_msg_to_high_payload[0]), (void*) &(hw_info), sizeof( wlan_mac_hw_info ) );
 	ipc_mailbox_write_msg(&ipc_msg_to_high);
 
 	for(i=0;i < NUM_RX_PKT_BUFS; i++){
@@ -1017,7 +936,6 @@ void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc){
 		mac_param_chan = config_rf_ifc->channel;
 		//TODO: allow mac_param_chan to select 5GHz channels
 		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_RFA | RC_RFB), mac_param_band, mac_param_chan);
-		warp_printf(PL_ERROR, "CPU_LOW: Tuned to channel %d\n", mac_param_chan);
 	}
 }
 
@@ -1055,9 +973,6 @@ inline void send_exception(u32 reason){
 #define RSSI_OFFSET_LNA_HIGH	(-92)
 inline int calculate_rx_power(u8 band, u16 rssi, u8 lna_gain){
 	int power = -100;
-
-	//TODO: In this version of hardware, RSSI is latched pre-AGC so we should assume a high LNA gain
-	// lna_gain = 3;
 
 	if(band == RC_24GHZ){
 		switch(lna_gain){
