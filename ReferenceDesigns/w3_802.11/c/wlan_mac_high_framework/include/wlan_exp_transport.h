@@ -1,4 +1,4 @@
-/** @file wlan_exp_transport.c
+/** @file wlan_exp_transport.h
  *  @brief Experiment Framework (Transport)
  *
  * Implements the WARPNet Transport protocol layer for the embedded processor
