@@ -28,7 +28,6 @@
 
 
 // WLAN includes
-#include "wlan_mac_ipc.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_events.h"
 #include "wlan_mac_ltg.h"
@@ -879,7 +878,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 * @note		This function will print to the terminal but is not able to control any of the LEDs
 *
 ******************************************************************************/
-int wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned int *fpga_dna, unsigned int eth_dev_num, unsigned char *hw_addr ) {
+int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr ) {
 
     int i;
 	int status = SUCCESS;

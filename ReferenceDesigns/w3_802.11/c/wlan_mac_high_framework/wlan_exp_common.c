@@ -121,7 +121,7 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
 
 
 
-// #ifdef _DEBUG_
+#ifdef _DEBUG_
 
 
 /*****************************************************************************/
@@ -141,6 +141,8 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
 void wlan_exp_print_station_status( station_info * stations, unsigned int num_stations ){
 	u32 i;
 
+
+	// !!! FIX !!!
 	for(i=0; i < num_stations; i++){
 		xil_printf("---------------------------------------------------\n");
 		xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", stations[i].AID,
@@ -155,7 +157,7 @@ void wlan_exp_print_station_status( station_info * stations, unsigned int num_st
 }
 
 
-// #endif
+#endif
 
 
 // End USE_WARPNET_WLAN_EXP
