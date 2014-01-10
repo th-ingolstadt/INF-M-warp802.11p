@@ -629,6 +629,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		//Check if duplicate
 		access_point.rx.last_timestamp = get_usec_timestamp();
 		access_point.rx.last_power = mpdu_info->rx_power;
+		access_point.rx.last_rate = mpdu_info->rate;
 
 		//xil_printf("%d ? %d\n", access_point.rx.last_seq, rx_seq);
 
