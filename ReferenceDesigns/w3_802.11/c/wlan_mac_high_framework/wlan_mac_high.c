@@ -65,45 +65,59 @@ XAxiCdma           cdma_inst;				///< Central DMA instance
 u8                 uart_rx_buffer[UART_BUFFER_SIZE];	///< Buffer for received byte from UART
 
 // 802.11 Transmit packet buffer
-u8                 tx_pkt_buf;				///< Current transmit buffer (ping/pong)
+u8                 tx_pkt_buf;				///< @brief Current transmit buffer (ping/pong)
 											///< @see TX_BUFFER_NUM
 
 // Callback function pointers
-function_ptr_t     pb_u_callback;
-function_ptr_t     pb_m_callback;
-function_ptr_t     pb_d_callback;
-function_ptr_t     uart_callback;
-function_ptr_t     mpdu_tx_done_callback;
-function_ptr_t     mpdu_rx_callback;
-function_ptr_t     fcs_bad_rx_callback;
-function_ptr_t     mpdu_tx_accept_callback;
-function_ptr_t     check_queue_callback;
+function_ptr_t     pb_u_callback;			///< User callback for "up" pushbutton
+function_ptr_t     pb_m_callback;			///< User callback for "middle" pushbutton
+function_ptr_t     pb_d_callback;			///< User callback for "down" pushbutton
+function_ptr_t     uart_callback;			///< User callback for UART reception
+function_ptr_t     mpdu_tx_done_callback;	///< User callback for lower-level message that MPDU transmission is complete
+function_ptr_t     mpdu_rx_callback;		///< User callback for lower-level message that MPDU reception is ready for processing
+function_ptr_t     fcs_bad_rx_callback;		///< User callback for lower-level message that a bad FCS event has occured
+function_ptr_t     mpdu_tx_accept_callback; ///< User callback for lower-level message that MPDU has been accepted for transmission
+function_ptr_t     check_queue_callback;	///< User callback for transmit queue checking
 
 // Node information
-wlan_mac_hw_info   	hw_info;
-u8					dram_present;
+wlan_mac_hw_info   	hw_info;				///< Information about hardware
+u8					dram_present;			///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 // Status information
-static u32         cpu_low_status;
-static u32         cpu_high_status;
+static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
+static u32         cpu_high_status;			///< Tracking variable for upper-level CPU status
 
 
 // WARPNet information
 #ifdef USE_WARPNET_WLAN_EXP
-u8                 warpnet_initialized;
+u8                 warpnet_initialized;		///< Indication variable for whether WARPnet has been initialized
 #endif
 
 // IPC variables
-wlan_ipc_msg       ipc_msg_from_low;
-u32                ipc_msg_from_low_payload[IPC_BUFFER_SIZE];
+wlan_ipc_msg       ipc_msg_from_low;							///< IPC message from lower-level
+u32                ipc_msg_from_low_payload[IPC_BUFFER_SIZE];	///< Buffer space for IPC message from lower-level
 
 // Memory Allocation Debugging
-static u32			num_malloc;
-static u32			num_free;
-static u32			num_realloc;
+static u32			num_malloc;				///< Tracking variable for number of times malloc has been called
+static u32			num_free;				///< Tracking variable for number of times free has been called
+static u32			num_realloc;			///< Tracking variable for number of times realloc has been called
 
 /******************************** Functions **********************************/
 
+/**
+ * @brief Initialize Heap and Data Sections
+ *
+ * Dynamic memory allocation through malloc uses metadata in the data section
+ * of the linker. This metadata is not reset upon software reset (i.e., when a
+ * user presses the reset button on the hardware). This will cause failures on
+ * subsequent boots because this metadata has not be reset back to its original
+ * state at the first boot. This function offers a solution to this problem by
+ * backing up the data section into dedicated BRAM on the first boot. In
+ * subsequent boots, this data is restored from the dedicated BRAM.
+ *
+ * @param None
+ * @return None
+ */
 void wlan_mac_high_heap_init(){
 	u32 data_size;
 	volatile u32* identifier = (u32*)INIT_DATA_BASEADDR;
