@@ -152,6 +152,9 @@ typedef struct{
 	rx_info     rx;			///< Reception Information Structure
 	tx_params   tx;			///< Transmission Parameters Structure
 	statistics* stats;		///< Statistics Information Structure
+                            ///< @note This is a pointer to the statistics structure
+                            ///< because statistics can survive outside of the context
+                            ///< of associated station_info structs.
 } station_info;
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001
