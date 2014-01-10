@@ -55,17 +55,18 @@ extern int _HEAP_SIZE;	 ///< Size of the heap
 /*************************** Variable Definitions ****************************/
 
 // HW structures
-static XGpio       Gpio_timestamp;
-static XGpio       Gpio;
-XIntc       	   InterruptController;
-XUartLite          UartLite;
-XAxiCdma           cdma_inst;
+static XGpio       Gpio_timestamp;			///< GPIO instance used for 64-bit usec timestamp
+static XGpio       Gpio;					///< General-purpose GPIO instance
+XIntc       	   InterruptController;		///< Interrupt Controller instance
+XUartLite          UartLite;				///< UART Device instance
+XAxiCdma           cdma_inst;				///< Central DMA instance
 
 // UART interface
-u8                 uart_rx_buffer[UART_BUFFER_SIZE];
+u8                 uart_rx_buffer[UART_BUFFER_SIZE];	///< Buffer for received byte from UART
 
 // 802.11 Transmit packet buffer
-u8                 tx_pkt_buf;
+u8                 tx_pkt_buf;				///< Current transmit buffer (ping/pong)
+											///< @see TX_BUFFER_NUM
 
 // Callback function pointers
 function_ptr_t     pb_u_callback;
@@ -758,7 +759,6 @@ u8* wlan_mac_high_get_eeprom_mac_addr(){
 
 
 u8 wlan_mac_high_valid_tagged_rate(u8 rate){
-	#define NUM_VALID_RATES 12
 	u32 i;
 	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
 	//invalid when this function is used.
@@ -773,7 +773,6 @@ u8 wlan_mac_high_valid_tagged_rate(u8 rate){
 
 
 void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str){
-	#define NUM_VALID_RATES 12
 	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
 	//invalid when this function is used.
 
