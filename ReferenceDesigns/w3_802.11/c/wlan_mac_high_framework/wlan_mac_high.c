@@ -303,7 +303,7 @@ void wlan_mac_high_init(){
  * of the MAC High Framework.
  *
  * @param None
- * @return int status 
+ * @return int
  *      - nonzero if error
  */
 int wlan_mac_high_interrupt_init(){
@@ -366,11 +366,6 @@ int wlan_mac_high_interrupt_init(){
 	}
 
 	// ***************************************************
-	// Start the interrupt controller
-	// ***************************************************
-	//wlan_mac_interrupt_start();
-
-	// ***************************************************
 	// Enable MicroBlaze exceptions
 	// ***************************************************
 	Xil_ExceptionInit();
@@ -380,18 +375,63 @@ int wlan_mac_high_interrupt_init(){
 	return 0;
 }
 
+/**
+ * @brief Start the interrupt controller
+ *
+ * This function starts the interrupt controller, allowing the executing code
+ * to be interrupted.
+ *
+ * @param None
+ * @return int
+ *      - nonzero if error
+ */
 inline int wlan_mac_high_interrupt_start(){
 	return XIntc_Start(&InterruptController, XIN_REAL_MODE);
 }
 
+/**
+ * @brief Stop the interrupt controller
+ *
+ * This function stops the interrupt controller, effectively pausing interrupts. This can
+ * be used alongside wlan_mac_high_interrupt_start() to wrap code that is not interrupt-safe.
+ *
+ * @param None
+ * @return None
+ *
+ * @note Interrupts that occur while the interrupt controller is off will be executed once it is
+ * turned back on. They will not be "lost" as the interrupt inputs to the controller will remain
+ * high.
+ */
 inline void wlan_mac_high_interrupt_stop(){
 	XIntc_Stop(&InterruptController);
 }
 
+/**
+ * @brief Retrieve Hardware Information
+ *
+ * This function stops the interrupt controller, effectively pausing interrupts. This can
+ * be used alongside wlan_mac_high_interrupt_start() to wrap code that is not interrupt-safe.
+ *
+ * @param None
+ * @return wlan_mac_hw_info*
+ *  - Pointer to the hardware info struct maintained by the MAC High Framework
+ *
+ */
 wlan_mac_hw_info* wlan_mac_high_get_hw_info(){
 	return &hw_info;
 }
 
+/**
+ * @brief Print Hardware Information
+ *
+ * This function stops the interrupt controller, effectively pausing interrupts. This can
+ * be used alongside wlan_mac_high_interrupt_start() to wrap code that is not interrupt-safe.
+ *
+ * @param wlan_mac_hw_info* info
+ *  - pointer to the hardware info struct that should be printed
+ * @return None
+ *
+ */
 void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info ) {
 	int i;
 
