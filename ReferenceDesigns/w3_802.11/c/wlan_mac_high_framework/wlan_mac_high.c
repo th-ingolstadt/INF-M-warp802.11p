@@ -606,39 +606,39 @@ void wlan_mac_high_gpio_handler(void *InstancePtr){
 	return;
 }
 
-void wlan_mac_high_set_pb_u_callback(void(*callback)()){
-	pb_u_callback = (function_ptr_t)callback;
+void wlan_mac_high_set_pb_u_callback(function_ptr_t callback){
+	pb_u_callback = callback;
 }
 
-void wlan_mac_high_set_pb_m_callback(void(*callback)()){
-	pb_m_callback = (function_ptr_t)callback;
+void wlan_mac_high_set_pb_m_callback(function_ptr_t callback){
+	pb_m_callback = callback;
 }
-void wlan_mac_high_set_pb_d_callback(void(*callback)()){
-	pb_d_callback = (function_ptr_t)callback;
-}
-
-void wlan_mac_high_set_uart_rx_callback(void(*callback)()){
-	uart_callback = (function_ptr_t)callback;
+void wlan_mac_high_set_pb_d_callback(function_ptr_t callback){
+	pb_d_callback = callback;
 }
 
-void wlan_mac_high_set_mpdu_tx_done_callback(void(*callback)()){
-	mpdu_tx_done_callback = (function_ptr_t)callback;
+void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback){
+	uart_callback = callback;
 }
 
-void wlan_mac_high_set_fcs_bad_rx_callback(void(*callback)()){
-	fcs_bad_rx_callback = (function_ptr_t)callback;
+void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback){
+	mpdu_tx_done_callback = callback;
 }
 
-void wlan_mac_high_set_mpdu_rx_callback(void(*callback)()){
-	mpdu_rx_callback = (function_ptr_t)callback;
+void wlan_mac_high_set_fcs_bad_rx_callback(function_ptr_t callback){
+	fcs_bad_rx_callback = callback;
 }
 
-void wlan_mac_high_set_mpdu_accept_callback(void(*callback)()){
-	mpdu_tx_accept_callback = (function_ptr_t)callback;
+void wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback){
+	mpdu_rx_callback = callback;
 }
 
-void wlan_mac_high_set_check_queue_callback(void(*callback)()){
-	check_queue_callback = (function_ptr_t)callback;
+void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback){
+	mpdu_tx_accept_callback = callback;
+}
+
+void wlan_mac_high_set_check_queue_callback(function_ptr_t callback){
+	check_queue_callback = callback;
 }
 
 void wlan_mac_high_gpio_timestamp_init(){
