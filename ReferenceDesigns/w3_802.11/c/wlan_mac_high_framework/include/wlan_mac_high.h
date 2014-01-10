@@ -51,6 +51,9 @@
 #define UARTLITE_INT_IRQ_ID     XPAR_INTC_0_UARTLITE_0_VEC_ID       ///< XParameters rename of UART interrupt ID
 #define TMRCTR_INTERRUPT_ID		XPAR_INTC_0_TMRCTR_0_VEC_ID         ///< XParameters rename of timer interrupt ID
 
+#define GPIO_OUTPUT_CHANNEL     1	///< Channel used as output for GPIO
+#define GPIO_INPUT_CHANNEL      2	///< Channel used as input for GPIO
+
 #define GPIO_MASK_DRAM_INIT_DONE 0x00000100		///< Mask for GPIO -- DRAM initialization bit
 #define GPIO_MASK_PB_U			 0x00000040		///< Mask for GPIO -- "Up" Pushbutton
 #define GPIO_MASK_PB_M			 0x00000020		///< Mask for GPIO -- "Middle" Pushbutton
@@ -68,7 +71,7 @@ typedef struct{
 	u64     last_timestamp; ///< Timestamp of the last frame reception
 	u16     last_seq;       ///< Sequence number of the last MPDU reception
 	char    last_power;     ///< Power of last frame reception (in dBm)
-	u8      last_rate;      ///< Rate of last MPDU reception (TODO: Needs to be filled in)
+	u8      last_rate;      ///< Rate of last MPDU reception
 } rx_info;
 
 /**
@@ -90,7 +93,9 @@ typedef struct{
  *
  * This struct contains statistics about the communications link. Typically, this struct is
  * pointed to by a larger station_info struct to catalog statistics about a particular
- * station in the network
+ * station in the network. Additionally, statistics can be decoupled from station_info
+ * structs entirely to enable promiscuous statistics about unassociated devices seen in
+ * the network.
  */
 typedef struct{
 	dl_node node;			///< Doubly-linked list entry
@@ -105,8 +110,6 @@ typedef struct{
 	u32     num_rx_bytes;	///< Total number of received bytes from this device
 } statistics;
 
-//Helper macros for traversing the doubly-linked list
-
 /**
  * @brief Traverse to next statistics entry in doubly-linked list
  *
@@ -120,17 +123,38 @@ typedef struct{
  * @see dl_node_next()
  */
 #define statistics_next(x) ( (statistics*)dl_node_next(&(x->node)) )
+
+/**
+ * @brief Traverse to previous statistics entry in doubly-linked list
+ *
+ * This function takes a pointer to a statistics structure as an argument
+ * and returns a pointer to the previous statistics structure in the doubly-linked
+ * list. If the argument does not belong to a doubly-linked list, it returns NULL.
+ *
+ * @param x Pointer to statistics structure
+ * @return	Pointer to previous statistics structure in doubly-linked list
+ *
+ * @see dl_node_prev()
+ */
 #define statistics_prev(x) ( (statistics*)dl_node_prev(&(x->node)) )
 
+/**
+ * @brief Station Information Structure
+ *
+ * This struct contains information about associated stations (or, in the
+ * case of a station, information about the associated access point).
+ */
 typedef struct{
-	dl_node     node;
-	u8          addr[6];
-	u16         AID;
-	u32			flags; //TODO - Disable assoc check
-	rx_info     rx;
-	tx_params   tx;
-	statistics* stats;
+	dl_node     node;		///< Doubly-linked list entry
+	u8          addr[6];	///< HW Address
+	u16         AID;		///< Association ID
+	u32			flags;		///< 1-bit flags
+	rx_info     rx;			///< Reception Information Structure
+	tx_params   tx;			///< Transmission Parameters Structure
+	statistics* stats;		///< Statistics Information Structure
 } station_info;
+
+#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001
 
 //Helper macros for traversing the doubly-linked list
 #define station_info_next(x) ( (station_info*)dl_node_next(&(x->node)) )
