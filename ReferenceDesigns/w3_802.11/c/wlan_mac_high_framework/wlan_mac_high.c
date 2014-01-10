@@ -303,7 +303,8 @@ void wlan_mac_high_init(){
  * of the MAC High Framework.
  *
  * @param None
- * @return int status (0 = success)
+ * @return int status 
+ *      - nonzero if error
  */
 int wlan_mac_high_interrupt_init(){
 	int Result;
