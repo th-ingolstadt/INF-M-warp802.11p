@@ -61,6 +61,15 @@
 //A maximum event length of -1 is used to signal that the entire DRAM after the queue
 //should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
 //will be the maximum.
+
+
+/**
+ * @brief Max Size of Event Log
+ *
+ * @note A maximum event length of -1 is used to signal that the entire DRAM after the queue
+ * should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
+ * will be the maximum.
+ */
 #define MAX_EVENT_LOG -1
 
 /**
