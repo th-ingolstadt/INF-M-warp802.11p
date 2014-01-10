@@ -24,6 +24,7 @@
 #include "xintc.h"
 #include "xuartlite.h"
 #include "xaxicdma.h"
+#include "malloc.h"
 
 //WARP Includes
 #include "w3_userio.h"
@@ -38,7 +39,6 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
-#include "malloc.h"
 
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
@@ -103,6 +103,8 @@ static u32			num_free;
 static u32			num_realloc;
 
 /******************************** Functions **********************************/
+
+//////////// Initialization Functions ////////////
 
 void wlan_mac_high_heap_init(){
 	u32 data_size;

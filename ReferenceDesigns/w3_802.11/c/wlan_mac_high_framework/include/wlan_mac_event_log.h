@@ -34,6 +34,11 @@
 //
 #define ENABLE_EVENT_LOGGING           1
 
+#define MAX_EVENT_LOG -1 ///< Maximum number of events to store in log
+						 ///< @note A maximum event length of -1 is used to signal that the entire DRAM after the queue
+						 ///< should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
+						 ///< will be the maximum.
+
 
 // Define event wrapping enable / disable
 #define EVENT_LOG_WRAP_ENABLE          1
