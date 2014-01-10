@@ -110,7 +110,7 @@ typedef struct {
 
 // WLAN Exp node commands
 //
-int  wlan_exp_node_init( unsigned int type, unsigned int serial_number, unsigned int *fpga_dna, unsigned int eth_dev_num, unsigned char *hw_addr );
+int  wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr );
 
 void node_set_process_callback(void(*callback)());
 int  node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network);
