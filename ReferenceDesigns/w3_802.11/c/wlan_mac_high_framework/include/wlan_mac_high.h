@@ -116,7 +116,8 @@ typedef struct{
  *
  * @param x Pointer to statistics structure
  * @return	Pointer to next statistics structure in doubly-linked list
- *
+ * 
+ * @see dl_node_next()
  */
 #define statistics_next(x) ( (statistics*)dl_node_next(&(x->node)) )
 #define statistics_prev(x) ( (statistics*)dl_node_prev(&(x->node)) )
