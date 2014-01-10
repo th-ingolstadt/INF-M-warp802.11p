@@ -23,20 +23,17 @@
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_dl_list.h"
 
-//Init Data Definitions
 #define INIT_DATA_BASEADDR XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_BASEADDR   ///< Base address of memory used for storing boot data
 #define INIT_DATA_DOTDATA_IDENTIFIER	0x1234ABCD                      ///< "Magic number" used as an identifier in boot data memory
 #define INIT_DATA_DOTDATA_START (INIT_DATA_BASEADDR+0x200)              ///< Offset into memory for boot data
 #define INIT_DATA_DOTDATA_SIZE	(4*(XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))  ///< Amount of space available in boot data memory
 
-//Encapsulation modes
 #define ENCAP_MODE_AP	0   ///< Used as a flag for AP encapsulation and de-encapsulation
 #define ENCAP_MODE_STA	1   ///< Used as a flag for STA encapsulation and de-encapsulation
 
-
-// 802.11 Transmit interface defines
 #define TX_BUFFER_NUM        2  ///< Number of PHY transmit buffers to use. This should remain 2 (ping/pong buffering).
 
+#define INTC_DEVICE_ID				XPAR_INTC_0_DEVICE_ID					///< XParameters rename of interrupt controller device ID
 #define ETH_A_MAC_DEVICE_ID			XPAR_ETH_A_MAC_DEVICE_ID                ///< XParameters rename for ETH A
 #define TIMESTAMP_GPIO_DEVICE_ID 	XPAR_MB_HIGH_TIMESTAMP_GPIO_DEVICE_ID   ///< XParameters rename for GPIO used as usec timestamp
 #define UARTLITE_DEVICE_ID     		XPAR_UARTLITE_0_DEVICE_ID               ///< XParameters rename for UART
@@ -54,19 +51,12 @@
 #define UARTLITE_INT_IRQ_ID     XPAR_INTC_0_UARTLITE_0_VEC_ID       ///< XParameters rename of UART interrupt ID
 #define TMRCTR_INTERRUPT_ID		XPAR_INTC_0_TMRCTR_0_VEC_ID         ///< XParameters rename of timer interrupt ID
 
-#define GPIO_OUTPUT_CHANNEL 	1
-#define GPIO_INPUT_CHANNEL 		2
-#define GPIO_INPUT_INTERRUPT XGPIO_IR_CH2_MASK  /* Channel 1 Interrupt Mask */
+#define GPIO_MASK_DRAM_INIT_DONE 0x00000100		///< Mask for GPIO -- DRAM initialization bit
+#define GPIO_MASK_PB_U			 0x00000040		///< Mask for GPIO -- "Up" Pushbutton
+#define GPIO_MASK_PB_M			 0x00000020		///< Mask for GPIO -- "Middle" Pushbutton
+#define GPIO_MASK_PB_D			 0x00000010		///< Mask for GPIO -- "Down" Pushbutton
 
-#define INTC_DEVICE_ID	XPAR_INTC_0_DEVICE_ID
-
-#define GPIO_MASK_DRAM_INIT_DONE 0x00000100
-#define GPIO_MASK_PB_U			 0x00000040
-#define GPIO_MASK_PB_M			 0x00000020
-#define GPIO_MASK_PB_D			 0x00000010
-
-#define UART_BUFFER_SIZE 1
-
+#define UART_BUFFER_SIZE 1						///< UART is configured to read 1 byte at a time
 
 //A maximum event length of -1 is used to signal that the entire DRAM after the queue
 //should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
