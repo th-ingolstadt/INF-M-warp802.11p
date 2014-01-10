@@ -103,8 +103,8 @@ int wlan_lib_mailbox_setup_interrupt(XIntc* intc){
 	return 0;
 }
 
-void wlan_lib_mailbox_set_rx_callback( void(*callback)()){
-	mailbox_rx_callback = (function_ptr_t)callback;
+void wlan_lib_mailbox_set_rx_callback( function_ptr_t callback ){
+	mailbox_rx_callback = callback;
 }
 
 void MailboxIntrHandler(void *CallbackRef){

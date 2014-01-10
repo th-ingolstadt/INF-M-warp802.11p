@@ -16,6 +16,8 @@
 
 #ifndef WLAN_MAC_IPC_UTIL_H_
 
+#include "wlan_mac_misc_util.h"
+
 #define WLAN_MAC_IPC_UTIL_H_
 
 #define PKT_BUF_MUTEX_DEVICE_ID		XPAR_MUTEX_0_DEVICE_ID
@@ -143,7 +145,7 @@ void nullCallback(void* param);
 
 #ifdef XPAR_INTC_0_DEVICE_ID
 int wlan_lib_mailbox_setup_interrupt(XIntc* intc);
-void wlan_lib_mailbox_set_rx_callback( void(*callback)());
+void wlan_lib_mailbox_set_rx_callback( function_ptr_t callback );
 void MailboxIntrHandler(void *CallbackRef);
 #endif
 
