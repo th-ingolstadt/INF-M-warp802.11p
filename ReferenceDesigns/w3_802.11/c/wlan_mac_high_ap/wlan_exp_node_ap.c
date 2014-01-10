@@ -36,14 +36,13 @@
 
 //WARP includes
 #include "wlan_mac_ipc_util.h"
-#include "wlan_mac_ipc.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_ltg.h"
-#include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_dl_list.h"
 #include "wlan_mac_ap.h"
 
 
@@ -53,8 +52,8 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern station_info associations[MAX_ASSOCIATIONS+1];
-extern u32          next_free_assoc_index;
+extern dl_list		association_table;
+
 extern char       * access_point_ssid;
 
 extern u32          mac_param_chan;
@@ -113,6 +112,10 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
     unsigned int  num_tables;
     unsigned int  table_freq;
 
+	station_info* curr_station_info;
+	station_info* next_station_info;
+
+
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
     
@@ -145,7 +148,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 //					for( i = 0; i < num_tables; i++ ) {
 
-						respIndex += get_station_status( &associations[0], next_free_assoc_index, &respArgs32[respIndex], max_words );
+// FIX!!!						respIndex += get_station_status( &associations[0], next_free_assoc_index, &respArgs32[respIndex], max_words );
 //					}
 
 
@@ -208,13 +211,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 			if ( temp == 0xFFFF ) {
 				deauthenticate_stations();                     // Deauthenticate all stations
 			} else {
-				u32 index = find_association_index( temp );
-
-				if ( index != -1 ) {
-					deauthenticate_station( index );           // Deauthenticate station
-				} else {
-					temp = 0;                                  // Set return value to 0
-				}
+                temp = deauthenticate_station( wlan_mac_high_find_station_info_AID( &association_table, temp ) );
 			}
 
 			// Print message to the UART to show which node was disassociated
@@ -246,8 +243,10 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 					default_unicast_rate = WLAN_MAC_RATE_54M;
 				}
 
-				for(i=0; i < next_free_assoc_index; i++){
-					associations[i].tx_rate = default_unicast_rate;
+				curr_station_info = (station_info*)(association_table.first);
+				for(i=0; i < association_table.length; i++){
+					curr_station_info->tx.rate = default_unicast_rate;
+					curr_station_info = (station_info*)((curr_station_info->node).next);
 				}
 
 			    xil_printf("Setting TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate) );
