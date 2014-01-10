@@ -454,14 +454,45 @@ void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info ) {
 	xil_printf("\n");
 
 	xil_printf("END \n");
-
 }
 
-void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData){
+/**
+ * @brief UART Receive Interrupt Handler
+ *
+ * This function is the interrupt handler for UART receptions. It, in turn,
+ * will execute a callback that the user has previously registered.
+ *
+ * @param void* CallBackRef
+ *  - Argument supplied by the XUartLite driver. Unused in this application.
+ * @param unsigned int EventData
+ *  - Argument supplied by the XUartLite driver. Unused in this application.
+ * @return None
+ *
+ * @see wlan_mac_high_set_uart_rx_callback()
+ */
+void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
 	XUartLite_Recv(&UartLite, uart_rx_buffer, UART_BUFFER_SIZE);
 	uart_callback(uart_rx_buffer[0]);
 }
 
+/**
+ * @brief Find Station Information within a doubly-linked list from an AID
+ *
+ * Given a doubly-linked list of station_info structures, this function will return
+ * the pointer to a particular entry whose association ID field matches the argument
+ * to this function.
+ *
+ * @param dl_list* list
+ *  - Doubly-linked list of station_info structures
+ * @param u32 aid
+ *  - Association ID to search for
+ * @return station_info*
+ *  - Returns the pointer to the entry in the doubly-linked list that has the
+ *    provided AID.
+ *  - Returns NULL if no station_info pointer is found that matches the search
+ *    criteria
+ *
+ */
 station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
 	u32 i;
 	station_info* curr_station_info = (station_info*)(list->first);
