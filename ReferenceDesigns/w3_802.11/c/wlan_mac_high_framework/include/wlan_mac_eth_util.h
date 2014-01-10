@@ -11,7 +11,6 @@
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
- *  @bug No known bugs.
  */
 
 #ifndef WLAN_MAC_ETH_UTIL_H_

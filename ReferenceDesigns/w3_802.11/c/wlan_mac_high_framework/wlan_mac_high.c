@@ -39,18 +39,17 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
-
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 
 /*********************** Global Variable Definitions *************************/
 
-extern int __data_start;
-extern int __data_end;
-extern int __bss_start;
-extern int __bss_end;
-extern int _heap_start;
-extern int _HEAP_SIZE;
+extern int __data_start; ///< Start address of the data secion
+extern int __data_end;	 ///< End address of the data section
+extern int __bss_start;	 ///< Start address of the bss section
+extern int __bss_end;	 ///< End address of the bss section
+extern int _heap_start;	 ///< Start address of the heap
+extern int _HEAP_SIZE;	 ///< Size of the heap
 
 
 /*************************** Variable Definitions ****************************/
@@ -103,8 +102,6 @@ static u32			num_free;
 static u32			num_realloc;
 
 /******************************** Functions **********************************/
-
-//////////// Initialization Functions ////////////
 
 void wlan_mac_high_heap_init(){
 	u32 data_size;
@@ -866,34 +863,6 @@ void wlan_mac_high_setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags     = flags;
 }
 
-int str2num(char* str){
-	//For now this only works with non-negative values
-	int return_value = 0;
-	u8 decade_index;
-	int multiplier;
-	u8 string_length = strlen(str);
-	u32 i;
-
-	for(decade_index = 0; decade_index < string_length; decade_index++){
-		multiplier = 1;
-		for(i = 0; i < (string_length - 1 - decade_index) ; i++){
-			multiplier = multiplier*10;
-		}
-		return_value += multiplier*(u8)(str[decade_index] - 48);
-	}
-
-	return return_value;
-}
-
-void usleep(u64 delay){
-	u64 timestamp = get_usec_timestamp();
-	while(get_usec_timestamp() < (timestamp+delay)){}
-	return;
-}
-
-
-
-
 /*****************************************************************************/
 /**
 * WLAN MAC IPC receive
@@ -1195,6 +1164,32 @@ int wlan_mac_high_is_cpu_low_ready(){
 	// xil_printf("cpu_high_status = 0x%08x\n",cpu_high_status);
 	return ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0);
 }
+
+int str2num(char* str){
+	//For now this only works with non-negative values
+	int return_value = 0;
+	u8 decade_index;
+	int multiplier;
+	u8 string_length = strlen(str);
+	u32 i;
+
+	for(decade_index = 0; decade_index < string_length; decade_index++){
+		multiplier = 1;
+		for(i = 0; i < (string_length - 1 - decade_index) ; i++){
+			multiplier = multiplier*10;
+		}
+		return_value += multiplier*(u8)(str[decade_index] - 48);
+	}
+
+	return return_value;
+}
+
+void usleep(u64 delay){
+	u64 timestamp = get_usec_timestamp();
+	while(get_usec_timestamp() < (timestamp+delay)){}
+	return;
+}
+
 
 
 

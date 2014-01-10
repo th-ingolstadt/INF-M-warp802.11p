@@ -11,7 +11,6 @@
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
- *  @bug No known bugs.
  */
 
 #ifndef WLAN_MAC_UTIL_H_
@@ -193,6 +192,8 @@ typedef struct{
 void wlan_mac_high_heap_init();
 void wlan_mac_high_init();
 int wlan_mac_high_interrupt_init();
+
+
 inline int wlan_mac_high_interrupt_start();
 inline void wlan_mac_high_interrupt_stop();
 wlan_mac_hw_info* wlan_mac_high_get_hw_info();
