@@ -11,7 +11,8 @@
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
- *  @bug No known bugs
+ *  @bug
+ *  - PHY boots into a state where it won't receive until after the first transmission
  */
 
 //Xilinx SDK includes
