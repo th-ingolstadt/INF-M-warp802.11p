@@ -487,7 +487,7 @@ void association_timestamp_check() {
 		next_station_info = station_info_next(curr_station_info);
 
 		time_since_last_rx = (get_usec_timestamp() - curr_station_info->rx.last_timestamp);
-		if(time_since_last_rx > ASSOCIATION_TIMEOUT_US){
+		if((time_since_last_rx > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
 			//Send De-authentication
 
 		 	//Checkout 1 element from the queue;
@@ -602,6 +602,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		associated_station->rx.last_timestamp = get_usec_timestamp();
 		associated_station->rx.last_power = mpdu_info->rx_power;
+		associated_station->rx.last_rate = mpdu_info->rate;
 
 		//Check if duplicate
 		if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
