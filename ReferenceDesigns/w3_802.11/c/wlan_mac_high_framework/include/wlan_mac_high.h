@@ -58,20 +58,6 @@
 
 #define UART_BUFFER_SIZE 1						///< UART is configured to read 1 byte at a time
 
-//A maximum event length of -1 is used to signal that the entire DRAM after the queue
-//should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
-//will be the maximum.
-
-
-/**
- * @brief Max Size of Event Log
- *
- * @note A maximum event length of -1 is used to signal that the entire DRAM after the queue
- * should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
- * will be the maximum.
- */
-#define MAX_EVENT_LOG -1
-
 /**
  * @brief Reception Information Structure
  *
@@ -80,32 +66,58 @@
  */
 typedef struct{
 	u64     last_timestamp; ///< Timestamp of the last frame reception
-	u16      last_seq;      ///< Sequence number of the last MPDU reception
+	u16     last_seq;       ///< Sequence number of the last MPDU reception
 	char    last_power;     ///< Power of last frame reception (in dBm)
 	u8      last_rate;      ///< Rate of last MPDU reception (TODO: Needs to be filled in)
 } rx_info;
 
+/**
+ * @brief Transmit Parameters Structure
+ *
+ * This struct contains transmission parameters. Typically, this struct is included
+ * in a larger station_info struct to describe transmission parameters to a particular
+ * station in the network.
+ */
 typedef struct{
-	u8      rate;
-	u8      antenna_mode;
-	u8	    max_retry;
+	u8      rate;			///< Rate of transmission
+	u8      antenna_mode;	///< Antenna mode (Placeholder)
+	u8	    max_retry;		///< Maximum number of retransmissions
 	u8      reserved;
 } tx_params;
 
+/**
+ * @brief Statistics Structure
+ *
+ * This struct contains statistics about the communications link. Typically, this struct is
+ * pointed to by a larger station_info struct to catalog statistics about a particular
+ * station in the network
+ */
 typedef struct{
-	dl_node node;
-	u64     last_timestamp;
-	u8      addr[6];
-	u8      is_associated;
+	dl_node node;			///< Doubly-linked list entry
+	u64     last_timestamp; ///< Timestamp of the last frame reception
+	u8      addr[6];		///< HW Address
+	u8      is_associated;	///< Is this device associated with me?
 	u8      reserved;
-	u32     num_tx_total;
-	u32     num_tx_success;
-	u32     num_retry;
-	u32     num_rx_success;
-	u32     num_rx_bytes;
+	u32     num_tx_total;	///< Total number of transmissions to this device
+	u32     num_tx_success; ///< Total number of successful transmissions to this device
+	u32     num_retry;		///< Total number of retransmissions to this device
+	u32     num_rx_success; ///< Total number of successful receptions from this device
+	u32     num_rx_bytes;	///< Total number of received bytes from this device
 } statistics;
 
 //Helper macros for traversing the doubly-linked list
+
+/**
+ * @brief Traverse to next statistics entry in doubly-linked list
+ *
+ * This function takes a pointer to a statistics structure as an argument
+ * and returns a pointer to the next statistics structure in the doubly-linked
+ * list. If the argument does not belong to a doubly-linked list, it returns NULL.
+ *
+ * @param x Pointer to statistics structure
+ * @return	Pointer to next statistics structure in doubly-linked list
+ *
+ */
 #define statistics_next(x) ( (statistics*)dl_node_next(&(x->node)) )
 #define statistics_prev(x) ( (statistics*)dl_node_prev(&(x->node)) )
 
