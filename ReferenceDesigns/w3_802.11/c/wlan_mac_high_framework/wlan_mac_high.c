@@ -117,11 +117,17 @@ static u32			num_realloc;			///< Tracking variable for number of times realloc h
  *
  * @param None
  * @return None
+ *
+ * @note This function should be the first thing called after boot. If it is
+ * called after other parts have the code have started dynamic memory access,
+ * there will be unpredictable results on software reset.
  */
 void wlan_mac_high_heap_init(){
 	u32 data_size;
-	volatile u32* identifier = (u32*)INIT_DATA_BASEADDR;
+	volatile u32* identifier;
+
 	data_size = 4*(&__data_end - &__data_start);
+	identifier = (u32*)INIT_DATA_BASEADDR;
 
 	//Zero out the heap
 	bzero((void*)&_heap_start, (int)&_HEAP_SIZE);
@@ -129,7 +135,7 @@ void wlan_mac_high_heap_init(){
 	//Zero out the bss
 	bzero((void*)&__bss_start, 4*(&__bss_end - &__bss_start));
 
-	#ifdef INIT_DATA_BASEADDR
+#ifdef INIT_DATA_BASEADDR
 	if(*identifier == INIT_DATA_DOTDATA_IDENTIFIER){
 		//This program has run before. We should copy the .data out of the INIT_DATA memory.
 		if(data_size <= INIT_DATA_DOTDATA_SIZE){
@@ -144,11 +150,18 @@ void wlan_mac_high_heap_init(){
 		}
 
 	}
-	#endif
+#endif
 }
 
-
-
+/**
+ * @brief Initialize MAC High Framework
+ *
+ * This function initializes the MAC High Framework by setting
+ * up the hardware and other subsystems in the framework.
+ *
+ * @param None
+ * @return None
+ */
 void wlan_mac_high_init(){
 	int            Status;
     u32            i;
@@ -156,6 +169,7 @@ void wlan_mac_high_init(){
 	u64            timestamp;
 	u32            log_size;
 	tx_frame_info* tx_mpdu;
+	XAxiCdma_Config *cdma_cfg_ptr;
 
 	// ***************************************************
 	// Initialize the utility library
@@ -175,12 +189,11 @@ void wlan_mac_high_init(){
 	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
 	check_queue_callback    = (function_ptr_t)nullCallback;
 
-	wlan_lib_mailbox_set_rx_callback((void*)wlan_mac_high_ipc_rx);
+	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
 	num_malloc = 0;
 	num_realloc = 0;
 	num_free = 0;
-
 
 	// ***************************************************
 	// Initialize Transmit Packet Buffers
@@ -203,7 +216,6 @@ void wlan_mac_high_init(){
 	// Initialize CDMA, GPIO, and UART drivers
 	// ***************************************************
 	//Initialize the central DMA (CDMA) driver
-	XAxiCdma_Config *cdma_cfg_ptr;
 	cdma_cfg_ptr = XAxiCdma_LookupConfig(XPAR_AXI_CDMA_0_DEVICE_ID);
 	Status = XAxiCdma_CfgInitialize(&cdma_inst, cdma_cfg_ptr, cdma_cfg_ptr->BaseAddress);
 	if (Status != XST_SUCCESS) {
@@ -284,6 +296,15 @@ void wlan_mac_high_init(){
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
 }
 
+/**
+ * @brief Initialize MAC High Framework's Interrupts
+ *
+ * This function initializes sets up the interrupt subsystem
+ * of the MAC High Framework.
+ *
+ * @param None
+ * @return int status (0 = success)
+ */
 int wlan_mac_high_interrupt_init(){
 	int Result;
 
@@ -321,13 +342,13 @@ int wlan_mac_high_interrupt_init(){
 	// ***************************************************
 	Result = wlan_mac_schedule_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
-		xil_printf("Failed to set up scheduler interrupt\n");
+		warp_printf(PL_ERROR,"Failed to set up scheduler interrupt\n");
 		return -1;
 	}
 
 	Result = wlan_lib_mailbox_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
-		xil_printf("Failed to set up wlan_lib mailbox interrupt\n");
+		warp_printf(PL_ERROR,"Failed to set up wlan_lib mailbox interrupt\n");
 		return -1;
 	}
 
