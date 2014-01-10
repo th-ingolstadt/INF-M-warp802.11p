@@ -495,7 +495,8 @@ void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
  */
 station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
 	u32 i;
-	station_info* curr_station_info = (station_info*)(list->first);
+	station_info* curr_station_info;
+	curr_station_info = (station_info*)(list->first);
 
 	for( i = 0; i < list->length; i++){
 		if(curr_station_info->AID == aid){
@@ -507,9 +508,28 @@ station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
 	return NULL;
 }
 
+/**
+ * @brief Find Station Information within a doubly-linked list from an hardware address
+ *
+ * Given a doubly-linked list of station_info structures, this function will return
+ * the pointer to a particular entry whose hardware address matches the argument
+ * to this function.
+ *
+ * @param dl_list* list
+ *  - Doubly-linked list of station_info structures
+ * @param u8* addr
+ *  - 6-byte hardware address to search for
+ * @return station_info*
+ *  - Returns the pointer to the entry in the doubly-linked list that has the
+ *    provided hardware address.
+ *  - Returns NULL if no station_info pointer is found that matches the search
+ *    criteria
+ *
+ */
 station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
 	u32 i;
-	station_info* curr_station_info = (station_info*)(list->first);
+	station_info* curr_station_info;
+	curr_station_info = (station_info*)(list->first);
 
 	for( i = 0; i < list->length; i++){
 		if(wlan_addr_eq(curr_station_info->addr, addr)){
@@ -521,9 +541,28 @@ station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
 	return NULL;
 }
 
+/**
+ * @brief Find Statistics within a doubly-linked list from an hardware address
+ *
+ * Given a doubly-linked list of statistics structures, this function will return
+ * the pointer to a particular entry whose hardware address matches the argument
+ * to this function.
+ *
+ * @param dl_list* list
+ *  - Doubly-linked list of statistics structures
+ * @param u8* addr
+ *  - 6-byte hardware address to search for
+ * @return station_info*
+ *  - Returns the pointer to the entry in the doubly-linked list that has the
+ *    provided hardware address.
+ *  - Returns NULL if no station_info pointer is found that matches the search
+ *    criteria
+ *
+ */
 statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
 	u32 i;
-	statistics* curr_statistics = (statistics*)(list->first);
+	statistics* curr_statistics;
+	curr_statistics = (statistics*)(list->first);
 
 	for( i = 0; i < list->length; i++){
 		if(wlan_addr_eq(curr_statistics->addr, addr)){
@@ -535,7 +574,21 @@ statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
 	return NULL;
 }
 
-
+/**
+ * @brief GPIO Interrupt Handler
+ *
+ * Handles GPIO interrupts that occur from the GPIO core's input
+ * channel. Depending on the signal, this function will execute
+ * one of several different user-provided callbacks.
+ *
+ * @param void* InstancePtr
+ *  - Pointer to the GPIO instance
+ * @return None
+ *
+ * @see wlan_mac_high_set_pb_u_callback()
+ * @see wlan_mac_high_set_pb_m_callback()
+ * @see wlan_mac_high_set_pb_d_callback()
+ */
 void wlan_mac_high_gpio_handler(void *InstancePtr){
 	XGpio *GpioPtr = (XGpio *)InstancePtr;
 	u32 gpio_read;
