@@ -36,13 +36,11 @@
 
 //WARP includes
 #include "wlan_mac_ipc_util.h"
-#include "wlan_mac_ipc.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_ltg.h"
-#include "wlan_mac_util.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_sta.h"
@@ -236,7 +234,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 					default_unicast_rate = WLAN_MAC_RATE_54M;
 				}
 
-				access_point.tx_rate = default_unicast_rate;
+				access_point.tx.rate = default_unicast_rate;
 
 			    xil_printf("Setting TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate) );
 			}
@@ -287,12 +285,12 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			//Send broadcast probe requests across all channels
 			if(active_scan ==0){
 
-				wlan_free( ap_list );
+				wlan_mac_high_free( ap_list );
 
 				// Clean up current state
 				ap_list             = NULL;
 				num_ap_list         = 0;
-				access_point_ssid   = wlan_realloc(access_point_ssid, 1);
+				access_point_ssid   = wlan_mac_high_realloc(access_point_ssid, 1);
 				*access_point_ssid  = 0;
 
 				// Start scan
@@ -338,7 +336,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 					xil_printf("Attempting to join %s\n", ap_list[temp].ssid);
 					memcpy(access_point.addr, ap_list[temp].bssid, 6);
 
-					access_point_ssid = wlan_realloc(access_point_ssid, strlen(ap_list[temp].ssid)+1);
+					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[temp].ssid)+1);
 					strcpy(access_point_ssid,ap_list[temp].ssid);
 
 					access_point_num_basic_rates = ap_list[temp].num_basic_rates;
