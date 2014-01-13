@@ -64,6 +64,11 @@
 
 #define NUM_VALID_RATES 12 						///< Number of supported rates
 
+#define PKT_TYPE_DATA_ENCAP_ETH	1				///< Encapsulated Ethernet Type
+#define PKT_TYPE_DATA_ENCAP_LTG	2				///< Encapsulated LTG Type
+#define PKT_TYPE_MGMT			3				///< Management Type
+#define PKT_TYPE_CONTROL		4				///< Control Type
+
 /**
  * @brief Reception Information Structure
  *
@@ -242,7 +247,7 @@ void wlan_mac_high_set_dsss( unsigned int dsss_value );
 void wlan_mac_high_set_backoff_slot_value( u32 num_slots );
 int  wlan_mac_high_is_cpu_low_initialized();
 int  wlan_mac_high_is_cpu_low_ready();
-
+inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length);
 int str2num(char* str);
 void usleep(u64 delay);
 

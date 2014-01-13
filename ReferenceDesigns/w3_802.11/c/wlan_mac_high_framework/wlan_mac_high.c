@@ -952,7 +952,7 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	//are intended to be similar to memcpy. Note: This function does not block on the transfer.
 	int return_value;
 
-	while(XAxiCdma_IsBusy(&cdma_inst)) {}
+	wlan_mac_high_cdma_finish_transfer();
 	return_value = XAxiCdma_SimpleTransfer(&cdma_inst, (u32)src, (u32)dest, size, NULL, NULL);
 
 	return return_value;
@@ -1418,6 +1418,43 @@ int wlan_mac_high_is_cpu_low_ready(){
 	return ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0);
 }
 
+
+inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
+
+	mac_header_80211* rx80211_hdr;
+	llc_header* llc_hdr;
+
+	rx80211_hdr = (mac_header_80211*)((void *)mpdu);
+
+	if(rx80211_hdr->frame_control_1 & MAC_FRAME_CTRL1_TYPE_MGMT){
+		return PKT_TYPE_MGMT;
+	} else if(rx80211_hdr->frame_control_1 & MAC_FRAME_CTRL1_TYPE_CTRL) {
+		return PKT_TYPE_CONTROL;
+	} else if(rx80211_hdr->frame_control_1 & MAC_FRAME_CTRL1_TYPE_DATA) {
+		llc_hdr = (llc_header*)((void *)mpdu + sizeof(mac_header_80211));
+
+		if(length < (sizeof(mac_header_80211) + sizeof(llc_header))){
+			//This was a DATA packet, but it wasn't long enough to have an LLC header.
+			return NULL;
+		} else {
+			switch(llc_hdr->type){
+				case LLC_TYPE_ARP:
+				case LLC_TYPE_IP:
+					return PKT_TYPE_DATA_ENCAP_ETH;
+				break;
+				case LLC_TYPE_CUSTOM:
+					return PKT_TYPE_DATA_ENCAP_LTG;
+				break;
+				default:
+					return NULL;
+				break;
+			}
+		}
+	}
+	return NULL;
+}
+
+
 int str2num(char* str){
 	//For now this only works with non-negative values
 	int return_value = 0;
@@ -1442,6 +1479,8 @@ void usleep(u64 delay){
 	while(get_usec_timestamp() < (timestamp+delay)){}
 	return;
 }
+
+
 
 
 

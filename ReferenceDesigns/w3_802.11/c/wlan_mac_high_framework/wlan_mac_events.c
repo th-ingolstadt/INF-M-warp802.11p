@@ -71,7 +71,7 @@
 rx_ofdm_event* get_next_empty_rx_ofdm_event(){
 
 	// Get the next empty event
-	return (rx_ofdm_event *)event_log_get_next_empty_event( EVENT_TYPE_RX_OFDM, sizeof(rx_ofdm_event) );
+	return (rx_ofdm_event *)event_log_get_next_empty_entry( EVENT_TYPE_RX_OFDM, sizeof(rx_ofdm_event) );
 }
 
 /*****************************************************************************/
@@ -88,7 +88,7 @@ rx_ofdm_event* get_next_empty_rx_ofdm_event(){
 rx_dsss_event* get_next_empty_rx_dsss_event(){
 
 	// Get the next empty event
-	return (rx_dsss_event *)event_log_get_next_empty_event( EVENT_TYPE_RX_DSSS, sizeof(rx_dsss_event) );
+	return (rx_dsss_event *)event_log_get_next_empty_entry( EVENT_TYPE_RX_DSSS, sizeof(rx_dsss_event) );
 }
 
 /*****************************************************************************/
@@ -105,31 +105,13 @@ rx_dsss_event* get_next_empty_rx_dsss_event(){
 tx_event* get_next_empty_tx_event(){
 
 	// Get the next empty event
-	return (tx_event *)event_log_get_next_empty_event( EVENT_TYPE_TX, sizeof(tx_event) );
+	return (tx_event *)event_log_get_next_empty_entry( EVENT_TYPE_TX, sizeof(tx_event) );
 
 }
 
 /*****************************************************************************/
 /**
-* Get the next empty bad FCS event
-*
-* @param    None.
-*
-* @return	bad_fcs_event *   - Pointer to the next "empty" TX event or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-bad_fcs_event* get_next_empty_bad_fcs_event(){
-
-	// Get the next empty event
-	return (bad_fcs_event *)event_log_get_next_empty_event( EVENT_TYPE_BAD_FCS_RX, sizeof(bad_fcs_event) );
-}
-
-
-/*****************************************************************************/
-/**
-* Prints an event
+* Prints an entry
 *
 * @param    event_number     - Index of event in the log
 *           event_type       - Type of event
@@ -141,24 +123,22 @@ bad_fcs_event* get_next_empty_bad_fcs_event(){
 * @note		None.
 *
 ******************************************************************************/
-void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event ){
+void print_entry( u32 entry_number, u32 entry_type, void * event ){
 	u32 i, j;
 	rx_ofdm_event      * rx_ofdm_event_log_item;
 	rx_dsss_event      * rx_dsss_event_log_item;
 	tx_event      * tx_event_log_item;
-	bad_fcs_event * bad_fcs_event_log_item;
 
-	switch( event_type ){
+
+	switch( entry_type ){
 		case EVENT_TYPE_RX_OFDM:
 			rx_ofdm_event_log_item = (rx_ofdm_event*) event;
-			xil_printf("%d: [%d] - Rx OFDM Event\n", event_number, timestamp );
+			xil_printf("%d: - Rx OFDM Event\n", entry_number );
+			xil_printf("   FCS:      %d\n",     rx_ofdm_event_log_item->fcs_status);
 			xil_printf("   Pow:      %d\n",     rx_ofdm_event_log_item->power);
-			xil_printf("   Seq:      %d\n",     rx_ofdm_event_log_item->seq);
 			xil_printf("   Rate:     %d\n",     rx_ofdm_event_log_item->rate);
 			xil_printf("   Length:   %d\n",     rx_ofdm_event_log_item->length);
-			xil_printf("   State:    %d\n",     rx_ofdm_event_log_item->state);
-			xil_printf("   MAC Type: 0x%x\n",   rx_ofdm_event_log_item->mac_type);
-			xil_printf("   Flags:    0x%x\n",   rx_ofdm_event_log_item->flags);
+			xil_printf("   Pkt Type: 0x%x\n",   rx_ofdm_event_log_item->pkt_type);
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
 			xil_printf("   Channel Estimates:\n");
 
@@ -176,19 +156,17 @@ void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event 
 
 		case EVENT_TYPE_RX_DSSS:
 			rx_dsss_event_log_item = (rx_dsss_event*) event;
-			xil_printf("%d: [%d] - Rx DSSS Event\n", event_number, timestamp );
+			xil_printf("%d: - Rx DSSS Event\n", entry_number );
+			xil_printf("   FCS:      %d\n",     rx_dsss_event_log_item->fcs_status);
 			xil_printf("   Pow:      %d\n",     rx_dsss_event_log_item->power);
-			xil_printf("   Seq:      %d\n",     rx_dsss_event_log_item->seq);
 			xil_printf("   Rate:     %d\n",     rx_dsss_event_log_item->rate);
 			xil_printf("   Length:   %d\n",     rx_dsss_event_log_item->length);
-			xil_printf("   State:    %d\n",     rx_dsss_event_log_item->state);
-			xil_printf("   MAC Type: 0x%x\n",   rx_dsss_event_log_item->mac_type);
-			xil_printf("   Flags:    0x%x\n",   rx_dsss_event_log_item->flags);
+			xil_printf("   Pkt Type: 0x%x\n",   rx_dsss_event_log_item->pkt_type);
 		break;
 
 		case EVENT_TYPE_TX:
 			tx_event_log_item = (tx_event*) event;
-			xil_printf("%d: [%d] - Tx Event\n", event_number, timestamp);
+			xil_printf("%d: - Tx Event\n", entry_number);
 			xil_printf("   Pow:              %d\n",     tx_event_log_item->power);
 			xil_printf("   Seq:              %d\n",     tx_event_log_item->seq);
 			xil_printf("   Rate:             %d\n",     tx_event_log_item->rate);
@@ -199,17 +177,11 @@ void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event 
 			xil_printf("   MPDU Duration:    %d usec\n",     (u32)(tx_event_log_item->tx_mpdu_done_timestamp - tx_event_log_item->tx_mpdu_accept_timestamp));
 		break;
 
-		case EVENT_TYPE_BAD_FCS_RX:
-			bad_fcs_event_log_item = (bad_fcs_event*) event;
-			xil_printf("%d: [%d] - FCS Bad Rx Event\n", event_number, timestamp);
-			xil_printf("   Rate:     %d\n",     bad_fcs_event_log_item->rate);
-			xil_printf("   Length:   %d\n",     bad_fcs_event_log_item->length);
-		break;
-
 		default:
-			xil_printf("%d: [%d] - Unknown Event\n", event_number, timestamp);
+			xil_printf("%d: - Unknown Event\n", entry_number);
 		break;
 	}
+
 }
 
 

@@ -30,6 +30,8 @@
 #ifndef WLAN_MAC_EVENTS_H_
 #define WLAN_MAC_EVENTS_H_
 
+#include "wlan_mac_802_11_defs.h"
+
 #define WLAN_MAC_EVENTS_LOG_CHAN_EST
 
 // ****************************************************************************
@@ -51,14 +53,15 @@
 // Receive OFDM Event
 //
 typedef struct{
-	u8   state;
-	u8   AID;
-	s8   power;
+	u64  timestamp;
+	mac_header_80211 mac_hdr;
+	u16	 length;
 	u8   rate;
-	u16  length;
-	u16  seq;
-	u8   mac_type;
-	u8   flags;
+	s8   power;
+	u8	 fcs_status;
+	u8 	 pkt_type;
+	u8 	 chan_num;
+	u8 	 ant_mode;
 	u8   rf_gain;
 	u8   bb_gain;
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
@@ -67,17 +70,22 @@ typedef struct{
 } rx_ofdm_event;
 
 typedef struct{
-	u8   state;
-	u8   AID;
-	s8   power;
+	u64  timestamp;
+	mac_header_80211 mac_hdr;
+	u16	 length;
 	u8   rate;
-	u16  length;
-	u16  seq;
-	u8   mac_type;
-	u8   flags;
+	s8   power;
+	u8	 fcs_status;
+	u8 	 pkt_type;
+	u8 	 chan_num;
+	u8 	 ant_mode;
 	u8   rf_gain;
 	u8   bb_gain;
 } rx_dsss_event;
+
+#define RX_EVENT_FCS_GOOD 0
+#define RX_EVENT_FCS_BAD 1
+
 
 
 //-----------------------------------------------
@@ -98,16 +106,6 @@ typedef struct{
 } tx_event;
 
 
-//-----------------------------------------------
-// Bad FCS Event
-//
-typedef struct{
-	u8  rate;
-	u8  reserved;
-	u16  length;
-} bad_fcs_event;
-
-
 /*************************** Function Prototypes *****************************/
 
 
@@ -117,13 +115,12 @@ typedef struct{
 rx_ofdm_event* get_next_empty_rx_ofdm_event();
 rx_dsss_event* get_next_empty_rx_dsss_event();
 tx_event* get_next_empty_tx_event();
-bad_fcs_event* get_next_empty_bad_fcs_event();
 
 
 //-----------------------------------------------
 // Print function for all events
 //
-void print_event( u32 event_number, u32 event_type, u32 timestamp, void * event );
+void print_entry( u32 entry_number, u32 entry_type, void * event );
 
 
 #endif /* WLAN_MAC_EVENTS_H_ */
