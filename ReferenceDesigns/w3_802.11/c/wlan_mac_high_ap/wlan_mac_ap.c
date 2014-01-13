@@ -141,7 +141,7 @@ int main(){
 	wlan_mac_high_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
 	wlan_mac_high_set_pb_u_callback(         (void*)up_button);
 	wlan_mac_high_set_uart_rx_callback(      (void*)uart_rx);
-	wlan_mac_high_set_check_queue_callback(  (void*)check_tx_queue);
+	wlan_mac_high_set_mpdu_accept_callback(  (void*)check_tx_queue);
     wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
     wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
