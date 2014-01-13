@@ -213,7 +213,6 @@ void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
 void wlan_mac_high_set_fcs_bad_rx_callback(function_ptr_t callback);
 void wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback);
-void wlan_mac_high_set_check_queue_callback(function_ptr_t callback);
 void wlan_mac_high_gpio_timestamp_init();
 u64  get_usec_timestamp();
 void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station);

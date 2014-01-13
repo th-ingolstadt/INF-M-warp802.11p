@@ -77,7 +77,6 @@ function_ptr_t     mpdu_tx_done_callback;	///< User callback for lower-level mes
 function_ptr_t     mpdu_rx_callback;		///< User callback for lower-level message that MPDU reception is ready for processing
 function_ptr_t     fcs_bad_rx_callback;		///< User callback for lower-level message that a bad FCS event has occured
 function_ptr_t     mpdu_tx_accept_callback; ///< User callback for lower-level message that MPDU has been accepted for transmission
-function_ptr_t     check_queue_callback;	///< User callback for transmit queue checking
 
 // Node information
 wlan_mac_hw_info   	hw_info;				///< Information about hardware
@@ -187,7 +186,6 @@ void wlan_mac_high_init(){
 	fcs_bad_rx_callback     = (function_ptr_t)nullCallback;
 	mpdu_tx_done_callback   = (function_ptr_t)nullCallback;
 	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
-	check_queue_callback    = (function_ptr_t)nullCallback;
 
 	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
@@ -552,10 +550,10 @@ station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
  *  - Doubly-linked list of statistics structures
  * @param u8* addr
  *  - 6-byte hardware address to search for
- * @return station_info*
+ * @return statistics*
  *  - Returns the pointer to the entry in the doubly-linked list that has the
  *    provided hardware address.
- *  - Returns NULL if no station_info pointer is found that matches the search
+ *  - Returns NULL if no statistics pointer is found that matches the search
  *    criteria
  *
  */
@@ -588,6 +586,7 @@ statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
  * @see wlan_mac_high_set_pb_u_callback()
  * @see wlan_mac_high_set_pb_m_callback()
  * @see wlan_mac_high_set_pb_d_callback()
+ *
  */
 void wlan_mac_high_gpio_handler(void *InstancePtr){
 	XGpio *GpioPtr = (XGpio *)InstancePtr;
@@ -606,39 +605,135 @@ void wlan_mac_high_gpio_handler(void *InstancePtr){
 	return;
 }
 
+/**
+ * @brief Set "Up" Pushbutton Callback
+ *
+ * Tells the framework which function should be called when
+ * the "up" button in the User I/O section of the hardware
+ * is pressed.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
 void wlan_mac_high_set_pb_u_callback(function_ptr_t callback){
 	pb_u_callback = callback;
 }
 
+/**
+ * @brief Set "Middle" Pushbutton Callback
+ *
+ * Tells the framework which function should be called when
+ * the "middle" button in the User I/O section of the hardware
+ * is pressed.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
 void wlan_mac_high_set_pb_m_callback(function_ptr_t callback){
 	pb_m_callback = callback;
 }
+
+/**
+ * @brief Set "Down" Pushbutton Callback
+ *
+ * Tells the framework which function should be called when
+ * the "down" button in the User I/O section of the hardware
+ * is pressed.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
 void wlan_mac_high_set_pb_d_callback(function_ptr_t callback){
 	pb_d_callback = callback;
 }
 
+/**
+ * @brief Set UART Reception Callback
+ *
+ * Tells the framework which function should be called when
+ * a byte is received from UART.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
 void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback){
 	uart_callback = callback;
 }
 
+/**
+ * @brief Set MPDU Transmission Complete Callback
+ *
+ * Tells the framework which function should be called when
+ * the lower-level CPU confirms that an MPDU has been transmitted.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ * @note This callback is not executed for individual retransmissions.
+ * It is instead only executed after a chain of retransmissions is complete
+ * either through the reception of an ACK or the number of retransmissions
+ * reaching the maximum number of retries specified by the MPDU's
+ * tx_frame_info metadata.
+ *
+ */
 void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback){
 	mpdu_tx_done_callback = callback;
 }
 
+/**
+ * @brief Set Bad FCS Reception Callback
+ *
+ * Tells the framework which function should be called when
+ * the lower-level CPU receives a frame whose frame check
+ * sequence is incorrect.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
 void wlan_mac_high_set_fcs_bad_rx_callback(function_ptr_t callback){
 	fcs_bad_rx_callback = callback;
 }
 
+/**
+ * @brief Set MPDU Reception Callback
+ *
+ * Tells the framework which function should be called when
+ * the lower-level CPU receives a valid MPDU frame.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
 void wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback){
 	mpdu_rx_callback = callback;
 }
 
+/**
+ * @brief Set MPDU Accept Callback
+ *
+ * Tells the framework which function should be called when
+ * the lower-level CPU confirms that it has received the MPDU
+ * from the upper-level CPU that it should transmit.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
 void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback){
 	mpdu_tx_accept_callback = callback;
-}
-
-void wlan_mac_high_set_check_queue_callback(function_ptr_t callback){
-	check_queue_callback = callback;
 }
 
 void wlan_mac_high_gpio_timestamp_init(){
@@ -1149,7 +1244,6 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
 			}
 
-			check_queue_callback();
 			mpdu_tx_accept_callback(TX_PKT_BUF_TO_ADDR(msg->arg0));
 
 		break;
