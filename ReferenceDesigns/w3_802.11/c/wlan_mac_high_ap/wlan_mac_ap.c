@@ -552,38 +552,35 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	if(rate != WLAN_MAC_RATE_1M){
 		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_event();
-
 		if(rx_event_log_entry != NULL){
-			((rx_ofdm_event*)rx_event_log_entry)->state    = mpdu_info->state;
-			((rx_ofdm_event*)rx_event_log_entry)->AID      = 0;
+			wlan_mac_high_cdma_start_transfer((&((rx_ofdm_event*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+			((rx_ofdm_event*)rx_event_log_entry)->fcs_status = RX_EVENT_FCS_GOOD;
 			((rx_ofdm_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
 			((rx_ofdm_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
 			((rx_ofdm_event*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
 			((rx_ofdm_event*)rx_event_log_entry)->length   = mpdu_info->length;
 			((rx_ofdm_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
-			((rx_ofdm_event*)rx_event_log_entry)->mac_type = rx_80211_header->frame_control_1;
-			((rx_ofdm_event*)rx_event_log_entry)->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-			((rx_ofdm_event*)rx_event_log_entry)->flags    = mpdu_info->flags;
-
+			((rx_ofdm_event*)rx_event_log_entry)->pkt_type = wlan_mac_high_pkt_type(mpdu,length);
+			((rx_ofdm_event*)rx_event_log_entry)->chan_num = mac_param_chan;
+			((rx_ofdm_event*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
 	#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
 			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_event*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
 	#endif
-
 		}
 	} else {
 		rx_event_log_entry = (void*)get_next_empty_rx_dsss_event();
 
 		if(rx_event_log_entry != NULL){
-			((rx_dsss_event*)rx_event_log_entry)->state    = mpdu_info->state;
-			((rx_dsss_event*)rx_event_log_entry)->AID      = 0;
+			wlan_mac_high_cdma_start_transfer((&((rx_dsss_event*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+			((rx_dsss_event*)rx_event_log_entry)->fcs_status = RX_EVENT_FCS_GOOD;
 			((rx_dsss_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
-			((rx_ofdm_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
-			((rx_ofdm_event*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
+			((rx_dsss_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
+			((rx_dsss_event*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
 			((rx_dsss_event*)rx_event_log_entry)->length   = mpdu_info->length;
 			((rx_dsss_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
-			((rx_dsss_event*)rx_event_log_entry)->mac_type = rx_80211_header->frame_control_1;
-			((rx_dsss_event*)rx_event_log_entry)->seq      = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-			((rx_dsss_event*)rx_event_log_entry)->flags    = mpdu_info->flags;
+			((rx_dsss_event*)rx_event_log_entry)->pkt_type = wlan_mac_high_pkt_type(mpdu,length);
+			((rx_dsss_event*)rx_event_log_entry)->chan_num = mac_param_chan;
+			((rx_dsss_event*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
 		}
 	}
 
@@ -593,12 +590,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	if( associated_station != NULL ){
 		station_stats = associated_station->stats;
 		rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-
-		if(rate != WLAN_MAC_RATE_1M){
-			if(rx_event_log_entry != NULL) ((rx_ofdm_event*)rx_event_log_entry)->AID = associated_station->AID;
-		} else {
-			if(rx_event_log_entry != NULL) ((rx_dsss_event*)rx_event_log_entry)->AID = associated_station->AID;
-		}
 
 		associated_station->rx.last_timestamp = get_usec_timestamp();
 		associated_station->rx.last_power = mpdu_info->rx_power;
@@ -885,9 +876,51 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 }
 
 void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
-	bad_fcs_event* bad_fcs_event_log_entry = get_next_empty_bad_fcs_event();
-	bad_fcs_event_log_entry->length = length;
-	bad_fcs_event_log_entry->rate = rate;
+	void * mpdu = pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8* mpdu_ptr_u8 = (u8*)mpdu;
+	mac_header_80211* rx_80211_header;
+	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
+	void* rx_event_log_entry;
+
+	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
+
+	//*************
+	// Event logging
+	//*************
+
+	if(rate != WLAN_MAC_RATE_1M){
+		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_event();
+		if(rx_event_log_entry != NULL){
+			wlan_mac_high_cdma_start_transfer((&((rx_ofdm_event*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+			((rx_ofdm_event*)rx_event_log_entry)->fcs_status = RX_EVENT_FCS_BAD;
+			((rx_ofdm_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
+			((rx_ofdm_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
+			((rx_ofdm_event*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
+			((rx_ofdm_event*)rx_event_log_entry)->length   = mpdu_info->length;
+			((rx_ofdm_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
+			((rx_ofdm_event*)rx_event_log_entry)->pkt_type = wlan_mac_high_pkt_type(mpdu,length);
+			((rx_ofdm_event*)rx_event_log_entry)->chan_num = mac_param_chan;
+			((rx_ofdm_event*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
+	#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_event*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+	#endif
+		}
+	} else {
+		rx_event_log_entry = (void*)get_next_empty_rx_dsss_event();
+
+		if(rx_event_log_entry != NULL){
+			wlan_mac_high_cdma_start_transfer((&((rx_dsss_event*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+			((rx_dsss_event*)rx_event_log_entry)->fcs_status = RX_EVENT_FCS_BAD;
+			((rx_dsss_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
+			((rx_dsss_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
+			((rx_dsss_event*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
+			((rx_dsss_event*)rx_event_log_entry)->length   = mpdu_info->length;
+			((rx_dsss_event*)rx_event_log_entry)->rate     = mpdu_info->rate;
+			((rx_dsss_event*)rx_event_log_entry)->pkt_type = wlan_mac_high_pkt_type(mpdu,length);
+			((rx_dsss_event*)rx_event_log_entry)->chan_num = mac_param_chan;
+			((rx_dsss_event*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
+		}
+	}
 }
 
 void print_associations(dl_list* assoc_tbl){
