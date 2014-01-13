@@ -600,8 +600,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			    }
 
 //TODO DISABLE INTERRUPTS
-		        purge_queue(temp);
-		        check_queue_callback();
+//		        purge_queue(temp);
+//		        check_queue_callback();
 //TODO ENABLE INTERRUPTS
 
 			} else {
@@ -724,7 +724,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_LOG_GET_OLDEST_IDX:
 			// Get the current index of the log
-			temp = event_log_get_oldest_event_index();
+			temp = event_log_get_oldest_entry_index();
 
 			xil_printf("EVENT LOG:  Oldest index  = %d\n", temp);
 
