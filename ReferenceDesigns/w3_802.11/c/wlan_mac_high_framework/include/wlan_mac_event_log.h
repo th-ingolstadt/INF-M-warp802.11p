@@ -49,22 +49,21 @@
 //       - It would not be in DDR address space
 //       - It is human readable
 //
-#define EVENT_LOG_MAGIC_NUMBER         0xACED000000000000
+#define EVENT_LOG_MAGIC_NUMBER         0xACED0000
 
 
 
 /*********************** Global Structure Definitions ************************/
 
 //-----------------------------------------------
-// Event Header
+// Log Entry Header
 //   - This is used by the event log but is not exposed to the user
 //
 typedef struct{
-	u64 timestamp;
-	u16 event_type;
-	u16 event_length;
-	u32 event_id;
-} event_header;
+	u32 entry_id;
+	u16 entry_type;
+	u16 entry_length;
+} entry_header;
 
 
 
@@ -79,11 +78,10 @@ int       event_log_config_wrap( u32 enable );
 u32       event_log_get_data( u32 start_address, u32 size, char * buffer );
 u32       event_log_get_size( void );
 u32       event_log_get_current_index( void );
-u32       event_log_get_oldest_event_index( void );
-void *    event_log_get_next_empty_event( u16 event_type, u16 event_size );
+u32       event_log_get_oldest_entry_index( void );
+void *    event_log_get_next_empty_entry( u16 entry_type, u16 entry_size );
 
-int       event_log_update_type( void * event_ptr, u16 event_type );
-int       event_log_update_timestamp( void * event_ptr );
+int       event_log_update_type( void * entry_ptr, u16 entry_type );
 
 void      print_event_log( u32 num_events );
 void      print_event_log_size();

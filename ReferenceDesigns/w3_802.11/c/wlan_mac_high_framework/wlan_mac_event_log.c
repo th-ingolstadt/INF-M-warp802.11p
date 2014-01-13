@@ -10,7 +10,7 @@
  *
  *	@note
  *	  The event log implements a circular buffer that will record various
- *  events that occur within a WLAN node.  If the buffer is full, then events
+ * events that occur within a WLAN node.  If the buffer is full, then events
  * will be dropped with only a single warning printed to the screen.
  *    There are configuration options to enable / disable wrapping (ie if
  * wrapping is enabled, then the buffer is never "full" and the oldest
@@ -73,7 +73,7 @@ static u32   log_max_address;          // Absolute end address of the log
 static u32   log_size;                 // Size of the log in bytes
 
 // Log index variables
-static u32   log_head_address;         // Pointer to the oldest event
+static u32   log_head_address;         // Pointer to the oldest entry
 static u32   log_curr_address;
 
 // Log config variables
@@ -82,7 +82,7 @@ static u8    log_wrap_enabled;         // Will the log wrap or stop; By default 
 // Log status variables
 static u8    log_empty;                // log_empty = (log_head_address == log_curr_address);
 static u8    log_full;                 // log_full  = (log_tail_address == log_curr_address);
-static u32   log_count;
+static u16   log_count;
 
 // Variable to control if events are recorded in to the log
 u8           enable_event_logging;
@@ -321,16 +321,16 @@ u32  event_log_get_current_index( void ) {
 
 /*****************************************************************************/
 /**
-* Get the index of the oldest event
+* Get the index of the oldest entry
 *
 * @param    None.
 *
-* @return	u32    - Index of the event log of the oldest event
+* @return	u32    - Index of the event log of the oldest entry
 *
 * @note		None.
 *
 ******************************************************************************/
-u32  event_log_get_oldest_event_index( void ) {
+u32  event_log_get_oldest_entry_index( void ) {
     return ( log_head_address - log_start_address );
 }
 
@@ -338,50 +338,10 @@ u32  event_log_get_oldest_event_index( void ) {
 
 /*****************************************************************************/
 /**
-* Update the event type
+* Update the entry type
 *
-* @param    event_ptr   - Pointer to event contents
-*           event_type  - Value to update event_type field
-*
-* @return	u32         -  0 - Success
-*                         -1 - Failure
-*
-* @note		None.
-*
-******************************************************************************/
-int       event_log_update_type( void * event_ptr, u16 event_type ) {
-    int            return_value = -1;
-    event_header * event_hdr;
-
-    // If the event_ptr is within the event log, then update the type field of the event
-    if ( ( ((u32) event_ptr) > log_start_address ) && ( ((u32) event_ptr) < log_max_address ) ) {
-
-    	event_hdr = (event_header *) ( ((u32) event_ptr) - sizeof( event_header ) );
-
-    	// Check to see if the event has a valid magic number
-    	if ( ( event_hdr->timestamp & 0xFFFF000000000000 ) == EVENT_LOG_MAGIC_NUMBER ) {
-
-        	event_hdr->event_type = event_type;
-
-        	return_value = 0;
-    	} else {
-    		xil_printf("WARNING:  event_log_update_type() - event_ptr (0x%8x) is not valid \n", event_ptr );
-    	}
-    } else {
-		xil_printf("WARNING:  event_log_update_type() - event_ptr (0x%8x) is not in event log \n", event_ptr );
-    }
-
-    return return_value;
-}
-
-
-
-/*****************************************************************************/
-/**
-* Update the event timestamp
-*
-* @param    event_ptr   - Pointer to event contents
-*           event_type  - Value to update event_type field
+* @param    entry_ptr   - Pointer to entry contents
+*           entry_type  - Value to update entry_type field
 *
 * @return	u32         -  0 - Success
 *                         -1 - Failure
@@ -389,26 +349,26 @@ int       event_log_update_type( void * event_ptr, u16 event_type ) {
 * @note		None.
 *
 ******************************************************************************/
-int       event_log_update_timestamp( void * event_ptr ) {
+int       event_log_update_type( void * entry_ptr, u16 entry_type ) {
     int            return_value = -1;
-    event_header * event_hdr;
+    entry_header * entry_hdr;
 
-    // If the event_ptr is within the event log, then update the type field of the event
-    if ( ( ((u32) event_ptr) > log_start_address ) && ( ((u32) event_ptr) < log_max_address ) ) {
+    // If the entry_ptr is within the event log, then update the type field of the entry
+    if ( ( ((u32) entry_ptr) > log_start_address ) && ( ((u32) entry_ptr) < log_max_address ) ) {
 
-    	event_hdr = (event_header *) ( ((u32) event_ptr) - sizeof( event_header ) );
+    	entry_hdr = (entry_header *) ( ((u32) entry_ptr) - sizeof( entry_header ) );
 
-    	// Check to see if the event has a valid magic number
-    	if ( ( event_hdr->timestamp & 0xFFFF000000000000 ) == EVENT_LOG_MAGIC_NUMBER ) {
+    	// Check to see if the entry has a valid magic number
+    	if ( ( entry_hdr->entry_id & 0xFFFF0000 ) == EVENT_LOG_MAGIC_NUMBER ) {
 
-    		event_hdr->timestamp  = EVENT_LOG_MAGIC_NUMBER + ( 0x0000FFFFFFFFFFFF & get_usec_timestamp() );
+        	entry_hdr->entry_type = entry_type;
 
         	return_value = 0;
     	} else {
-    		xil_printf("WARNING:  event_log_update_timestamp() - event_ptr (0x%8x) is not valid \n", event_ptr );
+    		xil_printf("WARNING:  event_log_update_type() - entry_ptr (0x%8x) is not valid \n", entry_ptr );
     	}
     } else {
-		xil_printf("WARNING:  event_log_update_timestamp() - event_ptr (0x%8x) is not in event log \n", event_ptr );
+		xil_printf("WARNING:  event_log_update_type() - entry_ptr (0x%8x) is not in event log \n", entry_ptr );
     }
 
     return return_value;
@@ -433,7 +393,7 @@ int       event_log_update_timestamp( void * event_ptr ) {
 void event_log_increment_head_address( u32 size ) {
 
     u64            end_address;
-    event_header * event;
+    entry_header * entry;
 
 	// Calculate end address (need to make sure we don't overflow u32)
     end_address = log_head_address + size;
@@ -448,29 +408,29 @@ void event_log_increment_head_address( u32 size ) {
     	// Move the log_soft_head_address to the beginning of the array and move it
     	//   at least 'size' bytes from the front of the array.  This is done to mirror
     	//   how allocation of the log_curr_address works.  Also, b/c of this allocation
-    	//   scheme, we are guaranteed that log_start_address is the beginning of an event.
+    	//   scheme, we are guaranteed that log_start_address is the beginning of an entry.
     	log_head_address = log_start_address;
     	end_address      = log_start_address + size;
 
-		// Move the head address an integer number of events until it points to the
-		//   first event after the allocation
-		event = (event_header *) log_head_address;
+		// Move the head address an integer number of entrys until it points to the
+		//   first entry after the allocation
+		entry = (entry_header *) log_head_address;
 
 		while ( log_head_address < end_address ) {
-			log_head_address += ( event->event_length + sizeof( event_header ) );
-			event             = (event_header *) log_head_address;
+			log_head_address += ( entry->entry_length + sizeof( entry_header ) );
+			entry             = (entry_header *) log_head_address;
 		}
 
     } else {
     	// We will not wrap
 
-		// Move the head address an integer number of events until it points to the
-		//   first event after the allocation
-		event = (event_header *) log_head_address;
+		// Move the head address an integer number of entrys until it points to the
+		//   first entry after the allocation
+		entry = (entry_header *) log_head_address;
 
 		while ( log_head_address < end_address ) {
-			log_head_address += ( event->event_length + sizeof( event_header ) );
-			event             = (event_header *) log_head_address;
+			log_head_address += ( entry->entry_length + sizeof( entry_header ) );
+			entry             = (entry_header *) log_head_address;
 		}
     }
 }
@@ -479,11 +439,11 @@ void event_log_increment_head_address( u32 size ) {
 
 /*****************************************************************************/
 /**
-* Get the address of the next empty event in the log and allocate size bytes
-*   for that event
+* Get the address of the next empty entry in the log and allocate size bytes
+*   for that entry
 *
-* @param    size        - Size (in bytes) of event to allocate
-*           address *   - Pointer to address of empty event of length 'size'
+* @param    size        - Size (in bytes) of entry to allocate
+*           address *   - Pointer to address of empty entry of length 'size'
 *
 * @return	int         - Status - 0 = Success
 *                                  1 = Failure
@@ -491,7 +451,7 @@ void event_log_increment_head_address( u32 size ) {
 * @note		This will handle the circular nature of the buffer.  It will also
 *           set the log_full flag if there is no additional space and print
 *           a warning message.  If this function is called while the event log
-*           is full, then it will always return max_event_index
+*           is full, then it will always return max_entry_index
 *
 ******************************************************************************/
 int  event_log_get_next_empty_address( u32 size, u32 * address ) {
@@ -511,7 +471,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		//   will not be ruined
 		allocation_mutex = 1;
 
-		// Compute the end address of the newly allocated event
+		// Compute the end address of the newly allocated entry
 	    end_address = log_curr_address + size;
 
 	    // Check if the log has wrapped
@@ -534,7 +494,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 						event_log_increment_head_address( size );
 					}
 
-					// Set the log_soft_end_address and allocate the new event from the beginning of the buffer
+					// Set the log_soft_end_address and allocate the new entry from the beginning of the buffer
 					log_soft_end_address = log_curr_address;
 					log_curr_address     = end_address;
 
@@ -589,7 +549,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 					//   we are guaranteed that at least 'size' bytes are available at the beginning of the
 					//   array if we wrapped.  Therefore, we do not need to check the log_head_address again.
 
-					// Set the log_soft_end_address and allocate the new event from the beginning of the buffer
+					// Set the log_soft_end_address and allocate the new entry from the beginning of the buffer
 					log_soft_end_address = log_curr_address;
 					log_curr_address     = end_address;
 
@@ -630,56 +590,55 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 
 /*****************************************************************************/
 /**
-* Get the next empty event
+* Get the next empty entry
 *
-* @param    event_type  - Type of event
-*           event_size  - Size of the event payload
+* @param    entry_type  - Type of entry
+*           entry_size  - Size of the entry payload
 *
-* @return	void *      - Pointer to the next event payload
+* @return	void *      - Pointer to the next entry payload
 *
 * @note		None.
 *
 ******************************************************************************/
-void * event_log_get_next_empty_event( u16 event_type, u16 event_size ) {
+void * event_log_get_next_empty_entry( u16 entry_type, u16 entry_size ) {
 
 	u32            log_address;
 	u32            total_size;
-	event_header * header       = NULL;
-	u32            header_size  = sizeof( event_header );
-	void *         return_event = NULL;
+	entry_header * header       = NULL;
+	u32            header_size  = sizeof( entry_header );
+	void *         return_entry = NULL;
 
 
-    // If Event Logging is enabled, then allocate event
+    // If Event Logging is enabled, then allocate entry
 	if( enable_event_logging ){
 
-		total_size = event_size + header_size;
+		total_size = entry_size + header_size;
 
-		// Try to allocate the next event
+		// Try to allocate the next entry
 	    if ( !event_log_get_next_empty_address( total_size, &log_address ) ) {
 
-	    	// Use successfully allocated address for the event entry
-			header = (event_header*) log_address;
+	    	// Use successfully allocated address for the entry
+			header = (entry_header*) log_address;
 
-			// Zero out event
+			// Zero out entry
 			bzero( (void *) header, total_size );
 
 			// Set header parameters
 			//   - Use the upper 16 bits of the timestamp to place a magic number
-			header->timestamp    = EVENT_LOG_MAGIC_NUMBER + ( 0x0000FFFFFFFFFFFF & get_usec_timestamp() );
-			header->event_type   = event_type;
-			header->event_length = event_size;
-            header->event_id     = log_count++;
+            header->entry_id     = EVENT_LOG_MAGIC_NUMBER + ( 0x0000FFFF & log_count++ );
+			header->entry_type   = entry_type;
+			header->entry_length = entry_size;
 
-            // Get a pointer to the event payload
-            return_event         = (void *) ( log_address + header_size );
+            // Get a pointer to the entry payload
+            return_entry         = (void *) ( log_address + header_size );
 
 #ifdef _DEBUG_
-			xil_printf("Event (%6d bytes) = 0x%8x    0x%8x    0x%6x\n", event_size, return_event, header, total_size );
+			xil_printf("Entry (%6d bytes) = 0x%8x    0x%8x    0x%6x\n", entry_size, return_entry, header, total_size );
 #endif
 	    }
 	}
 
-	return return_event;
+	return return_entry;
 }
 
 
@@ -695,41 +654,41 @@ void * event_log_get_next_empty_event( u16 event_type, u16 event_size ) {
 * @note		None.
 *
 ******************************************************************************/
-void print_event_log( u32 num_events ) {
+void print_event_log( u32 num_entrys ) {
 	u32            i;
-	u32            event_address;
-	u32            event_count;
-	event_header * event_hdr;
-	u32            event_hdr_size;
+	u32            entry_address;
+	u32            entry_count;
+	entry_header * entry_hdr;
+	u32            entry_hdr_size;
 	void         * event;
 
 	// Initialize count
-	event_hdr_size = sizeof( event_header );
-	event_count    = 0;
-	event_address  = log_head_address;
+	entry_hdr_size = sizeof( entry_header );
+	entry_count    = 0;
+	entry_address  = log_head_address;
 
     // Check if the log has wrapped
     if ( log_curr_address >= log_head_address ) {
     	// The log has not wrapped
 
     	// Print the log from log_head_address to log_curr_address
-    	for( i = event_count; i < num_events; i++ ){
+    	for( i = entry_count; i < num_entrys; i++ ){
 
-    		// Check that the current event address is less than log_curr_address
-    		if ( event_address < log_curr_address ) {
+    		// Check that the current entry address is less than log_curr_address
+    		if ( entry_address < log_curr_address ) {
 
-    			event_hdr = (event_header*) event_address;
-    			event     = (void *) ( event_address + event_hdr_size );
+    			entry_hdr = (entry_header*) entry_address;
+    			event     = (void *) ( entry_address + entry_hdr_size );
 
 #ifdef _DEBUG_
-                xil_printf(" Event [%d] - addr = 0x%8x;  size = 0x%4x \n", i, event_address, event_hdr->event_length );
+                xil_printf(" Entry [%d] - addr = 0x%8x;  size = 0x%4x \n", i, entry_address, entry_hdr->entry_length );
 #endif
 
-        		// Print event
-    		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
+        		// Print entry
+    		    print_entry( (0x0000FFFF & entry_hdr->entry_id), entry_hdr->entry_type, event );
 
-        	    // Get the next event
-        		event_address += ( event_hdr->event_length + event_hdr_size );
+        	    // Get the next entry
+        		entry_address += ( entry_hdr->entry_length + entry_hdr_size );
 
     		} else {
     			// Exit the loop
@@ -741,46 +700,46 @@ void print_event_log( u32 num_events ) {
     	// The log has wrapped
 
     	// Print the log from log_head_address to the end of the buffer
-    	for( i = event_count; i < num_events; i++ ){
+    	for( i = entry_count; i < num_entrys; i++ ){
 
-    		// Check that the current event address is less than the end of the log
-    		if ( event_address < log_soft_end_address ) {
+    		// Check that the current entry address is less than the end of the log
+    		if ( entry_address < log_soft_end_address ) {
 
-    			event_hdr = (event_header*) event_address;
-    			event     = (void * ) ( event_hdr + event_hdr_size );
+    			entry_hdr = (entry_header*) entry_address;
+    			event     = (void * ) ( entry_hdr + entry_hdr_size );
 
-        		// Print event
-    		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
+        		// Print entry
+    		    print_entry( (0x0000FFFF & entry_hdr->entry_id), entry_hdr->entry_type, event );
 
-        	    // Get the next event
-        		event_address += ( event_hdr->event_length + event_hdr_size );
+        	    // Get the next entry
+        		entry_address += ( entry_hdr->entry_length + entry_hdr_size );
 
     		} else {
-    			// Exit the loop and set the event to the beginning of the buffer
-    			event_address  = log_start_address;
-    			event_count    = i;
+    			// Exit the loop and set the entry to the beginning of the buffer
+    			entry_address  = log_start_address;
+    			entry_count    = i;
     			break;
     		}
     	}
 
 
-    	// If we still have events to print, then start at the beginning
-    	if ( event_count < num_events ) {
+    	// If we still have entries to print, then start at the beginning
+    	if ( entry_count < num_entrys ) {
 
 			// Print the log from the beginning to log_curr_address
-			for( i = event_count; i < num_events; i++ ){
+			for( i = entry_count; i < num_entrys; i++ ){
 
-				// Check that the current event address is less than log_curr_address
-				if ( event_address < log_curr_address ) {
+				// Check that the current entry address is less than log_curr_address
+				if ( entry_address < log_curr_address ) {
 
-	    			event_hdr = (event_header*) event_address;
-	    			event     = (void * ) ( event_hdr + event_hdr_size );
+	    			entry_hdr = (entry_header*) entry_address;
+	    			event     = (void * ) ( entry_hdr + entry_hdr_size );
 
-	        		// Print event
-	    		    print_event( event_hdr->event_id, event_hdr->event_type, event_hdr->timestamp, event );
+	        		// Print entry
+	    		    print_entry( (0x0000FFFF & entry_hdr->entry_id), entry_hdr->entry_type, event );
 
-					// Get the next event
-	        		event_address += ( event_hdr->event_length + event_hdr_size );
+					// Get the next entry
+	        		entry_address += ( entry_hdr->entry_length + entry_hdr_size );
 
 				} else {
 					// Exit the loop
