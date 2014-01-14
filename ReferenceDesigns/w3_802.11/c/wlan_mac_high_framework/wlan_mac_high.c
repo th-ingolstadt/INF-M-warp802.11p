@@ -1111,6 +1111,7 @@ void wlan_mac_high_setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx
 	tx_queue->metadata_ptr     = metadata;
 
 	// Set up frame info data
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.timestamp_create = get_usec_timestamp();
     ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length    = tx_length;
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = retry;
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.gain_target = gain_target;

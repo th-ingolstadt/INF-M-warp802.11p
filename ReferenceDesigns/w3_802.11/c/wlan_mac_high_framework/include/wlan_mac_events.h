@@ -92,17 +92,18 @@ typedef struct{
 // Transmit Event
 //
 typedef struct{
-	u8   state;
-	u8   AID;
-	s8 	 power;
+	u64  timestamp_create;
+	u32  delay_accept;
+	u32  delay_done;
+	mac_header_80211 mac_hdr;
+	u8   retry_count;
+	u8 	 gain_target;
+	u8 	 chan_num;
 	u8   rate;
 	u16  length;
-	u16  seq;
-	u64	 tx_mpdu_accept_timestamp;
-	u64	 tx_mpdu_done_timestamp;
-	u8   mac_type;
-	u8   retry_count;
-	u8   reserved[6];
+	u8 	 result;
+	u8 	 pkt_type;
+	u8	 ant_mode;
 } tx_event;
 
 

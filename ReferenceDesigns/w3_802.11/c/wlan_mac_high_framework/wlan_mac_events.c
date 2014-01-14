@@ -134,11 +134,13 @@ void print_entry( u32 entry_number, u32 entry_type, void * event ){
 		case EVENT_TYPE_RX_OFDM:
 			rx_ofdm_event_log_item = (rx_ofdm_event*) event;
 			xil_printf("%d: - Rx OFDM Event\n", entry_number );
+			xil_printf("   Time:     %d\n",		(u32)(rx_ofdm_event_log_item->timestamp));
 			xil_printf("   FCS:      %d\n",     rx_ofdm_event_log_item->fcs_status);
 			xil_printf("   Pow:      %d\n",     rx_ofdm_event_log_item->power);
 			xil_printf("   Rate:     %d\n",     rx_ofdm_event_log_item->rate);
 			xil_printf("   Length:   %d\n",     rx_ofdm_event_log_item->length);
 			xil_printf("   Pkt Type: 0x%x\n",   rx_ofdm_event_log_item->pkt_type);
+			xil_printf("   Channel:  %d\n",     rx_ofdm_event_log_item->chan_num);
 #ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
 			xil_printf("   Channel Estimates:\n");
 
@@ -157,24 +159,28 @@ void print_entry( u32 entry_number, u32 entry_type, void * event ){
 		case EVENT_TYPE_RX_DSSS:
 			rx_dsss_event_log_item = (rx_dsss_event*) event;
 			xil_printf("%d: - Rx DSSS Event\n", entry_number );
+			xil_printf("   Time:     %d\n",		(u32)(rx_dsss_event_log_item->timestamp));
 			xil_printf("   FCS:      %d\n",     rx_dsss_event_log_item->fcs_status);
 			xil_printf("   Pow:      %d\n",     rx_dsss_event_log_item->power);
 			xil_printf("   Rate:     %d\n",     rx_dsss_event_log_item->rate);
 			xil_printf("   Length:   %d\n",     rx_dsss_event_log_item->length);
 			xil_printf("   Pkt Type: 0x%x\n",   rx_dsss_event_log_item->pkt_type);
+			xil_printf("   Channel:  %d\n",     rx_dsss_event_log_item->chan_num);
 		break;
 
 		case EVENT_TYPE_TX:
 			tx_event_log_item = (tx_event*) event;
 			xil_printf("%d: - Tx Event\n", entry_number);
-			xil_printf("   Pow:              %d\n",     tx_event_log_item->power);
-			xil_printf("   Seq:              %d\n",     tx_event_log_item->seq);
+			xil_printf("   Creation Time:    %d\n",		(u32)(tx_event_log_item->timestamp_create));
+			xil_printf("   Accept Delay:     %d\n",		(u32)(tx_event_log_item->delay_accept));
+			xil_printf("   Done Delay:       %d\n",		(u32)(tx_event_log_item->delay_done));
+			xil_printf("   Tx Gain Target:   %d\n",     tx_event_log_item->gain_target);
 			xil_printf("   Rate:             %d\n",     tx_event_log_item->rate);
 			xil_printf("   Length:           %d\n",     tx_event_log_item->length);
-			xil_printf("   State:            %d\n",     tx_event_log_item->state);
-			xil_printf("   MAC Type:         0x%x\n",   tx_event_log_item->mac_type);
+			xil_printf("   Channel:          %d\n",     tx_event_log_item->chan_num);
+			xil_printf("   Result:           %d\n",     tx_event_log_item->result);
+			xil_printf("   Pkt Type:         0x%x\n",   tx_event_log_item->pkt_type);
 			xil_printf("   Retry:            %d\n",     tx_event_log_item->retry_count);
-			xil_printf("   MPDU Duration:    %d usec\n",     (u32)(tx_event_log_item->tx_mpdu_done_timestamp - tx_event_log_item->tx_mpdu_accept_timestamp));
 		break;
 
 		default:
