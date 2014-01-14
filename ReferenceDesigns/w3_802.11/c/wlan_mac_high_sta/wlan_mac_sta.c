@@ -301,16 +301,19 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	tx_event_log_entry = get_next_empty_tx_event();
 
 	if(tx_event_log_entry != NULL){
-		tx_event_log_entry->state                    = tx_mpdu->state;
-		tx_event_log_entry->AID                      = 1;
-		tx_event_log_entry->power                    = 0; //TODO
+		wlan_mac_high_cdma_start_transfer((&((tx_event*)tx_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
+		tx_event_log_entry->result                   = tx_mpdu->state_verbose;
+		tx_event_log_entry->gain_target              = tx_mpdu->gain_target;
 		tx_event_log_entry->length                   = tx_mpdu->length;
 		tx_event_log_entry->rate                     = tx_mpdu->rate;
-		tx_event_log_entry->mac_type                 = tx_80211_header->frame_control_1;
-		tx_event_log_entry->seq                      = ((tx_80211_header->sequence_control)>>4)&0xFFF;
+		tx_event_log_entry->gain_target				 = tx_mpdu->gain_target;
+		tx_event_log_entry->chan_num				 = mac_param_chan;
+		tx_event_log_entry->pkt_type				 = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 		tx_event_log_entry->retry_count              = tx_mpdu->retry_count;
-		tx_event_log_entry->tx_mpdu_accept_timestamp = tx_mpdu->tx_mpdu_accept_timestamp;
-		tx_event_log_entry->tx_mpdu_done_timestamp   = tx_mpdu->tx_mpdu_done_timestamp;
+		tx_event_log_entry->timestamp_create         = tx_mpdu->timestamp_create;
+		tx_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
+		tx_event_log_entry->delay_done               = tx_mpdu->delay_done;
+		tx_event_log_entry->ant_mode				 = 0; //TODO;
 	}
 
 	wlan_mac_high_process_tx_done(tx_mpdu, &(access_point));
