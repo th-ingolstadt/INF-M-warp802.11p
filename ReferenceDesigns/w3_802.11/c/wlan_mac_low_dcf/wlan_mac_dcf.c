@@ -219,7 +219,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-					tx_mpdu->tx_mpdu_accept_timestamp = get_usec_timestamp();
+					tx_mpdu->delay_accept = (u32)(get_usec_timestamp() - tx_mpdu->timestamp_create);
 
 					//Convert human-readable rates into PHY rates
 					//n_dbps is used to calculate duration of received ACKs.
@@ -279,8 +279,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					status = frame_transmit(tx_pkt_buf, rate, tx_mpdu->length);
 
-
-					tx_mpdu->tx_mpdu_done_timestamp = get_usec_timestamp();
+					tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
 
 					if(status == 0){
 						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
