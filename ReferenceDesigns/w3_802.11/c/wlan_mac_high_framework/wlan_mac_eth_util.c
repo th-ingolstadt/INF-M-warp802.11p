@@ -491,7 +491,7 @@ void wlan_poll_eth() {
 	}
 
 	for(i=0;i<bd_count;i++){
-
+		packet_is_queued = 0;
 		//A packet has been received and transferred by DMA
 		tx_queue = (packet_bd*)XAxiDma_BdGetId(cur_bd_ptr);
 
