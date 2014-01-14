@@ -894,6 +894,7 @@ void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_event();
 		if(rx_event_log_entry != NULL){
 			wlan_mac_high_cdma_start_transfer((&((rx_ofdm_event*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+			((rx_ofdm_event*)rx_event_log_entry)->timestamp = get_usec_timestamp();
 			((rx_ofdm_event*)rx_event_log_entry)->fcs_status = RX_EVENT_FCS_BAD;
 			((rx_ofdm_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
 			((rx_ofdm_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
@@ -912,6 +913,7 @@ void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		if(rx_event_log_entry != NULL){
 			wlan_mac_high_cdma_start_transfer((&((rx_dsss_event*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+			((rx_dsss_event*)rx_event_log_entry)->timestamp = get_usec_timestamp();
 			((rx_dsss_event*)rx_event_log_entry)->fcs_status = RX_EVENT_FCS_BAD;
 			((rx_dsss_event*)rx_event_log_entry)->power    = mpdu_info->rx_power;
 			((rx_dsss_event*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
