@@ -22,6 +22,9 @@ typedef int (*function_ptr_t)();
 #define max(A,B) (((A)>(B))?(A):(B))
 #define min(A,B) (((A)<(B))?(A):(B))
 
+#define _ISR_PERF_MON_EN_	///< ISR Performance Monitor Toggle
+#define ISR_PERF_MON_GPIO_MASK	0x01
+
 #define PRINT_LEVEL PL_ERROR
 
 #define PL_NONE		0

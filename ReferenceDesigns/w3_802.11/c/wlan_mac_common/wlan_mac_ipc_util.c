@@ -26,6 +26,7 @@
 #ifdef XPAR_INTC_0_DEVICE_ID
 #include "xintc.h"
 #include "xil_exception.h"
+#include "wlan_mac_high.h"
 #endif
 
 #include "wlan_mac_ipc_util.h"
@@ -111,6 +112,10 @@ void MailboxIntrHandler(void *CallbackRef){
 	u32 Mask;
 	XMbox *MboxInstPtr = (XMbox *)CallbackRef;
 
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
+
 	XIntc_Stop(Intc_ptr);
 
 	Mask = XMbox_GetInterruptStatus(MboxInstPtr);
@@ -123,6 +128,10 @@ void MailboxIntrHandler(void *CallbackRef){
 	}
 
 	XIntc_Start(Intc_ptr, XIN_REAL_MODE);
+
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
 
 }
 
