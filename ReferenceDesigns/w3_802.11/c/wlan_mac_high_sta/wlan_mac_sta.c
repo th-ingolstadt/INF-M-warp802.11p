@@ -632,7 +632,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		if( (access_point.rx.last_seq != 0)  && (access_point.rx.last_seq == rx_seq) ) {
 			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
 			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
 #endif
 			return;
