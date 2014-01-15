@@ -223,7 +223,10 @@ void wlan_mac_high_init(){
 
 	//Initialize the GPIO driver
 	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
-	wlan_mac_high_gpio_timestamp_init();
+	//Initialize GPIO timestamp
+	XGpio_Initialize(&Gpio_timestamp, TIMESTAMP_GPIO_DEVICE_ID);
+	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_LSB_CHAN, 0xFFFFFFFF);
+	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_MSB_CHAN, 0xFFFFFFFF);
 
 	if (Status != XST_SUCCESS) {
 		warp_printf(PL_ERROR, "Error initializing GPIO\n");
@@ -736,12 +739,19 @@ void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback){
 	mpdu_tx_accept_callback = callback;
 }
 
-void wlan_mac_high_gpio_timestamp_init(){
-	XGpio_Initialize(&Gpio_timestamp, TIMESTAMP_GPIO_DEVICE_ID);
-	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_LSB_CHAN, 0xFFFFFFFF);
-	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_MSB_CHAN, 0xFFFFFFFF);
-}
-
+/**
+ * @brief Get Microsecond Counter Timestamp
+ *
+ * The Reference Design includes a 64-bit counter that increments with
+ * every microsecond. This function returns this value and is used
+ * throughout the framework as a timestamp.
+ *
+ * @param None
+ * @return u64
+ *  - Current number of microseconds that have elapsed since the hardware
+ *  has booted.
+ *
+ */
 u64 get_usec_timestamp(){
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
@@ -754,6 +764,21 @@ u64 get_usec_timestamp(){
 	return timestamp_u64;
 }
 
+/**
+ * @brief Process Transmission "Done" Event
+ *
+ * When the lower-level MAC finishes transmitting an MPDU, it is reported
+ * back to the upper-level MAC via a transmission done message. This function
+ * currently only updates statistics with data about the transmissions, but
+ * would be a logical place for future extension to automatic rate control.
+ *
+ * @param tx_frame_info* frame
+ * 	- pointer to the transmit frame information struct
+ * @param station_info* station
+ *  - pointer to the station information struct
+ * @return None
+ *
+ */
 void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station){
 	//This is a good place to add an extension for automatic rate control
 
@@ -767,6 +792,17 @@ void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station){
 	}
 }
 
+/**
+ * @brief Display Memory Allocation Information
+ *
+ * This function is a wrapper around a call to mallinfo(). It prints
+ * the information returned by mallinfo() to aid in the debugging of
+ * memory leaks and other dynamic memory allocation issues.
+ *
+ * @param None
+ * @return None
+ *
+ */
 void wlan_mac_high_display_mallinfo(){
 	struct mallinfo mi;
 	mi = mallinfo();
@@ -794,12 +830,27 @@ void wlan_mac_high_display_mallinfo(){
 	xil_printf("   keepcost:                %d\n", mi.keepcost);
 }
 
+/**
+ * @brief Dynamically Allocate Memory
+ *
+ * This function wraps malloc() and uses its same API.
+ *
+ * @param u32 size
+ *  - Number of bytes that should be allocated
+ * @return void*
+ *  - Memory address of allocation if the allocation was successful
+ *  - NULL if the allocation was unsuccessful
+ *
+ * @note The purpose of this function is to funnel all memory allocations through one place in
+ * code to enable easier debugging of memory leaks when they occur. This function also updates
+ * a variable maintained by the framework to track the number of memory allocations and prints
+ * this value, along with the other data from wlan_mac_high_display_mallinfo() in the event that
+ * malloc() fails to allocate the requested size.
+ *
+ */
 void* wlan_mac_high_malloc(u32 size){
-	//This is just a simple wrapper around malloc to aid in debugging memory leak issues
 	void* return_value;
 	return_value = malloc(size);
-
-	//xil_printf("MALLOC 0x%08x %d bytes\n", return_value, size);
 
 	if(return_value == NULL){
 		xil_printf("malloc error. Try increasing heap size in linker script.\n");
@@ -810,6 +861,21 @@ void* wlan_mac_high_malloc(u32 size){
 	return return_value;
 }
 
+/**
+ * @brief Dynamically Allocate and Initialize Memory
+ *
+ * This function wraps wlan_mac_high_malloc() and uses its same API. If successfully allocated,
+ * this function will explicitly zero-initialize the allocated memory.
+ *
+ * @param u32 size
+ *  - Number of bytes that should be allocated
+ * @return void*
+ *  - Memory address of allocation if the allocation was successful
+ *  - NULL if the allocation was unsuccessful
+ *
+ * @see wlan_mac_high_malloc()
+ *
+ */
 void* wlan_mac_high_calloc(u32 size){
 	//This is just a simple wrapper around calloc to aid in debugging memory leak issues
 	void* return_value;
@@ -822,13 +888,29 @@ void* wlan_mac_high_calloc(u32 size){
 	return return_value;
 }
 
-
+/**
+ * @brief Dynamically Reallocate Memory
+ *
+ * This function wraps realloc() and uses its same API.
+ *
+ * @param void* addr
+ *  - Address of dynamically allocated array that should be reallocated
+ * @param u32 size
+ *  - Number of bytes that should be allocated
+ * @return void*
+ *  - Memory address of allocation if the allocation was successful
+ *  - NULL if the allocation was unsuccessful
+ *
+ * @note The purpose of this function is to funnel all memory allocations through one place in
+ * code to enable easier debugging of memory leaks when they occur. This function also updates
+ * a variable maintained by the framework to track the number of memory allocations and prints
+ * this value, along with the other data from wlan_mac_high_display_mallinfo() in the event that
+ * realloc() fails to allocate the requested size.
+ *
+ */
 void* wlan_mac_high_realloc(void* addr, u32 size){
-	//This is just a simple wrapper around realloc to aid in debugging memory leak issues
 	void* return_value;
 	return_value = realloc(addr, size);
-
-	//xil_printf("REALLOC 0x%08x %d bytes\n", return_value, size);
 
 	if(return_value == NULL){
 		xil_printf("realloc error. Try increasing heap size in linker script.\n");
@@ -840,15 +922,40 @@ void* wlan_mac_high_realloc(void* addr, u32 size){
 	return return_value;
 }
 
+/**
+ * @brief Free Dynamically Allocated Memory
+ *
+ * This function wraps free() and uses its same API.
+ *
+ * @param void* addr
+ *  - Address of dynamically allocated array that should be freed
+ * @return None
+ *
+ * @note The purpose of this function is to funnel all memory freeing through one place in
+ * code to enable easier debugging of memory leaks when they occur. This function also updates
+ * a variable maintained by the framework to track the number of memory frees.
+ *
+ */
 void wlan_mac_high_free(void* addr){
-	//This is just a simple wrapper around free to aid in debugging memory leak issues
-
-	//xil_printf("FREE 0x%08x\n", addr);
-
 	free(addr);
 	num_free++;
 }
 
+/**
+ * @brief Get Current Transmit Rate for a Particular Station
+ *
+ * Currently, this function on pulls the transmit rate element from the station_info
+ * struct the user provides. This function is another place where processing can be
+ * inserted to alter the rate for automatic rate adaptation.
+ *
+ * @param station_info* station
+ *  - Pointer to station information struct
+ * @return u8
+ *  - Transmit Rate (WLAN_MAC_RATE_6M, WLAN_MAC_RATE_9M, WLAN_MAC_RATE_12M,
+ *  WLAN_MAC_RATE_18M, WLAN_MAC_RATE_24M, WLAN_MAC_RATE_36M, WLAN_MAC_RATE_48M
+ *  WLAN_MAC_RATE_54M)
+ *
+ */
 u8 wlan_mac_high_get_tx_rate(station_info* station){
 	//This is also a good place to add extensions to automatic rate control
 
