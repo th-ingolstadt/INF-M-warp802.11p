@@ -29,7 +29,7 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_event_log.h"
-#include "wlan_mac_events.h"
+#include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
