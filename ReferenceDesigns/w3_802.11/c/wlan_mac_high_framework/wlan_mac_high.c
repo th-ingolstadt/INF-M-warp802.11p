@@ -412,21 +412,6 @@ inline void wlan_mac_high_interrupt_stop(){
 }
 
 /**
- * @brief Retrieve Hardware Information
- *
- * This function stops the interrupt controller, effectively pausing interrupts. This can
- * be used alongside wlan_mac_high_interrupt_start() to wrap code that is not interrupt-safe.
- *
- * @param None
- * @return wlan_mac_hw_info*
- *  - Pointer to the hardware info struct maintained by the MAC High Framework
- *
- */
-wlan_mac_hw_info* wlan_mac_high_get_hw_info(){
-	return &hw_info;
-}
-
-/**
  * @brief Print Hardware Information
  *
  * This function stops the interrupt controller, effectively pausing interrupts. This can
@@ -1005,7 +990,7 @@ void wlan_mac_high_write_hex_display(u8 val){
 }
 
 /**
- * @brief Write a Decimal Points in the Hex Display
+ * @brief Write Decimal Points in the Hex Display
  *
  * This can toggle the decimal point in each hex digit on the board.
  *
@@ -1030,7 +1015,17 @@ void wlan_mac_high_write_hex_display_dots(u8 dots_on){
 	}
 }
 
-
+/**
+ * @brief Test DDR3 SODIMM Memory Module
+ *
+ * This function tests the integrity of the DDR3 SODIMM module attached to the hardware
+ * by performing various write and read tests.
+ *
+ * @param None
+ * @return int
+ * 	- 0 for memory test pass
+ *	- -1 for memory test fail
+ */
 int wlan_mac_high_memory_test(){
 	u8 i,j;
 
@@ -1043,17 +1038,14 @@ int wlan_mac_high_memory_test(){
 
 	for(i=0;i<6;i++){
 		memory_ptr = (void*)((u8*)DDR3_BASEADDR + (i*100000*1024));
-
 		for(j=0;j<3;j++){
 			//Test 1 byte offsets to make sure byte enables are all working
-
 			test_u8 = rand()&0xFF;
 			test_u16 = rand()&0xFFFF;
 			test_u32 = rand()&0xFFFFFFFF;
 			test_u64 = (((u64)rand()&0xFFFFFFFF)<<32) + ((u64)rand()&0xFFFFFFFF);
 
 			*((u8*)memory_ptr) = test_u8;
-
 			if(*((u8*)memory_ptr) != test_u8){
 				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u8\n",memory_ptr);
 				return -1;
@@ -1073,26 +1065,34 @@ int wlan_mac_high_memory_test(){
 				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u64\n",memory_ptr);
 				return -1;
 			}
-
 		}
-
 	}
-
 	return 0;
 }
 
-
-
-int wlan_mac_high_is_tx_buffer_empty(){
-	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-
-	if( ( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_cpu_low_ready() ) ){
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
+/**
+ * @brief Start Central DMA Transfer
+ *
+ * This function wraps the XAxiCdma call for a CDMA memory transfer and mimics the well-known
+ * API of memcpy(). This function does not block once the transfer is started.
+ *
+ * @param void* dest
+ *  - Pointer to destination address where bytes should be copied
+ * @param void* stc
+ *  - Pointer to source address from where bytes should be copied
+ * @param u32 size
+ *  - Number of bytes that should be copied
+ * @return int
+ *	- XST_SUCCESS for success of submission
+ *	- XST_FAILURE for submission failure
+ *	- XST_INVALID_PARAM if:
+ *	 Length out of valid range [1:8M]
+ *	 Or, address not aligned when DRE is not built in
+ *
+ *	 @note This function will block until any existing CDMA transfer is complete. It is therefore
+ *	 safe to call this function successively as each call will wait on the preceeding call.
+ *
+ */
 int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	//This is a wrapper function around the central DMA simple transfer call. It's arguments
 	//are intended to be similar to memcpy. Note: This function does not block on the transfer.
@@ -1104,19 +1104,43 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	return return_value;
 }
 
+/**
+ * @brief Finish Central DMA Transfer
+ *
+ * This function will block until an ongoing CDMA transfer is complete.
+ * If there is no CDMA transfer underway when this function is called, it
+ * returns immediately.
+ *
+ * @param None
+ * @return None
+ *
+ */
 void wlan_mac_high_cdma_finish_transfer(){
 	while(XAxiCdma_IsBusy(&cdma_inst)) {}
 	return;
 }
 
-void wlan_mac_high_mpdu_transmit(packet_bd* tx_queue) {
-
+/**
+ * @brief Transmit MPDU
+ *
+ * This function passes off an MPDU to the lower-level processor for transmission.
+ *
+ * @param packet_bd* packet
+ *  - Pointer to the packet that should be transmitted
+ * @return None
+ *
+ */
+void wlan_mac_high_mpdu_transmit(packet_bd* packet) {
 	wlan_ipc_msg ipc_msg_to_low;
-	tx_frame_info* tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-	station_info* station = (station_info*)(tx_queue->metadata_ptr);
+	tx_frame_info* tx_mpdu;
+	station_info* station;
 
-	if(wlan_mac_high_is_tx_buffer_empty()){
-		wlan_mac_high_cdma_start_transfer( (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), (void*)(tx_queue->buf_ptr), ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	station = (station_info*)(packet->metadata_ptr);
+
+	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_cpu_low_ready() )){
+		//Copy the packet into the transmit packet buffer
+		wlan_mac_high_cdma_start_transfer( (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), (void*)(packet->buf_ptr), ((tx_packet_buffer*)(packet->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 		wlan_mac_high_cdma_finish_transfer();
 
 		if(station == NULL){
@@ -1127,7 +1151,6 @@ void wlan_mac_high_mpdu_transmit(packet_bd* tx_queue) {
 			//Request the rate to use for this station
 			tx_mpdu->AID = station->AID;
 			tx_mpdu->rate = wlan_mac_high_get_tx_rate(station);
-			//tx_mpdu->rate = default_unicast_rate;
 		}
 
 		tx_mpdu->state = TX_MPDU_STATE_READY;
@@ -1141,7 +1164,6 @@ void wlan_mac_high_mpdu_transmit(packet_bd* tx_queue) {
 			warp_printf(PL_ERROR,"Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
 		} else {
 			cpu_high_status |= CPU_STATUS_WAIT_FOR_IPC_ACCEPT;
-
 			ipc_mailbox_write_msg(&ipc_msg_to_low);
 		}
 	} else {
@@ -1151,18 +1173,52 @@ void wlan_mac_high_mpdu_transmit(packet_bd* tx_queue) {
 	return;
 }
 
+/**
+ * @brief Retrieve Hardware Information
+ *
+ * This function stops the interrupt controller, effectively pausing interrupts. This can
+ * be used alongside wlan_mac_high_interrupt_start() to wrap code that is not interrupt-safe.
+ *
+ * @param None
+ * @return wlan_mac_hw_info*
+ *  - Pointer to the hardware info struct maintained by the MAC High Framework
+ *
+ */
+wlan_mac_hw_info* wlan_mac_high_get_hw_info(){
+	return &hw_info;
+}
 
-
+/**
+ * @brief Retrieve Hardware MAC Address from EEPROM
+ *
+ * This function returns the 6-byte unique hardware MAC address of the board.
+ *
+ * @param None
+ * @return u8*
+ *  - Pointer to 6-byte MAC address
+ *
+ */
 u8* wlan_mac_high_get_eeprom_mac_addr(){
 	return (u8 *) &(hw_info.hw_addr_wlan);
 }
 
-
-
+/**
+ * @brief Check Validity of Tagged Rate
+ *
+ * This function checks the validity of a given rate from a tagged field in a management frame.
+ *
+ * @param u8 rate
+ *  - Tagged rate
+ * @return u8
+ *  - 1 if valid
+ *  - 0 if invalid
+ *
+ *  @note This function checks against the 12 possible valid rates sent in 802.11b/a/g.
+ *  The faster 802.11n rates will return as invalid when this function is used.
+ *
+ */
 u8 wlan_mac_high_valid_tagged_rate(u8 rate){
 	u32 i;
-	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
-	//invalid when this function is used.
 	u8 valid_rates[NUM_VALID_RATES] = {0x02, 0x04, 0x0b, 0x16, 0x0c, 0x12, 0x18, 0x24, 0x30, 0x48, 0x60, 0x6c};
 
 	for(i = 0; i < NUM_VALID_RATES; i++ ){
@@ -1172,11 +1228,24 @@ u8 wlan_mac_high_valid_tagged_rate(u8 rate){
 	return 0;
 }
 
-
+/**
+ * @brief Convert Tagged Rate to Human-Readable String (in Mbps)
+ *
+ * This function takes a tagged rate as an input and fills in a provided
+ * string with the rate in Mbps.
+ *
+ * @param u8 rate
+ *  - Tagged rate
+ * @param char* str
+ *  - Empty string that will be filled in by this function
+ * @return u8
+ *  - 1 if valid
+ *  - 0 if invalid
+ *
+ *  @note The str argument must have room for 4 bytes at most ("5.5" followed by NULL)
+ *
+ */
 void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str){
-	//These values correspond to the 12 possible valid rates sent in 802.11b/a/g. The faster 802.11n rates will return as
-	//invalid when this function is used.
-
 
 	switch(rate & ~RATE_BASIC){
 		case 0x02:
@@ -1221,30 +1290,26 @@ void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str){
 		break;
 	}
 
-
 	return;
 }
 
-
-
-
-
-
-/*****************************************************************************/
 /**
-* Setup TX packet
-*
-* Configure a TX packet to be enqueued
-*
-* @param    mac_channel  - Value of MAC channel
-*
-* @return	None.
-*
-* @note		None.
-*
-******************************************************************************/
+ * @brief Set up the 802.11 Header
+ *
+ * This function
+ *
+ * @param u8 rate
+ *  - Tagged rate
+ * @param char* str
+ *  - Empty string that will be filled in by this function
+ * @return u8
+ *  - 1 if valid
+ *  - 0 if invalid
+ *
+ *  @note The str argument must have room for 4 bytes at most ("5.5" followed by NULL)
+ *
+ */
 void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 ) {
-
 	// Set up Addresses in common header
 	header->address_1 = addr_1;
     header->address_3 = addr_3;
@@ -1580,17 +1645,17 @@ int wlan_mac_high_is_cpu_low_ready(){
 
 inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 
-	mac_header_80211* rx80211_hdr;
+	mac_header_80211* hdr_80211;
 	llc_header* llc_hdr;
 
-	rx80211_hdr = (mac_header_80211*)((void *)mpdu);
+	hdr_80211 = (mac_header_80211*)((void*)mpdu);
 
-	if(rx80211_hdr->frame_control_1 & MAC_FRAME_CTRL1_TYPE_MGMT){
+	if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT){
 		return PKT_TYPE_MGMT;
-	} else if(rx80211_hdr->frame_control_1 & MAC_FRAME_CTRL1_TYPE_CTRL) {
+	} else if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_CTRL) {
 		return PKT_TYPE_CONTROL;
-	} else if(rx80211_hdr->frame_control_1 & MAC_FRAME_CTRL1_TYPE_DATA) {
-		llc_hdr = (llc_header*)((void *)mpdu + sizeof(mac_header_80211));
+	} else if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) {
+		llc_hdr = (llc_header*)((u8*)mpdu + sizeof(mac_header_80211));
 
 		if(length < (sizeof(mac_header_80211) + sizeof(llc_header))){
 			//This was a DATA packet, but it wasn't long enough to have an LLC header.
