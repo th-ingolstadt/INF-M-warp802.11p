@@ -178,6 +178,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	beacon_probe_frame* beacon;
 	u16 n_dbps;
 	u32 isLocked, owner;
+	u64 new_timestamp;
 
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 			case IPC_MBOX_CONFIG_RF_IFC:
@@ -186,6 +187,11 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 			case IPC_MBOX_CONFIG_MAC:
 				process_config_mac((ipc_config_mac*)ipc_msg_from_high_payload);
+			break;
+
+			case IPC_MBOX_SET_TIME:
+				new_timestamp = *(u64*)ipc_msg_from_high_payload;
+				wlan_mac_set_time(new_timestamp);
 			break;
 
 			case IPC_MBOX_CONFIG_PHY_TX:
