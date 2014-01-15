@@ -56,6 +56,59 @@
 /******************************** Functions **********************************/
 
 
+/*****************************************************************************/
+/**
+* Get the next empty log info event
+*
+* @param    None.
+*
+* @return	log_info_event *   - Pointer to the next "empty" log info event or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+log_info_event* get_next_empty_log_info_event(){
+
+	// Get the next empty event
+	return (log_info_event *)event_log_get_next_empty_entry( EVENT_TYPE_LOG_INFO, sizeof(log_info_event) );
+}
+
+
+/*****************************************************************************/
+/**
+* Get the next empty experiment info event
+*
+* @param    size - Amount of space to be allocated for experiment info event message
+*
+* @return	exp_info_event *   - Pointer to the next "empty" Experiment info event or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+exp_info_event* get_next_empty_exp_info_event(u16 size){
+
+	// Get the next empty event
+	return (exp_info_event *)event_log_get_next_empty_entry( EVENT_TYPE_EXP_INFO, sizeof(exp_info_event) + size - 4 );
+}
+
+
+/*****************************************************************************/
+/**
+* Get the next empty statistics event
+*
+* @param    None.
+*
+* @return	statistics_event *   - Pointer to the next "empty" statistics event or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+statistics_event* get_next_empty_statistics_event(){
+
+	// Get the next empty event
+	return (statistics_event *)event_log_get_next_empty_entry( EVENT_TYPE_STATISTICS, sizeof(statistics_event) );
+}
+
 
 /*****************************************************************************/
 /**
@@ -125,12 +178,57 @@ tx_event* get_next_empty_tx_event(){
 ******************************************************************************/
 void print_entry( u32 entry_number, u32 entry_type, void * event ){
 	u32 i, j;
+
+	log_info_event     * log_info_event_log_item;
+	exp_info_event     * exp_info_event_log_item;
+	statistics_event   * statistics_event_log_item;
 	rx_ofdm_event      * rx_ofdm_event_log_item;
 	rx_dsss_event      * rx_dsss_event_log_item;
-	tx_event      * tx_event_log_item;
-
+	tx_event           * tx_event_log_item;
 
 	switch( entry_type ){
+        case EVENT_TYPE_LOG_INFO:
+        	log_info_event_log_item = (log_info_event*) event;
+			xil_printf("%d: - Log Info Event\n", entry_number );
+			xil_printf("   Type        :   %d\n",	  log_info_event_log_item->node_type);
+			xil_printf("   ID          :   %d\n",     log_info_event_log_item->node_id);
+			xil_printf("   HW Gen      :   %d\n",     log_info_event_log_item->node_hw_gen);
+			xil_printf("   Design Ver  :   %x\n",     log_info_event_log_item->node_design_ver);
+			xil_printf("   Serial Num  :   %d\n",     log_info_event_log_item->node_serial_number);
+			xil_printf("   Max assn    :   %d\n",     log_info_event_log_item->node_wlan_max_assn);
+			xil_printf("   Log size    :   %d\n",     log_info_event_log_item->node_wlan_event_log_size);
+		break;
+
+        case EVENT_TYPE_EXP_INFO:
+        	exp_info_event_log_item = (exp_info_event*) event;
+			xil_printf("%d: - Experiment Info Event\n", entry_number );
+			xil_printf("   Timestamp:  %d\n", (u32)(exp_info_event_log_item->timestamp));
+			xil_printf("   Reason   :  %d\n",       exp_info_event_log_item->reason);
+			xil_printf("   Message  :  \n");
+			for( i = 0; i < exp_info_event_log_item->length; i++) {
+				xil_printf("        ");
+				for( j = 0; j < 16; j++){
+					xil_printf("0x%02x ", (exp_info_event_log_item->msg)[16*i + j]);
+				}
+				xil_printf("\n");
+			}
+		break;
+
+		case EVENT_TYPE_STATISTICS:
+			statistics_event_log_item = (statistics_event*) event;
+			xil_printf("%d: - Statistics Event\n", entry_number );
+			xil_printf("   Last timestamp :    %d\n",        (u32)(statistics_event_log_item->last_timestamp));
+			xil_printf("   Address        :    %02x",             (statistics_event_log_item->addr)[0]);
+			for( i = 1; i < 6; i++) { xil_printf(":%02x",         (statistics_event_log_item->addr)[i]); }
+			xil_printf("\n");
+			xil_printf("   Is associated  :    %d\n",              statistics_event_log_item->is_associated);
+			xil_printf("   Tx total       :    %d (%d success)\n", statistics_event_log_item->num_tx_total,
+					                                               statistics_event_log_item->num_tx_success);
+			xil_printf("   Tx retry       :    %d\n",              statistics_event_log_item->num_retry);
+			xil_printf("   Rx total       :    %d (%d bytes)\n",   statistics_event_log_item->num_rx_success,
+					                                               statistics_event_log_item->num_rx_bytes);
+		break;
+
 		case EVENT_TYPE_RX_OFDM:
 			rx_ofdm_event_log_item = (rx_ofdm_event*) event;
 			xil_printf("%d: - Rx OFDM Event\n", entry_number );
@@ -152,8 +250,6 @@ void print_entry( u32 entry_number, u32 entry_type, void * event ){
 				xil_printf("\n");
 			}
 #endif
-
-
 		break;
 
 		case EVENT_TYPE_RX_DSSS:
