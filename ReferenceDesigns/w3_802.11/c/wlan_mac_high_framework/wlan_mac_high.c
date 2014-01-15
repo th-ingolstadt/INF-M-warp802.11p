@@ -1540,6 +1540,18 @@ void wlan_mac_high_set_backoff_slot_value( u32 num_slots ) {
 }
 
 
+void wlan_mac_high_set_time( u64 timestamp ){
+
+	wlan_ipc_msg       ipc_msg_to_low;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
+	ipc_msg_to_low.num_payload_words = sizeof(u64)/sizeof(u32);
+	ipc_msg_to_low.payload_ptr       = (u32*)(&(timestamp));
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+}
 
 
 
