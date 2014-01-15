@@ -264,7 +264,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	tx_entry* tx_event_log_entry;
 	station_info* station;
 
-	void * mpdu = (void*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
+	void* mpdu = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
@@ -456,11 +456,8 @@ void beacon_transmit() {
  		tx_queue = (packet_bd*)(checkout.first);
 
  		wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
-
         tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-
  		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
-
  		enqueue_after_end(0, &checkout);
 
  		check_tx_queue();
@@ -565,7 +562,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			((rx_ofdm_entry*)rx_event_log_entry)->chan_num = mac_param_chan;
 			((rx_ofdm_entry*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
 	#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+			wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
 	#endif
 		}
 	} else {
@@ -599,7 +596,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		//Check if duplicate
 		if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
 			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
 			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
 #endif
 			return;
