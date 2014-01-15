@@ -204,7 +204,6 @@ int main(){
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
-
 #ifdef USE_WARPNET_WLAN_EXP
 		wlan_mac_high_interrupt_stop();
 		transport_poll( WLAN_EXP_ETH );
