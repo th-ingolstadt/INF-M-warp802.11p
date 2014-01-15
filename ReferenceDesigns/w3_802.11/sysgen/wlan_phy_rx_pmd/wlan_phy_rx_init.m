@@ -10,53 +10,29 @@ addpath('./blackboxes');
 
 PLCP_Preamble = PLCP_Preamble_gen;
 
-%%
+%% Define an input signal for simulation
+%For PHY debugging with ChipScope captures of I/Q
 %xlLoadChipScopeData('cs_capt/wlan_cs_capt_81_64Q23.prn'); cs_interp = 1; cs_start = 1300; cs_end = length(ADC_I);
-%xlLoadChipScopeData('cs_capt/good_then_bad.prn');cs_interp = 1; cs_start = 3900; cs_end = 16384;
-xlLoadChipScopeData('cs_capt/good_then_bad.prn');cs_interp = 1;
 %samps2 = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
-samps2 = complex(ADC_I([3500:5400 14600:16384]), ADC_Q([3500:5400 14600:16384]));
-%samps2 = [samps2(1:360); samps2(362:end)]; %HACK to debug extra sample in Tx
-payload_vec = [samps2; zeros(1000,1);];
+%payload_vec = [samps2; zeros(1000,1);];
 %paylod_vec_samp_time = 8;
 
-samps_rssi_avg.time = [];
-samps_rssi_avg.signals.values = 0;%RSSI(cs_start:end);%RSSI is delayed by 2 T=16 samples before CS ILA
+%wlan_tx output - good for simulating Rx model
+load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
 
-samps_pkt_det.time = [];
-samps_pkt_det.signals.values = 0;%Pkt_Det2(cs_start:end);
-
-samps_iq_valid.time = [];
-samps_iq_valid.signals.values = 0;%ADC_IQ_Valid2(cs_start:end);
-
-
-%wlan_tx output %wlan_tx_out_74PB_64Q34 is worst case for last samp -> decode latency
-%load('rx_sigs/wlan_tx_out_81B_Q12.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_120PB_64Q23.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_34PB_Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_3pkts_16Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_1240PB_16Q12.mat'); tx_sig_t = 1:length(wlan_tx_out);
-%load('rx_sigs/wlan_tx_out_74PB_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_81B_64Q34.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
-%load('rx_sigs/wlan_tx_out_ManyPkts_16Q12.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-%load('wlan_tx_out.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-
-%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
-%payload_vec = [zeros(50,1); wlan_tx_out; zeros(50,1); ];
-%payload_vec = [payload_vec;payload_vec;payload_vec];
-%cfo = exp(1i*2*pi*(5e-4)*(0:length(payload_vec)-1)).';
-%payload_vec = payload_vec .* cfo;
-
-%payload_vec((50+32+160+160+4)+[1:70]) = 0;%Force SIGNAL error in first pkt
-%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(10,1); wlan_tx_out(tx_sig_t); zeros(100,1)];
+payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
 paylod_vec_samp_time = 8;
 
+%%
 simtime = 8*length(payload_vec) + 500;
 raw_rx_I.time = [];
 raw_rx_Q.time = [];
 raw_rx_I.signals.values = real(payload_vec);
 raw_rx_Q.signals.values = imag(payload_vec);
+samps_rssi_avg.time = [];
+samps_rssi_avg.signals.values = 0;%RSSI(cs_start:end);
+samps_pkt_det.time = [];
+samps_pkt_det.signals.values = 0;%Pkt_Det2(cs_start:end);
 
 
 %%
