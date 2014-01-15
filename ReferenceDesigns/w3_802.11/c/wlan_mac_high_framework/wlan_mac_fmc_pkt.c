@@ -374,6 +374,10 @@ int wlan_fmc_pkt_mailbox_setup_interrupt(XIntc* intc){
 void FMCMailboxIntrHandler(void *CallbackRef){
 	u32 Mask;
 
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
+
 	XMbox_SetReceiveThreshold(&fmc_ipc_mailbox, 0xFFFFFFFF);
 
 	XMbox *MboxInstPtr = (XMbox *)CallbackRef;
@@ -391,4 +395,8 @@ void FMCMailboxIntrHandler(void *CallbackRef){
 	XMbox_SetReceiveThreshold(&fmc_ipc_mailbox, FMC_MBOX_RIT);
 
 	XIntc_Start(InterruptController_ptr, XIN_REAL_MODE);
+
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
 }

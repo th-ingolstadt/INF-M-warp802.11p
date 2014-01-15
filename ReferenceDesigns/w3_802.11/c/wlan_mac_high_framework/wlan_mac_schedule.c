@@ -338,6 +338,10 @@ void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
 	u8 TmrCtrNumber;
 	u32 ControlStatusReg;
 
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
+
 	/*
 	 * Verify that each of the inputs are valid.
 	 */
@@ -401,4 +405,7 @@ void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
 			}
 		}
 	}
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
 }

@@ -122,6 +122,10 @@ void RxIntrHandler(void *Callback){
 	XAxiDma_BdRing *RxRingPtr = (XAxiDma_BdRing *) Callback;
 	u32 IrqStatus;
 
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
+
 	XIntc_Stop(Intc_ptr);
 
 	IrqStatus = XAxiDma_BdRingGetIrq(RxRingPtr);
@@ -133,6 +137,9 @@ void RxIntrHandler(void *Callback){
 
 	XIntc_Start(Intc_ptr, XIN_REAL_MODE);
 
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
 	return;
 }
 int wlan_eth_dma_init() {

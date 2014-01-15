@@ -67,7 +67,6 @@ u8                 uart_rx_buffer[UART_BUFFER_SIZE];	///< Buffer for received by
 // 802.11 Transmit packet buffer
 u8                 tx_pkt_buf;				///< @brief Current transmit buffer (ping/pong)
 											///< @see TX_BUFFER_NUM
-
 // Callback function pointers
 function_ptr_t     pb_u_callback;			///< User callback for "up" pushbutton
 function_ptr_t     pb_m_callback;			///< User callback for "middle" pushbutton
@@ -86,6 +85,8 @@ u8					dram_present;			///< Indication variable for whether DRAM SODIMM is prese
 static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
 static u32         cpu_high_status;			///< Tracking variable for upper-level CPU status
 
+// Debug GPIO State
+static u8		   debug_gpio_state;			///< Current state of debug GPIO pins
 
 // WARPNet information
 #ifdef USE_WARPNET_WLAN_EXP
@@ -236,6 +237,9 @@ void wlan_mac_high_init(){
 	XGpio_SetDataDirection(&Gpio, GPIO_INPUT_CHANNEL, 0xFFFFFFFF);
 	XGpio_SetDataDirection(&Gpio, GPIO_OUTPUT_CHANNEL, 0);
 
+	//Clear any existing state in debug GPIO
+	wlan_mac_high_clear_debug_gpio(0xFF);
+
 	//Initialize the UART driver
 	Status = XUartLite_Initialize(&UartLite, UARTLITE_DEVICE_ID);
 	if (Status != XST_SUCCESS) {
@@ -319,7 +323,7 @@ int wlan_mac_high_interrupt_init(){
 	}
 
 	// ***************************************************
-	// Connect interrupt devices "owned" by wlan_mac_util
+	// Connect interrupt devices "owned" by wlan_mac_high
 	// ***************************************************
 	Result = XIntc_Connect(&InterruptController, INTC_GPIO_INTERRUPT_ID, (XInterruptHandler)wlan_mac_high_gpio_handler, &Gpio);
 	if (Result != XST_SUCCESS) {
@@ -472,8 +476,14 @@ void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info ) {
  * @see wlan_mac_high_set_uart_rx_callback()
  */
 void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
 	XUartLite_Recv(&UartLite, uart_rx_buffer, UART_BUFFER_SIZE);
 	uart_callback(uart_rx_buffer[0]);
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
 }
 
 /**
@@ -592,8 +602,14 @@ statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
  *
  */
 void wlan_mac_high_gpio_handler(void *InstancePtr){
-	XGpio *GpioPtr = (XGpio *)InstancePtr;
+	XGpio *GpioPtr;
 	u32 gpio_read;
+
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
+
+	GpioPtr = (XGpio *)InstancePtr;
 
 	XGpio_InterruptDisable(GpioPtr, GPIO_INPUT_INTERRUPT);
 	gpio_read = XGpio_DiscreteRead(GpioPtr, GPIO_INPUT_CHANNEL);
@@ -605,6 +621,9 @@ void wlan_mac_high_gpio_handler(void *InstancePtr){
 	(void)XGpio_InterruptClear(GpioPtr, GPIO_INPUT_INTERRUPT);
 	XGpio_InterruptEnable(GpioPtr, GPIO_INPUT_INTERRUPT);
 
+#ifdef _ISR_PERF_MON_EN_
+	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+#endif
 	return;
 }
 
@@ -957,8 +976,6 @@ void wlan_mac_high_free(void* addr){
  *
  */
 u8 wlan_mac_high_get_tx_rate(station_info* station){
-	//This is also a good place to add extensions to automatic rate control
-
 	u8 return_value;
 
 	if(((station->tx.rate) >= WLAN_MAC_RATE_6M) && ((station->tx.rate) <= WLAN_MAC_RATE_54M)){
@@ -971,13 +988,33 @@ u8 wlan_mac_high_get_tx_rate(station_info* station){
 	return return_value;
 }
 
+/**
+ * @brief Write a Decimal Value to the Hex Display
+ *
+ * This function will write a decimal value to the board's two-digit hex displays.
+ *
+ * @param u8 val
+ *  - Value to be displayed (between 0 and 99)
+ * @return None
+ *
+ */
 void wlan_mac_high_write_hex_display(u8 val){
-	//u8 val: 2 digit decimal value to be printed to hex displays
    userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
    userio_write_hexdisp_left(USERIO_BASEADDR, val/10);
    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
 }
 
+/**
+ * @brief Write a Decimal Points in the Hex Display
+ *
+ * This can toggle the decimal point in each hex digit on the board.
+ *
+ * @param u8 dots_on
+ *  - 1 to turn on both the left and right hex display dots
+ *  - 0 to turn off both the left and right hex display dots
+ * @return None
+ *
+ */
 void wlan_mac_high_write_hex_display_dots(u8 dots_on){
 	u32 left_hex,right_hex;
 
@@ -991,10 +1028,10 @@ void wlan_mac_high_write_hex_display_dots(u8 dots_on){
 		userio_write_hexdisp_left(USERIO_BASEADDR, (~W3_USERIO_HEXDISP_DP) & left_hex);
 		userio_write_hexdisp_right(USERIO_BASEADDR, (~W3_USERIO_HEXDISP_DP) & right_hex);
 	}
-
 }
+
+
 int wlan_mac_high_memory_test(){
-	//Test DRAM
 	u8 i,j;
 
 	u8 test_u8;
@@ -1002,8 +1039,10 @@ int wlan_mac_high_memory_test(){
 	u32 test_u32;
 	u64 test_u64;
 
+	void* memory_ptr;
+
 	for(i=0;i<6;i++){
-		void* memory_ptr = (void*)DDR3_BASEADDR + (i*100000*1024);
+		memory_ptr = (void*)((u8*)DDR3_BASEADDR + (i*100000*1024));
 
 		for(j=0;j<3;j++){
 			//Test 1 byte offsets to make sure byte enables are all working
@@ -1562,6 +1601,15 @@ inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 	return NULL;
 }
 
+void wlan_mac_high_set_debug_gpio(u8 val){
+	debug_gpio_state |= (val & 0xFF);
+	XGpio_DiscreteWrite(&Gpio, GPIO_OUTPUT_CHANNEL, debug_gpio_state);
+}
+
+void wlan_mac_high_clear_debug_gpio(u8 val){
+	debug_gpio_state &= !(val & 0xFF);
+	XGpio_DiscreteWrite(&Gpio, GPIO_OUTPUT_CHANNEL, debug_gpio_state);
+}
 
 int str2num(char* str){
 	//For now this only works with non-negative values
