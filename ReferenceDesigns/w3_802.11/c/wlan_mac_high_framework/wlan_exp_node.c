@@ -29,7 +29,7 @@
 
 // WLAN includes
 #include "wlan_mac_event_log.h"
-#include "wlan_mac_events.h"
+#include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
 
 

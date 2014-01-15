@@ -1,4 +1,4 @@
-/** @file wlan_mac_events.h
+/** @file wlan_mac_entries.h
  *  @brief Event log
  *
  *  This contains the code for accessing event log.
@@ -9,11 +9,11 @@
  *				at http://mangocomm.com/802.11/license
  *
  *	@note
- *  This is the only code that the user should modify in order to add events
- *  to the event log.  To add a new event, please follow the template provided
+ *  This is the only code that the user should modify in order to add entries
+ *  to the event log.  To add a new entry, please follow the template provided
  *  and create:
- *    1) A new event type in wlan_mac_events.h
- *    2) Wrapper function:  get_next_empty_*_event()
+ *    1) A new entry type in wlan_mac_entries.h
+ *    2) Wrapper function:  get_next_empty_*_entry()
  *    3) Update the print function so that it is easy to print the log to the
  *    terminal
  *
@@ -27,36 +27,36 @@
 
 
 /*************************** Constant Definitions ****************************/
-#ifndef WLAN_MAC_EVENTS_H_
-#define WLAN_MAC_EVENTS_H_
+#ifndef WLAN_MAC_ENTRIES_H_
+#define WLAN_MAC_ENTRIES_H_
 
 #include "wlan_mac_802_11_defs.h"
 
-#define WLAN_MAC_EVENTS_LOG_CHAN_EST
+#define WLAN_MAC_ENTRIES_LOG_CHAN_EST
 
 // ****************************************************************************
-// Define Event Constants
+// Define Entry Constants
 //
 
-// Event Types
+// Entry Types
 
 //-----------------------------------------------
-// Management Events
+// Management Entries
 
-#define EVENT_TYPE_LOG_INFO            1
-#define EVENT_TYPE_EXP_INFO            2
-#define EVENT_TYPE_STATISTICS          3
-
-//-----------------------------------------------
-// Receive Events
-
-#define EVENT_TYPE_RX_OFDM             10
-#define EVENT_TYPE_RX_DSSS             11
+#define ENTRY_TYPE_LOG_INFO            1
+#define ENTRY_TYPE_EXP_INFO            2
+#define ENTRY_TYPE_STATISTICS          3
 
 //-----------------------------------------------
-// Transmit Events
+// Receive Entries
 
-#define EVENT_TYPE_TX                  20
+#define ENTRY_TYPE_RX_OFDM             10
+#define ENTRY_TYPE_RX_DSSS             11
+
+//-----------------------------------------------
+// Transmit Entries
+
+#define ENTRY_TYPE_TX                  20
 
 
 
@@ -64,7 +64,7 @@
 /*********************** Global Structure Definitions ************************/
 
 //-----------------------------------------------
-// Log Info Event
+// Log Info Entry
 //   NOTE:  This structure was designed to work easily with the WARPNet Tag
 //       Parameters.  The order and size of the fields match the corresponding
 //       Tag Parameter so that population of this structure is easy.
@@ -85,22 +85,22 @@ typedef struct{
 	u32     transport_unicast_port;    // WARP node unicast port
 	u32     transport_bcast_port;      // WARP node broadcast port
 	u32     transport_grp_id;          // WARP node group id
-} log_info_event;
+} log_info_entry;
 
 
 //-----------------------------------------------
-// Experiment Info Event
+// Experiment Info Entry
 //
 typedef struct{
 	u64     timestamp;
 	u16     reason;
 	u16     length;
 	u8    * msg;
-} exp_info_event;
+} exp_info_entry;
 
 
 //-----------------------------------------------
-// Statistics Event
+// Statistics Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
 //          accurately reflects the number of bytes in the struct.
 //
@@ -114,11 +114,11 @@ typedef struct{
 	u32     num_retry;		///< Total number of retransmissions to this device
 	u32     num_rx_success; ///< Total number of successful receptions from this device
 	u32     num_rx_bytes;	///< Total number of received bytes from this device
-} statistics_event;
+} statistics_entry;
 
 
 //-----------------------------------------------
-// Receive OFDM Event
+// Receive OFDM Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
 //          accurately reflects the number of bytes in the struct.
 //
@@ -135,14 +135,14 @@ typedef struct{
 	u8   rf_gain;
 	u8   bb_gain;
 	u8   rsvd[2];
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
+#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
 	u32	 channel_est[64];
 #endif
-} rx_ofdm_event;
+} rx_ofdm_entry;
 
 
 //-----------------------------------------------
-// Receive DSSS Event
+// Receive DSSS Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
 //          accurately reflects the number of bytes in the struct.
 //
@@ -159,14 +159,14 @@ typedef struct{
 	u8   rf_gain;
 	u8   bb_gain;
 	u8   rsvd[2];
-} rx_dsss_event;
+} rx_dsss_entry;
 
-#define RX_EVENT_FCS_GOOD 0
-#define RX_EVENT_FCS_BAD 1
+#define RX_ENTRY_FCS_GOOD 0
+#define RX_ENTRY_FCS_BAD 1
 
 
 //-----------------------------------------------
-// Transmit Event
+// Transmit Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
 //          accurately reflects the number of bytes in the struct.
 //
@@ -184,29 +184,29 @@ typedef struct{
 	u8 	 pkt_type;
 	u8	 ant_mode;
 	u8	 rsvd[3];
-} tx_event;
+} tx_entry;
 
 
 /*************************** Function Prototypes *****************************/
 
 
 //-----------------------------------------------
-// Wrapper methods to get events
+// Wrapper methods to get entries
 //
-log_info_event   * get_next_empty_log_info_event();
-exp_info_event   * get_next_empty_exp_info_event(u16 size);
-statistics_event * get_next_empty_statistics_event();
+log_info_entry   * get_next_empty_log_info_entry();
+exp_info_entry   * get_next_empty_exp_info_entry(u16 size);
+statistics_entry * get_next_empty_statistics_entry();
 
-rx_ofdm_event    * get_next_empty_rx_ofdm_event();
-rx_dsss_event    * get_next_empty_rx_dsss_event();
+rx_ofdm_entry    * get_next_empty_rx_ofdm_entry();
+rx_dsss_entry    * get_next_empty_rx_dsss_entry();
 
-tx_event         * get_next_empty_tx_event();
+tx_entry         * get_next_empty_tx_entry();
 
 
 //-----------------------------------------------
-// Print function for all events
+// Print function for all entries
 //
-void print_entry( u32 entry_number, u32 entry_type, void * event );
+void print_entry( u32 entry_number, u32 entry_type, void * entry );
 
 
-#endif /* WLAN_MAC_EVENTS_H_ */
+#endif /* WLAN_MAC_ENTRIES_H_ */
