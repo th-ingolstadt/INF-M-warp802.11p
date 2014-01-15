@@ -71,6 +71,8 @@ typedef struct{
 #define WLAN_MAC_REG_MPDU_TX_PARAMS			XPAR_WLAN_MAC_DCF_HW_MEMMAP_MPDU_TX_PARAMS
 #define WLAN_MAC_REG_CONTROL				XPAR_WLAN_MAC_DCF_HW_MEMMAP_CONTROL
 #define WLAN_MAC_REG_SW_BACKOFF_CTRL		XPAR_WLAN_MAC_DCF_HW_MEMMAP_BACKOFF_CTRL
+#define WLAN_MAC_REG_SET_TIMESTAMP_LSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_SET_LSB
+#define WLAN_MAC_REG_SET_TIMESTAMP_MSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_SET_MSB
 
 //Bit masks for STATUS register
 #define WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING	0x0000800 //b[11]
@@ -103,6 +105,8 @@ typedef struct{
 #define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET	0x04
 #define WLAN_MAC_CTRL_MASK_DISABLE_NAV			0x08
 #define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX		0x10
+#define WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP		0x20
+#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND	0x40 //blocks Rx on bad FCS pkts, only for logging/analysis
 
 //Macros for reading/writing registers
 #define wlan_mac_timestamp_lsb() Xil_In32(WLAN_MAC_REG_TIMESTAMP_LSB)
@@ -203,5 +207,6 @@ inline void send_exception(u32 reason);
 void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc);
 void process_config_mac(ipc_config_mac* config_mac);
 inline int calculate_rx_power(u8 band, u16 rssi, u8 lna_gain);
+void wlan_mac_set_time(u64 new_time);
 
 #endif /* WLAN_MAC_LOW_H_ */
