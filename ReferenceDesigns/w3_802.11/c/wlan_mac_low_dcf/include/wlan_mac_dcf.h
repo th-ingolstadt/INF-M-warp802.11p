@@ -184,8 +184,6 @@ typedef struct{
 #define POLL_MAC_TYPE_ACK				(1<<8)
 #define POLL_MAC_TYPE_OTHER				(255<<8)
 
-#define RX_DONE_FCS_GOOD 	0x0
-
 int main();
 int phy_to_mac_rate(u8 rate_in);
 int mac_to_phy_rate(u8 rate_in);
@@ -195,7 +193,7 @@ void mac_dcf_init();
 void wlan_mac_dcf_hw_unblock_rx_phy();
 void process_ipc_msg_from_high(wlan_ipc_msg* msg);
 inline u32 poll_mac_rx();
-inline int wlan_mac_dcf_hw_rx_finish();
+inline u32 wlan_mac_dcf_hw_rx_finish();
 inline int update_cw(u8 reason, u8 pkt_buf);
 inline unsigned int rand_num_slots();
 void wlan_mac_dcf_hw_start_backoff(u16 num_slots);
