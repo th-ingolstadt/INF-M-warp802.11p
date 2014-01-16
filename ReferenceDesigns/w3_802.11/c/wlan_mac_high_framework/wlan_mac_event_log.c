@@ -61,7 +61,6 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern dl_list		 statistics_table;
 
 
 /*************************** Variable Definitions ****************************/
@@ -799,6 +798,7 @@ void add_node_info_entry(){
 	unsigned int     temp0;
 	unsigned int     max_words = sizeof(node_info_entry) >> 2;
 
+#ifdef USE_WARPNET_WLAN_EXP
 	entry = (node_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry) );
 
     // Add the node parameters
@@ -812,6 +812,7 @@ void add_node_info_entry(){
     	xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
     	print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
     }
+#endif
 }
 
 
@@ -833,9 +834,12 @@ u32 add_txrx_statistics_to_log(){
 	u32 i;
 	u32                event_size = sizeof(txrx_stats_entry);
 	u32                stats_size = sizeof(statistics) - sizeof(dl_node);
-	dl_list          * list = &statistics_table;
+	dl_list          * list = get_statistics();
 	statistics       * curr_statistics;
 	txrx_stats_entry * entry;
+
+	// Check to see if we have valid statistics
+	if (list == NULL) { return 0; }
 
     if ( stats_size >= event_size ) {
     	// If the statistics structure in wlan_mac_high.h is bigger than the statistics
