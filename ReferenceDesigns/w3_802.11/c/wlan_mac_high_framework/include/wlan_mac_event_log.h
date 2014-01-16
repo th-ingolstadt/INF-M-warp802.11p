@@ -86,4 +86,7 @@ int       event_log_update_type( void * entry_ptr, u16 entry_type );
 void      print_event_log( u32 num_events );
 void      print_event_log_size();
 
+void      add_node_info_entry();
+u32       add_statistics_to_log();
+
 #endif /* WLAN_MAC_EVENT_LOG_H_ */

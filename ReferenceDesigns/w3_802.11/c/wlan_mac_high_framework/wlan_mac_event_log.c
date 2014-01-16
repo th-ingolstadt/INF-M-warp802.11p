@@ -53,7 +53,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_high.h"
-
+#include "wlan_exp_node.h"
 
 /*************************** Constant Definitions ****************************/
 
@@ -61,6 +61,7 @@
 
 /*********************** Global Variable Definitions *************************/
 
+extern dl_list		 statistics_table;
 
 
 /*************************** Variable Definitions ****************************/
@@ -173,6 +174,8 @@ void event_log_reset(){
 	log_count            = 0;
 
 	allocation_mutex     = 0;
+
+	add_node_info_entry();
 }
 
 
@@ -722,7 +725,6 @@ void print_event_log( u32 num_entrys ) {
     		}
     	}
 
-
     	// If we still have entries to print, then start at the beginning
     	if ( entry_count < num_entrys ) {
 
@@ -752,8 +754,6 @@ void print_event_log( u32 num_entrys ) {
 
 
 
-
-
 /*****************************************************************************/
 /**
 * Prints the size of the event log
@@ -774,5 +774,105 @@ void print_event_log_size(){
 
 	xil_printf("Event Log (%10d us): %10d of %10d bytes used\n", (u32)timestamp, size, log_size );
 }
+
+
+
+
+
+/*****************************************************************************/
+// Built-in function to add fields to the log
+
+/*****************************************************************************/
+/**
+* Add a node info entry
+*
+* @param    None.
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void add_node_info_entry(){
+
+	node_info_entry * entry;
+	unsigned int     temp0;
+	unsigned int     max_words = sizeof(node_info_entry) >> 2;
+
+	entry = (node_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry) );
+
+    // Add the node parameters
+    temp0 = node_get_parameter_values( (u32 *)entry, max_words);
+
+    // Check to make sure that there was no mismatch in sizes
+    //   NOTE: During initialization of the log, the hardware parameters are not yet defined.
+    //       Therefore, we need to ignore when we get zero and be sure to reset the log
+    //       before normal operation
+    if ( (temp0 != max_words) && (temp0 != 0) ) {
+    	xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
+    	print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
+    }
+}
+
+
+
+
+/*****************************************************************************/
+/**
+* Add the current statistics to the log
+*
+* @param    None.
+*
+* @return	num_statistics -- Number of statistics added to the log.
+*
+* @note		None.
+*
+******************************************************************************/
+u32 add_statistics_to_log(){
+
+	u32 i;
+	u32                event_size = sizeof(statistics_entry);
+	u32                stats_size = sizeof(statistics) - sizeof(dl_node);
+	dl_list          * list = &statistics_table;
+	statistics       * curr_statistics;
+	statistics_entry * entry;
+
+    if ( stats_size >= event_size ) {
+    	// If the statistics structure in wlan_mac_high.h is bigger than the statistics
+    	// entry, print a warning and return since there is a mismatch in the definition of
+    	// statistics.
+    	xil_printf("WARNING:  Statistics definitions do not match.  Statistics log entry is too small\n");
+    	xil_printf("    to hold statistics structure.\n");
+    	return 0;
+    }
+
+	curr_statistics = (statistics*)(list->first);
+
+	for( i = 0; i < list->length; i++){
+
+		entry = (statistics_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATISTICS, event_size );
+
+		if ( entry != NULL ) {
+			entry->timestamp = get_usec_timestamp();
+
+			// Copy the statistics to the log entry
+			//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
+			//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
+			memcpy( (void *)(&entry->last_timestamp), (void *)(&curr_statistics->last_timestamp), stats_size );
+
+		    curr_statistics = statistics_next(curr_statistics);
+		} else {
+			break;
+		}
+	}
+
+	return i;
+}
+
+
+
+
+
+
 
 

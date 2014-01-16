@@ -43,7 +43,7 @@
 //-----------------------------------------------
 // Management Entries
 
-#define ENTRY_TYPE_LOG_INFO            1
+#define ENTRY_TYPE_NODE_INFO           1
 #define ENTRY_TYPE_EXP_INFO            2
 #define ENTRY_TYPE_STATISTICS          3
 
@@ -64,28 +64,22 @@
 /*********************** Global Structure Definitions ************************/
 
 //-----------------------------------------------
-// Log Info Entry
+// Node Info Entry
 //   NOTE:  This structure was designed to work easily with the WARPNet Tag
 //       Parameters.  The order and size of the fields match the corresponding
 //       Tag Parameter so that population of this structure is easy.
 //
 typedef struct{
-	u32     node_type;                 // WARPNet Node type
-	u32     node_id;                   // Node ID
-	u32     node_hw_gen;               // WARP Hardware Generation
-	u32     node_design_ver;           // WARPNet version
-	u32     node_serial_number;        // Node serial number
-	u64     node_fpga_dna;             // Node FPGA DNA
-	u32     node_wlan_max_assn;        // Max associations of the node
-	u32     node_wlan_event_log_size;  // Max size of the event log
-
-	u32     transport_type;            // WARPNet Transport type
-	u64     transport_hw_addr;         // WARP node MAC address
-	u32     transport_ip_addr;         // WARP node IP address
-	u32     transport_unicast_port;    // WARP node unicast port
-	u32     transport_bcast_port;      // WARP node broadcast port
-	u32     transport_grp_id;          // WARP node group id
-} log_info_entry;
+	u32     type;                 // WARPNet Node type
+	u32     id;                   // Node ID
+	u32     hw_gen;               // WARP Hardware Generation
+	u32     design_ver;           // WARPNet version
+	u32     serial_number;        // Node serial number
+	u64     fpga_dna;             // Node FPGA DNA
+	u32     wlan_max_assn;        // Max associations of the node
+	u32     wlan_event_log_size;  // Max size of the event log
+	u32     wlan_max_stats;       // Max number of promiscuous statistics
+} node_info_entry;
 
 
 //-----------------------------------------------
@@ -105,15 +99,16 @@ typedef struct{
 //          accurately reflects the number of bytes in the struct.
 //
 typedef struct{
-	u64     last_timestamp; ///< Timestamp of the last frame reception
-	u8      addr[6];		///< HW Address
-	u8      is_associated;	///< Is this device associated with me?
+	u64     timestamp;      // Timestamp of the log entry
+	u64     last_timestamp; // Timestamp of the last frame reception
+	u8      addr[6];		// HW Address
+	u8      is_associated;	// Is this device associated with me?
 	u8      rsvd;
-	u32     num_tx_total;	///< Total number of transmissions to this device
-	u32     num_tx_success; ///< Total number of successful transmissions to this device
-	u32     num_retry;		///< Total number of retransmissions to this device
-	u32     num_rx_success; ///< Total number of successful receptions from this device
-	u32     num_rx_bytes;	///< Total number of received bytes from this device
+	u32     num_tx_total;	// Total number of transmissions to this device
+	u32     num_tx_success; // Total number of successful transmissions to this device
+	u32     num_retry;		// Total number of retransmissions to this device
+	u32     num_rx_success; // Total number of successful receptions from this device
+	u32     num_rx_bytes;	// Total number of received bytes from this device
 } statistics_entry;
 
 
@@ -193,9 +188,7 @@ typedef struct{
 //-----------------------------------------------
 // Wrapper methods to get entries
 //
-log_info_entry   * get_next_empty_log_info_entry();
 exp_info_entry   * get_next_empty_exp_info_entry(u16 size);
-statistics_entry * get_next_empty_statistics_entry();
 
 rx_ofdm_entry    * get_next_empty_rx_ofdm_entry();
 rx_dsss_entry    * get_next_empty_rx_dsss_entry();

@@ -59,6 +59,8 @@
 #define NODE_LOG_ADD_EVENT             55
 #define NODE_LOG_ENABLE_EVENT          56
 
+#define NODE_ADD_STATS_TO_LOG          60
+#define NODE_GET_STATS                 61
 
 
 // ****************************************************************************
@@ -75,7 +77,8 @@
 #define NODE_FPGA_DNA                  5
 #define NODE_WLAN_MAX_ASSN             6
 #define NODE_WLAN_EVENT_LOG_SIZE       7
-#define NODE_MAX_PARAMETER             8
+#define NODE_WLAN_MAX_STATS            8
+#define NODE_MAX_PARAMETER             9
 
 
 /*********************** Global Structure Definitions ************************/
@@ -95,6 +98,7 @@ typedef struct {
 
 	u32   wlan_max_assn;               // WLAN Exp - Max Associations
 	u32   wlan_event_log_size;         // WLAN Exp - Event Log Size
+	u32   wlan_max_stats;              // WLAN Exp - Max number of promiscuous statistic entries
 
     u32   eth_device;
     u8    hw_addr[ETH_ADDR_LEN];
@@ -114,9 +118,10 @@ int  wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev
 
 void node_set_process_callback(void(*callback)());
 int  node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network);
+int  node_get_parameter_values(u32 * buffer, unsigned int max_words);
 
-void node_info_set_max_assn      ( u32 max_assn );
-void node_info_set_event_log_size( u32 log_size );
-
+void node_info_set_max_assn      ( u32 max_assn  );
+void node_info_set_event_log_size( u32 log_size  );
+void node_info_set_max_stats     ( u32 max_stats );
 
 #endif /* WLAN_EXP_NODE_H_ */

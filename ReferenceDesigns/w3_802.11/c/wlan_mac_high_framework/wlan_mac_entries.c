@@ -58,24 +58,6 @@
 
 /*****************************************************************************/
 /**
-* Get the next empty log info entry
-*
-* @param    None.
-*
-* @return	log_info_entry *   - Pointer to the next "empty" log info entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-log_info_entry* get_next_empty_log_info_entry(){
-
-	// Get the next empty entry
-	return (log_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_LOG_INFO, sizeof(log_info_entry) );
-}
-
-
-/*****************************************************************************/
-/**
 * Get the next empty experiment info entry
 *
 * @param    size - Amount of space to be allocated for experiment info entry message
@@ -89,24 +71,6 @@ exp_info_entry* get_next_empty_exp_info_entry(u16 size){
 
 	// Get the next empty entry
 	return (exp_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_EXP_INFO, sizeof(exp_info_entry) + size - 4 );
-}
-
-
-/*****************************************************************************/
-/**
-* Get the next empty statistics entry
-*
-* @param    None.
-*
-* @return	statistics_entry *   - Pointer to the next "empty" statistics entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-statistics_entry* get_next_empty_statistics_entry(){
-
-	// Get the next empty entry
-	return (statistics_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATISTICS, sizeof(statistics_entry) );
 }
 
 
@@ -179,7 +143,7 @@ tx_entry* get_next_empty_tx_entry(){
 void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 	u32 i, j;
 
-	log_info_entry     * log_info_entry_log_item;
+	node_info_entry    * node_info_entry_log_item;
 	exp_info_entry     * exp_info_entry_log_item;
 	statistics_entry   * statistics_entry_log_item;
 	rx_ofdm_entry      * rx_ofdm_entry_log_item;
@@ -187,16 +151,18 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 	tx_entry           * tx_entry_log_item;
 
 	switch( entry_type ){
-        case ENTRY_TYPE_LOG_INFO:
-        	log_info_entry_log_item = (log_info_entry*) entry;
+        case ENTRY_TYPE_NODE_INFO:
+        	node_info_entry_log_item = (node_info_entry*) entry;
 			xil_printf("%d: - Log Info entry\n", entry_number );
-			xil_printf("   Type        :   %d\n",	  log_info_entry_log_item->node_type);
-			xil_printf("   ID          :   %d\n",     log_info_entry_log_item->node_id);
-			xil_printf("   HW Gen      :   %d\n",     log_info_entry_log_item->node_hw_gen);
-			xil_printf("   Design Ver  :   %x\n",     log_info_entry_log_item->node_design_ver);
-			xil_printf("   Serial Num  :   %d\n",     log_info_entry_log_item->node_serial_number);
-			xil_printf("   Max assn    :   %d\n",     log_info_entry_log_item->node_wlan_max_assn);
-			xil_printf("   Log size    :   %d\n",     log_info_entry_log_item->node_wlan_event_log_size);
+			xil_printf("   Type        :   %d\n",     node_info_entry_log_item->type);
+			xil_printf("   ID          :   0x%4x\n",     node_info_entry_log_item->id);
+			xil_printf("   HW Gen      :   %d\n",     node_info_entry_log_item->hw_gen);
+			xil_printf("   Design Ver  :   0x%08x\n",     node_info_entry_log_item->design_ver);
+			xil_printf("   Serial Num  :   %d\n",     node_info_entry_log_item->serial_number);
+			xil_printf("   FPGA DNA    :   0x%08x  0x%08x\n", (u32)(node_info_entry_log_item->fpga_dna >>32), (u32)(node_info_entry_log_item->fpga_dna) );
+			xil_printf("   Max assn    :   %d\n",     node_info_entry_log_item->wlan_max_assn);
+			xil_printf("   Log size    :   %d\n",     node_info_entry_log_item->wlan_event_log_size);
+			xil_printf("   Max stats   :   %d\n",     node_info_entry_log_item->wlan_max_stats);
 		break;
 
         case ENTRY_TYPE_EXP_INFO:

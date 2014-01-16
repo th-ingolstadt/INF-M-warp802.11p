@@ -928,7 +928,6 @@ int transport_get_parameters(unsigned int eth_dev_num, u32 * buffer, unsigned in
     }
     
     return num_total_words;
-
 }
 
 

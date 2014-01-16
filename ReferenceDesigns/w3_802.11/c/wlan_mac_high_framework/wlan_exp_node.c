@@ -295,6 +295,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	xil_printf("In node_processCmd():  ID = %d \n", cmdID);
 #endif
 
+	wlan_mac_high_cdma_finish_transfer();
+
 	switch(cmdID){
 
 	    //---------------------------------------------------------------------
@@ -853,6 +855,21 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    break;
 
 
+	    //---------------------------------------------------------------------
+		case NODE_ADD_STATS_TO_LOG:
+			// Add the current statistics to the log
+			temp = add_statistics_to_log();
+
+			xil_printf("EVENT LOG:  Added %d statistics.\n", temp);
+
+			// Send response of oldest index
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+        break;
+
+
 		//---------------------------------------------------------------------
 		default:
 			// Call standard function in child class to parse parameters implmented there
@@ -1014,11 +1031,9 @@ int node_init_parameters( u32 *info ) {
 	int              size;
 	wn_tag_parameter temp_param;
 
-    
     unsigned int       num_params = NODE_MAX_PARAMETER;
     wn_tag_parameter * parameters = (wn_tag_parameter *)&node_parameters;
 
-    
 	// Initialize variables
 	length = 0;
 	size   = sizeof(wn_tag_parameter);
@@ -1103,7 +1118,7 @@ int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char netw
         num_param_words = length + 2;
     
         // Make sure we have space in the buffer to put the parameter
-        if ( ( num_total_words + num_param_words ) < max_words ) {
+        if ( ( num_total_words + num_param_words ) <= max_words ) {
     
             temp_word = ( ( parameters[i].reserved << 24 ) | 
                           ( parameters[i].group    << 16 ) |
@@ -1137,9 +1152,62 @@ int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char netw
     }
     
     return num_total_words;
-
 }
 
+
+
+/*****************************************************************************/
+/**
+* This function will populate a buffer with tag parameter values
+*
+* @param    buffer is a u32 pointer to store the tag parameter information
+*           max_words is a integer to specify the max number of u32 words in the buffer
+*
+* @return	number_of_words is number of words used of the buffer for the tag
+*             parameter information
+*
+* @note		The tag parameters must be initialized before this function will be
+*       called.  The user can modify the file to add additional functionality
+*       to the WARPNet Transport.
+*
+******************************************************************************/
+int node_get_parameter_values(u32 * buffer, unsigned int max_words) {
+
+    int i, j;
+    int num_total_words;
+
+    u32 length;
+
+    // NOTE:  This code is mostly portable between WARPNet components.
+    //        Please modify  if you are copying this function for other WARPNet extensions
+    unsigned int       num_params = NODE_MAX_PARAMETER;
+    wn_tag_parameter * parameters = (wn_tag_parameter *) &node_parameters;
+
+    // Initialize the total number of words used
+    num_total_words = 0;
+
+    // Iterate through all tag parameters
+    for( i = 0; i < num_params; i++ ) {
+
+        length = parameters[i].length;
+
+        // Make sure we have space in the buffer to put the parameter
+        if ( ( num_total_words + length ) <= max_words ) {
+
+			for( j = 0; j < length; j++ ) {
+				buffer[num_total_words + j] = parameters[i].value[j];
+			}
+
+            num_total_words += length;
+
+        } else {
+            // Exit the loop because there is no more space
+            break;
+        }
+    }
+
+    return num_total_words;
+}
 
 
 /*****************************************************************************/
@@ -1153,9 +1221,9 @@ int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char netw
 * @note		None.
 *
 ******************************************************************************/
-void node_info_set_max_assn      ( u32 max_assn ) { node_info.wlan_max_assn       = max_assn; }
-void node_info_set_event_log_size( u32 log_size ) { node_info.wlan_event_log_size = log_size; }
-
+void node_info_set_max_assn      ( u32 max_assn  ) { node_info.wlan_max_assn       = max_assn;  }
+void node_info_set_event_log_size( u32 log_size  ) { node_info.wlan_event_log_size = log_size;  }
+void node_info_set_max_stats     ( u32 max_stats ) { node_info.wlan_max_stats      = max_stats; }
 
 
 
