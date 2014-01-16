@@ -586,7 +586,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_entry();
 		if(rx_event_log_entry != NULL){
 			wlan_mac_high_cdma_start_transfer((&((rx_ofdm_entry*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-			((rx_ofdm_entry*)rx_event_log_entry)->timestamp = get_usec_timestamp();
+			((rx_ofdm_entry*)rx_event_log_entry)->timestamp = mpdu_info->timestamp;
 			((rx_ofdm_entry*)rx_event_log_entry)->fcs_status = RX_ENTRY_FCS_GOOD;
 			((rx_ofdm_entry*)rx_event_log_entry)->power    = mpdu_info->rx_power;
 			((rx_ofdm_entry*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
@@ -605,7 +605,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		if(rx_event_log_entry != NULL){
 			wlan_mac_high_cdma_start_transfer((&((rx_dsss_entry*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-			((rx_dsss_entry*)rx_event_log_entry)->timestamp = get_usec_timestamp();
+			((rx_dsss_entry*)rx_event_log_entry)->timestamp = mpdu_info->timestamp;
 			((rx_dsss_entry*)rx_event_log_entry)->fcs_status = RX_ENTRY_FCS_GOOD;
 			((rx_dsss_entry*)rx_event_log_entry)->power    = mpdu_info->rx_power;
 			((rx_dsss_entry*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
@@ -632,9 +632,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		if( (access_point.rx.last_seq != 0)  && (access_point.rx.last_seq == rx_seq) ) {
 			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
-#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 			return;
 
 		} else {
@@ -686,9 +683,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									association_state = 2;
 									attempt_association();
 								}
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-								if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 								return;
 							}
 						break;
@@ -734,9 +728,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						curr_ap_info = &(ap_list[num_ap_list-1]);
 					} else {
 						xil_printf("Reallocation of ap_list failed\n");
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-						if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 						return;
 					}
 
@@ -824,9 +815,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 		break;
 	}
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-	if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 	return;
 }
 
