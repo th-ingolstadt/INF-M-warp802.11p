@@ -24,7 +24,6 @@
 // WLAN includes
 #include "wlan_mac_high.h"
 
-
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_COMMON_H_
 #define WLAN_EXP_COMMON_H_
@@ -37,7 +36,7 @@
 // to a future release.
 //
 
-//#define  USE_WARPNET_WLAN_EXP
+#define  USE_WARPNET_WLAN_EXP
 
 // #define  WLAN_EXP_WAIT_FOR_ETH
 
