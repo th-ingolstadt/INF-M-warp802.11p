@@ -45,7 +45,6 @@
 
 #define ENTRY_TYPE_NODE_INFO           1
 #define ENTRY_TYPE_EXP_INFO            2
-#define ENTRY_TYPE_STATISTICS          3
 
 //-----------------------------------------------
 // Receive Entries
@@ -57,6 +56,12 @@
 // Transmit Entries
 
 #define ENTRY_TYPE_TX                  20
+
+//-----------------------------------------------
+// Statistics Entries
+
+#define ENTRY_TYPE_TXRX_STATS          30
+
 
 
 
@@ -94,7 +99,7 @@ typedef struct{
 
 
 //-----------------------------------------------
-// Statistics Entry
+// TxRx Statistics Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
 //          accurately reflects the number of bytes in the struct.
 //
@@ -109,7 +114,7 @@ typedef struct{
 	u32     num_retry;		// Total number of retransmissions to this device
 	u32     num_rx_success; // Total number of successful receptions from this device
 	u32     num_rx_bytes;	// Total number of received bytes from this device
-} statistics_entry;
+} txrx_stats_entry;
 
 
 //-----------------------------------------------

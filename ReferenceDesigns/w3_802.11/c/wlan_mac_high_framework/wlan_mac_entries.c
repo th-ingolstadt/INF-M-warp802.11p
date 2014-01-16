@@ -145,7 +145,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 
 	node_info_entry    * node_info_entry_log_item;
 	exp_info_entry     * exp_info_entry_log_item;
-	statistics_entry   * statistics_entry_log_item;
+	txrx_stats_entry   * txrx_stats_entry_log_item;
 	rx_ofdm_entry      * rx_ofdm_entry_log_item;
 	rx_dsss_entry      * rx_dsss_entry_log_item;
 	tx_entry           * tx_entry_log_item;
@@ -180,19 +180,19 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			}
 		break;
 
-		case ENTRY_TYPE_STATISTICS:
-			statistics_entry_log_item = (statistics_entry*) entry;
+		case ENTRY_TYPE_TXRX_STATS:
+			txrx_stats_entry_log_item = (txrx_stats_entry*) entry;
 			xil_printf("%d: - Statistics Event\n", entry_number );
-			xil_printf("   Last timestamp :    %d\n",        (u32)(statistics_entry_log_item->last_timestamp));
-			xil_printf("   Address        :    %02x",             (statistics_entry_log_item->addr)[0]);
-			for( i = 1; i < 6; i++) { xil_printf(":%02x",         (statistics_entry_log_item->addr)[i]); }
+			xil_printf("   Last timestamp :    %d\n",        (u32)(txrx_stats_entry_log_item->last_timestamp));
+			xil_printf("   Address        :    %02x",             (txrx_stats_entry_log_item->addr)[0]);
+			for( i = 1; i < 6; i++) { xil_printf(":%02x",         (txrx_stats_entry_log_item->addr)[i]); }
 			xil_printf("\n");
-			xil_printf("   Is associated  :    %d\n",              statistics_entry_log_item->is_associated);
-			xil_printf("   Tx total       :    %d (%d success)\n", statistics_entry_log_item->num_tx_total,
-					                                               statistics_entry_log_item->num_tx_success);
-			xil_printf("   Tx retry       :    %d\n",              statistics_entry_log_item->num_retry);
-			xil_printf("   Rx total       :    %d (%d bytes)\n",   statistics_entry_log_item->num_rx_success,
-					                                               statistics_entry_log_item->num_rx_bytes);
+			xil_printf("   Is associated  :    %d\n",              txrx_stats_entry_log_item->is_associated);
+			xil_printf("   Tx total       :    %d (%d success)\n", txrx_stats_entry_log_item->num_tx_total,
+					                                               txrx_stats_entry_log_item->num_tx_success);
+			xil_printf("   Tx retry       :    %d\n",              txrx_stats_entry_log_item->num_retry);
+			xil_printf("   Rx total       :    %d (%d bytes)\n",   txrx_stats_entry_log_item->num_rx_success,
+					                                               txrx_stats_entry_log_item->num_rx_bytes);
 		break;
 
 		case ENTRY_TYPE_RX_OFDM:

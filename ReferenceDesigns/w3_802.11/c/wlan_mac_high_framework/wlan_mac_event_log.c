@@ -819,7 +819,7 @@ void add_node_info_entry(){
 
 /*****************************************************************************/
 /**
-* Add the current statistics to the log
+* Add the current tx/rx statistics to the log
 *
 * @param    None.
 *
@@ -828,14 +828,14 @@ void add_node_info_entry(){
 * @note		None.
 *
 ******************************************************************************/
-u32 add_statistics_to_log(){
+u32 add_txrx_statistics_to_log(){
 
 	u32 i;
-	u32                event_size = sizeof(statistics_entry);
+	u32                event_size = sizeof(txrx_stats_entry);
 	u32                stats_size = sizeof(statistics) - sizeof(dl_node);
 	dl_list          * list = &statistics_table;
 	statistics       * curr_statistics;
-	statistics_entry * entry;
+	txrx_stats_entry * entry;
 
     if ( stats_size >= event_size ) {
     	// If the statistics structure in wlan_mac_high.h is bigger than the statistics
@@ -850,7 +850,7 @@ u32 add_statistics_to_log(){
 
 	for( i = 0; i < list->length; i++){
 
-		entry = (statistics_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATISTICS, event_size );
+		entry = (txrx_stats_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TXRX_STATS, event_size );
 
 		if ( entry != NULL ) {
 			entry->timestamp = get_usec_timestamp();

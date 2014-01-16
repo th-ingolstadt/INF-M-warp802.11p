@@ -858,7 +858,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_ADD_STATS_TO_LOG:
 			// Add the current statistics to the log
-			temp = add_statistics_to_log();
+			temp = add_txrx_statistics_to_log();
 
 			xil_printf("EVENT LOG:  Added %d statistics.\n", temp);
 

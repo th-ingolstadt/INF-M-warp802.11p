@@ -87,6 +87,6 @@ void      print_event_log( u32 num_events );
 void      print_event_log_size();
 
 void      add_node_info_entry();
-u32       add_statistics_to_log();
+u32       add_txrx_statistics_to_log();
 
 #endif /* WLAN_MAC_EVENT_LOG_H_ */
