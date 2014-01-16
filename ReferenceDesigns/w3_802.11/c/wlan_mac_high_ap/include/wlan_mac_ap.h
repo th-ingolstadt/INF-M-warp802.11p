@@ -145,6 +145,7 @@ void deauthenticate_stations();
 
 station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
 statistics* add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
+dl_list * get_statistics();
 int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
 u8 is_valid_association(dl_list* assoc_tbl, station_info* station);
 
