@@ -247,8 +247,8 @@ void wlan_mac_high_set_time( u64 timestamp );
 int  wlan_mac_high_is_cpu_low_initialized();
 int  wlan_mac_high_is_cpu_low_ready();
 inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length);
-void wlan_mac_high_set_debug_gpio(u8 val);
-void wlan_mac_high_clear_debug_gpio(u8 val);
+inline void wlan_mac_high_set_debug_gpio(u8 val);
+inline void wlan_mac_high_clear_debug_gpio(u8 val);
 int str2num(char* str);
 void usleep(u64 delay);
 

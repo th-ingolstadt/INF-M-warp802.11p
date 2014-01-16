@@ -1403,7 +1403,6 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
 				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
-
 				//Free up the rx_pkt_buf
 				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 
@@ -1678,13 +1677,13 @@ inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 	return NULL;
 }
 
-void wlan_mac_high_set_debug_gpio(u8 val){
-	debug_gpio_state |= (val & 0xFF);
+inline void wlan_mac_high_set_debug_gpio(u8 val){
+	debug_gpio_state |= (val & 0xF);
 	XGpio_DiscreteWrite(&Gpio, GPIO_OUTPUT_CHANNEL, debug_gpio_state);
 }
 
-void wlan_mac_high_clear_debug_gpio(u8 val){
-	debug_gpio_state &= !(val & 0xFF);
+inline void wlan_mac_high_clear_debug_gpio(u8 val){
+	debug_gpio_state &= ~(val & 0xF);
 	XGpio_DiscreteWrite(&Gpio, GPIO_OUTPUT_CHANNEL, debug_gpio_state);
 }
 
