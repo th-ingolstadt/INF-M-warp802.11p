@@ -433,6 +433,9 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	}
 
 	if(wlan_mac_dcf_hw_rx_finish() == RX_DONE_FCS_GOOD) {
+
+		mpdu_info->timestamp = get_rx_start_timestamp();
+
 		return_value |= POLL_MAC_STATUS_GOOD;
 
 		if(unicast_to_me || to_broadcast){
@@ -473,7 +476,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 		} //END if (to_me or to_broadcast)
 	}  else { //END if (FCS good)
 
-
+		mpdu_info->timestamp = get_rx_start_timestamp();
 		mpdu_info->state = RX_MPDU_STATE_FCS_BAD;
 		ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_RX_BAD_FCS);
 		ipc_msg_to_high.arg0 = rx_pkt_buf;
