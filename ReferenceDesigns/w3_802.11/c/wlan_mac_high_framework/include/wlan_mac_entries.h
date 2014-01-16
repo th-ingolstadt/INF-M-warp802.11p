@@ -117,11 +117,6 @@ typedef struct{
 } txrx_stats_entry;
 
 
-//-----------------------------------------------
-// Receive OFDM Entry
-//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
-//          accurately reflects the number of bytes in the struct.
-//
 typedef struct{
 	u64  timestamp;
 	mac_header_80211 mac_hdr;
@@ -135,6 +130,19 @@ typedef struct{
 	u8   rf_gain;
 	u8   bb_gain;
 	u8   rsvd[2];
+} rx_common_entry;
+
+#define RX_ENTRY_FCS_GOOD 0
+#define RX_ENTRY_FCS_BAD 1
+
+
+//-----------------------------------------------
+// Receive OFDM Entry
+//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
+//          accurately reflects the number of bytes in the struct.
+//
+typedef struct{
+	rx_common_entry rx_entry;
 #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
 	u32	 channel_est[64];
 #endif
@@ -147,23 +155,8 @@ typedef struct{
 //          accurately reflects the number of bytes in the struct.
 //
 typedef struct{
-	u64  timestamp;
-	mac_header_80211 mac_hdr;
-	u16	 length;
-	u8   rate;
-	s8   power;
-	u8	 fcs_status;
-	u8 	 pkt_type;
-	u8 	 chan_num;
-	u8 	 ant_mode;
-	u8   rf_gain;
-	u8   bb_gain;
-	u8   rsvd[2];
+	rx_common_entry rx_common_entry;
 } rx_dsss_entry;
-
-#define RX_ENTRY_FCS_GOOD 0
-#define RX_ENTRY_FCS_BAD 1
-
 
 //-----------------------------------------------
 // Transmit Entry

@@ -74,7 +74,6 @@ function_ptr_t     pb_d_callback;			///< User callback for "down" pushbutton
 function_ptr_t     uart_callback;			///< User callback for UART reception
 function_ptr_t     mpdu_tx_done_callback;	///< User callback for lower-level message that MPDU transmission is complete
 function_ptr_t     mpdu_rx_callback;		///< User callback for lower-level message that MPDU reception is ready for processing
-function_ptr_t     fcs_bad_rx_callback;		///< User callback for lower-level message that a bad FCS event has occured
 function_ptr_t     mpdu_tx_accept_callback; ///< User callback for lower-level message that MPDU has been accepted for transmission
 
 // Node information
@@ -184,7 +183,6 @@ void wlan_mac_high_init(){
 	pb_d_callback           = (function_ptr_t)nullCallback;
 	uart_callback           = (function_ptr_t)nullCallback;
 	mpdu_rx_callback        = (function_ptr_t)nullCallback;
-	fcs_bad_rx_callback     = (function_ptr_t)nullCallback;
 	mpdu_tx_done_callback   = (function_ptr_t)nullCallback;
 	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
 
@@ -694,22 +692,6 @@ void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback){
  */
 void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback){
 	mpdu_tx_done_callback = callback;
-}
-
-/**
- * @brief Set Bad FCS Reception Callback
- *
- * Tells the framework which function should be called when
- * the lower-level CPU receives a frame whose frame check
- * sequence is incorrect.
- *
- * @param function_ptr_t callback
- *  - Pointer to callback function
- * @return None
- *
- */
-void wlan_mac_high_set_fcs_bad_rx_callback(function_ptr_t callback){
-	fcs_bad_rx_callback = callback;
 }
 
 /**
@@ -1403,29 +1385,6 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
 				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
-				//Free up the rx_pkt_buf
-				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
-
-				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-					warp_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n",rx_pkt_buf);
-				}
-			}
-		break;
-
-		case IPC_MBOX_RX_BAD_FCS:
-			//This message indicates CPU Low has received a frame whose FCS failed
-
-			rx_pkt_buf = msg->arg0;
-
-			//First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
-			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
-			} else {
-				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
-
-				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
-				fcs_bad_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
-
 				//Free up the rx_pkt_buf
 				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 

@@ -214,7 +214,6 @@ void wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
 void wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
 void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
 void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
-void wlan_mac_high_set_fcs_bad_rx_callback(function_ptr_t callback);
 void wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback);
 u64  get_usec_timestamp();

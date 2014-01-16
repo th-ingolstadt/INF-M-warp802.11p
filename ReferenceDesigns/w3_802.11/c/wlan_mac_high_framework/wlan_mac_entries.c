@@ -146,8 +146,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 	node_info_entry    * node_info_entry_log_item;
 	exp_info_entry     * exp_info_entry_log_item;
 	txrx_stats_entry   * txrx_stats_entry_log_item;
-	rx_ofdm_entry      * rx_ofdm_entry_log_item;
-	rx_dsss_entry      * rx_dsss_entry_log_item;
+	rx_common_entry    * rx_common_log_item;
 	tx_entry           * tx_entry_log_item;
 
 	switch( entry_type ){
@@ -196,38 +195,38 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 		break;
 
 		case ENTRY_TYPE_RX_OFDM:
-			rx_ofdm_entry_log_item = (rx_ofdm_entry*) entry;
+			rx_common_log_item = (rx_common_entry*) entry;
 			xil_printf("%d: - Rx OFDM Event\n", entry_number );
-			xil_printf("   Time:     %d\n",		(u32)(rx_ofdm_entry_log_item->timestamp));
-			xil_printf("   FCS:      %d\n",     rx_ofdm_entry_log_item->fcs_status);
-			xil_printf("   Pow:      %d\n",     rx_ofdm_entry_log_item->power);
-			xil_printf("   Rate:     %d\n",     rx_ofdm_entry_log_item->rate);
-			xil_printf("   Length:   %d\n",     rx_ofdm_entry_log_item->length);
-			xil_printf("   Pkt Type: 0x%x\n",   rx_ofdm_entry_log_item->pkt_type);
-			xil_printf("   Channel:  %d\n",     rx_ofdm_entry_log_item->chan_num);
 #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
 			xil_printf("   Channel Estimates:\n");
 
 			for( i = 0; i < 16; i++) {
 				xil_printf("        ");
 				for( j = 0; j < 4; j++){
-					xil_printf("0x%8x ", (rx_ofdm_entry_log_item->channel_est)[4*i + j]);
+					xil_printf("0x%8x ", (((rx_ofdm_entry*)rx_common_log_item)->channel_est)[4*i + j]);
 				}
 				xil_printf("\n");
 			}
 #endif
+			xil_printf("   Time:     %d\n",		(u32)(rx_common_log_item->timestamp));
+			xil_printf("   FCS:      %d\n",     rx_common_log_item->fcs_status);
+			xil_printf("   Pow:      %d\n",     rx_common_log_item->power);
+			xil_printf("   Rate:     %d\n",     rx_common_log_item->rate);
+			xil_printf("   Length:   %d\n",     rx_common_log_item->length);
+			xil_printf("   Pkt Type: 0x%x\n",   rx_common_log_item->pkt_type);
+			xil_printf("   Channel:  %d\n",     rx_common_log_item->chan_num);
 		break;
 
 		case ENTRY_TYPE_RX_DSSS:
-			rx_dsss_entry_log_item = (rx_dsss_entry*) entry;
+			rx_common_log_item = (rx_common_entry*) entry;
 			xil_printf("%d: - Rx DSSS Event\n", entry_number );
-			xil_printf("   Time:     %d\n",		(u32)(rx_dsss_entry_log_item->timestamp));
-			xil_printf("   FCS:      %d\n",     rx_dsss_entry_log_item->fcs_status);
-			xil_printf("   Pow:      %d\n",     rx_dsss_entry_log_item->power);
-			xil_printf("   Rate:     %d\n",     rx_dsss_entry_log_item->rate);
-			xil_printf("   Length:   %d\n",     rx_dsss_entry_log_item->length);
-			xil_printf("   Pkt Type: 0x%x\n",   rx_dsss_entry_log_item->pkt_type);
-			xil_printf("   Channel:  %d\n",     rx_dsss_entry_log_item->chan_num);
+			xil_printf("   Time:     %d\n",		(u32)(rx_common_log_item->timestamp));
+			xil_printf("   FCS:      %d\n",     rx_common_log_item->fcs_status);
+			xil_printf("   Pow:      %d\n",     rx_common_log_item->power);
+			xil_printf("   Rate:     %d\n",     rx_common_log_item->rate);
+			xil_printf("   Length:   %d\n",     rx_common_log_item->length);
+			xil_printf("   Pkt Type: 0x%x\n",   rx_common_log_item->pkt_type);
+			xil_printf("   Channel:  %d\n",     rx_common_log_item->chan_num);
 		break;
 
 		case ENTRY_TYPE_TX:
