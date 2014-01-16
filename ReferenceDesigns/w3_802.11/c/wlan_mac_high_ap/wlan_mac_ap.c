@@ -125,7 +125,8 @@ int main(){
 	default_tx_gain_target = TX_GAIN_TARGET;
 
 #ifdef USE_WARPNET_WLAN_EXP
-	//node_info_set_max_assn( MAX_ASSOCIATIONS );
+	node_info_set_max_assn( MAX_NUM_ASSOC );
+	node_info_set_max_stats( MAX_NUM_PROMISC_STATS );
 	wlan_mac_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
 #endif
 
@@ -181,6 +182,8 @@ int main(){
 
 	enable_associations( ASSOCIATION_ALLOW_PERMANENT );
 
+	// Reset the event log
+	event_log_reset();
 
 	// Print AP information to the terminal
     xil_printf("WLAN MAC AP boot complete: \n");
