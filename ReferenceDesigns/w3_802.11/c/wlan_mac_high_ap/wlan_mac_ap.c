@@ -35,7 +35,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_event_log.h"
+//#include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
@@ -65,7 +65,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-EJW";
+static char default_AP_SSID[] = "WARP-AP";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -547,7 +547,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	//*************
 	// Event logging
 	//*************
-
 	if(rate != WLAN_MAC_RATE_1M){
 		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_entry();
 		if(rx_event_log_entry != NULL){
@@ -582,7 +581,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		}
 	}
 
-
 	associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
 
 	if( associated_station != NULL ){
@@ -596,9 +594,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		//Check if duplicate
 		if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
 			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
-#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 			return;
 
 		} else {
@@ -738,9 +733,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						enqueue_after_end(0, &checkout);
 						check_tx_queue();
 					}
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-					if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 					return;
 				}
 			}
@@ -769,9 +761,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									enqueue_after_end(0, &checkout);
 									check_tx_queue();
 								}
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-								if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 								return;
 							}
 						break;
@@ -795,9 +784,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							}
 
 							warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
-							#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-								if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-							#endif
 							return;
 						break;
 					}
@@ -828,10 +814,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						enqueue_after_end(associated_station->AID, &checkout);
 						check_tx_queue();
 					}
-
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-						if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 					return;
 				} else {
 					//Checkout 1 element from the queue;
@@ -867,9 +849,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 		break;
 	}
-#ifdef WLAN_MAC_EVENTS_LOG_CHAN_EST
-	if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_finish_transfer();
-#endif
 	return;
 }
 
@@ -890,7 +869,7 @@ void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_entry();
 		if(rx_event_log_entry != NULL){
 			wlan_mac_high_cdma_start_transfer((&((rx_ofdm_entry*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-			((rx_ofdm_entry*)rx_event_log_entry)->timestamp = get_usec_timestamp();
+			((rx_ofdm_entry*)rx_event_log_entry)->timestamp = mpdu_info->timestamp;
 			((rx_ofdm_entry*)rx_event_log_entry)->fcs_status = RX_ENTRY_FCS_BAD;
 			((rx_ofdm_entry*)rx_event_log_entry)->power    = mpdu_info->rx_power;
 			((rx_ofdm_entry*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
@@ -909,7 +888,7 @@ void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		if(rx_event_log_entry != NULL){
 			wlan_mac_high_cdma_start_transfer((&((rx_dsss_entry*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-			((rx_dsss_entry*)rx_event_log_entry)->timestamp = get_usec_timestamp();
+			((rx_dsss_entry*)rx_event_log_entry)->timestamp = mpdu_info->timestamp;
 			((rx_dsss_entry*)rx_event_log_entry)->fcs_status = RX_ENTRY_FCS_BAD;
 			((rx_dsss_entry*)rx_event_log_entry)->power    = mpdu_info->rx_power;
 			((rx_dsss_entry*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
