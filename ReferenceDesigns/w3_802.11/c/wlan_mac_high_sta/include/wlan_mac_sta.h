@@ -109,6 +109,7 @@ void probe_req_transmit();
 void attempt_authentication();
 
 void reset_station_statistics();
+dl_list * get_statistics();
 
 int  get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words );
 

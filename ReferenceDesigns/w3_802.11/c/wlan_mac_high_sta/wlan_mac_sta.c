@@ -635,8 +635,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
 					//MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
 
-					(access_point.stats->num_rx_success)++;
-					(access_point.stats->num_rx_bytes) += mpdu_info->length;
+					if(wlan_addr_eq(bcast_addr, rx_80211_header->address_1) == 0){
+						//We only count the receive statistics of unicast wireless packets
+					    (access_point.stats->num_rx_success)++;
+						(access_point.stats->num_rx_bytes) += mpdu_info->length;
+					}
 
 					wlan_mpdu_eth_send(mpdu,length);
 				}
