@@ -959,6 +959,9 @@ void reset_station_statistics(){
 }
 
 
+dl_list * get_statistics(){
+	return NULL;
+}
 
 
 /*****************************************************************************/
