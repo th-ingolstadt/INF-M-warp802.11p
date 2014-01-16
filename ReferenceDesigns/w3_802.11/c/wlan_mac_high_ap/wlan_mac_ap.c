@@ -65,7 +65,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -139,7 +139,6 @@ int main(){
 	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
 	wlan_mac_high_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
-	wlan_mac_high_set_fcs_bad_rx_callback(   (void*)bad_fcs_rx_process);
 	wlan_mac_high_set_pb_u_callback(         (void*)up_button);
 	wlan_mac_high_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_high_set_mpdu_accept_callback(  (void*)check_tx_queue);
@@ -543,7 +542,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	statistics* station_stats = NULL;
 	u8 eth_send;
 
-	void* rx_event_log_entry;
+	rx_common_entry* rx_event_log_entry;
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
@@ -551,203 +550,214 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	// Event logging
 	//*************
 	if(rate != WLAN_MAC_RATE_1M){
-		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_entry();
-		if(rx_event_log_entry != NULL){
-			wlan_mac_high_cdma_start_transfer((&((rx_ofdm_entry*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-			((rx_ofdm_entry*)rx_event_log_entry)->fcs_status = RX_ENTRY_FCS_GOOD;
-			((rx_ofdm_entry*)rx_event_log_entry)->power    = mpdu_info->rx_power;
-			((rx_ofdm_entry*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
-			((rx_ofdm_entry*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
-			((rx_ofdm_entry*)rx_event_log_entry)->length   = mpdu_info->length;
-			((rx_ofdm_entry*)rx_event_log_entry)->rate     = mpdu_info->rate;
-			((rx_ofdm_entry*)rx_event_log_entry)->pkt_type = wlan_mac_high_pkt_type(mpdu,length);
-			((rx_ofdm_entry*)rx_event_log_entry)->chan_num = mac_param_chan;
-			((rx_ofdm_entry*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
-	#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-			wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
-	#endif
-		}
+		rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_ofdm_entry();
 	} else {
-		rx_event_log_entry = (void*)get_next_empty_rx_dsss_entry();
-
-		if(rx_event_log_entry != NULL){
-			wlan_mac_high_cdma_start_transfer((&((rx_dsss_entry*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-			((rx_dsss_entry*)rx_event_log_entry)->fcs_status = RX_ENTRY_FCS_GOOD;
-			((rx_dsss_entry*)rx_event_log_entry)->power    = mpdu_info->rx_power;
-			((rx_dsss_entry*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
-			((rx_dsss_entry*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
-			((rx_dsss_entry*)rx_event_log_entry)->length   = mpdu_info->length;
-			((rx_dsss_entry*)rx_event_log_entry)->rate     = mpdu_info->rate;
-			((rx_dsss_entry*)rx_event_log_entry)->pkt_type = wlan_mac_high_pkt_type(mpdu,length);
-			((rx_dsss_entry*)rx_event_log_entry)->chan_num = mac_param_chan;
-			((rx_dsss_entry*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
-		}
+		rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_dsss_entry();
+	}
+	if(rx_event_log_entry != NULL){
+		wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+		rx_event_log_entry->fcs_status = (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
+		rx_event_log_entry->timestamp  =  mpdu_info->timestamp;
+		rx_event_log_entry->power      = mpdu_info->rx_power;
+		rx_event_log_entry->rf_gain    = mpdu_info->rf_gain;
+		rx_event_log_entry->bb_gain    = mpdu_info->bb_gain;
+		rx_event_log_entry->length     = mpdu_info->length;
+		rx_event_log_entry->rate       = mpdu_info->rate;
+		rx_event_log_entry->pkt_type   = wlan_mac_high_pkt_type(mpdu,length);
+		rx_event_log_entry->chan_num   = mac_param_chan;
+		rx_event_log_entry->ant_mode   = mpdu_info->ant_mode;
+#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
+		if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+#endif
 	}
 
-	associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
+	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
+		//GOOD FCS
+		associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
 
-	if( associated_station != NULL ){
-		station_stats = associated_station->stats;
-		rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+		if( associated_station != NULL ){
+			station_stats = associated_station->stats;
+			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 
-		associated_station->rx.last_timestamp = get_usec_timestamp();
-		associated_station->rx.last_power = mpdu_info->rx_power;
-		associated_station->rx.last_rate = mpdu_info->rate;
+			associated_station->rx.last_timestamp = get_usec_timestamp();
+			associated_station->rx.last_power = mpdu_info->rx_power;
+			associated_station->rx.last_rate = mpdu_info->rate;
 
-		//Check if duplicate
-		if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
-			//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
-			return;
+			//Check if duplicate
+			if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
+				//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
+				return;
 
+			} else {
+				associated_station->rx.last_seq = rx_seq;
+			}
 		} else {
-			associated_station->rx.last_seq = rx_seq;
+			station_stats = add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
 		}
-	} else {
-		station_stats = add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
-	}
 
-	if(station_stats != NULL){
-		station_stats->last_timestamp = get_usec_timestamp();
-		(station_stats->num_rx_success)++;
-		(station_stats->num_rx_bytes) += mpdu_info->length;
-	}
+		if(station_stats != NULL){
+			station_stats->last_timestamp = get_usec_timestamp();
+			(station_stats->num_rx_success)++;
+			(station_stats->num_rx_bytes) += mpdu_info->length;
+		}
 
-	switch(rx_80211_header->frame_control_1) {
-		case (MAC_FRAME_CTRL1_SUBTYPE_DATA): //Data Packet
-			if(associated_station != NULL){
-				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
-					//MPDU is flagged as destined to the DS
-					eth_send = 1;
+		switch(rx_80211_header->frame_control_1) {
+			case (MAC_FRAME_CTRL1_SUBTYPE_DATA): //Data Packet
+				if(associated_station != NULL){
+					if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
+						//MPDU is flagged as destined to the DS
+						eth_send = 1;
 
-					if(wlan_addr_eq(rx_80211_header->address_3,bcast_addr)){
+						if(wlan_addr_eq(rx_80211_header->address_3,bcast_addr)){
 
-						 	queue_checkout(&checkout,1);
+								queue_checkout(&checkout,1);
 
-						 	if(checkout.length == 1){ //There was at least 1 free queue element
-						 		tx_queue = (packet_bd*)(checkout.first);
-						 		wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, rx_80211_header->address_2);
-						 		mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
-								tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
-								mpdu_ptr_u8 += sizeof(mac_header_80211);
-								memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
-						 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, mpdu_info->length, 0, default_tx_gain_target, 0 );
-						 		enqueue_after_end(0, &checkout);
-						 		check_tx_queue();
-						 	}
+								if(checkout.length == 1){ //There was at least 1 free queue element
+									tx_queue = (packet_bd*)(checkout.first);
+									wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, rx_80211_header->address_2);
+									mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
+									tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
+									mpdu_ptr_u8 += sizeof(mac_header_80211);
+									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
+									wlan_mac_high_setup_tx_queue ( tx_queue, NULL, mpdu_info->length, 0, default_tx_gain_target, 0 );
+									enqueue_after_end(0, &checkout);
+									check_tx_queue();
+								}
 
-					} else {
-						associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_3);
+						} else {
+							associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_3);
 
-						if(associated_station != NULL){
-							queue_checkout(&checkout,1);
+							if(associated_station != NULL){
+								queue_checkout(&checkout,1);
 
-							if(checkout.length == 1){ //There was at least 1 free queue element
-								tx_queue = (packet_bd*)(checkout.first);
-								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_3, rx_80211_header->address_2);
-								mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
-								tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
-								mpdu_ptr_u8 += sizeof(mac_header_80211);
-								memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
-								wlan_mac_high_setup_tx_queue ( tx_queue, (void*)associated_station, mpdu_info->length, MAX_RETRY, default_tx_gain_target,
-															 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+								if(checkout.length == 1){ //There was at least 1 free queue element
+									tx_queue = (packet_bd*)(checkout.first);
+									wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_3, rx_80211_header->address_2);
+									mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
+									tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
+									mpdu_ptr_u8 += sizeof(mac_header_80211);
+									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
+									wlan_mac_high_setup_tx_queue ( tx_queue, (void*)associated_station, mpdu_info->length, MAX_RETRY, default_tx_gain_target,
+																 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-								enqueue_after_end(associated_station->AID,  &checkout);
+									enqueue_after_end(associated_station->AID,  &checkout);
 
-								check_tx_queue();
-								#ifndef ALLOW_ETH_TX_OF_WIRELESS_TX
-								eth_send = 0;
-								#endif
+									check_tx_queue();
+									#ifndef ALLOW_ETH_TX_OF_WIRELESS_TX
+									eth_send = 0;
+									#endif
+								}
 							}
 						}
+
+						if(eth_send){
+							wlan_mpdu_eth_send(mpdu,length);
+						}
+
 					}
+				} else {
+					//TODO: Formally adopt conventions from 10.3 in 802.11-2012 for STA state transitions
+					if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)){
+						if((rx_80211_header->address_3[0] == 0x33) && (rx_80211_header->address_3[1] == 0x33)){
+							//TODO: This is an IPv6 Multicast packet. It should get de-encapsulated and sent over the wire
+						} else {
+							//Received a data frame from a STA that claims to be associated with this AP but is not in the AP association table
+							// Discard the MPDU and reply with a de-authentication frame to trigger re-association at the STA
 
-					if(eth_send){
-						wlan_mpdu_eth_send(mpdu,length);
+							warp_printf(PL_WARNING, "Data from non-associated station: [%x %x %x %x %x %x], issuing de-authentication\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
+							warp_printf(PL_WARNING, "Address 3: [%x %x %x %x %x %x]\n", rx_80211_header->address_3[0],rx_80211_header->address_3[1],rx_80211_header->address_3[2],rx_80211_header->address_3[3],rx_80211_header->address_3[4],rx_80211_header->address_3[5]);
+
+							//Send De-authentication
+							//Checkout 1 element from the queue;
+								queue_checkout(&checkout,1);
+								if(checkout.length == 1){ //There was at least 1 free queue element
+									tx_queue = (packet_bd*)(checkout.first);
+									wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+									tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
+									wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
+													 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+									enqueue_after_end(0, &checkout);
+									check_tx_queue();
+								}
+						}
 					}
+				}//END if(associated_station != NULL)
 
-				}
-			} else {
-				//TODO: Formally adopt conventions from 10.3 in 802.11-2012 for STA state transitions
-				if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)){
-					if((rx_80211_header->address_3[0] == 0x33) && (rx_80211_header->address_3[1] == 0x33)){
-						//TODO: This is an IPv6 Multicast packet. It should get de-encapsulated and sent over the wire
-					} else {
-						//Received a data frame from a STA that claims to be associated with this AP but is not in the AP association table
-						// Discard the MPDU and reply with a de-authentication frame to trigger re-association at the STA
+			break;
 
-						warp_printf(PL_WARNING, "Data from non-associated station: [%x %x %x %x %x %x], issuing de-authentication\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
-						warp_printf(PL_WARNING, "Address 3: [%x %x %x %x %x %x]\n", rx_80211_header->address_3[0],rx_80211_header->address_3[1],rx_80211_header->address_3[2],rx_80211_header->address_3[3],rx_80211_header->address_3[4],rx_80211_header->address_3[5]);
-
-						//Send De-authentication
-						//Checkout 1 element from the queue;
-							queue_checkout(&checkout,1);
-							if(checkout.length == 1){ //There was at least 1 free queue element
-								tx_queue = (packet_bd*)(checkout.first);
-								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
-								tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
-						 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
-						 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-								enqueue_after_end(0, &checkout);
-								check_tx_queue();
-							}
-					}
-				}
-			}//END if(associated_station != NULL)
-
-		break;
-
-		case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_REQ): //Probe Request Packet
-			if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr)) {
-				//BSS Id: Broadcast
-				mpdu_ptr_u8 += sizeof(mac_header_80211);
-				while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= length){ //Loop through tagged parameters
-					switch(mpdu_ptr_u8[0]){ //What kind of tag is this?
-						case TAG_SSID_PARAMS: //SSID parameter set
-							if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)access_point_ssid,mpdu_ptr_u8[1])==0)) {
-								//Broadcast SSID or my SSID - send unicast probe response
-								send_response = 1;
-							}
-						break;
-						case TAG_SUPPORTED_RATES: //Supported rates
-						break;
-						case TAG_EXT_SUPPORTED_RATES: //Extended supported rates
-						break;
-						case TAG_DS_PARAMS: //DS Parameter set (e.g. channel)
-						break;
-					}
-					mpdu_ptr_u8 += mpdu_ptr_u8[1]+2; //Move up to the next tag
-				}
-				if(send_response && allow_assoc) {
-
-					//Checkout 1 element from the queue;
-					queue_checkout(&checkout,1);
-
-					if(checkout.length == 1){ //There was at least 1 free queue element
-						tx_queue = (packet_bd*)(checkout.first);
-
-						wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
-
-						tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-
-				 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
-				 				         (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-						enqueue_after_end(0, &checkout);
-						check_tx_queue();
-					}
-					return;
-				}
-			}
-		break;
-
-		case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication Packet
-
-			if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr)) {
+			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_REQ): //Probe Request Packet
+				if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr)) {
+					//BSS Id: Broadcast
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
-					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
-						case AUTH_ALGO_OPEN_SYSTEM:
-							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
+					while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= length){ //Loop through tagged parameters
+						switch(mpdu_ptr_u8[0]){ //What kind of tag is this?
+							case TAG_SSID_PARAMS: //SSID parameter set
+								if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)access_point_ssid,mpdu_ptr_u8[1])==0)) {
+									//Broadcast SSID or my SSID - send unicast probe response
+									send_response = 1;
+								}
+							break;
+							case TAG_SUPPORTED_RATES: //Supported rates
+							break;
+							case TAG_EXT_SUPPORTED_RATES: //Extended supported rates
+							break;
+							case TAG_DS_PARAMS: //DS Parameter set (e.g. channel)
+							break;
+						}
+						mpdu_ptr_u8 += mpdu_ptr_u8[1]+2; //Move up to the next tag
+					}
+					if(send_response && allow_assoc) {
+
+						//Checkout 1 element from the queue;
+						queue_checkout(&checkout,1);
+
+						if(checkout.length == 1){ //There was at least 1 free queue element
+							tx_queue = (packet_bd*)(checkout.first);
+
+							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
+							tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
+
+							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
+											 (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+							enqueue_after_end(0, &checkout);
+							check_tx_queue();
+						}
+						return;
+					}
+				}
+			break;
+
+			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication Packet
+
+				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr)) {
+						mpdu_ptr_u8 += sizeof(mac_header_80211);
+						switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
+							case AUTH_ALGO_OPEN_SYSTEM:
+								if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
+									//Checkout 1 element from the queue;
+									queue_checkout(&checkout,1);
+
+									if(checkout.length == 1){ //There was at least 1 free queue element
+										tx_queue = (packet_bd*)(checkout.first);
+
+										wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
+										tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
+
+										wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
+														 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+										enqueue_after_end(0, &checkout);
+										check_tx_queue();
+									}
+									return;
+								}
+							break;
+							default:
+
 								//Checkout 1 element from the queue;
 								queue_checkout(&checkout,1);
 
@@ -756,153 +766,88 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 									wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
-									tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
+									tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE);
 
-							 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
-							 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+									wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
+													 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 									enqueue_after_end(0, &checkout);
 									check_tx_queue();
 								}
+
+								warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
 								return;
-							}
-						break;
-						default:
-
-							//Checkout 1 element from the queue;
-							queue_checkout(&checkout,1);
-
-							if(checkout.length == 1){ //There was at least 1 free queue element
-								tx_queue = (packet_bd*)(checkout.first);
-
-								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
-
-								tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE);
-
-						 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
-						 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-								enqueue_after_end(0, &checkout);
-								check_tx_queue();
-							}
-
-							warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
-							return;
-						break;
+							break;
+						}
 					}
+			break;
+
+			case (MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ): //Re-association Request
+			case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ): //Association Request
+				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr)) {
+
+					associated_station = add_association(&association_table, &statistics_table, rx_80211_header->address_2);
+
+					if(associated_station != NULL) {
+
+						//Checkout 1 element from the queue;
+						queue_checkout(&checkout,1);
+
+						if(checkout.length == 1){ //There was at least 1 free queue element
+							tx_queue = (packet_bd*)(checkout.first);
+
+							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
+							tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, STATUS_SUCCESS, associated_station->AID);
+
+							wlan_mac_high_setup_tx_queue ( tx_queue, (void*)associated_station, tx_length, MAX_RETRY, default_tx_gain_target,
+											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+							enqueue_after_end(associated_station->AID, &checkout);
+							check_tx_queue();
+						}
+						return;
+					} else {
+						//Checkout 1 element from the queue;
+						queue_checkout(&checkout,1);
+
+						if(checkout.length == 1){ //There was at least 1 free queue element
+							tx_queue = (packet_bd*)(checkout.first);
+
+							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
+							tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0);
+
+							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
+											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+							enqueue_after_end(0, &checkout);
+							check_tx_queue();
+						}
+					}
+
 				}
-		break;
+			break;
 
-		case (MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ): //Re-association Request
-		case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ): //Association Request
-			if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr)) {
+			case (MAC_FRAME_CTRL1_SUBTYPE_DISASSOC): //Disassociation
 
-				associated_station = add_association(&association_table, &statistics_table, rx_80211_header->address_2);
+					remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
 
-				if(associated_station != NULL) {
+			break;
 
-					//Checkout 1 element from the queue;
-					queue_checkout(&checkout,1);
-
-					if(checkout.length == 1){ //There was at least 1 free queue element
-						tx_queue = (packet_bd*)(checkout.first);
-
-						wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
-
-						tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, STATUS_SUCCESS, associated_station->AID);
-
-				 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)associated_station, tx_length, MAX_RETRY, default_tx_gain_target,
-				 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-						enqueue_after_end(associated_station->AID, &checkout);
-						check_tx_queue();
-					}
-					return;
-				} else {
-					//Checkout 1 element from the queue;
-					queue_checkout(&checkout,1);
-
-					if(checkout.length == 1){ //There was at least 1 free queue element
-						tx_queue = (packet_bd*)(checkout.first);
-
-						wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
-
-						tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0);
-
-				 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
-				 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-						enqueue_after_end(0, &checkout);
-						check_tx_queue();
-					}
-				}
-
-			}
-		break;
-
-		case (MAC_FRAME_CTRL1_SUBTYPE_DISASSOC): //Disassociation
-
-				remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
-
-		break;
-
-		default:
-			//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
-			//null data frames (type: DATA, subtype: 0x4) for power management reasons.
-			warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
-		break;
-	}
-	return;
-}
-
-void bad_fcs_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
-	void * mpdu = pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8* mpdu_ptr_u8 = (u8*)mpdu;
-	mac_header_80211* rx_80211_header;
-	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
-	void* rx_event_log_entry;
-
-	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
-
-	//*************
-	// Event logging
-	//*************
-
-	if(rate != WLAN_MAC_RATE_1M){
-		rx_event_log_entry = (void*)get_next_empty_rx_ofdm_entry();
-		if(rx_event_log_entry != NULL){
-			wlan_mac_high_cdma_start_transfer((&((rx_ofdm_entry*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-			((rx_ofdm_entry*)rx_event_log_entry)->timestamp = mpdu_info->timestamp;
-			((rx_ofdm_entry*)rx_event_log_entry)->fcs_status = RX_ENTRY_FCS_BAD;
-			((rx_ofdm_entry*)rx_event_log_entry)->power    = mpdu_info->rx_power;
-			((rx_ofdm_entry*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
-			((rx_ofdm_entry*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
-			((rx_ofdm_entry*)rx_event_log_entry)->length   = mpdu_info->length;
-			((rx_ofdm_entry*)rx_event_log_entry)->rate     = mpdu_info->rate;
-			((rx_ofdm_entry*)rx_event_log_entry)->pkt_type = wlan_mac_high_pkt_type(mpdu,length);
-			((rx_ofdm_entry*)rx_event_log_entry)->chan_num = mac_param_chan;
-			((rx_ofdm_entry*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
-	#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-			if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
-	#endif
+			default:
+				//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
+				//null data frames (type: DATA, subtype: 0x4) for power management reasons.
+				warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
+			break;
 		}
+		return;
+
 	} else {
-		rx_event_log_entry = (void*)get_next_empty_rx_dsss_entry();
-
-		if(rx_event_log_entry != NULL){
-			wlan_mac_high_cdma_start_transfer((&((rx_dsss_entry*)rx_event_log_entry)->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-			((rx_dsss_entry*)rx_event_log_entry)->timestamp = mpdu_info->timestamp;
-			((rx_dsss_entry*)rx_event_log_entry)->fcs_status = RX_ENTRY_FCS_BAD;
-			((rx_dsss_entry*)rx_event_log_entry)->power    = mpdu_info->rx_power;
-			((rx_dsss_entry*)rx_event_log_entry)->rf_gain  = mpdu_info->rf_gain;
-			((rx_dsss_entry*)rx_event_log_entry)->bb_gain  = mpdu_info->bb_gain;
-			((rx_dsss_entry*)rx_event_log_entry)->length   = mpdu_info->length;
-			((rx_dsss_entry*)rx_event_log_entry)->rate     = mpdu_info->rate;
-			((rx_dsss_entry*)rx_event_log_entry)->pkt_type = wlan_mac_high_pkt_type(mpdu,length);
-			((rx_dsss_entry*)rx_event_log_entry)->chan_num = mac_param_chan;
-			((rx_dsss_entry*)rx_event_log_entry)->ant_mode = 0; //TODO: add antenna mode to rx_frame_info and pass up
-		}
+		//Bad FCS
+		return;
 	}
+
 }
 
 void print_associations(dl_list* assoc_tbl){
