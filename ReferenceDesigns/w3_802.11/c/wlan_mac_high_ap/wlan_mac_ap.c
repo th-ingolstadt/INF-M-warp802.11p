@@ -35,7 +35,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-//#include "wlan_mac_event_log.h"
+#include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
@@ -1196,6 +1196,11 @@ statistics* add_statistics(dl_list* stat_tbl, station_info* station, u8* addr){
 	return station_stats;
 
 }
+
+dl_list * get_statistics(){
+	return &statistics_table;
+}
+
 
 int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 	station_info* station;
