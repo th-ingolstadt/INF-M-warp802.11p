@@ -81,7 +81,8 @@ typedef struct{
 	u8 bb_gain;
 	u8 channel;
 	u8 flags;
-	u8 reserved[7];
+	u8 ant_mode;
+	u8 reserved[6];
 	u64 timestamp;
 	u32 channel_est[64];
 } rx_frame_info;
