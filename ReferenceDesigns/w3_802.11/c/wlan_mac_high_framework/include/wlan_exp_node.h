@@ -45,6 +45,7 @@
 #define NODE_TX_POWER                  30
 #define NODE_TX_RATE                   31
 #define NODE_CHANNEL                   32
+#define NODE_TIME                      33
 
 #define NODE_LTG_CONFIG_CBR            40
 #define NODE_LTG_START                 41

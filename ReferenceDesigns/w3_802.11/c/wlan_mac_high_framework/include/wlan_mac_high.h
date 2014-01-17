@@ -252,7 +252,8 @@ int str2num(char* str);
 void usleep(u64 delay);
 
 
-
+// Common functions that must be implemented by users of the framework
+dl_list * get_statistics();
 
 
 #endif /* WLAN_MAC_UTIL_H_ */

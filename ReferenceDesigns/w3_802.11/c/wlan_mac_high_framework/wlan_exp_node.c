@@ -265,7 +265,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     unsigned int  max_words  = 320;                // Max number of u32 words that can be sent in the packet (~1400 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
-    unsigned int  temp, i;
+    unsigned int  temp, temp2, i;
 
     // Variables for functions
     u32           id;
@@ -279,6 +279,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           bytes_per_pkt;
 	u32           num_bytes;
 	u32           num_pkts;
+	u64           time;
 
 	u32           interval;
 
@@ -480,6 +481,39 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		// Case NODE_TX_RATE is implemented in the child classes
 
 		// Case NODE_CHANNEL is implemented in the child classes
+
+	    //---------------------------------------------------------------------
+		case NODE_TIME:
+			// Set / Get node time
+			//
+			// Message format:
+			//     cmdArgs32[0]   Time in microseconds - lower 32 bits (or 0x0000FFFF)
+			//     cmdArgs32[1]   Time in microseconds - upper 32 bits (or 0x0000FFFF)
+			//
+			temp  = Xil_Ntohl(cmdArgs32[0]);
+			temp2 = Xil_Ntohl(cmdArgs32[1]);
+
+			// If parameter is not the magic number, then set the time on the node
+			if ( ( temp != 0xFFFF ) && ( temp2 != 0xFFFF ) ) {
+
+				time = (((u64)temp2)<<32) + ((u64)temp);
+
+				wlan_mac_high_set_time( time );
+
+			    xil_printf("Setting time = 0x%08x 0x%08x\n", temp2, temp);
+			} else {
+				time  = get_usec_timestamp();
+				temp  = time & 0xFFFFFFFF;
+				temp2 = (time >> 32) & 0xFFFFFFFF;
+			}
+
+			// Send response of current power
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+            respArgs32[respIndex++] = Xil_Htonl( temp2 );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
 
 
 	    //---------------------------------------------------------------------
