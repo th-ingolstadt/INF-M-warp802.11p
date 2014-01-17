@@ -546,6 +546,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
+	mpdu_info->additional_info = (u32)NULL;
 	//*************
 	// Event logging
 	//*************
@@ -576,6 +577,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
 
 		if( associated_station != NULL ){
+			mpdu_info->additional_info = (u32)associated_station;
 			station_stats = associated_station->stats;
 			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 
@@ -933,12 +935,6 @@ void disable_associations(){
 		wlan_mac_high_write_hex_display_dots(0);
 	}
 }
-
-
-
-
-
-
 
 void animate_hex(){
 	static u8 i = 0;

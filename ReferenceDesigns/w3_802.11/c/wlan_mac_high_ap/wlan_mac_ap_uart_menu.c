@@ -537,6 +537,9 @@ void print_station_status(){
 		curr_station_info = (station_info*)association_table.first;
 		for(i=0; i < association_table.length; i++){
 			xil_printf("---------------------------------------------------\n");
+			if(curr_station_info->hostname[0] != 0){
+				xil_printf(" Hostname: %s\n", curr_station_info->hostname);
+			}
 			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->AID,
 					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 
