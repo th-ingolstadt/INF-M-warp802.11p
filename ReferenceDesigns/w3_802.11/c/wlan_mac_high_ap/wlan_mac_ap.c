@@ -65,7 +65,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
