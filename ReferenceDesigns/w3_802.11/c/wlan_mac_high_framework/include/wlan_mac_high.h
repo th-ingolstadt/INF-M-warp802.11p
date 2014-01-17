@@ -146,6 +146,9 @@ typedef struct{
  */
 #define statistics_prev(x) ( (statistics*)dl_node_prev(&(x->node)) )
 
+#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
+#define STATION_INFO_HOSTNAME_MAXLEN 15
+
 /**
  * @brief Station Information Structure
  *
@@ -153,19 +156,18 @@ typedef struct{
  * case of a station, information about the associated access point).
  */
 typedef struct{
-	dl_node     node;		///< Doubly-linked list entry
-	u8          addr[6];	///< HW Address
-	u16         AID;		///< Association ID
-	u32			flags;		///< 1-bit flags
-	rx_info     rx;			///< Reception Information Structure
-	tx_params   tx;			///< Transmission Parameters Structure
-	statistics* stats;		///< Statistics Information Structure
-                            ///< @note This is a pointer to the statistics structure
-                            ///< because statistics can survive outside of the context
-                            ///< of associated station_info structs.
+	dl_node     node;										///< Doubly-linked list entry
+	u8          addr[6];									///< HW Address
+	u8			hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	///< Hostname from DHCP requests
+	u16         AID;										///< Association ID
+	u32			flags;										///< 1-bit flags
+	rx_info     rx;											///< Reception Information Structure
+	tx_params   tx;											///< Transmission Parameters Structure
+	statistics* stats;										///< Statistics Information Structure
+															///< @note This is a pointer to the statistics structure
+                            								///< because statistics can survive outside of the context
+                            								///< of associated station_info structs.
 } station_info;
-
-#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
 
 /**
  * @brief Traverse to next station_info entry in doubly-linked list

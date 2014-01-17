@@ -84,6 +84,8 @@ typedef struct{
 	#define DHCP_OPTION_TYPE_ACK	  5
 #define DHCP_OPTION_TAG_IDENTIFIER	61
 #define DHCP_OPTION_END				255
+#define DHCP_OPTION_END				255
+#define DHCP_HOST_NAME				12
 
 #define UDP_SRC_PORT_BOOTPC 68
 #define UDP_SRC_PORT_BOOTPS 67

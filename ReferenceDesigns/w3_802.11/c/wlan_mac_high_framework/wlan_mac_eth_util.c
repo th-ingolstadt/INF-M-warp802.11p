@@ -36,6 +36,7 @@ static XAxiDma ETH_A_DMA_Instance;
 //Top-level code defines the callback, wlan_mac_util does the actual calling
 // It's sufficient to refer to the wlan_mac_util callback by name here
 function_ptr_t eth_rx_callback;
+
 u8 eth_encap_mode;
 
 static XIntc* Intc_ptr;
@@ -60,6 +61,7 @@ int wlan_eth_init() {
 		int status;
 
 		eth_rx_callback = (function_ptr_t)nullCallback;
+
 		ETH_A_NUM_RX_BD = min(queue_total_size()/2,200);
 		xil_printf("Setting up %d DMA BDs\n", ETH_A_NUM_RX_BD);
 
@@ -253,18 +255,21 @@ int wlan_eth_dma_init() {
 //De-encapsulate packet and send over Ethernet or over FMC
 int wlan_mpdu_eth_send(void* mpdu, u16 length){
 	int status;
-
 	u8* eth_mid_ptr;
 
 	mac_header_80211* rx80211_hdr;
 	llc_header* llc_hdr;
 	ethernet_header* eth_hdr;
 
+	rx_frame_info* frame_info;
+
 	u8 continue_loop;
 	ipv4_header* ip_hdr;
 	arp_packet* arp;
 	udp_header* udp;
 	dhcp_packet* dhcp;
+
+	u8 is_dhcp_req = 0;
 
 	u8 addr_cache[6];
 
@@ -288,6 +293,75 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length){
 				case LLC_TYPE_IP:
 					//xil_printf("Sending IP\n");
 					eth_hdr->type = ETH_TYPE_IP;
+					ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
+
+					if(ip_hdr->prot == IPV4_PROT_UDP){
+						udp = (udp_header*)((void*)ip_hdr + 4*((u8)(ip_hdr->ver_ihl) & 0xF));
+
+						if(Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPC || Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPS){
+							//This is a DHCP Discover packet, which contains the source hardware address
+							//deep inside the packet (in addition to its usual location in the Eth header).
+							//For STA encapsulation, we need to overwrite this address with the MAC addr
+							//of the wireless station.
+
+							dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
+
+							if(Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE){
+									eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
+
+									//Tagged DHCP Options
+									continue_loop = 1;
+
+									while(continue_loop){
+										switch(eth_mid_ptr[0]){
+
+											case DHCP_OPTION_TAG_TYPE:
+												switch(eth_mid_ptr[2]){
+													case DHCP_OPTION_TYPE_DISCOVER:
+													case DHCP_OPTION_TYPE_REQUEST:
+														//memcpy(dhcp->chaddr,hw_info.hw_addr_wlan,6);
+														is_dhcp_req = 1;
+													break;
+
+													case DHCP_OPTION_TYPE_ACK:
+													break;
+
+													case DHCP_OPTION_TYPE_OFFER:
+
+													break;
+
+												}
+
+											break;
+
+											case DHCP_OPTION_TAG_IDENTIFIER:
+											//	memcpy(&(eth_mid_ptr[3]),eth_sta_mac_addr,6);
+
+											break;
+
+											case DHCP_HOST_NAME:
+												if(is_dhcp_req){
+													frame_info = (rx_frame_info*)((u8*)mpdu  - PHY_RX_PKT_BUF_MPDU_OFFSET);
+													if(frame_info->additional_info != NULL){
+														memcpy(((station_info*)(frame_info->additional_info))->hostname, &(eth_mid_ptr[2]), min(STATION_INFO_HOSTNAME_MAXLEN,eth_mid_ptr[1]));
+														((station_info*)(frame_info->additional_info))->hostname[min(STATION_INFO_HOSTNAME_MAXLEN,eth_mid_ptr[1])] = NULL; //Terminate string
+													}
+										   	}
+											break;
+
+											case DHCP_OPTION_END:
+												continue_loop = 0;
+											break;
+										}
+										eth_mid_ptr += (2+eth_mid_ptr[1]);
+									}
+							//	}
+
+
+							}
+						}
+					}
+
 				break;
 				default:
 					//Invalid or unsupported Eth type; punt
