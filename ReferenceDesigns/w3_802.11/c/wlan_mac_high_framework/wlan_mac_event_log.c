@@ -53,7 +53,9 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_high.h"
+
 #include "wlan_exp_node.h"
+#include "wlan_exp_transport.h"
 
 /*************************** Constant Definitions ****************************/
 
@@ -61,6 +63,13 @@
 
 /*********************** Global Variable Definitions *************************/
 
+#ifdef USE_WARPNET_WLAN_EXP
+extern int                   sock_async;
+extern u32                   async_pkt_enable;
+extern u32                   async_eth_dev_num;
+extern pktSrcInfo            async_pkt_dest;
+extern wn_transport_header   async_pkt_hdr;
+#endif
 
 
 /*************************** Variable Definitions ****************************/
@@ -91,6 +100,10 @@ u8           enable_event_logging;
 static u8    allocation_mutex;
 
 
+// Variables to use with WLAN Exp framework
+#ifdef USE_WARPNET_WLAN_EXP
+wn_cmdHdr    log_entry_cmd;
+#endif
 
 /*************************** Functions Prototypes ****************************/
 
@@ -135,6 +148,12 @@ void event_log_init( char * start_address, u32 size ) {
 
 	// Reset all the event log variables
 	event_log_reset();
+
+	// Initialize WLAN Exp variables
+#ifdef USE_WARPNET_WLAN_EXP
+	log_entry_cmd.cmd     = NODE_LOG_STREAM_ENTRIES;
+	log_entry_cmd.numArgs = 0;
+#endif
 
 #ifdef _DEBUG_
 	xil_printf("    log_size             = 0x%x;\n", log_size );
@@ -789,16 +808,18 @@ void print_event_log_size(){
 *
 * @return	None.
 *
-* @note		None.
+* @note		We can only add a node info entry to the log if the WLAN EXP
+*           framework is enabled.
 *
 ******************************************************************************/
 void add_node_info_entry(){
 
-	node_info_entry * entry;
-	unsigned int     temp0;
-	unsigned int     max_words = sizeof(node_info_entry) >> 2;
-
 #ifdef USE_WARPNET_WLAN_EXP
+
+	node_info_entry * entry;
+	unsigned int      temp0;
+	unsigned int      max_words = sizeof(node_info_entry) >> 2;
+
 	entry = (node_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry) );
 
     // Add the node parameters
@@ -815,6 +836,48 @@ void add_node_info_entry(){
 #endif
 }
 
+
+/*****************************************************************************/
+/**
+* Transmit a given log entry over the WLAN Exp framework
+*
+* @param    entry - Pointer to a log entry
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wn_transmit_log_entry(void * entry){
+
+#ifdef USE_WARPNET_WLAN_EXP
+
+	u32               entry_hdr_size;
+	entry_header    * entry_hdr;
+	wn_host_message * msg;
+
+	// Send the log entry if
+	if ( async_pkt_enable ) {
+
+		entry_hdr_size = sizeof(entry_header);
+
+		// We have an entry, so we need to jump back to find the entry header
+		entry_hdr = (entry_header*)((u32)(entry) - entry_hdr_size);
+
+#ifdef _DEBUG_
+        xil_printf(" Entry - addr = 0x%8x;  size = 0x%4x \n", entry_hdr, entry_hdr->entry_length );
+	    print_entry( (0x0000FFFF & entry_hdr->entry_id), entry_hdr->entry_type, entry );
+#endif
+
+	    // Set the entry length
+        log_entry_cmd.length = entry_hdr->entry_length + entry_hdr_size;
+
+	    msg = transport_create_async_msg_w_cmd( &async_pkt_hdr, &log_entry_cmd, log_entry_cmd.length, (unsigned char *)entry_hdr );
+		transport_send( sock_async, msg, &async_pkt_dest, async_eth_dev_num );
+	}
+
+#endif
+}
 
 
 
