@@ -19,8 +19,8 @@
  *  @bug No known bugs.
  */
 
-// TODO:  Allow DMA initialization to different buffer location
 
+// TODO:  Allow DMA initialization to different buffer location
 
 
 /***************************** Include Files *********************************/
@@ -51,6 +51,12 @@
 
 /*************************** Constant Definitions ****************************/
 
+// Unfortunately, there is no way to determine at compile time the size of the
+//   Ethernet buffer for the WLAN_EXP framework.  Currently, the framework
+//   assumes that async packet will only be standard MTU size (1514 bytes
+//   rounded up for 32 bit alignment).
+//
+#define TRANSPORT_ASYNC_TX_SIZE       1516
 
 
 /*********************** Global Variable Definitions *************************/
@@ -67,21 +73,21 @@ wn_host_message     toNode, fromNode;
 wn_tag_parameter    transport_parameters[WN_NUM_ETH_DEVICES][TRANSPORT_MAX_PARAMETER];
 wn_transport_info   transport_info[WN_NUM_ETH_DEVICES];
 
-int                 sock_msg      = -1; // UDP socket
-struct sockaddr_in  addr_msg;
-
-int                 sock_trig     = -1; // UDP socket
-struct sockaddr_in  addr_trig;
-
 u8                  node_group_ID_membership;
 
-
-// WLAN Exp Additions:
-//   - Asynchronous transmit buffer - Used to transmit messages asynchronously back to a node and
-//                                      not interfere with normal transport function.
-//
+wn_host_message     async_pkt_msg;
+unsigned char       async_pkt_data[TRANSPORT_ASYNC_TX_SIZE];
 
 
+// Global socket variables
+int                 sock_unicast      = -1; // UDP socket for unicast traffic to / from the board
+struct sockaddr_in  addr_unicast;
+
+int                 sock_bcast        = -1; // UDP socket for broadcast traffic to the board
+struct sockaddr_in  addr_bcast;
+
+int                 sock_async        = -1; // UDP socket for async transmissions from the board
+struct sockaddr_in  addr_async;
 
 
 /*************************** Function Prototypes *****************************/
@@ -89,7 +95,7 @@ u8                  node_group_ID_membership;
 void transport_null_callback(void* param){};
 void (*usr_receiveCallback) ();
 
-int transport_init_parameters( unsigned int eth_dev_num, u32 *info );
+int transport_init_parameters(unsigned int eth_dev_num, u32 *info);
 
 
 /******************************** Functions **********************************/
@@ -97,10 +103,8 @@ int transport_init_parameters( unsigned int eth_dev_num, u32 *info );
 
 /*****************************************************************************/
 /**
-*
 * This function is the Transport callback that allows WARPNet to process
 * a received Ethernet packet
-*
 *
 * @param	cmdHdr is a pointer to the WARPNet command header
 * @param	cmdArgs is a pointer to the Transport command arguments
@@ -117,7 +121,6 @@ int transport_init_parameters( unsigned int eth_dev_num, u32 *info );
 *       to the WARPNet Transport.
 *
 ******************************************************************************/
-
 int transport_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, unsigned int eth_dev_num){
 	//IMPORTANT ENDIAN NOTES:
 	// -cmdHdr is safe to access directly (pre-swapped if needed)
@@ -181,26 +184,22 @@ int transport_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr
 
 /*****************************************************************************/
 /**
-*
 * This function is the Transport callback that allows WARPNet to process
 * a received Ethernet packet
-*
 *
 * @param	buff is a pointer to the received packet buffer
 * @param	len is an int that specifies the length of the recieved packet
 * @param	pktSrc is a pointer to the Ethenet packet source structure
 * @param    eth_dev_num is an int that specifies the Ethernet interface to use
 *
-* @return	-NO_RESP_SENT to indicate no response has been sent
-*		-RESP_SENT to indicate a response has been sent
+* @return	NO_RESP_SENT - no response has been sent
+*		    RESP_SENT    - response has been sent
 *
 * @note		The transport must be initialized before this function will be
 *       called.  The user can modify the file to add additional functionality
 *       to the WARPNet Transport.
 *
 ******************************************************************************/
-
-
 void transport_receiveCallback(unsigned char* buff, unsigned int len, void* pktSrc, unsigned int eth_dev_num){
 
 	unsigned char* buffPtr = buff + PAYLOAD_PAD_NBYTES;
@@ -233,8 +232,8 @@ void transport_receiveCallback(unsigned char* buff, unsigned int len, void* pktS
 				( (wn_header_rx->destID) != BROADCAST_ID   ) &&
 				( ((wn_header_rx->destID) & (0xFF00 | node_group_ID_membership))==0 ) ) return;
 
-			//Form outgoing WARPNet header in case robust mode is on
-			// Note- the u16/u32 fields here will be endian swapped in transport_send
+			// Form outgoing WARPNet header in case robust mode is on
+			//     NOTE: the u16/u32 fields here will be endian swapped in transport_send
 			wn_eth_devices[eth_dev_num].wn_header_tx->destID  = wn_header_rx->srcID;
 			wn_eth_devices[eth_dev_num].wn_header_tx->seqNum  = wn_header_rx->seqNum;
 			wn_eth_devices[eth_dev_num].wn_header_tx->srcID   = node_info.node;
@@ -243,7 +242,7 @@ void transport_receiveCallback(unsigned char* buff, unsigned int len, void* pktS
 			usr_receiveCallback(&toNode, &fromNode, pktSrc, eth_dev_num);
 
 			if( ((wn_header_rx->flags) & TRANSPORT_ROBUST_MASK) && fromNode.length > PAYLOAD_PAD_NBYTES) {
-				transport_send(&fromNode, pktSrc, eth_dev_num);
+				transport_send(sock_unicast, &fromNode, pktSrc, eth_dev_num);
 			}
 
 			fromNode.length = 0;
@@ -260,40 +259,45 @@ void transport_receiveCallback(unsigned char* buff, unsigned int len, void* pktS
 
 
 
-
 /*****************************************************************************/
 /**
+* Close the WARPNet Transport stream by closing the Xilnet Sockets
 *
-* Close the WARPNet Transport stream by closing the Xilnet Socket
-*
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
+* @param    eth_dev_num - specifies the Ethernet interface to use
 *
 * @return	None.
 *
 * @note		None.
 *
 ****************************************************************************/
-
 void transport_close(unsigned int eth_dev_num) {
-	xilsock_close(sock_msg, eth_dev_num);
+	xilsock_close(sock_unicast, eth_dev_num);
+	xilsock_close(sock_bcast, eth_dev_num);
+	xilsock_close(sock_async, eth_dev_num);
 }
 
 
 
 /*****************************************************************************/
 /**
-*
 * This function will initialize the transport
 *
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
+* @param    node         - Node that uses this transport
+* @param    ip_addr      - Pointer to IP address for the transport
+* @param    hw_addr      - Pointer to MAC address for the transport
+* @param    unicast_port - Unicast port for the transport
+* @param    bcast_port   - Broadcast port for the transport
+* @param    eth_dev_num  - Specifies the Ethernet interface to use
 *
-* @return	-SUCCESS to indicate that the transport was initialized
-*		-FAILURE to indicated that the transport was not initialized
+* @return	SUCCESS - transport was initialized
+*		    FAILURE - transport was not initialized
 *
 * @note		None.
 *
 ******************************************************************************/
-int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *ip_addr, unsigned char *hw_addr, unsigned int unicast_port, unsigned int bcast_port ){
+int transport_init( unsigned int   node,
+		            unsigned char *ip_addr,      unsigned char *hw_addr,
+		            unsigned int   unicast_port, unsigned int   bcast_port, unsigned int eth_dev_num ){
 
 	int                   i;
 	int                   status = SUCCESS;
@@ -310,14 +314,12 @@ int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *
     XAxiEthernet_Config * mac_cfg_ptr;
 #endif
 
-
 	xil_printf("  ETH %c MAC Address: %02x", wn_conv_eth_dev_num(eth_dev_num), hw_addr[0] );
 	for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", hw_addr[i] ); } xil_printf("\n");
     xil_printf("  ETH %c IP  Address: %d", wn_conv_eth_dev_num(eth_dev_num), ip_addr[0]);
 	for ( i = 1; i < IP_VERSION; i++ ) { xil_printf(".%d", ip_addr[i] ); } xil_printf("\n");
 
-
-    // Initialize the User callback
+	// Initialize the User callback
 	usr_receiveCallback = transport_null_callback;
 
     // Reset node group ID membership
@@ -331,7 +333,6 @@ int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *
 		xil_printf("  **** ERROR:  Ethernet %c is not available on WARP HW \n", wn_conv_eth_dev_num(eth_dev_num) );
 		return FAILURE;
 	}
-
 
 #ifdef WARP_HW_VER_v3
 
@@ -441,7 +442,6 @@ int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *
 	// Configure the Sockets for each Ethernet Interface
 	status = transport_config_sockets(eth_dev_num, unicast_port, bcast_port);
 
-    
     // Initialize the tag parameters
     transport_info[eth_dev_num].type           = TRANSPORT_TYPE_UDP; 
     transport_info[eth_dev_num].hw_addr[0]     = (hw_addr[0]<<8)  |  hw_addr[1];
@@ -464,22 +464,20 @@ int transport_init( unsigned int node, unsigned int eth_dev_num, unsigned char *
 
 /*****************************************************************************/
 /**
-*
 * This is a wrapper function that will set the MAC and IP addresses
 *   for a given interface
 *
-*
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
 * @param	ip_addr is a pointer to an unsigned char array to store the IP address
 * @param	hw_addr is a pointer to an unsigned char array to store the MAC address
+* @param    eth_dev_num is an int that specifies the Ethernet interface to use
 *
-* @return	-SUCCESS to indicate that the MAC and IP are valid
-*		    -FAILURE to indicate that the MAC and IP are not valid
+* @return	SUCCESS - the MAC and IP are valid
+*		    FAILURE - the MAC and IP are not valid
 *
 * @note		None.
 *
 ******************************************************************************/
-int transport_set_hw_info( unsigned int eth_dev_num, unsigned char* ip_addr, unsigned char* hw_addr) {
+int transport_set_hw_info(unsigned int eth_dev_num, unsigned char* ip_addr, unsigned char* hw_addr) {
 
     // Update the Tag Parameters
     transport_info[eth_dev_num].hw_addr[0]     = (hw_addr[0]<<8)  |  hw_addr[1];
@@ -493,19 +491,18 @@ int transport_set_hw_info( unsigned int eth_dev_num, unsigned char* ip_addr, uns
 
 /*****************************************************************************/
 /**
-*
 * This is a wrapper function that will get the MAC address for a given interface
 *
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
 * @param	hw_addr is a pointer to an unsigned char array to store the MAC address
+* @param    eth_dev_num is an int that specifies the Ethernet interface to use
 *
-* @return	- SUCCESS to indicate that the MAC is valid
-*		    - FAILURE to indicate that the MAC is not valid
+* @return	SUCCESS - the MAC is valid
+*		    FAILURE - the MAC is not valid
 *
 * @note		None.
 *
 ******************************************************************************/
-int transport_get_hw_addr( unsigned int eth_dev_num, unsigned char* hw_addr ) {
+int transport_get_hw_addr(unsigned int eth_dev_num, unsigned char* hw_addr) {
 
     return xilnet_eth_get_inf_hw_addr( eth_dev_num, hw_addr );
 }
@@ -514,19 +511,18 @@ int transport_get_hw_addr( unsigned int eth_dev_num, unsigned char* hw_addr ) {
 
 /*****************************************************************************/
 /**
-*
 * This is a wrapper function that will get the IP address for a given interface
 *
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
 * @param	ip_addr is a pointer to an unsigned char array to store the IP address
+* @param    eth_dev_num is an int that specifies the Ethernet interface to use
 *
-* @return	-SUCCESS to indicate that the MAC and IP are valid
-*		-FAILURE to indicate that the MAC and IP are not valid
+* @return	SUCCESS - the IP is valid
+*		    FAILURE - the IP is not valid
 *
 * @note		None.
 *
 ******************************************************************************/
-int transport_get_ip_addr( unsigned int eth_dev_num, unsigned char* ip_addr ) {
+int transport_get_ip_addr(unsigned int eth_dev_num, unsigned char* ip_addr) {
 
     return xilnet_eth_get_inf_ip_addr( eth_dev_num, ip_addr );
 }
@@ -535,68 +531,81 @@ int transport_get_ip_addr( unsigned int eth_dev_num, unsigned char* ip_addr ) {
 
 /*****************************************************************************/
 /**
+* This function will create a socket within the Xilnet framework and bind it
+* to the given port.
 *
-* This function will configure the Xilnet sockets to be used by the transport
+* @param    socket       - Pointer to the socket identifier from Xilnet
+*           addr         - Pointer to the addres structure for the socket
+*           port         - Port that the socket will be bound to
+*           eth_dev_num  - specifies the Ethernet interface to use
 *
-*
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
-*
-* @return	-SUCCESS to indicate sockets successfully configured
-*		-FAILURE to indicate the sockets were not configured
+* @return	SUCCESS - socket successfully configured
+*		    FAILURE - socket was not configured
 *
 * @note		None.
 *
 ******************************************************************************/
-
-int transport_config_sockets(unsigned int eth_dev_num, unsigned int unicast_port, unsigned int bcast_port) {
+int transport_config_socket(unsigned int eth_dev_num, int * socket, struct sockaddr_in * addr, unsigned int port) {
 	int status = SUCCESS;
 	int tempStatus = 0;
 
     // Release sockets if they are already bound
-    if ( sock_msg  != -1 ) { xilsock_close( sock_msg,  eth_dev_num ); }
-    if ( sock_trig != -1 ) { xilsock_close( sock_trig, eth_dev_num ); }
+    if ( *socket  != -1 ) { xilsock_close( *socket, eth_dev_num ); }
 
-    // Create new sockets and bind them
-	sock_msg = xilsock_socket(AF_INET, SOCK_DGRAM, 0, eth_dev_num);	// Create UDP socket with domain Internet and UDP connection.
-	if (sock_msg == -1) {
-		xil_printf("Error in creating sock_msg\n");
+    // Create new socket and bind it
+    //   UDP socket with domain Internet and UDP connection.
+	*socket = xilsock_socket(AF_INET, SOCK_DGRAM, 0, eth_dev_num);
+	if (*socket == -1) {
+		xil_printf("Error in creating socket\n");
 		status = FAILURE;
 		return status;
 	}
 
-	sock_trig = xilsock_socket(AF_INET, SOCK_DGRAM, 0, eth_dev_num);	// Create UDP socket with domain Internet and UDP connection.
-	if (sock_trig == -1) {
-		xil_printf("Error in creating sock_msg\n");
+	addr->sin_family       = AF_INET;
+	addr->sin_port         = port;
+	addr->sin_addr.s_addr  = INADDR_ANY;			// Create the input socket with any incoming address. (0x00000000)
+
+	tempStatus = xilsock_bind( *socket, (struct sockaddr *)addr, sizeof(struct sockaddr),(void *)transport_receiveCallback, eth_dev_num);
+	if (tempStatus != 1) {
+		xil_printf("Unable to bind socket on port: %d\n", port);
 		status = FAILURE;
 		return status;
 	}
 
-	addr_msg.sin_family       = AF_INET;
-	addr_msg.sin_port         = unicast_port;
-	addr_msg.sin_addr.s_addr  = INADDR_ANY;			// Create the input socket with any incoming address. (0x00000000)
+	return status;
+}
 
-	addr_trig.sin_family      = AF_INET;
-	addr_trig.sin_port        = bcast_port;
-	addr_trig.sin_addr.s_addr = INADDR_ANY;			// Create the input socket with any incoming address. (0x00000000)
 
-	tempStatus = xilsock_bind(sock_msg, (struct sockaddr *)&addr_msg, sizeof(struct sockaddr),(void *)transport_receiveCallback, eth_dev_num);
-	if (tempStatus != 1) {
-		xil_printf("Unable to bind sock_msg\n");
-		status = -1;
-		return status;
-	}
 
-	tempStatus = xilsock_bind(sock_trig, (struct sockaddr *)&addr_trig, sizeof(struct sockaddr),(void *)transport_receiveCallback, eth_dev_num);
-	if (tempStatus != 1) {
-		xil_printf("Unable to bind sock_trig\n");
-		status = -1;
-		return status;
-	}
+/*****************************************************************************/
+/**
+* This function will configure the unicast and broadcast sockets to be used
+* by the transport.  It does not configure the async socket since the async
+* socket will not be configured until done by the WARPNet host.
+*
+* @param    unicast_port - Unicast port for the node
+* @param    bcast_port   - Broadcast port for the node
+* @param    eth_dev_num  - specifies the Ethernet interface to use
+*
+* @return	SUCCESS - sockets were successfully configured
+*		    FAILURE - sockets were not configured
+*
+* @note		None.
+*
+******************************************************************************/
+int transport_config_sockets(unsigned int eth_dev_num, unsigned int unicast_port, unsigned int bcast_port) {
+	int status = SUCCESS;
+
+	status = transport_config_socket(eth_dev_num, &sock_unicast, &addr_unicast, unicast_port);
+    if (status == FAILURE) { return status; }
+
+	status = transport_config_socket(eth_dev_num, &sock_bcast, &addr_bcast, bcast_port);
+    if (status == FAILURE) { return status; }
 
     // Update the Tag Parameters
     transport_info[eth_dev_num].unicast_port   = unicast_port;
     transport_info[eth_dev_num].broadcast_port = bcast_port;
-    
+
 	xil_printf("  Listening on UDP ports %d (unicast) and %d (broadcast)\n", unicast_port, bcast_port);
 
 	return status;
@@ -606,19 +615,16 @@ int transport_config_sockets(unsigned int eth_dev_num, unsigned int unicast_port
 
 /*****************************************************************************/
 /**
-*
 * This function is the Transport callback that allows WARPNet to process
 * a received Ethernet packet
 *
-*
-* @param	handler is a pointer to the receive callback function
+* @param	handler - pointer to the receive callback function
 *
 * @return	Always returns SUCCESS
 *
 * @note		None.
 *
 ******************************************************************************/
-
 int transport_setReceiveCallback(void(*handler)){
 	usr_receiveCallback = handler;
 	return SUCCESS;
@@ -628,32 +634,29 @@ int transport_setReceiveCallback(void(*handler)){
 
 /*****************************************************************************/
 /**
-*
 * This function will poll the Ethernet interfaces
 *
-*
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
+* @param    eth_dev_num  - specifies the Ethernet interface to use
 *
 * @return	None.
 *
 * @note		None.
 *
 ******************************************************************************/
-
 void transport_poll(unsigned int eth_dev_num){
     xilnet_eth_recv_frame(eth_dev_num);
 }
 
 
+
 /*****************************************************************************/
 /**
-*
 * This function is used to send a message over Ethernet
 *
-*
-* @param	currMsg is a pointer to the WARPNet Host Message
-* @param	pktSrc is a pointer to the Ethenet packet source structure
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
+* @param	socket      - Socket to send the message on
+* @param	currMsg     - Pointer to the WARPNet Host Message
+* @param	pktSrc      - Pointer to the Ethenet packet source structure
+* @param    eth_dev_num - specifies the Ethernet interface to use
 *
 * @return	None.
 *
@@ -662,23 +665,34 @@ void transport_poll(unsigned int eth_dev_num){
 *       to the WARPNet Transport.
 *
 ******************************************************************************/
-
-void transport_send(wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int eth_dev_num){
-
-	int                   len_to_send;
+void transport_send(int socket, wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int eth_dev_num){
 	wn_transport_header   tmp_hdr;
-	wn_transport_header * wn_header_tx = (wn_transport_header *)(currMsg->buffer + PAYLOAD_OFFSET);
+	wn_transport_header * wn_header_tx;
+	int                   len_to_send;
+	struct sockaddr_in    sendAddr;
 
 #ifdef _DEBUG_
 	xil_printf("BEGIN transport_send() \n");
 #endif
 
-	len_to_send = currMsg->length + sizeof(wn_transport_header);
+	// Check that we have a valid socket to send a message on
+	if (socket == -1) {
+		xil_printf("Invalid socket.\n");
+		return;
+	}
 
+	// Initialize the header and length
+	wn_header_tx = (wn_transport_header *)(currMsg->buffer + PAYLOAD_OFFSET);
+	len_to_send  = currMsg->length + sizeof(wn_transport_header);
+
+	// Grab a copy of the current header
+	//     The send function will preform a network swap of the header to send
+	//     over the wire and then restor the original version for future
+	//     processing
 	memcpy(&tmp_hdr, wn_header_tx, sizeof(wn_transport_header));
 
 	// Update length field in outgoing transport header (size of the payload)
-	wn_header_tx->length = currMsg->length - sizeof(wn_transport_header);
+	wn_header_tx->length = len_to_send;
 
 	// Make the outgoing transport header endian safe for sending on the network
 	wn_header_tx->destID = Xil_Htons(wn_header_tx->destID);
@@ -687,8 +701,7 @@ void transport_send(wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int e
 	wn_header_tx->seqNum = Xil_Htons(wn_header_tx->seqNum);
 	wn_header_tx->flags  = Xil_Htons(wn_header_tx->flags);
 
-	struct sockaddr_in sendAddr;
-
+	// Create address structure based on the pkt info structure
 	sendAddr.sin_addr.s_addr = pktSrc->srcIPAddr;
 	sendAddr.sin_family      = AF_INET;
 	sendAddr.sin_port        = pktSrc->destPort;
@@ -705,18 +718,16 @@ void transport_send(wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int e
 #endif
 
 	// Check the interrupt status; Disable interrupts if enabled
-    // TODO
-
+	wlan_mac_high_interrupt_stop();
 
 	// NOTE:  This command is not safe to execute when interrupts are enabled when commands can
 	//        arbitrarily send ethernet packets.  Technically, we only have to wrap the xilnet_eth_send_frame() call
 	//        but that would require modifying the WARPxilnet driver and having it understand interrupts
 	//
-	xilsock_sendto(sock_msg, (unsigned char *)currMsg->buffer, len_to_send, (struct sockaddr *)&sendAddr, eth_dev_num);
+	xilsock_sendto(socket, (unsigned char *)currMsg->buffer, len_to_send, (struct sockaddr *)&sendAddr, eth_dev_num);
 
 	// Restore interrupts
-    // TODO
-
+	wlan_mac_high_interrupt_start();
 
 	//Restore wn_header_tx
 	memcpy(wn_header_tx, &tmp_hdr, sizeof(wn_transport_header));
@@ -730,23 +741,126 @@ void transport_send(wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int e
 
 /*****************************************************************************/
 /**
+* Create an async message using the global aysnc_pkt_msg and async_pkt_data.
 *
+* NOTE:  This method should only be called once before a message is sent
+*   otherwise the data will be overwritten
+*
+* @param   hdr     - WARPNet Transport Header of the message
+* @param   length  - Length of the payload
+* @param   payload - byte array of payload data (does not include the header)
+*
+* @return  Pointer to wn_host_message that can be used as an argument to transport_send
+*
+* @note    None.
+*
+******************************************************************************/
+wn_host_message * transport_create_async_msg(wn_transport_header* hdr, unsigned int length, unsigned char * payload){
+
+	wn_transport_header * async_tx_header;
+	unsigned char *       async_tx_payload;
+
+	if (length < TRANSPORT_ASYNC_TX_SIZE) {
+
+		async_tx_header  = (wn_transport_header *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET);
+		async_tx_payload = (unsigned char *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + sizeof(wn_transport_header));
+
+		async_pkt_msg.buffer  = &async_pkt_data;
+		async_pkt_msg.payload = (unsigned int *)(async_tx_payload);
+		async_pkt_msg.length  = length;
+
+		memcpy(async_tx_header, hdr, sizeof(wn_transport_header));
+		memcpy(async_tx_payload, payload, length);
+
+	    return &async_pkt_msg;
+	} else {
+		return NULL;
+    }
+}
+
+
+wn_host_message * transport_create_async_msg_w_cmd(wn_transport_header* hdr, wn_cmdHdr * cmd, unsigned int length, unsigned char * payload){
+
+	wn_transport_header * async_tx_header;
+	wn_cmdHdr           * async_tx_cmd;
+	unsigned char       * async_tx_payload;
+
+	if (length < TRANSPORT_ASYNC_TX_SIZE) {
+
+		async_tx_header  = (wn_transport_header *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET);
+		async_tx_cmd     = (wn_cmdHdr *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + sizeof(wn_transport_header));
+		async_tx_payload = (unsigned char *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + sizeof(wn_transport_header) + sizeof(wn_cmdHdr));
+
+		async_pkt_msg.buffer  = &async_pkt_data;
+		async_pkt_msg.payload = (unsigned int *)(async_tx_payload);
+		async_pkt_msg.length  = length;
+
+		memcpy(async_tx_header, hdr, sizeof(wn_transport_header));
+		memcpy(async_tx_cmd, cmd, sizeof(wn_cmdHdr));
+		memcpy(async_tx_payload, payload, length);
+
+	    return &async_pkt_msg;
+	} else {
+		return NULL;
+    }
+}
+
+
+#if 0
+// Debug print statement used during developement of transport_create_message
+
+		xil_printf("msg     = 0x%08x\n", &async_pkt_msg);
+		xil_printf("data    = 0x%08x\n", &async_pkt_data);
+		xil_printf("header  = 0x%08x\n", async_tx_header);
+		xil_printf("payload = 0x%08x\n", async_tx_payload);
+		xil_printf("buffer  = 0x%08x\n", async_pkt_msg.buffer);
+		xil_printf("payload = 0x%08x\n", async_pkt_msg.payload);
+		xil_printf("length  = 0x%08x\n", async_pkt_msg.length);
+
+		xil_printf("Async Header (0x%08x): \n", async_tx_header);
+		xil_printf("  Dest = %d \n", async_tx_header->destID);
+		xil_printf("  Src  = %d \n", async_tx_header->srcID);
+		xil_printf("  Pkt  = %d \n", async_tx_header->pktType);
+		xil_printf("  Len  = %d \n", async_tx_header->length);
+		xil_printf("  Seq  = %d \n", async_tx_header->seqNum);
+		xil_printf("  Flag = %d \n", async_tx_header->flags);
+
+		xil_printf("Header: (0x%08x): \n", hdr);
+		xil_printf("  Dest = %d \n", hdr->destID);
+		xil_printf("  Src  = %d \n", hdr->srcID);
+		xil_printf("  Pkt  = %d \n", hdr->pktType);
+		xil_printf("  Len  = %d \n", hdr->length);
+		xil_printf("  Seq  = %d \n", hdr->seqNum);
+		xil_printf("  Flag = %d \n", hdr->flags);
+
+	    int i;
+
+	    xil_printf("Async pkt buffer\n");
+		for(i = 0; i < 64; i++){
+			xil_printf("0x%02x ", ((unsigned char *)async_pkt_msg.buffer)[i]);
+			if ( ((i + 1) % 16) == 0 ) { xil_printf("\n"); }
+		}
+		xil_printf("\n");
+#endif
+
+
+
+/*****************************************************************************/
+/**
 * This function will check the link status of all Ethernet controllers
 *
+* @param    eth_dev_num  - specifies the Ethernet interface to use
 *
-* @param    eth_dev_num is an int that specifies the Ethernet interface to use
-*
-* @return	-LINK_READY to indicate both Ethernet controllers (depending on defines)
-*       are ready to be used.
-*		-LINK_NOT_READY to indicate one of the Ethernet controllers is not
-*		read to be used.
+* @return	LINK_READY     - both Ethernet controllers (depending on defines)
+*                            are ready to be used.
+*		    LINK_NOT_READY - one of the Ethernet controllers is not
+*		                     ready to be used.
 *
 * @note		The transport must be initialized before this function will be
 *       called.  The user can modify the file to add additional functionality
 *       to the WARPNet Transport.
 *
 ******************************************************************************/
-
 int transport_linkStatus(unsigned int eth_dev_num) {
 
 	u16 status = LINK_READY;
@@ -790,7 +904,8 @@ int transport_linkStatus(unsigned int eth_dev_num) {
 /**
 * Initialize the TAG parameters structure
 *
-* @param    Pointer to info structure from which to pull all the tag parameter values
+* @param    info         - Pointer to info structure from which to put all the tag parameter values
+* @param    eth_dev_num  - specifies the Ethernet interface to use
 *
 * @return	Total number of bytes of the TAG parameter structure
 *
@@ -798,7 +913,7 @@ int transport_linkStatus(unsigned int eth_dev_num) {
 *           maintain the same order
 *
 ******************************************************************************/
-int transport_init_parameters( unsigned int eth_dev_num, u32 *info ) {
+int transport_init_parameters(unsigned int eth_dev_num, u32 *info) {
 
 	int              i;
 	int              length;
@@ -849,17 +964,15 @@ int transport_init_parameters( unsigned int eth_dev_num, u32 *info ) {
 
 
 
-
 /*****************************************************************************/
 /**
-*
 * This function will populate a buffer with tag parameter information
 *
 * @param    eth_dev_num is an int that specifies the Ethernet interface to use
 *           buffer is a u32 pointer to store the tag parameter information
 *           max_words is a integer to specify the max number of u32 words in the buffer
 *
-* @return	number_of_words is number of words used of the buffer for the tag
+* @return	number_of_words - number of 32 bit words used of the buffer for the tag
 *             parameter information
 *
 * @note		The tag parameters must be initialized before this function will be

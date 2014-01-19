@@ -41,6 +41,14 @@
 
 /*********************** Global Variable Definitions *************************/
 
+extern int                 sock_unicast; // UDP socket for unicast traffic to / from the board
+extern struct sockaddr_in  addr_unicast;
+
+extern int                 sock_bcast; // UDP socket for broadcast traffic to the board
+extern struct sockaddr_in  addr_bcast;
+
+extern int                 sock_async; // UDP socket for async transmissions from the board
+extern struct sockaddr_in  addr_async;
 
 
 /*************************** Variable Definitions ****************************/
@@ -50,6 +58,12 @@ wn_tag_parameter   node_parameters[NODE_MAX_PARAMETER];
 
 wn_function_ptr_t  node_process_callback;
 extern function_ptr_t check_queue_callback;
+
+u32                   async_pkt_enable;
+u32                   async_eth_dev_num;
+pktSrcInfo            async_pkt_dest;
+wn_transport_header   async_pkt_hdr;
+
 
 /*************************** Functions Prototypes ****************************/
 
@@ -222,7 +236,7 @@ void node_sendEarlyResp(wn_respHdr* respHdr, void* pktSrc, unsigned int eth_dev_
 	xil_printf("payloadAddr = 0x%x, bufferAddr = 0x%x, len = %d\n",nodeResp.payload,nodeResp.buffer,nodeResp.length);
 #endif
 
-	 transport_send(&nodeResp, pktSrc, eth_dev_num);
+	 transport_send(sock_unicast, &nodeResp, pktSrc, eth_dev_num);
 
 }
 
@@ -273,6 +287,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           start_address;
 	u32           curr_address;
 	u32           next_address;
+	u32           ip_address;
 	u32           size;
 	u32           evt_log_size;
 	u32           transfer_size;
@@ -904,6 +919,51 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         break;
 
 
+	    //---------------------------------------------------------------------
+		case NODE_LOG_STREAM_ENTRIES:
+			// Stream entries from the log
+			//
+			// Message format:
+			//     cmdArgs32[0]   Enable = 1 / Disable = 0
+			//     cmdArgs32[1]   IP Address (32 bits)
+			//     cmdArgs32[2]   Host ID (upper 16 bits); Port (lower 16 bits)
+			//
+			temp       = Xil_Ntohl(cmdArgs32[0]);
+			ip_address = Xil_Ntohl(cmdArgs32[1]);
+			temp2      = Xil_Ntohl(cmdArgs32[2]);
+
+			// If parameter is not the magic number, then set the time on the node
+			if ( temp == 0 ) {
+				xil_printf("EVENT LOG:  Disable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
+				async_pkt_enable = temp;
+			} else {
+				xil_printf("EVENT LOG:  Enable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
+
+				// Initialize all of the global async packet variables
+				async_pkt_enable = temp;
+
+				async_pkt_dest.srcIPAddr = ip_address;
+				async_pkt_dest.destPort  = (temp2 & 0xFFFF);
+
+				async_pkt_hdr.destID     = ((temp2 >> 16) & 0xFFFF);
+				async_pkt_hdr.srcID      = node_info.node;
+				async_pkt_hdr.pktType    = PKTTPYE_NTOH_MSG_ASYNC;
+				async_pkt_hdr.length     = PAYLOAD_PAD_NBYTES + 4;
+				async_pkt_hdr.seqNum     = 0;
+				async_pkt_hdr.flags      = 0;
+
+				status = transport_config_socket( eth_dev_num, &sock_async, &addr_async, ((temp2 >> 16) & 0xFFFF));
+				if (status == FAILURE) {
+					xil_printf("Failed to configure socket.\n");
+				}
+			}
+
+			// Send response of current power
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+        break;
+
+
 		//---------------------------------------------------------------------
 		default:
 			// Call standard function in child class to parse parameters implmented there
@@ -983,12 +1043,19 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
     print_wn_parameters( (wn_tag_parameter *)&node_parameters, NODE_MAX_PARAMETER );
 #endif
 
+
+    // Initialize Global variables for async packet sending
+    async_pkt_enable = 0;
+    async_eth_dev_num = eth_dev_num;
+    bzero((void *)&async_pkt_dest, sizeof(pktSrcInfo));
+    bzero((void *)&async_pkt_hdr, sizeof(wn_transport_header));
+
     
     // Transport initialization
 	//   NOTE:  These errors are fatal and status error will be displayed
 	//       on the hex display.  Also, please attach a USB cable for
 	//       terminal debug messages.
-	status = transport_init( node_info.node, node_info.eth_device, node_info.ip_addr, node_info.hw_addr, node_info.unicast_port, node_info.broadcast_port );
+	status = transport_init(node_info.node, node_info.ip_addr, node_info.hw_addr, node_info.unicast_port, node_info.broadcast_port, node_info.eth_device);
 	if(status != 0) {
         xil_printf("  Error in transport_init()! Exiting...\n");
         return FAILURE;

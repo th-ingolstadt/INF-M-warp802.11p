@@ -59,6 +59,7 @@
 #define NODE_LOG_GET_EVENTS            54
 #define NODE_LOG_ADD_EVENT             55
 #define NODE_LOG_ENABLE_EVENT          56
+#define NODE_LOG_STREAM_ENTRIES        57
 
 #define NODE_ADD_STATS_TO_LOG          60
 #define NODE_GET_STATS                 61

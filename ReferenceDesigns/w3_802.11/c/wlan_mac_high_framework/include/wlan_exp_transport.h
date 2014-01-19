@@ -88,6 +88,7 @@
 #define PKTTYPE_TRIGGER             0
 #define PKTTYPE_HTON_MSG            1
 #define PKTTYPE_NTOH_MSG            2
+#define PKTTPYE_NTOH_MSG_ASYNC      3
 
 
 
@@ -168,21 +169,25 @@ typedef struct {
 
 /*************************** Function Prototypes *****************************/
 
-int  transport_init               ( unsigned int node, unsigned int eth_dev_num, unsigned char *hw_addr, unsigned char *ip_addr, unsigned int unicast_port, unsigned int bcast_port );
+int  transport_init               ( unsigned int node, unsigned char *hw_addr, unsigned char *ip_addr, unsigned int unicast_port, unsigned int bcast_port, unsigned int eth_dev_num);
 int  transport_linkStatus         ( unsigned int eth_dev_num);
 int  transport_processCmd         ( const wn_cmdHdr*, const void*, wn_respHdr*, void*, void*, unsigned int eth_dev_num);
-void transport_receiveCallback    ( unsigned char*, unsigned int, void*, unsigned int );
+void transport_receiveCallback    ( unsigned char* buff, unsigned int len, void* pktSrc, unsigned int eth_dev_num);
 int  transport_setReceiveCallback ( void(*handler) );
 void transport_poll               ( unsigned int eth_dev_num);
-void transport_send               ( wn_host_message*, pktSrcInfo*, unsigned int eth_dev_num);
+void transport_send               ( int socket, wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int eth_dev_num);
 void transport_close              ( unsigned int eth_dev_num);
 
 int  transport_set_hw_info        ( unsigned int eth_dev_num, unsigned char* ip_addr, unsigned char* hw_addr);
 int  transport_get_hw_addr        ( unsigned int eth_dev_num, unsigned char* hw_addr);
 int  transport_get_ip_addr        ( unsigned int eth_dev_num, unsigned char* ip_addr);
+int  transport_config_socket      ( unsigned int eth_dev_num, int * socket, struct sockaddr_in * addr, unsigned int port);
 int  transport_config_sockets     ( unsigned int eth_dev_num, unsigned int unicast_port, unsigned int bcast_port);
 
 int transport_get_parameters      ( unsigned int eth_dev_num, u32* buffer, unsigned int max_words, unsigned char network );
 
+// Helper methods to create message for asynchronous communication from the node
+wn_host_message * transport_create_async_msg      ( wn_transport_header* hdr, unsigned int length, unsigned char * payload );
+wn_host_message * transport_create_async_msg_w_cmd( wn_transport_header* hdr, wn_cmdHdr * cmd, unsigned int length, unsigned char * payload );
 
 #endif /* WLAN_EXP_TRANSPORT_H_ */
