@@ -245,6 +245,7 @@ void wlan_mac_high_set_channel( unsigned int mac_channel );
 void wlan_mac_high_set_dsss( unsigned int dsss_value );
 void wlan_mac_high_set_backoff_slot_value( u32 num_slots );
 void wlan_mac_high_set_time( u64 timestamp );
+void wlan_mac_high_config_demo(u32 flags, u32 inter_packet_sleep_usec);
 int  wlan_mac_high_is_cpu_low_initialized();
 int  wlan_mac_high_is_cpu_low_ready();
 inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length);
