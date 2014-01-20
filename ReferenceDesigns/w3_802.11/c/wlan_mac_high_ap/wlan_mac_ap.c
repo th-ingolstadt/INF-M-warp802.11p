@@ -27,6 +27,7 @@
 #include "xintc.h"
 
 //WARP includes
+#include "wlan_mac_ap_mac_filter.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -65,7 +66,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -123,6 +124,7 @@ int main(){
 	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 	default_tx_gain_target = TX_GAIN_TARGET;
+	set_mac_filter_mode(FILTER_MODE_ALLOW_RANGE);
 
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );
@@ -202,6 +204,8 @@ int main(){
 
 
 	wlan_mac_high_interrupt_start();
+
+	wlan_mac_high_config_demo(~DEMO_CONFIG_FLAGS_EN,0);
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
@@ -545,6 +549,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	station_info* associated_station = NULL;
 	statistics* station_stats = NULL;
 	u8 eth_send;
+	u8 allow_auth = 0;
 
 	rx_common_entry* rx_event_log_entry;
 
@@ -739,55 +744,59 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication Packet
 
-				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr)) {
-						mpdu_ptr_u8 += sizeof(mac_header_80211);
-						switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
-							case AUTH_ALGO_OPEN_SYSTEM:
-								if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
-									//Checkout 1 element from the queue;
-									queue_checkout(&checkout,1);
-
-									if(checkout.length == 1){ //There was at least 1 free queue element
-										tx_queue = (packet_bd*)(checkout.first);
-
-										wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
-
-										tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
-
-										wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
-														 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-										enqueue_after_end(0, &checkout);
-										check_tx_queue();
-									}
-									goto mpdu_rx_process_end;
-								}
-							break;
-							default:
-
-								//Checkout 1 element from the queue;
-								queue_checkout(&checkout,1);
-
-								if(checkout.length == 1){ //There was at least 1 free queue element
-									tx_queue = (packet_bd*)(checkout.first);
-
-									wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
-
-									tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_CHALLENGE_FAILURE);
-
-									wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
-													 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-									enqueue_after_end(0, &checkout);
-									check_tx_queue();
-								}
-
-								warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
-								// Finish function
-								goto mpdu_rx_process_end;
-							break;
-						}
+				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr) && mac_filter_is_allowed(rx_80211_header->address_2)) {
+					mpdu_ptr_u8 += sizeof(mac_header_80211);
+					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm ){
+						case AUTH_ALGO_OPEN_SYSTEM:
+							allow_auth = 1;
+						break;
+						default:
+							allow_auth = 0;
+						break;
 					}
+				}
+
+				if(allow_auth){
+					if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){//This is an auth packet from a requester
+						//Checkout 1 element from the queue;
+						queue_checkout(&checkout,1);
+
+						if(checkout.length == 1){ //There was at least 1 free queue element
+							tx_queue = (packet_bd*)(checkout.first);
+
+							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
+							tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
+
+							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
+											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+							enqueue_after_end(0, &checkout);
+							check_tx_queue();
+						}
+						goto mpdu_rx_process_end;
+					}
+				} else {
+					//Checkout 1 element from the queue;
+					queue_checkout(&checkout,1);
+
+					if(checkout.length == 1){ //There was at least 1 free queue element
+						tx_queue = (packet_bd*)(checkout.first);
+
+						wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+
+						tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_UNSPECIFIED);
+
+						wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
+										 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+						enqueue_after_end(0, &checkout);
+						check_tx_queue();
+					}
+
+					// Finish function
+					goto mpdu_rx_process_end;
+				}
 			break;
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ): //Re-association Request
@@ -856,8 +865,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		//Bad FCS
 		goto mpdu_rx_process_end;
 	}
-
-
 	mpdu_rx_process_end:
 	if (rx_event_log_entry != NULL) {
 		wn_transmit_log_entry((void *)rx_event_log_entry);
