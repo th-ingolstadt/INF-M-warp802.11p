@@ -73,6 +73,8 @@ wlan_ipc_msg            ipc_msg_from_high;
 u32                     ipc_msg_from_high_payload[10];
 
 u8                      mac_param_band;
+u32						_DEMO_inter_pkt_sleep_usec;
+u8						_DEMO_mode;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -101,6 +103,8 @@ int main(){
 	cpu_low_status = 0;
 	red_led_index = 0;
 	green_led_index = 0;
+	_DEMO_inter_pkt_sleep_usec = 0;
+	_DEMO_mode = 0;
 
 	debug_num_slots = SLOT_CONFIG_RAND;
 
@@ -192,6 +196,17 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			case IPC_MBOX_SET_TIME:
 				new_timestamp = *(u64*)ipc_msg_from_high_payload;
 				wlan_mac_set_time(new_timestamp);
+			break;
+
+			case IPC_MBOX_DEMO_CONFIG:
+				if(ipc_msg_from_high_payload[0] & DEMO_CONFIG_FLAGS_EN){
+					_DEMO_inter_pkt_sleep_usec = ipc_msg_from_high_payload[1];
+					_DEMO_mode = 1;
+					xil_printf("Demo mode activated with interval %d\n", _DEMO_inter_pkt_sleep_usec);
+				} else {
+					_DEMO_mode = 0;
+					xil_printf("Demo mode deactivated\n");
+				}
 			break;
 
 			case IPC_MBOX_CONFIG_PHY_TX:
@@ -864,15 +879,18 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 	} while(mac_status & WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE);
 
 	//TODO: Demo code
-	switch(curr_ant){
-		case 0:
-			wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
-		break;
-		case 1:
-			wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
-		break;
+	if(_DEMO_mode){
+		switch(curr_ant){
+			case 0:
+				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+			break;
+			case 1:
+				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
+			break;
+		}
+		curr_ant = (curr_ant+1)%2;
+		usleep(_DEMO_inter_pkt_sleep_usec);
 	}
-	curr_ant = (curr_ant+1)%2;
 
 	//Check FCS
 	if(mac_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) {
