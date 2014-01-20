@@ -15,9 +15,4 @@
  *  @bug No known bugs
  */
 
-#define FILTER_MODE_ALLOW_ALL	0
-#define FILTER_MODE_ALLOW_RANGE	1
-#define FILTER_MODE_WHITELIST	2
-
-void set_mac_filter_mode(u8 mode);
 u8 mac_filter_is_allowed(u8* addr);
