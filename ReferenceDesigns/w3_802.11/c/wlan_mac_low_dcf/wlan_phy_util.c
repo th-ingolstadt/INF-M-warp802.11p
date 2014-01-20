@@ -210,8 +210,8 @@ void wlan_phy_init() {
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 50, 4, 0x3F);
 
 	//Configure the default antenna selections as SISO Tx/Rx on RF A
-	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
-	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA); //TX_ANTMODE_SISO_ANTA
+	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA); //RX_ANTMODE_SISO_ANTA
 
 	//Set physical carrier sensing threshold
 	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
@@ -264,8 +264,6 @@ void wlan_phy_init() {
 	wlan_agc_set_target( (64-16) );
 
 /************ Wrap Up ************/
-	//Let PHY Tx take control of radio TXEN/RXEN
-	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 
 	//Set MSB of RSSI_THRESH register to use summed RSSI for debug output
 	Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<31) | (PHY_RX_RSSI_SUM_LEN * 150)));
@@ -273,6 +271,10 @@ void wlan_phy_init() {
 	//De-assert resets
 	REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
 	REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
+
+	//Let PHY Tx take control of radio TXEN/RXEN
+	REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
+	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 
 	return;
 }

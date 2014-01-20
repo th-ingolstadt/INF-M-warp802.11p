@@ -147,7 +147,7 @@ int main(){
 	wlan_radio_init();
 	wlan_phy_init();
 	mac_dcf_init();
-	
+
 	cpu_low_status |= CPU_STATUS_INITIALIZED;
 	//Send a message to other processor to say that this processor is initialized and ready
 	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
@@ -857,13 +857,24 @@ int wlan_create_ack_frame(void* pkt_buf, u8* address_ra) {
 
 inline u32 wlan_mac_dcf_hw_rx_finish(){
 	u32 mac_status;
+	static u8 curr_ant = 0;
 	//Wait for the packet to finish
 	do{
 		mac_status = wlan_mac_get_status();
 	} while(mac_status & WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE);
 
-	//Check FCS
+	//TODO: Demo code
+	switch(curr_ant){
+		case 0:
+			wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+		break;
+		case 1:
+			wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
+		break;
+	}
+	curr_ant = (curr_ant+1)%2;
 
+	//Check FCS
 	if(mac_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) {
 		green_led_index = (green_led_index + 1) % NUM_LEDS;
 		userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
