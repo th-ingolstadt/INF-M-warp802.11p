@@ -65,7 +65,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -520,44 +520,47 @@ void probe_req_transmit(){
 
 int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 
-	//Receives the pre-encapsulated Ethernet frames
-	packet_bd* tx_queue = (packet_bd*)(tx_queue_list->first);
+	if(access_point.AID > 0){
+		//Receives the pre-encapsulated Ethernet frames
+		packet_bd* tx_queue = (packet_bd*)(tx_queue_list->first);
 
-	wlan_mac_high_setup_tx_header( &tx_header_common, (u8*)access_point.addr,(u8*)(&(eth_dest[0])));
+		wlan_mac_high_setup_tx_header( &tx_header_common, (u8*)access_point.addr,(u8*)(&(eth_dest[0])));
 
-	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
+		wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
-	if(wlan_addr_eq(bcast_addr, eth_dest)){
-		if(queue_num_queued(0) < max_queue_size){
-			wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_GAIN_TARGET, 0 );
+		if(wlan_addr_eq(bcast_addr, eth_dest)){
+			if(queue_num_queued(0) < max_queue_size){
+				wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_GAIN_TARGET, 0 );
 
-			enqueue_after_end(0, tx_queue_list);
-			check_tx_queue();
-		} else {
-			return 0;
-		}
-
-	} else {
-
-		if(access_point.AID != 0){
-
-			if(queue_num_queued(1) < max_queue_size){
-
-				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY, TX_GAIN_TARGET,
-								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-				enqueue_after_end(1, tx_queue_list);
+				enqueue_after_end(0, tx_queue_list);
 				check_tx_queue();
 			} else {
 				return 0;
 			}
+
+		} else {
+
+			if(access_point.AID != 0){
+
+				if(queue_num_queued(1) < max_queue_size){
+
+					wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY, TX_GAIN_TARGET,
+									 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+					enqueue_after_end(1, tx_queue_list);
+					check_tx_queue();
+				} else {
+					return 0;
+				}
+			}
+
 		}
 
+		return 1;
+	} else {
+		//STA is not currently associated, so we won't send any eth frames
+		return 0;
 	}
-
-	return 1;
-
-
 }
 
 
