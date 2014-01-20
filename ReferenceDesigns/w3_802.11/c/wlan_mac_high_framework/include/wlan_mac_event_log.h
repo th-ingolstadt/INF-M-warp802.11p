@@ -90,5 +90,7 @@ void      add_node_info_entry();
 u32       add_txrx_statistics_to_log();
 
 void      wn_transmit_log_entry(void * entry);
+void      wn_transmit_node_info_entry();
+void      wn_transmit_txrx_statistics();
 
 #endif /* WLAN_MAC_EVENT_LOG_H_ */

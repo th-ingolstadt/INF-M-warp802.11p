@@ -956,6 +956,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				if (status == FAILURE) {
 					xil_printf("Failed to configure socket.\n");
 				}
+
+				// Transmit the Node Info
+				wn_transmit_node_info_entry();
 			}
 
 			// Send response of current power

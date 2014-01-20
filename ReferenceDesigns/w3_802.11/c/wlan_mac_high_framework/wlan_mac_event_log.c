@@ -802,43 +802,6 @@ void print_event_log_size(){
 
 /*****************************************************************************/
 /**
-* Add a node info entry
-*
-* @param    None.
-*
-* @return	None.
-*
-* @note		We can only add a node info entry to the log if the WLAN EXP
-*           framework is enabled.
-*
-******************************************************************************/
-void add_node_info_entry(){
-
-#ifdef USE_WARPNET_WLAN_EXP
-
-	node_info_entry * entry;
-	unsigned int      temp0;
-	unsigned int      max_words = sizeof(node_info_entry) >> 2;
-
-	entry = (node_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry) );
-
-    // Add the node parameters
-    temp0 = node_get_parameter_values( (u32 *)entry, max_words);
-
-    // Check to make sure that there was no mismatch in sizes
-    //   NOTE: During initialization of the log, the hardware parameters are not yet defined.
-    //       Therefore, we need to ignore when we get zero and be sure to reset the log
-    //       before normal operation
-    if ( (temp0 != max_words) && (temp0 != 0) ) {
-    	xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
-    	print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
-    }
-#endif
-}
-
-
-/*****************************************************************************/
-/**
 * Transmit a given log entry over the WLAN Exp framework
 *
 * @param    entry - Pointer to a log entry
@@ -875,6 +838,68 @@ void wn_transmit_log_entry(void * entry){
 	    msg = transport_create_async_msg_w_cmd( &async_pkt_hdr, &log_entry_cmd, log_entry_cmd.length, (unsigned char *)entry_hdr );
 		transport_send( sock_async, msg, &async_pkt_dest, async_eth_dev_num );
 	}
+
+#endif
+}
+
+
+
+/*****************************************************************************/
+/**
+* Add a node info entry
+*
+* @param    None.
+*
+* @return	None.
+*
+* @note		We can only add a node info entry to the log if the WLAN EXP
+*           framework is enabled.
+*
+******************************************************************************/
+void add_node_info_entry(){
+
+#ifdef USE_WARPNET_WLAN_EXP
+
+	node_info_entry * entry;
+	unsigned int      temp0;
+	unsigned int      max_words = sizeof(node_info_entry) >> 2;
+
+	entry = (node_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry) );
+
+    // Add the node parameters
+    temp0 = node_get_parameter_values( (u32 *)entry, max_words);
+
+    // Check to make sure that there was no mismatch in sizes
+    //   NOTE: During initialization of the log, the hardware parameters are not yet defined.
+    //       Therefore, we need to ignore when we get zero and be sure to reset the log
+    //       before normal operation
+    if ( (temp0 != max_words) && (temp0 != 0) ) {
+    	xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
+    	print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
+    }
+#endif
+}
+
+
+
+/*****************************************************************************/
+/**
+* Transmit the node info entry
+*
+* NOTE:  The node info entry is always at the start of the log
+*
+* @param    None.
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wn_transmit_node_info_entry(){
+
+#ifdef USE_WARPNET_WLAN_EXP
+
+	wn_transmit_log_entry((void *)((u32)log_start_address + sizeof(entry_header)));
 
 #endif
 }
