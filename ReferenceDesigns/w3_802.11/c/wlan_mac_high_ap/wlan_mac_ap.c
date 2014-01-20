@@ -592,7 +592,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			//Check if duplicate
 			if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
 				//Received seq num matched previously received seq num for this STA; ignore the MPDU and finish function
-				goto end;
+				goto mpdu_rx_process_end;
 
 			} else {
 				associated_station->rx.last_seq = rx_seq;
@@ -732,7 +732,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							check_tx_queue();
 						}
 						// Finish function
-						goto end;
+						goto mpdu_rx_process_end;
 					}
 				}
 			break;
@@ -760,7 +760,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 										enqueue_after_end(0, &checkout);
 										check_tx_queue();
 									}
-									goto end;
+									goto mpdu_rx_process_end;
 								}
 							break;
 							default:
@@ -784,7 +784,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 								warp_printf(PL_WARNING,"Unsupported authentication algorithm (0x%x)\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
 								// Finish function
-								goto end;
+								goto mpdu_rx_process_end;
 							break;
 						}
 					}
@@ -815,7 +815,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							check_tx_queue();
 						}
 						// Finish function
-						goto end;
+						goto mpdu_rx_process_end;
 					} else {
 						//Checkout 1 element from the queue;
 						queue_checkout(&checkout,1);
@@ -850,19 +850,24 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 			break;
 		}
-		goto end;
+		goto mpdu_rx_process_end;
 
 	} else {
 		//Bad FCS
-		goto end;
+		goto mpdu_rx_process_end;
 	}
 
 
-	end:
+	mpdu_rx_process_end:
 	if (rx_event_log_entry != NULL) {
 		wn_transmit_log_entry((void *)rx_event_log_entry);
 	}
 }
+
+
+
+
+
 
 void print_associations(dl_list* assoc_tbl){
 	u64 timestamp = get_usec_timestamp();
