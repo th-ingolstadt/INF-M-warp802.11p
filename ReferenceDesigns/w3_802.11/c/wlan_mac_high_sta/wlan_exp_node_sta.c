@@ -376,7 +376,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 
 
-// #ifdef _DEBUG_
+#ifdef _DEBUG_
 
 /*****************************************************************************/
 /**
@@ -413,7 +413,7 @@ void wlan_exp_print_ap_list( ap_info * ap_list, u32 num_ap ){
 	}
 }
 
-// #endif
+#endif
 
 
 #endif

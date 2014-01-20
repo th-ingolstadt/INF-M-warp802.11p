@@ -316,6 +316,10 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	}
 
 	wlan_mac_high_process_tx_done(tx_mpdu, &(access_point));
+
+	if (tx_event_log_entry != NULL) {
+        wn_transmit_log_entry((void *)tx_event_log_entry);
+	}
 }
 
 
@@ -623,8 +627,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			//xil_printf("%d ? %d\n", access_point.rx.last_seq, rx_seq);
 
 			if( (access_point.rx.last_seq != 0)  && (access_point.rx.last_seq == rx_seq) ) {
-				//Received seq num matched previously received seq num for this STA; ignore the MPDU and return
-				return;
+				//Received seq num matched previously received seq num for this STA; ignore the MPDU and finish function
+				goto mpdu_rx_process_end;
 
 			} else {
 				access_point.rx.last_seq = rx_seq;
@@ -678,7 +682,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 										association_state = 2;
 										attempt_association();
 									}
-									return;
+									// Finish function
+									goto mpdu_rx_process_end;
 								}
 							break;
 						}
@@ -723,7 +728,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							curr_ap_info = &(ap_list[num_ap_list-1]);
 						} else {
 							xil_printf("Reallocation of ap_list failed\n");
-							return;
+							// Finish function
+							goto mpdu_rx_process_end;
 						}
 
 					}
@@ -810,9 +816,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 			break;
 		}
-		return;
+		goto mpdu_rx_process_end;
 	} else {
 		//Bad FCS
+		goto mpdu_rx_process_end;
+	}
+
+
+	mpdu_rx_process_end:
+	if (rx_event_log_entry != NULL) {
+		wn_transmit_log_entry((void *)rx_event_log_entry);
 	}
 }
 
@@ -1007,11 +1020,11 @@ int get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words ) {
         memcpy( &buffer[1], ap_list, size );
     }
 
-// #ifdef _DEBUG_
+#ifdef _DEBUG_
 	#ifdef USE_WARPNET_WLAN_EXP
     wlan_exp_print_ap_list( ap_list, num_ap );
 	#endif
-// #endif
+#endif
 
 	return index;
 }
