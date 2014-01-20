@@ -59,6 +59,9 @@
 #define IPC_MBOX_CONFIG_PHY_RX		8
 #define IPC_MBOX_CONFIG_PHY_TX		9
 #define IPC_MBOX_SET_TIME			11
+#define IPC_MBOX_DEMO_CONFIG		12
+
+#define DEMO_CONFIG_FLAGS_EN 0x0001
 
 #define IPC_MBOX_MSG_ID(id) (IPC_MBOX_MSG_ID_DELIM | ((id) & 0xFFF))
 #define IPC_MBOX_MSG_ID_TO_MSG(id) (id) & 0xFFF
