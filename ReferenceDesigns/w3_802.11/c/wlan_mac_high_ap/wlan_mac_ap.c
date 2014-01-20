@@ -124,7 +124,7 @@ int main(){
 	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 	default_tx_gain_target = TX_GAIN_TARGET;
-	set_mac_filter_mode(FILTER_MODE_ALLOW_RANGE);
+	set_mac_filter_mode(FILTER_MODE_ALLOW_ALL);
 
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );
