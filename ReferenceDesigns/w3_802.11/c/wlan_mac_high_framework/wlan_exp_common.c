@@ -25,7 +25,7 @@
 
 #include <xparameters.h>
 #include <xil_io.h>
-#include <Xio.h>
+#include <xio.h>
 
 #include "string.h"
 
