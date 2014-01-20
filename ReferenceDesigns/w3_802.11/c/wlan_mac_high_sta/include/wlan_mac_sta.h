@@ -37,6 +37,8 @@
 #define NUM_BASIC_RATES_MAX            10
 
 #define MAX_RETRY                       7
+#define MAX_NUM_ASSOC				    1
+#define MAX_NUM_PROMISC_STATS		    0
 
 
 

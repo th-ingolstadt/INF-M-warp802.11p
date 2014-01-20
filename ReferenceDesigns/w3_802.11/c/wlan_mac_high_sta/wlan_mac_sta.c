@@ -159,7 +159,8 @@ int main(){
 	// Initialize the utility library
     wlan_mac_high_init();
 #ifdef USE_WARPNET_WLAN_EXP
-	//node_info_set_max_assn( 1 );
+	node_info_set_max_assn( MAX_NUM_ASSOC );
+	node_info_set_max_stats( MAX_NUM_PROMISC_STATS );
 	wlan_mac_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
 #endif
 
@@ -223,6 +224,8 @@ int main(){
 	mac_param_chan_save = mac_param_chan;
 	wlan_mac_high_set_channel( mac_param_chan );
 
+	// Reset the event log
+	event_log_reset();
 
 	// Print Station information to the terminal
     xil_printf("WLAN MAC Station boot complete: \n");
