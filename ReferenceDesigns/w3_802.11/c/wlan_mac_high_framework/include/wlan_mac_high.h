@@ -257,6 +257,6 @@ void usleep(u64 delay);
 
 // Common functions that must be implemented by users of the framework
 dl_list * get_statistics();
-
+dl_list * get_station_info_list();
 
 #endif /* WLAN_MAC_UTIL_H_ */

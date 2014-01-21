@@ -907,7 +907,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_ADD_STATS_TO_LOG:
 			// Add the current statistics to the log
-			temp = add_txrx_statistics_to_log();
+			temp = add_all_txrx_statistics_to_log();
 
 			xil_printf("EVENT LOG:  Added %d statistics.\n", temp);
 
@@ -967,29 +967,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         break;
 
 
-	    //---------------------------------------------------------------------
-		case NODE_CONFIG_DEMO:
-			// Configure the Demo
-			//
-			// Message format:
-			//     cmdArgs32[0]   Flags
-			//     cmdArgs32[1]   Inter-packet Sleep (usec)
-			//
-			temp       = Xil_Ntohl(cmdArgs32[0]);
-			temp2      = Xil_Ntohl(cmdArgs32[1]);
-
-			xil_printf("Configuring Demo:  flags = 0x%08x  sleep time = %d\n", temp, temp2);
-
-			// Pass the parameters directly to the config_demo function
-			wlan_mac_high_config_demo(temp, temp2);
-
-			// Send response
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-        break;
+		// Case NODE_CONFIG_DEMO is implemented in the child classes
 
 
-		//---------------------------------------------------------------------
+        //---------------------------------------------------------------------
 		default:
 			// Call standard function in child class to parse parameters implmented there
 			respSent = node_process_callback( cmdID, cmdHdr, cmdArgs, respHdr, respArgs, pktSrc, eth_dev_num);

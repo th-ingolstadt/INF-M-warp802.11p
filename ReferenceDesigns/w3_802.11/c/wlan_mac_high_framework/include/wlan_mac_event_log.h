@@ -15,6 +15,7 @@
 
 /***************************** Include Files *********************************/
 
+#include "wlan_mac_high.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -86,11 +87,16 @@ int       event_log_update_type( void * entry_ptr, u16 entry_type );
 void      print_event_log( u32 num_events );
 void      print_event_log_size();
 
-void      add_node_info_entry();
-u32       add_txrx_statistics_to_log();
-
 void      wn_transmit_log_entry(void * entry);
 void      wn_transmit_node_info_entry();
-void      wn_transmit_txrx_statistics();
+
+void      add_node_info_entry();
+
+u32       add_txrx_statistics_to_log(statistics * stats);
+u32       add_all_txrx_statistics_to_log();
+
+u32       add_station_info_to_log(station_info * info);
+u32       add_station_info_w_stats_to_log(station_info * info);
+u32       add_all_station_info_to_log();
 
 #endif /* WLAN_MAC_EVENT_LOG_H_ */

@@ -836,6 +836,7 @@ void wn_transmit_log_entry(void * entry){
         log_entry_cmd.length = entry_hdr->entry_length + entry_hdr_size;
 
 	    msg = transport_create_async_msg_w_cmd( &async_pkt_hdr, &log_entry_cmd, log_entry_cmd.length, (unsigned char *)entry_hdr );
+
 		transport_send( sock_async, msg, &async_pkt_dest, async_eth_dev_num );
 	}
 
@@ -908,7 +909,54 @@ void wn_transmit_node_info_entry(){
 
 /*****************************************************************************/
 /**
-* Add the current tx/rx statistics to the log
+* Add the tx/rx statistics structure to the log
+*
+* @param    stats - Pointer to statistics structure
+*
+* @return	SUCCESS - Entry created successfully
+*           FAILURE - Entry not created
+*
+* @note		None.
+*
+******************************************************************************/
+u32 add_txrx_statistics_to_log(statistics * stats){
+
+	txrx_stats_entry * entry;
+	u32                entry_size = sizeof(txrx_stats_entry);
+	u32                stats_size = sizeof(statistics) - sizeof(dl_node);
+
+	// Check to see if we have valid statistics
+	if (stats == NULL) { return FAILURE; }
+
+    if ( stats_size >= entry_size ) {
+    	// If the statistics structure in wlan_mac_high.h is bigger than the statistics
+    	// entry, print a warning and return since there is a mismatch in the definition of
+    	// statistics.
+    	xil_printf("WARNING:  Statistics definitions do not match.  Statistics log entry is too small\n");
+    	xil_printf("    to hold statistics structure.\n");
+    	return FAILURE;
+    }
+
+	entry = (txrx_stats_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TXRX_STATS, entry_size );
+
+	if ( entry != NULL ) {
+		entry->timestamp = get_usec_timestamp();
+
+		// Copy the statistics to the log entry
+		//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
+		//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
+		memcpy( (void *)(&entry->last_timestamp), (void *)(&stats->last_timestamp), stats_size );
+		return SUCCESS;
+	}
+
+	return FAILURE;
+}
+
+
+
+/*****************************************************************************/
+/**
+* Add all the current tx/rx statistics to the log
 *
 * @param    None.
 *
@@ -917,54 +965,150 @@ void wn_transmit_node_info_entry(){
 * @note		None.
 *
 ******************************************************************************/
-u32 add_txrx_statistics_to_log(){
+u32 add_all_txrx_statistics_to_log(){
 
-	u32 i;
-	u32                event_size = sizeof(txrx_stats_entry);
-	u32                stats_size = sizeof(statistics) - sizeof(dl_node);
+	u32                i, status;
+	u32                num_stats;
 	dl_list          * list = get_statistics();
 	statistics       * curr_statistics;
-	txrx_stats_entry * entry;
 
 	// Check to see if we have valid statistics
 	if (list == NULL) { return 0; }
 
-    if ( stats_size >= event_size ) {
-    	// If the statistics structure in wlan_mac_high.h is bigger than the statistics
-    	// entry, print a warning and return since there is a mismatch in the definition of
-    	// statistics.
-    	xil_printf("WARNING:  Statistics definitions do not match.  Statistics log entry is too small\n");
-    	xil_printf("    to hold statistics structure.\n");
-    	return 0;
-    }
-
+	// Get the first statistics structure
 	curr_statistics = (statistics*)(list->first);
 
+	// Set the count variable
+	num_stats = 0;
+
+	// Iterate thru the list
 	for( i = 0; i < list->length; i++){
 
-		entry = (txrx_stats_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TXRX_STATS, event_size );
+		status = add_txrx_statistics_to_log(curr_statistics);
 
-		if ( entry != NULL ) {
-			entry->timestamp = get_usec_timestamp();
-
-			// Copy the statistics to the log entry
-			//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
-			//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
-			memcpy( (void *)(&entry->last_timestamp), (void *)(&curr_statistics->last_timestamp), stats_size );
-
-		    curr_statistics = statistics_next(curr_statistics);
+		if (status == SUCCESS) {
+			num_stats++;
+			curr_statistics = statistics_next(curr_statistics);
 		} else {
 			break;
 		}
 	}
 
-	return i;
+	return num_stats;
 }
 
 
 
+/*****************************************************************************/
+/**
+* Add the given station info to the log
+*   - Variant:  Add both the station info entry and associated statistics entry
+*               to the log
+*
+* @param    info - Pointer to station info structure
+*
+* @return	SUCCESS - Entry created successfully
+*           FAILURE - Entry not created
+*
+* @note		None.
+*
+******************************************************************************/
+u32 add_station_info_to_log(station_info * info){
+
+	station_info_entry * entry;
+	u32                  entry_size        = sizeof(station_info_entry);
+	u32                  tx_params_size    = sizeof(tx_params);
+	u32                  station_info_size = 13 + STATION_INFO_HOSTNAME_MAXLEN;
+	                                                       // Includes:  6 bytes for addr
+	                                                       //            2 bytes for AID
+	                                                       //            4 bytes for flags
+	                                                       //            STATION_INFO_HOSTNAME_MAXLEN+1 bytes for hostname
+
+	// Check to see if we have valid station_info
+	if (info == NULL) { return FAILURE; }
+
+    if ( (station_info_size + tx_params_size) >= entry_size ) {
+    	// If the station info and tx params structures in wlan_mac_high.h are bigger than the
+    	// station info entry, print a warning and return since there is a mismatch in the definition of
+    	// statistics.
+    	xil_printf("WARNING:  Station Info definitions do not match.  Station Info log entry is too small\n");
+    	xil_printf("    to hold station info information.\n");
+    	return FAILURE;
+    }
+
+	entry = (station_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATION_INFO, entry_size );
+
+	if ( entry != NULL ) {
+		// Copy the station info to the log entry
+		//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
+		//          similar to the station info and tx params structures in wlan_mac_high.h
+		memcpy( (void *)(&entry->addr), (void *)(&info->addr), station_info_size );
+		memcpy( (void *)(&entry->rate), (void *)(&info->tx.rate), tx_params_size );
+		return SUCCESS;
+	}
+
+	return FAILURE;
+}
+
+
+u32 add_station_info_w_stats_to_log(station_info * info){
+
+	u32 status;
+
+	if (info == NULL){ return FAILURE; }
+
+	status = add_station_info_to_log(info);
+
+	if (status == SUCCESS) {
+		status = add_txrx_statistics_to_log(info->stats);
+	}
+
+	return status;
+}
 
 
 
+/*****************************************************************************/
+/**
+* Add all the current station_infos to the log
+*
+* @param    None.
+*
+* @return	num_statistics -- Number of statistics added to the log.
+*
+* @note		None.
+*
+******************************************************************************/
+u32 add_all_station_info_to_log(){
+
+	u32                i, status;
+	u32                num_stats;
+	dl_list          * list = get_station_info_list();
+	station_info     * curr_info;
+
+	// Check to see if we have valid statistics
+	if (list == NULL) { return 0; }
+
+	// Get the first statistics structure
+	curr_info = (station_info*)(list->first);
+
+	// Set the count variable
+	num_stats = 0;
+
+	// Iterate thru the list
+	for( i = 0; i < list->length; i++){
+
+		status = add_station_info_to_log(curr_info);
+
+		if (status == SUCCESS) {
+			num_stats++;
+			curr_info = station_info_next(curr_info);
+		} else {
+			break;
+		}
+	}
+
+	return num_stats;
+}
 
 

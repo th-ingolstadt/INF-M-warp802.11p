@@ -46,6 +46,7 @@
 
 #define ENTRY_TYPE_NODE_INFO           1
 #define ENTRY_TYPE_EXP_INFO            2
+#define ENTRY_TYPE_STATION_INFO        3
 
 //-----------------------------------------------
 // Receive Entries
