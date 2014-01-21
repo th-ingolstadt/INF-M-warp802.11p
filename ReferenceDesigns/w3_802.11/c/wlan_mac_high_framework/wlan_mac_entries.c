@@ -74,6 +74,12 @@ exp_info_entry* get_next_empty_exp_info_entry(u16 size){
 }
 
 
+station_info_entry* get_next_empty_station_info_entry(){
+
+	// Get the next empty entry
+	return (station_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry) );
+}
+
 /*****************************************************************************/
 /**
 * Get the next empty RX OFDM entry

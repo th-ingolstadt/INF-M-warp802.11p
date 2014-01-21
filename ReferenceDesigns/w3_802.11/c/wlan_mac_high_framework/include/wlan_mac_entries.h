@@ -214,6 +214,7 @@ exp_info_entry   * get_next_empty_exp_info_entry(u16 size);
 
 rx_ofdm_entry    * get_next_empty_rx_ofdm_entry();
 rx_dsss_entry    * get_next_empty_rx_dsss_entry();
+station_info_entry* get_next_empty_station_info_entry();
 
 tx_entry         * get_next_empty_tx_entry();
 
