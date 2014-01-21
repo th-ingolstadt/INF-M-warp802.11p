@@ -149,6 +149,7 @@ dl_list * get_statistics();
 int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
 u8 is_valid_association(dl_list* assoc_tbl, station_info* station);
 void wlan_ap_config_demo(u32 en, u32 ltg_interval);
+void _demo_send_wnet_association_table();
 void eth_packet_inspection(u32 type, u32 length, void* ptr);
 void animate_hex();
 void up_button();

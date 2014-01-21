@@ -182,6 +182,7 @@ int main(){
 	strcpy(access_point_ssid,default_AP_SSID);
 
     // Schedule all events
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 1000000, SCHEDULE_REPEAT_FOREVER, (void*)_demo_send_wnet_association_table);
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 	wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, (void*)association_timestamp_check);
 
@@ -1077,6 +1078,7 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 	station_info* station;
 	statistics*   station_stats;
 	station_info* curr_station_info;
+	station_info_entry* curr_station_info_entry;
 	u32 i;
 	u16 curr_AID = 0;
 
@@ -1162,6 +1164,20 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 				ltg_sched_start(AID_TO_LTG_ID(station->AID));
 			}
 
+			//TODO: DEMO
+			curr_station_info_entry = get_next_empty_station_info_entry();
+			if(curr_station_info_entry != NULL){
+				memcpy(curr_station_info_entry->addr, station->addr, 6);
+				memcpy(curr_station_info_entry->hostname, station->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
+				curr_station_info_entry->AID = station->AID;
+				curr_station_info_entry->flags = station->flags;
+				curr_station_info_entry->rate = station->tx.rate;
+				curr_station_info_entry->antenna_mode = station->tx.rate;
+				curr_station_info_entry->max_retry = station->tx.max_retry;
+
+				wn_transmit_log_entry((void *)curr_station_info_entry);
+			}
+
 			return station;
 		} else {
 			return NULL;
@@ -1243,6 +1259,7 @@ dl_list * get_station_info_list(){
 
 int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 	station_info* station;
+	station_info_entry* curr_station_info_entry;
 
 	station = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
 	if(station == NULL){
@@ -1255,6 +1272,20 @@ int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 		//TODO: DEMO
 		if(_demo_ltg_enable){
 			ltg_sched_remove(AID_TO_LTG_ID(station->AID));
+		}
+
+		//TODO: DEMO
+		curr_station_info_entry = get_next_empty_station_info_entry();
+		if(curr_station_info_entry != NULL){
+			memcpy(curr_station_info_entry->addr, station->addr, 6);
+			memcpy(curr_station_info_entry->hostname, station->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
+			curr_station_info_entry->AID = 0;
+			curr_station_info_entry->flags = station->flags;
+			curr_station_info_entry->rate = station->tx.rate;
+			curr_station_info_entry->antenna_mode = station->tx.rate;
+			curr_station_info_entry->max_retry = station->tx.max_retry;
+
+			wn_transmit_log_entry((void *)curr_station_info_entry);
 		}
 
 		//Remove station from the association table;
@@ -1293,6 +1324,31 @@ void wlan_ap_config_demo(u32 en, u32 ltg_interval){
 	_demo_ltg_enable = en;
 	if(_demo_ltg_enable == 0){
 		ltg_sched_remove(LTG_REMOVE_ALL);
+	}
+}
+
+void _demo_send_wnet_association_table(){
+	station_info_entry* curr_station_info_entry;
+	u32 i;
+	station_info* next_station_info;
+	station_info* curr_station_info;
+
+	next_station_info = (station_info*)(association_table.first);
+	for (i = 0 ; i < association_table.length; i++ ){
+		curr_station_info_entry = get_next_empty_station_info_entry();
+		curr_station_info = next_station_info;
+		if(curr_station_info_entry != NULL){
+			memcpy(curr_station_info_entry->addr, curr_station_info->addr, 6);
+			memcpy(curr_station_info_entry->hostname, curr_station_info->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
+			curr_station_info_entry->AID = curr_station_info->AID;
+			curr_station_info_entry->flags = curr_station_info->flags;
+			curr_station_info_entry->rate = curr_station_info->tx.rate;
+			curr_station_info_entry->antenna_mode = curr_station_info->tx.rate;
+			curr_station_info_entry->max_retry = curr_station_info->tx.max_retry;
+
+			wn_transmit_log_entry((void *)curr_station_info_entry);
+		}
+		next_station_info = station_info_next(curr_station_info);
 	}
 }
 
