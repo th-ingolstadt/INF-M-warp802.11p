@@ -1284,9 +1284,12 @@ u8 is_valid_association(dl_list* assoc_tbl, station_info* station){
 }
 
 
-void wlan_ap_config_demo(u8 en, u32 ltg_interval){
+void wlan_ap_config_demo(u32 en, u32 ltg_interval){
 	_demo_periodic_params.interval_usec = ltg_interval;
 	_demo_ltg_enable = en;
+	if(_demo_ltg_enable == 0){
+		ltg_sched_remove(LTG_REMOVE_ALL);
+	}
 }
 
 
