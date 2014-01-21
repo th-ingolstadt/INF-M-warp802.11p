@@ -108,7 +108,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
     unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
-    unsigned int  temp, i;
+    unsigned int  temp, temp2, i;
     unsigned int  num_tables;
     unsigned int  table_freq;
 
@@ -389,7 +389,29 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		break;
 
 
-		//---------------------------------------------------------------------
+	    //---------------------------------------------------------------------
+		case NODE_CONFIG_DEMO:
+			// Configure the Demo
+			//
+			// Message format:
+			//     cmdArgs32[0]   Flags
+			//     cmdArgs32[1]   LTG interval (usec)
+			//
+			temp       = Xil_Ntohl(cmdArgs32[0]);
+			temp2      = Xil_Ntohl(cmdArgs32[1]);
+
+			xil_printf("Configuring Demo:  flags = 0x%08x  interval = %d\n", temp, temp2);
+
+			// Pass the parameters directly to the config_demo function
+			wlan_ap_config_demo(temp, temp2);
+
+			// Send response
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+        break;
+
+
+        //---------------------------------------------------------------------
 		default:
 			xil_printf("Unknown node command: %d\n", cmdID);
 		break;

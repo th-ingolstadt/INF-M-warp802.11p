@@ -1236,6 +1236,10 @@ dl_list * get_statistics(){
 	return &statistics_table;
 }
 
+dl_list * get_station_info_list(){
+	return &association_table;
+}
+
 
 int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 	station_info* station;
