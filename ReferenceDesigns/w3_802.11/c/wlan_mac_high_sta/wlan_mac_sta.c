@@ -989,6 +989,12 @@ dl_list * get_statistics(){
 }
 
 
+dl_list * get_station_info_list(){
+	return NULL;
+}
+
+
+
 /*****************************************************************************/
 /**
 * Get AP List
