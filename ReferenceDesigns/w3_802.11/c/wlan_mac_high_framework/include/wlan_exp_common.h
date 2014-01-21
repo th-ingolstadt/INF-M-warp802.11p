@@ -107,8 +107,8 @@
 #define BROADCAST_ID                0xFFFF
 
 // Default ports- unicast ports are used for host-to-node, multicast for triggers and host-to-multinode
-#define NODE_UDP_UNICAST_PORT_BASE	9000
-#define NODE_UDP_MCAST_BASE			10000
+#define NODE_UDP_UNICAST_PORT_BASE	9500
+#define NODE_UDP_MCAST_BASE			9750
 
 
 

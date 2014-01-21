@@ -759,18 +759,24 @@ wn_host_message * transport_create_async_msg(wn_transport_header* hdr, unsigned 
 
 	wn_transport_header * async_tx_header;
 	unsigned char *       async_tx_payload;
+	unsigned int          tport_hdr_size;
 
 	if (length < TRANSPORT_ASYNC_TX_SIZE) {
 
+		tport_hdr_size   = sizeof(wn_transport_header);
+
 		async_tx_header  = (wn_transport_header *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET);
-		async_tx_payload = (unsigned char *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + sizeof(wn_transport_header));
+		async_tx_payload = (unsigned char *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + tport_hdr_size);
 
 		async_pkt_msg.buffer  = &async_pkt_data;
 		async_pkt_msg.payload = (unsigned int *)(async_tx_payload);
-		async_pkt_msg.length  = length;
+		async_pkt_msg.length  = length + tport_hdr_size;
 
-		memcpy(async_tx_header, hdr, sizeof(wn_transport_header));
+		memcpy(async_tx_header, hdr, tport_hdr_size);
 		memcpy(async_tx_payload, payload, length);
+
+		// Increment the sequence number in the header
+		hdr->seqNum++;
 
 	    return &async_pkt_msg;
 	} else {
@@ -784,22 +790,30 @@ wn_host_message * transport_create_async_msg_w_cmd(wn_transport_header* hdr, wn_
 	wn_transport_header * async_tx_header;
 	wn_cmdHdr           * async_tx_cmd;
 	unsigned char       * async_tx_payload;
+	unsigned int          tport_hdr_size;
+	unsigned int          cmd_hdr_size;
 
 	if (length < TRANSPORT_ASYNC_TX_SIZE) {
 
+		tport_hdr_size   = sizeof(wn_transport_header);
+		cmd_hdr_size     = sizeof(wn_cmdHdr);
+
 		async_tx_header  = (wn_transport_header *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET);
-		async_tx_cmd     = (wn_cmdHdr *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + sizeof(wn_transport_header));
-		async_tx_payload = (unsigned char *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + sizeof(wn_transport_header) + sizeof(wn_cmdHdr));
+		async_tx_cmd     = (wn_cmdHdr *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + tport_hdr_size);
+		async_tx_payload = (unsigned char *)((unsigned char *)(&async_pkt_data) + PAYLOAD_OFFSET + tport_hdr_size + cmd_hdr_size);
 
 		async_pkt_msg.buffer  = &async_pkt_data;
 		async_pkt_msg.payload = (unsigned int *)(async_tx_payload);
-		async_pkt_msg.length  = length;
+		async_pkt_msg.length  = length + tport_hdr_size + cmd_hdr_size;
 
-		memcpy(async_tx_header, hdr, sizeof(wn_transport_header));
-		memcpy(async_tx_cmd, cmd, sizeof(wn_cmdHdr));
+		memcpy(async_tx_header, hdr, tport_hdr_size);
+		memcpy(async_tx_cmd, cmd, cmd_hdr_size);
 		memcpy(async_tx_payload, payload, length);
 
-	    return &async_pkt_msg;
+		// Increment the sequence number in the header
+		hdr->seqNum++;
+
+		return &async_pkt_msg;
 	} else {
 		return NULL;
     }

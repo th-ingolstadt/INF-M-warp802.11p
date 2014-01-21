@@ -31,6 +31,7 @@
 #define WLAN_MAC_ENTRIES_H_
 
 #include "wlan_mac_802_11_defs.h"
+#include "wlan_mac_high.h"
 
 #define WLAN_MAC_ENTRIES_LOG_CHAN_EST
 
@@ -99,6 +100,26 @@ typedef struct{
 
 
 //-----------------------------------------------
+// Station Info Entry
+//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
+//          accurately reflects the number of bytes in the struct.  Unfortunately,
+//          since the hostname is uses a #define for the length, we have to
+//          use that to determine the size of the rsvd field.  It will be between
+//          1 and 4 bytes.
+//
+typedef struct{
+	u8      addr[6];									// HW Address
+	u8		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	// Hostname from DHCP requests
+	u16     AID;										// Association ID
+	u32		flags;										// 1-bit flags
+	u8      rate;			                            // Rate of transmission
+	u8      antenna_mode;	                            // Antenna mode (Placeholder)
+	u8	    max_retry;                                  // Maximum number of retransmissions
+	u8      rsvd[((STATION_INFO_HOSTNAME_MAXLEN+1)%4) + 1];
+} station_info_entry;
+
+
+//-----------------------------------------------
 // TxRx Statistics Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
 //          accurately reflects the number of bytes in the struct.
@@ -117,6 +138,11 @@ typedef struct{
 } txrx_stats_entry;
 
 
+//-----------------------------------------------
+// Common Receive Entry
+//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
+//          accurately reflects the number of bytes in the struct.
+//
 typedef struct{
 	u64  timestamp;
 	mac_header_80211 mac_hdr;
@@ -138,8 +164,6 @@ typedef struct{
 
 //-----------------------------------------------
 // Receive OFDM Entry
-//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
-//          accurately reflects the number of bytes in the struct.
 //
 typedef struct{
 	rx_common_entry rx_entry;
@@ -151,12 +175,11 @@ typedef struct{
 
 //-----------------------------------------------
 // Receive DSSS Entry
-//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
-//          accurately reflects the number of bytes in the struct.
 //
 typedef struct{
 	rx_common_entry rx_common_entry;
 } rx_dsss_entry;
+
 
 //-----------------------------------------------
 // Transmit Entry
