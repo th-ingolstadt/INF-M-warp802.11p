@@ -95,6 +95,11 @@ static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 // Misc
 u32 animation_schedule_id;
 
+
+u8 _demo_ltg_enable;
+ltg_sched_periodic_params _demo_periodic_params;
+ltg_pyld_fixed _demo_pyld_params;
+
 /*************************** Functions Prototypes ****************************/
 
 
@@ -124,6 +129,8 @@ int main(){
 	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 	default_tx_gain_target = TX_GAIN_TARGET;
+
+	wlan_ap_config_demo(1, 15000);
 
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );
@@ -1146,6 +1153,15 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 			print_associations(assoc_tbl);
 			wlan_mac_high_write_hex_display(assoc_tbl->length);
 
+			//TODO: DEMO
+			if(_demo_ltg_enable){
+				_demo_pyld_params.hdr.type = LTG_PYLD_TYPE_FIXED;
+				_demo_pyld_params.length = 0;
+
+				ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
+				ltg_sched_start(AID_TO_LTG_ID(station->AID));
+			}
+
 			return station;
 		} else {
 			return NULL;
@@ -1231,6 +1247,12 @@ int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 		//function know that something is wrong.
 		return -1;
 	} else {
+
+		//TODO: DEMO
+		if(_demo_ltg_enable){
+			ltg_sched_remove(AID_TO_LTG_ID(station->AID));
+		}
+
 		//Remove station from the association table;
 		dl_node_remove(assoc_tbl, &(station->node));
 
@@ -1261,6 +1283,11 @@ u8 is_valid_association(dl_list* assoc_tbl, station_info* station){
 	return 0;
 }
 
+
+void wlan_ap_config_demo(u8 en, u32 ltg_interval){
+	_demo_periodic_params.interval_usec = ltg_interval;
+	_demo_ltg_enable = en;
+}
 
 
 
