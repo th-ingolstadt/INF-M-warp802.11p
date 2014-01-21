@@ -65,7 +65,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -128,7 +128,7 @@ void uart_rx(u8 rxByte){ };
 
 /******************************** Functions **********************************/
 
-int main(){
+int main() {
 
 	//This function should be executed first. It will zero out memory, and if that
 	//memory is used before calling this function, unexpected results may happen.
@@ -320,9 +320,12 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 
 	wlan_mac_high_process_tx_done(tx_mpdu, &(access_point));
 
+#if 0
 	if (tx_event_log_entry != NULL) {
         wn_transmit_log_entry((void *)tx_event_log_entry);
 	}
+#endif
+
 }
 
 
@@ -827,7 +830,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 
 	mpdu_rx_process_end:
-	if (rx_event_log_entry != NULL) {
+	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_RATE_1M)) {
 		wn_transmit_log_entry((void *)rx_event_log_entry);
 	}
 }
