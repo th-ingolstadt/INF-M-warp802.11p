@@ -64,6 +64,8 @@
 #define NODE_ADD_STATS_TO_LOG          60
 #define NODE_GET_STATS                 61
 
+#define NODE_CONFIG_DEMO              100
+
 
 // ****************************************************************************
 // Define Node Parameters

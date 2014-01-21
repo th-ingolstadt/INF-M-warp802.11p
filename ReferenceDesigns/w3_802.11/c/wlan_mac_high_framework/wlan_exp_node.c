@@ -932,7 +932,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			ip_address = Xil_Ntohl(cmdArgs32[1]);
 			temp2      = Xil_Ntohl(cmdArgs32[2]);
 
-			// If parameter is not the magic number, then set the time on the node
+			// Check the enable
 			if ( temp == 0 ) {
 				xil_printf("EVENT LOG:  Disable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
 				async_pkt_enable = temp;
@@ -961,7 +961,29 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				wn_transmit_node_info_entry();
 			}
 
-			// Send response of current power
+			// Send response
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+        break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_CONFIG_DEMO:
+			// Configure the Demo
+			//
+			// Message format:
+			//     cmdArgs32[0]   Flags
+			//     cmdArgs32[1]   Inter-packet Sleep (usec)
+			//
+			temp       = Xil_Ntohl(cmdArgs32[0]);
+			temp2      = Xil_Ntohl(cmdArgs32[1]);
+
+			xil_printf("Configuring Demo:  flags = 0x%08x  sleep time = %d\n", temp, temp2);
+
+			// Pass the parameters directly to the config_demo function
+			wlan_mac_high_config_demo(temp, temp2);
+
+			// Send response
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
         break;
