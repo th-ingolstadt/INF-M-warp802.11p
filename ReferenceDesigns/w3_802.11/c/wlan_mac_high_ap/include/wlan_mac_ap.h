@@ -66,7 +66,7 @@
 
 // Time between beacon transmissions
 //
-#define BEACON_INTERVAL_MS             (10)
+#define BEACON_INTERVAL_MS             (100)
 #define BEACON_INTERVAL_US             (BEACON_INTERVAL_MS*1000)
 
 

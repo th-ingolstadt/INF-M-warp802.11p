@@ -55,7 +55,7 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_AP
 
-#define  WLAN_CHANNEL                  4
+#define  WLAN_CHANNEL                  11
 #define  TX_GAIN_TARGET				   45
 
 
@@ -130,7 +130,8 @@ int main(){
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 	default_tx_gain_target = TX_GAIN_TARGET;
 
-	wlan_ap_config_demo(1, 15000);
+	//wlan_ap_config_demo(1, 15000);
+	//wlan_ap_config_demo(1, 15000);
 
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );

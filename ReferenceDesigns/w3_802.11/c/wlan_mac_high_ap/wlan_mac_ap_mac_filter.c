@@ -23,7 +23,7 @@
 ///For the filter_range_compare, locations of zeroed bits in the mask must match filter_range_compare for incoming addresses
 
 //Any Addresses
-static u8 filter_range_mask[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+static u8 filter_range_mask[6]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 static u8 filter_range_compare[6]   = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 //No Range of Addresses
