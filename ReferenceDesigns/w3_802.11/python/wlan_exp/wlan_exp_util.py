@@ -238,11 +238,10 @@ def wlan_exp_setup():
     wlan_exp_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
     if not wlan_exp_dir in sys.path:
-        print("Adding", wlan_exp_dir)
         sys.path.append(wlan_exp_dir)
+        print("    Adding: {0}".format(wlan_exp_dir))
     else:
-        # TODO:  Do we need any checking here?
-        pass
+        print("    In Path: {0}".format(wlan_exp_dir))    
 
 
     #-------------------------------------------------------------------------
@@ -250,6 +249,7 @@ def wlan_exp_setup():
 
     print("-" * 50)
     config.save_config(output=True)
+    print("-" * 50)
     print("WLAN Exp v {0} Configuration Complete.".format(wlan_exp_ver_str()))
     print("-" * 50 + "\n\n")
 

@@ -257,18 +257,24 @@ def wn_setup():
 
     # Check that this is a valid IP address
     output = ""
-    if (os.name != 'posix'):
-        temp = os.popen("ipconfig /all", "r")
-    else:
-        temp = os.popen("ifconfig -a", "r")
-        
+
+    temp = os.popen("ifconfig -a", "r")
+
     while 1:
         line = temp.readline()
         output = output + line
         if not line: break
 
+    if (output == ''):
+        temp = os.popen("ipconfig /all", "r")
+        
+        while 1:
+            line = temp.readline()
+            output = output + line
+            if not line: break
+
     my_address = config.get_param('network', 'host_address')
-    if output.find(my_address) == -1:
+    if (output.find(my_address) == -1):
         print("WARNING: No interface found.  Please make sure your network")
         print("    interface is connected and configured with static IP {0}".format(my_address))
 
@@ -379,8 +385,10 @@ def wn_setup():
 
     print("-" * 50)
     config.save_config(output=True)
+    print("-" * 50)
     print("WARPNet v {0} Configuration Complete.".format(wn_ver_str()))
-    print("-" * 50, "\n\n\n")
+    print("-" * 50)
+    print("\n\n")
 
 
     #-------------------------------------------------------------------------
@@ -417,6 +425,7 @@ def wn_nodes_setup():
 
     print("-" * 50)
     print("WARPNet Nodes Setup:")
+    print("-" * 50)
 
     base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
