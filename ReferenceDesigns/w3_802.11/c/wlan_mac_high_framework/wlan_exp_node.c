@@ -320,7 +320,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	// Return the WARPNet Type
             respArgs32[respIndex++] = Xil_Htonl( node_info.type );    
         
-			respHdr->length += (respIndex * sizeof(respArgs32));
+            xil_printf("WARPNet Type = %d \n", node_info.type);
+
+            respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
         break;
         
@@ -364,7 +366,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// Return Null Response
 			//   The WLAN_EXP_NODE currently does not have access to LEDs
 
-            xil_printf("  Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
+            xil_printf("WARPNET Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
 
             // --------------------------------
             // TODO:  Add in visual identifiers for the node
@@ -383,11 +385,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             //   - cmdArgs32[3] - Unicast Port
             //   - cmdArgs32[4] - Broadcast Port
             // 
-            if ( node_info.node == 0xFFFF ) {
-                // Only update the parameters if the serial numbers match
-                if ( node_info.serial_number ==  Xil_Ntohl(cmdArgs32[0]) ) {
 
-                    xil_printf("  Reconfiguring ETH %c \n", wn_conv_eth_dev_num(eth_dev_num) );
+			// Only update the parameters if the serial numbers match
+            if ( node_info.serial_number ==  Xil_Ntohl(cmdArgs32[0]) ) {
+
+            	// Only update the node if it has not been configured
+            	if ( node_info.node == 0xFFFF ) {
+                    xil_printf("\nReconfiguring ETH %c \n", wn_conv_eth_dev_num(eth_dev_num) );
 
                 	node_info.node = Xil_Ntohl(cmdArgs32[1]) & 0xFFFF;
 
@@ -411,12 +415,16 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
                     status = transport_config_sockets(eth_dev_num, node_info.unicast_port, node_info.broadcast_port);
 
+                    xil_printf("\n");
                     if(status != 0) {
         				xil_printf("Error binding transport...\n");
         			}
                 } else {
-                    xil_printf("NODE_IP_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
+                    xil_printf("NODE_IP_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node);
+                    xil_printf("    Use NODE_CONFIG_RESET command to reset network configuration.\n");
                 }
+            } else {
+                xil_printf("NODE_IP_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
             }
 		break;
 
@@ -482,7 +490,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			if ( temp != 0xFFFF ) {
 
 				// TODO: Set the TX power
-			    xil_printf("Setting TX power = %d\n", temp);
+			    xil_printf("WARPNET:  Setting TX power = %d\n", temp);
 			}
 
 			// Send response of current power
@@ -515,7 +523,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 				wlan_mac_high_set_time( time );
 
-			    xil_printf("Setting time = 0x%08x 0x%08x\n", temp2, temp);
+			    xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
 			} else {
 				time  = get_usec_timestamp();
 				temp  = time & 0xFFFFFFFF;
