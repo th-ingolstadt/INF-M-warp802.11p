@@ -16,7 +16,7 @@ network = wlan_exp_initNodes( config );                                         
 network.disp();                                                                          % Display the network
 
 ap_nodes    = wlan_exp_networkCmd(network, 'get_nodes', 'wlan_exp_node_ap');             % Get AP nodes
-sta_nodes   = wlan_exp_networkCmd(network, 'get_nodes', 'wlan_exp_node_station');        % Get STA nodes
+%sta_nodes   = wlan_exp_networkCmd(network, 'get_nodes', 'wlan_exp_node_station');        % Get STA nodes
 
 log_oldest  = wn_nodeCmd( ap_nodes(1), 'log_get_oldest_event_index');                    % Get the index of the oldest event
 log_current = wn_nodeCmd( ap_nodes(1), 'log_get_current_event_index');                   % Get the index of the current event

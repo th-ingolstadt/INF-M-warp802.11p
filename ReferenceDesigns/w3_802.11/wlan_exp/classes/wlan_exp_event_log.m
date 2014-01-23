@@ -288,12 +288,18 @@ classdef wlan_exp_event_log < handle_light
                     %            0 - Node not added
                     % 
 
+                    start_time = tic;
+
                     numEvents      = numel( varargin{1} );
-                    current_index  = numel( log.event_list );
                     log.event_list = [ log.event_list, varargin{1} ];
+
+                    total_time = toc(start_time);
+                    fprintf('Add Event Time :  %.2f sec for %d bytes\n', total_time, numEvents );
                     
                     % TODO:  Add some class checking
                     % if( strcmp( superclasses(  ),'wlan_exp_event') )
+
+                    % current_index  = numel( log.event_list );
                     
 
                 case 'get_events'
@@ -302,6 +308,9 @@ classdef wlan_exp_event_log < handle_light
                     % Arguments: 'class'
                     % Returns:   vector of all nodes that correspond to 'class'
                     % 
+                    
+                    start_time = tic;
+                    
                     numEvents    = numel( log.event_list );
                     search_class = varargin{1};
  
@@ -328,6 +337,8 @@ classdef wlan_exp_event_log < handle_light
                         error(generatemsgid('UnknownArg'),'Unknown argument.  Argument is of type "%s", need a class name that is "char" ', class(varargin{1}));
                     end
 
+                    total_time = toc(start_time);
+                    fprintf('Get Event Time :  %.2f sec for %d of %d events\n', total_time, index, numEvents );
 
                 otherwise
                     error(generatemsgid('UnknownCmd'),'Unknown command:  %s ', cmdStr);
