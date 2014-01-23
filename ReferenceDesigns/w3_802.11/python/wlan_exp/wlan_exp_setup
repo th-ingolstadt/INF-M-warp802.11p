@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+
+from wlan_exp import wlan_exp_util
+wlan_exp_util.wlan_exp_setup()
