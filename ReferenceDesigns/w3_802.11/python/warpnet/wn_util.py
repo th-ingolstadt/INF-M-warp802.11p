@@ -426,14 +426,80 @@ def wn_nodes_setup():
     print("-" * 50)
     print("WARPNet Nodes Setup:")
     print("-" * 50)
-
-    base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
-
-    print(config_file)
-
-    print("!!! TBD !!!")
+    print("    Node setup under construction.")
     print("-" * 50)
+
+
+
+    """
+    # base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    # config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
+
+
+    import warpnet.wn_config as wn_config
+    nodes_config = wn_config.WnNodesConfiguration()
+
+    nodes_done = 0
+
+    try:
+        while not nodes_done:
+            (serial_number, ip_address) = _get_node_info_from_user()
+            
+            if ((serial_number == '') or (ip_address == '')):
+                break
+            else:
+                nodes_config.add_node(serial_number, ip_address)
+            
+    except KeyboardInterrupt:
+        pass
+
+    print("-" * 50)
+    nodes_config.save_config(output=True)
+    print("-" * 50)
+    print("Nodes Configuration Complete.")
+    print("-" * 50)
+    print("\n\n")
+    """
+
+# End of wn_nodes_setup()
+
+
+def _get_node_info_from_user():
+    """Internal method to get info from the user"""
+
+    return ('', '')
+    
+    """
+    
+    
+    serial_number_done = 0
+    
+    while not serial_number_done:
+        print("-" * 30)
+        temp = raw_input("WARP Node Serial Number (last 5 digits or enter to end): ")
+        
+        if not temp is '':
+            sn = "W3-a-{0:05d}".format(temp)
+            confirmation = 0
+            
+            while not confirmation:            
+                temp = raw_input("Is {0} Correct? [Y/n]: ".format(sn)).lower()
+                if not temp is '':
+                    if (temp != 'y') or (temp != 'n'):
+                        confirmation = 1
+                        if (temp == 'y'):
+                            return sn
+                    else:
+                        print("    '{0}' is not a valid selection.".format(temp))
+                        print("    Please select [y] or [n].")
+                else:
+                    break
+        else:
+            break
+
+    return ''
+    """
+
 
 '''
     Select file
