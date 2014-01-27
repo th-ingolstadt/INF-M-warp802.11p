@@ -335,6 +335,8 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	u16 rssi;
 	u8 lna_gain;
 	u8 active_rx_ant;
+	u8 phy_is_unblocked = 0;
+	u8 curr_rx_pkt_buf = rx_pkt_buf;
 
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
@@ -375,7 +377,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 	//IPC_MBOX_GRP_PKT_BUF -> IPC_MBOX_GRP_RX_MPDU_DONE
 	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_RX_MPDU_READY);
-	ipc_msg_to_high.arg0 = rx_pkt_buf;
+	ipc_msg_to_high.arg0 = curr_rx_pkt_buf;
 	ipc_msg_to_high.num_payload_words = 0;
 
 	if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
@@ -383,14 +385,15 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	}
 
 
+	mpdu_info->timestamp = get_rx_start_timestamp();
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
-	mpdu_info->timestamp = get_rx_start_timestamp();
+	if(lock_empty_rx_pkt_buf_noblock() == 0){
+		phy_is_unblocked = 1;
+		wlan_mac_dcf_hw_unblock_rx_phy();
+	}
 
 	return_value |= POLL_MAC_STATUS_GOOD;
-
-
-
 
 
 	if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
@@ -399,159 +402,25 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 	//Unlock the pkt buf mutex before passing the packet up
 	// If this fails, something has gone horribly wrong
-	if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-		xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
+	if(unlock_pkt_buf_rx(curr_rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+		xil_printf("Error: unable to unlock RX pkt_buf %d\n", curr_rx_pkt_buf);
 		send_exception(EXC_MUTEX_RX_FAILURE);
 	} else {
 
 		if(length >= sizeof(mac_header_80211)){
-			//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
-			lock_empty_rx_pkt_buf();
-			wlan_mac_dcf_hw_unblock_rx_phy();
-
-
 			ipc_mailbox_write_msg(&ipc_msg_to_high);
-			return return_value;
-
-
-
 		} else {
 			//FIXME: This still happens
 			//warp_printf(PL_ERROR, "Error: received non-control packet of length %d, which is not valid\n", length);
 		}
 	}
 
-	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
-	wlan_mac_dcf_hw_unblock_rx_phy();
-
-	return return_value;
-}
-
-u32 frame_receive_old(void* pkt_buf_addr, u8 rate, u16 length){
-	//This function is called after a good SIGNAL field is detected by either PHY (OFDM or DSSS)
-	//It is the responsibility of this function to wait until a sufficient number of bytes have been received
-	// before it can start to process those bytes. When this function is called the eventual checksum status is
-	// unknown. The packet contents can be provisionally processed (e.g. prepare an ACK for fast transmission),
-	// but post-reception actions must be conditioned on the eventual FCS status (good or bad).
-	//
-	//Two primary job responsibilities of this function:
-	// (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
-	// (2): Pass up FCS-valid MPDUs to CPU_HIGH
-
-	u32 return_value;
-	u32 tx_length;
-	u8 tx_rate;
-	u8 unicast_to_me, to_broadcast;
-	u16 rssi;
-	u8 lna_gain;
-	u8 active_rx_ant;
-
-	rx_frame_info* mpdu_info;
-	mac_header_80211* rx_header;
-	wlan_ipc_msg ipc_msg_to_high;
-
-	return_value = 0;
-
-	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
-	mpdu_info = (rx_frame_info*)pkt_buf_addr;
-
-	//Apply the mac_header_80211 template to the first bytes of the received MPDU
-	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
-
-	//DEBUG
-	//wlan_mac_dcf_hw_rx_finish();
-	//wlan_mac_dcf_hw_unblock_rx_phy();
-
-	//if(rate != WLAN_MAC_RATE_1M && ((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_DATA)){
-	//	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
-	//	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
-	//}
-
-
-	//return return_value;
-	//DEBUG
-
-	if(length<sizeof(mac_header_80211_ACK)){
-		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
-		wlan_mac_dcf_hw_rx_finish();
+	if(phy_is_unblocked == 0){
+		//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
 		wlan_mac_dcf_hw_unblock_rx_phy();
-		return return_value;
 	}
-
-	mpdu_info->flags = 0;
-	mpdu_info->length = (u16)length;
-	mpdu_info->rate = (u8)rate;
-
-	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
-	mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
-
-	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
-
-	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
-
-	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-
-	mpdu_info->rx_power = calculate_rx_power(mac_param_band, rssi, lna_gain);
-	mpdu_info->channel = mac_param_chan;
-
-
-	//IPC_MBOX_GRP_PKT_BUF -> IPC_MBOX_GRP_RX_MPDU_DONE
-	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_RX_MPDU_READY);
-	ipc_msg_to_high.arg0 = rx_pkt_buf;
-	ipc_msg_to_high.num_payload_words = 0;
-
-	if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
-		return_value |= POLL_MAC_TYPE_ACK;
-	}
-
-
-	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
-	mpdu_info->timestamp = get_rx_start_timestamp();
-
-	return_value |= POLL_MAC_STATUS_GOOD;
-	return_value |= POLL_MAC_ADDR_MATCH;
-
-	//if(!WLAN_IS_CTRL_FRAME(rx_header)) {
-		//This packet should be passed up to CPU_high for further processing
-
-		if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
-			mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
-		}
-
-		//Unlock the pkt buf mutex before passing the packet up
-		// If this fails, something has gone horribly wrong
-		if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
-			send_exception(EXC_MUTEX_RX_FAILURE);
-		} else {
-
-			if(length >= sizeof(mac_header_80211)){
-				//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
-				lock_empty_rx_pkt_buf();
-				wlan_mac_dcf_hw_unblock_rx_phy();
-
-
-				ipc_mailbox_write_msg(&ipc_msg_to_high);
-				return return_value;
-
-
-
-			} else {
-				//FIXME: This still happens
-				//warp_printf(PL_ERROR, "Error: received non-control packet of length %d, which is not valid\n", length);
-			}
-		}
-
-
-	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
-	wlan_mac_dcf_hw_unblock_rx_phy();
-
 	return return_value;
 }
-
-
-
 
 void mac_dcf_init(){
 	wlan_ipc_msg ipc_msg_to_high;
@@ -770,7 +639,7 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 
 }
 
-inline void lock_empty_rx_pkt_buf(){
+inline void lock_empty_rx_pkt_buf_block(){
 	//This function blocks until it safely finds a packet buffer for the PHY RX to stash receptions
 	rx_frame_info* rx_mpdu;
 	u32 i = 1;
@@ -794,6 +663,24 @@ inline void lock_empty_rx_pkt_buf(){
 		xil_printf("Searching for empty packet buff %d\n", i);
 		i++;
 	}
+}
+
+inline int lock_empty_rx_pkt_buf_noblock(){
+	rx_frame_info* rx_mpdu;
+	u8 next_rx_pkt_buf;
+
+	next_rx_pkt_buf = (rx_pkt_buf+1) % NUM_RX_PKT_BUFS;
+	rx_mpdu = (rx_frame_info*) RX_PKT_BUF_TO_ADDR(next_rx_pkt_buf);
+	if((rx_mpdu->state) == RX_MPDU_STATE_EMPTY){
+		if(lock_pkt_buf_rx(next_rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
+			rx_mpdu->state = RX_MPDU_STATE_RX_PENDING;
+			rx_pkt_buf = next_rx_pkt_buf;
+			wlan_phy_rx_pkt_buf_ofdm(rx_pkt_buf);
+			wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
+			return 0;
+		}
+	}
+	return -1;
 }
 
 inline u64 get_usec_timestamp(){
