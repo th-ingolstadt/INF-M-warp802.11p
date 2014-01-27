@@ -66,7 +66,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-POM";
+static char default_AP_SSID[] = "WARP-ARRAY-DEMO";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -131,7 +131,7 @@ int main(){
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 	default_tx_gain_target = TX_GAIN_TARGET;
 
-	wlan_ap_config_demo(1, 15000);
+	wlan_ap_config_demo(1, 30000);
 	//wlan_ap_config_demo(1, 15000);
 
 #ifdef USE_WARPNET_WLAN_EXP
@@ -1159,7 +1159,7 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 			//TODO: DEMO
 			if(_demo_ltg_enable){
 				_demo_pyld_params.hdr.type = LTG_PYLD_TYPE_FIXED;
-				_demo_pyld_params.length = 0;
+				_demo_pyld_params.length = 500;
 
 				ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
 				ltg_sched_start(AID_TO_LTG_ID(station->AID));
@@ -1272,6 +1272,7 @@ int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 
 		//TODO: DEMO
 		if(_demo_ltg_enable){
+			ltg_sched_start(AID_TO_LTG_ID(station->AID));
 			ltg_sched_remove(AID_TO_LTG_ID(station->AID));
 		}
 
