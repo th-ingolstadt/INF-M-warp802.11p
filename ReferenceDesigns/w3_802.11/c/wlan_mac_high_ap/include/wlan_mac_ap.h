@@ -73,14 +73,13 @@
 // Time between association table check
 // Periodically, the association table is culled through and inactive stations are explicitly purged.
 //
-#define ASSOCIATION_CHECK_INTERVAL_MS  (10000)
+#define ASSOCIATION_CHECK_INTERVAL_MS  (1000)
 #define ASSOCIATION_CHECK_INTERVAL_US  (ASSOCIATION_CHECK_INTERVAL_MS*1000)
 
 // The amount of time since the last time a station was heard from.
 // After this interval, a station can be purged from the association table
 //
-//#define ASSOCIATION_TIMEOUT_S          (600)
-#define ASSOCIATION_TIMEOUT_S          (600)
+#define ASSOCIATION_TIMEOUT_S          (30)
 #define ASSOCIATION_TIMEOUT_US         (ASSOCIATION_TIMEOUT_S*1000000)
 
 // When the node is in the state where it temporarily allows associations, this interval
@@ -150,6 +149,8 @@ int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
 u8 is_valid_association(dl_list* assoc_tbl, station_info* station);
 void wlan_ap_config_demo(u32 en, u32 ltg_interval);
 void _demo_send_wnet_association_table();
+void _demo_send_packet_req();
+void _demo_ltg_event(u32 id, void* callback_arg);
 void eth_packet_inspection(u32 type, u32 length, void* ptr);
 void animate_hex();
 void up_button();
