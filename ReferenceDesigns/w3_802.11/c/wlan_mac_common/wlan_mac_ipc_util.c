@@ -51,6 +51,8 @@ void nullCallback(void* param){};
 XMbox ipc_mailbox;
 XMutex pkt_buf_mutex;
 
+u8 _demo_spoof_src_mac_addr[6] = { 0x00, 0x50, 0xC2, 0x63, 0x3F, 0x00 };
+
 int wlan_lib_init () {
 	u32 i;
 

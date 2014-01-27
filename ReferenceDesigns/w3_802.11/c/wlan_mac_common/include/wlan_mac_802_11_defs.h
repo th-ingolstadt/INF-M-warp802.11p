@@ -73,6 +73,7 @@ typedef struct{
 //Data (MAC_FRAME_CTRL1_TYPE_DATA) sub-types
 
 #define MAC_FRAME_CTRL1_SUBTYPE_DATA			(MAC_FRAME_CTRL1_TYPE_DATA | 0x00)
+#define MAC_FRAME_CTRL1_SUBTYPE_NULLDATA		(MAC_FRAME_CTRL1_TYPE_DATA | 0x40)
 
 //IEEE 802.11-2012 section 8.2.4:
 //frame_control_2 bits[7:0]:
