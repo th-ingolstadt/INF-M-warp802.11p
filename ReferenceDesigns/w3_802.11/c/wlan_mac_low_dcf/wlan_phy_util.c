@@ -214,7 +214,8 @@ void wlan_phy_init() {
 	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA); //RX_ANTMODE_SISO_ANTA
 
 	//Set physical carrier sensing threshold
-	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
+	//wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
+	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 1023);
 
 	//Set post Rx extension (number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for decoding latency at 64QAM 3/4)
 	wlan_phy_rx_set_extension(PHY_RX_SIG_EXT_USEC*20); //num samp periods post done to extend CCA BUSY
