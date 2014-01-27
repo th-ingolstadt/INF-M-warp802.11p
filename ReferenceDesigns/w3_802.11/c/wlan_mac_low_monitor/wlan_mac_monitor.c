@@ -1,7 +1,8 @@
-/** @file wlan_mac_dcf.c
- *  @brief Distributed Coordination Function
+/** @file wlan_mac_monitor.c
+ *  @brief Rx-Only Monitor
  *
- *  This contains code to implement the 802.11 DCF.
+ *  This code simply passes all receptions on to the upper-level MAC. It does
+ *  not allow transmissions and it performs no address filtering of any kind.
  *
  *  @copyright Copyright 2014, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
@@ -11,11 +12,7 @@
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
- *  @bug
- *  - Post-broadcast transmissions need a minimum CW backoff. Currently
- *  no backoff is enforced.
- *  - NAV timing needs to be verified
- *  - 5 GHz support needs to be added.
+ *  @bug None
  */
 
 /***************************** Include Files *********************************/
@@ -333,15 +330,8 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	// before it can start to process those bytes. When this function is called the eventual checksum status is
 	// unknown. The packet contents can be provisionally processed (e.g. prepare an ACK for fast transmission),
 	// but post-reception actions must be conditioned on the eventual FCS status (good or bad).
-	//
-	//Two primary job responsibilities of this function:
-	// (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
-	// (2): Pass up FCS-valid MPDUs to CPU_HIGH
 
 	u32 return_value;
-	u32 tx_length;
-	u8 tx_rate;
-	u8 unicast_to_me, to_broadcast;
 	u16 rssi;
 	u8 lna_gain;
 	u8 active_rx_ant;
@@ -365,7 +355,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 		return return_value;
 	}
 
-	to_broadcast = wlan_addr_eq(rx_header->address_1, bcast_addr);
 	mpdu_info->flags = 0;
 	mpdu_info->length = (u16)length;
 	mpdu_info->rate = (u8)rate;
@@ -679,7 +668,7 @@ void wlan_mac_dcf_hw_unblock_rx_phy() {
 	REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
 	REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
 
-	//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
+	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
 	return;
 }
@@ -750,7 +739,10 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 		mac_status = wlan_mac_get_status();
 	} while(mac_status & WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE);
 
+	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
+
 	//TODO: Demo code
+	//TODO: Only switch on Beacons or ACKs
 	if(_DEMO_mode){
 		switch(curr_ant){
 			case 0:
@@ -766,12 +758,10 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 
 	//Check FCS
 	if(mac_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) {
-//		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 		green_led_index = (green_led_index + 1) % NUM_LEDS;
 		userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
 		return RX_MPDU_STATE_FCS_GOOD;
 	} else {
-//		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 		wlan_mac_auto_tx_en(0);
 		red_led_index = (red_led_index + 1) % NUM_LEDS;
 		userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
