@@ -655,7 +655,18 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 			switch(eth_hdr->type) {
 				case ETH_TYPE_ARP:
 					llc_hdr->type = LLC_TYPE_ARP;
-
+					arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+					///DEBUG FIXME
+			//		xil_printf("arp->eth_dst = 0x%02x-0x%02x-0x%02x-0x%02x-0x%02x-0x%02x\n", arp->eth_dst[0],arp->eth_dst[1],arp->eth_dst[2],arp->eth_dst[3],arp->eth_dst[4], arp->eth_dst[5]);
+			//		xil_printf("arp->eth_src = 0x%02x-0x%02x-0x%02x-0x%02x-0x%02x-0x%02x\n", arp->eth_src[0],arp->eth_src[1],arp->eth_src[2],arp->eth_src[3],arp->eth_src[4], arp->eth_src[5]);
+			//		xil_printf("arp->hlen = %d\n", arp->hlen);
+			//		xil_printf("arp->htype = %d\n", arp->htype);
+			//		xil_printf("arp->ip_dst = %d.%d.%d.%d\n", arp->ip_dst[0], arp->ip_dst[1], arp->ip_dst[2], arp->ip_dst[3]);
+			//		xil_printf("arp->ip_src = %d.%d.%d.%d\n", arp->ip_src[0], arp->ip_src[1], arp->ip_src[2], arp->ip_src[3]);
+			//		xil_printf("arp->oper = %d\n", arp->oper);
+			//		xil_printf("arp->plen = %d\n", arp->plen);
+			//		xil_printf("arp->ptype = %d\n", arp->ptype);
+					///DEBUG FIXME
 				break;
 				case ETH_TYPE_IP:
 					llc_hdr->type = LLC_TYPE_IP;
@@ -677,6 +688,9 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 			switch(eth_hdr->type) {
 				case ETH_TYPE_ARP:
 					arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+
+
+
 
 					//Here we hijack ARP messages and overwrite their source MAC address field with
 					//the station's wireless MAC address.

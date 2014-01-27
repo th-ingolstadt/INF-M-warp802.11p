@@ -770,7 +770,7 @@ void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station){
 
 	(station->stats->num_tx_total)++;
 	(station->stats->num_retry) += (frame->retry_count);
-	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
+	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS && (frame->retry_max > 0)){
 		(station->stats->num_tx_success)++;
 		//If this transmission was successful, then we have implicitly received an
 		//ACK for it. So, we should update the last RX timestamp

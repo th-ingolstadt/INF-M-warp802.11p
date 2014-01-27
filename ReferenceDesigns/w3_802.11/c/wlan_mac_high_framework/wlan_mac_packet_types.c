@@ -38,7 +38,7 @@ int wlan_create_beacon_probe_frame(void* pkt_buf, u8 frame_control_1,mac_header_
 	beacon_80211_header = (mac_header_80211*)(txBufferPtr_u8);
 
 	beacon_80211_header->frame_control_1 = frame_control_1;
-	beacon_80211_header->frame_control_2 = 0;
+	beacon_80211_header->frame_control_2 = 0; //TODO 0
 
 	//This field may be overwritten by CPU_LOW
 	beacon_80211_header->duration_id = 0;
@@ -108,6 +108,56 @@ int wlan_create_beacon_probe_frame(void* pkt_buf, u8 frame_control_1,mac_header_
 
 	return packetLen_bytes;
 }
+
+int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 measurement_type, u8 chan){
+	u32 packetLen_bytes;
+	u8* txBufferPtr_u8;
+
+	measurement_common_frame* measurement_req;
+
+	txBufferPtr_u8 = (u8*)pkt_buf;
+
+	mac_header_80211* hdr_80211;
+	hdr_80211 = (mac_header_80211*)(txBufferPtr_u8);
+
+	hdr_80211->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_ACTION;
+	hdr_80211->frame_control_2 = 0;
+
+	//This field may be overwritten by CPU_LOW
+	hdr_80211->duration_id = 0;
+
+	memcpy(hdr_80211->address_1,common->address_1,6);
+	memcpy(hdr_80211->address_2,common->address_2,6);
+	memcpy(hdr_80211->address_3,common->address_3,6);
+
+	hdr_80211->sequence_control = (((common->seq_num)&0xFFF)<<4);
+
+	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211));
+	measurement_req = (measurement_common_frame*)txBufferPtr_u8;
+
+	measurement_req->category = 0; //Spectrum management action frame
+	measurement_req->action = 0; //Request
+	measurement_req->dialog_token = (common->seq_num)&0xFF; //Just a field for matching reqs and resps. We'll just use seq
+	measurement_req->element_id = 38; //Measurement Req
+	measurement_req->length = sizeof(measurement_common_frame) - 5; //Length of field after this element;
+	measurement_req->measurement_token = 0;
+	measurement_req->request_mode = MEASUREMENT_REQ_MODE_ENABLE | MEASUREMENT_REQ_MODE_REPORTS;
+	measurement_req->measurement_type = measurement_type;
+	measurement_req->channel = chan;
+	//measurement_req->start_time = 0; //Measure now
+	bzero(measurement_req->start_time,8);
+	bzero(measurement_req->duration,2);
+	(measurement_req->duration)[0] = 0; //Do it as fast as you can? Unclear
+
+
+	txBufferPtr_u8 = (u8 *)((u8 *)(txBufferPtr_u8) + sizeof(measurement_common_frame));
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+
+	(common->seq_num)++;
+
+	return packetLen_bytes;
+}
+
 
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan){
 	u32 packetLen_bytes;

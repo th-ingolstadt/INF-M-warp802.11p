@@ -46,6 +46,37 @@ typedef struct{
 	u16 listen_interval;
 } association_request_frame;
 
+typedef struct{
+	u8 category;
+	u8 action;
+	u8 dialog_token;
+	u8 element_id;
+	u8 length;
+	u8 measurement_token;
+	u8 request_mode;
+	u8 measurement_type;
+	///Note, technically measurement action frames can follow this comment with additional fields of unknown length
+	///But currently, the three types of measurements are all the same so for ease we'll hardcode that structure here
+	u8 channel;
+	u8 start_time[8];
+	u8 duration[2];
+} measurement_common_frame;
+
+//#define MEASUREMENT_REQ_MODE_ENABLE  0x40
+//#define MEASUREMENT_REQ_MODE_REQUEST 0x20
+//#define MEASUREMENT_REQ_MODE_REPORT  0x10
+
+#define MEASUREMENT_REQ_MODE_PARALLEL    0x01
+#define MEASUREMENT_REQ_MODE_ENABLE	     0x02
+#define MEASUREMENT_REQ_MODE_REPORTS     0x04
+#define MEASUREMENT_REQ_MODE_AUTONOMOUS  0x08
+
+
+#define MEASUREMENT_TYPE_BASIC 0
+#define MEASUREMENT_TYPE_CCA 1
+#define MEASUREMENT_TYPE_RPA 2
+
+
 #define AUTH_ALGO_OPEN_SYSTEM 0x00
 
 #define AUTH_SEQ_REQ 0x01
@@ -65,6 +96,7 @@ typedef struct{
 #define wlan_create_beacon_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_BEACON, common, beacon_interval, ssid_len, ssid, chan)
 #define wlan_create_probe_resp_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, common, beacon_interval, ssid_len, ssid, chan)
 int wlan_create_beacon_probe_frame(void* pkt_buf, u8 subtype, mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan);
+int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 measurement_type, u8 chan);
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan);
 int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code);
 int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16 reason_code);
