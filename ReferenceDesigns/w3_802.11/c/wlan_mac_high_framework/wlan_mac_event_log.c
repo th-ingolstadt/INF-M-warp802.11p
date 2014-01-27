@@ -815,6 +815,13 @@ void wn_transmit_log_entry(void * entry){
 
 #ifdef USE_WARPNET_WLAN_EXP
 
+#define TRANSMIT_MUTLIPLE_ENTRIES
+
+#ifdef TRANSMIT_MUTLIPLE_ENTRIES
+	u32               i;
+	u16               temp_id;
+#endif
+
 	u32               entry_hdr_size;
 	entry_header    * entry_hdr;
 	wn_host_message * msg;
@@ -835,9 +842,20 @@ void wn_transmit_log_entry(void * entry){
 	    // Set the entry length
         log_entry_cmd.length = entry_hdr->entry_length + entry_hdr_size;
 
-	    msg = transport_create_async_msg_w_cmd( &async_pkt_hdr, &log_entry_cmd, log_entry_cmd.length, (unsigned char *)entry_hdr );
+#ifdef TRANSMIT_MUTLIPLE_ENTRIES
+        temp_id = async_pkt_hdr.srcID;
 
-		transport_send( sock_async, msg, &async_pkt_dest, async_eth_dev_num );
+    	for( i = 0; i < 8; i++) {
+    		async_pkt_hdr.srcID = temp_id + i * 8;
+
+#endif
+			msg = transport_create_async_msg_w_cmd( &async_pkt_hdr, &log_entry_cmd, log_entry_cmd.length, (unsigned char *)entry_hdr );
+
+			transport_send( sock_async, msg, &async_pkt_dest, async_eth_dev_num );
+
+#ifdef TRANSMIT_MUTLIPLE_ENTRIES
+        }
+#endif
 	}
 
 #endif
