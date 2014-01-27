@@ -843,8 +843,10 @@ void wn_transmit_log_entry(void * entry){
         log_entry_cmd.length = entry_hdr->entry_length + entry_hdr_size;
 
 #ifdef TRANSMIT_MUTLIPLE_ENTRIES
+        // Grab current source ID
         temp_id = async_pkt_hdr.srcID;
 
+		// Create 8 packets, each with a different source id
     	for( i = 0; i < 8; i++) {
     		async_pkt_hdr.srcID = temp_id + i * 8;
 
@@ -855,6 +857,9 @@ void wn_transmit_log_entry(void * entry){
 
 #ifdef TRANSMIT_MUTLIPLE_ENTRIES
         }
+
+		// Set source ID back to the original value
+    	async_pkt_hdr.srcID = temp_id;
 #endif
 	}
 
