@@ -347,15 +347,20 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
 	mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
-	//Apply the mac_header_80211 template to the first bytes of the received MPDU
-	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
+	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
-	if(length<sizeof(mac_header_80211_ACK)){
-		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
-		wlan_mac_dcf_hw_rx_finish();
+	if(mpdu_info->state == RX_MPDU_STATE_FCS_BAD){
 		wlan_mac_dcf_hw_unblock_rx_phy();
 		return return_value;
 	}
+
+	if(lock_empty_rx_pkt_buf_noblock() == 0){
+		wlan_mac_dcf_hw_unblock_rx_phy();
+		phy_is_unblocked = 1;
+	}
+
+	//Apply the mac_header_80211 template to the first bytes of the received MPDU
+	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
 
 	mpdu_info->flags = 0;
 	mpdu_info->length = (u16)length;
@@ -386,12 +391,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 
 	mpdu_info->timestamp = get_rx_start_timestamp();
-	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
-
-	if(lock_empty_rx_pkt_buf_noblock() == 0){
-		phy_is_unblocked = 1;
-		wlan_mac_dcf_hw_unblock_rx_phy();
-	}
 
 	return_value |= POLL_MAC_STATUS_GOOD;
 
@@ -410,13 +409,13 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 		if(length >= sizeof(mac_header_80211)){
 			ipc_mailbox_write_msg(&ipc_msg_to_high);
 		} else {
-			//FIXME: This still happens
-			//warp_printf(PL_ERROR, "Error: received non-control packet of length %d, which is not valid\n", length);
+			(mpdu_info->state) = RX_MPDU_STATE_EMPTY;
 		}
 	}
 
 	if(phy_is_unblocked == 0){
 		//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
+		lock_empty_rx_pkt_buf_block();
 		wlan_mac_dcf_hw_unblock_rx_phy();
 	}
 	return return_value;
@@ -777,11 +776,4 @@ void wlan_mac_set_time(u64 new_time) {
 	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
 	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
 	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
-}
-
-inline u8 _demo_match_magic_mac(u8* addr){
-	//xil_printf("%x-%x-%x-%x-%x\n", addr[0], addr[1], addr[2], addr[3], addr[4]);
-	u8 return_value = (memcmp(addr, _demo_spoof_src_mac_addr, 5) == 0);
-	if(return_value == 1) xil_printf("Magic MAC\n");
-	return return_value;
 }

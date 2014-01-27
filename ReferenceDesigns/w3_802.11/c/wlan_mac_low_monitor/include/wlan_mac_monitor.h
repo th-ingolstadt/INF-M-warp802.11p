@@ -207,6 +207,5 @@ void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc);
 void process_config_mac(ipc_config_mac* config_mac);
 inline int calculate_rx_power(u8 band, u16 rssi, u8 lna_gain);
 void wlan_mac_set_time(u64 new_time);
-inline u8 _demo_match_magic_mac(u8* addr);
 
 #endif /* WLAN_MAC_LOW_H_ */
