@@ -167,9 +167,9 @@ void wlan_phy_init() {
 
 /************ PHY Rx ************/
 
-	//Enable DSSS Rx by default
-	wlan_phy_DSSS_rx_enable();
-	//wlan_phy_DSSS_rx_disable();
+	//Disable DSSS Rx by default
+	//wlan_phy_DSSS_rx_enable();
+	wlan_phy_DSSS_rx_disable();
 
 	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
 	wlan_phy_DSSS_rx_config(0x600, 200, 5, 5);
@@ -406,8 +406,9 @@ void usleep(u32 duration){
 void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx){
 	if(config_phy_rx->enable_dsss != 0xFF){
 		if(config_phy_rx->enable_dsss == 1){
-			xil_printf("Enabling DSSS\n");
-			wlan_phy_DSSS_rx_enable();
+			//TODO Hack just to make sure DSSS is off
+		//	xil_printf("Enabling DSSS\n");
+		//	wlan_phy_DSSS_rx_enable();
 		} else {
 			xil_printf("Disabling DSSS\n");
 			wlan_phy_DSSS_rx_disable();

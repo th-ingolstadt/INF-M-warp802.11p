@@ -406,7 +406,7 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 		send_exception(EXC_MUTEX_RX_FAILURE);
 	} else {
 
-		if(length >= sizeof(mac_header_80211)){
+		if(length >= sizeof(mac_header_80211_ACK)){
 			ipc_mailbox_write_msg(&ipc_msg_to_high);
 		} else {
 			(mpdu_info->state) = RX_MPDU_STATE_EMPTY;
