@@ -1062,11 +1062,14 @@ u32 add_station_info_to_log(station_info * info){
 	entry = (station_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATION_INFO, entry_size );
 
 	if ( entry != NULL ) {
+		entry->timestamp = get_usec_timestamp();
+
 		// Copy the station info to the log entry
 		//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
 		//          similar to the station info and tx params structures in wlan_mac_high.h
 		memcpy( (void *)(&entry->addr), (void *)(&info->addr), station_info_size );
 		memcpy( (void *)(&entry->rate), (void *)(&info->tx.rate), tx_params_size );
+
 		return SUCCESS;
 	}
 

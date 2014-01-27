@@ -109,6 +109,7 @@ typedef struct{
 //          1 and 4 bytes.
 //
 typedef struct{
+	u64     timestamp;                                  // Timestamp
 	u8      addr[6];									// HW Address
 	u8		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	// Hostname from DHCP requests
 	u16     AID;										// Association ID
