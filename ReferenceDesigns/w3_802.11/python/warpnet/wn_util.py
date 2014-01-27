@@ -171,7 +171,11 @@ def wn_init_nodes(nodes_config, node_factory=None, output=False):
     jumbo_frame_support = config.get_param('network', 'jumbo_frame_support')
     
     # Process the config to create nodes
-    nodes_dict = nodes_config.get_nodes_dict()
+    try:
+        nodes_dict = nodes_config.get_nodes_dict()
+    except ex.WnConfigError as err:
+        print(err)
+        return nodes
     
     # If node_factory is not defined, create a default WnNodeFactory
     if node_factory is None:
@@ -275,8 +279,12 @@ def wn_setup():
 
     my_address = config.get_param('network', 'host_address')
     if (output.find(my_address) == -1):
+        print("")
+        print("!" * 50)
         print("WARNING: No interface found.  Please make sure your network")
         print("    interface is connected and configured with static IP {0}".format(my_address))
+        print("!" * 50)
+        print("")
 
     #-------------------------------------------------------------------------
     # Configure Host ID
@@ -388,194 +396,206 @@ def wn_setup():
     print("-" * 50)
     print("WARPNet v {0} Configuration Complete.".format(wn_ver_str()))
     print("-" * 50)
-    print("\n\n")
-
+    print("\n")
 
     #-------------------------------------------------------------------------
-    # Configure WARPNet Node Network
+    # Configure WARPNet Node Configuration
 
-    network_setup_valid = False
+    message = "Perform WARPNet Node Network Setup [Y/n]: "
+    temp = _get_confirmation_from_user(message)
 
-    while not network_setup_valid:
-        temp = raw_input("Perform Initial Network Setup [Y/n]: ").lower()
-        if not temp is '':
-            if (temp != 'y') or (temp != 'n'):
-                if (temp == 'y'):
-                    print("\n\n")
-                    wn_nodes_setup()
-                else:
-                    print("-" * 50)
-                    print("Done.")
-                    print("-" * 50)                    
-                network_setup_valid = True
-            else:
-                print("    '{0}' is not a valid selection.".format(temp))
-                print("    Please select [y] or [n].")
-        else:
-            wn_nodes_setup()
-            network_setup_valid = True
+    if (temp == 'y'):
+        print("\n")
+        wn_nodes_setup()
+    else:
+        print("-" * 50)
+        print("Done.")
+        print("-" * 50)                    
 
 # End of wn_setup()
 
 
-
-def wn_nodes_setup():
-    """Create WARPNet Nodes ini file from user input."""    
+def wn_nodes_setup(file_name=None):
+    """Create / Modify WARPNet Nodes ini file from user input."""    
     nodes_config = None
 
     print("-" * 50)
     print("WARPNet Nodes Setup:")
-    print("-" * 50)
-    print("    Node setup under construction.")
-    print("-" * 50)
 
-
-
-    """
     # base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     # config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
 
-
     import warpnet.wn_config as wn_config
-    nodes_config = wn_config.WnNodesConfiguration()
+    if not file_name is None:
+        nodes_config = wn_config.WarpNetNodesConfig(file_name)
+    else:
+        nodes_config = wn_config.WnNodesConfiguration()
 
-    nodes_done = 0
+    # Current Nodes:
+    #    ...
+    # Actions:
+    #     [1] Add node
+    #     [2] Remove Node
+    #     [3] Disable Node
+    #     [4] Quit
+    # Selection:
+
+    
+    actions = {0 : "Add node",
+               1 : "Remove node",
+               2 : "Disable / Enable node",
+               3 : "Change IP address",
+               4 : "Quit (default)"}
+
+    nodes_done = False
 
     try:
         while not nodes_done:
-            (serial_number, ip_address) = _get_node_info_from_user()
+            print("-" * 50)
+            nodes = nodes_config.print_nodes()
             
-            if ((serial_number == '') or (ip_address == '')):
-                break
-            else:
-                nodes_config.add_node(serial_number, ip_address)
+            print("Actions:")
+            for idx in range(len(actions.keys())):
+                print("    [{0}] {1}".format(idx, actions[idx]))
+            
+            action = _select_from_table("Selection : ", actions)
+            print("-" * 50)
+            
+            if (action is None) or (action == 4):
+                nodes_done = True
+            elif (action == 0):
+                _add_node_from_user(nodes_config)
+            elif (action == 1):
+                node = _select_from_table("Select node : ", nodes)
+                print("    Removing node: {0}".format(nodes[node]))
+                print("-" * 50)
+                nodes_config.remove_node(nodes[node])
+            elif (action == 2):
+                node = _select_from_table("Select node : ", nodes)
+                if (nodes_config.get_param(nodes[node], 'use_node')):
+                    print("    Disabling node: {0}".format(nodes[node]))
+                    nodes_config.set_param(nodes[node], 'use_node', False)
+                else:
+                    print("    Enabling node: {0}".format(nodes[node]))
+                    nodes_config.set_param(nodes[node], 'use_node', True)
+                print("-" * 50)
+            elif (action == 3):
+                node = _select_from_table("Select node : ", nodes)
+                ip_addr = _get_ip_address_from_user(nodes[node])
+                print("    Setting node: {0} to IP address {1}".format(nodes[node], ip_addr))
+                print("-" * 50)
+                nodes_config.set_param(nodes[node], 'ip_address', ip_addr)                
             
     except KeyboardInterrupt:
         pass
 
-    print("-" * 50)
     nodes_config.save_config(output=True)
     print("-" * 50)
     print("Nodes Configuration Complete.")
     print("-" * 50)
-    print("\n\n")
-    """
+    print("\n")
 
 # End of wn_nodes_setup()
 
 
-def _get_node_info_from_user():
-    """Internal method to get info from the user"""
+def _add_node_from_user(nodes_config):
+    """Internal method to add a node based on info from the user"""        
+    serial_num = ''
+    ip_address = ''
 
-    return ('', '')
-    
-    """
-    
-    
-    serial_number_done = 0
-    
-    while not serial_number_done:
-        print("-" * 30)
+    serial_num_done = False
+
+    while not serial_num_done:
         temp = raw_input("WARP Node Serial Number (last 5 digits or enter to end): ")
-        
         if not temp is '':
-            sn = "W3-a-{0:05d}".format(temp)
-            confirmation = 0
-            
-            while not confirmation:            
-                temp = raw_input("Is {0} Correct? [Y/n]: ".format(sn)).lower()
-                if not temp is '':
-                    if (temp != 'y') or (temp != 'n'):
-                        confirmation = 1
-                        if (temp == 'y'):
-                            return sn
-                    else:
-                        print("    '{0}' is not a valid selection.".format(temp))
-                        print("    Please select [y] or [n].")
-                else:
-                    break
+            serial_num = "W3-a-{0:05d}".format(int(temp))
+            message = "Is {0} Correct? [Y/n]: ".format(serial_num)
+            confirmation = _get_confirmation_from_user(message)
+            if (confirmation == 'y'):
+                serial_num_done = True
+            else:
+                serial_num = ''
         else:
             break
 
-    return ''
-    """
-
-
-'''
-    Select file
-    Open Config 
-    if exists
-        print current contents
-    Menu:
-        [1] Add node
-        [2] Remove node
-
-       
-
-
-
-
-
+    # Only get IP address if serial number has been entered
+    if (serial_num_done):
+        ip_address = _get_ip_address_from_user(serial_num)    
 
     print("-" * 50)
-    print("Please enter the filename for your node configuration file.")
-    print("    Pressing Enter without typing an input will use a default ")
-    print("    filename of {0}".format(host_address), end="\n\n")
+    
+    if ((serial_num != '') and (ip_address != '')):
+        print("    Adding node: {0} @ {1}".format(serial_num, ip_address))
+        print("-" * 50)
+        nodes_config.add_node(serial_num, ip_address)            
 
-    host_address_valid = False
+# End of _add_node_from_user()
 
-    while not host_address_valid:
-        temp = input("WARPNet Ethernet Inteface Address: ")
+
+def _get_ip_address_from_user(msg):
+    ip_address = ''
+    ip_address_done = False
+
+    while not ip_address_done:
+        print("-" * 30)
+        temp = raw_input("Enter IP address for {0}: ".format(msg))
         if not temp is '':
             expr = re.compile('\d+\.\d+\.\d+\.\d+')
             if not expr.match(temp) is None:
-                print("    Setting IP address to {0}".format(temp))
-                config.set_param('network', 'host_address', temp)
-                host_address_valid = True
+                ip_address = temp
+                ip_address_done = True
             else:
                 print("    '{0}' is not a valid IP address.".format(temp))
                 print("    Please enter a valid IP address.")
         else:
-            print("    Setting IP address to {0}".format(host_address))
-            host_address_valid = True
-'''
+            break
+    
+    return ip_address
+
+# End of _get_ip_address_from_user()
 
 
-'''
-    from . import wn_config
-    config = wn_config.WnConfiguration()
-'''
+def _select_from_table(select_msg, table):
+    return_val = None
+    selection_done = False
 
-'''
-    from Tkinter import Tk
-    from tkFileDialog import askopenfilename
-    Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
-    filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
-    print(filename)
-'''
+    while not selection_done:
+        temp = raw_input(select_msg)
+        if not temp is '':
+            if (not int(temp) in table.keys()):
+                print("{0} is an invalid Selection.  Please choose again.".format(temp))
+            else:
+                return_val = int(temp)
+                selection_done = True            
+        else:
+            selection_done = True
 
+    return return_val
 
-
-
-
-
-
-
+# End of _select_from_table()
 
 
+def _get_confirmation_from_user(message):
+    """Get confirmation from the user.  Default return value is 'y'"""
+    confirmation = False
+    
+    while not confirmation:            
+        selection = raw_input(message).lower()
+        if not selection is '':
+            if (selection == 'y') or (selection == 'n'):
+                confirmation = True
+            else:
+                print("    '{0}' is not a valid selection.".format(selection))
+                print("    Please select [y] or [n].")
+        else:
+            selection = 'y'
+            confirmation = True
+    
+    return selection
 
+# End of _get_confirmation_from_user()
 
-
-
-
-
-
-
-
-
-
-
-
+    
 
 
 

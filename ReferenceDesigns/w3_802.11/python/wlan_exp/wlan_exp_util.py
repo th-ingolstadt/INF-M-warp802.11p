@@ -251,7 +251,8 @@ def wlan_exp_setup():
     config.save_config(output=True)
     print("-" * 50)
     print("WLAN Exp v {0} Configuration Complete.".format(wlan_exp_ver_str()))
-    print("-" * 50 + "\n\n")
+    print("-" * 50)
+    print("\n")
 
 
     #-------------------------------------------------------------------------
@@ -259,26 +260,25 @@ def wlan_exp_setup():
 
     import warpnet.wn_util as wn_util
 
-    wn_setup_valid = False
+    message = "Configure WARPNet installation [Y/n]: "
+    temp = wn_util._get_confirmation_from_user(message)
 
-    while not wn_setup_valid:
-        temp = raw_input("Configure WARPNet installation [Y/n]: ").lower()
-        if not temp is '':
-            if (temp != 'y') or (temp != 'n'):
-                if (temp == 'y'):
-                    print("\n\n")
-                    wn_util.wn_setup()
-                else:
-                    print("-" * 50)
-                    print("Done.")
-                    print("-" * 50)                    
-                wn_setup_valid = True
-            else:
-                print("    '{0}' is not a valid selection.".format(temp))
-                print("    Please select [y] or [n].")
+    if (temp == 'y'):
+        print("\n")
+        wn_util.wn_setup()
+    else:
+        #-------------------------------------------------------------------------
+        # Configure WARPNet Node Configuration
+        #   - Called automatically if you do wn_setup()
+        message = "Perform WARPNet Node Network Setup [Y/n]: "
+        temp = wn_util._get_confirmation_from_user(message)
+        if (temp == 'y'):
+            print("\n")
+            wn_util.wn_nodes_setup()
         else:
-            wn_util.wn_setup()
-            wn_setup_valid = True
+            print("-" * 50)
+            print("Done.")
+            print("-" * 50)                    
 
 # End of wn_setup()
 

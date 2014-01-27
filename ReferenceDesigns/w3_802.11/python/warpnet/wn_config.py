@@ -186,7 +186,7 @@ class WnConfiguration(object):
         self.update_config_info()
         
         if output:
-            print("Saving config to: \n{0}".format(self.config_file))
+            print("Saving config to: \n    {0}".format(self.config_file))
         
         try:
             with open(self.config_file, 'w') as configfile:
@@ -248,15 +248,8 @@ class WnNodesConfiguration(object):
         
         try:
             self.load_config(filename)
-        except wn_exception.WnConfigError as err:
-            if (filename == wn_defaults.WN_DEFAULT_NODES_CONFIG_INI_FILE):
-                print("ERROR:  Unable to read {0}.".format(filename),
-                      "Please run wn_setup.\n")
-                raise err
-            else:
-                print("WARNING:  Could not read {0}.".format(filename), 
-                      "\nUsing default INI configuration.")
-                self.set_default_config()
+        except wn_exception.WnConfigError:
+            self.set_default_config()
 
 
     def set_default_config(self):
@@ -273,11 +266,18 @@ class WnNodesConfiguration(object):
         fields will not be populated in the ini file unless they require a 
         non-default value.  
         """
-        sn = "W3-a-{0:05d}".format(serial_number)
+        if type(serial_number) is int:
+            sn = "W3-a-{0:05d}".format(serial_number)
+        elif type(serial_number) is str:
+            sn = serial_number
+        else:
+            raise TypeError("Invalid serial number: {0}".format(serial_number))
         
         if (sn in self.config.sections()):
-            print("Node {} exists.  Please use set_param to modify the node.".format(serial_number))
+            print("Node {0} exists.  Please use set_param to modify the node.".format(serial_number))
         else:
+            self.config.add_section(sn)
+
             # Populate required parameters
             self.config.set(sn, 'ip_address', ip_address)
             
@@ -289,10 +289,27 @@ class WnNodesConfiguration(object):
             if not use_node: self.config.set(sn, 'use_node', use_node)
 
 
-    def get_param(self, node, parameter):
-        """Returns the value of the parameter within the config for the node."""
+    def remove_node(self, serial_number):
+        """Remove a node from the NodesConfig structure."""
+        if type(serial_number) is int:
+            sn = "W3-a-{0:05d}".format(serial_number)
+        elif type(serial_number) is str:
+            sn = serial_number
+        else:
+            raise TypeError("Invalid serial number: {0}".format(serial_number))
+
+        if (not self.config.remove_section(sn)):
+            print("Node {0} not in nodes configuration.".format(sn))
         
-        sn = "W3-a-{0:05d}".format(node.serial_number)
+
+    def get_param(self, section, parameter):
+        """Returns the value of the parameter within the config for the node."""        
+        if (type(section) is str):
+            sn = section
+        else:
+            # Assume that we are dealing w/ a node
+            sn = "W3-a-{0:05d}".format(section.serial_number)
+
         return self.get_param_helper(sn, parameter)
 
 
@@ -343,10 +360,14 @@ class WnNodesConfiguration(object):
         return ""
 
 
-    def set_param(self, node, parameter, value):
+    def set_param(self, section, parameter, value):
         """Sets the parameter to the given value."""
         
-        sn = "W3-a-{0:05d}".format(node.serial_number)
+        if (type(section) is str):
+            sn = section
+        else:
+            # Assume that we are dealing w/ a node
+            sn = "W3-a-{0:05d}".format(section.serial_number)
         
         if (sn in self.config.sections()):
             if (parameter in self.config.options(sn)):
@@ -364,6 +385,9 @@ class WnNodesConfiguration(object):
         """Returns a list of dictionaries that contain the parameters of each
         WnNode specified in the config."""
         output = []
+
+        if not self.config.sections():        
+            raise wn_exception.WnConfigError("No Nodes in {0}".format(self.config_file))
         
         for node_config in self.config.sections():
             if (self.get_param_helper(node_config, 'use_node') == 'True'):
@@ -404,20 +428,37 @@ class WnNodesConfiguration(object):
                                                 self.config_file))
 
 
-    def save_config(self, file, output=False):
+    def save_config(self, file=None, output=False):
         """Saves the WARPNet config to the provided file."""
-        self.config_file = os.path.normpath(file)
+        if not file is None:
+            self.config_file = os.path.normpath(file)
+        else:
+            self.config_file = wn_defaults.WN_DEFAULT_NODES_CONFIG_INI_FILE
         
-        # TODO: allow relative paths
-
         if output:
-            print("Saving config to: \n{0}".format(self.config_file))
+            print("Saving config to: \n    {0}".format(self.config_file))
 
         try:
             with open(self.config_file, 'w') as configfile:
                 self.config.write(configfile)
         except IOError as err:
             print("Error writing config file: {0}".format(err))
+
+
+    def print_nodes(self):
+        return_val = {}
+        print("Current Nodes:")
+        if (len(self.config.sections()) == 0):
+            print("    None")
+        for idx, val in enumerate(self.config.sections()):
+            ip_addr = self.get_param_helper(val, 'ip_address')
+            use_node = self.get_param_helper(val, 'use_node')
+            if (use_node):
+                print("    [{0}] {1} at {2}   active".format(idx, val, ip_addr))
+            else:
+                print("    [{0}] {1} at {2} inactive".format(idx, val, ip_addr))                
+            return_val[idx] = val
+        return return_val
 
 
     def __str__(self):
