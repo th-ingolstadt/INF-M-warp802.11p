@@ -54,7 +54,7 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_STATION
 
-#define  WLAN_CHANNEL                  4
+#define  WLAN_CHANNEL                  11
 #define  TX_GAIN_TARGET				   45
 
 
@@ -65,7 +65,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -172,6 +172,8 @@ int main() {
 	wlan_mac_high_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_high_set_mpdu_accept_callback(  (void*)check_tx_queue);
 	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
+
+	wlan_mac_high_config_demo(1,0);
 
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
 
@@ -593,7 +595,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
 	u8 is_associated = 0;
-
 
 	//*************
 	// Event logging
