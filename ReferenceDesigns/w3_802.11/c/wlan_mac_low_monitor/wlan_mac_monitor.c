@@ -73,6 +73,7 @@ u8                      mac_param_band;
 u32						_DEMO_inter_pkt_sleep_usec;
 u8						_DEMO_mode;
 extern u8*				_demo_spoof_src_mac_addr;
+static u8 				curr_ant = 0;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -342,6 +343,9 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	mac_header_80211* rx_header;
 	wlan_ipc_msg ipc_msg_to_high;
 
+
+
+
 	return_value = 0;
 
 	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
@@ -367,7 +371,8 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	mpdu_info->rate = (u8)rate;
 
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
-	mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
+	//mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
+	mpdu_info->ant_mode = curr_ant;
 
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
@@ -405,8 +410,9 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 		xil_printf("Error: unable to unlock RX pkt_buf %d\n", curr_rx_pkt_buf);
 		send_exception(EXC_MUTEX_RX_FAILURE);
 	} else {
-
 		if(length >= sizeof(mac_header_80211_ACK)){
+		//if(length >= sizeof(mac_header_80211)){
+
 			ipc_mailbox_write_msg(&ipc_msg_to_high);
 		} else {
 			(mpdu_info->state) = RX_MPDU_STATE_EMPTY;
@@ -601,7 +607,6 @@ inline u32 poll_mac_rx(){
 
 inline u32 wlan_mac_dcf_hw_rx_finish(){
 	u32 mac_status;
-	static u8 curr_ant = 0;
 	//Wait for the packet to finish
 	do{
 		mac_status = wlan_mac_get_status();
@@ -619,8 +624,14 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 			case 1:
 				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
 			break;
+			case 2:
+				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+			break;
+			case 3:
+				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
+			break;
 		}
-		curr_ant = (curr_ant+1)%2;
+		curr_ant = (curr_ant+1)%4;
 		//usleep(_DEMO_inter_pkt_sleep_usec);
 	}
 
