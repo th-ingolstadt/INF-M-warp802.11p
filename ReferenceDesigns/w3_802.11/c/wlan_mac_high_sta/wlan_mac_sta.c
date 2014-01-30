@@ -54,7 +54,7 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_STATION
 
-#define  WLAN_CHANNEL                  11
+#define  WLAN_CHANNEL                  1
 #define  TX_GAIN_TARGET				   45
 
 
@@ -831,6 +831,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 
 	mpdu_rx_process_end:
+
 	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_RATE_1M)) {
 		wn_transmit_log_entry((void *)rx_event_log_entry);
 	}
