@@ -241,7 +241,7 @@ void queue_checkin(dl_list* list){
 }
 
 int wlan_mac_queue_poll(u16 queue_sel){
-	int return_value = 0;;
+	int return_value = 0;
 
 	dl_list dequeue;
 	packet_bd* tx_queue;

@@ -147,6 +147,8 @@ typedef struct{
 #define statistics_prev(x) ( (statistics*)dl_node_prev(&(x->node)) )
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
+#define STATION_INFO_FLAG_NEVER_REMOVE 0x0002 ///< Mask for flag in station_info -- never remove
+
 #define STATION_INFO_HOSTNAME_MAXLEN 15
 
 /**
@@ -158,7 +160,7 @@ typedef struct{
 typedef struct{
 	dl_node     node;										///< Doubly-linked list entry
 	u8          addr[6];									///< HW Address
-	u8			hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	///< Hostname from DHCP requests
+	char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	///< Hostname from DHCP requests
 	u16         AID;										///< Association ID
 	u32			flags;										///< 1-bit flags
 	rx_info     rx;											///< Reception Information Structure

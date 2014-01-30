@@ -815,7 +815,7 @@ void wn_transmit_log_entry(void * entry){
 
 #ifdef USE_WARPNET_WLAN_EXP
 
-#define TRANSMIT_MUTLIPLE_ENTRIES
+//#define TRANSMIT_MUTLIPLE_ENTRIES
 
 #ifdef TRANSMIT_MUTLIPLE_ENTRIES
 	u32               i;
@@ -848,7 +848,7 @@ void wn_transmit_log_entry(void * entry){
 
 		// Create 8 packets, each with a different source id
     	for( i = 0; i < 8; i++) {
-    		async_pkt_hdr.srcID = temp_id + i * 8;
+    		async_pkt_hdr.srcID = temp_id + i * 3;
 
 #endif
 			msg = transport_create_async_msg_w_cmd( &async_pkt_hdr, &log_entry_cmd, log_entry_cmd.length, (unsigned char *)entry_hdr );
