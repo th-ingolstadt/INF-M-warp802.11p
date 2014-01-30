@@ -64,6 +64,5 @@ u8 mac_filter_is_allowed(u8* addr){
 
 	//If the code made it this far, we aren't allowing this address to join the network.
 	return 0;
-
 }
 

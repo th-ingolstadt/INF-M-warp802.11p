@@ -40,7 +40,7 @@
 // Allow promiscuous statistics kept for unassociated stations. Note: this mode
 // has an unbounded memory usage depending on the number of devices surrounding the
 // AP.
-#define ALLOW_PROMISC_STATISTICS
+//#define ALLOW_PROMISC_STATISTICS
 
 // **********************************************************************
 // UART Menu Modes
@@ -56,8 +56,12 @@
 //
 #define MAX_RETRY                      7
 #define MAX_PER_FLOW_QUEUE	           150
-#define MAX_NUM_ASSOC				   32
+#define MAX_NUM_ASSOC				   10
 #define MAX_NUM_PROMISC_STATS		   50
+
+#define AID_TO_QID(x) ((x)+1)
+#define BCAST_QID 0
+#define MANAGEMENT_QID 1
 
 
 // **********************************************************************
@@ -79,7 +83,7 @@
 // The amount of time since the last time a station was heard from.
 // After this interval, a station can be purged from the association table
 //
-#define ASSOCIATION_TIMEOUT_S          (30)
+#define ASSOCIATION_TIMEOUT_S          (300)
 #define ASSOCIATION_TIMEOUT_US         (ASSOCIATION_TIMEOUT_S*1000000)
 
 // When the node is in the state where it temporarily allows associations, this interval

@@ -55,7 +55,7 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_AP
 
-#define  WLAN_CHANNEL                  11
+#define  WLAN_CHANNEL                  6
 #define  TX_GAIN_TARGET				   45
 
 
@@ -66,7 +66,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-ARRAY-DEMO";
+static char default_AP_SSID[] = "WARP-ARRAY";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -101,6 +101,7 @@ u8 _demo_ltg_enable;
 ltg_sched_periodic_params _demo_periodic_params;
 ltg_pyld_fixed _demo_pyld_params;
 
+
 /*************************** Functions Prototypes ****************************/
 
 
@@ -118,6 +119,11 @@ void uart_rx(u8 rxByte){ };
 
 
 int main(){
+	station_info* associated_station;
+
+	_demo_pyld_params.hdr.type = LTG_PYLD_TYPE_FIXED;
+	_demo_pyld_params.length = 100;
+
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
@@ -217,6 +223,30 @@ int main(){
 
 	wlan_mac_high_config_demo(~DEMO_CONFIG_FLAGS_EN,0);
 
+	//_demo: Adding a priori known devices
+	u8 _demo_addr1[6] = {0xD8,0xD1,0xCB,0xA6,0x0D,0x2F}; //CRH iPhone
+	u8 _demo_addr2[6] = {0xF0,0xD1,0xA9,0x6C,0x86,0xA6}; //POM iPhone
+	u8 _demo_addr3[6] = {0xBC,0x92,0x6B,0x07,0x93,0x20}; //Welsh iPhone
+
+	associated_station = add_association(&association_table, &statistics_table, _demo_addr1);
+	associated_station->AID = 1;
+	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
+	strcpy(associated_station->hostname,"CRH-iPhone*");
+	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
+
+	associated_station = add_association(&association_table, &statistics_table, _demo_addr2);
+	associated_station->AID = 2;
+	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
+	strcpy(associated_station->hostname,"POM-iPhone*");
+	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
+
+	associated_station = add_association(&association_table, &statistics_table, _demo_addr3);
+	associated_station->AID = 3;
+	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
+	strcpy(associated_station->hostname,"Welsh-iPhone*");
+	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
+
+
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
@@ -237,13 +267,19 @@ void check_tx_queue(){
 	station_info* curr_station_info;
 
 	if( wlan_mac_high_is_cpu_low_ready() ){
+
+		//Check the high-priority management queue
+		if(wlan_mac_queue_poll(MANAGEMENT_QID)){
+			return;
+		}
+
 		curr_station_info = next_station_info;
 		for(i = 0; i < (association_table.length + 1) ; i++){
 			//Loop through all associated stations' queues + the broadcast queue
 			if(curr_station_info == NULL){
 				//Check the broadcast queue
 				next_station_info = (station_info*)(association_table.first);
-				if(wlan_mac_queue_poll(0)){
+				if(wlan_mac_queue_poll(BCAST_QID)){
 					return;
 				} else {
 					curr_station_info = next_station_info;
@@ -257,7 +293,7 @@ void check_tx_queue(){
 						next_station_info = station_info_next(curr_station_info);
 					}
 
-					if(wlan_mac_queue_poll(curr_station_info->AID)){
+					if(wlan_mac_queue_poll(AID_TO_QID(curr_station_info->AID))){
 						return;
 					} else {
 						curr_station_info = next_station_info;
@@ -408,7 +444,7 @@ void ltg_event(u32 id, void* callback_arg){
 				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)station, tx_length, MAX_RETRY, default_tx_gain_target,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-				enqueue_after_end(station->AID, &checkout);
+				enqueue_after_end(AID_TO_QID(station->AID), &checkout);
 				check_tx_queue();
 			}
 		}
@@ -430,7 +466,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 		if(queue_num_queued(0) < max_queue_size){
 			wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, 0 );
 
-			enqueue_after_end(0, tx_queue_list);
+			enqueue_after_end(BCAST_QID, tx_queue_list);
 			check_tx_queue();
 		} else {
 			return 0;
@@ -445,7 +481,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)station, tx_length, MAX_RETRY, default_tx_gain_target,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-				enqueue_after_end(station->AID, tx_queue_list);
+				enqueue_after_end(AID_TO_QID(station->AID), tx_queue_list);
 				check_tx_queue();
 			} else {
 				return 0;
@@ -478,7 +514,7 @@ void beacon_transmit() {
  		wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
         tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
  		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
- 		enqueue_after_end(0, &checkout);
+ 		enqueue_after_end(MANAGEMENT_QID, &checkout); //TODO: BCAST_QID or MANAGEMENT_QID
 
  		check_tx_queue();
  	}
@@ -521,7 +557,7 @@ void association_timestamp_check() {
 		 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)curr_station_info, tx_length, MAX_RETRY, default_tx_gain_target,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-		 		enqueue_after_end(curr_station_info->AID, &checkout);
+		 		enqueue_after_end(AID_TO_QID(curr_station_info->AID), &checkout);
 		 		check_tx_queue();
 
 		 		//Purge any packets in the queue meant for this node
@@ -639,7 +675,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									mpdu_ptr_u8 += sizeof(mac_header_80211);
 									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
 									wlan_mac_high_setup_tx_queue ( tx_queue, NULL, mpdu_info->length, 0, default_tx_gain_target, 0 );
-									enqueue_after_end(0, &checkout);
+									enqueue_after_end(BCAST_QID, &checkout);
 									check_tx_queue();
 								}
 
@@ -659,7 +695,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									wlan_mac_high_setup_tx_queue ( tx_queue, (void*)associated_station, mpdu_info->length, MAX_RETRY, default_tx_gain_target,
 																 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-									enqueue_after_end(associated_station->AID,  &checkout);
+									enqueue_after_end(AID_TO_QID(associated_station->AID),  &checkout);
 
 									check_tx_queue();
 									#ifndef ALLOW_ETH_TX_OF_WIRELESS_TX
@@ -696,7 +732,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
 													 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-									enqueue_after_end(0, &checkout);
+									enqueue_after_end(MANAGEMENT_QID, &checkout);
 									check_tx_queue();
 								}
 						}
@@ -741,7 +777,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
 											 (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-							enqueue_after_end(0, &checkout);
+							enqueue_after_end(MANAGEMENT_QID, &checkout);
 							check_tx_queue();
 						}
 						// Finish function
@@ -779,7 +815,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
 											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-							enqueue_after_end(0, &checkout);
+							enqueue_after_end(MANAGEMENT_QID, &checkout);
 							check_tx_queue();
 						}
 						goto mpdu_rx_process_end;
@@ -798,7 +834,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
 										 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-						enqueue_after_end(0, &checkout);
+						enqueue_after_end(MANAGEMENT_QID, &checkout);
 						check_tx_queue();
 					}
 
@@ -828,7 +864,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							wlan_mac_high_setup_tx_queue ( tx_queue, (void*)associated_station, tx_length, MAX_RETRY, default_tx_gain_target,
 											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-							enqueue_after_end(associated_station->AID, &checkout);
+							enqueue_after_end(AID_TO_QID(associated_station->AID), &checkout);
 							check_tx_queue();
 						}
 						// Finish function
@@ -847,7 +883,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
 											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-							enqueue_after_end(0, &checkout);
+							enqueue_after_end(MANAGEMENT_QID, &checkout);
 							check_tx_queue();
 						}
 					}
@@ -1035,7 +1071,7 @@ u32  deauthenticate_station( station_info* station ) {
 						 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 		//
-		enqueue_after_end(aid, &checkout);
+		enqueue_after_end(AID_TO_QID(aid), &checkout);
 		check_tx_queue();
 
 		// Remove this STA from association list
@@ -1081,13 +1117,23 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 	station_info* curr_station_info;
 	station_info_entry* curr_station_info_entry;
 	u32 i;
-	u16 curr_AID = 0;
+	u16 curr_AID;
+
+	curr_AID = 0;
 
 	station = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
 	if(station != NULL){
 		//This addr is already tied to an association table entry. We'll just pass
 		//this the pointer to that entry back to the calling function without creating
 		//a new entry
+
+		if(_demo_ltg_enable){
+			ltg_sched_remove(AID_TO_LTG_ID(station->AID));
+			ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
+			ltg_sched_start(AID_TO_LTG_ID(station->AID));
+		}
+
+
 		return station;
 	} else {
 
@@ -1116,6 +1162,7 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 			memcpy(station->addr, addr, 6);
 			station->tx.rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
 			station->AID = 0;
+			station->hostname[0] = 0;
 
 			//Find the minimum AID that can be issued to this station.
 			curr_station_info = (station_info*)(assoc_tbl->first);
@@ -1158,9 +1205,6 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 
 			//TODO: DEMO
 			if(_demo_ltg_enable){
-				_demo_pyld_params.hdr.type = LTG_PYLD_TYPE_FIXED;
-				_demo_pyld_params.length = 500;
-
 				ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
 				ltg_sched_start(AID_TO_LTG_ID(station->AID));
 			}
@@ -1272,8 +1316,12 @@ int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 
 		//TODO: DEMO
 		if(_demo_ltg_enable){
-			ltg_sched_start(AID_TO_LTG_ID(station->AID));
+			ltg_sched_stop(AID_TO_LTG_ID(station->AID));
 			ltg_sched_remove(AID_TO_LTG_ID(station->AID));
+		}
+
+		if((station->flags)&STATION_INFO_FLAG_NEVER_REMOVE){
+			return -1;
 		}
 
 		//TODO: DEMO
@@ -1377,7 +1425,7 @@ void _demo_send_packet_req(){
 	        //tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 	 		tx_length = wlan_create_measurement_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, MEASUREMENT_TYPE_BASIC, mac_param_chan);
 	 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)curr_station_info, tx_length, MAX_RETRY, default_tx_gain_target, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-	 		enqueue_after_end(curr_station_info->AID, &checkout);
+	 		enqueue_after_end(AID_TO_QID(curr_station_info->AID), &checkout);
 		}
 
 		next_station_info = station_info_next(curr_station_info);
@@ -1578,7 +1626,7 @@ void _demo_ltg_event(u32 id, void* callback_arg){
 				(tx_header_common.address_2)[5] = station->AID;
 
 				mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
-				tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
+				tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS | MAC_FRAME_CTRL2_FLAG_MORE_DATA);
 
 				mpdu_ptr_u8 += sizeof(mac_header_80211);
 				llc_hdr = (llc_header*)(mpdu_ptr_u8);
@@ -1595,7 +1643,7 @@ void _demo_ltg_event(u32 id, void* callback_arg){
 
 				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)station, tx_length, 0, default_tx_gain_target, (TX_MPDU_FLAGS_FILL_DURATION) );
 
-				enqueue_after_end(station->AID, &checkout);
+				enqueue_after_end(AID_TO_QID(station->AID), &checkout);
 
 				tx_header_common.address_2 = &(eeprom_mac_addr[0]);
 
