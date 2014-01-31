@@ -35,7 +35,7 @@
 
 wlan_mac_hw_info* hw_info_ptr;
 
-void wlan_mac_exp_configure(u32 type, u32 eth_dev_num){
+void wlan_exp_configure(u32 type, u32 eth_dev_num){
 	hw_info_ptr = wlan_mac_high_get_hw_info();
 
 	hw_info_ptr->type              = type;
@@ -43,27 +43,20 @@ void wlan_mac_exp_configure(u32 type, u32 eth_dev_num){
 
 }
 
+
 #ifdef USE_WARPNET_WLAN_EXP
 
 /*************************** Constant Definitions ****************************/
 
-// #define _DEBUG_
-
 /*********************** Global Variable Definitions *************************/
-
-
 
 /*************************** Variable Definitions ****************************/
 
-
-
 /*************************** Functions Prototypes ****************************/
 
-// #ifdef _DEBUG_
+#ifdef _DEBUG_
 void wlan_exp_print_station_status( station_info * stations, unsigned int num_stations );
-// #endif
-
-
+#endif
 
 
 /**************************** Common Functions *******************************/

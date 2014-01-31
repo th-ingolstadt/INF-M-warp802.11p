@@ -319,8 +319,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         case WARPNET_TYPE:
         	// Return the WARPNet Type
             respArgs32[respIndex++] = Xil_Htonl( node_info.type );    
-        
+
+#ifdef _DEBUG_
             xil_printf("WARPNet Type = %d \n", node_info.type);
+#endif
 
             respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -421,7 +423,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         			}
                 } else {
                     xil_printf("NODE_IP_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node);
-                    xil_printf("    Use NODE_CONFIG_RESET command to reset network configuration.\n");
+                    xil_printf("    Use NODE_CONFIG_RESET command to reset network configuration.\n\n");
                 }
             } else {
                 xil_printf("NODE_IP_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
@@ -490,7 +492,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			if ( temp != 0xFFFF ) {
 
 				// TODO: Set the TX power
-			    xil_printf("WARPNET:  Setting TX power = %d\n", temp);
+			    xil_printf("WARPNET TODO:  Setting TX power = %d\n", temp);
 			}
 
 			// Send response of current power
@@ -727,7 +729,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_LOG_RESET:
 			xil_printf("EVENT LOG:  Reset log\n");
-
 			event_log_reset();
 	    break;
 

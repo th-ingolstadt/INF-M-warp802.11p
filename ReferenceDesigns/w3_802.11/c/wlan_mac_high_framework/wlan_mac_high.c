@@ -1437,7 +1437,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
             //   NOTE:  this information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
 			memcpy((void*) &hw_info, (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
 
-			hw_info.type              = temp_1;
+			hw_info.type              = hw_info.type + temp_1;       // Add type info from CPU low
 			hw_info.wn_exp_eth_device = temp_2;
 
 #ifdef USE_WARPNET_WLAN_EXP

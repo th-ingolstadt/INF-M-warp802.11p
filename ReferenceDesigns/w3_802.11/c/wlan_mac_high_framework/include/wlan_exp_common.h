@@ -20,81 +20,11 @@
 #include "xil_types.h"
 #include "warp_hw_ver.h"
 
-
-// WLAN includes
-#include "wlan_mac_high.h"
+#include "wlan_exp.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_COMMON_H_
 #define WLAN_EXP_COMMON_H_
-
-
-// **********************************************************************
-// Use WARPNet Interface
-//
-// Note: Please leave this undefined. WARPnet functionality will be added
-// to a future release.
-//
-
-#define  USE_WARPNET_WLAN_EXP
-
-// #define  WLAN_EXP_WAIT_FOR_ETH
-
-
-// **********************************************************************
-// WARPNet Version Information
-//
-
-// Version info (MAJOR.MINOR.REV, all must be ints)
-//   m-code requires C code MAJOR.MINOR match values in wl_version.ini
-#define WARPNET_VER_MAJOR	2
-#define WARPNET_VER_MINOR	0
-#define WARPNET_VER_REV		0
-
-#define REQ_HW_VER          (WARPNET_VER_MAJOR<<16)|(WARPNET_VER_MINOR<<8)|(WARPNET_VER_REV)
-
-
-// Define the WARPNet Type to communicate the type of wn_node.  Current values are:
-//   Type                              Values
-//   WARPLab                           0x00000000 - 0x00000FFF
-//     WARPLab Node                    0x00000000               
-//   802.11                            0x00001000 - 0x00001FFF
-//     802.11 AP                       0x00001000
-//     802.11 Station                  0x00001001
-//
-#define WARPNET_TYPE_WARPLAB_BASE      0x00000000
-#define WARPNET_TYPE_WARPLAB_NODE      0x00000000
-
-#define WARPNET_TYPE_80211_BASE        0x00001000
-#define WARPNET_TYPE_80211_AP          0x00000001
-#define WARPNET_TYPE_80211_STATION     0x00000002
-
-
-
-// **********************************************************************
-// WARP Hardware Version Information
-//
-#ifdef WARP_HW_VER_v2
-#define WARP_HW_VERSION                2
-#endif
-
-#ifdef WARP_HW_VER_v3
-#define WARP_HW_VERSION                3
-#endif
-
-
-
-// **********************************************************************
-// WARPNet Tag Parameter group defines
-//
-#define WARPNET_GRP             0xFF
-#define NODE_GRP                0x00
-#define TRANS_GRP               0x10
-
-
-// Global WARPNet commands
-#define WARPNET_TYPE            0xFFFFFF
-
 
 
 // **********************************************************************
@@ -113,7 +43,7 @@
 
 
 // **********************************************************************
-// WARPNet WLAN Exp Common Defines
+// WARPNet Common Defines
 //
 
 #define PAYLOAD_PAD_NBYTES        2
@@ -139,7 +69,7 @@
 
 /*********************** Global Structure Definitions ************************/
 // 
-// WARPNet WLAN Exp Structures
+// WARPNet Message Structures
 //
 
 typedef struct{
@@ -180,19 +110,12 @@ typedef struct {
 // 
 // Define WARPNet Common Methods
 //
-void wlan_mac_exp_configure(u32 type, u32 eth_dev_num);
+void wlan_exp_configure(u32 type, u32 eth_dev_num);
+
 
 #ifdef _DEBUG_
 void print_wn_parameters( wn_tag_parameter *param, int num_params );
 #endif
-
-
-//
-// Define WLAN Exp Common Methods
-//
-int get_station_status( station_info * stations, u32 num_stations, u32 * buffer, u32 max_words );
-
-
 
 
 #endif /* WLAN_EXP_COMMON_H_ */

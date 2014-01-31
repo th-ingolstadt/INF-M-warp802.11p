@@ -52,9 +52,9 @@
 /*************************** Constant Definitions ****************************/
 
 // Unfortunately, there is no way to determine at compile time the size of the
-//   Ethernet buffer for the WLAN_EXP framework.  Currently, the framework
-//   assumes that async packet will only be standard MTU size (1514 bytes
-//   rounded up for 32 bit alignment).
+//   Ethernet buffer for the transport.  Currently, the framework assumes
+//   that async packet will only be standard MTU size (1514 bytes rounded up
+//   for 32 bit alignment).
 //
 #define TRANSPORT_ASYNC_TX_SIZE       1516
 
@@ -818,45 +818,6 @@ wn_host_message * transport_create_async_msg_w_cmd(wn_transport_header* hdr, wn_
 		return NULL;
     }
 }
-
-
-#if 0
-// Debug print statement used during developement of transport_create_message
-
-		xil_printf("msg     = 0x%08x\n", &async_pkt_msg);
-		xil_printf("data    = 0x%08x\n", &async_pkt_data);
-		xil_printf("header  = 0x%08x\n", async_tx_header);
-		xil_printf("payload = 0x%08x\n", async_tx_payload);
-		xil_printf("buffer  = 0x%08x\n", async_pkt_msg.buffer);
-		xil_printf("payload = 0x%08x\n", async_pkt_msg.payload);
-		xil_printf("length  = 0x%08x\n", async_pkt_msg.length);
-
-		xil_printf("Async Header (0x%08x): \n", async_tx_header);
-		xil_printf("  Dest = %d \n", async_tx_header->destID);
-		xil_printf("  Src  = %d \n", async_tx_header->srcID);
-		xil_printf("  Pkt  = %d \n", async_tx_header->pktType);
-		xil_printf("  Len  = %d \n", async_tx_header->length);
-		xil_printf("  Seq  = %d \n", async_tx_header->seqNum);
-		xil_printf("  Flag = %d \n", async_tx_header->flags);
-
-		xil_printf("Header: (0x%08x): \n", hdr);
-		xil_printf("  Dest = %d \n", hdr->destID);
-		xil_printf("  Src  = %d \n", hdr->srcID);
-		xil_printf("  Pkt  = %d \n", hdr->pktType);
-		xil_printf("  Len  = %d \n", hdr->length);
-		xil_printf("  Seq  = %d \n", hdr->seqNum);
-		xil_printf("  Flag = %d \n", hdr->flags);
-
-	    int i;
-
-	    xil_printf("Async pkt buffer\n");
-		for(i = 0; i < 64; i++){
-			xil_printf("0x%02x ", ((unsigned char *)async_pkt_msg.buffer)[i]);
-			if ( ((i + 1) % 16) == 0 ) { xil_printf("\n"); }
-		}
-		xil_printf("\n");
-#endif
-
 
 
 /*****************************************************************************/
