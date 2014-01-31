@@ -43,6 +43,7 @@
 
 
 // WLAN Exp includes
+#include "wlan_exp.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_sta.h"
@@ -52,7 +53,7 @@
 /*************************** Constant Definitions ****************************/
 
 #define  WLAN_EXP_ETH                  WN_ETH_B
-#define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_STATION
+#define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA
 
 #define  WLAN_CHANNEL                  1
 #define  TX_GAIN_TARGET				   45
@@ -161,7 +162,7 @@ int main() {
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );
 	node_info_set_max_stats( MAX_NUM_PROMISC_STATS );
-	wlan_mac_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
+	wlan_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
 #endif
 
 
