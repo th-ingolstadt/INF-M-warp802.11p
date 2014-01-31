@@ -41,9 +41,12 @@
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
 
+#include "wlan_exp.h"
+
 /*************************** Constant Definitions ****************************/
 
-#define NUM_LEDS 4
+#define WARPNET_TYPE_80211_LOW         WARPNET_TYPE_80211_LOW_DCF
+#define NUM_LEDS                       4
 
 /*********************** Global Variable Definitions *************************/
 
@@ -707,7 +710,7 @@ void mac_dcf_init(){
 	print_wlan_mac_hw_info( &hw_info );
 #endif
 
-	//Send a message to other processor to identify mac_addr
+	// Send a message to other processor to identify hw info of cpu low
 	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
 	ipc_msg_to_high.num_payload_words = 8;
 	ipc_msg_to_high.payload_ptr = (u32 *) &(hw_info);
@@ -728,8 +731,8 @@ void wlan_mac_init_hw_info( void ) {
 	//
 	memset( (void*)( &hw_info ), 0x0, sizeof( wlan_mac_hw_info ) );
 
-
 	// Set General Node information
+	hw_info.type          = WARPNET_TYPE_80211_LOW;
     hw_info.serial_number = w3_eeprom_readSerialNum(EEPROM_BASEADDR);
     hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
     hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);
