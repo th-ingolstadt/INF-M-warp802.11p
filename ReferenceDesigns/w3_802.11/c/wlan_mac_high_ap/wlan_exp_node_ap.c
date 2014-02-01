@@ -17,6 +17,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_exp_common.h"
+#include "wlan_exp.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
 

@@ -44,6 +44,7 @@
 #include "wlan_mac_dl_list.h"
 
 // WLAN Exp includes
+#include "wlan_exp.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
@@ -53,7 +54,7 @@
 /*************************** Constant Definitions ****************************/
 
 #define  WLAN_EXP_ETH                  WN_ETH_B
-#define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_AP
+#define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP
 
 #define  WLAN_CHANNEL                  6
 #define  TX_GAIN_TARGET				   45
@@ -66,7 +67,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-ARRAY";
+static char default_AP_SSID[] = "WARP-AP";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -143,7 +144,7 @@ int main(){
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );
 	node_info_set_max_stats( MAX_NUM_PROMISC_STATS );
-	wlan_mac_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
+	wlan_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
 #endif
 
 	dl_list_init(&association_table);
