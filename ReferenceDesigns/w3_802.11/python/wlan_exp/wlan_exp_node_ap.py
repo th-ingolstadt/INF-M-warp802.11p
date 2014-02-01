@@ -38,7 +38,8 @@ class WlanExpNodeAp(wlan_exp_node.WlanExpNode):
         super(WlanExpNodeAp, self).__init__()
 
         # Set the correct WARPNet node type
-        self.node_type = self.node_type + wlan_exp_defaults.WLAN_EXP_AP
+        self.node_type = self.node_type + wlan_exp_defaults.WLAN_EXP_HIGH_AP
+        self.node_type = self.node_type + wlan_exp_defaults.WLAN_EXP_LOW_DCF
 
 
     def configure_node(self, jumbo_frame_support=False):

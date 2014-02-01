@@ -30,14 +30,16 @@ WLAN_EXP_DEFAULT_INI_FILE         = 'wlan_exp_config.ini'
 
 # WARPNet Node Types
 #   NOTE:  The C counterparts are found in wlan_exp_common.h
-WLAN_EXP_BASE                     = 0x1000
-WLAN_EXP_AP                       = 1
-WLAN_EXP_STA                      = 2
+WLAN_EXP_BASE                     = 0x10000
+WLAN_EXP_HIGH_AP                  = 0x00100
+WLAN_EXP_HIGH_STA                 = 0x00200
 
-WLAN_EXP_AP_TYPE                  = WLAN_EXP_BASE + WLAN_EXP_AP
+WLAN_EXP_LOW_DCF                  = 0x00001
+
+WLAN_EXP_AP_TYPE                  = WLAN_EXP_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_DCF
 WLAN_EXP_AP_CLASS                 = 'wlan_exp.wlan_exp_node_ap.WlanExpNodeAp'
 
-WLAN_EXP_STA_TYPE                 = WLAN_EXP_BASE + WLAN_EXP_STA
+WLAN_EXP_STA_TYPE                 = WLAN_EXP_BASE + WLAN_EXP_HIGH_STA + WLAN_EXP_LOW_DCF
 WLAN_EXP_STA_CLASS                = 'wlan_exp.wlan_exp_node_sta.WlanExpNodeSta'
 
 
