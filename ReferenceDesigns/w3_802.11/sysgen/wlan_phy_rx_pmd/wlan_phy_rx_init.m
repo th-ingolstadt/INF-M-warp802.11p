@@ -135,14 +135,18 @@ REG_RX_Config = ...
     2^0  * 1 + ... %DSSS RX EN
     2^1  * 1 + ... %Block inputs on INVALID input
     2^2  * 1 + ... %Swap pkt buf byte order
-    2^3  * 0 + ... %Swap order of chan est u32 writes
+    2^3  * 1 + ... %Swap order of chan est u32 writes
     2^4  * 1 + ... %Allow DSSS Rx to keep AGC locked
     2^5  * 0 + ... %Bypass CFO est/correction
     2^6  * 1 + ... %Enable chan est recording to pkt buf
-    2^7  * 1 + ... %Enable switching diversity
-    2^8  * 0 + ... %Force selection of Ant B
+    2^7  * 0 + ... %Enable switching diversity
     2^9  * 1 + ... %Enable pkt det on Ant A
     2^10 * 0 + ... %Enable pkt det on Ant B
+    2^11 * 0 + ... %Enable pkt det on Ant C
+    2^12 * 0 + ... %Enable pkt det on Ant D
+    2^13 * 0 + ... %Enable ext pkt det
+    2^14 * 0 + ... %PHY CCA mode (0=any, 1=all)
+    2^15 * 0 + ... %Manual ant sel when sel div disabled (2-bits, 00=RFA)
     0;
 
 REG_RX_DSSS_RX_CONFIG = ...

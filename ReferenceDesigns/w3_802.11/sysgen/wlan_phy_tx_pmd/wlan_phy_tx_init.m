@@ -87,6 +87,8 @@ REG_TX_Config = ...
     2^1  * 0 + ... %Reset scrambler per pkt
     2^2  * 1 + ... %Enable Tx on RF A
     2^3  * 0 + ... %Enable Tx on RF B
+    2^4  * 0 + ... %Enable Tx on RF C
+    2^5  * 0 + ... %Enable Tx on RF D
     0;
 
 REG_TX_Output_Scaling = (2^0 * 2^12) + (2^16 * 2^12); %UFix16_12 values
