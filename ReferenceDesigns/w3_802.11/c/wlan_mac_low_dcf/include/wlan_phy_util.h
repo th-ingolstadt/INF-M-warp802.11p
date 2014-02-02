@@ -21,6 +21,7 @@
 #define USERIO_BASEADDR		XPAR_W3_USERIO_BASEADDR
 #define CLK_BASEADDR 		XPAR_W3_CLOCK_CONTROLLER_0_BASEADDR
 #define EEPROM_BASEADDR 	XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
+#define FMC_EEPROM_BASEADDR 	XPAR_W3_IIC_EEPROM_FMC_BASEADDR
 #define DRAM_BASEADDR 		XPAR_DDR3_2GB_SODIMM_MPMC_BASEADDR
 #define RC_BASEADDR 		XPAR_RADIO_CONTROLLER_0_BASEADDR
 #define AD_BASEADDR 		XPAR_W3_AD_CONTROLLER_0_BASEADDR
@@ -79,31 +80,38 @@
 #define WLAN_RX_REG_CTRL_RESET			0x1
 
 //RX CONFIG
-#define WLAN_RX_REG_CFG_DSSS_RX_EN			0x001 //Enable DSSS Rx
-#define WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK	0x002 //Force I/Q/RSSI signals to zero during Tx
-#define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP	0x004 //Swap byte order at pkt buf interface
-#define WLAN_RX_REG_CFG_CHAN_EST_WEN_SWAP	0x008 //Swap the order of H est writes per u64 ([0,1] vs [1,0])
-#define WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD	0x010 //Allow active DSSS Rx to keep AGC locked
-#define WLAN_RX_REG_CFG_CFO_EST_BYPASS		0x020 //Bypass time-domain CFO correction
-#define WLAN_RX_REG_CFG_RECORD_CHAN_EST		0x040 //Enable recording channel estimates to the Rx pkt buffer
-#define WLAN_RX_REG_CFG_SWITCHING_DIV_EN	0x080 //Enable switching diversity per-Rx
-#define WLAN_RX_REG_CFG_FORCE_SEL_ANT_B		0x100 //Force selection of RF B (ignored if switching div is enabled)
-#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A	0x200 //Enable pkt detection on RF A
-#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B	0x400 //Enable pkt detection on RF B
-#define WLAN_RX_REG_CFG_PKT_DET_EN_EXT		0x800 //Enable pkt detection via pkt_det_in port
+#define WLAN_RX_REG_CFG_DSSS_RX_EN			0x00001 //Enable DSSS Rx
+#define WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK	0x00002 //Force I/Q/RSSI signals to zero during Tx
+#define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP	0x00004 //Swap byte order at pkt buf interface
+#define WLAN_RX_REG_CFG_CHAN_EST_WEN_SWAP	0x00008 //Swap the order of H est writes per u64 ([0,1] vs [1,0])
+#define WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD	0x00010 //Allow active DSSS Rx to keep AGC locked
+#define WLAN_RX_REG_CFG_CFO_EST_BYPASS		0x00020 //Bypass time-domain CFO correction
+#define WLAN_RX_REG_CFG_RECORD_CHAN_EST		0x00040 //Enable recording channel estimates to the Rx pkt buffer
+#define WLAN_RX_REG_CFG_SWITCHING_DIV_EN	0x00080 //Enable switching diversity per-Rx
 
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A	0x00200 //Enable pkt detection on RF A
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B	0x00400 //Enable pkt detection on RF B
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C	0x00800 //Enable pkt detection on RF C
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D	0x01000 //Enable pkt detection on RF D
+#define WLAN_RX_REG_CFG_PKT_DET_EN_EXT		0x02000 //Enable pkt detection via pkt_det_in port
+#define WLAN_RX_REG_CFG_PHY_CCA_MODE_SEL	0x04000 //Selects any(0) or all(1) antenna requirement for PHY CCA BUSY
+#define WLAN_RX_REG_CFG_ANT_SEL_MASK		0x18000 //Selects antenna for PHY input when sel div is disabled ([0,1,2,3] = RF[A,B,C,D])
+
+#define wlan_phy_select_rx_antenna(d) Xil_Out32(WLAN_RX_REG_CFG, ((Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_ANT_SEL_MASK) | (d&0x3 << 15)))
 
 //RX STATUS
 #define WLAN_RX_REG_STATUS_OFDM_FCS_GOOD	0x1
 #define WLAN_RX_REG_STATUS_DSSS_FCS_GOOD	0x2
-#define WLAN_RX_REG_STATUS_ACTIVE_ANT		0x4
-
+#define WLAN_RX_REG_STATUS_ACTIVE_ANT_MASK	0xC //2-bits: [0,1,2,3]=RF[A,B,C,D]
+#define WLAN_RX_REG_STATUS_PKT_DET_STATUS_MASK	0x1F0
 
 //TX CONFIG
-#define WLAN_TX_REG_CFG_SET_RC_RXEN					0x1
-#define WLAN_TX_REG_CFG_RESET_SCRAMBLING_PER_PKT	0x2
-#define WLAN_TX_REG_CFG_ANT_A_TXEN					0x4
-#define WLAN_TX_REG_CFG_ANT_B_TXEN					0x8
+#define WLAN_TX_REG_CFG_SET_RC_RXEN					0x01
+#define WLAN_TX_REG_CFG_RESET_SCRAMBLING_PER_PKT	0x02
+#define WLAN_TX_REG_CFG_ANT_A_TXEN					0x04
+#define WLAN_TX_REG_CFG_ANT_B_TXEN					0x08
+#define WLAN_TX_REG_CFG_ANT_C_TXEN					0x10
+#define WLAN_TX_REG_CFG_ANT_D_TXEN					0x20
 #define WLAN_TX_REG_CFG_RESET						0x80000000
 
 //TX STATUS
@@ -130,6 +138,7 @@
 #define WLAN_RX_PHY_CCA_CFG		XPAR_WLAN_PHY_RX_MEMMAP_PHY_CCA_CONFIG
 #define WLAN_RX_SIGNAL_FIELD	XPAR_WLAN_PHY_RX_MEMMAP_SIGNAL_FIELD
 #define WLAN_RX_PKT_RSSI_AB		XPAR_WLAN_PHY_RX_MEMMAP_RX_PKT_RSSI_AB
+#define WLAN_RX_PKT_RSSI_CD		XPAR_WLAN_PHY_RX_MEMMAP_RX_PKT_RSSI_CD
 #define WLAN_RX_PKT_AGC_GAINS	XPAR_WLAN_PHY_RX_MEMMAP_RX_PKT_AGC_GAINS
 
 #define WLAN_TX_REG_STATUS		XPAR_WLAN_PHY_TX_MEMMAP_STATUS
@@ -153,13 +162,18 @@
 #define REG_CLEAR_BITS(addr, mask)	Xil_Out32(addr, (Xil_In32(addr) & ~mask))
 #define REG_SET_BITS(addr, mask)	Xil_Out32(addr, (Xil_In32(addr) | mask))
 
-//Antenna modes
-#define RX_ANTMODE_SISO_ANTA	0x1
-#define RX_ANTMODE_SISO_ANTB	0x2
-#define RX_ANTMODE_SISO_SELDIV	0x4
+//Antenna modes (enumerated - these values are *not* written to PHY registers)
+#define RX_ANTMODE_SISO_ANTA		0x1
+#define RX_ANTMODE_SISO_ANTB		0x2
+#define RX_ANTMODE_SISO_ANTC		0x3
+#define RX_ANTMODE_SISO_ANTD		0x4
+#define RX_ANTMODE_SISO_SELDIV_2ANT	0x5
+#define RX_ANTMODE_SISO_SELDIV_4ANT	0x6
 
 #define TX_ANTMODE_SISO_ANTA	0x10
 #define TX_ANTMODE_SISO_ANTB	0x20
+#define TX_ANTMODE_SISO_ANTC	0x30
+#define TX_ANTMODE_SISO_ANTD	0x40
 
 
 //PHY Macros
@@ -177,7 +191,8 @@
 #define wlan_phy_rx_pkt_buf_ofdm(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0x0000000F)) | ((d) & 0x0000000F)))
 #define wlan_phy_tx_pkt_buf(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x0000000F)) | ((d) & 0x0000000F)))
 
-#define wlan_phy_rx_get_active_rx_ant()  ((Xil_In32(WLAN_RX_STATUS) & WLAN_RX_REG_STATUS_ACTIVE_ANT) == WLAN_RX_REG_STATUS_ACTIVE_ANT)
+#define wlan_phy_rx_get_active_rx_ant()  ((Xil_In32(WLAN_RX_STATUS) & WLAN_RX_REG_STATUS_ACTIVE_ANT_MASK) >> 2)
+#define wlan_phy_rx_get_pkt_det_status()  ((Xil_In32(WLAN_RX_STATUS) & WLAN_RX_REG_STATUS_PKT_DET_STATUS_MASK) >> 4)
 
 //WLAN_RX_FFT_CFG register fields:
 // [ 7: 0] Number of subcarriers (MUST BE 64 - OTHER VALUES UNTESTED)
@@ -188,7 +203,11 @@
 #define wlan_phy_rx_set_fft_scaling(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0x00FFFFFF) | ((d & 0xFF) << 24)))
 
 //RSSI reg: b[15:0]=RFA, b[31:16]=RFB
-#define wlan_phy_rx_get_pkt_rssi(ant) ( (ant==0) ? (Xil_In32(WLAN_RX_PKT_RSSI_AB) & 0xFFFF) : ((Xil_In32(WLAN_RX_PKT_RSSI_AB)>>16) & 0xFFFF) )
+//RSSI reg: b[15:0]=RFC, b[31:16]=RFd
+#define wlan_phy_rx_get_pkt_rssi(ant) ( (ant==0) ? (Xil_In32(WLAN_RX_PKT_RSSI_AB) & 0xFFFF) : \
+		(ant==1) ? ((Xil_In32(WLAN_RX_PKT_RSSI_AB)>>16) & 0xFFFF) : \
+		(ant==2) ? (Xil_In32(WLAN_RX_PKT_RSSI_CD) & 0xFFFF) : \
+		(Xil_In32(WLAN_RX_PKT_RSSI_CD)>>16) & 0xFFFF)
 
 //AGC gains reg:
 // [4:0]: RF A BBG
@@ -196,9 +215,22 @@
 // [7]:   0
 // [12:8]: RF B BBG
 // [14:13]: RF B RFG
+// [15]: 0
+// [20:16]: RF C BBG
+// [22:21]: RF C RFG
+// [23]: 0
+// [28:24]: RF D BBG
+// [30:29]: RF D RFG
 
-#define wlan_phy_rx_get_agc_BBG(ant) ( (ant==0) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) & 0x1F) : ((Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>8) & 0x1F))
-#define wlan_phy_rx_get_agc_RFG(ant) ( (ant==0) ? ((Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>5) & 0x3) : ((Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>13) & 0x3))
+#define wlan_phy_rx_get_agc_RFG(ant) (( (ant==0) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>5) : \
+										(ant==1) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>13) : \
+										(ant==2) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>21) : \
+												   (Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>29)) & 0x3)
+
+#define wlan_phy_rx_get_agc_BBG(ant) (( (ant==0) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>0) : \
+										(ant==1) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>8) : \
+										(ant==2) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>16) : \
+												   (Xil_In32(WLAN_RX_PKT_AGC_GAINS)>>24)) & 0x1F)
 
 #define	wlan_phy_DSSS_rx_enable() Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) | WLAN_RX_REG_CFG_DSSS_RX_EN)
 #define	wlan_phy_DSSS_rx_disable() Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_DSSS_RX_EN)

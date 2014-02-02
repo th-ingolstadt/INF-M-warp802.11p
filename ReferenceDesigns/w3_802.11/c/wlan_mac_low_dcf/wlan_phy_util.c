@@ -41,6 +41,16 @@ const u8 ones_in_chars[256] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1
 //Global variable definitions
 XTmrCtr TimerCounter; /* The instance of the Tmrctr Device */
 
+//#define WLAN_4RF_EN
+
+#ifdef WLAN_4RF_EN
+#define RC_ALL_RF (RC_RFA | RC_RFB | RC_RFC | RC_RFD)
+#define AD_ALL_RF (RFA_AD_CS | RFB_AD_CS | RFC_AD_CS | RFD_AD_CS)
+#else
+#define RC_ALL_RF (RC_RFA | RC_RFB)
+#define AD_ALL_RF (RFA_AD_CS | RFB_AD_CS)
+#endif
+
 int w3_node_init() {
 
 	int status;
@@ -57,7 +67,7 @@ int w3_node_init() {
 	}
 
 	//Initialize the AD9963 ADCs/DACs for on-board RF interfaces
-	ad_init(AD_BASEADDR, (RFA_AD_CS | RFB_AD_CS), 3);
+	ad_init(AD_BASEADDR, AD_ALL_RF, 3);
 	xil_printf("AD Readback: 0x%08x\n", ad_spi_read(AD_BASEADDR, RFA_AD_CS, 0x32));
 
 	if(status != XST_SUCCESS) {
@@ -66,7 +76,7 @@ int w3_node_init() {
 	}
 
 	//Initialize the radio_controller core and MAX2829 transceivers for on-board RF interfaces
-	status = radio_controller_init(RC_BASEADDR, (RC_RFA | RC_RFB), 1, 1);
+	status = radio_controller_init(RC_BASEADDR, RC_ALL_RF, 1, 1);
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
 		ret = XST_FAILURE;
@@ -104,29 +114,56 @@ inline void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length) {
 void wlan_rx_config_ant_mode(u32 ant_mode) {
 
 	//Disable all Rx modes first; selectively re-enabled in switch below
-	REG_CLEAR_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B | WLAN_RX_REG_CFG_FORCE_SEL_ANT_B | WLAN_RX_REG_CFG_SWITCHING_DIV_EN));
-	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_REG);
+	REG_CLEAR_BITS(WLAN_RX_REG_CFG, (
+			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A |
+			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B |
+			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C |
+			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D |
+			WLAN_RX_REG_CFG_SWITCHING_DIV_EN |
+			WLAN_RX_REG_CFG_ANT_SEL_MASK));
+
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_REG);
 
 	switch(ant_mode) {
 		case RX_ANTMODE_SISO_ANTA:
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A);
+			wlan_phy_select_rx_antenna(0);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			break;
 
 		case RX_ANTMODE_SISO_ANTB:
-			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B | WLAN_RX_REG_CFG_FORCE_SEL_ANT_B));
+			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B);
+			wlan_phy_select_rx_antenna(1);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			break;
 
-		case RX_ANTMODE_SISO_SELDIV:
+		case RX_ANTMODE_SISO_ANTC:
+			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C);
+			wlan_phy_select_rx_antenna(2);
+			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
+			break;
+
+		case RX_ANTMODE_SISO_ANTD:
+			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D);
+			wlan_phy_select_rx_antenna(3);
+			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFD, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
+			break;
+
+		case RX_ANTMODE_SISO_SELDIV_2ANT:
 			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B | WLAN_RX_REG_CFG_SWITCHING_DIV_EN));
 			radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
+			break;
+
+		case RX_ANTMODE_SISO_SELDIV_4ANT:
+			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D | WLAN_RX_REG_CFG_SWITCHING_DIV_EN));
+			radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			break;
 
 		default:
 			//Default to SISO on A if user provides invalid mode
 			xil_printf("wlan_rx_config_ant_mode ERROR: Invalid Mode - Defaulting to SISO on A\n");
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A);
+			wlan_phy_select_rx_antenna(0);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			break;
 	}
@@ -135,8 +172,8 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 }
 
 void wlan_tx_config_ant_mode(u32 ant_mode) {
-	REG_CLEAR_BITS(WLAN_TX_REG_CFG, (WLAN_TX_REG_CFG_ANT_A_TXEN | WLAN_TX_REG_CFG_ANT_B_TXEN));
-	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_TXEN_CTRLSRC, RC_CTRLSRC_REG);
+	REG_CLEAR_BITS(WLAN_TX_REG_CFG, (WLAN_TX_REG_CFG_ANT_A_TXEN | WLAN_TX_REG_CFG_ANT_B_TXEN | WLAN_TX_REG_CFG_ANT_C_TXEN | WLAN_TX_REG_CFG_ANT_D_TXEN));
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_TXEN_CTRLSRC, RC_CTRLSRC_REG);
 
 	switch(ant_mode) {
 		case TX_ANTMODE_SISO_ANTA:
@@ -149,9 +186,21 @@ void wlan_tx_config_ant_mode(u32 ant_mode) {
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, RC_REG0_TXEN_CTRLSRC, RC_CTRLSRC_HW);
 			break;
 
+		case TX_ANTMODE_SISO_ANTC:
+			REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_ANT_C_TXEN);
+			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, RC_REG0_TXEN_CTRLSRC, RC_CTRLSRC_HW);
+			break;
+
+		case TX_ANTMODE_SISO_ANTD:
+			REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_ANT_D_TXEN);
+			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFD, RC_REG0_TXEN_CTRLSRC, RC_CTRLSRC_HW);
+			break;
+
 		default:
 			//Default to SISO on A if user provides invalid mode
 			xil_printf("wlan_tx_config_ant_mode ERROR: Invalid Mode - Defaulting to SISO on A\n");
+			REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_ANT_A_TXEN);
+			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_TXEN_CTRLSRC, RC_CTRLSRC_HW);
 			break;
 	}
 	return;
@@ -210,8 +259,8 @@ void wlan_phy_init() {
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 50, 4, 0x3F);
 
 	//Configure the default antenna selections as SISO Tx/Rx on RF A
-	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA); //TX_ANTMODE_SISO_ANTA
-	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA); //RX_ANTMODE_SISO_ANTA
+	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
 	//Set physical carrier sensing threshold
 	//wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
@@ -284,47 +333,51 @@ void wlan_radio_init() {
 
 	//Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
 	clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-	ad_config_filters(AD_BASEADDR, (RFA_AD_CS | RFB_AD_CS), 2, 2);
+	ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
 
 	//Setup RFA
-	radio_controller_TxRxDisable(RC_BASEADDR, (RC_RFA | RC_RFB));
+	radio_controller_TxRxDisable(RC_BASEADDR, RC_ALL_RF);
+
 	radio_controller_apply_TxDCO_calibration(AD_BASEADDR, EEPROM_BASEADDR, (RC_RFA | RC_RFB));
+#ifdef WLAN_4RF_EN
+	radio_controller_apply_TxDCO_calibration(AD_BASEADDR, FMC_EEPROM_BASEADDR, (RC_RFC | RC_RFD));
+#endif
 
-	radio_controller_setCenterFrequency(RC_BASEADDR, (RC_RFA | RC_RFB), RC_24GHZ, 4);
+	radio_controller_setCenterFrequency(RC_BASEADDR, RC_ALL_RF, RC_24GHZ, 4);
 
 
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RSSI_HIGH_BW_EN, 0);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RSSI_HIGH_BW_EN, 0);
 
 	//Filter bandwidths
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXHPF_HIGH_CUTOFF_EN, 1);
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXLPF_BW, 1);
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLPF_BW, 1);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXHPF_HIGH_CUTOFF_EN, 1);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
 
 #if 0
 	//MGC
-	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
-	radio_controller_setRxHP(RC_BASEADDR, (RC_RFA | RC_RFB), RC_RXHP_OFF);
-	radio_controller_setRxGainSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_GAINSRC_SPI);
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
+	radio_controller_setRxHP(RC_BASEADDR, RC_ALL_RF, RC_RXHP_OFF);
+	radio_controller_setRxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_SPI);
 
 	//Set Rx gains
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXGAIN_RF, 1);
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_RXGAIN_BB, 8);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_RF, 1);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 8);
 
 #else
 	//AGC
-	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_HW);
-	radio_controller_setRxGainSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_GAINSRC_HW);
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_HW);
+	radio_controller_setRxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_HW);
 #endif
 
 	//Set Tx gains
-	radio_controller_setTxGainSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_GAINSRC_REG);
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXGAIN_BB, 2);
-	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_RFA | RC_RFB), 45);
+	radio_controller_setTxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_REG);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 2);
+	radio_controller_setTxGainTarget(RC_BASEADDR, RC_ALL_RF, 45);
 	
 	//Set misc radio params
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLINEARITY_PADRIVER, 0);
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLINEARITY_VGA, 0);
-	radio_controller_setRadioParam(RC_BASEADDR, (RC_RFA | RC_RFB), RC_PARAMID_TXLINEARITY_UPCONV, 0);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_PADRIVER, 0);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_VGA, 0);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_UPCONV, 0);
 
 	//Set Tx state machine timing             (dly_GainRamp, dly_PA, dly_TX, dly_PHY)
 	radio_controller_setTxDelays(RC_BASEADDR, 40, 20, 0, TX_RC_PHYSTART_DLY); //240 PA time after 180 PHY time is critical point
@@ -332,6 +385,8 @@ void wlan_radio_init() {
 	//Give the TX PHY control of RXEN and TXEN (defaults to SISO on A)
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_HW);
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_REG);
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_REG);
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFD, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_REG);
 
 	return;
 }
