@@ -44,7 +44,8 @@ typedef struct{
 #define T_SLOT 9
 #define T_SIFS 16
 #define T_DIFS (T_SIFS + 2*T_SLOT)
-#define T_EIFS 128
+//#define T_EIFS 128
+#define T_EIFS T_DIFS
 #define T_TIMEOUT 80
 
 
