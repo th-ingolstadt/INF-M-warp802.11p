@@ -225,26 +225,26 @@ int main(){
 	wlan_mac_high_config_demo(~DEMO_CONFIG_FLAGS_EN,0);
 
 	//_demo: Adding a priori known devices
-	u8 _demo_addr1[6] = {0xD8,0xD1,0xCB,0xA6,0x0D,0x2F}; //CRH iPhone
-	u8 _demo_addr2[6] = {0xF0,0xD1,0xA9,0x6C,0x86,0xA6}; //POM iPhone
-	u8 _demo_addr3[6] = {0xBC,0x92,0x6B,0x07,0x93,0x20}; //Welsh iPhone
+	u8 _demo_addr1[6] = {0xAC,0xFD,0xEC,0x3F,0x3F,0x50}; //Ashu iPhone
+	u8 _demo_addr2[6] = {0x00,0x88,0x65,0x65,0x2A,0xC8}; //Evan iPhone
+	u8 _demo_addr3[6] = {0x14,0x7D,0xC5,0x5E,0xA9,0xFB}; //Clay
 
 	associated_station = add_association(&association_table, &statistics_table, _demo_addr1);
 	associated_station->AID = 1;
 	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-	strcpy(associated_station->hostname,"CRH-iPhone*");
+	strcpy(associated_station->hostname,"Ashu*");
 	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
 
 	associated_station = add_association(&association_table, &statistics_table, _demo_addr2);
 	associated_station->AID = 2;
 	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-	strcpy(associated_station->hostname,"POM-iPhone*");
+	strcpy(associated_station->hostname,"Evan*");
 	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
 
 	associated_station = add_association(&association_table, &statistics_table, _demo_addr3);
 	associated_station->AID = 3;
 	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-	strcpy(associated_station->hostname,"Welsh-iPhone*");
+	strcpy(associated_station->hostname,"Clay*");
 	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
 
 
@@ -343,6 +343,16 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	if(tx_mpdu->AID != 0){
 		station = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
 		if(station != NULL){
+
+			//if(ACKed and was assoc response){
+			if((tx_mpdu->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS && (tx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP) ){
+				if(_demo_ltg_enable){
+					ltg_sched_remove(AID_TO_LTG_ID(station->AID));
+					ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
+					ltg_sched_start(AID_TO_LTG_ID(station->AID));
+				}
+			}
+
 			//Process this TX MPDU DONE event to update any statistics used in rate adaptation
 			wlan_mac_high_process_tx_done(tx_mpdu, station);
 		}
@@ -1128,11 +1138,11 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 		//this the pointer to that entry back to the calling function without creating
 		//a new entry
 
-		if(_demo_ltg_enable){
-			ltg_sched_remove(AID_TO_LTG_ID(station->AID));
-			ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
-			ltg_sched_start(AID_TO_LTG_ID(station->AID));
-		}
+		//if(_demo_ltg_enable){
+		//	ltg_sched_remove(AID_TO_LTG_ID(station->AID));
+		//	ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
+		//	ltg_sched_start(AID_TO_LTG_ID(station->AID));
+		//}
 
 
 		return station;
@@ -1205,11 +1215,10 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 			wlan_mac_high_write_hex_display(assoc_tbl->length);
 
 			//TODO: DEMO
-			if(_demo_ltg_enable){
-				ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
-				ltg_sched_start(AID_TO_LTG_ID(station->AID));
-			}
-
+			//if(_demo_ltg_enable){
+			//	ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
+			//	ltg_sched_start(AID_TO_LTG_ID(station->AID));
+			//}
 			//TODO: DEMO
 			curr_station_info_entry = get_next_empty_station_info_entry();
 			if(curr_station_info_entry != NULL){
