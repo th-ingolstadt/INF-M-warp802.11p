@@ -56,7 +56,7 @@
 //
 #define MAX_RETRY                      7
 #define MAX_PER_FLOW_QUEUE	           150
-#define MAX_NUM_ASSOC				   10
+#define MAX_NUM_ASSOC				   11
 #define MAX_NUM_PROMISC_STATS		   50
 
 #define AID_TO_QID(x) ((x)+1)

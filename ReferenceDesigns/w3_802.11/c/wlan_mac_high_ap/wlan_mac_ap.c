@@ -67,7 +67,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-ARRAY";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -101,6 +101,9 @@ u32 animation_schedule_id;
 u8 _demo_ltg_enable;
 ltg_sched_periodic_params _demo_periodic_params;
 ltg_pyld_fixed _demo_pyld_params;
+u8 _demo_tim_bitmap[2] = {0xFF,0xFF};
+//u8 _demo_tim_bitmap[2] = {0x00,0x00};
+u8 _demo_tim_control = 1;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -523,7 +526,7 @@ void beacon_transmit() {
  		tx_queue = (packet_bd*)(checkout.first);
 
  		wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
-        tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
+        tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,2,_demo_tim_control,&_demo_tim_bitmap);
  		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
  		enqueue_after_end(MANAGEMENT_QID, &checkout); //TODO: BCAST_QID or MANAGEMENT_QID
 
@@ -783,7 +786,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
-							tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
+							tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan, 2,_demo_tim_control,&_demo_tim_bitmap);
 
 							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
 											 (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
