@@ -160,9 +160,15 @@ class WnCmdNetworkReset(wn_message.WnCmd):
 
 
 class WnCmdGetTemperature(wn_message.WnCmd):
-    """Command to get the temperature of a node."""
-    def __init__(self, node):
-        super(WnCmdNetworkReset, self).__init__()
+    """Command to get the temperature of a node.
+    
+    NOTE:  The response must be converted to Celsius with the given formula:
+        ((double(temp)/65536.0)/0.00198421639) - 273.15
+        - http://www.xilinx.com/support/documentation/user_guides/ug370.pdf
+        - 16 bit value where 10 MSBs are an ADC value
+    """
+    def __init__(self):
+        super(WnCmdGetTemperature, self).__init__()
         self.command = (GRPID_NODE << 24) | CMD_NODE_TEMPERATURE
     
     def process_resp(self, resp):
@@ -172,7 +178,10 @@ class WnCmdGetTemperature(wn_message.WnCmd):
             print(resp)
             return (0, 0, 0)
         else:
-            return (args[0], args[1], args[2])
+            curr_temp = ((float(args[0])/65536.0)/0.00198421639) - 273.15
+            min_temp  = ((float(args[1])/65536.0)/0.00198421639) - 273.15
+            max_temp  = ((float(args[2])/65536.0)/0.00198421639) - 273.15
+            return (curr_temp, min_temp, max_temp)
 
 # End Class
 

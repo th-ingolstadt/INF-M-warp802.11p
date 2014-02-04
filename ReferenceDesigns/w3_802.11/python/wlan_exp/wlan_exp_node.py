@@ -298,7 +298,7 @@ class WlanExpNode(wn_node.WnNode):
         
         # Node %d with Serial # %d has version "%d.%d.%d" which does not match WLAN Exp v%d.%d.%d
         output_str = str("Node {0} ".format(self.node_id) +
-                         "with serial # {0} ".format(self.serial_number) +
+                         "with serial # W3-a-{0:05d} ".format(self.serial_number) +
                          "has version {0:d}.{1:d}.{2:d} ".format(self.wlan_exp_ver_major,
                                                                  self.wlan_exp_ver_minor,
                                                                  self.wlan_exp_ver_revision) +

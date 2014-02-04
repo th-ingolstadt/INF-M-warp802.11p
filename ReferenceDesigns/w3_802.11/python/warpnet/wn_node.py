@@ -177,7 +177,7 @@ class WnNode(object):
 
     def get_node_temp(self):
         """Get the temperature of the node."""
-        (curr_temp, min_temp, max_temp) = self.send_cmd(wn_cmds.WnCmdGetTemperature())        
+        (curr_temp, min_temp, max_temp) = self.send_cmd(wn_cmds.WnCmdGetTemperature())
         # TODO:  Add in check for max temperature        
         return curr_temp
 
@@ -435,7 +435,7 @@ class WnNode(object):
         
         # Node %d with Serial # %d has version "%d.%d.%d" which does not match WARPNet v%d.%d.%d
         output_str = str("Node {0} ".format(self.node_id) +
-                         "with serial # {0} ".format(self.serial_number) +
+                         "with serial # W3-a-{0:05d} ".format(self.serial_number) +
                          "has version {0:d}.{1:d}.{2:d} ".format(self.wn_ver_major,
                                                                  self.wn_ver_minor,
                                                                  self.wn_ver_revision) +
