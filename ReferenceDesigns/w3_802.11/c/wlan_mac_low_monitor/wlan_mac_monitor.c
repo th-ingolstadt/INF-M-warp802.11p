@@ -625,10 +625,10 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
 			break;
 			case 2:
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTC);
 			break;
 			case 3:
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
+				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTD);
 			break;
 		}
 		curr_ant = (curr_ant+1)%4;
@@ -718,7 +718,7 @@ void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc){
 	if((config_rf_ifc->channel)!=0xFF){
 		mac_param_chan = config_rf_ifc->channel;
 		//TODO: allow mac_param_chan to select 5GHz channels
-		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_RFA | RC_RFB), mac_param_band, mac_param_chan);
+		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, mac_param_chan);
 	}
 }
 
