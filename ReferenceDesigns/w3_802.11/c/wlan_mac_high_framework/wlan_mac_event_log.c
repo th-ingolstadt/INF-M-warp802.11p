@@ -49,6 +49,7 @@
 #include "string.h"
 #include "xil_types.h"
 
+
 // WLAN includes
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
@@ -193,7 +194,7 @@ void event_log_reset(){
 
 	allocation_mutex     = 0;
 
-	add_node_info_entry();
+	add_node_info_entry(WN_NO_TRANSMIT);
 }
 
 
@@ -829,13 +830,15 @@ void wn_transmit_log_entry(void * entry){
 	// Send the log entry if
 	if ( async_pkt_enable ) {
 
+		wlan_mac_high_interrupt_stop();
+
 		entry_hdr_size = sizeof(entry_header);
 
 		// We have an entry, so we need to jump back to find the entry header
 		entry_hdr = (entry_header*)((u32)(entry) - entry_hdr_size);
 
 #ifdef _DEBUG_
-        xil_printf(" Entry - addr = 0x%8x;  size = 0x%4x \n", entry_hdr, entry_hdr->entry_length );
+        xil_printf(" Entry - addr = 0x%8x;  size = 0x%4x  hdr size = 0x%4x \n", entry_hdr, entry_hdr->entry_length, entry_hdr_size );
 	    print_entry( (0x0000FFFF & entry_hdr->entry_id), entry_hdr->entry_type, entry );
 #endif
 
@@ -861,6 +864,8 @@ void wn_transmit_log_entry(void * entry){
 		// Set source ID back to the original value
     	async_pkt_hdr.srcID = temp_id;
 #endif
+
+		wlan_mac_high_interrupt_start();
 	}
 
 #endif
@@ -872,7 +877,7 @@ void wn_transmit_log_entry(void * entry){
 /**
 * Add a node info entry
 *
-* @param    None.
+* @param    transmit - Asynchronously transmit the entry.
 *
 * @return	None.
 *
@@ -880,7 +885,7 @@ void wn_transmit_log_entry(void * entry){
 *           framework is enabled.
 *
 ******************************************************************************/
-void add_node_info_entry(){
+void add_node_info_entry(u8 transmit){
 
 #ifdef USE_WARPNET_WLAN_EXP
 
@@ -901,30 +906,11 @@ void add_node_info_entry(){
     	xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
     	print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
     }
-#endif
-}
 
-
-
-/*****************************************************************************/
-/**
-* Transmit the node info entry
-*
-* NOTE:  The node info entry is always at the start of the log
-*
-* @param    None.
-*
-* @return	None.
-*
-* @note		None.
-*
-******************************************************************************/
-void wn_transmit_node_info_entry(){
-
-#ifdef USE_WARPNET_WLAN_EXP
-
-	wn_transmit_log_entry((void *)((u32)log_start_address + sizeof(entry_header)));
-
+    // Transmit the entry if requested
+    if (transmit == WN_TRANSMIT) {
+        wn_transmit_log_entry((void *)(entry));
+    }
 #endif
 }
 
@@ -935,6 +921,7 @@ void wn_transmit_node_info_entry(){
 * Add the tx/rx statistics structure to the log
 *
 * @param    stats - Pointer to statistics structure
+* @param    transmit - Asynchronously transmit the entry.
 *
 * @return	SUCCESS - Entry created successfully
 *           FAILURE - Entry not created
@@ -942,7 +929,7 @@ void wn_transmit_node_info_entry(){
 * @note		None.
 *
 ******************************************************************************/
-u32 add_txrx_statistics_to_log(statistics * stats){
+u32 add_txrx_statistics_to_log(statistics * stats, u8 transmit){
 
 	txrx_stats_entry * entry;
 	u32                entry_size = sizeof(txrx_stats_entry);
@@ -969,6 +956,14 @@ u32 add_txrx_statistics_to_log(statistics * stats){
 		//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
 		//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
 		memcpy( (void *)(&entry->last_timestamp), (void *)(&stats->last_timestamp), stats_size );
+
+#ifdef USE_WARPNET_WLAN_EXP
+		// Transmit the entry if requested
+		if (transmit == WN_TRANSMIT) {
+			wn_transmit_log_entry((void *)(entry));
+		}
+#endif
+
 		return SUCCESS;
 	}
 
@@ -981,14 +976,14 @@ u32 add_txrx_statistics_to_log(statistics * stats){
 /**
 * Add all the current tx/rx statistics to the log
 *
-* @param    None.
+* @param    transmit - Asynchronously transmit the entry.
 *
 * @return	num_statistics -- Number of statistics added to the log.
 *
 * @note		None.
 *
 ******************************************************************************/
-u32 add_all_txrx_statistics_to_log(){
+u32 add_all_txrx_statistics_to_log(u8 transmit){
 
 	u32                i, status;
 	u32                num_stats;
@@ -1007,7 +1002,7 @@ u32 add_all_txrx_statistics_to_log(){
 	// Iterate thru the list
 	for( i = 0; i < list->length; i++){
 
-		status = add_txrx_statistics_to_log(curr_statistics);
+		status = add_txrx_statistics_to_log(curr_statistics, transmit);
 
 		if (status == SUCCESS) {
 			num_stats++;
@@ -1029,6 +1024,7 @@ u32 add_all_txrx_statistics_to_log(){
 *               to the log
 *
 * @param    info - Pointer to station info structure
+* @param    transmit - Asynchronously transmit the entry.
 *
 * @return	SUCCESS - Entry created successfully
 *           FAILURE - Entry not created
@@ -1036,7 +1032,7 @@ u32 add_all_txrx_statistics_to_log(){
 * @note		None.
 *
 ******************************************************************************/
-u32 add_station_info_to_log(station_info * info){
+u32 add_station_info_to_log(station_info * info, u8 transmit){
 
 	station_info_entry * entry;
 	u32                  entry_size        = sizeof(station_info_entry);
@@ -1070,23 +1066,30 @@ u32 add_station_info_to_log(station_info * info){
 		memcpy( (void *)(&entry->addr), (void *)(&info->addr), station_info_size );
 		memcpy( (void *)(&entry->rate), (void *)(&info->tx.rate), tx_params_size );
 
-		return SUCCESS;
+#ifdef USE_WARPNET_WLAN_EXP
+		// Transmit the entry if requested
+		if (transmit == WN_TRANSMIT) {
+			wn_transmit_log_entry((void *)(entry));
+		}
+#endif
+
+        return SUCCESS;
 	}
 
 	return FAILURE;
 }
 
 
-u32 add_station_info_w_stats_to_log(station_info * info){
+u32 add_station_info_w_stats_to_log(station_info * info, u8 transmit){
 
 	u32 status;
 
 	if (info == NULL){ return FAILURE; }
 
-	status = add_station_info_to_log(info);
+	status = add_station_info_to_log(info, transmit);
 
 	if (status == SUCCESS) {
-		status = add_txrx_statistics_to_log(info->stats);
+		status = add_txrx_statistics_to_log(info->stats, transmit);
 	}
 
 	return status;
@@ -1098,14 +1101,14 @@ u32 add_station_info_w_stats_to_log(station_info * info){
 /**
 * Add all the current station_infos to the log
 *
-* @param    None.
+* @param    transmit - Asynchronously transmit the entry.
 *
 * @return	num_statistics -- Number of statistics added to the log.
 *
 * @note		None.
 *
 ******************************************************************************/
-u32 add_all_station_info_to_log(){
+u32 add_all_station_info_to_log(u8 stats, u8 transmit){
 
 	u32                i, status;
 	u32                num_stats;
@@ -1124,7 +1127,11 @@ u32 add_all_station_info_to_log(){
 	// Iterate thru the list
 	for( i = 0; i < list->length; i++){
 
-		status = add_station_info_to_log(curr_info);
+		if (stats == EVENT_LOG_STATS) {
+			status = add_station_info_w_stats_to_log(curr_info, transmit);
+		} else {
+			status = add_station_info_to_log(curr_info, transmit);
+		}
 
 		if (status == SUCCESS) {
 			num_stats++;
@@ -1135,6 +1142,53 @@ u32 add_all_station_info_to_log(){
 	}
 
 	return num_stats;
+}
+
+
+
+/*****************************************************************************/
+/**
+* Add the temperature to the log
+*
+* @param    transmit - Asynchronously transmit the entry.
+*
+* @return	SUCCESS - Entry created successfully
+*           FAILURE - Entry not created
+*
+* @note		None.
+*
+******************************************************************************/
+u32 add_temperature_to_log(u8 transmit){
+
+#ifdef USE_WARPNET_WLAN_EXP
+	temperature_entry  * entry;
+	u32                  entry_size        = sizeof(temperature_entry);
+
+	entry = (temperature_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TEMPERATURE, entry_size );
+
+	if ( entry != NULL ) {
+		entry->timestamp     = get_usec_timestamp();
+		entry->id            = wn_get_node_id();
+		entry->serial_number = wn_get_serial_number();
+		entry->curr_temp     = wn_get_curr_temp();
+		entry->min_temp      = wn_get_min_temp();
+		entry->max_temp      = wn_get_max_temp();
+
+#ifdef _DEBUG_
+		xil_printf("[%d] Node %d (W3-a-%05d)= (%d %d %d)\n", (u32)entry->timestamp, entry->id, entry->serial_number,
+															 entry->curr_temp, entry->min_temp, entry->max_temp);
+#endif
+
+		// Transmit the entry if requested
+		if (transmit == WN_TRANSMIT) {
+			wn_transmit_log_entry((void *)(entry));
+		}
+
+		return SUCCESS;
+	}
+#endif
+
+	return FAILURE;
 }
 
 

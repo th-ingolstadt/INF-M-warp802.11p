@@ -64,7 +64,8 @@
 #define IP_VERSION                4
 #define ETH_ADDR_LEN	          6
 
-#define TRANSMIT_OVER_NETWORK     1
+#define WN_NO_TRANSMIT            0
+#define WN_TRANSMIT               1
 
 
 /*********************** Global Structure Definitions ************************/

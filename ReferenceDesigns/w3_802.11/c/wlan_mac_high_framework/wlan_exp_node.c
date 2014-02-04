@@ -344,13 +344,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// Return the info about the WLAN_EXP_NODE
             
             // Send node parameters
-            temp = node_get_parameters( &respArgs32[respIndex], max_words, TRANSMIT_OVER_NETWORK);
+            temp = node_get_parameters( &respArgs32[respIndex], max_words, WN_TRANSMIT);
             respIndex += temp;
             max_words -= temp;
             if ( max_words <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
             
             // Send transport parameters
-            temp = transport_get_parameters( eth_dev_num, &respArgs32[respIndex], max_words, TRANSMIT_OVER_NETWORK);
+            temp = transport_get_parameters( eth_dev_num, &respArgs32[respIndex], max_words, WN_TRANSMIT);
             respIndex += temp;
             max_words -= temp;
             if ( max_words <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
@@ -493,16 +493,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             // NODE_TEMPERATURE
             //   - If the system monitor exists, return the current, min and max temperature of the node
             //
+			respArgs32[respIndex++] = Xil_Htonl(wn_get_curr_temp());
+			respArgs32[respIndex++] = Xil_Htonl(wn_get_min_temp());
+			respArgs32[respIndex++] = Xil_Htonl(wn_get_max_temp());
 
-#ifdef XPAR_XSYSMON_NUM_INSTANCES
-			respArgs32[respIndex++] = Xil_Htonl(XSysMon_ReadReg(SYSMON_BASEADDR, XSM_TEMP_OFFSET));
-			respArgs32[respIndex++] = Xil_Htonl(XSysMon_ReadReg(SYSMON_BASEADDR, XSM_MIN_TEMP_OFFSET));
-			respArgs32[respIndex++] = Xil_Htonl(XSysMon_ReadReg(SYSMON_BASEADDR, XSM_MAX_TEMP_OFFSET));
-#else
-			respArgs32[respIndex++] = 0;
-			respArgs32[respIndex++] = 0;
-			respArgs32[respIndex++] = 0;
-#endif
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
@@ -951,7 +945,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_ADD_STATS_TO_LOG:
 			// Add the current statistics to the log
-			temp = add_all_txrx_statistics_to_log();
+			// TODO:  Add parameter to command to transmit stats
+			temp = add_all_txrx_statistics_to_log(WN_NO_TRANSMIT);
 
 			xil_printf("EVENT LOG:  Added %d statistics.\n", temp);
 
@@ -1002,7 +997,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				}
 
 				// Transmit the Node Info
-				wn_transmit_node_info_entry();
+				add_node_info_entry(WN_TRANSMIT);
 			}
 
 			// Send response
@@ -1300,7 +1295,7 @@ int node_init_parameters( u32 *info ) {
 *       to the WARPNet Transport.
 *
 ******************************************************************************/
-int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network) {
+int node_get_parameters(u32 * buffer, unsigned int max_words, u8 transmit) {
 
     int i, j;
     int num_total_words;
@@ -1333,7 +1328,7 @@ int node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char netw
                           ( parameters[i].group    << 16 ) |
                           ( length                       ) );
             
-            if ( network == TRANSMIT_OVER_NETWORK ) {
+            if ( transmit == WN_TRANSMIT ) {
 
 				buffer[num_total_words]     = Xil_Htonl( temp_word );
 				buffer[num_total_words + 1] = Xil_Htonl( parameters[i].command );
@@ -1419,6 +1414,7 @@ int node_get_parameter_values(u32 * buffer, unsigned int max_words) {
 }
 
 
+
 /*****************************************************************************/
 /**
 * These are helper functions to set some node_info fields
@@ -1435,6 +1431,30 @@ void node_info_set_event_log_size( u32 log_size  ) { node_info.wlan_event_log_si
 void node_info_set_max_stats     ( u32 max_stats ) { node_info.wlan_max_stats      = max_stats; }
 
 
+
+/*****************************************************************************/
+/**
+* These are helper functions to get some fields
+*
+* @param    None.
+*
+* @return	field value
+*
+* @note		None.
+*
+******************************************************************************/
+u32  wn_get_node_id       ( void ) { return node_info.node; }
+u32  wn_get_serial_number ( void ) { return node_info.serial_number; }
+
+#ifdef XPAR_XSYSMON_NUM_INSTANCES
+u32  wn_get_curr_temp     ( void ) { return XSysMon_ReadReg(SYSMON_BASEADDR, XSM_TEMP_OFFSET);     }
+u32  wn_get_min_temp      ( void ) { return XSysMon_ReadReg(SYSMON_BASEADDR, XSM_MIN_TEMP_OFFSET); }
+u32  wn_get_max_temp      ( void ) { return XSysMon_ReadReg(SYSMON_BASEADDR, XSM_MAX_TEMP_OFFSET); }
+#else
+u32  wn_get_curr_temp     ( void ) { return 0; }
+u32  wn_get_min_temp      ( void ) { return 0; }
+u32  wn_get_max_temp      ( void ) { return 0; }
+#endif
 
 /*****************************************************************************/
 /**

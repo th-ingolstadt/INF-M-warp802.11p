@@ -53,6 +53,11 @@
 #define EVENT_LOG_MAGIC_NUMBER         0xACED0000
 
 
+// Define constants for function flags
+//   NOTE:  the transmit flag is defined in wlan_exp_common.h since it is used in multiple places
+#define EVENT_LOG_NO_STATS             0
+#define EVENT_LOG_STATS                1
+
 
 /*********************** Global Structure Definitions ************************/
 
@@ -88,15 +93,16 @@ void      print_event_log( u32 num_events );
 void      print_event_log_size();
 
 void      wn_transmit_log_entry(void * entry);
-void      wn_transmit_node_info_entry();
 
-void      add_node_info_entry();
+void      add_node_info_entry(u8 transmit);
 
-u32       add_txrx_statistics_to_log(statistics * stats);
-u32       add_all_txrx_statistics_to_log();
+u32       add_txrx_statistics_to_log(statistics * stats, u8 transmit);
+u32       add_all_txrx_statistics_to_log(u8 transmit);
 
-u32       add_station_info_to_log(station_info * info);
-u32       add_station_info_w_stats_to_log(station_info * info);
-u32       add_all_station_info_to_log();
+u32       add_station_info_to_log(station_info * info, u8 transmit);
+u32       add_station_info_w_stats_to_log(station_info * info, u8 transmit);
+u32       add_all_station_info_to_log(u8 stats, u8 transmit);
+
+u32       add_temperature_to_log(u8 transmit);
 
 #endif /* WLAN_MAC_EVENT_LOG_H_ */

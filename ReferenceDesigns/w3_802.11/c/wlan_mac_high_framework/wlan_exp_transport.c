@@ -770,7 +770,8 @@ wn_host_message * transport_create_async_msg(wn_transport_header* hdr, unsigned 
 
 		async_pkt_msg.buffer  = &async_pkt_data;
 		async_pkt_msg.payload = (unsigned int *)(async_tx_payload);
-		async_pkt_msg.length  = length + tport_hdr_size;
+		// async_pkt_msg.length  = PAYLOAD_PAD_NBYTES + tport_hdr_size + length;  -- Transport header length will be added in the send
+		async_pkt_msg.length  = PAYLOAD_PAD_NBYTES + length;
 
 		memcpy(async_tx_header, hdr, tport_hdr_size);
 		memcpy(async_tx_payload, payload, length);
@@ -804,7 +805,8 @@ wn_host_message * transport_create_async_msg_w_cmd(wn_transport_header* hdr, wn_
 
 		async_pkt_msg.buffer  = &async_pkt_data;
 		async_pkt_msg.payload = (unsigned int *)(async_tx_payload);
-		async_pkt_msg.length  = length + tport_hdr_size + cmd_hdr_size;
+		// async_pkt_msg.length  = PAYLOAD_PAD_NBYTES + tport_hdr_size + cmd_hdr_size + length;  -- Transport header length will be added in the send
+		async_pkt_msg.length  = PAYLOAD_PAD_NBYTES + cmd_hdr_size + length;
 
 		memcpy(async_tx_header, hdr, tport_hdr_size);
 		memcpy(async_tx_cmd, cmd, cmd_hdr_size);
@@ -955,7 +957,7 @@ int transport_init_parameters(unsigned int eth_dev_num, u32 *info) {
 *       to the WARPNet Transport.
 *
 ******************************************************************************/
-int transport_get_parameters(unsigned int eth_dev_num, u32 * buffer, unsigned int max_words, unsigned char network) {
+int transport_get_parameters(unsigned int eth_dev_num, u32 * buffer, unsigned int max_words, u8 transmit) {
 
     int i, j;
     int num_total_words;
@@ -988,7 +990,7 @@ int transport_get_parameters(unsigned int eth_dev_num, u32 * buffer, unsigned in
                           ( parameters[i].group    << 16 ) |
                           ( length                       ) );
 
-            if ( network == TRANSMIT_OVER_NETWORK ) {
+            if ( transmit == WN_TRANSMIT ) {
 
 				buffer[num_total_words]     = Xil_Htonl( temp_word );
 				buffer[num_total_words + 1] = Xil_Htonl( parameters[i].command );

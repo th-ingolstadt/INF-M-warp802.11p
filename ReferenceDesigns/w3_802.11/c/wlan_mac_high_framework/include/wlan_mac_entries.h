@@ -47,6 +47,7 @@
 #define ENTRY_TYPE_NODE_INFO           1
 #define ENTRY_TYPE_EXP_INFO            2
 #define ENTRY_TYPE_STATION_INFO        3
+#define ENTRY_TYPE_TEMPERATURE         4
 
 //-----------------------------------------------
 // Receive Entries
@@ -119,6 +120,22 @@ typedef struct{
 	u8	    max_retry;                                  // Maximum number of retransmissions
 	u8      rsvd[((STATION_INFO_HOSTNAME_MAXLEN+1)%4) + 1];
 } station_info_entry;
+
+
+//-----------------------------------------------
+// Temperature Entry
+//   NOTE: The temperature values are copied directly from the system monitor and need
+//         to be converted to Celsius:
+//           celsius = ((double(temp)/65536.0)/0.00198421639) - 273.15;
+//
+typedef struct{
+	u64     timestamp;       // Timestamp of the log entry
+	u32     id;              // Node ID
+	u32     serial_number;   // Node serial number
+	u32     curr_temp;       // Current Temperature of the node
+	u32     min_temp;        // Minimum recorded temperature of the node
+	u32     max_temp;		 // Maximum recorded temperature of the node
+} temperature_entry;
 
 
 //-----------------------------------------------

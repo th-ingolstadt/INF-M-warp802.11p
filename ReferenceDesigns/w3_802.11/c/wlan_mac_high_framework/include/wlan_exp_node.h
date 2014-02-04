@@ -86,6 +86,7 @@
 #define NODE_MAX_PARAMETER             9
 
 
+
 /*********************** Global Structure Definitions ************************/
 
 // **********************************************************************
@@ -128,5 +129,11 @@ int  node_get_parameter_values(u32 * buffer, unsigned int max_words);
 void node_info_set_max_assn      ( u32 max_assn  );
 void node_info_set_event_log_size( u32 log_size  );
 void node_info_set_max_stats     ( u32 max_stats );
+
+u32  wn_get_node_id       ( void );
+u32  wn_get_serial_number ( void );
+u32  wn_get_curr_temp     ( void );
+u32  wn_get_min_temp      ( void );
+u32  wn_get_max_temp      ( void );
 
 #endif /* WLAN_EXP_NODE_H_ */
