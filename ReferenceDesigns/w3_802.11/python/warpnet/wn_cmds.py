@@ -71,6 +71,7 @@ CMD_INFO                = 0x000001
 CMD_IDENTIFY            = 0x000002
 CMD_NODE_NETWORK_SETUP  = 0x000003
 CMD_NODE_NETWORK_RESET  = 0x000004
+CMD_NODE_TEMPERATURE    = 0x000005
 
 
 # WARPNet Transport Command IDs
@@ -154,6 +155,24 @@ class WnCmdNetworkReset(wn_message.WnCmd):
     
     def process_resp(self, resp):
         pass
+
+# End Class
+
+
+class WnCmdGetTemperature(wn_message.WnCmd):
+    """Command to get the temperature of a node."""
+    def __init__(self, node):
+        super(WnCmdNetworkReset, self).__init__()
+        self.command = (GRPID_NODE << 24) | CMD_NODE_TEMPERATURE
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 3:
+            print("Invalid response.")
+            print(resp)
+            return (0, 0, 0)
+        else:
+            return (args[0], args[1], args[2])
 
 # End Class
 

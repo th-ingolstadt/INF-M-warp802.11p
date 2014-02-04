@@ -175,10 +175,20 @@ class WnNode(object):
         """Get the Hardware Information from the node."""
         return self.send_cmd(wn_cmds.WnCmdGetHwInfo())
 
+    def get_node_temp(self):
+        """Get the temperature of the node."""
+        (curr_temp, min_temp, max_temp) = self.send_cmd(wn_cmds.WnCmdGetTemperature())        
+        # TODO:  Add in check for max temperature        
+        return curr_temp
+
     def setup_node_network_inf(self):
         """Setup the transport network information for the node."""
         self.send_cmd_bcast(wn_cmds.WnCmdNetworkSetup(self))
         
+    def reset_node_network_inf(self):
+        """Reset the transport network information for the node."""
+        self.send_cmd_bcast(wn_cmds.WnCmdNetworkReset(self))
+
     def get_warpnet_node_type(self):
         """Get the WARPNet node type of the node."""
         if self.node_type is None:
@@ -508,6 +518,9 @@ class WnNodeFactory(WnNode):
         node = None
 
         # Send broadcast command to initialize WARPNet node
+        self.reset_node_network_inf()
+
+        # Send broadcast command to initialize WARPNet node
         self.setup_node_network_inf()
 
         try:
@@ -518,26 +531,36 @@ class WnNodeFactory(WnNode):
             node_class = self.get_node_class(wn_node_type)
         
             if not node_class is None:
-                import warpnet
-                node = eval(str(node_class + "()"))
+                node = self.eval_node_class(node_class)
                 node.set_init_configuration(serial_number=self.serial_number,
                                             node_id=self.node_id,
                                             node_name=self.name,
                                             ip_address=self.transport.ip_address,
                                             unicast_port=self.transport.unicast_port,
                                             bcast_port=self.transport.bcast_port)
+
+                print("Initializing W3-a-{0:05d} as Node {1}".format(self.serial_number, self.node_id))
             else:
                 print("ERROR:  Unknown WARPNet type: {0}".format(wn_node_type))
                 print("    Unable to initialize node", 
                       "W3-a-{0:05d}".format(self.serial_number))
 
-        except ex.WnTransportError:
+        except ex.WnTransportError as err:
             print("ERROR:  Node W3-a-{0:05d}".format(self.serial_number),
                   "is not responding.")
-            print("    Please ensure the node is powered on and is properly",
-                  "configured.")
+            print("    Please ensure the node is powered on and is properly configured.")
+            print(err)
 
         return node
+
+
+    def eval_node_class(self, node_class):
+        """Evaluate the node_class string to create a node.  
+        
+        NOTE:  This should be overridden in each sub-class
+        """
+        import warpnet
+        return eval(str(node_class + "()"), globals(), locals())
 
 
     def add_node_class(self, wn_node_type, class_name):

@@ -338,42 +338,14 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
                 self.add_node_class(wn_node_type, section[wn_node_type])
 
     
-    def create_node(self):
-        """Based on the WARPNet Node Type, dynamically create and return 
-        the correct WARPNet node."""        
-        node = None
-
-        # Send broadcast command to initialize WARPNet node
-        self.setup_node_network_inf()
-
-        try:
-            # Send unicast command to get the WARPNet type
-            wn_node_type = self.get_warpnet_node_type()
-            
-            # Get the node class from the Factory dictionary
-            node_class = self.get_node_class(wn_node_type)
+    def eval_node_class(self, node_class):
+        """Evaluate the node_class string to create a node.  
         
-            if not node_class is None:
-                import wlan_exp
-                node = eval(str(node_class + "()"), globals(), locals())
-                node.set_init_configuration(serial_number=self.serial_number,
-                                            node_id=self.node_id,
-                                            node_name=self.name,
-                                            ip_address=self.transport.ip_address,
-                                            unicast_port=self.transport.unicast_port,
-                                            bcast_port=self.transport.bcast_port)
-            else:
-                print("ERROR:  Unknown WARPNet type: {0}".format(wn_node_type))
-                print("    Unable to initialize node", 
-                      "W3-a-{0:05d}".format(self.serial_number))
+        NOTE:  This should be overridden in each sub-class
+        """
+        import wlan_exp
+        return eval(str(node_class + "()"), globals(), locals())
 
-        except ex.WnTransportError as err:
-            print(err)
-            print("ERROR:  Node W3-a-{0:05d}".format(self.serial_number),
-                  "is not responding.")
-            print("    Please ensure the node is powered on and is properly",
-                  "configured.")
 
-        return node
 
 # End Class WlanExpNodeFactory
