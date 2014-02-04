@@ -23,8 +23,12 @@
 
 #include <xparameters.h>
 #include <xil_io.h>
-#include <Xio.h>
+#include <xio.h>
 #include <stdlib.h>
+
+#ifdef XPAR_XSYSMON_NUM_INSTANCES
+#include <xsysmon_hw.h>
+#endif
 
 
 // WLAN includes
@@ -67,6 +71,7 @@ wn_transport_header   async_pkt_hdr;
 
 /*************************** Functions Prototypes ****************************/
 
+void node_init_system_monitor(void);
 int  node_init_parameters( u32 *info );
 int  node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, unsigned int eth_dev_num);
 
@@ -422,11 +427,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         				xil_printf("Error binding transport...\n");
         			}
                 } else {
-                    xil_printf("NODE_IP_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node);
+                    xil_printf("NODE_CONFIG_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node);
                     xil_printf("    Use NODE_CONFIG_RESET command to reset network configuration.\n\n");
                 }
             } else {
-                xil_printf("NODE_IP_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
+                xil_printf("NODE_CONFIG_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
             }
 		break;
 
@@ -446,30 +451,55 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             // Only update the parameters if the serial numbers match
             if ( node_info.serial_number ==  Xil_Ntohl(cmdArgs32[0]) ) {
 
-                // Reset node to 0xFFFF
-                node_info.node = 0xFFFF;
+            	if (node_info.node != 0xFFFF){
 
-                xil_printf("\n!!! Reseting Network Configuration !!! \n\n");        
-                
-                // Reset transport;  This will update the IP Address back to default and rebind the sockets
-                //   - See below for default IP address:  NODE_IP_ADDR_BASE + node
-                node_info.ip_addr[0]      = (NODE_IP_ADDR_BASE >> 24) & 0xFF;
-                node_info.ip_addr[1]      = (NODE_IP_ADDR_BASE >> 16) & 0xFF;
-                node_info.ip_addr[2]      = (NODE_IP_ADDR_BASE >>  8) & 0xFF;
-                node_info.ip_addr[3]      = (NODE_IP_ADDR_BASE      ) & 0xFF;  // IP ADDR = w.x.y.z
+					// Reset node to 0xFFFF
+					node_info.node = 0xFFFF;
 
-                node_info.unicast_port    = NODE_UDP_UNICAST_PORT_BASE;
-                node_info.broadcast_port  = NODE_UDP_MCAST_BASE;
+					xil_printf("\n!!! Reseting Network Configuration !!! \n\n");
 
-                transport_set_hw_info(eth_dev_num, node_info.ip_addr, node_info.hw_addr);
-                transport_config_sockets(eth_dev_num, node_info.unicast_port, node_info.broadcast_port);
+					// Reset transport;  This will update the IP Address back to default and rebind the sockets
+					//   - See below for default IP address:  NODE_IP_ADDR_BASE + node
+					node_info.ip_addr[0]      = (NODE_IP_ADDR_BASE >> 24) & 0xFF;
+					node_info.ip_addr[1]      = (NODE_IP_ADDR_BASE >> 16) & 0xFF;
+					node_info.ip_addr[2]      = (NODE_IP_ADDR_BASE >>  8) & 0xFF;
+					node_info.ip_addr[3]      = (NODE_IP_ADDR_BASE      ) & 0xFF;  // IP ADDR = w.x.y.z
 
-                // Update User IO
-                xil_printf("\n!!! Waiting for Network Configuration via Matlab !!! \n\n");        
-            
+					node_info.unicast_port    = NODE_UDP_UNICAST_PORT_BASE;
+					node_info.broadcast_port  = NODE_UDP_MCAST_BASE;
+
+					transport_set_hw_info(eth_dev_num, node_info.ip_addr, node_info.hw_addr);
+					transport_config_sockets(eth_dev_num, node_info.unicast_port, node_info.broadcast_port);
+
+					// Update User IO
+					xil_printf("\n!!! Waiting for Network Configuration !!! \n\n");
+            	} else {
+                    xil_printf("NODE_CONFIG_RESET Packet ignored.  Network already reset for node %d.\n", node_info.node);
+                    xil_printf("    Use NODE_CONFIG_SETUP command to set the network configuration.\n\n");
+            	}
             } else {
-                xil_printf("NODE_IP_RESET Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
+                xil_printf("NODE_CONFIG_RESET Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmdArgs32[0]), node_info.serial_number);
             }
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_TEMPERATURE:
+            // NODE_TEMPERATURE
+            //   - If the system monitor exists, return the current, min and max temperature of the node
+            //
+
+#ifdef XPAR_XSYSMON_NUM_INSTANCES
+			respArgs32[respIndex++] = Xil_Htonl(XSysMon_ReadReg(SYSMON_BASEADDR, XSM_TEMP_OFFSET));
+			respArgs32[respIndex++] = Xil_Htonl(XSysMon_ReadReg(SYSMON_BASEADDR, XSM_MIN_TEMP_OFFSET));
+			respArgs32[respIndex++] = Xil_Htonl(XSysMon_ReadReg(SYSMON_BASEADDR, XSM_MAX_TEMP_OFFSET));
+#else
+			respArgs32[respIndex++] = 0;
+			respArgs32[respIndex++] = 0;
+			respArgs32[respIndex++] = 0;
+#endif
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
 		break;
 
 
@@ -1048,6 +1078,8 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
     // Set up callback for process function
     node_process_callback     = (wn_function_ptr_t)wlan_exp_null_process_callback;
 
+    // Initialize the System Monitor
+    node_init_system_monitor();
     
     // Initialize Tag parameters
     node_init_parameters( (u32*)&node_info );
@@ -1127,6 +1159,63 @@ void node_set_process_callback(void(*callback)()){
 
 
 
+/*****************************************************************************/
+/**
+* Initialize the System Monitor if it exists
+*
+* @param    None
+*
+* @return	None
+*
+* @note     None
+*
+******************************************************************************/
+void node_init_system_monitor(void) {
+
+#ifdef XPAR_XSYSMON_NUM_INSTANCES
+	u32 RegValue;
+
+    // Reset the system monitor
+    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_SRR_OFFSET, XSM_SRR_IPRST_MASK);
+
+    // Disable the Channel Sequencer before configuring the Sequence registers.
+    RegValue = XSysMon_ReadReg(SYSMON_BASEADDR, XSM_CFR1_OFFSET) & (~ XSM_CFR1_SEQ_VALID_MASK);
+    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_CFR1_OFFSET,	RegValue | XSM_CFR1_SEQ_SINGCHAN_MASK);
+
+    // Setup the Averaging to be done for the channels in the Configuration 0
+    //   register as 16 samples:
+    RegValue = XSysMon_ReadReg(SYSMON_BASEADDR, XSM_CFR0_OFFSET) & (~XSM_CFR0_AVG_VALID_MASK);
+    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_CFR0_OFFSET, RegValue | XSM_CFR0_AVG16_MASK);
+
+    // Enable the averaging on the following channels in the Sequencer registers:
+    //  - On-chip Temperature
+    //  - On-chip VCCAUX supply sensor
+    XSysMon_WriteReg(SYSMON_BASEADDR,XSM_SEQ02_OFFSET, XSM_SEQ_CH_TEMP | XSM_SEQ_CH_VCCAUX);
+
+    // Enable the following channels in the Sequencer registers:
+    //  - On-chip Temperature
+    //  - On-chip VCCAUX supply sensor
+    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_SEQ00_OFFSET, XSM_SEQ_CH_TEMP | XSM_SEQ_CH_VCCAUX);
+
+    // Set the ADCCLK frequency equal to 1/32 of System clock for the System Monitor/ADC
+    //   in the Configuration Register 2.
+    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_CFR2_OFFSET, 32 << XSM_CFR2_CD_SHIFT);
+
+    // Enable the Channel Sequencer in continuous sequencer cycling mode.
+    RegValue = XSysMon_ReadReg(SYSMON_BASEADDR, XSM_CFR1_OFFSET) & (~ XSM_CFR1_SEQ_VALID_MASK);
+    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_CFR1_OFFSET,	RegValue | XSM_CFR1_SEQ_CONTINPASS_MASK);
+
+    // Wait till the End of Sequence occurs
+    XSysMon_ReadReg(SYSMON_BASEADDR, XSM_SR_OFFSET); /* Clear the old status */
+    while (((XSysMon_ReadReg(SYSMON_BASEADDR, XSM_SR_OFFSET)) & XSM_SR_EOS_MASK) != XSM_SR_EOS_MASK);
+
+    // TODO:  Do we need a timeout for this while loop?
+
+#endif
+
+}
+
+
 
 /*****************************************************************************/
 /**
@@ -1186,7 +1275,6 @@ int node_init_parameters( u32 *info ) {
 
     return ( ( size * i ) + ( length * 4 ) ) ;
 }
-
 
 
 

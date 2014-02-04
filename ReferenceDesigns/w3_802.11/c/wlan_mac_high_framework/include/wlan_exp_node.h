@@ -35,6 +35,7 @@
 #define NODE_IDENTIFY                   2
 #define NODE_CONFIG_SETUP               3
 #define NODE_CONFIG_RESET               4
+#define NODE_TEMPERATURE                5
 
 #define NODE_ASSN_GET_STATUS           10
 #define NODE_ASSN_SET_TABLE            11
