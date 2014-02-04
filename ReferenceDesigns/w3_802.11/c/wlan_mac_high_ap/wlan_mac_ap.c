@@ -119,6 +119,8 @@ void uart_rx(u8 rxByte){ };
 
 #endif
 
+void add_temp();
+
 /******************************** Functions **********************************/
 
 
@@ -198,6 +200,7 @@ int main(){
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 1000000, SCHEDULE_REPEAT_FOREVER, (void*)_demo_send_wnet_association_table);
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temp every 10 seconds
 
 	animation_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ANIMATION_RATE_US, SCHEDULE_REPEAT_FOREVER, (void*)animate_hex);
 
@@ -261,6 +264,12 @@ int main(){
 #endif
 	}
 	return -1;
+}
+
+
+
+void add_temp() {
+	add_temperature_to_log(WN_TRANSMIT);
 }
 
 
