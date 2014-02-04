@@ -97,7 +97,7 @@
 #define WLAN_RX_REG_CFG_PHY_CCA_MODE_SEL	0x04000 //Selects any(0) or all(1) antenna requirement for PHY CCA BUSY
 #define WLAN_RX_REG_CFG_ANT_SEL_MASK		0x18000 //Selects antenna for PHY input when sel div is disabled ([0,1,2,3] = RF[A,B,C,D])
 
-#define wlan_phy_select_rx_antenna(d) Xil_Out32(WLAN_RX_REG_CFG, ((Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_ANT_SEL_MASK) | (d&0x3 << 15)))
+#define wlan_phy_select_rx_antenna(d) Xil_Out32(WLAN_RX_REG_CFG, ((Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_ANT_SEL_MASK) | ((d&0x3) << 15)))
 
 //RX STATUS
 #define WLAN_RX_REG_STATUS_OFDM_FCS_GOOD	0x1
@@ -281,6 +281,17 @@
 	Xil_Out32(WLAN_AGC_TIMING_RESET, ((rxhp & 0xFF) | ( (g_rf & 0xFF)<<8) | ( (g_bb & 0xFF) << 16)))
 
 
+#define WLAN_4RF_EN
+
+#ifdef WLAN_4RF_EN
+#define RC_ALL_RF (RC_RFA | RC_RFB | RC_RFC | RC_RFD)
+#define AD_ALL_RF (RFA_AD_CS | RFB_AD_CS | RFC_AD_CS | RFD_AD_CS)
+#else
+#define RC_ALL_RF (RC_RFA | RC_RFB)
+#define AD_ALL_RF (RFA_AD_CS | RFB_AD_CS)
+#endif
+
+
 /* Function Prototypes for wlan_phy_util.c */
 u32 wlan_phy_cca_indication();
 void wlan_phy_init();
@@ -294,7 +305,7 @@ inline u16 wlan_ofdm_txtime(u16 length,u16 n_DBPS);
 void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length);
 void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx);
 void process_config_phy_tx(ipc_config_phy_tx* config_phy_tx);
-
+void wlan_agc_config(u8 ant_id);
 void wlan_tx_config_ant_mode(u32 ant_mode);
 void wlan_rx_config_ant_mode(u32 ant_mode);
 

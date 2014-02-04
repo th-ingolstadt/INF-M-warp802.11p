@@ -495,7 +495,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
-	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_RFA | RC_RFB), mpdu_info->gain_target);
+	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_ALL_RF), mpdu_info->gain_target);
 
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
@@ -932,7 +932,7 @@ void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc){
 	if((config_rf_ifc->channel)!=0xFF){
 		mac_param_chan = config_rf_ifc->channel;
 		//TODO: allow mac_param_chan to select 5GHz channels
-		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_RFA | RC_RFB), mac_param_band, mac_param_chan);
+		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, mac_param_chan);
 	}
 }
 
