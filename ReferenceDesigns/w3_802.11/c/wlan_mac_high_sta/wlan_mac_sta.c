@@ -125,6 +125,8 @@ void uart_rx(u8 rxByte){ };
 
 #endif
 
+void add_temp();
+
 
 
 /******************************** Functions **********************************/
@@ -227,6 +229,11 @@ int main() {
 	mac_param_chan_save = mac_param_chan;
 	wlan_mac_high_set_channel( mac_param_chan );
 
+
+    // Schedule all events
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temperature once every 10 seconds
+
+
 	// Reset the event log
 	event_log_reset();
 
@@ -234,7 +241,7 @@ int main() {
     xil_printf("WLAN MAC Station boot complete: \n");
     xil_printf("  Default SSID : %s \n", access_point_ssid);
     xil_printf("  Channel      : %d \n", mac_param_chan);
-	xil_printf("  MAC Addr     : %x-%x-%x-%x-%x-%x\n\n",eeprom_mac_addr[0],eeprom_mac_addr[1],eeprom_mac_addr[2],eeprom_mac_addr[3],eeprom_mac_addr[4],eeprom_mac_addr[5]);
+	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",eeprom_mac_addr[0],eeprom_mac_addr[1],eeprom_mac_addr[2],eeprom_mac_addr[3],eeprom_mac_addr[4],eeprom_mac_addr[5]);
 
 
 #ifdef WLAN_USE_UART_MENU
@@ -269,6 +276,11 @@ int main() {
 	return -1;
 }
 
+
+
+void add_temp() {
+	add_temperature_to_log(WN_TRANSMIT);
+}
 
 
 
