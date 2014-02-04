@@ -43,6 +43,11 @@
 
 // #define _DEBUG_
 
+#ifdef XPAR_XSYSMON_NUM_INSTANCES
+#define SYSMON_BASEADDR		           XPAR_SYSMON_0_BASEADDR
+#endif
+
+
 /*********************** Global Variable Definitions *************************/
 
 extern int                 sock_unicast; // UDP socket for unicast traffic to / from the board
