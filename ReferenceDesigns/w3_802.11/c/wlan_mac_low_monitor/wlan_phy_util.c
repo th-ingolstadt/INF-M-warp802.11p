@@ -142,18 +142,14 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			break;
 
 		case RX_ANTMODE_SISO_ANTC:
-//			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C);
-			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A|WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C)); //FIXME: only required until PHY register map bug is fixed
+			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C);
 			wlan_phy_select_rx_antenna(2);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-
 			wlan_agc_config(2);
-
 			break;
 
 		case RX_ANTMODE_SISO_ANTD:
-//			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D);
-			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B|WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D)); //FIXME: only required until PHY register map bug is fixed
+			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D);
 			wlan_phy_select_rx_antenna(3);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFD, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			wlan_agc_config(3);
@@ -269,8 +265,8 @@ void wlan_phy_init() {
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 50, 4, 0x3F);
 
 	//Configure the default antenna selections as SISO Tx/Rx on RF A
-	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTC);
-	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTC);
+	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
 	//Set physical carrier sensing threshold
 	//wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
@@ -354,7 +350,7 @@ void wlan_agc_config(u8 ant_id) {
 
 		//AGC config:
 		//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
-		wlan_agc_set_config( (256-56), (256-37), 0, 6, 8);
+		wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
 
 		//AGC RSSI->Rx power offsets
 		wlan_agc_set_RSSI_pwr_calib(100, 85, 70);

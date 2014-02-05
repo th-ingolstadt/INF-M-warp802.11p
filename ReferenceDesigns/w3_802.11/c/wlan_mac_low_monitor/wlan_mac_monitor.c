@@ -37,6 +37,7 @@
 #include "wlan_mac_misc_util.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_monitor.h"
+#include "wlan_exp.h"
 
 /*************************** Constant Definitions ****************************/
 
@@ -491,6 +492,7 @@ void wlan_mac_init_hw_info( void ) {
 
 
 	// Set General Node information
+	hw_info.type          = WARPNET_TYPE_80211_LOW_DCF;
     hw_info.serial_number = w3_eeprom_readSerialNum(EEPROM_BASEADDR);
     hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
     hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);
