@@ -12,16 +12,16 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %% Define an input signal for simulation
 %For PHY debugging with ChipScope captures of I/Q
-%xlLoadChipScopeData('cs_capt/wlan_cs_capt_81_64Q23.prn'); cs_interp = 1; cs_start = 1300; cs_end = length(ADC_I);
-%samps2 = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
-%payload_vec = [samps2; zeros(1000,1);];
-%paylod_vec_samp_time = 8;
+xlLoadChipScopeData('cs_capt/no_ofdm_det_v00.prn'); cs_interp = 8; cs_start = 6000; cs_end = 14000;
+samps2 = complex(ADC_I([cs_start-8:cs_interp:cs_end-8]), ADC_Q(cs_start:cs_interp:cs_end));
+payload_vec = [samps2; zeros(1000,1);];
+paylod_vec_samp_time = 8;
 
 %wlan_tx output - good for simulating Rx model
-load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
+%load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
 
-payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
-paylod_vec_samp_time = 8;
+%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+%paylod_vec_samp_time = 8;
 
 %%
 simtime = 8*length(payload_vec) + 500;
@@ -84,8 +84,8 @@ PHY_CONFIG_RSSI_SUM_LEN = 8;
 
 PHY_MIN_PKT_LEN = 14;
 
-PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 12000;
-PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 17000;
+PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 7000;
+PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 7000;
 PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 
 PHY_CONFIG_LTS_CORR_TIMEOUT = 250;%150;%*2 in hardware
