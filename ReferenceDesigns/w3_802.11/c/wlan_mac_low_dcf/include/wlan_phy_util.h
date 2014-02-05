@@ -281,7 +281,7 @@
 	Xil_Out32(WLAN_AGC_TIMING_RESET, ((rxhp & 0xFF) | ( (g_rf & 0xFF)<<8) | ( (g_bb & 0xFF) << 16)))
 
 
-#define WLAN_4RF_EN
+//#define WLAN_4RF_EN
 
 #ifdef WLAN_4RF_EN
 #define RC_ALL_RF (RC_RFA | RC_RFB | RC_RFC | RC_RFD)
