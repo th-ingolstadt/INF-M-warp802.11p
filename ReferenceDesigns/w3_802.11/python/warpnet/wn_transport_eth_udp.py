@@ -137,7 +137,7 @@ class WnTransportEthUdp(tp.WnTransport):
     def test_payload_size(self, node, jumbo_frame_support=False):
         """Determines the object's max_payload parameter."""
 
-        if jumbo_frame_support:
+        if (jumbo_frame_support == True):
             payload_test_sizes = [1000, 1470, 5000, 8966]
         else:
             payload_test_sizes = [1000, 1470]
