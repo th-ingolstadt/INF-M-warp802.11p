@@ -145,7 +145,9 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C);
 			wlan_phy_select_rx_antenna(2);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
+
 			wlan_agc_config(2);
+
 			break;
 
 		case RX_ANTMODE_SISO_ANTD:
@@ -318,52 +320,30 @@ void wlan_phy_init() {
 }
 
 void wlan_agc_config(u8 ant_id) {
+	//ant_id argument allows per-antenna AGC settings, in case FMC module has different
+	// response than on-board RF interfaces. Testing so far indicates the settings below
+	// work fine for all RF interfaces
 
-	switch(ant_id) {
-	case 0:
-	case 1:
-		//Post Rx_done reset delays for [rxhp, g_rf, g_bb]
-		wlan_agc_set_reset_timing(4, 250, 250);
+	//Post Rx_done reset delays for [rxhp, g_rf, g_bb]
+	wlan_agc_set_reset_timing(4, 250, 250);
 
-		//AGC config:
-		//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
-		wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
+	//AGC config:
+	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
+	wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
 
-		//AGC RSSI->Rx power offsets
-		wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
+	//AGC RSSI->Rx power offsets
+	wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
 
-		//AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-		wlan_agc_set_AGC_timing(1, 30, 90, 96);
+	//AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
+	wlan_agc_set_AGC_timing(1, 30, 90, 96);
 
-		//AGC timing: start_dco, en_iir_filt
-		wlan_agc_set_DCO_timing(100, (100+34));
+	//AGC timing: start_dco, en_iir_filt
+	wlan_agc_set_DCO_timing(100, (100+34));
 
-		//AGC target output power (log scale)
-		wlan_agc_set_target( (64-16) );
-	break;
+	//AGC target output power (log scale)
+	wlan_agc_set_target( (64-16) );
 
-	case 2:
-	case 3:
-#if 1
-		//Post Rx_done reset delays for [rxhp, g_rf, g_bb]
-		wlan_agc_set_reset_timing(4, 250, 250);
-
-		//AGC config:
-		//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
-		wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
-
-		//AGC RSSI->Rx power offsets
-		wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
-
-		//AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-		wlan_agc_set_AGC_timing(1, 30, 90, 96);
-
-		//AGC timing: start_dco, en_iir_filt
-		wlan_agc_set_DCO_timing(100, (100+34));
-
-		//AGC target output power (log scale)
-		wlan_agc_set_target( (64-16) );
-#else
+#if 0
 		xil_printf("Switching to MGC for ant %d\n", ant_id);
 		radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
 		radio_controller_setRxHP(RC_BASEADDR, RC_ALL_RF, RC_RXHP_OFF);
@@ -373,9 +353,6 @@ void wlan_agc_config(u8 ant_id) {
 		radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_RF, 3);
 		radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 8);
 #endif
-	break;
-	}
-
 	return;
 }
 
