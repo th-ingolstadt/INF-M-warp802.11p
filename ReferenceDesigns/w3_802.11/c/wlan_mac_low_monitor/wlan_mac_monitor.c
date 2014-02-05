@@ -626,24 +626,28 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 			case 1:
 				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
 			break;
-#ifdef WLAN_4RF_EN
+
 			case 2:
+#ifdef WLAN_4RF_EN
 				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTC);
+#else
+				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+#endif
 			break;
 			case 3:
+#ifdef WLAN_4RF_EN
 				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTD);
-			break;
+#else
+				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
 #endif
+			break;
 			default:
 				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 				break;
 		}
 
-#ifdef WLAN_4RF_EN
+
 		curr_ant = (curr_ant+1)%4;
-#else
-		curr_ant = (curr_ant+1)%2;
-#endif
 		//usleep(_DEMO_inter_pkt_sleep_usec);
 	}
 
