@@ -176,7 +176,7 @@ int main() {
 	wlan_mac_high_set_mpdu_accept_callback(  (void*)check_tx_queue);
 	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
-	wlan_mac_high_config_demo(0,0);
+	wlan_mac_high_config_demo(1, 0);
 
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
 
