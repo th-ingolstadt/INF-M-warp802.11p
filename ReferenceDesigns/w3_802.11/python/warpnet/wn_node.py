@@ -112,12 +112,8 @@ class WnNode(object):
             self.transport_bcast = None
 
 
-    def set_init_configuration(self, serial_number,
-                               node_id=wn_defaults.WN_NODE_DEFAULT_NODE_ID, 
-                               node_name=wn_defaults.WN_NODE_DEFAULT_NAME, 
-                               ip_address=wn_defaults.WN_NODE_DEFAULT_IP_ADDR, 
-                               unicast_port=wn_defaults.WN_NODE_DEFAULT_UNICAST_PORT, 
-                               bcast_port=wn_defaults.WN_NODE_DEFAULT_BCAST_PORT):
+    def set_init_configuration(self, serial_number, node_id, node_name, 
+                               ip_address, unicast_port, bcast_port):
         """Set the initial configuration of the node."""
         config =  wn_config.WnConfiguration()
         
@@ -135,17 +131,23 @@ class WnNode(object):
         self.serial_number = serial_number
 
         # Set Node Unicast Transport information
-        self.transport.wn_open(ip_address, unicast_port)
-        self.transport.bcast_port = bcast_port
-        self.transport.hdr.set_src_id(int(config.get_param('network', 'host_id')))
-        self.transport.hdr.set_dest_id(node_id)
+        self.transport.wn_open(int(eval(config.get_param('network', 'tx_buffer_size'))),
+                               int(eval(config.get_param('network', 'rx_buffer_size'))))
+        self.transport.set_ip_address(ip_address)
+        self.transport.set_unicast_port(unicast_port)
+        self.transport.set_bcast_port(bcast_port)
+        self.transport.set_src_id(int(config.get_param('network', 'host_id')))
+        self.transport.set_dest_id(node_id)
 
         # Set Node Broadcast Transport information
-        self.transport_bcast.wn_open(ip_address, bcast_port)
-        self.transport_bcast.unicast_port = unicast_port
-        self.transport_bcast.hdr.set_src_id(int(config.get_param('network', 'host_id')))
-        self.transport_bcast.hdr.set_dest_id(0xFFFF)
-
+        self.transport_bcast.wn_open(int(eval(config.get_param('network', 'tx_buffer_size'))),
+                                     int(eval(config.get_param('network', 'rx_buffer_size'))))
+        self.transport_bcast.set_ip_address(ip_address)
+        self.transport_bcast.set_unicast_port(unicast_port)
+        self.transport_bcast.set_bcast_port(bcast_port)
+        self.transport_bcast.set_src_id(int(config.get_param('network', 'host_id')))
+        self.transport_bcast.set_dest_id(0xFFFF)
+        
 
     def configure_node(self, jumbo_frame_support=False):
         """Get remaining information from the node and set remaining parameters."""

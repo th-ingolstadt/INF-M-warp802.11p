@@ -345,6 +345,35 @@ def wn_setup():
         print("    Setting broadcast port to {0}".format(my_port))
 
     #-------------------------------------------------------------------------
+    # Configure Buffer Sizes
+
+    my_tx_buf_size = int(eval(config.get_param('network', 'tx_buffer_size')))
+    my_rx_buf_size = int(eval(config.get_param('network', 'rx_buffer_size')))
+
+    # Check value in the config to make sure that is a valid size
+    (tx_buf_size, rx_buf_size) = _get_os_socket_buffer_size(my_tx_buf_size, my_rx_buf_size)
+
+    print("-" * 50)
+    print("Set Default Transport buffer sizes:")
+    print("    Send    = {0} bytes".format(tx_buf_size))
+    print("    Receive = {0} bytes".format(rx_buf_size))
+    print("Pressing enter will use defaults.\n")
+    
+    temp = raw_input("WARPNet send buffer size: ")
+    if temp is '':
+        temp = tx_buf_size
+        
+    print("    Setting send buffer size to {0}".format(temp))
+    config.set_param('network', 'tx_buffer_size', temp)
+    
+    temp = raw_input("WARPNet receive buffer size: ")
+    if temp is '':
+        temp = rx_buf_size
+        
+    print("    Setting receive buffer size to {0}".format(temp))
+    config.set_param('network', 'rx_buffer_size', temp)
+
+    #-------------------------------------------------------------------------
     # Configure Transport 
 
     my_transport_type = config.get_param('network', 'transport_type')
@@ -595,6 +624,31 @@ def _get_confirmation_from_user(message):
 
 # End of _get_confirmation_from_user()
 
+
+def _get_os_socket_buffer_size(req_tx_buf_size, req_rx_buf_size):
+    """Get the size of the send and receive buffers from the OS given the 
+    requested TX/RX buffer sizes.
+    """
+    import errno
+    import socket
+    from socket import error as socket_error
+    
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM);
+
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, req_tx_buf_size)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, req_rx_buf_size)
+    except socket_error as serr:
+        # On some HW we cannot set the buffer size
+        if serr.errno != errno.ENOBUFS:
+            raise serr
+
+    sock_tx_buf_size = sock.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)
+    sock_rx_buf_size = sock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
+    
+    return (sock_tx_buf_size, sock_rx_buf_size)
+
+# End of _get_confirmation_from_user()
     
 
 

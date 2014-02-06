@@ -31,18 +31,12 @@ Integer constants:
 """
 
 import re
-import errno
-import socket
-from socket import error as socket_error
 
 from . import wn_config
 from . import wn_transport_eth_udp as tp
 
 
 __all__ = ['WnTransportEthUdpPyBcast']
-
-
-REQUESTED_BUF_SIZE = 2**22
 
 
 class WnTransportEthUdpPyBcast(tp.WnTransportEthUdp):
@@ -62,10 +56,10 @@ class WnTransportEthUdpPyBcast(tp.WnTransportEthUdp):
         
         # Set default values of the Transport
         self.set_ip_address(config.get_param('network', 'host_address'))
-        self.unicast_port = int(config.get_param('network', 'unicast_port'))
-        self.bcast_port = int(config.get_param('network', 'bcast_port'))
-        self.hdr.set_src_id(int(config.get_param('network', 'host_id')))
-        self.hdr.set_dest_id(0xFFFF)
+        self.set_unicast_port(int(config.get_param('network', 'unicast_port')))
+        self.set_bcast_port(int(config.get_param('network', 'bcast_port')))
+        self.set_src_id(int(config.get_param('network', 'host_id')))
+        self.set_dest_id(0xFFFF)
         self.timeout = 2000
 
 
@@ -87,48 +81,6 @@ class WnTransportEthUdpPyBcast(tp.WnTransportEthUdp):
                                                                0xFF))
 
     
-    def wn_open(self, ip_addr=None, bcast_port=None):
-        """Opens an Ethernet UDP Broadcast socket.""" 
-        if ip_addr:
-            if isinstance(ip_addr, str):
-                self.set_ip_address(ip_addr)
-            else:
-                self.set_ip_address(self.int2ip(ip_addr))
-        
-        if bcast_port:
-            self.bcast_port = bcast_port
-        
-        self.sock = socket.socket(socket.AF_INET,       # Internet
-                                  socket.SOCK_DGRAM);   # UDP
-        
-        self.sock.settimeout(self.timeout)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-        try:
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, REQUESTED_BUF_SIZE)
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, REQUESTED_BUF_SIZE)
-        except socket_error as serr:
-            # On some HW we cannot set the buffer size
-            if serr.errno != errno.ENOBUFS:
-                raise serr
-
-        self.tx_buffer_size = self.sock.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)
-        self.rx_buffer_size = self.sock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
-        self.status = 1
-                                  
-
-    def wn_close(self):
-        """Closes an Ethernet UDP socket."""
-        if self.sock:
-            try:
-                self.sock.close()
-            except socket.error as err:
-                print("Error closing socket:  {0}".format(err))
-
-        self.status = 0
-
-
     def send(self, payload, pkt_type="message"):
         """Send a broadcast message over the transport.
         

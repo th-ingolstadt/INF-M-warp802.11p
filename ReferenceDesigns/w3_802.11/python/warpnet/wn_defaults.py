@@ -35,12 +35,16 @@ WN_NODE_TYPE_CLASS                = 'WnNode'
 
 
 # WARPNet Default values
+#   NOTE:  All defaults are strings; Numerical values will be evaluated and
+#          converted to integers before being used
 WN_DEFAULT_HOST_ADDR              = '10.0.0.250'
 WN_DEFAULT_HOST_ID                = '250'
 WN_DEFAULT_UNICAST_PORT           = '9500'
 WN_DEFAULT_BCAST_PORT             = '9750'
 WN_DEFAULT_TRANSPORT_TYPE         = 'python'
 WN_DEFAULT_JUMBO_FRAME_SUPPORT    = 'False'
+WN_DEFAULT_TX_BUFFER_SIZE         = '2**22'
+WN_DEFAULT_RX_BUFFER_SIZE         = '2**22'
 
 
 # WARPNet Node Default values
@@ -49,7 +53,6 @@ WN_NODE_DEFAULT_NAME              = 'WARPNet Node'
 WN_NODE_DEFAULT_IP_ADDR           = '10.0.0.0'
 WN_NODE_DEFAULT_UNICAST_PORT      = WN_DEFAULT_UNICAST_PORT
 WN_NODE_DEFAULT_BCAST_PORT        = WN_DEFAULT_BCAST_PORT
-
 
 
 

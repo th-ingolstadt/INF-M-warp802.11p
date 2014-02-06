@@ -114,17 +114,13 @@ class WnTransportHeader(WnMessage):
         else:
             print("Uknown packet type: {}".format(pkt_type))
 
-    def set_length(self, length):
-        """Sets the length field of the transport header."""
-        self.length = length
-        
-    def set_src_id(self, src_id):
-        """Sets the source id field of the transport header."""
-        self.src_id = src_id
-        
-    def set_dest_id(self, dest_id):
-        """Sets the destination id field of the transport header."""
-        self.dest_id = dest_id
+    def set_length(self, value):    self.length = value        
+    def set_src_id(self, value):    self.src_id = value
+    def set_dest_id(self, value):   self.dest_id = value
+
+    def get_length(self):            return self.length
+    def get_src_id(self):            return self.src_id
+    def get_dest_id(self):           return self.dest_id
         
     def response_required(self):
         """Sets bit 0 of the flags since a response is required."""

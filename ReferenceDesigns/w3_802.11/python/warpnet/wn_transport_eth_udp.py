@@ -29,6 +29,9 @@ Functions:
 
 import re
 import time
+import errno
+import socket
+from socket import error as socket_error
 
 from . import wn_cmds
 from . import wn_message
@@ -90,24 +93,71 @@ class WnTransportEthUdp(tp.WnTransport):
         """Check the setup of the transport."""
         pass
 
-    def set_max_payload(self, value):
-        self.max_payload = value
+    def set_max_payload(self, value):  self.max_payload = value
+    def set_ip_address(self, value):   self.ip_address = value
+    def set_unicast_port(self, value): self.unicast_port = value
+    def set_bcast_port(self, value):   self.bcast_port = value
+    def set_src_id(self, value):       self.hdr.set_src_id(value)
+    def set_dest_id(self, value):      self.hdr.set_dest_id(value)
 
-    def get_max_payload(self):
-        return self.max_payload
+    def get_max_payload(self):         return self.max_payload
+    def get_ip_address(self):          return self.ip_address
+    def get_unicast_port(self):        return self.unicast_port
+    def get_bcast_port(self):          return self.bcast_port
+    def get_src_id(self):              return self.hdr.get_src_id()
+    def get_dest_id(self):             return self.hdr.get_dest_id()
+
+
+    def wn_open(self, tx_buf_size=None, rx_buf_size=None):
+        """Opens an Ethernet UDP socket.""" 
+        self.sock = socket.socket(socket.AF_INET,       # Internet
+                                  socket.SOCK_DGRAM);   # UDP
+        
+        self.sock.settimeout(self.timeout)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        
+        if not tx_buf_size is None:
+            try:
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, tx_buf_size)
+            except socket_error as serr:
+                # On some HW we cannot set the buffer size
+                if serr.errno != errno.ENOBUFS:
+                    raise serr
+
+        if not rx_buf_size is None:
+            try:
+                self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, rx_buf_size)
+            except socket_error as serr:
+                # On some HW we cannot set the buffer size
+                if serr.errno != errno.ENOBUFS:
+                    raise serr
+
+        self.tx_buffer_size = self.sock.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)
+        self.rx_buffer_size = self.sock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
+        self.status = 1
+        
+        if (self.tx_buffer_size != tx_buf_size):
+            print("OS reduced send buffer size from {0} to {1}".format(self.tx_buffer_size, tx_buf_size))
+            
+        if (self.rx_buffer_size != rx_buf_size):
+            print("OS reduced receive buffer size from {0} to {1}".format(self.rx_buffer_size, rx_buf_size))
+
+
+    def wn_close(self):
+        """Closes an Ethernet UDP socket."""
+        if self.sock:
+            try:
+                self.sock.close()
+            except socket.error as err:
+                print("Error closing socket:  {0}".format(err))
+
+        self.status = 0
 
 
     #-------------------------------------------------------------------------
     # Commands that must be implemented by child classes
     #-------------------------------------------------------------------------
-    def wn_open(self,):
-        """Opens an Ethernet UDP socket.""" 
-        raise NotImplementedError
-
-    def wn_close(self):
-        """Closes an Ethernet UDP socket."""
-        raise NotImplementedError
-
     def send(self,):
         """Send a message over the transport."""
         raise NotImplementedError

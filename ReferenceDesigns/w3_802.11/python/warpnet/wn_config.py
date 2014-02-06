@@ -93,6 +93,8 @@ class WnConfiguration(object):
                            host_id=wn_defaults.WN_DEFAULT_HOST_ID,
                            unicast_port=wn_defaults.WN_DEFAULT_UNICAST_PORT,
                            bcast_port=wn_defaults.WN_DEFAULT_BCAST_PORT,
+                           tx_buf_size=wn_defaults.WN_DEFAULT_TX_BUFFER_SIZE,
+                           rx_buf_size=wn_defaults.WN_DEFAULT_RX_BUFFER_SIZE,
                            transport_type=wn_defaults.WN_DEFAULT_TRANSPORT_TYPE,
                            jumbo_frame_support=wn_defaults.WN_DEFAULT_JUMBO_FRAME_SUPPORT):
         self.config = configparser.ConfigParser()
@@ -109,6 +111,8 @@ class WnConfiguration(object):
         self.config.set('network', 'host_id', host_id)
         self.config.set('network', 'unicast_port', unicast_port)
         self.config.set('network', 'bcast_port', bcast_port)
+        self.config.set('network', 'tx_buffer_size', tx_buf_size)
+        self.config.set('network', 'rx_buffer_size', rx_buf_size)
         self.config.set('network', 'transport_type', transport_type)
         self.config.set('network', 'jumbo_frame_support', jumbo_frame_support)
 

@@ -32,9 +32,7 @@ Integer constants:
 
 import re
 import time
-import errno
 import socket
-from socket import error as socket_error
 
 from . import wn_transport_eth_udp
 from . import wn_exception as ex
@@ -43,57 +41,12 @@ from . import wn_exception as ex
 __all__ = ['WnTransportEthUdpPy']
 
 
-REQUESTED_BUF_SIZE = 2**22
-
-
 class WnTransportEthUdpPy(wn_transport_eth_udp.WnTransportEthUdp):
     """Class for WARPNet Ethernet UDP Transport class using Python libraries.
        
     Attributes:
         See WnTransportEthUdp for all attributes
     """
-    def wn_open(self, ip_addr=None, unicast_port=None):
-        """Opens an Ethernet UDP socket.""" 
-        if ip_addr:
-            if isinstance(ip_addr, str):
-                self.ip_address = ip_addr
-            else:
-                self.ip_address = self.int2ip(ip_addr)
-        
-        if unicast_port:
-            self.unicast_port = unicast_port
-        
-        self.sock = socket.socket(socket.AF_INET,       # Internet
-                                  socket.SOCK_DGRAM);   # UDP
-        
-        self.sock.settimeout(self.timeout)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        
-        try:
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, REQUESTED_BUF_SIZE)
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, REQUESTED_BUF_SIZE)
-        except socket_error as serr:
-            # On some HW we cannot set the buffer size
-            if serr.errno != errno.ENOBUFS:
-                raise serr
-
-        self.tx_buffer_size = self.sock.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)
-        self.rx_buffer_size = self.sock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
-        self.status = 1
-                                  
-
-    def wn_close(self):
-        """Closes an Ethernet UDP socket."""
-        if self.sock:
-            try:
-                self.sock.close()
-            except socket.error as err:
-                print("Error closing socket:  {0}".format(err))
-
-        self.status = 0
-
-
     def send(self, payload, robust=True):
         """Send a message over the transport.
         
