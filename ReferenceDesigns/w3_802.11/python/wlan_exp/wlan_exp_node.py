@@ -40,7 +40,6 @@ import warpnet.wn_exception as ex
 
 from . import wlan_exp_defaults
 from . import wlan_exp_cmds
-from . import wlan_exp_config
 from . import wlan_exp_util
 
 
@@ -326,26 +325,35 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
     """
     def __init__(self):
         super(WlanExpNodeFactory, self).__init__()
+        
+        # Add default classes to the factory
+        self.add_node_class(wlan_exp_defaults.WLAN_EXP_AP_TYPE, 
+                            wlan_exp_defaults.WLAN_EXP_AP_CLASS)
 
-        config = wlan_exp_config.WlanExpConfiguration()
-
-        section = config.get_wn_types()        
-        if section is None:
-            print("Necessary informaton is not in wlan_exp_config.ini. ",
-                  "Please run wlan_exp_setup.\n")
-        else:
-            for wn_node_type in section.keys():
-                self.add_node_class(wn_node_type, section[wn_node_type])
+        self.add_node_class(wlan_exp_defaults.WLAN_EXP_STA_TYPE, 
+                            wlan_exp_defaults.WLAN_EXP_STA_CLASS)
 
     
     def eval_node_class(self, node_class):
         """Evaluate the node_class string to create a node.  
         
-        NOTE:  This should be overridden in each sub-class
+        NOTE:  This should be overridden in each sub-class with the same
+        overall structure but a different import.  Please call the super
+        class so that the calls will propagate to catch all node types.
         """
         import wlan_exp
-        return eval(str(node_class + "()"), globals(), locals())
+        
+        node = None
 
+        try:
+            node = eval(str(node_class + "()"), globals(), locals())
+        except:
+            pass
+        
+        if node is None:
+            return super(WlanExpNodeFactory, self).eval_node_class(node_class)
+        else:
+            return node
 
 
 # End Class WlanExpNodeFactory

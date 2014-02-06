@@ -24,9 +24,6 @@ This module provides WLAN Exp default constants.
 # Default Variables
 PACKAGE_NAME                      = 'wlan_exp'
 
-# WLAN Exp INI Files
-WLAN_EXP_DEFAULT_INI_FILE         = 'wlan_exp_config.ini'
-
 
 # WARPNet Node Types
 #   NOTE:  The C counterparts are found in wlan_exp_common.h

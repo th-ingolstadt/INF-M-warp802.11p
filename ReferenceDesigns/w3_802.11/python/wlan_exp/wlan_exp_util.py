@@ -151,19 +151,23 @@ def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
 # End of wn_ver_str()
 
 
-def wlan_exp_init_nodes(nodes_config):
+def wlan_exp_init_nodes(nodes_config, node_factory=None, output=False):
     """Initalize WLAN Exp nodes.
 
     Attributes:
-       nodes_config -- A WnNodesConfiguration describing the nodes
+        nodes_config -- A WnNodesConfiguration describing the nodes
+        node_factory -- A WlanExpNodeFactory or subclass to create nodes of a 
+                        given WARPNet type
+        output -- Print output about the WARPNet nodes
     """
-    # Create and initialize a WnNodeFactory
-    from . import wlan_exp_node
-    node_factory = wlan_exp_node.WlanExpNodeFactory()
+    # If node_factory is not defined, create a default WlanExpNodeFactory
+    if node_factory is None:
+        from . import wlan_exp_node
+        node_factory = wlan_exp_node.WlanExpNodeFactory()
 
     # Use the WARPNet utility, wn_init_nodes, to initialize the nodes
     import warpnet.wn_util as wn_util
-    return wn_util.wn_init_nodes(nodes_config, node_factory)
+    return wn_util.wn_init_nodes(nodes_config, node_factory, output)
 
 # End of wlan_exp_init_nodes()
 
@@ -178,6 +182,8 @@ def wlan_exp_init_time(nodes, time_base=0, output=False, verbose=False, repeat=1
     """
     return_times       = None
     node_start_times   = []
+
+    print("Initializing {0} node(s) to time base: {1}".format(len(nodes), time_base))
 
     if output:
         return_times = {}
@@ -224,9 +230,7 @@ def wlan_exp_time():
 
 
 def wlan_exp_setup():
-    """Create WLAN Exp ini file."""
-    import wlan_exp.wlan_exp_config as wlan_exp_config
-    config = wlan_exp_config.WlanExpConfiguration()
+    """Setup WLAN Exp framework."""
 
     print("-" * 50)
     print("WLAN Exp Setup:")
@@ -243,17 +247,6 @@ def wlan_exp_setup():
         print("    Adding: {0}".format(wlan_exp_dir))
     else:
         print("    In Path: {0}".format(wlan_exp_dir))    
-
-
-    #-------------------------------------------------------------------------
-    # Finish WLAN Exp INI file
-
-    print("-" * 50)
-    config.save_config(output=True)
-    print("-" * 50)
-    print("WLAN Exp v {0} Configuration Complete.".format(wlan_exp_ver_str()))
-    print("-" * 50)
-    print("\n")
 
 
     #-------------------------------------------------------------------------
