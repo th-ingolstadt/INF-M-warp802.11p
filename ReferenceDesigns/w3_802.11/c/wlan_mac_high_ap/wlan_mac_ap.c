@@ -67,7 +67,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-ARRAY";
+static char default_AP_SSID[] = "WARP-AP";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -282,9 +282,9 @@ void check_tx_queue(){
 	if( wlan_mac_high_is_cpu_low_ready() ){
 
 		//Check the high-priority management queue
-		if(wlan_mac_queue_poll(MANAGEMENT_QID)){
-			return;
-		}
+		//if(wlan_mac_queue_poll(MANAGEMENT_QID)){
+		//	return;
+		//}
 
 		curr_station_info = next_station_info;
 		for(i = 0; i < (association_table.length + 1) ; i++){
@@ -535,7 +535,7 @@ void beacon_transmit() {
  		tx_queue = (packet_bd*)(checkout.first);
 
  		wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
-        tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,2,_demo_tim_control,&_demo_tim_bitmap);
+        tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,2,_demo_tim_control,_demo_tim_bitmap);
  		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
  		enqueue_after_end(MANAGEMENT_QID, &checkout); //TODO: BCAST_QID or MANAGEMENT_QID
 
@@ -795,7 +795,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
-							tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan, 2,_demo_tim_control,&_demo_tim_bitmap);
+							tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan, 2,_demo_tim_control,_demo_tim_bitmap);
 
 							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
 											 (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
@@ -1186,6 +1186,13 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 			station->tx.rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
 			station->AID = 0;
 			station->hostname[0] = 0;
+
+			//_demo
+			if((addr[0] == 0x40) && (addr[1] == 0xD8) && (addr[2] == 0x55) && (addr[3] == 04) && ((addr[4]&0x20) == 0x20)){
+				//sprintf(station->hostname, "MangoSTA_%02x:%02x",addr[4],addr[5]);
+				strcpy(station->hostname,"Mango*");
+				station->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+			}
 
 			//Find the minimum AID that can be issued to this station.
 			curr_station_info = (station_info*)(assoc_tbl->first);
