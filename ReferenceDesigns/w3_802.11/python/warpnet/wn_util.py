@@ -212,7 +212,8 @@ def wn_init_nodes(nodes_config, node_factory=None, output=False):
 
 
 def wn_setup():
-    """Create WARPNet ini file from user input."""
+    """Setup the WARPNet framework and configure the WARPNet INI file 
+    from user input."""
     import warpnet.wn_config as wn_config
     config = wn_config.WnConfiguration()
 
@@ -468,7 +469,6 @@ def wn_nodes_setup(file_name=None):
     #     [3] Disable Node
     #     [4] Quit
     # Selection:
-
     
     actions = {0 : "Add node",
                1 : "Remove node",

@@ -495,14 +495,9 @@ class WnNodeFactory(WnNode):
  
         self.wn_dict = {}
 
-        config = wn_config.WnConfiguration()
-        section = config.get_wn_types()
-        if section is None:
-            print("Necessary informaton is not in wn_config.ini. ",
-                  "Please run wn_setup.\n")
-        else:
-            for wn_node_type in section.keys():
-                self.add_node_class(wn_node_type, section[wn_node_type])
+        # Add default classes to the factory
+        self.add_node_class(wn_defaults.WN_NODE_TYPE, 
+                            wn_defaults.WN_NODE_TYPE_CLASS)
 
     
     def setup(self, node_dict):
@@ -543,6 +538,7 @@ class WnNodeFactory(WnNode):
 
                 print("Initializing W3-a-{0:05d} as Node {1}".format(self.serial_number, self.node_id))
             else:
+                self.print_wn_node_types()
                 print("ERROR:  Unknown WARPNet type: {0}".format(wn_node_type))
                 print("    Unable to initialize node", 
                       "W3-a-{0:05d}".format(self.serial_number))
@@ -559,10 +555,25 @@ class WnNodeFactory(WnNode):
     def eval_node_class(self, node_class):
         """Evaluate the node_class string to create a node.  
         
-        NOTE:  This should be overridden in each sub-class
+        NOTE:  This should be overridden in each sub-class with the same
+        overall structure but a different import.  Please call the super
+        class function instead of returning an error so that the calls 
+        will propagate to catch all node types.
         """
         import warpnet
-        return eval(str(node_class + "()"), globals(), locals())
+        
+        node = None
+
+        try:
+            node = eval(str(node_class + "()"), globals(), locals())
+        except:
+            pass
+        
+        if node is None:
+            self.print_wn_node_types()
+            raise ex.WnConfigError("Cannot create node of class: {0}".format(node_class))
+        else:
+            return node
 
 
     def add_node_class(self, wn_node_type, class_name):
@@ -573,7 +584,7 @@ class WnNodeFactory(WnNode):
  
 
     def get_node_class(self, wn_node_type):
-        node_type = str(wn_node_type)
+        node_type = wn_node_type
         
         if (node_type in self.wn_dict.keys()):
             return self.wn_dict[node_type]
@@ -584,8 +595,8 @@ class WnNodeFactory(WnNode):
     def print_wn_node_types(self):
         print("WARPNet Node Types:")
         for wn_node_type in self.wn_dict.keys():
-            print("    {0:08x} = '{1}'".format(int(wn_node_type), 
-                                               self.wn_dict[wn_node_type]))
+            print("    0x{0:08x} = '{1}'".format(int(wn_node_type), 
+                                                 self.wn_dict[wn_node_type]))
 
 
 # End Class WnNodeFactory

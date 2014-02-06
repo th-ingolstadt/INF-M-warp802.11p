@@ -105,8 +105,6 @@ class WnConfiguration(object):
         
         self.update_config_info()
 
-        self.config.set('warpnet', str(wn_defaults.WN_NODE_TYPE), wn_defaults.WN_NODE_TYPE_CLASS)
-
         self.config.set('network', 'host_address', host_address)
         self.config.set('network', 'host_id', host_id)
         self.config.set('network', 'unicast_port', unicast_port)
