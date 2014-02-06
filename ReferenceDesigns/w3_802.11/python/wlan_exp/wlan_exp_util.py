@@ -39,6 +39,7 @@ import time
 import inspect
 
 from . import wlan_exp_exception as ex
+from . import wlan_exp_defaults as defaults
 
 
 __all__ = ['wlan_exp_ver', 'wlan_exp_ver_str', 'wlan_exp_init_nodes']
@@ -282,6 +283,26 @@ def wlan_exp_setup():
 
 # End of wn_setup()
 
+
+def wlan_exp_get_ap_nodes(nodes):
+    """Returns all WLAN Exp AP nodes that are in the nodes list."""
+    return wlan_exp_get_nodes(nodes, defaults.WLAN_EXP_AP_TYPE)
+
+# End of wlan_exp_get_ap_nodes()
+
+
+def wlan_exp_get_sta_nodes(nodes):
+    """Returns all WLAN Exp STA nodes that are in the nodes list."""
+    return wlan_exp_get_nodes(nodes, defaults.WLAN_EXP_STA_TYPE)
+
+# End of wlan_exp_get_sta_nodes()
+
+
+def wlan_exp_get_nodes(nodes, node_type):
+    """Returns all nodes that are in the nodes list of type node_type."""
+    return [n for n in nodes if (n.node_type == node_type)]
+
+# End of wlan_exp_get_sta_nodes()
 
 
 
