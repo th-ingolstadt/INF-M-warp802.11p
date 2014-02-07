@@ -61,7 +61,7 @@
 
 #define AID_TO_QID(x) ((x)+1)
 #define BCAST_QID 0
-#define MANAGEMENT_QID 0
+#define MANAGEMENT_QID 1
 
 
 // **********************************************************************

@@ -56,7 +56,7 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP
 
-#define  WLAN_CHANNEL                  6
+#define  WLAN_CHANNEL                  4
 #define  TX_GAIN_TARGET				   45
 
 
@@ -67,7 +67,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-ARRAY";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -282,9 +282,9 @@ void check_tx_queue(){
 	if( wlan_mac_high_is_cpu_low_ready() ){
 
 		//Check the high-priority management queue
-		//if(wlan_mac_queue_poll(MANAGEMENT_QID)){
-		//	return;
-		//}
+		if(wlan_mac_queue_poll(MANAGEMENT_QID)){
+			return;
+		}
 
 		curr_station_info = next_station_info;
 		for(i = 0; i < (association_table.length + 1) ; i++){
@@ -785,6 +785,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						}
 						mpdu_ptr_u8 += mpdu_ptr_u8[1]+2; //Move up to the next tag
 					}
+
+					//xil_printf("Probe Req Rx %d %d\n", send_response, allow_assoc);
+
 					if(send_response && allow_assoc) {
 
 						//Checkout 1 element from the queue;
@@ -795,13 +798,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
-							tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan, 2,_demo_tim_control,_demo_tim_bitmap);
+							tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
 							wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, MAX_RETRY, default_tx_gain_target,
 											 (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 							enqueue_after_end(MANAGEMENT_QID, &checkout);
 							check_tx_queue();
+							//xil_printf("Probe Response Tx\n");
 						}
 						// Finish function
 						goto mpdu_rx_process_end;
