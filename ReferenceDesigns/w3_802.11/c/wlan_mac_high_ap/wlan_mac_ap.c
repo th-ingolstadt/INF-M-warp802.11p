@@ -92,18 +92,12 @@ u32 		 mac_param_chan;
 // AP MAC address / Broadcast address
 static u8 eeprom_mac_addr[6];
 static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-extern u8 _demo_spoof_src_mac_addr[6];
 
 // Misc
 u32 animation_schedule_id;
 
-
-u8 _demo_ltg_enable;
-ltg_sched_periodic_params _demo_periodic_params;
-ltg_pyld_fixed _demo_pyld_params;
-u8 _demo_tim_bitmap[2] = {0xFF,0xFF};
-//u8 _demo_tim_bitmap[2] = {0x00,0x00};
-u8 _demo_tim_control = 1;
+u8 tim_bitmap[1] = {0x0};
+u8 tim_control = 1;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -119,16 +113,11 @@ void uart_rx(u8 rxByte){ };
 
 #endif
 
-void add_temp();
 
 /******************************** Functions **********************************/
 
 
 int main(){
-	station_info* associated_station;
-
-	_demo_pyld_params.hdr.type = LTG_PYLD_TYPE_FIXED;
-	_demo_pyld_params.length = 100;
 
 	xil_printf("\f----- wlan_mac_ap -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
@@ -142,9 +131,6 @@ int main(){
 	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 	default_tx_gain_target = TX_GAIN_TARGET;
-
-	wlan_ap_config_demo(1, 30000);
-	//wlan_ap_config_demo(1, 15000);
 
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );
@@ -164,7 +150,7 @@ int main(){
 	wlan_mac_high_set_pb_u_callback(         (void*)up_button);
 	wlan_mac_high_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_high_set_mpdu_accept_callback(  (void*)check_tx_queue);
-    wlan_mac_ltg_sched_set_callback(         (void*)_demo_ltg_event);
+    wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
     wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
 
@@ -196,11 +182,8 @@ int main(){
 	strcpy(access_point_ssid,default_AP_SSID);
 
     // Schedule all events
-	//wlan_mac_schedule_event_repeated(SCHEDULE_FINE, 10000, SCHEDULE_REPEAT_FOREVER, (void*)_demo_send_packet_req);
-	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 1000000, SCHEDULE_REPEAT_FOREVER, (void*)_demo_send_wnet_association_table);
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
-	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temp every 10 seconds
 
 	animation_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ANIMATION_RATE_US, SCHEDULE_REPEAT_FOREVER, (void*)animate_hex);
 
@@ -227,33 +210,6 @@ int main(){
 
 
 	wlan_mac_high_interrupt_start();
-
-	wlan_mac_high_config_demo(~DEMO_CONFIG_FLAGS_EN,0);
-
-	//_demo: Adding a priori known devices
-	u8 _demo_addr1[6] = {0xAC,0xFD,0xEC,0x3F,0x3F,0x50}; //Ashu iPhone
-	u8 _demo_addr2[6] = {0x00,0x88,0x65,0x65,0x2A,0xC8}; //Evan iPhone
-	u8 _demo_addr3[6] = {0x14,0x7D,0xC5,0x5E,0xA9,0xFB}; //Clay
-
-	associated_station = add_association(&association_table, &statistics_table, _demo_addr1);
-	associated_station->AID = 1;
-	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-	strcpy(associated_station->hostname,"Ashu*");
-	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
-
-	associated_station = add_association(&association_table, &statistics_table, _demo_addr2);
-	associated_station->AID = 2;
-	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-	strcpy(associated_station->hostname,"Evan*");
-	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
-
-	associated_station = add_association(&association_table, &statistics_table, _demo_addr3);
-	associated_station->AID = 3;
-	associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-	strcpy(associated_station->hostname,"Clay*");
-	remove_association( &association_table, &statistics_table, associated_station->addr ); //This is super hacky, but it's the best way to shut down the default demo LTG.
-
-
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
@@ -265,14 +221,6 @@ int main(){
 	}
 	return -1;
 }
-
-
-
-void add_temp() {
-	add_temperature_to_log(WN_TRANSMIT);
-}
-
-
 
 void check_tx_queue(){
 	u32 i;
@@ -355,16 +303,6 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	if(tx_mpdu->AID != 0){
 		station = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
 		if(station != NULL){
-
-			//if(ACKed and was assoc response){
-			if((tx_mpdu->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS && (tx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP) ){
-				if(_demo_ltg_enable){
-					ltg_sched_remove(AID_TO_LTG_ID(station->AID));
-					ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
-					ltg_sched_start(AID_TO_LTG_ID(station->AID));
-				}
-			}
-
 			//Process this TX MPDU DONE event to update any statistics used in rate adaptation
 			wlan_mac_high_process_tx_done(tx_mpdu, station);
 		}
@@ -535,7 +473,7 @@ void beacon_transmit() {
  		tx_queue = (packet_bd*)(checkout.first);
 
  		wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
-        tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,2,_demo_tim_control,_demo_tim_bitmap);
+        tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,1,tim_control,tim_bitmap);
  		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
  		enqueue_after_end(MANAGEMENT_QID, &checkout); //TODO: BCAST_QID or MANAGEMENT_QID
 
@@ -1154,13 +1092,6 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 		//this the pointer to that entry back to the calling function without creating
 		//a new entry
 
-		//if(_demo_ltg_enable){
-		//	ltg_sched_remove(AID_TO_LTG_ID(station->AID));
-		//	ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
-		//	ltg_sched_start(AID_TO_LTG_ID(station->AID));
-		//}
-
-
 		return station;
 	} else {
 
@@ -1190,13 +1121,6 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 			station->tx.rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
 			station->AID = 0;
 			station->hostname[0] = 0;
-
-			//_demo
-			if((addr[0] == 0x40) && (addr[1] == 0xD8) && (addr[2] == 0x55) && (addr[3] == 04) && ((addr[4]&0x20) == 0x20)){
-				//sprintf(station->hostname, "MangoSTA_%02x:%02x",addr[4],addr[5]);
-				strcpy(station->hostname,"Mango*");
-				station->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
-			}
 
 			//Find the minimum AID that can be issued to this station.
 			curr_station_info = (station_info*)(assoc_tbl->first);
@@ -1237,12 +1161,6 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 			print_associations(assoc_tbl);
 			wlan_mac_high_write_hex_display(assoc_tbl->length);
 
-			//TODO: DEMO
-			//if(_demo_ltg_enable){
-			//	ltg_sched_configure(AID_TO_LTG_ID(station->AID), LTG_SCHED_TYPE_PERIODIC, &_demo_periodic_params, &_demo_pyld_params, nullCallback);
-			//	ltg_sched_start(AID_TO_LTG_ID(station->AID));
-			//}
-			//TODO: DEMO
 			curr_station_info_entry = get_next_empty_station_info_entry();
 			if(curr_station_info_entry != NULL){
 				memcpy(curr_station_info_entry->addr, station->addr, 6);
@@ -1347,17 +1265,10 @@ int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 		return -1;
 	} else {
 
-		//TODO: DEMO
-		if(_demo_ltg_enable){
-			ltg_sched_stop(AID_TO_LTG_ID(station->AID));
-			ltg_sched_remove(AID_TO_LTG_ID(station->AID));
-		}
-
 		if((station->flags)&STATION_INFO_FLAG_NEVER_REMOVE){
 			return -1;
 		}
 
-		//TODO: DEMO
 		curr_station_info_entry = get_next_empty_station_info_entry();
 		if(curr_station_info_entry != NULL){
 			memcpy(curr_station_info_entry->addr, station->addr, 6);
@@ -1400,296 +1311,3 @@ u8 is_valid_association(dl_list* assoc_tbl, station_info* station){
 	}
 	return 0;
 }
-
-
-void wlan_ap_config_demo(u32 en, u32 ltg_interval){
-	_demo_periodic_params.interval_usec = ltg_interval;
-	_demo_ltg_enable = en;
-	if(_demo_ltg_enable == 0){
-		ltg_sched_remove(LTG_REMOVE_ALL);
-	}
-}
-
-void _demo_send_wnet_association_table(){
-	station_info_entry* curr_station_info_entry;
-	u32 i;
-	station_info* next_station_info;
-	station_info* curr_station_info;
-
-	next_station_info = (station_info*)(association_table.first);
-	for (i = 0 ; i < association_table.length; i++ ){
-		curr_station_info_entry = get_next_empty_station_info_entry();
-		curr_station_info = next_station_info;
-		if(curr_station_info_entry != NULL){
-			memcpy(curr_station_info_entry->addr, curr_station_info->addr, 6);
-			memcpy(curr_station_info_entry->hostname, curr_station_info->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
-			curr_station_info_entry->AID = curr_station_info->AID;
-			curr_station_info_entry->flags = curr_station_info->flags;
-			curr_station_info_entry->rate = curr_station_info->tx.rate;
-			curr_station_info_entry->antenna_mode = curr_station_info->tx.rate;
-			curr_station_info_entry->max_retry = curr_station_info->tx.max_retry;
-
-			wn_transmit_log_entry((void *)curr_station_info_entry);
-		}
-		next_station_info = station_info_next(curr_station_info);
-	}
-}
-
-void _demo_send_packet_req(){
-	u16 tx_length;
-	dl_list checkout;
-	packet_bd*	tx_queue;
-	u32 i;
-	station_info* next_station_info;
-	station_info* curr_station_info;
-
-	next_station_info = (station_info*)(association_table.first);
-	for (i = 0 ; i < association_table.length; i++ ){
-
-		//Checkout 1 element from the queue;
-		curr_station_info = next_station_info;
-
-		queue_checkout(&checkout,1);
-
-		if(checkout.length == 1){ //There was at least 1 free queue element
-			tx_queue = (packet_bd*)(checkout.first);
-	 		wlan_mac_high_setup_tx_header( &tx_header_common, curr_station_info->addr, eeprom_mac_addr );
-
-	        //tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-	 		tx_length = wlan_create_measurement_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, MEASUREMENT_TYPE_BASIC, mac_param_chan);
-	 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)curr_station_info, tx_length, MAX_RETRY, default_tx_gain_target, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-	 		enqueue_after_end(AID_TO_QID(curr_station_info->AID), &checkout);
-		}
-
-		next_station_info = station_info_next(curr_station_info);
-	}
-
-}
-
-/*
- void _demo_send_packet_req(){
-	u16 tx_length;
-	dl_list checkout;
-	packet_bd*	tx_queue;
-	u32 i;
-	station_info* next_station_info;
-	station_info* curr_station_info;
-
-	next_station_info = (station_info*)(association_table.first);
-	for (i = 0 ; i < association_table.length; i++ ){
-
-		//Checkout 1 element from the queue;
-		curr_station_info = next_station_info;
-
-		queue_checkout(&checkout,1);
-
-		if(checkout.length == 1){ //There was at least 1 free queue element
-			tx_queue = (packet_bd*)(checkout.first);
-	 		wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
-	 		memcpy(tx_header_common->address_2, )
-	        tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-	 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
-	 		enqueue_after_end(curr_station_info->AID, &checkout);
-		}
-
-		next_station_info = station_info_next(curr_station_info);
-	}
-
-}
- */
-
-/*void _demo_send_packet_req(){
-	u16 tx_length;
-	dl_list checkout;
-	packet_bd*	tx_queue;
-	u32 i;
-	station_info* next_station_info;
-	station_info* curr_station_info;
-	u8* mpdu_ptr_u8;
-	llc_header* llc_hdr;
-	ethernet_header* eth_hdr;
-	arp_packet* arp;
-	u32 eth_rx_len;
-	u32 mpdu_tx_len;
-	u8* mpdu_start_ptr;
-
-	u8 eth_dest[6];
-	u8 eth_src[6] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05};
-
-	u8 packet_is_queued;
-
-
-	next_station_info = (station_info*)(association_table.first);
-	for (i = 0 ; i < association_table.length; i++ ){
-		packet_is_queued = 0;
-		//Checkout 1 element from the queue;
-		curr_station_info = next_station_info;
-
-		queue_checkout(&checkout,1);
-
-		if(checkout.length == 1){ //There was at least 1 free queue element
-			tx_queue = (packet_bd*)(checkout.first);
-
-			//Here, we're going to fake the reception of an Ethernet frame and then pass it back to ourselves for wireless transmission
-			eth_hdr = (ethernet_header*)((void *)(((tx_packet_buffer*)(tx_queue->buf_ptr))->frame) + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
-			memcpy(eth_dest, curr_station_info->addr, 6);
-			memcpy(eth_hdr->address_destination, eth_dest, 6);
-			memcpy(eth_hdr->address_source, eth_src, 6);
-			eth_hdr->type = ETH_TYPE_ARP;
-
-			arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
-			memcpy(arp->eth_dst, eth_dest, 6);
-			memcpy(arp->eth_src, eth_src, 6);
-			arp->hlen = 6;
-			arp->htype = Xil_Htons(1);
-			bzero(arp->ip_dst, 4);
-			bzero(arp->ip_src, 4);
-			arp->oper = Xil_Htons(3); //RARP
-			arp->plen = 4;
-			arp->ptype = 8;
-
-
-//arp->eth_dst = 0x40-0xD8-0x55-0x04-0x21-0x4A
-//arp->eth_src = 0x10-0xDD-0xB1-0xD3-0x7A-0x9C
-//arp->hlen = 6
-//arp->htype = 256
-//arp->ip_dst = 10.0.0.12
-//arp->ip_src = 10.0.0.11
-//arp->oper = 256
-//arp->plen = 4
-//arp->ptype = 8
-
-
-		//	arp->htype =
-
-			eth_rx_len = sizeof(ethernet_header)+sizeof(arp_packet);
-
-			mpdu_start_ptr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
-
-			mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, (void*) eth_hdr, eth_rx_len);
-
-			if(mpdu_tx_len>0){
-				packet_is_queued = ethernet_receive(&checkout, eth_dest, eth_src, mpdu_tx_len);
-			}
-
-
-			if(packet_is_queued == 0){
-				xil_printf("   ...checking in\n");
-				queue_checkin(&checkout);
-			}
-
-		}
-
-	//	queue_checkout(&checkout,1);
-
-	//	if(checkout.length == 1){ //There was at least 1 free queue element
-	//		tx_queue = (packet_bd*)(checkout.first);
-
-	//		//wlan_mac_high_setup_tx_header( &tx_header_common, curr_station_info->addr, eeprom_mac_addr );
-	//		wlan_mac_high_setup_tx_header( &tx_header_common, curr_station_info->addr, dummy_eth_addr );
-
-	//		mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
-	//		tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
-
-	//		mpdu_ptr_u8 += sizeof(mac_header_80211);
-	//		llc_hdr = (llc_header*)(mpdu_ptr_u8);
-
-	//		//Prepare the MPDU LLC header
-	//		llc_hdr->dsap = LLC_SNAP;
-	//		llc_hdr->ssap = LLC_SNAP;
-	//		llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
-	//		bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
-	//		llc_hdr->type = LLC_TYPE_ARP;
-	//		tx_length += sizeof(llc_header);
-
-	//		eth_hdr = (ethernet_header*)((void *)(((tx_packet_buffer*)(tx_queue->buf_ptr))->frame) + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
-	//		asd
-
-	//		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)curr_station_info, tx_length, MAX_RETRY, default_tx_gain_target,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-	//		enqueue_after_end(curr_station_info->AID, &checkout);
-
-	//		check_tx_queue();
-	//	}
-		next_station_info = station_info_next(curr_station_info);
-	}
-
-}*/
-
-void _demo_ltg_event(u32 id, void* callback_arg){
-	dl_list checkout;
-	packet_bd* tx_queue;
-	u32 tx_length;
-	u32 payload_length = 0;
-	u8* mpdu_ptr_u8;
-	llc_header* llc_hdr;
-	station_info* station;
-
-	switch(((ltg_pyld_hdr*)callback_arg)->type){
-		case LTG_PYLD_TYPE_FIXED:
-			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
-		break;
-		case LTG_PYLD_TYPE_UNIFORM_RAND:
-			payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
-		break;
-		default:
-		break;
-
-	}
-
-	station = wlan_mac_high_find_station_info_AID(&association_table, LTG_ID_TO_AID(id));
-
-	if(station != NULL){
-		//The AID <-> LTG ID connection is arbitrary. In this design, we use the LTG_ID_TO_AID
-		//macro to map multiple different LTG IDs onto an AID for a specific station. This allows
-		//multiple LTG flows to target a single user in the network.
-
-		//We implement a soft limit on the size of the queue allowed for any
-		//given station. This avoids the scenario where multiple backlogged
-		//LTG flows favor a single user and starve everyone else.
-		if(queue_num_queued(station->AID) < max_queue_size){
-			//Send a Data packet to this station
-			//Checkout 1 element from the queue;
-			queue_checkout(&checkout,1);
-
-			if(checkout.length == 1){ //There was at least 1 free queue element
-				tx_queue = (packet_bd*)(checkout.first);
-
-				wlan_mac_high_setup_tx_header( &tx_header_common, station->addr, eeprom_mac_addr );
-				tx_header_common.address_2 =_demo_spoof_src_mac_addr;
-				(tx_header_common.address_2)[5] = station->AID;
-
-				mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
-				tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS | MAC_FRAME_CTRL2_FLAG_MORE_DATA);
-
-				mpdu_ptr_u8 += sizeof(mac_header_80211);
-				llc_hdr = (llc_header*)(mpdu_ptr_u8);
-
-				//Prepare the MPDU LLC header
-				llc_hdr->dsap = LLC_SNAP;
-				llc_hdr->ssap = LLC_SNAP;
-				llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
-				bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
-				llc_hdr->type = LLC_TYPE_CUSTOM;
-
-				tx_length += sizeof(llc_header);
-				tx_length += payload_length;
-
-				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)station, tx_length, 0, default_tx_gain_target, (TX_MPDU_FLAGS_FILL_DURATION) );
-
-				enqueue_after_end(AID_TO_QID(station->AID), &checkout);
-
-				tx_header_common.address_2 = &(eeprom_mac_addr[0]);
-
-				check_tx_queue();
-
-
-
-			}
-		}
-	}
-}
-
-
-
-
-

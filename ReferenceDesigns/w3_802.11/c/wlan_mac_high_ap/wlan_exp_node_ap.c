@@ -404,7 +404,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 			xil_printf("Configuring Demo:  flags = 0x%08x  interval = %d\n", temp, temp2);
 
 			// Pass the parameters directly to the config_demo function
-			wlan_ap_config_demo(temp, temp2);
+			//wlan_ap_config_demo(temp, temp2); //TODO: Remove WARPnet Command
 
 			// Send response
 			respHdr->length += (respIndex * sizeof(respArgs32));
