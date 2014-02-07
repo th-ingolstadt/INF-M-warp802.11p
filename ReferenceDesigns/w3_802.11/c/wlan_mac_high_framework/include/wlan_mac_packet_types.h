@@ -93,9 +93,13 @@ typedef struct{
 #define STATUS_AUTH_REJECT_CHALLENGE_FAILURE 15
 #define STATUS_REJECT_TOO_MANY_ASSOCIATIONS 17
 
-#define wlan_create_beacon_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_BEACON, common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap)
-#define wlan_create_probe_resp_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap)
-int wlan_create_beacon_probe_frame(void* pkt_buf, u8 subtype, mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan, u8 tim_len, u8 tim_control, u8* tim_bitmap);
+//#define wlan_create_beacon_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_BEACON, common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap)
+//#define wlan_create_probe_resp_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap)
+//int wlan_create_beacon_probe_frame(void* pkt_buf, u8 subtype, mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan, u8 tim_len, u8 tim_control, u8* tim_bitmap);
+
+int wlan_create_beacon_frame(void* pkt_buf, mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan, u8 tim_len, u8 tim_control, u8* tim_bitmap);
+int wlan_create_probe_resp_frame(void* pkt_buf, mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan);
+
 int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 measurement_type, u8 chan);
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan);
 int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code);
