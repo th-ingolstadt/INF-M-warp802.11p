@@ -232,13 +232,13 @@ def wlan_exp_time():
 def wlan_exp_setup():
     """Setup WLAN Exp framework."""
 
-    print("-" * 50)
+    print("-" * 70)
     print("WLAN Exp Setup:")
 
     #-------------------------------------------------------------------------
     # Configure Python Path
 
-    print("-" * 50)
+    print("-" * 70)
     print("Configuring Python Path")
     wlan_exp_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
@@ -264,15 +264,15 @@ def wlan_exp_setup():
         #-------------------------------------------------------------------------
         # Configure WARPNet Node Configuration
         #   - Called automatically if you do wn_setup()
-        message = "Perform WARPNet Node Network Setup [Y/n]: "
+        message = "\nPerform WARPNet Node Network Setup [Y/n]: "
         temp = wn_util._get_confirmation_from_user(message)
         if (temp == 'y'):
             print("\n")
             wn_util.wn_nodes_setup()
         else:
-            print("-" * 50)
+            print("-" * 70)
             print("Done.")
-            print("-" * 50)                    
+            print("-" * 70)
 
 # End of wn_setup()
 

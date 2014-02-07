@@ -131,21 +131,21 @@ class WnNode(object):
         self.serial_number = serial_number
 
         # Set Node Unicast Transport information
-        self.transport.wn_open(int(eval(config.get_param('network', 'tx_buffer_size'))),
-                               int(eval(config.get_param('network', 'rx_buffer_size'))))
+        self.transport.wn_open(config.get_param('network', 'tx_buffer_size'),
+                               config.get_param('network', 'rx_buffer_size'))
         self.transport.set_ip_address(ip_address)
         self.transport.set_unicast_port(unicast_port)
         self.transport.set_bcast_port(bcast_port)
-        self.transport.set_src_id(int(config.get_param('network', 'host_id')))
+        self.transport.set_src_id(config.get_param('network', 'host_id'))
         self.transport.set_dest_id(node_id)
 
         # Set Node Broadcast Transport information
-        self.transport_bcast.wn_open(int(eval(config.get_param('network', 'tx_buffer_size'))),
-                                     int(eval(config.get_param('network', 'rx_buffer_size'))))
+        self.transport_bcast.wn_open(config.get_param('network', 'tx_buffer_size'),
+                                     config.get_param('network', 'rx_buffer_size'))
         self.transport_bcast.set_ip_address(ip_address)
         self.transport_bcast.set_unicast_port(unicast_port)
         self.transport_bcast.set_bcast_port(bcast_port)
-        self.transport_bcast.set_src_id(int(config.get_param('network', 'host_id')))
+        self.transport_bcast.set_src_id(config.get_param('network', 'host_id'))
         self.transport_bcast.set_dest_id(0xFFFF)
         
 
@@ -595,7 +595,7 @@ class WnNodeFactory(WnNode):
     def print_wn_node_types(self):
         print("WARPNet Node Types:")
         for wn_node_type in self.wn_dict.keys():
-            print("    0x{0:08x} = '{1}'".format(int(wn_node_type), 
+            print("    0x{0:08x} = '{1}'".format(wn_node_type, 
                                                  self.wn_dict[wn_node_type]))
 
 

@@ -134,14 +134,26 @@ class WnConfiguration(object):
         """Returns the value of the parameter within the section."""
         if (section in self.config.sections()):
             if (parameter in self.config.options(section)):
-                return self.config.get(section, parameter)
+                return self._get_param_hack(section, parameter)
             else:
                 print("Parameter {} does not exist in section {}.".format(parameter, section))
         else:
             print("Section {} does not exist.".format(section))
         
         return None
- 
+
+
+    def _get_param_hack(self, section, parameter):
+        """Internal method to work around differences in Python 2 vs 3"""
+        if (section == 'network'):
+            if ((parameter == 'host_address') or 
+                (parameter == 'transport_type')):
+                return self.config.get(section, parameter)
+            else:
+                return eval(self.config.get(section, parameter))
+        else:
+            return self.config.get(section, parameter)
+
 
     def get_section(self, section):
         """Returns the dictionary of the section within the config."""
@@ -219,34 +231,62 @@ class WnNodesConfiguration(object):
     
     This class can load and store WARPNet Node configurations
     
-    Depending on the configuration, it can either default the node_id
-    to a monotonic counter or the last octet of the IP address.
-    
-    Attributes:
+    Attributes of a node:
         Node serial number
-            node_id -- Node ID
-            ip_address -- IP address of the Node
+            node_id      -- Node ID
+            node_name    -- Node Name
+            ip_address   -- IP address of the Node
             unicast_port -- Unicast port of the Node
-            bcast_port -- Broadcast port of the Node
-            node_name -- Node Name
-            use_node -- Is this node part of the network
+            bcast_port   -- Broadcast port of the Node
+            use_node     -- Is this node part of the network
+    
+    Any parameter can be overridden by including it in the INI file.  
+    
+    When the configuration is read in, both a config and a shadow_config
+    are created.  The config has values that will be written to the INI
+    file, while the shadow_config has all values populated.  If values
+    are not specified in the INI, they will get auto-populated defaults:
+    
+        node_id      - Monotonic counter starting at 0
+        node_name    - "Node {0}".format(node_id)
+        ip_address   - wn_config.ini get_param('network', 'host_address') for 
+                       the first three octets and "node_id + 1" for the last 
+                       octet
+        unicast_port - wn_config.ini get_param('network', 'unicast_port')
+        bcast_port   - wn_config.ini get_param('network', 'bcast_port')
+        use_node     - "True"
+
+    NOTE:  In order to be as consistent as possible, all nodes in the 
+    configuration file get a node id regardless of whether they are used.
+    Also, we sort the INI based on serial number so that the lowest serial
+    numbered node will have node_id = 0
+
     """
     config              = None
     config_file         = None
     node_id_counter     = None
-    node_id_map         = None
-    default_params      = {'ip_address': wn_defaults.WN_NODE_DEFAULT_IP_ADDR, 
-                           'node_id': wn_defaults.WN_NODE_DEFAULT_NODE_ID, 
-                           'unicast_port': wn_defaults.WN_NODE_DEFAULT_UNICAST_PORT,
-                           'bcast_port': wn_defaults.WN_NODE_DEFAULT_BCAST_PORT, 
-                           'node_name': wn_defaults.WN_NODE_DEFAULT_NAME, 
-                           'use_node': 'True'}
+    used_node_ids       = None
+    used_node_ips       = None
+    shadow_config       = None
 
-    def __init__(self, filename=wn_defaults.WN_DEFAULT_NODES_CONFIG_INI_FILE,
-                       use_node_id_counter=True):
-        if (use_node_id_counter):
-            self.node_id_counter = 0
-            self.node_id_map = {}
+    def __init__(self, filename=wn_defaults.WN_DEFAULT_NODES_CONFIG_INI_FILE):
+
+        self.node_id_counter = 0
+        self.shadow_config   = {}
+        self.used_node_ids   = []
+        self.used_node_ips   = []
+
+        temp_config = WnConfiguration()
+        temp_unicast_port = temp_config.get_param('network', 'unicast_port')
+        temp_bcast_port   = temp_config.get_param('network', 'bcast_port')
+        temp_host_address = temp_config.get_param('network', 'host_address')
+
+        # Convert host address to string:  "x.y.z.{0}"
+        expr = re.compile('\.')
+        data = expr.split(temp_host_address)
+        temp_ip_address = str(data[0] + "." + data[1] + "." + data[2] + ".{0}")
+
+        self.init_shadow_config(temp_ip_address, temp_unicast_port, temp_bcast_port)
         
         try:
             self.load_config(filename)
@@ -254,108 +294,66 @@ class WnNodesConfiguration(object):
             self.set_default_config()
 
 
+    #-------------------------------------------------------------------------
+    # Methods for Config
+    #-------------------------------------------------------------------------
     def set_default_config(self):
         """Set the default config."""
         self.config = configparser.ConfigParser()
 
 
-    def add_node(self, serial_number, ip_address, 
+    def add_node(self, serial_number, ip_address=None, 
                  node_id=None, unicast_port=None, bcast_port=None, 
-                 node_name=None, use_node=True):
+                 node_name=None, use_node=None):
         """Add a node to the NodesConfig structure.
         
         Only serial_number and ip_address are required in the ini file.  Other
         fields will not be populated in the ini file unless they require a 
         non-default value.  
         """
-        if type(serial_number) is int:
-            sn = "W3-a-{0:05d}".format(serial_number)
-        elif type(serial_number) is str:
-            sn = serial_number
-        else:
-            raise TypeError("Invalid serial number: {0}".format(serial_number))
+        sn = self._get_serial_num(serial_number)
         
         if (sn in self.config.sections()):
             print("Node {0} exists.  Please use set_param to modify the node.".format(serial_number))
         else:
             self.config.add_section(sn)
 
-            # Populate required parameters
-            self.config.set(sn, 'ip_address', ip_address)
-            
             # Populate optional parameters
+            if not ip_address   is None: self.config.set(sn, 'ip_address', ip_address)
             if not node_id      is None: self.config.set(sn, 'node_id', node_id)
             if not unicast_port is None: self.config.set(sn, 'unicast_port', unicast_port)
             if not bcast_port   is None: self.config.set(sn, 'bcast_port', bcast_port)
             if not node_name    is None: self.config.set(sn, 'node_name', node_name)
-            if not use_node: self.config.set(sn, 'use_node', use_node)
+            if not use_node     is None: self.config.set(sn, 'use_node', use_node)
+
+        # Add node to shadow_config
+        self.add_shadow_node(serial_number)
 
 
     def remove_node(self, serial_number):
         """Remove a node from the NodesConfig structure."""
-        if type(serial_number) is int:
-            sn = "W3-a-{0:05d}".format(serial_number)
-        elif type(serial_number) is str:
-            sn = serial_number
-        else:
-            raise TypeError("Invalid serial number: {0}".format(serial_number))
+        sn = self._get_serial_num(serial_number)
 
         if (not self.config.remove_section(sn)):
             print("Node {0} not in nodes configuration.".format(sn))
+        else:
+            self.remove_shadow_node(sn)
         
 
     def get_param(self, section, parameter):
         """Returns the value of the parameter within the config for the node."""        
-        if (type(section) is str):
-            sn = section
-        else:
-            # Assume that we are dealing w/ a node
-            sn = "W3-a-{0:05d}".format(section.serial_number)
+        sn = self._get_serial_num(section)
 
         return self.get_param_helper(sn, parameter)
-
-
-    def _get_node_id(self, section):
-        """Internal method to get the node id.  
-        
-        If we are using the node_id_counter, then return the counter value
-        associated with the node.  Otherwise, use the last octet of the ip
-        address.
-        """
-        if (not self.node_id_counter is None):
-            if (not section in self.node_id_map.keys()):
-                self.node_id_map[section] = self.node_id_counter
-                self.node_id_counter += 1
-            return self.node_id_map[section]
-        else:
-            # Return the last octet of the IP address of the node
-            expr = re.compile('\.')
-            data = expr.split(self.get_param_helper(section, 'ip_address'))
-            return data[3]
-
-
-    def _get_default_param(self, section, parameter):
-        """Internal method to get default parameters.
-        
-        NOTE:  This is where to implement any per node defaults.
-        """
-        if (parameter == 'node_id'):
-            return self._get_node_id(section)
-        else:
-            return self.default_params[parameter]
-        pass
 
 
     def get_param_helper(self, section, parameter):
         """Returns the value of the parameter within the config section."""
         if (section in self.config.sections()):
             if (parameter in self.config.options(section)):
-                return self.config.get(section, parameter)
+                return self._get_param_hack(section, parameter)
             else:
-                if (parameter in self.default_params):
-                    return self._get_default_param(section, parameter)
-                else:
-                    print("Parameter {} does not exist in node '{}'.".format(parameter, section))
+                return self._get_shadow_param(section, parameter)
         else:
             print("Node '{}' does not exist.".format(section))
         
@@ -364,24 +362,40 @@ class WnNodesConfiguration(object):
 
     def set_param(self, section, parameter, value):
         """Sets the parameter to the given value."""
-        
-        if (type(section) is str):
-            sn = section
-        else:
-            # Assume that we are dealing w/ a node
-            sn = "W3-a-{0:05d}".format(section.serial_number)
+        sn = self._get_serial_num(section)
         
         if (sn in self.config.sections()):
             if (parameter in self.config.options(sn)):
-                self.config.set(sn, parameter, value)
+                self._set_param_hack(sn, parameter, value)
+                self.update_shadow_config(sn, parameter, value)
             else:
-                if (parameter in self.default_params):
-                    self.config.set(sn, parameter, value)
+                if (parameter in self.shadow_config['default'].keys()):
+                    self._set_param_hack(sn, parameter, value)
+                    self.update_shadow_config(sn, parameter, value)
                 else:
                     print("Parameter {} does not exist in node '{}'.".format(parameter, sn))
         else:
             print("Section '{}' does not exist.".format(sn))
- 
+
+
+    def remove_param(self, section, parameter):
+        """Removes the parameter from the config."""
+        sn = self._get_serial_num(section)
+        
+        if (sn in self.config.sections()):
+            if (parameter in self.config.options(sn)):
+                self.config.remove_option(sn, parameter)
+                
+                # Re-populate the shadow_config
+                self.remove_shadow_node(sn)
+                self.add_shadow_node(sn)
+            else:
+                # Fail silently so there are no issues when a user tries to 
+                #    remove a shadow_config parameter
+                pass
+        else:
+            print("Section '{}' does not exist.".format(sn))
+
 
     def get_nodes_dict(self):
         """Returns a list of dictionaries that contain the parameters of each
@@ -392,7 +406,7 @@ class WnNodesConfiguration(object):
             raise wn_exception.WnConfigError("No Nodes in {0}".format(self.config_file))
         
         for node_config in self.config.sections():
-            if (self.get_param_helper(node_config, 'use_node') == 'True'):
+            if (self.get_param_helper(node_config, 'use_node')):
                 add_node = True
                 
                 expr = re.compile('W3-a-(?P<sn>\d+)')
@@ -405,12 +419,13 @@ class WnNodesConfiguration(object):
                     add_node = False
 
                 if add_node:
-                    node_dict = {'serial_number': sn,
-                                 'node_id': int(self.get_param_helper(node_config, 'node_id')),
-                                 'node_name': self.get_param_helper(node_config, 'node_name'),
-                                 'ip_address': self.get_param_helper(node_config, 'ip_address'),
-                                 'unicast_port': int(self.get_param_helper(node_config, 'unicast_port')),
-                                 'bcast_port': int(self.get_param_helper(node_config, 'bcast_port'))}
+                    node_dict = {
+                        'serial_number': sn,
+                        'node_id'      : self.get_param_helper(node_config, 'node_id'),
+                        'node_name'    : self.get_param_helper(node_config, 'node_name'),
+                        'ip_address'   : self.get_param_helper(node_config, 'ip_address'),
+                        'unicast_port' : self.get_param_helper(node_config, 'unicast_port'),
+                        'bcast_port'   : self.get_param_helper(node_config, 'bcast_port') }
                     output.append(node_dict)
         
         return output
@@ -421,13 +436,16 @@ class WnNodesConfiguration(object):
         self.config_file = os.path.normpath(file)
         
         # TODO: allow relative paths
-
+        self.clear_shadow_config()
         self.config = configparser.ConfigParser()
         dataset = self.config.read(self.config_file)
 
         if len(dataset) != 1:
-           raise wn_exception.WnConfigError(str("Error reading config file:\n" + 
-                                                self.config_file))
+            msg = str("Error reading config file:\n" + self.config_file)
+            raise wn_exception.WnConfigError(msg)
+        else:
+            self.init_used_node_lists()
+            self.load_shadow_config()
 
 
     def save_config(self, file=None, output=False):
@@ -447,18 +465,254 @@ class WnNodesConfiguration(object):
             print("Error writing config file: {0}".format(err))
 
 
+    #-------------------------------------------------------------------------
+    # Methods for Shadow Config
+    #-------------------------------------------------------------------------
+    def init_shadow_config(self, ip_addr_base, unicast_port, bcast_port):
+        """Initialize the 'default' section of the shadow_config."""
+        self.shadow_config['default'] = {'node_id'     : 'auto',
+                                         'node_name'   : 'auto',
+                                         'ip_address'  : ip_addr_base,
+                                         'unicast_port': unicast_port,
+                                         'bcast_port'  : bcast_port, 
+                                         'use_node'    : True}
+
+    def init_used_node_lists(self):
+        """Initialize the lists used to keep track of fields that must 
+        be unique.
+        """
+        self.used_node_ids = []
+        self.used_node_ips = []
+        
+        for section in self.config.sections():
+            if ('node_id' in self.config.options(section)):
+                self.used_node_ids.append(self._get_param_hack(section, 'node_id'))
+
+            if ('ip_address' in self.config.options(section)):
+                self.used_node_ips.append(self._get_param_hack(section, 'ip_address'))        
+
+
+    def clear_shadow_config(self):
+        """Clear everything in the shadow config except 'default' section."""
+        for section in self.shadow_config.keys():
+            if (section != 'default'):
+                del self.shadow_config[section]
+        
+        self.used_node_ids = []
+        self.used_node_ips = []
+
+
+    def load_shadow_config(self):
+        """For each node in the config, populate the shadow_config."""
+        
+        # Sort the config by serial number so there is consistent numbering
+        sections = self.config.sections()
+        sections.sort()
+        
+        # Mirror any fields in the config and populate any missing fields 
+        # with default values
+        for section in sections:
+            my_node_id      = self._get_node_id(section)
+            my_node_name    = self._get_node_name(section, my_node_id)
+            my_ip_address   = self._get_ip_address(section, my_node_id)
+            my_unicast_port = self._get_unicast_port(section)
+            my_bcast_port   = self._get_bcast_port(section)
+            my_use_node     = self._get_use_node(section)
+            
+            # Set the node in the shadow_config
+            self.set_shadow_node(section, my_ip_address, my_node_id, 
+                                 my_unicast_port, my_bcast_port, 
+                                 my_node_name, my_use_node)
+
+        # TODO: Sanity check to make sure there a no duplicate Node IDs or IP Addresses
+
+
+    def update_shadow_config(self, section, parameter, value):
+        """Update the shadow_config with the given value."""
+        self.shadow_config[section][parameter] = value
+
+
+    def add_shadow_node(self, serial_number):
+        """Add the given node to the shadow_config."""
+        my_node_id      = self._get_node_id(serial_number)
+        my_node_name    = self._get_node_name(serial_number, my_node_id)
+        my_ip_address   = self._get_ip_address(serial_number, my_node_id)
+        my_unicast_port = self._get_unicast_port(serial_number)
+        my_bcast_port   = self._get_bcast_port(serial_number)
+        my_use_node     = self._get_use_node(serial_number)
+
+        # Set the node in the shadow_config
+        self.set_shadow_node(serial_number, my_ip_address, my_node_id, 
+                             my_unicast_port, my_bcast_port, 
+                             my_node_name, my_use_node)
+
+        
+
+    def set_shadow_node(self, serial_number, ip_address, node_id, 
+                        unicast_port, bcast_port, node_name, use_node):
+        """Set the given node in the shadow_config."""
+        self.shadow_config[serial_number] = {
+            'node_id'      : node_id,
+            'node_name'    : node_name,
+            'ip_address'   : ip_address,
+            'unicast_port' : unicast_port,
+            'bcast_port'   : bcast_port,
+            'use_node'     : use_node}
+
+        self.used_node_ids.append(node_id)
+        self.used_node_ips.append(ip_address)
+
+
+    def remove_shadow_node(self, serial_number):
+        """Remove the given node from the shadow_config."""
+        self.used_node_ids.remove(self._get_shadow_param(serial_number, 'node_id'))
+        self.used_node_ips.remove(self._get_shadow_param(serial_number, 'ip_address'))
+        del self.shadow_config[serial_number]
+
+
+    #-------------------------------------------------------------------------
+    # Internal Methods
+    #-------------------------------------------------------------------------
+    def _get_next_node_id(self):
+        next_node_id = self.node_id_counter
+        self.node_id_counter += 1
+        
+        while (next_node_id in self.used_node_ids):
+            next_node_id = self.node_id_counter
+            self.node_id_counter += 1
+
+        return next_node_id
+    
+    
+    def _get_next_node_ip(self, node_id):
+        ip_addr_base = self.shadow_config['default']['ip_address']
+        node_id_base = node_id + 1
+
+        next_ip_addr = ip_addr_base.format(node_id_base)
+        node_id_base += 1
+        
+        while (next_ip_addr in self.used_node_ips):
+            next_ip_addr = ip_addr_base.format(node_id_base)
+            node_id_base += 1
+
+        return next_ip_addr
+
+
+    def _get_serial_num(self, value):
+        if type(value) is int:
+            sn = "W3-a-{0:05d}".format(value)
+        elif type(value) is str:
+            sn = value
+        else:
+            raise TypeError("Invalid serial number: {0}".format(value))
+
+        return sn
+
+
+    def _get_node_id(self, section):
+        if ('node_id' in self.config.options(section)):
+            return self._get_param_hack(section, 'node_id')
+        else:
+            return self._get_next_node_id()
+            
+
+    def _get_node_name(self, section, node_id):
+        if ('node_name' in self.config.options(section)):
+            return self._get_param_hack(section, 'node_name')
+        else:
+            return "Node {0}".format(node_id)
+
+
+    def _get_ip_address(self, section, node_id):
+        if ('ip_address' in self.config.options(section)):
+            return self._get_param_hack(section, 'ip_address')
+        else:
+            return self._get_next_node_ip(node_id)
+
+
+    def _get_unicast_port(self, section):
+        if ('unicast_port' in self.config.options(section)):
+            return self._get_param_hack(section, 'unicast_port')
+        else:
+            return self.shadow_config['default']['unicast_port']
+
+
+    def _get_bcast_port(self, section):
+        if ('bcast_port' in self.config.options(section)):
+            return self._get_param_hack(section, 'bcast_port')
+        else:
+            return self.shadow_config['default']['bcast_port']
+
+
+    def _get_use_node(self, section):
+        if ('use_node' in self.config.options(section)):
+            return self._get_param_hack(section, 'use_node')
+        else:
+            return True
+
+
+    def _get_shadow_param(self, section, parameter):
+        """Internal method to get shadow parameters.
+        
+        NOTE:  This is where to implement any per node defaults.
+        """
+        if (parameter in self.shadow_config[section].keys()):
+            return self.shadow_config[section][parameter]
+        else:
+            print("Parameter {} does not exist in node '{}'.".format(parameter, section))
+            return ""
+
+
+    def _get_param_hack(self, section, parameter):
+        """Internal method to work around differences in Python 2 vs 3"""
+        if ((parameter == 'ip_address') or 
+            (parameter == 'node_name')):
+            return self.config.get(section, parameter)
+        else:
+            return eval(self.config.get(section, parameter))
+
+ 
+    def _set_param_hack(self, section, parameter, value):
+        """Internal method to work around differences in Python 2 vs 3"""
+        my_value = str(value)
+        self.config.set(section, parameter, my_value)
+
+
+    #-------------------------------------------------------------------------
+    # Printing / Debug Methods
+    #-------------------------------------------------------------------------
+    def print_shadow_config(self):
+        for section in self.shadow_config.keys():
+            print("{0}".format(section))
+            for parameter in self.shadow_config[section].keys():
+                print("    {0} = {1}".format(parameter, self.shadow_config[section][parameter]))
+            print("")
+
+
+    def print_config(self):
+        for section in self.config.sections():
+            print("{0}".format(section))
+            for parameter in self.config.options(section):
+                print("    {0} = {1}".format(parameter, self.config.get(section, parameter)))
+            print("")
+
+
     def print_nodes(self):
         return_val = {}
         print("Current Nodes:")
         if (len(self.config.sections()) == 0):
             print("    None")
-        for idx, val in enumerate(self.config.sections()):
+        sections = self.config.sections()
+        sections.sort()
+        for idx, val in enumerate(sections):
+            node_id = self.get_param_helper(val, 'node_id')
             ip_addr = self.get_param_helper(val, 'ip_address')
             use_node = self.get_param_helper(val, 'use_node')
+            msg = "    [{0}] {1} - Node {2:3d} at {3:10s}".format(idx, val, node_id, ip_addr)
             if (use_node):
-                print("    [{0}] {1} at {2}   active".format(idx, val, ip_addr))
+                print(str(msg + "   active"))
             else:
-                print("    [{0}] {1} at {2} inactive".format(idx, val, ip_addr))                
+                print(str(msg + " inactive"))                
             return_val[idx] = val
         return return_val
 

@@ -167,7 +167,7 @@ def wn_init_nodes(nodes_config, node_factory=None, output=False):
     import warpnet.wn_config as wn_config
     config = wn_config.WnConfiguration()
 
-    host_id = int(config.get_param('network', 'host_id'))
+    host_id = config.get_param('network', 'host_id')
     jumbo_frame_support = config.get_param('network', 'jumbo_frame_support')
     
     # Process the config to create nodes
@@ -217,14 +217,14 @@ def wn_setup():
     import warpnet.wn_config as wn_config
     config = wn_config.WnConfiguration()
 
-    print("-" * 50)
+    print("-" * 70)
     print("WARPNet Setup:")
+    print("-" * 70)
 
     #-------------------------------------------------------------------------
     # Configure Python Path
     warpnet_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
-    print("-" * 50)
     print("Configuring Python Path:")
 
     if not warpnet_dir in sys.path:
@@ -348,8 +348,8 @@ def wn_setup():
     #-------------------------------------------------------------------------
     # Configure Buffer Sizes
 
-    my_tx_buf_size = int(eval(config.get_param('network', 'tx_buffer_size')))
-    my_rx_buf_size = int(eval(config.get_param('network', 'rx_buffer_size')))
+    my_tx_buf_size = config.get_param('network', 'tx_buffer_size')
+    my_rx_buf_size = config.get_param('network', 'rx_buffer_size')
 
     # Check value in the config to make sure that is a valid size
     (tx_buf_size, rx_buf_size) = _get_os_socket_buffer_size(my_tx_buf_size, my_rx_buf_size)
@@ -423,9 +423,9 @@ def wn_setup():
 
     print("-" * 50)
     config.save_config(output=True)
-    print("-" * 50)
+    print("-" * 70)
     print("WARPNet v {0} Configuration Complete.".format(wn_ver_str()))
-    print("-" * 50)
+    print("-" * 70)
     print("\n")
 
     #-------------------------------------------------------------------------
@@ -438,9 +438,9 @@ def wn_setup():
         print("\n")
         wn_nodes_setup()
     else:
-        print("-" * 50)
+        print("-" * 70)
         print("Done.")
-        print("-" * 50)                    
+        print("-" * 70)                    
 
 # End of wn_setup()
 
@@ -449,8 +449,15 @@ def wn_nodes_setup(file_name=None):
     """Create / Modify WARPNet Nodes ini file from user input."""    
     nodes_config = None
 
-    print("-" * 50)
+    print("-" * 70)
     print("WARPNet Nodes Setup:")
+    print("   NOTE:  Many values are populated automatically to ease setup.  Excessive")
+    print("          editing using this menu can result in the 'Current Nodes' displayed") 
+    print("          being out of sync with the final nodes configuration.  The final")
+    print("          nodes configuration will be printed on exit.  Please check that")
+    print("          and re-run WARPNet Nodes Setup if necessary or manually edit the")
+    print("          nodes_config ini file.")
+    print("-" * 70)
 
     # base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     # config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
@@ -461,26 +468,19 @@ def wn_nodes_setup(file_name=None):
     else:
         nodes_config = wn_config.WnNodesConfiguration()
 
-    # Current Nodes:
-    #    ...
-    # Actions:
-    #     [1] Add node
-    #     [2] Remove Node
-    #     [3] Disable Node
-    #     [4] Quit
-    # Selection:
-    
+    # Actions Menu    
     actions = {0 : "Add node",
                1 : "Remove node",
-               2 : "Disable / Enable node",
-               3 : "Change IP address",
-               4 : "Quit (default)"}
+               2 : "Change Node ID",
+               3 : "Disable / Enable node",
+               4 : "Change IP address",
+               5 : "Quit (default)"}
 
     nodes_done = False
 
+    # Process actions until either a Ctrl-C or a quit action
     try:
         while not nodes_done:
-            print("-" * 50)
             nodes = nodes_config.print_nodes()
             
             print("Actions:")
@@ -490,79 +490,128 @@ def wn_nodes_setup(file_name=None):
             action = _select_from_table("Selection : ", actions)
             print("-" * 50)
             
-            if (action is None) or (action == 4):
+            if (action is None) or (action == 5):
                 nodes_done = True
             elif (action == 0):
-                _add_node_from_user(nodes_config)
+                serial_num = _add_node_from_user(nodes_config)
+                if not serial_num is None:
+                    nodes_config.add_node(serial_num)
+                    print("    Adding node: {0}".format(serial_num))
             elif (action == 1):
                 node = _select_from_table("Select node : ", nodes)
-                print("    Removing node: {0}".format(nodes[node]))
-                print("-" * 50)
-                nodes_config.remove_node(nodes[node])
+                if not node is None:
+                    nodes_config.remove_node(nodes[node])
+                    print("    Removing node: {0}".format(nodes[node]))
             elif (action == 2):
                 node = _select_from_table("Select node : ", nodes)
-                if (nodes_config.get_param(nodes[node], 'use_node')):
-                    print("    Disabling node: {0}".format(nodes[node]))
-                    nodes_config.set_param(nodes[node], 'use_node', False)
-                else:
-                    print("    Enabling node: {0}".format(nodes[node]))
-                    nodes_config.set_param(nodes[node], 'use_node', True)
-                print("-" * 50)
+                if not node is None:
+                    tmp_node_id = _get_node_id_from_user(nodes[node])
+                    if not tmp_node_id is None:
+                        nodes_config.set_param(nodes[node], 'node_id', tmp_node_id)
+                        print("    Setting node: {0} to ID {1}".format(nodes[node], tmp_node_id))
+                    else:
+                        nodes_config.remove_param(nodes[node], 'node_id')
+                        print("    Setting node: {0} to IP address {1}".format(nodes[node], 
+                                nodes_config.get_param(nodes[node], 'node_id')))
             elif (action == 3):
                 node = _select_from_table("Select node : ", nodes)
-                ip_addr = _get_ip_address_from_user(nodes[node])
-                print("    Setting node: {0} to IP address {1}".format(nodes[node], ip_addr))
-                print("-" * 50)
-                nodes_config.set_param(nodes[node], 'ip_address', ip_addr)                
+                if not node is None:
+                    if (nodes_config.get_param(nodes[node], 'use_node')):
+                        nodes_config.set_param(nodes[node], 'use_node', False)
+                        print("    Disabling node: {0}".format(nodes[node]))
+                    else:
+                        nodes_config.set_param(nodes[node], 'use_node', True)
+                        print("    Enabling node: {0}".format(nodes[node]))
+            elif (action == 4):
+                node = _select_from_table("Select node : ", nodes)
+                if not node is None:
+                    ip_addr = _get_ip_address_from_user(nodes[node])
+                    if not ip_addr is None:
+                        nodes_config.set_param(nodes[node], 'ip_address', ip_addr)
+                        print("    Setting node: {0} to IP address {1}".format(nodes[node], ip_addr))
+                    else:
+                        nodes_config.remove_param(nodes[node], 'ip_address')
+                        print("    Setting node: {0} to IP address {1}".format(nodes[node], 
+                                nodes_config.get_param(nodes[node], 'ip_address')))
+
+            print("-" * 50)
             
     except KeyboardInterrupt:
         pass
 
     nodes_config.save_config(output=True)
-    print("-" * 50)
+    print("-" * 70)
+    print("Final Nodes Configuration:")
+    print("-" * 70)
+
+    # Print final configuration
+    if not file_name is None:
+        nodes_config = wn_config.WarpNetNodesConfig(file_name)
+    else:
+        nodes_config = wn_config.WnNodesConfiguration()
+
+    nodes_config.print_nodes()
+
+    print("-" * 70)
     print("Nodes Configuration Complete.")
-    print("-" * 50)
+    print("-" * 70)
     print("\n")
 
 # End of wn_nodes_setup()
 
 
 def _add_node_from_user(nodes_config):
-    """Internal method to add a node based on info from the user"""        
-    serial_num = ''
-    ip_address = ''
-
+    """Internal method to add a node based on info from the user."""
+    serial_num = None
     serial_num_done = False
 
     while not serial_num_done:
         temp = raw_input("WARP Node Serial Number (last 5 digits or enter to end): ")
         if not temp is '':
             serial_num = "W3-a-{0:05d}".format(int(temp))
-            message = "Is {0} Correct? [Y/n]: ".format(serial_num)
+            message = "    Is {0} Correct? [Y/n]: ".format(serial_num)
             confirmation = _get_confirmation_from_user(message)
             if (confirmation == 'y'):
                 serial_num_done = True
             else:
-                serial_num = ''
+                serial_num = None
         else:
             break
 
-    # Only get IP address if serial number has been entered
-    if (serial_num_done):
-        ip_address = _get_ip_address_from_user(serial_num)    
-
-    print("-" * 50)
-    
-    if ((serial_num != '') and (ip_address != '')):
-        print("    Adding node: {0} @ {1}".format(serial_num, ip_address))
-        print("-" * 50)
-        nodes_config.add_node(serial_num, ip_address)            
+    return serial_num
 
 # End of _add_node_from_user()
 
 
+def _get_node_id_from_user(msg):
+    """Internal method to change a node's ID based on info from the user."""
+    node_id = None
+    node_id_done = False
+
+    while not node_id_done:
+        print("-" * 30)
+        temp = raw_input("Enter ID for node {0}: ".format(msg))
+        if not temp is '':
+            if (int(temp) < 254) and (int(temp) >= 0):
+                print("    Setting Node ID to {0}".format(temp))
+                node_id = int(temp)
+                node_id_done = True
+            else:
+                print("    '{0}' is not a valid Node ID.".format(temp))
+                print("    Valid Node IDs are integers in the range of [0,254).")
+        else:
+            break
+    
+    return node_id
+
+# End of _get_ip_address_from_user()
+
+
 def _get_ip_address_from_user(msg):
-    ip_address = ''
+    """Internal method to change a node's IP address based on info from 
+    the user.
+    """
+    ip_address = None
     ip_address_done = False
 
     while not ip_address_done:
@@ -605,7 +654,7 @@ def _select_from_table(select_msg, table):
 
 
 def _get_confirmation_from_user(message):
-    """Get confirmation from the user.  Default return value is 'y'"""
+    """Get confirmation from the user.  Default return value is 'y'."""
     confirmation = False
     
     while not confirmation:            
