@@ -377,7 +377,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			xil_printf("Configuring Demo:  flags = 0x%08x  sleep time = %d\n", temp, temp2);
 
 			// Pass the parameters directly to the config_demo function
-			wlan_mac_high_config_demo(temp, temp2);
+			//wlan_mac_high_config_demo(temp, temp2); //TODO: Remove WARPnet command
 
 			// Send response
 			respHdr->length += (respIndex * sizeof(respArgs32));
