@@ -75,6 +75,7 @@ u32						_DEMO_inter_pkt_sleep_usec;
 u8						_DEMO_mode;
 extern u8*				_demo_spoof_src_mac_addr;
 static u8 				curr_ant = 0;
+u32 _demo_num_iter = 0;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -159,10 +160,17 @@ int main(){
 	ipc_msg_to_high.payload_ptr = &(ipc_msg_to_high_payload[0]);
 	ipc_msg_to_high_payload[0] = cpu_low_status;
 	ipc_mailbox_write_msg(&ipc_msg_to_high);
-
+	_demo_num_iter = 0;
 	while(1){
+		_demo_num_iter++;
+
 		//Poll PHY RX start
 		status = poll_mac_rx();
+
+		if(_demo_num_iter>=200000){
+			_demo_set_antenna();
+			_demo_num_iter = 0;
+		}
 
 		//Poll mailbox read msg
 		if(ipc_mailbox_read_msg(&ipc_msg_from_high) == IPC_MBOX_SUCCESS){
@@ -352,6 +360,8 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
 	mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
+	mpdu_info->ant_mode = curr_ant;
+
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_BAD){
@@ -373,7 +383,6 @@ u32 frame_receive(void* pkt_buf_addr, u8 rate, u16 length){
 
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	//mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
-	mpdu_info->ant_mode = curr_ant;
 
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
@@ -610,46 +619,15 @@ inline u32 poll_mac_rx(){
 inline u32 wlan_mac_dcf_hw_rx_finish(){
 	u32 mac_status;
 	//Wait for the packet to finish
+
+	_demo_num_iter = 0;
 	do{
 		mac_status = wlan_mac_get_status();
 	} while(mac_status & WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE);
 
 	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
-	//TODO: Demo code
-	//TODO: Only switch on Beacons or ACKs
-	if(_DEMO_mode){
-		switch(curr_ant){
-			case 0:
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
-			break;
-			case 1:
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
-			break;
-
-			case 2:
-#ifdef WLAN_4RF_EN
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTC);
-#else
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
-#endif
-			break;
-			case 3:
-#ifdef WLAN_4RF_EN
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTD);
-#else
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
-#endif
-			break;
-			default:
-				wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
-				break;
-		}
-
-
-		curr_ant = (curr_ant+1)%4;
-		//usleep(_DEMO_inter_pkt_sleep_usec);
-	}
+	_demo_set_antenna();
 
 	//Check FCS
 	if(mac_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) {
@@ -663,6 +641,43 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 		return RX_MPDU_STATE_FCS_BAD;
 	}
 
+}
+
+inline void _demo_set_antenna(){
+	//TODO: Demo code
+		//TODO: Only switch on Beacons or ACKs
+		if(_DEMO_mode){
+			curr_ant = (curr_ant+1)%4;
+
+			switch(curr_ant){
+				case 0:
+					wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+				break;
+				case 1:
+					wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
+				break;
+
+				case 2:
+	#ifdef WLAN_4RF_EN
+					wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTC);
+	#else
+					wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+	#endif
+				break;
+				case 3:
+	#ifdef WLAN_4RF_EN
+					wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTD);
+	#else
+					wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTB);
+	#endif
+				break;
+				default:
+					wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
+					break;
+			}
+
+			//usleep(_DEMO_inter_pkt_sleep_usec);
+		}
 }
 
 inline void lock_empty_rx_pkt_buf_block(){
