@@ -1576,23 +1576,6 @@ void wlan_mac_high_set_time( u64 timestamp ){
 
 }
 
-void wlan_mac_high_config_demo(u32 flags, u32 inter_packet_sleep_usec){
-	wlan_ipc_msg       ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload[2];
-
-	ipc_msg_to_low_payload[0] = flags;
-	ipc_msg_to_low_payload[1] = inter_packet_sleep_usec;
-
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_DEMO_CONFIG);
-	ipc_msg_to_low.num_payload_words = 2;
-	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
-
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-}
-
-
-
 /*****************************************************************************/
 /**
 * Check variables on CPU low's state
