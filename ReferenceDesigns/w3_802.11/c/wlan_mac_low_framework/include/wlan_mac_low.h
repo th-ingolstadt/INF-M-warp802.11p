@@ -16,8 +16,7 @@
 #ifndef WLAN_MAC_LOW_H_
 #define WLAN_MAC_LOW_H_
 
-#include "xil_types.h"
-
+#include "wlan_mac_ipc_util.h"
 
 #define USERIO_BASEADDR     XPAR_W3_USERIO_BASEADDR
 
@@ -143,6 +142,14 @@
 #define wlan_mac_get_rx_phy_rate() ((Xil_In32(WLAN_MAC_REG_RX_RATE_LENGTH) & 0xF0000) >> 16)
 #define wlan_mac_get_rx_phy_sel() ((Xil_In32(WLAN_MAC_REG_RX_RATE_LENGTH) & 0x1000000) >> 24)
 
+//MAC Timing Parameters
+#define T_SLOT 9
+#define T_SIFS 16
+#define T_DIFS (T_SIFS + 2*T_SLOT)
+//#define T_EIFS 128
+#define T_EIFS T_DIFS
+#define T_TIMEOUT 80
+
 #define WLAN_RX_PHY_DSSS	0
 #define WLAN_RX_PHY_OFDM	1
 
@@ -155,9 +162,27 @@
 #define POLL_MAC_TYPE_ACK				(1<<8)
 #define POLL_MAC_TYPE_OTHER				(255<<8)
 
-
-
-
+int wlan_mac_low_init(u32 type);
+void wlan_mac_low_finish_init();
+void wlan_mac_low_dcf_init();
+inline void wlan_mac_low_send_exception(u32 reason);
+inline void wlan_mac_low_poll_ipc_rx();
+void process_ipc_msg_from_high(wlan_ipc_msg* msg);
 void wlan_mac_low_set_time(u64 new_time);
+void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc);
+void process_config_mac(ipc_config_mac* config_mac);
+void wlan_mac_low_init_hw_info( u32 type );
+wlan_mac_hw_info* wlan_mac_low_get_hw_info();
+u32 wlan_mac_low_get_active_channel();
+inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);
+inline u32 wlan_mac_low_poll_frame_rx();
+void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
+void wlan_mac_low_set_frame_tx_callback(function_ptr_t callback);
+void wlan_mac_low_frame_ipc_send();
+inline void wlan_mac_low_lock_empty_rx_pkt_buf();
+inline u64 get_usec_timestamp();
+inline u64 get_rx_start_timestamp();
+void wlan_mac_dcf_hw_unblock_rx_phy();
+inline u32 wlan_mac_dcf_hw_rx_finish();
 
 #endif /* WLAN_MAC_LOW_H_ */
