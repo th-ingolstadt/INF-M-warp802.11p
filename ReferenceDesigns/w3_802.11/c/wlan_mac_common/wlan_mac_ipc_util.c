@@ -181,7 +181,6 @@ int lock_pkt_buf_tx(u8 pkt_buf_ind) {
 	if(pkt_buf_ind >= NUM_TX_PKT_BUFS)
 		return PKT_BUF_MUTEX_FAIL_INVALID_BUF;
 
-
 	status = XMutex_Trylock(&pkt_buf_mutex, (pkt_buf_ind + PKT_BUF_MUTEX_TX_BASE));
 
 	if(status == XST_SUCCESS)

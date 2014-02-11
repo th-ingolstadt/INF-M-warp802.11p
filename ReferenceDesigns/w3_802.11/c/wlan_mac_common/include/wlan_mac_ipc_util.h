@@ -74,7 +74,7 @@ typedef struct{
 
 
 typedef struct{
-	u32 slot_config;
+	u32 slot_config; //TODO: remove
 } ipc_config_mac;
 
 #define SLOT_CONFIG_RAND 0xFFFFFFFF

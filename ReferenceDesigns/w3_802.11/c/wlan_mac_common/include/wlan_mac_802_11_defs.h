@@ -28,6 +28,13 @@ typedef struct{
 	//u8 address_4[6];
 } mac_header_80211;
 
+typedef struct{
+	u8 frame_control_1;
+	u8 frame_control_2;
+	u16 duration_id;
+	u8 address_ra[6];
+} mac_header_80211_ACK;
+
 //IEEE 802.11-2012 section 8.2.4:
 //frame_control_1 bits[7:0]:
 // 7:4: Subtype
