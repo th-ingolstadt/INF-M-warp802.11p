@@ -111,6 +111,35 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
 
 
 
+/*****************************************************************************/
+/**
+* Get MAC Address
+*
+* This function will populate the MAC address buffer, dest, with the MAC
+* address coming over the network (byte swapped).  This uses the same formating
+* as the HW address parameter from transport.c
+*
+* @param    src  - Source buffer of MAC address (u32, byte swapped)
+*           dest - Destination buffer of MAC address
+*
+* @return	None.
+*
+* @note     None.
+*
+******************************************************************************/
+void wlan_exp_get_mac_addr( u32 * src, u8 * dest) {
+
+    dest[0] = (src[0] >> 16) & 0xFF;
+    dest[1] = (src[0] >> 24) & 0xFF;
+    dest[2] = (src[1] >>  0) & 0xFF;
+    dest[3] = (src[1] >>  8) & 0xFF;
+    dest[4] = (src[1] >> 16) & 0xFF;
+    dest[5] = (src[1] >> 24) & 0xFF;
+
+}
+
+
+
 
 
 

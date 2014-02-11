@@ -112,6 +112,14 @@ typedef struct {
 // Define WARPNet Common Methods
 //
 void wlan_exp_configure(u32 type, u32 eth_dev_num);
+void wlan_exp_get_mac_addr( u32 * src, u8 * dest);
+
+
+
+//
+// Define WARPNet Common Methods that must be implemented in child classes
+//
+u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr);
 
 
 #ifdef _DEBUG_

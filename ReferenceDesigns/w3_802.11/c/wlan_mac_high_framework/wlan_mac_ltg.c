@@ -146,6 +146,32 @@ int ltg_sched_start(u32 id){
 	}
 
 }
+
+
+int ltg_sched_start_all(){
+	u32 i;
+	u32 list_len;
+	int ret_val = 0;
+	tg_schedule* curr_tg;
+	tg_schedule* next_tg;
+
+	list_len = tg_list.length;
+
+	next_tg = (tg_schedule*)(tg_list.first);
+	for(i = 0; i < list_len; i++ ){
+		curr_tg = next_tg;
+		next_tg = tg_schedule_next(curr_tg);
+
+		if(ltg_sched_start_l(curr_tg) == -1) {
+			xil_printf("Failed to start LTG ID: %d. Please ensure LTG is configured before starting\n", (curr_tg->id));
+			ret_val = -1;
+		}
+	}
+
+	return ret_val;
+}
+
+
 int ltg_sched_start_l(tg_schedule* curr_tg){
 	u64 timestamp = get_usec_timestamp();
 	u64 random_timestamp;
@@ -210,6 +236,26 @@ int ltg_sched_stop(u32 id){
 	}
 	return -1;
 }
+
+
+int ltg_sched_stop_all(){
+	u32 i;
+	u32 list_len;
+	tg_schedule* curr_tg;
+	tg_schedule* next_tg;
+
+	list_len = tg_list.length;
+
+	next_tg = (tg_schedule*)(tg_list.first);
+	for(i = 0; i < list_len; i++ ){
+		curr_tg = next_tg;
+		next_tg = tg_schedule_next(curr_tg);
+		ltg_sched_stop_l(curr_tg);
+	}
+
+	return 0;
+}
+
 
 int ltg_sched_stop_l(tg_schedule* curr_tg){
 	((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
@@ -345,3 +391,101 @@ tg_schedule* ltg_sched_find_tg_schedule(u32 id){
 	}
 	return NULL;
 }
+
+
+// NOTE:  The src information is from the network and must be byte swapped
+void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
+	u32    temp;
+    u16    type;
+    u16    size;
+    void * ret_val = NULL;
+
+    temp  = Xil_Ntohl(src[0]);
+    type  = (temp >> 16) & 0xFFFF;
+    size  = (temp & 0xFFFF);
+
+    // xil_printf("LTG Sched:  type = %d, size = %d\n", type, size);
+
+    switch(type){
+        case LTG_SCHED_TYPE_PERIODIC:
+        	if (size == 1){
+        		ret_val = (void *) wlan_mac_high_malloc(sizeof(ltg_sched_periodic_params));
+        	    if (ret_val != NULL){
+        	    	((ltg_sched_periodic_params *)ret_val)->interval_usec = Xil_Ntohl(src[1]);
+
+        	    	xil_printf("LTG Sched Periodic: %d usec\n", ((ltg_sched_periodic_params *)ret_val)->interval_usec);
+        	    }
+        	}
+    	break;
+
+        case LTG_SCHED_TYPE_UNIFORM_RAND:
+        	if (size == 2){
+        		ret_val = (void *) wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
+        	    if (ret_val != NULL){
+        	    	((ltg_sched_uniform_rand_params *)ret_val)->min_interval = Xil_Ntohl(src[1]);
+        	    	((ltg_sched_uniform_rand_params *)ret_val)->max_interval = Xil_Ntohl(src[2]);
+
+        	    	xil_printf("LTG Sched Uniform Rand: [%d %d] usec\n", ((ltg_sched_uniform_rand_params *)ret_val)->min_interval, ((ltg_sched_uniform_rand_params *)ret_val)->max_interval);
+        	    }
+        	}
+        break;
+    }
+
+    // Set return values
+    *ret_type = type;
+    *ret_size = size;
+	return ret_val;
+}
+
+
+// NOTE:  The src information is from the network and must be byte swapped
+void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
+	u32    temp;
+    u16    type;
+    u16    size;
+    void * ret_val = NULL;
+
+    temp  = Xil_Ntohl(src[0]);
+    type  = (temp >> 16) & 0xFFFF;
+    size  = (temp & 0xFFFF);
+
+    // xil_printf("LTG Payload:  type = %d, size = %d\n", type, size);
+
+    switch(type){
+        case LTG_PYLD_TYPE_FIXED:
+        	if (size == 1){
+        		ret_val = (void *) wlan_mac_high_malloc(sizeof(ltg_pyld_fixed));
+        	    if (ret_val != NULL){
+					((ltg_pyld_fixed *)ret_val)->hdr.type = LTG_PYLD_TYPE_FIXED;
+        	    	((ltg_pyld_fixed *)ret_val)->length   = Xil_Ntohl(src[1]) & 0xFFFF;
+
+        	    	xil_printf("LTG Payload Fixed: %d bytes\n", ((ltg_pyld_fixed *)ret_val)->length);
+        	    }
+        	}
+    	break;
+
+        case LTG_PYLD_TYPE_UNIFORM_RAND:
+        	if (size == 2){
+        		ret_val = (void *) wlan_mac_high_malloc(sizeof(ltg_pyld_uniform_rand));
+        	    if (ret_val != NULL){
+					((ltg_pyld_uniform_rand *)ret_val)->hdr.type   = LTG_PYLD_TYPE_UNIFORM_RAND;
+        	    	((ltg_pyld_uniform_rand *)ret_val)->min_length = Xil_Ntohl(src[1]) & 0xFFFF;
+        	    	((ltg_pyld_uniform_rand *)ret_val)->max_length = Xil_Ntohl(src[2]) & 0xFFFF;
+
+        	    	xil_printf("LTG Payload Uniform Rand: [%d %d] bytes\n", ((ltg_pyld_uniform_rand *)ret_val)->min_length, ((ltg_pyld_uniform_rand *)ret_val)->max_length);
+        	    }
+        	}
+        break;
+    }
+
+    // Set return values
+    *ret_type = type;
+    *ret_size = size;
+	return ret_val;
+}
+
+
+
+
+
+

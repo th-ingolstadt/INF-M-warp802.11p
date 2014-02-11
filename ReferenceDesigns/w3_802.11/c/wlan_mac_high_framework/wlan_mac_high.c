@@ -1444,6 +1444,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
         	// Initialize WLAN Exp if it is being used
             if ( warpnet_initialized == 0 ) {
+            	node_info_set_wlan_hw_addr(&(hw_info.hw_addr_wlan[0]));
 
                 wlan_exp_node_init( hw_info.type, hw_info.serial_number, hw_info.fpga_dna, hw_info.wn_exp_eth_device, hw_info.hw_addr_wn );
 

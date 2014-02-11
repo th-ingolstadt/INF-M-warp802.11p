@@ -30,7 +30,10 @@
 #define LTG_PYLD_TYPE_FIXED				1
 #define LTG_PYLD_TYPE_UNIFORM_RAND		2
 
-#define LTG_REMOVE_ALL 0xFFFFFFFF
+
+#define LTG_REMOVE_ALL                  0xFFFFFFFF
+#define LTG_START_ALL                   0xFFFFFFFF
+#define LTG_STOP_ALL                    0xFFFFFFFF
 
 
 //In spirit, tg_schedule is derived from dl_node. Since C
@@ -111,12 +114,18 @@ void wlan_mac_ltg_sched_set_callback(void(*callback)());
 int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void(*callback)());
 int ltg_sched_remove(u32 id);
 int ltg_sched_start(u32 id);
+int ltg_sched_start_all();
 int ltg_sched_stop(u32 id);
+int ltg_sched_stop_all();
 int ltg_sched_start_l(tg_schedule* curr_tg);
 int ltg_sched_stop_l(tg_schedule* curr_tg);
 int ltg_sched_get_state(u32 id, u32* type, void** state);
 int ltg_sched_get_params(u32 id, u32* type, void** params);
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
+
+// WLAN Exp function to LTG -- users may call these directly or modify if needed
+void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
+void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
 
 //Internal functions to LTG -- users should not need to call these directly
 void ltg_sched_check();

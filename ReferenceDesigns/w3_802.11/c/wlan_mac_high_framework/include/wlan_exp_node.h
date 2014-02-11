@@ -39,19 +39,20 @@
 
 #define NODE_ASSN_GET_STATUS           10
 #define NODE_ASSN_SET_TABLE            11
-#define NODE_ASSN_RESET_STATS          12
 
 #define NODE_DISASSOCIATE              20
 
-#define NODE_TX_POWER                  30
+#define NODE_TX_GAIN                   30
 #define NODE_TX_RATE                   31
 #define NODE_CHANNEL                   32
 #define NODE_TIME                      33
 
-#define NODE_LTG_CONFIG_CBR            40
+#define NODE_LTG_CONFIG                40
 #define NODE_LTG_START                 41
 #define NODE_LTG_STOP                  42
 #define NODE_LTG_REMOVE                43
+
+#define NODE_LTG_ERROR                 0xFFFFFFFF
 
 #define NODE_LOG_RESET                 50
 #define NODE_LOG_CONFIG                51
@@ -64,6 +65,7 @@
 
 #define NODE_ADD_STATS_TO_LOG          60
 #define NODE_GET_STATS                 61
+#define NODE_RESET_STATS               62
 
 #define NODE_CONFIG_DEMO               90
 
@@ -80,10 +82,11 @@
 #define NODE_DESIGN_VER                3
 #define NODE_SERIAL_NUM                4
 #define NODE_FPGA_DNA                  5
-#define NODE_WLAN_MAX_ASSN             6
-#define NODE_WLAN_EVENT_LOG_SIZE       7
-#define NODE_WLAN_MAX_STATS            8
-#define NODE_MAX_PARAMETER             9
+#define NODE_WLAN_MAC_ADDR             6
+#define NODE_WLAN_MAX_ASSN             7
+#define NODE_WLAN_EVENT_LOG_SIZE       8
+#define NODE_WLAN_MAX_STATS            9
+#define NODE_MAX_PARAMETER            10
 
 
 
@@ -94,17 +97,18 @@
 //
 typedef struct {
 
-    u32   type;                        // Type of WARPNet node
-    u32   node;                        // Only first 16 bits are valid
-    u32   hw_generation;               // Only first  8 bits are valid
-	u32   design_ver;                  // Only first 24 bits are valid
+    u32   type;                             // Type of WARPNet node
+    u32   node;                             // Only first 16 bits are valid
+    u32   hw_generation;                    // Only first  8 bits are valid
+	u32   design_ver;                       // Only first 24 bits are valid
 
 	u32   serial_number;
 	u32   fpga_dna[FPGA_DNA_LEN];
 
-	u32   wlan_max_assn;               // WLAN Exp - Max Associations
-	u32   wlan_event_log_size;         // WLAN Exp - Event Log Size
-	u32   wlan_max_stats;              // WLAN Exp - Max number of promiscuous statistic entries
+    u32   wlan_hw_addr[2];                  // WLAN Exp - Wireless MAC address
+	u32   wlan_max_assn;                    // WLAN Exp - Max Associations
+	u32   wlan_event_log_size;              // WLAN Exp - Event Log Size
+	u32   wlan_max_stats;                   // WLAN Exp - Max number of promiscuous statistic entries
 
     u32   eth_device;
     u8    hw_addr[ETH_ADDR_LEN];
@@ -126,6 +130,7 @@ void node_set_process_callback(void(*callback)());
 int  node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network);
 int  node_get_parameter_values(u32 * buffer, unsigned int max_words);
 
+void node_info_set_wlan_hw_addr  ( u8 * hw_addr  );
 void node_info_set_max_assn      ( u32 max_assn  );
 void node_info_set_event_log_size( u32 log_size  );
 void node_info_set_max_stats     ( u32 max_stats );
