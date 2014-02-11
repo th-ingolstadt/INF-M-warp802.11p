@@ -70,6 +70,7 @@ extern u8             access_point_basic_rates[NUM_BASIC_RATES_MAX];
 
 extern u8             default_unicast_rate;
 
+extern u8             bcast_addr[6];
 
 /*************************** Variable Definitions ****************************/
 
@@ -190,14 +191,6 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 		break;
 
         
-		//---------------------------------------------------------------------
-		case NODE_ASSN_RESET_STATS:
-			xil_printf("Reseting Statistics - STA\n");
-
-			reset_station_statistics();
-		break;
-
-
 		//---------------------------------------------------------------------
 		case NODE_DISASSOCIATE:
             // NODE_DISASSOCIATE Packet Format:
@@ -392,6 +385,33 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 	}
 
 	return respSent;
+}
+
+
+
+/*****************************************************************************/
+/**
+* WLAN Exp mapping of MAC Addr to AID
+*
+* This function contains the mapping of MAC address to AID within a node.
+*
+* @param    MAC Address
+*
+* @return	AID associated with that MAC address
+*
+* @note		None.
+*
+******************************************************************************/
+u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
+	u32 id;
+
+	if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
+		id = 0xFFFFFFFF;
+	} else {
+		id = 0;
+	}
+
+	return id;
 }
 
 

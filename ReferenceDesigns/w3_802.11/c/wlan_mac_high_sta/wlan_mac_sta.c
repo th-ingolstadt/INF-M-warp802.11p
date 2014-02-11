@@ -109,7 +109,7 @@ u32 mac_param_chan_save;
 
 // AP MAC address / Broadcast address
 static u8 eeprom_mac_addr[6];
-static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+const  u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 
 /*************************** Functions Prototypes ****************************/
@@ -517,7 +517,7 @@ void probe_req_transmit(){
 		if(checkout.length == 1){ //There was at least 1 free queue element
 			tx_queue = (packet_bd*)(checkout.first);
 
-			wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, bcast_addr );
+			wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr );
 
 			tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
