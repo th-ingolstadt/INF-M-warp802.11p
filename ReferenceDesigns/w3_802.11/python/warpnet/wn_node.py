@@ -156,10 +156,14 @@ class WnNode(object):
         self.transport.test_payload_size(self, jumbo_frame_support)        
 
         resp = self.get_node_info()
-        self.process_parameters(resp)
+        try:
+            self.process_parameters(resp)
+        except ex.WnParameterError as err:
+            print(err)
+            raise ex.WnNodeError(self, "Configuration Error")
 
         # Set description
-        self.description = str("WARP v{} Node - ID {}".format(self.hw_ver, self.node_id))
+        self.description = "WARP v{} Node - ID {}".format(self.hw_ver, self.node_id)
 
 
     #-------------------------------------------------------------------------

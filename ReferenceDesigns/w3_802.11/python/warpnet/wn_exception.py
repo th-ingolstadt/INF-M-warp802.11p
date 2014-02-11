@@ -48,7 +48,9 @@ class WnVersionError(WnError):
         self.message = message
 
     def __str__(self):
-        return str(self.message)
+        msg  = "Version Error:"
+        msg += "    {0} \n".format(self.message)
+        return msg
         
 # End Class WnVersionError
 
@@ -63,7 +65,9 @@ class WnConfigError(WnError):
         self.message = message
 
     def __str__(self):
-        return str(self.message)
+        msg  = "Config Error:"
+        msg += "    {0} \n".format(self.message)
+        return msg
         
 # End Class WnConfigError
 
@@ -80,7 +84,9 @@ class WnParameterError(WnError):
         self.message = message
 
     def __str__(self):
-        return str("Parameter " + self.name + " Error: " + self.message)
+        msg  = "Parameter {0} \n".format(self.name)
+        msg += "    Error: {0} \n".format(self.message)
+        return msg
 
 # End Class WnParameterError
 
@@ -97,7 +103,9 @@ class WnNodeError(WnError):
         self.message = message
 
     def __str__(self):
-        return str("Node " + self.node + " Error: " + self.message)
+        msg  = "{0} \n".format(self.node.name)
+        msg += "    Error: {0} \n".format(self.message)
+        return msg
 
 # End Class WnNodeError
 
@@ -114,7 +122,9 @@ class WnTransportError(WnError):
         self.message = message
 
     def __str__(self):
-        return str("Transport Error: " + self.message)
+        msg  = "{0} \n".format(self.transport)
+        msg += "    Error: {0} \n".format(self.message)
+        return msg
 
 # End Class WnTransportError
 

@@ -183,7 +183,7 @@ class WnCmdMessage(WnMessage):
 
     def serialize(self):
         """Return a bytes object of a packed command / response."""
-        # self.print()              # For Debug
+        # print(self)              # For Debug
         
         if self.num_args == 0:
             return struct.pack('!I 2H',
@@ -266,12 +266,14 @@ class WnCmd(WnCmdMessage):
 
     def __str__(self):
         """Pretty print the WnCommand"""
-        print("WARPNet Command [{0:d}] ({1:d} bytes): ".format(self.command, 
-                                                               self.length))
-        print("    Args [0:{0:d}]  : ".format(self.num_args))
-        for i in range(len(self.args)):
-            print("        0x%08x " % self.args[i])
-        print("")
+        msg = "WARPNet Command [{0:d}] ".format(self.command)
+        msg = msg + "({0:d} bytes): \n".format(self.length)
+        
+        if (self.num_args > 0):
+            msg = msg + "    Args [0:{0:d}]  : \n".format(self.num_args)
+            for i in range(len(self.args)):
+                msg = msg + "        0x{0:08x}\n".format(self.args[i])
+        return msg
 
 # End Class WnCommand
 
@@ -321,12 +323,14 @@ class WnBufferCmd(WnCmdMessage):
 
     def __str__(self):
         """Pretty print the WnCommand"""
-        print("WARPNet Buffer Command [{0:d}]".format(self.command),
-              "({0:d} bytes): ".format(self.length))
-        print("    Args [0:{0:d}]  : ".format(self.num_args))
-        for i in range(len(self.args)):
-            print("        0x%08x " % self.args[i])
-        print("")
+        msg = "WARPNet Buffer Command [{0:d}] ".format(self.command)
+        msg = msg + "({0:d} bytes): \n".format(self.length)
+        
+        if (self.num_args > 0):
+            msg = msg + "    Args [0:{0:d}]  : \n".format(self.num_args)
+            for i in range(len(self.args)):
+                msg = msg + "        0x{0:08x}\n".format(self.args[i])
+        return msg
 
 # End Class WnCommand
 
@@ -343,12 +347,14 @@ class WnResp(WnCmdMessage):
 
     def __str__(self):
         """Pretty print the WnResponse"""
-        print("WARPNet Response [{0:d}] ({1:d} bytes): ".format(self.command, 
-                                                                self.length))
-        print("    Args [0:{0:d}]  : ".format(self.num_args))
-        for i in range(len(self.args)):
-            print("        0x%08x " % self.args[i])
-        print("")
+        msg = "WARPNet Response [{0:d}] ".format(self.command)
+        msg = msg + "({0:d} bytes): \n".format(self.length)
+        
+        if (self.num_args > 0):
+            msg = msg + "    Args [0:{0:d}]  : \n".format(self.num_args)
+            for i in range(len(self.args)):
+                msg = msg + "        0x{0:08x}\n".format(self.args[i])
+        return msg
 
 # End Class WnResp
 
@@ -499,18 +505,20 @@ class WnBuffer(WnMessage):
 
     def __str__(self):
         """Pretty print the WnBuffer"""
-        print("WARPNet Buffer [{0:d}] ({1:d} bytes): ".format(self.buffer_id, 
-                                                              self.size))
-        print("    Flags    : 0x{0:08x}".format(self.flags))
-        print("    Num bytes: {0:d}".format(self.num_bytes))
-        print("    Complete : {0}".format(self.complete))
-        print("    Data     : ")
+        msg = "WARPNet Buffer [{0:d}] ".format(self.buffer_id)
+        msg = msg + "({0:d} bytes): \n".format(self.size)
+        msg = msg + "    Flags    : 0x{0:08x} \n".format(self.flags)
+        msg = msg + "    Num bytes: {0:d}\n".format(self.num_bytes)
+        msg = msg + "    Complete : {0}\n".format(self.complete)
+        msg = msg + "    Data     : "
+        
         for i in range(len(self.buffer)):
             if (i % 16) == 0:
-                print("\n        %02x " % self.buffer[i])
+                msg = msg + "\n        {0:02x} ".format(self.buffer[i])
             else:
-                print("%02x " % self.buffer[i])
-        print("")
+                msg = msg + "{0:02x} ".format(self.buffer[i])
+
+        return msg
 
 
     #-------------------------------------------------------------------------

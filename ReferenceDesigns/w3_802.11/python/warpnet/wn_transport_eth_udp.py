@@ -95,6 +95,7 @@ class WnTransportEthUdp(tp.WnTransport):
 
     def set_max_payload(self, value):  self.max_payload = value
     def set_ip_address(self, value):   self.ip_address = value
+    def set_mac_address(self, value):  self.mac_address = value
     def set_unicast_port(self, value): self.unicast_port = value
     def set_bcast_port(self, value):   self.bcast_port = value
     def set_src_id(self, value):       self.hdr.set_src_id(value)
@@ -102,6 +103,7 @@ class WnTransportEthUdp(tp.WnTransport):
 
     def get_max_payload(self):         return self.max_payload
     def get_ip_address(self):          return self.ip_address
+    def get_mac_address(self):         return self.mac_address
     def get_unicast_port(self):        return self.unicast_port
     def get_bcast_port(self):          return self.bcast_port
     def get_src_id(self):              return self.hdr.get_src_id()

@@ -258,8 +258,8 @@ class WnNodesConfiguration(object):
 
     NOTE:  In order to be as consistent as possible, all nodes in the 
     configuration file get a node id regardless of whether they are used.
-    Also, we sort the INI based on serial number so that the lowest serial
-    numbered node will have node_id = 0
+    Also, we do not sort the INI in our testing, it seems like the nodes are
+    initialized in the order they appear in the config but are not guarenteed.
 
     """
     config              = None
@@ -503,11 +503,11 @@ class WnNodesConfiguration(object):
 
 
     def load_shadow_config(self):
-        """For each node in the config, populate the shadow_config."""
-        
-        # Sort the config by serial number so there is consistent numbering
+        """For each node in the config, populate the shadow_config."""        
         sections = self.config.sections()
-        sections.sort()
+
+        # Sort the config by serial number so there is consistent numbering
+        # sections.sort()
         
         # Mirror any fields in the config and populate any missing fields 
         # with default values
@@ -703,7 +703,7 @@ class WnNodesConfiguration(object):
         if (len(self.config.sections()) == 0):
             print("    None")
         sections = self.config.sections()
-        sections.sort()
+        # sections.sort()
         for idx, val in enumerate(sections):
             node_id = self.get_param_helper(val, 'node_id')
             ip_addr = self.get_param_helper(val, 'ip_address')
