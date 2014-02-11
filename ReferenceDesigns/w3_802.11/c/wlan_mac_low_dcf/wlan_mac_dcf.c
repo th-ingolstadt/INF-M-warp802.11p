@@ -29,6 +29,7 @@
 #include <string.h>
 
 // WARP includes
+#include "wlan_mac_low.h"
 #include "w3_userio.h"
 #include "w3_ad_controller.h"
 #include "w3_clock_controller.h"
@@ -194,7 +195,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 			case IPC_MBOX_SET_TIME:
 				new_timestamp = *(u64*)ipc_msg_from_high_payload;
-				wlan_mac_set_time(new_timestamp);
+				wlan_mac_low_set_time(new_timestamp);
 			break;
 
 			case IPC_MBOX_CONFIG_PHY_TX:
@@ -994,11 +995,3 @@ inline int calculate_rx_power(u8 band, u16 rssi, u8 lna_gain){
 	return power;
 }
 
-void wlan_mac_set_time(u64 new_time) {
-	Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_LSB, (u32)new_time);
-	Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_MSB, (u32)(new_time>>32));
-	
-	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
-	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
-	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
-}
