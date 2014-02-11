@@ -41,6 +41,8 @@ import warpnet.wn_cmds as wn_cmds
 import warpnet.wn_message as wn_message
 import warpnet.wn_transport_eth_udp as wn_transport
 
+from . import wlan_exp_ltg as ltg
+
 
 __all__ = ['WlanExpCmdLogGetEvents', 'WlanExpCmdResetLog', 
            'WlanExpCmdGetLogCurrIdx', 'WlanExpCmdGetLogOldestIdx', 
@@ -52,16 +54,15 @@ __all__ = ['WlanExpCmdLogGetEvents', 'WlanExpCmdResetLog',
 #   NOTE:  The C counterparts are found in wlan_exp_node.h
 CMD_ASSN_GET_STATUS          = 10
 CMD_ASSN_SET_TABLE           = 11
-CMD_ASSN_RESET_STATS         = 12
 
 CMD_DISASSOCIATE             = 20
 
-CMD_TX_POWER                 = 30
+CMD_TX_GAIN                  = 30
 CMD_TX_RATE                  = 31
 CMD_CHANNEL                  = 32
 CMD_TIME                     = 33
 
-CMD_LTG_CONFIG_CBF           = 40
+CMD_LTG_CONFIG               = 40
 CMD_LTG_START                = 41
 CMD_LTG_STOP                 = 42
 CMD_LTG_REMOVE               = 43
@@ -77,6 +78,7 @@ CMD_LOG_STREAM_ENTRIES       = 57
 
 CMD_STATS_ADD_TO_LOG         = 60
 CMD_STATS_GET_STATS          = 61
+CMD_STATS_RESET              = 62
 
 CMD_CONFIG_DEMO              = 90
 
@@ -87,6 +89,10 @@ CMD_CONFIG_DEMO              = 90
 #-----------------------------------------------------------------------------
 # Class Definitions for WLAN Exp Commands
 #-----------------------------------------------------------------------------
+
+#--------------------------------------------
+# Log Commands
+#--------------------------------------------
 
 class WlanExpCmdLogGetEvents(wn_message.WnBufferCmd):
     """Command to get the WLAN Exp log events of the node"""
@@ -145,22 +151,6 @@ class WlanExpCmdGetLogOldestIdx(wn_message.WnCmd):
 # End Class
 
 
-class WlanExpCmdAddStatsToLog(wn_message.WnCmd):
-    """Command to add the current statistics to the Event log"""
-    def __init__(self):
-        super(WlanExpCmdAddStatsToLog, self).__init__()
-        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_STATS_ADD_TO_LOG
-    
-    def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
-
-# End Class
-
-
 class WlanExpCmdStreamLogEntries(wn_message.WnCmd):
     """Command to configure the node log streaming."""
     def __init__(self, enable, host_id, ip_address, port):
@@ -186,6 +176,154 @@ class WlanExpCmdStreamLogEntries(wn_message.WnCmd):
 # End Class
 
 
+#--------------------------------------------
+# Stats Commands
+#--------------------------------------------
+class WlanExpCmdAddStatsToLog(wn_message.WnCmd):
+    """Command to add the current statistics to the Event log"""
+    def __init__(self):
+        super(WlanExpCmdAddStatsToLog, self).__init__()
+        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_STATS_ADD_TO_LOG
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+
+class WlanExpCmdResetStats(wn_message.WnCmd):
+    """Command to reset the current statistics on the node."""
+    def __init__(self):
+        super(WlanExpCmdResetStats, self).__init__()
+        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_STATS_RESET
+    
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
+
+#--------------------------------------------
+# Local Traffic Generation (LTG) Commands
+#--------------------------------------------
+class WlanExpCmdConfigureLTG(wn_message.WnCmd):
+    """Command to configure an LTG with the given traffic flow to the 
+    specified node.
+    """
+    def __init__(self, node, traffic_flow):
+        super(WlanExpCmdConfigureLTG, self).__init__()
+        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_LTG_CONFIG
+        
+        mac_address = node.wlan_mac_address
+        self.add_args(((mac_address >> 32) & 0xFFFF))
+        self.add_args((mac_address & 0xFFFFFFFF))
+        for arg in traffic_flow.serialize():
+            self.add_args(arg)
+
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+class WlanExpCmdStartLTG(wn_message.WnCmd):
+    """Command to start a configured LTG to the given node.
+    
+    NOTE:  By providing no node argument, this command will start all 
+    configured LTGs on the node.
+    """
+    def __init__(self, node=None):
+        super(WlanExpCmdStartLTG, self).__init__()
+        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_LTG_START
+
+        if not node is None:
+            mac_address = node.wlan_mac_address
+            self.add_args(((mac_address >> 32) & 0xFFFF))
+            self.add_args((mac_address & 0xFFFFFFFF))
+        else:
+            self.add_args(0xFFFFFFFF)
+            self.add_args(0xFFFFFFFF)
+
+
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+
+class WlanExpCmdStopLTG(wn_message.WnCmd):
+    """Command to stop a configured LTG to the given node.
+    
+    NOTE:  By providing no node argument, this command will start all 
+    configured LTGs on the node.
+    """
+    def __init__(self, node=None):
+        super(WlanExpCmdStopLTG, self).__init__()
+        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_LTG_STOP
+
+        if not node is None:
+            mac_address = node.wlan_mac_address
+            self.add_args(((mac_address >> 32) & 0xFFFF))
+            self.add_args((mac_address & 0xFFFFFFFF))
+        else:
+            self.add_args(0xFFFFFFFF)
+            self.add_args(0xFFFFFFFF)
+
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+
+class WlanExpCmdRemoveLTG(wn_message.WnCmd):
+    """Command to remove a configured LTG to the given node.
+    
+    NOTE:  By providing no node argument, this command will start all 
+    configured LTGs on the node.
+    """
+    def __init__(self, node=None):
+        super(WlanExpCmdRemoveLTG, self).__init__()
+        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_LTG_REMOVE
+
+        if not node is None:
+            mac_address = node.wlan_mac_address
+            self.add_args(((mac_address >> 32) & 0xFFFF))
+            self.add_args((mac_address & 0xFFFFFFFF))
+        else:
+            self.add_args(0xFFFFFFFF)
+            self.add_args(0xFFFFFFFF)
+
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+
+#--------------------------------------------
+# Configure Node Attribute Commands
+#--------------------------------------------
 class WlanExpCmdNodeTime(wn_message.WnCmd):
     """Command to get / set the time on the node.
     
@@ -250,6 +388,61 @@ class WlanExpCmdNodeChannel(wn_message.WnCmd):
 # End Class
 
 
+class WlanExpCmdNodeTxRate(wn_message.WnCmd):
+    """Command to get / set the transmit rate of the node.
+    
+    Attributes:
+        rate    -- 802.11 transmit rate for the node.  Should be a value 
+                   between WLAN_MAC_RATE_6M and WLAN_MAC_RATE_54M.  These
+                   constants can be found in wlan_exp_defaults. Checking 
+                   is done on the node and the current rate will always be 
+                   returned by the node.  A value of 0xFFFF will only 
+                   return the rate.
+    """
+    def __init__(self, rate):
+        super(WlanExpCmdNodeTxRate, self).__init__()
+        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_TX_RATE
+
+        self.add_args((rate & 0xFFFF))
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+
+class WlanExpCmdNodeTxGain(wn_message.WnCmd):
+    """Command to get / set the transmit gain of the node.
+    
+    Attributes:
+        rate    -- Transmit gain for the WARP node.  Should be an integer
+                   value between 0 and 63.  Checking is done on the node 
+                   and the current gain will always be returned by the node.
+                   A value of 0xFFFF will only return the gain.
+    """
+    def __init__(self, gain):
+        super(WlanExpCmdNodeTxGain, self).__init__()
+        self.command = (wn_cmds.GRPID_NODE << 24) | CMD_TX_GAIN
+
+        self.add_args((gain & 0xFFFF))
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+
+#--------------------------------------------
+# Misc Commands
+#--------------------------------------------
 class WlanExpCmdConfigDemo(wn_message.WnCmd):
     """Command to configure the demo on the node.
     
