@@ -91,7 +91,7 @@ u32 		 mac_param_chan;
 
 // AP MAC address / Broadcast address
 static u8 eeprom_mac_addr[6];
-static u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+const  u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 // Misc
 u32 animation_schedule_id;
@@ -472,7 +472,7 @@ void beacon_transmit() {
  	if(checkout.length == 1){ //There was at least 1 free queue element
  		tx_queue = (packet_bd*)(checkout.first);
 
- 		wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, eeprom_mac_addr );
+ 		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, eeprom_mac_addr );
         tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,1,tim_control,tim_bitmap);
  		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
  		enqueue_after_end(MANAGEMENT_QID, &checkout); //TODO: BCAST_QID or MANAGEMENT_QID
@@ -630,7 +630,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
 									tx_queue = (packet_bd*)(checkout.first);
-									wlan_mac_high_setup_tx_header( &tx_header_common, bcast_addr, rx_80211_header->address_2);
+									wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, rx_80211_header->address_2);
 									mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 									tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 									mpdu_ptr_u8 += sizeof(mac_header_80211);

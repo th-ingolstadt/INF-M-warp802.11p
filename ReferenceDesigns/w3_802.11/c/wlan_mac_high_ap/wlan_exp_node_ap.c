@@ -61,6 +61,7 @@ extern u32          mac_param_chan;
 
 extern u8           default_unicast_rate;
 
+extern u8           bcast_addr[6];
 
 /*************************** Variable Definitions ****************************/
 
@@ -106,7 +107,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 	unsigned int  respIndex  = 0;                  // This function is called w/ same state as node_processCmd
 	unsigned int  respSent   = NO_RESP_SENT;       // Initialize return value to NO_RESP_SENT
-    unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
+    // unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
     unsigned int  temp, temp2, i;
@@ -114,7 +115,6 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
     unsigned int  table_freq;
 
 	station_info* curr_station_info;
-	station_info* next_station_info;
 
 
     // Note:    
@@ -183,14 +183,6 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
 		case NODE_ASSN_SET_TABLE:
 			xil_printf("AP - Set association table not supported\n");
-		break;
-
-
-		//---------------------------------------------------------------------
-		case NODE_ASSN_RESET_STATS:
-			xil_printf("Reseting Statistics - AP\n");
-
-			reset_station_statistics();
 		break;
 
 
@@ -419,6 +411,41 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 	}
 
 	return respSent;
+}
+
+
+
+/*****************************************************************************/
+/**
+* WLAN Exp mapping of MAC Addr to AID
+*
+* This function contains the mapping of MAC address to AID within a node.
+*
+* @param    MAC Address
+*
+* @return	AID associated with that MAC address
+*
+* @note		None.
+*
+******************************************************************************/
+u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
+	u32            id;
+	station_info * info;
+
+	if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
+		id = 0xFFFFFFFF;
+	} else {
+		info = wlan_mac_high_find_station_info_ADDR(&association_table, mac_addr);
+		if (info != NULL) {
+            id = info->AID;
+		} else {
+			xil_printf("ERROR:  Could not find MAC address = %02x:%02x:%02x:%02x:%02x:%02x\n",
+                       mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+			id = 0;
+		}
+	}
+
+	return id;
 }
 
 
