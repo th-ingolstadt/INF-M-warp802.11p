@@ -526,7 +526,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
 			// If parameter is not the magic number, then set the TX power
-			if ( temp != 0xFFFF ) {
+			if ( temp != NODE_TX_GAIN_RSVD_VAL ) {
 
 				if (temp <  0) {
 					default_tx_gain_target = 0;
@@ -565,7 +565,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			temp2 = Xil_Ntohl(cmdArgs32[1]);
 
 			// If parameter is not the magic number, then set the time on the node
-			if ( ( temp != 0xFFFF ) && ( temp2 != 0xFFFF ) ) {
+			if ( ( temp != NODE_TIME_RSVD_VAL ) && ( temp2 != NODE_TIME_RSVD_VAL ) ) {
 
 				time = (((u64)temp2)<<32) + ((u64)temp);
 
@@ -792,11 +792,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// Get flags
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
-            // Local Defines for flag bits
-            #define NODE_LTG_FLAG_WRAP      0x00000001
-
 			// Configure the LTG based on the flag bits
-			if ( ( temp & NODE_LTG_FLAG_WRAP ) == NODE_LTG_FLAG_WRAP ) {
+			if ( ( temp & NODE_LOG_CONFIG_FLAG_WRAP ) == NODE_LOG_CONFIG_FLAG_WRAP ) {
 				event_log_config_wrap( EVENT_LOG_WRAP_ENABLE );
 			} else {
 				event_log_config_wrap( EVENT_LOG_WRAP_DISABLE );

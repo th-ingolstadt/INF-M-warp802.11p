@@ -47,6 +47,11 @@
 #define NODE_CHANNEL                   32
 #define NODE_TIME                      33
 
+#define NODE_TX_GAIN_RSVD_VAL          0xFFFF
+#define NODE_TX_RATE_RSVD_VAL          0xFFFF
+#define NODE_CHANNEL_RSVD_VAL          0xFFFF
+#define NODE_TIME_RSVD_VAL             0xFFFF
+
 #define NODE_LTG_CONFIG                40
 #define NODE_LTG_START                 41
 #define NODE_LTG_STOP                  42
@@ -62,6 +67,8 @@
 #define NODE_LOG_ADD_EVENT             55
 #define NODE_LOG_ENABLE_EVENT          56
 #define NODE_LOG_STREAM_ENTRIES        57
+
+#define NODE_LOG_CONFIG_FLAG_WRAP      0x00000001
 
 #define NODE_ADD_STATS_TO_LOG          60
 #define NODE_GET_STATS                 61
