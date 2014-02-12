@@ -146,7 +146,7 @@ void reset_station_statistics();
 u32  deauthenticate_station( station_info* station );
 void deauthenticate_stations();
 
-station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
+station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID);
 statistics* add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
 dl_list * get_statistics();
 int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);

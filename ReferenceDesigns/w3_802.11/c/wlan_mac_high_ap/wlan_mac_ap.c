@@ -208,6 +208,45 @@ int main(){
 	node_set_process_callback( (void *)wlan_exp_node_ap_processCmd );
 #endif
 
+	/*
+	//TEST
+	u32 i;
+	station_info* curr_association;
+	station_info* associated_station;
+
+	u8 _demo_addr1[6] = {0xAC,0xFD,0xEC,0x3F,0x3F,0x50}; //Ashu iPhone
+	u8 _demo_addr2[6] = {0x00,0x88,0x65,0x65,0x2A,0xC8}; //Evan iPhone
+	u8 _demo_addr3[6] = {0x14,0x7D,0xC5,0x5E,0xA9,0xFB}; //Clay
+
+	associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, _demo_addr1,1);
+	if(associated_station!=NULL){
+		associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
+		strcpy(associated_station->hostname,"one");
+	}
+
+	associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, _demo_addr2,2);
+	if(associated_station!=NULL){
+		associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
+		strcpy(associated_station->hostname,"two");
+	}
+//ADD_ASSOCIATION_ANY_AID
+	associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, _demo_addr3,2);
+	if(associated_station!=NULL){
+		associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
+		strcpy(associated_station->hostname,"three");
+	}
+
+	xil_printf("\n\nLen: %d\n", association_table.length);
+	curr_association = (station_info*)(association_table.first);
+	for(i = 0; i<association_table.length; i++){
+		xil_printf("AID: %d, Name: %s\n", curr_association->AID, curr_association->hostname);
+		curr_association = station_info_next(curr_association);
+	}
+	while(1){};
+	//TEST
+ */
+
+
 
 	wlan_mac_high_interrupt_start();
 	while(1){
@@ -812,7 +851,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ): //Association Request
 				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr)) {
 
-					associated_station = add_association(&association_table, &statistics_table, rx_80211_header->address_2);
+
+					if(association_table.length < MAX_NUM_ASSOC) associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
 
 					if(associated_station != NULL) {
 
@@ -1076,15 +1116,32 @@ void deauthenticate_stations(){
 	}
 }
 
-station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
+station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID){
 	station_info* station;
 	statistics*   station_stats;
 	station_info* curr_station_info;
-	station_info_entry* curr_station_info_entry;
 	u32 i;
 	u16 curr_AID;
 
 	curr_AID = 0;
+
+	if(requested_AID != ADD_ASSOCIATION_ANY_AID){
+		//This call is requesting a particular AID.
+		station = wlan_mac_high_find_station_info_AID(assoc_tbl, requested_AID);
+		if(station != NULL){
+			//We found a station_info with this requested AID. Let's check
+			//if the address matches the argument to this add
+			if(wlan_addr_eq(station->addr, addr)){
+				//We already have this exact station_info, so we'll just
+				//return a pointer to it.
+				return station;
+			} else {
+				//The requested AID is already in use and it is used by a different
+				//address. We cannot add this association.
+				return NULL;
+			}
+		}
+	}
 
 	station = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
 	if(station != NULL){
@@ -1094,34 +1151,35 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 
 		return station;
 	} else {
+		//This addr is new, so we'll have to add an entry into the association table
+		station = wlan_mac_high_malloc(sizeof(station_info));
+		if(station == NULL){
+			//malloc failed. Passing that failure on to calling function.
+			return NULL;
+		}
 
-		if(assoc_tbl->length < MAX_NUM_ASSOC){
-			//This addr is new, so we'll have to add an entry into the association table
-
-			station = wlan_mac_high_malloc(sizeof(station_info));
-			station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
+		station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
+		if(station_stats == NULL){
+			station_stats = wlan_mac_high_calloc(sizeof(statistics));
 			if(station_stats == NULL){
-				station_stats = wlan_mac_high_calloc(sizeof(statistics));
-				if(station_stats == NULL){
-					//malloc failed. Passing that failure on to calling function
-					return NULL;
-				}
-				memcpy(station_stats->addr, addr, 6);
-				dl_node_insertEnd(stat_tbl, &(station_stats->node));
-			}
-
-			if(station == NULL){
-				//malloc failed. Passing that failure on to calling function.
+				//malloc failed. Passing that failure on to calling function
+				wlan_mac_high_free(station);
 				return NULL;
 			}
+			memcpy(station_stats->addr, addr, 6);
+			dl_node_insertEnd(stat_tbl, &(station_stats->node));
+		}
 
-			station->stats = station_stats;
-			station->stats->is_associated = 1;
-			memcpy(station->addr, addr, 6);
-			station->tx.rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
-			station->AID = 0;
-			station->hostname[0] = 0;
 
+
+		station->stats = station_stats;
+		station->stats->is_associated = 1;
+		memcpy(station->addr, addr, 6);
+		station->tx.rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
+		station->AID = 0;
+		station->hostname[0] = 0;
+
+		if(requested_AID == ADD_ASSOCIATION_ANY_AID){
 			//Find the minimum AID that can be issued to this station.
 			curr_station_info = (station_info*)(assoc_tbl->first);
 			for( i = 0 ; i < assoc_tbl->length ; i++ ){
@@ -1160,23 +1218,33 @@ station_info* add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
 
 			print_associations(assoc_tbl);
 			wlan_mac_high_write_hex_display(assoc_tbl->length);
-
-			curr_station_info_entry = get_next_empty_station_info_entry();
-			if(curr_station_info_entry != NULL){
-				memcpy(curr_station_info_entry->addr, station->addr, 6);
-				memcpy(curr_station_info_entry->hostname, station->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
-				curr_station_info_entry->AID = station->AID;
-				curr_station_info_entry->flags = station->flags;
-				curr_station_info_entry->rate = station->tx.rate;
-				curr_station_info_entry->antenna_mode = station->tx.rate;
-				curr_station_info_entry->max_retry = station->tx.max_retry;
-
-				wn_transmit_log_entry((void *)curr_station_info_entry);
-			}
-
 			return station;
 		} else {
-			return NULL;
+			//Find the right place in the dl_list to insert this station_info with
+			//the requested AID
+			curr_station_info = (station_info*)(assoc_tbl->first);
+			for( i = 0 ; i < assoc_tbl->length ; i++ ){
+
+				if(curr_station_info->AID > requested_AID){
+					station->AID = requested_AID;
+					//Add this station into the association table just before the curr_station_info
+					dl_node_insertBefore(assoc_tbl, &(curr_station_info->node), &(station->node));
+				}
+
+				curr_station_info = station_info_next(curr_station_info);
+			}
+
+			if(station->AID == 0){
+				//There was no hole in the association table, so we insert it at the end
+				station->AID = requested_AID;
+
+				//Add this station into the association table at the end
+				dl_node_insertEnd(assoc_tbl, &(station->node));
+			}
+
+			print_associations(assoc_tbl);
+			wlan_mac_high_write_hex_display(assoc_tbl->length);
+			return station;
 		}
 
 
