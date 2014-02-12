@@ -587,7 +587,6 @@ class WnNodeFactory(WnNode):
 
         try:
             full_node_class = node_class + "(host_config)"
-            print(full_node_class)
             node = eval(full_node_class, globals(), locals())
         except:
             pass

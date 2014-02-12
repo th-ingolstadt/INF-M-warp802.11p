@@ -467,8 +467,7 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         node = None
 
         try:
-            full_node_class = node_class + "()"
-            print(full_node_class)
+            full_node_class = node_class + "(host_config)"
             node = eval(full_node_class, globals(), locals())
         except:
             pass
