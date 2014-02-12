@@ -26,13 +26,13 @@ for each Tx rate.
 """
 import sys
 import time
-import warpnet.config as wn_config
-import wlan_exp.util  as wlan_exp_util
-import wlan_exp.ltg   as ltg
+import warpnet.wn_config as wn_config
+import wlan_exp.wlan_exp_util  as wlan_exp_util
+import wlan_exp.wlan_exp_ltg   as ltg
 
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
+NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
 rates = wlan_exp_util.rates[0:4]
 TRIAL_TIME = 10
@@ -43,7 +43,8 @@ print("\nInitializing experiment\n")
 host_config = wn_config.HostConfiguration(host_interfaces=HOST_INTERFACES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config = wn_config.NodesConfiguration(serial_numbers=NODE_SERIAL_LIST)
+nodes_config = wn_config.NodesConfiguration(host_config=host_config,
+                                            serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #  This command will fail if either WARP v3 node does not respond
@@ -54,7 +55,7 @@ n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
 n_sta_l = wlan_exp_util.filter_nodes(nodes, 'node_type', 'STA')
 
 # Check that we have a valid AP and STA
-if ((len(n_ap_l) == 1) && (len(n_sta_l) == 1)):
+if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
     n_ap = n_ap_l[0]
     n_sta = n_sta_l[0]
 else:
@@ -88,12 +89,12 @@ for ii,rate in enumerate(rates):
     #Compute the number of new bytes received and the time span
     rx_bytes[ii] = rx_stats_end['num_rx_bytes'] - rx_stats_start['num_rx_bytes']
     rx_time_spans[ii] = rx_stats_end['timestamp'] - rx_stats_start['timestamp']
-	print("Done.\n")
+    print("Done.\n")
 	
 print("\n\n")
 
 #Calculate and display the throughput results
-for ii in len(num_rx[ii]):
+for ii in range(len(rates)):
     #Timestamps are in microseconds; bits/usec == Mbits/sec
     xput = (rx_bytes[ii] * 8) / rx_time_spans[ii]
     print("Rate = %2.1f Mbps   Throughput = %2.1 Mbps", (rates[ii]['rate'], xput))
