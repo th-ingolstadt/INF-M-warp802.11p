@@ -21,11 +21,11 @@ This module provides class definitions for all WARPNet over-the-wire
 messages.
 
 Functions (see below for more information):
-    WnTransportHeader() -- WARPNet Transport Header
-    WnCmd() -- Base class for WARPNet Commands the require WnResp responses
-    WnBufferCmd() -- Base class for WARPNet Commands that require WnBuffer responses
-    WnResp() -- WARPNet responses (single packet)
-    WnBuffer() -- WARPNet responses (multiple packets)
+    TransportHeader() -- WARPNet Transport Header
+    Cmd() -- Base class for WARPNet Commands the require WnResp responses
+    BufferCmd() -- Base class for WARPNet Commands that require WnBuffer responses
+    Resp() -- WARPNet responses (single packet)
+    Buffer() -- WARPNet responses (multiple packets)
 
 Integer constants:
     PKTTYPE_TRIGGER, PKTTYPE_HTON_MSG, PKTTYPE_NTOH_MSG, PKTTYPE_NTOH_MSG_ASYNC
@@ -37,7 +37,7 @@ import struct
 
 from . import wn_transport
 
-__all__ = ['WnTransportHeader', 'WnCmd', 'WnBufferCmd', 'WnResp', 'WnBuffer']
+__all__ = ['TransportHeader', 'Cmd', 'BufferCmd', 'Resp', 'Buffer']
 
 # Transport Header defines
 PKTTYPE_TRIGGER              = 0
@@ -46,16 +46,16 @@ PKTTYPE_NTOH_MSG             = 2
 PKTTYPE_NTOH_MSG_ASYNC       = 3
 
 
-class WnMessage(object):
+class Message(object):
     """Base class for WARPNet messages."""
     def serialize(self,): raise NotImplementedError
     def deserialize(self,): raise NotImplementedError
     def sizeof(self,): raise NotImplementedError
 
-# End Class WnMessage
+# End Class
 
 
-class WnTransportHeader(WnMessage):
+class TransportHeader(Message):
     """Class for WARPNet transport header.
     
     Attributes:
@@ -151,10 +151,11 @@ class WnTransportHeader(WnMessage):
             if ((self.dest_id != dataTuple[1]) or
                     (self.src_id  != dataTuple[0]) or
                     (self.seq_num != dataTuple[5])):
-                print("WARNING:  transport header mismatch:",
-                      "[{0:d} {1:d}]".format(self.dest_id, dataTuple[1]),
-                      "[{0:d} {1:d}]".format(self.src_id, dataTuple[0]),
-                      "[{0:d} {1:d}]".format(self.seq_num, dataTuple[5]))
+                msg  = "WARNING:  transport header mismatch:"
+                msg += "[{0:d} {1:d}]".format(self.dest_id, dataTuple[1])
+                msg += "[{0:d} {1:d}]".format(self.src_id, dataTuple[0])
+                msg += "[{0:d} {1:d}]".format(self.seq_num, dataTuple[5])
+                print(msg)
                 return False
             else:
                 return True
@@ -162,10 +163,10 @@ class WnTransportHeader(WnMessage):
             raise TypeError(str("WnTransportHeader:  length of header " +
                                 "did not match size of transport header"))
 
-# End Class WnTransportHeader
+# End Class
 
 
-class WnCmdMessage(WnMessage):
+class CmdRespMessage(Message):
     """Base class for WARPNet command / response messages.
     
     Attributes:
@@ -225,10 +226,10 @@ class WnCmdMessage(WnMessage):
         self.num_args = 0
         self.args = []
         
-# End Class WnCmdResp
+# End Class
 
 
-class WnCmd(WnCmdMessage):
+class Cmd(CmdRespMessage):
     """Base Class for WARPNet commands.
 
     Attributes:
@@ -242,7 +243,7 @@ class WnCmd(WnCmdMessage):
     
     def __init__(self, command=0, length=0, num_args=0, 
                  args=None, resp_type=None):
-        super(WnCmd, self).__init__(command, length, num_args, args)
+        super(Cmd, self).__init__(command, length, num_args, args)
         self.resp_type = resp_type or wn_transport.TRANSPORT_WN_RESP
     
     def set_args(self, *args):
@@ -275,10 +276,10 @@ class WnCmd(WnCmdMessage):
                 msg = msg + "        0x{0:08x}\n".format(self.args[i])
         return msg
 
-# End Class WnCommand
+# End Class
 
 
-class WnBufferCmd(WnCmdMessage):
+class BufferCmd(CmdRespMessage):
     """Base Class for WARPNet Buffer commands.
 
     Arguments:
@@ -301,10 +302,8 @@ class WnBufferCmd(WnCmdMessage):
     size       = None
     
     def __init__(self, command=0, buffer_id=0, flags=0, start_byte=0, size=0):
-        super(WnBufferCmd, self).__init__(command=command,
-                                          length=16,
-                                          num_args=4,
-                                          args=[buffer_id, flags, start_byte, size])
+        super(BufferCmd, self).__init__(command=command, length=16, num_args=4,
+                                        args=[buffer_id, flags, start_byte, size])
 
         self.resp_type = wn_transport.TRANSPORT_WN_BUFFER
         self.buffer_id = buffer_id
@@ -332,10 +331,10 @@ class WnBufferCmd(WnCmdMessage):
                 msg = msg + "        0x{0:08x}\n".format(self.args[i])
         return msg
 
-# End Class WnCommand
+# End Class
 
 
-class WnResp(WnCmdMessage):
+class Resp(CmdRespMessage):
     """Class for WARPNet responses.
     
     See documentation of WnCmdResp for attributes
@@ -356,10 +355,10 @@ class WnResp(WnCmdMessage):
                 msg = msg + "        0x{0:08x}\n".format(self.args[i])
         return msg
 
-# End Class WnResp
+# End Class
 
 
-class WnBuffer(WnMessage):
+class Buffer(Message):
     """Class for WARPNet buffer for transferring generic information.
     
     This object provides a container to transfer information that will be
@@ -571,4 +570,4 @@ class WnBuffer(WnMessage):
             print("WARNING: WnBuffer out of sync.  Should never reach here.")
         
 
-# End Class WnBuffer
+# End Class

@@ -37,10 +37,10 @@ from . import wn_util
 from . import wn_config
 from . import wn_message
 from . import wn_cmds
-from . import wn_exception as ex
+from . import wn_exception as wn_ex
 from . import wn_transport
-from . import wn_transport_eth_udp_py
-from . import wn_transport_eth_udp_py_bcast
+from . import wn_transport_eth_udp_py as unicast_tp
+from . import wn_transport_eth_udp_py_bcast as bcast_tp
 
 
 __all__ = ['WnNode', 'WnNodeFactory']
@@ -82,6 +82,8 @@ class WnNode(object):
         transport -- Node's transport object
         transport_bcast -- Node's broadcast transport object
     """
+    host_config     = None
+
     node_type       = None
     node_id         = None
     name            = None
@@ -96,8 +98,13 @@ class WnNode(object):
     transport       = None
     transport_bcast = None
     
-    def __init__(self):
+    def __init__(self, host_config=None):
         (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = wn_util.wn_ver(output=0)
+        
+        if not host_config is None:
+            self.host_config = host_config
+        else:
+            self.host_config = wn_config.HostConfiguration()
 
 
     def __del__(self):
@@ -115,13 +122,17 @@ class WnNode(object):
     def set_init_configuration(self, serial_number, node_id, node_name, 
                                ip_address, unicast_port, bcast_port):
         """Set the initial configuration of the node."""
-        config =  wn_config.WnConfiguration()
+
+        host_id     = self.host_config.get_param('network', 'host_id')
+        tx_buf_size = self.host_config.get_param('network', 'tx_buffer_size')
+        rx_buf_size = self.host_config.get_param('network', 'rx_buffer_size')
+        tport_type  = self.host_config.get_param('network', 'transport_type')
         
-        if (config.get_param('network', 'transport_type') == 'python'):
+        if (tport_type == 'python'):
             if self.transport is None:
-                self.transport = wn_transport_eth_udp_py.WnTransportEthUdpPy()
+                self.transport = unicast_tp.TransportEthUdpPy()
             if self.transport_bcast is None:
-                self.transport_bcast = wn_transport_eth_udp_py_bcast.WnTransportEthUdpPyBcast()
+                self.transport_bcast = bcast_tp.TransportEthUdpPyBcast(self.host_config)
         else:
             print("Transport not defined\n")
         
@@ -131,21 +142,19 @@ class WnNode(object):
         self.serial_number = serial_number
 
         # Set Node Unicast Transport information
-        self.transport.wn_open(config.get_param('network', 'tx_buffer_size'),
-                               config.get_param('network', 'rx_buffer_size'))
+        self.transport.wn_open(tx_buf_size, rx_buf_size)
         self.transport.set_ip_address(ip_address)
         self.transport.set_unicast_port(unicast_port)
         self.transport.set_bcast_port(bcast_port)
-        self.transport.set_src_id(config.get_param('network', 'host_id'))
+        self.transport.set_src_id(host_id)
         self.transport.set_dest_id(node_id)
 
         # Set Node Broadcast Transport information
-        self.transport_bcast.wn_open(config.get_param('network', 'tx_buffer_size'),
-                                     config.get_param('network', 'rx_buffer_size'))
+        self.transport_bcast.wn_open(tx_buf_size, rx_buf_size)
         self.transport_bcast.set_ip_address(ip_address)
         self.transport_bcast.set_unicast_port(unicast_port)
         self.transport_bcast.set_bcast_port(bcast_port)
-        self.transport_bcast.set_src_id(config.get_param('network', 'host_id'))
+        self.transport_bcast.set_src_id(host_id)
         self.transport_bcast.set_dest_id(0xFFFF)
         
 
@@ -158,9 +167,9 @@ class WnNode(object):
         resp = self.get_node_info()
         try:
             self.process_parameters(resp)
-        except ex.WnParameterError as err:
+        except wn_ex.ParameterError as err:
             print(err)
-            raise ex.WnNodeError(self, "Configuration Error")
+            raise wn_ex.NodeError(self, "Configuration Error")
 
         # Set description
         self.description = "WARP v{} Node - ID {}".format(self.hw_ver, self.node_id)
@@ -171,7 +180,7 @@ class WnNode(object):
     #-------------------------------------------------------------------------
     def identify(self):
         """Have the node physically identify itself."""
-        self.send_cmd(wn_cmds.WnCmdIdentify("W3-a-{0:05d}".format(self.serial_number)))
+        self.send_cmd(wn_cmds.Identify("W3-a-{0:05d}".format(self.serial_number)))
 
     def ping(self):
         """Ping the node."""
@@ -179,26 +188,26 @@ class WnNode(object):
 
     def get_node_info(self):
         """Get the Hardware Information from the node."""
-        return self.send_cmd(wn_cmds.WnCmdGetHwInfo())
+        return self.send_cmd(wn_cmds.GetHwInfo())
 
     def get_node_temp(self):
         """Get the temperature of the node."""
-        (curr_temp, min_temp, max_temp) = self.send_cmd(wn_cmds.WnCmdGetTemperature())
+        (curr_temp, min_temp, max_temp) = self.send_cmd(wn_cmds.GetTemperature())
         # TODO:  Add in check for max temperature        
         return curr_temp
 
     def setup_node_network_inf(self):
         """Setup the transport network information for the node."""
-        self.send_cmd_bcast(wn_cmds.WnCmdNetworkSetup(self))
+        self.send_cmd_bcast(wn_cmds.SetupNetwork(self))
         
     def reset_node_network_inf(self):
         """Reset the transport network information for the node."""
-        self.send_cmd_bcast(wn_cmds.WnCmdNetworkReset(self))
+        self.send_cmd_bcast(wn_cmds.ResetNetwork(self))
 
     def get_warpnet_node_type(self):
         """Get the WARPNet node type of the node."""
         if self.node_type is None:
-            return self.send_cmd(wn_cmds.WnCmdGetWarpNetNodeType())
+            return self.send_cmd(wn_cmds.GetWarpNetNodeType())
         else:
             return self.node_type
 
@@ -251,7 +260,7 @@ class WnNode(object):
         elif (group == wn_cmds.GRPID_TRANS):
             self.transport.process_parameter(identifier, length, values)
         else:
-            raise ex.WnParameterError("Group", "Unknown Group: {}".format(group))
+            raise wn_ex.ParameterError("Group", "Unknown Group: {}".format(group))
 
 
     def process_parameter(self, identifier, length, values):
@@ -260,19 +269,19 @@ class WnNode(object):
             if (length == 1):
                 self.node_type = values[0]
             else:
-                raise ex.WnParameterError("NODE_TYPE", "Incorrect length")
+                raise wn_ex.ParameterError("NODE_TYPE", "Incorrect length")
 
         elif (identifier == NODE_ID):
             if (length == 1):
                 self.node_id = values[0]
             else:
-                raise ex.WnParameterError("NODE_ID", "Incorrect length")
+                raise wn_ex.ParameterError("NODE_ID", "Incorrect length")
 
         elif (identifier == NODE_HW_GEN):
             if (length == 1):
                 self.hw_ver = (values[0] & 0xFF)
             else:
-                raise ex.WnParameterError("NODE_HW_GEN", "Incorrect length")
+                raise wn_ex.ParameterError("NODE_HW_GEN", "Incorrect length")
 
         elif (identifier == NODE_DESIGN_VER):
             if (length == 1):                
@@ -283,22 +292,22 @@ class WnNode(object):
                 # Check to see if there is a version mismatch
                 self.check_ver()
             else:
-                raise ex.WnParameterError("NODE_DESIGN_VER", "Incorrect length")
+                raise wn_ex.ParameterError("NODE_DESIGN_VER", "Incorrect length")
 
         elif (identifier == NODE_SERIAL_NUM):
             if (length == 1):
                 self.serial_number = values[0]
             else:
-                raise ex.WnParameterError("NODE_SERIAL_NUM", "Incorrect length")
+                raise wn_ex.ParameterError("NODE_SERIAL_NUM", "Incorrect length")
 
         elif (identifier == NODE_FPGA_DNA):
             if (length == 2):
                 self.fpga_dna = (2**32 * values[1]) + values[0]
             else:
-                raise ex.WnParameterError("NODE_FPGA_DNA", "Incorrect length")
+                raise wn_ex.ParameterError("NODE_FPGA_DNA", "Incorrect length")
 
         else:
-            raise ex.WnParameterError(identifier, "Unknown node parameter")
+            raise wn_ex.ParameterError(identifier, "Unknown node parameter")
 
 
     #-------------------------------------------------------------------------
@@ -326,8 +335,8 @@ class WnNode(object):
             return cmd.process_resp(resp)
 
         else:
-            raise ex.WnTransportError(self.transport, 
-                                      "Unknown response type for command")
+            raise wn_ex.TransportError(self.transport, 
+                                       "Unknown response type for command")
 
 
     def _receive_resp(self, payload, max_attempts):
@@ -335,17 +344,17 @@ class WnNode(object):
         reply = b''
         curr_tx = 1
         done = False
-        resp = wn_message.WnResp()
+        resp = wn_message.Resp()
 
         self.transport.send(payload)
 
         while not done:
             try:
                 reply = self.transport.receive()
-            except ex.WnTransportError:
+            except wn_ex.TransportError:
                 if curr_tx == max_attempts:
-                    raise ex.WnTransportError(self.transport, 
-                                              "Max retransmissions without reply from node")
+                    raise wn_ex.TransportError(self.transport, 
+                              "Max retransmissions without reply from node")
 
                 self.transport.send(payload)
                 curr_tx += 1
@@ -360,28 +369,27 @@ class WnNode(object):
         """Internal method to receive a buffer for a given command payload"""
         reply = b''
         curr_tx = 1
-        resp = wn_message.WnBuffer(cmd.get_buffer_id(),
-                                   cmd.get_buffer_flags(),
-                                   cmd.get_buffer_size())
+        resp = wn_message.Buffer(cmd.get_buffer_id(), cmd.get_buffer_flags(),
+                                 cmd.get_buffer_size())
 
         self.transport.send(payload)
 
         while not resp.is_buffer_complete():
             try:
                 reply = self.transport.receive()
-            except ex.WnTransportError:
+            except wn_ex.TransportError:
                 # If there is a timeout, then request missing part of the buffer
                 if curr_tx == max_attempts:
-                    raise ex.WnTransportError(self.transport, 
-                                              "Max retransmissions without reply from node")
+                    raise wn_ex.TransportError(self.transport, 
+                              "Max retransmissions without reply from node")
 
                 # TODO:  Currently, we are just requesting the entire buffer
                 #   over.  This is not a good long term solution and should 
                 #   eventually be changed to only request the missing piece
                 #   of the buffer
-                resp = wn_message.WnBuffer(cmd.get_buffer_id(),
-                                           cmd.get_buffer_flags(),
-                                           cmd.get_buffer_size())
+                resp = wn_message.Buffer(cmd.get_buffer_id(),
+                                         cmd.get_buffer_flags(),
+                                         cmd.get_buffer_size())
                 
                 self.transport.send(payload)
                 curr_tx += 1
@@ -417,7 +425,7 @@ class WnNode(object):
             done = False
             
             while not done:
-                wn_resp = wn_message.WnResp()
+                wn_resp = wn_message.Resp()
                 wn_resp.deserialize(resp)
                 resp_len = wn_resp.sizeof()
 
@@ -440,40 +448,46 @@ class WnNode(object):
         (major, minor, revision) = wn_util.wn_ver(output=0)
         
         # Node %d with Serial # %d has version "%d.%d.%d" which does not match WARPNet v%d.%d.%d
-        output_str = str("Node {0} ".format(self.node_id) +
-                         "with serial # W3-a-{0:05d} ".format(self.serial_number) +
-                         "has version {0:d}.{1:d}.{2:d} ".format(self.wn_ver_major,
-                                                                 self.wn_ver_minor,
-                                                                 self.wn_ver_revision) +
-                         "which does not match WARPNet " +
-                         "v{0:d}.{1:d}.{2:d}".format(major, minor, revision))
+        msg  = "WARPNet version mismatch on {0} ".format(self.name)
+        msg += "(W3-a-{0:05d}):\n".format(self.serial_number)
+        msg += "    Node version = "
+        msg += "{0:d}.{1:d}.{2:d}\n".format(self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision)
+        msg += "    Host version = "
+        msg += "{0:d}.{1:d}.{2:d}\n".format(major, minor, revision)
         
         if (major != self.wn_ver_major) or (minor != self.wn_ver_minor):
-            raise ex.WnVersionError(output_str)
+            raise wn_ex.VersionError(msg)
         else:
             if (revision != self.wn_ver_revision):
-                print("WARNING: " + output_str)
+                print("WARNING: " + msg)
 
 
     def __str__(self):
         """Pretty print WnNode object"""
+        msg = ""
         if not self.serial_number is None:
-            print("Node '{0}' with ID {1}:".format(self.name, self.node_id))
-            print("    Desc    :  {0}".format(self.description))
-            print("    Serial #:  W3-a-{0}".format(self.serial_number))
+            msg += "Node '{0}' with ID {1}:\n".format(self.name, self.node_id)
+            msg += "    Desc    :  {0}\n".format(self.description)
+            msg += "    Serial #:  W3-a-{0}\n".format(self.serial_number)
         else:
-            print("Node not initialized.")
+            msg += "Node not initialized."
         if not self.transport is None:
-            print(self.transport)
+            msg += str(self.transport)
+        return msg
 
 
     def __repr__(self):
         """Return node name and description"""
-        return str("W3-a-{0:05d}: ID {1:5d} ({2})".format(self.serial_number,
-                                                          self.node_id,
-                                                          self.name))
-
-# End Class WnNode
+        msg = ""
+        if not self.serial_number is None:
+            msg  = "W3-a-{0:05d}: ".format(self.serial_number)
+            msg += "ID {0:5d} ".format(self.node_id)
+            msg += "({0})".format(self.name)
+        else:
+            msg += "Node not initialized."
+        return msg
+        
+# End Class
 
 
 
@@ -494,15 +508,15 @@ class WnNodeFactory(WnNode):
     wn_dict             = None
 
 
-    def __init__(self):
-        super(WnNodeFactory, self).__init__()
+    def __init__(self, host_config=None):
+        super(WnNodeFactory, self).__init__(host_config)
  
         self.wn_dict = {}
 
         # Add default classes to the factory
         self.add_node_class(wn_defaults.WN_NODE_TYPE, 
                             wn_defaults.WN_NODE_TYPE_CLASS)
-
+        
     
     def setup(self, node_dict):
         self.set_init_configuration(serial_number=node_dict['serial_number'],
@@ -513,7 +527,7 @@ class WnNodeFactory(WnNode):
                                     bcast_port=node_dict['bcast_port'])
 
 
-    def create_node(self):
+    def create_node(self, host_config=None):
         """Based on the WARPNet Node Type, dynamically create and return 
         the correct WARPNet node."""        
         node = None
@@ -532,7 +546,7 @@ class WnNodeFactory(WnNode):
             node_class = self.get_node_class(wn_node_type)
         
             if not node_class is None:
-                node = self.eval_node_class(node_class)
+                node = self.eval_node_class(node_class, host_config)
                 node.set_init_configuration(serial_number=self.serial_number,
                                             node_id=self.node_id,
                                             node_name=self.name,
@@ -540,23 +554,26 @@ class WnNodeFactory(WnNode):
                                             unicast_port=self.transport.unicast_port,
                                             bcast_port=self.transport.bcast_port)
 
-                print("Initializing W3-a-{0:05d} as Node {1}".format(self.serial_number, self.node_id))
+                msg  = "Initializing W3-a-{0:05d}".format(node.serial_number)
+                msg += " as {0}".format(node.name)
+                print(msg)
             else:
                 self.print_wn_node_types()
-                print("ERROR:  Unknown WARPNet type: {0}".format(wn_node_type))
-                print("    Unable to initialize node", 
-                      "W3-a-{0:05d}".format(self.serial_number))
+                msg  = "ERROR:  Node W3-a-{0:05d}\n".format(self.serial_number)
+                msg += "    Unknown WARPNet type: {0}\n".format(wn_node_type)
+                print(msg)
 
-        except ex.WnTransportError as err:
-            print("ERROR:  Node W3-a-{0:05d}".format(self.serial_number),
-                  "is not responding.")
-            print("    Please ensure the node is powered on and is properly configured.")
+        except wn_ex.TransportError as err:
+            msg  = "ERROR:  Node W3-a-{0:05d}\n".format(self.serial_number)
+            msg += "    Node is not responding.  Please ensure that the \n"
+            msg += "    node is powered on and is properly configured.\n"
+            print(msg)
             print(err)
 
         return node
 
 
-    def eval_node_class(self, node_class):
+    def eval_node_class(self, node_class, host_config):
         """Evaluate the node_class string to create a node.  
         
         NOTE:  This should be overridden in each sub-class with the same
@@ -569,13 +586,16 @@ class WnNodeFactory(WnNode):
         node = None
 
         try:
-            node = eval(str(node_class + "()"), globals(), locals())
+            full_node_class = node_class + "(host_config)"
+            print(full_node_class)
+            node = eval(full_node_class, globals(), locals())
         except:
             pass
         
         if node is None:
             self.print_wn_node_types()
-            raise ex.WnConfigError("Cannot create node of class: {0}".format(node_class))
+            msg = "Cannot create node of class: {0}".format(node_class)
+            raise wn_ex.ConfigError(msg)
         else:
             return node
 
@@ -597,13 +617,14 @@ class WnNodeFactory(WnNode):
 
 
     def print_wn_node_types(self):
-        print("WARPNet Node Types:")
+        msg = "WARPNet Node Types: \n"
         for wn_node_type in self.wn_dict.keys():
-            print("    0x{0:08x} = '{1}'".format(wn_node_type, 
-                                                 self.wn_dict[wn_node_type]))
+            msg += "    0x{0:08x} = ".format(wn_node_type)
+            msg += "'{0}'\n".format(self.wn_dict[wn_node_type]) 
+        print(msg)
 
 
-# End Class WnNodeFactory
+# End Class
 
 
 

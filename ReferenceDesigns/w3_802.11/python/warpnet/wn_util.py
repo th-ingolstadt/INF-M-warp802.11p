@@ -37,7 +37,7 @@ import sys
 import re
 import inspect
 
-from . import wn_exception as ex
+from . import wn_exception as wn_ex
 
 
 __all__ = ['wn_ver', 'wn_ver_str', 'wn_init_nodes', 'wn_setup', 
@@ -55,6 +55,10 @@ WN_RELEASE              = 1
 if sys.version[0]=="3": raw_input=input
 
 
+
+#-----------------------------------------------------------------------------
+# WARPNet Version Utilities
+#-----------------------------------------------------------------------------
 
 def wn_ver(major=WN_MAJOR, minor=WN_MINOR, revision=WN_REVISION, xtra=WN_XTRA, 
            output=1):
@@ -89,34 +93,30 @@ def wn_ver(major=WN_MAJOR, minor=WN_MINOR, revision=WN_REVISION, xtra=WN_XTRA,
                   os.path.abspath(inspect.getfile(inspect.currentframe()))))
 
     # Check the provided version vs the current version
-    output_str = str("Version Mismatch: Specified version " + 
-                     wn_ver_str(major, minor, revision) + "is ")
+    msg  = "WARPNet Version Mismatch: \n:"
+    msg += "    Specified version {0}\n".format(wn_ver_str(major, minor, revision))
+    msg += "    Current   version {0}".format(wn_ver_str())
 
     if (major == WN_MAJOR):
         if (minor == WN_MINOR):
             if (revision != WN_REVISION):
                 # Since MAJOR & MINOR versions match, only print a warning
                 if (revision < WN_REVISION):
-                    print("WARNING: " + output_str + "older than WARPnet v" + wn_ver_str())
+                    print("WARNING: " + msg + " (older)")
                 else:
-                    print("WARNING: " + output_str + "newer than WARPnet v" + wn_ver_str())
+                    print("WARNING: " + msg + " (newer)")
         else:
             if (minor < WN_MINOR):
-                print("WARNING: " + output_str + "older than WARPnet v" + wn_ver_str())
+                print("WARNING: " + msg + " (older)")
             else:
-                raise ex.WnVersionError("\n" + output_str + 
-                                        "newer than WARPnet v" + 
-                                        wn_ver_str())
+                raise wn_ex.VersionError("ERROR: " + msg + " (newer)")
     else:
         if (major < WN_MAJOR):
-            print("WARNING: " + output_str + "older than WARPnet v" + wn_ver_str())
+            print("WARNING: " + msg + " (older)")
         else:
-            raise ex.WnVersionError("\n" + output_str + 
-                                    "newer than WARPnet v" + 
-                                    wn_ver_str())
+            raise wn_ex.VersionError("ERROR: " + msg + " (newer)")
     
     return (WN_MAJOR, WN_MINOR, WN_REVISION)
-    
     
 # End of wn_ver()
 
@@ -125,73 +125,80 @@ def wn_ver_str(major=WN_MAJOR, minor=WN_MINOR,
                revision=WN_REVISION, xtra=WN_XTRA):
     """Return a string of the WARPNet version.
     
-    NOTE:  This will raise a WnVersionError if the arguments are not
+    NOTE:  This will raise a VersionError if the arguments are not
     integers.    
     """
-    output_str = ""
-    exception  = False
-    
     try:
-        output_str = str("{0:d}.{1:d}.{2:d} {3:s}".format(major, minor, 
-                                                          revision, xtra))
-    except ValueError:
+        msg  = "{0:d}.".format(major)
+        msg += "{0:d}.".format(minor)
+        msg += "{0:d} ".format(revision)
+        msg += "{0:s}".format(xtra)
+    except ValueError as err:
         # Set output string to default values so program can continue
-        output_str = str("{0:d}.{1:d}.{2:d} {3:s}".format(WN_MAJOR, WN_MINOR, 
-                                                          WN_REVISION, WN_XTRA))
-        exception  = True
-
-    if (exception):
-        msg = str("\nUnknown Argument: All arguments should be integers: \n" +
-                  "    major    = {} \n".format(major) +
-                  "    minor    = {} \n".format(minor) +
-                  "    revision = {} \n".format(revision))
-        raise ex.WnVersionError(msg)
+        error = "Unknown Argument: All arguments should be integers"
+        print(err)
     
-    return output_str
+        msg  = "{0:d}.".format(WN_MAJOR)
+        msg += "{0:d}.".format(WN_MINOR)
+        msg += "{0:d} ".format(WN_REVISION)
+        msg += "{0:s}".format(WN_XTRA)
+
+        raise wn_ex.VersionError(error)
+    
+    return msg
     
 # End of wn_ver_str()
 
 
-def wn_init_nodes(nodes_config, node_factory=None, output=False):
+
+#-----------------------------------------------------------------------------
+# WARPNet Node Utilities
+#-----------------------------------------------------------------------------
+
+def wn_init_nodes(nodes_config, host_config=None, node_factory=None, 
+                  output=False):
     """Initalize WARPNet nodes.
 
     Attributes:    
         nodes_config -- A WnNodesConfiguration object describing the nodes
+        host_config  -- A WnConfiguration object describing the host configuration
         node_factory -- A WnNodeFactory or subclass to create nodes of a 
                         given WARPNet type
         output -- Print output about the WARPNet nodes
     """
     nodes = []
 
-    # Parse the WARPNet INI file 
-    import warpnet.wn_config as wn_config
-    config = wn_config.WnConfiguration()
+    # Create a Host Configuration if there is none provided
+    if host_config is None:
+        import warpnet.wn_config as wn_config
+        host_config = wn_config.HostConfiguration()
 
-    host_id = config.get_param('network', 'host_id')
-    jumbo_frame_support = config.get_param('network', 'jumbo_frame_support')
+    host_id = host_config.get_param('network', 'host_id')
+    jumbo_frame_support = host_config.get_param('network', 'jumbo_frame_support')
     
     # Process the config to create nodes
     try:
         nodes_dict = nodes_config.get_nodes_dict()
-    except ex.WnConfigError as err:
+    except wn_ex.ConfigError as err:
         print(err)
         return nodes
-    
+
     # If node_factory is not defined, create a default WnNodeFactory
     if node_factory is None:
         import warpnet.wn_node as wn_node
-        node_factory = wn_node.WnNodeFactory()
+        node_factory = wn_node.WnNodeFactory(host_config)
 
     for node_dict in nodes_dict:
         if (host_id == node_dict['node_id']):
-            raise ex.WnConfigError("Host id is set to {} and must be unique.".format(host_id))
+            msg = "Host id is set to {0} and must be unique.".format(host_id)
+            raise wn_ex.ConfigError(msg)
 
         # Set up the node_factory from the Node dictionary
         node_factory.setup(node_dict)
 
         # Create the correct type of node; will return None and print a 
         #   warning if the node is not recognized
-        node = node_factory.create_node()
+        node = node_factory.create_node(host_config)
 
         if not node is None:
             node.configure_node(jumbo_frame_support)
@@ -211,81 +218,57 @@ def wn_init_nodes(nodes_config, node_factory=None, output=False):
 # End of wn_init_nodes()
 
 
+
+#-----------------------------------------------------------------------------
+# WARPNet Setup Utilities
+#-----------------------------------------------------------------------------
+
 def wn_setup():
-    """Setup the WARPNet framework and configure the WARPNet INI file 
-    from user input."""
+    """Setup the WARPNet Host Configuration from user input.
+    
+    NOTE:      
+    """
     import warpnet.wn_config as wn_config
-    config = wn_config.WnConfiguration()
+    config = wn_config.HostConfiguration()
 
     print("-" * 70)
-    print("WARPNet Setup:")
+    print("WARPNet Host Configuration Setup:")
     print("-" * 70)
 
     #-------------------------------------------------------------------------
-    # Configure Python Path
-    warpnet_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    # Configure Host Interfaces
 
-    print("Configuring Python Path:")
-
-    if not warpnet_dir in sys.path:
-        sys.path.append(warpnet_dir)
-        print("    Adding: {0}".format(warpnet_dir))
-    else:
-        print("    In Path: {0}".format(warpnet_dir))    
-
-
-    #-------------------------------------------------------------------------
-    # Configure Host Address
-
-    my_address = config.get_param('network', 'host_address')
+    my_interfaces = config.get_param('network', 'host_interfaces')
     print("-" * 50)
-    print("Please enter a WARPNet Ethernet interface address.")
-    print("    Pressing Enter without typing an input will use a default ")
-    print("    IP address of {0} \n".format(my_address))
+    print("Please enter a list of WARPNet host interface addresses.")
+    print("    Pressing Enter without typing an input will use the default: ")
+    for idx, interface in enumerate(my_interfaces):
+        print("        Interface {0} = {1} \n".format(idx, interface))
 
-    my_address_valid = False
+    temp_interfaces = []
+    my_interfaces_valid = False
 
-    while not my_address_valid:
-        temp = raw_input("WARPNet Ethernet Inteface Address: ")
+    while not my_interfaces_valid:
+        temp = raw_input("WARPNet Ethernet Inteface Addresses (Enter to end): ")
         if not temp is '':
-            expr = re.compile('\d+\.\d+\.\d+\.\d+')
-            if not expr.match(temp) is None:
-                print("    Setting IP address to {0}".format(temp))
-                config.set_param('network', 'host_address', temp)
-                my_address_valid = True
+            if (_check_ip_address_format(temp)):                
+                print("    Adding IP address: {0}".format(temp))
+                temp_interfaces.append(temp)
             else:
-                print("    '{0}' is not a valid IP address.".format(temp))
                 print("    Please enter a valid IP address.")
         else:
-            print("    Setting IP address to {0}".format(my_address))
-            my_address_valid = True
+            my_interfaces_valid = True
 
-    # Check that this is a valid IP address
-    output = ""
-
-    temp = os.popen("ifconfig -a", "r")
-
-    while 1:
-        line = temp.readline()
-        output = output + line
-        if not line: break
-
-    if (output == ''):
-        temp = os.popen("ipconfig /all", "r")
+    if (len(temp_interfaces) > 0):
+        config.set_param('network', 'host_interfaces', temp_interfaces)
+        my_interfaces = temp_interfaces
         
-        while 1:
-            line = temp.readline()
-            output = output + line
-            if not line: break
+    print("    Setting host interfaces to: ")
+    for idx, interface in enumerate(my_interfaces):
+        print("        Interface {0} = {1} \n".format(idx, interface))
 
-    my_address = config.get_param('network', 'host_address')
-    if (output.find(my_address) == -1):
-        print("")
-        print("!" * 50)
-        print("WARNING: No interface found.  Please make sure your network")
-        print("    interface is connected and configured with static IP {0}".format(my_address))
-        print("!" * 50)
-        print("")
+    for interface in my_interfaces:
+        _check_host_interface(interface)
 
     #-------------------------------------------------------------------------
     # Configure Host ID
@@ -302,13 +285,11 @@ def wn_setup():
     while not my_id_valid:
         temp = raw_input("WARPNet Host ID: ")
         if not temp is '':
-            if (int(temp) >= 200) and (int(temp) <= 254):
+            temp = int(temp)
+            if (_check_host_id(temp)):
                 print("    Setting Host ID to {0}".format(temp))
                 config.set_param('network', 'host_id', temp)
                 my_id_valid = True
-            else:
-                print("    '{0}' is not a valid Host ID.".format(temp))
-                print("    Valid Host IDs are integers in the range of [200,254].")
         else:
             print("    Setting Host ID to {0}".format(my_id))
             my_id_valid = True
@@ -421,31 +402,17 @@ def wn_setup():
     #-------------------------------------------------------------------------
     # Finish WARPNet INI file
 
-    print("-" * 50)
-    config.save_config(output=True)
     print("-" * 70)
     print("WARPNet v {0} Configuration Complete.".format(wn_ver_str()))
     print("-" * 70)
     print("\n")
-
-    #-------------------------------------------------------------------------
-    # Configure WARPNet Node Configuration
-
-    message = "Perform WARPNet Node Network Setup [Y/n]: "
-    temp = _get_confirmation_from_user(message)
-
-    if (temp == 'y'):
-        print("\n")
-        wn_nodes_setup()
-    else:
-        print("-" * 70)
-        print("Done.")
-        print("-" * 70)                    
+    
+    return config
 
 # End of wn_setup()
 
 
-def wn_nodes_setup(file_name=None):
+def wn_nodes_setup(ini_file=None):
     """Create / Modify WARPNet Nodes ini file from user input."""    
     nodes_config = None
 
@@ -463,10 +430,7 @@ def wn_nodes_setup(file_name=None):
     # config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
 
     import warpnet.wn_config as wn_config
-    if not file_name is None:
-        nodes_config = wn_config.WarpNetNodesConfig(file_name)
-    else:
-        nodes_config = wn_config.WnNodesConfiguration()
+    nodes_config = wn_config.NodesConfiguration(ini_file=ini_file)
 
     # Actions Menu    
     actions = {0 : "Add node",
@@ -545,11 +509,7 @@ def wn_nodes_setup(file_name=None):
     print("-" * 70)
 
     # Print final configuration
-    if not file_name is None:
-        nodes_config = wn_config.WarpNetNodesConfig(file_name)
-    else:
-        nodes_config = wn_config.WnNodesConfiguration()
-
+    nodes_config = wn_config.NodesConfiguration(ini_file=ini_file)
     nodes_config.print_nodes()
 
     print("-" * 70)
@@ -559,6 +519,11 @@ def wn_nodes_setup(file_name=None):
 
 # End of wn_nodes_setup()
 
+
+
+#-----------------------------------------------------------------------------
+# Internal Methods
+#-----------------------------------------------------------------------------
 
 def _add_node_from_user(nodes_config):
     """Internal method to add a node based on info from the user."""
@@ -672,6 +637,69 @@ def _get_confirmation_from_user(message):
     return selection
 
 # End of _get_confirmation_from_user()
+
+
+def _check_host_interface(host_interface):
+    """Check that this is a valid IP address."""
+    import subprocess
+
+    temp = b''
+    try:
+        # For Linux / MAC OSX
+        temp = subprocess.Popen(['ifconfig', '-a'], stdout=subprocess.PIPE).communicate()[0]
+    except:
+        pass
+
+    try:
+        # For Windows
+        temp = subprocess.Popen(['ipconfig', '/all'], stdout=subprocess.PIPE).communicate()[0]
+    except:
+        pass
+
+    # communicate returns a byte array that must be decoded to search
+    output = temp.decode("utf-8")
+
+    if (output.find(host_interface) != -1):
+        return True
+    else:
+        import warnings
+        msg  = "\nNo interface found.\n"  
+        msg += "    Please make sure your network interface is connected and\n"
+        msg += "    configured with static IP {0}".format(host_interface)
+        warnings.warn(msg)
+        return False
+
+# End of _check_host_interface()
+
+
+def _check_ip_address_format(ip_address):
+    """Check that the string has a valid IP address format."""
+    expr = re.compile('\d+\.\d+\.\d+\.\d+')
+
+    if not expr.match(ip_address) is None:
+        return True
+    else:
+        import warnings
+        msg  = "\n'{0}' is not a valid IP address format.\n" .format(ip_address) 
+        msg += "    Please use A.B.C.D where A, B, C and D are in [0, 254]"
+        warnings.warn(msg)
+        return False
+
+# End of _check_ip_address_format()
+
+
+def _check_host_id(host_id):
+    """Check that the host_id is valid."""
+    if (host_id >= 200) and (host_id <= 254):
+        return True
+    else:
+        import warnings
+        msg  = "\n'{0}' is not a valid Host ID.\n" .format(host_id) 
+        msg += "    Valid Host IDs are integers in the range of [200,254]"
+        warnings.warn(msg)
+        return False
+
+# End of _check_host_id()
 
 
 def _get_os_socket_buffer_size(req_tx_buf_size, req_rx_buf_size):

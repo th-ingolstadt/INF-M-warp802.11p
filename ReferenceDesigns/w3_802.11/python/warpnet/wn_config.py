@@ -20,213 +20,186 @@ Ver   Who  Date     Changes
 This module provides class definitions to manage the WARPNet configuration.
 
 Functions (see below for more information):
-    WnConfiguration() -- Allows interaction with wn_config.ini file
-    WnNodesConfiguration() -- Allows interaction with a nodes configuration file
+    HostConfiguration() -- Specifies Host information for setup
+    NodesConfiguration() -- Specifies Node information for setup
 
 """
 
 import os
-import inspect
-import datetime
 import re
 
 try:                 # Python 3
-  import configparser
+    import configparser
 except ImportError:  # Python 2
-  import ConfigParser as configparser
+    import ConfigParser as configparser
 
 
 from . import wn_defaults
-from . import wn_util
-from . import wn_exception
+from . import wn_exception as wn_ex
 
 
-__all__ = ['WnConfiguration', 'WnNodesConfiguration']
+__all__ = ['HostConfiguration', 'NodesConfiguration']
 
 
 
-class WnConfiguration(object):
-    """Class for WARPNet configuration.
+class HostConfiguration(object):
+    """Class for WARPNet Host configuration.
     
-    This class can load and store WARPNet configurations in the 
-    config directory in wn_config.ini
+    This class contains a WARPNet host configuration using default values 
+    in wn_defaults combined with parameters that are passed in.
     
-    Attributes:
-        config_info
-            date -- Date created
-            wn_ver -- Version of WARPNet
-        network
-            host_address -- Host IP address
-            host_id -- Host indentifier
-            unicast_port -- Default unicast port
-            bcast_port -- Default broadcast port
-            transport_type -- Type of transport
-            jumbo_frame_support -- Use jumbo Ethernet frames?
+    Config Structure:
+        {'network'  
+            { 'host_interfaces'      [list of str],
+              'host_id'              int,
+              'unicast_port'         int,
+              'bcast_port'           int,
+              'tx_buf_size'          int,
+              'rx_buf_size'          int,
+              'transport_type'       str,
+              'jumbo_frame_support'  bool } }
+    
     """
     config              = None
-    config_file         = None
-    version_call        = None
-    package_name        = None
     
-    def __init__(self, filename=wn_defaults.WN_DEFAULT_INI_FILE):
-
-        base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-        self.config_file = os.path.join(base_dir, "config", filename)
-        self.version_call = 'wn_util.wn_ver_str'
-        self.package_name = wn_defaults.PACKAGE_NAME
-
-        try:
-            self.load_config()
-        except wn_exception.WnConfigError:
-            if (filename == wn_defaults.WN_DEFAULT_INI_FILE):
-                # Default file does not exist; create & save default config
-                self.set_default_config()
-                self.save_config()
-            else:
-                print("WARNING:  Could not read {0}.".format(filename), 
-                      "\n    Using default INI configuration.")
-                self.set_default_config()
-
-
-    def set_default_config(self,
-                           host_address=wn_defaults.WN_DEFAULT_HOST_ADDR,
-                           host_id=wn_defaults.WN_DEFAULT_HOST_ID,
-                           unicast_port=wn_defaults.WN_DEFAULT_UNICAST_PORT,
-                           bcast_port=wn_defaults.WN_DEFAULT_BCAST_PORT,
-                           tx_buf_size=wn_defaults.WN_DEFAULT_TX_BUFFER_SIZE,
-                           rx_buf_size=wn_defaults.WN_DEFAULT_RX_BUFFER_SIZE,
-                           transport_type=wn_defaults.WN_DEFAULT_TRANSPORT_TYPE,
-                           jumbo_frame_support=wn_defaults.WN_DEFAULT_JUMBO_FRAME_SUPPORT):
-        self.config = configparser.ConfigParser()
-
-        self.config.add_section('config_info')
-        self.config.add_section('warpnet')
-        self.config.add_section('network')
+    def __init__(self, host_interfaces=None, host_id=None, unicast_port=None,
+                 bcast_port=None, tx_buffer_size=None, rx_buffer_size=None,
+                 transport_type=None, jumbo_frame_support=None):
+        """Initialize a WnHostConfiguration
         
-        self.update_config_info()
+        Attributes:
+            host_interfaces -- List of host interfaces
+            host_id -- Host ID
+            unicast_port -- Host port for unicast traffic
+            bcast_port -- Host port for broadcast traffic
+            tx_buf_size -- Host TX buffer size
+            rx_buf_size -- Host RX buffer size
+            transport_type -- Host transport type
+            jumbo_frame_support -- Host support for Jumbo Ethernet frames
+        
+        There are multiple ways to initialize a WnNodesConfiguration:
+          1) INI file name
+          2) Set of parameters
+          
+        If an INI file is present, it will be loaded and all other parameters
+        will be ignored.  If the INI file is not present, then if any
+        parameters are specified those will be loaded in to the configuration.
+        Otherwise, default values for the parameters that can be found in 
+        wn_defaults will used.
+        
+        """
+        from . import wn_util
+        
+        # Set initial values
+        my_host_interfaces     = []
+        my_host_id             = wn_defaults.HOST_ID
+        my_unicast_port        = wn_defaults.UNICAST_PORT
+        my_bcast_port          = wn_defaults.BCAST_PORT
+        my_transport_type      = wn_defaults.TRANSPORT_TYPE
+        my_jumbo_frame_support = wn_defaults.JUMBO_FRAME_SUPPORT
 
-        self.config.set('network', 'host_address', host_address)
-        self.config.set('network', 'host_id', host_id)
-        self.config.set('network', 'unicast_port', unicast_port)
-        self.config.set('network', 'bcast_port', bcast_port)
-        self.config.set('network', 'tx_buffer_size', tx_buf_size)
-        self.config.set('network', 'rx_buffer_size', rx_buf_size)
-        self.config.set('network', 'transport_type', transport_type)
-        self.config.set('network', 'jumbo_frame_support', jumbo_frame_support)
+        (my_tx_buffer_size, 
+         my_rx_buffer_size)    = wn_util._get_os_socket_buffer_size(
+                                                 wn_defaults.TX_BUFFER_SIZE, 
+                                                 wn_defaults.RX_BUFFER_SIZE)
+
+        # Process input arguments        
+        if not host_interfaces is None:
+            for interface in host_interfaces:
+                if (wn_util._check_host_interface(interface)):
+                    my_host_interfaces.append(interface)
+            
+            if (len(my_host_interfaces) == 0):
+                my_host_interfaces = wn_defaults.HOST_INTERFACE_LIST                
+        else:
+            my_host_interfaces = wn_defaults.HOST_INTERFACE_LIST
+           
+        if not host_id is None:
+            if (wn_util._check_host_id(host_id)):
+                my_host_id = host_id            
+                
+        if not unicast_port is None:    my_unicast_port = unicast_port            
+        if not bcast_port is None:      my_bcast_port = bcast_port
+        if not tx_buffer_size is None:  my_tx_buffer_size = tx_buffer_size
+        if not rx_buffer_size is None:  my_rx_buffer_size = rx_buffer_size
+        if not transport_type is None:  my_transport_type = transport_type
+
+        if not jumbo_frame_support is None:
+            if (type(jumbo_frame_support) is bool):
+                my_jumbo_frame_support = jumbo_frame_support
+
+        self.set_config(my_host_interfaces, my_host_id, my_unicast_port, 
+                        my_bcast_port, my_tx_buffer_size, my_rx_buffer_size, 
+                        my_transport_type, my_jumbo_frame_support)
 
 
-    def update_config_info(self):
-        """Updates the config info fields in the config."""
-        date = str(datetime.date.today())
-        version = eval(str(self.version_call + "()"))
+    def set_config(self, host_interfaces, host_id, unicast_port, bcast_port,
+                   tx_buffer_size, rx_buffer_size, transport_type, 
+                   jumbo_frame_support):
+        """Sets the config based on the parameters."""
+        self.config = {}
+        
+        self.config['network'] = {}
+        
+        self.config['network']['host_interfaces']     = host_interfaces
+        self.config['network']['host_id']             = host_id
+        self.config['network']['unicast_port']        = unicast_port
+        self.config['network']['bcast_port']          = bcast_port
+        self.config['network']['tx_buffer_size']      = tx_buffer_size
+        self.config['network']['rx_buffer_size']      = rx_buffer_size
+        self.config['network']['transport_type']      = transport_type
+        self.config['network']['jumbo_frame_support'] = jumbo_frame_support
 
-        self.config.set('config_info', 'date', date)
-        self.config.set('config_info', 'package', self.package_name)
-        self.config.set('config_info', 'version', version)
-
-
-    def get_wn_types(self):
-        """Returns the 'warpnet' section of the ini file"""
-        return self.get_section('warpnet')
-    
 
     def get_param(self, section, parameter):
         """Returns the value of the parameter within the section."""
-        if (section in self.config.sections()):
-            if (parameter in self.config.options(section)):
-                return self._get_param_hack(section, parameter)
+        if (section in self.config.keys()):
+            if (parameter in self.config[section].keys()):
+                return self.config[section][parameter]
             else:
-                print("Parameter {} does not exist in section {}.".format(parameter, section))
+                print("Parameter {0} does not exist in section {1}.".format(parameter, section))
         else:
-            print("Section {} does not exist.".format(section))
+            print("Section {0} does not exist.".format(section))
         
         return None
 
 
-    def _get_param_hack(self, section, parameter):
-        """Internal method to work around differences in Python 2 vs 3"""
-        if (section == 'network'):
-            if ((parameter == 'host_address') or 
-                (parameter == 'transport_type')):
-                return self.config.get(section, parameter)
-            else:
-                return eval(self.config.get(section, parameter))
-        else:
-            return self.config.get(section, parameter)
-
-
     def get_section(self, section):
         """Returns the dictionary of the section within the config."""
-        if (section in self.config.sections()):
-            # Necessary for backward compatibility to ConfigParser.  New 
-            # version of configparser does this automatically:
-            #    return self.config['warpnet']
-            ret_val = {}
-            items = self.config.items(section);
-            for item in items:
-                ret_val[item[0]] = item[1]
-            return ret_val
+        if (section in self.config.keys()):
+            return self.config[section]
         else:
-            print("Section {} not defined in config file.".format(section))
+            print("Section {0} does not exist.".format(section))
         
         return None
 
 
     def set_param(self, section, parameter, value):
         """Sets the parameter to the given value."""
-        if (section in self.config.sections()):
-            if (parameter in self.config.options(section)):
-                self.config.set(section, parameter, value)
+        if (section in self.config.keys()):
+            if (parameter in self.config[section].keys()):
+                self.config[section][parameter] = value
             else:
-                print("Parameter {} does not exist in section {}.".format(parameter, section))
+                print("Parameter {0} does not exist in section {1}.".format(parameter, section))
         else:
-            print("Group {} does not exist.".format(section))
+            print("Section {0} does not exist.".format(section))
  
 
-    def load_config(self):
-        """Loads the WARPNet config from the config file."""
-        self.config = configparser.ConfigParser()
-        dataset = self.config.read(self.config_file)
-
-        if len(dataset) != 1:
-           raise wn_exception.WnConfigError(str("Error reading config file:\n" + 
-                                                self.config_file))
-        
-        # TODO:  check version?  check warpnet section present?
-
-
-    def save_config(self, output=False):
-        """Saves the WARPNet config to the config file."""        
-        self.update_config_info()
-        
-        if output:
-            print("Saving config to: \n    {0}".format(self.config_file))
-        
-        try:
-            with open(self.config_file, 'w') as configfile:
-                self.config.write(configfile)
-        except IOError as err:
-            print("Error writing config file: {0}".format(err))
-        
-
     def __str__(self):
-        section_str = "Contains parameters: \n"
-        for section in self.config.sections():
-            section_str = str(section_str + 
-                              "    Section '" + str(section) + "':\n" + 
-                              "        " + str(self.config.options(section)) + "\n")
-        
-        if not self.config_file:
-            return str("Default config: \n" + section_str)
-        else:
-            return str(self.config_file + ": \n" + section_str)
-            
+        msg = "Host Configuration contains: \n"
+        for section in self.config.keys():
+            msg += "    Section '{0}'\n".format(section)
+            for parameter in self.config[section].keys():
+                msg += "        {0:20s} = ".format(parameter)
+                msg += "{0}\n".format(self.config[section][parameter])
 
-# End Class WnConfiguration
+        return msg            
+
+# End Class
 
 
 
-class WnNodesConfiguration(object):
+class NodesConfiguration(object):
     """Class for WARPNet Node Configuration.
     
     This class can load and store WARPNet Node configurations
@@ -262,6 +235,7 @@ class WnNodesConfiguration(object):
     initialized in the order they appear in the config but are not guarenteed.
 
     """
+    host_config         = None
     config              = None
     config_file         = None
     node_id_counter     = None
@@ -269,29 +243,82 @@ class WnNodesConfiguration(object):
     used_node_ips       = None
     shadow_config       = None
 
-    def __init__(self, filename=wn_defaults.WN_DEFAULT_NODES_CONFIG_INI_FILE):
-
+    def __init__(self, ini_file=None, serial_numbers=None, host_config=None):
+        """Initialize a WnNodesConfiguration
+        
+        Attributes:
+            ini_file -- An INI file name that specified a nodes configuration
+            serial_numbers -- A list of serial numbers of WARPv3 nodes
+            host_config -- A WnHostConfiguration
+        
+        There are multiple ways to initialize a WnNodesConfiguration:
+          1) List of serial_numbers
+          2) INI file name
+        
+        For a list of serial numbers, the config will use all of the auto-
+        population aspects to create a node for each serial number.  Serial
+        numbers must be of the form:  "W3-a-XXXXX" where XXXXX is the 5 
+        digit, zero-padded serial number printed on the WARPv3 board.
+        
+        For an INI file, you can create an INI file using the wn_nodes_setup()
+        method in warpnet.wn_util.  In the INI file, you can specify as little
+        as the serial numbers, up to a fully explicit configuration.
+        
+        If neither an ini_file nor serial_numbers are provided, the method
+        will check for the NODES_CONFIG_INI_FILE specified in 
+        warpnet.wn_defaults
+        
+        If both serial_numbers and an ini_file are provided, the ini_file 
+        will be ignored.
+        
+        If not provided, the class will use the default WnHostConfiguration
+        specified in wn_defaults.  Since there can be multiple host 
+        interfaces as part of the WnHostConfiguration, the WnNodesConfiguration
+        will only auto-populate IP address on the first host interface, ie
+        host interface 0.  Therefore, if only serial_numbers are provided
+        then all of those nodes will receive IP addresses on host interface 0.
+        
+        """
         self.node_id_counter = 0
         self.shadow_config   = {}
         self.used_node_ids   = []
         self.used_node_ips   = []
 
-        temp_config = WnConfiguration()
-        temp_unicast_port = temp_config.get_param('network', 'unicast_port')
-        temp_bcast_port   = temp_config.get_param('network', 'bcast_port')
-        temp_host_address = temp_config.get_param('network', 'host_address')
+        # Initialize the Shadow Config from Host data
+        if host_config is None:
+            host_config = HostConfiguration()
+        
+        temp_u_port     = host_config.get_param('network', 'unicast_port')
+        temp_b_port     = host_config.get_param('network', 'bcast_port')
+        temp_interfaces = host_config.get_param('network', 'host_interfaces')
+        temp_ip_address = temp_interfaces[0]
 
-        # Convert host address to string:  "x.y.z.{0}"
+        # Convert host_interface[0] to string:  "x.y.z.{0}"
         expr = re.compile('\.')
-        data = expr.split(temp_host_address)
+        data = expr.split(temp_ip_address)
         temp_ip_address = str(data[0] + "." + data[1] + "." + data[2] + ".{0}")
 
-        self.init_shadow_config(temp_ip_address, temp_unicast_port, temp_bcast_port)
-        
-        try:
-            self.load_config(filename)
-        except wn_exception.WnConfigError:
+        self.init_shadow_config(temp_ip_address, temp_u_port, temp_b_port)
+
+        # Initialize the config based on rules documented above.
+        #   NOTE:  This can raise exceptions if there are issues.
+        if serial_numbers is None:            
+            if ini_file is None:
+                ini_file = wn_defaults.NODES_CONFIG_INI_FILE
+                
+            self.load_config(ini_file)
+
+        else:
             self.set_default_config()
+            
+            for sn in serial_numbers:
+                try:
+                    self.add_node(sn)
+                except:
+                    msg  = "Incorrect WARPv3 serial number.\n"
+                    msg += "    Need: 'W3-a-XXXXX'"
+                    msg += "    Provided: {0}".format(sn)
+                    print(msg)
 
 
     #-------------------------------------------------------------------------
@@ -403,7 +430,7 @@ class WnNodesConfiguration(object):
         output = []
 
         if not self.config.sections():        
-            raise wn_exception.WnConfigError("No Nodes in {0}".format(self.config_file))
+            raise wn_ex.ConfigError("No Nodes in {0}".format(self.config_file))
         
         for node_config in self.config.sections():
             if (self.get_param_helper(node_config, 'use_node')):
@@ -413,9 +440,10 @@ class WnNodesConfiguration(object):
                 try:
                     sn = int(expr.match(node_config).group('sn'))
                 except AttributeError:
-                    print(str("Incorrect serial number.  \n" +
-                              "    Should be of the form : W3-a-XXXXX" +
-                              "    Provided serial number: {}".format(node_config)))
+                    msg  = "Incorrect serial number.  \n"
+                    msg += "    Should be of the form : W3-a-XXXXX\n"
+                    msg += "    Provided serial number: {0}".format(node_config)
+                    print(msg)
                     add_node = False
 
                 if add_node:
@@ -442,7 +470,7 @@ class WnNodesConfiguration(object):
 
         if len(dataset) != 1:
             msg = str("Error reading config file:\n" + self.config_file)
-            raise wn_exception.WnConfigError(msg)
+            raise wn_ex.ConfigError(msg)
         else:
             self.init_used_node_lists()
             self.load_shadow_config()
@@ -453,7 +481,7 @@ class WnNodesConfiguration(object):
         if not file is None:
             self.config_file = os.path.normpath(file)
         else:
-            self.config_file = wn_defaults.WN_DEFAULT_NODES_CONFIG_INI_FILE
+            self.config_file = wn_defaults.NODES_CONFIG_INI_FILE
         
         if output:
             print("Saving config to: \n    {0}".format(self.config_file))
@@ -602,11 +630,27 @@ class WnNodesConfiguration(object):
         if type(value) is int:
             sn = "W3-a-{0:05d}".format(value)
         elif type(value) is str:
-            sn = value
+            if (self._check_serial_number(value)):
+                sn = value
+            else:
+                raise TypeError("Invalid serial number: {0}".format(value))
         else:
             raise TypeError("Invalid serial number: {0}".format(value))
 
         return sn
+
+
+    def _check_serial_number(self, serial_number):
+        """Internal method to check the format of the serial number.  
+        
+        If the serial number is of the form:  W3-a-XXXXX, then this function 
+        will return True; otherwise, False.
+        """
+        expr = re.compile('W3-a-\d\d\d\d\d')
+        if (expr.match(serial_number)):
+            return True
+        else:
+            return False
 
 
     def _get_node_id(self, section):
@@ -718,16 +762,16 @@ class WnNodesConfiguration(object):
 
 
     def __str__(self):
-        section_str = "Contains parameters: \n"
+        section_str = "contains parameters: \n"
         for section in self.config.sections():
             section_str = str(section_str + 
                               "    Section '" + str(section) + "':\n" + 
                               "        " + str(self.config.options(section)) + "\n")
         
         if not self.config_file:
-            return str("Default config: \n" + section_str)
+            return str("Default config " + section_str)
         else:
             return str(self.config_file + ": \n" + section_str)
 
 
-# End Class WnNodesConfiguration
+# End Class

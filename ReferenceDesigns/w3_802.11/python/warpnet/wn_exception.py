@@ -20,30 +20,30 @@ Ver   Who  Date     Changes
 This module provides class definitions for all WARPNet exceptions.
 
 Functions (see below for more information):
-    WnVersionError()
-    WnConfigError()
-    WnParameterError()
-    WnNodeError()
-    WnTransportError()
+    VersionError()
+    ConfigError()
+    ParameterError()
+    NodeError()
+    TransportError()
 
 """
 
-__all__ = ['WnVersionError', 'WnConfigError', 'WnParameterError',
-           'WnNodeError', 'WnTransportError']
+__all__ = ['VersionError', 'ConfigError', 'ParameterError',
+           'NodeError', 'TransportError']
 
-class WnError(Exception):
+class Error(Exception):
     """Base class for Wn exceptions."""
     pass
 
-# End Class WnError
+# End Class
 
-class WnVersionError(WnError):
-    """Exception for configuration file errors.
+
+class VersionError(Error):
+    """Exception for version errors.
     
     Attributes:
         message -- explanation message of the error
     """
-    
     def __init__(self, message):
         self.message = message
 
@@ -52,15 +52,15 @@ class WnVersionError(WnError):
         msg += "    {0} \n".format(self.message)
         return msg
         
-# End Class WnVersionError
+# End Class
 
-class WnConfigError(WnError):
+
+class ConfigError(Error):
     """Exception for configuration file errors.
     
     Attributes:
         message -- explanation message of the error
-    """
-    
+    """    
     def __init__(self, message):
         self.message = message
 
@@ -69,35 +69,35 @@ class WnConfigError(WnError):
         msg += "    {0} \n".format(self.message)
         return msg
         
-# End Class WnConfigError
+# End Class
 
-class WnParameterError(WnError):
+
+class ParameterError(Error):
     """Exception for parameter errors.
     
     Attributes:
         name -- name of the parameter
         message -- explanation message of the error
     """
-    
-    def __init__(self, name, message):
-        self.name = name
+    def __init__(self, parameter, message):
+        self.parameter = parameter
         self.message = message
 
     def __str__(self):
-        msg  = "Parameter {0} \n".format(self.name)
+        msg  = "Parameter {0} \n".format(self.parameter)
         msg += "    Error: {0} \n".format(self.message)
         return msg
 
-# End Class WnParameterError
+# End Class
 
-class WnNodeError(WnError):
+
+class NodeError(Error):
     """Exception for WARPNet nodes.
     
     Attributes:
         node -- WARPNet node in which the error occurred.
         message -- explanation message of the error
     """
-    
     def __init__(self, node, message):
         self.node = node
         self.message = message
@@ -107,9 +107,10 @@ class WnNodeError(WnError):
         msg += "    Error: {0} \n".format(self.message)
         return msg
 
-# End Class WnNodeError
+# End Class
 
-class WnTransportError(WnError):
+
+class TransportError(Error):
     """Exception for WARPNet transports.
     
     Attributes:
@@ -126,5 +127,5 @@ class WnTransportError(WnError):
         msg += "    Error: {0} \n".format(self.message)
         return msg
 
-# End Class WnTransportError
+# End Class
 

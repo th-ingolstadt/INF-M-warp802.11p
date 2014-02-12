@@ -21,7 +21,7 @@ This module provides the WARPNet unicast Ethernet UDP transport based on
 the python socket class.
 
 Functions:
-    WnTransportEthUdpPy() -- Unicast Ethernet UDP transport based on python
+    TransportEthUdpPy() -- Unicast Ethernet UDP transport based on python
         sockets
 
 Integer constants:
@@ -34,14 +34,14 @@ import re
 import time
 import socket
 
-from . import wn_transport_eth_udp
-from . import wn_exception as ex
+from . import wn_transport_eth_udp as tp
+from . import wn_exception as wn_ex
 
 
-__all__ = ['WnTransportEthUdpPy']
+__all__ = ['TransportEthUdpPy']
 
 
-class WnTransportEthUdpPy(wn_transport_eth_udp.WnTransportEthUdp):
+class TransportEthUdpPy(tp.TransportEthUdp):
     """Class for WARPNet Ethernet UDP Transport class using Python libraries.
        
     Attributes:
@@ -105,7 +105,7 @@ class WnTransportEthUdpPy(wn_transport_eth_udp.WnTransportEthUdp):
                     received_resp = 1
             
             if ((time.time() - start_time) > self.timeout ) and (received_resp == 0):
-                raise ex.WnTransportError(self, "Transport receive timed out.")
+                raise wn_ex.TransportError(self, "Transport receive timed out.")
 
         return reply
 
@@ -136,7 +136,7 @@ class WnTransportEthUdpPy(wn_transport_eth_udp.WnTransportEthUdp):
         return reply
 
 
-# End Class WnTransportEthUdpPy
+# End Class
 
 
 

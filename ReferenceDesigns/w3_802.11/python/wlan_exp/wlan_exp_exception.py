@@ -20,30 +20,8 @@ Ver   Who  Date     Changes
 This module provides class definitions for all WLAN Exp exceptions.
 
 Functions (see below for more information):
-    WlanExpVersionError()
 
 """
 
-__all__ = ['WlanExpVersionError']
-
-class WlanExpError(Exception):
-    """Base class for WlanExp exceptions."""
-    pass
-
-# End Class WlanExpError
-
-class WlanExpVersionError(WlanExpError):
-    """Exception for configuration file errors.
-    
-    Attributes:
-        message -- explanation message of the error
-    """
-    
-    def __init__(self, message):
-        self.message = message
-
-    def __str__(self):
-        return str(self.message)
-        
-# End Class WlanExpVersionError
+__all__ = []
 

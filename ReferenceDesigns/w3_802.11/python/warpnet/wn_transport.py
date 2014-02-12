@@ -32,7 +32,7 @@ make sure that the values of these hardware parameters are not reused.
 """
 
 
-__all__ = ['WnTransport']
+__all__ = ['Transport']
 
 
 # WARPNet Command Group Names
@@ -51,7 +51,7 @@ TRANSPORT_WN_RESP       = 1
 TRANSPORT_WN_BUFFER     = 2
 
 
-class WnTransport(object):
+class Transport(object):
     """Base class for WARPNet transports.
 
     Attributes:
@@ -61,7 +61,7 @@ class WnTransport(object):
 
     def send(self,): raise NotImplementedError
 
-# End Class WnTransport
+# End Class
 
 
 

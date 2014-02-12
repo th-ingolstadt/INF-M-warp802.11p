@@ -40,29 +40,5 @@ WLAN_EXP_STA_TYPE                 = WLAN_EXP_BASE + WLAN_EXP_HIGH_STA + WLAN_EXP
 WLAN_EXP_STA_CLASS                = 'wlan_exp.wlan_exp_node_sta.WlanExpNodeSta'
 
 
-# WLAN Exp Transmit rate constants
-WLAN_MAC_RATE_6M                  = 1
-WLAN_MAC_RATE_9M                  = 2
-WLAN_MAC_RATE_12M                 = 3
-WLAN_MAC_RATE_18M                 = 4
-WLAN_MAC_RATE_24M                 = 5
-WLAN_MAC_RATE_36M                 = 6
-WLAN_MAC_RATE_48M                 = 7
-WLAN_MAC_RATE_54M                 = 8
-
-def tx_rate_to_str(tx_rate):
-    if   (tx_rate == WLAN_MAC_RATE_6M):  return "6 Mbps"
-    elif (tx_rate == WLAN_MAC_RATE_9M):  return "9 Mbps"
-    elif (tx_rate == WLAN_MAC_RATE_12M): return "12 Mbps"
-    elif (tx_rate == WLAN_MAC_RATE_18M): return "18 Mbps"
-    elif (tx_rate == WLAN_MAC_RATE_24M): return "24 Mbps"
-    elif (tx_rate == WLAN_MAC_RATE_36M): return "36 Mbps"
-    elif (tx_rate == WLAN_MAC_RATE_48M): return "48 Mbps"
-    elif (tx_rate == WLAN_MAC_RATE_54M): return "54 Mbps"
-    else:
-        return ""
-
-
-
 
 

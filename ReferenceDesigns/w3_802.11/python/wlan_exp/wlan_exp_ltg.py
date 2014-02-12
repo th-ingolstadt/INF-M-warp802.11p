@@ -21,26 +21,31 @@ This module provides definitions for Local Traffic Generation (LTG) on
 WLAN Exp nodes.
 
 Functions (see below for more information):
-    WlanExpLTGFlowCBR() -- Constant Bit Rate (CBR) LTG flow
-    WlanExpLTGFlowRandom() -- Random (size, period) LTG flow 
+    FlowConfigCBR() -- Constant Bit Rate (CBR) LTG flow config
+    FlowConfigRandomRandom() -- Random (size, period) LTG flow config 
 
 Integer constants:
     LTG_REMOVE_ALL -- Constant to remove all LTG flows on a given node.
+    LTG_START_ALL  -- Constant to start all LTG flows on a given node.
+    LTG_STOP_ALL   -- Constant to stop all LTG flows on a given node.
 
-It is assumed that users will extend this structure to create their own
-LTG flows.  When an LTG component is serialized, it follows the following
-structure:
+It is assumed that users will extend these classes to create their own
+LTG flow configurations.  When an LTG component is serialized, it follows 
+the following structure:
   Word        Bits           Function   
    [0]        [31:16]        type
    [0]        [15:0]         length (number of 32 bit words)
    [1:length]                parameters
 
+When a LTG flow configuration is serialized, the schedule is serialized 
+first and then the payload.
+
 """
 
 
-__all__ = ['WlanExpLTGSchedule', 'WlanExpLTGSchedPeriodic', 'WlanExpLTGSchedUniformRand',
-           'WlanExpLTGPayload', 'WlanExpLTGPayloadFixed', 'WlanExpLTGPayloadUniformRand',
-           'WlanExpLTGFlow', 'WlanExpLTGFlowCBR', 'WlanExpLTGFlowRandom']
+__all__ = ['Schedule', 'SchedulePeriodic', 'ScheduleUniformRandom',
+           'Payload', 'PayloadFixed', 'PayloadUniformRandom',
+           'FlowConfig', 'FlowConfigCBR', 'FlowConfigRandomRandom']
 
 
 
@@ -63,15 +68,10 @@ LTG_START_ALL                          = 0xFFFFFFFF
 LTG_STOP_ALL                           = 0xFFFFFFFF
 
 
-# LTG WLAN Exp Constants
-#   NOTE:  The C counterparts are found in wlan_exp_node.h
-LTG_ERROR                              = 0xFFFFFFFF
-
-
 #-----------------------------------------------------------------------------
 # LTG Schedules
 #-----------------------------------------------------------------------------
-class WlanExpLTGSchedule(object):
+class Schedule(object):
     """Base class for LTG Schedules."""
     ltg_type = None
     
@@ -97,7 +97,7 @@ class WlanExpLTGSchedule(object):
 # End Class WlanExpLTGSchedule
 
 
-class WlanExpLTGSchedPeriodic(WlanExpLTGSchedule):
+class SchedulePeriodic(Schedule):
     """LTG Schedule that will generate a payload every 'interval' 
     microseconds.    
     """
@@ -113,7 +113,7 @@ class WlanExpLTGSchedPeriodic(WlanExpLTGSchedule):
 # End Class WlanExpLTGSchedPeriodic
     
 
-class WlanExpLTGSchedUniformRand(WlanExpLTGSchedule):
+class ScheduleUniformRandom(Schedule):
     """LTG Schedule that will generate a payload a uniformly random time 
     between min_interval and max_interval microseconds.    
     """
@@ -134,7 +134,7 @@ class WlanExpLTGSchedUniformRand(WlanExpLTGSchedule):
 #-----------------------------------------------------------------------------
 # LTG Payloads
 #-----------------------------------------------------------------------------
-class WlanExpLTGPayload(object):
+class Payload(object):
     """Base class for LTG Payloads."""
     ltg_type = None
     
@@ -157,11 +157,11 @@ class WlanExpLTGPayload(object):
             args.append(int(param))
         return args
 
-# End Class WlanExpLTGPayload
+# End Class Payload
 
 
-class WlanExpLTGPayloadFixed(WlanExpLTGPayload):
-    """LTG paylod that will generate a fixed payload of the given length."""    
+class PayloadFixed(Payload):
+    """LTG payload that will generate a fixed payload of the given length."""    
     length = None
 
     def __init__(self, length):
@@ -171,10 +171,10 @@ class WlanExpLTGPayloadFixed(WlanExpLTGPayload):
     def get_params(self):
         return [self.length]
 
-# End Class WlanExpLTGSchedPeriodic
+# End Class PayloadFixed
     
 
-class WlanExpLTGPayloadUniformRand(WlanExpLTGPayload):
+class PayloadUniformRandom(Payload):
     """LTG payload that will generate a payload with uniformly random size 
     between min_length and max_length bytes.    
     """
@@ -189,14 +189,14 @@ class WlanExpLTGPayloadUniformRand(WlanExpLTGPayload):
     def get_params(self):
         return [self.min_length, self.max_length]
 
-# End Class WlanExpLTGSchedUniformRand
+# End Class PayloadUniformRand
 
 
 #-----------------------------------------------------------------------------
-# LTG Flows
+# LTG Flow Configurations
 #-----------------------------------------------------------------------------
-class WlanExpLTGFlow(object):
-    """Base class for LTG Flows."""
+class FlowConfig(object):
+    """Base class for LTG Flow Configurations."""
     ltg_schedule = None
     ltg_payload  = None
     
@@ -214,27 +214,27 @@ class WlanExpLTGFlow(object):
 
         return args
 
-# End Class WlanExpLTGFlow
+# End Class FlowConfig
 
 
-class WlanExpLTGFlowCBR(WlanExpLTGFlow):
-    """Class to implement a Constant Bit Rate LTG flow."""
+class FlowConfigCBR(FlowConfig):
+    """Class to implement a Constant Bit Rate LTG flow configuration."""
     def __init__(self, size, interval):
-        self.ltg_schedule = WlanExpLTGSchedPeriodic(interval)
-        self.ltg_payload  = WlanExpLTGPayloadFixed(size)
+        self.ltg_schedule = SchedulePeriodic(interval)
+        self.ltg_payload  = PayloadFixed(size)
 
-# End Class WlanExpLTGFlowCBR
+# End Class FlowConfigCBR
 
 
-class WlanExpLTGFlowRandom(WlanExpLTGFlow):
-    """Class to implement an LTG flow with random period and random 
-    sized payload.
+class FlowConfigRandomRandom(FlowConfig):
+    """Class to implement an LTG flow configuration with random period 
+    and random sized payload.
     """
     def __init__(self, min_length, max_length, min_interval, max_interval):
-        self.ltg_schedule = WlanExpLTGSchedUniformRand(min_interval, max_interval)
-        self.ltg_payload  = WlanExpLTGPayloadUniformRand(min_length, max_length)
+        self.ltg_schedule = ScheduleUniformRandom(min_interval, max_interval)
+        self.ltg_payload  = PayloadUniformRandom(min_length, max_length)
 
-# End Class WlanExpLTGFlowRandom
+# End Class FlowConfigRandom
 
 
 

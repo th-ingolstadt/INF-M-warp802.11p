@@ -20,12 +20,16 @@ Ver   Who  Date     Changes
 This module provides WLAN Exp utility commands.
 
 Functions (see below for more information):
+    tx_rate_index_to_str -- Converts tx_rate_index to string
+
     wlan_exp_ver() -- Returns WLAN Exp version
     wlan_exp_ver_str() -- Returns string of WLAN Exp version
-    wlan_exp_init_nodes() -- Initialize nodes
-    wlan_exp_init_time() -- Initialize the timebase on all nodes to be as 
+
+    init_nodes() -- Initialize nodes
+    init_timestamp() -- Initialize the timestamps on all nodes to be as 
                             similar as possible
-    wlan_exp_setup() -- Set up wlan_exp_config.ini file
+
+    filter_nodes() -- Filter a list of nodes
 
 Integer constants:
     WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION, WLAN_EXP_XTRA, 
@@ -34,15 +38,20 @@ Integer constants:
 """
 
 import os
+import re
 import sys
 import time
 import inspect
 
-from . import wlan_exp_exception as ex
+import warpnet.wn_exception as wn_ex
+
 from . import wlan_exp_defaults as defaults
 
 
-__all__ = ['wlan_exp_ver', 'wlan_exp_ver_str', 'wlan_exp_init_nodes']
+__all__ = ['tx_rate_index_to_str',
+           'wlan_exp_ver', 'wlan_exp_ver_str', 
+           'init_nodes', 'init_timestamp',
+           'filter_nodes']
 
 
 # WARPNet Version defines
@@ -55,6 +64,50 @@ WLAN_EXP_RELEASE             = 1
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": raw_input=input
 
+
+#-----------------------------------------------------------------------------
+# WLAN Exp Rate definitions
+#-----------------------------------------------------------------------------
+
+rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2'},
+         {'index' :  2, 'rate' :  9.0, 'rate_str' : 'BPSK 3/4'},
+         {'index' :  3, 'rate' : 12.0, 'rate_str' : 'QPSK 1/2'},
+         {'index' :  4, 'rate' : 18.0, 'rate_str' : 'QPSK 3/4'},
+         {'index' :  5, 'rate' : 24.0, 'rate_str' : '16-QAM 1/2'},
+         {'index' :  6, 'rate' : 36.0, 'rate_str' : '16-QAM 3/4'},
+         {'index' :  7, 'rate' : 48.0, 'rate_str' : '64-QAM 2/3'},
+         {'index' :  8, 'rate' : 54.0, 'rate_str' : '64-QAM 3/4'}]
+
+
+def tx_rate_to_str(tx_rate):
+    """Convert a TX rate from the 'rates' list to a string."""
+    msg = "{0:2.1f} {1}".format(tx_rate['rate'], tx_rate['rate_str'])
+    return msg
+    
+
+
+def tx_rate_index_to_str(tx_rate_index):
+    """Convert a TX rate index to a string."""
+    tx_rate = None
+    msg     = ""
+
+    for rate in rates:
+        if (rate['index'] == tx_rate_index):
+            tx_rate = rate
+            break
+
+    if not tx_rate is None:
+        msg += "{0:2.1f} {1}".format(tx_rate['rate'], tx_rate['rate_str'])
+    else:
+        print("Unknown tx rate index: {0}".format(tx_rate_index))
+
+    return msg
+
+
+
+#-----------------------------------------------------------------------------
+# WLAN Exp Version Utilities
+#-----------------------------------------------------------------------------
 
 def wlan_exp_ver(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR, 
                  revision=WLAN_EXP_REVISION, xtra=WLAN_EXP_XTRA, output=1):
@@ -88,36 +141,32 @@ def wlan_exp_ver(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
                   os.path.abspath(inspect.getfile(inspect.currentframe()))))
 
     # Check the provided version vs the current version
-    output_str = str("Version Mismatch: Specified version " + 
-                     wlan_exp_ver_str(major, minor, revision) + "is ")
+    msg  = "WLAN Exp Version Mismatch: \n:"
+    msg += "    Specified version {0}\n".format(wlan_exp_ver_str(major, minor, revision))
+    msg += "    Current   version {0}".format(wlan_exp_ver_str())
 
     if (major == WLAN_EXP_MAJOR):
         if (minor == WLAN_EXP_MINOR):
             if (revision != WLAN_EXP_REVISION):
                 # Since MAJOR & MINOR versions match, only print a warning
                 if (revision < WLAN_EXP_REVISION):
-                    print("WARNING: " + output_str + "older than WLAN Exp v" + wlan_exp_ver_str())
+                    print("WARNING: " + msg + " (older)")
                 else:
-                    print("WARNING: " + output_str + "newer than WLAN Exp v" + wlan_exp_ver_str())
+                    print("WARNING: " + msg + " (newer)")
         else:
             if (minor < WLAN_EXP_MINOR):
-                print("WARNING: " + output_str + "older than WLAN Exp v" + wlan_exp_ver_str())
+                print("WARNING: " + msg + " (older)")
             else:
-                raise ex.WlanExpVersionError("\n" + output_str + 
-                                             "newer than WLAN Exp v" + 
-                                             wlan_exp_ver_str())
+                raise wn_ex.VersionError("ERROR: " + msg + " (newer)")
     else:
         if (major < WLAN_EXP_MAJOR):
-            print("WARNING: " + output_str + "older than WLAN Exp v" + wlan_exp_ver_str())
+            print("WARNING: " + msg + " (older)")
         else:
-            raise ex.WlanExpVersionError("\n" + output_str + 
-                                         "newer than WLAN Exp v" + 
-                                         wlan_exp_ver_str())
+            raise wn_ex.VersionError("ERROR: " + msg + " (newer)")
     
     return (WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION)
     
-    
-# End of wn_ver()
+# End of wlan_exp_ver()
 
 
 def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR, 
@@ -127,52 +176,60 @@ def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
     NOTE:  This will raise a WlanExpVersionError if the arguments are not
     integers.    
     """
-    output_str = ""
-    exception  = False
-    
     try:
-        output_str = str("{0:d}.{1:d}.{2:d} {3:s}".format(major, minor, 
-                                                          revision, xtra))
-    except ValueError:
+        msg  = "{0:d}.".format(major)
+        msg += "{0:d}.".format(minor)
+        msg += "{0:d} ".format(revision)
+        msg += "{0:s}".format(xtra)
+    except ValueError as err:
         # Set output string to default values so program can continue
-        output_str = str("{0:d}.{1:d}.{2:d} {3:s}".format(WLAN_EXP_MAJOR, WLAN_EXP_MINOR, 
-                                                          WLAN_EXP_REVISION, WLAN_EXP_XTRA))
-        exception  = True
-
-    if (exception):
-        msg = str("\nUnknown Argument: All arguments should be integers: \n" +
-                  "    major    = {} \n".format(major) +
-                  "    minor    = {} \n".format(minor) +
-                  "    revision = {} \n".format(revision))
-        raise ex.WlanExpVersionError(msg)
+        error = "Unknown Argument: All arguments should be integers"
+        print(err)
     
-    return output_str
+        msg  = "{0:d}.".format(WLAN_EXP_MAJOR)
+        msg += "{0:d}.".format(WLAN_EXP_MINOR)
+        msg += "{0:d} ".format(WLAN_EXP_REVISION)
+        msg += "{0:s}".format(WLAN_EXP_XTRA)
+
+        raise wn_ex.VersionError(error)
     
-# End of wn_ver_str()
+    return msg
+    
+# End of wlan_exp_ver_str()
 
 
-def wlan_exp_init_nodes(nodes_config, node_factory=None, output=False):
+
+#-----------------------------------------------------------------------------
+# WLAN Exp Node Utilities
+#-----------------------------------------------------------------------------
+def init_nodes(nodes_config, host_config= None, node_factory=None, output=False):
     """Initalize WLAN Exp nodes.
 
     Attributes:
         nodes_config -- A WnNodesConfiguration describing the nodes
+        host_config  -- A WnConfiguration object describing the host configuration
         node_factory -- A WlanExpNodeFactory or subclass to create nodes of a 
                         given WARPNet type
         output -- Print output about the WARPNet nodes
     """
+    # Create a Host Configuration if there is none provided
+    if host_config is None:
+        import warpnet.wn_config as wn_config
+        host_config = wn_config.HostConfiguration()
+
     # If node_factory is not defined, create a default WlanExpNodeFactory
     if node_factory is None:
         from . import wlan_exp_node
-        node_factory = wlan_exp_node.WlanExpNodeFactory()
+        node_factory = wlan_exp_node.WlanExpNodeFactory(host_config)
 
     # Use the WARPNet utility, wn_init_nodes, to initialize the nodes
     import warpnet.wn_util as wn_util
-    return wn_util.wn_init_nodes(nodes_config, node_factory, output)
+    return wn_util.wn_init_nodes(nodes_config, host_config, node_factory, output)
 
-# End of wlan_exp_init_nodes()
+# End of init_nodes()
 
 
-def wlan_exp_init_time(nodes, time_base=0, output=False, verbose=False, repeat=1):
+def init_timestamp(nodes, time_base=0, output=False, verbose=False, repeat=1):
     """Initialize the time on all of the WLAN Exp nodes.
     
     Attributes:
@@ -183,7 +240,7 @@ def wlan_exp_init_time(nodes, time_base=0, output=False, verbose=False, repeat=1
     return_times       = None
     node_start_times   = []
 
-    print("Initializing {0} node(s) to time base: {1}".format(len(nodes), time_base))
+    print("Initializing {0} node(s) timestamps to: {1}".format(len(nodes), time_base))
 
     if output:
         return_times = {}
@@ -191,17 +248,17 @@ def wlan_exp_init_time(nodes, time_base=0, output=False, verbose=False, repeat=1
             return_times[node.serial_number] = []
     
     for i in range(repeat):    
-        start_time = wlan_exp_time()
+        start_time = _time()
     
         for node in nodes:
-            node_time = time_base + (wlan_exp_time() - start_time)
+            node_time = time_base + (_time() - start_time)
             node.set_time(node_time)
             node_start_times.append(node_time)
         
         if output:
             for idx, node in enumerate(nodes):
                 node_start_time = int(round(node_start_times[idx], 6) * (10**6))
-                elapsed_time = int(round(wlan_exp_time() - start_time - node_start_times[idx], 6) * (10**6)) 
+                elapsed_time = int(round(_time() - start_time - node_start_times[idx], 6) * (10**6)) 
                 node_time = node.get_time()
                 diff_time = node_start_time + elapsed_time - node_time
                 if (verbose):
@@ -216,10 +273,99 @@ def wlan_exp_init_time(nodes, time_base=0, output=False, verbose=False, repeat=1
     if not return_times is None:
         return return_times
         
-# End of wlan_exp_init_time()
+# End of init_timestamp()
 
 
-def wlan_exp_time():
+#-----------------------------------------------------------------------------
+# WLAN Exp Misc Utilities
+#-----------------------------------------------------------------------------
+def filter_nodes(nodes, filter_type, filter_val):
+    """Return a list of nodes that match the filter_val for the given 
+    filter_type.
+
+    Supported Filter Types:
+        'node_type' -- Filters nodes by WARPNet Types.  filter_val must 
+            be either a integer corresponding to a WARPNet type (see 
+            wlan_exp_defaults for example WARPNet types) or the following
+            strings:  'AP'  (equivalent to WLAN_EXP_AP_TYPE)
+                      'STA' (equivalent to WLAN_EXP_STA_TYPE)
+
+        'serial_number' -- Filters nodes by WARPv3 serial number.  filter_val
+            must be of the form:  'W3-a-XXXXX' where XXXXX is the five 
+            digit serial number of the board.
+    
+    NOTE:  If the list is empty, then this method will issue a warning
+    """
+    ret_nodes = []
+
+    if   (filter_type == 'node_type'):
+        error = False
+
+        if   (type(filter_val) is str):
+            if   (filter_val.lower() == 'ap'):
+                filter_val = defaults.WLAN_EXP_AP_TYPE
+            elif (filter_val.lower() == 'sta'):
+                filter_val = defaults.WLAN_EXP_STA_TYPE
+            else:
+                error = True
+
+        elif (type(filter_val) is int):
+            pass
+
+        else:
+            error = True;
+
+        if not error:
+            ret_nodes = _get_nodes_by_type(nodes, filter_val)
+        else:            
+            msg  = "Unknown filter value: {0}\n".format(filter_val)
+            msg += "    Must be either 'AP' or 'STA'"
+            print(msg)
+
+
+    elif (filter_type == 'serial_number'):
+        expr = re.compile('W3-a-(?P<sn>\d+)')
+        try:
+            sn = int(expr.match(filter_val).group('sn'))
+            ret_nodes = _get_nodes_by_sn(nodes, sn)
+        except AttributeError:
+            msg  = "Incorrect serial number.  \n"
+            msg += "    Should be of the form : W3-a-XXXXX\n"
+            msg += "    Provided serial number: {0}".format(filter_val)
+            print(msg)
+    
+    else:
+        msg  = "Unknown filter type: {0}\n".format(filter_type)
+        msg += "    Supported types: 'node_type', 'serial_number'"
+        print(msg)
+
+    if (len(ret_nodes) == 0):
+        import warnings
+        msg  = "No nodes match filter: {0} = {1}".format(filter_type, filter_val)
+        warnings.warn(msg)
+
+    return ret_nodes
+
+
+
+#-----------------------------------------------------------------------------
+# Internal Methods
+#-----------------------------------------------------------------------------
+def _get_nodes_by_type(nodes, node_type):
+    """Returns all nodes in the list that have the given node_type."""
+    return [n for n in nodes if (n.node_type == node_type)]
+
+# End of _get_nodes_by_type()
+
+
+def _get_nodes_by_sn(nodes, serial_number):
+    """Returns all nodes in the list that have the given serial number."""
+    return [n for n in nodes if (n.serial_number == serial_number)]
+
+# End of _get_nodes_by_type()
+
+
+def _time():
     """WLAN Exp time function to handle differences between Python 2.7 and 3.3"""
     try:
         return time.perf_counter()
@@ -227,75 +373,6 @@ def wlan_exp_time():
         return time.clock()
 
 # End of wlan_exp_init_time()
-
-
-def wlan_exp_setup():
-    """Setup WLAN Exp framework."""
-
-    print("-" * 70)
-    print("WLAN Exp Setup:")
-
-    #-------------------------------------------------------------------------
-    # Configure Python Path
-
-    print("-" * 70)
-    print("Configuring Python Path")
-    wlan_exp_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-
-    if not wlan_exp_dir in sys.path:
-        sys.path.append(wlan_exp_dir)
-        print("    Adding: {0}".format(wlan_exp_dir))
-    else:
-        print("    In Path: {0}".format(wlan_exp_dir))    
-
-
-    #-------------------------------------------------------------------------
-    # Configure WARPNet
-
-    import warpnet.wn_util as wn_util
-
-    message = "Configure WARPNet installation [Y/n]: "
-    temp = wn_util._get_confirmation_from_user(message)
-
-    if (temp == 'y'):
-        print("\n")
-        wn_util.wn_setup()
-    else:
-        #-------------------------------------------------------------------------
-        # Configure WARPNet Node Configuration
-        #   - Called automatically if you do wn_setup()
-        message = "\nPerform WARPNet Node Network Setup [Y/n]: "
-        temp = wn_util._get_confirmation_from_user(message)
-        if (temp == 'y'):
-            print("\n")
-            wn_util.wn_nodes_setup()
-        else:
-            print("-" * 70)
-            print("Done.")
-            print("-" * 70)
-
-# End of wn_setup()
-
-
-def wlan_exp_get_ap_nodes(nodes):
-    """Returns all WLAN Exp AP nodes that are in the nodes list."""
-    return wlan_exp_get_nodes(nodes, defaults.WLAN_EXP_AP_TYPE)
-
-# End of wlan_exp_get_ap_nodes()
-
-
-def wlan_exp_get_sta_nodes(nodes):
-    """Returns all WLAN Exp STA nodes that are in the nodes list."""
-    return wlan_exp_get_nodes(nodes, defaults.WLAN_EXP_STA_TYPE)
-
-# End of wlan_exp_get_sta_nodes()
-
-
-def wlan_exp_get_nodes(nodes, node_type):
-    """Returns all nodes that are in the nodes list of type node_type."""
-    return [n for n in nodes if (n.node_type == node_type)]
-
-# End of wlan_exp_get_sta_nodes()
 
 
 

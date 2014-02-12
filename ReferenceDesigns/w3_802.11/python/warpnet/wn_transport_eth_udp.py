@@ -20,7 +20,7 @@ Ver   Who  Date     Changes
 This module provides the base class for WARPNet Ethernet UDP transports.
 
 Functions:
-    WnTransportEthUdp() -- Base class for Ethernet UDP transports
+    TransportEthUdp() -- Base class for Ethernet UDP transports
     int2ip() -- Convert 32 bit integer to 'w.x.y.z' IP address string
     ip2int() -- Convert 'w.x.y.z' IP address string to 32 bit integer
     mac2str() -- Convert 6 byte MAC address to 'uu:vv:ww:xx:yy:zz' string
@@ -35,14 +35,14 @@ from socket import error as socket_error
 
 from . import wn_cmds
 from . import wn_message
-from . import wn_exception as ex
+from . import wn_exception as wn_ex
 from . import wn_transport as tp
 
 
-__all__ = ['WnTransportEthUdp']
+__all__ = ['TransportEthUdp']
 
 
-class WnTransportEthUdp(tp.WnTransport):
+class TransportEthUdp(tp.Transport):
     """Base Class for WARPNet Ethernet UDP Transport class.
        
     Attributes:
@@ -74,7 +74,7 @@ class WnTransportEthUdp(tp.WnTransport):
     tx_buffer_size  = None
     
     def __init__(self):
-        self.hdr = wn_message.WnTransportHeader()
+        self.hdr = wn_message.TransportHeader()
         self.status = 0
         self.timeout = 1
         self.max_payload = 1000   # Sane default.  Overwritten by payload test.
@@ -87,7 +87,9 @@ class WnTransportEthUdp(tp.WnTransport):
 
     def __repr__(self):
         """Return transport IP address and Ethernet MAC address"""
-        return str("Eth UDP Transport: " + self.ip_address + "(" + self.eth_mac_addr + ")")
+        msg  = "Eth UDP Transport: {0} ".format(self.ip_address)
+        msg += "({0})".format(self.mac_address)
+        return msg
 
     def check_setup(self):
         """Check the setup of the transport."""
@@ -140,10 +142,14 @@ class WnTransportEthUdp(tp.WnTransport):
         self.status = 1
         
         if (self.tx_buffer_size != tx_buf_size):
-            print("OS reduced send buffer size from {0} to {1}".format(self.tx_buffer_size, tx_buf_size))
+            msg  = "OS reduced send buffer size from "
+            msg += "{0} to {1}".format(self.tx_buffer_size, tx_buf_size) 
+            print(msg)
             
         if (self.rx_buffer_size != rx_buf_size):
-            print("OS reduced receive buffer size from {0} to {1}".format(self.rx_buffer_size, rx_buf_size))
+            msg  = "OS reduced receive buffer size from "
+            msg += "{0} to {1}".format(self.rx_buffer_size, rx_buf_size) 
+            print(msg)
 
 
     def wn_close(self):
@@ -178,7 +184,7 @@ class WnTransportEthUdp(tp.WnTransport):
         Will optionally print the result of the ping.
         """
         start_time = time.clock()
-        node.send_cmd(wn_cmds.WnCmdPing())
+        node.send_cmd(wn_cmds.Ping())
         end_time = time.clock()
         
         if output:
@@ -195,10 +201,11 @@ class WnTransportEthUdp(tp.WnTransport):
             payload_test_sizes = [1000, 1470]
         
         for size in payload_test_sizes:
-            my_arg_size = (size - (self.hdr.sizeof() + wn_message.WnCmd().sizeof() + 4)) // 4
+            cmd_size    = wn_message.Cmd().sizeof()
+            my_arg_size = (size - (self.hdr.sizeof() + cmd_size + 4)) // 4
  
             try:
-                resp = node.send_cmd(wn_cmds.WnCmdTestPayloadSize(my_arg_size))
+                resp = node.send_cmd(wn_cmds.TestPayloadSize(my_arg_size))
                 self.set_max_payload(resp)
                 
                 if (self.get_max_payload() < (4*my_arg_size)):
@@ -209,10 +216,10 @@ class WnTransportEthUdp(tp.WnTransport):
                 break
     
     def add_node_group_id(self, node, group):
-        node.send_cmd(wn_cmds.WnCmdAddNodeGrpId(group))
+        node.send_cmd(wn_cmds.AddNodeGrpId(group))
     
     def clear_node_group_id(self, node, group):
-        node.send_cmd(wn_cmds.WnCmdClearNodeGrpId(group))
+        node.send_cmd(wn_cmds.ClearNodeGrpId(group))
 
 
     #-------------------------------------------------------------------------
@@ -225,40 +232,40 @@ class WnTransportEthUdp(tp.WnTransport):
             if (length == 1):
                 self.transport_type = values[0]
             else:
-                raise ex.WnParameterError("TRANSPORT_TYPE", "Incorrect length")
+                raise wn_ex.ParameterError("TRANSPORT_TYPE", "Incorrect length")
                 
         elif (identifier == tp.TRANSPORT_HW_ADDR):
             if (length == 2):
                 self.mac_address = ((2**32) * (values[0] & 0xFFFF) + values[1])
             else:
-                raise ex.WnParameterError("TRANSPORT_HW_ADDR", "Incorrect length")
+                raise wn_ex.ParameterError("TRANSPORT_HW_ADDR", "Incorrect length")
                 
         elif (identifier == tp.TRANSPORT_IP_ADDR):
             if (length == 1):
                 self.ip_address = self.int2ip(values[0])
             else:
-                raise ex.WnParameterError("TRANSPORT_IP_ADDR", "Incorrect length")
+                raise wn_ex.ParameterError("TRANSPORT_IP_ADDR", "Incorrect length")
                 
         elif (identifier == tp.TRANSPORT_UNICAST_PORT):
             if (length == 1):
                 self.unicast_port = values[0]
             else:
-                raise ex.WnParameterError("TRANSPORT_UNICAST_PORT", "Incorrect length")
+                raise wn_ex.ParameterError("TRANSPORT_UNICAST_PORT", "Incorrect length")
                 
         elif (identifier == tp.TRANSPORT_BCAST_PORT):
             if (length == 1):
                 self.bcast_port = values[0]
             else:
-                raise ex.WnParameterError("TRANSPORT_BCAST_PORT", "Incorrect length")
+                raise wn_ex.ParameterError("TRANSPORT_BCAST_PORT", "Incorrect length")
                 
         elif (identifier == tp.TRANSPORT_GRP_ID):
             if (length == 1):
                 self.group_id = values[0]
             else:
-                raise ex.WnParameterError("TRANSPORT_GRP_ID", "Incorrect length")
+                raise wn_ex.ParameterError("TRANSPORT_GRP_ID", "Incorrect length")
                 
         else:
-            raise ex.WnParameterError(identifier, "Unknown transport parameter")
+            raise wn_ex.ParameterError(identifier, "Unknown transport parameter")
 
 
     #-------------------------------------------------------------------------
@@ -272,18 +279,19 @@ class WnTransportEthUdp(tp.WnTransport):
 
     def __str__(self):
         """Pretty print the Transport parameters"""
-        print("Transport {}:".format(self.transport_type))
-        print("    IP address    :  {}".format(self.ip_address))
-        print("    MAC address   :  {}".format(self.mac2str(self.mac_address)))
-        print("    Max payload   :  {}".format(self.max_payload))
-        print("    Unicast port  :  {}".format(self.unicast_port))
-        print("    Broadcast port:  {}".format(self.bcast_port))
-        print("    Timeout       :  {}".format(self.timeout))
-        print("    Rx Buffer Size:  {}".format(self.rx_buffer_size))
-        print("    Tx Buffer Size:  {}".format(self.tx_buffer_size))
-        print("    Group ID      :  {}".format(self.group_id))
+        msg  = "Transport {0}:\n".format(self.transport_type)
+        msg += "    IP address    :  {0}\n".format(self.ip_address)
+        msg += "    MAC address   :  {0}\n".format(self.mac2str(self.mac_address)) 
+        msg += "    Max payload   :  {0}\n".format(self.max_payload)
+        msg += "    Unicast port  :  {0}\n".format(self.unicast_port)
+        msg += "    Broadcast port:  {0}\n".format(self.bcast_port)
+        msg += "    Timeout       :  {0}\n".format(self.timeout)
+        msg += "    Rx Buffer Size:  {0}\n".format(self.rx_buffer_size)
+        msg += "    Tx Buffer Size:  {0}\n".format(self.tx_buffer_size)
+        msg += "    Group ID      :  {0}\n".format(self.group_id)
+        return msg
         
-# End Class WnTransportEthUdp
+# End Class
 
 
 
@@ -292,10 +300,11 @@ class WnTransportEthUdp(tp.WnTransport):
 #-------------------------------------------------------------------------
 
 def int2ip(ipaddr):
-    return str("{0:d}.{1:d}.{2:d}.{3:d}".format(((ipaddr >> 24) & 0xFF),
-                                                ((ipaddr >> 16) & 0xFF),
-                                                ((ipaddr >>  8) & 0xFF),
-                                                (ipaddr & 0xFF)))
+    msg  = "{0:d}.".format((ipaddr >> 24) & 0xFF)
+    msg += "{0:d}.".format((ipaddr >> 16) & 0xFF)
+    msg += "{0:d}.".format((ipaddr >>  8) & 0xFF)
+    msg += "{0:d}".format(ipaddr & 0xFF)
+    return msg
 
 
 def ip2int(ipaddr):
@@ -307,13 +316,13 @@ def ip2int(ipaddr):
 
 
 def mac2str(mac_address):
-    return str("{0:02x}".format((mac_address >> 40) & 0xFF) + ":" +
-               "{0:02x}".format((mac_address >> 32) & 0xFF) + ":" +
-               "{0:02x}".format((mac_address >> 24) & 0xFF) + ":" +
-               "{0:02x}".format((mac_address >> 16) & 0xFF) + ":" +
-               "{0:02x}".format((mac_address >>  8) & 0xFF) + ":" +
-               "{0:02x}".format(mac_address & 0xFF))
-
+    msg  = "{0:02x}:".format((mac_address >> 40) & 0xFF)
+    msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
+    msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
+    msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
+    msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
+    msg += "{0:02x}".format(mac_address & 0xFF)
+    return msg
 
 
 

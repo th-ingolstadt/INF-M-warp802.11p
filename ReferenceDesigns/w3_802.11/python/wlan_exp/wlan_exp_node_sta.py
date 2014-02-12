@@ -25,17 +25,17 @@ Functions (see below for more information):
 """
 
 from . import wlan_exp_defaults
-from . import wlan_exp_node
+from . import wlan_exp_node as node
 
 
 __all__ = ['WlanExpNodeSta']
 
 
-class WlanExpNodeSta(wlan_exp_node.WlanExpNode):
+class WlanExpNodeSta(node.WlanExpNode):
     """802.11 Station (STA) for WLAN Experiment node."""
     
-    def __init__(self):
-        super(WlanExpNodeSta, self).__init__()
+    def __init__(self, host_config=None):
+        super(WlanExpNodeSta, self).__init__(host_config)
 
         # Set the correct WARPNet node type
         self.node_type = self.node_type + wlan_exp_defaults.WLAN_EXP_HIGH_AP 
@@ -60,24 +60,15 @@ class WlanExpNodeSta(wlan_exp_node.WlanExpNode):
     # Misc methods for the Node
     #-------------------------------------------------------------------------
     def __str__(self):
-        """Pretty print WlanExpNodeSta object"""
-        if not self.serial_number is None:
-            print("WLAN Exp STA:")
-            print("Node '{0}' with ID {1}:".format(self.name, self.node_id))
-            print("    Desc    :  {0}".format(self.description))
-            print("    Serial #:  W3-a-{0:05d}".format(self.serial_number))
-        else:
-            print("Node not initialized.")
-        if not self.transport is None:
-            print(self.transport)
-
+        """Pretty print WlanExpNodeAp object"""
+        msg = super(WlanExpNodeSta, self).__str__()
+        msg = "WLAN Exp STA: \n" + msg
+        return msg
 
     def __repr__(self):
         """Return node name and description"""
-        return str("WLAN EXP STA " + 
-                   "W3-a-{0:05d}: ID {1:5d} ({2})".format(self.serial_number,
-                                                          self.node_id,
-                                                          self.name))
-
+        msg = super(WlanExpNodeSta, self).__repr__()
+        msg = "WLAN EXP STA " + msg
+        return msg
 
 # End Class WlanExpNodeSta

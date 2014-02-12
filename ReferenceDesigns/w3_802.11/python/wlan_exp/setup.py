@@ -27,6 +27,6 @@ setup(
     
     package_dir = {'wlan_exp':''},
     packages = ['wlan_exp'],
-    scripts = ['wlan_exp_setup']
+    scripts = ['']
     
 )

@@ -21,7 +21,7 @@ This module provides the WARPNet broadcast Ethernet UDP transport based on
 the python socket class.
 
 Functions:
-    WnTransportEthUdpPyBcast() -- Broadcast Ethernet UDP transport based on 
+    TransportEthUdpPyBcast() -- Broadcast Ethernet UDP transport based on 
         python sockets
 
 Integer constants:
@@ -36,31 +36,52 @@ from . import wn_config
 from . import wn_transport_eth_udp as tp
 
 
-__all__ = ['WnTransportEthUdpPyBcast']
+__all__ = ['TransportEthUdpPyBcast']
 
 
-class WnTransportEthUdpPyBcast(tp.WnTransportEthUdp):
+class TransportEthUdpPyBcast(tp.TransportEthUdp):
     """Class for WARPNet Ethernet UDP Broadcast Transport class using Python libraries.
        
     Attributes:
-        See WnTransportEthUdp for all attributes
+        See TransportEthUdp for attributes
+        host_config -- A HostConfiguration that describes the default 
+           transport configuration.
+        host_ip -- IP address of the host interface
+        
+    If host_ip is not specified, then the transport will chose the IP address
+    of the first host interface, ie host interface zero.
     """
-    def __init__(self):
-        super(WnTransportEthUdpPyBcast, self).__init__()        
+    host_config = None
+    host_ip     = None
+    
+    def __init__(self, host_config=None, host_ip=None):
+        super(TransportEthUdpPyBcast, self).__init__()
+
+        if not host_config is None:
+            self.host_config = host_config
+        else:
+            self.host_config = wn_config.HostConfiguration()
+        
+        if host_ip is None:
+            host_infs = self.host_config.get_param('network', 'host_interfaces')
+            self.host_ip = host_infs[0]
+        
         self.set_default_config()
 
         
     def set_default_config(self):
         """Set the default configuration of a Broadcast transport."""
-        config = wn_config.WnConfiguration()
+        unicast_port = self.host_config.get_param('network', 'unicast_port')
+        bcast_port   = self.host_config.get_param('network', 'bcast_port')
+        host_id      = self.host_config.get_param('network', 'host_id')
         
         # Set default values of the Transport
-        self.set_ip_address(config.get_param('network', 'host_address'))
-        self.set_unicast_port(int(config.get_param('network', 'unicast_port')))
-        self.set_bcast_port(int(config.get_param('network', 'bcast_port')))
-        self.set_src_id(int(config.get_param('network', 'host_id')))
+        self.set_ip_address(self.host_ip)
+        self.set_unicast_port(unicast_port)
+        self.set_bcast_port(bcast_port)
+        self.set_src_id(host_id)
         self.set_dest_id(0xFFFF)
-        self.timeout = 2000
+        self.timeout = 1
 
 
     def set_ip_address(self, ip_addr):
@@ -105,7 +126,7 @@ class WnTransportEthUdpPyBcast(tp.WnTransportEthUdp):
         raise NotImplementedError
 
 
-# End Class WnTransportEthUdpPyBcast
+# End Class
 
 
 
