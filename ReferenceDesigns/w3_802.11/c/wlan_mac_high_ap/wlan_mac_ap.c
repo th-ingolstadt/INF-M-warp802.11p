@@ -67,7 +67,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -207,46 +207,6 @@ int main(){
 	// Set AP processing callbacks
 	node_set_process_callback( (void *)wlan_exp_node_ap_processCmd );
 #endif
-
-	/*
-	//TEST
-	u32 i;
-	station_info* curr_association;
-	station_info* associated_station;
-
-	u8 _demo_addr1[6] = {0xAC,0xFD,0xEC,0x3F,0x3F,0x50}; //Ashu iPhone
-	u8 _demo_addr2[6] = {0x00,0x88,0x65,0x65,0x2A,0xC8}; //Evan iPhone
-	u8 _demo_addr3[6] = {0x14,0x7D,0xC5,0x5E,0xA9,0xFB}; //Clay
-
-	associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, _demo_addr1,1);
-	if(associated_station!=NULL){
-		associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-		strcpy(associated_station->hostname,"one");
-	}
-
-	associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, _demo_addr2,2);
-	if(associated_station!=NULL){
-		associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-		strcpy(associated_station->hostname,"two");
-	}
-//ADD_ASSOCIATION_ANY_AID
-	associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, _demo_addr3,2);
-	if(associated_station!=NULL){
-		associated_station->flags = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK | STATION_INFO_FLAG_NEVER_REMOVE;
-		strcpy(associated_station->hostname,"three");
-	}
-
-	xil_printf("\n\nLen: %d\n", association_table.length);
-	curr_association = (station_info*)(association_table.first);
-	for(i = 0; i<association_table.length; i++){
-		xil_printf("AID: %d, Name: %s\n", curr_association->AID, curr_association->hostname);
-		curr_association = station_info_next(curr_association);
-	}
-	while(1){};
-	//TEST
- */
-
-
 
 	wlan_mac_high_interrupt_start();
 	while(1){
