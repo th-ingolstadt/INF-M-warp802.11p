@@ -215,7 +215,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
 			// If parameter is not the magic number, then set the TX rate
-			if ( temp != 0xFFFF ) {
+			if ( temp != NODE_TX_RATE_RSVD_VAL ) {
 
 				default_unicast_rate = temp;
 
@@ -247,7 +247,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 			// If parameter is not the magic number, then set the mac channel
 			//   NOTE:  We modulate temp so that we always have a valid channel
-			if ( temp != 0xFFFF ) {
+			if ( temp != NODE_CHANNEL_RSVD_VAL ) {
 				temp = temp % 12;          // Get a channel number between 0 - 11
 				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
 
