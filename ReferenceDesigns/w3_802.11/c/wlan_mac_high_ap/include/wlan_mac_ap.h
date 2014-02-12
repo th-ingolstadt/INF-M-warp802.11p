@@ -37,11 +37,6 @@
 // destined for another associated station
 //#define ALLOW_ETH_TX_OF_WIRELESS_TX
 
-// Allow promiscuous statistics kept for unassociated stations. Note: this mode
-// has an unbounded memory usage depending on the number of devices surrounding the
-// AP.
-//#define ALLOW_PROMISC_STATISTICS
-
 // **********************************************************************
 // UART Menu Modes
 //
@@ -57,7 +52,6 @@
 #define MAX_RETRY                      7
 #define MAX_PER_FLOW_QUEUE	           150
 #define MAX_NUM_ASSOC				   11
-#define MAX_NUM_PROMISC_STATS		   50
 
 #define AID_TO_QID(x) ((x)+1)
 #define BCAST_QID 0
@@ -146,11 +140,7 @@ void reset_station_statistics();
 u32  deauthenticate_station( station_info* station );
 void deauthenticate_stations();
 
-station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID);
-statistics* add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
 dl_list * get_statistics();
-int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
-u8 is_valid_association(dl_list* assoc_tbl, station_info* station);
 void _demo_send_wnet_association_table();
 void _demo_send_packet_req();
 void _demo_ltg_event(u32 id, void* callback_arg);
@@ -162,7 +152,6 @@ void uart_rx(u8 rxByte);
 
 void print_menu();
 void print_ssid_menu();
-void print_associations(dl_list* assoc_tbl);
 void print_queue_status();
 void print_station_status();
 void ltg_cleanup(u32 id, void* callback_arg);

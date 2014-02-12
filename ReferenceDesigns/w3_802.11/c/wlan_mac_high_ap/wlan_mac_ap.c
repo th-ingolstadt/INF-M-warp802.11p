@@ -67,7 +67,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -285,7 +285,7 @@ void check_tx_queue(){
 					curr_station_info = next_station_info;
 				}
 			} else {
-				if( is_valid_association(&association_table, curr_station_info) ){
+				if( wlan_mac_high_is_valid_association(&association_table, curr_station_info) ){
 					if(curr_station_info == (station_info*)(association_table.last)){
 						//We've reached the end of the table, so we wrap around to the beginning
 						next_station_info = NULL;
@@ -570,7 +570,7 @@ void association_timestamp_check() {
 
 				//Remove this STA from association list
 				xil_printf("\n\nDisassociation due to inactivity:\n");
-				remove_association( &association_table, &statistics_table, curr_station_info->addr );
+				wlan_mac_high_remove_association( &association_table, &statistics_table, curr_station_info->addr );
 			}
 		}
 	}
@@ -647,7 +647,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				associated_station->rx.last_seq = rx_seq;
 			}
 		} else {
-			station_stats = add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
+			station_stats = wlan_mac_high_add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
 		}
 
 		if(station_stats != NULL){
@@ -855,6 +855,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					if(association_table.length < MAX_NUM_ASSOC) associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
 
 					if(associated_station != NULL) {
+						associated_station->tx.rate = default_unicast_rate;
 
 						//Checkout 1 element from the queue;
 						queue_checkout(&checkout,1);
@@ -898,7 +899,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_DISASSOC): //Disassociation
 
-					remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
+					wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
 
 			break;
 
@@ -919,36 +920,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		//wn_transmit_log_entry((void *)rx_event_log_entry);
 	}
 }
-
-
-
-
-
-
-void print_associations(dl_list* assoc_tbl){
-	u64 timestamp = get_usec_timestamp();
-	station_info* curr_station_info;
-	u32 i;
-	xil_printf("\n   Current Associations\n (MAC time = %d usec)\n",timestamp);
-				xil_printf("|-ID-|----- MAC ADDR ----|\n");
-
-	curr_station_info = (station_info*)(assoc_tbl->first);
-	for(i=0; i<(assoc_tbl->length); i++){
-		xil_printf("| %02x | %02x:%02x:%02x:%02x:%02x:%02x |\n", curr_station_info->AID,
-				curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
-		curr_station_info = station_info_next(curr_station_info);
-	}
-	xil_printf("|------------------------|\n");
-
-	return;
-}
-
-
-
-
-
-
-
 
 u32  get_associations_status() {
 	// Get the status of associations for the AP
@@ -1080,7 +1051,7 @@ u32  deauthenticate_station( station_info* station ) {
 		check_tx_queue();
 
 		// Remove this STA from association list
-		remove_association( &association_table, &statistics_table, station->addr );
+		wlan_mac_high_remove_association( &association_table, &statistics_table, station->addr );
 	}
 
 	wlan_mac_high_write_hex_display(association_table.length);
@@ -1116,266 +1087,10 @@ void deauthenticate_stations(){
 	}
 }
 
-station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID){
-	station_info* station;
-	statistics*   station_stats;
-	station_info* curr_station_info;
-	u32 i;
-	u16 curr_AID;
-
-	curr_AID = 0;
-
-	if(requested_AID != ADD_ASSOCIATION_ANY_AID){
-		//This call is requesting a particular AID.
-		station = wlan_mac_high_find_station_info_AID(assoc_tbl, requested_AID);
-		if(station != NULL){
-			//We found a station_info with this requested AID. Let's check
-			//if the address matches the argument to this add
-			if(wlan_addr_eq(station->addr, addr)){
-				//We already have this exact station_info, so we'll just
-				//return a pointer to it.
-				return station;
-			} else {
-				//The requested AID is already in use and it is used by a different
-				//address. We cannot add this association.
-				return NULL;
-			}
-		}
-	}
-
-	station = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
-	if(station != NULL){
-		//This addr is already tied to an association table entry. We'll just pass
-		//this the pointer to that entry back to the calling function without creating
-		//a new entry
-
-		return station;
-	} else {
-		//This addr is new, so we'll have to add an entry into the association table
-		station = wlan_mac_high_malloc(sizeof(station_info));
-		if(station == NULL){
-			//malloc failed. Passing that failure on to calling function.
-			return NULL;
-		}
-
-		station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
-		if(station_stats == NULL){
-			station_stats = wlan_mac_high_calloc(sizeof(statistics));
-			if(station_stats == NULL){
-				//malloc failed. Passing that failure on to calling function
-				wlan_mac_high_free(station);
-				return NULL;
-			}
-			memcpy(station_stats->addr, addr, 6);
-			dl_node_insertEnd(stat_tbl, &(station_stats->node));
-		}
-
-
-
-		station->stats = station_stats;
-		station->stats->is_associated = 1;
-		memcpy(station->addr, addr, 6);
-		station->tx.rate = default_unicast_rate; //Default tx_rate for this station. Rate adaptation may change this value.
-		station->AID = 0;
-		station->hostname[0] = 0;
-
-		if(requested_AID == ADD_ASSOCIATION_ANY_AID){
-			//Find the minimum AID that can be issued to this station.
-			curr_station_info = (station_info*)(assoc_tbl->first);
-			for( i = 0 ; i < assoc_tbl->length ; i++ ){
-				if( (curr_station_info->AID - curr_AID) > 1 ){
-					//There is a hole in the association table and we can re-issue
-					//a previously issued AID.
-					station->AID = curr_station_info->AID - 1;
-
-					//Add this station into the association table just before the curr_station_info
-					dl_node_insertBefore(assoc_tbl, &(curr_station_info->node), &(station->node));
-
-					break;
-				} else {
-					curr_AID = curr_station_info->AID;
-				}
-
-				curr_station_info = station_info_next(curr_station_info);
-			}
-
-			if(station->AID == 0){
-				//There was no hole in the association table, so we just issue a new
-				//AID larger than the last AID in the table.
-
-				if(assoc_tbl->length == 0){
-					//This is the first entry in the association table;
-					station->AID = 1;
-				} else {
-					curr_station_info = (station_info*)(assoc_tbl->last);
-					station->AID = (curr_station_info->AID)+1;
-				}
-
-
-				//Add this station into the association table at the end
-				dl_node_insertEnd(assoc_tbl, &(station->node));
-			}
-
-			print_associations(assoc_tbl);
-			wlan_mac_high_write_hex_display(assoc_tbl->length);
-			return station;
-		} else {
-			//Find the right place in the dl_list to insert this station_info with
-			//the requested AID
-			curr_station_info = (station_info*)(assoc_tbl->first);
-			for( i = 0 ; i < assoc_tbl->length ; i++ ){
-
-				if(curr_station_info->AID > requested_AID){
-					station->AID = requested_AID;
-					//Add this station into the association table just before the curr_station_info
-					dl_node_insertBefore(assoc_tbl, &(curr_station_info->node), &(station->node));
-				}
-
-				curr_station_info = station_info_next(curr_station_info);
-			}
-
-			if(station->AID == 0){
-				//There was no hole in the association table, so we insert it at the end
-				station->AID = requested_AID;
-
-				//Add this station into the association table at the end
-				dl_node_insertEnd(assoc_tbl, &(station->node));
-			}
-
-			print_associations(assoc_tbl);
-			wlan_mac_high_write_hex_display(assoc_tbl->length);
-			return station;
-		}
-
-
-	}
-}
-
-statistics* add_statistics(dl_list* stat_tbl, station_info* station, u8* addr){
-	u32 i;
-	statistics* station_stats = NULL;
-	statistics* curr_statistics = NULL;
-	statistics* oldest_statistics = NULL;
-
-	if(station == NULL){
-#ifndef ALLOW_PROMISC_STATISTICS
-		//This statistics struct isn't being added to an associated station. Furthermore,
-		//Promiscuous statistics are now allowed, so we will return NULL to the calling function.
-		return NULL;
-#endif
-	}
-
-	station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
-
-	if(station_stats == NULL){
-		//Note: This memory allocation has no corresponding free. It is by definition a memory leak.
-		//The reason for this is that it allows the node to monitor statistics on surrounding devices.
-		//In a busy environment, this promiscuous statistics gathering can be disabled by commenting
-		//out the ALLOW_PROMISC_STATISTICS.
-
-		if(stat_tbl->length >= MAX_NUM_PROMISC_STATS){
-			//There are too many statistics being tracked. We'll get rid of the oldest that isn't currently associated.
-			curr_statistics = (statistics*)(stat_tbl->first);
-			for(i=0; i<stat_tbl->length; i++){
-
-				if( (oldest_statistics == NULL) ){
-					if(curr_statistics->is_associated == 0){
-						oldest_statistics = curr_statistics;
-					}
-				} else if(( (curr_statistics->last_timestamp) < (oldest_statistics->last_timestamp)) ){
-					if(curr_statistics->is_associated == 0){
-						oldest_statistics = curr_statistics;
-					}
-				}
-				curr_statistics = statistics_next(curr_statistics);
-			}
-
-			if(oldest_statistics == NULL){
-				xil_printf("Error: could not find deletable oldest statistics. Ensure that MAX_NUM_PROMISC_STATS > MAX_NUM_ASSOC\n");
-				xil_printf("if using ALLOW_PROMISC_STATISTICS\n");
-			} else {
-				dl_node_remove(stat_tbl, &(oldest_statistics->node));
-				wlan_mac_high_free(oldest_statistics);
-			}
-		}
-
-		station_stats = wlan_mac_high_calloc(sizeof(statistics));
-		memcpy(station_stats->addr, addr, 6);
-		dl_node_insertEnd(&statistics_table, &(station_stats->node));
-
-	}
-	if(station != NULL){
-		station->stats = station_stats;
-	}
-
-	return station_stats;
-
-}
-
 dl_list * get_statistics(){
 	return &statistics_table;
 }
 
 dl_list * get_station_info_list(){
 	return &association_table;
-}
-
-
-int remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
-	station_info* station;
-	station_info_entry* curr_station_info_entry;
-
-	station = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
-	if(station == NULL){
-		//This addr doesn't refer to any station currently in the association table,
-		//so there is nothing to remove. We'll return an error to let the calling
-		//function know that something is wrong.
-		return -1;
-	} else {
-
-		if((station->flags)&STATION_INFO_FLAG_NEVER_REMOVE){
-			return -1;
-		}
-
-		curr_station_info_entry = get_next_empty_station_info_entry();
-		if(curr_station_info_entry != NULL){
-			memcpy(curr_station_info_entry->addr, station->addr, 6);
-			memcpy(curr_station_info_entry->hostname, station->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
-			curr_station_info_entry->AID = 0;
-			curr_station_info_entry->flags = station->flags;
-			curr_station_info_entry->rate = station->tx.rate;
-			curr_station_info_entry->antenna_mode = station->tx.rate;
-			curr_station_info_entry->max_retry = station->tx.max_retry;
-
-			wn_transmit_log_entry((void *)curr_station_info_entry);
-		}
-
-		//Remove station from the association table;
-		dl_node_remove(assoc_tbl, &(station->node));
-
-#ifndef ALLOW_PROMISC_STATISTICS
-		//Remove station's statistics from statististics table
-		dl_node_remove(stat_tbl, &(station->stats->node));
-		wlan_mac_high_free(station->stats);
-#else
-		station->stats->is_associated = 0;
-#endif
-		wlan_mac_high_free(station);
-		print_associations(assoc_tbl);
-		wlan_mac_high_write_hex_display(assoc_tbl->length);
-		return 0;
-	}
-}
-
-u8 is_valid_association(dl_list* assoc_tbl, station_info* station){
-	u32 i;
-	station_info* curr_station_info;
-	curr_station_info = (station_info*)(assoc_tbl->first);
-	for(i=0; i < assoc_tbl->length; i++){
-		if(station == curr_station_info){
-			return 1;
-		}
-		curr_station_info = station_info_next(curr_station_info);
-	}
-	return 0;
 }
