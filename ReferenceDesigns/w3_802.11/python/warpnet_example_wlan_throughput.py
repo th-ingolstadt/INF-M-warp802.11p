@@ -23,7 +23,6 @@ Description:
 the STA is associated with the AP. The script initiates a traffic flow from the AP to STA.
 The script then iterates over a few wireless Tx rates, measuring the AP -> STA throughput
 for each Tx rate.
-
 """
 import sys
 import time
@@ -72,7 +71,7 @@ rx_bytes = []
 rx_time_spans = []
 
 for ii,rate in enumerate(rates):
-    print("")
+    print("Starting %d sec trial for rate %d..." % (TRIAL_TIME, ii))
 
     #Configure the AP's Tx rate for the selected station
     n_ap.set_tx_rate(n_sta, rate)
@@ -89,6 +88,9 @@ for ii,rate in enumerate(rates):
     #Compute the number of new bytes received and the time span
     rx_bytes[ii] = rx_stats_end['num_rx_bytes'] - rx_stats_start['num_rx_bytes']
     rx_time_spans[ii] = rx_stats_end['timestamp'] - rx_stats_start['timestamp']
+	print("Done.\n")
+	
+print("\n\n")
 
 #Calculate and display the throughput results
 for ii in len(num_rx[ii]):
