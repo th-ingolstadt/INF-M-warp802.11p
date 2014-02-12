@@ -51,8 +51,8 @@
 
 
 /*********************** Global Variable Definitions *************************/
-
-extern station_info   access_point;
+extern dl_list		  association_table;
+extern u8			  ap_addr[6];
 extern char*          access_point_ssid;
 
 extern ap_info      * ap_list;
@@ -154,7 +154,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 //					for( i = 0; i < num_tables; i++ ) {
 
-						respIndex += get_station_status( &access_point, 1, &respArgs32[respIndex], max_words );
+//						respIndex += get_station_status( &access_point, 1, &respArgs32[respIndex], max_words ); //FIXME
 //					}
 
 
@@ -227,7 +227,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 					default_unicast_rate = WLAN_MAC_RATE_54M;
 				}
 
-				access_point.tx.rate = default_unicast_rate;
+				((station_info*)(association_table.first))->tx.rate = default_unicast_rate;
 
 			    xil_printf("Setting TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate) );
 			}
@@ -327,7 +327,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 					wlan_mac_high_set_channel( mac_param_chan );
 
 					xil_printf("Attempting to join %s\n", ap_list[temp].ssid);
-					memcpy(access_point.addr, ap_list[temp].bssid, 6);
+					memcpy(ap_addr, ap_list[temp].bssid, 6);
 
 					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[temp].ssid)+1);
 					strcpy(access_point_ssid,ap_list[temp].ssid);

@@ -63,8 +63,9 @@ extern u8 pause_queue;
 
 
 // Association Table variables
-//   The last entry in associations[MAX_ASSOCIATIONS][] is swap space
-extern station_info access_point;
+extern dl_list		  association_table;
+extern dl_list 		  statistics_table;
+extern u8			  ap_addr[6];
 
 // AP channel
 extern u32 mac_param_chan;
@@ -80,6 +81,9 @@ static u8 curr_traffic_type;
 u32 num_slots = SLOT_CONFIG_RAND;
 
 void uart_rx(u8 rxByte){
+
+	station_info* access_point = ((station_info*)(association_table.first));
+
 	#define MAX_NUM_AP_CHARS 4
 	static char numerical_entry[MAX_NUM_AP_CHARS+1];
 	static u8 curr_decade = 0;
@@ -123,6 +127,10 @@ void uart_rx(u8 rxByte){
 					print_station_status(1);
 				break;
 
+				case ASCII_2:
+					print_all_observed_statistics();
+				break;
+
 				case ASCII_a:
 					//Send bcast probe requests across all channels
 					if(active_scan == 0){
@@ -147,8 +155,7 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_6M;
 					}
 
-
-					access_point.tx.rate = default_unicast_rate;
+					if(association_table.length > 0) ((station_info*)(association_table.first))->tx.rate = default_unicast_rate;
 
 
 					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
@@ -160,7 +167,7 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_54M;
 					}
 
-					access_point.tx.rate = default_unicast_rate;
+					if(association_table.length > 0) ((station_info*)(association_table.first))->tx.rate = default_unicast_rate;
 
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 				break;
@@ -217,7 +224,7 @@ void uart_rx(u8 rxByte){
 					reset_station_statistics();
 				break;
 				case ASCII_1:
-					if(access_point.AID != 0){
+					if(access_point != NULL){
 						uart_mode = UART_MODE_LTG_SIZE_CHANGE;
 						curr_char = 0;
 						curr_traffic_type = TRAFFIC_TYPE_PERIODIC_FIXED;
@@ -237,7 +244,7 @@ void uart_rx(u8 rxByte){
 					}
 				break;
 				case ASCII_Q:
-					if(access_point.AID != 0){
+					if(access_point != NULL){
 						uart_mode = UART_MODE_LTG_SIZE_CHANGE;
 						curr_char = 0;
 						curr_traffic_type = TRAFFIC_TYPE_RAND_RAND;
@@ -413,7 +420,7 @@ void uart_rx(u8 rxByte){
 
 
 							xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
-							memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
+							memcpy(ap_addr, ap_list[ap_sel].bssid, 6);
 
 							access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
 							//xil_printf("allocated %d bytes in 0x%08x\n", strlen(ap_list[ap_sel].ssid), access_point_ssid);
@@ -481,6 +488,7 @@ void print_menu(){
 	xil_printf("\f");
 	xil_printf("********************** Station Menu **********************\n");
 	xil_printf("[1] - Interactive Station Status\n");
+	xil_printf("[2] - Print all Observed Statistics\n");
 	xil_printf("\n");
 	xil_printf("[a] - 	active scan and display nearby APs\n");
 	xil_printf("[r/R] - change default unicast rate\n");
@@ -492,17 +500,18 @@ void print_station_status(u8 manual_call){
 	void* ltg_sched_state;
 	void* ltg_sched_parameters;
 	void* ltg_pyld_callback_arg;
+	station_info* access_point = ((station_info*)(association_table.first));
 
 	u32 ltg_type;
 
 	if(uart_mode == UART_MODE_INTERACTIVE){
 		timestamp = get_usec_timestamp();
 		xil_printf("\f");
-
 		xil_printf("---------------------------------------------------\n");
-		xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", access_point.AID,
-			access_point.addr[0],access_point.addr[1],access_point.addr[2],access_point.addr[3],access_point.addr[4],access_point.addr[5]);
-			if(access_point.AID > 0){
+
+			if(association_table.length > 0){
+				xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", access_point->AID,
+							access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
 				if(ltg_sched_get_state(0,&ltg_type,&ltg_sched_state) == 0){
 
 					ltg_sched_get_params(0, &ltg_type, &ltg_sched_parameters);
@@ -531,12 +540,12 @@ void print_station_status(u8 manual_call){
 
 					}
 				}
-				xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (access_point.rx.last_timestamp)))/1000);
-				xil_printf("     - Last Rx Power: %d dBm\n",access_point.rx.last_power);
+				xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (access_point->rx.last_timestamp)))/1000);
+				xil_printf("     - Last Rx Power: %d dBm\n",access_point->rx.last_power);
 				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(1));
-				xil_printf("     - # Tx MPDUs: %d (%d successful)\n", access_point.stats->num_tx_total, access_point.stats->num_tx_success);
-				xil_printf("     - # Tx Retry: %d\n", access_point.stats->num_retry);
-				xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", access_point.stats->num_rx_success, access_point.stats->num_rx_bytes);
+				xil_printf("     - # Tx MPDUs: %d (%d successful)\n", access_point->stats->num_tx_total, access_point->stats->num_tx_success);
+				xil_printf("     - # Tx Retry: %d\n", access_point->stats->num_retry);
+				xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", access_point->stats->num_rx_success, access_point->stats->num_rx_bytes);
 			}
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("\n");
@@ -554,6 +563,26 @@ void print_station_status(u8 manual_call){
 
 void ltg_cleanup(u32 id, void* callback_arg){
 	wlan_mac_high_free(callback_arg);
+}
+
+void print_all_observed_statistics(){
+	u32 i;
+	statistics* curr_statistics;
+
+	curr_statistics = (statistics*)(statistics_table.first);
+	xil_printf("\nAll Statistics:\n");
+	for(i=0; i<statistics_table.length; i++){
+		xil_printf("---------------------------------------------------\n");
+		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
+		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_timestamp);
+		xil_printf("     - Associated? %d\n", curr_statistics->is_associated);
+		xil_printf("     - # Tx MPDUs: %d (%d successful)\n", curr_statistics->num_tx_total, curr_statistics->num_tx_success);
+		xil_printf("     - # Tx Retry: %d\n", curr_statistics->num_retry);
+		xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", curr_statistics->num_rx_success, curr_statistics->num_rx_bytes);
+		curr_statistics = statistics_next(curr_statistics);
+	}
+
+
 }
 
 

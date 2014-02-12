@@ -120,6 +120,7 @@ void print_ap_list();
 void print_station_status(u8 manual_call);
 void ltg_cleanup(u32 id, void* callback_arg);
 void uart_rx(u8 rxByte);
+void print_all_observed_statistics();
 
 
 

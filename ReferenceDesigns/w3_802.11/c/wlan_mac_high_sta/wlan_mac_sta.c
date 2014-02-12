@@ -66,12 +66,11 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
-
 
 // Control variables
 u8  default_unicast_rate;
@@ -94,9 +93,9 @@ u8       access_point_basic_rates[NUM_BASIC_RATES_MAX];
 
 
 // Association Table variables
-//   The last entry in associations[MAX_ASSOCIATIONS][] is swap space
-station_info access_point;
-statistics	 access_point_stat;
+dl_list		 association_table;
+dl_list		 statistics_table;
+u8			 ap_addr[6];
 
 u32			 max_queue_size;
 #define		 MAX_PER_FLOW_QUEUE	150
@@ -167,7 +166,6 @@ int main() {
 	wlan_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
 #endif
 
-
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
@@ -182,17 +180,8 @@ int main() {
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
 
-
-	// Initialize Association Table
-	bzero(&(access_point), sizeof(station_info));
-
-	access_point.AID = 0; //7.3.1.8 of 802.11-2007
-	memset((void*)(&(access_point.addr[0])), 0xFF,6);
-
-	access_point.stats = &access_point_stat;
-
-	access_point.rx.last_seq = 0; //seq
-	access_point.rx.last_timestamp = 0;
+	dl_list_init(&association_table);
+	dl_list_init(&statistics_table);
 
 	// Set default SSID for AP
 	access_point_ssid = wlan_mac_high_malloc(strlen(default_AP_SSID)+1);
@@ -305,6 +294,7 @@ void check_tx_queue(){
 
 void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 	tx_entry* tx_event_log_entry;
+	station_info* station;
 
 	void * mpdu = (void*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
@@ -331,14 +321,13 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 		tx_event_log_entry->ant_mode				 = 0; //TODO;
 	}
 
-	wlan_mac_high_process_tx_done(tx_mpdu, &(access_point));
-
-#if 0
-	if (tx_event_log_entry != NULL) {
-        wn_transmit_log_entry((void *)tx_event_log_entry);
+	if(tx_mpdu->AID != 0){
+		station = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
+		if(station != NULL){
+			//Process this TX MPDU DONE event to update any statistics used in rate adaptation
+			wlan_mac_high_process_tx_done(tx_mpdu, station);
+		}
 	}
-#endif
-
 }
 
 
@@ -369,7 +358,7 @@ void attempt_association(){
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue = (packet_bd*)(checkout.first);
 
-				wlan_mac_high_setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
+				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr);
 
 				tx_length = wlan_create_association_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
 
@@ -426,7 +415,7 @@ void attempt_authentication(){
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue = (packet_bd*)(checkout.first);
 
-				wlan_mac_high_setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
+				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr );
 
 				tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
 
@@ -543,11 +532,11 @@ void probe_req_transmit(){
 
 int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 
-	if(access_point.AID > 0){
+	if(association_table.length == 1){
 		//Receives the pre-encapsulated Ethernet frames
 		packet_bd* tx_queue = (packet_bd*)(tx_queue_list->first);
 
-		wlan_mac_high_setup_tx_header( &tx_header_common, (u8*)access_point.addr,(u8*)(&(eth_dest[0])));
+		wlan_mac_high_setup_tx_header( &tx_header_common, ((station_info*)(association_table.first))->addr,(u8*)(&(eth_dest[0])));
 
 		wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
@@ -563,19 +552,17 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 		} else {
 
-			if(access_point.AID != 0){
+			if(queue_num_queued(1) < max_queue_size){
 
-				if(queue_num_queued(1) < max_queue_size){
+				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY, TX_GAIN_TARGET,
+								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-					wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY, TX_GAIN_TARGET,
-									 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-					enqueue_after_end(1, tx_queue_list);
-					check_tx_queue();
-				} else {
-					return 0;
-				}
+				enqueue_after_end(1, tx_queue_list);
+				check_tx_queue();
+			} else {
+				return 0;
 			}
+
 
 		}
 
@@ -593,7 +580,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u32 i;
 	void * mpdu = pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
-
+	station_info* associated_station = NULL;
+	statistics* station_stats = NULL;
 	ap_info* curr_ap_info = NULL;
 	char* ssid;
 
@@ -633,39 +621,40 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	}
 
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
-		if(wlan_addr_eq(access_point.addr, (rx_80211_header->address_2))) {
+		associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
+		if(associated_station != NULL) {
 			is_associated = 1;
-
+			station_stats = associated_station->stats;
 			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			//Check if duplicate
-			access_point.rx.last_timestamp = get_usec_timestamp();
-			access_point.rx.last_power = mpdu_info->rx_power;
-			access_point.rx.last_rate = mpdu_info->rate;
+			associated_station->rx.last_timestamp = get_usec_timestamp();
+			associated_station->rx.last_power = mpdu_info->rx_power;
+			associated_station->rx.last_rate = mpdu_info->rate;
 
 			//xil_printf("%d ? %d\n", access_point.rx.last_seq, rx_seq);
 
-			if( (access_point.rx.last_seq != 0)  && (access_point.rx.last_seq == rx_seq) ) {
+			if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
 				//Received seq num matched previously received seq num for this STA; ignore the MPDU and finish function
 				goto mpdu_rx_process_end;
 
 			} else {
-				access_point.rx.last_seq = rx_seq;
+				associated_station->rx.last_seq = rx_seq;
 			}
+		} else {
+			station_stats = wlan_mac_high_add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
 		}
 
+		if(station_stats != NULL){
+			station_stats->last_timestamp = get_usec_timestamp();
+			(station_stats->num_rx_success)++;
+			(station_stats->num_rx_bytes) += mpdu_info->length;
+		}
 
 		switch(rx_80211_header->frame_control_1) {
 		case (MAC_FRAME_CTRL1_SUBTYPE_DATA): //Data Packet
 			if(is_associated){
 				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
 					//MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
-
-					if(wlan_addr_eq(bcast_addr, rx_80211_header->address_1) == 0){
-						//We only count the receive statistics of unicast wireless packets
-					    (access_point.stats->num_rx_success)++;
-						(access_point.stats->num_rx_bytes) += mpdu_info->length;
-					}
-
 					wlan_mpdu_eth_send(mpdu,length);
 				}
 			}
@@ -677,9 +666,15 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
 						association_state = 4;
-						access_point.AID = (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000;
-						wlan_mac_high_write_hex_display(access_point.AID);
-						access_point.tx.rate = default_unicast_rate;
+
+						if(association_table.length > 0){
+							wlan_mac_high_remove_association(&association_table, &statistics_table, ((station_info*)(association_table.first))->addr);
+						}
+
+						associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
+
+						wlan_mac_high_write_hex_display(associated_station->AID);
+						associated_station->tx.rate = default_unicast_rate;
 						xil_printf("Association succeeded\n");
 					} else {
 						association_state = -1;
@@ -690,7 +685,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			break;
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication
-					if(association_state == 1 && wlan_addr_eq(rx_80211_header->address_3, access_point.addr) && wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)) {
+					if(association_state == 1 && wlan_addr_eq(rx_80211_header->address_3, ap_addr) && wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)) {
 						mpdu_ptr_u8 += sizeof(mac_header_80211);
 						switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
 							case AUTH_ALGO_OPEN_SYSTEM:
@@ -711,10 +706,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
 					if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)){
-						access_point.AID = 0;
-						wlan_mac_high_write_hex_display(access_point.AID);
-						//memset((void*)(&(access_point.addr[0])), 0xFF,6);
-						access_point.rx.last_seq = 0; //seq
+						wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
+						wlan_mac_high_write_hex_display(0);
+
 						if( strlen(access_point_ssid) > 0 ) start_active_scan();
 					}
 			break;
@@ -870,7 +864,7 @@ void ltg_event(u32 id, void* callback_arg){
 		break;
 	}
 
-	if(id == 0 && (access_point.AID > 0)){
+	if(id == 0 && (association_table.length > 0)){
 		//Send a Data packet to AP
 		//Checkout 1 element from the queue;
 		queue_checkout(&checkout,1);
@@ -878,7 +872,7 @@ void ltg_event(u32 id, void* callback_arg){
 		if(checkout.length == 1){ //There was at least 1 free queue element
 			tx_queue = (packet_bd*)(checkout.first);
 
-			wlan_mac_high_setup_tx_header( &tx_header_common, access_point.addr, access_point.addr );
+			wlan_mac_high_setup_tx_header( &tx_header_common, ((station_info*)(association_table.first))->addr, ((station_info*)(association_table.first))->addr );
 
 			mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 			tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
@@ -896,7 +890,7 @@ void ltg_event(u32 id, void* callback_arg){
 			tx_length += sizeof(llc_header);
 			tx_length += payload_length;
 
-	 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)&(access_point), tx_length, MAX_RETRY, TX_GAIN_TARGET,
+	 		wlan_mac_high_setup_tx_queue ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY, TX_GAIN_TARGET,
 	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 			enqueue_after_end(1, &checkout);
@@ -965,7 +959,7 @@ void print_ap_list(){
 					wlan_mac_high_set_channel( mac_param_chan );
 
 					xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
-					memcpy(access_point.addr, ap_list[ap_sel].bssid, 6);
+					memcpy(ap_addr, ap_list[ap_sel].bssid, 6);
 
 					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
 					strcpy(access_point_ssid,ap_list[ap_sel].ssid);
@@ -989,23 +983,21 @@ void print_ap_list(){
 }
 
 void reset_station_statistics(){
-	access_point.stats->num_tx_total = 0;
-	access_point.stats->num_tx_success = 0;
-	access_point.stats->num_retry = 0;
-	access_point.stats->num_rx_success = 0;
-	access_point.stats->num_rx_bytes = 0;
+	((station_info*)(association_table.first))->stats->num_tx_total = 0;
+	((station_info*)(association_table.first))->stats->num_tx_success = 0;
+	((station_info*)(association_table.first))->stats->num_retry = 0;
+	((station_info*)(association_table.first))->stats->num_rx_success = 0;
+	((station_info*)(association_table.first))->stats->num_rx_bytes = 0;
 }
 
 
 dl_list * get_statistics(){
-	return NULL;
+	return &statistics_table;
 }
-
 
 dl_list * get_station_info_list(){
-	return NULL;
+	return &association_table;
 }
-
 
 
 /*****************************************************************************/
