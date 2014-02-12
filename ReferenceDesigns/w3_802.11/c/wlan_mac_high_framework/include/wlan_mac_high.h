@@ -69,6 +69,11 @@
 #define PKT_TYPE_MGMT			3				///< Management Type
 #define PKT_TYPE_CONTROL		4				///< Control Type
 
+#define ADD_ASSOCIATION_ANY_AID 0				///< Special argument to function that adds associations
+
+#define ALLOW_PROMISC_STATISTICS				///< Allow promiscuous statistics kept for unassociated stations.
+#define MAX_NUM_PROMISC_STATS 50				///< Maximum number of promiscuous statistics
+
 /**
  * @brief Reception Information Structure
  *
@@ -255,6 +260,11 @@ inline void wlan_mac_high_clear_debug_gpio(u8 val);
 int str2num(char* str);
 void usleep(u64 delay);
 
+station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID);
+int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
+void wlan_mac_high_print_associations(dl_list* assoc_tbl);
+statistics* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
+u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
 
 // Common functions that must be implemented by users of the framework
 dl_list * get_statistics();
