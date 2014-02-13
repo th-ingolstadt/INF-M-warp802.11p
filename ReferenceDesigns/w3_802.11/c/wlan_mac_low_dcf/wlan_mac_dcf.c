@@ -110,6 +110,9 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	// unknown. The packet contents can be provisionally processed (e.g. prepare an ACK for fast transmission),
 	// but post-reception actions must be conditioned on the eventual FCS status (good or bad).
 	//
+	// Note: The timing of this function is critical for correct operation of the 802.11 DCF. It is not
+	// safe to add large delays to this function (e.g. xil_printf or usleep)
+	//
 	//Two primary job responsibilities of this function:
 	// (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
 	// (2): Pass up FCS-valid MPDUs to CPU_HIGH
