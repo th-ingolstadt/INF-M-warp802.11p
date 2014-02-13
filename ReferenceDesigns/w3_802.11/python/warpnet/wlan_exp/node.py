@@ -37,9 +37,9 @@ import warpnet.wn_node as wn_node
 import warpnet.wn_config as wn_config
 import warpnet.wn_exception as wn_ex
 
-from . import wlan_exp_defaults as defaults
-from . import wlan_exp_cmds as cmds
-from . import wlan_exp_util as util
+from . import defaults
+from . import cmds
+from . import util
 
 
 __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
@@ -556,9 +556,8 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         overall structure but a different import.  Please call the super
         class so that the calls will propagate to catch all node types.
         """
-        import wlan_exp
-        from wlan_exp import wlan_exp_node_ap
-        from wlan_exp import wlan_exp_node_sta
+        from . import node_ap
+        from . import node_sta
         
         node = None
 

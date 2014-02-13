@@ -24,8 +24,8 @@ Functions (see below for more information):
 
 """
 
-from . import wlan_exp_defaults
-from . import wlan_exp_node as node
+from . import defaults
+from . import node
 
 
 __all__ = ['WlanExpNodeAp']
@@ -38,8 +38,8 @@ class WlanExpNodeAp(node.WlanExpNode):
         super(WlanExpNodeAp, self).__init__(host_config)        
 
         # Set the correct WARPNet node type
-        self.node_type = self.node_type + wlan_exp_defaults.WLAN_EXP_HIGH_AP
-        self.node_type = self.node_type + wlan_exp_defaults.WLAN_EXP_LOW_DCF
+        self.node_type = self.node_type + defaults.WLAN_EXP_HIGH_AP
+        self.node_type = self.node_type + defaults.WLAN_EXP_LOW_DCF
 
 
     def configure_node(self, jumbo_frame_support=False):

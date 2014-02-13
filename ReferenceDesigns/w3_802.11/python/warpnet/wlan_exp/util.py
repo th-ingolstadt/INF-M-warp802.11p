@@ -45,7 +45,7 @@ import inspect
 
 import warpnet.wn_exception as wn_ex
 
-from . import wlan_exp_defaults as defaults
+from . import defaults
 
 
 __all__ = ['tx_rate_index_to_str',
@@ -219,8 +219,8 @@ def init_nodes(nodes_config, host_config= None, node_factory=None, output=False)
 
     # If node_factory is not defined, create a default WlanExpNodeFactory
     if node_factory is None:
-        from . import wlan_exp_node
-        node_factory = wlan_exp_node.WlanExpNodeFactory(host_config)
+        from . import node
+        node_factory = node.WlanExpNodeFactory(host_config)
 
     # Use the WARPNet utility, wn_init_nodes, to initialize the nodes
     import warpnet.wn_util as wn_util

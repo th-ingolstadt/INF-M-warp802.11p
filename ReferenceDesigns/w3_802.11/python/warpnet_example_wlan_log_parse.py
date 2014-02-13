@@ -18,10 +18,10 @@ you to play with the data.
 """
 import numpy as np
 
-import wlan_exp_log.log_entries as log
-import wlan_exp_log.log_util as log_util
+import warpnet.wlan_exp_log.log_entries as log
+import warpnet.wlan_exp_log.log_util as log_util
 
-import wlan_exp.wlan_exp_util  as wlan_exp_util
+import warpnet.wlan_exp.util as wlan_exp_util
 
 
 # NOTE: change these values to match your experiment setup

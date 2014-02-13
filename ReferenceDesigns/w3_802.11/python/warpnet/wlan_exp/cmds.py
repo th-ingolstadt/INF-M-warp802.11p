@@ -242,7 +242,7 @@ class GetStats(wn_message.Cmd):
         self.add_args((mac_address & 0xFFFFFFFF))
 
     def process_resp(self, resp):
-        import wlan_exp_log.log_entries as log
+        import warpnet.wlan_exp_log.log_entries as log
         
         # TODO:  This works but needs to be fixed
         val = log.log_entry_txrx_stats.deserialize(resp.raw_data[8:])

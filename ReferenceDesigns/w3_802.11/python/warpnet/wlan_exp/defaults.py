@@ -34,10 +34,10 @@ WLAN_EXP_HIGH_STA                 = 0x00200
 WLAN_EXP_LOW_DCF                  = 0x00001
 
 WLAN_EXP_AP_TYPE                  = WLAN_EXP_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_DCF
-WLAN_EXP_AP_CLASS                 = 'wlan_exp.wlan_exp_node_ap.WlanExpNodeAp'
+WLAN_EXP_AP_CLASS                 = 'node_ap.WlanExpNodeAp'
 
 WLAN_EXP_STA_TYPE                 = WLAN_EXP_BASE + WLAN_EXP_HIGH_STA + WLAN_EXP_LOW_DCF
-WLAN_EXP_STA_CLASS                = 'wlan_exp.wlan_exp_node_sta.WlanExpNodeSta'
+WLAN_EXP_STA_CLASS                = 'node_sta.WlanExpNodeSta'
 
 
 

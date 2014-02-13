@@ -21,8 +21,8 @@ Description:
 import sys
 import time
 import warpnet.wn_config as wn_config
-import wlan_exp.wlan_exp_util  as wlan_exp_util
-import wlan_exp.wlan_exp_ltg   as ltg
+import warpnet.wlan_exp.util  as wlan_exp_util
+import warpnet.wlan_exp.ltg   as ltg
 
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
