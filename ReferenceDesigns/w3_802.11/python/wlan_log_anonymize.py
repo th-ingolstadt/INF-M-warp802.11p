@@ -1,7 +1,5 @@
-import wlan_exp_log
-from wlan_exp_log import log_util
-from wlan_exp_log.log_entries import *
-from wlan_exp_log.mac_hdr_util import *
+from warpnet.wlan_exp_log import log_util
+from warpnet.wlan_exp_log.log_entries import *
 import sys
 import code
 from pprint import pprint
