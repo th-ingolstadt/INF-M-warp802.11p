@@ -1515,7 +1515,7 @@ void wlan_mac_high_set_channel( unsigned int mac_channel ) {
 
 /*****************************************************************************/
 /**
-* Set DSSS
+* Enable/Disable DSSS
 *
 * Send an IPC message to CPU Low to set the DSSS value
 *
@@ -1545,26 +1545,7 @@ void wlan_mac_high_set_dsss( unsigned int dsss_value ) {
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 }
 
-void wlan_mac_high_set_backoff_slot_value( u32 num_slots ) {
-
-	wlan_ipc_msg       ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload[1];
-	ipc_config_mac*    config_mac;
-
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_MAC);
-	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
-	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
-
-	// Initialize the payload
-	config_mac = (ipc_config_mac*) ipc_msg_to_low_payload;
-	config_mac->slot_config = num_slots;
-
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-}
-
-
-void wlan_mac_high_set_time( u64 timestamp ){
+void wlan_mac_high_set_timestamp( u64 timestamp ){
 
 	wlan_ipc_msg       ipc_msg_to_low;
 

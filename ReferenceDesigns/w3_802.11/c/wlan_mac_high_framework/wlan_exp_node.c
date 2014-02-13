@@ -643,7 +643,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 				time = (((u64)temp2)<<32) + ((u64)temp);
 
-				wlan_mac_high_set_time( time );
+				wlan_mac_high_set_timestamp( time );
 
 			    xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
 			} else {
