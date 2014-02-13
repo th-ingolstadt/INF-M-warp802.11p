@@ -103,9 +103,8 @@ def gen_log_ndarrays(log_bytes, log_index):
     """Generate numpy structured arrays using the raw log and log
     index that was generated with gen_log_index().
     """
-
     import numpy as np
-    import log_entries
+    import warpnet.wlan_exp_log.log_entries as log_entries
 
     entries_nd = dict()
 

@@ -97,12 +97,9 @@ for addr in np.unique(tx_addr1):
 	tx_counts[addr] = (tx_pkts_to_addr, tx_bytes_to_addr)
 
 # Print the results
-print("Example 2: Tx Counts\nAddr\t\t\t# Pkts\t# Bytes")
+print("Example 2: Tx Counts\nAddr            \t# Pkts\t# Bytes")
 for k in tx_counts.keys():
 	# Use the string version of the MAC address as the key for readability
 	print("%s\t%d\t%d" % (wlan_exp_util.mac2str(k), tx_counts[k][0], tx_counts[k][1]))
 
-print("\n")
-
-# Open up an interactive debug window so you can play with all of the data
-wlan_exp_util.debug_here()
+print("\nDone.")

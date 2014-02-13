@@ -27,7 +27,7 @@ import warpnet.wlan_exp.ltg  as ltg
 
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
+NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 
 AP_LOG_FILENAME   = 'example_logs/ap_log_stats.bin'
 STA_LOG_FILENAME  = 'example_logs/sta_log_stats.bin'

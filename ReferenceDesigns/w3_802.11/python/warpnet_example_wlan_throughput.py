@@ -26,7 +26,7 @@ import warpnet.wlan_exp.ltg   as ltg
 
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
+NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 
 # Select some PHY rates to test
 #  wlan_exp_util.rates is an array of dictionaries
