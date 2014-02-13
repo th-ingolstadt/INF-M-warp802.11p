@@ -1902,6 +1902,31 @@ statistics* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* statio
 	return station_stats;
 }
 
+void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
+	u32 i;
+	statistics* curr_statistics = NULL;
+	statistics* next_statistics = NULL;
+
+	next_statistics = (statistics*)(stat_tbl->first);
+	for(i=0; i<stat_tbl->length; i++){
+		curr_statistics = next_statistics;
+		next_statistics = statistics_next(curr_statistics);
+
+		curr_statistics->num_tx_total = 0;
+		curr_statistics->num_tx_success = 0;
+		curr_statistics->num_retry = 0;
+		curr_statistics->num_rx_success = 0;
+		curr_statistics->num_rx_bytes = 0;
+
+		if(curr_statistics->is_associated == 0){
+			//Remove and destroy this entry
+			dl_node_remove(stat_tbl, &(curr_statistics->node));
+			wlan_mac_high_free(curr_statistics);
+		}
+	}
+
+}
+
 u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station){
 	u32 i;
 	station_info* curr_station_info;

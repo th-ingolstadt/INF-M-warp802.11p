@@ -263,6 +263,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
 void wlan_mac_high_print_associations(dl_list* assoc_tbl);
 statistics* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
+void wlan_mac_high_reset_statistics(dl_list* stat_tbl);
 u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
 
 // Common functions that must be implemented by users of the framework
