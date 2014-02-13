@@ -118,7 +118,7 @@ def gen_log_ndarrays(log_bytes, log_index):
 
         # Build a structured array with one element for each byte range enumerated above
         # Store each array in a dictionary indexed by the log entry type
-        entries_nd[k] = np.fromiter(index_iter, log_type.fields_np_dt, len(log_index[log_type.entry_type_ID]))
+        entries_nd[k] = np.fromiter(index_iter, np.dtype(log_type.fields_np_dt), len(log_index[log_type.entry_type_ID]))
 #        entries_nd[log_type_str] = np.fromiter(index_iter, log_type.fields_np_dt, len(log_index[log_type.entry_type_ID]))
 
     return entries_nd

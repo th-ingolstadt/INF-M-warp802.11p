@@ -28,7 +28,6 @@ Integer constants:
 
 """
 from struct import calcsize
-import numpy as np
 
 # WLAN Exp Event Log Constants
 #   NOTE:  The C counterparts are found in wlan_mac_event_log.h
@@ -85,7 +84,8 @@ class WlanExpLogEntry:
         self._fields = field_info
 
         self.fields_struct_fmt = ' '.join([type for type,np_type,name in self._fields])
-        self.fields_np_dt = np.dtype([(name,np_type) for type,np_type,name in self._fields])
+#        self.fields_np_dt = np.dtype([(name,np_type) for type,np_type,name in self._fields])
+        self.fields_np_dt = [(name,np_type) for type,np_type,name in self._fields]
         self.fields_size = calcsize(self.fields_struct_fmt)
         return
 
