@@ -30,7 +30,8 @@ def debug_here(banner=None):
     except SystemExit:
         return
 
-logfile = 'example_logs/log_stats.bin'
+#logfile = 'example_logs/ap_log_stats.bin'
+logfile = 'example_logs/sta_log_stats.bin'
 
 print("WLAN Exp Log Example\nReading log file %s\n" % logfile)
 
@@ -86,7 +87,6 @@ tx_hdrs = log_tx['mac_header']
 tx_addr1 = tx_hdrs[:,4:10]
 
 #Reduce each 6-byte MAC addresses to a unit64 for easier processing
-# tx_addr1 = np.sum(tx_addr1 * [2**0, 2**8, 2**16, 2**24, 2**32, 2**40], 1, keepdims=True)
 tx_addr1 = np.sum(tx_addr1 * [2**40, 2**32, 2**24, 2**16, 2**8, 2**0], 1)
 
 # Build a dictionary using unique MAC addresses as keys

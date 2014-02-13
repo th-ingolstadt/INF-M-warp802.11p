@@ -39,7 +39,7 @@ WLAN_EXP_LOG_DELIM = 0xACED
 ENTRY_TYPE_NODE_INFO              = 1
 ENTRY_TYPE_EXP_INFO               = 2
 ENTRY_TYPE_STATION_INFO           = 3
-ENTRY_TYPE_NODE_TEMP              = 4
+ENTRY_TYPE_NODE_TEMPERATURE       = 4
 
 ENTRY_TYPE_RX_OFDM                = 10
 ENTRY_TYPE_RX_DSSS                = 11
@@ -114,7 +114,7 @@ class WlanExpLogEntry:
 log_entry_node_info    = WlanExpLogEntry(ENTRY_TYPE_NODE_INFO, 'NODE_INFO')
 log_entry_exp_info     = WlanExpLogEntry(ENTRY_TYPE_EXP_INFO, 'EXP_INFO')
 log_entry_station_info = WlanExpLogEntry(ENTRY_TYPE_STATION_INFO, 'STATION_INFO')
-log_entry_node_temp    = WlanExpLogEntry(ENTRY_TYPE_NODE_TEMP, 'NODE_TEMP')
+log_entry_node_temperature    = WlanExpLogEntry(ENTRY_TYPE_NODE_TEMPERATURE, 'NODE_TEMPERATURE')
 log_entry_rx_ofdm      = WlanExpLogEntry(ENTRY_TYPE_RX_OFDM, 'RX_OFDM')
 log_entry_rx_dsss      = WlanExpLogEntry(ENTRY_TYPE_RX_DSSS, 'RX_DSSS')
 log_entry_tx           = WlanExpLogEntry(ENTRY_TYPE_TX, 'TX')
@@ -162,8 +162,8 @@ log_entry_exp_info.set_field_info( [
 
 
 # Node temperature
-log_entry_exp_info.print_fmt = 'NODE_TEMP'
-log_entry_exp_info.set_field_info( [
+log_entry_node_temperature.print_fmt = 'NODE_TEMPERATURE'
+log_entry_node_temperature.set_field_info( [
     ('Q',     'uint64',      'timestamp'),
     ('I',     'uint32',      'node_id'),
     ('I',     'uint32',      'serial_num'),
