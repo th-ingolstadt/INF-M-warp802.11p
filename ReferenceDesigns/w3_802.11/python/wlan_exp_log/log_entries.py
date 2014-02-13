@@ -30,7 +30,7 @@ Integer constants:
 from struct import calcsize
 import numpy as np
 
-# WLAN Exp Event Log Constants 
+# WLAN Exp Event Log Constants
 #   NOTE:  The C counterparts are found in wlan_mac_event_log.h
 WLAN_EXP_LOG_DELIM = 0xACED
 
@@ -51,7 +51,7 @@ ENTRY_TYPE_TXRX_STATS             = 30
 
 
 # Global Variables
-log_entry_types = {}
+wlan_exp_log_entry_types = {}
 
 
 class WlanExpLogEntry:
@@ -61,14 +61,14 @@ class WlanExpLogEntry:
     fields_struct_fmt = ''
     fields_size = 0
     print_fmt = ''
-    event_type_ID = -1
+    entry_type_ID = -1
 
-    def __init__(self, event_type_ID=-1, name=''):
-        self.event_type_ID = event_type_ID
+    def __init__(self, entry_type_ID=-1, name=''):
+        self.entry_type_ID = entry_type_ID
         self.name = name
         # Add object to global dictionary so only one object is ever created
-        log_entry_types[event_type_ID] = self
-	
+        wlan_exp_log_entry_types[entry_type_ID] = self
+
     def get_field_names(self):
         return [name for type,np_type,name in self._fields]
 
@@ -88,15 +88,15 @@ class WlanExpLogEntry:
         self.fields_np_dt = np.dtype([(name,np_type) for type,np_type,name in self._fields])
         self.fields_size = calcsize(self.fields_struct_fmt)
         return
-	
+
     def __repr__(self):
-        return 'WLAN_EXP_Event_Type_' + self.name
+        return 'WLAN_EXP_LOG_Entry_Type_' + self.name
 
 # End class WlanExpLogEntry
 
 
 
-# Initialize the global dictionary with all the Log Entry types
+# Initialize the global dictionary with all the log entry types defined in the 802.11 ref design
 log_entry_node_info    = WlanExpLogEntry(ENTRY_TYPE_NODE_INFO, 'NODE_INFO')
 log_entry_exp_info     = WlanExpLogEntry(ENTRY_TYPE_EXP_INFO, 'EXP_INFO')
 log_entry_station_info = WlanExpLogEntry(ENTRY_TYPE_STATION_INFO, 'STATION_INFO')
@@ -105,7 +105,6 @@ log_entry_rx_ofdm      = WlanExpLogEntry(ENTRY_TYPE_RX_OFDM, 'RX_OFDM')
 log_entry_rx_dsss      = WlanExpLogEntry(ENTRY_TYPE_RX_DSSS, 'RX_DSSS')
 log_entry_tx           = WlanExpLogEntry(ENTRY_TYPE_TX, 'TX')
 log_entry_txrx_stats   = WlanExpLogEntry(ENTRY_TYPE_TXRX_STATS, 'TXRX_STATS')
-
 
 
 # WLAN Exp Log Entry Definitions
@@ -134,9 +133,9 @@ log_entry_station_info.set_field_info( [
     ('16s',   '16uint8',     'host_name'),
     ('H',     'uint16',      'aid'),
     ('I',     'uint32',      'flags'),
-    ('B',     'uint8',	      'rate'),
-    ('B',     'uint8',	      'antenna_mode'),
-    ('B',     'uint8',	      'max_retry')])
+    ('B',     'uint8',	     'rate'),
+    ('B',     'uint8',	     'antenna_mode'),
+    ('B',     'uint8',	     'max_retry')])
 
 
 # Station info
