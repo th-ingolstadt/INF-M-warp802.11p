@@ -39,14 +39,14 @@ def addr_is_bcast(addr):
 def addr_is_unicast(addr):
 	return addr != 6*[255,]
 
-def mac_hdr_addr1(hdr):
+def get_addr1(hdr):
 	return list(hdr)[4:10]
 
-def mac_hdr_addr2(hdr):
+def get_addr2(hdr):
 	return list(hdr)[10:16]
 
-def mac_hdr_wireless_bcast(hdr):
+def dest_is_wireless_bcast(hdr):
 	return addr_is_bcast(mac_hdr_addr1(hdr))
 
-def mac_hdr_wireless_unicast(hdr):
+def dest_is_wireless_unicast(hdr):
 	return not addr_is_bcast(mac_hdr_addr1(hdr))
