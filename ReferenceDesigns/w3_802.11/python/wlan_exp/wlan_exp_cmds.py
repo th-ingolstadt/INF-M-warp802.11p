@@ -132,7 +132,7 @@ class ResetLog(wn_message.Cmd):
     """Command to reset the Event log"""
     def __init__(self):
         super(ResetLog, self).__init__()
-        self.command = _CMD_GRPID_NODE +  CMD_LOG_CONFIG
+        self.command = _CMD_GRPID_NODE +  CMD_LOG_RESET
     
     def process_resp(self, resp):
         pass
@@ -148,7 +148,7 @@ class ConfigureLog(wn_message.Cmd):
     """
     def __init__(self, flags):
         super(ConfigureLog, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LOG_RESET
+        self.command = _CMD_GRPID_NODE + CMD_LOG_CONFIG
         self.add_args(flags)
     
     def process_resp(self, resp):

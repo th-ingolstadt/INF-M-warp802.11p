@@ -63,6 +63,21 @@ else:
     print(" Ensure two nodes are ready, one using the AP design, one using the STA design\n")
     sys.exit(0)
 
+# Initialize each node and gather some print some experiment information
+print("\nExperimental Setup:")
+for node in nodes:
+    # Reset the node
+    node.reset_log();
+    node.reset_statistics();
+
+    # Get some experiment information    
+    channel = node.get_channel();
+    tx_gain = node.get_tx_gain();
+    
+    print("\n{0}:".format(node.name))
+    print("    Channel = {0}".format(channel))
+    print("    Tx Gain = {0}".format(tx_gain))
+
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts)
 n_ap.configure_ltg(n_sta, ltg.FlowConfigCBR(1400, 0))
@@ -72,9 +87,11 @@ n_ap.start_ltg(n_sta)
 rx_bytes = []
 rx_time_spans = []
 
+print("\nRun Experiment:")
+
 # Iterate over each selected Tx rate, running a new trial for each rate
 for ii,rate in enumerate(rates):
-    print("Starting {0} sec trial for rate {1} ...".format(TRIAL_TIME, wlan_exp_util.tx_rate_to_str(rate)))
+    print("\nStarting {0} sec trial for rate {1} ...".format(TRIAL_TIME, wlan_exp_util.tx_rate_to_str(rate)))
 
     #Configure the AP's Tx rate for the selected station
     n_ap.set_tx_rate(n_sta, rate)
@@ -91,7 +108,7 @@ for ii,rate in enumerate(rates):
     #Compute the number of new bytes received and the time span
     rx_bytes.insert(ii, rx_stats_end['num_rx_bytes'] - rx_stats_start['num_rx_bytes'])
     rx_time_spans.insert(ii, rx_stats_end['timestamp'] - rx_stats_start['timestamp'])
-    print("Done.\n")
+    print("Done.")
 	
 print("\n")
 
