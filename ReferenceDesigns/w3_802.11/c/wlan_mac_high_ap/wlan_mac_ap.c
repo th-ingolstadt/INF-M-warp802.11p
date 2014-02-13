@@ -27,7 +27,7 @@
 #include "xintc.h"
 
 //WARP includes
-#include "wlan_mac_high_addr_filter.h"
+#include "wlan_mac_addr_filter.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -752,7 +752,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication Packet
 
-				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr) && mac_filter_is_allowed(rx_80211_header->address_2)) {
+				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr) && wlan_mac_addr_filter_is_allowed(rx_80211_header->address_2)) {
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm ){
 						case AUTH_ALGO_OPEN_SYSTEM:
