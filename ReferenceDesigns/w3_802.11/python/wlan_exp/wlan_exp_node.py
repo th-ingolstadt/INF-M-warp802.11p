@@ -336,6 +336,13 @@ class WlanExpNode(wn_node.WnNode):
             self._print_ltg_status('stop', status, node_list.name)
 
 
+    def remove_all_ltg(self):
+        """Stops and removes all LTG flows on the node."""
+        status = self.send_cmd(cmds.RemoveLTG())
+        if (status == cmds.LTG_ERROR):
+            print("LTG ERROR: Could not remove all LTGs on {0}".format(self.name))
+        
+
     def start_all_ltg(self):
         """Start all LTG flows on the node."""
         status = self.send_cmd(cmds.StartLTG())
