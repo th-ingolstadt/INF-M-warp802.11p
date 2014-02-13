@@ -962,17 +962,7 @@ void animate_hex(){
 *
 ******************************************************************************/
 void reset_station_statistics(){
-	u32 i;
-	station_info* curr_station_info;
-	curr_station_info = (station_info*)(association_table.first);
-	for(i=0; i < association_table.length; i++){
-		curr_station_info->stats->num_tx_total = 0;
-		curr_station_info->stats->num_tx_success = 0;
-		curr_station_info->stats->num_retry = 0;
-		curr_station_info->stats->num_rx_success = 0;
-		curr_station_info->stats->num_rx_bytes = 0;
-		curr_station_info = station_info_next(curr_station_info);
-	}
+	wlan_mac_high_reset_statistics(&statistics_table);
 }
 
 
