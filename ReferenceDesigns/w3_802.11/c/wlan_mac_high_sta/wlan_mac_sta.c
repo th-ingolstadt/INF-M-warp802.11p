@@ -982,11 +982,7 @@ void print_ap_list(){
 }
 
 void reset_station_statistics(){
-	((station_info*)(association_table.first))->stats->num_tx_total = 0;
-	((station_info*)(association_table.first))->stats->num_tx_success = 0;
-	((station_info*)(association_table.first))->stats->num_retry = 0;
-	((station_info*)(association_table.first))->stats->num_rx_success = 0;
-	((station_info*)(association_table.first))->stats->num_rx_bytes = 0;
+	wlan_mac_high_reset_statistics(&statistics_table);
 }
 
 
