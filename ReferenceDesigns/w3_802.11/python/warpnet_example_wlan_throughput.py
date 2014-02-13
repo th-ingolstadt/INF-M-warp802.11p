@@ -66,11 +66,12 @@ else:
 # Initialize each node and gather some print some experiment information
 print("\nExperimental Setup:")
 for node in nodes:
-    # Reset the node
+    # Put each node in a known, good state
+    node.remove_all_ltg();
     node.reset_log();
     node.reset_statistics();
 
-    # Get some experiment information    
+    # Get some additional information about the experiment
     channel = node.get_channel();
     tx_gain = node.get_tx_gain();
     

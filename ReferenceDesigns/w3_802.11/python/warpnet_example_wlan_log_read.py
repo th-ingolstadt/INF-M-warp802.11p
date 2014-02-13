@@ -65,7 +65,7 @@ else:
 # Initialize each node and gather some print some experiment information
 print("\nExperimental Setup:")
 for node in nodes:
-    # Reset the node
+    # Put each node in a known, good state
     node.remove_all_ltg();
     node.reset_log();
     node.reset_statistics();

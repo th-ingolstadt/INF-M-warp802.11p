@@ -23,10 +23,10 @@ This module provides utility functions when dealing with MAC headers within
 Functions:
     addr_is_bcast() -- Is the address the broadcast address
     addr_is_unicast() -- Is the address a unicast address
-    mac_hdr_addr1() -- Return the address 1 field from the MAC header
-    mac_hdr_addr2() -- Return the address 2 field from the MAC header
-    mac_hdr_wireless_bcast() -- Is the MAC header wireless broadcast
-    mac_hdr_wireless_unicast() -- Is the MAC header wirelss unicast
+    get_addr1() -- Return the address 1 field from the MAC header
+    get_addr2() -- Return the address 2 field from the MAC header
+    dest_is_wireless_bcast() -- Is the dest MAC in the header wireless broadcast
+    dest_is_wireless_unicast() -- Is the dest MAC in the header wirelss unicast
 
 See this link for more information:
 http://technet.microsoft.com/en-us/library/cc757419%28v=ws.10%29.aspx
@@ -46,7 +46,7 @@ def get_addr2(hdr):
 	return list(hdr)[10:16]
 
 def dest_is_wireless_bcast(hdr):
-	return addr_is_bcast(mac_hdr_addr1(hdr))
+	return addr_is_bcast(get_addr1(hdr))
 
 def dest_is_wireless_unicast(hdr):
-	return not addr_is_bcast(mac_hdr_addr1(hdr))
+	return not addr_is_bcast(get_addr2(hdr))

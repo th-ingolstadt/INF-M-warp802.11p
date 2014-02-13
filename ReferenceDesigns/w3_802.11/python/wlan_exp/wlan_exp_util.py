@@ -376,6 +376,29 @@ def mac2str(mac_address):
     return msg
 
 
+# Excellent util function for dropping into interactive Python shell
+#   From http://vjethava.blogspot.com/2010/11/matlabs-keyboard-command-in-python.html
+def debug_here(banner=None):
+    """Function that mimics the matlab keyboard command for interactive debbug."""
+    import code
+    # Use exception trick to pick up the current frame
+    try:
+        raise None
+    except:
+        frame = sys.exc_info()[2].tb_frame.f_back
+
+    print("# Use quit() or Ctrl-D to exit")
+
+    # evaluate commands in current namespace
+    namespace = frame.f_globals.copy()
+    namespace.update(frame.f_locals)
+
+    try:
+        code.interact(banner=banner, local=namespace)
+    except SystemExit:
+        return
+
+
 #-----------------------------------------------------------------------------
 # Internal Methods
 #-----------------------------------------------------------------------------
