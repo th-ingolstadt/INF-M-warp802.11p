@@ -191,30 +191,6 @@ void uart_rx(u8 rxByte){
 					xil_printf("(+) Default Tx Gain Target: %d \n", default_tx_gain_target);
 
 				break;
-				case ASCII_n:
-					if(num_slots == 0 || num_slots == SLOT_CONFIG_RAND){
-						num_slots = SLOT_CONFIG_RAND;
-						xil_printf("num_slots = SLOT_CONFIG_RAND\n");
-					} else {
-						num_slots--;
-						xil_printf("num_slots = %d\n", num_slots);
-					}
-
-
-					wlan_mac_high_set_backoff_slot_value(num_slots);
-				break;
-
-				case ASCII_N:
-					if(num_slots == SLOT_CONFIG_RAND){
-						num_slots = 0;
-					} else {
-						num_slots++;
-					}
-
-					xil_printf("num_slots = %d\n", num_slots);
-
-					wlan_mac_high_set_backoff_slot_value(num_slots);
-				break;
 			}
 		break;
 		case UART_MODE_INTERACTIVE:
