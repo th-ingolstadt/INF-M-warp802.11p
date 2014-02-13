@@ -375,7 +375,7 @@ void ltg_event(u32 id, void* callback_arg){
 		//We implement a soft limit on the size of the queue allowed for any
 		//given station. This avoids the scenario where multiple backlogged
 		//LTG flows favor a single user and starve everyone else.
-		if(queue_num_queued(station->AID) < max_queue_size){
+		if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size){
 			//Send a Data packet to this station
 			//Checkout 1 element from the queue;
 			queue_checkout(&checkout,1);
@@ -423,7 +423,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
-		if(queue_num_queued(0) < max_queue_size){
+		if(queue_num_queued(BCAST_QID) < max_queue_size){
 			wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, 0 );
 
 			enqueue_after_end(BCAST_QID, tx_queue_list);
@@ -437,7 +437,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 		//Is this packet meant for a station we are associated with?
 		station = wlan_mac_high_find_station_info_ADDR(&association_table, eth_dest);
 		if( station != NULL ) {
-			if(queue_num_queued(station->AID) < max_queue_size){
+			if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size){
 				wlan_mac_high_setup_tx_queue ( tx_queue, (void*)station, tx_length, MAX_RETRY, default_tx_gain_target,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
@@ -521,12 +521,7 @@ void association_timestamp_check() {
 		 		check_tx_queue();
 
 		 		//Purge any packets in the queue meant for this node
-				num_queued = queue_num_queued(curr_station_info->AID);
-				if(num_queued>0){
-					xil_printf("purging %d packets from queue for AID %d\n",num_queued,curr_station_info->AID);
-					dequeue_from_beginning(&dequeue, curr_station_info->AID,1);
-					queue_checkin(&dequeue);
-				}
+		 		purge_queue(AID_TO_QID(curr_station_info->AID));
 
 				//Remove this STA from association list
 				xil_printf("\n\nDisassociation due to inactivity:\n");
