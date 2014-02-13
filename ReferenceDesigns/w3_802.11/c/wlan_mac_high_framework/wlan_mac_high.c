@@ -39,6 +39,7 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_addr_filter.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 
@@ -1713,6 +1714,10 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		station->tx.rate = 0;
 		station->AID = 0;
 		station->hostname[0] = 0;
+		station->flags = 0;
+		if(wlan_mac_addr_is_warp(addr)){
+			station->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+		}
 
 		if(requested_AID == ADD_ASSOCIATION_ANY_AID){
 			//Find the minimum AID that can be issued to this station.

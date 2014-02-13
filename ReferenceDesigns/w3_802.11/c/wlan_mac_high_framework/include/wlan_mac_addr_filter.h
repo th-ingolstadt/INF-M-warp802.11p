@@ -1,8 +1,7 @@
-/** @file wlan_mac_ap_mac_filter.h
- *  @brief Access Point MAC Filter
+/** @file wlan_mac_addr_mac_filter.h
+ *  @brief Address Filter
  *
- *  This contains code for the 802.11 Access Point's MAC address
- *  filtering subsystem.
+ *  This contains code for the filtering MAC addresses
  *
  *  @copyright Copyright 2014, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
@@ -15,4 +14,5 @@
  *  @bug No known bugs
  */
 
-u8 mac_filter_is_allowed(u8* addr);
+u8 wlan_mac_addr_filter_is_allowed(u8* addr);
+u8 wlan_mac_addr_is_warp(u8* addr);
