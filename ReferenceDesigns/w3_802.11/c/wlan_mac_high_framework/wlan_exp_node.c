@@ -62,7 +62,9 @@ extern struct sockaddr_in  addr_async;
 
 // Declared in each of the AP / STA
 extern u8                  default_tx_gain_target;
+extern u8                  default_unicast_rate;
 
+extern dl_list		       association_table;
 
 
 /*************************** Variable Definitions ****************************/
@@ -316,6 +318,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 	u8            mac_addr[6];
 
+	station_info* curr_station_info;
+
 
 	unsigned int  cmdID;
     
@@ -514,8 +518,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 		// Case NODE_ASSN_SET_TABLE   is implemented in the child classes
 
-		// Case NODE_ASSN_RESET_STATS is implemented in the child classes
-
 		// Case NODE_DISASSOCIATE     is implemented in the child classes
 
 
@@ -550,8 +552,80 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 
 		// Case NODE_TX_RATE is implemented in the child classes
+	    //---------------------------------------------------------------------
+		case NODE_TX_RATE:
+            // NODE_TX_RATE Packet Format:
+			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all nodes)
+			//   - cmdArgs32[2]      - Rate
+
+			// Get MAC Address
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+			// Local variables
+			u32  rate;
+
+        	// Get node TX rate and adjust so that it is a legal value
+			rate = Xil_Ntohl(cmdArgs32[2]);
+
+			if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
+			if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
+
+			// If parameter is not the magic number, then set the TX rate
+			if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+				// If the ID is not for all nodes, configure the node
+				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+                    // Set the rate of the station
+					curr_station_info = (station_info*)(association_table.first);
+					for(i=0; i < association_table.length; i++){
+						if (curr_station_info->AID == id){
+							curr_station_info->tx.rate = rate;
+							break;
+
+							xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
+						}
+						curr_station_info = (station_info*)((curr_station_info->node).next);
+					}
+				} else {
+                    // Set the rate of all stations
+					default_unicast_rate = rate;
+
+					curr_station_info = (station_info*)(association_table.first);
+					for(i=0; i < association_table.length; i++){
+						curr_station_info->tx.rate = default_unicast_rate;
+						curr_station_info = (station_info*)((curr_station_info->node).next);
+					}
+
+					xil_printf("Setting Default TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+				}
+			} else {
+				// If the ID is not for all nodes, configure the node
+				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+					// Get the rate of the station
+					curr_station_info = (station_info*)(association_table.first);
+					for(i=0; i < association_table.length; i++){
+						if (curr_station_info->AID == id){
+							rate = curr_station_info->tx.rate;
+							break;
+						}
+						curr_station_info = (station_info*)((curr_station_info->node).next);
+					}
+				} else {
+					// Get the default rate
+					rate = default_unicast_rate;
+				}
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( rate );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
 
 		// Case NODE_CHANNEL is implemented in the child classes
+
 
 	    //---------------------------------------------------------------------
 		case NODE_TIME:
@@ -652,7 +726,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
 			// If parameter is not the magic number, then start the LTG
-			if ( id != LTG_START_ALL ) {
+			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
                 // Try to start the ID
 		        status = ltg_sched_start( id );
 
@@ -696,7 +770,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
 			// If parameter is not the magic number, then stop the LTG
-			if ( id != LTG_STOP_ALL ) {
+			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
                 // Try to start the ID
 		        status = ltg_sched_stop( id );
 
@@ -740,7 +814,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
 			// If parameter is not the magic number, then remove the LTG
-			if ( id != LTG_REMOVE_ALL ) {
+			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
                 // Try to remove the ID
 		        status = ltg_sched_remove( id );
 
@@ -1016,6 +1090,53 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
         break;
+
+
+		//---------------------------------------------------------------------
+		case NODE_GET_STATS:
+            // NODE_GET_STATS Packet Format:
+			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all stats)
+
+			// Get MAC Address
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+        	// Local variables
+        	txrx_stats_entry * stats_entry = (txrx_stats_entry *) &respArgs32[respIndex];
+        	u32                entry_size = sizeof(txrx_stats_entry);
+        	u32                stats_size = sizeof(statistics) - sizeof(dl_node);
+
+        	size = 0;
+
+			// If parameter is not the magic number, then remove the LTG
+			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+				// Find the station info
+				curr_station_info = (station_info*)(association_table.first);
+				for(i=0; i < association_table.length; i++){
+					if (curr_station_info->AID == id){ size = entry_size; break; }
+					curr_station_info = (station_info*)((curr_station_info->node).next);
+				}
+
+				if (size != 1) {
+					stats_entry->timestamp = get_usec_timestamp();
+
+					// Copy the statistics to the log entry
+					//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
+					//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
+					memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&curr_station_info->stats->last_timestamp), stats_size );
+
+					print_entry(0, ENTRY_TYPE_TXRX_STATS, stats_entry);
+
+				} else {
+					xil_printf("Could not find specified node:  AID = %d", id);
+				}
+			} else {
+				xil_printf("Command not supported.");
+			}
+
+			respHdr->length += size;
+			respHdr->numArgs = respIndex;
+			break;
 
 
 		//---------------------------------------------------------------------

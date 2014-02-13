@@ -77,6 +77,8 @@
 #define NODE_CONFIG_DEMO               90
 
 
+#define NODE_CONFIG_ALL_ASSOCIATED     0xFFFFFFFF
+
 // ****************************************************************************
 // Define Node Parameters
 //   - NOTE:  To add another parameter, add the define before "NODE_MAX_PARAMETER"
