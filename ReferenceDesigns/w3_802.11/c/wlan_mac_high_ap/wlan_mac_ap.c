@@ -27,7 +27,7 @@
 #include "xintc.h"
 
 //WARP includes
-#include "wlan_mac_ap_mac_filter.h"
+#include "wlan_mac_high_addr_filter.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
