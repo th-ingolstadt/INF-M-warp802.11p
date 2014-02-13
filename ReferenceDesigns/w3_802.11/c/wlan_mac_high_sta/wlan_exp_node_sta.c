@@ -68,8 +68,6 @@ extern u32            mac_param_chan_save;
 extern u8             access_point_num_basic_rates;
 extern u8             access_point_basic_rates[NUM_BASIC_RATES_MAX];
 
-extern u8             default_unicast_rate;
-
 extern u8             bcast_addr[6];
 
 /*************************** Variable Definitions ****************************/
@@ -203,37 +201,6 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 			// Send response of current channel
             respArgs32[respIndex++] = Xil_Htonl( 0 );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-	    //---------------------------------------------------------------------
-		case NODE_TX_RATE:
-			// Get node TX rate
-			temp = Xil_Ntohl(cmdArgs32[0]);
-
-			// If parameter is not the magic number, then set the TX rate
-			if ( temp != NODE_TX_RATE_RSVD_VAL ) {
-
-				default_unicast_rate = temp;
-
-				if( default_unicast_rate < WLAN_MAC_RATE_6M ){
-					default_unicast_rate = WLAN_MAC_RATE_6M;
-				}
-
-				if(default_unicast_rate > WLAN_MAC_RATE_54M){
-					default_unicast_rate = WLAN_MAC_RATE_54M;
-				}
-
-				((station_info*)(association_table.first))->tx.rate = default_unicast_rate;
-
-			    xil_printf("Setting TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate) );
-			}
-
-			// Send response of current rate
-            respArgs32[respIndex++] = Xil_Htonl( default_unicast_rate );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -404,11 +371,19 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 ******************************************************************************/
 u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
 	u32 id;
+	station_info * info;
 
 	if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
 		id = 0xFFFFFFFF;
 	} else {
-		id = 0;
+		info = wlan_mac_high_find_station_info_ADDR(&association_table, mac_addr);
+		if (info != NULL) {
+            id = info->AID;
+		} else {
+			xil_printf("ERROR:  Could not find MAC address = %02x:%02x:%02x:%02x:%02x:%02x\n",
+                       mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+			id = 0;
+		}
 	}
 
 	return id;
