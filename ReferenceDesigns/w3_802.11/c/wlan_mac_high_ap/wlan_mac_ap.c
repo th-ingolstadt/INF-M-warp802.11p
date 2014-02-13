@@ -986,7 +986,7 @@ u32  deauthenticate_station( station_info* station ) {
 	if(checkout.length == 1){ //There was at least 1 free queue element
 		tx_queue = (packet_bd*)(checkout.first);
 
-		purge_queue(aid); //TODO: generalize
+		purge_queue(AID_TO_QID(aid));
 
 		// Create deauthentication packet
 		wlan_mac_high_setup_tx_header( &tx_header_common, station->addr, eeprom_mac_addr );
