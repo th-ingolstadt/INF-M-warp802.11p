@@ -1,11 +1,5 @@
 """
-------------------------------------------------------------------------------
-WARPNet Example: Simple throughput test with two nodes
-------------------------------------------------------------------------------
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-This script provides a simple WARPNet example that measures throughput between
+This script uses the 802.11 ref design and WARPnet to measure throughput between
 an AP and an associated STA using the AP's local traffic generator (LTG).
 
 Hardware Setup:
@@ -19,10 +13,10 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This script will initialize two WARP v3 nodes, one AP and one STA. The script assumes
-the STA is associated with the AP. The script initiates a traffic flow from the AP to STA.
-The script then iterates over a few wireless Tx rates, measuring the AP -> STA throughput
-for each Tx rate.
+  This script initializes two WARP v3 nodes, one AP and one STA. It assumes the STA is 
+  already associated with the AP. The script then initiates a traffic flow from the AP to STA,
+  sets the AP Tx rate and measures throughput by counting the number of bytes received successfully
+  at the STA. This process repeats for multiple Tx rates.
 """
 import sys
 import time
@@ -34,7 +28,12 @@ import wlan_exp.wlan_exp_ltg   as ltg
 HOST_INTERFACES   = ['10.0.0.250']
 NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
+# Select some PHY rates to test
+#  wlan_exp_util.rates is an array of dictionaries
+#   with keys 'rate_index', 'rate', 'rate_str'
 rates = wlan_exp_util.rates[0:4]
+
+# Set the per-trial duration (in seconds)
 TRIAL_TIME = 10
 
 print("\nInitializing experiment\n")
@@ -56,14 +55,16 @@ n_sta_l = wlan_exp_util.filter_nodes(nodes, 'node_type', 'STA')
 
 # Check that we have a valid AP and STA
 if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
+    # Extract the two nodes from the lists for easier referencing below
     n_ap = n_ap_l[0]
     n_sta = n_sta_l[0]
 else:
-    print("")
+    print("ERROR: Node configurations did not match requirements of script.\n")
+    print(" Ensure two nodes are ready, one using the AP design, one using the STA design\n").
     sys.exit(0)
 
 # Start a flow from the AP's local traffic generator (LTG) to the STA
-#  Set the flow to fully backlogged with 1400 byte payloads
+#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts)
 n_ap.configure_ltg(n_sta, ltg.FlowConfigCBR(1400, 0))
 n_ap.start_ltg(n_sta)
 
@@ -71,6 +72,7 @@ n_ap.start_ltg(n_sta)
 rx_bytes = []
 rx_time_spans = []
 
+# Iterate over each selected Tx rate, running a new trial for each rate
 for ii,rate in enumerate(rates):
     print("Starting %d sec trial for rate %d..." % (TRIAL_TIME, ii))
 
