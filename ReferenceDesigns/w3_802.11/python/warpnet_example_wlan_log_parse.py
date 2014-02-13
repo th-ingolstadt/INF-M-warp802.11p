@@ -2,6 +2,7 @@ import wlan_exp_log
 from wlan_exp_log import log_util
 from wlan_exp_log.log_entries import *
 from wlan_exp_log.mac_hdr_util import *
+import numpy as np
 
 import code
 import sys
@@ -66,15 +67,38 @@ for r in rx_rates:
 	else:
 		print("Invalid rate %d in rx entry %d\n" % (r, ii))
 
-print("Example 1: Num Rx per Rate: %s" % rx_rate_counts)
+print("Example 1: Num Rx per Rate: %s\n" % rx_rate_counts)
 
-###########################################################################
-# Example 2: Calculate total bytes transmitted to each distinct MAC address
+#################################################################################################
+# Example 2: Calculate total number of packets and bytes transmitted to each distinct MAC address
 
 # Extract all OFDM transmissions
 log_tx = log_nd[log_entry_tx.entry_type_ID]
 
 # Extract an array of just the MAC headers
 tx_hdrs = log_tx['mac_header']
+
+# Extract the address1 field (the wireless receiver address for AP transmissions)
+tx_addr1 = tx_hdrs[:,4:10]
+
+#Reduce each 6-byte MAC addresses to a unit64 for easier processing
+tx_addr1 = np.sum(tx_addr1 * [2**0, 2**8, 2**16, 2**24, 2**32, 2**40], 1, keepdims=True)
+
+# Build a dictionary using unique MAC addresses as keys
+tx_counts = dict()
+for addr in np.unique(tx_addr1):
+	addr_idx = np.squeeze(tx_addr1 == addr)
+
+	tx_pkts_to_addr = np.sum(addr_idx)
+	tx_bytes_to_addr = np.sum(log_tx['length'][addr_idx])
+
+	# Use the string version of the MAC address as the key for readability
+	addr_str = '%06X' % addr
+	tx_counts[addr_str] = (tx_pkts_to_addr, tx_bytes_to_addr)
+
+#Print the results
+print("Example 2: Tx Counts\nAddr\t\t# Pkts\t# Bytes")
+for k in tx_counts.keys():
+	print("%s\t%d\t%d" % (k, tx_counts[k][0], tx_counts[k][1]))
 
 debug_here()
