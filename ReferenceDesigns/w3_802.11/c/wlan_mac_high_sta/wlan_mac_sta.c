@@ -644,7 +644,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			station_stats = wlan_mac_high_add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
 		}
 
-		if(station_stats != NULL){
+		if(station_stats != NULL && (rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 			station_stats->last_timestamp = get_usec_timestamp();
 			(station_stats->num_rx_success)++;
 			(station_stats->num_rx_bytes) += mpdu_info->length;
