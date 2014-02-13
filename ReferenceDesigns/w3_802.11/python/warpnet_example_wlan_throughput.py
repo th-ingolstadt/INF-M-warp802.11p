@@ -60,7 +60,7 @@ if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
     n_sta = n_sta_l[0]
 else:
     print("ERROR: Node configurations did not match requirements of script.\n")
-    print(" Ensure two nodes are ready, one using the AP design, one using the STA design\n").
+    print(" Ensure two nodes are ready, one using the AP design, one using the STA design\n")
     sys.exit(0)
 
 # Start a flow from the AP's local traffic generator (LTG) to the STA
@@ -74,29 +74,39 @@ rx_time_spans = []
 
 # Iterate over each selected Tx rate, running a new trial for each rate
 for ii,rate in enumerate(rates):
-    print("Starting %d sec trial for rate %d..." % (TRIAL_TIME, ii))
+    print("Starting {0} sec trial for rate {1} ...".format(TRIAL_TIME, wlan_exp_util.tx_rate_to_str(rate)))
 
     #Configure the AP's Tx rate for the selected station
     n_ap.set_tx_rate(n_sta, rate)
   
     #Record the station's initial Tx/Rx stats 
-    rx_stats_start = n_sta.get_txrx_stats(n_ap)
+    rx_stats_start = n_sta.get_txrx_statistics(n_ap)
 
     #Wait for a while
     time.sleep(TRIAL_TIME)
 
     #Record the station's ending Tx/Rx stats
-    rx_stats_end = n_sta.get_txrx_stats(n_ap)
+    rx_stats_end = n_sta.get_txrx_statistics(n_ap)
 
     #Compute the number of new bytes received and the time span
-    rx_bytes[ii] = rx_stats_end['num_rx_bytes'] - rx_stats_start['num_rx_bytes']
-    rx_time_spans[ii] = rx_stats_end['timestamp'] - rx_stats_start['timestamp']
+    rx_bytes.insert(ii, rx_stats_end['num_rx_bytes'] - rx_stats_start['num_rx_bytes'])
+    rx_time_spans.insert(ii, rx_stats_end['timestamp'] - rx_stats_start['timestamp'])
     print("Done.\n")
 	
-print("\n\n")
+print("\n")
+
+# Stop the LTG flow so that nodes are in a known, good state
+n_ap.stop_ltg(n_sta)
 
 #Calculate and display the throughput results
+print("Results:")
+
 for ii in range(len(rates)):
     #Timestamps are in microseconds; bits/usec == Mbits/sec
-    xput = (rx_bytes[ii] * 8) / rx_time_spans[ii]
-    print("Rate = %2.1f Mbps   Throughput = %2.1 Mbps", (rates[ii]['rate'], xput))
+    #  NOTE: In Python 3.x, the division operator is always floating point.  
+    #    In order to be compatible with all versions of python, cast 
+    #    operands to floats to ensure floating point division
+    num_bytes = float(rx_bytes[ii] * 8)
+    time_span = float(rx_time_spans[ii])
+    xput = num_bytes / time_span
+    print("    Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rates[ii]['rate'], xput))

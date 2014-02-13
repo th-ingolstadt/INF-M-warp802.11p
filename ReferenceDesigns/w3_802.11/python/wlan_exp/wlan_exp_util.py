@@ -81,7 +81,7 @@ rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2'},
 
 def tx_rate_to_str(tx_rate):
     """Convert a TX rate from the 'rates' list to a string."""
-    msg = "{0:2.1f} {1}".format(tx_rate['rate'], tx_rate['rate_str'])
+    msg = "{0:2.1f} Mbps ({1})".format(tx_rate['rate'], tx_rate['rate_str'])
     return msg
     
 
@@ -97,7 +97,7 @@ def tx_rate_index_to_str(tx_rate_index):
             break
 
     if not tx_rate is None:
-        msg += "{0:2.1f} {1}".format(tx_rate['rate'], tx_rate['rate_str'])
+        msg += "{0:2.1f} Mbps ({1})".format(tx_rate['rate'], tx_rate['rate_str'])
     else:
         print("Unknown tx rate index: {0}".format(tx_rate_index))
 
@@ -346,6 +346,34 @@ def filter_nodes(nodes, filter_type, filter_val):
 
     return ret_nodes
 
+
+def int2ip(ipaddr):
+    """Convert an integer to IP address string (dotted notation)."""
+    msg  = "{0:d}.".format((ipaddr >> 24) & 0xFF)
+    msg += "{0:d}.".format((ipaddr >> 16) & 0xFF)
+    msg += "{0:d}.".format((ipaddr >>  8) & 0xFF)
+    msg += "{0:d}".format(ipaddr & 0xFF)
+    return msg
+
+
+def ip2int(ipaddr):
+    """Convert IP address string (dotted notation) to an integer."""
+    expr = re.compile('\.')
+    dataTuple = []
+    for data in expr.split(ipaddr):
+        dataTuple.append(int(data))
+    return (dataTuple[3]) + (dataTuple[2] * 2**8) + (dataTuple[1] * 2**16) + (dataTuple[0] * 2**24)
+
+
+def mac2str(mac_address):
+    """Convert an integer to a colon separated MAC address string."""
+    msg  = "{0:02x}:".format((mac_address >> 40) & 0xFF)
+    msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
+    msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
+    msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
+    msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
+    msg += "{0:02x}".format(mac_address & 0xFF)
+    return msg
 
 
 #-----------------------------------------------------------------------------

@@ -168,6 +168,19 @@ class WlanExpNode(wn_node.WnNode):
         return resp
 
 
+    def get_log_size(self):
+        """Get the size of the log (bytes)."""
+        start = self.get_log_start()
+        end   = self.get_log_end()
+        
+        if (start < end):
+            resp = end - start
+        else:
+            resp = (self.event_log_size - start) + end
+
+        return resp
+
+
     def get_log_events(self, size, start_byte=0):
         """Low level method to get part of the log file as a WnBuffer.
         
@@ -224,27 +237,6 @@ class WlanExpNode(wn_node.WnNode):
         print(msg)
 
 
-    #--------------------------------------------
-    # Statistics Commands
-    #--------------------------------------------
-    def get_statistics(self):
-        """Get the statistics from the node.
-        
-        NOTE:  implement cmd as buffer cmd
-        """
-        raise NotImplementedError
-    
-
-    def write_statistics_to_log(self):
-        """Write the current statistics to the log."""
-        return self.send_cmd(cmds.AddStatsToLog())
-
-
-    def reset_statistics(self):
-        """Reset the statistics on the node."""
-        self.send_cmd(cmds.ResetStats())
-        
-
     def write_exp_info_to_log(self, reason, message=None):
         """Write the experiment information provided to the log.
         
@@ -257,42 +249,91 @@ class WlanExpNode(wn_node.WnNode):
 
 
     #--------------------------------------------
+    # Statistics Commands
+    #--------------------------------------------
+    def configure_statistics(self):
+        """Configure statistics collection on the node."""
+        raise NotImplementedError
+
+
+    def get_txrx_statistics(self, node_list=None):
+        """Get the statistics from the node.
+        
+        Returns a list of statistic dictionaries.
+
+        If a node_list is provided, then the command will only return
+        statistics for the given nodes.  Otherwise, it will return 
+        all the statistics on the node.
+        """
+        ret_stats = []
+        if not node_list is None:
+            if (type(node_list) is list):
+                for node in node_list:
+                    stats = self.send_cmd(cmds.GetStats(node))
+                    ret_stats.append(stats)
+            else:
+                ret_stats = self.send_cmd(cmds.GetStats(node_list))
+        else:
+            ret_stats = self.send_cmd(cmds.GetAllStats())
+        
+        return ret_stats
+    
+
+    def write_statistics_to_log(self):
+        """Write the current statistics to the log."""
+        return self.send_cmd(cmds.AddStatsToLog())
+
+
+    def reset_statistics(self):
+        """Reset the statistics on the node."""
+        self.send_cmd(cmds.ResetStats())
+        
+
+    #--------------------------------------------
     # Local Traffic Generation (LTG) Commands
     #--------------------------------------------
     def configure_ltg(self, node_list, traffic_flow):
         """Configure the node for the given traffic flow to the given nodes."""
-        for node in node_list:
-            status = self.send_cmd(cmds.ConfigureLTG(node, traffic_flow))
-            if (status == cmds.LTG_ERROR):
-                print("LTG ERROR: Could not configure LTG")
-                print("    from {0} to {1}".format(self.name, node.name))
+        if (type(node_list) is list):
+            for node in node_list:
+                status = self.send_cmd(cmds.ConfigureLTG(node, traffic_flow))
+                self._print_ltg_status('configure', status, node.name)
+        else:
+            status = self.send_cmd(cmds.ConfigureLTG(node_list, traffic_flow))
+            self._print_ltg_status('configure', status, node_list.name)
 
 
     def remove_ltg(self, node_list):
         """Remove the LTG flow to the given nodes from the node."""
-        for node in node_list:
-            status = self.send_cmd(cmds.RemoveLTG(node))
-            if (status == cmds.LTG_ERROR):
-                print("LTG ERROR: Could not remove LTG")
-                print("    from {0} to {1}".format(self.name, node.name))
+        if (type(node_list) is list):
+            for node in node_list:
+                status = self.send_cmd(cmds.RemoveLTG(node))
+                self._print_ltg_status('remove', status, node.name)
+        else:
+            status = self.send_cmd(cmds.RemoveLTG(node_list))
+            self._print_ltg_status('remove', status, node_list.name)
         
 
     def start_ltg(self, node_list):
         """Start the LTG flow to the given nodes."""
-        for node in node_list:
-            status = self.send_cmd(cmds.StartLTG(node))
-            if (status == cmds.LTG_ERROR):
-                print("LTG ERROR: Could not start LTG")
-                print("    from {0} to {1}".format(self.name, node.name))
+        if (type(node_list) is list):
+            for node in node_list:
+                status = self.send_cmd(cmds.StartLTG(node))
+                self._print_ltg_status('start', status, node.name)
+        else:
+            status = self.send_cmd(cmds.StartLTG(node_list))
+            self._print_ltg_status('start', status, node_list.name)
 
 
     def stop_ltg(self, node_list):
         """Stop the LTG flow to the given nodes."""
-        for node in node_list:
-            status = self.send_cmd(cmds.StopLTG(node))
-            if (status == cmds.LTG_ERROR):
-                print("LTG ERROR: Could not stop LTG")
-                print("    from {0} to {1}".format(self.name, node.name))
+        if (type(node_list) is list):
+            for node in node_list:
+                status = self.send_cmd(cmds.StopLTG(node))
+                self._print_ltg_status('stop', status, node.name)
+        else:
+            status = self.send_cmd(cmds.StopLTG(node_list))
+            self._print_ltg_status('stop', status, node_list.name)
 
 
     def start_all_ltg(self):
@@ -309,6 +350,12 @@ class WlanExpNode(wn_node.WnNode):
             print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
 
 
+    def _print_ltg_status(self, ltg_cmd_type, status, node_name):
+        if (status == cmds.LTG_ERROR):
+            print("LTG ERROR: Could not {0} LTG".format(ltg_cmd_type))
+            print("    from {0} to {1}".format(self.name, node_name))
+
+
     #--------------------------------------------
     # Configure Node Attribute Commands
     #--------------------------------------------
@@ -323,7 +370,7 @@ class WlanExpNode(wn_node.WnNode):
 
     def get_time(self):
         """Gets the time in microseconds from the node."""
-        return self.send_cmd(cmds.ProcNodeTime(cmds.TIME_RSVD_VAL))
+        return self.send_cmd(cmds.ProcNodeTime(cmds.RSVD_TIME))
 
 
     def set_channel(self, channel):
@@ -333,17 +380,51 @@ class WlanExpNode(wn_node.WnNode):
 
     def get_channel(self):
         """Gets the current channel of the node."""
-        return self.send_cmd(cmds.ProcNodeChannel(cmds.CHANNEL_RSVD_VAL))
+        return self.send_cmd(cmds.ProcNodeChannel(cmds.RSVD_CHANNEL))
 
 
-    def set_tx_rate(self, rate):
-        """Set the transmit rate of the node and returns the rate that was set."""
+    def set_default_tx_rate(self, rate):
+        """Set the default Tx rate for all associated nodes."""
         return self.send_cmd(cmds.ProcNodeTxRate(rate))
 
 
-    def get_tx_rate(self):
+    def get_default_tx_rate(self):
         """Gets the current transmit rate of the node."""
-        return self.send_cmd(cmds.ProcNodeTxRate(cmds.TX_RATE_RSVD_VAL))
+        return self.send_cmd(cmds.ProcNodeTxRate(cmds.RSVD_TX_RATE))
+
+
+    def set_tx_rate(self, node_list, rate):
+        """Set the transmit rate of the node to the given nodes in the 
+        node_list and return a list of rate indecies that were set.
+        """
+        ret_rate_idxs = []
+        
+        if (type(node_list) is list):
+            for node in node_list:
+                ret_rate_idx = self.send_cmd(cmds.ProcNodeTxRate(rate, node))
+                ret_rate_idxs.append(ret_rate_idx)
+        else:
+            ret_rate_idx = self.send_cmd(cmds.ProcNodeTxRate(rate, node_list))
+            ret_rate_idxs.append(ret_rate_idx)
+
+        return ret_rate_idxs
+
+
+    def get_tx_rate(self, node_list):
+        """Gets the transmit rate of the node to the given nodes in the 
+        node_list and returns a list of those rates indecies.
+        """
+        ret_rate_idxs = []
+        
+        if (type(node_list) is list):
+            for node in node_list:
+                ret_rate_idx = self.send_cmd(cmds.ProcNodeTxRate(cmds.RSVD_TX_RATE, node))
+                ret_rate_idxs.append(ret_rate_idx)
+        else:
+            ret_rate_idx = self.send_cmd(cmds.ProcNodeTxRate(cmds.RSVD_TX_RATE, node_list))
+            ret_rate_idxs.append(ret_rate_idx)
+
+        return ret_rate_idxs
 
 
     def set_tx_gain(self, gain):
@@ -353,7 +434,7 @@ class WlanExpNode(wn_node.WnNode):
 
     def get_tx_gain(self):
         """Gets the current transmit gain of the node."""
-        return self.send_cmd(cmds.ProcNodeTxGain(cmds.TX_GAIN_RSVD_VAL))
+        return self.send_cmd(cmds.ProcNodeTxGain(cmds.RSVD_TX_GAIN))
 
 
     #--------------------------------------------

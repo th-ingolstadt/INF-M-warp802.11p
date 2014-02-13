@@ -50,7 +50,6 @@ import warpnet.wn_cmds as wn_cmds
 import warpnet.wn_message as wn_message
 import warpnet.wn_transport_eth_udp as wn_transport
 
-from . import wlan_exp_ltg as ltg
 
 
 __all__ = ['GetLogEvents', 'ResetLog', 'GetLogCurrIdx', 'GetLogOldestIdx',
@@ -71,10 +70,10 @@ CMD_TX_RATE                  = 31
 CMD_CHANNEL                  = 32
 CMD_TIME                     = 33
 
-TX_GAIN_RSVD_VAL             = 0xFFFF
-TX_RATE_RSVD_VAL             = 0xFFFF
-CHANNEL_RSVD_VAL             = 0xFFFF
-TIME_RSVD_VAL                = 0x0000FFFF0000FFFF
+RSVD_TX_GAIN                 = 0xFFFF
+RSVD_TX_RATE                 = 0xFFFF
+RSVD_CHANNEL                 = 0xFFFF
+RSVD_TIME                    = 0x0000FFFF0000FFFF
 
 CMD_LTG_CONFIG               = 40
 CMD_LTG_START                = 41
@@ -218,6 +217,41 @@ class StreamLogEntries(wn_message.Cmd):
 #--------------------------------------------
 # Stats Commands
 #--------------------------------------------
+class GetAllStats(wn_message.BufferCmd):
+    """Command to get the statistics from the node"""
+    def __init__(self, size, start_byte=0):
+        raise NotImplementedError
+        # command = _CMD_GRPID_NODE + CMD_STATS_GET_STATS
+        # super(GetAllStats, self).__init__(
+        #         command=command, buffer_id=0, flags=0, start_byte=start_byte, size=size)
+
+    def process_resp(self, resp):
+        return resp
+
+# End Class
+
+
+class GetStats(wn_message.Cmd):
+    """Command to get the statistics from the node for a given node."""
+    def __init__(self, node):
+        super(GetStats, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_STATS_GET_STATS
+
+        mac_address = node.wlan_mac_address
+        self.add_args(((mac_address >> 32) & 0xFFFF))
+        self.add_args((mac_address & 0xFFFFFFFF))
+
+    def process_resp(self, resp):
+        import wlan_exp_log.log_entries as log
+        
+        # TODO:  This works but needs to be fixed
+        val = log.log_entry_txrx_stats.deserialize(resp.raw_data[8:])
+        
+        return val
+
+# End Class
+
+
 class AddStatsToLog(wn_message.Cmd):
     """Command to add the current statistics to the Event log"""
     def __init__(self):
@@ -437,9 +471,17 @@ class ProcNodeTxRate(wn_message.Cmd):
                    returned by the node.  A value of 0xFFFF will only 
                    return the rate.
     """
-    def __init__(self, rate):
+    def __init__(self, rate, node=None):
         super(ProcNodeTxRate, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_TX_RATE
+        
+        if not node is None:
+            mac_address = node.wlan_mac_address
+            self.add_args(((mac_address >> 32) & 0xFFFF))
+            self.add_args((mac_address & 0xFFFFFFFF))
+        else:
+            self.add_args(0xFFFFFFFF)
+            self.add_args(0xFFFFFFFF)
 
         self.add_args((rate['index'] & 0xFFFF))
     

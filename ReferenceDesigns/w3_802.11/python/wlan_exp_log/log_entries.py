@@ -27,7 +27,7 @@ Integer constants:
     ENTRY_TYPE_* -- Wlan Exp Log entry types
 
 """
-from struct import calcsize
+from struct import calcsize, unpack, error
 
 # WLAN Exp Event Log Constants
 #   NOTE:  The C counterparts are found in wlan_mac_event_log.h
@@ -88,6 +88,20 @@ class WlanExpLogEntry:
         self.fields_np_dt = [(name,np_type) for type,np_type,name in self._fields]
         self.fields_size = calcsize(self.fields_struct_fmt)
         return
+
+    def deserialize(self, buffer):
+        """Unpack the buffer of a single log entry in to a dictionary."""
+        ret_dict = {}
+        try:
+            dataTuple = unpack(self.fields_struct_fmt, buffer)
+            all_names = self.get_field_names()
+            names = [x for x in all_names if x != 'padding']
+            for idx, data in enumerate(dataTuple):
+                ret_dict[names[idx]] = data
+        except error as err:
+            print("Error unpacking buffer: {0}".format(err))
+
+        return ret_dict
 
     def __repr__(self):
         return 'WLAN_EXP_LOG_Entry_Type_' + self.name
@@ -190,7 +204,7 @@ log_entry_rx_ofdm.set_field_info( [
     ('B',     'uint8',       'rf_gain'),
     ('B',     'uint8',       'bb_gain'),
     ('2x',    'uint16',      'padding'),
-    ('256x',  '(64,2)i2',    'chan_est')])
+    ('256B',  '(64,2)i2',    'chan_est')])
 
 
 # DSSS Receptions

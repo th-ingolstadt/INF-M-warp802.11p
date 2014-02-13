@@ -175,6 +175,11 @@ class CmdRespMessage(Message):
         num_args -- (uint16) Number of uint32 arguments
         args -- (list of uint32) Arguments of the command / reponse
     """
+    command   = None
+    length    = None
+    num_args  = None
+    args      = None
+    raw_data  = None
     
     def __init__(self, command=0, length=0, num_args=0, args=None):
         self.command = command
@@ -207,6 +212,7 @@ class CmdRespMessage(Message):
             self.num_args = dataTuple[2]
             self.args = list(struct.unpack_from('!%dI' % self.num_args, 
                                                 buffer, offset=8))
+            self.raw_data = buffer
         except struct.error as err:
             # Reset Cmd/Resp.  We want predictable behavior on error
             self.reset()

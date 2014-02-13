@@ -7,6 +7,10 @@ import numpy as np
 import code
 import sys
 
+import wlan_exp
+from wlan_exp import wlan_exp_util
+
+
 
 #Excellent util function for dropping into interactive Python shell
 # From http://vjethava.blogspot.com/2010/11/matlabs-keyboard-command-in-python.html
@@ -17,7 +21,7 @@ def debug_here(banner=None):
         raise None
     except:
         frame = sys.exc_info()[2].tb_frame.f_back
-    print "# Use quit() to exit :) Happy debugging!"
+    print("# Use quit() to exit :) Happy debugging!")
     # evaluate commands in current namespace
     namespace = frame.f_globals.copy()
     namespace.update(frame.f_locals)
@@ -82,7 +86,8 @@ tx_hdrs = log_tx['mac_header']
 tx_addr1 = tx_hdrs[:,4:10]
 
 #Reduce each 6-byte MAC addresses to a unit64 for easier processing
-tx_addr1 = np.sum(tx_addr1 * [2**0, 2**8, 2**16, 2**24, 2**32, 2**40], 1, keepdims=True)
+# tx_addr1 = np.sum(tx_addr1 * [2**0, 2**8, 2**16, 2**24, 2**32, 2**40], 1, keepdims=True)
+tx_addr1 = np.sum(tx_addr1 * [2**40, 2**32, 2**24, 2**16, 2**8, 2**0], 1)
 
 # Build a dictionary using unique MAC addresses as keys
 tx_counts = dict()
@@ -94,11 +99,13 @@ for addr in np.unique(tx_addr1):
 
 	# Use the string version of the MAC address as the key for readability
 	addr_str = '%06X' % addr
-	tx_counts[addr_str] = (tx_pkts_to_addr, tx_bytes_to_addr)
+	tx_counts[addr] = (tx_pkts_to_addr, tx_bytes_to_addr)
 
 #Print the results
-print("Example 2: Tx Counts\nAddr\t\t# Pkts\t# Bytes")
+print("Example 2: Tx Counts\nAddr\t\t\t# Pkts\t# Bytes")
 for k in tx_counts.keys():
-	print("%s\t%d\t%d" % (k, tx_counts[k][0], tx_counts[k][1]))
+	print("%s\t%d\t%d" % (wlan_exp_util.mac2str(k), tx_counts[k][0], tx_counts[k][1]))
+
+print("\n")
 
 debug_here()
