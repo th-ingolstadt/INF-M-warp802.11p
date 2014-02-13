@@ -191,31 +191,6 @@ void uart_rx(u8 rxByte){
 				case ASCII_h:
 					xil_printf("cpu_high_status = 0x%08x\n", cpu_high_status);
 				break;
-
-				case ASCII_n:
-					if(num_slots == 0 || num_slots == SLOT_CONFIG_RAND){
-						num_slots = SLOT_CONFIG_RAND;
-						xil_printf("num_slots = SLOT_CONFIG_RAND\n");
-					} else {
-						num_slots--;
-						xil_printf("num_slots = %d\n", num_slots);
-					}
-
-
-					wlan_mac_high_set_backoff_slot_value(num_slots);
-				break;
-
-				case ASCII_N:
-					if(num_slots == SLOT_CONFIG_RAND){
-						num_slots = 0;
-					} else {
-						num_slots++;
-					}
-
-					xil_printf("num_slots = %d\n", num_slots);
-
-					wlan_mac_high_set_backoff_slot_value(num_slots);
-				break;
 				case ASCII_m:
 					wlan_mac_high_display_mallinfo();
 				break;
