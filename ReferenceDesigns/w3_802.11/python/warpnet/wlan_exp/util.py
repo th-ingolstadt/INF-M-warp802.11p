@@ -56,7 +56,7 @@ __all__ = ['tx_rate_index_to_str',
 
 # WARPNet Version defines
 WLAN_EXP_MAJOR               = 0
-WLAN_EXP_MINOR               = 7
+WLAN_EXP_MINOR               = 8
 WLAN_EXP_REVISION            = 0
 WLAN_EXP_XTRA                = str('')
 WLAN_EXP_RELEASE             = 1

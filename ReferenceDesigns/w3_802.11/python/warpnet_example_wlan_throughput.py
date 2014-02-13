@@ -79,6 +79,14 @@ for node in nodes:
     print("    Channel = {0}".format(channel))
     print("    Tx Gain = {0}".format(tx_gain))
 
+
+# Check that the nodes are associated.  Otherwise, the LTGs below will fail.
+if not n_ap.node_is_associated(n_sta):
+    print("\nERROR: Nodes are not associated.")
+    print("    Ensure that the AP and the STA are associated.")
+    sys.exit(0)
+
+
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts)
 n_ap.ltg_to_node_configure(n_sta, ltg.FlowConfigCBR(1400, 0))

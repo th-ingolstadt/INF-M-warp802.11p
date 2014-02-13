@@ -365,11 +365,38 @@ class WlanExpNode(wn_node.WnNode):
     # Configure Node Attribute Commands
     #--------------------------------------------
     def node_is_associated(self, node_list):
-        """Returns a list of boolean tuples of whether the node is associated
-        with each of the nodes in the node_list and whether each node
-        in the node_list is associated with the node.
+        """Returns a either a boolean if the node list is a single node,
+        or a list of booleans the same dimension as the node_list.  To 
+        return True, both the current node and the node in the node_list 
+        must be associated with each other.
+        
+        NOTE:  The underlying implementation of this function will change 
+        in the future.        
         """
-        raise NotImplementedError
+        ret_val = []
+        
+        if not node_list is None:
+            my_stats = self.stats_get_txrx(node_list)
+
+            if (type(node_list) is list):
+                for idx, node in enumerate(node_list):
+                    node_stats = node.send_cmd(cmds.StatsGetTxRx(self))
+
+                    if ((my_stats['associated'] == 1) and (node_stats['associated'] == 1)):
+                        ret_val.append(True)
+                    else:
+                        ret_val.append(False)
+            else:
+                node_stats = node_list.send_cmd(cmds.StatsGetTxRx(self))
+
+                if ((my_stats['associated'] == 1) and (node_stats['associated'] == 1)):
+                    ret_val = True
+                else:
+                    ret_val = False
+        else:
+            ret_val = False
+        
+        return ret_val
 
 
     def node_set_time(self, time):

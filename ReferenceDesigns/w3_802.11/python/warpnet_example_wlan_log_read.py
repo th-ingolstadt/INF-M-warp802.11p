@@ -52,6 +52,7 @@ nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
 n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
 n_sta_l = wlan_exp_util.filter_nodes(nodes, 'node_type', 'STA')
 
+
 # Check that we have a valid AP and STA
 if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
     # Extract the two nodes from the lists for easier referencing below
@@ -61,6 +62,7 @@ else:
     print("ERROR: Node configurations did not match requirements of script.\n")
     print(" Ensure two nodes are ready, one using the AP design, one using the STA design\n")
     sys.exit(0)
+
 
 # Initialize each node and gather some print some experiment information
 print("\nExperimental Setup:")
@@ -72,12 +74,20 @@ for node in nodes:
 
 print("\nRun Experiment:\n")
 
+
 # Look at the initial log sizes for reference
 ap_log_size  = n_ap.log_get_size()
 sta_log_size = n_sta.log_get_size()
 
 print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
 print("            STA = {0:10d} bytes".format(sta_log_size))
+
+
+# Check that the nodes are associated.  Otherwise, the LTGs below will fail.
+if not n_ap.node_is_associated(n_sta):
+    print("\nERROR: Nodes are not associated.")
+    print("    Ensure that the AP and the STA are associated.")
+    sys.exit(0)
 
 
 print("\nStart LTG - AP -> STA:")
@@ -88,11 +98,11 @@ n_ap.ltg_to_node_start(n_sta)
 
 # Wait for a while
 time.sleep(TRIAL_TIME)
-
 print("Done.\n")
 	
 # Stop the LTG flow so that nodes are in a known, good state
 n_ap.ltg_to_node_stop(n_sta)
+
 
 # Look at the log sizes after the first LTG
 ap_log_size  = n_ap.log_get_size()
@@ -110,11 +120,11 @@ n_sta.ltg_to_node_start(n_ap)
 
 # Wait for a while
 time.sleep(TRIAL_TIME)
-
 print("Done.\n")
 	
 # Stop the LTG flow so that nodes are in a known, good state
 n_sta.ltg_to_node_stop(n_ap)
+
 
 # Look at the log sizes after the second LTG
 ap_log_size  = n_ap.log_get_size()
