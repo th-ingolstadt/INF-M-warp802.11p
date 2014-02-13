@@ -59,8 +59,6 @@ extern char       * access_point_ssid;
 
 extern u32          mac_param_chan;
 
-extern u8           default_unicast_rate;
-
 extern u8           bcast_addr[6];
 
 /*************************** Variable Definitions ****************************/
@@ -218,40 +216,6 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		break;
 
         
-	    //---------------------------------------------------------------------
-		case NODE_TX_RATE:
-			// Get node TX rate
-			temp = Xil_Ntohl(cmdArgs32[0]);
-
-			// If parameter is not the magic number, then set the TX rate
-			if ( temp != NODE_TX_RATE_RSVD_VAL ) {
-
-				default_unicast_rate = temp;
-
-				if( default_unicast_rate < WLAN_MAC_RATE_6M ){
-					default_unicast_rate = WLAN_MAC_RATE_6M;
-				}
-
-				if(default_unicast_rate > WLAN_MAC_RATE_54M){
-					default_unicast_rate = WLAN_MAC_RATE_54M;
-				}
-
-				curr_station_info = (station_info*)(association_table.first);
-				for(i=0; i < association_table.length; i++){
-					curr_station_info->tx.rate = default_unicast_rate;
-					curr_station_info = (station_info*)((curr_station_info->node).next);
-				}
-
-			    xil_printf("Setting TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate) );
-			}
-
-			// Send response of current rate
-            respArgs32[respIndex++] = Xil_Htonl( default_unicast_rate );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
 		//---------------------------------------------------------------------
 		case NODE_CHANNEL:
 			// Get channel parameter
