@@ -580,9 +580,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					for(i=0; i < association_table.length; i++){
 						if (curr_station_info->AID == id){
 							curr_station_info->tx.rate = rate;
-							break;
-
 							xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
+							break;
 						}
 						curr_station_info = (station_info*)((curr_station_info->node).next);
 					}
@@ -1125,7 +1124,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
 					memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&curr_station_info->stats->last_timestamp), stats_size );
 
-					print_entry(0, ENTRY_TYPE_TXRX_STATS, stats_entry);
+					xil_printf("Getting Statistics for AID = %d \n", id);
+                    // print_entry(0, ENTRY_TYPE_TXRX_STATS, stats_entry);
 
 				} else {
 					xil_printf("Could not find specified node:  AID = %d", id);
