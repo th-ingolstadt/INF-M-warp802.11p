@@ -863,8 +863,7 @@ void ltg_event(u32 id, void* callback_arg){
 		default:
 		break;
 	}
-
-	if(id == 0 && (association_table.length > 0)){
+	if((association_table.length > 0)){
 		//Send a Data packet to AP
 		//Checkout 1 element from the queue;
 		queue_checkout(&checkout,1);
