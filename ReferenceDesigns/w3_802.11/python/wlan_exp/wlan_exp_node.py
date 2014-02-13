@@ -366,6 +366,14 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Configure Node Attribute Commands
     #--------------------------------------------
+    def is_associated(self, node_list):
+        """Returns a list of boolean tuples of whether the node is associated
+        with each of the nodes in the node_list and whether each node
+        in the node_list is associated with the node.
+        """
+        raise NotImplementedError
+
+
     def set_time(self, time):
         """Sets the time in microseconds on the node.
         
