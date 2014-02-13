@@ -252,14 +252,14 @@ def init_timestamp(nodes, time_base=0, output=False, verbose=False, repeat=1):
     
         for node in nodes:
             node_time = time_base + (_time() - start_time)
-            node.set_time(node_time)
+            node.node_set_time(node_time)
             node_start_times.append(node_time)
         
         if output:
             for idx, node in enumerate(nodes):
                 node_start_time = int(round(node_start_times[idx], 6) * (10**6))
                 elapsed_time = int(round(_time() - start_time - node_start_times[idx], 6) * (10**6)) 
-                node_time = node.get_time()
+                node_time = node.node_get_time()
                 diff_time = node_start_time + elapsed_time - node_time
                 if (verbose):
                     print("Node {0}: \n".format(node.serial_number),

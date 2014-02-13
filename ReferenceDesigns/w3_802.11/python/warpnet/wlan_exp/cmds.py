@@ -21,22 +21,25 @@ This module provides class definitions for all WLAN Exp commands.
 
 Functions (see below for more information):
     LogGetEvents()
-    ResetLog()
-    GetLogCurrIdx() 
-    GetLogOldestIdx()
+    LogReset()
+    LogConfigure()
+    LogGetCurrIdx() 
+    LogGetOldestIdx()
 
-    AddStatsToLog()
-    ResetStats()
+    StatsGetTxRx()
+    StatsGetAllTxRx()
+    StatsAddTxRxToLog()
+    StatsResetTxRx()
 
-    ConfigureLTG()
-    StartLTG()
-    StopLTG()
-    RemoveLTG()
+    LTGConfigure()
+    LTGStart()
+    LTGStop()
+    LTGRemove()
 
-    ProcNodeTime()
-    ProcNodeChannel()
-    ProcNodeTxRate()
-    ProcNodeTxGain()
+    NodeProcTime()
+    NodeProcChannel()
+    NodeProcTxRate()
+    NodeProcTxGain()
 
 Integer constants:
     None
@@ -52,10 +55,10 @@ import warpnet.wn_transport_eth_udp as wn_transport
 
 
 
-__all__ = ['GetLogEvents', 'ResetLog', 'GetLogCurrIdx', 'GetLogOldestIdx',
-           'AddStatsToLog', 'ResetStats', 
-           'ConfigureLTG', 'StartLTG', 'StopLTG', 'RemoveLTG',
-           'ProcNodeTime', 'ProcNodeChannel', 'ProcNodeTxRate', 'ProcNodeTxGain']
+__all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetCurrIdx', 'LogGetOldestIdx',
+           'StatsGetTxRx', 'StatsGetAllTxRx', 'StatsAddTxRxToLog', 'StatsResetTxRx', 
+           'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
+           'NodeProcTime', 'NodeProcChannel', 'NodeProcTxRate', 'NodeProcTxGain']
 
 
 # WLAN Exp Command IDs (Extension of WARPNet Command IDs)
@@ -93,9 +96,9 @@ CMD_LOG_STREAM_ENTRIES       = 57
 
 LOG_CONFIG_FLAG_WRAP         = 0x00000001
 
-CMD_STATS_ADD_TO_LOG         = 60
-CMD_STATS_GET_STATS          = 61
-CMD_STATS_RESET              = 62
+CMD_STATS_ADD_TXRX_TO_LOG    = 60
+CMD_STATS_GET_TXRX           = 61
+CMD_STATS_RESET_TXRX         = 62
 
 CMD_CONFIG_DEMO              = 90
 
@@ -115,11 +118,11 @@ _CMD_GRPID_NODE              = (wn_cmds.GRPID_NODE << 24)
 # Log Commands
 #--------------------------------------------
 
-class GetLogEvents(wn_message.BufferCmd):
+class LogGetEvents(wn_message.BufferCmd):
     """Command to get the WLAN Exp log events of the node"""
     def __init__(self, size, start_byte=0):
         command = _CMD_GRPID_NODE + CMD_LOG_GET_EVENTS
-        super(GetLogEvents, self).__init__(
+        super(LogGetEvents, self).__init__(
                 command=command, buffer_id=0, flags=0, start_byte=start_byte, size=size)
 
     def process_resp(self, resp):
@@ -128,10 +131,10 @@ class GetLogEvents(wn_message.BufferCmd):
 # End Class
 
 
-class ResetLog(wn_message.Cmd):
+class LogReset(wn_message.Cmd):
     """Command to reset the Event log"""
     def __init__(self):
-        super(ResetLog, self).__init__()
+        super(LogReset, self).__init__()
         self.command = _CMD_GRPID_NODE +  CMD_LOG_RESET
     
     def process_resp(self, resp):
@@ -140,14 +143,14 @@ class ResetLog(wn_message.Cmd):
 # End Class
 
 
-class ConfigureLog(wn_message.Cmd):
+class LogConfigure(wn_message.Cmd):
     """Command to configure the Event log.
     
     Attributes:
         flags - [0] Enable wrapping (1 - Enabled / 0 - Disabled (default))    
     """
     def __init__(self, flags):
-        super(ConfigureLog, self).__init__()
+        super(LogConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LOG_CONFIG
         self.add_args(flags)
     
@@ -157,10 +160,10 @@ class ConfigureLog(wn_message.Cmd):
 # End Class
 
 
-class GetLogCurrIdx(wn_message.Cmd):
+class LogGetCurrIdx(wn_message.Cmd):
     """Command to reset the Event log"""
     def __init__(self):
-        super(GetLogCurrIdx, self).__init__()
+        super(LogGetCurrIdx, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LOG_GET_CURR_IDX
     
     def process_resp(self, resp):
@@ -173,10 +176,10 @@ class GetLogCurrIdx(wn_message.Cmd):
 # End Class
 
 
-class GetLogOldestIdx(wn_message.Cmd):
+class LogGetOldestIdx(wn_message.Cmd):
     """Command to reset the Event log"""
     def __init__(self):
-        super(GetLogOldestIdx, self).__init__()
+        super(LogGetOldestIdx, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LOG_GET_OLDEST_IDX
     
     def process_resp(self, resp):
@@ -189,10 +192,10 @@ class GetLogOldestIdx(wn_message.Cmd):
 # End Class
 
 
-class StreamLogEntries(wn_message.Cmd):
+class LogStreamEntries(wn_message.Cmd):
     """Command to configure the node log streaming."""
     def __init__(self, enable, host_id, ip_address, port):
-        super(StreamLogEntries, self).__init__()
+        super(LogStreamEntries, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LOG_STREAM_ENTRIES
         
         if (type(ip_address) is str):
@@ -217,12 +220,12 @@ class StreamLogEntries(wn_message.Cmd):
 #--------------------------------------------
 # Stats Commands
 #--------------------------------------------
-class GetAllStats(wn_message.BufferCmd):
+class StatsGetAllTxRx(wn_message.BufferCmd):
     """Command to get the statistics from the node"""
     def __init__(self, size, start_byte=0):
         raise NotImplementedError
-        # command = _CMD_GRPID_NODE + CMD_STATS_GET_STATS
-        # super(GetAllStats, self).__init__(
+        # command = _CMD_GRPID_NODE + CMD_STATS_GET_TXRX
+        # super(StatsGetAllTxRx, self).__init__(
         #         command=command, buffer_id=0, flags=0, start_byte=start_byte, size=size)
 
     def process_resp(self, resp):
@@ -231,11 +234,11 @@ class GetAllStats(wn_message.BufferCmd):
 # End Class
 
 
-class GetStats(wn_message.Cmd):
+class StatsGetTxRx(wn_message.Cmd):
     """Command to get the statistics from the node for a given node."""
     def __init__(self, node):
-        super(GetStats, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_STATS_GET_STATS
+        super(StatsGetTxRx, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_STATS_GET_TXRX
 
         mac_address = node.wlan_mac_address
         self.add_args(((mac_address >> 32) & 0xFFFF))
@@ -252,11 +255,11 @@ class GetStats(wn_message.Cmd):
 # End Class
 
 
-class AddStatsToLog(wn_message.Cmd):
+class StatsAddTxRxToLog(wn_message.Cmd):
     """Command to add the current statistics to the Event log"""
     def __init__(self):
-        super(AddStatsToLog, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_STATS_ADD_TO_LOG
+        super(StatsAddTxRxToLog, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_STATS_ADD_TXRX_TO_LOG
     
     def process_resp(self, resp):
         args = resp.get_args()
@@ -268,11 +271,11 @@ class AddStatsToLog(wn_message.Cmd):
 # End Class
 
 
-class ResetStats(wn_message.Cmd):
+class StatsResetTxRx(wn_message.Cmd):
     """Command to reset the current statistics on the node."""
     def __init__(self):
-        super(ResetStats, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_STATS_RESET
+        super(StatsResetTxRx, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_STATS_RESET_TXRX
     
     def process_resp(self, resp):
         pass
@@ -283,12 +286,12 @@ class ResetStats(wn_message.Cmd):
 #--------------------------------------------
 # Local Traffic Generation (LTG) Commands
 #--------------------------------------------
-class ConfigureLTG(wn_message.Cmd):
+class LTGConfigure(wn_message.Cmd):
     """Command to configure an LTG with the given traffic flow to the 
     specified node.
     """
     def __init__(self, node, traffic_flow):
-        super(ConfigureLTG, self).__init__()
+        super(LTGConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LTG_CONFIG
         
         mac_address = node.wlan_mac_address
@@ -307,14 +310,14 @@ class ConfigureLTG(wn_message.Cmd):
 
 # End Class
 
-class StartLTG(wn_message.Cmd):
+class LTGStart(wn_message.Cmd):
     """Command to start a configured LTG to the given node.
     
     NOTE:  By providing no node argument, this command will start all 
     configured LTGs on the node.
     """
     def __init__(self, node=None):
-        super(StartLTG, self).__init__()
+        super(LTGStart, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LTG_START
 
         if not node is None:
@@ -336,14 +339,14 @@ class StartLTG(wn_message.Cmd):
 # End Class
 
 
-class StopLTG(wn_message.Cmd):
+class LTGStop(wn_message.Cmd):
     """Command to stop a configured LTG to the given node.
     
     NOTE:  By providing no node argument, this command will start all 
     configured LTGs on the node.
     """
     def __init__(self, node=None):
-        super(StopLTG, self).__init__()
+        super(LTGStop, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LTG_STOP
 
         if not node is None:
@@ -365,14 +368,14 @@ class StopLTG(wn_message.Cmd):
 # End Class
 
 
-class RemoveLTG(wn_message.Cmd):
+class LTGRemove(wn_message.Cmd):
     """Command to remove a configured LTG to the given node.
     
     NOTE:  By providing no node argument, this command will start all 
     configured LTGs on the node.
     """
     def __init__(self, node=None):
-        super(RemoveLTG, self).__init__()
+        super(LTGRemove, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LTG_REMOVE
 
         if not node is None:
@@ -397,7 +400,7 @@ class RemoveLTG(wn_message.Cmd):
 #--------------------------------------------
 # Configure Node Attribute Commands
 #--------------------------------------------
-class ProcNodeTime(wn_message.Cmd):
+class NodeProcTime(wn_message.Cmd):
     """Command to get / set the time on the node.
     
     NOTE:  Python time functions operate on floating point numbers in 
@@ -413,7 +416,7 @@ class ProcNodeTime(wn_message.Cmd):
     time_factor = 6
     
     def __init__(self, time):
-        super(ProcNodeTime, self).__init__()
+        super(NodeProcTime, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_TIME
         
         if   (type(time) is float):
@@ -436,7 +439,7 @@ class ProcNodeTime(wn_message.Cmd):
 # End Class
 
 
-class ProcNodeChannel(wn_message.Cmd):
+class NodeProcChannel(wn_message.Cmd):
     """Command to get / set the channel of the node.
     
     Attributes:
@@ -446,7 +449,7 @@ class ProcNodeChannel(wn_message.Cmd):
                    of 0xFFFF will only return the channel.
     """
     def __init__(self, channel):
-        super(ProcNodeChannel, self).__init__()
+        super(NodeProcChannel, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_CHANNEL        
 
         self.add_args((channel & 0xFFFF))
@@ -461,7 +464,7 @@ class ProcNodeChannel(wn_message.Cmd):
 # End Class
 
 
-class ProcNodeTxRate(wn_message.Cmd):
+class NodeProcTxRate(wn_message.Cmd):
     """Command to get / set the transmit rate of the node.
     
     Attributes:
@@ -472,7 +475,7 @@ class ProcNodeTxRate(wn_message.Cmd):
                    return the rate.
     """
     def __init__(self, rate, node=None):
-        super(ProcNodeTxRate, self).__init__()
+        super(NodeProcTxRate, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_TX_RATE
         
         if not node is None:
@@ -495,7 +498,7 @@ class ProcNodeTxRate(wn_message.Cmd):
 # End Class
 
 
-class ProcNodeTxGain(wn_message.Cmd):
+class NodeProcTxGain(wn_message.Cmd):
     """Command to get / set the transmit gain of the node.
     
     Attributes:
@@ -505,7 +508,7 @@ class ProcNodeTxGain(wn_message.Cmd):
                    A value of 0xFFFF will only return the gain.
     """
     def __init__(self, gain):
-        super(ProcNodeTxGain, self).__init__()
+        super(NodeProcTxGain, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_TX_GAIN
 
         self.add_args((gain & 0xFFFF))
@@ -520,27 +523,5 @@ class ProcNodeTxGain(wn_message.Cmd):
 # End Class
 
 
-#--------------------------------------------
-# Misc Commands
-#--------------------------------------------
-class ConfigDemo(wn_message.Cmd):
-    """Command to configure the demo mode on the node.
-    
-    Attributes:
-        flags - Flags to pass to the demo.  Defined Flags:
-                  DEMO_CONFIG_FLAGS_EN = 1
-        wait_time - Inter-packet sleep time (usec)
-    """
-    def __init__(self, flags, sleep_time):
-        super(ConfigDemo, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_CONFIG_DEMO        
-
-        self.add_args(flags)
-        self.add_args(sleep_time)
-    
-    def process_resp(self, resp):
-        pass
-
-# End Class
 
 

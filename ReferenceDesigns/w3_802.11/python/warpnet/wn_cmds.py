@@ -43,9 +43,9 @@ defining other sub-classes of WARPNet Cmd and BufferCmd.
 from . import wn_message
 
 
-__all__ = ['GetWarpNetNodeType', 'Identify', 'GetHwInfo', 
-           'SetupNetwork', 'ResetNetwork', 'Ping', 
-           'TestPayloadSize', 'AddNodeGrpId', 'ClearNodeGrpId']
+__all__ = ['NodeGetWarpNetType', 'NodeIdentify', 'NodeGetHwInfo', 
+           'NodeSetupNetwork', 'NodeResetNetwork', 'NodeGetTemperature', 
+           'Ping', 'TestPayloadSize', 'AddNodeGrpId', 'ClearNodeGrpId']
 
 
 # WARPNet Command Groups
@@ -94,10 +94,10 @@ _CMD_GRPID_TRANS        = (GRPID_TRANS << 24)
 # Class Definitions for WARPNet Commands
 #-----------------------------------------------------------------------------
 
-class GetWarpNetNodeType(wn_message.Cmd):
+class NodeGetWarpNetType(wn_message.Cmd):
     """Command to get the WARPNet Node Type of the node"""
     def __init__(self):
-        super(GetWarpNetNodeType, self).__init__()
+        super(NodeGetWarpNetType, self).__init__()
         self.command = _CMD_GRPID_WARPNET + CMD_WARPNET_TYPE
     
     def process_resp(self, resp):
@@ -114,10 +114,10 @@ class GetWarpNetNodeType(wn_message.Cmd):
 # Node Commands
 #-----------------------------------------------------------------------------
 
-class Identify(wn_message.Cmd):
+class NodeIdentify(wn_message.Cmd):
     """Command to blink the WARPNet Node LEDs."""
     def __init__(self, node_id):
-        super(Identify, self).__init__()
+        super(NodeIdentify, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_IDENTIFY
         self.node_id = node_id
     
@@ -127,10 +127,10 @@ class Identify(wn_message.Cmd):
 # End Class
 
 
-class GetHwInfo(wn_message.Cmd):
+class NodeGetHwInfo(wn_message.Cmd):
     """Command to get the hardware parameters from the node."""
     def __init__(self):
-        super(GetHwInfo, self).__init__()
+        super(NodeGetHwInfo, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_INFO
     
     def process_resp(self, resp):
@@ -139,10 +139,10 @@ class GetHwInfo(wn_message.Cmd):
 # End Class
 
 
-class SetupNetwork(wn_message.Cmd):
+class NodeSetupNetwork(wn_message.Cmd):
     """Command to perform initial network setup of a node."""
     def __init__(self, node):
-        super(SetupNetwork, self).__init__()
+        super(NodeSetupNetwork, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_NETWORK_SETUP
         self.add_args(node.serial_number)
         self.add_args(node.node_id)
@@ -156,10 +156,10 @@ class SetupNetwork(wn_message.Cmd):
 # End Class
 
 
-class ResetNetwork(wn_message.Cmd):
+class NodeResetNetwork(wn_message.Cmd):
     """Command to reset the network configuration of a node."""
     def __init__(self, node):
-        super(ResetNetwork, self).__init__()
+        super(NodeResetNetwork, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_NETWORK_RESET
         self.add_args(node.serial_number)
     
@@ -169,7 +169,7 @@ class ResetNetwork(wn_message.Cmd):
 # End Class
 
 
-class GetTemperature(wn_message.Cmd):
+class NodeGetTemperature(wn_message.Cmd):
     """Command to get the temperature of a node.
     
     NOTE:  The response must be converted to Celsius with the given formula:
@@ -178,7 +178,7 @@ class GetTemperature(wn_message.Cmd):
         - 16 bit value where 10 MSBs are an ADC value
     """
     def __init__(self):
-        super(GetTemperature, self).__init__()
+        super(NodeGetTemperature, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_TEMPERATURE
     
     def process_resp(self, resp):

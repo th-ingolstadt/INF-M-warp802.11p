@@ -34,7 +34,6 @@ pleasemake sure that the values of these hardware parameters are not reused.
 
 
 import warpnet.wn_node as wn_node
-import warpnet.wn_config as wn_config
 import warpnet.wn_exception as wn_ex
 
 from . import defaults
@@ -127,34 +126,51 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Log Commands
     #--------------------------------------------
-    def reset_log(self):
+    def log_reset(self):
         """Reset the event log on the node."""
-        self.send_cmd(cmds.ResetLog())
+        self.send_cmd(cmds.LogReset())
 
 
-    def configure_log(self, flags):
+    def log_configure(self, flags):
         """Configure log with the given flags.
         
         Flags (32 bits):
             [0] - Allow log to wrap (1 - Enabled / 0 - Disabled )
         """
-        self.send_cmd(cmds.ConfigureLog(flags))
+        self.send_cmd(cmds.LogConfigure(flags))
 
 
-    def get_log(self, file_name=None):
+    def log_get(self, size, offset=0):
+        """Low level method to get part of the log file as a WnBuffer.
+        
+        Attributes:
+            size -- Number of bytes to read from the log
+            offset -- Starting byte to read from the log (optional)
+        
+        NOTE:  There is no guarentee that this will return data aligned to 
+        event boundaries.  Use log_get_start() and log_get_end() to get 
+        event aligned boundaries.
+        
+        NOTE:  Log reads are not destructive.  Log entries will only be
+        destroyed by a log reset or if the log wraps.
+        """
+        return self.send_cmd(cmds.LogGetEvents(size, offset))
+
+
+    def log_get_all(self, file_name=None):
         """Get the entire log file as a WnBuffer.  
         
         Optionally, save the contents to the provided file name.
         """
         resp  = None
-        start = self.get_log_start()
-        end   = self.get_log_end()
+        start = self.log_get_start()
+        end   = self.log_get_end()
         
         if (start < end):
-            resp = self.get_log_events((end - start), start)
+            resp = self.log_get((end - start), start)
         else:
-            resp = self.get_log_events((self.event_log_size - start), start)
-            temp = self.get_log_events(start, 0)
+            resp = self.log_get((self.event_log_size - start), start)
+            temp = self.log_get(start, 0)
             resp.append(temp)
 
         if not file_name is None:
@@ -168,10 +184,10 @@ class WlanExpNode(wn_node.WnNode):
         return resp
 
 
-    def get_log_size(self):
+    def log_get_size(self):
         """Get the size of the log (bytes)."""
-        start = self.get_log_start()
-        end   = self.get_log_end()
+        start = self.log_get_start()
+        end   = self.log_get_end()
         
         if (start < end):
             resp = end - start
@@ -181,63 +197,30 @@ class WlanExpNode(wn_node.WnNode):
         return resp
 
 
-    def get_log_events(self, size, start_byte=0):
-        """Low level method to get part of the log file as a WnBuffer.
-        
-        Attributes:
-            size -- Number of bytes to read from the log
-            start_byte -- Starting byte to read from the log (optional)
-        
-        NOTE:  There is no guarentee that this will return data aligned to 
-        event boundaries.  Use get_log_start() and get_log_end() to get 
-        event aligned boundaries.
-        
-        NOTE:  Log reads are not destructive.  Log entries will only be
-        destroyed by a log reset or if the log wraps.
-        """
-        return self.send_cmd(cmds.GetLogEvents(size, start_byte))
-
-
-    def get_log_start(self):
-        """Get the index of the oldest event in the log."""
-        return self.send_cmd(cmds.GetLogOldestIdx())
-
-
-    def get_log_end(self):
-        """Get the index of the end of the log.
-        
-        NOTE:  As long as the log is recording, this will continue to 
-        increment until the log is full.  If wrapping is enabled, then 
-        eventually, the value of the log end will be less than log start.
-        """
-        return self.send_cmd(cmds.GetLogCurrIdx())
-
-
-    def stream_log_entries(self, port, ip_address=None, host_id=None):
+    def log_enable_stream(self, port, ip_address=None, host_id=None):
         """Configure the node to stream log entries to the given port."""
-        config       = wn_config.HostConfiguration()
 
         if (ip_address is None):
-            ip_address = config.get_param('network', 'host_interfaces')[0]
+            ip_address = self.host_config.get_param('network', 'host_interfaces')[0]
             
         if (host_id is None):
-            host_id = config.get_param('network', 'host_id')
+            host_id = self.host_config.get_param('network', 'host_id')
         
-        self.send_cmd(cmds.StreamLogEntries(1, host_id, ip_address, port))
+        self.send_cmd(cmds.LogStreamEntries(1, host_id, ip_address, port))
         msg  = "{0}:".format(self.name) 
         msg += "Streaming Log Entries to {0} ({1})".format(ip_address, port)
         print(msg)
 
 
-    def disable_log_entries_stream(self):
+    def log_disable_stream(self):
         """Configure the node to disable log entries stream."""
-        self.send_cmd(cmds.StreamLogEntries(0, 0, 0, 0))
+        self.send_cmd(cmds.LogStreamEntries(0, 0, 0, 0))
         msg  = "{0}:".format(self.name) 
         msg += "Disable log entry stream."
         print(msg)
 
 
-    def write_exp_info_to_log(self, reason, message=None):
+    def log_write_exp_info_to_log(self, reason, message=None):
         """Write the experiment information provided to the log.
         
         Attributes:
@@ -248,15 +231,30 @@ class WlanExpNode(wn_node.WnNode):
         raise NotImplementedError
 
 
+    def log_get_start(self):
+        """Get the index of the oldest event in the log."""
+        return self.send_cmd(cmds.LogGetOldestIdx())
+
+
+    def log_get_end(self):
+        """Get the index of the end of the log.
+        
+        NOTE:  As long as the log is recording, this will continue to 
+        increment until the log is full.  If wrapping is enabled, then 
+        eventually, the value of the log end will be less than log start.
+        """
+        return self.send_cmd(cmds.LogGetCurrIdx())
+
+
     #--------------------------------------------
     # Statistics Commands
     #--------------------------------------------
-    def configure_statistics(self):
+    def stats_configure_txrx(self):
         """Configure statistics collection on the node."""
         raise NotImplementedError
 
 
-    def get_txrx_statistics(self, node_list=None):
+    def stats_get_txrx(self, node_list=None):
         """Get the statistics from the node.
         
         Returns a list of statistic dictionaries.
@@ -269,90 +267,90 @@ class WlanExpNode(wn_node.WnNode):
         if not node_list is None:
             if (type(node_list) is list):
                 for node in node_list:
-                    stats = self.send_cmd(cmds.GetStats(node))
+                    stats = self.send_cmd(cmds.StatsGetTxRx(node))
                     ret_stats.append(stats)
             else:
-                ret_stats = self.send_cmd(cmds.GetStats(node_list))
+                ret_stats = self.send_cmd(cmds.StatsGetTxRx(node_list))
         else:
-            ret_stats = self.send_cmd(cmds.GetAllStats())
+            ret_stats = self.send_cmd(cmds.StatsGetAllTxRx())
         
         return ret_stats
     
 
-    def write_statistics_to_log(self):
+    def stats_write_txrx_to_log(self):
         """Write the current statistics to the log."""
-        return self.send_cmd(cmds.AddStatsToLog())
+        return self.send_cmd(cmds.StatsAddTxRxToLog())
 
 
-    def reset_statistics(self):
+    def stats_reset_txrx(self):
         """Reset the statistics on the node."""
-        self.send_cmd(cmds.ResetStats())
+        self.send_cmd(cmds.StatsResetTxRx())
         
 
     #--------------------------------------------
     # Local Traffic Generation (LTG) Commands
     #--------------------------------------------
-    def configure_ltg(self, node_list, traffic_flow):
+    def ltg_to_node_configure(self, node_list, traffic_flow):
         """Configure the node for the given traffic flow to the given nodes."""
         if (type(node_list) is list):
             for node in node_list:
-                status = self.send_cmd(cmds.ConfigureLTG(node, traffic_flow))
+                status = self.send_cmd(cmds.LTGConfigure(node, traffic_flow))
                 self._print_ltg_status('configure', status, node.name)
         else:
-            status = self.send_cmd(cmds.ConfigureLTG(node_list, traffic_flow))
+            status = self.send_cmd(cmds.LTGConfigure(node_list, traffic_flow))
             self._print_ltg_status('configure', status, node_list.name)
 
 
-    def remove_ltg(self, node_list):
+    def ltg_to_node_remove(self, node_list):
         """Remove the LTG flow to the given nodes from the node."""
         if (type(node_list) is list):
             for node in node_list:
-                status = self.send_cmd(cmds.RemoveLTG(node))
+                status = self.send_cmd(cmds.LTGRemove(node))
                 self._print_ltg_status('remove', status, node.name)
         else:
-            status = self.send_cmd(cmds.RemoveLTG(node_list))
+            status = self.send_cmd(cmds.LTGRemove(node_list))
             self._print_ltg_status('remove', status, node_list.name)
         
 
-    def start_ltg(self, node_list):
+    def ltg_to_node_start(self, node_list):
         """Start the LTG flow to the given nodes."""
         if (type(node_list) is list):
             for node in node_list:
-                status = self.send_cmd(cmds.StartLTG(node))
+                status = self.send_cmd(cmds.LTGStart(node))
                 self._print_ltg_status('start', status, node.name)
         else:
-            status = self.send_cmd(cmds.StartLTG(node_list))
+            status = self.send_cmd(cmds.LTGStart(node_list))
             self._print_ltg_status('start', status, node_list.name)
 
 
-    def stop_ltg(self, node_list):
+    def ltg_to_node_stop(self, node_list):
         """Stop the LTG flow to the given nodes."""
         if (type(node_list) is list):
             for node in node_list:
-                status = self.send_cmd(cmds.StopLTG(node))
+                status = self.send_cmd(cmds.LTGStop(node))
                 self._print_ltg_status('stop', status, node.name)
         else:
-            status = self.send_cmd(cmds.StopLTG(node_list))
+            status = self.send_cmd(cmds.LTGStop(node_list))
             self._print_ltg_status('stop', status, node_list.name)
 
 
-    def remove_all_ltg(self):
+    def ltg_remove_all(self):
         """Stops and removes all LTG flows on the node."""
-        status = self.send_cmd(cmds.RemoveLTG())
+        status = self.send_cmd(cmds.LTGRemove())
         if (status == cmds.LTG_ERROR):
             print("LTG ERROR: Could not remove all LTGs on {0}".format(self.name))
         
 
-    def start_all_ltg(self):
+    def ltg_start_all(self):
         """Start all LTG flows on the node."""
-        status = self.send_cmd(cmds.StartLTG())
+        status = self.send_cmd(cmds.LTGStart())
         if (status == cmds.LTG_ERROR):
             print("LTG ERROR: Could not start all LTGs on {0}".format(self.name))
 
 
-    def stop_all_ltg(self):
+    def ltg_stop_all(self):
         """Stop all LTG flows on the node."""
-        status = self.send_cmd(cmds.StopLTG())
+        status = self.send_cmd(cmds.LTGStop())
         if (status == cmds.LTG_ERROR):
             print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
 
@@ -366,7 +364,7 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Configure Node Attribute Commands
     #--------------------------------------------
-    def is_associated(self, node_list):
+    def node_is_associated(self, node_list):
         """Returns a list of boolean tuples of whether the node is associated
         with each of the nodes in the node_list and whether each node
         in the node_list is associated with the node.
@@ -374,41 +372,41 @@ class WlanExpNode(wn_node.WnNode):
         raise NotImplementedError
 
 
-    def set_time(self, time):
+    def node_set_time(self, time):
         """Sets the time in microseconds on the node.
         
         Attributes:
             time -- Time to send to the board (either float in sec or int in us)
         """
-        self.send_cmd(cmds.ProcNodeTime(time))
+        self.send_cmd(cmds.NodeProcTime(time))
     
 
-    def get_time(self):
+    def node_get_time(self):
         """Gets the time in microseconds from the node."""
-        return self.send_cmd(cmds.ProcNodeTime(cmds.RSVD_TIME))
+        return self.send_cmd(cmds.NodeProcTime(cmds.RSVD_TIME))
 
 
-    def set_channel(self, channel):
+    def node_set_channel(self, channel):
         """Sets the channel of the node and returns the channel that was set."""
-        return self.send_cmd(cmds.ProcNodeChannel(channel))
+        return self.send_cmd(cmds.NodeProcChannel(channel))
     
 
-    def get_channel(self):
+    def node_get_channel(self):
         """Gets the current channel of the node."""
-        return self.send_cmd(cmds.ProcNodeChannel(cmds.RSVD_CHANNEL))
+        return self.send_cmd(cmds.NodeProcChannel(cmds.RSVD_CHANNEL))
 
 
-    def set_default_tx_rate(self, rate):
+    def node_set_default_tx_rate(self, rate):
         """Set the default Tx rate for all associated nodes."""
-        return self.send_cmd(cmds.ProcNodeTxRate(rate))
+        return self.send_cmd(cmds.NodeProcTxRate(rate))
 
 
-    def get_default_tx_rate(self):
+    def node_get_default_tx_rate(self):
         """Gets the current transmit rate of the node."""
-        return self.send_cmd(cmds.ProcNodeTxRate(cmds.RSVD_TX_RATE))
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.RSVD_TX_RATE))
 
 
-    def set_tx_rate(self, node_list, rate):
+    def node_set_tx_rate(self, node_list, rate):
         """Set the transmit rate of the node to the given nodes in the 
         node_list and return a list of rate indecies that were set.
         """
@@ -416,16 +414,16 @@ class WlanExpNode(wn_node.WnNode):
         
         if (type(node_list) is list):
             for node in node_list:
-                ret_rate_idx = self.send_cmd(cmds.ProcNodeTxRate(rate, node))
+                ret_rate_idx = self.send_cmd(cmds.NodeProcTxRate(rate, node))
                 ret_rate_idxs.append(ret_rate_idx)
         else:
-            ret_rate_idx = self.send_cmd(cmds.ProcNodeTxRate(rate, node_list))
+            ret_rate_idx = self.send_cmd(cmds.NodeProcTxRate(rate, node_list))
             ret_rate_idxs.append(ret_rate_idx)
 
         return ret_rate_idxs
 
 
-    def get_tx_rate(self, node_list):
+    def node_get_tx_rate(self, node_list):
         """Gets the transmit rate of the node to the given nodes in the 
         node_list and returns a list of those rates indecies.
         """
@@ -442,28 +440,14 @@ class WlanExpNode(wn_node.WnNode):
         return ret_rate_idxs
 
 
-    def set_tx_gain(self, gain):
+    def node_set_tx_gain(self, gain):
         """Set the transmit gain of the node and returns the rate that was set."""
-        return self.send_cmd(cmds.ProcNodeTxGain(gain))
+        return self.send_cmd(cmds.NodeProcTxGain(gain))
 
 
-    def get_tx_gain(self):
+    def node_get_tx_gain(self):
         """Gets the current transmit gain of the node."""
-        return self.send_cmd(cmds.ProcNodeTxGain(cmds.RSVD_TX_GAIN))
-
-
-    #--------------------------------------------
-    # Misc Commands
-    #--------------------------------------------
-    def config_demo(self, flags=0, sleep_time=0):
-        """Configure the demo on the node
-
-        NOTE:  Defaults to demo mode deactivated.        
-        """
-        self.send_cmd(cmds.ConfigDemo(flags, sleep_time))
-        print("Node {0}:".format(self.node_id), 
-              "flags = {0}".format(flags), 
-              "packet wait time = {0}".format(sleep_time))
+        return self.send_cmd(cmds.NodeProcTxGain(cmds.RSVD_TX_GAIN))
 
 
 
@@ -542,14 +526,14 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         super(WlanExpNodeFactory, self).__init__(host_config)
         
         # Add default classes to the factory
-        self.add_node_class(defaults.WLAN_EXP_AP_TYPE, 
+        self.node_add_class(defaults.WLAN_EXP_AP_TYPE, 
                             defaults.WLAN_EXP_AP_CLASS)
 
-        self.add_node_class(defaults.WLAN_EXP_STA_TYPE, 
+        self.node_add_class(defaults.WLAN_EXP_STA_TYPE, 
                             defaults.WLAN_EXP_STA_CLASS)
 
     
-    def eval_node_class(self, node_class, host_config):
+    def node_eval_class(self, node_class, host_config):
         """Evaluate the node_class string to create a node.  
         
         NOTE:  This should be overridden in each sub-class with the same
@@ -568,7 +552,7 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
             pass
         
         if node is None:
-            return super(WlanExpNodeFactory, self).eval_node_class(node_class, 
+            return super(WlanExpNodeFactory, self).node_eval_class(node_class, 
                                                                    host_config)
         else:
             return node

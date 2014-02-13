@@ -66,15 +66,15 @@ else:
 print("\nExperimental Setup:")
 for node in nodes:
     # Put each node in a known, good state
-    node.remove_all_ltg();
-    node.reset_log();
-    node.reset_statistics();
+    node.ltg_remove_all();
+    node.log_reset();
+    node.stats_reset_txrx();
 
 print("\nRun Experiment:\n")
 
 # Look at the initial log sizes for reference
-ap_log_size  = n_ap.get_log_size()
-sta_log_size = n_sta.get_log_size()
+ap_log_size  = n_ap.log_get_size()
+sta_log_size = n_sta.log_get_size()
 
 print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
 print("            STA = {0:10d} bytes".format(sta_log_size))
@@ -83,8 +83,8 @@ print("            STA = {0:10d} bytes".format(sta_log_size))
 print("\nStart LTG - AP -> STA:")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts)
-n_ap.configure_ltg(n_sta, ltg.FlowConfigCBR(1400, 0))
-n_ap.start_ltg(n_sta)
+n_ap.ltg_to_node_configure(n_sta, ltg.FlowConfigCBR(1400, 0))
+n_ap.ltg_to_node_start(n_sta)
 
 # Wait for a while
 time.sleep(TRIAL_TIME)
@@ -92,11 +92,11 @@ time.sleep(TRIAL_TIME)
 print("Done.\n")
 	
 # Stop the LTG flow so that nodes are in a known, good state
-n_ap.stop_ltg(n_sta)
+n_ap.ltg_to_node_stop(n_sta)
 
 # Look at the log sizes after the first LTG
-ap_log_size  = n_ap.get_log_size()
-sta_log_size = n_sta.get_log_size()
+ap_log_size  = n_ap.log_get_size()
+sta_log_size = n_sta.log_get_size()
 
 print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
 print("            STA = {0:10d} bytes".format(sta_log_size))
@@ -105,8 +105,8 @@ print("            STA = {0:10d} bytes".format(sta_log_size))
 print("\nStart LTG - STA -> AP:")
 # Start a flow from the STA's local traffic generator (LTG) to the AP
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts)
-n_sta.configure_ltg(n_ap, ltg.FlowConfigCBR(1400, 0))
-n_sta.start_ltg(n_ap)
+n_sta.ltg_to_node_configure(n_ap, ltg.FlowConfigCBR(1400, 0))
+n_sta.ltg_to_node_start(n_ap)
 
 # Wait for a while
 time.sleep(TRIAL_TIME)
@@ -114,22 +114,22 @@ time.sleep(TRIAL_TIME)
 print("Done.\n")
 	
 # Stop the LTG flow so that nodes are in a known, good state
-n_sta.stop_ltg(n_ap)
+n_sta.ltg_to_node_stop(n_ap)
 
 # Look at the log sizes after the second LTG
-ap_log_size  = n_ap.get_log_size()
-sta_log_size = n_sta.get_log_size()
+ap_log_size  = n_ap.log_get_size()
+sta_log_size = n_sta.log_get_size()
 
 print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
 print("            STA = {0:10d} bytes".format(sta_log_size))
 
 
 # Write Statistics to log
-n_ap.write_statistics_to_log()
-n_sta.write_statistics_to_log()
+n_ap.stats_write_txrx_to_log()
+n_sta.stats_write_txrx_to_log()
 
 # Write Log Files for processing by other scripts
 print("\nWriting Log Files...")
-n_ap.get_log(AP_LOG_FILENAME)
-n_sta.get_log(STA_LOG_FILENAME)
+n_ap.log_get_all(AP_LOG_FILENAME)
+n_sta.log_get_all(STA_LOG_FILENAME)
 print("Done.")

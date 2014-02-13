@@ -164,7 +164,7 @@ class WnNode(object):
         self.transport.ping(self)
         self.transport.test_payload_size(self, jumbo_frame_support)        
 
-        resp = self.get_node_info()
+        resp = self.node_get_info()
         try:
             self.process_parameters(resp)
         except wn_ex.ParameterError as err:
@@ -178,36 +178,35 @@ class WnNode(object):
     #-------------------------------------------------------------------------
     # WARPNet Commands for the Node
     #-------------------------------------------------------------------------
-    def identify(self):
+    def node_identify(self):
         """Have the node physically identify itself."""
-        self.send_cmd(wn_cmds.Identify("W3-a-{0:05d}".format(self.serial_number)))
+        self.send_cmd(wn_cmds.NodeIdentify("W3-a-{0:05d}".format(self.serial_number)))
 
-    def ping(self):
+    def node_ping(self):
         """Ping the node."""
         self.transport.ping(self, output=True)
 
-    def get_node_info(self):
+    def node_get_info(self):
         """Get the Hardware Information from the node."""
-        return self.send_cmd(wn_cmds.GetHwInfo())
+        return self.send_cmd(wn_cmds.NodeGetHwInfo())
 
-    def get_node_temp(self):
+    def node_get_temp(self):
         """Get the temperature of the node."""
-        (curr_temp, min_temp, max_temp) = self.send_cmd(wn_cmds.GetTemperature())
-        # TODO:  Add in check for max temperature        
+        (curr_temp, min_temp, max_temp) = self.send_cmd(wn_cmds.NodeGetTemperature())
         return curr_temp
 
-    def setup_node_network_inf(self):
+    def node_setup_network_inf(self):
         """Setup the transport network information for the node."""
-        self.send_cmd_bcast(wn_cmds.SetupNetwork(self))
+        self.send_cmd_bcast(wn_cmds.NodeSetupNetwork(self))
         
-    def reset_node_network_inf(self):
+    def node_reset_network_inf(self):
         """Reset the transport network information for the node."""
-        self.send_cmd_bcast(wn_cmds.ResetNetwork(self))
+        self.send_cmd_bcast(wn_cmds.NodeResetNetwork(self))
 
-    def get_warpnet_node_type(self):
+    def node_get_warpnet_type(self):
         """Get the WARPNet node type of the node."""
         if self.node_type is None:
-            return self.send_cmd(wn_cmds.GetWarpNetNodeType())
+            return self.send_cmd(wn_cmds.NodeGetWarpNetType())
         else:
             return self.node_type
 
@@ -514,7 +513,7 @@ class WnNodeFactory(WnNode):
         self.wn_dict = {}
 
         # Add default classes to the factory
-        self.add_node_class(wn_defaults.WN_NODE_TYPE, 
+        self.node_add_class(wn_defaults.WN_NODE_TYPE, 
                             wn_defaults.WN_NODE_TYPE_CLASS)
         
     
@@ -533,20 +532,20 @@ class WnNodeFactory(WnNode):
         node = None
 
         # Send broadcast command to initialize WARPNet node
-        self.reset_node_network_inf()
+        self.node_reset_network_inf()
 
         # Send broadcast command to initialize WARPNet node
-        self.setup_node_network_inf()
+        self.node_setup_network_inf()
 
         try:
             # Send unicast command to get the WARPNet type
-            wn_node_type = self.get_warpnet_node_type()
+            wn_node_type = self.node_get_warpnet_type()
             
             # Get the node class from the Factory dictionary
-            node_class = self.get_node_class(wn_node_type)
+            node_class = self.node_get_class(wn_node_type)
         
             if not node_class is None:
-                node = self.eval_node_class(node_class, host_config)
+                node = self.node_eval_class(node_class, host_config)
                 node.set_init_configuration(serial_number=self.serial_number,
                                             node_id=self.node_id,
                                             node_name=self.name,
@@ -573,7 +572,7 @@ class WnNodeFactory(WnNode):
         return node
 
 
-    def eval_node_class(self, node_class, host_config):
+    def node_eval_class(self, node_class, host_config):
         """Evaluate the node_class string to create a node.  
         
         NOTE:  This should be overridden in each sub-class with the same
@@ -599,14 +598,14 @@ class WnNodeFactory(WnNode):
             return node
 
 
-    def add_node_class(self, wn_node_type, class_name):
+    def node_add_class(self, wn_node_type, class_name):
         if (wn_node_type in self.wn_dict):
             print("WARNING: Changing definition of {0}".format(wn_node_type))
             
         self.wn_dict[wn_node_type] = class_name
  
 
-    def get_node_class(self, wn_node_type):
+    def node_get_class(self, wn_node_type):
         node_type = wn_node_type
         
         if (node_type in self.wn_dict.keys()):
