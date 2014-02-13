@@ -138,7 +138,7 @@ log_entry_node_info.set_field_info( [
     ('I',     'uint32',      'wlan_max_stats')])
 
 
-# Exp info
+# Station info
 #   - In the current implementation STATION_INFO_HOSTNAME_MAXLEN = 15 bytes
 log_entry_station_info.print_fmt = 'STATION_INFO'
 log_entry_station_info.set_field_info( [
@@ -152,7 +152,7 @@ log_entry_station_info.set_field_info( [
     ('B',     'uint8',	     'max_retry')])
 
 
-# Station info
+# Exp info
 log_entry_exp_info.print_fmt = 'EXP_INFO'
 log_entry_exp_info.set_field_info( [
     ('6s',    '6uint8',      'mac_addr'),
