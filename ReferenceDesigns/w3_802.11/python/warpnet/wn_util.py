@@ -639,35 +639,43 @@ def _get_confirmation_from_user(message):
 # End of _get_confirmation_from_user()
 
 
-def _check_host_interface(host_interface):
+def _check_host_interface(host_interface, bcast_port):
     """Check that this is a valid IP address."""
-    import subprocess
+    import re
+    import socket
 
-    temp = b''
-    try:
-        # For Linux / MAC OSX
-        temp = subprocess.Popen(['ifconfig', '-a'], stdout=subprocess.PIPE).communicate()[0]
-    except:
-        pass
+    # Get the first three octets of the host_interface address
+    expr = re.compile('\.')
+    tmp = [int(n) for n in expr.split(host_interface)]
+    host_ip_subnet = "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
+    test_ip_addr   = "{0:d}.{1:d}.{2:d}.255".format(tmp[0], tmp[1], tmp[2])
 
-    try:
-        # For Windows
-        temp = subprocess.Popen(['ipconfig', '/all'], stdout=subprocess.PIPE).communicate()[0]
-    except:
-        pass
+    # Create a temporary UDP socket to get the hostname
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect((test_ip_addr, bcast_port))
+    socket_name = s.getsockname()[0]
 
-    # communicate returns a byte array that must be decoded to search
-    output = temp.decode("utf-8")
-
-    if (output.find(host_interface) != -1):
-        return True
+    # Get the subnet of the socket
+    tmp = [int(n) for n in expr.split(socket_name)]
+    sock_ip_subnet = "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
+    
+    # Check that the socket_name is equal to the host_interface    
+    if (host_interface == socket_name):
+        return host_interface
     else:
         import warnings
-        msg  = "\nNo interface found.\n"  
-        msg += "    Please make sure your network interface is connected and\n"
-        msg += "    configured with static IP {0}".format(host_interface)
-        warnings.warn(msg)
-        return False
+        msg  = "\n    For {0} subnet, ".format(host_ip_subnet)
+        msg += "the OS provided host interface is {0}\n".format(socket_name)
+        msg += "        not {0}.\n".format(host_interface)
+        msg += "    Please check your IP configuration.  "
+        
+        if (host_ip_subnet == sock_ip_subnet):
+            msg += "Using host interface {0}.\n".format(socket_name)
+            warnings.warn(msg)
+            return socket_name
+        else:
+            warnings.warn(msg)
+            return None
 
 # End of _check_host_interface()
 

@@ -104,16 +104,6 @@ class HostConfiguration(object):
                                                  wn_defaults.RX_BUFFER_SIZE)
 
         # Process input arguments        
-        if not host_interfaces is None:
-            for interface in host_interfaces:
-                if (wn_util._check_host_interface(interface)):
-                    my_host_interfaces.append(interface)
-            
-            if (len(my_host_interfaces) == 0):
-                my_host_interfaces = wn_defaults.HOST_INTERFACE_LIST                
-        else:
-            my_host_interfaces = wn_defaults.HOST_INTERFACE_LIST
-           
         if not host_id is None:
             if (wn_util._check_host_id(host_id)):
                 my_host_id = host_id            
@@ -127,6 +117,22 @@ class HostConfiguration(object):
         if not jumbo_frame_support is None:
             if (type(jumbo_frame_support) is bool):
                 my_jumbo_frame_support = jumbo_frame_support
+
+        # Check host_interfaces last b/c you need the resolved bcast_port
+        if not host_interfaces is None:
+            for interface in host_interfaces:
+                inf = wn_util._check_host_interface(interface, my_bcast_port)
+                if not inf is None:
+                    my_host_interfaces.append(inf)
+            
+            if (len(my_host_interfaces) == 0):
+                my_host_interfaces = wn_defaults.HOST_INTERFACE_LIST
+                msg  = "Could not find any valid host interfaces.\n" 
+                msg += "    Using default Host Interface = {0}".format(my_host_interfaces)
+                print(msg)
+        else:
+            my_host_interfaces = wn_defaults.HOST_INTERFACE_LIST
+           
 
         self.set_config(my_host_interfaces, my_host_id, my_unicast_port, 
                         my_bcast_port, my_tx_buffer_size, my_rx_buffer_size, 
