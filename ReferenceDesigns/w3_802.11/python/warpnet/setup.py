@@ -27,7 +27,6 @@ setup(
     
     package_dir = {'warpnet':''},
     packages = ['warpnet'],
-    scripts = ['wn_setup']
-    
+    scripts = ['']    
     
 )
