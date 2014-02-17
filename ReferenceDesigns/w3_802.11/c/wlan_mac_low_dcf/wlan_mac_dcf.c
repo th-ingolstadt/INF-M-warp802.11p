@@ -12,8 +12,6 @@
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  *  @bug
- *  - Post-broadcast transmissions need a minimum CW backoff. Currently
- *  no backoff is enforced.
  *  - NAV timing needs to be verified
  *  - 5 GHz support needs to be added.
  */
@@ -317,6 +315,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					//Tx didn't require timeout, completed successfully
 
+					update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
+					n_slots = rand_num_slots();
+					wlan_mac_dcf_hw_start_backoff(n_slots);
 
 					return 0;
 				break;
@@ -328,7 +329,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 					if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
 						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
 						n_slots = rand_num_slots();
-
 						wlan_mac_dcf_hw_start_backoff(n_slots);
 
 
@@ -354,7 +354,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 					//Update the contention window
 					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
-
+						n_slots = rand_num_slots();
+						wlan_mac_dcf_hw_start_backoff(n_slots);
 						return -1;
 					}
 
