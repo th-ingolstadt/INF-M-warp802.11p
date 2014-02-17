@@ -546,7 +546,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	dl_list checkout;
 	packet_bd*	tx_queue;
 	station_info* associated_station = NULL;
-	statistics* station_stats = NULL;
+	statistics_txrx* station_stats = NULL;
 	u8 eth_send;
 	u8 allow_auth = 0;
 
@@ -605,10 +605,15 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			station_stats = wlan_mac_high_add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
 		}
 
-		if(station_stats != NULL && (rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
+		if(station_stats != NULL){
 			station_stats->last_timestamp = get_usec_timestamp();
-			(station_stats->num_rx_success)++;
-			(station_stats->num_rx_bytes) += mpdu_info->length;
+			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
+				(station_stats->data_num_rx_success)++;
+				(station_stats->data_num_rx_bytes) += mpdu_info->length;
+			} else if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) {
+				(station_stats->mgmt_num_rx_success)++;
+				(station_stats->mgmt_num_rx_bytes) += mpdu_info->length;
+			}
 		}
 
 		switch(rx_80211_header->frame_control_1) {

@@ -547,12 +547,13 @@ void print_station_status(){
 				}
 			}
 
-			xil_printf("     - Last heard from %d ms ago\n",((u32)(timestamp - (curr_station_info->rx.last_timestamp)))/1000);
-			xil_printf("     - Last Rx Power: %d dBm\n",curr_station_info->rx.last_power);
+			xil_printf("     - Last heard from    %d ms ago\n",((u32)(timestamp - (curr_station_info->rx.last_timestamp)))/1000);
+			xil_printf("     - Last Rx Power:     %d dBm\n",curr_station_info->rx.last_power);
 			xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(curr_station_info->AID));
-			xil_printf("     - # Tx MPDUs: %d (%d successful)\n", curr_station_info->stats->num_tx_total, curr_station_info->stats->num_tx_success);
-			xil_printf("     - # Tx Retry: %d\n", curr_station_info->stats->num_retry);
-			xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", curr_station_info->stats->num_rx_success, curr_station_info->stats->num_rx_bytes);
+			xil_printf("     - # Tx MPDUs:        %d (%d successful)\n", curr_station_info->stats->num_tx_total, curr_station_info->stats->num_tx_success);
+			xil_printf("     - # Tx Retry:        %d\n", curr_station_info->stats->num_retry);
+			xil_printf("     - # DATA: Rx MPDUs:  %d (%d bytes)\n", curr_station_info->stats->data_num_rx_success, curr_station_info->stats->data_num_rx_bytes);
+			xil_printf("     - # MGMT: Rx MPDUs:  %d (%d bytes)\n", curr_station_info->stats->mgmt_num_rx_success, curr_station_info->stats->mgmt_num_rx_bytes);
 
 			curr_station_info = (station_info*)((curr_station_info->node).next);
 
@@ -573,22 +574,21 @@ void print_station_status(){
 
 void print_all_observed_statistics(){
 	u32 i;
-	statistics* curr_statistics;
+	statistics_txrx* curr_statistics;
 
-	curr_statistics = (statistics*)(statistics_table.first);
+	curr_statistics = (statistics_txrx*)(statistics_table.first);
 	xil_printf("\nAll Statistics:\n");
 	for(i=0; i<statistics_table.length; i++){
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
 		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_timestamp);
-		xil_printf("     - Associated? %d\n", curr_statistics->is_associated);
-		xil_printf("     - # Tx MPDUs: %d (%d successful)\n", curr_statistics->num_tx_total, curr_statistics->num_tx_success);
-		xil_printf("     - # Tx Retry: %d\n", curr_statistics->num_retry);
-		xil_printf("     - # Rx MPDUs: %d (%d bytes)\n", curr_statistics->num_rx_success, curr_statistics->num_rx_bytes);
+		xil_printf("     - Associated?       %d\n", curr_statistics->is_associated);
+		xil_printf("     - # Tx MPDUs:       %d (%d successful)\n", curr_statistics->num_tx_total, curr_statistics->num_tx_success);
+		xil_printf("     - # Tx Retry:       %d\n", curr_statistics->num_retry);
+		xil_printf("     - # DATA: Rx MPDUs: %d (%d bytes)\n", curr_statistics->data_num_rx_success, curr_statistics->data_num_rx_bytes);
+		xil_printf("     - # MGMT: Rx MPDUs: %d (%d bytes)\n", curr_statistics->mgmt_num_rx_success, curr_statistics->mgmt_num_rx_bytes);
 		curr_statistics = statistics_next(curr_statistics);
 	}
-
-
 }
 
 void start_periodic_print(){
