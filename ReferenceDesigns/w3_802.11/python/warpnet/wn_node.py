@@ -180,7 +180,7 @@ class WnNode(object):
     #-------------------------------------------------------------------------
     def node_identify(self):
         """Have the node physically identify itself."""
-        self.send_cmd(wn_cmds.NodeIdentify("W3-a-{0:05d}".format(self.serial_number)))
+        self.send_cmd(wn_cmds.NodeIdentify(self.serial_number))
 
     def node_ping(self):
         """Ping the node."""

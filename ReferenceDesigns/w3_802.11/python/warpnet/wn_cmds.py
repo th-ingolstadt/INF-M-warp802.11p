@@ -69,6 +69,10 @@ CMD_WARPNET_TYPE        = 0xFFFFFF
 #   NOTE:  The C counterparts are found in *_node.h
 CMD_INFO                = 0x000001
 CMD_IDENTIFY            = 0x000002
+
+IDENTIFY_ALL_NODES      = 0xFFFF
+IDENTIFY_WAIT_TIME      = 10
+
 CMD_NODE_NETWORK_SETUP  = 0x000003
 CMD_NODE_NETWORK_RESET  = 0x000004
 CMD_NODE_TEMPERATURE    = 0x000005
@@ -116,13 +120,34 @@ class NodeGetWarpNetType(wn_message.Cmd):
 
 class NodeIdentify(wn_message.Cmd):
     """Command to blink the WARPNet Node LEDs."""
-    def __init__(self, node_id):
+    def __init__(self, serial_number):
         super(NodeIdentify, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_IDENTIFY
-        self.node_id = node_id
+        
+        if type(serial_number) is int:
+            if (serial_number == IDENTIFY_ALL_NODES):
+                self.id = "All nodes"
+            else:
+                self.id = "W3-a-{0:05d}".format(serial_number)
+            self.add_args(serial_number)
+        elif type(serial_number) is str:
+            import re
+            expr = re.compile('W3-a-(?P<sn>\d+)')
+            try:
+                sn = int(expr.match(serial_number).group('sn'))
+                self.id = serial_number
+                self.add_args(sn)
+            except AttributeError:
+                msg  = "Incorrect serial number.  \n"
+                msg += "    Should be of the form : W3-a-XXXXX\n"
+                raise TypeError(msg)
+        else:
+            raise TypeError("Serial number should be an int or str.")
     
     def process_resp(self, resp):
-        print("Blinking LEDs of node: {0}".format(self.node_id))
+        import time
+        print("Blinking LEDs of node: {0}".format(self.id))
+        time.sleep(IDENTIFY_WAIT_TIME)
 
 # End Class
 

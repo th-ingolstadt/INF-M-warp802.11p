@@ -218,11 +218,62 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
 # End of wn_init_nodes()
 
 
+def wn_identify_all_nodes(host_interfaces):
+    """Issues a broadcast WARPNet command: Identify.
+
+    All nodes should blink their Red LEDs for 10 seconds.    
+    """
+    import time
+    import warpnet.wn_cmds as wn_cmds
+    import warpnet.wn_config as wn_config
+    import warpnet.wn_transport_eth_udp_py_bcast as tp_bcast
+
+    if type(host_interfaces) is str:
+        my_host_interfaces = [host_interfaces]
+    elif type(host_interfaces) is list:
+        my_host_interfaces = host_interfaces
+    else:
+        msg  = "Unknown host interface type: {0}\n".format(type(host_interfaces))
+        msg += "    Should be either a list or a string.\n"
+        raise TypeError(msg)
+    
+    host_config = wn_config.HostConfiguration(host_interfaces=my_host_interfaces)
+
+    for ip_address in my_host_interfaces:
+
+        expr = re.compile('\.')
+        tmp = [int(n) for n in expr.split(ip_address)]
+        host_ip_subnet = "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
+
+        msg  = "Identifying all nodes on subnet {0}.  ".format(host_ip_subnet)
+        msg += "Please check the LEDs."
+        print(msg)
+
+        tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
+        rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
+    
+        transport = tp_bcast.TransportEthUdpPyBcast(host_config=host_config,
+                                                    host_ip=ip_address)
+
+        transport.wn_open(tx_buf_size, rx_buf_size)
+
+        cmd = wn_cmds.NodeIdentify(wn_cmds.IDENTIFY_ALL_NODES)
+        payload = cmd.serialize()
+        transport.send(payload)
+        
+        # Wait IDENTIFY_WAIT_TIME seconds for blink to complete since 
+        #   broadcast commands cannot wait for a response.
+        time.sleep(wn_cmds.IDENTIFY_WAIT_TIME)
+        
+        transport.wn_close()
+
+# End of wn_identify_all_nodes()
+
+
 
 #-----------------------------------------------------------------------------
 # WARPNet Setup Utilities
 #-----------------------------------------------------------------------------
-
 def wn_setup():
     """Setup the WARPNet Host Configuration from user input.
     
