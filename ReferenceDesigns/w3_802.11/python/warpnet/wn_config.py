@@ -192,12 +192,16 @@ class HostConfiguration(object):
  
 
     def __str__(self):
-        msg = "Host Configuration contains: \n"
-        for section in self.config.keys():
-            msg += "    Section '{0}'\n".format(section)
-            for parameter in self.config[section].keys():
-                msg += "        {0:20s} = ".format(parameter)
-                msg += "{0}\n".format(self.config[section][parameter])
+        msg = ""
+        if not self.config is None:
+            msg += "Host Configuration contains: \n"
+            for section in self.config.keys():
+                msg += "    Section '{0}'\n".format(section)
+                for parameter in self.config[section].keys():
+                    msg += "        {0:20s} = ".format(parameter)
+                    msg += "{0}\n".format(self.config[section][parameter])
+        else:
+            msg += "Host Configuration not intialized.\n"            
 
         return msg            
 
@@ -768,11 +772,15 @@ class NodesConfiguration(object):
 
 
     def __str__(self):
-        section_str = "contains parameters: \n"
-        for section in self.config.sections():
-            section_str = str(section_str + 
-                              "    Section '" + str(section) + "':\n" + 
-                              "        " + str(self.config.options(section)) + "\n")
+        section_str = ""
+        if not self.config is None:
+            section_str += "contains parameters: \n"
+            for section in self.config.sections():
+                section_str = str(section_str + 
+                                  "    Section '" + str(section) + "':\n" + 
+                                  "        " + str(self.config.options(section)) + "\n")
+        else:
+            section_str += "not initialized. \n"
         
         if not self.config_file:
             return str("Default config " + section_str)

@@ -349,30 +349,37 @@ def filter_nodes(nodes, filter_type, filter_val):
 
 def int2ip(ipaddr):
     """Convert an integer to IP address string (dotted notation)."""
-    msg  = "{0:d}.".format((ipaddr >> 24) & 0xFF)
-    msg += "{0:d}.".format((ipaddr >> 16) & 0xFF)
-    msg += "{0:d}.".format((ipaddr >>  8) & 0xFF)
-    msg += "{0:d}".format(ipaddr & 0xFF)
+    msg = ""
+    if not ipaddr is None:
+        msg += "{0:d}.".format((ipaddr >> 24) & 0xFF)
+        msg += "{0:d}.".format((ipaddr >> 16) & 0xFF)
+        msg += "{0:d}.".format((ipaddr >>  8) & 0xFF)
+        msg += "{0:d}".format(ipaddr & 0xFF)
     return msg
 
 
 def ip2int(ipaddr):
     """Convert IP address string (dotted notation) to an integer."""
-    expr = re.compile('\.')
-    dataTuple = []
-    for data in expr.split(ipaddr):
-        dataTuple.append(int(data))
-    return (dataTuple[3]) + (dataTuple[2] * 2**8) + (dataTuple[1] * 2**16) + (dataTuple[0] * 2**24)
+    ret_val = 0
+    if not ipaddr is None:
+        expr = re.compile('\.')
+        dataTuple = []
+        for data in expr.split(ipaddr):
+            dataTuple.append(int(data))
+        ret_val = (dataTuple[3]) + (dataTuple[2] * 2**8) + (dataTuple[1] * 2**16) + (dataTuple[0] * 2**24)
+    return ret_val
 
 
 def mac2str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
-    msg  = "{0:02x}:".format((mac_address >> 40) & 0xFF)
-    msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
-    msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
-    msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
-    msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
-    msg += "{0:02x}".format(mac_address & 0xFF)
+    msg = ""
+    if not mac_address is None:
+        msg += "{0:02x}:".format((mac_address >> 40) & 0xFF)
+        msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
+        msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
+        msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
+        msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
+        msg += "{0:02x}".format(mac_address & 0xFF)
     return msg
 
 

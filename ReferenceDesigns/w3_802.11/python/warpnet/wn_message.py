@@ -273,13 +273,15 @@ class Cmd(CmdRespMessage):
 
     def __str__(self):
         """Pretty print the WnCommand"""
-        msg = "WARPNet Command [{0:d}] ".format(self.command)
-        msg = msg + "({0:d} bytes): \n".format(self.length)
-        
-        if (self.num_args > 0):
-            msg = msg + "    Args [0:{0:d}]  : \n".format(self.num_args)
-            for i in range(len(self.args)):
-                msg = msg + "        0x{0:08x}\n".format(self.args[i])
+        msg = ""
+        if not self.command is None:
+            msg += "WARPNet Command [{0:d}] ".format(self.command)
+            msg += "({0:d} bytes): \n".format(self.length)
+            
+            if (self.num_args > 0):
+                msg += "    Args [0:{0:d}]  : \n".format(self.num_args)
+                for i in range(len(self.args)):
+                    msg += "        0x{0:08x}\n".format(self.args[i])
         return msg
 
 # End Class
@@ -328,13 +330,15 @@ class BufferCmd(CmdRespMessage):
 
     def __str__(self):
         """Pretty print the WnCommand"""
-        msg = "WARPNet Buffer Command [{0:d}] ".format(self.command)
-        msg = msg + "({0:d} bytes): \n".format(self.length)
-        
-        if (self.num_args > 0):
-            msg = msg + "    Args [0:{0:d}]  : \n".format(self.num_args)
-            for i in range(len(self.args)):
-                msg = msg + "        0x{0:08x}\n".format(self.args[i])
+        msg = ""
+        if not self.command is None:
+            msg += "WARPNet Buffer Command [{0:d}] ".format(self.command)
+            msg += "({0:d} bytes): \n".format(self.length)
+            
+            if (self.num_args > 0):
+                msg += "    Args [0:{0:d}]  : \n".format(self.num_args)
+                for i in range(len(self.args)):
+                    msg += "        0x{0:08x}\n".format(self.args[i])
         return msg
 
 # End Class
@@ -352,13 +356,15 @@ class Resp(CmdRespMessage):
 
     def __str__(self):
         """Pretty print the WnResponse"""
-        msg = "WARPNet Response [{0:d}] ".format(self.command)
-        msg = msg + "({0:d} bytes): \n".format(self.length)
-        
-        if (self.num_args > 0):
-            msg = msg + "    Args [0:{0:d}]  : \n".format(self.num_args)
-            for i in range(len(self.args)):
-                msg = msg + "        0x{0:08x}\n".format(self.args[i])
+        msg = ""
+        if not self.command is None:
+            msg += "WARPNet Response [{0:d}] ".format(self.command)
+            msg += "({0:d} bytes): \n".format(self.length)
+            
+            if (self.num_args > 0):
+                msg += "    Args [0:{0:d}]  : \n".format(self.num_args)
+                for i in range(len(self.args)):
+                    msg += "        0x{0:08x}\n".format(self.args[i])
         return msg
 
 # End Class
@@ -510,19 +516,20 @@ class Buffer(Message):
 
     def __str__(self):
         """Pretty print the WnBuffer"""
-        msg = "WARPNet Buffer [{0:d}] ".format(self.buffer_id)
-        msg = msg + "({0:d} bytes): \n".format(self.size)
-        msg = msg + "    Flags    : 0x{0:08x} \n".format(self.flags)
-        msg = msg + "    Num bytes: {0:d}\n".format(self.num_bytes)
-        msg = msg + "    Complete : {0}\n".format(self.complete)
-        msg = msg + "    Data     : "
-        
-        for i in range(len(self.buffer)):
-            if (i % 16) == 0:
-                msg = msg + "\n        {0:02x} ".format(self.buffer[i])
-            else:
-                msg = msg + "{0:02x} ".format(self.buffer[i])
-
+        msg = ""
+        if not self.buffer is None:
+            msg += "WARPNet Buffer [{0:d}] ".format(self.buffer_id)
+            msg += "({0:d} bytes): \n".format(self.size)
+            msg += "    Flags    : 0x{0:08x} \n".format(self.flags)
+            msg += "    Num bytes: {0:d}\n".format(self.num_bytes)
+            msg += "    Complete : {0}\n".format(self.complete)
+            msg += "    Data     : "
+            
+            for i in range(len(self.buffer)):
+                if (i % 16) == 0:
+                    msg += "\n        {0:02x} ".format(self.buffer[i])
+                else:
+                    msg += "{0:02x} ".format(self.buffer[i])
         return msg
 
 

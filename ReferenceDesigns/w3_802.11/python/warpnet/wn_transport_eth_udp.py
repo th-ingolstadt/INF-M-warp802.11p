@@ -279,16 +279,18 @@ class TransportEthUdp(tp.Transport):
 
     def __str__(self):
         """Pretty print the Transport parameters"""
-        msg  = "Transport {0}:\n".format(self.transport_type)
-        msg += "    IP address    :  {0}\n".format(self.ip_address)
-        msg += "    MAC address   :  {0}\n".format(self.mac2str(self.mac_address)) 
-        msg += "    Max payload   :  {0}\n".format(self.max_payload)
-        msg += "    Unicast port  :  {0}\n".format(self.unicast_port)
-        msg += "    Broadcast port:  {0}\n".format(self.bcast_port)
-        msg += "    Timeout       :  {0}\n".format(self.timeout)
-        msg += "    Rx Buffer Size:  {0}\n".format(self.rx_buffer_size)
-        msg += "    Tx Buffer Size:  {0}\n".format(self.tx_buffer_size)
-        msg += "    Group ID      :  {0}\n".format(self.group_id)
+        msg = ""
+        if not self.mac_address is None:
+            msg += "Transport {0}:\n".format(self.transport_type)
+            msg += "    IP address    :  {0}\n".format(self.ip_address)
+            msg += "    MAC address   :  {0}\n".format(self.mac2str(self.mac_address)) 
+            msg += "    Max payload   :  {0}\n".format(self.max_payload)
+            msg += "    Unicast port  :  {0}\n".format(self.unicast_port)
+            msg += "    Broadcast port:  {0}\n".format(self.bcast_port)
+            msg += "    Timeout       :  {0}\n".format(self.timeout)
+            msg += "    Rx Buffer Size:  {0}\n".format(self.rx_buffer_size)
+            msg += "    Tx Buffer Size:  {0}\n".format(self.tx_buffer_size)
+            msg += "    Group ID      :  {0}\n".format(self.group_id)
         return msg
         
 # End Class
@@ -300,28 +302,35 @@ class TransportEthUdp(tp.Transport):
 #-------------------------------------------------------------------------
 
 def int2ip(ipaddr):
-    msg  = "{0:d}.".format((ipaddr >> 24) & 0xFF)
-    msg += "{0:d}.".format((ipaddr >> 16) & 0xFF)
-    msg += "{0:d}.".format((ipaddr >>  8) & 0xFF)
-    msg += "{0:d}".format(ipaddr & 0xFF)
+    msg = ""
+    if not ipaddr is None:
+        msg += "{0:d}.".format((ipaddr >> 24) & 0xFF)
+        msg += "{0:d}.".format((ipaddr >> 16) & 0xFF)
+        msg += "{0:d}.".format((ipaddr >>  8) & 0xFF)
+        msg += "{0:d}".format(ipaddr & 0xFF)
     return msg
 
 
 def ip2int(ipaddr):
-    expr = re.compile('\.')
-    dataTuple = []
-    for data in expr.split(ipaddr):
-        dataTuple.append(int(data))
-    return (dataTuple[3]) + (dataTuple[2] * 2**8) + (dataTuple[1] * 2**16) + (dataTuple[0] * 2**24)
+    ret_val = 0
+    if not ipaddr is None:
+        expr = re.compile('\.')
+        dataTuple = []
+        for data in expr.split(ipaddr):
+            dataTuple.append(int(data))
+        ret_val = (dataTuple[3]) + (dataTuple[2] * 2**8) + (dataTuple[1] * 2**16) + (dataTuple[0] * 2**24)
+    return ret_val
 
 
 def mac2str(mac_address):
-    msg  = "{0:02x}:".format((mac_address >> 40) & 0xFF)
-    msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
-    msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
-    msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
-    msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
-    msg += "{0:02x}".format(mac_address & 0xFF)
+    msg = ""
+    if not mac_address is None:
+        msg += "{0:02x}:".format((mac_address >> 40) & 0xFF)
+        msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
+        msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
+        msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
+        msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
+        msg += "{0:02x}".format(mac_address & 0xFF)
     return msg
 
 
