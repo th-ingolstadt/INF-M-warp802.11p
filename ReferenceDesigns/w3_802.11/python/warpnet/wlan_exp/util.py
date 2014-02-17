@@ -363,10 +363,8 @@ def ip2int(ipaddr):
     ret_val = 0
     if not ipaddr is None:
         expr = re.compile('\.')
-        dataTuple = []
-        for data in expr.split(ipaddr):
-            dataTuple.append(int(data))
-        ret_val = (dataTuple[3]) + (dataTuple[2] * 2**8) + (dataTuple[1] * 2**16) + (dataTuple[0] * 2**24)
+        tmp = [int(n) for n in expr.split(ipaddr)]        
+        ret_val = (tmp[3]) + (tmp[2] * 2**8) + (tmp[1] * 2**16) + (tmp[0] * 2**24)
     return ret_val
 
 

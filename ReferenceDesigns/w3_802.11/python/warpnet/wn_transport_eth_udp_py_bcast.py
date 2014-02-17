@@ -65,6 +65,8 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
         if host_ip is None:
             host_infs = self.host_config.get_param('network', 'host_interfaces')
             self.host_ip = host_infs[0]
+        else:
+            self.host_ip = host_ip
         
         self.set_default_config()
 
@@ -92,14 +94,8 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
         address.
         """
         expr = re.compile('\.')
-        tmp_data = []
-        for data in expr.split(ip_addr):
-            tmp_data.append(int(data))
-        
-        self.ip_address = str("{0:d}.{1:d}.{2:d}.{3:d}".format(tmp_data[0],
-                                                               tmp_data[1],
-                                                               tmp_data[2],
-                                                               0xFF))
+        tmp = [int(n) for n in expr.split(ip_addr)]        
+        self.ip_address = "{0:d}.{1:d}.{2:d}.255".format(tmp[0], tmp[1], tmp[2])
 
     
     def send(self, payload, pkt_type="message"):
