@@ -929,11 +929,11 @@ void add_node_info_entry(u8 transmit){
 * @note		None.
 *
 ******************************************************************************/
-u32 add_txrx_statistics_to_log(statistics * stats, u8 transmit){
+u32 add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit){
 
 	txrx_stats_entry * entry;
 	u32                entry_size = sizeof(txrx_stats_entry);
-	u32                stats_size = sizeof(statistics) - sizeof(dl_node);
+	u32                stats_size = sizeof(statistics_txrx) - sizeof(dl_node);
 
 	// Check to see if we have valid statistics
 	if (stats == NULL) { return FAILURE; }
@@ -988,13 +988,13 @@ u32 add_all_txrx_statistics_to_log(u8 transmit){
 	u32                i, status;
 	u32                num_stats;
 	dl_list          * list = get_statistics();
-	statistics       * curr_statistics;
+	statistics_txrx  * curr_statistics;
 
 	// Check to see if we have valid statistics
 	if (list == NULL) { return 0; }
 
 	// Get the first statistics structure
-	curr_statistics = (statistics*)(list->first);
+	curr_statistics = (statistics_txrx*)(list->first);
 
 	// Set the count variable
 	num_stats = 0;

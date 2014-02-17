@@ -554,10 +554,10 @@ station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
  *    criteria
  *
  */
-statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
+statistics_txrx* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
 	u32 i;
-	statistics* curr_statistics;
-	curr_statistics = (statistics*)(list->first);
+	statistics_txrx* curr_statistics;
+	curr_statistics = (statistics_txrx*)(list->first);
 
 	for( i = 0; i < list->length; i++){
 		if(wlan_addr_eq(curr_statistics->addr, addr)){
@@ -1654,7 +1654,7 @@ void usleep(u64 delay){
 
 station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID){
 	station_info* station;
-	statistics*   station_stats;
+	statistics_txrx*   station_stats;
 	station_info* curr_station_info;
 	u32 i;
 	u16 curr_AID;
@@ -1696,7 +1696,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 
 		station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
 		if(station_stats == NULL){
-			station_stats = wlan_mac_high_calloc(sizeof(statistics));
+			station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
 			if(station_stats == NULL){
 				//malloc failed. Passing that failure on to calling function
 				wlan_mac_high_free(station);
@@ -1842,11 +1842,11 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl){
 	return;
 }
 
-statistics* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr){
+statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr){
 	u32 i;
-	statistics* station_stats = NULL;
-	statistics* curr_statistics = NULL;
-	statistics* oldest_statistics = NULL;
+	statistics_txrx* station_stats = NULL;
+	statistics_txrx* curr_statistics = NULL;
+	statistics_txrx* oldest_statistics = NULL;
 
 	if(station == NULL){
 #ifndef ALLOW_PROMISC_STATISTICS
@@ -1866,7 +1866,7 @@ statistics* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* statio
 
 		if(stat_tbl->length >= MAX_NUM_PROMISC_STATS){
 			//There are too many statistics being tracked. We'll get rid of the oldest that isn't currently associated.
-			curr_statistics = (statistics*)(stat_tbl->first);
+			curr_statistics = (statistics_txrx*)(stat_tbl->first);
 			for(i=0; i<stat_tbl->length; i++){
 
 				if( (oldest_statistics == NULL) ){
@@ -1890,7 +1890,7 @@ statistics* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* statio
 			}
 		}
 
-		station_stats = wlan_mac_high_calloc(sizeof(statistics));
+		station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
 		memcpy(station_stats->addr, addr, 6);
 		dl_node_insertEnd(stat_tbl, &(station_stats->node));
 
@@ -1904,10 +1904,10 @@ statistics* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* statio
 
 void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 	u32 i;
-	statistics* curr_statistics = NULL;
-	statistics* next_statistics = NULL;
+	statistics_txrx* curr_statistics = NULL;
+	statistics_txrx* next_statistics = NULL;
 
-	next_statistics = (statistics*)(stat_tbl->first);
+	next_statistics = (statistics_txrx*)(stat_tbl->first);
 	for(i=0; i<stat_tbl->length; i++){
 		curr_statistics = next_statistics;
 		next_statistics = statistics_next(curr_statistics);
@@ -1915,8 +1915,10 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 		curr_statistics->num_tx_total = 0;
 		curr_statistics->num_tx_success = 0;
 		curr_statistics->num_retry = 0;
-		curr_statistics->num_rx_success = 0;
-		curr_statistics->num_rx_bytes = 0;
+		curr_statistics->mgmt_num_rx_success = 0;
+		curr_statistics->mgmt_num_rx_bytes = 0;
+		curr_statistics->data_num_rx_success = 0;
+		curr_statistics->data_num_rx_bytes = 0;
 
 		if(curr_statistics->is_associated == 0){
 			//Remove and destroy this entry

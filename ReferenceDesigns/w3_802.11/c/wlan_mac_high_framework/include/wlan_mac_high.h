@@ -111,17 +111,19 @@ typedef struct{
  * the network.
  */
 typedef struct{
-	dl_node node;			///< Doubly-linked list entry
-	u64     last_timestamp; ///< Timestamp of the last frame reception
-	u8      addr[6];		///< HW Address
-	u8      is_associated;	///< Is this device associated with me?
+	dl_node node;				 ///< Doubly-linked list entry
+	u64     last_timestamp; 	 ///< Timestamp of the last frame reception
+	u8      addr[6];			 ///< HW Address
+	u8      is_associated;		 ///< Is this device associated with me?
 	u8      reserved;
-	u32     num_tx_total;	///< Total number of transmissions to this device
-	u32     num_tx_success; ///< Total number of successful transmissions to this device
-	u32     num_retry;		///< Total number of retransmissions to this device
-	u32     num_rx_success; ///< Total number of successful receptions from this device
-	u32     num_rx_bytes;	///< Total number of received bytes from this device
-} statistics;
+	u32     num_tx_total;		 ///< Total number of transmissions to this device
+	u32     num_tx_success; 	 ///< Total number of successful transmissions to this device
+	u32     num_retry;			 ///< Total number of retransmissions to this device
+	u32     mgmt_num_rx_success; ///< Total number of successful receptions from this device (Management)
+	u32     mgmt_num_rx_bytes;	 ///< Total number of received bytes from this device (Management)
+	u32     data_num_rx_success; ///< Total number of successful receptions from this device (Data)
+	u32     data_num_rx_bytes;	 ///< Total number of received bytes from this device (Data)
+} statistics_txrx;
 
 /**
  * @brief Traverse to next statistics entry in doubly-linked list
@@ -135,7 +137,7 @@ typedef struct{
  * 
  * @see dl_node_next()
  */
-#define statistics_next(x) ( (statistics*)dl_node_next(&(x->node)) )
+#define statistics_next(x) ( (statistics_txrx*)dl_node_next(&(x->node)) )
 
 /**
  * @brief Traverse to previous statistics entry in doubly-linked list
@@ -149,7 +151,7 @@ typedef struct{
  *
  * @see dl_node_prev()
  */
-#define statistics_prev(x) ( (statistics*)dl_node_prev(&(x->node)) )
+#define statistics_prev(x) ( (statistics_txrx*)dl_node_prev(&(x->node)) )
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
 #define STATION_INFO_FLAG_NEVER_REMOVE 0x0002 ///< Mask for flag in station_info -- never remove
@@ -170,7 +172,7 @@ typedef struct{
 	u32			flags;										///< 1-bit flags
 	rx_info     rx;											///< Reception Information Structure
 	tx_params   tx;											///< Transmission Parameters Structure
-	statistics* stats;										///< Statistics Information Structure
+	statistics_txrx* stats;										///< Statistics Information Structure
 															///< @note This is a pointer to the statistics structure
                             								///< because statistics can survive outside of the context
                             								///< of associated station_info structs.
@@ -216,7 +218,7 @@ void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
 void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
 station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
-statistics* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
+statistics_txrx* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
 void wlan_mac_high_gpio_handler(void *InstancePtr);
 void wlan_mac_high_set_pb_u_callback(function_ptr_t callback);
 void wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
@@ -262,7 +264,7 @@ void usleep(u64 delay);
 station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID);
 int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
 void wlan_mac_high_print_associations(dl_list* assoc_tbl);
-statistics* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
+statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
 void wlan_mac_high_reset_statistics(dl_list* stat_tbl);
 u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
 

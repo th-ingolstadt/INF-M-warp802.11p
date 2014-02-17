@@ -1103,7 +1103,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	// Local variables
         	txrx_stats_entry * stats_entry = (txrx_stats_entry *) &respArgs32[respIndex];
         	u32                entry_size = sizeof(txrx_stats_entry);
-        	u32                stats_size = sizeof(statistics) - sizeof(dl_node);
+        	u32                stats_size = sizeof(statistics_txrx) - sizeof(dl_node);
 
         	size = 0;
 
