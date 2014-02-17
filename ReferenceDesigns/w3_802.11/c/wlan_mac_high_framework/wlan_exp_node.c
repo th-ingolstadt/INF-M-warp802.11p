@@ -30,6 +30,8 @@
 #include <xsysmon_hw.h>
 #endif
 
+// WARP Includes
+#include "w3_userio.h"
 
 // WLAN includes
 #include "wlan_mac_event_log.h"
@@ -387,14 +389,45 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 	    //---------------------------------------------------------------------
 		case NODE_IDENTIFY:
-			// Return Null Response
-			//   The WLAN_EXP_NODE currently does not have access to LEDs
+			// Blink the HEX display LEDs
+			//     The current blink time is 10 seconds (25 times at 0.4 sec per blink)
+			//     Returns Null Response
 
-            xil_printf("WARPNET Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
+            #define NODE_IDENTIFY_NUM_BLINKS         25
+            #define NODE_IDENTIFY_BLINK_USEC_HALF    200000
 
-            // --------------------------------
-            // TODO:  Add in visual identifiers for the node
-            // --------------------------------
+			// Send the response early so that code does not time out while waiting for blinks
+			//   The node is responsible for waiting until the LED blinking is done before issuing the
+			//   node another command.
+			node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+			respSent = RESP_SENT;
+
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			u32  left_hex;
+			u32  right_hex;
+
+			// If parameter is not the magic number, then set the TX power
+			if ( (temp == NODE_IDENTIFY_ALL) || (temp == node_info.serial_number) ) {
+	            xil_printf("WARPNET Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
+
+	            // Store the original value
+            	left_hex  = userio_read_hexdisp_left(USERIO_BASEADDR);
+            	right_hex = userio_read_hexdisp_right(USERIO_BASEADDR);
+
+            	// Blink for 10 seconds
+				for (i = 0; i < NODE_IDENTIFY_NUM_BLINKS; i++){
+	                userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
+			        userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
+			        userio_write_hexdisp_right(USERIO_BASEADDR, 0x00);
+					usleep(NODE_IDENTIFY_BLINK_USEC_HALF);
+
+					userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
+	                userio_write_hexdisp_left( USERIO_BASEADDR, left_hex );
+		            userio_write_hexdisp_right(USERIO_BASEADDR, right_hex );
+					usleep(NODE_IDENTIFY_BLINK_USEC_HALF);
+				}
+			}
         break;
 
 

@@ -33,6 +33,9 @@
 //
 #define NODE_INFO                       1
 #define NODE_IDENTIFY                   2
+
+#define NODE_IDENTIFY_ALL              0xFFFF
+
 #define NODE_CONFIG_SETUP               3
 #define NODE_CONFIG_RESET               4
 #define NODE_TEMPERATURE                5
