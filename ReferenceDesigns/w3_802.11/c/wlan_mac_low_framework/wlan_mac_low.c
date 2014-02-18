@@ -697,7 +697,7 @@ inline u64 get_usec_timestamp(){
 /**
  * @brief Get the Rx Start Microsecond Timestamp
  *
- * This function returns the rx start timestamp of the system
+ * This function returns the Rx start timestamp of the system
  *
  * @param None
  * @return u64
@@ -709,6 +709,26 @@ inline u64 get_rx_start_timestamp() {
 	u64 timestamp_u64;
 	timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_RX_TIMESTAMP_MSB);
 	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_RX_TIMESTAMP_LSB);
+	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+	return timestamp_u64;
+}
+
+
+/**
+ * @brief Get the Tx Start Microsecond Timestamp
+ *
+ * This function returns the Tx start timestamp of the system
+ *
+ * @param None
+ * @return u64
+ * - microsecond timestamp
+ */
+inline u64 get_tx_start_timestamp() {
+	u32 timestamp_high_u32;
+	u32 timestamp_low_u32;
+	u64 timestamp_u64;
+	timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
+	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
 	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
 	return timestamp_u64;
 }
