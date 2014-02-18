@@ -192,8 +192,8 @@
 
 #define wlan_phy_tx_pkt_buf(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x0000000F)) | ((d) & 0x0000000F)))
 
-#define wlan_phy_tx_timestamp_ins_start(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x000003F0)) | ((d) & 0x000003F0)))
-#define wlan_phy_tx_timestamp_ins_end(d)   Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x0000FC00)) | ((d) & 0x0000FC00)))
+#define wlan_phy_tx_timestamp_ins_start(d) Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x000003F0)) | ((d<<4) & 0x000003F0)))
+#define wlan_phy_tx_timestamp_ins_end(d)   Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & (~0x0000FC00)) | ((d<<10) & 0x0000FC00)))
 
 #define wlan_phy_rx_get_active_rx_ant()  ((Xil_In32(WLAN_RX_STATUS) & WLAN_RX_REG_STATUS_ACTIVE_ANT_MASK) >> 2)
 #define wlan_phy_rx_get_pkt_det_status()  ((Xil_In32(WLAN_RX_STATUS) & WLAN_RX_REG_STATUS_PKT_DET_STATUS_MASK) >> 4)

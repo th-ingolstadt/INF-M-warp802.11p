@@ -344,7 +344,17 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
 						beacon = (beacon_probe_frame*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET+sizeof(mac_header_80211));
+
+						//TODO
 						beacon->timestamp = get_usec_timestamp();
+						//beacon->timestamp = 0xDEADBEEF;
+
+						//wlan_phy_tx_timestamp_ins_start(24+PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+						//wlan_phy_tx_timestamp_ins_end(31+PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+
+					} else {
+						//wlan_phy_tx_timestamp_ins_start(1);
+						//wlan_phy_tx_timestamp_ins_end(0);
 					}
 
 					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length);
