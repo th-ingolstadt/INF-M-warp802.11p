@@ -196,8 +196,10 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   Tx total       :    %d (%d success)\n", txrx_stats_entry_log_item->num_tx_total,
 					                                               txrx_stats_entry_log_item->num_tx_success);
 			xil_printf("   Tx retry       :    %d\n",              txrx_stats_entry_log_item->num_retry);
-			xil_printf("   Rx total       :    %d (%d bytes)\n",   txrx_stats_entry_log_item->num_rx_success,
-					                                               txrx_stats_entry_log_item->num_rx_bytes);
+			xil_printf("   Rx total (DATA):    %d (%d bytes)\n",   txrx_stats_entry_log_item->data_num_rx_success,
+					                                               txrx_stats_entry_log_item->data_num_rx_bytes);
+			xil_printf("   Rx total (MGMT):    %d (%d bytes)\n",   txrx_stats_entry_log_item->mgmt_num_rx_success,
+								                                               txrx_stats_entry_log_item->mgmt_num_rx_bytes);
 		break;
 
 		case ENTRY_TYPE_RX_OFDM:

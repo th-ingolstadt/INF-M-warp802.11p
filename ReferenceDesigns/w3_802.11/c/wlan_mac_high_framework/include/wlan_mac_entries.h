@@ -152,8 +152,10 @@ typedef struct{
 	u32     num_tx_total;	// Total number of transmissions to this device
 	u32     num_tx_success; // Total number of successful transmissions to this device
 	u32     num_retry;		// Total number of retransmissions to this device
-	u32     num_rx_success; // Total number of successful receptions from this device
-	u32     num_rx_bytes;	// Total number of received bytes from this device
+	u32     mgmt_num_rx_success; // MGMT: Total number of successful receptions from this device
+	u32     mgmt_num_rx_bytes;	// MGMT: Total number of received bytes from this device
+	u32     data_num_rx_success; // DATA: Total number of successful receptions from this device
+	u32     data_num_rx_bytes;	// DATA: Total number of received bytes from this device
 } txrx_stats_entry;
 
 
