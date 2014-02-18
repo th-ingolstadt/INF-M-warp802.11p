@@ -71,6 +71,11 @@ int wlan_mac_low_init(u32 type){
 		return -1;
 	}
 
+	//wlan_phy_tx_timestamp_ins_start(24);
+	//wlan_phy_tx_timestamp_ins_end(31);
+	wlan_phy_tx_timestamp_ins_start(1);
+	wlan_phy_tx_timestamp_ins_end(0);
+
 	wlan_lib_init();
 
 	//create IPC message to receive into
