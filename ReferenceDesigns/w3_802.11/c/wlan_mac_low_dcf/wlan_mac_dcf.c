@@ -280,25 +280,30 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
 
+	u32 i;
 	u8 req_timeout;
 	u16 n_slots;
 	u32 tx_status, rx_status;
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
+	for(i=0; i<mpdu_info->retry_max ; i++){
+		//Loop over retransmissions
+		//Note: this loop will terminate early if retransmissions aren't needed
+		//(i.e. ACK is received)
+
+
+
+	} //end retransmission loop
+
 	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_ALL_RF), mpdu_info->gain_target);
 
 	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
-
 	if(req_timeout == 0) update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
-
 	n_slots = rand_num_slots();
-
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 	wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
-	//temp = Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET));
-
 	wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
 
 	//Submit the MPDU for transmission
@@ -350,7 +355,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 					}
 				break;
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT:
-					//Tx required tmieout, timeout expired with no receptions
+					//Tx required timeout, timeout expired with no receptions
 
 					//Update the contention window
 					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
@@ -444,6 +449,8 @@ inline unsigned int rand_num_slots(){
 	volatile u32 n_slots;
 
 	n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
+
+	return 0; //DEBUG FIXME
 
 	return n_slots;
 }
