@@ -67,7 +67,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -209,6 +209,29 @@ int main(){
 #endif
 
 	wlan_mac_high_interrupt_start();
+
+	//DEBUG
+	station_info* temp_station;
+	u8 temp_addr[6] = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5};
+	ltg_sched_periodic_params periodic_params;
+	ltg_pyld_fixed* ltg_callback_arg;
+
+	temp_station = wlan_mac_high_add_association(&association_table, &statistics_table, temp_addr, 1);
+	temp_station->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+	temp_station->tx.rate = default_unicast_rate;
+
+	ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_fixed));
+	if(ltg_callback_arg != NULL){
+		((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
+		((ltg_pyld_fixed*)ltg_callback_arg)->length = 1400;
+		periodic_params.interval_usec = 10000;
+		ltg_sched_configure(AID_TO_LTG_ID(1), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
+		ltg_sched_start(AID_TO_LTG_ID(1));
+	}
+
+	//DEBUG
+
+
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
@@ -424,7 +447,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 	if(wlan_addr_eq(bcast_addr, eth_dest)){
 		if(queue_num_queued(BCAST_QID) < max_queue_size){
-			wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, 0 );
+			wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 1, default_tx_gain_target, 0 );
 
 			enqueue_after_end(BCAST_QID, tx_queue_list);
 			check_tx_queue();
@@ -473,7 +496,7 @@ void beacon_transmit() {
 
  		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, eeprom_mac_addr );
         tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,1,tim_control,tim_bitmap);
- 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
+ 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 1, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
  		enqueue_after_end(MANAGEMENT_QID, &checkout); //TODO: BCAST_QID or MANAGEMENT_QID
 
  		check_tx_queue();
@@ -634,7 +657,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 									mpdu_ptr_u8 += sizeof(mac_header_80211);
 									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
-									wlan_mac_high_setup_tx_queue ( tx_queue, NULL, mpdu_info->length, 0, default_tx_gain_target, 0 );
+									wlan_mac_high_setup_tx_queue ( tx_queue, NULL, mpdu_info->length, 1, default_tx_gain_target, 0 );
 									enqueue_after_end(BCAST_QID, &checkout);
 									check_tx_queue();
 								}
