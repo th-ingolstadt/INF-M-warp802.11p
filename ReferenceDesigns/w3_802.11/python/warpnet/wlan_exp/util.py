@@ -81,7 +81,11 @@ rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2'},
 
 def tx_rate_to_str(tx_rate):
     """Convert a TX rate from the 'rates' list to a string."""
-    msg = "{0:2.1f} Mbps ({1})".format(tx_rate['rate'], tx_rate['rate_str'])
+    msg = ""
+    if type(tx_rate) is dict:
+        msg += "{0:2.1f} Mbps ({1})".format(tx_rate['rate'], tx_rate['rate_str'])
+    else:
+        print("Invalid TX rate type.  Needed dict, provided {0}.".format(type(tx_rate)))
     return msg
     
 
@@ -91,10 +95,11 @@ def tx_rate_index_to_str(tx_rate_index):
     tx_rate = None
     msg     = ""
 
-    for rate in rates:
-        if (rate['index'] == tx_rate_index):
-            tx_rate = rate
-            break
+    if type(tx_rate_index) is int:
+        for rate in rates:
+            if (rate['index'] == tx_rate_index):
+                tx_rate = rate
+                break
 
     if not tx_rate is None:
         msg += "{0:2.1f} Mbps ({1})".format(tx_rate['rate'], tx_rate['rate_str'])

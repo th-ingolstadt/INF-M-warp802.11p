@@ -29,8 +29,11 @@ HOST_INTERFACES   = ['10.0.0.250']
 NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 
 # Select some PHY rates to test
-#  wlan_exp_util.rates is an array of dictionaries
-#   with keys 'rate_index', 'rate', 'rate_str'
+#  wlan_exp_util.rates is an array of dictionaries with keys:
+#      'rate_index', 'rate', 'rate_str'
+#  NOTE: rates must be a list for the below loops to work.  To select a 
+#    single rate please use the syntax:  wlan_exp_util.rates[0:1] to select
+#    just entry [0] of the list.
 rates = wlan_exp_util.rates[0:4]
 
 # Set the per-trial duration (in seconds)
@@ -67,13 +70,13 @@ else:
 print("\nExperimental Setup:")
 for node in nodes:
     # Put each node in a known, good state
-    node.ltg_remove_all();
-    node.log_reset();
-    node.stats_reset_txrx();
+    node.ltg_remove_all()
+    node.log_reset()
+    node.stats_reset_txrx()
 
     # Get some additional information about the experiment
-    channel = node.node_get_channel();
-    tx_gain = node.node_get_tx_gain();
+    channel = node.node_get_channel()
+    tx_gain = node.node_get_tx_gain()
     
     print("\n{0}:".format(node.name))
     print("    Channel = {0}".format(channel))
