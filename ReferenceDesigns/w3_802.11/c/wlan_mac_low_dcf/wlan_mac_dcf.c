@@ -277,9 +277,9 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	return return_value;
 }
 
-/*
+
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
-	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
+	//This function manages the MAC_DCF_HW core.
 
 	u32 i;
 	u8 req_timeout;
@@ -373,8 +373,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	return -1;
 
 }
-*/
 
+/*
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
 
@@ -477,7 +477,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	return 0;
 
 }
-
+*/
 
 inline int update_cw(u8 reason, u8 pkt_buf){
 	u32* station_rc_ptr;
