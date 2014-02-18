@@ -510,7 +510,7 @@ void probe_req_transmit(){
 
 			tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
-	 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_GAIN_TARGET, 0 );
+	 		wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 1, TX_GAIN_TARGET, 0 );
 
 			enqueue_after_end(0, &checkout);
 			check_tx_queue();
@@ -542,7 +542,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 		if(wlan_addr_eq(bcast_addr, eth_dest)){
 			if(queue_num_queued(0) < max_queue_size){
-				wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 0, TX_GAIN_TARGET, 0 );
+				wlan_mac_high_setup_tx_queue ( tx_queue, NULL, tx_length, 1, TX_GAIN_TARGET, 0 );
 
 				enqueue_after_end(0, tx_queue_list);
 				check_tx_queue();
