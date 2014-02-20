@@ -88,13 +88,8 @@ typedef struct {
 
 typedef struct {
 	u32 type;
+	u8 addr_da[6];
 } ltg_pyld_hdr;
-
-typedef struct {
-	ltg_pyld_hdr hdr;
-	u16 length;
-	u8 reserved[2];
-} ltg_pyld_fixed_length;
 
 typedef struct {
 	ltg_pyld_hdr hdr;

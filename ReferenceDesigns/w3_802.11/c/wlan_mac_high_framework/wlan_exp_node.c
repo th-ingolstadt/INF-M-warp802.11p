@@ -726,6 +726,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[3 + s1]), &t2, &s2);
 
 			if( (ltg_callback_arg != NULL) && (params != NULL) ) {
+				memcpy(((ltg_pyld_hdr*)ltg_callback_arg)->addr_da,mac_addr,6);
 				// Configure the LTG
 				status = ltg_sched_configure( id, t1, params, ltg_callback_arg, &node_ltg_cleanup );
 
