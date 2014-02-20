@@ -851,12 +851,15 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 
 void ltg_event(u32 id, void* callback_arg){
+
+
 	dl_list checkout;
 	packet_bd* tx_queue;
 	u32 tx_length;
 	u8* mpdu_ptr_u8;
 	llc_header* llc_hdr;
 	u32 payload_length = 0;
+	u8* addr_da = ((ltg_pyld_hdr*)callback_arg)->addr_da;
 
 	switch(((ltg_pyld_hdr*)callback_arg)->type){
 		case LTG_PYLD_TYPE_FIXED:
@@ -876,7 +879,7 @@ void ltg_event(u32 id, void* callback_arg){
 		if(checkout.length == 1){ //There was at least 1 free queue element
 			tx_queue = (packet_bd*)(checkout.first);
 
-			wlan_mac_high_setup_tx_header( &tx_header_common, ((station_info*)(association_table.first))->addr, ((station_info*)(association_table.first))->addr );
+			wlan_mac_high_setup_tx_header( &tx_header_common, ((station_info*)(association_table.first))->addr, addr_da );
 
 			mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 			tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);

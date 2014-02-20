@@ -507,7 +507,7 @@ void print_station_status(u8 manual_call){
 
 						switch(((ltg_pyld_hdr*)(ltg_sched_state))->type){
 							case LTG_PYLD_TYPE_FIXED:
-								xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed_length*)(ltg_pyld_callback_arg))->length);
+								xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed*)(ltg_pyld_callback_arg))->length);
 							break;
 							case LTG_PYLD_TYPE_UNIFORM_RAND:
 								xil_printf("  Random Packet Length: Uniform over [%d,%d] bytes\n", ((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->min_length,((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->max_length);
