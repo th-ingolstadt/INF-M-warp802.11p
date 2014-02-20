@@ -85,5 +85,16 @@ REG_MAC_Backoff_Control = ...
     2^31 * (0) + ... %b[31] - Start backoff period immediately
     0;
 
-REG_MAC_Log_Config = 0;
-
+REG_MAC_Control = ...
+    2^0  * (0) + ... %b[0] Reset
+    2^1  * (1) + ... %b[1] Block Rx pkt det on Rx FCS good
+    2^2  * (0) + ... %b[2] Clear Rx pkt det block
+    2^3  * (0) + ... %b[3] Disable NAV
+    2^4  * (1) + ... %b[4] Block Rx pkt det while Tx active
+    2^5  * (0) + ... %b[5] Load new timestamp values
+    2^6  * (0) + ... %b[6] Block Rx pkt det on all Rx End (incl. bad FCS)
+    2^7  * (0) + ... %b[7] Ignore PHY carrier sensing for CCA
+    2^8  * (0) + ... %b[8] Ignore Tx PHY active for CCA
+    2^9  * (0) + ... %b[9] Ignore NAV for CCA
+    0;
+    

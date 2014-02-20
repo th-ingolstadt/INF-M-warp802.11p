@@ -91,6 +91,13 @@ REG_TX_Config = ...
     2^5  * 0 + ... %Enable Tx on RF D
     0;
 
+REG_TX_PKT_BUF_SEL = ...
+    2^0  * 0  + ... %b[3:0] pkt buf index
+    2^4  * 32 + ... %b[9:4] timestamp insert start byte
+    2^10 * 31 + ... %b[15:10] timestamp insert end byte
+    2^16 * 0  + ... %b[23:16] pkt buf address offset
+    0;
+
 REG_TX_Output_Scaling = (2^0 * 2^12) + (2^16 * 2^12); %UFix16_12 values
 
 %%
