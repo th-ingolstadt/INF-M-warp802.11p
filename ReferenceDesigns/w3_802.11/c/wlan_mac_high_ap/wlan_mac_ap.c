@@ -376,6 +376,7 @@ void ltg_event(u32 id, void* callback_arg){
 	u8* mpdu_ptr_u8;
 	llc_header* llc_hdr;
 	station_info* station;
+	u8* addr_da = ((ltg_pyld_hdr*)callback_arg)->addr_da;
 
 	switch(((ltg_pyld_hdr*)callback_arg)->type){
 		case LTG_PYLD_TYPE_FIXED:
@@ -389,7 +390,7 @@ void ltg_event(u32 id, void* callback_arg){
 
 	}
 
-	station = wlan_mac_high_find_station_info_AID(&association_table, LTG_ID_TO_AID(id));
+	station = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
 
 	if(station != NULL){
 		//The AID <-> LTG ID connection is arbitrary. In this design, we use the LTG_ID_TO_AID

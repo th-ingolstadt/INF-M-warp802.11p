@@ -285,8 +285,10 @@ void uart_rx(u8 rxByte){
 					switch(curr_traffic_type){
 						case TRAFFIC_TYPE_PERIODIC_FIXED:
 							ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_fixed));
+							curr_station_info = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
+								memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->hdr.addr_da, curr_station_info->addr, 6);
 								((ltg_pyld_fixed*)ltg_callback_arg)->length = str2num(text_entry);
 
 								//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
@@ -307,6 +309,7 @@ void uart_rx(u8 rxByte){
 							ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_uniform_rand));
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
+								memcpy(((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.addr_da, curr_station_info->addr, 6);
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->min_length = 0;
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->max_length = str2num(text_entry);
 
@@ -537,7 +540,7 @@ void print_station_status(){
 
 					switch(((ltg_pyld_hdr*)(ltg_sched_state))->type){
 						case LTG_PYLD_TYPE_FIXED:
-							xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed_length*)(ltg_pyld_callback_arg))->length);
+							xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed*)(ltg_pyld_callback_arg))->length);
 						break;
 						case LTG_PYLD_TYPE_UNIFORM_RAND:
 							xil_printf("  Random Packet Length: Uniform over [%d,%d] bytes\n", ((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->min_length,((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->max_length);
