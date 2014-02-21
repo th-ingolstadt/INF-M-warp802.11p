@@ -245,7 +245,7 @@
 	Xil_Out32(WLAN_RX_PKTDET_RSSI_CFG, ( (sum_len & 0x1F) | ((sum_thresh & 0x7FFF) << 5) | ((min_dur & 0x1F)<<20)))
 
 #define wlan_phy_rx_pktDet_autoCorr_cfg(corr_thresh, energy_thresh, min_dur, post_wait) \
-	Xil_Out32(WLAN_RX_PKT_DET_CFG, ( (corr_thresh & 0xFF) | ((energy_thresh & 0xFFF) << 8) | ((min_dur & 0x3F)<<20) | ( (post_wait & 0x3F)<<26)))
+	Xil_Out32(WLAN_RX_PKT_DET_CFG, ( (corr_thresh & 0xFF) | ((energy_thresh & 0x3FFF) << 8) | ((min_dur & 0xF)<<22) | ( (post_wait & 0x3F)<<26)))
 
 #define wlan_phy_rx_lts_corr_thresholds(corr_thresh_low_snr, corr_thresh_high_snr) \
 	Xil_Out32(WLAN_RX_LTS_THRESH, (corr_thresh_low_snr & 0xFFFF) | ((corr_thresh_high_snr & 0xFFFF) << 16))
