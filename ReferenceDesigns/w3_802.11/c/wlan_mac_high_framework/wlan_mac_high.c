@@ -1299,7 +1299,7 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
 }
 
 
-void wlan_mac_high_setup_tx_queue( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 gain_target, u8 flags  ) {
+void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 gain_target, u8 flags  ) {
 
     // Set up metadata
 	tx_queue->metadata_ptr     = metadata;
