@@ -163,7 +163,7 @@ void uart_rx(u8 rxByte){
 					curr_station_info = (station_info*)(association_table.first);
 					for(i=0; i < association_table.length; i++){
 						curr_station_info->tx.rate = default_unicast_rate;
-						curr_station_info = (station_info*)((curr_station_info->node).next);
+						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 
 					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
@@ -178,7 +178,7 @@ void uart_rx(u8 rxByte){
 					curr_station_info = (station_info*)(association_table.first);
 					for(i=0; i < association_table.length; i++){
 						curr_station_info->tx.rate = default_unicast_rate;
-						curr_station_info = (station_info*)((curr_station_info->node).next);
+						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 				break;
@@ -462,7 +462,7 @@ void print_queue_status(){
 	curr_station_info = (station_info*)association_table.first;
 	for(i=0; i < association_table.length; i++){
 		xil_printf("%6d|", curr_station_info->AID);
-		curr_station_info = (station_info*)((curr_station_info->node).next);
+		curr_station_info = (station_info*)((curr_station_info->entry).next);
 	}
 	xil_printf("\n");
 
@@ -471,7 +471,7 @@ void print_queue_status(){
 	curr_station_info = (station_info*)association_table.first;
 	for(i=0; i < association_table.length; i++){
 		xil_printf("%6d|", queue_num_queued(curr_station_info->AID));
-		curr_station_info = (station_info*)((curr_station_info->node).next);
+		curr_station_info = (station_info*)((curr_station_info->entry).next);
 	}
 	xil_printf("\n");
 
@@ -558,7 +558,7 @@ void print_station_status(){
 			xil_printf("     - # DATA: Rx MPDUs:  %d (%d bytes)\n", curr_station_info->stats->data_num_rx_success, curr_station_info->stats->data_num_rx_bytes);
 			xil_printf("     - # MGMT: Rx MPDUs:  %d (%d bytes)\n", curr_station_info->stats->mgmt_num_rx_success, curr_station_info->stats->mgmt_num_rx_bytes);
 
-			curr_station_info = (station_info*)((curr_station_info->node).next);
+			curr_station_info = (station_info*)((curr_station_info->entry).next);
 
 		}
 			xil_printf("---------------------------------------------------\n");
