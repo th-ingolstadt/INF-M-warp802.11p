@@ -82,7 +82,7 @@ int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void
 	//Create a new tg for this id if we didn't find it in the list
 	if(create_new){
 		curr_tg = ltg_sched_create();
-		dl_node_insertEnd(&tg_list,&(curr_tg->node));
+		dl_entry_insertEnd(&tg_list,&(curr_tg->entry));
 	}
 
 	if(curr_tg != NULL){
@@ -343,7 +343,7 @@ int ltg_sched_remove(u32 id){
 		curr_tg = next_tg;
 		next_tg = tg_schedule_next(curr_tg);
 		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
-			dl_node_remove(&tg_list, &(curr_tg->node));
+			dl_entry_remove(&tg_list, &(curr_tg->entry));
 			ltg_sched_stop_l(curr_tg);
 			curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
 			ltg_sched_destroy(curr_tg);

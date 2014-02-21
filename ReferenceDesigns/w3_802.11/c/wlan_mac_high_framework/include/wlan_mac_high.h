@@ -111,7 +111,7 @@ typedef struct{
  * the network.
  */
 typedef struct{
-	dl_node node;				 ///< Doubly-linked list entry
+	dl_entry entry;				 ///< Doubly-linked list entry
 	u64     last_timestamp; 	 ///< Timestamp of the last frame reception
 	u8      addr[6];			 ///< HW Address
 	u8      is_associated;		 ///< Is this device associated with me?
@@ -135,9 +135,9 @@ typedef struct{
  * @param x Pointer to statistics structure
  * @return	Pointer to next statistics structure in doubly-linked list
  * 
- * @see dl_node_next()
+ * @see dl_entry_next()
  */
-#define statistics_next(x) ( (statistics_txrx*)dl_node_next(&(x->node)) )
+#define statistics_next(x) ( (statistics_txrx*)dl_entry_next(&(x->entry)) )
 
 /**
  * @brief Traverse to previous statistics entry in doubly-linked list
@@ -149,9 +149,9 @@ typedef struct{
  * @param x Pointer to statistics structure
  * @return	Pointer to previous statistics structure in doubly-linked list
  *
- * @see dl_node_prev()
+ * @see dl_entry_prev()
  */
-#define statistics_prev(x) ( (statistics_txrx*)dl_node_prev(&(x->node)) )
+#define statistics_prev(x) ( (statistics_txrx*)dl_entry_prev(&(x->entry)) )
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
 #define STATION_INFO_FLAG_NEVER_REMOVE 0x0002 ///< Mask for flag in station_info -- never remove
@@ -165,7 +165,7 @@ typedef struct{
  * case of a station, information about the associated access point).
  */
 typedef struct{
-	dl_node     node;										///< Doubly-linked list entry
+	dl_entry    entry;										///< Doubly-linked list entry
 	u8          addr[6];									///< HW Address
 	char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	///< Hostname from DHCP requests
 	u16         AID;										///< Association ID
@@ -188,9 +188,9 @@ typedef struct{
  * @param x Pointer to station_info structure
  * @return	Pointer to next station_info structure in doubly-linked list
  *
- * @see dl_node_next()
+ * @see dl_entry_next()
  */
-#define station_info_next(x) ( (station_info*)dl_node_next(&(x->node)) )
+#define station_info_next(x) ( (station_info*)dl_entry_next(&(x->entry)) )
 
 /**
  * @brief Traverse to previous station_info entry in doubly-linked list
@@ -202,9 +202,9 @@ typedef struct{
  * @param x Pointer to station_info structure
  * @return	Pointer to prev station_info structure in doubly-linked list
  *
- * @see dl_node_prev()
+ * @see dl_entry_prev()
  */
-#define station_info_prev(x) ( (station_info*)dl_node_prev(&(x->node)) )
+#define station_info_prev(x) ( (station_info*)dl_entry_prev(&(x->entry)) )
 
 //////////// Initialization Functions ////////////
 void wlan_mac_high_heap_init();

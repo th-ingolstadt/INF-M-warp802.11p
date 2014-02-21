@@ -236,7 +236,7 @@ int wlan_eth_dma_init() {
 		cur_bd_ptr = XAxiDma_BdRingNext(ETH_A_RxRing_ptr, cur_bd_ptr);
 
 		//Traverse forward in the checked-out packet_bd list
-		tx_queue = (packet_bd*)((tx_queue->node).next);
+		tx_queue = (packet_bd*)((tx_queue->entry).next);
 	}
 
 	//Push the Rx BD ring to hardware and start receiving
@@ -586,7 +586,7 @@ void wlan_poll_eth() {
 		eth_start_ptr = (u8*)eth_rx_buf;
 
 		dl_list_init(&tx_queue_list);
-		dl_node_insertEnd(&tx_queue_list, &(tx_queue->node));
+		dl_entry_insertEnd(&tx_queue_list, &(tx_queue->entry));
 
 		mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 
@@ -826,7 +826,7 @@ void wlan_eth_dma_update(){
 			//packet_bd_remove(&checkout,tx_queue);
 
 			//Traverse forward in the checked-out packet_bd list
-			tx_queue = (packet_bd*)((tx_queue->node).next);
+			tx_queue = (packet_bd*)((tx_queue->entry).next);
 		}
 
 		//Push the Rx BD ring to hardware and start receiving

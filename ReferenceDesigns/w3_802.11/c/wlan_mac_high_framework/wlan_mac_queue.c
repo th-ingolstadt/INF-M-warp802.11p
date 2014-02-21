@@ -93,7 +93,7 @@ int queue_init(){
 		packet_bd_base[i].buf_ptr = (void*)(PQUEUE_BUFFER_SPACE_BASE + (i*PQUEUE_MAX_FRAME_SIZE));
 		packet_bd_base[i].metadata_ptr = NULL;
 
-		dl_node_insertEnd(&queue_free,&(packet_bd_base[i].node));
+		dl_entry_insertEnd(&queue_free,&(packet_bd_base[i].entry));
 
 	}
 
@@ -144,9 +144,9 @@ void enqueue_after_end(u16 queue_sel, dl_list* list){
     }
 
 	while(curr_packet_bd != NULL){
-		next_packet_bd = (packet_bd*)((curr_packet_bd->node).next);
-		dl_node_remove(list,&(curr_packet_bd->node));
-		dl_node_insertEnd(&(queue_tx[queue_sel]),&(curr_packet_bd->node));
+		next_packet_bd = (packet_bd*)((curr_packet_bd->entry).next);
+		dl_entry_remove(list,&(curr_packet_bd->entry));
+		dl_entry_insertEnd(&(queue_tx[queue_sel]),&(curr_packet_bd->entry));
 		curr_packet_bd = next_packet_bd;
 	}
 	return;
@@ -177,9 +177,9 @@ void dequeue_from_beginning(dl_list* new_list, u16 queue_sel, u16 num_packet_bd)
 		for (i=0;i<num_dequeue;i++){
 			curr_packet_bd = (packet_bd*)(queue_tx[queue_sel].first);
 			//Remove from free list
-			dl_node_remove(&queue_tx[queue_sel],&(curr_packet_bd->node));
+			dl_entry_remove(&queue_tx[queue_sel],&(curr_packet_bd->entry));
 			//Add to new checkout list
-			dl_node_insertEnd(new_list,&(curr_packet_bd->node));
+			dl_entry_insertEnd(new_list,&(curr_packet_bd->entry));
 		}
 	}
 	return;
@@ -217,9 +217,9 @@ void queue_checkout(dl_list* new_list, u16 num_packet_bd){
 		curr_packet_bd = (packet_bd*)(queue_free.first);
 
 		//Remove from free list
-		dl_node_remove(&queue_free,&(curr_packet_bd->node));
+		dl_entry_remove(&queue_free,&(curr_packet_bd->entry));
 		//Add to new checkout list
-		dl_node_insertEnd(new_list,&(curr_packet_bd->node));
+		dl_entry_insertEnd(new_list,&(curr_packet_bd->entry));
 	}
 	return;
 }
@@ -231,9 +231,9 @@ void queue_checkin(dl_list* list){
 	curr_packet_bd = (packet_bd*)(list->first);
 
 	while(curr_packet_bd != NULL){
-		next_packet_bd = (packet_bd*)((curr_packet_bd->node).next);
-		dl_node_remove(list,&(curr_packet_bd->node));
-		dl_node_insertEnd(&queue_free,&(curr_packet_bd->node));
+		next_packet_bd = (packet_bd*)((curr_packet_bd->entry).next);
+		dl_entry_remove(list,&(curr_packet_bd->entry));
+		dl_entry_insertEnd(&queue_free,&(curr_packet_bd->entry));
 		curr_packet_bd = next_packet_bd;
 	}
 

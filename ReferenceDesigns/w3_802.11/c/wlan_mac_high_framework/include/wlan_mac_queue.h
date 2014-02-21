@@ -18,15 +18,15 @@
 
 #include "wlan_mac_dl_list.h"
 
-//In spirit, packet_bd is derived from dl_node. Since C
+//In spirit, packet_bd is derived from dl_entry. Since C
 //lacks a formal notion of inheritance, we adopt a popular
-//alternative idiom for inheritance where the dl_node
+//alternative idiom for inheritance where the dl_entry
 //is the first entry in the new structure. Since structures
 //will never be padded before their first entry, it is safe
-//to cast back and forth between the packet_bd and dl_node.
+//to cast back and forth between the packet_bd and dl_entry.
 typedef struct packet_bd packet_bd;
 struct packet_bd{
-	dl_node node;
+	dl_entry entry;
 	void* metadata_ptr;
 	void* buf_ptr;
 };

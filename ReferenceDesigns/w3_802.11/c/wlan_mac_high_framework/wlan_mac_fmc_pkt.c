@@ -153,7 +153,7 @@ int fmc_ipc_rx(){
 						eth_start_ptr = (u8*)eth_rx_buf;
 
 						dl_list_init(&tx_queue_list);
-						dl_node_insertEnd(&tx_queue_list, &(tx_queue->node));
+						dl_entry_insertEnd(&tx_queue_list, &(tx_queue->entry));
 
 						mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 

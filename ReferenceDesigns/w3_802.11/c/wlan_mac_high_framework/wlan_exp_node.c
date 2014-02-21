@@ -616,7 +616,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 							xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
 							break;
 						}
-						curr_station_info = (station_info*)((curr_station_info->node).next);
+						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 				} else {
                     // Set the rate of all stations
@@ -625,7 +625,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					curr_station_info = (station_info*)(association_table.first);
 					for(i=0; i < association_table.length; i++){
 						curr_station_info->tx.rate = default_unicast_rate;
-						curr_station_info = (station_info*)((curr_station_info->node).next);
+						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 
 					xil_printf("Setting Default TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
@@ -640,7 +640,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 							rate = curr_station_info->tx.rate;
 							break;
 						}
-						curr_station_info = (station_info*)((curr_station_info->node).next);
+						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 				} else {
 					// Get the default rate
@@ -1137,7 +1137,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	// Local variables
         	txrx_stats_entry * stats_entry = (txrx_stats_entry *) &respArgs32[respIndex];
         	u32                entry_size = sizeof(txrx_stats_entry);
-        	u32                stats_size = sizeof(statistics_txrx) - sizeof(dl_node);
+        	u32                stats_size = sizeof(statistics_txrx) - sizeof(dl_entry);
 
         	size = 0;
 
@@ -1147,7 +1147,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				curr_station_info = (station_info*)(association_table.first);
 				for(i=0; i < association_table.length; i++){
 					if (curr_station_info->AID == id){ size = entry_size; break; }
-					curr_station_info = (station_info*)((curr_station_info->node).next);
+					curr_station_info = (station_info*)((curr_station_info->entry).next);
 				}
 
 				if (size != 1) {
@@ -1155,7 +1155,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 					// Copy the statistics to the log entry
 					//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
-					//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
+					//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
 					memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&curr_station_info->stats->last_timestamp), stats_size );
 
 					xil_printf("Getting Statistics for AID = %d \n", id);

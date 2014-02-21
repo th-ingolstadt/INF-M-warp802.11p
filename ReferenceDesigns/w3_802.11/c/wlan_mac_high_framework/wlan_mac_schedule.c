@@ -134,14 +134,14 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_SLOW, SLOW_TIMER_DUR_US*(TIMER_FREQ/1000000));
 				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
 			}
-			dl_node_insertEnd(&wlan_sched_coarse, &(sched_ptr->node));
+			dl_entry_insertEnd(&wlan_sched_coarse, &(sched_ptr->entry));
 		break;
 		case SCHEDULE_FINE:
 			if(wlan_sched_fine.length == 0){
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_FAST, FAST_TIMER_DUR_US*(TIMER_FREQ/1000000));
 				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
 			}
-			dl_node_insertEnd(&wlan_sched_fine, &(sched_ptr->node));
+			dl_entry_insertEnd(&wlan_sched_fine, &(sched_ptr->entry));
 		break;
 	}
 
@@ -168,7 +168,7 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
 			if(curr_sched_ptr != NULL){
-				dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
+				dl_entry_remove(&wlan_sched_coarse,&(curr_sched_ptr->entry));
 				wlan_mac_high_free(curr_sched_ptr);
 			}
 
@@ -181,7 +181,7 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 		break;
 		case SCHEDULE_FINE:
 			if(curr_sched_ptr != NULL){
-				dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
+				dl_entry_remove(&wlan_sched_fine,&(curr_sched_ptr->entry));
 				wlan_mac_high_free(curr_sched_ptr);
 			}
 
@@ -231,7 +231,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 						(curr_sched_ptr->num_calls)--;
 					}
 					if(curr_sched_ptr->num_calls == 0){
-						dl_node_remove(&wlan_sched_fine,&(curr_sched_ptr->node));
+						dl_entry_remove(&wlan_sched_fine,&(curr_sched_ptr->entry));
 						wlan_mac_high_free(curr_sched_ptr);
 					} else {
 						curr_sched_ptr->target = timestamp + curr_sched_ptr->delay;
@@ -260,7 +260,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 						(curr_sched_ptr->num_calls)--;
 					}
 					if(curr_sched_ptr->num_calls == 0){
-						dl_node_remove(&wlan_sched_coarse,&(curr_sched_ptr->node));
+						dl_entry_remove(&wlan_sched_coarse,&(curr_sched_ptr->entry));
 						wlan_mac_high_free(curr_sched_ptr);
 					} else {
 						curr_sched_ptr->target = timestamp + curr_sched_ptr->delay;

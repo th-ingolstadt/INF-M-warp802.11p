@@ -22,14 +22,14 @@
 #include "xintc.h"
 #include "wlan_mac_dl_list.h"
 
-//In spirit, wlan_sched is derived from dl_node. Since C
+//In spirit, wlan_sched is derived from dl_entry. Since C
 //lacks a formal notion of inheritance, we adopt a popular
-//alternative idiom for inheritance where the dl_node
+//alternative idiom for inheritance where the dl_entry
 //is the first entry in the new structure. Since structures
 //will never be padded before their first entry, it is safe
-//to cast back and forth between the wlan_sched and dl_node.
+//to cast back and forth between the wlan_sched and dl_entry.
 typedef struct {
-	dl_node node;
+	dl_entry entry;
 	u32 id;
 	u32 delay;
 	u32 num_calls;
@@ -38,8 +38,8 @@ typedef struct {
 } wlan_sched;
 
 //Helper macros for traversing the doubly-linked list
-#define wlan_sched_next(x) ( (wlan_sched*)dl_node_next(&(x->node)) )
-#define wlan_sched_prev(x) ( (wlan_sched*)dl_node_prev(&(x->node)) )
+#define wlan_sched_next(x) ( (wlan_sched*)dl_entry_next(&(x->entry)) )
+#define wlan_sched_prev(x) ( (wlan_sched*)dl_entry_prev(&(x->entry)) )
 
 //Special value for num_calls parameter of wlan_sched
 #define SCHEDULE_REPEAT_FOREVER 0xFFFFFFFF

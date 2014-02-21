@@ -36,15 +36,15 @@
 #define LTG_STOP_ALL                    0xFFFFFFFF
 
 
-//In spirit, tg_schedule is derived from dl_node. Since C
+//In spirit, tg_schedule is derived from dl_entry. Since C
 //lacks a formal notion of inheritance, we adopt a popular
-//alternative idiom for inheritance where the dl_node
+//alternative idiom for inheritance where the dl_entry
 //is the first entry in the new structure. Since structures
 //will never be padded before their first entry, it is safe
-//to cast back and forth between the tg_schedule and dl_node.
+//to cast back and forth between the tg_schedule and dl_entry.
 typedef struct tg_schedule tg_schedule;
 struct tg_schedule{
-	dl_node node;
+	dl_entry entry;
 	u32 id;
 	u32 type;
 	u64 timestamp;
@@ -55,8 +55,8 @@ struct tg_schedule{
 };
 
 //Helper macros for traversing the doubly-linked list
-#define tg_schedule_next(x) ( (tg_schedule*)dl_node_next(&(x->node)) )
-#define tg_schedule_prev(x) ( (tg_schedule*)dl_node_prev(&(x->node)) )
+#define tg_schedule_next(x) ( (tg_schedule*)dl_entry_next(&(x->entry)) )
+#define tg_schedule_prev(x) ( (tg_schedule*)dl_entry_prev(&(x->entry)) )
 
 //LTG Schedules
 

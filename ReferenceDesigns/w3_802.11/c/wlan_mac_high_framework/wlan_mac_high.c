@@ -1703,7 +1703,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 				return NULL;
 			}
 			memcpy(station_stats->addr, addr, 6);
-			dl_node_insertEnd(stat_tbl, &(station_stats->node));
+			dl_entry_insertEnd(stat_tbl, &(station_stats->entry));
 		}
 
 
@@ -1729,7 +1729,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 					station->AID = curr_station_info->AID - 1;
 
 					//Add this station into the association table just before the curr_station_info
-					dl_node_insertBefore(assoc_tbl, &(curr_station_info->node), &(station->node));
+					dl_entry_insertBefore(assoc_tbl, &(curr_station_info->entry), &(station->entry));
 
 					break;
 				} else {
@@ -1753,7 +1753,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 
 
 				//Add this station into the association table at the end
-				dl_node_insertEnd(assoc_tbl, &(station->node));
+				dl_entry_insertEnd(assoc_tbl, &(station->entry));
 			}
 
 			wlan_mac_high_print_associations(assoc_tbl);
@@ -1768,7 +1768,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 				if(curr_station_info->AID > requested_AID){
 					station->AID = requested_AID;
 					//Add this station into the association table just before the curr_station_info
-					dl_node_insertBefore(assoc_tbl, &(curr_station_info->node), &(station->node));
+					dl_entry_insertBefore(assoc_tbl, &(curr_station_info->entry), &(station->entry));
 				}
 
 				curr_station_info = station_info_next(curr_station_info);
@@ -1779,7 +1779,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 				station->AID = requested_AID;
 
 				//Add this station into the association table at the end
-				dl_node_insertEnd(assoc_tbl, &(station->node));
+				dl_entry_insertEnd(assoc_tbl, &(station->entry));
 			}
 
 			wlan_mac_high_print_associations(assoc_tbl);
@@ -1807,11 +1807,11 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 		}
 
 		//Remove station from the association table;
-		dl_node_remove(assoc_tbl, &(station->node));
+		dl_entry_remove(assoc_tbl, &(station->entry));
 
 #ifndef ALLOW_PROMISC_STATISTICS
 		//Remove station's statistics from statististics table
-		dl_node_remove(stat_tbl, &(station->stats->node));
+		dl_entry_remove(stat_tbl, &(station->stats->entry));
 		wlan_mac_high_free(station->stats);
 #else
 		station->stats->is_associated = 0;
@@ -1885,14 +1885,14 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 				xil_printf("Error: could not find deletable oldest statistics. Ensure that MAX_NUM_PROMISC_STATS > MAX_NUM_ASSOC\n");
 				xil_printf("if using ALLOW_PROMISC_STATISTICS\n");
 			} else {
-				dl_node_remove(stat_tbl, &(oldest_statistics->node));
+				dl_entry_remove(stat_tbl, &(oldest_statistics->entry));
 				wlan_mac_high_free(oldest_statistics);
 			}
 		}
 
 		station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
 		memcpy(station_stats->addr, addr, 6);
-		dl_node_insertEnd(stat_tbl, &(station_stats->node));
+		dl_entry_insertEnd(stat_tbl, &(station_stats->entry));
 
 	}
 	if(station != NULL){
@@ -1922,7 +1922,7 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 
 		if(curr_statistics->is_associated == 0){
 			//Remove and destroy this entry
-			dl_node_remove(stat_tbl, &(curr_statistics->node));
+			dl_entry_remove(stat_tbl, &(curr_statistics->entry));
 			wlan_mac_high_free(curr_statistics);
 		}
 	}
