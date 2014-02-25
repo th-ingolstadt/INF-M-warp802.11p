@@ -210,8 +210,8 @@ int main(){
 
 	wlan_mac_high_interrupt_start();
 
-/*
-	//DEBUG
+
+/*	//DEBUG
 	station_info* temp_station;
 	u8 temp_addr[6] = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5};
 	ltg_sched_periodic_params periodic_params;
@@ -224,14 +224,15 @@ int main(){
 	ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_fixed));
 	if(ltg_callback_arg != NULL){
 		((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
+		memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->hdr.addr_da, temp_addr,6);
 		((ltg_pyld_fixed*)ltg_callback_arg)->length = 1400;
-		periodic_params.interval_usec = 1000000;
+		periodic_params.interval_usec = 0;
 		ltg_sched_configure(AID_TO_LTG_ID(1), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
 		ltg_sched_start(AID_TO_LTG_ID(1));
 	}
-
-	//DEBUG
 */
+	//DEBUG
+
 
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
