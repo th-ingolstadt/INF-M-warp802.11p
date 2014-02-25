@@ -19,6 +19,7 @@
 #include "w3_clock_controller.h"
 #include "w3_iic_eeprom.h"
 #include "radio_controller.h"
+#include "malloc.h"
 
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -239,10 +240,12 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	wlan_ipc_msg ipc_msg_to_high;
 	u32 status;
 	mac_header_80211* tx_80211_header;
-	beacon_probe_frame* beacon;
 	u16 n_dbps;
 	u32 isLocked, owner;
 	u64 new_timestamp;
+	u32* phy_tx_timestamps;
+	u32 i;
+
 
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 			case IPC_MBOX_CONFIG_RF_IFC:
@@ -290,6 +293,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
 					tx_mpdu->delay_accept = (u32)(get_usec_timestamp() - tx_mpdu->timestamp_create);
+
+//					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
 					//Convert human-readable rates into PHY rates
 					//n_dbps is used to calculate duration of received ACKs.
@@ -343,12 +348,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					}
 
 					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-						beacon = (beacon_probe_frame*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET+sizeof(mac_header_80211));
-
-						//TODO
-						//beacon->timestamp = get_usec_timestamp();
-						//beacon->timestamp = 0xDEADBEEF;
-
 						//This is a semi-temporary fix until timestamp addition is added
 						//to the MAC hardware
 
@@ -360,9 +359,18 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						wlan_phy_tx_timestamp_ins_end(0);
 					}
 
-					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length);
+
+					phy_tx_timestamps = malloc(sizeof(u32)*tx_mpdu->retry_max);
+					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, phy_tx_timestamps);
+
 
 					tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
+					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
+
+					//xil_printf("\nRetry Count: %d\n", tx_mpdu->retry_count);
+					//for(i = 0; i < tx_mpdu->retry_count; i++){
+					//	xil_printf("[%d]   %d\n", (u32)phy_tx_timestamps[i], (u32)((u64)phy_tx_timestamps[i] + (u64)tx_mpdu->delay_accept + (u64)tx_mpdu->timestamp_create));
+					//}
 
 					if(status == 0){
 						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
@@ -382,6 +390,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						ipc_mailbox_write_msg(&ipc_msg_to_high);
 					}
 
+					free(phy_tx_timestamps);
 
 
 				}
@@ -592,9 +601,19 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 		if(wlan_mac_get_rx_phy_sel() == WLAN_RX_PHY_OFDM) {
 			//OFDM packet is being received
+
+			if(rate == WLAN_MAC_RATE_1M){
+				xil_printf("Rate DSSS, PHY SEL OFDM\n");	  //DEBUG FIXME
+			}
+
 			return_status |= frame_rx_callback(rx_pkt_buf, rate, length);
 		} else {
 			//DSSS packet is being received
+
+			if(rate != WLAN_MAC_RATE_1M){
+				xil_printf("Rate OFDM, PHY SEL DSSS\n");	  //DEBUG FIXME
+			}
+
 			length = length-5;
 			return_status |= frame_rx_callback(rx_pkt_buf, rate, length);
 		}

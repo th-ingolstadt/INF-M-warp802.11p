@@ -102,7 +102,9 @@ int w3_node_init() {
 	XTmrCtr_SetOptions(TmrCtrInstancePtr, 0, (XTC_DOWN_COUNT_OPTION));
 
 	//Give the PHY control of the red user LEDs (PHY counts 1-hot on SIGNAL errors)
-	userio_set_ctrlSrc_hw(USERIO_BASEADDR, W3_USERIO_CTRLSRC_LEDS_RED);
+	//Note: Uncommenting this line will make the RED LEDs controlled by hardware.
+	//This will move the LEDs on PHY bad signal events
+	//userio_set_ctrlSrc_hw(USERIO_BASEADDR, W3_USERIO_CTRLSRC_LEDS_RED);
 
 	return ret;
 }
@@ -257,7 +259,8 @@ void wlan_phy_init() {
 	wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2);
 
 	//LTS correlation thresholds (low NSR, high SNR)
-	wlan_phy_rx_lts_corr_thresholds(12500, 12500);
+	wlan_phy_rx_lts_corr_thresholds(12500, 12500); //FIXME
+	//wlan_phy_rx_lts_corr_thresholds(0xFFFFFFFF, 0xFFFFFFFF); //FIXME
 
 	//Configure RSSI pkt det
  	// RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
