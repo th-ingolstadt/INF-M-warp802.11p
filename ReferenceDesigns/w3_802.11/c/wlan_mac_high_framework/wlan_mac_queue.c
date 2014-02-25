@@ -116,7 +116,7 @@ void purge_queue(u16 queue_sel){
 
 	if( num_queued > 0 ){
 		xil_printf("purging %d packets from queue for queue ID %d\n", num_queued, queue_sel);
-		dequeue_from_beginning(&dequeue, queue_sel, 1);
+		dequeue_from_beginning(&dequeue, queue_sel, num_queued);
 		queue_checkin(&dequeue);
 	}
 }
