@@ -258,6 +258,7 @@ void uart_rx(u8 rxByte){
 								if(ltg_callback_arg != NULL){
 									((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
 									((ltg_pyld_fixed*)ltg_callback_arg)->length = str2num(text_entry);
+									memcpy(((ltg_pyld_hdr*)ltg_callback_arg)->addr_da, access_point->addr, 6);
 
 									//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
 									//simply an artifact of the sequential nature of UART entry. We won't start the scheduler until we call configure again with that updated
@@ -279,6 +280,7 @@ void uart_rx(u8 rxByte){
 									((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
 									((ltg_pyld_uniform_rand*)ltg_callback_arg)->min_length = 0;
 									((ltg_pyld_uniform_rand*)ltg_callback_arg)->max_length = str2num(text_entry);
+									memcpy(((ltg_pyld_hdr*)ltg_callback_arg)->addr_da, access_point->addr, 6);
 
 									//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
 									//simply an artifact of the sequential nature of UART entry. We won't start the scheduler until we call configure again with that updated
@@ -518,7 +520,7 @@ void print_station_status(u8 manual_call){
 				}
 				xil_printf("     - Last heard from    %d ms ago\n",((u32)(timestamp - (access_point->rx.last_timestamp)))/1000);
 				xil_printf("     - Last Rx Power:     %d dBm\n",access_point->rx.last_power);
-				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(1));
+				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(UNICAST_QID));
 				xil_printf("     - # Tx MPDUs:        %d (%d successful)\n", access_point->stats->num_tx_total, access_point->stats->num_tx_success);
 				xil_printf("     - # Tx Retry:        %d\n", access_point->stats->num_retry);
 				xil_printf("     - # DATA: Rx MPDUs:  %d (%d bytes)\n", access_point->stats->data_num_rx_success, access_point->stats->data_num_rx_bytes);

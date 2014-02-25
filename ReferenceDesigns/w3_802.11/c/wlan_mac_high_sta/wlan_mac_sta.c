@@ -66,7 +66,7 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-ARRAY-1";
+static char default_AP_SSID[] = "WARP-AP";
 char*  access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -270,9 +270,8 @@ void add_temp() {
 }
 
 
-
+/*
 void check_tx_queue(){
-
 	u8 i;
 
 	if(pause_queue == 0){
@@ -284,6 +283,38 @@ void check_tx_queue(){
 				if(wlan_mac_queue_poll(queue_index)){
 					return;
 				}
+			}
+		}
+	}
+
+}
+*/
+
+void check_tx_queue(){
+	u8 i;
+	#define MAX_NUM_QUEUE 2
+	if(pause_queue == 0){
+		static u32 queue_index = 0;
+		if( wlan_mac_high_is_cpu_low_ready() ){
+			for(i=0;i<MAX_NUM_QUEUE;i++){
+				//Alternate between checking the unassociated queue and the associated queue
+				queue_index = (queue_index+1)%MAX_NUM_QUEUE;
+
+				switch(queue_index){
+					case 0:
+						if(wlan_mac_queue_poll(MANAGEMENT_QID)){
+							return;
+						}
+					break;
+
+					case 1:
+						if(wlan_mac_queue_poll(UNICAST_QID)){
+							return;
+						}
+					break;
+				}
+
+
 			}
 		}
 	}
@@ -365,7 +396,7 @@ void attempt_association(){
 		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY, TX_GAIN_TARGET,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-				enqueue_after_end(0, &checkout);
+				enqueue_after_end(MANAGEMENT_QID, &checkout);
 				check_tx_queue();
 			}
 			if( curr_try < (ASSOCIATION_NUM_TRYS - 1) ){
@@ -422,7 +453,7 @@ void attempt_authentication(){
 		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY, TX_GAIN_TARGET,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-				enqueue_after_end(0, &checkout);
+				enqueue_after_end(MANAGEMENT_QID, &checkout);
 				check_tx_queue();
 			}
 			if( curr_try < (AUTHENTICATION_NUM_TRYS - 1) ){
@@ -512,7 +543,7 @@ void probe_req_transmit(){
 
 	 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, TX_GAIN_TARGET, 0 );
 
-			enqueue_after_end(0, &checkout);
+			enqueue_after_end(MANAGEMENT_QID, &checkout);
 			check_tx_queue();
 		}
 	}
@@ -544,7 +575,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 			if(queue_num_queued(0) < max_queue_size){
 				wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, TX_GAIN_TARGET, 0 );
 
-				enqueue_after_end(0, tx_queue_list);
+				enqueue_after_end(UNICAST_QID, tx_queue_list);
 				check_tx_queue();
 			} else {
 				return 0;
@@ -557,7 +588,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 				wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY, TX_GAIN_TARGET,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-				enqueue_after_end(1, tx_queue_list);
+				enqueue_after_end(UNICAST_QID, tx_queue_list);
 				check_tx_queue();
 			} else {
 				return 0;
@@ -712,9 +743,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
 					if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)){
 						wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
+						purge_queue(UNICAST_QID);
 						wlan_mac_high_write_hex_display(0);
-
-						if( strlen(access_point_ssid) > 0 ) start_active_scan();
+						if( strlen(access_point_ssid) > 0 && association_state == 4){
+							start_active_scan();
+						}
 					}
 			break;
 
@@ -900,7 +933,7 @@ void ltg_event(u32 id, void* callback_arg){
 	 		wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY, TX_GAIN_TARGET,
 	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-			enqueue_after_end(1, &checkout);
+			enqueue_after_end(UNICAST_QID, &checkout);
 			check_tx_queue();
 		}
 	}

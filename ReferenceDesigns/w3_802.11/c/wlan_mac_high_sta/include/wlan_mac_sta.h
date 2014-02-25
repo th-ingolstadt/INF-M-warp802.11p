@@ -28,6 +28,9 @@
 //    NOTE:  To enable the WLAN Exp framework, please modify wlan_exp_common.h
  #define WLAN_USE_UART_MENU
 
+#define BCAST_QID 0
+#define MANAGEMENT_QID 1
+#define UNICAST_QID 2
 
 
 // **********************************************************************
