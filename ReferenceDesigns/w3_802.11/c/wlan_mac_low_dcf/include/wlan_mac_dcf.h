@@ -35,7 +35,7 @@
 #define MAC_HW_LASTBYTE_ADDR1 (13)
 
 int main();
-int frame_transmit(u8 pkt_buf, u8 rate, u16 length);
+int frame_transmit(u8 pkt_buf, u8 rate, u16 length, u32* phy_tx_timestamps);
 u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length);
 inline int update_cw(u8 reason, u8 pkt_buf);
 inline unsigned int rand_num_slots();

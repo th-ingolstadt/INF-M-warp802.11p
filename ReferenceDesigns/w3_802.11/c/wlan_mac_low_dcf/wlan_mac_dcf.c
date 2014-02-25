@@ -113,7 +113,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//
 	//Two primary job responsibilities of this function:
 	// (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
-	// (2): Pass up FCS-valid MPDUs to CPU_HIGH
+	// (2): Pass up MPDUs (FCS valid or invalid) to CPU_HIGH
 
 	u32 return_value;
 	u32 tx_length;
@@ -184,6 +184,9 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//Prep outgoing ACK just in case it needs to be sent
 	// ACKs are only sent for non-control frames addressed to this node
 	if(unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header)) {
+		//Note: the auto tx subsystem will only fire if enabled by software AND the preceeding reception
+		//has a good FCS. So, as software, we do not need to worry about FCS status when enabling the
+		//the subsystem.
 
 		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceeding reception.
 		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC)+(PHY_RX_SIG_EXT_USEC*10))));
@@ -208,7 +211,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
 
-
 	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
 
 	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
@@ -220,57 +222,64 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		return_value |= POLL_MAC_TYPE_ACK;
 	}
 
+	mpdu_info->timestamp = get_rx_start_timestamp();
 
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
 		green_led_index = (green_led_index + 1) % NUM_LEDS;
 		userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
+
+		return_value |= POLL_MAC_STATUS_GOOD;
+
+		if(unicast_to_me || to_broadcast){
+			return_value |= POLL_MAC_ADDR_MATCH;
+
+			if(!WLAN_IS_CTRL_FRAME(rx_header)) {
+				//This packet should be passed up to CPU_high for further processing
+
+				if(unicast_to_me){
+					//This good FCS, unicast, noncontrol packet was ACKed.
+					mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
+				}
+
+				if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
+					mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
+				}
+
+				//Unlock the pkt buf mutex before passing the packet up
+				// If this fails, something has gone horribly wrong
+				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
+					wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
+				} else {
+
+					if(length >= sizeof(mac_header_80211)){
+						wlan_mac_low_frame_ipc_send();
+						//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
+						wlan_mac_low_lock_empty_rx_pkt_buf();
+
+					} else {
+						warp_printf(PL_ERROR, "Error: received non-control packet of length %d, which is not valid\n", length);
+					}
+				}
+			} //END if(not control packet)
+		} //END if (to_me or to_broadcast)
 	} else {
 		red_led_index = (red_led_index + 1) % NUM_LEDS;
 		userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
-	}
 
-	mpdu_info->timestamp = get_rx_start_timestamp();
-
-	return_value |= POLL_MAC_STATUS_GOOD;
-
-	if(unicast_to_me || to_broadcast){
-		return_value |= POLL_MAC_ADDR_MATCH;
-
-		if(!WLAN_IS_CTRL_FRAME(rx_header)) {
-			//This packet should be passed up to CPU_high for further processing
-
-			if(unicast_to_me){
-				//This good FCS, unicast, noncontrol packet was ACKed.
-				mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
-			}
-
-			if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
-				mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
-			}
-
-			//Unlock the pkt buf mutex before passing the packet up
-			// If this fails, something has gone horribly wrong
-			if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
-				wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
-			} else {
-
-				if(length >= sizeof(mac_header_80211)){
-
-					wlan_mac_low_frame_ipc_send();
-
-					//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
-					wlan_mac_low_lock_empty_rx_pkt_buf();
-
-				} else {
-					warp_printf(PL_ERROR, "Error: received non-control packet of length %d, which is not valid\n", length);
-				}
-			}
-		} //END if(not control packet)
-	} //END if (to_me or to_broadcast)
-
+		//Unlock the pkt buf mutex before passing the packet up
+		// If this fails, something has gone horribly wrong
+		if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
+			wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
+		} else {
+			wlan_mac_low_frame_ipc_send();
+			//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
+			wlan_mac_low_lock_empty_rx_pkt_buf();
+		}
+	} //END else (FCS bad)
 	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
 	wlan_mac_dcf_hw_unblock_rx_phy();
 
@@ -278,7 +287,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 }
 
 
-int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
+int frame_transmit(u8 pkt_buf, u8 rate, u16 length, u32* phy_tx_timestamps) {
 	//This function manages the MAC_DCF_HW core.
 
 	u32 i;
@@ -287,6 +296,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 	u32 tx_status, rx_status;
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+	u64 last_tx_timestamp;
+
+	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
 	for(i=0; i<mpdu_info->retry_max ; i++){
 		//Loop over retransmissions
@@ -295,7 +307,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 		radio_controller_setTxGainTarget(RC_BASEADDR, (RC_ALL_RF), mpdu_info->gain_target);
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
-		if(req_timeout == 0) update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
+		//if(req_timeout == 0) update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf); //FIXME
 		n_slots = rand_num_slots();
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
@@ -310,10 +322,16 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 			tx_status = wlan_mac_get_status();
 
 			if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
+				if(phy_tx_timestamps != NULL){
+					//phy_tx_timestamps[i] = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
+					//last_tx_timestamp = get_tx_start_timestamp();
+					phy_tx_timestamps[i] = (u32)(get_usec_timestamp() - last_tx_timestamp);
+					last_tx_timestamp = get_usec_timestamp();
+				}
 				switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 						//Tx didn't require timeout, completed successfully
-						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
+						update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
 						n_slots = rand_num_slots();
 						wlan_mac_dcf_hw_start_backoff(n_slots);
 						return 0;
@@ -374,110 +392,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
 
 }
 
-/*
-int frame_transmit(u8 pkt_buf, u8 rate, u16 length) {
-	//This function manages the MAC_DCF_HW core. It is recursive -- it will call itself if retransmissions are needed.
-
-	u8 req_timeout;
-	u16 n_slots;
-	u32 tx_status, rx_status;
-	u8 expect_ack;
-	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
-
-	radio_controller_setTxGainTarget(RC_BASEADDR, (RC_ALL_RF), mpdu_info->gain_target);
-
-	//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
-	req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
-
-	if(req_timeout == 0) update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
-
-	n_slots = rand_num_slots();
-
-	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
-	wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
-	//temp = Xil_In32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET));
-
-	wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
-
-	//Submit the MPDU for transmission
-	wlan_mac_MPDU_tx_start(1);
-	wlan_mac_MPDU_tx_start(0);
-
-	//Wait for the MPDU Tx to finish
-	do{
-
-		tx_status = wlan_mac_get_status();
-
-		if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
-			switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
-				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
-					//Tx didn't require timeout, completed successfully
-
-
-					return 0;
-				break;
-				case WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED:
-					expect_ack = 1;
-
-					rx_status = wlan_mac_low_poll_frame_rx();
-
-					if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
-						update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
-						n_slots = rand_num_slots();
-
-						wlan_mac_dcf_hw_start_backoff(n_slots);
-
-
-						return 0;
-					} else {
-						if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)){
-							n_slots = rand_num_slots();
-							wlan_mac_dcf_hw_start_backoff(n_slots);
-
-
-
-							return -1;
-						} else{
-							n_slots = rand_num_slots();
-							wlan_mac_dcf_hw_start_backoff(n_slots);
-
-							return frame_transmit(pkt_buf, rate, length);
-						}
-					}
-				break;
-				case WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT:
-					//Tx required tmieout, timeout expired with no receptions
-
-					//Update the contention window
-					if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
-
-						return -1;
-					}
-
-					//Start a random backoff interval using the updated CW
-					n_slots = rand_num_slots();
-					wlan_mac_dcf_hw_start_backoff(n_slots);
-
-
-					//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
-
-					return frame_transmit(pkt_buf, rate, length);
-
-				break;
-
-			}
-		} else {
-			if( (tx_status&WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE)){
-				rx_status = wlan_mac_low_poll_frame_rx();
-			}
-		}
-	} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
-
-
-	return 0;
-
-}
-*/
 
 inline int update_cw(u8 reason, u8 pkt_buf){
 	u32* station_rc_ptr;
@@ -517,6 +431,7 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 		case DCF_CW_UPDATE_BCAST_TX:
 		case DCF_CW_UPDATE_MPDU_RX_ACK:
 			//Update counts and contention windows
+			(*rc_ptr)++;
 			(*station_rc_ptr) = 0;
 			cw_exp = DCF_CW_EXP_MIN;
 		break;
