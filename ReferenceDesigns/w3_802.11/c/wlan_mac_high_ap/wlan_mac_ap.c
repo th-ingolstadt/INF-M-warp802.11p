@@ -247,50 +247,67 @@ int main(){
 }
 
 void check_tx_queue(){
-	u32 i;
+	u32 i,k;
+	#define NUM_QUEUE_GROUPS 2
+	typedef enum {MGMT_QGRP, DATA_QGRP} queue_group;
+
+	static queue_group next_queue_group = MGMT_QGRP;
+	queue_group curr_queue_group;
+
 	static station_info* next_station_info = NULL;
 	station_info* curr_station_info;
 
 	if( wlan_mac_high_is_cpu_low_ready() ){
 
-		//Check the high-priority management queue
-		if(wlan_mac_queue_poll(MANAGEMENT_QID)){
-			return;
-		}
+		for(k = 0; k < NUM_QUEUE_GROUPS; k++){
 
-		curr_station_info = next_station_info;
-		for(i = 0; i < (association_table.length + 1) ; i++){
-			//Loop through all associated stations' queues + the broadcast queue
-			if(curr_station_info == NULL){
-				//Check the broadcast queue
-				next_station_info = (station_info*)(association_table.first);
-				if(wlan_mac_queue_poll(BCAST_QID)){
-					return;
-				} else {
-					curr_station_info = next_station_info;
-				}
-			} else {
-				if( wlan_mac_high_is_valid_association(&association_table, curr_station_info) ){
-					if(curr_station_info == (station_info*)(association_table.last)){
-						//We've reached the end of the table, so we wrap around to the beginning
-						next_station_info = NULL;
-					} else {
-						next_station_info = station_info_next(curr_station_info);
-					}
+			curr_queue_group = next_queue_group;
 
-					if(wlan_mac_queue_poll(AID_TO_QID(curr_station_info->AID))){
+			switch(curr_queue_group){
+				case MGMT_QGRP:
+					next_queue_group = DATA_QGRP;
+					if(wlan_mac_queue_poll(MANAGEMENT_QID)){
 						return;
-					} else {
-						curr_station_info = next_station_info;
 					}
-				} else {
-					//This curr_station_info is invalid. Perhaps it was removed from
-					//the association table before check_tx_queue was called. We will
-					//start the round robin checking back at broadcast.
-					//xil_printf("isn't getting here\n");
-					next_station_info = NULL;
-					return;
-				}
+				break;
+				case DATA_QGRP:
+					next_queue_group = MGMT_QGRP;
+					curr_station_info = next_station_info;
+						for(i = 0; i < (association_table.length + 1) ; i++){
+							//Loop through all associated stations' queues + the broadcast queue
+							if(curr_station_info == NULL){
+								//Check the broadcast queue
+								next_station_info = (station_info*)(association_table.first);
+								if(wlan_mac_queue_poll(BCAST_QID)){
+									return;
+								} else {
+									curr_station_info = next_station_info;
+								}
+							} else {
+								if( wlan_mac_high_is_valid_association(&association_table, curr_station_info) ){
+									if(curr_station_info == (station_info*)(association_table.last)){
+										//We've reached the end of the table, so we wrap around to the beginning
+										next_station_info = NULL;
+									} else {
+										next_station_info = station_info_next(curr_station_info);
+									}
+
+									if(wlan_mac_queue_poll(AID_TO_QID(curr_station_info->AID))){
+										return;
+									} else {
+										curr_station_info = next_station_info;
+									}
+								} else {
+									//This curr_station_info is invalid. Perhaps it was removed from
+									//the association table before check_tx_queue was called. We will
+									//start the round robin checking back at broadcast.
+									//xil_printf("isn't getting here\n");
+									next_station_info = NULL;
+									return;
+								}
+							}
+						}
+				break;
 			}
 		}
 	}
