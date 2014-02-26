@@ -686,8 +686,8 @@ void transport_send(int socket, wn_host_message* currMsg, pktSrcInfo* pktSrc, un
 	len_to_send  = currMsg->length + sizeof(wn_transport_header);
 
 	// Grab a copy of the current header
-	//     The send function will preform a network swap of the header to send
-	//     over the wire and then restor the original version for future
+	//     The send function will perform a network swap of the header to send
+	//     over the wire and then restore the original version for future
 	//     processing
 	memcpy(&tmp_hdr, wn_header_tx, sizeof(wn_transport_header));
 
@@ -707,7 +707,10 @@ void transport_send(int socket, wn_host_message* currMsg, pktSrcInfo* pktSrc, un
 	sendAddr.sin_port        = pktSrc->destPort;
 
 #ifdef _DEBUG_
-	xil_printf("sendAddr.sin_addr.s_addr = %d.%d.%d.%d\n",(sendAddr.sin_addr.s_addr>>24)&0xFF,(sendAddr.sin_addr.s_addr>>16)&0xFF,(sendAddr.sin_addr.s_addr>>8)&0xFF,(sendAddr.sin_addr.s_addr)&0xFF);
+	xil_printf("sendAddr.sin_addr.s_addr = %d.%d.%d.%d\n",(sendAddr.sin_addr.s_addr>>24)&0xFF,
+			                                              (sendAddr.sin_addr.s_addr>>16)&0xFF,
+			                                              (sendAddr.sin_addr.s_addr>>8)&0xFF,
+			                                              (sendAddr.sin_addr.s_addr)&0xFF);
 	xil_printf("sendAddr.sin_family      = %d\n",sendAddr.sin_family);
 	xil_printf("sendAddr.sin_port        = %d\n",sendAddr.sin_port);
 
