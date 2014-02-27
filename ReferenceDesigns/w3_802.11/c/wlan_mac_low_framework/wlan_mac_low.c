@@ -385,8 +385,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 					} else {
 						ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
-						ipc_msg_to_high.num_payload_words = 0;
+						ipc_msg_to_high.num_payload_words = tx_mpdu->retry_count;
 						ipc_msg_to_high.arg0 = tx_pkt_buf;
+						ipc_msg_to_high.payload_ptr = (u32*)phy_tx_timestamps;
 						ipc_mailbox_write_msg(&ipc_msg_to_high);
 					}
 
