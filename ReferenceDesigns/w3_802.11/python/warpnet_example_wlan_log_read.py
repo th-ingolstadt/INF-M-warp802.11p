@@ -100,8 +100,9 @@ n_ap.ltg_to_node_start(n_sta)
 time.sleep(TRIAL_TIME)
 print("Done.\n")
 	
-# Stop the LTG flow so that nodes are in a known, good state
+# Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
 n_ap.ltg_to_node_stop(n_sta)
+n_ap.queue_tx_data_purge_all()
 
 
 # Look at the log sizes after the first LTG
@@ -122,8 +123,9 @@ n_sta.ltg_to_node_start(n_ap)
 time.sleep(TRIAL_TIME)
 print("Done.\n")
 	
-# Stop the LTG flow so that nodes are in a known, good state
+# Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
 n_sta.ltg_to_node_stop(n_ap)
+n_sta.queue_tx_data_purge_all()
 
 
 # Look at the log sizes after the second LTG
