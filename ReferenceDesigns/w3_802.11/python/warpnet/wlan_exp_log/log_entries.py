@@ -233,7 +233,9 @@ log_entry_txrx_stats.set_field_info( [
     ('B',     'uint8',       'associated'),
     ('x',     'uint8',       'padding'),
     ('I',     'uint32',      'num_tx_total'),
-    ('I',     'uint32',      'num_tx_successful'),
-    ('I',     'uint32',      'num_tx_total_retry'),
-    ('I',     'uint32',      'num_rx_successful'),
-    ('I',     'uint32',      'num_rx_bytes')])
+    ('I',     'uint32',      'num_tx_success'),
+    ('I',     'uint32',      'num_retry'),
+    ('I',     'uint32',      'mgmt_num_rx_success'),
+    ('I',     'uint32',      'mgmt_num_rx_bytes'),
+    ('I',     'uint32',      'data_num_rx_success'),
+    ('I',     'uint32',      'data_num_rx_bytes')])
