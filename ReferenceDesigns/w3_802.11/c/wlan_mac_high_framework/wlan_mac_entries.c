@@ -120,15 +120,15 @@ rx_dsss_entry* get_next_empty_rx_dsss_entry(){
 *
 * @param    None.
 *
-* @return	tx_entry *   - Pointer to the next "empty" TX entry or NULL
+* @return	tx_high_entry *   - Pointer to the next "empty" TX entry or NULL
 *
 * @note		None.
 *
 ******************************************************************************/
-tx_entry* get_next_empty_tx_entry(){
+tx_high_entry* get_next_empty_tx_high_entry(){
 
 	// Get the next empty entry
-	return (tx_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX, sizeof(tx_entry) );
+	return (tx_high_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) );
 
 }
 
@@ -153,7 +153,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 	exp_info_entry     * exp_info_entry_log_item;
 	txrx_stats_entry   * txrx_stats_entry_log_item;
 	rx_common_entry    * rx_common_log_item;
-	tx_entry           * tx_entry_log_item;
+	tx_high_entry           * tx_high_entry_log_item;
 
 	switch( entry_type ){
         case ENTRY_TYPE_NODE_INFO:
@@ -237,19 +237,19 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   Channel:  %d\n",     rx_common_log_item->chan_num);
 		break;
 
-		case ENTRY_TYPE_TX:
-			tx_entry_log_item = (tx_entry*) entry;
+		case ENTRY_TYPE_TX_HIGH:
+			tx_high_entry_log_item = (tx_high_entry*) entry;
 			xil_printf("%d: - Tx Event\n", entry_number);
-			xil_printf("   Creation Time:    %d\n",		(u32)(tx_entry_log_item->timestamp_create));
-			xil_printf("   Accept Delay:     %d\n",		(u32)(tx_entry_log_item->delay_accept));
-			xil_printf("   Done Delay:       %d\n",		(u32)(tx_entry_log_item->delay_done));
-			xil_printf("   Tx Gain Target:   %d\n",     tx_entry_log_item->gain_target);
-			xil_printf("   Rate:             %d\n",     tx_entry_log_item->rate);
-			xil_printf("   Length:           %d\n",     tx_entry_log_item->length);
-			xil_printf("   Channel:          %d\n",     tx_entry_log_item->chan_num);
-			xil_printf("   Result:           %d\n",     tx_entry_log_item->result);
-			xil_printf("   Pkt Type:         0x%x\n",   tx_entry_log_item->pkt_type);
-			xil_printf("   Retry:            %d\n",     tx_entry_log_item->retry_count);
+			xil_printf("   Creation Time:    %d\n",		(u32)(tx_high_entry_log_item->timestamp_create));
+			xil_printf("   Accept Delay:     %d\n",		(u32)(tx_high_entry_log_item->delay_accept));
+			xil_printf("   Done Delay:       %d\n",		(u32)(tx_high_entry_log_item->delay_done));
+			xil_printf("   Tx Gain Target:   %d\n",     tx_high_entry_log_item->gain_target);
+			xil_printf("   Rate:             %d\n",     tx_high_entry_log_item->rate);
+			xil_printf("   Length:           %d\n",     tx_high_entry_log_item->length);
+			xil_printf("   Channel:          %d\n",     tx_high_entry_log_item->chan_num);
+			xil_printf("   Result:           %d\n",     tx_high_entry_log_item->result);
+			xil_printf("   Pkt Type:         0x%x\n",   tx_high_entry_log_item->pkt_type);
+			xil_printf("   Retry:            %d\n",     tx_high_entry_log_item->retry_count);
 		break;
 
 		default:

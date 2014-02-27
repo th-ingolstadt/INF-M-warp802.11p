@@ -58,7 +58,7 @@
 //-----------------------------------------------
 // Transmit Entries
 
-#define ENTRY_TYPE_TX                  20
+#define ENTRY_TYPE_TX_HIGH                  20
 
 //-----------------------------------------------
 // Statistics Entries
@@ -203,7 +203,7 @@ typedef struct{
 
 
 //-----------------------------------------------
-// Transmit Entry
+// High-level Transmit Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
 //          accurately reflects the number of bytes in the struct.
 //
@@ -221,7 +221,7 @@ typedef struct{
 	u8 	 pkt_type;
 	u8	 ant_mode;
 	u8	 rsvd[3];
-} tx_entry;
+} tx_high_entry;
 
 
 /*************************** Function Prototypes *****************************/
@@ -236,7 +236,7 @@ rx_ofdm_entry    * get_next_empty_rx_ofdm_entry();
 rx_dsss_entry    * get_next_empty_rx_dsss_entry();
 station_info_entry* get_next_empty_station_info_entry();
 
-tx_entry         * get_next_empty_tx_entry();
+tx_high_entry         * get_next_empty_tx_high_entry();
 
 
 //-----------------------------------------------
