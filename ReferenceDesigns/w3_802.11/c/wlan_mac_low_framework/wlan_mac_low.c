@@ -762,6 +762,8 @@ inline u64 get_rx_start_timestamp() {
  * - microsecond timestamp
  */
 inline u64 get_tx_start_timestamp() {
+#if 0
+	!!!! Use with Hardware v38 or later !!!!
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
@@ -769,6 +771,9 @@ inline u64 get_tx_start_timestamp() {
 	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
 	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
 	return timestamp_u64;
+#else
+	return 0;
+#endif
 }
 
 /**
