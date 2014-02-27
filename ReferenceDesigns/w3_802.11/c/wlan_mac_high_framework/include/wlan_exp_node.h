@@ -77,6 +77,9 @@
 #define NODE_GET_STATS                 61
 #define NODE_RESET_STATS               62
 
+#define NODE_QUEUE_TX_DATA_PURGE_ALL   70
+
+
 #define NODE_CONFIG_DEMO               90
 
 

@@ -99,6 +99,7 @@ void print_wn_parameters( wn_tag_parameter *param, int num_params );
 
 // Functions implemented in AP / STA
 void reset_station_statistics();
+void purge_all_data_tx_queue();
 
 
 
@@ -1178,6 +1179,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			xil_printf("Reseting Statistics\n");
 
 			reset_station_statistics();
+		break;
+
+
+		//---------------------------------------------------------------------
+		case NODE_QUEUE_TX_DATA_PURGE_ALL:
+			xil_printf("Purging All Data Transmit Queues\n");
+
+			purge_all_data_tx_queue();
 		break;
 
 
