@@ -210,30 +210,6 @@ int main(){
 
 	wlan_mac_high_interrupt_start();
 
-
-/*	//DEBUG
-	station_info* temp_station;
-	u8 temp_addr[6] = {0x0, 0x1, 0x2, 0x3, 0x4, 0x5};
-	ltg_sched_periodic_params periodic_params;
-	ltg_pyld_fixed* ltg_callback_arg;
-
-	temp_station = wlan_mac_high_add_association(&association_table, &statistics_table, temp_addr, 1);
-	temp_station->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
-	temp_station->tx.rate = default_unicast_rate;
-
-	ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_fixed));
-	if(ltg_callback_arg != NULL){
-		((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
-		memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->hdr.addr_da, temp_addr,6);
-		((ltg_pyld_fixed*)ltg_callback_arg)->length = 1400;
-		periodic_params.interval_usec = 0;
-		ltg_sched_configure(AID_TO_LTG_ID(1), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
-		ltg_sched_start(AID_TO_LTG_ID(1));
-	}
-*/
-	//DEBUG
-
-
 	while(1){
 		//The design is entirely interrupt based. When no events need to be processed, the processor
 		//will spin in this loop until an interrupt happens
@@ -310,6 +286,19 @@ void check_tx_queue(){
 				break;
 			}
 		}
+	}
+}
+
+void purge_all_data_tx_queue(){
+	u32 i;
+	station_info* curr_station_info;
+
+	// Purge all data transmit queues
+	purge_queue(BCAST_QID);                                    		// Broadcast Queue
+	curr_station_info = (station_info*)(association_table.first);
+	for(i=0; i < association_table.length; i++){
+		purge_queue(AID_TO_QID(curr_station_info->AID));       		// Each unicast queue
+		curr_station_info = (station_info*)((curr_station_info->entry).next);
 	}
 }
 
