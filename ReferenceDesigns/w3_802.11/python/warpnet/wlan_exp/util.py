@@ -346,7 +346,7 @@ def filter_nodes(nodes, filter_type, filter_val):
 
     if (len(ret_nodes) == 0):
         import warnings
-        msg  = "No nodes match filter: {0} = {1}".format(filter_type, filter_val)
+        msg  = "\nNo nodes match filter: {0} = {1}".format(filter_type, filter_val)
         warnings.warn(msg)
 
     return ret_nodes

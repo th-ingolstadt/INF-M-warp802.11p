@@ -40,6 +40,9 @@ Functions (see below for more information):
     NodeProcChannel()
     NodeProcTxRate()
     NodeProcTxGain()
+    
+    QueueTxDataPurgeAll()
+    
 
 Integer constants:
     None
@@ -58,7 +61,8 @@ import warpnet.wn_transport_eth_udp as wn_transport
 __all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetCurrIdx', 'LogGetOldestIdx',
            'StatsGetTxRx', 'StatsGetAllTxRx', 'StatsAddTxRxToLog', 'StatsResetTxRx', 
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
-           'NodeProcTime', 'NodeProcChannel', 'NodeProcTxRate', 'NodeProcTxGain']
+           'NodeProcTime', 'NodeProcChannel', 'NodeProcTxRate', 'NodeProcTxGain',
+           'QueueTxDataPurgeAll']
 
 
 # WLAN Exp Command IDs (Extension of WARPNet Command IDs)
@@ -99,6 +103,8 @@ LOG_CONFIG_FLAG_WRAP         = 0x00000001
 CMD_STATS_ADD_TXRX_TO_LOG    = 60
 CMD_STATS_GET_TXRX           = 61
 CMD_STATS_RESET_TXRX         = 62
+
+CMD_QUEUE_TX_DATA_PURGE_ALL  = 70
 
 CMD_CONFIG_DEMO              = 90
 
@@ -249,7 +255,7 @@ class StatsGetTxRx(wn_message.Cmd):
         
         # TODO:  This works but needs to be fixed
         val = log.log_entry_txrx_stats.deserialize(resp.raw_data[8:])
-        
+
         return val
 
 # End Class
@@ -523,5 +529,16 @@ class NodeProcTxGain(wn_message.Cmd):
 # End Class
 
 
+#--------------------------------------------
+# Queue Commands
+#--------------------------------------------
+class QueueTxDataPurgeAll(wn_message.Cmd):
+    """Command to purge all data transmit queues on the node."""
+    def __init__(self):
+        super(QueueTxDataPurgeAll, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_QUEUE_TX_DATA_PURGE_ALL
+        
+    def process_resp(self, resp):
+        pass
 
-
+# End Class

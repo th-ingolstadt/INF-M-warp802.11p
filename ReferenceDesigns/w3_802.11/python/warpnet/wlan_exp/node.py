@@ -476,6 +476,13 @@ class WlanExpNode(wn_node.WnNode):
         """Gets the current transmit gain of the node."""
         return self.send_cmd(cmds.NodeProcTxGain(cmds.RSVD_TX_GAIN))
 
+    #--------------------------------------------
+    # Queue Commands
+    #--------------------------------------------
+    def queue_tx_data_purge_all(self):
+        """Purges all data transmit queues on the node."""
+        return self.send_cmd(cmds.QueueTxDataPurgeAll())
+
 
 
     #-------------------------------------------------------------------------
