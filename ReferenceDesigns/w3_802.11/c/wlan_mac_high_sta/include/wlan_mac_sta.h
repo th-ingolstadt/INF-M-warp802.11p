@@ -104,7 +104,7 @@ void ltg_event(u32 id, void* callback_arg);
 int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
 
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
-void mpdu_transmit_done(tx_frame_info* tx_mpdu);
+void mpdu_transmit_done(tx_frame_info* tx_mpdu, u32* tx_start_timestamps);
 void check_tx_queue();
 
 void start_active_scan();

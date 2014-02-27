@@ -323,8 +323,8 @@ void check_tx_queue(){
 
 
 
-void mpdu_transmit_done(tx_frame_info* tx_mpdu){
-	tx_entry* tx_event_log_entry;
+void mpdu_transmit_done(tx_frame_info* tx_mpdu, u32* tx_start_timestamps){
+	tx_high_entry* tx_event_log_entry;
 	station_info* station;
 
 	void * mpdu = (void*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -334,10 +334,10 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu){
 
 
 
-	tx_event_log_entry = get_next_empty_tx_entry();
+	tx_event_log_entry = get_next_empty_tx_high_entry();
 
 	if(tx_event_log_entry != NULL){
-		wlan_mac_high_cdma_start_transfer((&((tx_entry*)tx_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
+		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
 		tx_event_log_entry->result                   = tx_mpdu->state_verbose;
 		tx_event_log_entry->gain_target              = tx_mpdu->gain_target;
 		tx_event_log_entry->length                   = tx_mpdu->length;
