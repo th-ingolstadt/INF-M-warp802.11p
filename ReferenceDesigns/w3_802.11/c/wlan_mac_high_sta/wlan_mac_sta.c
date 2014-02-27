@@ -270,26 +270,6 @@ void add_temp() {
 }
 
 
-/*
-void check_tx_queue(){
-	u8 i;
-
-	if(pause_queue == 0){
-		static u32 queue_index = 0;
-		if( wlan_mac_high_is_cpu_low_ready() ){
-			for(i=0;i<2;i++){
-				//Alternate between checking the unassociated queue and the associated queue
-				queue_index = (queue_index+1)%2;
-				if(wlan_mac_queue_poll(queue_index)){
-					return;
-				}
-			}
-		}
-	}
-
-}
-*/
-
 void check_tx_queue(){
 	u8 i;
 	#define MAX_NUM_QUEUE 2
@@ -321,7 +301,12 @@ void check_tx_queue(){
 
 }
 
+void purge_all_data_tx_queue(){
 
+	// Purge all data transmit queues
+	purge_queue(BCAST_QID);           // Broadcast Queue
+	purge_queue(UNICAST_QID);         // Unicast Queue
+}
 
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, u32* tx_start_timestamps){
 	tx_high_entry* tx_event_log_entry;
