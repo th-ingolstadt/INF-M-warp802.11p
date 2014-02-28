@@ -304,7 +304,7 @@ void purge_all_data_tx_queue(){
 
 
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, u32* tx_start_timestamps){
-	//u32 i;
+//	u32 i;
 	tx_high_entry* tx_high_event_log_entry;
 	station_info* station;
 
@@ -312,15 +312,15 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, u32* tx_start_timestamps){
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
-	//u32 ts_old = 0;
+//	u32 ts_old = 0;
 
-	/*
-	xil_printf("\n");
-	for(i = 0; i < tx_mpdu->retry_count; i++){
-		xil_printf("[%d] %d\n", (u32)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_start_timestamps[i]) + ts_old), (u32)(tx_start_timestamps[i]));
-		ts_old = tx_start_timestamps[i];
-	}
-	*/
+
+//	xil_printf("\n");
+//	for(i = 0; i < tx_mpdu->retry_count; i++){
+//		xil_printf("[%d] %d\n", (u32)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_start_timestamps[i]) + ts_old), (u32)(tx_start_timestamps[i]));
+//		ts_old = tx_start_timestamps[i];
+//	}
+
 
 	tx_high_event_log_entry = get_next_empty_tx_high_entry();
 
@@ -515,6 +515,7 @@ void beacon_transmit() {
 
  		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, eeprom_mac_addr );
         tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,1,tim_control,tim_bitmap);
+
  		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, default_tx_gain_target, TX_MPDU_FLAGS_FILL_TIMESTAMP );
  		enqueue_after_end(MANAGEMENT_QID, &checkout); //TODO: BCAST_QID or MANAGEMENT_QID
 
