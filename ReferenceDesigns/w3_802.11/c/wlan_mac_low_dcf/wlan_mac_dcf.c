@@ -323,10 +323,10 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, u32* phy_tx_timestamps) {
 
 			if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
 				if(phy_tx_timestamps != NULL){
-					//phy_tx_timestamps[i] = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
-					//last_tx_timestamp = get_tx_start_timestamp();
-					phy_tx_timestamps[i] = (u32)(get_usec_timestamp() - last_tx_timestamp);
-					last_tx_timestamp = get_usec_timestamp();
+					phy_tx_timestamps[i] = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
+					last_tx_timestamp = get_tx_start_timestamp();
+					//phy_tx_timestamps[i] = (u32)(get_usec_timestamp() - last_tx_timestamp);
+					//last_tx_timestamp = get_usec_timestamp();
 				}
 				switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
