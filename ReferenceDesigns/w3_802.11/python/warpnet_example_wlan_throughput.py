@@ -13,7 +13,7 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This script initializes two WARP v3 nodes, one AP and one STA. It assumes the STA is 
+  This script initializes two WARP v3 nodes, one AP and one STA. It assumes the STA is
   already associated with the AP. The script then initiates a traffic flow from the AP to STA,
   sets the AP Tx rate and measures throughput by counting the number of bytes received successfully
   at the STA. This process repeats for multiple Tx rates.
@@ -31,7 +31,7 @@ NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 # Select some PHY rates to test
 #  wlan_exp_util.rates is an array of dictionaries with keys:
 #      'rate_index', 'rate', 'rate_str'
-#  NOTE: rates must be a list for the below loops to work.  To select a 
+#  NOTE: rates must be a list for the below loops to work.  To select a
 #    single rate please use the syntax:  wlan_exp_util.rates[0:1] to select
 #    just entry [0] of the list.
 rates = wlan_exp_util.rates[0:4]
@@ -77,7 +77,7 @@ for node in nodes:
     # Get some additional information about the experiment
     channel = node.node_get_channel()
     tx_gain = node.node_get_tx_gain()
-    
+
     print("\n{0}:".format(node.name))
     print("    Channel = {0}".format(channel))
     print("    Tx Gain = {0}".format(tx_gain))
@@ -107,8 +107,8 @@ for ii,rate in enumerate(rates):
 
     #Configure the AP's Tx rate for the selected station
     n_ap.node_set_tx_rate(n_sta, rate)
-  
-    #Record the station's initial Tx/Rx stats 
+
+    #Record the station's initial Tx/Rx stats
     rx_stats_start = n_sta.stats_get_txrx(n_ap)
 
     #Wait for a while
@@ -118,10 +118,10 @@ for ii,rate in enumerate(rates):
     rx_stats_end = n_sta.stats_get_txrx(n_ap)
 
     #Compute the number of new bytes received and the time span
-    rx_bytes.insert(ii, rx_stats_end['num_rx_bytes'] - rx_stats_start['num_rx_bytes'])
+    rx_bytes.insert(ii, rx_stats_end['data_num_rx_bytes'] - rx_stats_start['data_num_rx_bytes'])
     rx_time_spans.insert(ii, rx_stats_end['timestamp'] - rx_stats_start['timestamp'])
     print("Done.")
-	
+
 print("\n")
 
 # Stop the LTG flow so that nodes are in a known, good state
@@ -132,8 +132,8 @@ print("Results:")
 
 for ii in range(len(rates)):
     #Timestamps are in microseconds; bits/usec == Mbits/sec
-    #  NOTE: In Python 3.x, the division operator is always floating point.  
-    #    In order to be compatible with all versions of python, cast 
+    #  NOTE: In Python 3.x, the division operator is always floating point.
+    #    In order to be compatible with all versions of python, cast
     #    operands to floats to ensure floating point division
     num_bytes = float(rx_bytes[ii] * 8)
     time_span = float(rx_time_spans[ii])
