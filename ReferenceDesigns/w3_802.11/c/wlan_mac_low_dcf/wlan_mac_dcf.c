@@ -287,7 +287,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 }
 
 
-int frame_transmit(u8 pkt_buf, u8 rate, u16 length, u32* phy_tx_timestamps) {
+int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
 	//This function manages the MAC_DCF_HW core.
 
 	u32 i;
@@ -307,7 +307,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, u32* phy_tx_timestamps) {
 		radio_controller_setTxGainTarget(RC_BASEADDR, (RC_ALL_RF), mpdu_info->gain_target);
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
-		//if(req_timeout == 0) update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf); //FIXME
 		n_slots = rand_num_slots();
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
@@ -319,14 +318,17 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, u32* phy_tx_timestamps) {
 
 		//Wait for the MPDU Tx to finish
 		do{
+
+			low_tx_details[i].rate = mpdu_info->rate;
+			low_tx_details[i].tx_power = 0; //TODO FIXME
+			low_tx_details[i].ant_mode = 0; //TODO FIXME
+
 			tx_status = wlan_mac_get_status();
 
 			if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
-				if(phy_tx_timestamps != NULL){
-					phy_tx_timestamps[i] = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
+				if(low_tx_details != NULL){
+					low_tx_details[i].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
 					last_tx_timestamp = get_tx_start_timestamp();
-					//phy_tx_timestamps[i] = (u32)(get_usec_timestamp() - last_tx_timestamp);
-					//last_tx_timestamp = get_usec_timestamp();
 				}
 				switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
