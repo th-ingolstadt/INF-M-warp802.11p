@@ -113,12 +113,9 @@ typedef struct {
 #define WLAN_MAC_ETH_ADDR_LEN         6
 
 typedef struct {
-
     u32   type;
-
 	u32   serial_number;
 	u32   fpga_dna[WLAN_MAC_FPGA_DNA_LEN];
-
     u32   wn_exp_eth_device;
     u8    hw_addr_wn[WLAN_MAC_ETH_ADDR_LEN];
     u8    hw_addr_wlan[WLAN_MAC_ETH_ADDR_LEN];
@@ -126,6 +123,13 @@ typedef struct {
 } wlan_mac_hw_info;
 
 
+typedef struct {
+	u32   tx_start_delta;
+	u8    rate;
+	s8    tx_power;
+	u8 	  ant_mode;
+	u8 	  rsvd;
+} wlan_mac_low_tx_details;
 
 
 
