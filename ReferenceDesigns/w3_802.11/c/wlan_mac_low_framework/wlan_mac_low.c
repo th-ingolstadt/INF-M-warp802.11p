@@ -243,7 +243,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u16 n_dbps;
 	u32 isLocked, owner;
 	u64 new_timestamp;
-	u32* phy_tx_timestamps;
+	wlan_mac_low_tx_details* low_tx_details;
 	u32 i;
 
 
@@ -360,8 +360,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					}
 
 
-					phy_tx_timestamps = malloc(sizeof(u32)*tx_mpdu->retry_max);
-					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, phy_tx_timestamps);
+					low_tx_details = malloc(sizeof(wlan_mac_low_tx_details)*tx_mpdu->retry_max);
+					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
 
 
 					tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
@@ -385,13 +385,13 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 					} else {
 						ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
-						ipc_msg_to_high.num_payload_words = tx_mpdu->retry_count;
+						ipc_msg_to_high.num_payload_words = ( (tx_mpdu->retry_count)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
 						ipc_msg_to_high.arg0 = tx_pkt_buf;
-						ipc_msg_to_high.payload_ptr = (u32*)phy_tx_timestamps;
+						ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
 						ipc_mailbox_write_msg(&ipc_msg_to_high);
 					}
 
-					free(phy_tx_timestamps);
+					free(low_tx_details);
 
 
 				}
