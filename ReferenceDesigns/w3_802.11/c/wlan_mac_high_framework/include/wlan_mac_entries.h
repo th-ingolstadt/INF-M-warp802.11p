@@ -223,6 +223,27 @@ typedef struct{
 	u8	 rsvd[3];
 } tx_high_entry;
 
+//-----------------------------------------------
+// Low-level Transmit Entry
+//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
+//          accurately reflects the number of bytes in the struct.
+//
+typedef struct{
+	u64  timestamp_send;
+	mac_header_80211 mac_hdr;
+	u8   rsvd1;
+	u8 	 gain_target;
+	u8 	 chan_num;
+	u8   rate;
+	u16  length;
+	u8 	 result;
+	u8 	 pkt_type;
+	u8	 ant_mode;
+	u8	 rsvd2[3];
+} tx_low_entry;
+
+
+
 
 /*************************** Function Prototypes *****************************/
 

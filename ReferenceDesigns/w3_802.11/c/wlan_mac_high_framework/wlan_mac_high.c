@@ -1424,7 +1424,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 			// CPU High should do any necessary post-processing, then recycle the packet buffer
 
 			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-			mpdu_tx_done_callback(tx_mpdu, msg->payload_ptr);
+			mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details*)(msg->payload_ptr));
 		break;
 
 
