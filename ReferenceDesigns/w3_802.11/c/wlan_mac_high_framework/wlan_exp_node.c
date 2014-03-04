@@ -307,6 +307,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     // Variables for functions
     u32           id;
     u32           flags;
+    u32           serial_number;
 	u32           start_address;
 	u32           curr_address;
 	u32           next_address;
@@ -499,8 +500,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
 			respSent = RESP_SENT;
             
-            // Only update the parameters if the serial numbers match
-            if ( node_info.serial_number ==  Xil_Ntohl(cmdArgs32[0]) ) {
+			serial_number = Xil_Ntohl(cmdArgs32[0]);
+
+            // Only update the parameters if the serial numbers match or this it is "all serial numbers"
+            if ( (node_info.serial_number ==  serial_number) || (NODE_CONFIG_RESET_ALL == serial_number) ) {
 
             	if (node_info.node != 0xFFFF){
 
