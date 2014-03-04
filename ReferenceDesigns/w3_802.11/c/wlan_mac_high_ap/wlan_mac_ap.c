@@ -617,6 +617,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	statistics_txrx* station_stats = NULL;
 	u8 eth_send;
 	u8 allow_auth = 0;
+	u32 i;
 
 	rx_common_entry* rx_event_log_entry;
 
@@ -632,7 +633,21 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_dsss_entry();
 	}
 	if(rx_event_log_entry != NULL){
+		wlan_mac_high_set_debug_gpio(0x04);
+		wlan_mac_high_set_debug_gpio(0x02);
 		wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+/*
+		//wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+		//memcpy(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+		for(i=0;i<3;i++){
+			((u64*)(&(rx_event_log_entry->mac_hdr)))[i] = ((u64*)rx_80211_header)[i];
+		}
+		//((u64*)(&(rx_event_log_entry->mac_hdr)))[1] = ((u64*)rx_80211_header)[1];
+		//((u64*)(&(rx_event_log_entry->mac_hdr)))[2] = ((u64*)rx_80211_header)[2];
+		wlan_mac_high_clear_debug_gpio(0x04);
+		//wlan_mac_high_cdma_finish_transfer();
+		wlan_mac_high_clear_debug_gpio(0x02);
+*/
 		rx_event_log_entry->fcs_status = (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
 		rx_event_log_entry->timestamp  =  mpdu_info->timestamp;
 		rx_event_log_entry->power      = mpdu_info->rx_power;
