@@ -308,14 +308,47 @@ void purge_all_data_tx_queue(){
 	purge_queue(UNICAST_QID);         // Unicast Queue
 }
 
-void mpdu_transmit_done(tx_frame_info* tx_mpdu, u32* tx_start_timestamps){
+void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details){
+	u32 i;
 	tx_high_entry* tx_event_log_entry;
+	tx_low_entry*  tx_low_event_log_entry;
 	station_info* station;
 
 	void * mpdu = (void*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
+	u32 ts_old = 0;
+
+	for(i = 0; i < tx_mpdu->retry_count; i++){
+
+		tx_low_event_log_entry = get_next_empty_tx_low_entry();
+		if(tx_low_event_log_entry != NULL){
+			wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
+			tx_low_event_log_entry->transmission_count        = i+1;
+			tx_low_event_log_entry->timestamp_send            = (u64)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + ts_old);
+			tx_low_event_log_entry->chan_num                  = tx_low_details[i].chan_num;
+			tx_low_event_log_entry->ant_mode                  = tx_low_details[i].ant_mode;
+			tx_low_event_log_entry->power                     = tx_low_details[i].tx_power;
+			tx_low_event_log_entry->rate                      = tx_low_details[i].rate;
+			tx_low_event_log_entry->length                    = tx_mpdu->length;
+			tx_low_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
+
+			wlan_mac_high_cdma_finish_transfer();
+
+			if(i==0){
+				//This is the first transmission
+				tx_low_event_log_entry->mac_hdr.frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_RETRY;
+			} else {
+				//This is all subsequent transmissions
+				tx_low_event_log_entry->mac_hdr.frame_control_2 |= MAC_FRAME_CTRL2_FLAG_RETRY;
+			}
+
+		}
+
+		ts_old = tx_low_details[i].tx_start_delta;
+	}
+
 
 
 
