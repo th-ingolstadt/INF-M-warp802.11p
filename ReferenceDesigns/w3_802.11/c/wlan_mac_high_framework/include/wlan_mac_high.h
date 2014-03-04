@@ -267,6 +267,7 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl);
 statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
 void wlan_mac_high_reset_statistics(dl_list* stat_tbl);
 u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
+void wlan_mac_high_copy_comparison();
 
 // Common functions that must be implemented by users of the framework
 dl_list * get_statistics();

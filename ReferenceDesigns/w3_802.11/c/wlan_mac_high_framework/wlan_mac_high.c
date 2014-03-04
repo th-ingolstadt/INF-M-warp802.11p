@@ -1061,7 +1061,7 @@ int wlan_mac_high_memory_test(){
  *
  * @param void* dest
  *  - Pointer to destination address where bytes should be copied
- * @param void* stc
+ * @param void* src
  *  - Pointer to source address from where bytes should be copied
  * @param u32 size
  *  - Number of bytes that should be copied
@@ -1385,7 +1385,9 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
 				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
+				wlan_mac_high_set_debug_gpio(0x08);
 				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
+				wlan_mac_high_clear_debug_gpio(0x08);
 				//Free up the rx_pkt_buf
 				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 
@@ -1942,16 +1944,63 @@ u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station)
 	return 0;
 }
 
+void wlan_mac_high_copy_comparison(){
+	#define MAXLEN 10000
+
+	u32 d_cdma;
+	u32 d_memcpy;
+	u8  isMatched_memcpy;
+	u8  isMatched_cdma;
+
+	u32 i;
+	u32 j;
+	u8* srcAddr = (u8*)RX_PKT_BUF_TO_ADDR(0);
+	u8* destAddr = (u8*)DDR3_BASEADDR;
+	//u8* destAddr = (u8*)TX_PKT_BUF_TO_ADDR(1);
+	u64 t_start;
+	u64 t_end;
+
+	xil_printf("--- MEMCPY vs. CDMA Speed Comparison ---\n");
+	xil_printf("LEN, T_MEMCPY, T_CDMA, MEMCPY Match?, CDMA Match?\n");
+	for(i=0; i<MAXLEN; i++){
+		memset(destAddr,0,MAXLEN);
+		t_start = get_usec_timestamp();
+		memcpy(destAddr,srcAddr,i+1);
+		t_end = get_usec_timestamp();
+		d_memcpy = (u32)(t_end - t_start);
+
+		isMatched_memcpy = 1;
+		for(j=0; j<i; j++){
+			if(srcAddr[j] != destAddr[j]){
+				isMatched_memcpy = 0;
+			}
+		}
+
+		memset(destAddr,0,MAXLEN);
+
+		wlan_mac_high_set_debug_gpio(0x04);
+		t_start = get_usec_timestamp();
+		wlan_mac_high_cdma_start_transfer((void*)destAddr,(void*)srcAddr,i+1);
+		//wlan_mac_high_cdma_finish_transfer();
+		t_end = get_usec_timestamp();
+		wlan_mac_high_clear_debug_gpio(0x04);
+		d_cdma = (u32)(t_end - t_start);
+
+		isMatched_cdma = 1;
+		for(j=0; j<i; j++){
+			if(srcAddr[j] != destAddr[j]){
+				isMatched_cdma = 0;
+			}
+		}
+
+
+		xil_printf("%d, %d, %d, %d, %d\n", i+1, d_memcpy, d_cdma, isMatched_memcpy, isMatched_cdma);
+	}
 
 
 
 
-
-
-
-
-
-
+}
 
 
 

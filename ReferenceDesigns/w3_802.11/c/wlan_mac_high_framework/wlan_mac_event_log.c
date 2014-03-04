@@ -649,6 +649,7 @@ void * event_log_get_next_empty_entry( u16 entry_type, u16 entry_size ) {
 			header = (entry_header*) log_address;
 
 			// Zero out entry
+			// Note: this operation takes ~14usec for the 300 bytes Rx OFDM entry -- a substantial
 			//   NOTE:  Based on characterization, this bzero operation was considerable
 			//     overhead in relation to the tasks that are getting empty log entries.
 			//     Therefore, we are removing it.  The one thing to note is that empty
