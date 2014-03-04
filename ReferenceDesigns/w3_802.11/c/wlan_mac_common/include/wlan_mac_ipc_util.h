@@ -122,13 +122,14 @@ typedef struct {
     
 } wlan_mac_hw_info;
 
-
+///Note: This struct must be padded to be an integer
+///number of u32 words.
 typedef struct {
 	u32   tx_start_delta;
 	u8    rate;
 	s8    tx_power;
 	u8 	  ant_mode;
-	u8 	  rsvd;
+	u8 	  chan_num;
 } wlan_mac_low_tx_details;
 
 
