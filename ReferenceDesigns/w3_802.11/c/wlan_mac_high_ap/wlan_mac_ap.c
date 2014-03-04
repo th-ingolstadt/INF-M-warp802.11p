@@ -306,6 +306,7 @@ void purge_all_data_tx_queue(){
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details){
 	u32 i;
 	tx_high_entry* tx_high_event_log_entry;
+	tx_low_entry*  tx_low_event_log_entry;
 	station_info* station;
 
 	void* mpdu = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -314,12 +315,36 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u32 ts_old = 0;
 
-
-	xil_printf("\n");
 	for(i = 0; i < tx_mpdu->retry_count; i++){
-		xil_printf("[%d] %d %d %d %d\n", (u32)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + ts_old), (u32)(tx_low_details[i].tx_start_delta), tx_low_details[i].rate, tx_low_details[i].ant_mode, tx_low_details[i].tx_power);
+
+		tx_low_event_log_entry = get_next_empty_tx_low_entry();
+		if(tx_low_event_log_entry != NULL){
+			wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
+			tx_low_event_log_entry->transmission_count        = i+1;
+			tx_low_event_log_entry->timestamp_send            = (u64)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + ts_old);
+			tx_low_event_log_entry->chan_num                  = tx_low_details[i].chan_num;
+			tx_low_event_log_entry->ant_mode                  = tx_low_details[i].ant_mode;
+			tx_low_event_log_entry->power                     = tx_low_details[i].tx_power;
+			tx_low_event_log_entry->rate                      = tx_low_details[i].rate;
+			tx_low_event_log_entry->length                    = tx_mpdu->length;
+			tx_low_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
+
+			wlan_mac_high_cdma_finish_transfer();
+
+			if(i==0){
+				//This is the first transmission
+				tx_low_event_log_entry->mac_hdr.frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_RETRY;
+			} else {
+				//This is all subsequent transmissions
+				tx_low_event_log_entry->mac_hdr.frame_control_2 |= MAC_FRAME_CTRL2_FLAG_RETRY;
+			}
+
+		}
+
 		ts_old = tx_low_details[i].tx_start_delta;
 	}
+
+
 
 
 	tx_high_event_log_entry = get_next_empty_tx_high_entry();
@@ -330,14 +355,14 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		tx_high_event_log_entry->gain_target              = tx_mpdu->gain_target;
 		tx_high_event_log_entry->length                   = tx_mpdu->length;
 		tx_high_event_log_entry->rate                     = tx_mpdu->rate;
-		tx_high_event_log_entry->gain_target				 = tx_mpdu->gain_target;
-		tx_high_event_log_entry->chan_num				 = mac_param_chan;
-		tx_high_event_log_entry->pkt_type				 = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
+		tx_high_event_log_entry->gain_target			  = tx_mpdu->gain_target;
+		tx_high_event_log_entry->chan_num				  = mac_param_chan;
+		tx_high_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 		tx_high_event_log_entry->retry_count              = tx_mpdu->retry_count;
 		tx_high_event_log_entry->timestamp_create         = tx_mpdu->timestamp_create;
 		tx_high_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
 		tx_high_event_log_entry->delay_done               = tx_mpdu->delay_done;
-		tx_high_event_log_entry->ant_mode				 = 0; //TODO;
+		tx_high_event_log_entry->ant_mode				  = 0; //TODO;
 	}
 
 	if(tx_mpdu->AID != 0){
