@@ -49,9 +49,9 @@ typedef struct{
 	u8 retry_max;
 	u8 state_verbose;
 	u8 gain_target;
-	u8 reserved0;
+	u8 ant_mode;
 	u16 AID;
-	u32 reserved1;
+	u32 reserved0;
 	u64 timestamp_create;
 	u32 delay_accept;
 	u32 delay_done;
