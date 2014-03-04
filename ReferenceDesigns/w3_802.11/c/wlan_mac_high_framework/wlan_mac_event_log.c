@@ -630,6 +630,12 @@ void * event_log_get_next_empty_entry( u16 entry_type, u16 entry_size ) {
 	u32            header_size  = sizeof( entry_header );
 	void *         return_entry = NULL;
 
+	// Entries must be 4 byte aligned so that there are not a lot of mis-aligned
+	// accesses that could lead to significant processing overhead.
+	//
+	if ( (entry_size % 4) != 0 ) {
+		entry_size = ((entry_size >> 2) + 1) << 2;
+	}
 
     // If Event Logging is enabled, then allocate entry
 	if( enable_event_logging ){
@@ -643,7 +649,12 @@ void * event_log_get_next_empty_entry( u16 entry_type, u16 entry_size ) {
 			header = (entry_header*) log_address;
 
 			// Zero out entry
-			bzero( (void *) header, total_size );
+			//   NOTE:  Based on characterization, this bzero operation was considerable
+			//     overhead in relation to the tasks that are getting empty log entries.
+			//     Therefore, we are removing it.  The one thing to note is that empty
+			//     log entries will have random data and cannot be assumed to have a
+			//     starting value.
+			// bzero( (void *) header, total_size );
 
 			// Set header parameters
 			//   - Use the upper 16 bits of the timestamp to place a magic number
