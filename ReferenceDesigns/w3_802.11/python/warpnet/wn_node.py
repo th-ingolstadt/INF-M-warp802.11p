@@ -201,7 +201,7 @@ class WnNode(object):
         
     def node_reset_network_inf(self):
         """Reset the transport network information for the node."""
-        self.send_cmd_bcast(wn_cmds.NodeResetNetwork(self))
+        self.send_cmd_bcast(wn_cmds.NodeResetNetwork(self.serial_number))
 
     def node_get_warpnet_type(self):
         """Get the WARPNet node type of the node."""
@@ -531,10 +531,10 @@ class WnNodeFactory(WnNode):
         the correct WARPNet node."""        
         node = None
 
-        # Send broadcast command to initialize WARPNet node
+        # Send broadcast command to reset WARPNet node network interface
         self.node_reset_network_inf()
 
-        # Send broadcast command to initialize WARPNet node
+        # Send broadcast command to initialize WARPNet node network interface
         self.node_setup_network_inf()
 
         try:

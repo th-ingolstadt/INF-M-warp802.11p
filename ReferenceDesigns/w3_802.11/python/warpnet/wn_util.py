@@ -188,6 +188,11 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
         import warpnet.wn_node as wn_node
         node_factory = wn_node.WnNodeFactory(host_config)
 
+    # Send a broadcast network reset command to make sure all nodes are
+    # in their default state.
+    wn_reset_network_inf_all_nodes(host_config=host_config)
+
+    # Create the nodes in the dictionary
     for node_dict in nodes_dict:
         if (host_id == node_dict['node_id']):
             msg = "Host id is set to {0} and must be unique.".format(host_id)
@@ -238,6 +243,8 @@ def wn_identify_all_nodes(host_interfaces):
         raise TypeError(msg)
     
     host_config = wn_config.HostConfiguration(host_interfaces=my_host_interfaces)
+    tx_buf_size = host_config.get_param('network', 'tx_buffer_size')
+    rx_buf_size = host_config.get_param('network', 'rx_buffer_size')
 
     for ip_address in my_host_interfaces:
 
@@ -249,9 +256,6 @@ def wn_identify_all_nodes(host_interfaces):
         msg += "Please check the LEDs."
         print(msg)
 
-        tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
-        rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
-    
         transport = tp_bcast.TransportEthUdpPyBcast(host_config=host_config,
                                                     host_ip=ip_address)
 
@@ -269,6 +273,67 @@ def wn_identify_all_nodes(host_interfaces):
 
 # End of wn_identify_all_nodes()
 
+
+def wn_reset_network_inf_all_nodes(host_config=None, host_interfaces=None):
+    """Issues a broadcast WARPNet command: NodeResetNetwork.
+
+    Attributes:
+      host_config     - Host configuration (optional but takes precedence)
+                        If host_config is present, host_interfaces is ignored.
+      host_interfaces - Host interfaces (optional list of IP addresses)
+                        Will use the default host_config.
+
+    This will issue a broadcast network interface reset for all nodes on 
+    each of the host_interfaces.
+    """
+    import warpnet.wn_cmds as wn_cmds
+    import warpnet.wn_config as wn_config
+    import warpnet.wn_transport_eth_udp_py_bcast as tp_bcast
+
+    if not host_config is None:
+        my_host_interfaces = host_config.get_param('network', 'host_interfaces')
+    else:
+        if not host_interfaces is None:
+            if type(host_interfaces) is str:
+                my_host_interfaces = [host_interfaces]
+            elif type(host_interfaces) is list:
+                my_host_interfaces = host_interfaces
+            else:
+                msg  = "Unknown host interface type: {0}\n".format(type(host_interfaces))
+                msg += "    Should be either a list or a string.\n"
+                raise TypeError(msg)
+            
+            host_config = wn_config.HostConfiguration(host_interfaces=my_host_interfaces)
+        else:
+            msg  = "Need to provide either host configuration or a list of "
+            msg += "host interfaces.\n"
+            raise AttributeError(msg)
+
+    tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
+    rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
+    
+    for ip_address in my_host_interfaces:
+
+        expr = re.compile('\.')
+        tmp = [int(n) for n in expr.split(ip_address)]
+        host_ip_subnet = "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
+
+        msg  = "Reseting the network config for all nodes on subnet "
+        msg += "{0}.".format(host_ip_subnet)
+        print(msg)
+    
+        transport = tp_bcast.TransportEthUdpPyBcast(host_config=host_config,
+                                                    host_ip=ip_address)
+
+        transport.wn_open(tx_buf_size, rx_buf_size)
+
+        cmd = wn_cmds.NodeResetNetwork(wn_cmds.NETWORK_RESET_ALL_NODES)
+        payload = cmd.serialize()
+        transport.send(payload)
+        
+        transport.wn_close()
+
+# End of wn_identify_all_nodes()
 
 
 #-----------------------------------------------------------------------------

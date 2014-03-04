@@ -75,6 +75,9 @@ IDENTIFY_WAIT_TIME      = 10
 
 CMD_NODE_NETWORK_SETUP  = 0x000003
 CMD_NODE_NETWORK_RESET  = 0x000004
+
+NETWORK_RESET_ALL_NODES = 0xFFFF
+
 CMD_NODE_TEMPERATURE    = 0x000005
 
 
@@ -183,13 +186,34 @@ class NodeSetupNetwork(wn_message.Cmd):
 
 class NodeResetNetwork(wn_message.Cmd):
     """Command to reset the network configuration of a node."""
-    def __init__(self, node):
+    def __init__(self, serial_number, output=False):
         super(NodeResetNetwork, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_NETWORK_RESET
-        self.add_args(node.serial_number)
+        self.output = output
+
+        if type(serial_number) is int:
+            if (serial_number == NETWORK_RESET_ALL_NODES):
+                self.id = "All nodes"
+            else:
+                self.id = "W3-a-{0:05d}".format(serial_number)
+            self.add_args(serial_number)
+        elif type(serial_number) is str:
+            import re
+            expr = re.compile('W3-a-(?P<sn>\d+)')
+            try:
+                sn = int(expr.match(serial_number).group('sn'))
+                self.id = serial_number
+                self.add_args(sn)
+            except AttributeError:
+                msg  = "Incorrect serial number.  \n"
+                msg += "    Should be of the form : W3-a-XXXXX\n"
+                raise TypeError(msg)
+        else:
+            raise TypeError("Serial number should be an int or str.")
     
     def process_resp(self, resp):
-        pass
+        if (self.output):
+            print("Reset network config of node: {0}".format(self.id))
 
 # End Class
 
