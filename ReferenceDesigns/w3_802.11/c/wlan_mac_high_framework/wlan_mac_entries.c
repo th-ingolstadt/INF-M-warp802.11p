@@ -116,11 +116,11 @@ rx_dsss_entry* get_next_empty_rx_dsss_entry(){
 
 /*****************************************************************************/
 /**
-* Get the next empty TX entry
+* Get the next empty TX high entry
 *
 * @param    None.
 *
-* @return	tx_high_entry *   - Pointer to the next "empty" TX entry or NULL
+* @return	tx_high_entry *   - Pointer to the next "empty" TX high entry or NULL
 *
 * @note		None.
 *
@@ -129,6 +129,24 @@ tx_high_entry* get_next_empty_tx_high_entry(){
 
 	// Get the next empty entry
 	return (tx_high_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) );
+
+}
+
+/*****************************************************************************/
+/**
+* Get the next empty TX low entry
+*
+* @param    None.
+*
+* @return	tx_low_entry *   - Pointer to the next "empty" TX low entry or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+tx_low_entry* get_next_empty_tx_low_entry(){
+
+	// Get the next empty entry
+	return (tx_low_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
 
 }
 
@@ -153,7 +171,8 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 	exp_info_entry     * exp_info_entry_log_item;
 	txrx_stats_entry   * txrx_stats_entry_log_item;
 	rx_common_entry    * rx_common_log_item;
-	tx_high_entry           * tx_high_entry_log_item;
+	tx_high_entry      * tx_high_entry_log_item;
+	tx_low_entry       * tx_low_entry_log_item;
 
 	switch( entry_type ){
         case ENTRY_TYPE_NODE_INFO:
@@ -239,7 +258,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 
 		case ENTRY_TYPE_TX_HIGH:
 			tx_high_entry_log_item = (tx_high_entry*) entry;
-			xil_printf("%d: - Tx Event\n", entry_number);
+			xil_printf("%d: - Tx High Event\n", entry_number);
 			xil_printf("   Creation Time:    %d\n",		(u32)(tx_high_entry_log_item->timestamp_create));
 			xil_printf("   Accept Delay:     %d\n",		(u32)(tx_high_entry_log_item->delay_accept));
 			xil_printf("   Done Delay:       %d\n",		(u32)(tx_high_entry_log_item->delay_done));
@@ -250,6 +269,19 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   Result:           %d\n",     tx_high_entry_log_item->result);
 			xil_printf("   Pkt Type:         0x%x\n",   tx_high_entry_log_item->pkt_type);
 			xil_printf("   Retry:            %d\n",     tx_high_entry_log_item->retry_count);
+		break;
+
+		case ENTRY_TYPE_TX_LOW:
+			tx_low_entry_log_item = (tx_low_entry*) entry;
+			xil_printf("%d: - Tx Low Event\n", entry_number);
+			xil_printf("   Tx Start Time:    %d\n",		(u32)(tx_low_entry_log_item->timestamp_send));
+			xil_printf("   Tx Count:         %d\n",		tx_low_entry_log_item->transmission_count);
+			xil_printf("   Power:            %d\n",     tx_low_entry_log_item->power);
+			xil_printf("   Rate:             %d\n",     tx_low_entry_log_item->rate);
+			xil_printf("   Length:           %d\n",     tx_low_entry_log_item->length);
+			xil_printf("   Channel:          %d\n",     tx_low_entry_log_item->chan_num);
+			xil_printf("   Pkt Type:         0x%x\n",   tx_low_entry_log_item->pkt_type);
+			xil_printf("   Antenna Mode:     %d\n",     tx_low_entry_log_item->ant_mode);
 		break;
 
 		default:

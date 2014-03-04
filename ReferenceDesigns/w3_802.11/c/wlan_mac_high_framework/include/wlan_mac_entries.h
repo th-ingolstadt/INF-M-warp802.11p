@@ -59,6 +59,7 @@
 // Transmit Entries
 
 #define ENTRY_TYPE_TX_HIGH                  20
+#define ENTRY_TYPE_TX_LOW                  21
 
 //-----------------------------------------------
 // Statistics Entries
@@ -231,15 +232,13 @@ typedef struct{
 typedef struct{
 	u64  timestamp_send;
 	mac_header_80211 mac_hdr;
-	u8   rsvd1;
-	u8 	 gain_target;
+	u8	 transmission_count;
+	s8   power;
 	u8 	 chan_num;
 	u8   rate;
 	u16  length;
-	u8 	 result;
 	u8 	 pkt_type;
 	u8	 ant_mode;
-	u8	 rsvd2[3];
 } tx_low_entry;
 
 
@@ -257,7 +256,8 @@ rx_ofdm_entry    * get_next_empty_rx_ofdm_entry();
 rx_dsss_entry    * get_next_empty_rx_dsss_entry();
 station_info_entry* get_next_empty_station_info_entry();
 
-tx_high_entry         * get_next_empty_tx_high_entry();
+tx_high_entry        * get_next_empty_tx_high_entry();
+tx_low_entry         * get_next_empty_tx_low_entry();
 
 
 //-----------------------------------------------
