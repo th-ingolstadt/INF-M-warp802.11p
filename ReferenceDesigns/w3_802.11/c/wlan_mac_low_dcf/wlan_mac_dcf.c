@@ -322,6 +322,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			low_tx_details[i].rate = mpdu_info->rate;
 			low_tx_details[i].tx_power = 0; //TODO FIXME
 			low_tx_details[i].ant_mode = 0; //TODO FIXME
+			low_tx_details[i].chan_num = wlan_mac_low_get_active_channel();
 
 			tx_status = wlan_mac_get_status();
 
