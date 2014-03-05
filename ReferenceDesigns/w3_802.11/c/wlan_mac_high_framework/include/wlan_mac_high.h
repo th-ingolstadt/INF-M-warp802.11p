@@ -101,9 +101,6 @@ typedef struct{
 	s8      power;			///< Power of transmission (in dBm)
 } tx_params;
 
-#define TX_POWER_MAX_DBM (19)
-#define TX_POWER_MIN_DBM (-12)
-
 /**
  * @brief Statistics Structure
  *
