@@ -48,7 +48,7 @@ typedef struct{
 	u8 retry_count;
 	u8 retry_max;
 	u8 state_verbose;
-	u8 gain_target;
+	s8 power;
 	u8 ant_mode;
 	u16 AID;
 	u32 reserved0;
