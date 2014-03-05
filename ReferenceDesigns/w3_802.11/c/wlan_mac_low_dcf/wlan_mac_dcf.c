@@ -43,6 +43,7 @@
 
 #define WARPNET_TYPE_80211_LOW         WARPNET_TYPE_80211_LOW_DCF
 #define NUM_LEDS                       4
+#define TX_ACK_GAIN_TARGET			   45
 
 /*********************** Global Variable Definitions *************************/
 
@@ -189,7 +190,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		//the subsystem.
 
 		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceeding reception.
-		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC)+(PHY_RX_SIG_EXT_USEC*10))));
+		wlan_mac_auto_tx_params_g(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC)+(PHY_RX_SIG_EXT_USEC*10))),TX_ACK_GAIN_TARGET);
 
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
