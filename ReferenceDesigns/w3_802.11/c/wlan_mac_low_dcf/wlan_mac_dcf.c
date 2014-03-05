@@ -304,13 +304,13 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//Loop over retransmissions
 		//Note: this loop will terminate early if retransmissions aren't needed
 		//(i.e. ACK is received)
-		radio_controller_setTxGainTarget(RC_BASEADDR, (RC_ALL_RF), mpdu_info->gain_target);
+
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
 		n_slots = rand_num_slots();
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
-		wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout);
+		wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->power));
 
 		//Submit the MPDU for transmission
 		wlan_mac_MPDU_tx_start(1);
@@ -320,7 +320,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		do{
 
 			low_tx_details[i].rate = mpdu_info->rate;
-			low_tx_details[i].tx_power = 0; //TODO FIXME
+			low_tx_details[i].tx_power = mpdu_info->power;
 			low_tx_details[i].ant_mode = 0; //TODO FIXME
 			low_tx_details[i].chan_num = wlan_mac_low_get_active_channel();
 
