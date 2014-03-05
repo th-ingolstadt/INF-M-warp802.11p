@@ -1130,10 +1130,12 @@ void wlan_mac_high_mpdu_transmit(packet_bd* packet) {
 			//Broadcast transmissions have no station information, so we default to a nominal rate
 			tx_mpdu->AID = 0;
 			tx_mpdu->rate = WLAN_MAC_RATE_6M;
+			tx_mpdu->power = 10;
 		} else {
 			//Request the rate to use for this station
 			tx_mpdu->AID = station->AID;
 			tx_mpdu->rate = wlan_mac_high_get_tx_rate(station);
+			tx_mpdu->power = station->tx.power;
 		}
 
 		tx_mpdu->state = TX_MPDU_STATE_READY;
@@ -1299,17 +1301,16 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
 }
 
 
-void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 gain_target, u8 flags  ) {
+void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  ) {
 
     // Set up metadata
 	tx_queue->metadata_ptr     = metadata;
 
 	// Set up frame info data
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.timestamp_create = get_usec_timestamp();
-    ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length    = tx_length;
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max = retry;
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.gain_target = gain_target;
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags     = flags;
+    ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length           = tx_length;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max        = retry;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags            = flags;
 }
 
 /*****************************************************************************/

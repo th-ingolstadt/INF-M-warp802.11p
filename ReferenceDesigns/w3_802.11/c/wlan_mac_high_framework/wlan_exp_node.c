@@ -561,6 +561,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
 		case NODE_TX_GAIN:
+			//TODO: !!! Replace with NODE_TX_POWER
+#if 0
 			// Set / Get node TX gain
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
@@ -585,6 +587,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
+#endif
 		break;
 
 

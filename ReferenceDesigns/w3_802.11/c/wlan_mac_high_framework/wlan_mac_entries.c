@@ -262,7 +262,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   Creation Time:    %d\n",		(u32)(tx_high_entry_log_item->timestamp_create));
 			xil_printf("   Accept Delay:     %d\n",		(u32)(tx_high_entry_log_item->delay_accept));
 			xil_printf("   Done Delay:       %d\n",		(u32)(tx_high_entry_log_item->delay_done));
-			xil_printf("   Tx Gain Target:   %d\n",     tx_high_entry_log_item->gain_target);
+			xil_printf("   Tx Power:         %d\n",     tx_high_entry_log_item->power);
 			xil_printf("   Rate:             %d\n",     tx_high_entry_log_item->rate);
 			xil_printf("   Length:           %d\n",     tx_high_entry_log_item->length);
 			xil_printf("   Channel:          %d\n",     tx_high_entry_log_item->chan_num);

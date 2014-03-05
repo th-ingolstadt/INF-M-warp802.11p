@@ -214,7 +214,7 @@ typedef struct{
 	u32  delay_done;
 	mac_header_80211 mac_hdr;
 	u8   retry_count;
-	u8 	 gain_target;
+	s8 	 power;
 	u8 	 chan_num;
 	u8   rate;
 	u16  length;
