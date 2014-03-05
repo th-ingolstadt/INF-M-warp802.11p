@@ -827,9 +827,18 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
  * - gain target in range of [0,63]
  */
 inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
+	s8 power_railed;
 	u8 return_value;
 
-	return_value = (u8)(2*power + 25);
+	if(power > TX_POWER_MAX_DBM){
+		power_railed = TX_POWER_MAX_DBM;
+	} else if( power < TX_POWER_MIN_DBM){
+		power_railed = TX_POWER_MIN_DBM;
+	} else {
+		power_railed = power;
+	}
+
+	return_value = (u8)(2*power_railed + 25);
 
 	return return_value;
 }

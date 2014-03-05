@@ -114,7 +114,7 @@
 // b[31]: Auto-Tx en
 //#define wlan_mac_auto_tx_params(pktBuf, preTx_delay) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS, ((pktBuf) & 0xF) | (((preTx_delay) & 0x3FF) << 4))
 #define wlan_mac_auto_tx_params_g(pktBuf, preTx_delay, txGain) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS, ((pktBuf) & 0xF) | (((preTx_delay) & 0x3FF) << 4) | (((txGain&0x3F)<<25)))
-#define wlan_mac_auto_tx_params(pktBuf, preTx_delay) wlan_mac_auto_tx_params_g(pktBuf, preTx_delay, 45);
+//#define wlan_mac_auto_tx_params(pktBuf, preTx_delay) wlan_mac_auto_tx_params_g(pktBuf, preTx_delay, 45);
 #define wlan_mac_auto_tx_en(x) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS,((Xil_In32(WLAN_MAC_REG_AUTO_TX_PARAMS) & 0x7FFFFFFF)) | (((x) & 0x1) << 31))
 
 //WLAN_MAC_MPDU_TX_PARAMS:
