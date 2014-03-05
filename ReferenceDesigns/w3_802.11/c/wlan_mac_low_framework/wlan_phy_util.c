@@ -401,10 +401,13 @@ void wlan_radio_init() {
 #endif
 
 	//Set Tx gains
-	radio_controller_setTxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_REG);
+	//radio_controller_setTxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_REG); //Used for software control of gains
+	//radio_controller_setTxGainTarget(RC_BASEADDR, RC_ALL_RF, 45);
+	radio_controller_setTxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_HW); //Used for hardware control of gains
+
 	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 2);
-	radio_controller_setTxGainTarget(RC_BASEADDR, RC_ALL_RF, 45);
 	
+
 	//Set misc radio params
 	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_PADRIVER, 0);
 	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_VGA, 0);

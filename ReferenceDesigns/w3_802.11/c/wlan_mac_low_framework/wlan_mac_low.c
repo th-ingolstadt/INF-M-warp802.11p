@@ -817,6 +817,25 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 	}
 }
 
+/**
+ * @brief Convert dBm to Tx Gain Target
+ *
+ * This function maps a transmit power (in dBm) to a radio gain target.
+ *
+ * @param s8 power
+ * @return u8 gain_target
+ * - gain target in range of [0,63]
+ */
+inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
+	u8 return_value;
+
+	return_value = (u8)(2*power + 25);
+
+	return return_value;
+}
+
+
+
 
 
 

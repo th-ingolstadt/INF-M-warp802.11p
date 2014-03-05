@@ -129,7 +129,7 @@
 			((postTx_timeout_req & 0x1) << 24) | \
 			((txGain & 0x3F) << 25))
 
-#define wlan_mac_MPDU_tx_params(pktBuf, preTx_backoff_slots, postTx_timeout_req) wlan_mac_MPDU_tx_params_g(pktBuf, preTx_backoff_slots, postTx_timeout_req, 45)
+//#define wlan_mac_MPDU_tx_params(pktBuf, preTx_backoff_slots, postTx_timeout_req) wlan_mac_MPDU_tx_params_g(pktBuf, preTx_backoff_slots, postTx_timeout_req, 45)
 
 #define wlan_mac_MPDU_tx_start(x) Xil_Out32(WLAN_MAC_REG_MPDU_TX_START, (x&0x1))
 
@@ -192,5 +192,6 @@ inline u64 get_rx_start_timestamp();
 inline u64 get_tx_start_timestamp();
 void wlan_mac_dcf_hw_unblock_rx_phy();
 inline u32 wlan_mac_dcf_hw_rx_finish();
+inline u8 wlan_mac_low_dbm_to_gain_target(s8 power);
 
 #endif /* WLAN_MAC_LOW_H_ */
