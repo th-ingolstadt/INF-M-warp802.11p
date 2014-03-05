@@ -57,6 +57,8 @@ typedef struct{
 	u32 delay_done;
 } tx_frame_info;
 
+#define TX_POWER_MAX_DBM (19)
+#define TX_POWER_MIN_DBM (-12)
 
 #define TX_MPDU_STATE_EMPTY			0
 #define TX_MPDU_STATE_TX_PENDING	1
