@@ -43,7 +43,7 @@
 
 static u8 uart_mode = UART_MODE_MAIN;
 extern u8 default_unicast_rate;
-extern u8 default_tx_gain_target;
+extern s8 default_tx_power;
 extern u32 mac_param_chan;
 
 extern dl_list association_table;
@@ -134,23 +134,23 @@ void uart_rx(u8 rxByte){
 
 				break;
 				case ASCII_g:
-					if(default_tx_gain_target > 0){
-						default_tx_gain_target--;
+					if(default_tx_power > TX_POWER_MIN_DBM){
+						default_tx_power--;
 					} else {
-						default_tx_gain_target = 0;
+						default_tx_power = TX_POWER_MIN_DBM;
 					}
 
-					xil_printf("(-) Default Tx Gain Target: %d \n", default_tx_gain_target);
+					xil_printf("(-) Default Tx Power: %d dBm\n", default_tx_power);
 
 				break;
 				case ASCII_G:
-					if(default_tx_gain_target < 63){
-						default_tx_gain_target++;
+					if(default_tx_power < TX_POWER_MAX_DBM){
+						default_tx_power++;
 					} else {
-						default_tx_gain_target = 63;
+						default_tx_power = TX_POWER_MAX_DBM;
 					}
 
-					xil_printf("(+) Default Tx Gain Target: %d \n", default_tx_gain_target);
+					xil_printf("(+) Default Tx Power: %d dBm\n", default_tx_power);
 
 				break;
 				case ASCII_r:
