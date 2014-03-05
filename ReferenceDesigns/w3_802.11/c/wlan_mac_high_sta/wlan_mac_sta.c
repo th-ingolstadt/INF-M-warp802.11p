@@ -56,7 +56,7 @@
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA
 
 #define  WLAN_CHANNEL                  1
-#define  TX_GAIN_TARGET				   45
+#define  TX_POWER_DBM				   10
 
 
 /*********************** Global Variable Definitions *************************/
@@ -74,7 +74,7 @@ mac_header_80211_common tx_header_common;
 
 // Control variables
 u8  default_unicast_rate;
-u8  default_tx_gain_target;
+s8 default_tx_power;
 int association_state;                      // Section 10.3 of 802.11-2012
 u8  uart_mode;
 u8  active_scan;
@@ -156,7 +156,7 @@ int main() {
 
     // Set Global variables
 	default_unicast_rate = WLAN_MAC_RATE_18M;
-	default_tx_gain_target = TX_GAIN_TARGET;
+	default_tx_power = TX_POWER_DBM;
 
 	// Initialize the utility library
     wlan_mac_high_init();
@@ -357,10 +357,9 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	if(tx_event_log_entry != NULL){
 		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
 		tx_event_log_entry->result                   = tx_mpdu->state_verbose;
-		tx_event_log_entry->gain_target              = tx_mpdu->gain_target;
+		tx_event_log_entry->power                    = tx_mpdu->power;
 		tx_event_log_entry->length                   = tx_mpdu->length;
 		tx_event_log_entry->rate                     = tx_mpdu->rate;
-		tx_event_log_entry->gain_target				 = tx_mpdu->gain_target;
 		tx_event_log_entry->chan_num				 = mac_param_chan;
 		tx_event_log_entry->pkt_type				 = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 		tx_event_log_entry->retry_count              = tx_mpdu->retry_count;
@@ -411,7 +410,7 @@ void attempt_association(){
 
 				tx_length = wlan_create_association_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
 
-		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY, TX_GAIN_TARGET,
+		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(MANAGEMENT_QID, &checkout);
@@ -468,7 +467,7 @@ void attempt_authentication(){
 
 				tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
 
-		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY, TX_GAIN_TARGET,
+		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(MANAGEMENT_QID, &checkout);
@@ -559,7 +558,7 @@ void probe_req_transmit(){
 
 			tx_length = wlan_create_probe_req_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
-	 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, TX_GAIN_TARGET, 0 );
+	 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, 0 );
 
 			enqueue_after_end(MANAGEMENT_QID, &checkout);
 			check_tx_queue();
@@ -591,7 +590,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 		if(wlan_addr_eq(bcast_addr, eth_dest)){
 			if(queue_num_queued(0) < max_queue_size){
-				wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, TX_GAIN_TARGET, 0 );
+				wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, 0 );
 
 				enqueue_after_end(UNICAST_QID, tx_queue_list);
 				check_tx_queue();
@@ -603,7 +602,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 			if(queue_num_queued(1) < max_queue_size){
 
-				wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY, TX_GAIN_TARGET,
+				wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(UNICAST_QID, tx_queue_list);
@@ -729,6 +728,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 						wlan_mac_high_write_hex_display(associated_station->AID);
 						associated_station->tx.rate = default_unicast_rate;
+						associated_station->tx.power = default_tx_power;
 						xil_printf("Association succeeded\n");
 					} else {
 						association_state = -1;
@@ -948,7 +948,7 @@ void ltg_event(u32 id, void* callback_arg){
 			tx_length += sizeof(llc_header);
 			tx_length += payload_length;
 
-	 		wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY, TX_GAIN_TARGET,
+	 		wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY,
 	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 			enqueue_after_end(UNICAST_QID, &checkout);
