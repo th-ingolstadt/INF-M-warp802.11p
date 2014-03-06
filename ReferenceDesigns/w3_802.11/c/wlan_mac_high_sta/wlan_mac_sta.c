@@ -75,6 +75,8 @@ mac_header_80211_common tx_header_common;
 // Control variables
 u8  default_unicast_rate;
 s8 default_tx_power;
+u8 default_tx_ant_mode;
+
 int association_state;                      // Section 10.3 of 802.11-2012
 u8  uart_mode;
 u8  active_scan;
@@ -157,6 +159,7 @@ int main() {
     // Set Global variables
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 	default_tx_power = TX_POWER_DBM;
+    default_tx_ant_mode = WLAN_TX_ANTMODE_SISO_ANTA;
 
 	// Initialize the utility library
     wlan_mac_high_init();
@@ -304,7 +307,7 @@ void check_tx_queue(){
 void purge_all_data_tx_queue(){
 
 	// Purge all data transmit queues
-	purge_queue(BCAST_QID);           // Broadcast Queue
+	purge_queue(MCAST_QID);           // Broadcast Queue
 	purge_queue(UNICAST_QID);         // Unicast Queue
 }
 
@@ -588,31 +591,17 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 		wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
-		if(wlan_addr_eq(bcast_addr, eth_dest)){
-			if(queue_num_queued(0) < max_queue_size){
-				wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, 0 );
-
-				enqueue_after_end(UNICAST_QID, tx_queue_list);
-				check_tx_queue();
-			} else {
-				return 0;
-			}
-
+		if(queue_num_queued(UNICAST_QID) < max_queue_size){
+			wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY,
+							 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+			enqueue_after_end(UNICAST_QID, tx_queue_list);
+			check_tx_queue();
 		} else {
-
-			if(queue_num_queued(1) < max_queue_size){
-
-				wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)(association_table.first), tx_length, MAX_RETRY,
-								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
-
-				enqueue_after_end(UNICAST_QID, tx_queue_list);
-				check_tx_queue();
-			} else {
-				return 0;
-			}
-
-
+			return 0;
 		}
+
+
+
 
 		return 1;
 	} else {
@@ -729,6 +718,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						wlan_mac_high_write_hex_display(associated_station->AID);
 						associated_station->tx.rate = default_unicast_rate;
 						associated_station->tx.power = default_tx_power;
+						associated_station->tx.antenna_mode = default_tx_ant_mode;
 						xil_printf("Association succeeded\n");
 					} else {
 						association_state = -1;
