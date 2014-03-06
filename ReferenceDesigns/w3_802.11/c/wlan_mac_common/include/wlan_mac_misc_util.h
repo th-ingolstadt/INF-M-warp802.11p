@@ -38,6 +38,7 @@ typedef int (*function_ptr_t)();
 	} while(0)
 
 #define wlan_addr_eq(addr1, addr2) (memcmp((void*)(addr1), (void*)(addr2), 6)==0)
+#define wlan_addr_mcast(addr) ( (((u8*)(addr))[0] & 1) == 1 )
 
 
 typedef struct{
@@ -124,5 +125,12 @@ typedef struct{
 	u8 phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
 	u8 frame[PKT_BUF_SIZE - PHY_TX_PKT_BUF_PHY_HDR_SIZE - sizeof(tx_frame_info)];
 } tx_packet_buffer;
+
+
+#define WLAN_TX_ANTMODE_SISO_ANTA	0x1
+#define WLAN_TX_ANTMODE_SISO_ANTB	0x2
+#define WLAN_TX_ANTMODE_SISO_ANTC	0x3
+#define WLAN_TX_ANTMODE_SISO_ANTD	0x4
+
 
 #endif /* WLAN_MAC_MISC_UTIL_H_ */
