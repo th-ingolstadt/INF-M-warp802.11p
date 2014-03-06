@@ -119,7 +119,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	u32 return_value;
 	u32 tx_length;
 	u8 tx_rate;
-	u8 unicast_to_me, to_broadcast;
+	u8 unicast_to_me, to_multicast;
 	u16 rssi;
 	u8 lna_gain;
 	u8 active_rx_ant;
@@ -179,8 +179,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){};
 
-	unicast_to_me = wlan_addr_eq(rx_header->address_1, eeprom_addr);
-	to_broadcast = wlan_addr_eq(rx_header->address_1, bcast_addr);
+	to_multicast = wlan_addr_mcast(rx_header->address_1);
 
 	//Prep outgoing ACK just in case it needs to be sent
 	// ACKs are only sent for non-control frames addressed to this node
@@ -233,7 +232,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 		return_value |= POLL_MAC_STATUS_GOOD;
 
-		if(unicast_to_me || to_broadcast){
+		if(unicast_to_me || to_multicast){
 			return_value |= POLL_MAC_ADDR_MATCH;
 
 			if(!WLAN_IS_CTRL_FRAME(rx_header)) {
@@ -265,7 +264,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 					}
 				}
 			} //END if(not control packet)
-		} //END if (to_me or to_broadcast)
+		} //END if (to_me or to_multicast)
 	} else {
 		red_led_index = (red_led_index + 1) % NUM_LEDS;
 		userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
