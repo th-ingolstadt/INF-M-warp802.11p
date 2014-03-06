@@ -43,6 +43,9 @@
 #define DDR3_BASEADDR XPAR_DDR3_SODIMM_S_AXI_BASEADDR               ///< XParameters rename for base address of DDR3 SODIMM
 #define DDR3_SIZE 1073741824                                        ///< Available space in DDR3 SODIMM
 
+#define DDR3_SCRATCH_BASEADDR		0xC05DC000						///< Space set aside in DDR3 for user extension
+#define DDR3_SCRATCH_SIZE			0x01000000						///< 16MB for scratch work
+
 #define USERIO_BASEADDR XPAR_W3_USERIO_BASEADDR                     ///< XParameters rename of base address of User I/O
 
 #define GPIO_DEVICE_ID			XPAR_MB_HIGH_SW_GPIO_DEVICE_ID      ///< XParameters rename of device ID of GPIO

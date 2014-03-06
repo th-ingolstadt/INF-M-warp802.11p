@@ -59,9 +59,11 @@ int queue_init(){
 #if USE_DRAM
 	if(dram_present == 1){
 		//Use DRAM
-		PQUEUE_LEN = 3000;
+		PQUEUE_LEN = 3000; ///Do not increase. The user scratch place in DRAM begins immediately following
+						   ///the queue.
 		xil_printf("Queue of %d placed in DRAM: using %d kB\n", PQUEUE_LEN, (PQUEUE_LEN*PQUEUE_MAX_FRAME_SIZE)/1024);
 		PQUEUE_BUFFER_SPACE_BASE = (void*)(DDR3_BASEADDR);
+
 	} else {
 		//Use BRAM
 		PQUEUE_LEN = 20;
