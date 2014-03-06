@@ -78,6 +78,7 @@ u8 allow_assoc;
 u8 perma_assoc_mode;
 u8 default_unicast_rate;
 s8 default_tx_power;
+u8 default_tx_ant_mode;
 
 
 // Association table variable
@@ -132,6 +133,7 @@ int main(){
 	perma_assoc_mode     = 0;
 	default_unicast_rate = WLAN_MAC_RATE_18M;
 	default_tx_power = TX_POWER_DBM;
+	default_tx_ant_mode = WLAN_TX_ANTMODE_SISO_ANTA;
 
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );
@@ -255,7 +257,7 @@ void check_tx_queue(){
 							if(curr_station_info == NULL){
 								//Check the broadcast queue
 								next_station_info = (station_info*)(association_table.first);
-								if(wlan_mac_queue_poll(BCAST_QID)){
+								if(wlan_mac_queue_poll(MCAST_QID)){
 									return;
 								} else {
 									curr_station_info = next_station_info;
@@ -295,7 +297,7 @@ void purge_all_data_tx_queue(){
 	station_info* curr_station_info;
 
 	// Purge all data transmit queues
-	purge_queue(BCAST_QID);                                    		// Broadcast Queue
+	purge_queue(MCAST_QID);                                    		// Broadcast Queue
 	curr_station_info = (station_info*)(association_table.first);
 	for(i=0; i < association_table.length; i++){
 		purge_queue(AID_TO_QID(curr_station_info->AID));       		// Each unicast queue
@@ -489,11 +491,11 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 
 	wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
-	if(wlan_addr_eq(bcast_addr, eth_dest)){
-		if(queue_num_queued(BCAST_QID) < max_queue_size){
+	if(wlan_addr_mcast(eth_dest)){
+		if(queue_num_queued(MCAST_QID) < max_queue_size){
 			wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, 0 );
 
-			enqueue_after_end(BCAST_QID, tx_queue_list);
+			enqueue_after_end(MCAST_QID, tx_queue_list);
 			check_tx_queue();
 		} else {
 			return 0;
@@ -542,7 +544,7 @@ void beacon_transmit() {
         tx_length = wlan_create_beacon_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame,&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,1,tim_control,tim_bitmap);
 
  		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, 1, TX_MPDU_FLAGS_FILL_TIMESTAMP );
- 		enqueue_after_end(MANAGEMENT_QID, &checkout); //TODO: BCAST_QID or MANAGEMENT_QID
+ 		enqueue_after_end(MANAGEMENT_QID, &checkout);
 
  		check_tx_queue();
  	}
@@ -705,20 +707,18 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
 						//MPDU is flagged as destined to the DS
 						eth_send = 1;
-
-						if(wlan_addr_eq(rx_80211_header->address_3,bcast_addr)){
-
+						if(wlan_addr_mcast(rx_80211_header->address_3)){
 								queue_checkout(&checkout,1);
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
 									tx_queue = (packet_bd*)(checkout.first);
-									wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, rx_80211_header->address_2);
+									wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_3, rx_80211_header->address_2);
 									mpdu_ptr_u8 = (u8*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
 									tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 									mpdu_ptr_u8 += sizeof(mac_header_80211);
 									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
 									wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, mpdu_info->length, 1, 0 );
-									enqueue_after_end(BCAST_QID, &checkout);
+									enqueue_after_end(MCAST_QID, &checkout);
 									check_tx_queue();
 								}
 
@@ -900,6 +900,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					if(associated_station != NULL) {
 						associated_station->tx.rate = default_unicast_rate;
 						associated_station->tx.power = default_tx_power;
+						associated_station->tx.antenna_mode = default_tx_ant_mode;
 
 						//Checkout 1 element from the queue;
 						queue_checkout(&checkout,1);

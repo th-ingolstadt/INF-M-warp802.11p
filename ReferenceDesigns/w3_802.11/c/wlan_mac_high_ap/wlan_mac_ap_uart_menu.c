@@ -457,7 +457,7 @@ void print_queue_status(){
 	u32 i;
 	station_info* curr_station_info;
 	xil_printf("\nQueue Status:\n");
-	xil_printf(" FREE || BCAST|");
+	xil_printf(" FREE || MCAST|");
 
 	curr_station_info = (station_info*)association_table.first;
 	for(i=0; i < association_table.length; i++){
@@ -466,7 +466,7 @@ void print_queue_status(){
 	}
 	xil_printf("\n");
 
-	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(0));
+	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
 
 	curr_station_info = (station_info*)association_table.first;
 	for(i=0; i < association_table.length; i++){
