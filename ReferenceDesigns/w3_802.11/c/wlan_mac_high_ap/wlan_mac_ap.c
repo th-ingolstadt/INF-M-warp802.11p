@@ -157,9 +157,6 @@ int main(){
 
     wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
 
-    // Initialize interrupts
-    wlan_mac_high_interrupt_init();
-
     // Wait for CPU Low to initialize
 	while( wlan_mac_high_is_cpu_low_initialized() == 0 ){
 		xil_printf("waiting on CPU_LOW to boot\n");
@@ -183,6 +180,9 @@ int main(){
 	// Set SSID
 	access_point_ssid = wlan_mac_high_malloc(strlen(default_AP_SSID)+1);
 	strcpy(access_point_ssid,default_AP_SSID);
+
+	// Initialize interrupts
+	wlan_mac_high_interrupt_init();
 
     // Schedule all events
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
