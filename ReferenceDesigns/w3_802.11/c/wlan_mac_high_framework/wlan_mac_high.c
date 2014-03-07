@@ -273,13 +273,13 @@ void wlan_mac_high_init(){
 	if( dram_present ) {
 		//The event_list lives in DRAM immediately following the queue payloads.
 		if(MAX_EVENT_LOG == -1){
-			log_size = (DDR3_SIZE - (queue_len+DDR3_SCRATCH_SIZE));
+			log_size = (DDR3_SIZE - (queue_len+DDR3_USER_DATA_MEM_SIZE));
 		} else {
-			log_size = min( (DDR3_SIZE - (queue_len+DDR3_SCRATCH_SIZE)), MAX_EVENT_LOG );
+			log_size = min( (DDR3_SIZE - (queue_len+DDR3_USER_DATA_MEM_SIZE)), MAX_EVENT_LOG );
 		}
 
 		//event_log_init( (void*)(DDR3_BASEADDR + queue_len), log_size );
-		event_log_init( (void*)(DDR3_SCRATCH_BASEADDR + DDR3_SCRATCH_SIZE), log_size );
+		event_log_init( (void*)(DDR3_USER_DATA_MEM_BASEADDR + DDR3_USER_DATA_MEM_SIZE), log_size );
 
 	} else {
 		//No DRAM, so the log has nowhere to be stored.

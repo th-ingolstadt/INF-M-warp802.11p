@@ -92,20 +92,6 @@ typedef struct{
 } rx_info;
 
 /**
- * @brief Transmit Parameters Structure
- *
- * This struct contains transmission parameters. Typically, this struct is included
- * in a larger station_info struct to describe transmission parameters to a particular
- * station in the network.
- */
-typedef struct{
-	u8      rate;			///< Rate of transmission
-	u8      antenna_mode;	///< Antenna mode (Placeholder)
-	u8	    max_retry;		///< Maximum number of retransmissions
-	s8      power;			///< Power of transmission (in dBm)
-} tx_params;
-
-/**
  * @brief Statistics Structure
  *
  * This struct contains statistics about the communications link. Typically, this struct is
