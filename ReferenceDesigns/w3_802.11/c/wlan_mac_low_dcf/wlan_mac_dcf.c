@@ -91,6 +91,7 @@ int main(){
 
 	wlan_mac_low_finish_init();
 
+    xil_printf("Initialization Finished\n");
 
 	while(1){
 		//Poll PHY RX start
