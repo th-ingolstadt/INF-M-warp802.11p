@@ -1094,22 +1094,24 @@ void add_node_info_entry(u8 transmit){
 
 	entry = (node_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry) );
 
-    // Add the node parameters
-    temp0 = node_get_parameter_values( (u32 *)entry, max_words);
+	if ( entry != NULL ) {
+		// Add the node parameters
+		temp0 = node_get_parameter_values( (u32 *)entry, max_words);
 
-    // Check to make sure that there was no mismatch in sizes
-    //   NOTE: During initialization of the log, the hardware parameters are not yet defined.
-    //       Therefore, we need to ignore when we get zero and be sure to reset the log
-    //       before normal operation
-    if ( (temp0 != max_words) && (temp0 != 0) ) {
-    	xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
-    	print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
-    }
+		// Check to make sure that there was no mismatch in sizes
+		//   NOTE: During initialization of the log, the hardware parameters are not yet defined.
+		//       Therefore, we need to ignore when we get zero and be sure to reset the log
+		//       before normal operation
+		if ( (temp0 != max_words) && (temp0 != 0) ) {
+			xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
+			print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
+		}
 
-    // Transmit the entry if requested
-    if (transmit == WN_TRANSMIT) {
-        wn_transmit_log_entry((void *)(entry));
-    }
+		// Transmit the entry if requested
+		if (transmit == WN_TRANSMIT) {
+			wn_transmit_log_entry((void *)(entry));
+		}
+	}
 #endif
 }
 
