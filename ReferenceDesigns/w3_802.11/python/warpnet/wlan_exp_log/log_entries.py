@@ -31,7 +31,8 @@ from struct import calcsize, unpack, error
 
 
 __all__ = ['WlanExpLogEntryTypes', 
-           'NodeInfo', 'ExpInfo', 'StationInfo', 'Temperature',
+           'NodeInfo', 'ExpInfo', 'StationInfo', 'WNCmdInfo',
+           'Temperature',
            'Rx', 'RxOFDM', 'RxDSSS', 'Tx', 'TxRxStats']
 
 
@@ -48,6 +49,7 @@ ENTRY_TYPE_NODE_INFO              = 1
 ENTRY_TYPE_EXP_INFO               = 2
 ENTRY_TYPE_STATION_INFO           = 3
 ENTRY_TYPE_NODE_TEMPERATURE       = 4
+ENTRY_TYPE_WN_CMD_INFO            = 5
 
 ENTRY_TYPE_RX_OFDM                = 10
 ENTRY_TYPE_RX_DSSS                = 11
@@ -200,6 +202,23 @@ class StationInfo(WlanExpLogEntryType):
 # End class 
 
 
+class WNCmdInfo(WlanExpLogEntryType):
+    """WARPNet Command Info Log Entry Type."""
+    _entry_type_id = ENTRY_TYPE_WN_CMD_INFO
+    name           = 'WN_CMD_INFO'
+
+    def __init__(self):
+        super(WNCmdInfo, self).__init__()
+        self.append_field_info([ 
+            ('Q',     'uint64',      'timestamp'),
+            ('I',     'uint32',      'command'),
+            ('H',     'uint16',      'rsvd'),
+            ('H',     'uint16',      'num_args'),
+            ('10I',   '10uint32',    'args')])
+
+# End class 
+
+
 class Temperature(WlanExpLogEntryType):
     """Temperature Log Entry Type."""
     _entry_type_id = ENTRY_TYPE_NODE_TEMPERATURE
@@ -328,6 +347,7 @@ class WlanExpLogEntryTypes:
         self.add_entry_type(NodeInfo())
         self.add_entry_type(ExpInfo())
         self.add_entry_type(StationInfo())
+        self.add_entry_type(WNCmdInfo())
         self.add_entry_type(Temperature())
         self.add_entry_type(Rx())
         self.add_entry_type(RxOFDM())
