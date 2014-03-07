@@ -27,13 +27,13 @@ import warpnet.wlan_exp.ltg  as ltg
 
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
+NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
 AP_LOG_FILENAME   = 'example_logs/ap_log_stats.bin'
 STA_LOG_FILENAME  = 'example_logs/sta_log_stats.bin'
 
 # Set the per-trial duration (in seconds)
-TRIAL_TIME = 30
+TRIAL_TIME = 5
 
 print("\nInitializing experiment\n")
 
@@ -76,11 +76,11 @@ print("\nRun Experiment:\n")
 
 
 # Look at the initial log sizes for reference
-ap_log_size  = n_ap.log_get_size()
-sta_log_size = n_sta.log_get_size()
+(ap_log_capacity, ap_log_size)   = n_ap.log_get_size()
+(sta_log_capacity, sta_log_size) = n_sta.log_get_size()
 
-print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
-print("            STA = {0:10d} bytes".format(sta_log_size))
+print("Log Sizes:  AP  = {0:10d} bytes (of {1:10d})".format(ap_log_size, ap_log_capacity))
+print("            STA = {0:10d} bytes (of {1:10d})".format(sta_log_size, sta_log_capacity))
 
 
 # Check that the nodes are associated.  Otherwise, the LTGs below will fail.
@@ -106,11 +106,11 @@ n_ap.queue_tx_data_purge_all()
 
 
 # Look at the log sizes after the first LTG
-ap_log_size  = n_ap.log_get_size()
-sta_log_size = n_sta.log_get_size()
+(ap_log_capacity, ap_log_size)   = n_ap.log_get_size()
+(sta_log_capacity, sta_log_size) = n_sta.log_get_size()
 
-print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
-print("            STA = {0:10d} bytes".format(sta_log_size))
+print("Log Sizes:  AP  = {0:10d} bytes (of {1:10d})".format(ap_log_size, ap_log_capacity))
+print("            STA = {0:10d} bytes (of {1:10d})".format(sta_log_size, sta_log_capacity))
 
 
 print("\nStart LTG - STA -> AP:")
@@ -129,11 +129,17 @@ n_sta.queue_tx_data_purge_all()
 
 
 # Look at the log sizes after the second LTG
-ap_log_size  = n_ap.log_get_size()
-sta_log_size = n_sta.log_get_size()
+(ap_log_capacity, ap_log_size)   = n_ap.log_get_size()
+(sta_log_capacity, sta_log_size) = n_sta.log_get_size()
 
-print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
-print("            STA = {0:10d} bytes".format(sta_log_size))
+print("Log Sizes:  AP  = {0:10d} bytes (of {1:10d})".format(ap_log_size, ap_log_capacity))
+print("            STA = {0:10d} bytes (of {1:10d})".format(sta_log_size, sta_log_capacity))
+
+# ap_log_size  = n_ap.log_get_size()
+# sta_log_size = n_sta.log_get_size()
+
+# print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
+# print("            STA = {0:10d} bytes".format(sta_log_size))
 
 
 # Write Statistics to log
@@ -142,6 +148,22 @@ n_sta.stats_write_txrx_to_log()
 
 # Write Log Files for processing by other scripts
 print("\nWriting Log Files...")
-n_ap.log_get_all(AP_LOG_FILENAME)
-n_sta.log_get_all(STA_LOG_FILENAME)
+
+# Helper Function to write data to a log file
+def write_log_file(file_name, data_buffer):
+    try:
+        data = data_buffer.get_bytes()
+        with open(file_name, 'wb') as data_file:
+            data_file.write(data)
+    except IOError as err:
+        print("Error writing log file: {0}".format(err))
+
+write_log_file(AP_LOG_FILENAME, n_ap.log_get_all_new())
+write_log_file(STA_LOG_FILENAME, n_sta.log_get_all_new())
+
 print("Done.")
+
+
+
+
+

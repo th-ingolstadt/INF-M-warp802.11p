@@ -318,11 +318,22 @@ class BufferCmd(CmdRespMessage):
         self.flags = flags
         self.start_byte = start_byte
         self.size = size
+        
+        if (False):
+            print("Buffer Command:")
+            print("    command     = {0}".format(command))
+            print("    buffer_id   = {0}".format(buffer_id))
+            print("    flags       = {0}".format(flags))
+            print("    start_byte  = {0}".format(start_byte))
+            print("    size        = {0}".format(size))
+        
+        
     
-    def get_resp_type(self): return self.resp_type        
-    def get_buffer_size(self): return self.size    
-    def get_buffer_id(self): return self.buffer_id
-    def get_buffer_flags(self): return self.flags
+    def get_resp_type(self):          return self.resp_type        
+    def get_buffer_id(self):          return self.buffer_id
+    def get_buffer_flags(self):       return self.flags
+    def get_buffer_start_byte(self):  return self.start_byte
+    def get_buffer_size(self):        return self.size    
 
     def process_resp(self, resp):
         """Process the response of the WARPNet command."""
@@ -377,9 +388,10 @@ class Buffer(Message):
     decoded by higher level functions.
 
     Attributes:
-        complete -- Flag to indicate if buffer contains all of the bytes
-                      indicated by the size parameter
-        num_bytes -- Number of bytes currently contained within the buffer
+        complete   -- Flag to indicate if buffer contains all of the bytes
+                        indicated by the size parameter
+        start_byte -- Start byte of the buffer
+        num_bytes  -- Number of bytes currently contained within the buffer
 
     Wire Data Format:
         command -- (uint32) WARPNet command / response
@@ -391,6 +403,7 @@ class Buffer(Message):
         buffer -- (list of uint8) Content of the buffer 
     """
     complete    = None
+    start_byte  = None
     num_bytes   = None
     buffer_id   = None
     flags       = None
@@ -398,10 +411,11 @@ class Buffer(Message):
     buffer      = None
 
 
-    def __init__(self, buffer_id=0, flags=0, size=0, buffer=None):
-        self.buffer_id = buffer_id
-        self.flags = flags
-        self.size = size
+    def __init__(self, buffer_id=0, flags=0, start_byte=0, size=0, buffer=None):
+        self.buffer_id  = buffer_id
+        self.flags      = flags
+        self.start_byte = start_byte
+        self.size       = size
 
         if buffer is None:
             # Create an empty buffer of the specified size
@@ -410,6 +424,16 @@ class Buffer(Message):
             self.buffer = bytearray(self.size)
         else:
             self._add_buffer_data(0, buffer)
+
+        if (False):
+            print("Buffer")
+            print("    complete   = {0}".format(self.complete))
+            print("    buffer_id  = {0}".format(buffer_id))
+            print("    flags      = {0}".format(flags))
+            print("    start_byte = {0}".format(start_byte))
+            print("    size       = {0}".format(size))
+            print("    num_bytes  = {0}".format(self.num_bytes))
+        
 
     def serialize(self, command=0, start_byte=0):
         """Return a bytes object of a packed buffer."""
@@ -429,8 +453,10 @@ class Buffer(Message):
             size = dataTuple[6]
             buffer = struct.unpack_from('!%dB' % size, raw_data, offset=24)
             
-            self._update_size(start_byte + size)
-            self._add_buffer_data(start_byte, buffer)
+            offset = (start_byte - self.start_byte)
+            
+            self._update_size(offset + size)
+            self._add_buffer_data(offset, buffer)
             self._set_buffer_complete()            
         except struct.error as err:
             # Ignore the data.  We want predictable behavior on error
@@ -459,13 +485,25 @@ class Buffer(Message):
                   "    Ignorning data.")
 
         if (buffer_id == self.buffer_id):
-            self._update_size(start_byte + size)
-            self._add_buffer_data(start_byte, buffer)
+            offset = (start_byte - self.start_byte)
+            
+            self._update_size(offset + size)
+            self._add_buffer_data(offset, buffer)
             self._set_buffer_complete()            
  
             self.set_flags(flags)
         else:
             print("Data not intended for given WARPNet buffer.  Ignoring.")
+
+        if (False):
+            print("add_data_to_buffer")
+            print("    buffer_id  = {0}".format(buffer_id))
+            print("    flags      = {0}".format(flags))
+            print("    start_byte = {0}".format(start_byte))
+            print("    size       = {0}".format(size))
+            print("    offset     = {0}".format(offset))
+            print("    complete   = {0}".format(self.complete))
+
 
     def append(self, wn_buffer):
         """Append the contents of the provided WnBuffer to the current

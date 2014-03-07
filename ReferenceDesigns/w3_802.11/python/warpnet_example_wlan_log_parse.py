@@ -46,7 +46,7 @@ log_nd = log_util.gen_log_ndarrays(log_b, log_index)
 # Describe the decoded log entries
 print("Log Contents:\n  Num  Type")
 for k in log_nd.keys():
-	print("{0:5d}  {1}".format(len(log_nd[k]), log.wlan_exp_log_entry_types[k].name))
+    print("{0:5d}  {1}".format(len(log_nd[k]), k))
 
 print("")
 
@@ -54,7 +54,7 @@ print("")
 # Example 1: Count the number of receptions per PHY rate
 
 # Extract all OFDM receptions
-log_rx_ofdm = log_nd[log.log_entry_rx_ofdm.entry_type_ID]
+log_rx_ofdm = log_nd[log.log_entry_rx_ofdm.name]
 
 # Extract an array of just the Rx rates
 rx_rates = log_rx_ofdm['rate']
@@ -75,7 +75,7 @@ print("Example 1: Num Rx per Rate: %s\n" % rx_rate_counts)
 # Example 2: Calculate total number of packets and bytes transmitted to each distinct MAC address
 
 # Extract all OFDM transmissions
-log_tx = log_nd[log.log_entry_tx.entry_type_ID]
+log_tx = log_nd[log.log_entry_tx.name]
 
 # Extract an array of just the MAC headers
 tx_hdrs = log_tx['mac_header']

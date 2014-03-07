@@ -25,7 +25,7 @@ Functions (see below for more information):
 """
 
 
-def gen_log_index(log_bytes):
+def gen_log_index(log_bytes, strict=False):
     """Parses a binary WARPnet log file by recording the byte index of each
     entry. The byte indexes are returned in a dictionary with the entry
     type IDs as keys. This method does not unpack or interpret each log
@@ -79,16 +79,18 @@ def gen_log_index(log_bytes):
             break
 
         # Record the starting byte offset of this entry in the log index
-        if(entry_type_id in log_index.keys()):
-            log_index[entry_type_id].append(offset)
-        else:
-            log_index[entry_type_id] = [offset]
+        from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types
+        
+        for entry_type in wlan_exp_log_entry_types.get_entry_types_from_id(entry_type_id, strict):
+            if(entry_type in log_index.keys()):
+                log_index[entry_type].append(offset)
+            else:
+                log_index[entry_type] = [offset]
 
         # Increment the byte offset for the next iteration
         offset += entry_size
 
         num_entries += 1
-
 
 #    print('Parsed %d entries:' % num_entries)
 #    for k in log_index.keys():
@@ -109,16 +111,14 @@ def gen_log_ndarrays(log_bytes, log_index):
     entries_nd = dict()
 
     for k in log_index.keys():
-        log_type = log_entries.wlan_exp_log_entry_types[k]
-        log_type_str = log_type.print_fmt
+        log_type = log_entries.wlan_exp_log_entry_types.get_entry_from_type(k)
 
         # Construct the list of byte ranges for this type of log entry
-        index_iter = [log_bytes[o : o + log_type.fields_size] for o in log_index[log_type.entry_type_ID]]
+        index_iter = [log_bytes[o : o + log_type.fields_size] for o in log_index[k]]
 
         # Build a structured array with one element for each byte range enumerated above
         # Store each array in a dictionary indexed by the log entry type
-        entries_nd[k] = np.fromiter(index_iter, np.dtype(log_type.fields_np_dt), len(log_index[log_type.entry_type_ID]))
-#        entries_nd[log_type_str] = np.fromiter(index_iter, log_type.fields_np_dt, len(log_index[log_type.entry_type_ID]))
+        entries_nd[k] = np.fromiter(index_iter, np.dtype(log_type.fields_np_dt), len(log_index[k]))
 
     return entries_nd
 

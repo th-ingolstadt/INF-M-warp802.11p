@@ -64,33 +64,37 @@ class WlanExpNode(wn_node.WnNode):
     the attributes of the WARPNet node.
     
     Attributes (inherited from WnNode):
-        node_type -- Unique type of the WARPNet node
-        node_id -- Unique identification for this node
-        name -- User specified name for this node (supplied by user scripts)
-        description -- String description of this node (auto-generated)
-        serial_number -- Node's serial number, read from EEPROM on hardware
-        fpga_dna -- Node's FPGA'a unique identification (on select hardware)
-        hw_ver -- WARP hardware version of this node
-        wn_ver_major -- WARPNet version running on this node
+        node_type       -- Unique type of the WARPNet node
+        node_id         -- Unique identification for this node
+        name            -- User specified name for this node (supplied by user scripts)
+        description     -- String description of this node (auto-generated)
+        serial_number   -- Node's serial number, read from EEPROM on hardware
+        fpga_dna        -- Node's FPGA'a unique identification (on select hardware)
+        hw_ver          -- WARP hardware version of this node
+        wn_ver_major    -- WARPNet version running on this node
         wn_ver_minor
         wn_ver_revision
-        transport -- Node's transport object
+        transport       -- Node's transport object
         transport_bcast -- Node's broadcast transport object
 
     New Attributes:
-        max_associations -- Maximum associations of the node
-        event_log_size -- Size of event log (in bytes)
-        event_log -- Event log object
+        max_associations     -- Maximum associations of the node
+        log_max_size         -- Maximum size of event log (in bytes)
+        log_total_bytes_read -- Number of bytes read from the event log
+        log_num_wraps        -- Number of times the event log has wrapped
+        log_next_read_index  -- Index in to event log of next read
 
-        wlan_exp_ver_major -- WLAN Exp version running on this node
+        wlan_exp_ver_major   -- WLAN Exp version running on this node
         wlan_exp_ver_minor
         wlan_exp_ver_revision        
     """
     wlan_mac_address      = None
     max_associations      = None
     max_statistics        = None
-    event_log_size        = None
-    event_log             = None
+    log_max_size          = None
+    log_total_bytes_read  = None
+    log_num_wraps         = None
+    log_next_read_index   = None
 
     wlan_exp_ver_major    = None
     wlan_exp_ver_minor    = None
@@ -103,10 +107,14 @@ class WlanExpNode(wn_node.WnNode):
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor, 
                 self.wlan_exp_ver_revision) = util.wlan_exp_ver(output=0)
         
-        self.node_type = defaults.WLAN_EXP_BASE
-        self.max_associations = 0
-        self.max_statistics = 0
-        self.event_log = None
+        self.node_type            = defaults.WLAN_EXP_BASE
+        self.max_associations     = 0
+        self.max_statistics       = 0
+
+        self.log_max_size         = 0
+        self.log_total_bytes_read = 0
+        self.log_num_wraps        = 0
+        self.log_next_read_index  = 0
 
 
     def configure_node(self, jumbo_frame_support=False):
@@ -128,6 +136,11 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     def log_reset(self):
         """Reset the event log on the node."""
+        # Update the internal state to stay consistent with the node.
+        self.log_total_bytes_read = 0
+        self.log_num_wraps        = 0
+        self.log_next_read_index  = 0
+        
         self.send_cmd(cmds.LogReset())
 
 
@@ -136,6 +149,7 @@ class WlanExpNode(wn_node.WnNode):
         
         Flags (32 bits):
             [0] - Allow log to wrap (1 - Enabled / 0 - Disabled )
+            [1] - Log events (1 - Enabled / 0 -Disabled)
         """
         self.send_cmd(cmds.LogConfigure(flags))
 
@@ -157,44 +171,72 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.LogGetEvents(size, offset))
 
 
-    def log_get_all(self, file_name=None):
-        """Get the entire log file as a WnBuffer.  
+    def log_get_all_new(self):
+        """Get all "new" entries in the log.
         
-        Optionally, save the contents to the provided file name.
+        Returns:
+           Byte array that contains all entries since the last time the 
+             log was read.
         """
-        resp  = None
-        start = self.log_get_start()
-        end   = self.log_get_end()
-        
-        if (start < end):
-            resp = self.log_get((end - start), start)
+        return_val = b''
+        (next_index, oldest_index, num_wraps) = self.log_get_indexes()
+
+        if (num_wraps == self.log_num_wraps):
+            if (next_index > self.log_next_read_index):
+                return_val = self.log_get(offset=self.log_next_read_index, 
+                                          size=(next_index - self.log_next_read_index))
+                self.log_next_read_index = next_index
         else:
-            resp = self.log_get((self.event_log_size - start), start)
-            temp = self.log_get(start, 0)
-            resp.append(temp)
-
-        if not file_name is None:
-            file_byte_array = resp.get_bytes()
-            try:
-                with open(file_name, 'wb') as data_file:
-                    data_file.write(file_byte_array)
-            except IOError as err:
-                print("Error writing config file: {0}".format(err))
-
-        return resp
+            return_val = self.log_get(offset=self.log_next_read_index, 
+                                      size=cmds.LOG_GET_ALL_ENTRIES)
+            self.log_next_read_index = 0
+            self.log_num_wraps       = num_wraps
+        
+        return return_val
 
 
     def log_get_size(self):
-        """Get the size of the log (bytes)."""
-        start = self.log_get_start()
-        end   = self.log_get_end()
+        """Get the capacity and size of the log (in bytes).
         
-        if (start < end):
-            resp = end - start
-        else:
-            resp = (self.event_log_size - start) + end
+        Returns a tuple:
+            (capacity, size)        
+        """
+        (capacity, size)  = self.send_cmd(cmds.LogGetCapacity())
 
-        return resp
+        # Check the maximum size of the log and update the node state
+        if (self.log_max_size != capacity):
+            msg  = "EVENT LOG WARNING:  Log capacity changed.\n"
+            msg += "    Went from {0} bytes to ".format(self.log_max_size)
+            msg += "{0} bytes.\n".format(capacity)
+            print(msg)
+            self.log_max_size = capacity
+
+        return (capacity, size)
+
+
+    def log_get_indexes(self):
+        """Get the indexes that describe the state of the event log.
+        
+        Returns a tuple:
+            (oldest_index, next_index, num_wraps)        
+        """
+        (next_index, oldest_index, num_wraps, _) = self.send_cmd(cmds.LogGetInfo())
+        
+        # Check that the log is in a good state
+        if ((num_wraps < self.log_num_wraps) or 
+            ((num_wraps == self.log_num_wraps) and 
+             (next_index < self.log_next_read_index))):
+            msg  = "\n!!! Event Log Corrupted.  Please reset the log. !!!\n"
+            print(msg)
+        
+        return (next_index, oldest_index, num_wraps)
+
+
+    def log_get_configuration_flags(self):
+        """Get the flags that describe the event log configuration."""
+        (_, _, _, flags) = self.send_cmd(cmds.LogGetInfo())
+
+        return flags        
 
 
     def log_enable_stream(self, port, ip_address=None, host_id=None):
@@ -229,21 +271,6 @@ class WlanExpNode(wn_node.WnNode):
             message -- Information to be placed in the event log
         """
         raise NotImplementedError
-
-
-    def log_get_start(self):
-        """Get the index of the oldest event in the log."""
-        return self.send_cmd(cmds.LogGetOldestIdx())
-
-
-    def log_get_end(self):
-        """Get the index of the end of the log.
-        
-        NOTE:  As long as the log is recording, this will continue to 
-        increment until the log is full.  If wrapping is enabled, then 
-        eventually, the value of the log end will be less than log start.
-        """
-        return self.send_cmd(cmds.LogGetCurrIdx())
 
 
     #--------------------------------------------
@@ -505,7 +532,7 @@ class WlanExpNode(wn_node.WnNode):
 
         elif (identifier == NODE_WLAN_EVENT_LOG_SIZE):
             if (length == 1):
-                self.event_log_size = values[0]
+                self.log_max_size = values[0]
             else:
                 raise wn_ex.ParameterError("NODE_WLAN_EVENT_LOG_SIZE", "Incorrect length")
 

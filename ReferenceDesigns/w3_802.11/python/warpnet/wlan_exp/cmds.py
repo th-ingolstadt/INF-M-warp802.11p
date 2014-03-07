@@ -58,7 +58,7 @@ import warpnet.wn_transport_eth_udp as wn_transport
 
 
 
-__all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetCurrIdx', 'LogGetOldestIdx',
+__all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetInfo', 'LogGetCapacity',
            'StatsGetTxRx', 'StatsGetAllTxRx', 'StatsAddTxRxToLog', 'StatsResetTxRx', 
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
            'NodeProcTime', 'NodeProcChannel', 'NodeProcTxRate', 'NodeProcTxGain',
@@ -91,14 +91,17 @@ LTG_ERROR                    = 0xFFFFFFFF
 
 CMD_LOG_RESET                = 50
 CMD_LOG_CONFIG               = 51
-CMD_LOG_GET_CURR_IDX         = 52
-CMD_LOG_GET_OLDEST_IDX       = 53
-CMD_LOG_GET_EVENTS           = 54
-CMD_LOG_ADD_EVENT            = 55
-CMD_LOG_ENABLE_EVENT         = 56
+CMD_LOG_GET_INFO             = 52
+CMD_LOG_GET_CAPACITY         = 53
+CMD_LOG_GET_ENTRIES          = 54
+CMD_LOG_ADD_ENTRY            = 55
+CMD_LOG_ENABLE_ENTRY         = 56
 CMD_LOG_STREAM_ENTRIES       = 57
 
 LOG_CONFIG_FLAG_WRAP         = 0x00000001
+LOG_CONFIG_FLAG_LOGGING      = 0x00000002
+
+LOG_GET_ALL_ENTRIES          = 0xFFFFFFFF
 
 CMD_STATS_ADD_TXRX_TO_LOG    = 60
 CMD_STATS_GET_TXRX           = 61
@@ -127,9 +130,14 @@ _CMD_GRPID_NODE              = (wn_cmds.GRPID_NODE << 24)
 class LogGetEvents(wn_message.BufferCmd):
     """Command to get the WLAN Exp log events of the node"""
     def __init__(self, size, start_byte=0):
-        command = _CMD_GRPID_NODE + CMD_LOG_GET_EVENTS
+        command = _CMD_GRPID_NODE + CMD_LOG_GET_ENTRIES
         super(LogGetEvents, self).__init__(
                 command=command, buffer_id=0, flags=0, start_byte=start_byte, size=size)
+
+        if (False):
+            print("LogGetEvents:")
+            print("    size       = {0}".format(size))
+            print("    start_byte = {0}".format(start_byte))
 
     def process_resp(self, resp):
         return resp
@@ -166,34 +174,34 @@ class LogConfigure(wn_message.Cmd):
 # End Class
 
 
-class LogGetCurrIdx(wn_message.Cmd):
-    """Command to reset the Event log"""
+class LogGetInfo(wn_message.Cmd):
+    """Command to get the state information about the log."""
     def __init__(self):
-        super(LogGetCurrIdx, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LOG_GET_CURR_IDX
+        super(LogGetInfo, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_LOG_GET_INFO
     
     def process_resp(self, resp):
         args = resp.get_args()
-        if len(args) != 1:
+        if len(args) != 4:
             print("Invalid response.")
             print(resp)
-        return args[0]
+        return (args[0], args[1], args[2], args[3])
 
 # End Class
 
 
-class LogGetOldestIdx(wn_message.Cmd):
-    """Command to reset the Event log"""
+class LogGetCapacity(wn_message.Cmd):
+    """Command to get the log capacity and current use."""
     def __init__(self):
-        super(LogGetOldestIdx, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LOG_GET_OLDEST_IDX
+        super(LogGetCapacity, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_LOG_GET_CAPACITY
     
     def process_resp(self, resp):
         args = resp.get_args()
-        if len(args) != 1:
+        if len(args) != 2:
             print("Invalid response.")
             print(resp)
-        return args[0]
+        return (args[0], args[1])
 
 # End Class
 

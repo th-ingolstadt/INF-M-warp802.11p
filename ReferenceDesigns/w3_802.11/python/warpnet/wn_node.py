@@ -369,7 +369,7 @@ class WnNode(object):
         reply = b''
         curr_tx = 1
         resp = wn_message.Buffer(cmd.get_buffer_id(), cmd.get_buffer_flags(),
-                                 cmd.get_buffer_size())
+                                 cmd.get_buffer_start_byte(), cmd.get_buffer_size())
 
         self.transport.send(payload)
 
@@ -388,6 +388,7 @@ class WnNode(object):
                 #   of the buffer
                 resp = wn_message.Buffer(cmd.get_buffer_id(),
                                          cmd.get_buffer_flags(),
+                                         cmd.get_buffer_start_byte(),
                                          cmd.get_buffer_size())
                 
                 self.transport.send(payload)
