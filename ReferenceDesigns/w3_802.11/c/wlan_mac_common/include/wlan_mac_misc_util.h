@@ -40,6 +40,19 @@ typedef int (*function_ptr_t)();
 #define wlan_addr_eq(addr1, addr2) (memcmp((void*)(addr1), (void*)(addr2), 6)==0)
 #define wlan_addr_mcast(addr) ( (((u8*)(addr))[0] & 1) == 1 )
 
+/**
+ * @brief Transmit Parameters Structure
+ *
+ * This struct contains transmission parameters. Typically, this struct is included
+ * in a larger station_info struct to describe transmission parameters to a particular
+ * station in the network.
+ */
+typedef struct{
+	u8      rate;			///< Rate of transmission
+	u8      antenna_mode;	///< Antenna mode (Placeholder)
+	u8	    max_retry;		///< Maximum number of retransmissions
+	s8      power;			///< Power of transmission (in dBm)
+} tx_params;
 
 typedef struct{
 	u8 state;
