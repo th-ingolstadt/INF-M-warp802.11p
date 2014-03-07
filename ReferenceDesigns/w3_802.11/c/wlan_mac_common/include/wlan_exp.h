@@ -30,7 +30,7 @@
 // to a future release.
 //
 
-#define  USE_WARPNET_WLAN_EXP
+#define USE_WARPNET_WLAN_EXP
 
 
 // **********************************************************************
@@ -39,7 +39,7 @@
 
 // Wait for WARPNet Ethernet interface to be ready before continuing boot
 //   - Disabled by default
-#define  WLAN_EXP_WAIT_FOR_ETH         0
+#define WLAN_EXP_WAIT_FOR_ETH          0
 
 // Log WARPNet events in the Event Log
 //   - Enabled by default
