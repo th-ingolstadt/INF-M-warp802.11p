@@ -67,14 +67,17 @@
 
 #define NODE_LOG_RESET                 50
 #define NODE_LOG_CONFIG                51
-#define NODE_LOG_GET_CURR_IDX          52
-#define NODE_LOG_GET_OLDEST_IDX        53
-#define NODE_LOG_GET_EVENTS            54
-#define NODE_LOG_ADD_EVENT             55
-#define NODE_LOG_ENABLE_EVENT          56
+#define NODE_LOG_GET_INFO              52
+#define NODE_LOG_GET_CAPACITY          53
+#define NODE_LOG_GET_ENTRIES           54
+#define NODE_LOG_ADD_ENTRY             55
+#define NODE_LOG_ENABLE_ENTRY          56
 #define NODE_LOG_STREAM_ENTRIES        57
 
+#define NODE_LOG_GET_ALL_ENTRIES       0xFFFFFFFF
+
 #define NODE_LOG_CONFIG_FLAG_WRAP      0x00000001
+#define NODE_LOG_CONFIG_FLAG_LOGGING   0x00000002
 
 #define NODE_ADD_STATS_TO_LOG          60
 #define NODE_GET_STATS                 61

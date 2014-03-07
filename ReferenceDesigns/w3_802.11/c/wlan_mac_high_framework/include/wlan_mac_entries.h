@@ -48,6 +48,7 @@
 #define ENTRY_TYPE_EXP_INFO            2
 #define ENTRY_TYPE_STATION_INFO        3
 #define ENTRY_TYPE_TEMPERATURE         4
+#define ENTRY_TYPE_WN_CMD              5
 
 //-----------------------------------------------
 // Receive Entries
@@ -58,8 +59,8 @@
 //-----------------------------------------------
 // Transmit Entries
 
-#define ENTRY_TYPE_TX_HIGH                  20
-#define ENTRY_TYPE_TX_LOW                  21
+#define ENTRY_TYPE_TX_HIGH             20
+#define ENTRY_TYPE_TX_LOW              21
 
 //-----------------------------------------------
 // Statistics Entries
@@ -137,6 +138,18 @@ typedef struct{
 	u32     min_temp;        // Minimum recorded temperature of the node
 	u32     max_temp;		 // Maximum recorded temperature of the node
 } temperature_entry;
+
+
+//-----------------------------------------------
+// WARPNet Command Entry
+//
+typedef struct{
+	u64     timestamp;      // Timestamp of the log entry
+	u32     command;        // WARPNet command
+	u16     rsvd;           // Reserved space
+	u16     num_args;       // Number of arguments
+	u32     args[10];	    // Data from the arguments
+} wn_cmd_entry;
 
 
 //-----------------------------------------------
@@ -250,11 +263,12 @@ typedef struct{
 //-----------------------------------------------
 // Wrapper methods to get entries
 //
-exp_info_entry   * get_next_empty_exp_info_entry(u16 size);
+exp_info_entry       * get_next_empty_exp_info_entry(u16 size);
+wn_cmd_entry         * get_next_empty_wn_cmd_entry();
 
-rx_ofdm_entry    * get_next_empty_rx_ofdm_entry();
-rx_dsss_entry    * get_next_empty_rx_dsss_entry();
-station_info_entry* get_next_empty_station_info_entry();
+rx_ofdm_entry        * get_next_empty_rx_ofdm_entry();
+rx_dsss_entry        * get_next_empty_rx_dsss_entry();
+station_info_entry   * get_next_empty_station_info_entry();
 
 tx_high_entry        * get_next_empty_tx_high_entry();
 tx_low_entry         * get_next_empty_tx_low_entry();

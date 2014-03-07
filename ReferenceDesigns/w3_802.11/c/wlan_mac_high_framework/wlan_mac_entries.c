@@ -73,11 +73,38 @@ exp_info_entry* get_next_empty_exp_info_entry(u16 size){
 	return (exp_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_EXP_INFO, sizeof(exp_info_entry) + size - 4 );
 }
 
-
+/*****************************************************************************/
+/**
+* Get the next empty station info entry
+*
+* @param    None.
+*
+* @return	station_info_entry *   - Pointer to the next "empty" Station info entry or NULL
+*
+* @note		None.
+*
+******************************************************************************/
 station_info_entry* get_next_empty_station_info_entry(){
 
 	// Get the next empty entry
 	return (station_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry) );
+}
+
+/*****************************************************************************/
+/**
+* Get the next empty WARPNet command entry
+*
+* @param    None.
+*
+* @return	wn_cmd_entry *   - Pointer to the next "empty" WARPNet command entry or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+wn_cmd_entry* get_next_empty_wn_cmd_entry(){
+
+	// Get the next empty entry
+	return (wn_cmd_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_WN_CMD, sizeof(wn_cmd_entry) );
 }
 
 /*****************************************************************************/
@@ -169,6 +196,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 
 	node_info_entry    * node_info_entry_log_item;
 	exp_info_entry     * exp_info_entry_log_item;
+	wn_cmd_entry       * wn_cmd_entry_log_item;
 	txrx_stats_entry   * txrx_stats_entry_log_item;
 	rx_common_entry    * rx_common_log_item;
 	tx_high_entry      * tx_high_entry_log_item;
@@ -203,6 +231,18 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 				xil_printf("\n");
 			}
 		break;
+
+        case ENTRY_TYPE_WN_CMD:
+        	wn_cmd_entry_log_item = (wn_cmd_entry*) entry;
+			xil_printf("%d: - WARPNet Command entry\n", entry_number );
+			xil_printf("   Timestamp:  %d\n", (u32)(wn_cmd_entry_log_item->timestamp));
+			xil_printf("   Command  :  0x%08x\n",    wn_cmd_entry_log_item->command);
+			xil_printf("   Args[%02d] :  \n",       wn_cmd_entry_log_item->num_args);
+			for( i = 0; i < wn_cmd_entry_log_item->num_args; i++) {
+				if (i == 10) break;
+				xil_printf("        0x%08x \n", (wn_cmd_entry_log_item->args)[i]);
+			}
+        break;
 
 		case ENTRY_TYPE_TXRX_STATS:
 			txrx_stats_entry_log_item = (txrx_stats_entry*) entry;

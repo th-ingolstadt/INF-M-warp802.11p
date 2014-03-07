@@ -175,6 +175,23 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode, vo
 	cmdHdr->length  = Xil_Ntohs(cmdHdr->length);
 	cmdHdr->numArgs = Xil_Ntohs(cmdHdr->numArgs);
 
+#if WLAN_EXP_ENABLE_LOGGING
+    // Create a new log entry for each WARPNet command and copy up to the first 10 args
+	//
+	u32 i;
+	wn_cmd_entry* entry      = get_next_empty_wn_cmd_entry();
+	u32         * cmdArgs32  = cmdArgs;
+	u32           num_args   = (cmdHdr->numArgs > 10) ? 10 : cmdHdr->numArgs;
+
+	entry->timestamp = get_usec_timestamp();
+	entry->command   = cmdHdr->cmd;
+	entry->num_args  = num_args;
+
+	for (i = 0; i < num_args; i++) {
+        (entry->args)[i] = Xil_Ntohl(cmdArgs32[i]);
+	}
+#endif
+
 	//Outgoing response header must be endian swapped as it's filled in
 	respHdr  = (wn_respHdr*)(fromNode->payload);
 	respArgs = (fromNode->payload) + sizeof(wn_cmdHdr);
@@ -201,6 +218,12 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode, vo
 	respHdr->cmd     = Xil_Ntohl(respHdr->cmd);
 	respHdr->length  = Xil_Ntohs(respHdr->length);
 	respHdr->numArgs = Xil_Ntohs(respHdr->numArgs);
+
+#if WLAN_EXP_ENABLE_LOGGING
+#ifdef _DEBUG_
+	print_entry( 0, ENTRY_TYPE_WN_CMD, (void *) entry );
+#endif
+#endif
 
 	return;
 }
@@ -308,9 +331,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     u32           id;
     u32           flags;
     u32           serial_number;
-	u32           start_address;
-	u32           curr_address;
-	u32           next_address;
+	u32           start_index;
+	u32           curr_index;
+	u32           next_index;
+	u32           oldest_index;
 	u32           ip_address;
 	u32           size;
 	u32           evt_log_size;
@@ -896,6 +920,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             // NODE_LOG_CONFIG Packet Format:
 			//   - cmdArgs32[0]  - flags
 			//                     [ 0] - Wrap = 1; No Wrap = 0;
+			//                     [ 1] - Logging Enabled = 1; Logging Disabled = 0;
 			//
             //   - respArgs32[0] - 0           - Success
 			//                     0xFFFF_FFFF - Failure
@@ -906,11 +931,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// Get flags
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
-			// Configure the LTG based on the flag bits
+			// Configure the LOG based on the flag bits
 			if ( ( temp & NODE_LOG_CONFIG_FLAG_WRAP ) == NODE_LOG_CONFIG_FLAG_WRAP ) {
 				event_log_config_wrap( EVENT_LOG_WRAP_ENABLE );
 			} else {
 				event_log_config_wrap( EVENT_LOG_WRAP_DISABLE );
+			}
+
+			if ( ( temp & NODE_LOG_CONFIG_FLAG_LOGGING ) == NODE_LOG_CONFIG_FLAG_LOGGING ) {
+				event_log_config_logging( EVENT_LOG_LOGGING_ENABLE );
+			} else {
+				event_log_config_logging( EVENT_LOG_LOGGING_DISABLE );
 			}
 
 			// Send response of status
@@ -922,38 +953,62 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LOG_GET_CURR_IDX:
-			// Get the current index of the log
-			temp = event_log_get_current_index();
+		case NODE_LOG_GET_INFO:
+            // NODE_LOG_GET_INFO Packet Format:
+            //   - respArgs32[0] - Next empty entry index
+            //   - respArgs32[1] - Oldest empty entry index
+            //   - respArgs32[2] - Number of wraps
+            //   - respArgs32[3] - Flags
 
-			xil_printf("EVENT LOG:  Current index = %d\n", temp);
+			xil_printf("EVENT LOG:  Get Info\n");
 
-			// Send response of current index
+			temp = event_log_get_next_entry_index();
             respArgs32[respIndex++] = Xil_Htonl( temp );
+			xil_printf("    Next Index   = %10d\n", temp);
 
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-	    break;
-
-
-	    //---------------------------------------------------------------------
-		case NODE_LOG_GET_OLDEST_IDX:
-			// Get the current index of the log
 			temp = event_log_get_oldest_entry_index();
-
-			xil_printf("EVENT LOG:  Oldest index  = %d\n", temp);
-
-			// Send response of oldest index
             respArgs32[respIndex++] = Xil_Htonl( temp );
+			xil_printf("    Oldest Index = %10d\n", temp);
 
+			temp = event_log_get_num_wraps();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+			xil_printf("    Num Wraps    = %10d\n", temp);
+
+			temp = event_log_get_flags();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+			xil_printf("    Flags        = 0x%08x\n", temp);
+
+			// Send response of current info
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 	    break;
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LOG_GET_EVENTS:
-            // NODE_GET_EVENTS Packet Format:
+		case NODE_LOG_GET_CAPACITY:
+            // NODE_LOG_GET_CAPACITY Packet Format:
+            //   - respArgs32[0] - Max log size
+            //   - respArgs32[1] - Current log size
+
+			xil_printf("EVENT LOG:  Get Capacity\n");
+
+			temp = event_log_get_capacity();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+			xil_printf("    Capacity = %10d\n", temp);
+
+			temp = event_log_get_total_size();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+			xil_printf("    Size     = %10d\n", temp);
+
+			// Send response of current info
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_LOG_GET_ENTRIES:
+            // NODE_LOG_GET_ENTRIES Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
 			//   - cmdArgs32[0] - buffer id
@@ -975,31 +1030,32 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			//   as such.
 			//
 			//     When you transferring "everything" in the event log, the command will take a
-			//   snapshot of the size of the log at the time the command is received.  It will then
-			//   only transfer those events and not any new events that are added to the log while
-			//   we are transferring the current log.
+			//   snapshot of the size of the log to the "end" at the time the command is received
+			//   (ie either the next_entry_index or the end of the log before it wraps).  It will then
+			//   only transfer those events.  It will not any new events that are added to the log while
+			//   we are transferring the current log as well as transfer any events after a wrap.
             //
 
 			id                = Xil_Ntohl(cmdArgs32[0]);
 			flags             = Xil_Ntohl(cmdArgs32[1]);
-			start_address     = Xil_Ntohl(cmdArgs32[2]);
+			start_index       = Xil_Ntohl(cmdArgs32[2]);
             size              = Xil_Ntohl(cmdArgs32[3]);
 
-            // Get the current size of the event log
-            evt_log_size      = event_log_get_size();
+            // Get the size of the log to the "end"
+            evt_log_size      = event_log_get_size(start_index);
 
             // Check if we should transfer everything or if the request was larger than the current log
-            if ( ( size == 0xFFFFFFFF ) || ( size > evt_log_size ) ) {
+            if ( ( size == NODE_LOG_GET_ALL_ENTRIES ) || ( size > evt_log_size ) ) {
                 size = evt_log_size;
             }
 
             bytes_per_pkt     = max_words * 4;
             num_pkts          = size / bytes_per_pkt + 1;
-            curr_address      = start_address;
+            curr_index        = start_index;
 
 #ifdef _DEBUG_
-			xil_printf("WLAN EXP NODE_GET_EVENTS \n");
-			xil_printf("    start_address    = 0x%8x\n    size             = %10d\n    num_pkts         = %10d\n", start_address, size, num_pkts);
+			xil_printf("EVENT LOG: Get Entries \n");
+			xil_printf("    curr_index      = 0x%8x\n    size             = %10d\n    num_pkts         = %10d\n", curr_index, size, num_pkts);
 #endif
 
             // Initialize constant parameters
@@ -1010,18 +1066,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			for( i = 0; i < num_pkts; i++ ) {
 
 				// Get the next address
-				next_address  = curr_address + bytes_per_pkt;
+				next_index  = curr_index + bytes_per_pkt;
 
 				// Compute the transfer size (use the full buffer unless you run out of space)
-				if( next_address > ( start_address + size ) ) {
-                    transfer_size = (start_address + size) - curr_address;
-
+				if( next_index > ( start_index + size ) ) {
+                    transfer_size = (start_index + size) - curr_index;
 				} else {
 					transfer_size = bytes_per_pkt;
 				}
 
 				// Set response args that change per packet
-	            respArgs32[2]   = Xil_Htonl( curr_address );
+	            respArgs32[2]   = Xil_Htonl( curr_index );
                 respArgs32[3]   = Xil_Htonl( transfer_size );
 
                 // Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all 
@@ -1031,11 +1086,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				respHdr->numArgs = 4;
 
 				// Transfer data
-				num_bytes = event_log_get_data( curr_address, transfer_size, (char *) &respArgs32[4] );
+				num_bytes = event_log_get_data( curr_index, transfer_size, (char *) &respArgs32[4] );
 
 #ifdef _DEBUG_
 				xil_printf("Packet %8d: \n", i);
-				xil_printf("    transfer_address = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", curr_address, transfer_size, num_bytes);
+				xil_printf("    transfer_index = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", curr_index, transfer_size, num_bytes);
 #endif
 
 				// Check that we copied everything
@@ -1043,11 +1098,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					// Send the packet
 					node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
 				} else {
-					xil_printf("ERROR:  NODE_GET_EVENTS tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_address );
+					xil_printf("ERROR:  NODE_GET_EVENTS tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_index );
 				}
 
 				// Update our current address
-				curr_address = next_address;
+				curr_index = next_index;
 			}
 
 			respSent = RESP_SENT;
@@ -1056,14 +1111,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_LOG_ADD_EVENT:
+		case NODE_LOG_ADD_ENTRY:
 			xil_printf("EVENT LOG:  Add Event not supported\n");
 	    break;
 
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_LOG_ENABLE_EVENT:
+		case NODE_LOG_ENABLE_ENTRY:
 			xil_printf("EVENT LOG:  Enable Event not supported\n");
 	    break;
 
@@ -1177,7 +1232,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 			respHdr->length += size;
 			respHdr->numArgs = respIndex;
-			break;
+		break;
 
 
 		//---------------------------------------------------------------------
@@ -1300,7 +1355,7 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
         return FAILURE;
 	}
 
-#ifdef 	WLAN_EXP_WAIT_FOR_ETH
+#if WLAN_EXP_WAIT_FOR_ETH
 
 	xil_printf("  Waiting for Ethernet link ... ");
 	while( transport_linkStatus( eth_dev_num ) != 0 );
