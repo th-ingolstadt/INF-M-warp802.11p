@@ -179,6 +179,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){};
 
+	unicast_to_me = wlan_addr_eq(rx_header->address_1, eeprom_addr);
 	to_multicast = wlan_addr_mcast(rx_header->address_1);
 
 	//Prep outgoing ACK just in case it needs to be sent
