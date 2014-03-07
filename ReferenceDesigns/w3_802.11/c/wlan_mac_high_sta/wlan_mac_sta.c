@@ -179,10 +179,6 @@ int main() {
 
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
 
-
-    // Initialize interrupts
-	wlan_mac_high_interrupt_init();
-
 	dl_list_init(&association_table);
 	dl_list_init(&statistics_table);
 
@@ -219,6 +215,8 @@ int main() {
 	mac_param_chan_save = mac_param_chan;
 	wlan_mac_high_set_channel( mac_param_chan );
 
+    // Initialize interrupts
+	wlan_mac_high_interrupt_init();
 
     // Schedule all events
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temperature once every 10 seconds
