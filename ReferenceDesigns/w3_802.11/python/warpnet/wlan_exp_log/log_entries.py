@@ -33,7 +33,7 @@ from struct import calcsize, unpack, error
 __all__ = ['WlanExpLogEntryTypes', 
            'NodeInfo', 'ExpInfo', 'StationInfo', 'WNCmdInfo',
            'Temperature',
-           'Rx', 'RxOFDM', 'RxDSSS', 'Tx', 'TxRxStats']
+           'Rx', 'RxOFDM', 'RxDSSS', 'Tx', 'TxLow', 'TxRxStats']
 
 
 
@@ -55,6 +55,7 @@ ENTRY_TYPE_RX_OFDM                = 10
 ENTRY_TYPE_RX_DSSS                = 11
 
 ENTRY_TYPE_TX                     = 20
+ENTRY_TYPE_TX_LOW                 = 21
 
 ENTRY_TYPE_TXRX_STATS             = 30
 
@@ -307,6 +308,26 @@ class Tx(WlanExpLogEntryType):
 
 # End class 
 
+class TxLow(WlanExpLogEntryType):
+    """Transmit Log Entry Type."""
+    _entry_type_id = ENTRY_TYPE_TX_LOW
+    name           = 'TX_LOW'
+
+    def __init__(self):
+        super(TxLow, self).__init__()
+        self.append_field_info([ 
+            ('Q',     'uint64',      'timestamp'),
+            ('24s',   '24uint8',     'mac_header'),
+            ('B',     'uint8',       'tx_count'),
+            ('b',     'int8',        'tx_power'),
+            ('B',     'uint8',       'chan_num'),
+            ('B',     'uint8',       'rate'),
+            ('H',     'uint16',      'length'),
+            ('B',     'uint8',       'pkt_type'),
+            ('B',     'uint8',       'ant_mode')])
+
+# End class 
+
 
 class TxRxStats(WlanExpLogEntryType):
     """Transmit Log Entry Type."""
@@ -353,6 +374,7 @@ class WlanExpLogEntryTypes:
         self.add_entry_type(RxOFDM())
         self.add_entry_type(RxDSSS())
         self.add_entry_type(Tx())
+        self.add_entry_type(TxLow())
         self.add_entry_type(TxRxStats())
 
     def clear_cache(self):
@@ -363,12 +385,12 @@ class WlanExpLogEntryTypes:
             
     def get_entry_types_from_id(self, entry_type_id, strict=False):
         ret_val = []
-        if (entry_type_id in self._cache.keys()):
+        if((not strict) & entry_type_id in self._cache.keys()):
             return self._cache[entry_type_id]
         else:
             for entry_type in self._log_entry_types:
                 entry = self.get_entry_from_type(entry_type)
-                if entry.is_entry_type_id(entry_type_id):
+                if entry.is_entry_type_id(entry_type_id, strict=strict):
                     ret_val.append(entry.name)
         self._cache[entry_type_id] = ret_val
         return ret_val
