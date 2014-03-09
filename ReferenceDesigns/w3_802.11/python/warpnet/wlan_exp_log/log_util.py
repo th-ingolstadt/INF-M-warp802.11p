@@ -152,7 +152,7 @@ def gen_log_ndarrays(log_bytes, log_index, convert_keys=False):
 
 # End gen_log_ndarrays()
 
-def gen_hdf5_file(filename, log_dict):
+def gen_hdf5_file(filename, log_dict, compression=None):
     import h5py
 
     hf = h5py.File(filename, mode='w', userblock_size=1024)
@@ -171,7 +171,7 @@ def gen_hdf5_file(filename, log_dict):
 
             for log_k in log_dict[file_k].keys():
                 #Create one dataset per numpy array of log data
-                grp.create_dataset(log_k, data=log_dict[file_k][log_k])
+                grp.create_dataset(log_k, data=log_dict[file_k][log_k], compression=compression)
     else:
         #log_dict is dictionary-of-arrays
         # Create HDF5 file with datasets in root, one per log_dict[each key]
@@ -182,4 +182,23 @@ def gen_hdf5_file(filename, log_dict):
 
     hf.close()
     return
+
+
+def debug_here():
+    import code
+    import sys
+    ''' Function that mimics the matlab keyboard command '''
+    # use exception trick to pick up the current frame
+    try:
+        raise None
+    except:
+        frame = sys.exc_info()[2].tb_frame.f_back
+    print "# Use quit() to exit :) Happy debugging!"
+    # evaluate commands in current namespace
+    namespace = frame.f_globals.copy()
+    namespace.update(frame.f_locals)
+    try:
+        code.interact(banner=None, local=namespace)
+    except SystemExit:
+        return
 

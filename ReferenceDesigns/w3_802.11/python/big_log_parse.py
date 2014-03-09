@@ -8,11 +8,13 @@ import warpnet.wlan_exp_log.log_util as log_util
 
 import warpnet.wlan_exp.util as wlan_exp_util
 
-#LOGFILE_DIR = './big_logs'
-LOGFILE_DIR = './example_logs'
-LOGFILE_EXT = '.bin'
+LOGFILE_DIR = './big_logs'
+HDF5FILE = 'big_logs.hdf5'
 
-HDF5FILE = 'small_logs.hdf5'
+#LOGFILE_DIR = './example_logs'
+#HDF5FILE = 'small_logs.hdf5'
+
+LOGFILE_EXT = '.bin'
 
 logfiles = []
 for f in os.listdir(LOGFILE_DIR):
@@ -24,7 +26,6 @@ print("Found %d log files" % len(logfiles))
 all_logs = dict()
 
 for ii,logfile in enumerate(logfiles):
-
     filename_full = os.path.join(LOGFILE_DIR, logfile)
     filename_short = logfile.split(LOGFILE_EXT)[0]
 
@@ -49,8 +50,10 @@ for ii,logfile in enumerate(logfiles):
     for k in sorted(log_nd.keys()):
         print("{0:7d}  {1}".format(len(log_nd[k]), k))
 
+print("\n")
+
 #Generate an HDF5 file containing all log data, group by log file
 print("Genereating HDF5 file %s" % HDF5FILE)
-log_util.gen_hdf5_file(HDF5FILE, all_logs)
+log_util.gen_hdf5_file(HDF5FILE, all_logs, compression=None)
 
 print("Done.")
