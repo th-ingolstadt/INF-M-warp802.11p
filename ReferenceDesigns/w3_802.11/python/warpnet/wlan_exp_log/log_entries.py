@@ -297,6 +297,36 @@ class Tx(WlanExpLogEntryType):
     _entry_type_id = ENTRY_TYPE_TX
     name           = 'TX'
 
+    def generate_numpy_array(self, log_bytes, byte_offsets):
+        import numpy as np
+
+        #Extract names/formats/offsets for base numpy dtype
+        names = self.get_field_names()
+        formats = self.get_field_np_types()
+        sizes = map((lambda f: np.dtype(f).itemsize), formats)
+        offsets = [sum(sizes[0:i]) for i in range(len(sizes))]
+
+        #Add fields new from MAC header
+        mac_hdr_base = offsets[names.index('mac_header')]
+
+        names.append('addr1_i')
+        formats.append('uint64')
+        offsets.append(mac_hdr_base + 4)
+
+        names.append('addr2_i')
+        formats.append('uint64')
+        offsets.append(mac_hdr_base + 10)
+
+        names.append('addr3_i')
+        formats.append('uint64')
+        offsets.append(mac_hdr_base + 16)
+
+        dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
+
+        index_iter = [log_bytes[o : o + self.fields_size] for o in byte_offsets]
+        np_arr = np.fromiter(index_iter, dt, len(byte_offsets))
+        return np_arr
+
     def __init__(self):
         super(Tx, self).__init__()
         self.append_field_info([ 
