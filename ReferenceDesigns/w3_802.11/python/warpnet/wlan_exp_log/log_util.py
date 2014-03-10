@@ -138,12 +138,9 @@ def gen_log_ndarrays(log_bytes, log_index, convert_keys=False):
             if(not log_type):
                 continue
 
-        # Construct the list of byte ranges for this type of log entry
-        index_iter = [log_bytes[o : o + log_type.fields_size] for o in log_index[k]]
-
         # Build a structured array with one element for each byte range enumerated above
         # Store each array in a dictionary indexed by the log entry type
-        entries_nd[k] = np.fromiter(index_iter, np.dtype(log_type.fields_np_dt), len(log_index[k]))
+        entries_nd[k] = log_type.generate_numpy_array(log_bytes, log_index[k])
 
     if(convert_keys):
         log_dict_convert_to_named_keys(entries_nd)

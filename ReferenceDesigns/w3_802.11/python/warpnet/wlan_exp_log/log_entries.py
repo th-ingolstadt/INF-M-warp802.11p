@@ -121,6 +121,13 @@ class WlanExpLogEntryType(object):
                         return True
                 return False
 
+    def generate_numpy_array(self, log_bytes, byte_offsets):
+        import numpy as np
+
+        index_iter = [log_bytes[o : o + self.fields_size] for o in byte_offsets]
+        np_arr = np.fromiter(index_iter, np.dtype(self.fields_np_dt), len(byte_offsets))
+        return np_arr
+
     def deserialize(self, buffer):
         """Unpack the buffer of a single log entry in to a dictionary."""
         ret_dict = {}
