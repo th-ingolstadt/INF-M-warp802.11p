@@ -56,6 +56,6 @@ print("\n")
 log_util.debug_here()
 #Generate an HDF5 file containing all log data, group by log file
 print("Genereating HDF5 file %s" % HDF5FILE)
-log_util.gen_hdf5_file(HDF5FILE, all_logs, compression=None)
+log_util.gen_hdf5_file(HDF5FILE, np_log_dict=all_logs, compression=None)
 
 print("Done.")

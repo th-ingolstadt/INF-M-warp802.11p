@@ -257,8 +257,7 @@ entry_rx_common.append_field_defs([
 #-----------------------------------------------------------------------------
 
 # Node Info
-entry_node_info = WlanExpLogEntryType(name='NODE_INFO', 
-                                      entry_type_id=ENTRY_TYPE_NODE_INFO)
+entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
 entry_node_info.append_field_defs([ 
             ('node_type',              'I',      'uint32'),
             ('node_id',                'I',      'uint32'),
@@ -272,8 +271,7 @@ entry_node_info.append_field_defs([
 
 
 # Experiment Info
-entry_exp_info = WlanExpLogEntryType(name='EXP_INFO', 
-                                     entry_type_id=ENTRY_TYPE_EXP_INFO)
+entry_exp_info = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
 entry_exp_info.append_field_defs([ 
             ('mac_addr',               '6s',     '6uint8'),
             ('timestamp',              'Q',      'uint64'),
@@ -282,8 +280,7 @@ entry_exp_info.append_field_defs([
 
 
 # Station Info
-entry_station_info = WlanExpLogEntryType(name='STATION_INFO', 
-                                         entry_type_id=ENTRY_TYPE_STATION_INFO)
+entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
 entry_station_info.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('mac_addr',               '6s',     '6uint8'),
@@ -296,8 +293,7 @@ entry_station_info.append_field_defs([
 
 
 # WARPNet Command Info
-entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', 
-                                        entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
+entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
 entry_wn_cmd_info.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('command',                'I',      'uint32'),
@@ -307,8 +303,7 @@ entry_wn_cmd_info.append_field_defs([
 
 
 # Temperature
-entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', 
-                                             entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
+entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
 entry_node_temperature.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('node_id',                'I',      'uint32'),
@@ -319,16 +314,14 @@ entry_node_temperature.append_field_defs([
 
 
 # Receive OFDM
-entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', 
-                                    entry_type_id=ENTRY_TYPE_RX_OFDM)
+entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_ofdm.append_field_defs([ 
             ('chan_est',               '256B',   '(64,2)i2')])
 
 
 # Receive DSSS
-entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', 
-                                    entry_type_id=ENTRY_TYPE_RX_DSSS)
+entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
 entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 
 
@@ -355,8 +348,7 @@ entry_tx.append_field_defs([
 
 
 # Transmit from CPU Low
-entry_tx_low = WlanExpLogEntryType(name='TX_LOW', 
-                                   entry_type_id=ENTRY_TYPE_TX_LOW)
+entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
 entry_tx_low.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
@@ -370,8 +362,7 @@ entry_tx_low.append_field_defs([
 
 
 # Tx / Rx Statistics
-entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', 
-                                       entry_type_id=ENTRY_TYPE_TXRX_STATS)
+entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
 entry_txrx_stats.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('last_timestamp',         'Q',      'uint64'),

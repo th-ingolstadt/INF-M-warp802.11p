@@ -121,13 +121,12 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
         exclude      -- List of WlanExpLogEntryTypes to exclude in the output
                         log index.  This will not be used if include != None.
         merge        -- List of dictionaries of the form:
-                        {<Output WlanExpLogEntryTypes Instance>: 
-                            [List of WlanExpLogEntryTypes names to be merged]}
+                        {WlanExpLogEntryType name: [List of WlanExpLogEntryTypes names merge]}
         
     By using the 'merge', we are able to combine the indexes of 
     WlanExpLogEntryTypes to create super-sets of entries.  For example, 
     we could create a log index that contains all the receive events:
-        {Rx(): ['RX_OFDM', 'RX_DSSS']}
+        {'RX_ALL': ['RX_OFDM', 'RX_DSSS']}
     Then a consumer of the log index will create a specific set of entries
     for all receive events.  Please note that while all events need not have
     the same fields, the created class will need to know how to create 
@@ -135,7 +134,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
     being merged.  Please see warpnet_example_wlan_log_chan_est.py for an 
     example.
     """
-    from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as types
+    from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
     
     ret_log_index = {}
 
@@ -150,7 +149,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
 
     # Start by creating a new dictionary with the same values as the log_index input
     #  but using the WlanExpLogEntryType instances as keys
-    ret_log_index = {types[k] : log_index[k] for k in log_index.keys()}
+    ret_log_index = {entry_types[k] : log_index[k] for k in log_index.keys()}
 
     # Filter the log_index
     try:
@@ -164,10 +163,10 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                 
                 # Add the new merged index lists to the output dictionary
                 # Use the type instance corresponding to the user-supplied string as the key
-                ret_log_index[types[k]] = sorted(new_index)
+                ret_log_index[entry_types[k]] = sorted(new_index)
     
         # Filter the resulting log index by 'include' / 'exclude' lists
-        if not include_only is None:
+        if include_only is not None:
             new_log_index = {}
             
             for entry_name in include_only:
@@ -177,7 +176,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
 
             ret_log_index = new_log_index
         else:
-            if not exclude is None:
+            if exclude is not None:
                 for unwanted_key in exclude:
                     try:
                         del ret_log_index[unwanted_key]
@@ -214,36 +213,40 @@ def gen_log_ndarrays(log_bytes, log_index):
 
 
 
-def gen_hdf5_file(filename, log_dict, compression=None):
-    """Generate an HDF5 file using either a NumPy array or a dictionary of 
-    NumPy arrays.    
+def gen_hdf5_file(filename, np_log_dict, compression=None):
+    """Generate an HDF5 file from numpy arrays. The input must be either:
+    (a) A dictionary with numpy record arrays as values; each array will be a dataset in the HDF5 file root group
+    or
+    (b) A dictionary of dictionaries like (a); each top-level value will be a group in the root HDF5 group, 
+        each numpy array will be a dataset in the group.
     """
     import h5py
 
     hf = h5py.File(filename, mode='w', userblock_size=1024)
 
-    dk = log_dict.keys()
+    dk = np_log_dict.keys()
 
-    if type(log_dict[dk[0]]) is dict:
-        # log_dict is dictionary-of-dictionaries
-        # Create an HDF5 file with one group per value in log_dict
-        #   with one dataset per value in log_dict[each key]
-        # This is a good structure for one dictionary containing one key-value per parsed log file
+    if type(np_log_dict[dk[0]]) is dict:
+        # np_log_dict is dictionary-of-dictionaries
+        # Create an HDF5 file with one group per value in np_log_dict
+        #   with one dataset per value in np_log_dict[each key]
+        # This is a good structure for one dictionary containing one key-value per parsed log file, where the key
+        #  is the log file name and the value is another dictionary containing the log entry arrays
 
-        for file_k in log_dict.keys():
+        for file_k in np_log_dict.keys():
             #Create one group per log file, using log file name as group name
             grp = hf.create_group(file_k)
 
-            for log_k in log_dict[file_k].keys():
+            for log_k in np_log_dict[file_k].keys():
                 #Create one dataset per numpy array of log data
-                grp.create_dataset(log_k, data=log_dict[file_k][log_k], compression=compression)
+                grp.create_dataset(log_k, data=np_log_dict[file_k][log_k], compression=compression)
     else:
-        # log_dict is dictionary-of-arrays
-        #   Create HDF5 file with datasets in root, one per log_dict[each key]
+        # np_log_dict is dictionary-of-arrays
+        #   Create HDF5 file with datasets in root, one per np_log_dict[each key]
 
-        for log_k in log_dict.keys():
+        for log_k in np_log_dict.keys():
             # Create one dataset per numpy array of log data
-            hf.create_dataset(log_k, data=log_dict[log_k])
+            hf.create_dataset(log_k, data=np_log_dict[log_k])
 
     hf.close()
     return
