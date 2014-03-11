@@ -58,12 +58,30 @@ ENTRY_TYPE_TXRX_STATS             = 30
 class WlanExpLogEntryTypes:
     """Class that maintains all log entry types."""
     _log_entry_types = {}
-    _cache           = None
     
     def __init__(self):
         pass
 
     def add_entry_type(self, entry_type):
+        """Add a new entry type to the container.
+        
+        NOTE:  This method will raise a TypeError exception if either the
+        entry_name 
+        """
+        # Check that we do not have a name collision
+        if entry_type.name in self._log_entry_types.keys():
+            msg  = "Duplicate entry name.  {0} already exists.".format(entry_type.name)
+            raise TypeError(msg)
+        
+        # Check that we do not have an ID collision
+        new_id = entry_type.get_entry_type_id()
+        if not new_id is None:
+            for key in self._log_entry_types.keys():
+                if new_id == self._log_entry_types[key].get_entry_type_id():
+                    msg  = "Duplicate entry ID.  {0} already exists.".format(new_id)
+                    raise TypeError(msg)
+        
+        # Add the entry to the log        
         self._log_entry_types[entry_type.name] = entry_type
             
     def get_entry_type_for_id(self, entry_type_id):
@@ -78,11 +96,16 @@ class WlanExpLogEntryTypes:
                 return self._log_entry_types[k]
         return None
 
+    def get_entry_type_id_for_name(self, entry_type_name):
+        entry = self.get_entry_type_for_name(entry_type_name)
+        if not entry is None:
+            return entry.get_entry_type_id()
+        return None
+
     def print_entry_types(self):
         msg = "Entry Types:\n"
         for entry_type in self._log_entry_types.keys():
             msg += "    Type = {0}\n".format(entry_type)
-            entry = self.get_entry_from_type(entry_type)
         print(msg)
 
 # End class WlanExpLogEntries
@@ -100,7 +123,7 @@ class WlanExpLogEntryType(object):
     _fields           = None
     _virtual_fields   = None
 
-    entry_name        = None
+    name              = None
     fields_size       = None
     fields_fmt_struct = None
     fields_fmt_np     = None
@@ -111,7 +134,7 @@ class WlanExpLogEntryType(object):
         self._virtual_fields   = []
         self.fields_fmt_struct = ''
         self.fields_size       = 0
-        self.fields_fmt_np      = []
+        self.fields_fmt_np     = []
 
     #_fields is a list of 3-tuples:
     # (field_name, field_fmt_struct, field_fmt_np)
@@ -119,6 +142,17 @@ class WlanExpLogEntryType(object):
     #_virtual_fields is nominally a list of 3-tuples:
     # (field_name, field_fmt_np, field_byte_offset)
 
+    def __eq__(self, other):
+        if type(other) is str:
+            return self.name == other
+        else:
+            return (isinstance(other, self.__class__) and (self.name == other.name))
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def __hash__(self):
+        return hash(self.name)
 
     def get_field_names(self):
         return [field_name for (field_name, field_fmt_struct, field_fmt_np) in self._fields]
@@ -131,6 +165,9 @@ class WlanExpLogEntryType(object):
 
     def get_virtual_field_defs(self):
         return self._virtual_fields
+        
+    def get_entry_type_id(self):
+        return self._entry_type_id
 
     def append_field_defs(self, field_info):
         if type(field_info) is list:
@@ -209,9 +246,11 @@ class WlanExpLogEntryType(object):
 
         except error as err:
             print("Error unpacking buffer: {0}".format(err))
+        
+        return ret_dict
 
     def __repr__(self):
-        return 'WLAN_EXP_LOG_Entry_Type_' + self.name
+        return 'Entry_Type_' + self.name
 
 # End class 
 
@@ -255,7 +294,6 @@ class NodeInfo(WlanExpLogEntryType):
     
     def __init__(self):
         super(NodeInfo, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         self.append_field_defs([ 
             ('node_type',       'I',    'uint32'),
@@ -267,7 +305,8 @@ class NodeInfo(WlanExpLogEntryType):
             ('wlan_max_associations',       'I',    'uint32'),
             ('wlan_log_max_size',       'I',    'uint32'),
             ('wlan_max_stats',      'I',    'uint32')])
-NodeInfo()
+
+wlan_exp_log_entry_types.add_entry_type(NodeInfo())
 # End class 
 
 
@@ -278,14 +317,14 @@ class ExpInfo(WlanExpLogEntryType):
 
     def __init__(self):
         super(ExpInfo, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         self.append_field_defs([ 
             ('mac_addr',        '6s',   '6uint8'),
             ('timestamp',       'Q',    'uint64'),
             ('info_type',       'I',    'uint16'),
             ('length',      'I',    'uint16')])
-ExpInfo()
+
+wlan_exp_log_entry_types.add_entry_type(ExpInfo())
 # End class 
 
 
@@ -296,7 +335,6 @@ class StationInfo(WlanExpLogEntryType):
 
     def __init__(self):
         super(StationInfo, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         self.append_field_defs([ 
             ('timestamp',       'Q',    'uint64'),
@@ -307,7 +345,8 @@ class StationInfo(WlanExpLogEntryType):
             ('rate',        'B',    'uint8'),
             ('antenna_mode',        'B',    'uint8'),
             ('max_retry',       'B',    'uint8')])
-StationInfo()
+
+wlan_exp_log_entry_types.add_entry_type(StationInfo())
 # End class 
 
 
@@ -318,7 +357,6 @@ class WNCmdInfo(WlanExpLogEntryType):
 
     def __init__(self):
         super(WNCmdInfo, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         self.append_field_defs([ 
             ('timestamp',       'Q',    'uint64'),
@@ -327,7 +365,7 @@ class WNCmdInfo(WlanExpLogEntryType):
             ('num_args',        'H',    'uint16'),
             ('args',        '10I',  '10uint32')])
 
-WNCmdInfo()
+wlan_exp_log_entry_types.add_entry_type(WNCmdInfo())
 # End class 
 
 
@@ -338,7 +376,6 @@ class Temperature(WlanExpLogEntryType):
 
     def __init__(self):
         super(Temperature, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         self.append_field_defs([ 
             ('timestamp',       'Q',    'uint64'),
@@ -348,7 +385,7 @@ class Temperature(WlanExpLogEntryType):
             ('temp_min',        'I',    'uint32'),
             ('temp_max',        'I',    'uint32')])
 
-Temperature()
+wlan_exp_log_entry_types.add_entry_type(Temperature())
 # End class 
 
 
@@ -359,7 +396,6 @@ class RxOFDM(WlanExpLogEntryType):
 
     def __init__(self):
         super(RxOFDM, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         #Reuse the fields from the common Rx definition
         self.append_field_defs(Rx.get_field_defs(Rx()))
@@ -367,7 +403,7 @@ class RxOFDM(WlanExpLogEntryType):
         self.append_field_defs([ 
             ('chan_est',        '256B', '(64,2)i2')])
 
-RxOFDM()
+wlan_exp_log_entry_types.add_entry_type(RxOFDM())
 # End class 
 
 
@@ -382,9 +418,7 @@ class RxDSSS(WlanExpLogEntryType):
         #Reuse the fields from the common Rx definition
         self.append_field_defs(Rx.get_field_defs(Rx()))
 
-        wlan_exp_log_entry_types.add_entry_type(self)
-
-RxDSSS()
+wlan_exp_log_entry_types.add_entry_type(RxDSSS())
 # End class 
 
 
@@ -395,7 +429,6 @@ class Tx(WlanExpLogEntryType):
 
     def __init__(self):
         super(Tx, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         self.append_field_defs([ 
             ('timestamp',       'Q',    'uint64'),
@@ -417,7 +450,7 @@ class Tx(WlanExpLogEntryType):
 #            ('addr2', 'uint64', 26),
 #            ('addr3', 'uint64', 32)])
 
-Tx()
+wlan_exp_log_entry_types.add_entry_type(Tx())
 # End class 
 
 class TxLow(WlanExpLogEntryType):
@@ -427,7 +460,6 @@ class TxLow(WlanExpLogEntryType):
 
     def __init__(self):
         super(TxLow, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         self.append_field_defs([ 
             ('timestamp',       'Q',    'uint64'),
@@ -440,7 +472,7 @@ class TxLow(WlanExpLogEntryType):
             ('pkt_type',        'B',    'uint8'),
             ('ant_mode',        'B',    'uint8')])
 
-TxLow()
+wlan_exp_log_entry_types.add_entry_type(TxLow())
 # End class 
 
 
@@ -451,7 +483,6 @@ class TxRxStats(WlanExpLogEntryType):
 
     def __init__(self):
         super(TxRxStats, self).__init__()
-        wlan_exp_log_entry_types.add_entry_type(self)
 
         self.append_field_defs([ 
             ('timestamp',       'Q',    'uint64'),
@@ -467,6 +498,6 @@ class TxRxStats(WlanExpLogEntryType):
             ('data_num_rx_success',     'I',    'uint32'),
             ('data_num_rx_bytes',       'I',    'uint32')])
 
-TxRxStats()
+wlan_exp_log_entry_types.add_entry_type(TxRxStats())
 # End class 
 
