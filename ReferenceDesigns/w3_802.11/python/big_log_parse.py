@@ -36,6 +36,7 @@ for ii,logfile in enumerate(logfiles):
         log_b = fh.read()
 
     log_index = log_util.gen_log_index(log_b)
+    log_util.log_dict_convert_to_named_keys(log_index)
 
     log_nd = log_util.gen_log_ndarrays(log_b, log_index, convert_keys=True)
 

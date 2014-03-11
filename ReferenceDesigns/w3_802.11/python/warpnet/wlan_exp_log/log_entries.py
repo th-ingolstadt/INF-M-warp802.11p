@@ -166,8 +166,11 @@ class WlanExpLogEntryType(object):
         offsets_all = [sum(sizes[0:i]) for i in range(len(sizes))]
 
         #numpy processing ignores the same fields ignored by struct.unpack
-        offsets = [o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
-        np_fields = [f for f in self._fields if 'x' not in f[1]]
+        offsets = offsets_all #[o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
+        np_fields = self._fields #[f for f in self._fields if 'x' not in f[1]]
+
+        #offsets = [o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
+        #np_fields = [f for f in self._fields if 'x' not in f[1]]
 
         #Append the explicitly defined offsets for the virtual fields
         offsets += [field_byte_offset for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
@@ -177,6 +180,8 @@ class WlanExpLogEntryType(object):
 
         formats =  [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
         formats += [field_fmt_np for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
+
+        print("np_dtype for %s: %s" % (self.name, zip(offsets,names)))
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
@@ -354,6 +359,9 @@ class RxOFDM(WlanExpLogEntryType):
     def __init__(self):
         super(RxOFDM, self).__init__()
         wlan_exp_log_entry_types.add_entry_type(self)
+
+        #Reuse the fields from the common Rx definition
+        self.append_field_defs(Rx.get_field_defs(Rx()))
 
         self.append_field_defs([ 
             ('chan_est',        '256B', '(64,2)i2')])
