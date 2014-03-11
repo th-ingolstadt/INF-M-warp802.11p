@@ -12,7 +12,7 @@ import warpnet.wlan_exp.util as wlan_exp_util
 #HDF5FILE = 'big_logs.hdf5'
 
 LOGFILE_DIR = './example_logs'
-HDF5FILE = 'small_logs.hdf5'
+HDF5FILE = 'small_logs_new.hdf5'
 
 LOGFILE_EXT = '.bin'
 
@@ -38,7 +38,7 @@ for ii,logfile in enumerate(logfiles):
     log_index = log_util.gen_log_index(log_b)
     log_util.log_dict_convert_to_named_keys(log_index)
 
-    log_nd = log_util.gen_log_ndarrays(log_b, log_index, convert_keys=True)
+    log_nd = log_util.gen_log_ndarrays(log_b, log_index)
 
     #Skip outer dictionary if there is only one log file
     if(len(logfiles) > 1):
@@ -53,7 +53,7 @@ for ii,logfile in enumerate(logfiles):
 
 
 print("\n")
-
+log_util.debug_here()
 #Generate an HDF5 file containing all log data, group by log file
 print("Genereating HDF5 file %s" % HDF5FILE)
 log_util.gen_hdf5_file(HDF5FILE, all_logs, compression=None)

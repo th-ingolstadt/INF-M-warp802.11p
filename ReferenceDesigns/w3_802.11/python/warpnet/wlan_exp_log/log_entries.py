@@ -166,9 +166,10 @@ class WlanExpLogEntryType(object):
         offsets_all = [sum(sizes[0:i]) for i in range(len(sizes))]
 
         #numpy processing ignores the same fields ignored by struct.unpack
-        offsets = offsets_all #[o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
-        np_fields = self._fields #[f for f in self._fields if 'x' not in f[1]]
+        offsets = offsets_all
+        np_fields = self._fields
 
+        #BAD! Doing this filtering breaks HDF5 export
         #offsets = [o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
         #np_fields = [f for f in self._fields if 'x' not in f[1]]
 
@@ -181,7 +182,7 @@ class WlanExpLogEntryType(object):
         formats =  [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
         formats += [field_fmt_np for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
 
-        print("np_dtype for %s: %s" % (self.name, zip(offsets,names)))
+        #print("np_dtype for %s (%d B): %s" % (self.name, np.dtype({'names':names, 'formats':formats, 'offsets':offsets}).itemsize, zip(offsets,formats,names)))
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
@@ -190,7 +191,7 @@ class WlanExpLogEntryType(object):
 
     def generate_numpy_array(self, log_bytes, byte_offsets):
 
-        index_iter = [log_bytes[o : o + self.fields_size] for o in byte_offsets]
+        index_iter = [log_bytes[o : o + self.fields_np_dt.itemsize] for o in byte_offsets]
         return np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
 
     def deserialize(self, buf):
@@ -410,10 +411,11 @@ class Tx(WlanExpLogEntryType):
             ('pkt_type',        'B',    'uint8'),
             ('ant_mode',        'B',    'uint8')])
 
-        self.append_virtual_field_defs([ 
-            ('addr1', 'uint64', 20),
-            ('addr2', 'uint64', 26),
-            ('addr3', 'uint64', 32)])
+# Somehow this breaks HDF5 writing...
+#        self.append_virtual_field_defs([ 
+#            ('addr1', 'uint64', 20),
+#            ('addr2', 'uint64', 26),
+#            ('addr3', 'uint64', 32)])
 
 Tx()
 # End class 
