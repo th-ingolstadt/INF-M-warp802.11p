@@ -199,7 +199,7 @@ class WlanExpLogEntryType(object):
 
         #Compute the offset of each real field, inferred by the sizes of all previous fields
         # This loop must look at all real fields, even ignored/padding fields
-        sizes =  map(get_np_size, [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in self._fields])
+        sizes =  list(map(get_np_size, [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in self._fields]))
         offsets_all = [sum(sizes[0:i]) for i in range(len(sizes))]
 
         #numpy processing ignores the same fields ignored by struct.unpack

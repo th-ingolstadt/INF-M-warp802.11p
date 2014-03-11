@@ -48,43 +48,50 @@ def log_anonymize(filename):
         addr_idx_map[addr] = list()
 
     # Generate the index of log entry locations sorted by log entry type
-    log_index = log_util.gen_log_index(log_bytes)
+    log_index_raw = log_util.gen_log_index_raw(log_bytes)
+    log_index     = log_util.filter_log_index(log_index_raw)
 
-    # print("Log Contents:\n  Num  Type")
-    # for k in log_index.keys():
-    #     print("{0:5d}  {1}".format(len(log_index[k]), k))
+    # log_util.log_index_print_summary(log_index)
 
     # Step 1: Build a dictionary of all MAC addresses in the log, then
     #   map each addresses to a unique anonymous address
     #   Uses tuple(bytearray slice) since bytearray isn't hashable as-is
 
     #OFDM Rx entries
-    if(log.log_entry_rx_ofdm.entry_type_ID in log_index.keys()):
-        for idx in log_index[log.log_entry_rx_ofdm.entry_type_ID]:
+    try:
+        for idx in log_index[log.RxOFDM()]:
             #6-byte addresses at offsets 12, 18, 24
             for o in (12, 18, 24):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
+    except KeyError:
+        pass
 
     #DSSS Rx entries
-    if(log.log_entry_rx_dsss.entry_type_ID in log_index.keys()):
-        for idx in log_index[log.log_entry_rx_dsss.entry_type_ID]:
+    try:
+        for idx in log_index[log.RxDSSS()]:
             #6-byte addresses at offsets 12, 18, 24
             for o in (12, 18, 24):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
+    except KeyError:
+        pass
 
     #Tx entries
-    if(log.log_entry_tx.entry_type_ID in log_index.keys()):
-        for idx in log_index[log.log_entry_tx.entry_type_ID]:
+    try:
+        for idx in log_index[log.Tx()]:
             #6-byte addresses at offsets 20, 26, 32
             for o in (20, 26, 32):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
+    except KeyError:
+        pass
 
     #Station Info entries
-    if(log.log_entry_station_info.entry_type_ID in log_index.keys()):
-        for idx in log_index[log.log_entry_station_info.entry_type_ID]:
+    try:
+        for idx in log_index[log.StationInfo()]:
             #6-byte address at offsets 8
                 o = 8
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
+    except KeyError:
+        pass
 
     #####################
     #Step 2: Enumerate actual MAC addresses and their anonymous replacements
@@ -93,7 +100,7 @@ def log_anonymize(filename):
         anon_addr = (0xFF, 0xFF, 0xFF, 0xFF, (ii//256), (ii%256))
         addr_map[addr] = anon_addr
 
-    #Step 3: Replace all MAC addresses in the log bytearray
+    #Step 3: Replace all MAC addresses in the log 
     for old_addr in addr_idx_map.keys():
         new_addr = bytearray(addr_map[old_addr])
         for byte_idx in addr_idx_map[old_addr]:
@@ -103,16 +110,18 @@ def log_anonymize(filename):
 
     #Station info entries contain "hostname", the DHCP client hostname field
     # Replace these with a string version of the new anonymous MAC addr
-    if(log.log_entry_station_info.entry_type_ID in log_index.keys()):
-        for idx in log_index[log.log_entry_station_info.entry_type_ID]:
+    try:
+        for idx in log_index[log.StationInfo()]:
             #6-byte MAC addr (already anonymized) at offset 8
             #15 character ASCII string at offset 14
             addr_o = 8
             name_o = 14
             addr = log_bytes[idx+addr_o : idx+addr_o+16]
-
+    
             new_name = "AnonNode %2x_%2x" % (addr[4], addr[5])
             log_bytes[idx+name_o : idx+name_o+15] = bytearray(new_name.encode("UTF-8"))
+    except KeyError:
+        pass
 
 
     #Write the modified log to a new binary file

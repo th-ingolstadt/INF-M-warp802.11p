@@ -42,18 +42,20 @@ def gen_log_index_raw(log_bytes):
     fmt_log_hdr = 'I H H' #if we were using struct.unpack
     """
 
-    offset    = 0
-    hdr_size  = 8
-    log_len   = len(log_bytes)
-    log_index = dict()
+    offset         = 0
+    hdr_size       = 8
+    log_len        = len(log_bytes)
+    log_index      = dict()
+    use_byte_array = 0
 
-    # Need to determine if we are using Python 2 or 3 b/c they handle binary
-    # files differently
-    import sys
-    if (sys.version_info.major == 3):
-        python3 = 1
-    else:
-        python3 = 0
+    # Need to determine if we are using byte arrays or strings for the 
+    # log_bytes b/c we need to handle the data differently
+    try:
+        byte_array_test = log_bytes[offset:offset+hdr_size]
+        byte_array_test = ord(byte_array_test[0])
+    except TypeError:
+        use_byte_array  = 1
+
 
     while True:
         # Stop here if the next log entry header is incomplete
@@ -76,7 +78,7 @@ def gen_log_index_raw(log_bytes):
         if( (hdr_b[2:4] != b'\xed\xac') ):
             raise Exception("ERROR: Log file didn't start with valid entry header (offset %d)!" % (offset))
 
-        if (python3):
+        if (use_byte_array):
             entry_type_id = (hdr_b[4] + (hdr_b[5] * 256))
             entry_size = (hdr_b[6] + (hdr_b[7] * 256))
         else:
