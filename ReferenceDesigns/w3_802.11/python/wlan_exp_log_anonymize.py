@@ -51,15 +51,15 @@ def log_anonymize(filename):
     log_index_raw = log_util.gen_log_index_raw(log_bytes)
     log_index     = log_util.filter_log_index(log_index_raw)
 
-    # log_util.log_index_print_summary(log_index)
+    log_util.log_index_print_summary(log_index)
 
     # Step 1: Build a dictionary of all MAC addresses in the log, then
     #   map each addresses to a unique anonymous address
     #   Uses tuple(bytearray slice) since bytearray isn't hashable as-is
 
-    #OFDM Rx entries
+    #OFDM Rx entries    
     try:
-        for idx in log_index[log.RxOFDM()]:
+        for idx in log_index[log.entry_rx_ofdm]:
             #6-byte addresses at offsets 12, 18, 24
             for o in (12, 18, 24):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
@@ -68,16 +68,17 @@ def log_anonymize(filename):
 
     #DSSS Rx entries
     try:
-        for idx in log_index[log.RxDSSS()]:
+        for idx in log_index[log.entry_rx_dsss]:
             #6-byte addresses at offsets 12, 18, 24
             for o in (12, 18, 24):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
     except KeyError:
         pass
+    
 
     #Tx entries
     try:
-        for idx in log_index[log.Tx()]:
+        for idx in log_index[log.entry_tx]:
             #6-byte addresses at offsets 20, 26, 32
             for o in (20, 26, 32):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
@@ -86,7 +87,7 @@ def log_anonymize(filename):
 
     #Station Info entries
     try:
-        for idx in log_index[log.StationInfo()]:
+        for idx in log_index[log.entry_station_info]:
             #6-byte address at offsets 8
                 o = 8
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
@@ -111,7 +112,7 @@ def log_anonymize(filename):
     #Station info entries contain "hostname", the DHCP client hostname field
     # Replace these with a string version of the new anonymous MAC addr
     try:
-        for idx in log_index[log.StationInfo()]:
+        for idx in log_index[log.entry_station_info]:
             #6-byte MAC addr (already anonymized) at offset 8
             #15 character ASCII string at offset 14
             addr_o = 8
