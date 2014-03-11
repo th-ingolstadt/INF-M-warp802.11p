@@ -122,9 +122,9 @@ def log_dict_convert_to_named_keys(log_index):
     from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as log_entry_types
 
     for k_i in log_index.keys():
-        log_type_l = log_entry_types.get_entry_types_from_id(k_i, strict=True)
-        if(len(log_type_l) == 1):
-            k_str = log_type_l[0]
+        log_type = log_entry_types.get_entry_type_for_id(k_i)
+        if(log_type is not None):
+            k_str = log_type.name
         else:
             raise Exception('No entry type defined with ID %d' % k_i)
 
@@ -145,19 +145,16 @@ def gen_log_ndarrays(log_bytes, log_index, convert_keys=False):
 
     for k in log_index.keys():
         if(type(k) == type(1)): #is a number
-            log_type_l = log_entry_types.get_entry_types_from_id(k, strict=True)
-            if(len(log_type_l) == 1):
-                log_type = log_entry_types.get_entry_from_type(log_type_l[0])
-            else:
-                continue
-        else:
-            log_type = log_entry_types.get_entry_from_type(k)
-            if(not log_type):
-                continue
+            entry_type = log_entry_types.get_entry_type_for_id(k)
+        elif(type(k) == type('abc')): #is an entry type name
+            entry_type = log_entry_types.get_entry_type_for_name(k)
+
+        if(not entry_type):
+            continue
 
         # Build a structured array with one element for each byte range enumerated above
         # Store each array in a dictionary indexed by the log entry type
-        entries_nd[k] = log_type.generate_numpy_array(log_bytes, log_index[k])
+        entries_nd[k] = entry_type.generate_numpy_array(log_bytes, log_index[k])
 
     if(convert_keys):
         log_dict_convert_to_named_keys(entries_nd)

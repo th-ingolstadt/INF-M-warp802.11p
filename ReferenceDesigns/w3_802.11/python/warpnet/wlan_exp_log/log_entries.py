@@ -28,15 +28,7 @@ Integer constants:
 
 """
 from struct import calcsize, unpack, error
-
-
-__all__ = ['WlanExpLogEntryTypes', 
-           'NodeInfo', 'ExpInfo', 'StationInfo', 'WNCmdInfo',
-           'Temperature',
-           'Rx', 'RxOFDM', 'RxDSSS', 'Tx', 'TxLow', 'TxRxStats']
-
-
-
+import numpy as np
 
 # WLAN Exp Event Log Constants
 #   NOTE:  The C counterparts are found in wlan_mac_event_log.h
@@ -59,7 +51,44 @@ ENTRY_TYPE_TX_LOW                 = 21
 
 ENTRY_TYPE_TXRX_STATS             = 30
 
+#-----------------------------------------------------------------------------
+# Log Entry Type Container Class
+#-----------------------------------------------------------------------------
 
+class WlanExpLogEntryTypes:
+    """Class that maintains all log entry types."""
+    _log_entry_types = {}
+    _cache           = None
+    
+    def __init__(self):
+        pass
+
+    def add_entry_type(self, entry_type):
+        self._log_entry_types[entry_type.name] = entry_type
+            
+    def get_entry_type_for_id(self, entry_type_id):
+        for k in self._log_entry_types.keys():
+            if self._log_entry_types[k].is_entry_type_id(entry_type_id):
+                return self._log_entry_types[k]
+        return None
+
+    def get_entry_type_for_name(self, entry_type_name):
+        for k in self._log_entry_types.keys():
+            if self._log_entry_types[k].name == entry_type_name:
+                return self._log_entry_types[k]
+        return None
+
+    def print_entry_types(self):
+        msg = "Entry Types:\n"
+        for entry_type in self._log_entry_types.keys():
+            msg += "    Type = {0}\n".format(entry_type)
+            entry = self.get_entry_from_type(entry_type)
+        print(msg)
+
+# End class WlanExpLogEntries
+
+# Global Variable
+wlan_exp_log_entry_types     = WlanExpLogEntryTypes()
 
 #-----------------------------------------------------------------------------
 # Log Entry Type Base Class
@@ -69,84 +98,144 @@ class WlanExpLogEntryType(object):
     """Base class to define a log entry type."""
     _entry_type_id    = None
     _fields           = None
-    name              = None
-    fields_struct_fmt = None
+    _virtual_fields   = None
+
+    entry_name        = None
     fields_size       = None
-    fields_np_dt      = None
+    fields_fmt_struct = None
+    fields_fmt_np     = None
 
 
     def __init__(self):
         self._fields           = []
-        self.fields_struct_fmt = ''
+        self._virtual_fields   = []
+        self.fields_fmt_struct = ''
         self.fields_size       = 0
-        self.fields_np_dt      = []
+        self.fields_fmt_np      = []
+
+    #_fields is a list of 3-tuples:
+    # (field_name, field_fmt_struct, field_fmt_np)
+
+    #_virtual_fields is nominally a list of 3-tuples:
+    # (field_name, field_fmt_np, field_byte_offset)
+
 
     def get_field_names(self):
-        return [name for struct_type, np_type, name in self._fields]
+        return [field_name for (field_name, field_fmt_struct, field_fmt_np) in self._fields]
 
-    def get_field_struct_types(self):
-        return [struct_type for struct_type, np_type, name in self._fields]
+    def get_field_struct_formats(self):
+        return [field_fmt_struct for (field_name, field_fmt_struct, field_fmt_np) in self._fields]
 
-    def get_field_np_types(self):
-        return [np_type for struct_type, np_type, name in self._fields]
-
-    def get_field_info(self):
+    def get_field_defs(self):
         return self._fields
 
-    def set_field_info(self, field_info):
-        self._fields = field_info
-        self._update_fields()
+    def get_virtual_field_defs(self):
+        return self._virtual_fields
 
-    def append_field_info(self, field_info):
+    def append_field_defs(self, field_info):
         if type(field_info) is list:
             self._fields.extend(field_info)
         else:
             self._fields.append(field_info)
-        self._update_fields()
+        self._update_field_defs()
+
+    def append_virtual_field_defs(self, field_info):
+        if type(field_info) is list:
+            self._virtual_fields.extend(field_info)
+        else:
+            self._virtual_fields.append(field_info)
+        self._update_field_defs()
         
-    def _update_fields(self):
-        self.fields_struct_fmt = ' '.join(self.get_field_struct_types())
-        self.fields_np_dt = [(name, np_type) for struct_type, np_type, name in self._fields]
-        self.fields_size = calcsize(self.fields_struct_fmt)
+    def _update_field_defs(self):
+        #fields_fmt_struct is a string suitable for use as the format string to struct.unpack
+        # (Format characters: http://docs.python.org/2/library/struct.html#format-characters)
+        self.fields_fmt_struct = ' '.join(self.get_field_struct_formats())
+        self.fields_size = calcsize(self.fields_fmt_struct)
+
+        #fields_np_dt is a numpy dtype, built using a dictionary of names/formats/sizes:
+        # {'names':[field_names], 'formats':[field_formats], 'offsets':[field_offsets]}
+        # We specify each field's byte offset explicitly. Byte offsets for fields in _fields
+        #  are inferred, assuming tight C-struct-type packing (same assumption as struct.unpack)
+        # _virtual_fields have explicit offsets that can refer to any bytes in the log entry
+        
+        get_np_size = (lambda f: np.dtype(f).itemsize)
+
+        #Compute the offset of each real field, inferred by the sizes of all previous fields
+        # This loop must look at all real fields, even ignored/padding fields
+        sizes =  map(get_np_size, [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in self._fields])
+        offsets_all = [sum(sizes[0:i]) for i in range(len(sizes))]
+
+        #numpy processing ignores the same fields ignored by struct.unpack
+        offsets = [o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
+        np_fields = [f for f in self._fields if 'x' not in f[1]]
+
+        #Append the explicitly defined offsets for the virtual fields
+        offsets += [field_byte_offset for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
+
+        names =  [field_name for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
+        names += [field_name for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
+
+        formats =  [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
+        formats += [field_fmt_np for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
+
+        self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
     def is_entry_type_id(self, entry_type_id, strict=False):
-        if (entry_type_id == self._entry_type_id):
-            return True
-        else:
-            if strict:
-                return False
-            else:
-                for entry_class in inheritors(self.__class__):
-                    if (entry_type_id == entry_class._entry_type_id):
-                        return True
-                return False
+        return (entry_type_id == self._entry_type_id)
 
     def generate_numpy_array(self, log_bytes, byte_offsets):
-        import numpy as np
 
         index_iter = [log_bytes[o : o + self.fields_size] for o in byte_offsets]
-        np_arr = np.fromiter(index_iter, np.dtype(self.fields_np_dt), len(byte_offsets))
-        return np_arr
+        return np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
 
-    def deserialize(self, buffer):
+    def deserialize(self, buf):
         """Unpack the buffer of a single log entry in to a dictionary."""
         ret_dict = {}
         try:
-            dataTuple = unpack(self.fields_struct_fmt, buffer)
+            dataTuple = unpack(self.field_fmt_struct, buf)
             all_names = self.get_field_names()
-            names = [x for x in all_names if x != 'padding']
-            for idx, data in enumerate(dataTuple):
-                ret_dict[names[idx]] = data
+            all_fmts = self.get_field_struct_formats()
+
+            #Filter out names for fields ignored during unpacking
+            names = [n for (n,f) in zip(all_names, all_fmts) if 'x' not in f]
+
+            return dict(zip(names, dataTuple))
+
         except error as err:
             print("Error unpacking buffer: {0}".format(err))
-
-        return ret_dict
 
     def __repr__(self):
         return 'WLAN_EXP_LOG_Entry_Type_' + self.name
 
 # End class 
 
+#-----------------------------------------------------------------------------
+# Virtual Log Entry Classes
+#-----------------------------------------------------------------------------
+
+class Rx(WlanExpLogEntryType):
+    """Receive Virtual Log Entry Type."""
+    name           = 'RX_ALL'
+
+    def __init__(self):
+        super(Rx, self).__init__()
+
+        self.append_field_defs([ 
+            ('timestamp',       'Q',    'uint64'),
+            ('mac_header',      '24s',  '24uint8'),
+            ('length',      'H',    'uint16'),
+            ('rate',        'B',    'uint8'),
+            ('power',       'b',    'int8'),
+            ('fcs_result',      'B',    'uint8'),
+            ('pkt_type',        'B',    'uint8'),
+            ('chan_num',        'B',    'uint8'),
+            ('ant_mode',        'B',    'uint8'),
+            ('rf_gain',     'B',    'uint8'),
+            ('bb_gain',     'B',    'uint8'),
+            ('padding',     '2x',   'uint16')])
+
+Rx()
+# End class 
 
 
 #-----------------------------------------------------------------------------
@@ -160,17 +249,19 @@ class NodeInfo(WlanExpLogEntryType):
     
     def __init__(self):
         super(NodeInfo, self).__init__()
-        self.append_field_info([ 
-            ('I',     'uint32',      'node_type'),
-            ('I',     'uint32',      'node_id'),
-            ('I',     'uint32',      'hw_generation'),
-            ('I',     'uint32',      'design_ver'),
-            ('I',     'uint32',      'serial_num'),
-            ('Q',     'uint64',      'fpga_dna'),
-            ('I',     'uint32',      'wlan_max_associations'),
-            ('I',     'uint32',      'wlan_log_max_size'),
-            ('I',     'uint32',      'wlan_max_stats')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('node_type',       'I',    'uint32'),
+            ('node_id',     'I',    'uint32'),
+            ('hw_generation',       'I',    'uint32'),
+            ('design_ver',      'I',    'uint32'),
+            ('serial_num',      'I',    'uint32'),
+            ('fpga_dna',        'Q',    'uint64'),
+            ('wlan_max_associations',       'I',    'uint32'),
+            ('wlan_log_max_size',       'I',    'uint32'),
+            ('wlan_max_stats',      'I',    'uint32')])
+NodeInfo()
 # End class 
 
 
@@ -181,12 +272,14 @@ class ExpInfo(WlanExpLogEntryType):
 
     def __init__(self):
         super(ExpInfo, self).__init__()
-        self.append_field_info([ 
-            ('6s',    '6uint8',      'mac_addr'),
-            ('Q',     'uint64',      'timestamp'),
-            ('I',     'uint16',      'info_type'),
-            ('I',     'uint16',      'length')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('mac_addr',        '6s',   '6uint8'),
+            ('timestamp',       'Q',    'uint64'),
+            ('info_type',       'I',    'uint16'),
+            ('length',      'I',    'uint16')])
+ExpInfo()
 # End class 
 
 
@@ -197,16 +290,18 @@ class StationInfo(WlanExpLogEntryType):
 
     def __init__(self):
         super(StationInfo, self).__init__()
-        self.append_field_info([ 
-            ('Q',     'uint64',      'timestamp'),
-            ('6s',    '6uint8',      'mac_addr'),
-            ('16s',   '16uint8',     'host_name'),
-            ('H',     'uint16',      'aid'),
-            ('I',     'uint32',      'flags'),
-            ('B',     'uint8',       'rate'),
-            ('B',     'uint8',       'antenna_mode'),
-            ('B',     'uint8',       'max_retry')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('timestamp',       'Q',    'uint64'),
+            ('mac_addr',        '6s',   '6uint8'),
+            ('host_name',       '16s',  '16uint8'),
+            ('aid',     'H',    'uint16'),
+            ('flags',       'I',    'uint32'),
+            ('rate',        'B',    'uint8'),
+            ('antenna_mode',        'B',    'uint8'),
+            ('max_retry',       'B',    'uint8')])
+StationInfo()
 # End class 
 
 
@@ -217,13 +312,16 @@ class WNCmdInfo(WlanExpLogEntryType):
 
     def __init__(self):
         super(WNCmdInfo, self).__init__()
-        self.append_field_info([ 
-            ('Q',     'uint64',      'timestamp'),
-            ('I',     'uint32',      'command'),
-            ('H',     'uint16',      'rsvd'),
-            ('H',     'uint16',      'num_args'),
-            ('10I',   '10uint32',    'args')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('timestamp',       'Q',    'uint64'),
+            ('command',     'I',    'uint32'),
+            ('rsvd',        'H',    'uint16'),
+            ('num_args',        'H',    'uint16'),
+            ('args',        '10I',  '10uint32')])
+
+WNCmdInfo()
 # End class 
 
 
@@ -234,61 +332,50 @@ class Temperature(WlanExpLogEntryType):
 
     def __init__(self):
         super(Temperature, self).__init__()
-        self.append_field_info([ 
-            ('Q',     'uint64',      'timestamp'),
-            ('I',     'uint32',      'node_id'),
-            ('I',     'uint32',      'serial_num'),
-            ('I',     'uint32',      'temp_current'),
-            ('I',     'uint32',      'temp_min'),
-            ('I',     'uint32',      'temp_max')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('timestamp',       'Q',    'uint64'),
+            ('node_id',     'I',    'uint32'),
+            ('serial_num',      'I',    'uint32'),
+            ('temp_current',        'I',    'uint32'),
+            ('temp_min',        'I',    'uint32'),
+            ('temp_max',        'I',    'uint32')])
+
+Temperature()
 # End class 
 
 
-class Rx(WlanExpLogEntryType):
-    """Receive Log Entry Type."""
-    name           = 'RX'
-
-    def __init__(self):
-        super(Rx, self).__init__()
-        self.append_field_info([ 
-            ('Q',     'uint64',      'timestamp'),
-            ('24s',   '24uint8',     'mac_header'),
-            ('H',     'uint16',      'length'),
-            ('B',     'uint8',       'rate'),
-            ('b',     'int8',        'power'),
-            ('B',     'uint8',       'fcs_result'),
-            ('B',     'uint8',       'pkt_type'),
-            ('B',     'uint8',       'chan_num'),
-            ('B',     'uint8',       'ant_mode'),
-            ('B',     'uint8',       'rf_gain'),
-            ('B',     'uint8',       'bb_gain'),
-            ('2x',    'uint16',      'padding')])
-
-# End class 
-
-
-class RxOFDM(Rx):
+class RxOFDM(WlanExpLogEntryType):
     """Receive OFDM Log Entry Type."""
     _entry_type_id = ENTRY_TYPE_RX_OFDM
     name           = 'RX_OFDM'
 
     def __init__(self):
         super(RxOFDM, self).__init__()
-        self.append_field_info([ 
-            ('256B',  '(64,2)i2',    'chan_est')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('chan_est',        '256B', '(64,2)i2')])
+
+RxOFDM()
 # End class 
 
 
-class RxDSSS(Rx):
+class RxDSSS(WlanExpLogEntryType):
     """Receive DSSS Log Entry Type."""
     _entry_type_id = ENTRY_TYPE_RX_DSSS
     name           = 'RX_DSSS'
 
     def __init__(self):
         super(RxDSSS, self).__init__()
+        
+        #Reuse the fields from the common Rx definition
+        self.append_field_defs(Rx.get_field_defs(Rx()))
 
+        wlan_exp_log_entry_types.add_entry_type(self)
+
+RxDSSS()
 # End class 
 
 
@@ -297,52 +384,30 @@ class Tx(WlanExpLogEntryType):
     _entry_type_id = ENTRY_TYPE_TX
     name           = 'TX'
 
-    def generate_numpy_array(self, log_bytes, byte_offsets):
-        import numpy as np
-
-        #Extract names/formats/offsets for base numpy dtype
-        names = self.get_field_names()
-        formats = self.get_field_np_types()
-        sizes = map((lambda f: np.dtype(f).itemsize), formats)
-        offsets = [sum(sizes[0:i]) for i in range(len(sizes))]
-
-        #Add fields new from MAC header
-        mac_hdr_base = offsets[names.index('mac_header')]
-
-        names.append('addr1_i')
-        formats.append('uint64')
-        offsets.append(mac_hdr_base + 4)
-
-        names.append('addr2_i')
-        formats.append('uint64')
-        offsets.append(mac_hdr_base + 10)
-
-        names.append('addr3_i')
-        formats.append('uint64')
-        offsets.append(mac_hdr_base + 16)
-
-        dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
-
-        index_iter = [log_bytes[o : o + self.fields_size] for o in byte_offsets]
-        np_arr = np.fromiter(index_iter, dt, len(byte_offsets))
-        return np_arr
-
     def __init__(self):
         super(Tx, self).__init__()
-        self.append_field_info([ 
-            ('Q',     'uint64',      'timestamp'),
-            ('I',     'uint32',      'time_to_accept'),
-            ('I',     'uint32',      'time_to_done'),
-            ('24s',   '24uint8',     'mac_header'),
-            ('B',     'uint8',       'retry_count'),
-            ('B',     'uint8',       'gain_target'),
-            ('B',     'uint8',       'chan_num'),
-            ('B',     'uint8',       'rate'),
-            ('H',     'uint16',      'length'),
-            ('B',     'uint8',       'result'),
-            ('B',     'uint8',       'pkt_type'),
-            ('B',     'uint8',       'ant_mode')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('timestamp',       'Q',    'uint64'),
+            ('time_to_accept',      'I',    'uint32'),
+            ('time_to_done',        'I',    'uint32'),
+            ('mac_header',      '24s',  '24uint8'),
+            ('retry_count',     'B',    'uint8'),
+            ('gain_target',     'B',    'uint8'),
+            ('chan_num',        'B',    'uint8'),
+            ('rate',        'B',    'uint8'),
+            ('length',      'H',    'uint16'),
+            ('result',      'B',    'uint8'),
+            ('pkt_type',        'B',    'uint8'),
+            ('ant_mode',        'B',    'uint8')])
+
+        self.append_virtual_field_defs([ 
+            ('addr1', 'uint64', 20),
+            ('addr2', 'uint64', 26),
+            ('addr3', 'uint64', 32)])
+
+Tx()
 # End class 
 
 class TxLow(WlanExpLogEntryType):
@@ -352,17 +417,20 @@ class TxLow(WlanExpLogEntryType):
 
     def __init__(self):
         super(TxLow, self).__init__()
-        self.append_field_info([ 
-            ('Q',     'uint64',      'timestamp'),
-            ('24s',   '24uint8',     'mac_header'),
-            ('B',     'uint8',       'tx_count'),
-            ('b',     'int8',        'tx_power'),
-            ('B',     'uint8',       'chan_num'),
-            ('B',     'uint8',       'rate'),
-            ('H',     'uint16',      'length'),
-            ('B',     'uint8',       'pkt_type'),
-            ('B',     'uint8',       'ant_mode')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('timestamp',       'Q',    'uint64'),
+            ('mac_header',      '24s',  '24uint8'),
+            ('tx_count',        'B',    'uint8'),
+            ('tx_power',        'b',    'int8'),
+            ('chan_num',        'B',    'uint8'),
+            ('rate',        'B',    'uint8'),
+            ('length',      'H',    'uint16'),
+            ('pkt_type',        'B',    'uint8'),
+            ('ant_mode',        'B',    'uint8')])
+
+TxLow()
 # End class 
 
 
@@ -373,223 +441,22 @@ class TxRxStats(WlanExpLogEntryType):
 
     def __init__(self):
         super(TxRxStats, self).__init__()
-        self.append_field_info([ 
-            ('Q',     'uint64',      'timestamp'),
-            ('Q',     'uint64',      'last_timestamp'),
-            ('6s',    '6uint8',      'mac_addr'),
-            ('B',     'uint8',       'associated'),
-            ('x',     'uint8',       'padding'),
-            ('I',     'uint32',      'num_tx_total'),
-            ('I',     'uint32',      'num_tx_success'),
-            ('I',     'uint32',      'num_retry'),
-            ('I',     'uint32',      'mgmt_num_rx_success'),
-            ('I',     'uint32',      'mgmt_num_rx_bytes'),
-            ('I',     'uint32',      'data_num_rx_success'),
-            ('I',     'uint32',      'data_num_rx_bytes')])
+        wlan_exp_log_entry_types.add_entry_type(self)
 
+        self.append_field_defs([ 
+            ('timestamp',       'Q',    'uint64'),
+            ('last_timestamp',      'Q',    'uint64'),
+            ('mac_addr',        '6s',   '6uint8'),
+            ('associated',      'B',    'uint8'),
+            ('padding',     'x',    'uint8'),
+            ('num_tx_total',        'I',    'uint32'),
+            ('num_tx_success',      'I',    'uint32'),
+            ('num_retry',       'I',    'uint32'),
+            ('mgmt_num_rx_success',     'I',    'uint32'),
+            ('mgmt_num_rx_bytes',       'I',    'uint32'),
+            ('data_num_rx_success',     'I',    'uint32'),
+            ('data_num_rx_bytes',       'I',    'uint32')])
+
+TxRxStats()
 # End class 
 
-
-#-----------------------------------------------------------------------------
-# Log Entry Type Container Class
-#-----------------------------------------------------------------------------
-
-class WlanExpLogEntryTypes:
-    """Class that maintains all log entry types."""
-    _log_entry_types = {}
-    _cache           = None
-    
-    def __init__(self):
-        self.clear_cache()
-
-        self.add_entry_type(NodeInfo())
-        self.add_entry_type(ExpInfo())
-        self.add_entry_type(StationInfo())
-        self.add_entry_type(WNCmdInfo())
-        self.add_entry_type(Temperature())
-        self.add_entry_type(Rx())
-        self.add_entry_type(RxOFDM())
-        self.add_entry_type(RxDSSS())
-        self.add_entry_type(Tx())
-        self.add_entry_type(TxLow())
-        self.add_entry_type(TxRxStats())
-
-    def clear_cache(self):
-        self._cache = {}
-
-    def add_entry_type(self, entry_type):
-        self._log_entry_types[entry_type.name] = entry_type
-            
-    def get_entry_types_from_id(self, entry_type_id, strict=False):
-        ret_val = []
-        if((not strict) & entry_type_id in self._cache.keys()):
-            return self._cache[entry_type_id]
-        else:
-            for entry_type in self._log_entry_types:
-                entry = self.get_entry_from_type(entry_type)
-                if entry.is_entry_type_id(entry_type_id, strict=strict):
-                    ret_val.append(entry.name)
-        self._cache[entry_type_id] = ret_val
-        return ret_val
-
-    def get_entry_from_type(self, entry_type):
-        return self._log_entry_types[entry_type]
-
-    def print_entry_types(self):
-        msg = "Entry Types:\n"
-        for entry_type in self._log_entry_types.keys():
-            msg += "    Type = {0}\n".format(entry_type)
-            entry = self.get_entry_from_type(entry_type)
-            for subclass in inheritors(entry.__class__):
-                msg += "        Sub Type = {0}\n".format(subclass.name)
-        print(msg)
-
-# End class WlanExpLogEntries
-
-
-# Global Variable
-wlan_exp_log_entry_types     = WlanExpLogEntryTypes()
-
-log_entry_node_info          = NodeInfo()
-log_entry_exp_info           = ExpInfo()
-log_entry_station_info       = StationInfo()
-log_entry_node_temperature   = Temperature()
-log_entry_rx_ofdm            = RxOFDM()
-log_entry_rx_dsss            = RxDSSS()
-log_entry_tx                 = Tx()
-log_entry_txrx_stats         = TxRxStats()
-
-
-#-----------------------------------------------------------------------------
-# Helper Function to travers class heirarchy
-#-----------------------------------------------------------------------------
-
-def inheritors(class_def):
-    """Will return all sub-classes of the class_def."""
-    subclasses = set()
-    work = [class_def]
-    while work:
-        parent = work.pop()
-        for child in parent.__subclasses__():
-            if child not in subclasses:
-                subclasses.add(child)
-                work.append(child)
-    return subclasses
-
-
-
-
-
-"""
-# Initialize the global dictionary with all the log entry types defined in the 802.11 ref design
-
-
-# WLAN Exp Log Entry Definitions
-#   NOTE:  The C counterparts are found in wlan_mac_entries.h
-
-# Node info
-log_entry_node_info.set_field_info( [
-    ('I',     'uint32',      'node_type'),
-    ('I',     'uint32',      'node_id'),
-    ('I',     'uint32',      'hw_generation'),
-    ('I',     'uint32',      'design_ver'),
-    ('I',     'uint32',      'serial_num'),
-    ('Q',     'uint64',      'fpga_dna'),
-    ('I',     'uint32',      'wlan_max_associations'),
-    ('I',     'uint32',      'wlan_log_max_size'),
-    ('I',     'uint32',      'wlan_max_stats')])
-
-
-# Station info
-#   - In the current implementation STATION_INFO_HOSTNAME_MAXLEN = 15 bytes
-log_entry_station_info.set_field_info( [
-    ('Q',     'uint64',      'timestamp'),
-    ('6s',    '6uint8',      'mac_addr'),
-    ('16s',   '16uint8',     'host_name'),
-    ('H',     'uint16',      'aid'),
-    ('I',     'uint32',      'flags'),
-    ('B',     'uint8',	      'rate'),
-    ('B',     'uint8',	      'antenna_mode'),
-    ('B',     'uint8',	      'max_retry')])
-
-
-# Exp info
-log_entry_exp_info.set_field_info( [
-    ('6s',    '6uint8',      'mac_addr'),
-    ('Q',     'uint64',      'timestamp'),
-    ('I',     'uint16',      'info_type'),
-    ('I',     'uint16',      'length')])
-
-
-# Node temperature
-log_entry_node_temperature.set_field_info( [
-    ('Q',     'uint64',      'timestamp'),
-    ('I',     'uint32',      'node_id'),
-    ('I',     'uint32',      'serial_num'),
-    ('I',     'uint32',      'temp_current'),
-    ('I',     'uint32',      'temp_min'),
-    ('I',     'uint32',      'temp_max')])
-
-
-# OFDM transmissions
-log_entry_tx.set_field_info( [
-    ('Q',     'uint64',      'timestamp'),
-    ('I',     'uint32',      'time_to_accept'),
-    ('I',     'uint32',      'time_to_done'),
-    ('24s',   '24uint8',     'mac_header'),
-    ('B',     'uint8',       'retry_count'),
-    ('B',     'uint8',       'gain_target'),
-    ('B',     'uint8',       'chan_num'),
-    ('B',     'uint8',       'rate'),
-    ('H',     'uint16',      'length'),
-    ('B',     'uint8',       'result'),
-    ('B',     'uint8',       'pkt_type'),
-    ('B',     'uint8',       'ant_mode')])
-
-
-# OFDM Receptions
-log_entry_rx_ofdm.set_field_info( [
-    ('Q',     'uint64',      'timestamp'),
-    ('24s',   '24uint8',     'mac_header'),
-    ('H',     'uint16',      'length'),
-    ('B',     'uint8',       'rate'),
-    ('b',     'int8',        'power'),
-    ('B',     'uint8',       'fcs_result'),
-    ('B',     'uint8',       'pkt_type'),
-    ('B',     'uint8',       'chan_num'),
-    ('B',     'uint8',       'ant_mode'),
-    ('B',     'uint8',       'rf_gain'),
-    ('B',     'uint8',       'bb_gain'),
-    ('2x',    'uint16',      'padding'),
-    ('256B',  '(64,2)i2',    'chan_est')])
-
-
-# DSSS Receptions
-log_entry_rx_dsss.set_field_info( [
-    ('Q',     'uint64',      'timestamp'),
-    ('24s',   '24uint8',     'mac_header'),
-    ('H',     'uint16',      'length'),
-    ('B',     'uint8',       'rate'),
-    ('b',     'int8',        'power'),
-    ('B',     'uint8',       'fcs_result'),
-    ('B',     'uint8',       'pkt_type'),
-    ('B',     'uint8',       'chan_num'),
-    ('B',     'uint8',       'ant_mode'),
-    ('B',     'uint8',       'rf_gain'),
-    ('B',     'uint8',       'bb_gain'),
-    ('2x',    'uint16',      'padding')])
-
-
-# TX/RX Statistics
-log_entry_txrx_stats.set_field_info( [
-    ('Q',     'uint64',      'timestamp'),
-    ('Q',     'uint64',      'last_timestamp'),
-    ('6s',    '6uint8',      'mac_addr'),
-    ('B',     'uint8',       'associated'),
-    ('x',     'uint8',       'padding'),
-    ('I',     'uint32',      'num_tx_total'),
-    ('I',     'uint32',      'num_tx_successful'),
-    ('I',     'uint32',      'num_tx_total_retry'),
-    ('I',     'uint32',      'num_rx_successful'),
-    ('I',     'uint32',      'num_rx_bytes')])
-"""

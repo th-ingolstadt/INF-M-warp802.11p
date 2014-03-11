@@ -36,8 +36,7 @@ for ii,logfile in enumerate(logfiles):
         log_b = fh.read()
 
     log_index = log_util.gen_log_index(log_b)
-    log_util.debug_here()
-    
+
     log_nd = log_util.gen_log_ndarrays(log_b, log_index, convert_keys=True)
 
     #Skip outer dictionary if there is only one log file
@@ -51,7 +50,7 @@ for ii,logfile in enumerate(logfiles):
     for k in sorted(log_nd.keys()):
         print("{0:7d}  {1}".format(len(log_nd[k]), k))
 
-'''
+
 print("\n")
 
 #Generate an HDF5 file containing all log data, group by log file
@@ -59,4 +58,3 @@ print("Genereating HDF5 file %s" % HDF5FILE)
 log_util.gen_hdf5_file(HDF5FILE, all_logs, compression=None)
 
 print("Done.")
-'''
