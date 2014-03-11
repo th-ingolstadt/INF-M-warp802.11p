@@ -62,6 +62,9 @@ class WlanExpLogEntryTypes:
     def __init__(self):
         pass
 
+    def keys(self):
+        return self._log_entry_types.keys()
+
     def add_entry_type(self, entry_type):
         """Add a new entry type to the container.
         
@@ -111,7 +114,7 @@ class WlanExpLogEntryTypes:
 # End class WlanExpLogEntries
 
 # Global Variable
-wlan_exp_log_entry_types     = WlanExpLogEntryTypes()
+wlan_exp_log_entry_types     = dict()
 
 #-----------------------------------------------------------------------------
 # Log Entry Type Base Class
@@ -119,28 +122,41 @@ wlan_exp_log_entry_types     = WlanExpLogEntryTypes()
 
 class WlanExpLogEntryType(object):
     """Base class to define a log entry type."""
-    _entry_type_id    = None
-    _fields           = None
-    _virtual_fields   = None
-
-    name              = None
-    fields_size       = None
-    fields_fmt_struct = None
-    fields_fmt_np     = None
-
-
-    def __init__(self):
-        self._fields           = []
-        self._virtual_fields   = []
-        self.fields_fmt_struct = ''
-        self.fields_size       = 0
-        self.fields_fmt_np     = []
-
     #_fields is a list of 3-tuples:
     # (field_name, field_fmt_struct, field_fmt_np)
 
     #_virtual_fields is nominally a list of 3-tuples:
     # (field_name, field_fmt_np, field_byte_offset)
+    _fields           = []
+    _virtual_fields   = []
+
+    entry_type_id     = None
+    name              = None
+    
+    def __init__(self, name=None, entry_type_id=None):
+        #Require valid name
+        if(name):
+            if(name in wlan_exp_log_entry_types.keys()):
+                print("WARNING: replacing exisitng WlanExpLogEntryType with name %s" % name)
+            self.name = name
+            wlan_exp_log_entry_types[name] = self
+        else:
+            raise Exception("ERROR: new WlanExpLogEntryType instance must have valid name")
+
+        #Entry type ID is optional
+        if(entry_type_id):
+            #entry_type_id must be int
+            if(type(entry_type_id) is not int):
+                raise Exception("ERROR: WlanExpLogEntryType entry_type_id must be int")
+            else:
+                if(entry_type_id in wlan_exp_log_entry_types.keys()):
+                    print("WARNING: replacing exisitng WlanExpLogEntryType with ID %d" % entry_type_ID)
+                self.entry_type_id = entry_type_id
+                wlan_exp_log_entry_types[entry_type_id] = self
+
+        #Initialize fields to empty lists
+        self._fields           = []
+        self._virtual_fields   = []
 
     def __eq__(self, other):
         if type(other) is str:
@@ -184,11 +200,6 @@ class WlanExpLogEntryType(object):
         self._update_field_defs()
         
     def _update_field_defs(self):
-        #fields_fmt_struct is a string suitable for use as the format string to struct.unpack
-        # (Format characters: http://docs.python.org/2/library/struct.html#format-characters)
-        self.fields_fmt_struct = ' '.join(self.get_field_struct_formats())
-        self.fields_size = calcsize(self.fields_fmt_struct)
-
         #fields_np_dt is a numpy dtype, built using a dictionary of names/formats/sizes:
         # {'names':[field_names], 'formats':[field_formats], 'offsets':[field_offsets]}
         # We specify each field's byte offset explicitly. Byte offsets for fields in _fields
@@ -250,7 +261,7 @@ class WlanExpLogEntryType(object):
         return ret_dict
 
     def __repr__(self):
-        return 'Entry_Type_' + self.name
+        return self.name
 
 # End class 
 
@@ -258,14 +269,8 @@ class WlanExpLogEntryType(object):
 # Virtual Log Entry Classes
 #-----------------------------------------------------------------------------
 
-class Rx(WlanExpLogEntryType):
-    """Receive Virtual Log Entry Type."""
-    name           = 'RX_ALL'
-
-    def __init__(self):
-        super(Rx, self).__init__()
-
-        self.append_field_defs([ 
+entry_rx_common = WlanExpLogEntryType(name='RX_ALL', entry_type_id=None)
+entry_rx_common.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
             ('length',                 'H',      'uint16'),
@@ -279,23 +284,13 @@ class Rx(WlanExpLogEntryType):
             ('bb_gain',                'B',      'uint8'),
             ('padding',                '2x',     'uint16')])
 
-Rx()
-# End class 
-
 
 #-----------------------------------------------------------------------------
 # Log Entry Type Classes
 #-----------------------------------------------------------------------------
 
-class NodeInfo(WlanExpLogEntryType):
-    """Node Info Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_NODE_INFO
-    name           = 'NODE_INFO'
-    
-    def __init__(self):
-        super(NodeInfo, self).__init__()
-
-        self.append_field_defs([ 
+entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
+entry_node_info.append_field_defs([ 
             ('node_type',              'I',      'uint32'),
             ('node_id',                'I',      'uint32'),
             ('hw_generation',          'I',      'uint32'),
@@ -306,37 +301,15 @@ class NodeInfo(WlanExpLogEntryType):
             ('wlan_log_max_size',      'I',      'uint32'),
             ('wlan_max_stats',         'I',      'uint32')])
 
-wlan_exp_log_entry_types.add_entry_type(NodeInfo())
-# End class 
-
-
-class ExpInfo(WlanExpLogEntryType):
-    """Experiment Info Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_EXP_INFO
-    name           = 'EXP_INFO'
-
-    def __init__(self):
-        super(ExpInfo, self).__init__()
-
-        self.append_field_defs([ 
+entry_exp_info = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
+entry_exp_info.append_field_defs([ 
             ('mac_addr',               '6s',     '6uint8'),
             ('timestamp',              'Q',      'uint64'),
             ('info_type',              'I',      'uint16'),
             ('length',                 'I',      'uint16')])
 
-wlan_exp_log_entry_types.add_entry_type(ExpInfo())
-# End class 
-
-
-class StationInfo(WlanExpLogEntryType):
-    """Station Info Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_STATION_INFO
-    name           = 'STATION_INFO'
-
-    def __init__(self):
-        super(StationInfo, self).__init__()
-
-        self.append_field_defs([ 
+entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
+entry_station_info.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('mac_addr',               '6s',     '6uint8'),
             ('host_name',              '16s',    '16uint8'),
@@ -346,38 +319,16 @@ class StationInfo(WlanExpLogEntryType):
             ('antenna_mode',           'B',      'uint8'),
             ('max_retry',              'B',      'uint8')])
 
-wlan_exp_log_entry_types.add_entry_type(StationInfo())
-# End class 
-
-
-class WNCmdInfo(WlanExpLogEntryType):
-    """WARPNet Command Info Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_WN_CMD_INFO
-    name           = 'WN_CMD_INFO'
-
-    def __init__(self):
-        super(WNCmdInfo, self).__init__()
-
-        self.append_field_defs([ 
+entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
+entry_wn_cmd_info.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('command',                'I',      'uint32'),
             ('rsvd',                   'H',      'uint16'),
             ('num_args',               'H',      'uint16'),
             ('args',                   '10I',    '10uint32')])
 
-wlan_exp_log_entry_types.add_entry_type(WNCmdInfo())
-# End class 
-
-
-class Temperature(WlanExpLogEntryType):
-    """Temperature Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_NODE_TEMPERATURE
-    name           = 'NODE_TEMPERATURE'
-
-    def __init__(self):
-        super(Temperature, self).__init__()
-
-        self.append_field_defs([ 
+entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
+entry_node_temperature.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('node_id',                'I',      'uint32'),
             ('serial_num',             'I',      'uint32'),
@@ -385,52 +336,16 @@ class Temperature(WlanExpLogEntryType):
             ('temp_min',               'I',      'uint32'),
             ('temp_max',               'I',      'uint32')])
 
-wlan_exp_log_entry_types.add_entry_type(Temperature())
-# End class 
-
-
-class RxOFDM(WlanExpLogEntryType):
-    """Receive OFDM Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_RX_OFDM
-    name           = 'RX_OFDM'
-
-    def __init__(self):
-        super(RxOFDM, self).__init__()
-
-        #Reuse the fields from the common Rx definition
-        self.append_field_defs(Rx.get_field_defs(Rx()))
-
-        self.append_field_defs([ 
+entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
+entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
+entry_rx_ofdm.append_field_defs([ 
             ('chan_est',               '256B',   '(64,2)i2')])
 
-wlan_exp_log_entry_types.add_entry_type(RxOFDM())
-# End class 
+entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
+entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 
-
-class RxDSSS(WlanExpLogEntryType):
-    """Receive DSSS Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_RX_DSSS
-    name           = 'RX_DSSS'
-
-    def __init__(self):
-        super(RxDSSS, self).__init__()
-        
-        #Reuse the fields from the common Rx definition
-        self.append_field_defs(Rx.get_field_defs(Rx()))
-
-wlan_exp_log_entry_types.add_entry_type(RxDSSS())
-# End class 
-
-
-class Tx(WlanExpLogEntryType):
-    """Transmit Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_TX
-    name           = 'TX'
-
-    def __init__(self):
-        super(Tx, self).__init__()
-
-        self.append_field_defs([ 
+entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
+entry_tx.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('time_to_accept',         'I',      'uint32'),
             ('time_to_done',           'I',      'uint32'),
@@ -443,25 +358,14 @@ class Tx(WlanExpLogEntryType):
             ('result',                 'B',      'uint8'),
             ('pkt_type',               'B',      'uint8'),
             ('ant_mode',               'B',      'uint8')])
-
 # Somehow this breaks HDF5 writing...
-#        self.append_virtual_field_defs([ 
+#entry_tx.append_virtual_field_defs([ 
 #            ('addr1',                 'uint64',      20),
 #            ('addr2',                 'uint64',      26),
 #            ('addr3',                 'uint64',      32)])
 
-wlan_exp_log_entry_types.add_entry_type(Tx())
-# End class 
-
-class TxLow(WlanExpLogEntryType):
-    """Transmit Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_TX_LOW
-    name           = 'TX_LOW'
-
-    def __init__(self):
-        super(TxLow, self).__init__()
-
-        self.append_field_defs([ 
+entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
+entry_tx_low.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
             ('tx_count',               'B',      'uint8'),
@@ -472,19 +376,8 @@ class TxLow(WlanExpLogEntryType):
             ('pkt_type',               'B',      'uint8'),
             ('ant_mode',               'B',      'uint8')])
 
-wlan_exp_log_entry_types.add_entry_type(TxLow())
-# End class 
-
-
-class TxRxStats(WlanExpLogEntryType):
-    """Transmit Log Entry Type."""
-    _entry_type_id = ENTRY_TYPE_TXRX_STATS
-    name           = 'TXRX_STATS'
-
-    def __init__(self):
-        super(TxRxStats, self).__init__()
-
-        self.append_field_defs([ 
+entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
+entry_txrx_stats.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('last_timestamp',         'Q',      'uint64'),
             ('mac_addr',               '6s',     '6uint8'),
@@ -497,7 +390,3 @@ class TxRxStats(WlanExpLogEntryType):
             ('mgmt_num_rx_bytes',      'I',      'uint32'),
             ('data_num_rx_success',    'I',      'uint32'),
             ('data_num_rx_bytes',      'I',      'uint32')])
-
-wlan_exp_log_entry_types.add_entry_type(TxRxStats())
-# End class 
-

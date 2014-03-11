@@ -137,18 +137,18 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
     
     ret_log_index = {}
 
-    if (not include_only is None) and (not type(include_only) is list):
+    if (include_only is not None) and (type(include_only) is not list):
         raise TypeError("Parameter 'include' must be a list.\n")
 
-    if (not exclude is None) and not type(exclude) is list:
+    if (exclude is not None) and (type(exclude) is not list):
         raise TypeError("Parameter 'exclude' must be a list.\n")
 
-    if (not merge is None) and not type(merge) is dict:
+    if (merge is not None) and (type(merge) is not dict):
         raise TypeError("Parameter 'merge' must be a dictionary.\n")
 
-
-    # Replace the entry type IDs in the raw_log_index with entry types
-    ret_log_index = {types.get_entry_type_for_id(k):log_index[k] for k in log_index.keys() if type(k) is int}
+    # Start by creating a new dictionary with the same values as the log_index input
+    #  but using the WlanExpLogEntryType instances as keys
+    ret_log_index = {types[k] : log_index[k] for k in log_index.keys()}
 
     # Filter the log_index
     try:
