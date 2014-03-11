@@ -153,12 +153,16 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
     # Filter the log_index
     try:
         # Create any new log indexes through the merge dictionary
-        if not merge is None:
-            new_index = []
+        if merge is not None:
+            #For each new merged index output
             for k in merge.keys():
+                new_index = []
                 for v in merge[k]:
                     new_index += ret_log_index[v]
-                ret_log_index[k] = sorted(new_index)
+                
+                #Add the new merged index lists to the output dictionary
+                # Use the type instance corresponding to the user-supplied string as the key
+                ret_log_index[types[k]] = sorted(new_index)
     
         # Filter the resulting log index by 'include' / 'exclude' lists
         if not include_only is None:
