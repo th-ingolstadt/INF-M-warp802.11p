@@ -42,10 +42,10 @@ log_index_raw = log_util.gen_log_index_raw(log_b)
 
 log_util.log_index_print_summary(log_index_raw, "Raw Log Index:")
 
-# log_index = log_util.filter_log_index(log_index_raw, include=['RX_OFDM'])
-# log_index = log_util.filter_log_index(log_index_raw, include=['RX_OFDM', 'TX'])
+# log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM'])
+# log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM', 'TX'])
 # log_index = log_util.filter_log_index(log_index_raw, exclude=['TXRX_STATS', 'NODE_INFO'])
-# log_index = log_util.filter_log_index(log_index_raw, include=['RX_ALL'], merge={log.Rx():['RX_OFDM', 'RX_DSSS']})
+# log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_ALL'], merge={log.Rx():['RX_OFDM', 'RX_DSSS']})
 
 log_index = log_util.filter_log_index(log_index_raw, 
                                       exclude=['TXRX_STATS', 'NODE_INFO', 'RX_DSSS', 'TX_LOW', 'WN_CMD_INFO'], 

@@ -105,20 +105,20 @@ def gen_log_index_raw(log_bytes):
 
 
 
-def filter_log_index(log_index, include=None, exclude=None, merge=None):
+def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
     """Parses a log index to generate a final log index that will be used
     by any one of a number of consumers, for example gen_log_ndarrays().
     This method allows the user to filter the raw log and create new
     log entry types that will allow customized views in to the log data.
     
     Attributes:
-        include -- List of WlanExpLogEntryTypes to include in the output
-                   log index.  This takes precedence over 'exclude'.
-        exclude -- List of WlanExpLogEntryTypes to exclude in the output
-                   log index.  This will not be used if include != None.
-        merge   -- List of dictionaries of the form:
-                   {<Output WlanExpLogEntryTypes Instance>: 
-                       [List of WlanExpLogEntryTypes names to be merged]}
+        include_only -- List of WlanExpLogEntryTypes to include in the output
+                        log index.  This takes precedence over 'exclude'.
+        exclude      -- List of WlanExpLogEntryTypes to exclude in the output
+                        log index.  This will not be used if include != None.
+        merge        -- List of dictionaries of the form:
+                        {<Output WlanExpLogEntryTypes Instance>: 
+                            [List of WlanExpLogEntryTypes names to be merged]}
         
     By using the 'merge', we are able to combine the indexes of 
     WlanExpLogEntryTypes to create super-sets of entries.  For example, 
@@ -135,7 +135,7 @@ def filter_log_index(log_index, include=None, exclude=None, merge=None):
     
     ret_log_index = {}
 
-    if (not include is None) and (not type(include) is list):
+    if (not include_only is None) and (not type(include_only) is list):
         raise TypeError("Parameter 'include' must be a list.\n")
 
     if (not exclude is None) and not type(exclude) is list:
@@ -159,10 +159,10 @@ def filter_log_index(log_index, include=None, exclude=None, merge=None):
                 ret_log_index[k] = sorted(new_index)
     
         # Filter the resulting log index by 'include' / 'exclude' lists
-        if not include is None:
+        if not include_only is None:
             new_log_index = {}
             
-            for entry_name in include:
+            for entry_name in include_only:
                 for k in ret_log_index.keys():
                     if k == entry_name:
                         new_log_index[k] = ret_log_index[k]

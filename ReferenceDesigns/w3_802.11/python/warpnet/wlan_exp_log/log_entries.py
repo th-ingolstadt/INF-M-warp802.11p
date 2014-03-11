@@ -266,18 +266,18 @@ class Rx(WlanExpLogEntryType):
         super(Rx, self).__init__()
 
         self.append_field_defs([ 
-            ('timestamp',       'Q',    'uint64'),
-            ('mac_header',      '24s',  '24uint8'),
-            ('length',      'H',    'uint16'),
-            ('rate',        'B',    'uint8'),
-            ('power',       'b',    'int8'),
-            ('fcs_result',      'B',    'uint8'),
-            ('pkt_type',        'B',    'uint8'),
-            ('chan_num',        'B',    'uint8'),
-            ('ant_mode',        'B',    'uint8'),
-            ('rf_gain',     'B',    'uint8'),
-            ('bb_gain',     'B',    'uint8'),
-            ('padding',     '2x',   'uint16')])
+            ('timestamp',              'Q',      'uint64'),
+            ('mac_header',             '24s',    '24uint8'),
+            ('length',                 'H',      'uint16'),
+            ('rate',                   'B',      'uint8'),
+            ('power',                  'b',      'int8'),
+            ('fcs_result',             'B',      'uint8'),
+            ('pkt_type',               'B',      'uint8'),
+            ('chan_num',               'B',      'uint8'),
+            ('ant_mode',               'B',      'uint8'),
+            ('rf_gain',                'B',      'uint8'),
+            ('bb_gain',                'B',      'uint8'),
+            ('padding',                '2x',     'uint16')])
 
 Rx()
 # End class 
@@ -296,15 +296,15 @@ class NodeInfo(WlanExpLogEntryType):
         super(NodeInfo, self).__init__()
 
         self.append_field_defs([ 
-            ('node_type',       'I',    'uint32'),
-            ('node_id',     'I',    'uint32'),
-            ('hw_generation',       'I',    'uint32'),
-            ('design_ver',      'I',    'uint32'),
-            ('serial_num',      'I',    'uint32'),
-            ('fpga_dna',        'Q',    'uint64'),
-            ('wlan_max_associations',       'I',    'uint32'),
-            ('wlan_log_max_size',       'I',    'uint32'),
-            ('wlan_max_stats',      'I',    'uint32')])
+            ('node_type',              'I',      'uint32'),
+            ('node_id',                'I',      'uint32'),
+            ('hw_generation',          'I',      'uint32'),
+            ('design_ver',             'I',      'uint32'),
+            ('serial_num',             'I',      'uint32'),
+            ('fpga_dna',               'Q',      'uint64'),
+            ('wlan_max_associations',  'I',      'uint32'),
+            ('wlan_log_max_size',      'I',      'uint32'),
+            ('wlan_max_stats',         'I',      'uint32')])
 
 wlan_exp_log_entry_types.add_entry_type(NodeInfo())
 # End class 
@@ -319,10 +319,10 @@ class ExpInfo(WlanExpLogEntryType):
         super(ExpInfo, self).__init__()
 
         self.append_field_defs([ 
-            ('mac_addr',        '6s',   '6uint8'),
-            ('timestamp',       'Q',    'uint64'),
-            ('info_type',       'I',    'uint16'),
-            ('length',      'I',    'uint16')])
+            ('mac_addr',               '6s',     '6uint8'),
+            ('timestamp',              'Q',      'uint64'),
+            ('info_type',              'I',      'uint16'),
+            ('length',                 'I',      'uint16')])
 
 wlan_exp_log_entry_types.add_entry_type(ExpInfo())
 # End class 
@@ -337,14 +337,14 @@ class StationInfo(WlanExpLogEntryType):
         super(StationInfo, self).__init__()
 
         self.append_field_defs([ 
-            ('timestamp',       'Q',    'uint64'),
-            ('mac_addr',        '6s',   '6uint8'),
-            ('host_name',       '16s',  '16uint8'),
-            ('aid',     'H',    'uint16'),
-            ('flags',       'I',    'uint32'),
-            ('rate',        'B',    'uint8'),
-            ('antenna_mode',        'B',    'uint8'),
-            ('max_retry',       'B',    'uint8')])
+            ('timestamp',              'Q',      'uint64'),
+            ('mac_addr',               '6s',     '6uint8'),
+            ('host_name',              '16s',    '16uint8'),
+            ('aid',                    'H',      'uint16'),
+            ('flags',                  'I',      'uint32'),
+            ('rate',                   'B',      'uint8'),
+            ('antenna_mode',           'B',      'uint8'),
+            ('max_retry',              'B',      'uint8')])
 
 wlan_exp_log_entry_types.add_entry_type(StationInfo())
 # End class 
@@ -359,11 +359,11 @@ class WNCmdInfo(WlanExpLogEntryType):
         super(WNCmdInfo, self).__init__()
 
         self.append_field_defs([ 
-            ('timestamp',       'Q',    'uint64'),
-            ('command',     'I',    'uint32'),
-            ('rsvd',        'H',    'uint16'),
-            ('num_args',        'H',    'uint16'),
-            ('args',        '10I',  '10uint32')])
+            ('timestamp',              'Q',      'uint64'),
+            ('command',                'I',      'uint32'),
+            ('rsvd',                   'H',      'uint16'),
+            ('num_args',               'H',      'uint16'),
+            ('args',                   '10I',    '10uint32')])
 
 wlan_exp_log_entry_types.add_entry_type(WNCmdInfo())
 # End class 
@@ -378,12 +378,12 @@ class Temperature(WlanExpLogEntryType):
         super(Temperature, self).__init__()
 
         self.append_field_defs([ 
-            ('timestamp',       'Q',    'uint64'),
-            ('node_id',     'I',    'uint32'),
-            ('serial_num',      'I',    'uint32'),
-            ('temp_current',        'I',    'uint32'),
-            ('temp_min',        'I',    'uint32'),
-            ('temp_max',        'I',    'uint32')])
+            ('timestamp',              'Q',      'uint64'),
+            ('node_id',                'I',      'uint32'),
+            ('serial_num',             'I',      'uint32'),
+            ('temp_current',           'I',      'uint32'),
+            ('temp_min',               'I',      'uint32'),
+            ('temp_max',               'I',      'uint32')])
 
 wlan_exp_log_entry_types.add_entry_type(Temperature())
 # End class 
@@ -401,7 +401,7 @@ class RxOFDM(WlanExpLogEntryType):
         self.append_field_defs(Rx.get_field_defs(Rx()))
 
         self.append_field_defs([ 
-            ('chan_est',        '256B', '(64,2)i2')])
+            ('chan_est',               '256B',   '(64,2)i2')])
 
 wlan_exp_log_entry_types.add_entry_type(RxOFDM())
 # End class 
@@ -431,24 +431,24 @@ class Tx(WlanExpLogEntryType):
         super(Tx, self).__init__()
 
         self.append_field_defs([ 
-            ('timestamp',       'Q',    'uint64'),
-            ('time_to_accept',      'I',    'uint32'),
-            ('time_to_done',        'I',    'uint32'),
-            ('mac_header',      '24s',  '24uint8'),
-            ('retry_count',     'B',    'uint8'),
-            ('gain_target',     'B',    'uint8'),
-            ('chan_num',        'B',    'uint8'),
-            ('rate',        'B',    'uint8'),
-            ('length',      'H',    'uint16'),
-            ('result',      'B',    'uint8'),
-            ('pkt_type',        'B',    'uint8'),
-            ('ant_mode',        'B',    'uint8')])
+            ('timestamp',              'Q',      'uint64'),
+            ('time_to_accept',         'I',      'uint32'),
+            ('time_to_done',           'I',      'uint32'),
+            ('mac_header',             '24s',    '24uint8'),
+            ('retry_count',            'B',      'uint8'),
+            ('gain_target',            'B',      'uint8'),
+            ('chan_num',               'B',      'uint8'),
+            ('rate',                   'B',      'uint8'),
+            ('length',                 'H',      'uint16'),
+            ('result',                 'B',      'uint8'),
+            ('pkt_type',               'B',      'uint8'),
+            ('ant_mode',               'B',      'uint8')])
 
 # Somehow this breaks HDF5 writing...
 #        self.append_virtual_field_defs([ 
-#            ('addr1', 'uint64', 20),
-#            ('addr2', 'uint64', 26),
-#            ('addr3', 'uint64', 32)])
+#            ('addr1',                 'uint64',      20),
+#            ('addr2',                 'uint64',      26),
+#            ('addr3',                 'uint64',      32)])
 
 wlan_exp_log_entry_types.add_entry_type(Tx())
 # End class 
@@ -462,15 +462,15 @@ class TxLow(WlanExpLogEntryType):
         super(TxLow, self).__init__()
 
         self.append_field_defs([ 
-            ('timestamp',       'Q',    'uint64'),
-            ('mac_header',      '24s',  '24uint8'),
-            ('tx_count',        'B',    'uint8'),
-            ('tx_power',        'b',    'int8'),
-            ('chan_num',        'B',    'uint8'),
-            ('rate',        'B',    'uint8'),
-            ('length',      'H',    'uint16'),
-            ('pkt_type',        'B',    'uint8'),
-            ('ant_mode',        'B',    'uint8')])
+            ('timestamp',              'Q',      'uint64'),
+            ('mac_header',             '24s',    '24uint8'),
+            ('tx_count',               'B',      'uint8'),
+            ('tx_power',               'b',      'int8'),
+            ('chan_num',               'B',      'uint8'),
+            ('rate',                   'B',      'uint8'),
+            ('length',                 'H',      'uint16'),
+            ('pkt_type',               'B',      'uint8'),
+            ('ant_mode',               'B',      'uint8')])
 
 wlan_exp_log_entry_types.add_entry_type(TxLow())
 # End class 
@@ -485,18 +485,18 @@ class TxRxStats(WlanExpLogEntryType):
         super(TxRxStats, self).__init__()
 
         self.append_field_defs([ 
-            ('timestamp',       'Q',    'uint64'),
-            ('last_timestamp',      'Q',    'uint64'),
-            ('mac_addr',        '6s',   '6uint8'),
-            ('associated',      'B',    'uint8'),
-            ('padding',     'x',    'uint8'),
-            ('num_tx_total',        'I',    'uint32'),
-            ('num_tx_success',      'I',    'uint32'),
-            ('num_retry',       'I',    'uint32'),
-            ('mgmt_num_rx_success',     'I',    'uint32'),
-            ('mgmt_num_rx_bytes',       'I',    'uint32'),
-            ('data_num_rx_success',     'I',    'uint32'),
-            ('data_num_rx_bytes',       'I',    'uint32')])
+            ('timestamp',              'Q',      'uint64'),
+            ('last_timestamp',         'Q',      'uint64'),
+            ('mac_addr',               '6s',     '6uint8'),
+            ('associated',             'B',      'uint8'),
+            ('padding',                'x',      'uint8'),
+            ('num_tx_total',           'I',      'uint32'),
+            ('num_tx_success',         'I',      'uint32'),
+            ('num_retry',              'I',      'uint32'),
+            ('mgmt_num_rx_success',    'I',      'uint32'),
+            ('mgmt_num_rx_bytes',      'I',      'uint32'),
+            ('data_num_rx_success',    'I',      'uint32'),
+            ('data_num_rx_bytes',      'I',      'uint32')])
 
 wlan_exp_log_entry_types.add_entry_type(TxRxStats())
 # End class 
