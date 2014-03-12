@@ -110,29 +110,100 @@ def gen_log_index_raw(log_bytes):
 
 
 def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
-    """Parses a log index to generate a final log index that will be used
-    by any one of a number of consumers, for example gen_log_ndarrays().
-    This method allows the user to filter the raw log and create new
-    log entry types that will allow customized views in to the log data.
+    """Parses a log index to generate a filtered log index.
+
+    Consumers, in general, cannot operate on a raw log index since that has
+    not been converted in to log entry types.  The besides filtering a log 
+    index, this method will also convert any raw index entries (ie entries 
+    with keys of type int) in to the corresponding WlanExpLogEntryTypes.
     
     Attributes:
         include_only -- List of WlanExpLogEntryTypes to include in the output
                         log index.  This takes precedence over 'exclude'.
         exclude      -- List of WlanExpLogEntryTypes to exclude in the output
                         log index.  This will not be used if include != None.
-        merge        -- List of dictionaries of the form:
-                        {WlanExpLogEntryType name: [List of WlanExpLogEntryTypes names merge]}
-        
+        merge        -- A dictionary of the form:
+    
+    {'WlanExpLogEntryType name': [List of 'WlanExpLogEntryTypes name' to merge]}
+
     By using the 'merge', we are able to combine the indexes of 
     WlanExpLogEntryTypes to create super-sets of entries.  For example, 
     we could create a log index that contains all the receive events:
         {'RX_ALL': ['RX_OFDM', 'RX_DSSS']}
-    Then a consumer of the log index will create a specific set of entries
-    for all receive events.  Please note that while all events need not have
-    the same fields, the created class will need to know how to create 
-    things like the numpy array based on the  WlanExpLogEntryTypes that are 
-    being merged.  Please see warpnet_example_wlan_log_chan_est.py for an 
-    example.
+    as long as the names 'RX_ALL', 'RX_OFDM', and 'RX_DSSS' are valid 
+    WlanExpLogEntryTypes.
+    
+    The filter follows the following basic rules:    
+        1) Every requested output (either through 'include_only' or 'merge')
+             has a key in the output dictionary
+        2) All input and output keys must refer to the 'name' property of
+             valid WlanExpLogEntryType instances
+
+    For example, assume:
+      - 'A', 'B', 'C', 'D', 'M' are valid WlanExpLogEntryType instance names
+      - The log_index = {'A': [A0, A1, A2], 'B': [B0, B1], 'C': []}
+
+    'include_only' behavior:
+
+        x = filter_log_index(log_index, include_only=['A'])
+        x == {'A': [A0, A1, A2]}
+    
+        x = filter_log_index(log_index, include_only=['A',B'])
+        x == {'A': [A0, A1, A2], 'B': [B0, B1]}
+    
+        x = filter_log_index(log_index, include_only=['C'])
+        x == {'C': []]}
+    
+        x = filter_log_index(log_index, include_only=['D'])
+        x == {'D': []]}
+
+    All names specified in 'include_only' are included as part of the 
+    output dictionary.  It is then up to the consumer to check if the 
+    number of entries for a given 'name' is zero (ie the list is empty).
+
+    'exclude' behavior:
+
+        x = filter_log_index(log_index, exclude=['B'])
+        x == {'A': [A0, A1, A2]}, 'C': []}
+
+        x = filter_log_index(log_index, exclude=['D'])
+        WARNING:  D does not exist in log index.  Ignoring for exclude.
+        x == {'A': [A0, A1, A2]}, 'B': [B0, B1], 'C': []}
+
+    All names specified in 'exclude' are removed from the output dictionary.
+    However, there is no guarentee what other WlanExpLogEntryTypes are in
+    the output dictionary.  That depends on the entries in the input log index.
+
+    'merge' behavior:
+
+        x = filter_log_index(log_index, merge={'D': ['A', 'B']}
+        x == {'A': [A0, A1, A2]},
+              'B': [B0, B1],
+              'C': [],
+              'D': [A0, A1, A2, B0, B1]}
+
+        x = filter_log_index(log_index, merge={'M': ['C', 'D']}
+        x == {'A': [A0,A1,A2]},
+              'B': [B0,B1],
+              'C': [],
+              'M': []}
+
+    All names specified in the 'merge' are included as part of the output 
+    dictionary.  It is then up to the consumer to check if the number of 
+    entries for a given 'name' is zero (ie the list is empty).
+
+    Combined behavior:
+
+        x = filter_log_index(log_index, include_only=['M'], merge={'M': ['A','C']}
+        x == {'M': [A0, A1, A2]}
+
+        x = filter_log_index(log_index, include_only=['M'], merge={'M': ['A','D']}
+        WARNING:  D does not exist in log index.  Ignoring for merge.
+        x == {'M': [A0, A1, A2]}
+
+        x = filter_log_index(log_index, include_only=['M'], merge={'M': ['C','D']}
+        WARNING:  D does not exist in log index.  Ignoring for merge.
+        x == {'M': []}
     """
     from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
     
@@ -168,22 +239,17 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                 
                 # Add the new merged index lists to the output dictionary
                 # Use the type instance corresponding to the user-supplied string as the key
-                if new_index:
-                    ret_log_index[entry_types[k]] = sorted(new_index)
-                else:
-                    msg  = "WARNING:  {0} contains no entries.  ".format(k)
-                    msg += "Igorning for index.\n"
-                    print(msg)
-                    
+                ret_log_index[entry_types[k]] = sorted(new_index)                    
     
         # Filter the resulting log index by 'include' / 'exclude' lists
         if include_only is not None:
             new_log_index = {}
             
             for entry_name in include_only:
+                new_log_index[entry_name] = []
                 for k in ret_log_index.keys():
                     if k == entry_name:
-                        new_log_index[k] = ret_log_index[k]
+                        new_log_index[entry_name] = ret_log_index[k]
 
             ret_log_index = new_log_index
         else:
