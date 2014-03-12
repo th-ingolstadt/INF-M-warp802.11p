@@ -31,13 +31,13 @@
 #include "wlan_mac_low.h"
 
 
-static u32					mac_param_chan; 				///< Current channel of the lower-level MAC
-static u8           		mac_param_band;					///< Current band of the lower-level MAC
-static u8   				rx_pkt_buf;						///< Current receive buffer of the lower-level MAC
-static u32  				cpu_low_status;					///< Status flags that are reported to upper-level MAC
-static wlan_mac_hw_info    	hw_info;						///< Information about the hardware reported to upper-level MAC
-static wlan_ipc_msg        	ipc_msg_from_high;				///< Buffer for incoming IPC messages
-static u32                 	ipc_msg_from_high_payload[10];	///< Buffer for payload of incoming IPC messages
+static u32					mac_param_chan; 										///< Current channel of the lower-level MAC
+static u8           		mac_param_band;											///< Current band of the lower-level MAC
+static u8   				rx_pkt_buf;												///< Current receive buffer of the lower-level MAC
+static u32  				cpu_low_status;											///< Status flags that are reported to upper-level MAC
+static wlan_mac_hw_info    	hw_info;												///< Information about the hardware reported to upper-level MAC
+static wlan_ipc_msg        	ipc_msg_from_high;										///< Buffer for incoming IPC messages
+static u32                 	ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS];	///< Buffer for payload of incoming IPC messages
 
 // Callback function pointers
 function_ptr_t     frame_rx_callback;			///< User callback frame receptions
@@ -245,6 +245,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u32 isLocked, owner;
 	u64 new_timestamp;
 	wlan_mac_low_tx_details* low_tx_details;
+	u32 low_tx_details_size;
 
 
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
@@ -361,7 +362,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					}
 
 
-					low_tx_details = malloc(sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.retry_max);
+					low_tx_details_size = sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.retry_max;
+					low_tx_details = malloc(low_tx_details_size);
 					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
 
 
@@ -386,9 +388,19 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 					} else {
 						ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
-						ipc_msg_to_high.num_payload_words = ( (tx_mpdu->retry_count)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+
+						if(low_tx_details != NULL){
+							ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
+							if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
+								ipc_msg_to_high.num_payload_words = ( (tx_mpdu->retry_count)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+							} else {
+								ipc_msg_to_high.num_payload_words = ( ((IPC_BUFFER_MAX_NUM_WORDS << 2)/sizeof(wlan_mac_low_tx_details)  )*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+							}
+						} else {
+							ipc_msg_to_high.num_payload_words = 0;
+							ipc_msg_to_high.payload_ptr = NULL;
+						}
 						ipc_msg_to_high.arg0 = tx_pkt_buf;
-						ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
 						ipc_mailbox_write_msg(&ipc_msg_to_high);
 					}
 
