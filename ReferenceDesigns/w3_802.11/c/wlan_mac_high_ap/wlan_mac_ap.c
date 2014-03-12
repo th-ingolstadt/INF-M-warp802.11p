@@ -326,12 +326,10 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 			tx_low_event_log_entry->transmission_count        = i+1;
 			tx_low_event_log_entry->timestamp_send            = (u64)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + ts_old);
 			tx_low_event_log_entry->chan_num                  = tx_low_details[i].chan_num;
-			tx_low_event_log_entry->ant_mode                  = tx_low_details[i].ant_mode;
-			tx_low_event_log_entry->power                     = tx_low_details[i].tx_power;
-			tx_low_event_log_entry->rate                      = tx_low_details[i].rate;
+			tx_low_event_log_entry->num_slots				  = tx_low_details[i].num_slots;
+			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details[i].phy_params), sizeof(phy_tx_params));
 			tx_low_event_log_entry->length                    = tx_mpdu->length;
 			tx_low_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
-
 			wlan_mac_high_cdma_finish_transfer();
 
 			if(i==0){
@@ -355,9 +353,9 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	if(tx_high_event_log_entry != NULL){
 		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_high_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
 		tx_high_event_log_entry->result                   = tx_mpdu->state_verbose;
-		tx_high_event_log_entry->power              	  = tx_mpdu->power;
+		tx_high_event_log_entry->power              	  = tx_mpdu->params.phy.power;
 		tx_high_event_log_entry->length                   = tx_mpdu->length;
-		tx_high_event_log_entry->rate                     = tx_mpdu->rate;
+		tx_high_event_log_entry->rate                     = tx_mpdu->params.phy.rate;
 		tx_high_event_log_entry->chan_num				  = mac_param_chan;
 		tx_high_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 		tx_high_event_log_entry->retry_count              = tx_mpdu->retry_count;
@@ -619,7 +617,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	statistics_txrx* station_stats = NULL;
 	u8 eth_send;
 	u8 allow_auth = 0;
-	u32 i;
+
 
 	rx_common_entry* rx_event_log_entry;
 
@@ -638,18 +636,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		wlan_mac_high_set_debug_gpio(0x04);
 		wlan_mac_high_set_debug_gpio(0x02);
 		wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-/*
-		//wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-		//memcpy(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-		for(i=0;i<3;i++){
-			((u64*)(&(rx_event_log_entry->mac_hdr)))[i] = ((u64*)rx_80211_header)[i];
-		}
-		//((u64*)(&(rx_event_log_entry->mac_hdr)))[1] = ((u64*)rx_80211_header)[1];
-		//((u64*)(&(rx_event_log_entry->mac_hdr)))[2] = ((u64*)rx_80211_header)[2];
-		wlan_mac_high_clear_debug_gpio(0x04);
-		//wlan_mac_high_cdma_finish_transfer();
-		wlan_mac_high_clear_debug_gpio(0x02);
-*/
+
 		rx_event_log_entry->fcs_status = (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
 		rx_event_log_entry->timestamp  =  mpdu_info->timestamp;
 		rx_event_log_entry->power      = mpdu_info->rx_power;
@@ -834,7 +821,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			break;
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication Packet
-
 				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr) && wlan_mac_addr_filter_is_allowed(rx_80211_header->address_2)) {
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm ){
@@ -892,15 +878,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ): //Re-association Request
 			case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ): //Association Request
+
 				if(wlan_addr_eq(rx_80211_header->address_3, eeprom_mac_addr)) {
 
 
 					if(association_table.length < MAX_NUM_ASSOC) associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
 
 					if(associated_station != NULL) {
-						associated_station->tx.rate = default_unicast_rate;
-						associated_station->tx.power = default_tx_power;
-						associated_station->tx.antenna_mode = default_tx_ant_mode;
+						associated_station->tx.phy.rate = default_unicast_rate;
+						associated_station->tx.phy.power = default_tx_power;
+						associated_station->tx.phy.antenna_mode = default_tx_ant_mode;
 
 						//Checkout 1 element from the queue;
 						queue_checkout(&checkout,1);

@@ -162,7 +162,7 @@ void uart_rx(u8 rxByte){
 
 					curr_station_info = (station_info*)(association_table.first);
 					for(i=0; i < association_table.length; i++){
-						curr_station_info->tx.rate = default_unicast_rate;
+						curr_station_info->tx.phy.rate = default_unicast_rate;
 						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 
@@ -177,7 +177,7 @@ void uart_rx(u8 rxByte){
 
 					curr_station_info = (station_info*)(association_table.first);
 					for(i=0; i < association_table.length; i++){
-						curr_station_info->tx.rate = default_unicast_rate;
+						curr_station_info->tx.phy.rate = default_unicast_rate;
 						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
