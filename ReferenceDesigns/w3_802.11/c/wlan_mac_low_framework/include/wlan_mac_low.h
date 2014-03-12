@@ -151,11 +151,11 @@
 
 //MAC Timing Parameters
 #define T_SLOT 9
-#define T_SIFS 16
+#define T_SIFS 10
 #define T_DIFS (T_SIFS + 2*T_SLOT)
-//#define T_EIFS 128
-#define T_EIFS T_DIFS
-#define T_TIMEOUT 80
+#define T_EIFS 88
+#define T_PHY_RX_START_DLY 25
+#define T_TIMEOUT (T_SIFS+T_SLOT+T_PHY_RX_START_DLY)
 
 #define WLAN_RX_PHY_DSSS	0
 #define WLAN_RX_PHY_OFDM	1
