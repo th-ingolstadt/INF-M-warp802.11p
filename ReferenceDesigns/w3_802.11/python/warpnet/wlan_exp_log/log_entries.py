@@ -352,13 +352,16 @@ entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LO
 entry_tx_low.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
-            ('tx_count',               'B',      'uint8'),
-            ('tx_power',               'b',      'int8'),
-            ('chan_num',               'B',      'uint8'),
             ('rate',                   'B',      'uint8'),
+			('ant_mode',               'B',      'uint8')
+			('tx_power',               'b',      'int8'),
+			('flags',                  'B',      'uint8'),
+			('tx_count',               'B',      'uint8'),            
+            ('chan_num',               'B',      'uint8'),            
             ('length',                 'H',      'uint16'),
+			('num_slots',              'H',      'uint16'),
             ('pkt_type',               'B',      'uint8'),
-            ('ant_mode',               'B',      'uint8')])
+			('padding',                'x',      'uint8')])
 
 
 # Tx / Rx Statistics
