@@ -354,3 +354,15 @@ def log_index_print_summary(log_index, title=None):
 
 
 
+def mac_addr_int_to_str(mac_address):
+    msg = ""
+    addr = int(mac_address)
+    if mac_address is not None:
+        msg += "{0:02x}:".format(addr & 0xFF)
+        msg += "{0:02x}:".format((addr >>  8) & 0xFF)
+        msg += "{0:02x}:".format((addr >> 16) & 0xFF)
+        msg += "{0:02x}:".format((addr >> 24) & 0xFF)
+        msg += "{0:02x}:".format((addr >> 32) & 0xFF)
+        msg += "{0:02x}".format((addr >> 40) & 0xFF)
+    return msg
+
