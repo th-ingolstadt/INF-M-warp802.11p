@@ -151,6 +151,7 @@ int main(){
 	wlan_mac_high_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
 	wlan_mac_high_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
 	wlan_mac_high_set_pb_u_callback(         (void*)up_button);
+
 	wlan_mac_high_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_high_set_mpdu_accept_callback(  (void*)check_tx_queue);
     wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
