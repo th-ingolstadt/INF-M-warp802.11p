@@ -95,7 +95,7 @@ u8                 warpnet_initialized;		///< Indication variable for whether WA
 
 // IPC variables
 wlan_ipc_msg       ipc_msg_from_low;							///< IPC message from lower-level
-u32                ipc_msg_from_low_payload[IPC_BUFFER_SIZE];	///< Buffer space for IPC message from lower-level
+u32                ipc_msg_from_low_payload[IPC_BUFFER_MAX_NUM_WORDS];	///< Buffer space for IPC message from lower-level
 
 // Memory Allocation Debugging
 static u32			num_malloc;				///< Tracking variable for number of times malloc has been called
@@ -673,6 +673,7 @@ void wlan_mac_high_set_pb_d_callback(function_ptr_t callback){
  */
 void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback){
 	uart_callback = callback;
+	xil_printf("assigning uart_callback = 0x%08x\n", (u32)uart_callback);
 }
 
 /**

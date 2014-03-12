@@ -64,7 +64,6 @@
 #define GPIO_MASK_PB_D			 0x00000010		///< Mask for GPIO -- "Down" Pushbutton
 
 #define UART_BUFFER_SIZE 1						///< UART is configured to read 1 byte at a time
-#define IPC_BUFFER_SIZE      20 				///< Size of buffer for incoming IPC messages from lower to upper level CPUs
 
 #define NUM_VALID_RATES 12 						///< Number of supported rates
 
