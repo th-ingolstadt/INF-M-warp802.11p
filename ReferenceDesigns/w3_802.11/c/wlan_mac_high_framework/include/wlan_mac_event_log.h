@@ -52,7 +52,7 @@
 //   will allow the head address to be incremented by an additional buffer so that
 //   the head pointer will not have to increment as often.  By default this is zero.
 //
-#define EVENT_LOG_WRAP_BUFFER          0
+#define EVENT_LOG_WRAPPING_BUFFER      0
 
 
 // Maximum number of events to store in log
@@ -60,7 +60,8 @@
 //   should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
 //   will be the maximum.
 //
-#define MAX_EVENT_LOG -1
+// #define MAX_EVENT_LOG -1
+#define MAX_EVENT_LOG    10000
 
 
 // Define magic number that will indicate the start of an event

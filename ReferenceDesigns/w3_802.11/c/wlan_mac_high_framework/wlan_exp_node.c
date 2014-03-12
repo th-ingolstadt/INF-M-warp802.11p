@@ -183,12 +183,14 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode, vo
 	u32         * cmdArgs32  = cmdArgs;
 	u32           num_args   = (cmdHdr->numArgs > 10) ? 10 : cmdHdr->numArgs;
 
-	entry->timestamp = get_usec_timestamp();
-	entry->command   = cmdHdr->cmd;
-	entry->num_args  = num_args;
+	if (entry != NULL) {
+		entry->timestamp = get_usec_timestamp();
+		entry->command   = cmdHdr->cmd;
+		entry->num_args  = num_args;
 
-	for (i = 0; i < num_args; i++) {
-        (entry->args)[i] = Xil_Ntohl(cmdArgs32[i]);
+		for (i = 0; i < num_args; i++) {
+			(entry->args)[i] = Xil_Ntohl(cmdArgs32[i]);
+		}
 	}
 #endif
 
@@ -334,7 +336,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           start_index;
 	u32           curr_index;
 	u32           next_index;
-	u32           oldest_index;
+	u32           bytes_remaining;
 	u32           ip_address;
 	u32           size;
 	u32           evt_log_size;
@@ -1019,11 +1021,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			//
 			//   Return Value:
 			//     - wn_buffer
-            //       - buffer_id  - uint32  - ID of the buffer
-			//       - flags      - uint32  - Flags
-			//       - start_byte - uint32  - Byte index of the first byte in this packet
-			//       - size       - uint32  - Number of payload bytes in this packet
-			//       - byte[]     - uint8[] - Array of payload bytes
+            //       - buffer_id       - uint32  - ID of the buffer
+			//       - flags           - uint32  - Flags
+			//       - bytes_remaining - uint32  - Number of bytes remaining in the transfer
+			//       - start_byte      - uint32  - Byte index of the first byte in this packet
+			//       - size            - uint32  - Number of payload bytes in this packet
+			//       - byte[]          - uint8[] - Array of payload bytes
 			//
 			// NOTE:  The address passed via the command is the address relative to the current
 			//   start of the event log.  It is not an absolute address and should not be treated
@@ -1052,6 +1055,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             bytes_per_pkt     = max_words * 4;
             num_pkts          = size / bytes_per_pkt + 1;
             curr_index        = start_index;
+            bytes_remaining   = size;
 
 #ifdef _DEBUG_
 			xil_printf("EVENT LOG: Get Entries \n");
@@ -1076,17 +1080,18 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				}
 
 				// Set response args that change per packet
-	            respArgs32[2]   = Xil_Htonl( curr_index );
-                respArgs32[3]   = Xil_Htonl( transfer_size );
+				respArgs32[2]   = Xil_Htonl( bytes_remaining );
+	            respArgs32[3]   = Xil_Htonl( curr_index );
+                respArgs32[4]   = Xil_Htonl( transfer_size );
 
                 // Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all 
                 //   three command parameters for each packet that is sent.
 	            respHdr->cmd     = cmdHdr->cmd;
-	            respHdr->length  = 16 + transfer_size;
-				respHdr->numArgs = 4;
+	            respHdr->length  = 20 + transfer_size;
+				respHdr->numArgs = 5;
 
 				// Transfer data
-				num_bytes = event_log_get_data( curr_index, transfer_size, (char *) &respArgs32[4] );
+				num_bytes = event_log_get_data( curr_index, transfer_size, (char *) &respArgs32[5] );
 
 #ifdef _DEBUG_
 				xil_printf("Packet %8d: \n", i);
@@ -1101,8 +1106,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					xil_printf("ERROR:  NODE_GET_EVENTS tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_index );
 				}
 
-				// Update our current address
-				curr_index = next_index;
+				// Update our current address and bytes remaining
+				curr_index       = next_index;
+				bytes_remaining -= transfer_size;
 			}
 
 			respSent = RESP_SENT;

@@ -155,7 +155,7 @@ void event_log_init( char * start_address, u32 size ) {
 	log_wrap_enabled  = 0;
 
 	// Set the wrap buffer to EVENT_LOG_WRAP_BUFFER
-	wrap_buffer       = EVENT_LOG_WRAP_BUFFER;
+	wrap_buffer       = EVENT_LOG_WRAPPING_BUFFER;
 
 	// Reset all the event log variables
 	event_log_reset();
@@ -678,6 +678,8 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    	// Check to see if wrapping is enabled
 		    	if ( log_wrap_enabled ) {
 
+					xil_printf("EVENT LOG:  INFO - WRAPPING LOG ! \n");
+
 					// Compute new end address
 					end_address = log_start_address + size;
 
@@ -699,8 +701,9 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 					status         = 0;
 
 		    	} else {
-					// Set the full flag and fail
-					log_full = 1;
+					// Set the full flag and the soft end; then return
+					log_full             = 1;
+					log_soft_end_address = log_next_address;
 
 					// Set the value to the appropriate "full" state
 					log_oldest_address = log_start_address;
@@ -742,6 +745,8 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    	// Check to see if wrapping is enabled
 		    	if ( log_wrap_enabled ) {
 
+					xil_printf("EVENT LOG:  INFO - WRAPPING LOG ! \n");
+
 					// Compute new end address
 					end_address = log_start_address + size;
 
@@ -762,8 +767,9 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 					status         = 0;
 
 		    	} else {
-					// Set the full flag and fail
-					log_full = 1;
+					// Set the full flag and the soft end; then return
+					log_full             = 1;
+					log_soft_end_address = log_next_address;
 
 					// Set the value to the appropriate "full" state
 					log_oldest_address = log_start_address;
