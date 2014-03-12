@@ -232,11 +232,31 @@ class WlanExpLogEntryType(object):
 
 # End class 
 
+class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
+    """Subclass for Tx and Rx log entries to properly compute values
+    for 48-bit address fields. Numpy uses u64 for these values, which includes
+    two extra non-MAC-address bytes from the binary log. The overridden generate_numpy_array
+    below applies a 48-bit mask to each virtual addrX field before returning
+    """
+    def __init__(self, *args, **kwargs):
+        super(WlanExpLogEntry_TxRx, self).__init__(*args, **kwargs)
+
+    def generate_numpy_array(self, log_bytes, byte_offsets):
+        #Use super class method first (avoids duplicating code)
+        np_arr = super(WlanExpLogEntry_TxRx, self).generate_numpy_array(log_bytes, byte_offsets)
+
+        #Mask each addr field to 48 bits
+        np_arr['addr1'] = np.bitwise_and(np_arr['addr1'], 2**48-1)
+        np_arr['addr2'] = np.bitwise_and(np_arr['addr2'], 2**48-1)
+        np_arr['addr3'] = np.bitwise_and(np_arr['addr3'], 2**48-1)
+
+        return np_arr
+
 #-----------------------------------------------------------------------------
 # Virtual Log Entry Classes
 #-----------------------------------------------------------------------------
 
-entry_rx_common = WlanExpLogEntryType(name='RX_ALL', entry_type_id=None)
+entry_rx_common = WlanExpLogEntry_TxRx(name='RX_ALL', entry_type_id=None)
 entry_rx_common.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
@@ -250,6 +270,10 @@ entry_rx_common.append_field_defs([
             ('rf_gain',                'B',      'uint8'),
             ('bb_gain',                'B',      'uint8'),
             ('padding',                '2x',     'uint16')])
+entry_rx_common.append_virtual_field_defs([ 
+            ('addr1',                 'uint64',      20),
+            ('addr2',                 'uint64',      26),
+            ('addr3',                 'uint64',      32)])
 
 
 #-----------------------------------------------------------------------------
@@ -314,19 +338,25 @@ entry_node_temperature.append_field_defs([
 
 
 # Receive OFDM
-entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
+entry_rx_ofdm = WlanExpLogEntry_TxRx(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
+
+entry_rx_ofdm.append_virtual_field_defs(entry_rx_common.get_virtual_field_defs())
+
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_ofdm.append_field_defs([ 
             ('chan_est',               '256B',   '(64,2)i2')])
 
 
 # Receive DSSS
-entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
+entry_rx_dsss = WlanExpLogEntry_TxRx(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
+
+entry_rx_dsss.append_virtual_field_defs(entry_rx_common.get_virtual_field_defs())
+
 entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 
 
 # Transmit
-entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
+entry_tx = WlanExpLogEntry_TxRx(name='TX', entry_type_id=ENTRY_TYPE_TX)
 entry_tx.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('time_to_accept',         'I',      'uint32'),
@@ -341,10 +371,10 @@ entry_tx.append_field_defs([
             ('pkt_type',               'B',      'uint8'),
             ('ant_mode',               'B',      'uint8')])
 # Somehow this breaks HDF5 writing...
-#entry_tx.append_virtual_field_defs([ 
-#            ('addr1',                 'uint64',      20),
-#            ('addr2',                 'uint64',      26),
-#            ('addr3',                 'uint64',      32)])
+entry_tx.append_virtual_field_defs([ 
+            ('addr1',                 'uint64',      20),
+            ('addr2',                 'uint64',      26),
+            ('addr3',                 'uint64',      32)])
 
 
 # Transmit from CPU Low
