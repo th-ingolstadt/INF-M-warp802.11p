@@ -353,7 +353,7 @@ entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
             ('rate',                   'B',      'uint8'),
-			('ant_mode',               'B',      'uint8')
+			('ant_mode',               'B',      'uint8'),
 			('tx_power',               'b',      'int8'),
 			('flags',                  'B',      'uint8'),
 			('tx_count',               'B',      'uint8'),            
