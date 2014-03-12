@@ -268,7 +268,7 @@ int ipc_mailbox_write_msg(wlan_ipc_msg* msg) {
 	}
 
 	//Check that msg isn't too long
-	if( (msg->num_payload_words) > IPC_MBOX_MAX_MSG_WORDS) {
+	if( (msg->num_payload_words) > IPC_BUFFER_MAX_NUM_WORDS) {
 		return IPC_MBOX_INVALID_MSG;
 	}
 
@@ -290,7 +290,10 @@ inline int ipc_mailbox_read_isempty(){
 
 int ipc_mailbox_read_msg(wlan_ipc_msg* msg) {
 	u32 bytes_read;
+	u32 i;
+	u32 trash_bin;
 	int status;
+
 
 	//Mailbox read functions:
 	//int XMbox_Read(XMbox *InstancePtr, u32 *BufferPtr, u32 RequestedBytes, u32 *BytesRecvdPtr);
@@ -319,8 +322,13 @@ int ipc_mailbox_read_msg(wlan_ipc_msg* msg) {
 	}
 
 	//Check that msg isn't too long
-	if( (msg->num_payload_words) > IPC_MBOX_MAX_MSG_WORDS) {
-		XMbox_Flush(&ipc_mailbox);
+	if( (msg->num_payload_words) > IPC_BUFFER_MAX_NUM_WORDS) {
+
+		for(i=0;i<msg->num_payload_words;i++){
+			//Flush this particular message from the mailbox
+			XMbox_ReadBlocking(&ipc_mailbox, &trash_bin, 4);
+		}
+
 		return IPC_MBOX_INVALID_MSG;
 	}
 

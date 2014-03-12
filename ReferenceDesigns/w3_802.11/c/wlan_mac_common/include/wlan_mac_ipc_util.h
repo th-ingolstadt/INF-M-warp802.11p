@@ -45,7 +45,7 @@
 #define PKT_BUF_MUTEX_RX_BASE	16
 
 #define IPC_MBOX_MSG_ID_DELIM		0xF000
-#define IPC_MBOX_MAX_MSG_WORDS		255
+#define IPC_BUFFER_MAX_NUM_WORDS    100
 
 //IPC Messages
 #define IPC_MBOX_RX_MPDU_READY		0
@@ -129,6 +129,7 @@ typedef struct {
 	phy_tx_params phy_params;
 	u16   num_slots; //TODO
 	u8 	  chan_num;
+	u8 	  padding;
 } wlan_mac_low_tx_details;
 
 
