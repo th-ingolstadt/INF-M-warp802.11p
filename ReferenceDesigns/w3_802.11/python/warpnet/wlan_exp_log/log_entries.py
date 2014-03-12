@@ -232,6 +232,7 @@ class WlanExpLogEntryType(object):
 
 # End class 
 
+
 class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
     """Subclass for Tx and Rx log entries to properly compute values
     for 48-bit address fields. Numpy uses u64 for these values, which includes
@@ -252,8 +253,11 @@ class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
 
         return np_arr
 
+# End class 
+
+
 #-----------------------------------------------------------------------------
-# Virtual Log Entry Classes
+# Virtual Log Entry Instances
 #-----------------------------------------------------------------------------
 
 entry_rx_common = WlanExpLogEntry_TxRx(name='RX_ALL', entry_type_id=None)
@@ -271,13 +275,13 @@ entry_rx_common.append_field_defs([
             ('bb_gain',                'B',      'uint8'),
             ('padding',                '2x',     'uint16')])
 entry_rx_common.append_virtual_field_defs([ 
-            ('addr1',                 'uint64',      20),
-            ('addr2',                 'uint64',      26),
-            ('addr3',                 'uint64',      32)])
+            ('addr1',                  'uint64',      20),
+            ('addr2',                  'uint64',      26),
+            ('addr3',                  'uint64',      32)])
 
 
 #-----------------------------------------------------------------------------
-# Log Entry Type Classes
+# Log Entry Type Instances
 #-----------------------------------------------------------------------------
 
 # Node Info
@@ -372,9 +376,9 @@ entry_tx.append_field_defs([
             ('ant_mode',               'B',      'uint8')])
 # Somehow this breaks HDF5 writing...
 entry_tx.append_virtual_field_defs([ 
-            ('addr1',                 'uint64',      20),
-            ('addr2',                 'uint64',      26),
-            ('addr3',                 'uint64',      32)])
+            ('addr1',                  'uint64',      20),
+            ('addr2',                  'uint64',      26),
+            ('addr3',                  'uint64',      32)])
 
 
 # Transmit from CPU Low
@@ -383,15 +387,15 @@ entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
             ('rate',                   'B',      'uint8'),
-			('ant_mode',               'B',      'uint8'),
-			('tx_power',               'b',      'int8'),
-			('flags',                  'B',      'uint8'),
-			('tx_count',               'B',      'uint8'),            
+            ('ant_mode',               'B',      'uint8'),
+            ('tx_power',               'b',      'int8'),
+            ('flags',                  'B',      'uint8'),
+            ('tx_count',               'B',      'uint8'),            
             ('chan_num',               'B',      'uint8'),            
             ('length',                 'H',      'uint16'),
-			('num_slots',              'H',      'uint16'),
+            ('num_slots',              'H',      'uint16'),
             ('pkt_type',               'B',      'uint8'),
-			('padding',                'x',      'uint8')])
+            ('padding',                'x',      'uint8')])
 
 
 # Tx / Rx Statistics

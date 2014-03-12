@@ -168,7 +168,13 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                 
                 # Add the new merged index lists to the output dictionary
                 # Use the type instance corresponding to the user-supplied string as the key
-                ret_log_index[entry_types[k]] = sorted(new_index)
+                if new_index:
+                    ret_log_index[entry_types[k]] = sorted(new_index)
+                else:
+                    msg  = "WARNING:  {0} contains no entries.  ".format(k)
+                    msg += "Igorning for index.\n"
+                    print(msg)
+                    
     
         # Filter the resulting log index by 'include' / 'exclude' lists
         if include_only is not None:
