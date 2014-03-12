@@ -53,7 +53,6 @@ static u32              stationShortRetryCount;
 static u32              stationLongRetryCount;
 static u32              cw_exp;
 
-static u8 				bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 static u8               eeprom_addr[6];
 
 u8                      red_led_index;
@@ -302,30 +301,48 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
-	for(i=0; i<mpdu_info->retry_max ; i++){
+	for(i=0; i<mpdu_info->params.mac.retry_max ; i++){
 		//Loop over retransmissions
 		//Note: this loop will terminate early if retransmissions aren't needed
 		//(i.e. ACK is received)
+
+		// TODO
+		//  * Make backoff slot selection on retransmissions less confusing
+		//  * Insert backoff slot selections into low_tx_details
+		//  * Set tx antenna mode based on phy param. This should be done
+		//    after fixing antenna mode for ACK Tx to be a function of received antenna
 
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
 		n_slots = rand_num_slots();
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
-		wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->power));
+		wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
 
 		//Submit the MPDU for transmission
 		wlan_mac_MPDU_tx_start(1);
 		wlan_mac_MPDU_tx_start(0);
 
+#if 0
+		!!! Something like this code will be used to determine the number of slots actually used
+		!!! since the hardware will ignore the num_slots argument if medium is idle for DIFS
+		tx_status = wlan_mac_get_status();
+		if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_STATE == WLAN_MAC_STATUS_MPDU_TX_STATE_DEFER){
+			low_tx_details[i].
+		} else {
+
+		}
+#endif
+
 		//Wait for the MPDU Tx to finish
 		do{
-
-			low_tx_details[i].rate = mpdu_info->rate;
-			low_tx_details[i].tx_power = mpdu_info->power;
-			low_tx_details[i].ant_mode = 0; //TODO FIXME
-			low_tx_details[i].chan_num = wlan_mac_low_get_active_channel();
-
+			if(low_tx_details != NULL){
+				low_tx_details[i].phy_params.rate = mpdu_info->params.phy.rate;
+				low_tx_details[i].phy_params.power = mpdu_info->params.phy.power;
+				low_tx_details[i].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
+				low_tx_details[i].chan_num = wlan_mac_low_get_active_channel();
+				low_tx_details[i].num_slots = 0; //TODO
+			}
 			tx_status = wlan_mac_get_status();
 
 			if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
@@ -416,7 +433,7 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 		station_rc_ptr = &stationShortRetryCount;
 	}
 
-	retry_limit = tx_mpdu->retry_max;
+	retry_limit = tx_mpdu->params.mac.retry_max;
 
 	switch(reason){
 		case DCF_CW_UPDATE_MPDU_TX_ERR:
@@ -460,8 +477,6 @@ inline unsigned int rand_num_slots(){
 	volatile u32 n_slots;
 
 	n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
-
-	//return 0; //DEBUG FIXME
 
 	return n_slots;
 }
