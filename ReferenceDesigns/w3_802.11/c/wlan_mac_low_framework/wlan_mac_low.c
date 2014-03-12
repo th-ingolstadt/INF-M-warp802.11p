@@ -20,6 +20,7 @@
 #include "w3_iic_eeprom.h"
 #include "radio_controller.h"
 #include "malloc.h"
+#include "string.h"
 
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -244,7 +245,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u32 isLocked, owner;
 	u64 new_timestamp;
 	wlan_mac_low_tx_details* low_tx_details;
-	u32 i;
 
 
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
@@ -273,6 +273,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 				//Message is an indication that a Tx Pkt Buf needs processing
 				tx_pkt_buf = msg->arg0;
+				//TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
 
 
 				ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_ACCEPT);
@@ -300,7 +301,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					//n_dbps is used to calculate duration of received ACKs.
 					//This rate selection is specified in 9.7.6.5.2 of 802.11-2012
 
-					switch(tx_mpdu->rate){
+					switch(tx_mpdu->params.phy.rate){
 						case WLAN_MAC_RATE_1M:
 							warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
 						break;
@@ -337,7 +338,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 							n_dbps = N_DBPS_R24;
 						break;
 						default:
-							xil_printf("Rate %d\n", tx_mpdu->rate);
+							xil_printf("Rate %d\n", tx_mpdu->params.phy.rate);
 							xil_printf("Len %d\n", tx_mpdu->length);
 						break;
 					}
@@ -360,7 +361,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					}
 
 
-					low_tx_details = malloc(sizeof(wlan_mac_low_tx_details)*tx_mpdu->retry_max);
+					low_tx_details = malloc(sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.retry_max);
 					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
 
 
