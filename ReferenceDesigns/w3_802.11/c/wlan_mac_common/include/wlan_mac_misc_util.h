@@ -40,35 +40,43 @@ typedef int (*function_ptr_t)();
 #define wlan_addr_eq(addr1, addr2) (memcmp((void*)(addr1), (void*)(addr2), 6)==0)
 #define wlan_addr_mcast(addr) ( (((u8*)(addr))[0] & 1) == 1 )
 
-/**
- * @brief Transmit Parameters Structure
- *
- * This struct contains transmission parameters. Typically, this struct is included
- * in a larger station_info struct to describe transmission parameters to a particular
- * station in the network.
- */
 typedef struct{
 	u8      rate;			///< Rate of transmission
 	u8      antenna_mode;	///< Antenna mode (Placeholder)
-	u8	    max_retry;		///< Maximum number of retransmissions
 	s8      power;			///< Power of transmission (in dBm)
+	u8		flags;			///< Flags affecting waveform construction
+} phy_tx_params;
+
+typedef struct{
+	u8		retry_max;		///< Maximum number of transmission attempts
+	u8		flags;			///< Flags affecting waveform construction
+	u8 		reserved[2];
+} mac_tx_params;
+
+
+
+
+/**
+ * @brief Transmit Parameters Structure
+ *
+ * This struct contains transmission parameters.
+ */
+typedef struct{
+	phy_tx_params phy;
+	mac_tx_params mac;
 } tx_params;
 
 typedef struct{
-	u8 state;
-	u8 rate;
-	u16 length;
-	u8 flags;
-	u8 retry_count;
-	u8 retry_max;
-	u8 state_verbose;
-	s8 power;
-	u8 ant_mode;
-	u16 AID;
-	u32 reserved0;
 	u64 timestamp_create;
 	u32 delay_accept;
 	u32 delay_done;
+	u8 state;
+	u8 state_verbose;
+	u8 flags;
+	u8 retry_count;
+	u16 length;
+	u16 AID;
+	tx_params params;
 } tx_frame_info;
 
 #define TX_POWER_MAX_DBM (19)
