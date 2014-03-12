@@ -23,8 +23,8 @@ Functions (see below for more information):
     LogGetEvents()
     LogReset()
     LogConfigure()
-    LogGetCurrIdx() 
-    LogGetOldestIdx()
+    LogGetStatus() 
+    LogGetCapacity()
 
     StatsGetTxRx()
     StatsGetAllTxRx()
@@ -58,7 +58,7 @@ import warpnet.wn_transport_eth_udp as wn_transport
 
 
 
-__all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetInfo', 'LogGetCapacity',
+__all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
            'StatsGetTxRx', 'StatsGetAllTxRx', 'StatsAddTxRxToLog', 'StatsResetTxRx', 
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
            'NodeProcTime', 'NodeProcChannel', 'NodeProcTxRate', 'NodeProcTxGain',
@@ -91,7 +91,7 @@ LTG_ERROR                    = 0xFFFFFFFF
 
 CMD_LOG_RESET                = 50
 CMD_LOG_CONFIG               = 51
-CMD_LOG_GET_INFO             = 52
+CMD_LOG_GET_STATUS           = 52
 CMD_LOG_GET_CAPACITY         = 53
 CMD_LOG_GET_ENTRIES          = 54
 CMD_LOG_ADD_ENTRY            = 55
@@ -131,6 +131,10 @@ class LogGetEvents(wn_message.BufferCmd):
     """Command to get the WLAN Exp log events of the node"""
     def __init__(self, size, start_byte=0):
         command = _CMD_GRPID_NODE + CMD_LOG_GET_ENTRIES
+        
+        if (size == LOG_GET_ALL_ENTRIES):
+            size = wn_message.CMD_BUFFER_GET_SIZE_FROM_DATA
+        
         super(LogGetEvents, self).__init__(
                 command=command, buffer_id=0, flags=0, start_byte=start_byte, size=size)
 
@@ -174,11 +178,11 @@ class LogConfigure(wn_message.Cmd):
 # End Class
 
 
-class LogGetInfo(wn_message.Cmd):
+class LogGetStatus(wn_message.Cmd):
     """Command to get the state information about the log."""
     def __init__(self):
-        super(LogGetInfo, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LOG_GET_INFO
+        super(LogGetStatus, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_LOG_GET_STATUS
     
     def process_resp(self, resp):
         args = resp.get_args()

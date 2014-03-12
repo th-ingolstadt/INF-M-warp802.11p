@@ -25,8 +25,8 @@ import warpnet.wlan_exp.util as wlan_exp_util
 
 
 # NOTE: change these values to match your experiment setup
-# LOGFILE = 'example_logs/temp_log.bin'
-LOGFILE = 'example_logs/ap_log_stats_2014_03_06.bin'
+LOGFILE = 'example_logs/temp_log.bin'
+# LOGFILE = 'example_logs/ap_log_stats_2014_03_06.bin'
 # LOGFILE = 'example_logs/ap_log_stats.bin'
 # LOGFILE = 'example_logs/sta_log_stats.bin'
 
@@ -44,12 +44,13 @@ log_util.log_index_print_summary(log_index_raw, "Raw Log Index:")
 
 # log_index = log_util.filter_log_index(log_index_raw)
 # log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM'])
-log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM', 'TX'])
+# log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM', 'TX'])
+# log_index = log_util.filter_log_index(log_index_raw, include_only=['TXRX_STATS', 'NODE_INFO'])
 # log_index = log_util.filter_log_index(log_index_raw, exclude=['TXRX_STATS', 'NODE_INFO'])
 # log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_ALL'], merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
-# log_index = log_util.filter_log_index(log_index_raw, 
-#                                       exclude=['TXRX_STATS', 'NODE_INFO', 'RX_DSSS', 'TX_LOW', 'WN_CMD_INFO'], 
-#                                       merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
+log_index = log_util.filter_log_index(log_index_raw, 
+                                      exclude=['TXRX_STATS', 'NODE_INFO', 'RX_DSSS', 'TX_LOW', 'WN_CMD_INFO'], 
+                                      merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
 # log_index = log_util.filter_log_index(log_index_raw, merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
 # log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM'])
 
@@ -67,7 +68,7 @@ log_util.log_index_print_summary(log_nd, "NumPy Array Summary:")
 
 ########################################################################
 # Example 1: Count the number of receptions per PHY rate
-"""
+
 try:
     # Extract all OFDM receptions
     log_rx_ofdm = log_nd[log.entry_rx_ofdm]
@@ -88,7 +89,7 @@ try:
     print("Example 1: Num Rx per Rate: %s\n" % rx_rate_counts)
 except KeyError:
     print("Example 1: No received OFDM packets in log.")
-"""
+
 #################################################################################################
 # Example 2: Calculate total number of packets and bytes transmitted to each distinct MAC address
 
@@ -157,23 +158,26 @@ try:
     	# Use the string version of the MAC address as the key for readability
     	print("%s\t%d\t%d" % (wlan_exp_util.mac2str(k), tx_counts[k][0], tx_counts[k][1]))
 except KeyError:
-    print("Example 2: No Transmit packets in log.")
+    print("\nExample 2: No Transmit packets in log.")
 
 #################################################################################################
 # Example 3: Calculate total number of packets and bytes received from each distinct MAC address
 
+# For this experiment, only look at Good = 0  or Bad = 1 receptions
+FCS_BAD = 0
+
 try:
     # Extract all receptions
-    log_rx = log_nd[log.entry_rx_ofdm]
+    log_rx = log_nd[log.entry_rx_common]
     
     # Extract an array of the MAC headers and FCS results   
     rx_hdrs    = log_rx['mac_header']
     rx_fcs_bad = log_rx['fcs_result']
 
     # Extract the address fields
-    rx_addr1 = rx_hdrs[(rx_fcs_bad == 0),4:10]
-    rx_addr2 = rx_hdrs[(rx_fcs_bad == 0),10:16]
-    rx_addr3 = rx_hdrs[(rx_fcs_bad == 0),16:22]
+    rx_addr1 = rx_hdrs[(rx_fcs_bad == FCS_BAD),4:10]
+    rx_addr2 = rx_hdrs[(rx_fcs_bad == FCS_BAD),10:16]
+    rx_addr3 = rx_hdrs[(rx_fcs_bad == FCS_BAD),16:22]
 
     # Reduce each 6-byte MAC addresses to a unit64 for easier processing
     rx_addr1 = np.sum(rx_addr1 * [2**40, 2**32, 2**24, 2**16, 2**8, 2**0], 1)
@@ -191,7 +195,7 @@ try:
         rx_counts[addr] = (rx_pkts_to_addr, rx_bytes_to_addr)
 
     # Print the results
-    print("\nExample 2: Rx Counts Address 1:\nAddr            \t# Pkts\t# Bytes")
+    print("\nExample 3: Rx Counts Address 1:\nAddr            \t# Pkts\t# Bytes")
     for k in rx_counts.keys():
     	# Use the string version of the MAC address as the key for readability
     	print("%s\t%d\t%d" % (wlan_exp_util.mac2str(k), rx_counts[k][0], rx_counts[k][1]))
@@ -207,7 +211,7 @@ try:
         rx_counts[addr] = (rx_pkts_to_addr, rx_bytes_to_addr)
 
     # Print the results
-    print("\nExample 2: Rx Counts Address 2:\nAddr            \t# Pkts\t# Bytes")
+    print("\nExample 3: Rx Counts Address 2:\nAddr            \t# Pkts\t# Bytes")
     for k in rx_counts.keys():
     	# Use the string version of the MAC address as the key for readability
     	print("%s\t%d\t%d" % (wlan_exp_util.mac2str(k), rx_counts[k][0], rx_counts[k][1]))
@@ -223,12 +227,12 @@ try:
         rx_counts[addr] = (rx_pkts_to_addr, rx_bytes_to_addr)
     
     # Print the results
-    print("\nExample 2: Rx Counts Address 3:\nAddr            \t# Pkts\t# Bytes")
+    print("\nExample 3: Rx Counts Address 3:\nAddr            \t# Pkts\t# Bytes")
     for k in rx_counts.keys():
     	# Use the string version of the MAC address as the key for readability
     	print("%s\t%d\t%d" % (wlan_exp_util.mac2str(k), rx_counts[k][0], rx_counts[k][1]))
 except KeyError:
-    print("Example 2: No Transmit packets in log.")
+    print("\nExample 3: No Receive packets in log.")
 
 
 

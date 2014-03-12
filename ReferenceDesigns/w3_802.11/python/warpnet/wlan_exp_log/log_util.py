@@ -159,7 +159,12 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
             for k in merge.keys():
                 new_index = []
                 for v in merge[k]:
-                    new_index += ret_log_index[v]
+                    try:
+                        new_index += ret_log_index[v]
+                    except:
+                        msg  = "WARNING:  {0} does ".format(v)
+                        msg += "not exist in log index.  Ignoring for merge.\n"
+                        print(msg)
                 
                 # Add the new merged index lists to the output dictionary
                 # Use the type instance corresponding to the user-supplied string as the key
@@ -182,7 +187,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                         del ret_log_index[unwanted_key]
                     except:
                         msg  = "WARNING:  {0} does ".format(unwanted_key)
-                        msg += "not exist in log index.  Ignoring exclude."
+                        msg += "not exist in log index.  Ignoring for exclude.\n"
                         print(msg)
     
     except KeyError as err:
@@ -215,10 +220,11 @@ def gen_log_ndarrays(log_bytes, log_index):
 
 def gen_hdf5_file(filename, np_log_dict, compression=None):
     """Generate an HDF5 file from numpy arrays. The input must be either:
-    (a) A dictionary with numpy record arrays as values; each array will be a dataset in the HDF5 file root group
-    or
-    (b) A dictionary of dictionaries like (a); each top-level value will be a group in the root HDF5 group, 
-        each numpy array will be a dataset in the group.
+    (a) A dictionary with numpy record arrays as values; each array will 
+        be a dataset in the HDF5 file root group
+    (b) A dictionary of dictionaries like (a); each top-level value will 
+        be a group in the root HDF5 group, each numpy array will be a 
+        dataset in the group.
     """
     import h5py
 
@@ -230,8 +236,9 @@ def gen_hdf5_file(filename, np_log_dict, compression=None):
         # np_log_dict is dictionary-of-dictionaries
         # Create an HDF5 file with one group per value in np_log_dict
         #   with one dataset per value in np_log_dict[each key]
-        # This is a good structure for one dictionary containing one key-value per parsed log file, where the key
-        #  is the log file name and the value is another dictionary containing the log entry arrays
+        # This is a good structure for one dictionary containing one key-value
+        #   per parsed log file, where the key is the log file name and the
+        #   value is another dictionary containing the log entry arrays
 
         for file_k in np_log_dict.keys():
             #Create one group per log file, using log file name as group name

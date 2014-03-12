@@ -171,36 +171,41 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.LogGetEvents(size, offset))
 
 
-    def log_get_all_new(self):
+    def log_get_all_new(self, log_tail_pad=500):
         """Get all "new" entries in the log.
+
+        Attributes:
+            log_tail_pad  -- Number of bytes from the current end of the 
+                               "new" entries that will not be read during 
+                               the call.  This is to deal with the case that
+                               the node is processing the last log entry so 
+                               it contains incomplete data and should not be
+                               read.
         
         Returns:
-           Byte array that contains all entries since the last time the 
+           WARPNet Buffer that contains all entries since the last time the 
              log was read.
         """
         return_val = b''
         (next_index, oldest_index, num_wraps) = self.log_get_indexes()
 
         if (num_wraps == self.log_num_wraps):
-            if (next_index > self.log_next_read_index):
+            if (next_index > (self.log_next_read_index + log_tail_pad)):
                 return_val = self.log_get(offset=self.log_next_read_index, 
-                                          size=(next_index - self.log_next_read_index))
+                                          size=(next_index - self.log_next_read_index - log_tail_pad))
                 self.log_next_read_index = next_index
         else:
-            return_val = self.log_get(offset=self.log_next_read_index, 
-                                      size=cmds.LOG_GET_ALL_ENTRIES)
-            self.log_next_read_index = 0
-            self.log_num_wraps       = num_wraps
-        
+            if ((next_index != 0) or self.log_is_full()):
+                return_val = self.log_get(offset=self.log_next_read_index, 
+                                          size=cmds.LOG_GET_ALL_ENTRIES)
+                self.log_next_read_index = 0
+                self.log_num_wraps       = num_wraps
+
         return return_val
 
 
     def log_get_size(self):
-        """Get the capacity and size of the log (in bytes).
-        
-        Returns a tuple:
-            (capacity, size)        
-        """
+        """Get the size of the log (in bytes)."""
         (capacity, size)  = self.send_cmd(cmds.LogGetCapacity())
 
         # Check the maximum size of the log and update the node state
@@ -211,7 +216,12 @@ class WlanExpNode(wn_node.WnNode):
             print(msg)
             self.log_max_size = capacity
 
-        return (capacity, size)
+        return size
+
+
+    def log_get_capacity(self):
+        """Get the capacity of the log (in bytes)."""
+        return self.log_max_size
 
 
     def log_get_indexes(self):
@@ -220,7 +230,7 @@ class WlanExpNode(wn_node.WnNode):
         Returns a tuple:
             (oldest_index, next_index, num_wraps)        
         """
-        (next_index, oldest_index, num_wraps, _) = self.send_cmd(cmds.LogGetInfo())
+        (next_index, oldest_index, num_wraps, _) = self.send_cmd(cmds.LogGetStatus())
         
         # Check that the log is in a good state
         if ((num_wraps < self.log_num_wraps) or 
@@ -232,11 +242,22 @@ class WlanExpNode(wn_node.WnNode):
         return (next_index, oldest_index, num_wraps)
 
 
-    def log_get_configuration_flags(self):
+    def log_get_flags(self):
         """Get the flags that describe the event log configuration."""
-        (_, _, _, flags) = self.send_cmd(cmds.LogGetInfo())
+        (_, _, _, flags) = self.send_cmd(cmds.LogGetStatus())
 
         return flags        
+
+
+    def log_is_full(self):
+        """Return whether the log is full or not."""
+        (next_index, oldest_index, num_wraps, flags) = self.send_cmd(cmds.LogGetStatus())
+        
+        if (((flags & cmds.LOG_CONFIG_FLAG_WRAP) != cmds.LOG_CONFIG_FLAG_WRAP) and
+            ((next_index == 0) and (oldest_index == 0) and (num_wraps == (self.log_num_wraps + 1)))):
+            return True
+        else:
+            return False
 
 
     def log_enable_stream(self, port, ip_address=None, host_id=None):
