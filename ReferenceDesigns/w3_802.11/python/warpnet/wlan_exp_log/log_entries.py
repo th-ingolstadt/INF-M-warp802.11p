@@ -92,7 +92,7 @@ class WlanExpLogEntryType(object):
     
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
-        if not name is None:
+        if name is not None:
             if(name in wlan_exp_log_entry_types.keys()):
                 print("WARNING: replacing exisitng WlanExpLogEntryType with name {0}".format(name))
             self.name = name
@@ -101,9 +101,9 @@ class WlanExpLogEntryType(object):
             raise Exception("ERROR: new WlanExpLogEntryType instance must have valid name")
 
         # Entry type ID is optional
-        if not entry_type_id is None:
+        if entry_type_id is not None:
             # entry_type_id must be int
-            if not type(entry_type_id) is int:
+            if type(entry_type_id) is not int:
                 raise Exception("ERROR: WlanExpLogEntryType entry_type_id must be int")
             else:
                 if(entry_type_id in wlan_exp_log_entry_types.keys()):
