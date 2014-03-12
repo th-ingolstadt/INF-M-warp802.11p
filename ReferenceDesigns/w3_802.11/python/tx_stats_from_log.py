@@ -22,6 +22,7 @@ group_fields = ('addr1',)
 
 #Define the aggregation functions
 stat_calc = ( 
+    ('retry_count',  np.mean, 'avg_num_tx'),
     ('length',       len,     'num_pkts'),
     ('length',       np.mean, 'avg_len'),
     ('length',       sum,     'tot_len'),
@@ -33,20 +34,23 @@ tx_stats = mlab.rec_groupby(tx_recs, group_fields, stat_calc)
 #Display the results
 print('\nTx Statistics for {0}:\n'.format(LOGFILE))
 
-print('{0:^18} | {1:^8} | {2:^10} | {3:^14} | {4:^11}'.format(
+print('{0:^18} | {1:^8} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
     'Dest Addr',
-    'Num Tx',
+    'Num MPDUs',
     'Avg Length',
     'Total Tx Bytes',
-    'Avg Tx Time'))
+    'Avg Tx Time',
+    'Avg Num Tx'))
 
 for ii in range(len(tx_stats)):
-    print('{0:<18} | {1:8d} | {2:10.1f} | {3:14} | {4:11.3f}'.format(
+    print('{0:<18} | {1:8d} | {2:10.1f} | {3:14} | {4:11.3f} | {5:5.1f}'.format(
         log_util.mac_addr_int_to_str(tx_stats['addr1'][ii]),
         tx_stats['num_pkts'][ii],
         tx_stats['avg_len'][ii],
         tx_stats['tot_len'][ii],
-        tx_stats['avg_time'][ii]))
+        tx_stats['avg_time'][ii],
+        tx_stats['avg_num_tx'][ii]))
 
 print('')
+log_util.debug_here()
 
