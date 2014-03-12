@@ -245,13 +245,13 @@ typedef struct{
 typedef struct{
 	u64  timestamp_send;
 	mac_header_80211 mac_hdr;
+	phy_tx_params phy_params;
 	u8	 transmission_count;
-	s8   power;
 	u8 	 chan_num;
-	u8   rate;
 	u16  length;
+	u16  num_slots;
 	u8 	 pkt_type;
-	u8	 ant_mode;
+	u8	 reserved[1];
 } tx_low_entry;
 
 

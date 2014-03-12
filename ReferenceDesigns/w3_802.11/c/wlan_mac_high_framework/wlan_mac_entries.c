@@ -316,12 +316,13 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("%d: - Tx Low Event\n", entry_number);
 			xil_printf("   Tx Start Time:    %d\n",		(u32)(tx_low_entry_log_item->timestamp_send));
 			xil_printf("   Tx Count:         %d\n",		tx_low_entry_log_item->transmission_count);
-			xil_printf("   Power:            %d\n",     tx_low_entry_log_item->power);
-			xil_printf("   Rate:             %d\n",     tx_low_entry_log_item->rate);
+			xil_printf("   Power:            %d\n",     tx_low_entry_log_item->phy_params.power);
+			xil_printf("   Rate:             %d\n",     tx_low_entry_log_item->phy_params.rate);
 			xil_printf("   Length:           %d\n",     tx_low_entry_log_item->length);
 			xil_printf("   Channel:          %d\n",     tx_low_entry_log_item->chan_num);
 			xil_printf("   Pkt Type:         0x%x\n",   tx_low_entry_log_item->pkt_type);
-			xil_printf("   Antenna Mode:     %d\n",     tx_low_entry_log_item->ant_mode);
+			xil_printf("   Antenna Mode:     %d\n",     tx_low_entry_log_item->phy_params.antenna_mode);
+			xil_printf("   # of BO Slots     %d\n",     tx_low_entry_log_item->num_slots);
 		break;
 
 		default:

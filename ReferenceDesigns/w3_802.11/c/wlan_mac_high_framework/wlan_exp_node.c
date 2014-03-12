@@ -643,7 +643,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					curr_station_info = (station_info*)(association_table.first);
 					for(i=0; i < association_table.length; i++){
 						if (curr_station_info->AID == id){
-							curr_station_info->tx.rate = rate;
+							curr_station_info->tx.phy.rate = rate;
 							xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
 							break;
 						}
@@ -655,7 +655,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 					curr_station_info = (station_info*)(association_table.first);
 					for(i=0; i < association_table.length; i++){
-						curr_station_info->tx.rate = default_unicast_rate;
+						curr_station_info->tx.phy.rate = default_unicast_rate;
 						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 
@@ -668,7 +668,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					curr_station_info = (station_info*)(association_table.first);
 					for(i=0; i < association_table.length; i++){
 						if (curr_station_info->AID == id){
-							rate = curr_station_info->tx.rate;
+							rate = curr_station_info->tx.phy.rate;
 							break;
 						}
 						curr_station_info = (station_info*)((curr_station_info->entry).next);

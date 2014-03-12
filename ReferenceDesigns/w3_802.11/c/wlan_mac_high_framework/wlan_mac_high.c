@@ -772,7 +772,7 @@ void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station){
 
 	(station->stats->num_tx_total)++;
 	(station->stats->num_retry) += (frame->retry_count);
-	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS && (frame->retry_max > 1)){
+	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS && (frame->params.mac.retry_max > 1)){
 		(station->stats->num_tx_success)++;
 		//If this transmission was successful, then we have implicitly received an
 		//ACK for it. So, we should update the last RX timestamp
@@ -947,10 +947,10 @@ void wlan_mac_high_free(void* addr){
 u8 wlan_mac_high_get_tx_rate(station_info* station){
 	u8 return_value;
 
-	if(((station->tx.rate) >= WLAN_MAC_RATE_6M) && ((station->tx.rate) <= WLAN_MAC_RATE_54M)){
-		return_value = station->tx.rate;
+	if(((station->tx.phy.rate) >= WLAN_MAC_RATE_6M) && ((station->tx.phy.rate) <= WLAN_MAC_RATE_54M)){
+		return_value = station->tx.phy.rate;
 	} else {
-		xil_printf("Station 0x%08x has invalid rate selection (%d), defaulting to WLAN_MAC_RATE_6M\n",station,station->tx.rate);
+		xil_printf("Station 0x%08x has invalid rate selection (%d), defaulting to WLAN_MAC_RATE_6M\n",station,station->tx.phy.rate);
 		return_value = WLAN_MAC_RATE_6M;
 	}
 
@@ -1081,9 +1081,33 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	//This is a wrapper function around the central DMA simple transfer call. It's arguments
 	//are intended to be similar to memcpy. Note: This function does not block on the transfer.
 	int return_value;
+	u8 out_of_range = 0;
 
-	wlan_mac_high_cdma_finish_transfer();
-	return_value = XAxiCdma_SimpleTransfer(&cdma_inst, (u32)src, (u32)dest, size, NULL, NULL);
+
+	if((u32)src > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)src < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
+		out_of_range = 1;
+	} else if((u32)src > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)src < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
+		out_of_range = 1;
+	} else if((u32)dest > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)dest < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
+		out_of_range = 1;
+	} else if((u32)dest > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)dest < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
+		out_of_range = 1;
+	}
+
+
+	if(out_of_range == 0){
+		wlan_mac_high_cdma_finish_transfer();
+		return_value = XAxiCdma_SimpleTransfer(&cdma_inst, (u32)src, (u32)dest, size, NULL, NULL);
+
+		if(return_value != 0){
+			xil_printf("CDMA Error: code %d\n", return_value);
+		}
+	} else {
+		xil_printf("CDMA Error: source and destination addresses must not located in the DLMB. Using memcpy instead.\n");
+		memcpy(dest,src,size);
+	}
+
+
 
 	return return_value;
 }
@@ -1118,25 +1142,36 @@ void wlan_mac_high_mpdu_transmit(packet_bd* packet) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu;
 	station_info* station;
+	void* dest_addr;
+	void* src_addr;
+	u32 xfer_len;
 
 	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	station = (station_info*)(packet->metadata_ptr);
 
 	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_cpu_low_ready() )){
 		//Copy the packet into the transmit packet buffer
-		wlan_mac_high_cdma_start_transfer( (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf), (void*)(packet->buf_ptr), ((tx_packet_buffer*)(packet->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+		src_addr =  (void*)(packet->buf_ptr);
+		xfer_len = ((tx_packet_buffer*)(packet->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
+
+
+
+		wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
+
 		wlan_mac_high_cdma_finish_transfer();
+
 
 		if(station == NULL){
 			//Broadcast transmissions have no station information, so we default to a nominal rate
 			tx_mpdu->AID = 0;
-			tx_mpdu->rate = WLAN_MAC_RATE_6M;
-			tx_mpdu->power = 10;
+			tx_mpdu->params.phy.rate = WLAN_MAC_RATE_6M;
+			tx_mpdu->params.phy.power = 10;
 		} else {
 			//Request the rate to use for this station
 			tx_mpdu->AID = station->AID;
-			tx_mpdu->rate = wlan_mac_high_get_tx_rate(station);
-			tx_mpdu->power = station->tx.power;
+			tx_mpdu->params.phy.rate = wlan_mac_high_get_tx_rate(station);
+			tx_mpdu->params.phy.power = station->tx.phy.power;
 		}
 
 		tx_mpdu->state = TX_MPDU_STATE_READY;
@@ -1308,10 +1343,10 @@ void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u
 	tx_queue->metadata_ptr     = metadata;
 
 	// Set up frame info data
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.timestamp_create = get_usec_timestamp();
-    ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length           = tx_length;
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.retry_max        = retry;
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags            = flags;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.timestamp_create			 = get_usec_timestamp();
+    ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length          			 = tx_length;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.params.mac.retry_max        = retry;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags           			 = flags;
 }
 
 /*****************************************************************************/
@@ -1715,7 +1750,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		station->stats = station_stats;
 		station->stats->is_associated = 1;
 		memcpy(station->addr, addr, 6);
-		station->tx.rate = 0;
+		station->tx.phy.rate = 0;
 		station->AID = 0;
 		station->hostname[0] = 0;
 		station->flags = 0;
