@@ -246,10 +246,10 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
             new_log_index = {}
             
             for entry_name in include_only:
-                new_log_index[entry_name] = []
+                new_log_index[entry_types[entry_name]] = []
                 for k in ret_log_index.keys():
                     if k == entry_name:
-                        new_log_index[entry_name] = ret_log_index[k]
+                        new_log_index[k] = ret_log_index[k]
 
             ret_log_index = new_log_index
         else:
