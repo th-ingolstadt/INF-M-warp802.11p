@@ -230,7 +230,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 				curr_sched_ptr = next_sched_ptr;
 				next_sched_ptr = wlan_sched_next(curr_sched_ptr);
 
-				if(num_fine_checks > (curr_sched_ptr->target)){
+				if(num_fine_checks >= (curr_sched_ptr->target)){
 					curr_sched_ptr->callback(curr_sched_ptr->id);
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
 						(curr_sched_ptr->num_calls)--;
@@ -259,7 +259,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 			for(i=0; i<(wlan_sched_coarse.length); i++){
 				curr_sched_ptr = next_sched_ptr;
 				next_sched_ptr = wlan_sched_next(curr_sched_ptr);
-				if(num_coarse_checks > (curr_sched_ptr->target)){
+				if(num_coarse_checks >= (curr_sched_ptr->target)){
 					curr_sched_ptr->callback(curr_sched_ptr->id);
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
 						(curr_sched_ptr->num_calls)--;
