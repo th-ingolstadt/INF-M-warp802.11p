@@ -104,13 +104,13 @@ typedef struct{
 	u8      addr[6];			 ///< HW Address
 	u8      is_associated;		 ///< Is this device associated with me?
 	u8      reserved;
-	u32     num_tx_total;		 ///< Total number of transmissions to this device
-	u32     num_tx_success; 	 ///< Total number of successful transmissions to this device
-	u32     num_retry;			 ///< Total number of retransmissions to this device
-	u32     mgmt_num_rx_success; ///< Total number of successful receptions from this device (Management)
-	u32     mgmt_num_rx_bytes;	 ///< Total number of received bytes from this device (Management)
-	u32     data_num_rx_success; ///< Total number of successful receptions from this device (Data)
-	u32     data_num_rx_bytes;	 ///< Total number of received bytes from this device (Data)
+	u32     num_high_tx_total;		 ///< Total number of transmissions to this device
+	u32     num_high_tx_success; 	 ///< Total number of successful high transmissions to this device
+	u32     num_low_tx;			 	 ///< Total number of low transmissions to this device
+	u32     mgmt_num_rx_success;     ///< Total number of successful receptions from this device (Management)
+	u32     mgmt_num_rx_bytes;	     ///< Total number of received bytes from this device (Management)
+	u32     data_num_rx_success;     ///< Total number of successful receptions from this device (Data)
+	u32     data_num_rx_bytes;	     ///< Total number of received bytes from this device (Data)
 } statistics_txrx;
 
 /**
@@ -234,7 +234,7 @@ u8* wlan_mac_high_get_eeprom_mac_addr();
 u8 wlan_mac_high_valid_tagged_rate(u8 rate);
 void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
 void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
-void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  );
+void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 num_tx, u8 flags  );
 
 void wlan_mac_high_ipc_rx();
 void wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);

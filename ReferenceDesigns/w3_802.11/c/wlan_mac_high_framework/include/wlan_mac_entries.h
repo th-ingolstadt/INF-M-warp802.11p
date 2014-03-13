@@ -119,7 +119,7 @@ typedef struct{
 	u32		flags;										// 1-bit flags
 	u8      rate;			                            // Rate of transmission
 	u8      antenna_mode;	                            // Antenna mode (Placeholder)
-	u8	    max_retry;                                  // Maximum number of retransmissions
+	u8	    max_num_tx;                                  // Maximum number of retransmissions
 	u8      rsvd[((STATION_INFO_HOSTNAME_MAXLEN+1)%4) + 1];
 } station_info_entry;
 
@@ -163,9 +163,9 @@ typedef struct{
 	u8      addr[6];		// HW Address
 	u8      is_associated;	// Is this device associated with me?
 	u8      rsvd;
-	u32     num_tx_total;	// Total number of transmissions to this device
-	u32     num_tx_success; // Total number of successful transmissions to this device
-	u32     num_retry;		// Total number of retransmissions to this device
+	u32     num_high_tx_total;	 // Total number of high transmissions to this device
+	u32     num_high_tx_success; // Total number of successful high transmissions to this device
+	u32     num_low_tx;		// Total number of low transmissions to this device
 	u32     mgmt_num_rx_success; // MGMT: Total number of successful receptions from this device
 	u32     mgmt_num_rx_bytes;	// MGMT: Total number of received bytes from this device
 	u32     data_num_rx_success; // DATA: Total number of successful receptions from this device
@@ -226,7 +226,7 @@ typedef struct{
 	u32  delay_accept;
 	u32  delay_done;
 	mac_header_80211 mac_hdr;
-	u8   retry_count;
+	u8   num_tx;
 	s8 	 power;
 	u8 	 chan_num;
 	u8   rate;

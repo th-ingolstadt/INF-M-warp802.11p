@@ -252,9 +252,9 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			for( i = 1; i < 6; i++) { xil_printf(":%02x",         (txrx_stats_entry_log_item->addr)[i]); }
 			xil_printf("\n");
 			xil_printf("   Is associated  :    %d\n",              txrx_stats_entry_log_item->is_associated);
-			xil_printf("   Tx total       :    %d (%d success)\n", txrx_stats_entry_log_item->num_tx_total,
-					                                               txrx_stats_entry_log_item->num_tx_success);
-			xil_printf("   Tx retry       :    %d\n",              txrx_stats_entry_log_item->num_retry);
+			xil_printf("   Tx total (High):    %d (%d success)\n", txrx_stats_entry_log_item->num_high_tx_total,
+					                                               txrx_stats_entry_log_item->num_high_tx_success);
+			xil_printf("   Tx (Low)       :    %d\n",              txrx_stats_entry_log_item->num_low_tx);
 			xil_printf("   Rx total (DATA):    %d (%d bytes)\n",   txrx_stats_entry_log_item->data_num_rx_success,
 					                                               txrx_stats_entry_log_item->data_num_rx_bytes);
 			xil_printf("   Rx total (MGMT):    %d (%d bytes)\n",   txrx_stats_entry_log_item->mgmt_num_rx_success,
@@ -308,7 +308,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   Channel:          %d\n",     tx_high_entry_log_item->chan_num);
 			xil_printf("   Result:           %d\n",     tx_high_entry_log_item->result);
 			xil_printf("   Pkt Type:         0x%x\n",   tx_high_entry_log_item->pkt_type);
-			xil_printf("   Retry:            %d\n",     tx_high_entry_log_item->retry_count);
+			xil_printf("   Num Tx:           %d\n",     tx_high_entry_log_item->num_tx);
 		break;
 
 		case ENTRY_TYPE_TX_LOW:

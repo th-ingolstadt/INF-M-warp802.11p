@@ -777,10 +777,10 @@ u64 get_usec_timestamp(){
 void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station){
 	//This is a good place to add an extension for automatic rate control
 
-	(station->stats->num_tx_total)++;
-	(station->stats->num_retry) += (frame->retry_count);
-	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS && (frame->params.mac.retry_max > 1)){
-		(station->stats->num_tx_success)++;
+	(station->stats->num_high_tx_total)++;
+	(station->stats->num_low_tx) += (frame->num_tx);
+	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS && (frame->params.mac.num_tx_max > 1)){
+		(station->stats->num_high_tx_success)++;
 		//If this transmission was successful, then we have implicitly received an
 		//ACK for it. So, we should update the last RX timestamp
 		(station->rx.last_timestamp = get_usec_timestamp());
@@ -1182,7 +1182,7 @@ void wlan_mac_high_mpdu_transmit(packet_bd* packet) {
 		}
 
 		tx_mpdu->state = TX_MPDU_STATE_READY;
-		tx_mpdu->retry_count = 0;
+		tx_mpdu->num_tx = 0;
 
 		ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
 		ipc_msg_to_low.arg0 = tx_pkt_buf;
@@ -1344,7 +1344,7 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
 }
 
 
-void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 retry, u8 flags  ) {
+void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 num_tx, u8 flags  ) {
 
     // Set up metadata
 	tx_queue->metadata_ptr     = metadata;
@@ -1352,7 +1352,7 @@ void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u
 	// Set up frame info data
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.timestamp_create			 = get_usec_timestamp();
     ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length          			 = tx_length;
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.params.mac.retry_max        = retry;
+	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.params.mac.num_tx_max       = num_tx;
 	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags           			 = flags;
 }
 
@@ -1959,9 +1959,9 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 		curr_statistics = next_statistics;
 		next_statistics = statistics_next(curr_statistics);
 
-		curr_statistics->num_tx_total = 0;
-		curr_statistics->num_tx_success = 0;
-		curr_statistics->num_retry = 0;
+		curr_statistics->num_high_tx_total = 0;
+		curr_statistics->num_high_tx_success = 0;
+		curr_statistics->num_low_tx = 0;
 		curr_statistics->mgmt_num_rx_success = 0;
 		curr_statistics->mgmt_num_rx_bytes = 0;
 		curr_statistics->data_num_rx_success = 0;
