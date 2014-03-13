@@ -279,16 +279,9 @@ class StatsGetAllTxRx(wn_message.BufferCmd):
         # a list of statistics dictionaries.
         import warpnet.wlan_exp_log.log_entries as log
 
-        ret_val    = []
-        data       = resp.get_bytes()
-        size       = resp.get_payload_size()
-        entry_size = log.entry_txrx_stats.get_entry_type_size()
-        index      = 0
-        
-        while (index < size):
-            val = log.entry_txrx_stats.deserialize(data[index:index+entry_size])
-            ret_val.append(val)
-            index += entry_size
+        index   = 0
+        data    = resp.get_bytes()
+        ret_val = log.entry_txrx_stats.deserialize(data[index:])
 
         return ret_val
 
@@ -308,13 +301,14 @@ class StatsGetTxRx(wn_message.Cmd):
     def process_resp(self, resp):
         import warpnet.wlan_exp_log.log_entries as log
         
-        data       = resp.get_bytes()
-        entry_size = log.entry_txrx_stats.get_entry_type_size()
-        index      = 8                     # Offset after response arguments
+        index   = 8                     # Offset after response arguments
+        data    = resp.get_bytes()
+        ret_val = log.entry_txrx_stats.deserialize(data[index:])
 
-        ret_val = log.entry_txrx_stats.deserialize(data[index:index+entry_size])
-
-        return ret_val
+        if ret_val:
+            return ret_val[0]
+        else:
+            return None
 
 # End Class
 
@@ -605,16 +599,9 @@ class NodeGetAllStationInfo(wn_message.BufferCmd):
         # a list of statistics dictionaries.
         import warpnet.wlan_exp_log.log_entries as log
 
-        ret_val    = []
-        data       = resp.get_bytes()
-        size       = resp.get_payload_size()
-        entry_size = log.entry_station_info.get_entry_type_size()
-        index      = 0
-        
-        while (index < size):
-            val = log.entry_station_info.deserialize(data[index:index+entry_size])
-            ret_val.append(val)
-            index += entry_size
+        index   = 0
+        data    = resp.get_bytes()
+        ret_val = log.entry_station_info.deserialize(data[index:])
 
         return ret_val
 
@@ -634,13 +621,14 @@ class NodeGetStationInfo(wn_message.Cmd):
     def process_resp(self, resp):
         import warpnet.wlan_exp_log.log_entries as log
 
-        data       = resp.get_bytes()
-        entry_size = log.entry_station_info.get_entry_type_size()
-        index      = 8                     # Offset after response arguments
+        index   = 8                     # Offset after response arguments
+        data    = resp.get_bytes()
+        ret_val = log.entry_station_info.deserialize(data[index:])
 
-        ret_val = log.entry_station_info.deserialize(data[index:index+entry_size])
-
-        return ret_val
+        if ret_val:
+            return ret_val[0]
+        else:
+            return None
 
 # End Class
 

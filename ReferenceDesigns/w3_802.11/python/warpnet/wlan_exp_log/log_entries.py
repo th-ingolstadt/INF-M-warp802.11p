@@ -92,7 +92,6 @@ class WlanExpLogEntryType(object):
     
     fields_np_dt      = None
     fields_fmt_struct = None
-    fields_size       = None
     
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
@@ -121,7 +120,6 @@ class WlanExpLogEntryType(object):
         
         # Initialize unpack variables
         self.fields_fmt_struct = ''
-        self.fields_size       = 0
 
 
     #-------------------------------------------------------------------------
@@ -136,7 +134,6 @@ class WlanExpLogEntryType(object):
     def get_field_defs(self):          return self._fields
     def get_virtual_field_defs(self):  return self._virtual_fields        
     def get_entry_type_id(self):       return self.entry_type_id
-    def get_entry_type_size(self):     return self.fields_size
 
     def append_field_defs(self, field_info):
         if type(field_info) is list:
@@ -165,22 +162,29 @@ class WlanExpLogEntryType(object):
 
 
     def deserialize(self, buf):
-        """Unpack the buffer of a single log entry in to a dictionary."""
-        ret_dict = {}
-        try:
-            dataTuple = unpack(self.fields_fmt_struct, buf)
-            all_names = self.get_field_names()
-            all_fmts  = self.get_field_struct_formats()
-
-            #Filter out names for fields ignored during unpacking
-            names = [n for (n,f) in zip(all_names, all_fmts) if 'x' not in f]
-
-            return dict(zip(names, dataTuple))
-
-        except error as err:
-            print("Error unpacking buffer: {0}".format(err))
+        """Unpack the buffer of log entries into a list of dictionaries."""
+        ret_val    = []
+        buf_size   = len(buf)
+        entry_size = calcsize(self.fields_fmt_struct)
+        index      = 0
         
-        return ret_dict
+        while (index < buf_size):
+            try:
+                dataTuple = unpack(self.fields_fmt_struct, buf[index:index+entry_size])
+                all_names = self.get_field_names()
+                all_fmts  = self.get_field_struct_formats()
+    
+                #Filter out names for fields ignored during unpacking
+                names = [n for (n,f) in zip(all_names, all_fmts) if 'x' not in f]
+    
+                ret_val.append(dict(zip(names, dataTuple)))
+    
+            except error as err:
+                print("Error unpacking buffer: {0}".format(err))
+            
+            index += entry_size
+        
+        return ret_val
 
 
     #-------------------------------------------------------------------------
@@ -224,7 +228,6 @@ class WlanExpLogEntryType(object):
 
         # Update the unpack fields
         self.fields_fmt_struct = ' '.join(self.get_field_struct_formats())
-        self.fields_size       = calcsize(self.fields_fmt_struct)
 
 
     def __eq__(self, other):
