@@ -115,9 +115,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
     unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
     unsigned int  status;
-    unsigned int  temp, temp2, i;
-    unsigned int  num_tables;
-    unsigned int  table_freq;
+    unsigned int  temp;
 
 
     // Note:    
@@ -129,58 +127,6 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 #endif
 
 	switch(cmdID){
-
-		//---------------------------------------------------------------------
-		case NODE_GET_STATION_INFO:
-            // NODE_GET_ASSN_STATUS Packet Format:
-            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
-            //
-            //   - cmdArgs32[0] - 31:16 - Number of tables to transmit per minute ( 0 => stop )
-			//                  - 15:0  - Number of tables to transmit            ( 0 => infinite )
-			//
-
-			temp        = Xil_Ntohl(cmdArgs32[0]);
-			table_freq  = ( temp >> 16 );
-        	num_tables  = temp & 0xFFFF;
-
-
-        	// Transmit association tables
-        	if ( table_freq != 0 ) {
-
-				// Transmit num_tables association tables at the table_freq rate
-				if ( num_tables != 0 ) {
-
-//					for( i = 0; i < num_tables; i++ ) {
-
-//						respIndex += get_station_status( &access_point, 1, &respArgs32[respIndex], max_words ); //FIXME
-//					}
-
-
-				// Continuously transmit association tables
-				} else {
-					// TODO:
-
-				}
-
-			// Stop transmitting association tables
-        	} else {
-
-        		// Send stop indicator
-                respArgs32[respIndex++] = Xil_Htonl( 0xFFFFFFFF );
-        	}
-
-            // NODE_GET_ASSN_TBL Response Packet Format:
-            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
-            //
-            //   - respArgs32[0] - 31:0  - Number of association table entries
-        	//   - respArgs32[1 .. N]    - Association table entries
-			//
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-
-		break;
-
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
