@@ -67,8 +67,8 @@ __all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetStatus', 'LogGetCa
 
 # WLAN Exp Command IDs (Extension of WARPNet Command IDs)
 #   NOTE:  The C counterparts are found in wlan_exp_node.h
-CMD_ASSN_GET_STATUS          = 10
-CMD_ASSN_SET_TABLE           = 11
+CMD_GET_STATION_INFO         = 10
+CMD_SET_STATION_INFO         = 11
 
 CMD_DISASSOCIATE             = 20
 
@@ -103,13 +103,16 @@ LOG_CONFIG_FLAG_LOGGING      = 0x00000002
 
 LOG_GET_ALL_ENTRIES          = 0xFFFFFFFF
 
-CMD_STATS_ADD_TXRX_TO_LOG    = 60
-CMD_STATS_GET_TXRX           = 61
-CMD_STATS_RESET_TXRX         = 62
+CMD_STATS_RESET_TXRX         = 60
+CMD_STATS_CONFIG_TXRX        = 61
+CMD_STATS_ADD_TXRX_TO_LOG    = 62
+CMD_STATS_GET_TXRX           = 63
+
+STATS_CONFIG_FLAG_PROMISC    = 0x00000001
+
+STATS_RSVD_CONFIG            = 0xFFFFFFFF
 
 CMD_QUEUE_TX_DATA_PURGE_ALL  = 70
-
-CMD_CONFIG_DEMO              = 90
 
 
 # Be careful that new commands added to WlanExpNode do not collide with child commands
@@ -126,7 +129,6 @@ _CMD_GRPID_NODE              = (wn_cmds.GRPID_NODE << 24)
 #--------------------------------------------
 # Log Commands
 #--------------------------------------------
-
 class LogGetEvents(wn_message.BufferCmd):
     """Command to get the WLAN Exp log events of the node"""
     def __init__(self, size, start_byte=0):
@@ -166,6 +168,7 @@ class LogConfigure(wn_message.Cmd):
     
     Attributes:
         flags - [0] Enable wrapping (1 - Enabled / 0 - Disabled (default))    
+                [1] Log events (1 - Enabled (default) / 0 - Disabled)
     """
     def __init__(self, flags):
         super(LogConfigure, self).__init__()
@@ -238,16 +241,56 @@ class LogStreamEntries(wn_message.Cmd):
 #--------------------------------------------
 # Stats Commands
 #--------------------------------------------
+class StatsConfigure(wn_message.Cmd):
+    """Command to configure the Statistics collection.
+    
+    Attributes:
+        flags - [0] Enable promiscuous statisitics
+                    (1 - Enabled (default) / 0 - Disabled)
+    
+    A value of 0xFFFFFFFF will return a read of the flags.
+    """
+    def __init__(self, flags):
+        super(LogConfigure, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_STATS_CONFIG_TXRX
+        self.add_args(flags)
+    
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
+
 class StatsGetAllTxRx(wn_message.BufferCmd):
     """Command to get the statistics from the node"""
-    def __init__(self, size, start_byte=0):
-        raise NotImplementedError
-        # command = _CMD_GRPID_NODE + CMD_STATS_GET_TXRX
-        # super(StatsGetAllTxRx, self).__init__(
-        #         command=command, buffer_id=0, flags=0, start_byte=start_byte, size=size)
+    def __init__(self):
+        command = _CMD_GRPID_NODE + CMD_STATS_GET_TXRX
+        super(StatsGetAllTxRx, self).__init__(
+                command=command, buffer_id=0xFFFFFFFF, flags=0xFFFFFFFF, start_byte=0, size=0)
+
+        # TODO:  This is using a bastardization of the WARPNet Buffer.
+        #        We should really be able to independently specify that a 
+        #        command requires a buffer as a return parameter instead
+        #        of having to send a fixed set of arguments.  Otherwise,
+        #        we should use a separate command
 
     def process_resp(self, resp):
-        return resp
+        # Contains a WN_Buffer of all stats entries.  Need to convert to 
+        # a list of statistics dictionaries.
+        import warpnet.wlan_exp_log.log_entries as log
+
+        ret_val    = []
+        data       = resp.get_bytes()
+        size       = resp.get_payload_size()
+        entry_size = log.entry_txrx_stats.get_entry_type_size()
+        index      = 0
+        
+        while (index < size):
+            val = log.entry_txrx_stats.deserialize(data[index:index+entry_size])
+            ret_val.append(val)
+            index += entry_size
+
+        return ret_val
 
 # End Class
 
@@ -265,10 +308,13 @@ class StatsGetTxRx(wn_message.Cmd):
     def process_resp(self, resp):
         import warpnet.wlan_exp_log.log_entries as log
         
-        # TODO:  This works but needs to be fixed
-        val = log.log_entry_txrx_stats.deserialize(resp.raw_data[8:])
+        data       = resp.raw_data()
+        entry_size = log.entry_txrx_stats.get_entry_type_size()
+        index      = 8                     # Offset after response arguments
 
-        return val
+        ret_val = log.entry_txrx_stats.deserialize(data[index:index+entry_size])
+
+        return ret_val
 
 # End Class
 

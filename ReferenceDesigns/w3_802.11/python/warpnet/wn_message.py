@@ -502,9 +502,10 @@ class Buffer(Message):
         """Return the size of the buffer including all attributes."""
         return struct.calcsize('!5I %dB' % self.size)
 
-    def get_buffer_id(self):   return self.buffer_id
-    def get_buffer_size(self): return self.size
-    def get_flags(self):       return self.flags
+    def get_buffer_id(self):      return self.buffer_id
+    def get_buffer_size(self):    return self.size
+    def get_flags(self):          return self.flags
+    def get_payload_size(self):   return self.size
 
     def set_flags(self, flags):
         """Set the bits in the flags field based on the value provided."""

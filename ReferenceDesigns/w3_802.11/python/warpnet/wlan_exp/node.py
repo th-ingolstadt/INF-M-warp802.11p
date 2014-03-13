@@ -149,7 +149,7 @@ class WlanExpNode(wn_node.WnNode):
         
         Flags (32 bits):
             [0] - Allow log to wrap (1 - Enabled / 0 - Disabled )
-            [1] - Log events (1 - Enabled / 0 -Disabled)
+            [1] - Log events (1 - Enabled / 0 - Disabled)
         """
         self.send_cmd(cmds.LogConfigure(flags))
 
@@ -297,9 +297,18 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Statistics Commands
     #--------------------------------------------
-    def stats_configure_txrx(self):
-        """Configure statistics collection on the node."""
-        raise NotImplementedError
+    def stats_configure_txrx(self, flags):
+        """Configure statistics collection on the node.
+        
+        Flags (32 bits):
+            [0] - Collect promiscuous statistics (1 - Enabled / 0 - Disabled )
+        """
+        self.send_cmd(cmds.StatsConfigure(flags))
+
+
+    def stats_get_flags(self):
+        """Get the configuration of the statistics collection on the node."""
+        return self.send_cmd(cmds.StatsConfigure(cmds.STATS_RSVD_CONFIG))
 
 
     def stats_get_txrx(self, node_list=None):

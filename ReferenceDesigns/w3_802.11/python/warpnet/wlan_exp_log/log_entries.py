@@ -43,7 +43,7 @@ Global variables:
     entry_txrx_stats         -- Transmit / Receive Statistics entry
 
 """
-from struct import unpack, error
+from struct import unpack, calcsize, error
 import numpy as np
 
 # WLAN Exp Event Log Constants
@@ -90,6 +90,10 @@ class WlanExpLogEntryType(object):
     entry_type_id     = None
     name              = None
     
+    fields_np_dt      = None
+    fields_fmt_struct = None
+    fields_size       = None
+    
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
         if name is not None:
@@ -114,6 +118,10 @@ class WlanExpLogEntryType(object):
         # Initialize fields to empty lists
         self._fields           = []
         self._virtual_fields   = []
+        
+        # Initialize unpack variables
+        self.fields_fmt_struct = ''
+        self.fields_size       = 0
 
 
     #-------------------------------------------------------------------------
@@ -128,6 +136,7 @@ class WlanExpLogEntryType(object):
     def get_field_defs(self):          return self._fields
     def get_virtual_field_defs(self):  return self._virtual_fields        
     def get_entry_type_id(self):       return self.entry_type_id
+    def get_entry_type_size(self):     return self.fields_size
 
     def append_field_defs(self, field_info):
         if type(field_info) is list:
@@ -159,7 +168,7 @@ class WlanExpLogEntryType(object):
         """Unpack the buffer of a single log entry in to a dictionary."""
         ret_dict = {}
         try:
-            dataTuple = unpack(self.field_fmt_struct, buf)
+            dataTuple = unpack(self.fields_fmt_struct, buf)
             all_names = self.get_field_names()
             all_fmts  = self.get_field_struct_formats()
 
@@ -212,6 +221,10 @@ class WlanExpLogEntryType(object):
         #print("np_dtype for %s (%d B): %s" % (self.name, np.dtype({'names':names, 'formats':formats, 'offsets':offsets}).itemsize, zip(offsets,formats,names)))
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
+
+        # Update the unpack fields
+        self.fields_fmt_struct = ' '.join(self.get_field_struct_formats())
+        self.fields_size       = calcsize(self.fields_fmt_struct)
 
 
     def __eq__(self, other):
