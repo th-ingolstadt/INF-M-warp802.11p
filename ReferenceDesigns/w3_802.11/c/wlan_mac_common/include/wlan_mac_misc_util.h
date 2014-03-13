@@ -48,7 +48,7 @@ typedef struct{
 } phy_tx_params;
 
 typedef struct{
-	u8		retry_max;		///< Maximum number of transmission attempts
+	u8		num_tx_max;		///< Maximum number of transmission attempts
 	u8		flags;			///< Flags affecting waveform construction
 	u8 		reserved[2];
 } mac_tx_params;
@@ -73,7 +73,7 @@ typedef struct{
 	u8 state;
 	u8 state_verbose;
 	u8 flags;
-	u8 retry_count;
+	u8 num_tx;
 	u16 length;
 	u16 AID;
 	tx_params params;
