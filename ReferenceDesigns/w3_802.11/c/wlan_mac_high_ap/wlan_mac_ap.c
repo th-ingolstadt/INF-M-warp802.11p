@@ -583,10 +583,10 @@ void association_timestamp_check() {
 
 		 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
 
-		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)curr_station_info, tx_length, MAX_NUM_TX,
+		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-		 		enqueue_after_end(AID_TO_QID(curr_station_info->AID), &checkout);
+		 		enqueue_after_end(MANAGEMENT_QID, &checkout);
 		 		check_tx_queue();
 
 		 		//Purge any packets in the queue meant for this node
@@ -1071,7 +1071,7 @@ u32  deauthenticate_station( station_info* station ) {
 						 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 		//
-		enqueue_after_end(AID_TO_QID(aid), &checkout);
+		enqueue_after_end(MANAGEMENT_QID, &checkout);
 		check_tx_queue();
 
 		// Remove this STA from association list
