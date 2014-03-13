@@ -126,7 +126,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 	switch(cmdID){
 
 		//---------------------------------------------------------------------
-		case NODE_ASSN_GET_STATUS:
+		case NODE_GET_STATION_INFO:
             // NODE_ASSN_GET_STATUS Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
@@ -179,7 +179,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_ASSN_SET_TABLE:
+		case NODE_SET_STATION_INFO:
 			xil_printf("AP - Set association table not supported\n");
 		break;
 
@@ -344,28 +344,6 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 			xil_printf("Set SSID - AP:  %s\n", access_point_ssid);
 		break;
-
-
-	    //---------------------------------------------------------------------
-		case NODE_CONFIG_DEMO:
-			// Configure the Demo
-			//
-			// Message format:
-			//     cmdArgs32[0]   Flags
-			//     cmdArgs32[1]   LTG interval (usec)
-			//
-			temp       = Xil_Ntohl(cmdArgs32[0]);
-			temp2      = Xil_Ntohl(cmdArgs32[1]);
-
-			xil_printf("Configuring Demo:  flags = 0x%08x  interval = %d\n", temp, temp2);
-
-			// Pass the parameters directly to the config_demo function
-			//wlan_ap_config_demo(temp, temp2); //TODO: Remove WARPnet Command
-
-			// Send response
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-        break;
 
 
         //---------------------------------------------------------------------
