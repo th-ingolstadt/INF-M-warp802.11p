@@ -345,12 +345,16 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           size;
 	u32           evt_log_size;
 	u32           transfer_size;
-	u32           entry_size;
-	u32           entry_per_pkt;
 	u32           bytes_per_pkt;
 	u32           num_bytes;
 	u32           num_pkts;
 	u64           time;
+
+	u32           entry_size;
+	u32           entry_remaining;
+	u32           total_entries;
+	u32           entry_per_pkt;
+	u32           transfer_entry_num;
 
 	u8            mac_addr[6];
 
@@ -637,7 +641,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
                 // Get the list of TXRX Statistics
 	            station_info_list = get_station_info_list();
-	            size              = entry_size * station_info_list->length;
+                total_entries     = station_info_list->length;
+	            size              = entry_size * total_entries;
 
 	            if ( size != 0 ) {
                     // Send the station_info as a series of WARPNet Buffers
@@ -648,6 +653,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	            	num_pkts          = size / bytes_per_pkt + 1;
 		            if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
 
+		            entry_remaining   = total_entries;
 		            bytes_remaining   = size;
 					curr_index        = 0;
 					curr_station_info = (station_info*)(station_info_list->first);
@@ -666,6 +672,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 							transfer_size = bytes_per_pkt;
 						}
 
+						if( entry_remaining < entry_per_pkt) {
+						    transfer_entry_num = entry_remaining;
+						} else {
+						    transfer_entry_num = entry_per_pkt;
+						}
+
 						// Set response args that change per packet
 						respArgs32[2]    = Xil_Htonl( bytes_remaining );
 						respArgs32[3]    = Xil_Htonl( curr_index );
@@ -680,7 +692,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						// Transfer data
 						info_entry = (station_info_entry *) &respArgs32[5];
 
-                        for( j = 0; j < entry_per_pkt; j++ ){
+                        for( j = 0; j < entry_remaining; j++ ){
                             // Set the timestamp for the station_info entry
                         	info_entry->timestamp = time;
 
@@ -701,6 +713,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						// Update our current address and bytes remaining
 						curr_index       = next_index;
 						bytes_remaining -= transfer_size;
+						entry_remaining -= entry_per_pkt;
 					}
 
 					respSent = RESP_SENT;
@@ -1416,8 +1429,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	            respArgs32[1] = 0;
 
                 // Get the list of TXRX Statistics
-	            stats_list = get_statistics();
-	            size       = entry_size * stats_list->length;
+	            stats_list    = get_statistics();
+                total_entries = stats_list->length;
+	            size          = entry_size * total_entries;
 
 	            if ( size != 0 ) {
                     // Send the stats as a series of WARPNet Buffers
@@ -1428,6 +1442,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	            	num_pkts          = size / bytes_per_pkt + 1;
 		            if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
 
+		            entry_remaining   = total_entries;
 		            bytes_remaining   = size;
 					curr_index        = 0;
 					stats             = (statistics_txrx*)(stats_list->first);
@@ -1446,6 +1461,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 							transfer_size = bytes_per_pkt;
 						}
 
+						if( entry_remaining < entry_per_pkt) {
+						    transfer_entry_num = entry_remaining;
+						} else {
+						    transfer_entry_num = entry_per_pkt;
+						}
+
 						// Set response args that change per packet
 						respArgs32[2]    = Xil_Htonl( bytes_remaining );
 						respArgs32[3]    = Xil_Htonl( curr_index );
@@ -1460,7 +1481,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						// Transfer data
 						stats_entry      = (txrx_stats_entry *) &respArgs32[5];
 
-                        for( j = 0; j < entry_per_pkt; j++ ){
+                        for( j = 0; j < transfer_entry_num; j++ ){
                             // Set the timestamp for the stats entry
                         	stats_entry->timestamp = time;
 
@@ -1480,6 +1501,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						// Update our current address and bytes remaining
 						curr_index       = next_index;
 						bytes_remaining -= transfer_size;
+						entry_remaining -= entry_per_pkt;
 					}
 
 					respSent = RESP_SENT;
