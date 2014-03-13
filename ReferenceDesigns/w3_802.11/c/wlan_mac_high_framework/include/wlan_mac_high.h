@@ -74,7 +74,6 @@
 
 #define ADD_ASSOCIATION_ANY_AID 0				///< Special argument to function that adds associations
 
-#define ALLOW_PROMISC_STATISTICS				///< Allow promiscuous statistics kept for unassociated stations.
 #define MAX_NUM_PROMISC_STATS 50				///< Maximum number of promiscuous statistics
 
 /**

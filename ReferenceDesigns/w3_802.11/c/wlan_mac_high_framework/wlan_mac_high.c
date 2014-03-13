@@ -102,6 +102,9 @@ static u32			num_malloc;				///< Tracking variable for number of times malloc ha
 static u32			num_free;				///< Tracking variable for number of times free has been called
 static u32			num_realloc;			///< Tracking variable for number of times realloc has been called
 
+// Statistics Flags
+u8                  promiscuous_stats_enabled;   ///< Are promiscuous statistics collected (1 = Yes / 0 = No)
+
 /******************************** Functions **********************************/
 
 /**
@@ -193,6 +196,10 @@ void wlan_mac_high_init(){
 	num_realloc = 0;
 	num_free = 0;
 
+	// Enable promiscuous statistics by default
+	promiscuous_stats_enabled = 1;
+
+
 	// ***************************************************
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
@@ -207,7 +214,6 @@ void wlan_mac_high_init(){
 	}
 	tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
-
 
 
 	// ***************************************************
@@ -1849,13 +1855,14 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 		//Remove station from the association table;
 		dl_entry_remove(assoc_tbl, &(station->entry));
 
-#ifndef ALLOW_PROMISC_STATISTICS
-		//Remove station's statistics from statististics table
-		dl_entry_remove(stat_tbl, &(station->stats->entry));
-		wlan_mac_high_free(station->stats);
-#else
-		station->stats->is_associated = 0;
-#endif
+		if (promiscuous_stats_enabled) {
+			station->stats->is_associated = 0;
+		} else {
+			//Remove station's statistics from statistics table
+			dl_entry_remove(stat_tbl, &(station->stats->entry));
+			wlan_mac_high_free(station->stats);
+		}
+
 		wlan_mac_high_free(station);
 		wlan_mac_high_print_associations(assoc_tbl);
 		wlan_mac_high_write_hex_display(assoc_tbl->length);
@@ -1889,11 +1896,11 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 	statistics_txrx* oldest_statistics = NULL;
 
 	if(station == NULL){
-#ifndef ALLOW_PROMISC_STATISTICS
-		//This statistics struct isn't being added to an associated station. Furthermore,
-		//Promiscuous statistics are now allowed, so we will return NULL to the calling function.
-		return NULL;
-#endif
+		if (!promiscuous_stats_enabled) {
+			//This statistics struct isn't being added to an associated station. Furthermore,
+			//Promiscuous statistics are now allowed, so we will return NULL to the calling function.
+			return NULL;
+		}
 	}
 
 	station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
@@ -1923,7 +1930,7 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 
 			if(oldest_statistics == NULL){
 				xil_printf("Error: could not find deletable oldest statistics. Ensure that MAX_NUM_PROMISC_STATS > MAX_NUM_ASSOC\n");
-				xil_printf("if using ALLOW_PROMISC_STATISTICS\n");
+				xil_printf("if allowing promiscuous statistics\n");
 			} else {
 				dl_entry_remove(stat_tbl, &(oldest_statistics->entry));
 				wlan_mac_high_free(oldest_statistics);
