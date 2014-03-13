@@ -345,6 +345,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           size;
 	u32           evt_log_size;
 	u32           transfer_size;
+	u32           entry_size;
+	u32           entry_per_pkt;
 	u32           bytes_per_pkt;
 	u32           num_bytes;
 	u32           num_pkts;
@@ -352,6 +354,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 	u8            mac_addr[6];
 
+	dl_list     * station_info_list;
 	station_info* curr_station_info;
 
 
@@ -581,11 +584,143 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		break;
 
 
-		// Case NODE_ASSN_GET_STATUS  is implemented in the child classes
+		//---------------------------------------------------------------------
+		case NODE_GET_STATION_INFO:
+            // NODE_GET_STATION_INFO Packet Format:
+			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xFF means all station info)
 
-		// Case NODE_ASSN_SET_TABLE   is implemented in the child classes
+			xil_printf("Get Station Info\n");
 
-		// Case NODE_DISASSOCIATE     is implemented in the child classes
+			// Get MAC Address
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+        	// Local variables
+        	station_info_entry * info_entry;
+			u32                  tx_params_size    = sizeof(tx_params);
+			u32                  station_info_size = 13 + STATION_INFO_HOSTNAME_MAXLEN;
+
+        	entry_size = sizeof(station_info_entry);
+
+			// If parameter is not the magic number
+			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+				// Find the station_info entry
+				curr_station_info = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
+
+				if (curr_station_info != NULL) {
+					info_entry = (station_info_entry *) &respArgs32[respIndex];
+
+					info_entry->timestamp = get_usec_timestamp();
+
+					// Copy the station info to the log entry
+					//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
+					//          similar to the station info and tx params structures in wlan_mac_high.h
+					memcpy( (void *)(&info_entry->addr), (void *)(&curr_station_info->addr), station_info_size );
+					memcpy( (void *)(&info_entry->rate), (void *)(&curr_station_info->tx.phy.rate), tx_params_size );
+
+					xil_printf("Getting Station Entry for node: %02x", mac_addr[0]);
+					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+				} else {
+					xil_printf("Could not find specified node: %02x", mac_addr[0]);
+					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+				}
+
+				// Use the WARPNet framework to send the single station_info entry
+				respHdr->length += entry_size;
+				respHdr->numArgs = respIndex;
+			} else {
+				// Create a WARPNet buffer response to send all station_info entries
+
+	            // Initialize constant parameters
+	            respArgs32[0] = 0xFFFFFFFF;
+	            respArgs32[1] = 0;
+
+                // Get the list of TXRX Statistics
+	            station_info_list = get_station_info_list();
+	            size              = entry_size * station_info_list->length;
+
+	            if ( size != 0 ) {
+                    // Send the station_info as a series of WARPNet Buffers
+
+	            	// Set loop variables
+	            	entry_per_pkt     = (max_words * 4) / entry_size;
+	            	bytes_per_pkt     = entry_per_pkt * entry_size;
+	            	num_pkts          = size / bytes_per_pkt + 1;
+		            if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
+
+		            bytes_remaining   = size;
+					curr_index        = 0;
+					curr_station_info = (station_info*)(station_info_list->first);
+					time              = get_usec_timestamp();
+
+					// Iterate through all the packets
+					for( i = 0; i < num_pkts; i++ ) {
+
+						// Get the next index
+						next_index  = curr_index + bytes_per_pkt;
+
+						// Compute the transfer size (use the full buffer unless you run out of space)
+						if( next_index > size ) {
+							transfer_size = size - curr_index;
+						} else {
+							transfer_size = bytes_per_pkt;
+						}
+
+						// Set response args that change per packet
+						respArgs32[2]    = Xil_Htonl( bytes_remaining );
+						respArgs32[3]    = Xil_Htonl( curr_index );
+						respArgs32[4]    = Xil_Htonl( transfer_size );
+
+						// Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all
+						//   three command parameters for each packet that is sent.
+						respHdr->cmd     = cmdHdr->cmd;
+						respHdr->length  = 20 + transfer_size;
+						respHdr->numArgs = 5;
+
+						// Transfer data
+						info_entry = (station_info_entry *) &respArgs32[5];
+
+                        for( j = 0; j < entry_per_pkt; j++ ){
+                            // Set the timestamp for the station_info entry
+                        	info_entry->timestamp = time;
+
+        					// Copy the station info to the log entry
+        					//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
+        					//          similar to the station info and tx params structures in wlan_mac_high.h
+        					memcpy( (void *)(&info_entry->addr), (void *)(&curr_station_info->addr), station_info_size );
+        					memcpy( (void *)(&info_entry->rate), (void *)(&curr_station_info->tx.phy.rate), tx_params_size );
+
+                            // Increment the pointers
+        					curr_station_info  = station_info_next(curr_station_info);
+        					info_entry         = (station_info_entry *)(((void *)info_entry) + entry_size );
+                        }
+
+						// Send the packet
+						node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+
+						// Update our current address and bytes remaining
+						curr_index       = next_index;
+						bytes_remaining -= transfer_size;
+					}
+
+					respSent = RESP_SENT;
+	            } else {
+					// Set empty response args
+					respArgs32[2]   = 0;
+					respArgs32[3]   = 0;
+					respArgs32[4]   = 0;
+
+					// Use the WARPNet framework to send the empty WARPNet Buffer
+					respHdr->length += (5 * sizeof(respArgs32));
+					respHdr->numArgs = respIndex;
+	            }
+			}
+		break;
+
+
+		// Case NODE_SET_STATION_INFO  is implemented in the child classes
+
+		// Case NODE_DISASSOCIATE      is implemented in the child classes
 
 
 	    //---------------------------------------------------------------------
@@ -641,44 +776,38 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
 			if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
 
-			// If parameter is not the magic number, then set the TX rate
-			if ( rate != NODE_TX_RATE_RSVD_VAL ) {
-				// If the ID is not for all nodes, configure the node
-				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-                    // Set the rate of the station
-					curr_station_info = (station_info*)(association_table.first);
-					for(i=0; i < association_table.length; i++){
-						if (curr_station_info->AID == id){
+			station_info_list = get_station_info_list();
+
+			// If the ID is not for all nodes, configure the node
+			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+				// Set the rate of the station
+				curr_station_info = (station_info*)(station_info_list->first);
+				for(i=0; i < station_info_list->length; i++){
+					if (curr_station_info->AID == id){
+						// If parameter is not the magic number, then set the TX rate
+						if ( rate != NODE_TX_RATE_RSVD_VAL ) {
 							curr_station_info->tx.phy.rate = rate;
 							xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
-							break;
+						} else {
+							rate = curr_station_info->tx.phy.rate;
 						}
-						curr_station_info = (station_info*)((curr_station_info->entry).next);
+						break;
 					}
-				} else {
-                    // Set the rate of all stations
+					curr_station_info = (station_info*)((curr_station_info->entry).next);
+				}
+			} else {
+				// If parameter is not the magic number, then set the TX rate
+				if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+					// Set the rate of all stations
 					default_unicast_rate = rate;
 
-					curr_station_info = (station_info*)(association_table.first);
-					for(i=0; i < association_table.length; i++){
+					curr_station_info = (station_info*)(station_info_list->first);
+					for(i=0; i < station_info_list->length; i++){
 						curr_station_info->tx.phy.rate = default_unicast_rate;
 						curr_station_info = (station_info*)((curr_station_info->entry).next);
 					}
 
 					xil_printf("Setting Default TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
-				}
-			} else {
-				// If the ID is not for all nodes, configure the node
-				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-					// Get the rate of the station
-					curr_station_info = (station_info*)(association_table.first);
-					for(i=0; i < association_table.length; i++){
-						if (curr_station_info->AID == id){
-							rate = curr_station_info->tx.phy.rate;
-							break;
-						}
-						curr_station_info = (station_info*)((curr_station_info->entry).next);
-					}
 				} else {
 					// Get the default rate
 					rate = default_unicast_rate;
@@ -1247,12 +1376,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	// Local variables
         	dl_list          * stats_list;
         	statistics_txrx  * stats;
-        	u32                entry_per_pkt;
         	txrx_stats_entry * stats_entry;
-        	u32                entry_size  = sizeof(txrx_stats_entry);
         	u32                stats_size  = sizeof(statistics_txrx) - sizeof(dl_entry);
 
-			// If parameter is not the magic number
+        	entry_size = sizeof(txrx_stats_entry);
+
+        	// If parameter is not the magic number
 			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
 				// Find the statistics entry
                 stats = wlan_mac_high_find_statistics_ADDR( get_statistics(), &mac_addr[0]);
