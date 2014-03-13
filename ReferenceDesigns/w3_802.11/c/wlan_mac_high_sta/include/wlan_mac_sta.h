@@ -39,7 +39,7 @@
 #define SSID_LEN_MAX                   32
 #define NUM_BASIC_RATES_MAX            10
 
-#define MAX_RETRY                       7
+#define MAX_NUM_TX                      7
 #define MAX_NUM_ASSOC				    1
 
 
