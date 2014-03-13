@@ -191,22 +191,22 @@ class CmdRespMessage(Message):
         self.length = length
         self.num_args = num_args
         self.args = args or []
+        self.raw_data = bytearray(self.serialize())
 
     def serialize(self):
         """Return a bytes object of a packed command / response."""
-        # print(self)              # For Debug
+        ret_val = b''
         
         if self.num_args == 0:
-            return struct.pack('!I 2H',
-                               self.command,
-                               self.length,
-                               self.num_args)
+            ret_val = struct.pack('!I 2H', self.command, self.length, 
+                                  self.num_args)
         else:
-            return struct.pack('!I 2H %dI' % self.num_args,
-                               self.command,
-                               self.length,
-                               self.num_args,
-                               *self.args)
+            ret_val = struct.pack('!I 2H %dI' % self.num_args, self.command,
+                                  self.length, self.num_args, *self.args)
+
+        self.raw_data = bytearray(ret_val)
+        return ret_val
+                               
 
     def deserialize(self, buffer):
         """Populate the fields of a WnCmdResp from a buffer."""
@@ -217,11 +217,15 @@ class CmdRespMessage(Message):
             self.num_args = dataTuple[2]
             self.args = list(struct.unpack_from('!%dI' % self.num_args, 
                                                 buffer, offset=8))
-            self.raw_data = buffer
+            self.raw_data = bytearray(buffer)
         except struct.error as err:
             # Reset Cmd/Resp.  We want predictable behavior on error
             self.reset()
             print("Error unpacking WARPNet cmd/resp: {0}".format(err))
+    
+    def get_bytes(self):
+        """Returns the data buffer as bytes."""
+        return self.raw_data
     
     def sizeof(self):
         """Return the size of the cmd/resp including all attributes."""

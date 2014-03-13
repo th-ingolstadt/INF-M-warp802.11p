@@ -426,27 +426,25 @@ class WlanExpNode(wn_node.WnNode):
         or a list of booleans the same dimension as the node_list.  To 
         return True, both the current node and the node in the node_list 
         must be associated with each other.
-        
-        NOTE:  The underlying implementation of this function will change 
-        in the future.        
         """
         ret_val = []
         
         if not node_list is None:
-            my_stats = self.stats_get_txrx(node_list)
-
             if (type(node_list) is list):
                 for idx, node in enumerate(node_list):
-                    node_stats = node.send_cmd(cmds.StatsGetTxRx(self))
-
-                    if ((my_stats['associated'] == 1) and (node_stats['associated'] == 1)):
+                    my_info   = self.node_get_station_info(node)
+                    node_info = node.send_cmd(cmds.NodeGetStationInfo(self))
+                    
+                    # If the lists are not empty, then the nodes are associated
+                    if my_info and node_info:
                         ret_val.append(True)
                     else:
                         ret_val.append(False)
             else:
-                node_stats = node_list.send_cmd(cmds.StatsGetTxRx(self))
+                my_info   = self.node_get_station_info(node_list)
+                node_info = node_list.send_cmd(cmds.NodeGetStationInfo(self))
 
-                if ((my_stats['associated'] == 1) and (node_stats['associated'] == 1)):
+                if my_info and node_info:
                     ret_val = True
                 else:
                     ret_val = False
@@ -455,6 +453,29 @@ class WlanExpNode(wn_node.WnNode):
         
         return ret_val
 
+
+    def node_get_station_info(self, node_list=None):
+        """Get the station info from the node.
+        
+        Returns a list of station info dictionaries.
+
+        If a node_list is provided, then the command will only return
+        the station info for the given nodes.  Otherwise, it will return 
+        all the station infos on the node.
+        """
+        ret_info = []
+        if not node_list is None:
+            if (type(node_list) is list):
+                for node in node_list:
+                    stats = self.send_cmd(cmds.NodeGetStationInfo(node))
+                    ret_info.append(stats)
+            else:
+                ret_info = self.send_cmd(cmds.NodeGetStationInfo(node_list))
+        else:
+            ret_info = self.send_cmd(cmds.NodeGetAllStationInfo())
+        
+        return ret_info
+    
 
     def node_set_time(self, time):
         """Sets the time in microseconds on the node.

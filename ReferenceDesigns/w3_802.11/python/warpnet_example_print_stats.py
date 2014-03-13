@@ -99,7 +99,7 @@ def run_experiment():
 
         # For each of the APs, get the statistics
         for ap in nodes_ap:
-            station_info = None
+            station_info = ap.node_get_station_info()
             stats        = ap.stats_get_txrx()
             print_stats(stats, station_info)
        
@@ -123,12 +123,13 @@ def print_stats(stats, station_info=None):
             for station in station_info:
                 if (stat['mac_addr'] == station['mac_addr']):
                     stat_id  = station['host_name']
+                    stat_id  = stat_id.strip('\x00')
                     hostname = True
         
         if not hostname:
             stat_id = ''.join('{0:02X}:'.format(ord(x)) for x in stat_id)[:-1]
 
-        msg += "{0:20s} ".format(stat_id)
+        msg += "{0:<20} ".format(stat_id)
         msg += "{0:8d} ".format(stat['num_tx_total'])
         msg += "{0:8d} ".format(stat['data_num_rx_success'])
         msg += "{0:8d} ".format(stat['mgmt_num_rx_success'])

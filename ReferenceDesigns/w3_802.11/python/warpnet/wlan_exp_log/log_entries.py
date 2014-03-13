@@ -330,7 +330,8 @@ entry_station_info.append_field_defs([
             ('flags',                  'I',      'uint32'),
             ('rate',                   'B',      'uint8'),
             ('antenna_mode',           'B',      'uint8'),
-            ('max_retry',              'B',      'uint8')])
+            ('max_retry',              'B',      'uint8'),
+            ('padding',                'x',      'uint8')])
 
 
 # WARPNet Command Info
