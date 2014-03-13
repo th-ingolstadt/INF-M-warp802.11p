@@ -319,7 +319,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u32 ts_old = 0;
 
-	for(i = 0; i < tx_mpdu->retry_count; i++){
+	for(i = 0; i < tx_mpdu->num_tx; i++){
 
 		tx_low_event_log_entry = get_next_empty_tx_low_entry();
 		if(tx_low_event_log_entry != NULL){
@@ -359,7 +359,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		tx_high_event_log_entry->rate                     = tx_mpdu->params.phy.rate;
 		tx_high_event_log_entry->chan_num				  = mac_param_chan;
 		tx_high_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
-		tx_high_event_log_entry->retry_count              = tx_mpdu->retry_count;
+		tx_high_event_log_entry->num_tx                   = tx_mpdu->num_tx;
 		tx_high_event_log_entry->timestamp_create         = tx_mpdu->timestamp_create;
 		tx_high_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
 		tx_high_event_log_entry->delay_done               = tx_mpdu->delay_done;
@@ -469,7 +469,7 @@ void ltg_event(u32 id, void* callback_arg){
 				tx_length += sizeof(llc_header);
 				tx_length += payload_length;
 
-				wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)station, tx_length, MAX_RETRY,
+				wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)station, tx_length, MAX_NUM_TX,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(AID_TO_QID(station->AID), &checkout);
@@ -506,7 +506,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 		station = wlan_mac_high_find_station_info_ADDR(&association_table, eth_dest);
 		if( station != NULL ) {
 			if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size){
-				wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)station, tx_length, MAX_RETRY,
+				wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)station, tx_length, MAX_NUM_TX,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 				enqueue_after_end(AID_TO_QID(station->AID), tx_queue_list);
@@ -583,7 +583,7 @@ void association_timestamp_check() {
 
 		 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
 
-		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)curr_station_info, tx_length, MAX_RETRY,
+		 		wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)curr_station_info, tx_length, MAX_NUM_TX,
 		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 		 		enqueue_after_end(AID_TO_QID(curr_station_info->AID), &checkout);
@@ -723,7 +723,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									tx_length = wlan_create_data_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 									mpdu_ptr_u8 += sizeof(mac_header_80211);
 									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
-									wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)associated_station, mpdu_info->length, MAX_RETRY,
+									wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)associated_station, mpdu_info->length, MAX_NUM_TX,
 																 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 									enqueue_after_end(AID_TO_QID(associated_station->AID),  &checkout);
@@ -760,7 +760,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									tx_queue = (packet_bd*)(checkout.first);
 									wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 									tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
-									wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY,
+									wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
 													 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 									enqueue_after_end(MANAGEMENT_QID, &checkout);
@@ -808,7 +808,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							tx_length = wlan_create_probe_resp_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
-							wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY,
+							wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
 											 (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 							enqueue_after_end(MANAGEMENT_QID, &checkout);
@@ -846,7 +846,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
 
-							wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY,
+							wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
 											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 							enqueue_after_end(MANAGEMENT_QID, &checkout);
@@ -865,7 +865,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 						tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_UNSPECIFIED);
 
-						wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY,
+						wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
 										 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 						enqueue_after_end(MANAGEMENT_QID, &checkout);
@@ -900,7 +900,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, STATUS_SUCCESS, associated_station->AID);
 
-							wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)associated_station, tx_length, MAX_RETRY,
+							wlan_mac_high_setup_tx_frame_info ( tx_queue, (void*)associated_station, tx_length, MAX_NUM_TX,
 											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 							enqueue_after_end(AID_TO_QID(associated_station->AID), &checkout);
@@ -919,7 +919,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							tx_length = wlan_create_association_response_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0);
 
-							wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY,
+							wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
 											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 							enqueue_after_end(MANAGEMENT_QID, &checkout);
@@ -1066,7 +1066,7 @@ u32  deauthenticate_station( station_info* station ) {
 
 		tx_length = wlan_create_deauth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, DEAUTH_REASON_INACTIVITY);
 
-		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_RETRY,
+		wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
 						 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
 		//
