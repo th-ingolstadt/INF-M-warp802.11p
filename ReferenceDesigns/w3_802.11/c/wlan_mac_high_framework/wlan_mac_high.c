@@ -1110,7 +1110,7 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 			xil_printf("CDMA Error: code %d\n", return_value);
 		}
 	} else {
-		xil_printf("CDMA Error: source and destination addresses must not located in the DLMB. Using memcpy instead.\n");
+		xil_printf("CDMA Error: source and destination addresses must not located in the DLMB. Using memcpy instead. memcpy(0x%08x,0x%08x,%d)\n",dest,src,size);
 		memcpy(dest,src,size);
 	}
 
