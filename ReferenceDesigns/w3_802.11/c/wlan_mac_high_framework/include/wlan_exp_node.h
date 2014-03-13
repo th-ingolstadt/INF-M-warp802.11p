@@ -43,8 +43,8 @@
 
 #define NODE_TEMPERATURE                5
 
-#define NODE_ASSN_GET_STATUS           10
-#define NODE_ASSN_SET_TABLE            11
+#define NODE_GET_STATION_INFO          10
+#define NODE_SET_STATION_INFO          11
 
 #define NODE_DISASSOCIATE              20
 
@@ -79,14 +79,17 @@
 #define NODE_LOG_CONFIG_FLAG_WRAP      0x00000001
 #define NODE_LOG_CONFIG_FLAG_LOGGING   0x00000002
 
-#define NODE_ADD_STATS_TO_LOG          60
-#define NODE_GET_STATS                 61
-#define NODE_RESET_STATS               62
+#define NODE_STATS_RESET_TXRX          60
+#define NODE_STATS_CONFIG_TXRX         61
+#define NODE_STATS_ADD_TXRX_TO_LOG     62
+#define NODE_STATS_GET_TXRX            63
+
+#define NODE_STATS_CONFIG_FLAG_PROMISC 0x00000001
+
+#define NODE_STATS_CONFIG_RSVD_VAL     0xFFFFFFFF
 
 #define NODE_QUEUE_TX_DATA_PURGE_ALL   70
 
-
-#define NODE_CONFIG_DEMO               90
 
 
 #define NODE_CONFIG_ALL_ASSOCIATED     0xFFFFFFFF

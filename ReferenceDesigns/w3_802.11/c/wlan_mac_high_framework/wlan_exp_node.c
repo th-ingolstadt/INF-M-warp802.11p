@@ -62,6 +62,10 @@ extern int                 sock_async; // UDP socket for async transmissions fro
 extern struct sockaddr_in  addr_async;
 
 
+// Declared in wlan_mac_high.c
+extern u8                  promiscuous_stats_enabled;
+
+
 // Declared in each of the AP / STA
 extern u8                  default_tx_gain_target;
 extern u8                  default_unicast_rate;
@@ -327,7 +331,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     unsigned int  max_words  = 320;                // Max number of u32 words that can be sent in the packet (~1400 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
-    unsigned int  temp, temp2, i;
+    unsigned int  temp, temp2, i, j;
 
     // Variables for functions
     u32           id;
@@ -1054,6 +1058,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
             bytes_per_pkt     = max_words * 4;
             num_pkts          = size / bytes_per_pkt + 1;
+            if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
             curr_index        = start_index;
             bytes_remaining   = size;
 
@@ -1178,7 +1183,42 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 
 	    //---------------------------------------------------------------------
-		case NODE_ADD_STATS_TO_LOG:
+		case NODE_STATS_CONFIG_TXRX:
+            // NODE_STATS_CONFIG_TXRX Packet Format:
+			//   - cmdArgs32[0]  - flags
+			//                     [ 0] - Promiscuous stats collected = 1
+			//                            Promiscuous stats not collected = 0
+			//
+			//   If the value is NODE_STATS_CONFIG_RSVD_VAL, then the flags will
+			//   not be modified.
+			//
+            //   - respArgs32[0] - Value of flags
+			//
+
+			// Get flags
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			if (temp != NODE_STATS_CONFIG_RSVD_VAL){
+				// Configure the LOG based on the flag bits
+				if ( ( temp & NODE_STATS_CONFIG_FLAG_PROMISC ) == NODE_STATS_CONFIG_FLAG_PROMISC ) {
+					promiscuous_stats_enabled = 1;
+				} else {
+					promiscuous_stats_enabled = 0;
+				}
+			}
+			// Set the return value
+			status = 0;
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_STATS_ADD_TXRX_TO_LOG:
 			// Add the current statistics to the log
 			// TODO:  Add parameter to command to transmit stats
 			temp = add_all_txrx_statistics_to_log(WN_NO_TRANSMIT);
@@ -1194,55 +1234,142 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 
 		//---------------------------------------------------------------------
-		case NODE_GET_STATS:
+		case NODE_STATS_GET_TXRX:
             // NODE_GET_STATS Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all stats)
+			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xFF means all stats)
+
+			xil_printf("Get TXRX Statistics\n");
 
 			// Get MAC Address
         	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
         	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
         	// Local variables
-        	txrx_stats_entry * stats_entry = (txrx_stats_entry *) &respArgs32[respIndex];
-        	u32                entry_size = sizeof(txrx_stats_entry);
-        	u32                stats_size = sizeof(statistics_txrx) - sizeof(dl_entry);
+        	dl_list          * stats_list;
+        	statistics_txrx  * stats;
+        	u32                entry_per_pkt;
+        	txrx_stats_entry * stats_entry;
+        	u32                entry_size  = sizeof(txrx_stats_entry);
+        	u32                stats_size  = sizeof(statistics_txrx) - sizeof(dl_entry);
 
-        	size = 0;
-
-			// If parameter is not the magic number, then remove the LTG
+			// If parameter is not the magic number
 			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-				// Find the station info
-				curr_station_info = (station_info*)(association_table.first);
-				for(i=0; i < association_table.length; i++){
-					if (curr_station_info->AID == id){ size = entry_size; break; }
-					curr_station_info = (station_info*)((curr_station_info->entry).next);
-				}
+				// Find the statistics entry
+                stats = wlan_mac_high_find_statistics_ADDR( get_statistics(), &mac_addr[0]);
 
-				if (size != 1) {
+				if (stats != NULL) {
+					stats_entry = (txrx_stats_entry *) &respArgs32[respIndex];
+
 					stats_entry->timestamp = get_usec_timestamp();
 
 					// Copy the statistics to the log entry
 					//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
 					//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
-					memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&curr_station_info->stats->last_timestamp), stats_size );
+					memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&stats->last_timestamp), stats_size );
 
-					xil_printf("Getting Statistics for AID = %d \n", id);
+					xil_printf("Getting Statistics for node: %02x", mac_addr[0]);
+					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
                     // print_entry(0, ENTRY_TYPE_TXRX_STATS, stats_entry);
 
 				} else {
-					xil_printf("Could not find specified node:  AID = %d", id);
+					xil_printf("Could not find specified node: %02x", mac_addr[0]);
+					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
 				}
-			} else {
-				xil_printf("Command not supported.");
-			}
 
-			respHdr->length += size;
-			respHdr->numArgs = respIndex;
+				// Use the WARPNet framework to send the single stats entry
+				respHdr->length += entry_size;
+				respHdr->numArgs = respIndex;
+			} else {
+				// Create a WARPNet buffer response to send all stats entries
+
+	            // Initialize constant parameters
+	            respArgs32[0] = 0xFFFFFFFF;
+	            respArgs32[1] = 0;
+
+                // Get the list of TXRX Statistics
+	            stats_list = get_statistics();
+	            size       = entry_size * stats_list->length;
+
+	            if ( size != 0 ) {
+                    // Send the stats as a series of WARPNet Buffers
+
+	            	// Set loop variables
+	            	entry_per_pkt     = (max_words * 4) / entry_size;
+	            	bytes_per_pkt     = entry_per_pkt * entry_size;
+	            	num_pkts          = size / bytes_per_pkt + 1;
+		            if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
+
+		            bytes_remaining   = size;
+					curr_index        = 0;
+					stats             = (statistics_txrx*)(stats_list->first);
+					time              = get_usec_timestamp();
+
+					// Iterate through all the packets
+					for( i = 0; i < num_pkts; i++ ) {
+
+						// Get the next index
+						next_index  = curr_index + bytes_per_pkt;
+
+						// Compute the transfer size (use the full buffer unless you run out of space)
+						if( next_index > size ) {
+							transfer_size = size - curr_index;
+						} else {
+							transfer_size = bytes_per_pkt;
+						}
+
+						// Set response args that change per packet
+						respArgs32[2]    = Xil_Htonl( bytes_remaining );
+						respArgs32[3]    = Xil_Htonl( curr_index );
+						respArgs32[4]    = Xil_Htonl( transfer_size );
+
+						// Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all
+						//   three command parameters for each packet that is sent.
+						respHdr->cmd     = cmdHdr->cmd;
+						respHdr->length  = 20 + transfer_size;
+						respHdr->numArgs = 5;
+
+						// Transfer data
+						stats_entry      = (txrx_stats_entry *) &respArgs32[5];
+
+                        for( j = 0; j < entry_per_pkt; j++ ){
+                            // Set the timestamp for the stats entry
+                        	stats_entry->timestamp = time;
+
+    						// Copy the statistics to the log entry
+    						//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
+    						//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
+    						memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&stats->last_timestamp), stats_size );
+
+                            // Increment the pointers
+							stats       = statistics_next(stats);
+							stats_entry = (txrx_stats_entry *)(((void *)stats_entry) + entry_size );
+                        }
+
+						// Send the packet
+						node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+
+						// Update our current address and bytes remaining
+						curr_index       = next_index;
+						bytes_remaining -= transfer_size;
+					}
+
+					respSent = RESP_SENT;
+	            } else {
+					// Set empty response args
+					respArgs32[2]   = 0;
+					respArgs32[3]   = 0;
+					respArgs32[4]   = 0;
+
+					// Use the WARPNet framework to send the empty WARPNet Buffer
+					respHdr->length += (5 * sizeof(respArgs32));
+					respHdr->numArgs = respIndex;
+	            }
+			}
 		break;
 
 
 		//---------------------------------------------------------------------
-		case NODE_RESET_STATS:
+		case NODE_STATS_RESET_TXRX:
 			xil_printf("Reseting Statistics\n");
 
 			reset_station_statistics();
@@ -1257,9 +1384,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		break;
 
 
-		// Case NODE_CONFIG_DEMO is implemented in the child classes
-
-
         //---------------------------------------------------------------------
 		default:
 			// Call standard function in child class to parse parameters implmented there
@@ -1269,6 +1393,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 	return respSent;
 }
+
 
 
 
@@ -1730,7 +1855,6 @@ u32  wn_get_max_temp      ( void ) { return 0; }
 void node_ltg_cleanup(u32 id, void* callback_arg){
 	wlan_mac_high_free( callback_arg );
 }
-
 
 
 
