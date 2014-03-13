@@ -131,7 +131,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 	switch(cmdID){
 
 		//---------------------------------------------------------------------
-		case NODE_ASSN_GET_STATUS:
+		case NODE_GET_STATION_INFO:
             // NODE_GET_ASSN_STATUS Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
@@ -184,7 +184,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_ASSN_SET_TABLE:
+		case NODE_SET_STATION_INFO:
 			xil_printf("STA - Set association table not supported\n");
 		break;
 
@@ -199,7 +199,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 			xil_printf("Node Disassociate - STA - Not Supported \n");
 
-			// Send response of current channel
+			// Send response of zero
             respArgs32[respIndex++] = Xil_Htonl( 0 );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
@@ -321,28 +321,6 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
-
-
-	    //---------------------------------------------------------------------
-		case NODE_CONFIG_DEMO:
-			// Configure the Demo
-			//
-			// Message format:
-			//     cmdArgs32[0]   Flags
-			//     cmdArgs32[1]   Inter-packet Sleep (usec)
-			//
-			temp       = Xil_Ntohl(cmdArgs32[0]);
-			temp2      = Xil_Ntohl(cmdArgs32[1]);
-
-			xil_printf("Configuring Demo:  flags = 0x%08x  sleep time = %d\n", temp, temp2);
-
-			// Pass the parameters directly to the config_demo function
-			//wlan_mac_high_config_demo(temp, temp2); //TODO: Remove WARPnet command
-
-			// Send response
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-        break;
 
 
 		//---------------------------------------------------------------------
