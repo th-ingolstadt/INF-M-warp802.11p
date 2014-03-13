@@ -362,7 +362,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					}
 
 
-					low_tx_details_size = sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.retry_max;
+					low_tx_details_size = sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.num_tx_max;
 					low_tx_details = malloc(low_tx_details_size);
 					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
 
@@ -370,10 +370,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
 					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
-					//xil_printf("\nRetry Count: %d\n", tx_mpdu->retry_count);
-					//for(i = 0; i < tx_mpdu->retry_count; i++){
-					//	xil_printf("[%d]   %d\n", (u32)phy_tx_timestamps[i], (u32)((u64)phy_tx_timestamps[i] + (u64)tx_mpdu->delay_accept + (u64)tx_mpdu->timestamp_create));
-					//}
 
 					if(status == 0){
 						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
@@ -392,7 +388,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						if(low_tx_details != NULL){
 							ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
 							if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
-								ipc_msg_to_high.num_payload_words = ( (tx_mpdu->retry_count)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+								ipc_msg_to_high.num_payload_words = ( (tx_mpdu->num_tx)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
 							} else {
 								ipc_msg_to_high.num_payload_words = ( ((IPC_BUFFER_MAX_NUM_WORDS << 2)/sizeof(wlan_mac_low_tx_details)  )*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
 							}
