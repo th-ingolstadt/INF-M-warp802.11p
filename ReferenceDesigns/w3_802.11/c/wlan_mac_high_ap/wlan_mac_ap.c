@@ -855,23 +855,24 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						goto mpdu_rx_process_end;
 					}
 				} else {
-					//Checkout 1 element from the queue;
-					queue_checkout(&checkout,1);
+					if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){
+						//Checkout 1 element from the queue;
+						queue_checkout(&checkout,1);
 
-					if(checkout.length == 1){ //There was at least 1 free queue element
-						tx_queue = (packet_bd*)(checkout.first);
+						if(checkout.length == 1){ //There was at least 1 free queue element
+							tx_queue = (packet_bd*)(checkout.first);
 
-						wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
+							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, eeprom_mac_addr );
 
-						tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_UNSPECIFIED);
+							tx_length = wlan_create_auth_frame((void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame, &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_UNSPECIFIED);
 
-						wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
-										 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+							wlan_mac_high_setup_tx_frame_info ( tx_queue, NULL, tx_length, MAX_NUM_TX,
+											 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
-						enqueue_after_end(MANAGEMENT_QID, &checkout);
-						check_tx_queue();
+							enqueue_after_end(MANAGEMENT_QID, &checkout);
+							check_tx_queue();
+						}
 					}
-
 					// Finish function
 					goto mpdu_rx_process_end;
 				}
