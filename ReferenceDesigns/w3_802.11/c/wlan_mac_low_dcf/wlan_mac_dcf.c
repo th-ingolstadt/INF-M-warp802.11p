@@ -301,7 +301,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
-	for(i=0; i<mpdu_info->params.mac.retry_max ; i++){
+	for(i=0; i<mpdu_info->params.mac.num_tx_max ; i++){
 		//Loop over retransmissions
 		//Note: this loop will terminate early if retransmissions aren't needed
 		//(i.e. ACK is received)
@@ -425,7 +425,7 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 
 	tx_80211_header = (mac_header_80211*)((void*)(TX_PKT_BUF_TO_ADDR(pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET));
 
-	rc_ptr = &(tx_mpdu->retry_count);
+	rc_ptr = &(tx_mpdu->num_tx);
 
 	if(tx_mpdu->length > RTS_THRESHOLD){
 		station_rc_ptr = &stationLongRetryCount;
@@ -433,7 +433,7 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 		station_rc_ptr = &stationShortRetryCount;
 	}
 
-	retry_limit = tx_mpdu->params.mac.retry_max;
+	retry_limit = tx_mpdu->params.mac.num_tx_max;
 
 	switch(reason){
 		case DCF_CW_UPDATE_MPDU_TX_ERR:
