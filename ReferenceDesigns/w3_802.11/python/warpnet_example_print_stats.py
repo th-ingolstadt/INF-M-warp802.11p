@@ -130,7 +130,7 @@ def print_stats(stats, station_info=None):
             stat_id = ''.join('{0:02X}:'.format(ord(x)) for x in stat_id)[:-1]
 
         msg += "{0:<20} ".format(stat_id)
-        msg += "{0:8d} ".format(stat['num_tx_total'])
+        msg += "{0:8d} ".format(stat['num_high_tx_total'])
         msg += "{0:8d} ".format(stat['data_num_rx_success'])
         msg += "{0:8d} ".format(stat['mgmt_num_rx_success'])
         msg += "{0:8d} ".format(0)

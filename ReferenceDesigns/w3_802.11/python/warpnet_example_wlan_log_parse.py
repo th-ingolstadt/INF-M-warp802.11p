@@ -37,6 +37,8 @@ with open(LOGFILE, 'rb') as fh:
 
 # Generate the index of log entry locations sorted by log entry type
 log_index_raw = log_util.gen_log_index_raw(log_b)
+
+# Describe the raw log
 # log_util.log_index_print_summary(log_index_raw, "Raw Log Index:")
 
 
@@ -51,7 +53,7 @@ log_index_raw = log_util.gen_log_index_raw(log_b)
 # Make sure we have 'RX_OFDM', 'TX' and 'RX_ALL' entries in the output index
 #   for examles 1, 2 and 3 respectively
 log_index = log_util.filter_log_index(log_index_raw, 
-                                      include_only=['RX_ALL', 'RX_OFDM', 'TX'], 
+                                      include_only=['RX_ALL', 'RX_OFDM', 'TX', 'WN_CMD_INFO'], 
                                       merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
 
 log_util.log_index_print_summary(log_index, "Filtered Log Index:")
@@ -62,8 +64,8 @@ log_util.log_index_print_summary(log_index, "Filtered Log Index:")
 #   Global 'wlan_exp_log_entry_types' lists all known log entry types
 log_nd = log_util.gen_log_ndarrays(log_b, log_index)
 
-# Describe the decoded log entries
-log_util.log_index_print_summary(log_nd, "NumPy Array Summary:")
+# Describe the NumPy arrays
+# log_util.log_index_print_summary(log_nd, "NumPy Array Summary:")
 
 
 ###############################################################################
@@ -139,6 +141,7 @@ try:
 except IndexError:
     print("\nExample 2: No Transmit packets in log.")
 
+
 #################################################################################################
 # Example 3: Calculate total number of packets and bytes received from each distinct MAC address
 
@@ -189,5 +192,54 @@ except IndexError:
     print("\nExample 3: No Receive packets in log.")
 
 
+#################################################################################################
+# Example 4: Count the different WARPNet commands for a given source ID
+
+try:
+    # Extract all WARPNet commands
+    log_wn_cmd = log_nd['WN_CMD_INFO']
+        
+    # Extract an array of the source IDs and Commands
+    wn_src_id  = log_wn_cmd['src_id']
+    wn_cmd     = log_wn_cmd['command']
+
+    # Build a dictionary using src id as a key to a dictionary of command counts
+    wn_cmd_counts = dict()
+    
+    for src_id in np.unique(wn_src_id):
+        wn_cmd_counts[src_id] = dict()
+        
+        wn_src_id_idx = np.squeeze(wn_src_id == src_id)
+        
+        wn_cmds_for_src_id = wn_cmd[wn_src_id_idx]
+
+        for cmd in np.unique(wn_cmds_for_src_id):
+            wn_cmd_idx = np.squeeze(wn_cmds_for_src_id == cmd)
+
+            wn_cmd_counts[src_id][cmd] = len(wn_cmds_for_src_id[wn_cmd_idx])
+
+    # Print the results
+    msg  = "\nExample 4: WARPNet Command Counts:\n"
+    for src_id in sorted(wn_cmd_counts.keys()):
+        msg += "    Commands for source ID {0}:\n".format(src_id)
+        for cmd in sorted(wn_cmd_counts[src_id].keys()):
+            cmd_group = (cmd & 0xFF000000) >> 24
+            cmd_id    = (cmd & 0x00FFFFFF)
+            msg += "        Group ID = 0x{0:02X}  ".format(cmd_group)
+            if (cmd_id < 1000):
+                msg += "ID =   {0:6d}  ".format(cmd_id)
+            else:
+                msg += "ID = 0x{0:6X}  ".format(cmd_id)
+            msg += "Count = {0:8d}\n".format(wn_cmd_counts[src_id][cmd])
+    print(msg)
+
+except IndexError:
+    print("\nExample 4: No WARPNet command packets in log.")
+
+
 
 print("\nDone.")
+
+
+
+

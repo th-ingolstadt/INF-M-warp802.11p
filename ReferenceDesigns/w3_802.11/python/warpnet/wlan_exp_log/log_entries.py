@@ -342,7 +342,7 @@ entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_
 entry_wn_cmd_info.append_field_defs([ 
             ('timestamp',              'Q',      'uint64'),
             ('command',                'I',      'uint32'),
-            ('rsvd',                   'H',      'uint16'),
+            ('src_id',                 'H',      'uint16'),
             ('num_args',               'H',      'uint16'),
             ('args',                   '10I',    '10uint32')])
 
