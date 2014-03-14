@@ -198,7 +198,7 @@ except IndexError:
 try:
     # Extract all WARPNet commands
     log_wn_cmd = log_nd['WN_CMD_INFO']
-        
+
     # Extract an array of the source IDs and Commands
     wn_src_id  = log_wn_cmd['src_id']
     wn_cmd     = log_wn_cmd['command']
@@ -215,6 +215,9 @@ try:
 
         for cmd in np.unique(wn_cmds_for_src_id):
             wn_cmd_idx = np.squeeze(wn_cmds_for_src_id == cmd)
+
+            if (wn_cmd_idx.size == 1):
+                wn_cmd_idx = np.array([True], dtype=bool)
 
             wn_cmd_counts[src_id][cmd] = len(wn_cmds_for_src_id[wn_cmd_idx])
 
