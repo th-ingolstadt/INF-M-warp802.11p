@@ -146,7 +146,7 @@ typedef struct{
 typedef struct{
 	u64     timestamp;      // Timestamp of the log entry
 	u32     command;        // WARPNet command
-	u16     rsvd;           // Reserved space
+	u16     src_id;         // Source ID of the command
 	u16     num_args;       // Number of arguments
 	u32     args[10];	    // Data from the arguments
 } wn_cmd_entry;

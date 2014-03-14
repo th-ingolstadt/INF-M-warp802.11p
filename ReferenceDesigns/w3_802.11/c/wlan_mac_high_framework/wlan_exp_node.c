@@ -154,7 +154,8 @@ int wlan_exp_null_process_callback(unsigned int cmdID, void* param){
 * @note		None.
 *
 ******************************************************************************/
-void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode, void* pktSrc, unsigned int eth_dev_num){
+void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode,
+		                  void* pktSrc, u16 src_id, unsigned int eth_dev_num){
 	unsigned char cmd_grp;
 
 	unsigned int respSent;
@@ -190,10 +191,16 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode, vo
 	if (entry != NULL) {
 		entry->timestamp = get_usec_timestamp();
 		entry->command   = cmdHdr->cmd;
+		entry->src_id    = src_id;
 		entry->num_args  = num_args;
 
+		// Add arguments to the entry
 		for (i = 0; i < num_args; i++) {
 			(entry->args)[i] = Xil_Ntohl(cmdArgs32[i]);
+		}
+		// Zero out any other arguments in the entry
+		for (i = num_args; i < 10; i++) {
+			(entry->args)[i] = 0;
 		}
 	}
 #endif
