@@ -25,7 +25,7 @@ import warpnet.wlan_exp.util as wlan_exp_util
 
 
 # NOTE: change these values to match your experiment setup
-LOGFILE = 'example_logs/ap_log_stats.bin'
+LOGFILE = 'netflix_log.bin'
 # LOGFILE = 'example_logs/sta_log_stats.bin'
 
 
@@ -39,7 +39,7 @@ with open(LOGFILE, 'rb') as fh:
 log_index_raw = log_util.gen_log_index_raw(log_b)
 
 # Describe the raw log
-# log_util.log_index_print_summary(log_index_raw, "Raw Log Index:")
+log_util.log_index_print_summary(log_index_raw, "Raw Log Index:")
 
 
 # Example Log Filters:
@@ -146,7 +146,7 @@ except IndexError:
 # Example 3: Calculate total number of packets and bytes received from each distinct MAC address
 
 # For this experiment, only look at Good = 0  or Bad = 1 receptions
-FCS_BAD = 0
+FCS_GOOD = 0
 
 try:
     # Extract all receptions
@@ -154,15 +154,15 @@ try:
     
     # Extract an array of the MAC headers and FCS results   
     rx_hdrs    = log_rx['mac_header']
-    rx_fcs_bad = log_rx['fcs_result']
+    rx_fcs = log_rx['fcs_result']
 
     # Create a dictionary of all the address fields
     #     Address1 - the wireless receiver address for AP transmissions
     #     Address2 - 
     #     Address3 - 
-    rx_addr_dict = {'Address 1': rx_hdrs[(rx_fcs_bad == FCS_BAD),4:10], 
-                    'Address 2': rx_hdrs[(rx_fcs_bad == FCS_BAD),10:16], 
-                    'Address 3': rx_hdrs[(rx_fcs_bad == FCS_BAD),16:22]}
+    rx_addr_dict = {'Address 1': rx_hdrs[(rx_fcs == FCS_GOOD),4:10], 
+                    'Address 2': rx_hdrs[(rx_fcs == FCS_GOOD),10:16], 
+                    'Address 3': rx_hdrs[(rx_fcs == FCS_GOOD),16:22]}
     
     # Reduce each 6-byte MAC addresses to a unit64 for easier processing
     for address in sorted(rx_addr_dict.keys()):
@@ -183,9 +183,9 @@ try:
         # Print the results
         msg  = "\nExample 3: Rx Counts {0}:\n".format(address)
         msg += "Addr            \t# Pkts\t# Bytes\n"
-        for k in tx_counts.keys():
+        for k in rx_counts.keys():
         	# Use the string version of the MAC address as the key for readability
-        	msg += "{0}\t{1}\t{2}\n".format(wlan_exp_util.mac2str(k), tx_counts[k][0], tx_counts[k][1])
+        	msg += "{0}\t{1}\t{2}\n".format(wlan_exp_util.mac2str(k), rx_counts[k][0], rx_counts[k][1])
         print(msg)
 
 except IndexError:
@@ -195,49 +195,52 @@ except IndexError:
 #################################################################################################
 # Example 4: Count the different WARPNet commands for a given source ID
 
-try:
-    # Extract all WARPNet commands
-    log_wn_cmd = log_nd['WN_CMD_INFO']
+if 0:
+#disabled for now, until C code has support for src_id field
+# svn C has the src_id bytes as reserved; current .bin files have crap data there
+    try:
+        # Extract all WARPNet commands
+        log_wn_cmd = log_nd['WN_CMD_INFO']
 
-    # Extract an array of the source IDs and Commands
-    wn_src_id  = log_wn_cmd['src_id']
-    wn_cmd     = log_wn_cmd['command']
+        # Extract an array of the source IDs and Commands
+        wn_src_id  = log_wn_cmd['src_id']
+        wn_cmd     = log_wn_cmd['command']
 
-    # Build a dictionary using src id as a key to a dictionary of command counts
-    wn_cmd_counts = dict()
-    
-    for src_id in np.unique(wn_src_id):
-        wn_cmd_counts[src_id] = dict()
+        # Build a dictionary using src id as a key to a dictionary of command counts
+        wn_cmd_counts = dict()
         
-        wn_src_id_idx = np.squeeze(wn_src_id == src_id)
-        
-        wn_cmds_for_src_id = wn_cmd[wn_src_id_idx]
+        for src_id in np.unique(wn_src_id):
+            wn_cmd_counts[src_id] = dict()
+            
+            wn_src_id_idx = np.squeeze(wn_src_id == src_id)
+            
+            wn_cmds_for_src_id = wn_cmd[wn_src_id_idx]
 
-        for cmd in np.unique(wn_cmds_for_src_id):
-            wn_cmd_idx = np.squeeze(wn_cmds_for_src_id == cmd)
+            for cmd in np.unique(wn_cmds_for_src_id):
+                wn_cmd_idx = np.squeeze(wn_cmds_for_src_id == cmd)
 
-            if (wn_cmd_idx.size == 1):
-                wn_cmd_idx = np.array([True], dtype=bool)
+                if (wn_cmd_idx.size == 1):
+                    wn_cmd_idx = np.array([True], dtype=bool)
 
-            wn_cmd_counts[src_id][cmd] = len(wn_cmds_for_src_id[wn_cmd_idx])
+                wn_cmd_counts[src_id][cmd] = len(wn_cmds_for_src_id[wn_cmd_idx])
 
-    # Print the results
-    msg  = "\nExample 4: WARPNet Command Counts:\n"
-    for src_id in sorted(wn_cmd_counts.keys()):
-        msg += "    Commands for source ID {0}:\n".format(src_id)
-        for cmd in sorted(wn_cmd_counts[src_id].keys()):
-            cmd_group = (cmd & 0xFF000000) >> 24
-            cmd_id    = (cmd & 0x00FFFFFF)
-            msg += "        Group ID = 0x{0:02X}  ".format(cmd_group)
-            if (cmd_id < 1000):
-                msg += "ID =   {0:6d}  ".format(cmd_id)
-            else:
-                msg += "ID = 0x{0:6X}  ".format(cmd_id)
-            msg += "Count = {0:8d}\n".format(wn_cmd_counts[src_id][cmd])
-    print(msg)
+        # Print the results
+        msg  = "\nExample 4: WARPNet Command Counts:\n"
+        for src_id in sorted(wn_cmd_counts.keys()):
+            msg += "    Commands for source ID {0}:\n".format(src_id)
+            for cmd in sorted(wn_cmd_counts[src_id].keys()):
+                cmd_group = (cmd & 0xFF000000) >> 24
+                cmd_id    = (cmd & 0x00FFFFFF)
+                msg += "        Group ID = 0x{0:02X}  ".format(cmd_group)
+                if (cmd_id < 1000):
+                    msg += "ID =   {0:6d}  ".format(cmd_id)
+                else:
+                    msg += "ID = 0x{0:6X}  ".format(cmd_id)
+                msg += "Count = {0:8d}\n".format(wn_cmd_counts[src_id][cmd])
+        print(msg)
 
-except IndexError:
-    print("\nExample 4: No WARPNet command packets in log.")
+    except IndexError:
+        print("\nExample 4: No WARPNet command packets in log.")
 
 
 

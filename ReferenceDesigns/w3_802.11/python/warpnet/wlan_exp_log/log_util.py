@@ -288,7 +288,36 @@ def gen_log_ndarrays(log_bytes, log_index):
 
 # End gen_log_ndarrays()
 
+def print_log_entries(log_bytes, log_index, entries_slice=None):
+    from itertools import chain
+    from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
+    hdr_size = 8
 
+    if(entries_slice is not None) and (type(entries_slice) is slice):
+        log_slice = entries_slice
+    else:
+        #Use entire log index by default
+        tot_entries = sum(map(len(log_index.values())))
+        log_slice = slice(0, tot_entries)
+
+    #Create flat list of all byte offsets in log_index, sorted by offset
+    # See http://stackoverflow.com/questions/18642428/concatenate-an-arbitrary-number-of-lists-in-a-function-in-python
+    log_index_flat = sorted(chain.from_iterable(log_index.values()))
+
+    for ii,entry_offset in enumerate(log_index_flat[log_slice]):
+        
+        #Look backwards for the log entry header and extract the entry type ID and size
+        hdr_b = log_bytes[entry_offset-hdr_size:entry_offset]
+        entry_type_id = (ord(hdr_b[4]) + (ord(hdr_b[5]) * 256))
+        entry_size = (ord(hdr_b[6]) + (ord(hdr_b[7]) * 256))
+
+        #Lookup the corresponding entry object instance (KeyError here indicates corrupt log or index)
+        entry_type = entry_types[entry_type_id]
+
+        #Use the entry_type's class method to string-ify itself
+        print(entry_type.entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
+
+    return
 
 def gen_hdf5_file(filename, np_log_dict, compression=None):
     """Generate an HDF5 file from numpy arrays. The input must be either:

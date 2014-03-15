@@ -83,10 +83,6 @@ class WlanExpLogEntryType(object):
     #     (field_name, field_fmt_struct, field_fmt_np)
     _fields           = None
 
-    # _virtual_fields is nominally a list of 3-tuples:
-    #     (field_name, field_fmt_np, field_byte_offset)
-    _virtual_fields   = None
-
     entry_type_id     = None
     name              = None
     
@@ -116,7 +112,6 @@ class WlanExpLogEntryType(object):
 
         # Initialize fields to empty lists
         self._fields           = []
-        self._virtual_fields   = []
         
         # Initialize unpack variables
         self.fields_fmt_struct = ''
@@ -132,7 +127,7 @@ class WlanExpLogEntryType(object):
         return [field_fmt_struct for (field_name, field_fmt_struct, field_fmt_np) in self._fields]
 
     def get_field_defs(self):          return self._fields
-    def get_virtual_field_defs(self):  return self._virtual_fields        
+
     def get_entry_type_id(self):       return self.entry_type_id
 
     def append_field_defs(self, field_info):
@@ -141,14 +136,6 @@ class WlanExpLogEntryType(object):
         else:
             self._fields.append(field_info)
         self._update_field_defs()
-
-    def append_virtual_field_defs(self, field_info):
-        if type(field_info) is list:
-            self._virtual_fields.extend(field_info)
-        else:
-            self._virtual_fields.append(field_info)
-        self._update_field_defs()
-        
 
     #-------------------------------------------------------------------------
     # Generator methods for the WlanExpLogEntryType
@@ -160,14 +147,37 @@ class WlanExpLogEntryType(object):
         index_iter = [log_bytes[o : o + self.fields_np_dt.itemsize] for o in byte_offsets]
         return np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
 
+    def entry_as_string(self, buf):
+        d = self.deserialize(buf)[0]
+
+        str_out = self.name + ': '
+        #str_out += '%s' % d
+
+        for k in d.keys():
+            s = d[k]
+            if(type(s) is int):
+                str_out += ('%d, ' % s)
+            elif(type(s) is str):
+                s = map(ord, list(d[k]))
+                str_out += '['
+                for x in s:
+#                    str_out += ('%02x ' % x)
+                    str_out += ('%d, ' % x)
+                str_out += '\b\b], '
+
+        str_out += '\n'
+
+        return str_out
 
     def deserialize(self, buf):
         """Unpack the buffer of log entries into a list of dictionaries."""
+        from collections import OrderedDict
+
         ret_val    = []
         buf_size   = len(buf)
         entry_size = calcsize(self.fields_fmt_struct)
         index      = 0
-        
+
         while (index < buf_size):
             try:
                 dataTuple = unpack(self.fields_fmt_struct, buf[index:index+entry_size])
@@ -177,10 +187,11 @@ class WlanExpLogEntryType(object):
                 #Filter out names for fields ignored during unpacking
                 names = [n for (n,f) in zip(all_names, all_fmts) if 'x' not in f]
     
-                ret_val.append(dict(zip(names, dataTuple)))
+                #Use OrderedDict to preserve user-specified field order
+                ret_val.append(OrderedDict(zip(names, dataTuple)))
     
             except error as err:
-                print("Error unpacking buffer: {0}".format(err))
+                print("Error unpacking {0} buffer with len {1}: {2}".format(self.name, len(buf), err))
             
             index += entry_size
         
@@ -192,11 +203,14 @@ class WlanExpLogEntryType(object):
     #-------------------------------------------------------------------------
     def _update_field_defs(self):
         """Internal method to update fields."""
-        # fields_np_dt is a numpy dtype, built using a dictionary of names/formats/sizes:
+        # Update the fields format used by struct unpack/calcsize
+        self.fields_fmt_struct = ' '.join(self.get_field_struct_formats())
+
+        # Update the numpy dtype definition
+        # fields_np_dt is a numpy dtype, built using a dictionary of names/formats/offsets:
         #     {'names':[field_names], 'formats':[field_formats], 'offsets':[field_offsets]}
         # We specify each field's byte offset explicitly. Byte offsets for fields in _fields
         # are inferred, assuming tight C-struct-type packing (same assumption as struct.unpack)
-        # _virtual_fields have explicit offsets that can refer to any bytes in the log entry
         
         get_np_size = (lambda f: np.dtype(f).itemsize)
 
@@ -205,30 +219,21 @@ class WlanExpLogEntryType(object):
         sizes =  list(map(get_np_size, [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in self._fields]))
         offsets_all = [sum(sizes[0:i]) for i in range(len(sizes))]
 
-        # numpy processing ignores the same fields ignored by struct.unpack
         offsets = offsets_all
         np_fields = self._fields
 
+        # numpy processing ignores the same fields ignored by struct.unpack
         # !!!BAD!!! Doing this filtering breaks HDF5 export
         # offsets = [o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
         # np_fields = [f for f in self._fields if 'x' not in f[1]]
 
-        # Append the explicitly defined offsets for the virtual fields
-        offsets += [field_byte_offset for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
-
         names =  [field_name for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
-        names += [field_name for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
 
         formats =  [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
-        formats += [field_fmt_np for (field_name, field_fmt_np, field_byte_offset) in self._virtual_fields]
 
         #print("np_dtype for %s (%d B): %s" % (self.name, np.dtype({'names':names, 'formats':formats, 'offsets':offsets}).itemsize, zip(offsets,formats,names)))
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
-
-        # Update the unpack fields
-        self.fields_fmt_struct = ' '.join(self.get_field_struct_formats())
-
 
     def __eq__(self, other):
         """WlanExpLogEntryType are equal if their names are equal."""
@@ -250,24 +255,69 @@ class WlanExpLogEntryType(object):
 
 
 class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
-    """Subclass for Tx and Rx log entries to properly compute values
-    for 48-bit address fields. Numpy uses u64 for these values, which includes
-    two extra non-MAC-address bytes from the binary log. The overridden generate_numpy_array
-    below applies a 48-bit mask to each virtual addrX field before returning
+    """Subclass for Tx and Rx log entries which computes extra fields from the raw MAC headers
+       and adds them to the normal numpy array. These fields must be calculated and appened to
+       avoid modifying the source log bytes that the normal numpy array output references
     """
     def __init__(self, *args, **kwargs):
         super(WlanExpLogEntry_TxRx, self).__init__(*args, **kwargs)
 
     def generate_numpy_array(self, log_bytes, byte_offsets):
+        from collections import OrderedDict
+
         #Use super class method first (avoids duplicating code)
-        np_arr = super(WlanExpLogEntry_TxRx, self).generate_numpy_array(log_bytes, byte_offsets)
+        np_arr_orig = super(WlanExpLogEntry_TxRx, self).generate_numpy_array(log_bytes, byte_offsets)
 
-        #Mask each addr field to 48 bits
-        np_arr['addr1'] = np.bitwise_and(np_arr['addr1'], 2**48-1)
-        np_arr['addr2'] = np.bitwise_and(np_arr['addr2'], 2**48-1)
-        np_arr['addr3'] = np.bitwise_and(np_arr['addr3'], 2**48-1)
+        # Extend the default np_arr with convenience fields for MAC header addresses
+        # IMPORTANT: np_arr uses the original bytearray as its underlying data
+        # We must operate on a copy to avoid clobbering log entries adjacent to the 
+        #  Tx or Rx entries being extended
 
-        return np_arr
+        #Extract the names/formats/offsets dictionary for the base dtype
+        # dt.fields returns dictionary with field names as keys and
+        #  values of (dtype, offset). The dtype objects in the first tuple field
+        #  can be used as values in the 'formats' entry when creating a new dtype
+        dt_orig = np_arr_orig.dtype
+
+        #Use ordered dictionary to preserve original field order (not required, just convenient)
+        dt_ext = OrderedDict()
+
+        #Adopt names/formats for real fields in base numpy array
+        dt_ext['names'] = list(dt_orig.names)
+        dt_ext['formats'] = [dt_orig.fields[f][0] for f in dt_orig.names]
+
+        #Add new fields to the extended dtype
+        dt_ext['names'].extend(('addr1', 'addr2', 'addr3'))
+        dt_ext['formats'].extend(('uint64', 'uint64', 'uint64'))
+
+        dt_new = np.dtype(dt_ext)
+
+        np_arr_out = np.zeros(np_arr_orig.shape, dtype=dt_new)
+
+        #Copy data from the base numpy array into the output array
+        for f in dt_orig.names:
+            np_arr_out[f] = np_arr_orig[f]
+
+        #Helper array of powers of 2
+        addr_conv_arr = np.uint64(2)**np.array(range(0,48,8), dtype='uint64')
+
+        mac_hdrs = np_arr_orig['mac_header']
+
+        #Compute values for new extended fields
+        # numpy's default behavior for (array * matrix) is to dot-multiply each row of matrix by the array
+        np_arr_out['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 4:10]))
+        np_arr_out['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,10:16]))
+        np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,16:22]))
+
+        #A quick benchmark of this implelemtation with simple log_index_gen -> numpy_array_gen 
+        # using only ofdm_rx events and 1GB log file
+        # Using superclass generate_numpy_array (i.e. no extra fields): 10.8sec
+        # Using this generate_numpy_array but with np_arr_out['addrX'] calls removed: 12.3sec
+        # Using this generate_numpy_array in full: 13.3sec
+        # The loop above to construct np_arr_out is more expensive than calculating new addr uint64's
+        #  but neither is hugely expensive
+
+        return np_arr_out
 
 # End class 
 
@@ -290,11 +340,6 @@ entry_rx_common.append_field_defs([
             ('rf_gain',                'B',      'uint8'),
             ('bb_gain',                'B',      'uint8'),
             ('padding',                '2x',     'uint16')])
-entry_rx_common.append_virtual_field_defs([ 
-            ('addr1',                  'uint64',      20),
-            ('addr2',                  'uint64',      26),
-            ('addr3',                  'uint64',      32)])
-
 
 #-----------------------------------------------------------------------------
 # Log Entry Type Instances
@@ -308,7 +353,8 @@ entry_node_info.append_field_defs([
             ('hw_generation',          'I',      'uint32'),
             ('design_ver',             'I',      'uint32'),
             ('serial_num',             'I',      'uint32'),
-            ('fpga_dna',               'Q',      'uint64'),
+            ('fpga_dna_L',               'I',      'uint32'), #FIXME: 5x u32 -> 1x u64 gives unaligned u64; python calcsize and unpack insert u32 pad here
+            ('fpga_dna_M',               'I',      'uint32'),
             ('wlan_max_associations',  'I',      'uint32'),
             ('wlan_log_max_size',      'I',      'uint32'),
             ('wlan_max_stats',         'I',      'uint32')])
@@ -360,9 +406,6 @@ entry_node_temperature.append_field_defs([
 
 # Receive OFDM
 entry_rx_ofdm = WlanExpLogEntry_TxRx(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
-
-entry_rx_ofdm.append_virtual_field_defs(entry_rx_common.get_virtual_field_defs())
-
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_ofdm.append_field_defs([ 
             ('chan_est',               '256B',   '(64,2)i2')])
@@ -370,9 +413,6 @@ entry_rx_ofdm.append_field_defs([
 
 # Receive DSSS
 entry_rx_dsss = WlanExpLogEntry_TxRx(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
-
-entry_rx_dsss.append_virtual_field_defs(entry_rx_common.get_virtual_field_defs())
-
 entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 
 
@@ -384,19 +424,14 @@ entry_tx.append_field_defs([
             ('time_to_done',           'I',      'uint32'),
             ('mac_header',             '24s',    '24uint8'),
             ('num_tx',                 'B',      'uint8'),
-            ('gain_target',            'B',      'uint8'),
+            ('tx_power',               'b',      'int8'),
             ('chan_num',               'B',      'uint8'),
             ('rate',                   'B',      'uint8'),
             ('length',                 'H',      'uint16'),
             ('result',                 'B',      'uint8'),
             ('pkt_type',               'B',      'uint8'),
-            ('ant_mode',               'B',      'uint8')])
-# Somehow this breaks HDF5 writing...
-entry_tx.append_virtual_field_defs([ 
-            ('addr1',                  'uint64',      20),
-            ('addr2',                  'uint64',      26),
-            ('addr3',                  'uint64',      32)])
-
+            ('ant_mode',               'B',      'uint8'),
+            ('padding',                '3x',     '3uint8')])
 
 # Transmit from CPU Low
 entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
