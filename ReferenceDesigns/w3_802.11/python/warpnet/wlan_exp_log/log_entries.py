@@ -256,15 +256,13 @@ class WlanExpLogEntryType(object):
 
 class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
     """Subclass for Tx and Rx log entries which computes extra fields from the raw MAC headers
-       and adds them to the normal numpy array. These fields must be calculated and appened to
+       and adds them to the numpy array. These fields must be calculated and appened to
        avoid modifying the source log bytes that the normal numpy array output references
     """
     def __init__(self, *args, **kwargs):
         super(WlanExpLogEntry_TxRx, self).__init__(*args, **kwargs)
 
     def generate_numpy_array(self, log_bytes, byte_offsets):
-        from collections import OrderedDict
-
         #Use super class method first (avoids duplicating code)
         np_arr_orig = super(WlanExpLogEntry_TxRx, self).generate_numpy_array(log_bytes, byte_offsets)
 
@@ -273,54 +271,79 @@ class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
         # We must operate on a copy to avoid clobbering log entries adjacent to the 
         #  Tx or Rx entries being extended
 
-        #Extract the names/formats/offsets dictionary for the base dtype
-        # dt.fields returns dictionary with field names as keys and
-        #  values of (dtype, offset). The dtype objects in the first tuple field
-        #  can be used as values in the 'formats' entry when creating a new dtype
-        dt_orig = np_arr_orig.dtype
+        # Create a new numpy dtype with additional fields
+        dt_new = extend_np_dt(np_arr_orig.dtype,
+                {'names': ('addr1', 'addr2', 'addr3'),
+                 'formats': ('uint64', 'uint64', 'uint64')})
 
-        #Use ordered dictionary to preserve original field order (not required, just convenient)
-        dt_ext = OrderedDict()
-
-        #Adopt names/formats for real fields in base numpy array
-        dt_ext['names'] = list(dt_orig.names)
-        dt_ext['formats'] = [dt_orig.fields[f][0] for f in dt_orig.names]
-
-        #Add new fields to the extended dtype
-        dt_ext['names'].extend(('addr1', 'addr2', 'addr3'))
-        dt_ext['formats'].extend(('uint64', 'uint64', 'uint64'))
-
-        dt_new = np.dtype(dt_ext)
-
+        #Initialize the output array (same shape, new dtype)
         np_arr_out = np.zeros(np_arr_orig.shape, dtype=dt_new)
 
         #Copy data from the base numpy array into the output array
-        for f in dt_orig.names:
+        for f in np_arr_orig.dtype.names:
+            #TODO: maybe don't copy fields that are ignored in the struct format?
+            # problem is non-TxRx entries would still have these fields in their numpy versions
             np_arr_out[f] = np_arr_orig[f]
 
         #Helper array of powers of 2
         addr_conv_arr = np.uint64(2)**np.array(range(0,48,8), dtype='uint64')
 
+        #Extract all MAC headers (each header is 24-entry uint8 array)
         mac_hdrs = np_arr_orig['mac_header']
 
-        #Compute values for new extended fields
-        # numpy's default behavior for (array * matrix) is to dot-multiply each row of matrix by the array
+        #Compute values for address-as-int fields using numpy's dot-product routine
+        # MAC header offsets here select the 3 6-byte address fields
         np_arr_out['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 4:10]))
         np_arr_out['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,10:16]))
         np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,16:22]))
 
-        #A quick benchmark of this implelemtation with simple log_index_gen -> numpy_array_gen 
-        # using only ofdm_rx events and 1GB log file
-        # Using superclass generate_numpy_array (i.e. no extra fields): 10.8sec
-        # Using this generate_numpy_array but with np_arr_out['addrX'] calls removed: 12.3sec
-        # Using this generate_numpy_array in full: 13.3sec
-        # The loop above to construct np_arr_out is more expensive than calculating new addr uint64's
-        #  but neither is hugely expensive
+        '''
+        A quick benchmark of this implelemtation with simple log_index_gen -> numpy_array_gen 
+         using only ofdm_rx events and 1GB log file:
+          Using superclass generate_numpy_array (i.e. no extra fields): 10.8sec
+          Using this generate_numpy_array: 13.3sec
+          Using this generate_numpy_array but with np_arr_out['addrX'] calls removed: 12.3sec
+
+         The loop above to copy existing data into np_arr_out is more expensive than calculating 
+          new addr uint64's, but neither is hugely expensive. 
+        '''
 
         return np_arr_out
 
 # End class 
 
+def extend_np_dt(dt_orig, new_fields=None):
+    """Extends a numpy dtype object with additional fields. new_fields input must be dictionary
+    with keys 'names' and 'formats', same as when specifying new dtype objects
+    """
+
+    from collections import OrderedDict
+
+    if(type(dt_orig) is not np.dtype):
+        raise Exception("ERROR: extend_np_dt requires valid numpy dtype as input")
+    else:
+        #Use ordered dictionary to preserve original field order (not required, just convenient)
+        dt_ext = OrderedDict()
+
+        #Extract the names/formats/offsets dictionary for the base dtype
+        # dt.fields returns dictionary with field names as keys and
+        #  values of (dtype, offset). The dtype objects in the first tuple field
+        #  can be used as values in the 'formats' entry when creating a new dtype
+        # This approach will preserve the types and dimensions of scalar and non-scalar fields
+        dt_ext['names'] = list(dt_orig.names)
+        dt_ext['formats'] = [dt_orig.fields[f][0] for f in dt_orig.names]
+
+        if(type(new_fields) is dict):
+            #Add new fields to the extended dtype
+            dt_ext['names'].extend(new_fields['names'])
+            dt_ext['formats'].extend(new_fields['formats'])
+        elif type(new_fields) is not None:
+            raise Exception("ERROR: new_fields argument must be dictionary with keys 'names' and 'formats'")
+
+        #Construct and return the new numpy dtype object
+        dt_new = np.dtype(dt_ext)
+
+        return dt_new
 
 #-----------------------------------------------------------------------------
 # Virtual Log Entry Instances

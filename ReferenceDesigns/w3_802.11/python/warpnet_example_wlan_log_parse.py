@@ -196,8 +196,7 @@ except IndexError:
 # Example 4: Count the different WARPNet commands for a given source ID
 
 if 0:
-#disabled for now, until C code has support for src_id field
-# svn C has the src_id bytes as reserved; current .bin files have crap data there
+#disabled for now, until I get a log file that has a valid src_id field
     try:
         # Extract all WARPNet commands
         log_wn_cmd = log_nd['WN_CMD_INFO']
