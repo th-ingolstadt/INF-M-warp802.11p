@@ -85,10 +85,10 @@ class WlanExpLogEntryType(object):
 
     entry_type_id     = None
     name              = None
-    
+
     fields_np_dt      = None
     fields_fmt_struct = None
-    
+
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
         if name is not None:
@@ -112,7 +112,7 @@ class WlanExpLogEntryType(object):
 
         # Initialize fields to empty lists
         self._fields           = []
-        
+
         # Initialize unpack variables
         self.fields_fmt_struct = ''
 
@@ -141,13 +141,14 @@ class WlanExpLogEntryType(object):
     # Generator methods for the WlanExpLogEntryType
     #-------------------------------------------------------------------------
     def generate_numpy_array(self, log_bytes, byte_offsets):
-        """Generate a NumPy array from the log_bytes of the given 
+        """Generate a NumPy array from the log_bytes of the given
         WlanExpLogEntryType instance at the given byte_offsets.
         """
         index_iter = [log_bytes[o : o + self.fields_np_dt.itemsize] for o in byte_offsets]
         return np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
 
     def entry_as_string(self, buf):
+        """Work in progress - the string-ifier below is hacky, but works ok for debugging"""
         d = self.deserialize(buf)[0]
 
         str_out = self.name + ': '
@@ -183,18 +184,18 @@ class WlanExpLogEntryType(object):
                 dataTuple = unpack(self.fields_fmt_struct, buf[index:index+entry_size])
                 all_names = self.get_field_names()
                 all_fmts  = self.get_field_struct_formats()
-    
+
                 #Filter out names for fields ignored during unpacking
                 names = [n for (n,f) in zip(all_names, all_fmts) if 'x' not in f]
-    
+
                 #Use OrderedDict to preserve user-specified field order
                 ret_val.append(OrderedDict(zip(names, dataTuple)))
-    
+
             except error as err:
                 print("Error unpacking {0} buffer with len {1}: {2}".format(self.name, len(buf), err))
-            
+
             index += entry_size
-        
+
         return ret_val
 
 
@@ -211,7 +212,7 @@ class WlanExpLogEntryType(object):
         #     {'names':[field_names], 'formats':[field_formats], 'offsets':[field_offsets]}
         # We specify each field's byte offset explicitly. Byte offsets for fields in _fields
         # are inferred, assuming tight C-struct-type packing (same assumption as struct.unpack)
-        
+
         get_np_size = (lambda f: np.dtype(f).itemsize)
 
         # Compute the offset of each real field, inferred by the sizes of all previous fields
@@ -244,14 +245,14 @@ class WlanExpLogEntryType(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
-    
+
     def __hash__(self):
         return hash(self.name)
 
     def __repr__(self):
         return self.name
 
-# End class 
+# End class
 
 
 class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
@@ -268,7 +269,7 @@ class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
 
         # Extend the default np_arr with convenience fields for MAC header addresses
         # IMPORTANT: np_arr uses the original bytearray as its underlying data
-        # We must operate on a copy to avoid clobbering log entries adjacent to the 
+        # We must operate on a copy to avoid clobbering log entries adjacent to the
         #  Tx or Rx entries being extended
 
         # Create a new numpy dtype with additional fields
@@ -298,19 +299,19 @@ class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
         np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,16:22]))
 
         '''
-        A quick benchmark of this implelemtation with simple log_index_gen -> numpy_array_gen 
+        A quick benchmark of this implelemtation with simple log_index_gen -> numpy_array_gen
          using only ofdm_rx events and 1GB log file:
           Using superclass generate_numpy_array (i.e. no extra fields): 10.8sec
           Using this generate_numpy_array: 13.3sec
           Using this generate_numpy_array but with np_arr_out['addrX'] calls removed: 12.3sec
 
-         The loop above to copy existing data into np_arr_out is more expensive than calculating 
-          new addr uint64's, but neither is hugely expensive. 
+         The loop above to copy existing data into np_arr_out is more expensive than calculating
+          new addr uint64's, but neither is hugely expensive.
         '''
 
         return np_arr_out
 
-# End class 
+# End class
 
 def extend_np_dt(dt_orig, new_fields=None):
     """Extends a numpy dtype object with additional fields. new_fields input must be dictionary
@@ -350,7 +351,7 @@ def extend_np_dt(dt_orig, new_fields=None):
 #-----------------------------------------------------------------------------
 
 entry_rx_common = WlanExpLogEntry_TxRx(name='RX_ALL', entry_type_id=None)
-entry_rx_common.append_field_defs([ 
+entry_rx_common.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
             ('length',                 'H',      'uint16'),
@@ -370,7 +371,7 @@ entry_rx_common.append_field_defs([
 
 # Node Info
 entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
-entry_node_info.append_field_defs([ 
+entry_node_info.append_field_defs([
             ('node_type',              'I',      'uint32'),
             ('node_id',                'I',      'uint32'),
             ('hw_generation',          'I',      'uint32'),
@@ -385,7 +386,7 @@ entry_node_info.append_field_defs([
 
 # Experiment Info
 entry_exp_info = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
-entry_exp_info.append_field_defs([ 
+entry_exp_info.append_field_defs([
             ('mac_addr',               '6s',     '6uint8'),
             ('timestamp',              'Q',      'uint64'),
             ('info_type',              'I',      'uint16'),
@@ -394,7 +395,7 @@ entry_exp_info.append_field_defs([
 
 # Station Info
 entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
-entry_station_info.append_field_defs([ 
+entry_station_info.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('mac_addr',               '6s',     '6uint8'),
             ('host_name',              '16s',    '16uint8'),
@@ -408,7 +409,7 @@ entry_station_info.append_field_defs([
 
 # WARPNet Command Info
 entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
-entry_wn_cmd_info.append_field_defs([ 
+entry_wn_cmd_info.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('command',                'I',      'uint32'),
             ('src_id',                 'H',      'uint16'),
@@ -418,7 +419,7 @@ entry_wn_cmd_info.append_field_defs([
 
 # Temperature
 entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
-entry_node_temperature.append_field_defs([ 
+entry_node_temperature.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('node_id',                'I',      'uint32'),
             ('serial_num',             'I',      'uint32'),
@@ -430,7 +431,7 @@ entry_node_temperature.append_field_defs([
 # Receive OFDM
 entry_rx_ofdm = WlanExpLogEntry_TxRx(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
-entry_rx_ofdm.append_field_defs([ 
+entry_rx_ofdm.append_field_defs([
             ('chan_est',               '256B',   '(64,2)i2')])
 
 
@@ -441,7 +442,7 @@ entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 
 # Transmit
 entry_tx = WlanExpLogEntry_TxRx(name='TX', entry_type_id=ENTRY_TYPE_TX)
-entry_tx.append_field_defs([ 
+entry_tx.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('time_to_accept',         'I',      'uint32'),
             ('time_to_done',           'I',      'uint32'),
@@ -458,15 +459,15 @@ entry_tx.append_field_defs([
 
 # Transmit from CPU Low
 entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
-entry_tx_low.append_field_defs([ 
+entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
             ('rate',                   'B',      'uint8'),
             ('ant_mode',               'B',      'uint8'),
             ('tx_power',               'b',      'int8'),
             ('flags',                  'B',      'uint8'),
-            ('tx_count',               'B',      'uint8'),            
-            ('chan_num',               'B',      'uint8'),            
+            ('tx_count',               'B',      'uint8'),
+            ('chan_num',               'B',      'uint8'),
             ('length',                 'H',      'uint16'),
             ('num_slots',              'H',      'uint16'),
             ('pkt_type',               'B',      'uint8'),
@@ -475,7 +476,7 @@ entry_tx_low.append_field_defs([
 
 # Tx / Rx Statistics
 entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
-entry_txrx_stats.append_field_defs([ 
+entry_txrx_stats.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('last_timestamp',         'Q',      'uint64'),
             ('mac_addr',               '6s',     '6uint8'),

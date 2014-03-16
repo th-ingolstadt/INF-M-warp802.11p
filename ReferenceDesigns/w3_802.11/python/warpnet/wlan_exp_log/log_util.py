@@ -50,7 +50,7 @@ def gen_log_index_raw(log_bytes):
     log_index      = dict()
     use_byte_array = 0
 
-    # Need to determine if we are using byte arrays or strings for the 
+    # Need to determine if we are using byte arrays or strings for the
     # log_bytes b/c we need to handle the data differently
     try:
         byte_array_test = log_bytes[offset:offset+hdr_size]
@@ -113,27 +113,27 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
     """Parses a log index to generate a filtered log index.
 
     Consumers, in general, cannot operate on a raw log index since that has
-    not been converted in to log entry types.  The besides filtering a log 
-    index, this method will also convert any raw index entries (ie entries 
+    not been converted in to log entry types.  The besides filtering a log
+    index, this method will also convert any raw index entries (ie entries
     with keys of type int) in to the corresponding WlanExpLogEntryTypes.
-    
+
     Attributes:
         include_only -- List of WlanExpLogEntryTypes to include in the output
                         log index.  This takes precedence over 'exclude'.
         exclude      -- List of WlanExpLogEntryTypes to exclude in the output
                         log index.  This will not be used if include != None.
         merge        -- A dictionary of the form:
-    
+
     {'WlanExpLogEntryType name': [List of 'WlanExpLogEntryTypes name' to merge]}
 
-    By using the 'merge', we are able to combine the indexes of 
-    WlanExpLogEntryTypes to create super-sets of entries.  For example, 
+    By using the 'merge', we are able to combine the indexes of
+    WlanExpLogEntryTypes to create super-sets of entries.  For example,
     we could create a log index that contains all the receive events:
         {'RX_ALL': ['RX_OFDM', 'RX_DSSS']}
-    as long as the names 'RX_ALL', 'RX_OFDM', and 'RX_DSSS' are valid 
+    as long as the names 'RX_ALL', 'RX_OFDM', and 'RX_DSSS' are valid
     WlanExpLogEntryTypes.
-    
-    The filter follows the following basic rules:    
+
+    The filter follows the following basic rules:
         1) Every requested output (either through 'include_only' or 'merge')
              has a key in the output dictionary
         2) All input and output keys must refer to the 'name' property of
@@ -147,18 +147,18 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
 
         x = filter_log_index(log_index, include_only=['A'])
         x == {'A': [A0, A1, A2]}
-    
+
         x = filter_log_index(log_index, include_only=['A',B'])
         x == {'A': [A0, A1, A2], 'B': [B0, B1]}
-    
+
         x = filter_log_index(log_index, include_only=['C'])
         x == {'C': []]}
-    
+
         x = filter_log_index(log_index, include_only=['D'])
         x == {'D': []]}
 
-    All names specified in 'include_only' are included as part of the 
-    output dictionary.  It is then up to the consumer to check if the 
+    All names specified in 'include_only' are included as part of the
+    output dictionary.  It is then up to the consumer to check if the
     number of entries for a given 'name' is zero (ie the list is empty).
 
     'exclude' behavior:
@@ -188,8 +188,8 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
               'C': [],
               'M': []}
 
-    All names specified in the 'merge' are included as part of the output 
-    dictionary.  It is then up to the consumer to check if the number of 
+    All names specified in the 'merge' are included as part of the output
+    dictionary.  It is then up to the consumer to check if the number of
     entries for a given 'name' is zero (ie the list is empty).
 
     Combined behavior:
@@ -206,7 +206,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
         x == {'M': []}
     """
     from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
-    
+
     ret_log_index = {}
 
     if (include_only is not None) and (type(include_only) is not list):
@@ -236,15 +236,15 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                         msg  = "WARNING:  {0} does ".format(v)
                         msg += "not exist in log index.  Ignoring for merge.\n"
                         print(msg)
-                
+
                 # Add the new merged index lists to the output dictionary
                 # Use the type instance corresponding to the user-supplied string as the key
-                ret_log_index[entry_types[k]] = sorted(new_index)                    
-    
+                ret_log_index[entry_types[k]] = sorted(new_index)
+
         # Filter the resulting log index by 'include' / 'exclude' lists
         if include_only is not None:
             new_log_index = {}
-            
+
             for entry_name in include_only:
                 new_log_index[entry_types[entry_name]] = []
                 for k in ret_log_index.keys():
@@ -261,7 +261,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                         msg  = "WARNING:  {0} does ".format(unwanted_key)
                         msg += "not exist in log index.  Ignoring for exclude.\n"
                         print(msg)
-    
+
     except KeyError as err:
         msg  = "Issue generating log_index:\n"
         msg += "    Could not find entry type with name:  {0}".format(err)
@@ -289,6 +289,9 @@ def gen_log_ndarrays(log_bytes, log_index):
 # End gen_log_ndarrays()
 
 def print_log_entries(log_bytes, log_index, entries_slice=None):
+    """Work in progress - built for debugging address issues, some variant of this will be useful
+    for creating text version of raw log w/out requiring numpy"""
+
     from itertools import chain
     from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
     hdr_size = 8
@@ -305,7 +308,7 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
     log_index_flat = sorted(chain.from_iterable(log_index.values()))
 
     for ii,entry_offset in enumerate(log_index_flat[log_slice]):
-        
+
         #Look backwards for the log entry header and extract the entry type ID and size
         hdr_b = log_bytes[entry_offset-hdr_size:entry_offset]
         entry_type_id = (ord(hdr_b[4]) + (ord(hdr_b[5]) * 256))
@@ -321,10 +324,10 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
 
 def gen_hdf5_file(filename, np_log_dict, compression=None):
     """Generate an HDF5 file from numpy arrays. The input must be either:
-    (a) A dictionary with numpy record arrays as values; each array will 
+    (a) A dictionary with numpy record arrays as values; each array will
         be a dataset in the HDF5 file root group
-    (b) A dictionary of dictionaries like (a); each top-level value will 
-        be a group in the root HDF5 group, each numpy array will be a 
+    (b) A dictionary of dictionaries like (a); each top-level value will
+        be a group in the root HDF5 group, each numpy array will be a
         dataset in the group.
     """
     import h5py
