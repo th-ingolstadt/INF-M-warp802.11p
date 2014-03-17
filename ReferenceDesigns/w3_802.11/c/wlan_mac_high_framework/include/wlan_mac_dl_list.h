@@ -24,6 +24,7 @@ typedef struct dl_entry dl_entry;
 struct dl_entry{
 	dl_entry* next;
 	dl_entry* prev;
+	void*     data;
 };
 
 //Helper macros for traversing the doubly-linked list

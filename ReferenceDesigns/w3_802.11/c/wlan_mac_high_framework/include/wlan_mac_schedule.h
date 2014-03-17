@@ -29,17 +29,12 @@
 //will never be padded before their first entry, it is safe
 //to cast back and forth between the wlan_sched and dl_entry.
 typedef struct {
-	dl_entry entry;
 	u32 id;
 	u32 delay;
 	u32 num_calls;
 	u64 target;
 	function_ptr_t callback;
 } wlan_sched;
-
-//Helper macros for traversing the doubly-linked list
-#define wlan_sched_next(x) ( (wlan_sched*)dl_entry_next(&(x->entry)) )
-#define wlan_sched_prev(x) ( (wlan_sched*)dl_entry_prev(&(x->entry)) )
 
 //Special value for num_calls parameter of wlan_sched
 #define SCHEDULE_REPEAT_FOREVER 0xFFFFFFFF
@@ -68,7 +63,7 @@ int wlan_mac_schedule_setup_interrupt(XIntc* intc);
 u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls, void(*callback)());
 void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id);
 
-wlan_sched* find_schedule(u8 scheduler_sel, u32 id);
+dl_entry* find_schedule(u8 scheduler_sel, u32 id);
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber);
 void XTmrCtr_CustomInterruptHandler(void *InstancePtr);
 
