@@ -47,10 +47,10 @@ __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
 
 # WLAN Exp Node Parameter Identifiers (Extension of WARPNet Parameter Identifiers)
 #   NOTE:  The C counterparts are found in *_node.h
-NODE_WLAN_MAC_ADDR           = 6
-NODE_WLAN_MAX_ASSN           = 7
-NODE_WLAN_EVENT_LOG_SIZE     = 8
-NODE_WLAN_MAX_STATS          = 9
+NODE_WLAN_MAX_ASSN           = 6
+NODE_WLAN_EVENT_LOG_SIZE     = 7
+NODE_WLAN_MAX_STATS          = 8
+NODE_WLAN_MAC_ADDR           = 9
 
 
 class WlanExpNode(wn_node.WnNode):
@@ -501,58 +501,130 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.NodeProcChannel(cmds.RSVD_CHANNEL))
 
 
-    def node_set_default_tx_rate(self, rate):
-        """Set the default Tx rate for all associated nodes."""
-        return self.send_cmd(cmds.NodeProcTxRate(rate))
-
-
-    def node_get_default_tx_rate(self):
-        """Gets the current transmit rate of the node."""
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.RSVD_TX_RATE))
-
-
-    def node_set_tx_rate(self, node_list, rate):
-        """Set the transmit rate of the node to the given nodes in the 
-        node_list and return a list of rate indecies that were set.
+    def node_set_tx_rate_unicast(self, node_list, rate):
+        """Sets the unicast transmit rate of the node to the given nodes in 
+        the node_list.  If the node list is empty, then it sets the default
+        unicast transmit rate for future associations.  This returns a list 
+        of unicast transmit rates that were set.  The rate provided must be
+        an entry in the rates table found in wlan_exp.util
         """
-        ret_rate_idxs = []
+        ret_val = []
         
         if (type(node_list) is list):
             for node in node_list:
-                ret_rate_idx = self.send_cmd(cmds.NodeProcTxRate(rate, node))
-                ret_rate_idxs.append(ret_rate_idx)
+                val = self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_UNICAST, rate, node))
+                ret_val.append(val)
         else:
-            ret_rate_idx = self.send_cmd(cmds.NodeProcTxRate(rate, node_list))
-            ret_rate_idxs.append(ret_rate_idx)
+            val = self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_UNICAST, rate, node_list))
+            ret_val.append(val)
 
-        return ret_rate_idxs
+        return ret_val
 
 
-    def node_get_tx_rate(self, node_list):
-        """Gets the transmit rate of the node to the given nodes in the 
-        node_list and returns a list of those rates indecies.
+    def node_get_tx_rate_unicast(self, node_list):
+        """Gets the unicast transmit rate of the node to the given nodes in 
+        the node_list.  If the node list is empty, then it gets the default 
+        unicast transmit rate for future associations.  All rates are returned
+        as an index in to the rates table found in wlan_exp.util
         """
-        ret_rate_idxs = []
+        ret_val = []
         
         if (type(node_list) is list):
             for node in node_list:
-                ret_rate_idx = self.send_cmd(cmds.ProcNodeTxRate(cmds.RSVD_TX_RATE, node))
-                ret_rate_idxs.append(ret_rate_idx)
+                val = self.send_cmd(cmds.ProcNodeTxRate(cmds.NODE_UNICAST, cmds.RSVD_TX_RATE, node))
+                ret_val.append(val)
         else:
-            ret_rate_idx = self.send_cmd(cmds.ProcNodeTxRate(cmds.RSVD_TX_RATE, node_list))
-            ret_rate_idxs.append(ret_rate_idx)
+            val = self.send_cmd(cmds.ProcNodeTxRate(cmds.NODE_UNICAST, cmds.RSVD_TX_RATE, node_list))
+            ret_val.append(val)
 
-        return ret_rate_idxs
-
-
-    def node_set_tx_gain(self, gain):
-        """Set the transmit gain of the node and returns the rate that was set."""
-        return self.send_cmd(cmds.NodeProcTxGain(gain))
+        return ret_val
 
 
-    def node_get_tx_gain(self):
-        """Gets the current transmit gain of the node."""
-        return self.send_cmd(cmds.NodeProcTxGain(cmds.RSVD_TX_GAIN))
+    def node_set_tx_rate_multicast_data(self, rate):
+        """Sets the multicast transmit rate for a node and returns the rate 
+        that was set.  The rate provided must be an entry in the rates table 
+        found in wlan_exp.util
+        """
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_MULTICAST, rate))
+
+
+    def node_get_tx_rate_multicast_data(self):
+        """Gets the current multicast transmit rate for a node as an index
+        in to the rates table found in wlan_exp.util
+        """
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_MULTICAST, cmds.RSVD_TX_RATE))
+
+
+    def node_set_tx_ant_mode_unicast(self, node_list, ant_mode):
+        """Sets the unicast transmit antenna mode of the node to the given 
+        nodes in the node_list.  If the node list is empty, then it sets 
+        the default antenna mode for future associations.  This returns a 
+        list of antenna modes that were set.
+        """
+        ret_val = []
+        
+        if (type(node_list) is list):
+            for node in node_list:
+                val = self.send_cmd(cmds.ProcNodeTxAntMode(cmds.NODE_UNICAST, ant_mode, node))
+                ret_val.append(val)
+        else:
+            val = self.send_cmd(cmds.ProcNodeTxAntMode(cmds.NODE_UNICAST, ant_mode, node_list))
+            ret_val.append(val)
+
+        return ret_val
+
+
+    def node_get_tx_ant_mode_unicast(self, node_list):
+        """Gets the unicast transmit antenna mode of the node to the given 
+        nodes in the node_list and returns a list of those antenna modes.
+        """
+        ret_val = []
+        
+        if (type(node_list) is list):
+            for node in node_list:
+                val = self.send_cmd(cmds.ProcNodeTxAntMode(cmds.NODE_UNICAST, cmds.RSVD_TX_ANT_MODE, node))
+                ret_val.append(val)
+        else:
+            val = self.send_cmd(cmds.ProcNodeTxAntMode(cmds.NODE_UNICAST, cmds.RSVD_TX_ANT_MODE, node_list))
+            ret_val.append(val)
+
+        return ret_val
+
+
+    def node_set_tx_ant_mode_multicast(self, ant_mode):
+        """Sets the multicast transmit antenna mode for a node and returns the 
+        antenna mode that was set.
+        """
+        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_MULTICAST, ant_mode))
+
+
+    def node_get_tx_ant_mode_multicast(self):
+        """Gets the current multicast transmit antenna mode for a node."""
+        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_MULTICAST, cmds.RSVD_TX_ANT_MODE))
+
+
+    def node_set_rx_ant_mode(self, ant_mode):
+        """Sets the receive antenna mode for a node and returns the 
+        antenna mode that was set.
+        """
+        return self.send_cmd(cmds.NodeProcRxAntMode(ant_mode))
+
+
+    def node_get_rx_ant_mode(self):
+        """Gets the current receive antenna mode for a node."""
+        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.RSVD_RX_ANT_MODE))
+
+
+    def node_set_tx_power(self, power):
+        """Sets the transmit power of the node and returns the power that was set."""
+        return self.send_cmd(cmds.NodeProcTxPower(power))
+
+
+    def node_get_tx_power(self):
+        """Gets the current transmit power of the node."""
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.RSVD_TX_POWER))
+
+
 
     #--------------------------------------------
     # Queue Commands
@@ -569,13 +641,7 @@ class WlanExpNode(wn_node.WnNode):
     #-------------------------------------------------------------------------
     def process_parameter(self, identifier, length, values):
         """Extract values from the parameters"""
-        if   (identifier == NODE_WLAN_MAC_ADDR):
-            if (length == 2):
-                self.wlan_mac_address = ((2**32) * (values[0] & 0xFFFF) + values[1])
-            else:
-                raise wn_ex.ParameterError("NODE_WLAN_MAC_ADDR", "Incorrect length")
-
-        elif (identifier == NODE_WLAN_MAX_ASSN):
+        if (identifier == NODE_WLAN_MAX_ASSN):
             if (length == 1):
                 self.max_associations = values[0]
             else:
@@ -592,6 +658,12 @@ class WlanExpNode(wn_node.WnNode):
                 self.max_statistics = values[0]
             else:
                 raise wn_ex.ParameterError("NODE_WLAN_MAX_STATS", "Incorrect length")
+
+        elif   (identifier == NODE_WLAN_MAC_ADDR):
+            if (length == 2):
+                self.wlan_mac_address = ((2**32) * (values[0] & 0xFFFF) + values[1])
+            else:
+                raise wn_ex.ParameterError("NODE_WLAN_MAC_ADDR", "Incorrect length")
 
         else:
             super(WlanExpNode, self).process_parameter(identifier, length, values)

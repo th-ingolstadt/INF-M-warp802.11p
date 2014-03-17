@@ -148,25 +148,24 @@ class WlanExpLogEntryType(object):
         return np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
 
     def entry_as_string(self, buf):
-        """Work in progress - the string-ifier below is hacky, but works ok for debugging"""
-        d = self.deserialize(buf)[0]
-
+        """Generate a string representation of the entry from a buffer."""
+        entry_size = calcsize(self.fields_fmt_struct)
+        entry      = self.deserialize(buf[0:entry_size])[0]
+        
         str_out = self.name + ': '
-        #str_out += '%s' % d
 
-        for k in d.keys():
-            s = d[k]
+        for k in entry.keys():
+            s = entry[k]
             if(type(s) is int):
-                str_out += ('%d, ' % s)
+                str_out += "\n    {0:25s} = {1:20d} (0x{1:16x})".format(k, s)
             elif(type(s) is str):
-                s = map(ord, list(d[k]))
-                str_out += '['
+                s = map(ord, list(entry[k]))
+                str_out += "\n    {0:25s} = [".format(k)
                 for x in s:
-#                    str_out += ('%02x ' % x)
-                    str_out += ('%d, ' % x)
-                str_out += '\b\b], '
+                    str_out += "{0:d}, ".format(x)
+                str_out += "\b\b]"
 
-        str_out += '\n'
+        str_out += "\n"
 
         return str_out
 
@@ -376,9 +375,8 @@ entry_node_info.append_field_defs([
             ('node_id',                'I',      'uint32'),
             ('hw_generation',          'I',      'uint32'),
             ('design_ver',             'I',      'uint32'),
+            ('fpga_dna',               'Q',      'uint64'),
             ('serial_num',             'I',      'uint32'),
-            ('fpga_dna_L',               'I',      'uint32'), #FIXME: 5x u32 -> 1x u64 gives unaligned u64; python calcsize and unpack insert u32 pad here
-            ('fpga_dna_M',               'I',      'uint32'),
             ('wlan_max_associations',  'I',      'uint32'),
             ('wlan_log_max_size',      'I',      'uint32'),
             ('wlan_max_stats',         'I',      'uint32')])

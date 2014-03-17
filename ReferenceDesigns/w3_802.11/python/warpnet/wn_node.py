@@ -52,8 +52,8 @@ NODE_TYPE               = 0
 NODE_ID                 = 1
 NODE_HW_GEN             = 2
 NODE_DESIGN_VER         = 3
-NODE_SERIAL_NUM         = 4
-NODE_FPGA_DNA           = 5
+NODE_FPGA_DNA           = 4
+NODE_SERIAL_NUM         = 5
 
 
 

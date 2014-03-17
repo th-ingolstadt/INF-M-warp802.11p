@@ -25,7 +25,7 @@ import warpnet.wlan_exp.util as wlan_exp_util
 
 
 # NOTE: change these values to match your experiment setup
-LOGFILE = 'netflix_log.bin'
+LOGFILE = 'example_logs/ap_log_stats.bin'
 # LOGFILE = 'example_logs/sta_log_stats.bin'
 
 
@@ -53,7 +53,7 @@ log_util.log_index_print_summary(log_index_raw, "Raw Log Index:")
 # Make sure we have 'RX_OFDM', 'TX' and 'RX_ALL' entries in the output index
 #   for examles 1, 2 and 3 respectively
 log_index = log_util.filter_log_index(log_index_raw, 
-                                      include_only=['RX_ALL', 'RX_OFDM', 'TX', 'WN_CMD_INFO'], 
+                                      include_only=['RX_ALL', 'RX_OFDM', 'TX', 'WN_CMD_INFO', 'NODE_INFO'], 
                                       merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
 
 log_util.log_index_print_summary(log_index, "Filtered Log Index:")
@@ -66,6 +66,20 @@ log_nd = log_util.gen_log_ndarrays(log_b, log_index)
 
 # Describe the NumPy arrays
 # log_util.log_index_print_summary(log_nd, "NumPy Array Summary:")
+
+
+###############################################################################
+# Example 1: Count the number of receptions per PHY rate
+#   NOTE:  Since there are only loops, this example can deal with RX_OFDM being an 
+#          empty list and does not need a try / except.
+#
+
+# Extract all OFDM receptions
+log_node_info = log_index['NODE_INFO']
+
+for info in log_node_info:
+    print(log.entry_node_info.entry_as_string(log_b[info:]))
+
 
 
 ###############################################################################
@@ -195,51 +209,49 @@ except IndexError:
 #################################################################################################
 # Example 4: Count the different WARPNet commands for a given source ID
 
-if 0:
-#disabled for now, until I get a log file that has a valid src_id field
-    try:
-        # Extract all WARPNet commands
-        log_wn_cmd = log_nd['WN_CMD_INFO']
+try:
+    # Extract all WARPNet commands
+    log_wn_cmd = log_nd['WN_CMD_INFO']
 
-        # Extract an array of the source IDs and Commands
-        wn_src_id  = log_wn_cmd['src_id']
-        wn_cmd     = log_wn_cmd['command']
+    # Extract an array of the source IDs and Commands
+    wn_src_id  = log_wn_cmd['src_id']
+    wn_cmd     = log_wn_cmd['command']
 
-        # Build a dictionary using src id as a key to a dictionary of command counts
-        wn_cmd_counts = dict()
+    # Build a dictionary using src id as a key to a dictionary of command counts
+    wn_cmd_counts = dict()
+    
+    for src_id in np.unique(wn_src_id):
+        wn_cmd_counts[src_id] = dict()
         
-        for src_id in np.unique(wn_src_id):
-            wn_cmd_counts[src_id] = dict()
-            
-            wn_src_id_idx = np.squeeze(wn_src_id == src_id)
-            
-            wn_cmds_for_src_id = wn_cmd[wn_src_id_idx]
+        wn_src_id_idx = np.squeeze(wn_src_id == src_id)
+        
+        wn_cmds_for_src_id = wn_cmd[wn_src_id_idx]
 
-            for cmd in np.unique(wn_cmds_for_src_id):
-                wn_cmd_idx = np.squeeze(wn_cmds_for_src_id == cmd)
+        for cmd in np.unique(wn_cmds_for_src_id):
+            wn_cmd_idx = np.squeeze(wn_cmds_for_src_id == cmd)
 
-                if (wn_cmd_idx.size == 1):
-                    wn_cmd_idx = np.array([True], dtype=bool)
+            if (wn_cmd_idx.size == 1):
+                wn_cmd_idx = np.array([True], dtype=bool)
 
-                wn_cmd_counts[src_id][cmd] = len(wn_cmds_for_src_id[wn_cmd_idx])
+            wn_cmd_counts[src_id][cmd] = len(wn_cmds_for_src_id[wn_cmd_idx])
 
-        # Print the results
-        msg  = "\nExample 4: WARPNet Command Counts:\n"
-        for src_id in sorted(wn_cmd_counts.keys()):
-            msg += "    Commands for source ID {0}:\n".format(src_id)
-            for cmd in sorted(wn_cmd_counts[src_id].keys()):
-                cmd_group = (cmd & 0xFF000000) >> 24
-                cmd_id    = (cmd & 0x00FFFFFF)
-                msg += "        Group ID = 0x{0:02X}  ".format(cmd_group)
-                if (cmd_id < 1000):
-                    msg += "ID =   {0:6d}  ".format(cmd_id)
-                else:
-                    msg += "ID = 0x{0:6X}  ".format(cmd_id)
-                msg += "Count = {0:8d}\n".format(wn_cmd_counts[src_id][cmd])
-        print(msg)
+    # Print the results
+    msg  = "\nExample 4: WARPNet Command Counts:\n"
+    for src_id in sorted(wn_cmd_counts.keys()):
+        msg += "    Commands for source ID {0}:\n".format(src_id)
+        for cmd in sorted(wn_cmd_counts[src_id].keys()):
+            cmd_group = (cmd & 0xFF000000) >> 24
+            cmd_id    = (cmd & 0x00FFFFFF)
+            msg += "        Group ID = 0x{0:02X}  ".format(cmd_group)
+            if (cmd_id < 1000):
+                msg += "ID =   {0:6d}  ".format(cmd_id)
+            else:
+                msg += "ID = 0x{0:6X}  ".format(cmd_id)
+            msg += "Count = {0:8d}\n".format(wn_cmd_counts[src_id][cmd])
+    print(msg)
 
-    except IndexError:
-        print("\nExample 4: No WARPNet command packets in log.")
+except IndexError:
+    print("\nExample 4: No WARPNet command packets in log.")
 
 
 

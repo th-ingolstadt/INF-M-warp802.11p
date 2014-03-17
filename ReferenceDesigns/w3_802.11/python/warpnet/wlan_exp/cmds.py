@@ -38,8 +38,10 @@ Functions (see below for more information):
 
     NodeProcTime()
     NodeProcChannel()
+    NodeProcTxPower()
     NodeProcTxRate()
-    NodeProcTxGain()
+    NodeProcTxAntMode()
+    NodeProcRxAntMode()
     
     QueueTxDataPurgeAll()
     
@@ -61,58 +63,91 @@ import warpnet.wn_transport_eth_udp as wn_transport
 __all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
            'StatsGetTxRx', 'StatsGetAllTxRx', 'StatsAddTxRxToLog', 'StatsResetTxRx', 
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
-           'NodeProcTime', 'NodeProcChannel', 'NodeProcTxRate', 'NodeProcTxGain',
+           'NodeProcTime', 'NodeProcChannel', 'NodeProcTxPower', 'NodeProcTxRate',
+           'NodeProcTxAntMode', 'NodeProcRxAntMode',
            'QueueTxDataPurgeAll']
 
 
 # WLAN Exp Command IDs (Extension of WARPNet Command IDs)
 #   NOTE:  The C counterparts are found in wlan_exp_node.h
-CMD_GET_STATION_INFO         = 10
-CMD_SET_STATION_INFO         = 11
+CMD_GET_STATION_INFO                   = 10
+CMD_SET_STATION_INFO                   = 11
 
-CMD_DISASSOCIATE             = 20
+CMD_DISASSOCIATE                       = 20
 
-CMD_TX_GAIN                  = 30
-CMD_TX_RATE                  = 31
-CMD_CHANNEL                  = 32
-CMD_TIME                     = 33
 
-RSVD_TX_GAIN                 = 0xFFFF
-RSVD_TX_RATE                 = 0xFFFF
-RSVD_CHANNEL                 = 0xFFFF
-RSVD_TIME                    = 0x0000FFFF0000FFFF
+# Node commands and defined values
+CMD_NODE_TIME                          = 30
+CMD_NODE_CHANNEL                       = 31
+CMD_NODE_TX_POWER                      = 32
+CMD_NODE_TX_RATE                       = 33
+CMD_NODE_TX_ANT_MODE                   = 34
+CMD_NODE_RX_ANT_MODE                   = 35
 
-CMD_LTG_CONFIG               = 40
-CMD_LTG_START                = 41
-CMD_LTG_STOP                 = 42
-CMD_LTG_REMOVE               = 43
+RSVD_TIME                              = 0x0000FFFF0000FFFF
+RSVD_CHANNEL                           = 0xFFFF
+RSVD_TX_POWER                          = 0xFFFF
+RSVD_TX_RATE                           = 0xFFFF
+RSVD_TX_ANT_MODE                       = 0xFFFF
+RSVD_RX_ANT_MODE                       = 0xFFFF
 
-LTG_ERROR                    = 0xFFFFFFFF
+NODE_TX_POWER_MAX_DBM                  = 19
+NODE_TX_POWER_MIN_DBM                  = -12
 
-CMD_LOG_RESET                = 50
-CMD_LOG_CONFIG               = 51
-CMD_LOG_GET_STATUS           = 52
-CMD_LOG_GET_CAPACITY         = 53
-CMD_LOG_GET_ENTRIES          = 54
-CMD_LOG_ADD_ENTRY            = 55
-CMD_LOG_ENABLE_ENTRY         = 56
-CMD_LOG_STREAM_ENTRIES       = 57
+NODE_RX_ANT_MODE_SISO_ANTA             = 0x1
+NODE_RX_ANT_MODE_SISO_ANTB             = 0x2
+NODE_RX_ANT_MODE_SISO_ANTC             = 0x3
+NODE_RX_ANT_MODE_SISO_ANTD             = 0x4
+NODE_RX_ANT_MODE_SISO_SELDIV_2ANT      = 0x5
+NODE_RX_ANT_MODE_SISO_SELDIV_4ANT      = 0x6
 
-LOG_CONFIG_FLAG_WRAP         = 0x00000001
-LOG_CONFIG_FLAG_LOGGING      = 0x00000002
+NODE_TX_ANT_MODE_SISO_ANTA             = 0x10
+NODE_TX_ANT_MODE_SISO_ANTB             = 0x20
+NODE_TX_ANT_MODE_SISO_ANTC             = 0x30
+NODE_TX_ANT_MODE_SISO_ANTD             = 0x40
 
-LOG_GET_ALL_ENTRIES          = 0xFFFFFFFF
+NODE_UNICAST                           = 0x0000
+NODE_MULTICAST                         = 0x0001
 
-CMD_STATS_RESET_TXRX         = 60
-CMD_STATS_CONFIG_TXRX        = 61
-CMD_STATS_ADD_TXRX_TO_LOG    = 62
-CMD_STATS_GET_TXRX           = 63
 
-STATS_CONFIG_FLAG_PROMISC    = 0x00000001
+# LTG commands and defined values
+CMD_LTG_CONFIG                         = 40
+CMD_LTG_START                          = 41
+CMD_LTG_STOP                           = 42
+CMD_LTG_REMOVE                         = 43
 
-STATS_RSVD_CONFIG            = 0xFFFFFFFF
+LTG_ERROR                              = 0xFFFFFFFF
 
-CMD_QUEUE_TX_DATA_PURGE_ALL  = 70
+
+# Log commands and defined values
+CMD_LOG_RESET                          = 50
+CMD_LOG_CONFIG                         = 51
+CMD_LOG_GET_STATUS                     = 52
+CMD_LOG_GET_CAPACITY                   = 53
+CMD_LOG_GET_ENTRIES                    = 54
+CMD_LOG_ADD_ENTRY                      = 55
+CMD_LOG_ENABLE_ENTRY                   = 56
+CMD_LOG_STREAM_ENTRIES                 = 57
+
+LOG_CONFIG_FLAG_WRAP                   = 0x00000001
+LOG_CONFIG_FLAG_LOGGING                = 0x00000002
+
+LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
+
+
+# Statistics commands and defined values
+CMD_STATS_RESET_TXRX                   = 60
+CMD_STATS_CONFIG_TXRX                  = 61
+CMD_STATS_ADD_TXRX_TO_LOG              = 62
+CMD_STATS_GET_TXRX                     = 63
+
+STATS_CONFIG_FLAG_PROMISC              = 0x00000001
+
+STATS_RSVD_CONFIG                      = 0xFFFFFFFF
+
+
+# Queue commands and defined values
+CMD_QUEUE_TX_DATA_PURGE_ALL            = 70
 
 
 # Be careful that new commands added to WlanExpNode do not collide with child commands
@@ -475,7 +510,7 @@ class NodeProcTime(wn_message.Cmd):
     
     def __init__(self, time):
         super(NodeProcTime, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_TIME
+        self.command = _CMD_GRPID_NODE + CMD_NODE_TIME
         
         if   (type(time) is float):
             time_to_send = int(round(time, self.time_factor) * (10**self.time_factor))
@@ -504,13 +539,44 @@ class NodeProcChannel(wn_message.Cmd):
         channel -- 802.11 Channel for the node.  Should be a value between
                    0 and 11.  Checking is done on the node and the current
                    channel will always be returned by the node.  A value 
-                   of 0xFFFF will only return the channel.
+                   of RSVD_CHANNEL will only return the channel.
     """
     def __init__(self, channel):
         super(NodeProcChannel, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_CHANNEL        
+        self.command = _CMD_GRPID_NODE + CMD_NODE_CHANNEL
 
         self.add_args((channel & 0xFFFF))
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+
+class NodeProcTxPower(wn_message.Cmd):
+    """Command to get / set the transmit power of the node.
+    
+    Attributes:
+        power -- Transmit power for the WARP node (in dBm).  Should be an 
+                 integer value between NODE_TX_POWER_MIN_DBM and 
+                 NODE_TX_POWER_MAX_DBM.  A value of RSVD_TX_POWER will return 
+                 the gain without setting it.
+    """
+    def __init__(self, power):
+        super(NodeProcTxPower, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_NODE_TX_POWER
+
+        if ((power >= NODE_TX_POWER_MIN_DBM) and (power <= NODE_TX_POWER_MAX_DBM)):
+            # Shift the value so that there are only positive integers over the wire
+            self.add_args(power - NODE_TX_POWER_MIN_DBM)
+        else:
+            msg  = "Transmit power must be a value in dBm between:  "
+            msg += "{0} and {1}".format(NODE_TX_POWER_MIN_DBM, NODE_TX_POWER_MAX_DBM)
+            raise ValueError(msg)
     
     def process_resp(self, resp):
         args = resp.get_args()
@@ -526,15 +592,18 @@ class NodeProcTxRate(wn_message.Cmd):
     """Command to get / set the transmit rate of the node.
     
     Attributes:
-        rate    -- 802.11 transmit rate for the node.  Should be an entry
-                   from the rates table in wlan_exp_util.  Checking is
-                   done on the node and the current rate will always be 
-                   returned by the node.  A value of 0xFFFF will only 
-                   return the rate.
+        node_type -- Is this for unicast transmit or multicast transmit.
+        rate      -- 802.11 transmit rate for the node.  Should be an entry
+                     from the rates table in wlan_exp.util.  Checking is
+                     done on the node and the current rate will always be 
+                     returned by the node.  A value of RSVD_TX_RATE will only 
+                     return the rate.
+        node      -- Node for which the rate is being set.  If node is 
+                     not provided, then the default rate is set.
     """
-    def __init__(self, rate, node=None):
+    def __init__(self, node_type, rate, node=None):
         super(NodeProcTxRate, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_TX_RATE
+        self.command = _CMD_GRPID_NODE + CMD_NODE_TX_RATE
         
         if not node is None:
             mac_address = node.wlan_mac_address
@@ -544,7 +613,17 @@ class NodeProcTxRate(wn_message.Cmd):
             self.add_args(0xFFFFFFFF)
             self.add_args(0xFFFFFFFF)
 
-        self.add_args((rate['index'] & 0xFFFF))
+        if ((node_type == NODE_UNICAST) or (node_type == NODE_MULTICAST)):
+            self.add_args(node_type)
+        else:
+            msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
+            raise ValueError(msg)
+        
+        try:
+            self.add_args((rate['index'] & 0xFFFF))
+        except (KeyError, TypeError):
+            msg  = "The TX rate must be an entry from the rates table in wlan_exp.util"
+            raise ValueError(msg)
     
     def process_resp(self, resp):
         args = resp.get_args()
@@ -556,20 +635,98 @@ class NodeProcTxRate(wn_message.Cmd):
 # End Class
 
 
-class NodeProcTxGain(wn_message.Cmd):
-    """Command to get / set the transmit gain of the node.
+class NodeProcTxAntMode(wn_message.Cmd):
+    """Command to get / set the transmit antenna mode of the node.
     
     Attributes:
-        rate    -- Transmit gain for the WARP node.  Should be an integer
-                   value between 0 and 63.  Checking is done on the node 
-                   and the current gain will always be returned by the node.
-                   A value of 0xFFFF will only return the gain.
+        node_type -- Is this for unicast transmit or multicast transmit.
+        ant_mode  -- Transmit antenna mode for the node.  Checking is
+                     done both in the command and on the node.  The current
+                     antenna mode will be returned by the node.  A value of 
+                     RSVD_TX_ANT_MODE will only return the antenna mode.
+        node      -- Node for which the antenna mode is being set.  If node
+                     is not provided, then the default antenna mode is set.
     """
-    def __init__(self, gain):
-        super(NodeProcTxGain, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_TX_GAIN
+    def __init__(self, node_type, ant_mode, node=None):
+        super(NodeProcTxAntMode, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_NODE_TX_ANT_MODE
+        
+        if not node is None:
+            mac_address = node.wlan_mac_address
+            self.add_args(((mac_address >> 32) & 0xFFFF))
+            self.add_args((mac_address & 0xFFFFFFFF))
+        else:
+            self.add_args(0xFFFFFFFF)
+            self.add_args(0xFFFFFFFF)
 
-        self.add_args((gain & 0xFFFF))
+        if ((node_type == NODE_UNICAST) or (node_type == NODE_MULTICAST)):
+            self.add_args(node_type)
+        else:
+            msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
+            raise ValueError(msg)
+        
+        self.add_args(self.check_ant_mode(ant_mode))
+
+
+    def check_ant_mode(self, ant_mode):
+        """Check the antenna mode to see if it is valid."""
+        if ((ant_mode == NODE_TX_ANT_MODE_SISO_ANTA) or
+            (ant_mode == NODE_TX_ANT_MODE_SISO_ANTB) or
+            (ant_mode == NODE_TX_ANT_MODE_SISO_ANTC) or
+            (ant_mode == NODE_TX_ANT_MODE_SISO_ANTD)):
+            return ant_mode
+        else:
+            msg  = "The antenna mode must be one of the following defines:\n"
+            msg += "    NODE_TX_ANT_MODE_SISO_ANTA\n"
+            msg += "    NODE_TX_ANT_MODE_SISO_ANTB\n"
+            msg += "    NODE_TX_ANT_MODE_SISO_ANTC\n"
+            msg += "    NODE_TX_ANT_MODE_SISO_ANTD\n"
+            raise ValueError(msg)
+    
+    def process_resp(self, resp):
+        args = resp.get_args()
+        if len(args) != 1:
+            print("Invalid response.")
+            print(resp)
+        return args[0]
+
+# End Class
+
+
+class NodeProcRxAntMode(wn_message.Cmd):
+    """Command to get / set the receive antenna mode of the node.
+    
+    Attributes:
+        ant_mode  -- Receive antenna mode for the node.  Checking is
+                     done both in the command and on the node.  The current
+                     antenna mode will be returned by the node.  A value of 
+                     RSVD_RX_ANT_MODE will only return the antenna mode.
+    """
+    def __init__(self, ant_mode):
+        super(NodeProcRxAntMode, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_NODE_RX_ANT_MODE
+        
+        self.add_args(self.check_ant_mode(ant_mode))
+
+
+    def check_ant_mode(self, ant_mode):
+        """Check the antenna mode to see if it is valid."""
+        if ((ant_mode == NODE_RX_ANT_MODE_SISO_ANTA) or
+            (ant_mode == NODE_RX_ANT_MODE_SISO_ANTB) or
+            (ant_mode == NODE_RX_ANT_MODE_SISO_ANTC) or
+            (ant_mode == NODE_RX_ANT_MODE_SISO_ANTD) or
+            (ant_mode == NODE_RX_ANT_MODE_SISO_SELDIV_2ANT) or
+            (ant_mode == NODE_RX_ANT_MODE_SISO_SELDIV_4ANT)):
+            return ant_mode
+        else:
+            msg  = "The antenna mode must be one of the following defines:\n"
+            msg += "    NODE_RX_ANT_MODE_SISO_ANTA\n"
+            msg += "    NODE_RX_ANT_MODE_SISO_ANTB\n"
+            msg += "    NODE_RX_ANT_MODE_SISO_ANTC\n"
+            msg += "    NODE_RX_ANT_MODE_SISO_ANTD\n"
+            msg += "    NODE_RX_ANT_MODE_SISO_SELDIV_2ANT"
+            msg += "    NODE_RX_ANT_MODE_SISO_SELDIV_4ANT"
+            raise ValueError(msg)
     
     def process_resp(self, resp):
         args = resp.get_args()
