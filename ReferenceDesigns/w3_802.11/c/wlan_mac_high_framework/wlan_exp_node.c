@@ -744,35 +744,24 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 
 	    //---------------------------------------------------------------------
-		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_TX_GAIN:
-			//TODO: !!! Replace with NODE_TX_POWER
-#if 0
-			// Set / Get node TX gain
+		case NODE_TX_POWER:
+            // NODE_TX_POWER Packet Format:
+			//   - cmdArgs32[0]  - Power
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
 			// If parameter is not the magic number, then set the TX power
-			if ( temp != NODE_TX_GAIN_RSVD_VAL ) {
+			if ( temp != NODE_TX_POWER_RSVD_VAL ) {
 
-				if (temp <  0) {
-					default_tx_gain_target = 0;
-				}
-				else  if (temp > 63) {
-					default_tx_gain_target = 63;
-				}
-				else {
-					default_tx_gain_target = temp;
-				}
+				// TODO:  FIX!!!!
 
-			    xil_printf("Setting TX gain = %d\n", temp);
+			    xil_printf("Setting TX power = %d\n", temp);
 			}
 
 			// Send response of current power
-            respArgs32[respIndex++] = Xil_Htonl( default_tx_gain_target );
+            respArgs32[respIndex++] = Xil_Htonl( temp );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
-#endif
 		break;
 
 
@@ -781,7 +770,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		case NODE_TX_RATE:
             // NODE_TX_RATE Packet Format:
 			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all nodes)
-			//   - cmdArgs32[2]      - Rate
+			//   - cmdArgs32[2]      - Type
+			//   - cmdArgs32[3]      - Rate
+
+			// TODO:  FIX!!!!
 
 			// Get MAC Address
         	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
@@ -791,7 +783,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			u32  rate;
 
         	// Get node TX rate and adjust so that it is a legal value
-			rate = Xil_Ntohl(cmdArgs32[2]);
+			rate = Xil_Ntohl(cmdArgs32[3]);
 
 			if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
 			if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
@@ -1553,6 +1545,207 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 }
 
 
+#if 0
+
+/*****************************************************************************/
+/**
+* Initial attempt to collapse 'get station info' and 'get statistics' in to a
+* single function.  This does not currently work and needs to be fixed base on
+* updates that are being made to dl_list / dl_entry.
+*
+* @param
+*
+* @return    Number of response arguments
+*
+* @note
+*
+******************************************************************************/
+u32 wlan_exp_get_info_cmd_helper( u32 command, u32 * cmdArgs, u32 * respArgs,
+		                          wn_respHdr* respHdr, void* pktSrc, u32 eth_dev_num, u32 max_words ) {
+
+	// Common Variables
+	u32                      i, j;
+    u32                      ret_val             = 0;
+    u32                      cmd_id              = WN_CMD_TO_CMDID(command);
+
+	u8                       mac_addr[6];
+	u32                      id;
+
+	dl_list                * list;
+	dl_entry               * list_item;
+	void                   * data;
+	void                   * entry;
+
+	u32                      transfer_size;
+	u32                      entry_size;
+	u32                      data_size;
+	u32                      pkt_size;
+
+	u32                      bytes_remaining;
+	u32                      entry_remaining;
+
+	u32                      num_pkts;
+	u32                      bytes_per_pkt;
+	u32                      entry_per_pkt;
+
+	u32                      total_entries;
+	u32                      transfer_entry_num;
+
+	u32                      curr_index;
+	u32                      next_index;
+
+	u64                      time;
+
+	// Station Info specific variables
+	station_info_entry     * info_entry;
+
+	// Statistics specific variables
+	txrx_stats_entry       * stats_entry;
+
+
+	xil_printf("Get Info\n");
+
+	// Get MAC Address
+	wlan_exp_get_mac_addr(&cmdArgs[0], &mac_addr[0]);
+	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+    // Initialize variables based on command
+	switch(cmd_id){
+        case NODE_GET_STATION_INFO:
+        	entry_size = sizeof(station_info_entry);
+        	list       = get_station_info_list();
+        break;
+
+		case NODE_STATS_GET_TXRX:
+        	entry_size = sizeof(txrx_stats_entry);
+        	list       = get_statistics();
+        break;
+
+        default:
+        	xil_printf("   Command not supported:  %d\n", cmd_id);
+        	return ret_val;
+	}
+
+	// If parameter is not the magic number
+	if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+#if 0
+		// Find the station_info entry
+		curr_station_info = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
+
+		if (curr_station_info != NULL) {
+			info_entry = (station_info_entry *) &respArgs[respIndex];
+
+			info_entry->timestamp = get_usec_timestamp();
+
+			// Copy the station info to the log entry
+			//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
+			//          similar to the station info and tx params structures in wlan_mac_high.h
+			memcpy( (void *)(&info_entry->addr), (void *)(&curr_station_info->addr), station_info_size );
+			memcpy( (void *)(&info_entry->rate), (void *)(&curr_station_info->tx.phy.rate), tx_params_size );
+
+			xil_printf("Getting Station Entry for node: %02x", mac_addr[0]);
+			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+		} else {
+			xil_printf("Could not find specified node: %02x", mac_addr[0]);
+			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+		}
+#endif
+
+	} else {
+		// Create a WARPNet buffer response to send all entries in the list
+
+	    // Initialize constant parameters
+		respArgs[0] = 0xFFFFFFFF;
+		respArgs[1] = 0;
+
+	    // Get the number of
+	    total_entries     = list->length;
+	    transfer_size     = entry_size * total_entries;
+
+	    if ( transfer_size != 0 ) {
+	        // Send the data as a series of WARPNet Buffers
+
+	    	// Set loop variables
+	    	entry_per_pkt     = (max_words * 4) / entry_size;
+	    	bytes_per_pkt     = entry_per_pkt * entry_size;
+	    	num_pkts          = size / bytes_per_pkt + 1;
+	        if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
+
+	        entry_remaining   = total_entries;
+	        bytes_remaining   = size;
+			curr_index        = 0;
+			time              = get_usec_timestamp();
+			list_item         = list->first;
+
+			// Iterate through all the packets
+			for( i = 0; i < num_pkts; i++ ) {
+
+				// Get the next index
+				next_index  = curr_index + bytes_per_pkt;
+
+				// Compute the transfer size (use the full buffer unless you run out of space)
+				if( next_index > size ) {
+					pkt_size = size - curr_index;
+				} else {
+					pkt_size = bytes_per_pkt;
+				}
+
+				if( entry_remaining < entry_per_pkt) {
+				    transfer_entry_num = entry_remaining;
+				} else {
+				    transfer_entry_num = entry_per_pkt;
+				}
+
+				// Set response args that change per packet
+				respArgs[2]    = Xil_Htonl( bytes_remaining );
+				respArgs[3]    = Xil_Htonl( curr_index );
+				respArgs[4]    = Xil_Htonl( pkt_size );
+
+				// Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all
+				//   three command parameters for each packet that is sent.
+				respHdr->cmd     = command;
+				respHdr->length  = 20 + pkt_size;
+				respHdr->numArgs = 5;
+
+				// Transfer data
+				entry = (void *) &respArgs[5];
+
+	            for( j = 0; j < transfer_entry_num; j++ ){
+
+					// Copy the data to the packet
+					memcpy( entry, info->data, entry_size );
+
+	                // Set the timestamp for the station_info entry
+	            	entry->timestamp = time;
+
+	            	// Increment the pointers
+					info               = info->next;
+					entry              = (void *)(entry + entry_size);
+	            }
+
+				// Send the packet
+				node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+
+				// Update our current address and bytes remaining
+				curr_index       = next_index;
+				bytes_remaining -= transfer_size;
+				entry_remaining -= entry_per_pkt;
+			}
+	    } else {
+			// Set empty response args
+	    	respArgs[2]      = 0;
+	    	respArgs[3]      = 0;
+	    	respArgs[4]      = 0;
+	    	ret_val          = 5;             // 5 response words
+
+	    	respHdr->length += (ret_val * sizeof(u32));
+	    }
+	}
+
+    return ret_val;
+}
+
+#endif
 
 
 /*****************************************************************************/
@@ -1583,12 +1776,13 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
     node_info.node            = 0xFFFF;
     node_info.hw_generation   = WARP_HW_VERSION;
     node_info.design_ver      = (WARPNET_VER_MAJOR<<16)|(WARPNET_VER_MINOR<<8)|(WARPNET_VER_REV);
-
-    node_info.serial_number   = serial_number;
     
     for( i = 0; i < FPGA_DNA_LEN; i++ ) {
         node_info.fpga_dna[i] = fpga_dna[i];
     }
+
+    node_info.serial_number   = serial_number;
+
     
     // WLAN Exp Parameters are assumed to be initialize already
     //    node_info.wlan_hw_addr
@@ -2078,13 +2272,14 @@ void print_wn_node_info( wn_node_info * info ) {
     xil_printf("  HW Generation:      %d \n",      info->hw_generation);
     xil_printf("  HW Design Version:  0x%x \n",    info->design_ver);
     
-    xil_printf("  Serial Number:      0x%x \n",    info->serial_number);
     xil_printf("  FPGA DNA:           ");
     
     for( i = 0; i < FPGA_DNA_LEN; i++ ) {
         xil_printf("0x%8x  ", info->fpga_dna[i]);
     }
 	xil_printf("\n");
+
+	xil_printf("  Serial Number:      0x%x \n",    info->serial_number);
         
     xil_printf("  HW Address:         %02x",       info->hw_addr[0]);
                                               

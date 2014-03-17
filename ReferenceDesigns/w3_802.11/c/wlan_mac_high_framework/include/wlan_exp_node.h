@@ -48,15 +48,22 @@
 
 #define NODE_DISASSOCIATE              20
 
-#define NODE_TX_GAIN                   30
-#define NODE_TX_RATE                   31
-#define NODE_CHANNEL                   32
-#define NODE_TIME                      33
+#define NODE_TIME                      30
+#define NODE_CHANNEL                   31
+#define NODE_TX_POWER                  32
+#define NODE_TX_RATE                   33
+#define NODE_TX_ANT_MODE               34
+#define NODE_RX_ANT_MODE               35
 
-#define NODE_TX_GAIN_RSVD_VAL          0xFFFF
-#define NODE_TX_RATE_RSVD_VAL          0xFFFF
-#define NODE_CHANNEL_RSVD_VAL          0xFFFF
 #define NODE_TIME_RSVD_VAL             0xFFFF
+#define NODE_CHANNEL_RSVD_VAL          0xFFFF
+#define NODE_TX_POWER_RSVD_VAL         0xFFFF
+#define NODE_TX_RATE_RSVD_VAL          0xFFFF
+#define NODE_TX_ANT_MODE_RSVD_VAL      0xFFFF
+#define NODE_RX_ANT_MODE_RSVD_VAL      0xFFFF
+
+#define NODE_UNICAST_VAL               0x0000
+#define NODE_MULTICAST_VAL             0x0001
 
 #define NODE_LTG_CONFIG                40
 #define NODE_LTG_START                 41
@@ -104,12 +111,12 @@
 #define NODE_ID                        1
 #define NODE_HW_GEN                    2
 #define NODE_DESIGN_VER                3
-#define NODE_SERIAL_NUM                4
-#define NODE_FPGA_DNA                  5
-#define NODE_WLAN_MAC_ADDR             6
-#define NODE_WLAN_MAX_ASSN             7
-#define NODE_WLAN_EVENT_LOG_SIZE       8
-#define NODE_WLAN_MAX_STATS            9
+#define NODE_FPGA_DNA                  4
+#define NODE_SERIAL_NUM                5
+#define NODE_WLAN_MAX_ASSN             6
+#define NODE_WLAN_EVENT_LOG_SIZE       7
+#define NODE_WLAN_MAX_STATS            8
+#define NODE_WLAN_MAC_ADDR             9
 #define NODE_MAX_PARAMETER            10
 
 
@@ -126,13 +133,13 @@ typedef struct {
     u32   hw_generation;                    // Only first  8 bits are valid
 	u32   design_ver;                       // Only first 24 bits are valid
 
-	u32   serial_number;
 	u32   fpga_dna[FPGA_DNA_LEN];
+	u32   serial_number;
 
-    u32   wlan_hw_addr[2];                  // WLAN Exp - Wireless MAC address
 	u32   wlan_max_assn;                    // WLAN Exp - Max Associations
 	u32   wlan_event_log_size;              // WLAN Exp - Event Log Size
 	u32   wlan_max_stats;                   // WLAN Exp - Max number of promiscuous statistic entries
+    u32   wlan_hw_addr[2];                  // WLAN Exp - Wireless MAC address
 
     u32   eth_device;
     u8    hw_addr[ETH_ADDR_LEN];

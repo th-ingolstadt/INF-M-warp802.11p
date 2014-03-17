@@ -210,8 +210,8 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   ID          :   0x%4x\n",     node_info_entry_log_item->id);
 			xil_printf("   HW Gen      :   %d\n",     node_info_entry_log_item->hw_gen);
 			xil_printf("   Design Ver  :   0x%08x\n",     node_info_entry_log_item->design_ver);
-			xil_printf("   Serial Num  :   %d\n",     node_info_entry_log_item->serial_number);
 			xil_printf("   FPGA DNA    :   0x%08x  0x%08x\n", (u32)(node_info_entry_log_item->fpga_dna >>32), (u32)(node_info_entry_log_item->fpga_dna) );
+			xil_printf("   Serial Num  :   %d\n",     node_info_entry_log_item->serial_number);
 			xil_printf("   Max assn    :   %d\n",     node_info_entry_log_item->wlan_max_assn);
 			xil_printf("   Log size    :   %d\n",     node_info_entry_log_item->wlan_event_log_size);
 			xil_printf("   Max stats   :   %d\n",     node_info_entry_log_item->wlan_max_stats);
