@@ -16,7 +16,7 @@ log_idx_rx_ofdm = log_util.filter_log_index(log_index_raw, include_only=['RX_OFD
 
 #Generate numpy array
 print("Generating numpy arrays...")
-log_nd = log_util.gen_log_ndarrays(log_b, log_idx_rx_ofdm)
+log_nd = log_util.gen_log_np_arrays(log_b, log_idx_rx_ofdm)
 rx = log_nd['RX_OFDM']
 
 #Extract length and timestamp fields
