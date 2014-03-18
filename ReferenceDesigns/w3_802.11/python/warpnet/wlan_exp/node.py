@@ -678,8 +678,8 @@ class WlanExpNode(wn_node.WnNode):
         (major, minor, revision) = util.wlan_exp_ver(output=0)
         
         # Node %d with Serial # %d has version "%d.%d.%d" which does not match WLAN Exp v%d.%d.%d
-        msg  = "WARPNet version mismatch on {0} ".format(self.name)
-        msg += "(W3-a-{0:05d}):\n".format(self.serial_number)
+        msg  = "WLAN Exp version mismatch on {0} ({0}):\n".format(self.name, self.sn_str)
+        msg += "({0}):\n".format(self.sn_str)
         msg += "    Node version = "
         msg += "{0:d}.{1:d}.{2:d}\n".format(self.wlan_exp_ver_major, 
                                             self.wlan_exp_ver_minor, 

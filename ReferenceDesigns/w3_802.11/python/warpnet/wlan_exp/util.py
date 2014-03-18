@@ -22,14 +22,14 @@ This module provides WLAN Exp utility commands.
 Functions (see below for more information):
     tx_rate_index_to_str -- Converts tx_rate_index to string
 
-    wlan_exp_ver() -- Returns WLAN Exp version
-    wlan_exp_ver_str() -- Returns string of WLAN Exp version
+    wlan_exp_ver()       -- Returns WLAN Exp version
+    wlan_exp_ver_str()   -- Returns string of WLAN Exp version
 
-    init_nodes() -- Initialize nodes
-    init_timestamp() -- Initialize the timestamps on all nodes to be as 
-                            similar as possible
+    init_nodes()         -- Initialize nodes
+    init_timestamp()     -- Initialize the timestamps on all nodes to be as 
+                              similar as possible
 
-    filter_nodes() -- Filter a list of nodes
+    filter_nodes()       -- Filter a list of nodes
 
 Integer constants:
     WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION, WLAN_EXP_XTRA, 
@@ -329,15 +329,13 @@ def filter_nodes(nodes, filter_type, filter_val):
 
 
     elif (filter_type == 'serial_number'):
-        expr = re.compile('W3-a-(?P<sn>\d+)')
+        import warpnet.wn_util as wn_util
+
         try:
-            sn = int(expr.match(filter_val).group('sn'))
-            ret_nodes = _get_nodes_by_sn(nodes, sn)
-        except AttributeError:
-            msg  = "Incorrect serial number.  \n"
-            msg += "    Should be of the form : W3-a-XXXXX\n"
-            msg += "    Provided serial number: {0}".format(filter_val)
-            print(msg)
+            (sn, sn_str) = wn_util.wn_get_serial_number(filter_val)
+            ret_nodes    = _get_nodes_by_sn(nodes, sn)
+        except TypeError as err:
+            print(err)
     
     else:
         msg  = "Unknown filter type: {0}\n".format(filter_type)

@@ -68,14 +68,14 @@ class WnNode(object):
     as well as a transport component.
     
     Attributes:
-        node_type -- Unique type of the WARPNet node
-        node_id -- Unique identification for this node
-        name -- User specified name for this node (supplied by user scripts)
-        description -- String description of this node (auto-generated)
+        node_type     -- Unique type of the WARPNet node
+        node_id       -- Unique identification for this node
+        name          -- User specified name for this node (supplied by user scripts)
+        description   -- String description of this node (auto-generated)
         serial_number -- Node's serial number, read from EEPROM on hardware
-        fpga_dna -- Node's FPGA'a unique identification (on select hardware)
-        hw_ver -- WARP hardware version of this node
-        wn_ver_major -- WARPNet version running on this node
+        fpga_dna      -- Node's FPGA'a unique identification (on select hardware)
+        hw_ver        -- WARP hardware version of this node
+        wn_ver_major  -- WARPNet version running on this node
         wn_ver_minor
         wn_ver_revision
         
@@ -89,6 +89,7 @@ class WnNode(object):
     name            = None
     description     = None
     serial_number   = None
+    sn_str          = None
     fpga_dna        = None
     hw_ver          = None
     wn_ver_major    = None
@@ -123,10 +124,12 @@ class WnNode(object):
                                ip_address, unicast_port, bcast_port):
         """Set the initial configuration of the node."""
 
-        host_id     = self.host_config.get_param('network', 'host_id')
-        tx_buf_size = self.host_config.get_param('network', 'tx_buffer_size')
-        rx_buf_size = self.host_config.get_param('network', 'rx_buffer_size')
-        tport_type  = self.host_config.get_param('network', 'transport_type')
+        host_id      = self.host_config.get_param('network', 'host_id')
+        tx_buf_size  = self.host_config.get_param('network', 'tx_buffer_size')
+        rx_buf_size  = self.host_config.get_param('network', 'rx_buffer_size')
+        tport_type   = self.host_config.get_param('network', 'transport_type')
+
+        (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
         
         if (tport_type == 'python'):
             if self.transport is None:
@@ -136,10 +139,11 @@ class WnNode(object):
         else:
             print("Transport not defined\n")
         
-        # Set Node information
-        self.node_id = node_id
-        self.name = node_name
-        self.serial_number = serial_number
+        # Set Node information        
+        self.node_id       = node_id
+        self.name          = node_name
+        self.serial_number = sn
+        self.sn_str        = sn_str
 
         # Set Node Unicast Transport information
         self.transport.wn_open(tx_buf_size, rx_buf_size)
@@ -295,7 +299,9 @@ class WnNode(object):
 
         elif (identifier == NODE_SERIAL_NUM):
             if (length == 1):
-                self.serial_number = values[0]
+                (sn, sn_str) = wn_util.wn_get_serial_number(values[0], output=False)
+                self.serial_number = sn
+                self.sn_str        = sn_str
             else:
                 raise wn_ex.ParameterError("NODE_SERIAL_NUM", "Incorrect length")
 
@@ -448,8 +454,7 @@ class WnNode(object):
         (major, minor, revision) = wn_util.wn_ver(output=0)
         
         # Node %d with Serial # %d has version "%d.%d.%d" which does not match WARPNet v%d.%d.%d
-        msg  = "WARPNet version mismatch on {0} ".format(self.name)
-        msg += "(W3-a-{0:05d}):\n".format(self.serial_number)
+        msg  = "WARPNet version mismatch on {0} ({0}):\n".format(self.name, self.sn_str)
         msg += "    Node version = "
         msg += "{0:d}.{1:d}.{2:d}\n".format(self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision)
         msg += "    Host version = "
@@ -468,7 +473,7 @@ class WnNode(object):
         if not self.serial_number is None:
             msg += "Node '{0}' with ID {1}:\n".format(self.name, self.node_id)
             msg += "    Desc    :  {0}\n".format(self.description)
-            msg += "    Serial #:  W3-a-{0}\n".format(self.serial_number)
+            msg += "    Serial #:  {0}\n".format(self.sn_str)
         else:
             msg += "Node not initialized."
         if not self.transport is None:
@@ -480,7 +485,7 @@ class WnNode(object):
         """Return node name and description"""
         msg = ""
         if not self.serial_number is None:
-            msg  = "W3-a-{0:05d}: ".format(self.serial_number)
+            msg  = "{0}: ".format(self.sn_str)
             msg += "ID {0:5d} ".format(self.node_id)
             msg += "({0})".format(self.name)
         else:
@@ -554,17 +559,17 @@ class WnNodeFactory(WnNode):
                                             unicast_port=self.transport.unicast_port,
                                             bcast_port=self.transport.bcast_port)
 
-                msg  = "Initializing W3-a-{0:05d}".format(node.serial_number)
+                msg  = "Initializing {0}".format(node.sn_str)
                 msg += " as {0}".format(node.name)
                 print(msg)
             else:
                 self.print_wn_node_types()
-                msg  = "ERROR:  Node W3-a-{0:05d}\n".format(self.serial_number)
+                msg  = "ERROR:  Node {0}\n".format(self.sn_str)
                 msg += "    Unknown WARPNet type: {0}\n".format(wn_node_type)
                 print(msg)
 
         except wn_ex.TransportError as err:
-            msg  = "ERROR:  Node W3-a-{0:05d}\n".format(self.serial_number)
+            msg  = "ERROR:  Node {0}\n".format(self.sn_str)
             msg += "    Node is not responding.  Please ensure that the \n"
             msg += "    node is powered on and is properly configured.\n"
             print(msg)

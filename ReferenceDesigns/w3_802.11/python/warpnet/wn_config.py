@@ -35,6 +35,7 @@ except ImportError:  # Python 2
 
 
 from . import wn_defaults
+from . import wn_util
 from . import wn_exception as wn_ex
 
 
@@ -324,11 +325,8 @@ class NodesConfiguration(object):
             for sn in serial_numbers:
                 try:
                     self.add_node(sn)
-                except:
-                    msg  = "Incorrect WARPv3 serial number.\n"
-                    msg += "    Need: 'W3-a-XXXXX'"
-                    msg += "    Provided: {0}".format(sn)
-                    print(msg)
+                except TypeError as err:
+                    print(err)
 
 
     #-------------------------------------------------------------------------
@@ -348,40 +346,40 @@ class NodesConfiguration(object):
         fields will not be populated in the ini file unless they require a 
         non-default value.  
         """
-        sn = self._get_serial_num(serial_number)
+        (sn, sn_str) = wn_util.wn_get_serial_number(serial_number)
         
-        if (sn in self.config.sections()):
-            print("Node {0} exists.  Please use set_param to modify the node.".format(serial_number))
+        if (sn_str in self.config.sections()):
+            print("Node {0} exists.  Please use set_param to modify the node.".format(sn_str))
         else:
-            self.config.add_section(sn)
+            self.config.add_section(sn_str)
 
             # Populate optional parameters
-            if not ip_address   is None: self.config.set(sn, 'ip_address', ip_address)
-            if not node_id      is None: self.config.set(sn, 'node_id', node_id)
-            if not unicast_port is None: self.config.set(sn, 'unicast_port', unicast_port)
-            if not bcast_port   is None: self.config.set(sn, 'bcast_port', bcast_port)
-            if not node_name    is None: self.config.set(sn, 'node_name', node_name)
-            if not use_node     is None: self.config.set(sn, 'use_node', use_node)
+            if not ip_address   is None: self.config.set(sn_str, 'ip_address', ip_address)
+            if not node_id      is None: self.config.set(sn_str, 'node_id', node_id)
+            if not unicast_port is None: self.config.set(sn_str, 'unicast_port', unicast_port)
+            if not bcast_port   is None: self.config.set(sn_str, 'bcast_port', bcast_port)
+            if not node_name    is None: self.config.set(sn_str, 'node_name', node_name)
+            if not use_node     is None: self.config.set(sn_str, 'use_node', use_node)
 
         # Add node to shadow_config
-        self.add_shadow_node(serial_number)
+        self.add_shadow_node(sn_str)
 
 
     def remove_node(self, serial_number):
         """Remove a node from the NodesConfig structure."""
-        sn = self._get_serial_num(serial_number)
+        (sn, sn_str) = wn_util.wn_get_serial_number(serial_number)
 
-        if (not self.config.remove_section(sn)):
-            print("Node {0} not in nodes configuration.".format(sn))
+        if (not self.config.remove_section(sn_str)):
+            print("Node {0} not in nodes configuration.".format(sn_str))
         else:
-            self.remove_shadow_node(sn)
+            self.remove_shadow_node(sn_str)
         
 
     def get_param(self, section, parameter):
         """Returns the value of the parameter within the config for the node."""        
-        sn = self._get_serial_num(section)
+        (sn, sn_str) = wn_util.wn_get_serial_number(section)
 
-        return self.get_param_helper(sn, parameter)
+        return self.get_param_helper(sn_str, parameter)
 
 
     def get_param_helper(self, section, parameter):
@@ -399,39 +397,39 @@ class NodesConfiguration(object):
 
     def set_param(self, section, parameter, value):
         """Sets the parameter to the given value."""
-        sn = self._get_serial_num(section)
+        (sn, sn_str) = wn_util.wn_get_serial_number(section)
         
-        if (sn in self.config.sections()):
-            if (parameter in self.config.options(sn)):
-                self._set_param_hack(sn, parameter, value)
-                self.update_shadow_config(sn, parameter, value)
+        if (sn_str in self.config.sections()):
+            if (parameter in self.config.options(sn_str)):
+                self._set_param_hack(sn_str, parameter, value)
+                self.update_shadow_config(sn_str, parameter, value)
             else:
                 if (parameter in self.shadow_config['default'].keys()):
-                    self._set_param_hack(sn, parameter, value)
-                    self.update_shadow_config(sn, parameter, value)
+                    self._set_param_hack(sn_str, parameter, value)
+                    self.update_shadow_config(sn_str, parameter, value)
                 else:
-                    print("Parameter {} does not exist in node '{}'.".format(parameter, sn))
+                    print("Parameter {} does not exist in node '{}'.".format(parameter, sn_str))
         else:
-            print("Section '{}' does not exist.".format(sn))
+            print("Section '{}' does not exist.".format(sn_str))
 
 
     def remove_param(self, section, parameter):
         """Removes the parameter from the config."""
-        sn = self._get_serial_num(section)
+        (sn, sn_str) = wn_util.wn_get_serial_number(section)
         
-        if (sn in self.config.sections()):
-            if (parameter in self.config.options(sn)):
-                self.config.remove_option(sn, parameter)
+        if (sn_str in self.config.sections()):
+            if (parameter in self.config.options(sn_str)):
+                self.config.remove_option(sn_str, parameter)
                 
                 # Re-populate the shadow_config
-                self.remove_shadow_node(sn)
-                self.add_shadow_node(sn)
+                self.remove_shadow_node(sn_str)
+                self.add_shadow_node(sn_str)
             else:
                 # Fail silently so there are no issues when a user tries to 
                 #    remove a shadow_config parameter
                 pass
         else:
-            print("Section '{}' does not exist.".format(sn))
+            print("Section '{}' does not exist.".format(sn_str))
 
 
     def get_nodes_dict(self):
@@ -445,15 +443,11 @@ class NodesConfiguration(object):
         for node_config in self.config.sections():
             if (self.get_param_helper(node_config, 'use_node')):
                 add_node = True
-                
-                expr = re.compile('W3-a-(?P<sn>\d+)')
+
                 try:
-                    sn = int(expr.match(node_config).group('sn'))
-                except AttributeError:
-                    msg  = "Incorrect serial number.  \n"
-                    msg += "    Should be of the form : W3-a-XXXXX\n"
-                    msg += "    Provided serial number: {0}".format(node_config)
-                    print(msg)
+                    (sn, sn_str) = wn_util.wn_get_serial_number(node_config)
+                except TypeError as err:
+                    print(err)
                     add_node = False
 
                 if add_node:
@@ -634,33 +628,6 @@ class NodesConfiguration(object):
             node_id_base += 1
 
         return next_ip_addr
-
-
-    def _get_serial_num(self, value):
-        if type(value) is int:
-            sn = "W3-a-{0:05d}".format(value)
-        elif type(value) is str:
-            if (self._check_serial_number(value)):
-                sn = value
-            else:
-                raise TypeError("Invalid serial number: {0}".format(value))
-        else:
-            raise TypeError("Invalid serial number: {0}".format(value))
-
-        return sn
-
-
-    def _check_serial_number(self, serial_number):
-        """Internal method to check the format of the serial number.  
-        
-        If the serial number is of the form:  W3-a-XXXXX, then this function 
-        will return True; otherwise, False.
-        """
-        expr = re.compile('W3-a-\d\d\d\d\d')
-        if (expr.match(serial_number)):
-            return True
-        else:
-            return False
 
 
     def _get_node_id(self, section):

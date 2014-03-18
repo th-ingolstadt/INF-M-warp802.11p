@@ -41,6 +41,7 @@ defining other sub-classes of WARPNet Cmd and BufferCmd.
 
 
 from . import wn_message
+from . import wn_util
 
 
 __all__ = ['NodeGetWarpNetType', 'NodeIdentify', 'NodeGetHwInfo', 
@@ -126,27 +127,16 @@ class NodeIdentify(wn_message.Cmd):
     def __init__(self, serial_number):
         super(NodeIdentify, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_IDENTIFY
+
+        (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
         
-        if type(serial_number) is int:
-            if (serial_number == IDENTIFY_ALL_NODES):
-                self.id = "All nodes"
-            else:
-                self.id = "W3-a-{0:05d}".format(serial_number)
-            self.add_args(serial_number)
-        elif type(serial_number) is str:
-            import re
-            expr = re.compile('W3-a-(?P<sn>\d+)')
-            try:
-                sn = int(expr.match(serial_number).group('sn'))
-                self.id = serial_number
-                self.add_args(sn)
-            except AttributeError:
-                msg  = "Incorrect serial number.  \n"
-                msg += "    Should be of the form : W3-a-XXXXX\n"
-                raise TypeError(msg)
+        if (sn == IDENTIFY_ALL_NODES):
+            self.id = "All nodes"
         else:
-            raise TypeError("Serial number should be an int or str.")
-    
+            self.id = sn_str
+        
+        self.add_args(sn)
+            
     def process_resp(self, resp):
         import time
         print("Blinking LEDs of node: {0}".format(self.id))
@@ -191,25 +181,14 @@ class NodeResetNetwork(wn_message.Cmd):
         self.command = _CMD_GRPID_NODE + CMD_NODE_NETWORK_RESET
         self.output = output
 
-        if type(serial_number) is int:
-            if (serial_number == NETWORK_RESET_ALL_NODES):
-                self.id = "All nodes"
-            else:
-                self.id = "W3-a-{0:05d}".format(serial_number)
-            self.add_args(serial_number)
-        elif type(serial_number) is str:
-            import re
-            expr = re.compile('W3-a-(?P<sn>\d+)')
-            try:
-                sn = int(expr.match(serial_number).group('sn'))
-                self.id = serial_number
-                self.add_args(sn)
-            except AttributeError:
-                msg  = "Incorrect serial number.  \n"
-                msg += "    Should be of the form : W3-a-XXXXX\n"
-                raise TypeError(msg)
+        (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
+        
+        if (sn == NETWORK_RESET_ALL_NODES):
+            self.id = "All nodes"
         else:
-            raise TypeError("Serial number should be an int or str.")
+            self.id = sn_str
+        
+        self.add_args(sn)
     
     def process_resp(self, resp):
         if (self.output):

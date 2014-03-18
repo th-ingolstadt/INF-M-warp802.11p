@@ -248,9 +248,7 @@ def wn_identify_all_nodes(host_interfaces):
 
     for ip_address in my_host_interfaces:
 
-        expr = re.compile('\.')
-        tmp = [int(n) for n in expr.split(ip_address)]
-        host_ip_subnet = "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
+        host_ip_subnet = _get_ip_address_subnet(ip_address)
 
         msg  = "Identifying all nodes on subnet {0}.  ".format(host_ip_subnet)
         msg += "Please check the LEDs."
@@ -314,9 +312,7 @@ def wn_reset_network_inf_all_nodes(host_config=None, host_interfaces=None):
     
     for ip_address in my_host_interfaces:
 
-        expr = re.compile('\.')
-        tmp = [int(n) for n in expr.split(ip_address)]
-        host_ip_subnet = "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
+        host_ip_subnet = _get_ip_address_subnet(ip_address)
 
         msg  = "Reseting the network config for all nodes on subnet "
         msg += "{0}.".format(host_ip_subnet)
@@ -334,6 +330,58 @@ def wn_reset_network_inf_all_nodes(host_config=None, host_interfaces=None):
         transport.wn_close()
 
 # End of wn_identify_all_nodes()
+
+
+#-----------------------------------------------------------------------------
+# WARPNet Misc Utilities
+#-----------------------------------------------------------------------------
+def wn_get_serial_number(serial_number, output=True):
+    """Function will check / convert the provided serial number to a WARPNet
+    compatible format.
+    
+    Acceptable inputs:
+        'W3-a-00001' or 'w3-a-00001' -- Succeeds quietly
+        '00001' or '1' or 1          -- Succeeds with a warning
+
+    Returns:
+        Tuple:  (serial_number, serial_number_str)
+    """
+    ret_val       = None
+    print_warning = False    
+    
+    if type(serial_number) is int:
+        sn            = serial_number
+        sn_str        = "W3-a-{0:05d}".format(sn)
+        print_warning = True
+        ret_val       = (sn, sn_str)
+        
+    elif type(serial_number) is str:
+        expr = re.compile('((?P<prefix>[Ww]3-a-)|)(?P<sn>\d+)')
+        m    = expr.match(serial_number)
+        if m:
+            sn      = int(m.group('sn'))
+            sn_str  = "W3-a-{0:05d}".format(sn)            
+            
+            if not m.group('prefix'):
+                print_warning = True            
+            
+            ret_val = (sn, sn_str)
+        else:
+            msg  = "Incorrect serial number.  \n"
+            msg += "    Should be of the form : W3-a-XXXXX\n"
+            raise TypeError(msg)
+    else:
+        raise TypeError("Serial number should be an int or str.")
+    
+    if print_warning and output:
+        msg  = "Interpreting provided serial number as "
+        msg += "{0}".format(sn_str)
+        print(msg)
+    
+    return ret_val
+
+# End of wn_get_serial_number()
+
 
 
 #-----------------------------------------------------------------------------
@@ -699,13 +747,9 @@ def _get_ip_address_from_user(msg):
         print("-" * 30)
         temp = raw_input("Enter IP address for {0}: ".format(msg))
         if not temp is '':
-            expr = re.compile('\d+\.\d+\.\d+\.\d+')
-            if not expr.match(temp) is None:
+            if _check_ip_address_format(temp):
                 ip_address = temp
                 ip_address_done = True
-            else:
-                print("    '{0}' is not a valid IP address.".format(temp))
-                print("    Please enter a valid IP address.")
         else:
             break
     
@@ -757,14 +801,11 @@ def _get_confirmation_from_user(message):
 
 def _check_host_interface(host_interface, bcast_port):
     """Check that this is a valid IP address."""
-    import re
     import socket
 
     # Get the first three octets of the host_interface address
-    expr = re.compile('\.')
-    tmp = [int(n) for n in expr.split(host_interface)]
-    host_ip_subnet = "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
-    test_ip_addr   = "{0:d}.{1:d}.{2:d}.255".format(tmp[0], tmp[1], tmp[2])
+    host_ip_subnet = _get_ip_address_subnet(host_interface)
+    test_ip_addr   = host_ip_subnet + ".255"
 
     # Create a temporary UDP socket to get the hostname
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -772,8 +813,7 @@ def _check_host_interface(host_interface, bcast_port):
     socket_name = s.getsockname()[0]
 
     # Get the subnet of the socket
-    tmp = [int(n) for n in expr.split(socket_name)]
-    sock_ip_subnet = "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
+    sock_ip_subnet = _get_ip_address_subnet(socket_name)
     
     # Check that the socket_name is equal to the host_interface    
     if (host_interface == socket_name):
@@ -795,6 +835,15 @@ def _check_host_interface(host_interface, bcast_port):
 
 # End of _check_host_interface()
 
+
+def _get_ip_address_subnet(ip_address):
+    """Get the subnet X.Y.Z of ip_address X.Y.Z.W"""
+    expr = re.compile('\.')
+    tmp = [int(n) for n in expr.split(ip_address)]
+    return "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
+    
+# End of _get_ip_address_subnet()
+    
 
 def _check_ip_address_format(ip_address):
     """Check that the string has a valid IP address format."""
@@ -849,7 +898,7 @@ def _get_os_socket_buffer_size(req_tx_buf_size, req_rx_buf_size):
     
     return (sock_tx_buf_size, sock_rx_buf_size)
 
-# End of _get_confirmation_from_user()
+# End of _get_os_socket_buffer_size()
     
 
 
