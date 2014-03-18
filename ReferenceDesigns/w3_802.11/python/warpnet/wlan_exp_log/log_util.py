@@ -22,7 +22,7 @@ This module provides utility functions to parse a WLAN Exp log file.
 Functions (see below for more information):
     gen_log_index_raw() -- Generate a byte index given a WLAN Exp log file
     filter_log_index()  -- Filter a log index with given parameters
-    gen_log_ndarrays()  -- Generate a numpy structured array (ndarray) of log entries
+    gen_log_np_arrays()  -- Generate a numpy structured array (ndarray) of log entries
     gen_hdf5_file()     -- Generate a HDF5 file based on numpy arrays
 """
 
@@ -273,7 +273,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
 
 
 
-def gen_log_ndarrays(log_bytes, log_index):
+def gen_log_np_arrays(log_bytes, log_index):
     """Generate numpy structured arrays using the raw log and log
     index that was generated with gen_log_index().
     """
@@ -286,7 +286,7 @@ def gen_log_ndarrays(log_bytes, log_index):
 
     return entries_nd
 
-# End gen_log_ndarrays()
+# End gen_log_np_arrays()
 
 def print_log_entries(log_bytes, log_index, entries_slice=None):
     """Work in progress - built for debugging address issues, some variant of this will be useful

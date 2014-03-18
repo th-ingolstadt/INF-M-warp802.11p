@@ -15,13 +15,13 @@ log_index_raw = log_util.gen_log_index_raw(log_b)
 log_idx_tx = log_util.filter_log_index(log_index_raw, include_only=['TX'])
 
 #Generate numpy array
-tx_recs = log_util.gen_log_ndarrays(log_b, log_idx_tx).values()[0]
+tx_recs = log_util.gen_log_np_arrays(log_b, log_idx_tx).values()[0]
 
 #Define the fields to group by
 group_fields = ('addr1',)
 
 #Define the aggregation functions
-stat_calc = ( 
+stat_calc = (
     ('retry_count',  np.mean, 'avg_num_tx'),
     ('length',       len,     'num_pkts'),
     ('length',       np.mean, 'avg_len'),
