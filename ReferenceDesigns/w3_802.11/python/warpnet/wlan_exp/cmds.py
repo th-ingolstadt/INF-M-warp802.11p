@@ -570,13 +570,16 @@ class NodeProcTxPower(wn_message.Cmd):
         super(NodeProcTxPower, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_TX_POWER
 
-        if ((power >= NODE_TX_POWER_MIN_DBM) and (power <= NODE_TX_POWER_MAX_DBM)):
-            # Shift the value so that there are only positive integers over the wire
-            self.add_args(power - NODE_TX_POWER_MIN_DBM)
+        if (power == RSVD_TX_POWER):
+            self.add_args(power)
         else:
-            msg  = "Transmit power must be a value in dBm between:  "
-            msg += "{0} and {1}".format(NODE_TX_POWER_MIN_DBM, NODE_TX_POWER_MAX_DBM)
-            raise ValueError(msg)
+            if ((power >= NODE_TX_POWER_MIN_DBM) and (power <= NODE_TX_POWER_MAX_DBM)):
+                # Shift the value so that there are only positive integers over the wire
+                self.add_args(power - NODE_TX_POWER_MIN_DBM)
+            else:
+                msg  = "Transmit power must be a value in dBm between:  "
+                msg += "{0} and {1}".format(NODE_TX_POWER_MIN_DBM, NODE_TX_POWER_MAX_DBM)
+                raise ValueError(msg)
     
     def process_resp(self, resp):
         args = resp.get_args()
