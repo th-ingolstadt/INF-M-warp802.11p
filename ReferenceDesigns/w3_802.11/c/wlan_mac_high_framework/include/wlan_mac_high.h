@@ -43,7 +43,7 @@
 #define DDR3_BASEADDR XPAR_DDR3_SODIMM_S_AXI_BASEADDR               ///< XParameters rename for base address of DDR3 SODIMM
 #define DDR3_SIZE 1073741824                                        ///< Available space in DDR3 SODIMM
 
-#define DDR3_USER_DATA_MEM_BASEADDR		0xC05DC000													///< Space set aside in DDR3 for user extension
+#define DDR3_USER_DATA_MEM_BASEADDR		0xC07D0000													///< Space set aside in DDR3 for user extension
 #define DDR3_USER_DATA_MEM_SIZE			0x01000000													///< 16MB for scratch work
 #define DDR3_USER_DATA_MEM_HIGHADDR		(DDR3_USER_DATA_MEM_BASEADDR+DDR3_USER_DATA_MEM_SIZE-1)		///< Ending address for user extension memory
 
