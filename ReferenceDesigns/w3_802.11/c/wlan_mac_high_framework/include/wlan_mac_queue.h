@@ -17,34 +17,26 @@
 #define WLAN_MAC_QUEUE_H_
 
 #include "wlan_mac_dl_list.h"
+#include "wlan_mac_misc_util.h"
 
-//In spirit, packet_bd is derived from dl_entry. Since C
-//lacks a formal notion of inheritance, we adopt a popular
-//alternative idiom for inheritance where the dl_entry
-//is the first entry in the new structure. Since structures
-//will never be padded before their first entry, it is safe
-//to cast back and forth between the packet_bd and dl_entry.
-typedef struct packet_bd packet_bd;
-struct packet_bd{
-	dl_entry entry;
-	void* metadata_ptr;
-	void* buf_ptr;
-};
+#define QUEUE_BUFFER_SIZE	0x800 	//2KB
 
-#define PQUEUE_MAX_FRAME_SIZE	0x800 	//2KB
+typedef struct{
+	void* station_info_ptr;
+} tx_queue_metadata;
 
-//Bottom 48kB of data BRAM is used for PQUEUE
-#define PQUEUE_MEM_BASE				(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
+typedef struct{
+	tx_queue_metadata metadata;
+	tx_frame_info frame_info;
+	u8 phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
+	u8 frame[QUEUE_BUFFER_SIZE - PHY_TX_PKT_BUF_PHY_HDR_SIZE - sizeof(tx_frame_info) - sizeof(tx_queue_metadata)];
+} tx_queue_buffer;
+
+//Bottom 48kB of data BRAM is used for PACKET_BD
+#define QUEUE_DL_ENTRY_MEM_BASE				(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
 
 //First section of packet_bd memory space is the packet_bd buffer descriptors
-#define PQUEUE_SPACE_BASE		PQUEUE_MEM_BASE
-
-//Second section of packet_bd memory space is the raw buffer space for payloads
-//Use BRAM for queue
-//#define PQUEUE_BUFFER_SPACE_BASE	(PQUEUE_MEM_BASE+(PQUEUE_LEN*sizeof(packet_bd)))
-//Use DRAM for queue
-//#define PQUEUE_BUFFER_SPACE_BASE	XPAR_DDR3_SODIMM_S_AXI_BASEADDR
-
+#define QUEUE_DL_ENTRY_SPACE_BASE		QUEUE_DL_ENTRY_MEM_BASE
 
 
 int queue_init();

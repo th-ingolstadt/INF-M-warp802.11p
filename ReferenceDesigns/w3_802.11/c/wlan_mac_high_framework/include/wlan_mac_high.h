@@ -228,13 +228,13 @@ void wlan_mac_high_write_hex_display_dots(u8 dots_on);
 int wlan_mac_high_memory_test();
 int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size);
 void wlan_mac_high_cdma_finish_transfer();
-void wlan_mac_high_mpdu_transmit(packet_bd* tx_queue);
+void wlan_mac_high_mpdu_transmit(dl_entry* tx_queue);
 wlan_mac_hw_info* wlan_mac_high_get_hw_info();
 u8* wlan_mac_high_get_eeprom_mac_addr();
 u8 wlan_mac_high_valid_tagged_rate(u8 rate);
 void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
 void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
-void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 num_tx, u8 flags  );
+void wlan_mac_high_setup_tx_frame_info( dl_entry * tx_queue, void * metadata, u32 tx_length, u8 num_tx, u8 flags  );
 
 void wlan_mac_high_ipc_rx();
 void wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);

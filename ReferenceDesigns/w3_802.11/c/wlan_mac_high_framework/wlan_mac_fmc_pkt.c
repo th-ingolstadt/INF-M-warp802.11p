@@ -49,7 +49,7 @@ int fmc_ipc_rx(){
 	u16 num_words;
 	u64 timestamp = get_usec_timestamp();
 	dl_list checkout;
-	packet_bd*	tx_queue;
+	dl_entry*	tx_queue_entry;
 	void* buf_addr;
 	u8 packet_is_queued = 0;
 
@@ -105,8 +105,9 @@ int fmc_ipc_rx(){
 					queue_checkout(&checkout, 1);
 
 					if(checkout.length == 1){
-						tx_queue = (packet_bd*)(checkout.first);
-						buf_addr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header) - MBOX_ALIGN_OFFSET;
+						tx_queue_entry = checkout.first;
+
+						buf_addr = (void*)((tx_queue_buffer*)(tx_queue_entry->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header) - MBOX_ALIGN_OFFSET;
 
                         if( ( ipc_msg_from_fmc.size_bytes + MBOX_ALIGN_OFFSET ) & 0x3){
 							num_words = (ipc_msg_from_fmc.size_bytes+4+MBOX_ALIGN_OFFSET)>>2; //Division by 4
@@ -149,11 +150,11 @@ int fmc_ipc_rx(){
 						eth_rx_buf = (u32)((u8 *)buf_addr + MBOX_ALIGN_OFFSET);
 
 						//After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
-						mpdu_start_ptr = (void*)((tx_packet_buffer*)(tx_queue->buf_ptr))->frame;
+						mpdu_start_ptr = ((tx_queue_buffer*)(tx_queue_entry->data))->frame;
 						eth_start_ptr = (u8*)eth_rx_buf;
 
 						dl_list_init(&tx_queue_list);
-						dl_entry_insertEnd(&tx_queue_list, &(tx_queue->entry));
+						dl_entry_insertEnd(&tx_queue_list, tx_queue_entry);
 
 						mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 

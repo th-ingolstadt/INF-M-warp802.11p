@@ -1140,12 +1140,12 @@ void wlan_mac_high_cdma_finish_transfer(){
  *
  * This function passes off an MPDU to the lower-level processor for transmission.
  *
- * @param packet_bd* packet
+ * @param dl_entry* packet
  *  - Pointer to the packet that should be transmitted
  * @return None
  *
  */
-void wlan_mac_high_mpdu_transmit(packet_bd* packet) {
+void wlan_mac_high_mpdu_transmit(dl_entry* packet) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu;
 	station_info* station;
@@ -1154,15 +1154,14 @@ void wlan_mac_high_mpdu_transmit(packet_bd* packet) {
 	u32 xfer_len;
 
 	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-	station = (station_info*)(packet->metadata_ptr);
+
+	station = (station_info*)(((tx_queue_buffer*)(packet->data))->metadata.station_info_ptr);
 
 	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_cpu_low_ready() )){
 		//Copy the packet into the transmit packet buffer
 		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-		src_addr =  (void*)(packet->buf_ptr);
-		xfer_len = ((tx_packet_buffer*)(packet->buf_ptr))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
-
-
+		src_addr = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
+		xfer_len = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
 
 		wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
 
@@ -1344,16 +1343,16 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
 }
 
 
-void wlan_mac_high_setup_tx_frame_info( packet_bd * tx_queue, void * metadata, u32 tx_length, u8 num_tx, u8 flags  ) {
+void wlan_mac_high_setup_tx_frame_info( dl_entry * tx_queue, void * metadata, u32 tx_length, u8 num_tx, u8 flags  ) {
 
     // Set up metadata
-	tx_queue->metadata_ptr     = metadata;
+	((tx_queue_buffer*)(tx_queue->data))->metadata.station_info_ptr = metadata;
 
 	// Set up frame info data
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.timestamp_create			 = get_usec_timestamp();
-    ((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.length          			 = tx_length;
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.params.mac.num_tx_max       = num_tx;
-	((tx_packet_buffer*)(tx_queue->buf_ptr))->frame_info.flags           			 = flags;
+	((tx_queue_buffer*)(tx_queue->data))->frame_info.timestamp_create			 = get_usec_timestamp();
+	((tx_queue_buffer*)(tx_queue->data))->frame_info.length          			 = tx_length;
+	((tx_queue_buffer*)(tx_queue->data))->frame_info.params.mac.num_tx_max       = num_tx;
+	((tx_queue_buffer*)(tx_queue->data))->frame_info.flags           			 = flags;
 }
 
 /*****************************************************************************/
