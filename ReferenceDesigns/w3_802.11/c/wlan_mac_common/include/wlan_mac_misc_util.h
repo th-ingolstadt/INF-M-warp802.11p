@@ -141,12 +141,6 @@ typedef struct{
 #define PHY_RX_PKT_BUF_MPDU_OFFSET (PHY_TX_PKT_BUF_PHY_HDR_SIZE+PHY_RX_PKT_BUF_PHY_HDR_OFFSET)
 #define PHY_TX_PKT_BUF_MPDU_OFFSET (PHY_TX_PKT_BUF_PHY_HDR_SIZE+PHY_TX_PKT_BUF_PHY_HDR_OFFSET)
 
-typedef struct{
-	tx_frame_info frame_info;
-	u8 phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
-	u8 frame[PKT_BUF_SIZE - PHY_TX_PKT_BUF_PHY_HDR_SIZE - sizeof(tx_frame_info)];
-} tx_packet_buffer;
-
 
 #define WLAN_TX_ANTMODE_SISO_ANTA	0x1
 #define WLAN_TX_ANTMODE_SISO_ANTB	0x2
