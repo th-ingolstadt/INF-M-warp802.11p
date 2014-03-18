@@ -36,6 +36,7 @@ pleasemake sure that the values of these hardware parameters are not reused.
 import warpnet.wn_node as wn_node
 import warpnet.wn_exception as wn_ex
 
+from . import version
 from . import defaults
 from . import cmds
 from . import util
@@ -105,7 +106,7 @@ class WlanExpNode(wn_node.WnNode):
         super(WlanExpNode, self).__init__(host_config)
         
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor, 
-                self.wlan_exp_ver_revision) = util.wlan_exp_ver(output=0)
+                self.wlan_exp_ver_revision) = version.wlan_exp_ver(output=0)
         
         self.node_type            = defaults.WLAN_EXP_BASE
         self.max_associations     = 0
@@ -675,7 +676,7 @@ class WlanExpNode(wn_node.WnNode):
     def check_ver(self):
         """Check the WLAN Exp version of the node against the current WLAN Exp
         version."""
-        (major, minor, revision) = util.wlan_exp_ver(output=0)
+        (major, minor, revision) = version.wlan_exp_ver(output=0)
         
         # Node %d with Serial # %d has version "%d.%d.%d" which does not match WLAN Exp v%d.%d.%d
         msg  = "WLAN Exp version mismatch on {0} ({0}):\n".format(self.name, self.sn_str)

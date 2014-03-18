@@ -32,6 +32,7 @@ make sure that the values of these hardware parameters are not reused.
 
 """
 
+from . import version
 from . import wn_defaults
 from . import wn_util
 from . import wn_config
@@ -100,7 +101,7 @@ class WnNode(object):
     transport_bcast = None
     
     def __init__(self, host_config=None):
-        (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = wn_util.wn_ver(output=0)
+        (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = version.wn_ver(output=0)
         
         if not host_config is None:
             self.host_config = host_config
@@ -451,7 +452,7 @@ class WnNode(object):
     def check_ver(self):
         """Check the WARPNet version of the node against the current WARPNet
         version."""
-        (major, minor, revision) = wn_util.wn_ver(output=0)
+        (major, minor, revision) = version.wn_ver(output=0)
         
         # Node %d with Serial # %d has version "%d.%d.%d" which does not match WARPNet v%d.%d.%d
         msg  = "WARPNet version mismatch on {0} ({0}):\n".format(self.name, self.sn_str)
