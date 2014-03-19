@@ -51,12 +51,19 @@
 //
 
 // Version info (MAJOR.MINOR.REV, all must be ints)
-//   m-code requires C code MAJOR.MINOR match values in wl_version.ini
-#define WARPNET_VER_MAJOR	2
-#define WARPNET_VER_MINOR	0
-#define WARPNET_VER_REV		0
+#define WARPNET_VER_MAJOR         2
+#define WARPNET_VER_MINOR         0
+#define WARPNET_VER_REV           0
 
-#define REQ_HW_VER          (WARPNET_VER_MAJOR<<16)|(WARPNET_VER_MINOR<<8)|(WARPNET_VER_REV)
+#define REQ_WARPNET_HW_VER        (WARPNET_VER_MAJOR<<16)|(WARPNET_VER_MINOR<<8)|(WARPNET_VER_REV)
+
+
+// Version info (MAJOR.MINOR.REV, all must be ints)
+#define WLAN_EXP_VER_MAJOR        0
+#define WLAN_EXP_VER_MINOR        8
+#define WLAN_EXP_VER_REV          0
+
+#define REQ_WLAN_EXP_HW_VER       (WLAN_EXP_VER_MAJOR<<16)|(WLAN_EXP_VER_MINOR<<8)|(WLAN_EXP_VER_REV)
 
 
 // Define the WARPNet Type to communicate the type of wn_node.  Current values are:
