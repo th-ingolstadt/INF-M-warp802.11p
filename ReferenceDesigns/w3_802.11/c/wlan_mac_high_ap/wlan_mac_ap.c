@@ -56,12 +56,11 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP
 
-#define  WLAN_CHANNEL                  11
+#define  WLAN_CHANNEL                  4
 #define  TX_POWER_DBM				   10
 
 
 /*********************** Global Variable Definitions *************************/
-
 
 
 /*************************** Variable Definitions ****************************/
@@ -234,7 +233,9 @@ void check_tx_queue(){
 	static queue_group_t next_queue_group = MGMT_QGRP;
 	queue_group_t curr_queue_group;
 
-	static station_info* next_station_info = NULL;
+	static dl_entry* next_entry = NULL;
+	dl_entry* curr_entry;
+
 	station_info* curr_station_info;
 
 	if( wlan_mac_high_is_cpu_low_ready() ){
@@ -252,37 +253,39 @@ void check_tx_queue(){
 				break;
 				case DATA_QGRP:
 					next_queue_group = MGMT_QGRP;
-					curr_station_info = next_station_info;
+					curr_entry = next_entry;
+
 						for(i = 0; i < (association_table.length + 1) ; i++){
 							//Loop through all associated stations' queues + the broadcast queue
-							if(curr_station_info == NULL){
+							if(curr_entry == NULL){
 								//Check the broadcast queue
-								next_station_info = (station_info*)(association_table.first);
+								next_entry = association_table.first;
 								if(wlan_mac_queue_poll(MCAST_QID)){
 									return;
 								} else {
-									curr_station_info = next_station_info;
+									curr_entry = next_entry;
 								}
 							} else {
+								curr_station_info = (station_info*)(curr_entry->data);
 								if( wlan_mac_high_is_valid_association(&association_table, curr_station_info) ){
-									if(curr_station_info == (station_info*)(association_table.last)){
+									if(curr_entry == association_table.last){
 										//We've reached the end of the table, so we wrap around to the beginning
-										next_station_info = NULL;
+										next_entry = NULL;
 									} else {
-										next_station_info = station_info_next(curr_station_info);
+										next_entry = dl_entry_next(curr_entry);
 									}
 
 									if(wlan_mac_queue_poll(AID_TO_QID(curr_station_info->AID))){
 										return;
 									} else {
-										curr_station_info = next_station_info;
+										curr_entry = next_entry;
 									}
 								} else {
 									//This curr_station_info is invalid. Perhaps it was removed from
 									//the association table before check_tx_queue was called. We will
 									//start the round robin checking back at broadcast.
 									//xil_printf("isn't getting here\n");
-									next_station_info = NULL;
+									next_entry = NULL;
 									return;
 								}
 							}
@@ -295,14 +298,17 @@ void check_tx_queue(){
 
 void purge_all_data_tx_queue(){
 	u32 i;
+	dl_entry*	  curr_entry;
 	station_info* curr_station_info;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
-	curr_station_info = (station_info*)(association_table.first);
+	curr_entry = association_table.first;
+
 	for(i=0; i < association_table.length; i++){
+		curr_station_info = (station_info*)(curr_entry->data);
 		purge_queue(AID_TO_QID(curr_station_info->AID));       		// Each unicast queue
-		curr_station_info = (station_info*)((curr_station_info->entry).next);
+		curr_entry = dl_entry_next(curr_entry);
 	}
 }
 
@@ -312,6 +318,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	tx_high_entry* tx_high_event_log_entry;
 	tx_low_entry*  tx_low_event_log_entry;
 	station_info* station;
+	dl_entry*	  entry;
 
 	void* mpdu = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
@@ -367,8 +374,9 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	}
 
 	if(tx_mpdu->AID != 0){
-		station = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
-		if(station != NULL){
+		entry = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
+		if(entry != NULL){
+			station = (station_info*)(entry->data);
 			//Process this TX MPDU DONE event to update any statistics used in rate adaptation
 			wlan_mac_high_process_tx_done(tx_mpdu, station);
 		}
@@ -418,6 +426,7 @@ void ltg_event(u32 id, void* callback_arg){
 	u32 payload_length = 0;
 	u8* mpdu_ptr_u8;
 	llc_header* llc_hdr;
+	dl_entry*	  entry;
 	station_info* station;
 	u8* addr_da = ((ltg_pyld_hdr*)callback_arg)->addr_da;
 
@@ -433,16 +442,11 @@ void ltg_event(u32 id, void* callback_arg){
 
 	}
 
-	station = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
+	entry = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
 
-	if(station != NULL){
-		//The AID <-> LTG ID connection is arbitrary. In this design, we use the LTG_ID_TO_AID
-		//macro to map multiple different LTG IDs onto an AID for a specific station. This allows
-		//multiple LTG flows to target a single user in the network.
+	if(entry != NULL){
+		station = (station_info*)(entry->data);
 
-		//We implement a soft limit on the size of the queue allowed for any
-		//given station. This avoids the scenario where multiple backlogged
-		//LTG flows favor a single user and starve everyone else.
 		if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size){
 			//Send a Data packet to this station
 			//Checkout 1 element from the queue;
@@ -486,6 +490,8 @@ void ltg_event(u32 id, void* callback_arg){
 int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 	//Receives the pre-encapsulated Ethernet frames
 	station_info* station;
+	dl_entry* entry;
+
 	dl_entry* tx_queue_entry = tx_queue_list->first;
 
 	wlan_mac_high_setup_tx_header( &tx_header_common, (u8*)(&(eth_dest[0])), (u8*)(&(eth_src[0])) );
@@ -505,8 +511,9 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 	} else {
 		//Check associations
 		//Is this packet meant for a station we are associated with?
-		station = wlan_mac_high_find_station_info_ADDR(&association_table, eth_dest);
-		if( station != NULL ) {
+		entry = wlan_mac_high_find_station_info_ADDR(&association_table, eth_dest);
+		if( entry != NULL ) {
+			station = (station_info*)(entry->data);
 			if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size){
 				wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, (void*)station, tx_length, MAX_NUM_TX,
 								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
@@ -562,13 +569,16 @@ void association_timestamp_check() {
 	dl_entry* tx_queue_entry;
 	u32 tx_length;
 	station_info* curr_station_info;
-	station_info* next_station_info;
+	dl_entry* next_entry;
+	dl_entry* curr_entry;
 
-	next_station_info = (station_info*)(association_table.first);
+	next_entry = association_table.first;
 
 	for(i=0; i < association_table.length; i++) {
-		curr_station_info = next_station_info;
-		next_station_info = station_info_next(curr_station_info);
+		curr_entry = next_entry;
+		next_entry = dl_entry_next(curr_entry);
+
+		curr_station_info = (station_info*)(curr_entry->data);
 
 		time_since_last_rx = (get_usec_timestamp() - curr_station_info->rx.last_timestamp);
 		if((time_since_last_rx > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
@@ -615,6 +625,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u16 rx_seq;
 	dl_list checkout;
 	dl_entry*	tx_queue_entry;
+	dl_entry*	associated_station_entry;
 	station_info* associated_station = NULL;
 	statistics_txrx* station_stats = NULL;
 	u8 eth_send;
@@ -656,9 +667,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
 		//GOOD FCS
-		associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
+		associated_station_entry = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
 
-		if( associated_station != NULL ){
+		if( associated_station_entry != NULL ){
+			associated_station = (station_info*)(associated_station_entry->data);
 			mpdu_info->additional_info = (u32)associated_station;
 			station_stats = associated_station->stats;
 			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
@@ -712,9 +724,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								}
 
 						} else {
-							associated_station = wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_3);
+							associated_station_entry = wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_3);
 
-							if(associated_station != NULL){
+							if(associated_station_entry != NULL){
+								associated_station = (station_info*)(associated_station_entry->data);
 								queue_checkout(&checkout,1);
 
 								if(checkout.length == 1){ //There was at least 1 free queue element
@@ -1102,12 +1115,14 @@ u32  deauthenticate_station( station_info* station ) {
 void deauthenticate_stations(){
 	u32 i;
 	station_info* curr_station_info;
-	station_info* next_station_info;
+	dl_entry* next_entry;
+	dl_entry* curr_entry;
 
-	next_station_info = (station_info*)(association_table.first);
+	next_entry = association_table.first;
 	for (i = 0; i < association_table.length ; i++){
-		curr_station_info = next_station_info;
-		next_station_info = station_info_next(curr_station_info);
+		curr_entry = next_entry;
+		next_entry = dl_entry_next(curr_entry);
+		curr_station_info = (station_info*)(curr_entry->data);
 		deauthenticate_station(curr_station_info);
 	}
 }
