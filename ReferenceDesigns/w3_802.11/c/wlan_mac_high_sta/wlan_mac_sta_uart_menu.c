@@ -155,7 +155,7 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_6M;
 					}
 
-					if(association_table.length > 0) ((station_info*)(association_table.first))->tx.phy.rate = default_unicast_rate;
+					if(association_table.length > 0) access_point->tx.phy.rate = default_unicast_rate;
 
 
 					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
@@ -167,7 +167,7 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_54M;
 					}
 
-					if(association_table.length > 0) ((station_info*)(association_table.first))->tx.phy.rate = default_unicast_rate;
+					if(association_table.length > 0) access_point->tx.phy.rate = default_unicast_rate;
 
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 				break;
@@ -478,7 +478,8 @@ void print_station_status(u8 manual_call){
 	void* ltg_sched_state;
 	void* ltg_sched_parameters;
 	void* ltg_pyld_callback_arg;
-	station_info* access_point = ((station_info*)(association_table.first));
+	dl_entry* access_point_entry = association_table.first;
+	station_info* access_point = ((station_info*)(access_point_entry->data));
 
 	u32 ltg_type;
 
