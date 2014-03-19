@@ -153,10 +153,9 @@ typedef struct{
  * case of a station, information about the associated access point).
  */
 typedef struct{
-	dl_entry    entry;										///< Doubly-linked list entry
 	u8          addr[6];									///< HW Address
-	char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	///< Hostname from DHCP requests
 	u16         AID;										///< Association ID
+	char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	///< Hostname from DHCP requests
 	u32			flags;										///< 1-bit flags
 	rx_info     rx;											///< Reception Information Structure
 	tx_params   tx;											///< Transmission Parameters Structure
@@ -165,34 +164,8 @@ typedef struct{
                             								///< because statistics can survive outside of the context
                             								///< of associated station_info structs.
 } station_info;
+CASSERT(sizeof(station_info) == 52, station_info_alignment_check);
 
-/**
- * @brief Traverse to next station_info entry in doubly-linked list
- *
- * This function takes a pointer to a station_info structure as an argument
- * and returns a pointer to the next station_info structure in the doubly-linked
- * list. If the argument does not belong to a doubly-linked list, it returns NULL.
- *
- * @param x Pointer to station_info structure
- * @return	Pointer to next station_info structure in doubly-linked list
- *
- * @see dl_entry_next()
- */
-#define station_info_next(x) ( (station_info*)dl_entry_next(&(x->entry)) )
-
-/**
- * @brief Traverse to previous station_info entry in doubly-linked list
- *
- * This function takes a pointer to a station_info structure as an argument
- * and returns a pointer to the previous station_info structure in the doubly-linked
- * list. If the argument does not belong to a doubly-linked list, it returns NULL.
- *
- * @param x Pointer to station_info structure
- * @return	Pointer to prev station_info structure in doubly-linked list
- *
- * @see dl_entry_prev()
- */
-#define station_info_prev(x) ( (station_info*)dl_entry_prev(&(x->entry)) )
 
 //////////// Initialization Functions ////////////
 void wlan_mac_high_heap_init();
@@ -204,8 +177,8 @@ inline int wlan_mac_high_interrupt_start();
 inline void wlan_mac_high_interrupt_stop();
 void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
 void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
-station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
-station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
+dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
+dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
 statistics_txrx* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
 void wlan_mac_high_gpio_handler(void *InstancePtr);
 void wlan_mac_high_set_pb_u_callback(function_ptr_t callback);

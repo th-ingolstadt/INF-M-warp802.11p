@@ -366,6 +366,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u8            mac_addr[6];
 
 	dl_list     * station_info_list;
+	dl_entry	* curr_entry;
 	station_info* curr_station_info;
 
 	int           power;
@@ -618,9 +619,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// If parameter is not the magic number
 			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
 				// Find the station_info entry
-				curr_station_info = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
+				curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
 
-				if (curr_station_info != NULL) {
+
+				if (curr_entry != NULL) {
+					curr_station_info = (station_info*)(curr_entry->data);
 					info_entry = (station_info_entry *) &respArgs32[respIndex];
 
 					info_entry->timestamp = get_usec_timestamp();
@@ -712,7 +715,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         					memcpy( (void *)(&info_entry->rate), (void *)(&curr_station_info->tx.phy.rate), tx_params_size );
 
                             // Increment the pointers
-        					curr_station_info  = station_info_next(curr_station_info);
+        					curr_entry         = dl_entry_next(curr_entry);
+        					curr_station_info  = (station_info*)(curr_entry->data);
         					info_entry         = (station_info_entry *)(((void *)info_entry) + entry_size );
                         }
 
@@ -814,8 +818,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// If the ID is not for all nodes, configure the node
 			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
 				// Set the rate of the station
-				curr_station_info = (station_info*)(station_info_list->first);
+
+				curr_entry = station_info_list->first;
+
 				for(i=0; i < station_info_list->length; i++){
+					curr_station_info = (station_info*)(curr_entry->data);
 					if (curr_station_info->AID == id){
 						// If parameter is not the magic number, then set the TX rate
 						if ( rate != NODE_TX_RATE_RSVD_VAL ) {
@@ -826,18 +833,19 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						}
 						break;
 					}
-					curr_station_info = (station_info*)((curr_station_info->entry).next);
+					curr_entry = dl_entry_next(curr_entry);
 				}
 			} else {
 				// If parameter is not the magic number, then set the TX rate
 				if ( rate != NODE_TX_RATE_RSVD_VAL ) {
 					// Set the rate of all stations
 					default_unicast_rate = rate;
+					curr_entry = station_info_list->first;
 
-					curr_station_info = (station_info*)(station_info_list->first);
 					for(i=0; i < station_info_list->length; i++){
+						curr_station_info = (station_info*)(curr_entry->data);
 						curr_station_info->tx.phy.rate = default_unicast_rate;
-						curr_station_info = (station_info*)((curr_station_info->entry).next);
+						curr_entry = dl_entry_next(curr_entry);
 					}
 
 					xil_printf("Setting Default TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));

@@ -111,7 +111,7 @@ typedef struct{
 //          since the hostname is uses a #define for the length, we have to
 //          use that to determine the size of the rsvd field.  It will be between
 //          1 and 4 bytes.
-//
+//FIXME: This should be replaced with a typedef of station_info
 typedef struct{
 	u64     timestamp;                                  // Timestamp
 	u8      addr[6];									// HW Address
@@ -123,7 +123,6 @@ typedef struct{
 	u8	    max_num_tx;                                  // Maximum number of retransmissions
 	u8      rsvd[((STATION_INFO_HOSTNAME_MAXLEN+1)%4) + 1];
 } station_info_entry;
-
 
 //-----------------------------------------------
 // Temperature Entry

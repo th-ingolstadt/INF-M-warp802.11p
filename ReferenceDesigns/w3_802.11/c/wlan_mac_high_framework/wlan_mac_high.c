@@ -488,23 +488,26 @@ void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
  *  - Doubly-linked list of station_info structures
  * @param u32 aid
  *  - Association ID to search for
- * @return station_info*
+ * @return curr_entry*
  *  - Returns the pointer to the entry in the doubly-linked list that has the
  *    provided AID.
  *  - Returns NULL if no station_info pointer is found that matches the search
  *    criteria
  *
  */
-station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
+dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
 	u32 i;
+	dl_entry*	curr_entry;
 	station_info* curr_station_info;
-	curr_station_info = (station_info*)(list->first);
+	curr_entry = list->first;
+	curr_station_info = (station_info*)(curr_entry->data);
 
 	for( i = 0; i < list->length; i++){
 		if(curr_station_info->AID == aid){
-			return curr_station_info;
+			return curr_entry;
 		} else {
-			curr_station_info = station_info_next(curr_station_info);
+			curr_entry = dl_entry_next(curr_entry);
+			curr_station_info = (station_info*)(curr_entry->data);
 		}
 	}
 	return NULL;
@@ -521,23 +524,28 @@ station_info* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
  *  - Doubly-linked list of station_info structures
  * @param u8* addr
  *  - 6-byte hardware address to search for
- * @return station_info*
+ * @return dl_entry*
  *  - Returns the pointer to the entry in the doubly-linked list that has the
  *    provided hardware address.
  *  - Returns NULL if no station_info pointer is found that matches the search
  *    criteria
  *
  */
-station_info* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
+dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
 	u32 i;
+
+	dl_entry* curr_entry;
 	station_info* curr_station_info;
-	curr_station_info = (station_info*)(list->first);
+
+	curr_entry = list->first;
+	curr_station_info = (station_info*)(curr_entry->data);
 
 	for( i = 0; i < list->length; i++){
 		if(wlan_addr_eq(curr_station_info->addr, addr)){
-			return curr_station_info;
+			return curr_entry;
 		} else {
-			curr_station_info = station_info_next(curr_station_info);
+			curr_entry = dl_entry_next(curr_entry);
+			curr_station_info = (station_info*)(curr_entry->data);
 		}
 	}
 	return NULL;
@@ -1698,8 +1706,10 @@ void usleep(u64 delay){
 }
 
 station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID){
+	dl_entry*	  entry;
 	station_info* station;
 	statistics_txrx*   station_stats;
+	dl_entry*	  curr_entry;
 	station_info* curr_station_info;
 	u32 i;
 	u16 curr_AID;
@@ -1708,8 +1718,9 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 
 	if(requested_AID != ADD_ASSOCIATION_ANY_AID){
 		//This call is requesting a particular AID.
-		station = wlan_mac_high_find_station_info_AID(assoc_tbl, requested_AID);
-		if(station != NULL){
+		entry = wlan_mac_high_find_station_info_AID(assoc_tbl, requested_AID);
+		if(entry != NULL){
+			station = (station_info*)(entry->data);
 			//We found a station_info with this requested AID. Let's check
 			//if the address matches the argument to this add
 			if(wlan_addr_eq(station->addr, addr)){
@@ -1724,8 +1735,9 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		}
 	}
 
-	station = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
-	if(station != NULL){
+	entry = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
+	if(entry != NULL){
+		station = (station_info*)(entry->data);
 		//This addr is already tied to an association table entry. We'll just pass
 		//this the pointer to that entry back to the calling function without creating
 		//a new entry
@@ -1733,17 +1745,26 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		return station;
 	} else {
 		//This addr is new, so we'll have to add an entry into the association table
+		entry = wlan_mac_high_malloc(sizeof(dl_entry));
+		if(entry == NULL){
+			return NULL;
+		}
+
 		station = wlan_mac_high_malloc(sizeof(station_info));
 		if(station == NULL){
 			//malloc failed. Passing that failure on to calling function.
+			free(entry);
 			return NULL;
 		}
+
+		entry->data = (void*)station;
 
 		station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
 		if(station_stats == NULL){
 			station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
 			if(station_stats == NULL){
 				//malloc failed. Passing that failure on to calling function
+				wlan_mac_high_free(entry);
 				wlan_mac_high_free(station);
 				return NULL;
 			}
@@ -1766,22 +1787,24 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 
 		if(requested_AID == ADD_ASSOCIATION_ANY_AID){
 			//Find the minimum AID that can be issued to this station.
-			curr_station_info = (station_info*)(assoc_tbl->first);
+			curr_entry = assoc_tbl->first;
+
 			for( i = 0 ; i < assoc_tbl->length ; i++ ){
+				curr_station_info = (station_info*)(curr_entry->data);
 				if( (curr_station_info->AID - curr_AID) > 1 ){
 					//There is a hole in the association table and we can re-issue
 					//a previously issued AID.
 					station->AID = curr_station_info->AID - 1;
 
 					//Add this station into the association table just before the curr_station_info
-					dl_entry_insertBefore(assoc_tbl, &(curr_station_info->entry), &(station->entry));
+					dl_entry_insertBefore(assoc_tbl, curr_entry, entry);
 
 					break;
 				} else {
 					curr_AID = curr_station_info->AID;
 				}
 
-				curr_station_info = station_info_next(curr_station_info);
+				curr_entry = dl_entry_next(curr_entry);
 			}
 
 			if(station->AID == 0){
@@ -1792,13 +1815,14 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 					//This is the first entry in the association table;
 					station->AID = 1;
 				} else {
-					curr_station_info = (station_info*)(assoc_tbl->last);
+					curr_entry = assoc_tbl->last;
+					curr_station_info = (station_info*)(curr_entry->data);
 					station->AID = (curr_station_info->AID)+1;
 				}
 
 
 				//Add this station into the association table at the end
-				dl_entry_insertEnd(assoc_tbl, &(station->entry));
+				dl_entry_insertEnd(assoc_tbl, entry);
 			}
 
 			wlan_mac_high_print_associations(assoc_tbl);
@@ -1807,16 +1831,18 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		} else {
 			//Find the right place in the dl_list to insert this station_info with
 			//the requested AID
-			curr_station_info = (station_info*)(assoc_tbl->first);
+			curr_entry = assoc_tbl->first;
 			for( i = 0 ; i < assoc_tbl->length ; i++ ){
+
+				curr_station_info = (station_info*)(curr_entry->data);
 
 				if(curr_station_info->AID > requested_AID){
 					station->AID = requested_AID;
 					//Add this station into the association table just before the curr_station_info
-					dl_entry_insertBefore(assoc_tbl, &(curr_station_info->entry), &(station->entry));
+					dl_entry_insertBefore(assoc_tbl, curr_entry, entry);
 				}
 
-				curr_station_info = station_info_next(curr_station_info);
+				curr_entry = dl_entry_next(curr_entry);
 			}
 
 			if(station->AID == 0){
@@ -1824,7 +1850,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 				station->AID = requested_AID;
 
 				//Add this station into the association table at the end
-				dl_entry_insertEnd(assoc_tbl, &(station->entry));
+				dl_entry_insertEnd(assoc_tbl, entry);
 			}
 
 			wlan_mac_high_print_associations(assoc_tbl);
@@ -1837,22 +1863,23 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 }
 
 int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
+	dl_entry* entry;
 	station_info* station;
 
-	station = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
-	if(station == NULL){
+	entry = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
+	if(entry == NULL){
 		//This addr doesn't refer to any station currently in the association table,
 		//so there is nothing to remove. We'll return an error to let the calling
 		//function know that something is wrong.
 		return -1;
 	} else {
-
+		station = (station_info*)(entry->data);
 		if((station->flags)&STATION_INFO_FLAG_NEVER_REMOVE){
 			return -1;
 		}
 
 		//Remove station from the association table;
-		dl_entry_remove(assoc_tbl, &(station->entry));
+		dl_entry_remove(assoc_tbl, entry);
 
 		if (promiscuous_stats_enabled) {
 			station->stats->is_associated = 0;
@@ -1872,16 +1899,19 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 
 void wlan_mac_high_print_associations(dl_list* assoc_tbl){
 	u64 timestamp = get_usec_timestamp();
+	dl_entry*	  curr_entry;
 	station_info* curr_station_info;
 	u32 i;
 	xil_printf("\n   Current Associations\n (MAC time = %d usec)\n",timestamp);
 				xil_printf("|-ID-|----- MAC ADDR ----|\n");
 
-	curr_station_info = (station_info*)(assoc_tbl->first);
+	curr_entry = assoc_tbl->first;
+	curr_station_info = (station_info*)(curr_entry->data);
 	for(i=0; i<(assoc_tbl->length); i++){
 		xil_printf("| %02x | %02x:%02x:%02x:%02x:%02x:%02x |\n", curr_station_info->AID,
 				curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
-		curr_station_info = station_info_next(curr_station_info);
+		curr_entry = dl_entry_next(curr_entry);
+		curr_station_info = (station_info*)(curr_entry->data);
 	}
 	xil_printf("|------------------------|\n");
 
@@ -1977,13 +2007,16 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 
 u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station){
 	u32 i;
+	dl_entry*	  curr_entry;
 	station_info* curr_station_info;
-	curr_station_info = (station_info*)(assoc_tbl->first);
+	curr_entry = assoc_tbl->first;
+	curr_station_info = (station_info*)(curr_entry->data);
 	for(i=0; i < assoc_tbl->length; i++){
 		if(station == curr_station_info){
 			return 1;
 		}
-		curr_station_info = station_info_next(curr_station_info);
+		curr_entry = dl_entry_next(curr_entry);
+		curr_station_info = (station_info*)(curr_entry->data);
 	}
 	return 0;
 }
