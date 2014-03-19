@@ -368,6 +368,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	dl_list     * station_info_list;
 	station_info* curr_station_info;
 
+	int           power;
+
 
 	unsigned int  cmdID;
     
@@ -746,16 +748,38 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_TX_POWER:
             // NODE_TX_POWER Packet Format:
-			//   - cmdArgs32[0]  - Power
+			//   - cmdArgs32[0]  - Power (shifted by TX_POWER_MIN_DBM)
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
 			// If parameter is not the magic number, then set the TX power
 			if ( temp != NODE_TX_POWER_RSVD_VAL ) {
 
-				// TODO:  FIX!!!!
+				power = temp + TX_POWER_MIN_DBM;
 
-			    xil_printf("Setting TX power = %d\n", temp);
+				// Check that the power is within the specified bounds
+		        if ((power >= TX_POWER_MIN_DBM) && (power <= TX_POWER_MAX_DBM)){
+
+				    xil_printf("Setting TX power = %d\n", power);
+
+		        	// Set the default power for new associations
+
+		        	// Update the Tx power in each current association
+
+		        	// Set the multicast power
+
+		        	// Send IPC to CPU low to set the Tx power for control frames
+
+		        } else {
+					// Get default power for new associations
+					power = temp + TX_POWER_MIN_DBM;
+		        }
+			} else {
+				// Get default power for new associations
+				power = temp + TX_POWER_MIN_DBM;
 			}
+
+			// Shift the return value so that we do not transmit negative numbers
+			temp = power - TX_POWER_MIN_DBM;
 
 			// Send response of current power
             respArgs32[respIndex++] = Xil_Htonl( temp );
@@ -765,15 +789,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		break;
 
 
-		// Case NODE_TX_RATE is implemented in the child classes
 	    //---------------------------------------------------------------------
 		case NODE_TX_RATE:
             // NODE_TX_RATE Packet Format:
 			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all nodes)
 			//   - cmdArgs32[2]      - Type
 			//   - cmdArgs32[3]      - Rate
-
-			// TODO:  FIX!!!!
 
 			// Get MAC Address
         	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
@@ -1772,17 +1793,17 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
 	//   Node must be configured using the WARPNet nodesConfig
 	//   HW must be WARP v3
 	//   IP Address should be NODE_IP_ADDR_BASE
-    node_info.type            = type;
-    node_info.node            = 0xFFFF;
-    node_info.hw_generation   = WARP_HW_VERSION;
-    node_info.design_ver      = (WARPNET_VER_MAJOR<<16)|(WARPNET_VER_MINOR<<8)|(WARPNET_VER_REV);
+    node_info.type                = type;
+    node_info.node                = 0xFFFF;
+    node_info.hw_generation       = WARP_HW_VERSION;
+    node_info.warpnet_design_ver  = REQ_WARPNET_HW_VER;
     
     for( i = 0; i < FPGA_DNA_LEN; i++ ) {
-        node_info.fpga_dna[i] = fpga_dna[i];
+        node_info.fpga_dna[i]     = fpga_dna[i];
     }
 
-    node_info.serial_number   = serial_number;
-
+    node_info.serial_number       = serial_number;
+    node_info.wlan_exp_design_ver = REQ_WLAN_EXP_HW_VER;
     
     // WLAN Exp Parameters are assumed to be initialize already
     //    node_info.wlan_hw_addr
@@ -2270,7 +2291,7 @@ void print_wn_node_info( wn_node_info * info ) {
     xil_printf("  WARPNet Type:       0x%8x \n",   info->type);    
     xil_printf("  Node ID:            %d \n",      info->node);
     xil_printf("  HW Generation:      %d \n",      info->hw_generation);
-    xil_printf("  HW Design Version:  0x%x \n",    info->design_ver);
+    xil_printf("  WARPNet HW Ver:     0x%x \n",    info->warpnet_design_ver);
     
     xil_printf("  FPGA DNA:           ");
     
@@ -2280,6 +2301,7 @@ void print_wn_node_info( wn_node_info * info ) {
 	xil_printf("\n");
 
 	xil_printf("  Serial Number:      0x%x \n",    info->serial_number);
+    xil_printf("  WLAN Exp HW Ver:    0x%x \n",    info->wlan_exp_design_ver);
         
     xil_printf("  HW Address:         %02x",       info->hw_addr[0]);
                                               

@@ -83,9 +83,10 @@ typedef struct{
 	u32     type;                 // WARPNet Node type
 	u32     id;                   // Node ID
 	u32     hw_gen;               // WARP Hardware Generation
-	u32     design_ver;           // WARPNet version
+	u32     wn_ver;               // WARPNet version
 	u64     fpga_dna;             // Node FPGA DNA
 	u32     serial_number;        // Node serial number
+	u32     wlan_exp_ver;         // WLAN Exp version
 	u32     wlan_max_assn;        // Max associations of the node
 	u32     wlan_event_log_size;  // Max size of the event log
 	u32     wlan_max_stats;       // Max number of promiscuous statistics

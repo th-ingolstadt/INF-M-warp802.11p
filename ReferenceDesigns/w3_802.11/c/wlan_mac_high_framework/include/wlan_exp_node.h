@@ -113,11 +113,12 @@
 #define NODE_DESIGN_VER                3
 #define NODE_FPGA_DNA                  4
 #define NODE_SERIAL_NUM                5
-#define NODE_WLAN_MAX_ASSN             6
-#define NODE_WLAN_EVENT_LOG_SIZE       7
-#define NODE_WLAN_MAX_STATS            8
-#define NODE_WLAN_MAC_ADDR             9
-#define NODE_MAX_PARAMETER            10
+#define NODE_WLAN_EXP_DESIGN_VER       6
+#define NODE_WLAN_MAX_ASSN             7
+#define NODE_WLAN_EVENT_LOG_SIZE       8
+#define NODE_WLAN_MAX_STATS            9
+#define NODE_WLAN_MAC_ADDR            10
+#define NODE_MAX_PARAMETER            11
 
 
 
@@ -131,11 +132,12 @@ typedef struct {
     u32   type;                             // Type of WARPNet node
     u32   node;                             // Only first 16 bits are valid
     u32   hw_generation;                    // Only first  8 bits are valid
-	u32   design_ver;                       // Only first 24 bits are valid
+	u32   warpnet_design_ver;               // Only first 24 bits are valid
 
 	u32   fpga_dna[FPGA_DNA_LEN];
 	u32   serial_number;
 
+	u32   wlan_exp_design_ver;              // WLAN Exp - Version (only first 24 bits are valid)
 	u32   wlan_max_assn;                    // WLAN Exp - Max Associations
 	u32   wlan_event_log_size;              // WLAN Exp - Event Log Size
 	u32   wlan_max_stats;                   // WLAN Exp - Max number of promiscuous statistic entries
