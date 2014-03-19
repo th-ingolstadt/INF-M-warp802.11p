@@ -1416,6 +1416,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
         	// Local variables
         	dl_list          * stats_list;
+        	dl_entry         * stats_dl_entry;
         	statistics_txrx  * stats;
         	txrx_stats_entry * stats_entry;
         	u32                stats_size  = sizeof(statistics_txrx) - sizeof(dl_entry);
@@ -1425,9 +1426,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	// If parameter is not the magic number
 			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
 				// Find the statistics entry
-                stats = wlan_mac_high_find_statistics_ADDR( get_statistics(), &mac_addr[0]);
+				stats_dl_entry = wlan_mac_high_find_statistics_ADDR( get_statistics(), &mac_addr[0]);
 
-				if (stats != NULL) {
+				if (stats_dl_entry != NULL) {
+					stats = (statistics_txrx *)(stats_dl_entry->data);
 					stats_entry = (txrx_stats_entry *) &respArgs32[respIndex];
 
 					stats_entry->timestamp = get_usec_timestamp();
@@ -1473,7 +1475,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		            entry_remaining   = total_entries;
 		            bytes_remaining   = size;
 					curr_index        = 0;
-					stats             = (statistics_txrx*)(stats_list->first);
+					stats_dl_entry    = stats_list->first;
+					stats             = (statistics_txrx*)(stats_dl_entry->data);
 					time              = get_usec_timestamp();
 
 					// Iterate through all the packets
@@ -1519,7 +1522,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     						memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&stats->last_timestamp), stats_size );
 
                             // Increment the pointers
-							stats       = statistics_next(stats);
+    						stats_dl_entry = dl_entry_next(stats_dl_entry);
+							stats       = (statistics_txrx *)(stats_dl_entry->data);
 							stats_entry = (txrx_stats_entry *)(((void *)stats_entry) + entry_size );
                         }
 

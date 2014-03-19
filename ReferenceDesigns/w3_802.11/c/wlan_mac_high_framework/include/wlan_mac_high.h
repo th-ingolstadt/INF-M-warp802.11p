@@ -99,7 +99,6 @@ typedef struct{
  * the network.
  */
 typedef struct{
-	dl_entry entry;				 ///< Doubly-linked list entry
 	u64     last_timestamp; 	 ///< Timestamp of the last frame reception
 	u8      addr[6];			 ///< HW Address
 	u8      is_associated;		 ///< Is this device associated with me?
@@ -112,34 +111,6 @@ typedef struct{
 	u32     data_num_rx_success;     ///< Total number of successful receptions from this device (Data)
 	u32     data_num_rx_bytes;	     ///< Total number of received bytes from this device (Data)
 } statistics_txrx;
-
-/**
- * @brief Traverse to next statistics entry in doubly-linked list
- *
- * This function takes a pointer to a statistics structure as an argument
- * and returns a pointer to the next statistics structure in the doubly-linked
- * list. If the argument does not belong to a doubly-linked list, it returns NULL.
- *
- * @param x Pointer to statistics structure
- * @return	Pointer to next statistics structure in doubly-linked list
- * 
- * @see dl_entry_next()
- */
-#define statistics_next(x) ( (statistics_txrx*)dl_entry_next(&(x->entry)) )
-
-/**
- * @brief Traverse to previous statistics entry in doubly-linked list
- *
- * This function takes a pointer to a statistics structure as an argument
- * and returns a pointer to the previous statistics structure in the doubly-linked
- * list. If the argument does not belong to a doubly-linked list, it returns NULL.
- *
- * @param x Pointer to statistics structure
- * @return	Pointer to previous statistics structure in doubly-linked list
- *
- * @see dl_entry_prev()
- */
-#define statistics_prev(x) ( (statistics_txrx*)dl_entry_prev(&(x->entry)) )
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
 #define STATION_INFO_FLAG_NEVER_REMOVE 0x0002 ///< Mask for flag in station_info -- never remove
@@ -159,7 +130,7 @@ typedef struct{
 	u32			flags;										///< 1-bit flags
 	rx_info     rx;											///< Reception Information Structure
 	tx_params   tx;											///< Transmission Parameters Structure
-	statistics_txrx* stats;										///< Statistics Information Structure
+	statistics_txrx* stats;									///< Statistics Information Structure
 															///< @note This is a pointer to the statistics structure
                             								///< because statistics can survive outside of the context
                             								///< of associated station_info structs.
@@ -179,7 +150,7 @@ void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
 void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
 dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
-statistics_txrx* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
+dl_entry* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
 void wlan_mac_high_gpio_handler(void *InstancePtr);
 void wlan_mac_high_set_pb_u_callback(function_ptr_t callback);
 void wlan_mac_high_set_pb_m_callback(function_ptr_t callback);

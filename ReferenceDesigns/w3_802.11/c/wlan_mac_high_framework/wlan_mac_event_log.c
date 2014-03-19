@@ -1195,13 +1195,15 @@ u32 add_all_txrx_statistics_to_log(u8 transmit){
 	u32                i, status;
 	u32                num_stats;
 	dl_list          * list = get_statistics();
+	dl_entry         * curr_statistics_entry;
 	statistics_txrx  * curr_statistics;
 
 	// Check to see if we have valid statistics
 	if (list == NULL) { return 0; }
 
 	// Get the first statistics structure
-	curr_statistics = (statistics_txrx*)(list->first);
+	curr_statistics_entry = list->first;
+
 
 	// Set the count variable
 	num_stats = 0;
@@ -1209,11 +1211,13 @@ u32 add_all_txrx_statistics_to_log(u8 transmit){
 	// Iterate thru the list
 	for( i = 0; i < list->length; i++){
 
+		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
+
 		status = add_txrx_statistics_to_log(curr_statistics, transmit);
 
 		if (status == SUCCESS) {
 			num_stats++;
-			curr_statistics = statistics_next(curr_statistics);
+			curr_statistics_entry = dl_entry_next(curr_statistics_entry);
 		} else {
 			break;
 		}

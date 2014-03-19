@@ -562,23 +562,27 @@ dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
  *  - Doubly-linked list of statistics structures
  * @param u8* addr
  *  - 6-byte hardware address to search for
- * @return statistics*
+ * @return dl_entry*
  *  - Returns the pointer to the entry in the doubly-linked list that has the
  *    provided hardware address.
  *  - Returns NULL if no statistics pointer is found that matches the search
  *    criteria
  *
  */
-statistics_txrx* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
+dl_entry* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
 	u32 i;
+	dl_entry*		 curr_statistics_entry;
 	statistics_txrx* curr_statistics;
-	curr_statistics = (statistics_txrx*)(list->first);
+
+	curr_statistics_entry = list->first;
+
 
 	for( i = 0; i < list->length; i++){
+		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 		if(wlan_addr_eq(curr_statistics->addr, addr)){
-			return curr_statistics;
+			return curr_statistics_entry;
 		} else {
-			curr_statistics = statistics_next(curr_statistics);
+			curr_statistics_entry = dl_entry_next(curr_statistics_entry);
 		}
 	}
 	return NULL;
@@ -1708,6 +1712,7 @@ void usleep(u64 delay){
 station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID){
 	dl_entry*	  entry;
 	station_info* station;
+
 	statistics_txrx*   station_stats;
 	dl_entry*	  curr_entry;
 	station_info* curr_station_info;
@@ -1759,20 +1764,42 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 
 		entry->data = (void*)station;
 
-		station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
-		if(station_stats == NULL){
-			station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
-			if(station_stats == NULL){
+#if 0
+		station_stats_entry = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
+
+		if(station_stats_entry == NULL){
+			station_stats_entry = wlan_mac_high_malloc(sizeof(dl_entry));
+
+			if(station_stats_entry == NULL){
 				//malloc failed. Passing that failure on to calling function
 				wlan_mac_high_free(entry);
 				wlan_mac_high_free(station);
 				return NULL;
 			}
+
+
+			station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
+			if(station_stats == NULL){
+				//malloc failed. Passing that failure on to calling function
+				wlan_mac_high_free(station_stats_entry);
+				wlan_mac_high_free(entry);
+				wlan_mac_high_free(station);
+				return NULL;
+			}
+
+			station_stats_entry->data = (void*)station_stats;
 			memcpy(station_stats->addr, addr, 6);
-			dl_entry_insertEnd(stat_tbl, &(station_stats->entry));
+			dl_entry_insertEnd(stat_tbl, station_stats_entry);
 		}
+#endif
 
+		station_stats = wlan_mac_high_add_statistics(stat_tbl, station, addr);
 
+		if(station_stats == NULL){
+			wlan_mac_high_free(entry);
+			wlan_mac_high_free(station);
+			return NULL;
+		}
 
 		station->stats = station_stats;
 		station->stats->is_associated = 1;
@@ -1866,6 +1893,8 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 	dl_entry* entry;
 	station_info* station;
 
+	dl_entry* stats_entry;
+
 	entry = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
 	if(entry == NULL){
 		//This addr doesn't refer to any station currently in the association table,
@@ -1885,7 +1914,9 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 			station->stats->is_associated = 0;
 		} else {
 			//Remove station's statistics from statistics table
-			dl_entry_remove(stat_tbl, &(station->stats->entry));
+			stats_entry = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
+			dl_entry_remove(stat_tbl, stats_entry);
+			wlan_mac_high_free(stats_entry);
 			wlan_mac_high_free(station->stats);
 		}
 
@@ -1919,10 +1950,18 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl){
 }
 
 statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr){
+
 	u32 i;
+
+	dl_entry*	station_stats_entry;
+	dl_entry*	curr_statistics_entry;
+	dl_entry*   oldest_statistics_entry = NULL;
+
+
 	statistics_txrx* station_stats = NULL;
 	statistics_txrx* curr_statistics = NULL;
 	statistics_txrx* oldest_statistics = NULL;
+
 
 	if(station == NULL){
 		if (!promiscuous_stats_enabled) {
@@ -1932,9 +1971,9 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 		}
 	}
 
-	station_stats = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
+	station_stats_entry = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
 
-	if(station_stats == NULL){
+	if(station_stats_entry == NULL){
 		//Note: This memory allocation has no corresponding free. It is by definition a memory leak.
 		//The reason for this is that it allows the node to monitor statistics on surrounding devices.
 		//In a busy environment, this promiscuous statistics gathering can be disabled by commenting
@@ -1942,34 +1981,57 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 
 		if(stat_tbl->length >= MAX_NUM_PROMISC_STATS){
 			//There are too many statistics being tracked. We'll get rid of the oldest that isn't currently associated.
-			curr_statistics = (statistics_txrx*)(stat_tbl->first);
-			for(i=0; i<stat_tbl->length; i++){
+			curr_statistics_entry = stat_tbl->first;
 
-				if( (oldest_statistics == NULL) ){
+
+			for(i=0; i<stat_tbl->length; i++){
+				curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
+
+				if( (oldest_statistics_entry == NULL) ){
 					if(curr_statistics->is_associated == 0){
-						oldest_statistics = curr_statistics;
+						oldest_statistics_entry = curr_statistics_entry;
+						oldest_statistics = (statistics_txrx*)(oldest_statistics_entry->data);
 					}
 				} else if(( (curr_statistics->last_timestamp) < (oldest_statistics->last_timestamp)) ){
 					if(curr_statistics->is_associated == 0){
-						oldest_statistics = curr_statistics;
+						oldest_statistics_entry = curr_statistics_entry;
+						oldest_statistics = (statistics_txrx*)(oldest_statistics_entry->data);
 					}
 				}
-				curr_statistics = statistics_next(curr_statistics);
+				curr_statistics_entry = dl_entry_next(curr_statistics_entry);
 			}
 
-			if(oldest_statistics == NULL){
+			if(oldest_statistics_entry == NULL){
 				xil_printf("Error: could not find deletable oldest statistics. Ensure that MAX_NUM_PROMISC_STATS > MAX_NUM_ASSOC\n");
 				xil_printf("if allowing promiscuous statistics\n");
 			} else {
-				dl_entry_remove(stat_tbl, &(oldest_statistics->entry));
+				dl_entry_remove(stat_tbl, oldest_statistics_entry);
+				wlan_mac_high_free(oldest_statistics_entry);
 				wlan_mac_high_free(oldest_statistics);
 			}
 		}
 
-		station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
-		memcpy(station_stats->addr, addr, 6);
-		dl_entry_insertEnd(stat_tbl, &(station_stats->entry));
+		station_stats_entry = wlan_mac_high_malloc(sizeof(dl_entry));
 
+		if(station_stats_entry == NULL){
+			return NULL;
+		}
+
+		station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
+
+		if(station_stats == NULL){
+			wlan_mac_high_free(station_stats_entry);
+			return NULL;
+		}
+
+		station_stats_entry->data = (void*)station_stats;
+
+		memcpy(station_stats->addr, addr, 6);
+
+		dl_entry_insertEnd(stat_tbl, station_stats_entry);
+
+	} else {
+		station_stats = (statistics_txrx*)(station_stats_entry->data);
 	}
 	if(station != NULL){
 		station->stats = station_stats;
@@ -1981,12 +2043,16 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 	u32 i;
 	statistics_txrx* curr_statistics = NULL;
-	statistics_txrx* next_statistics = NULL;
+	dl_entry* next_statistics_entry = NULL;
+	dl_entry* curr_statistics_entry = NULL;
 
-	next_statistics = (statistics_txrx*)(stat_tbl->first);
+	next_statistics_entry = stat_tbl->first;
 	for(i=0; i<stat_tbl->length; i++){
-		curr_statistics = next_statistics;
-		next_statistics = statistics_next(curr_statistics);
+
+		curr_statistics_entry = next_statistics_entry;
+		next_statistics_entry = dl_entry_next(curr_statistics_entry);
+
+		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 
 		curr_statistics->num_high_tx_total = 0;
 		curr_statistics->num_high_tx_success = 0;
@@ -1998,8 +2064,9 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 
 		if(curr_statistics->is_associated == 0){
 			//Remove and destroy this entry
-			dl_entry_remove(stat_tbl, &(curr_statistics->entry));
+			dl_entry_remove(stat_tbl, curr_statistics_entry);
 			wlan_mac_high_free(curr_statistics);
+			wlan_mac_high_free(curr_statistics_entry);
 		}
 	}
 
