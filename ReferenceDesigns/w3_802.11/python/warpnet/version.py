@@ -20,8 +20,9 @@ Ver   Who  Date     Changes
 This module provides WARPNet version information and commands.
 
 Functions (see below for more information):
-    wn_ver()     -- Returns WARPNet version
-    wn_ver_str() -- Returns string of WARPNet version
+    wn_ver()       -- Returns WARPNet version
+    wn_ver_check() -- Checks the provided version against the WARPNet version
+    wn_ver_str()   -- Returns string of WARPNet version
 
 Integer constants:
     WN_MAJOR, WN_MINOR, WN_REVISION, WN_XTRA, WN_RELEASE
@@ -35,7 +36,7 @@ import inspect
 from . import wn_exception as wn_ex
 
 
-__all__ = ['wn_ver', 'wn_ver_str']
+__all__ = ['wn_ver', 'wn_ver_check', 'wn_ver_str']
 
 
 # WARPNet Version defines
@@ -49,24 +50,12 @@ WN_RELEASE              = True
 #-----------------------------------------------------------------------------
 # WARPNet Version Utilities
 #-----------------------------------------------------------------------------
-
-def wn_ver(major=WN_MAJOR, minor=WN_MINOR, revision=WN_REVISION, xtra=WN_XTRA, 
-           output=True):
+def wn_ver(output=True):
     """Returns the version of WARPNet for this package.
     
-    If arguments are passed in to this function it will print a warning
-    message if the version specified is older than the current version and
-    will raise an WnVersionError if the version specified is newer
-    than the current version.
-    
     Attributes:
-        major    -- Major release number for WARPNet
-        minor    -- Minor release number for WARPnet
-        revision -- Revision release number for WARPNet
-        xtra     -- Extra version string for WARPNet
         output   -- Print output about the WARPNet version
     """
-    
     # Print the release message if this is not an official release    
     if not WN_RELEASE: 
         print("-" * 60)
@@ -81,9 +70,48 @@ def wn_ver(major=WN_MAJOR, minor=WN_MINOR, revision=WN_REVISION, xtra=WN_XTRA,
         print("Framework Location:")
         print(os.path.dirname(
                   os.path.abspath(inspect.getfile(inspect.currentframe()))))
+
+    return (WN_MAJOR, WN_MINOR, WN_REVISION)
+    
+# End of wn_ver()
+
+
+def wn_ver_check(ver_str=None, major=None, minor=None, revision=None):
+    """Checks the version of WARPNet for this package.
+    
+    This function will print a warning message if the version specified 
+    is older than the current version and will raise an WnVersionError 
+    if the version specified is newer than the current version.
+    
+    Attributes:
+        ver_str  -- Version string returned by wn_ver_str()
+        major    -- Major release number for WARPNet
+        minor    -- Minor release number for WARPnet
+        revision -- Revision release number for WARPNet
         
+    The ver_str attribute takes precedence over the major, minor, revsion
+    attributes.
+    """
+    if not ver_str is None:
+        try:
+            temp = ver_str.split(" ")
+            (major, minor, revision) = temp[0].split(".")
+        except:
+            msg  = "ERROR: input parameter ver_str not valid"
+            raise AttributeError(msg)
+
+    # If ver_str was specified, then major, minor, revision should be defined
+    #   and contain strings.  Need to convert to integers.        
+    try:
+        major    = int(major)
+        minor    = int(minor)
+        revision = int(revision)
+    except:
+        msg  = "ERROR: input parameters major, minor, revision not valid"
+        raise AttributeError(msg)
+    
     # Check the provided version vs the current version
-    msg  = "WARPNet Version Mismatch: \n:"
+    msg  = "WARPNet Version Mismatch: \n"
     msg += "    Specified version {0}\n".format(wn_ver_str(major, minor, revision))
     msg += "    Current   version {0}".format(wn_ver_str())
     
@@ -92,23 +120,23 @@ def wn_ver(major=WN_MAJOR, minor=WN_MINOR, revision=WN_REVISION, xtra=WN_XTRA,
             if (revision != WN_REVISION):
                 # Since MAJOR & MINOR versions match, only print a warning
                 if (revision < WN_REVISION):
-                    print("WARNING: " + msg + " (older)")
-                else:
                     print("WARNING: " + msg + " (newer)")
+                else:
+                    print("WARNING: " + msg + " (older)")
         else:
             if (minor < WN_MINOR):
-                print("WARNING: " + msg + " (older)")
+                print("WARNING: " + msg + " (newer)")
             else:
-                raise wn_ex.VersionError("ERROR: " + msg + " (newer)")
+                raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
     else:
         if (major < WN_MAJOR):
-            print("WARNING: " + msg + " (older)")
+            print("WARNING: " + msg + " (newer)")
         else:
-            raise wn_ex.VersionError("ERROR: " + msg + " (newer)")
+            raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
     
-    return (WN_MAJOR, WN_MINOR, WN_REVISION)
+    return True
     
-# End of wn_ver()
+# End of wn_ver_check()
 
 
 def wn_ver_str(major=WN_MAJOR, minor=WN_MINOR, 
@@ -123,17 +151,16 @@ def wn_ver_str(major=WN_MAJOR, minor=WN_MINOR,
         msg += "{0:d}.".format(minor)
         msg += "{0:d} ".format(revision)
         msg += "{0:s}".format(xtra)
-    except ValueError as err:
+    except ValueError:
         # Set output string to default values so program can continue
-        error = "Unknown Argument: All arguments should be integers"
-        print(err)
+        error  = "WARNING:  Unknown Argument - All arguments should be integers\n"
+        error += "    Setting WARPNet version string to default."
+        print(error)
         
         msg  = "{0:d}.".format(WN_MAJOR)
         msg += "{0:d}.".format(WN_MINOR)
         msg += "{0:d} ".format(WN_REVISION)
         msg += "{0:s}".format(WN_XTRA)
-        
-        raise wn_ex.VersionError(error)
     
     return msg
     

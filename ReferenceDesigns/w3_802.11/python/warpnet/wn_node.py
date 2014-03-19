@@ -101,7 +101,7 @@ class WnNode(object):
     transport_bcast = None
     
     def __init__(self, host_config=None):
-        (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = version.wn_ver(output=0)
+        (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = version.wn_ver(output=False)
         
         if not host_config is None:
             self.host_config = host_config
@@ -294,7 +294,7 @@ class WnNode(object):
                 self.wn_ver_revision = (values[0] & 0x000000FF)                
                 
                 # Check to see if there is a version mismatch
-                self.check_ver()
+                self.check_wn_ver()
             else:
                 raise wn_ex.ParameterError("NODE_DESIGN_VER", "Incorrect length")
 
@@ -449,23 +449,12 @@ class WnNode(object):
     #-------------------------------------------------------------------------
     # Misc methods for the Node
     #-------------------------------------------------------------------------
-    def check_ver(self):
+    def check_wn_ver(self):
         """Check the WARPNet version of the node against the current WARPNet
         version."""
-        (major, minor, revision) = version.wn_ver(output=0)
-        
-        # Node %d with Serial # %d has version "%d.%d.%d" which does not match WARPNet v%d.%d.%d
-        msg  = "WARPNet version mismatch on {0} ({0}):\n".format(self.name, self.sn_str)
-        msg += "    Node version = "
-        msg += "{0:d}.{1:d}.{2:d}\n".format(self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision)
-        msg += "    Host version = "
-        msg += "{0:d}.{1:d}.{2:d}\n".format(major, minor, revision)
-        
-        if (major != self.wn_ver_major) or (minor != self.wn_ver_minor):
-            raise wn_ex.VersionError(msg)
-        else:
-            if (revision != self.wn_ver_revision):
-                print("WARNING: " + msg)
+        version.wn_ver_check(major=self.wn_ver_major,
+                             minor=self.wn_ver_minor,
+                             revision=self.wn_ver_revision)
 
 
     def __str__(self):

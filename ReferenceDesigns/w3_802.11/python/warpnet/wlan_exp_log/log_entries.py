@@ -151,12 +151,12 @@ class WlanExpLogEntryType(object):
         """Generate a string representation of the entry from a buffer."""
         entry_size = calcsize(self.fields_fmt_struct)
         entry      = self.deserialize(buf[0:entry_size])[0]
-        
+                
         str_out = self.name + ': '
 
         for k in entry.keys():
             s = entry[k]
-            if(type(s) is int):
+            if((type(s) is int) or (type(s) is long)):
                 str_out += "\n    {0:25s} = {1:20d} (0x{1:16x})".format(k, s)
             elif(type(s) is str):
                 s = map(ord, list(entry[k]))
@@ -374,9 +374,10 @@ entry_node_info.append_field_defs([
             ('node_type',              'I',      'uint32'),
             ('node_id',                'I',      'uint32'),
             ('hw_generation',          'I',      'uint32'),
-            ('design_ver',             'I',      'uint32'),
+            ('wn_ver',                 'I',      'uint32'),
             ('fpga_dna',               'Q',      'uint64'),
             ('serial_num',             'I',      'uint32'),
+            ('wlan_exp_ver',           'I',      'uint32'),
             ('wlan_max_associations',  'I',      'uint32'),
             ('wlan_log_max_size',      'I',      'uint32'),
             ('wlan_max_stats',         'I',      'uint32')])

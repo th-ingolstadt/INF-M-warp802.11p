@@ -21,6 +21,7 @@ This module provides WLAN Exp version information and commands.
 
 Functions (see below for more information):
     wlan_exp_ver()       -- Returns WLAN Exp version
+    wlan_exp_ver_check() -- Checks the provided version against the WLAN Exp version
     wlan_exp_ver_str()   -- Returns string of WLAN Exp version
 
 Integer constants:
@@ -35,43 +36,31 @@ import inspect
 import warpnet.wn_exception as wn_ex
 
 
-__all__ = ['wlan_exp_ver', 'wlan_exp_ver_str']
+__all__ = ['wlan_exp_ver', 'wlan_exp_ver_check', 'wlan_exp_ver_str']
 
 
-# WARPNet Version defines
-WLAN_EXP_MAJOR               = 0
-WLAN_EXP_MINOR               = 8
-WLAN_EXP_REVISION            = 0
-WLAN_EXP_XTRA                = str('')
-WLAN_EXP_RELEASE             = True
+# WLAN Exp Version defines
+WLAN_EXP_MAJOR          = 0
+WLAN_EXP_MINOR          = 8
+WLAN_EXP_REVISION       = 0
+WLAN_EXP_XTRA           = str('')
+WLAN_EXP_RELEASE        = True
 
 
 #-----------------------------------------------------------------------------
 # WLAN Exp Version Utilities
 #-----------------------------------------------------------------------------
-
-def wlan_exp_ver(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR, 
-                 revision=WLAN_EXP_REVISION, xtra=WLAN_EXP_XTRA, output=True):
+def wlan_exp_ver(output=True):
     """Returns the version of WlanExp for this package.
     
-    If arguments are passed in to this function it will print a warning
-    message if the version specified is older than the current version and
-    will raise an WarpNetVersionError if the version specified is newer
-    than the current version.
-    
     Attributes:
-        major    -- Major release number for WLAN Exp
-        minor    -- Minor release number for WLAN Exp
-        revision -- Revision release number for WLAN Exp
-        xtra     -- Extra version string for WLAN Exp
         output   -- Print output about the WLAN Exp version
-    """
-    
+    """    
     # Print the release message if this is not an official release    
     if not WLAN_EXP_RELEASE: 
         print("-" * 60)
-        print("You are running a version of WlanExp that may not be ")
-        print("compatible with released WlanExp bitstreams. Please use ")
+        print("You are running a version of WLAN Exp that may not be ")
+        print("compatible with released WLAN Exp bitstreams. Please use ")
         print("at your own risk.")
         print("-" * 60)
     
@@ -82,8 +71,47 @@ def wlan_exp_ver(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
         print(os.path.dirname(
                   os.path.abspath(inspect.getfile(inspect.currentframe()))))
     
+    return (WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION)
+    
+# End of wlan_exp_ver()
+
+
+def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None):
+    """Checks the version of WLAN Exp for this package.
+    
+    This function will print a warning message if the version specified 
+    is older than the current version and will raise an WnVersionError 
+    if the version specified is newer than the current version.
+    
+    Attributes:
+        ver_str  -- Version string returned by wn_ver_str()
+        major    -- Major release number for WARPNet
+        minor    -- Minor release number for WARPnet
+        revision -- Revision release number for WARPNet
+        
+    The ver_str attribute takes precedence over the major, minor, revsion
+    attributes.
+    """
+    if not ver_str is None:
+        try:
+            temp = ver_str.split(" ")
+            (major, minor, revision) = temp[0].split(".")
+        except:
+            msg  = "ERROR: input parameter ver_str not valid"
+            raise AttributeError(msg)
+
+    # If ver_str was specified, then major, minor, revision should be defined
+    #   and contain strings.  Need to convert to integers.        
+    try:
+        major    = int(major)
+        minor    = int(minor)
+        revision = int(revision)
+    except:
+        msg  = "ERROR: input parameters major, minor, revision not valid"
+        raise AttributeError(msg)
+    
     # Check the provided version vs the current version
-    msg  = "WLAN Exp Version Mismatch: \n:"
+    msg  = "WLAN Exp Version Mismatch: \n"
     msg += "    Specified version {0}\n".format(wlan_exp_ver_str(major, minor, revision))
     msg += "    Current   version {0}".format(wlan_exp_ver_str())
     
@@ -92,21 +120,21 @@ def wlan_exp_ver(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
             if (revision != WLAN_EXP_REVISION):
                 # Since MAJOR & MINOR versions match, only print a warning
                 if (revision < WLAN_EXP_REVISION):
-                    print("WARNING: " + msg + " (older)")
-                else:
                     print("WARNING: " + msg + " (newer)")
+                else:
+                    print("WARNING: " + msg + " (older)")
         else:
             if (minor < WLAN_EXP_MINOR):
-                print("WARNING: " + msg + " (older)")
+                print("WARNING: " + msg + " (newer)")
             else:
-                raise wn_ex.VersionError("ERROR: " + msg + " (newer)")
+                raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
     else:
         if (major < WLAN_EXP_MAJOR):
-            print("WARNING: " + msg + " (older)")
+            print("WARNING: " + msg + " (newer)")
         else:
-            raise wn_ex.VersionError("ERROR: " + msg + " (newer)")
+            raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
     
-    return (WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION)
+    return True
     
 # End of wlan_exp_ver()
 
@@ -123,17 +151,16 @@ def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
         msg += "{0:d}.".format(minor)
         msg += "{0:d} ".format(revision)
         msg += "{0:s}".format(xtra)
-    except ValueError as err:
+    except ValueError:
         # Set output string to default values so program can continue
-        error = "Unknown Argument: All arguments should be integers"
-        print(err)
+        error  = "WARNING:  Unknown Argument - All arguments should be integers\n"
+        error += "    Setting WLAN Exp version string to default."
+        print(error)
         
         msg  = "{0:d}.".format(WLAN_EXP_MAJOR)
         msg += "{0:d}.".format(WLAN_EXP_MINOR)
         msg += "{0:d} ".format(WLAN_EXP_REVISION)
         msg += "{0:s}".format(WLAN_EXP_XTRA)
-        
-        raise wn_ex.VersionError(error)
         
     return msg
     

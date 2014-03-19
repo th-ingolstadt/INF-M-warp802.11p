@@ -26,6 +26,15 @@ Functions (see below for more information):
     gen_hdf5_file()     -- Generate a HDF5 file based on numpy arrays
 """
 
+__all__ = ['gen_log_index_raw', 
+           'filter_log_index', 
+           'gen_log_np_arrays',
+           'gen_hdf5_file']
+
+
+#-----------------------------------------------------------------------------
+# WLAN Exp Log Utilities
+#-----------------------------------------------------------------------------
 def gen_log_index_raw(log_bytes):
     """Parses a binary WARPnet log file by recording the byte index of each
     entry. The byte indexes are returned in a dictionary with the entry
@@ -105,6 +114,82 @@ def gen_log_index_raw(log_bytes):
 
     return log_index
 
+# End gen_log_index_raw()
+
+
+
+def write_log_index_raw_file(bin_log_file, node=None):
+    """Method to write a raw log index to a file for easy retrieval.
+    
+    Attributes:
+        bin_log_file -- File name of the binary log file
+        node         -- Optional node binary log data came from
+    
+    Also, a 'wlan_exp_log_index_info' entry will be created in the 
+    index that captures information about the framework:
+    
+    'wlan_exp_log_index_info' = {'filename'           = <str>,
+                                 'date'               = <str>,
+                                 'wlan_exp_version'   = <str>}
+
+    If node is present, then the following info will also be present:
+
+    'wlan_exp_log_index_info' = {'node_serial_number' = <str>,
+                                 'node_name'          = <str> }
+
+    """
+    import os
+    import time
+    import pickle
+    import warpnet.wlan_exp.version as version
+
+    # Make sure we have a valid file and create the index file name    
+    if os.path.isfile(bin_log_file):
+        idx_log_file = bin_log_file + ".idx"
+    else:
+        raise TypeError("Filename {0} is not valid.".format(bin_log_file))
+
+    # Read the binary log file
+    with open(bin_log_file, 'rb') as fh:
+        log_b = fh.read()
+    
+    # Generate the raw index of log entry locations sorted by log entry type
+    log_index_raw = gen_log_index_raw(log_b)
+
+    log_index_raw['wlan_exp_log_index_info'] = {
+        'filename'         : bin_log_file,
+        'date'             : time.strftime("%d/%m/%Y  %H:%M:%S"),
+        'wlan_exp_version' : version.wlan_exp_ver_str()
+    }
+
+    # If the node is present, then add the additional fields
+    if not node is None:
+        log_index_raw['wlan_exp_log_index_info'] = {
+            'node_serial_number' : node.sn_str,
+            'node_name'          : node.name
+        }
+    
+    pickle.dump(log_index_raw, open(idx_log_file, "wb"))
+
+# End gen_log_index_raw()
+
+
+
+def read_log_index_raw_file(log_index_raw_file):
+    import pickle
+    import warpnet.wlan_exp.version as version
+    import warpnet.wn_exception as wn_ex
+    
+    log_index_raw = pickle.load(open(log_index_raw_file, "rb"))
+
+    # Check the version in the log index agains the current version
+    try:
+        version.wlan_exp_ver_check(log_index_raw['wlan_exp_log_index_info']['wlan_exp_version'])
+    except wn_ex.VersionError as err:
+        print(err)
+
+    return log_index_raw
+    
 # End gen_log_index_raw()
 
 
@@ -288,6 +373,8 @@ def gen_log_np_arrays(log_bytes, log_index):
 
 # End gen_log_np_arrays()
 
+
+
 def print_log_entries(log_bytes, log_index, entries_slice=None):
     """Work in progress - built for debugging address issues, some variant of this will be useful
     for creating text version of raw log w/out requiring numpy"""
@@ -320,7 +407,9 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
         #Use the entry_type's class method to string-ify itself
         print(entry_type.entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
 
-    return
+# End print_log_entries()
+
+
 
 def gen_hdf5_file(filename, np_log_dict, attr_dict=None, compression=None):
     """Generate an HDF5 file from numpy arrays. The np_log_dict input must be either:
@@ -454,16 +543,4 @@ def log_index_print_summary(log_index, title=None):
 # End log_index_print_summary()
 
 
-
-def mac_addr_int_to_str(mac_address):
-    msg = ""
-    addr = int(mac_address)
-    if mac_address is not None:
-        msg += "{0:02x}:".format(addr & 0xFF)
-        msg += "{0:02x}:".format((addr >>  8) & 0xFF)
-        msg += "{0:02x}:".format((addr >> 16) & 0xFF)
-        msg += "{0:02x}:".format((addr >> 24) & 0xFF)
-        msg += "{0:02x}:".format((addr >> 32) & 0xFF)
-        msg += "{0:02x}".format((addr >> 40) & 0xFF)
-    return msg
 

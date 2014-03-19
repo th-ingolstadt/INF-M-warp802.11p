@@ -48,10 +48,11 @@ __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
 
 # WLAN Exp Node Parameter Identifiers (Extension of WARPNet Parameter Identifiers)
 #   NOTE:  The C counterparts are found in *_node.h
-NODE_WLAN_MAX_ASSN           = 6
-NODE_WLAN_EVENT_LOG_SIZE     = 7
-NODE_WLAN_MAX_STATS          = 8
-NODE_WLAN_MAC_ADDR           = 9
+NODE_WLAN_EXP_DESIGN_VER     = 6
+NODE_WLAN_MAX_ASSN           = 7
+NODE_WLAN_EVENT_LOG_SIZE     = 8
+NODE_WLAN_MAX_STATS          = 9
+NODE_WLAN_MAC_ADDR           = 10
 
 
 class WlanExpNode(wn_node.WnNode):
@@ -106,7 +107,7 @@ class WlanExpNode(wn_node.WnNode):
         super(WlanExpNode, self).__init__(host_config)
         
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor, 
-                self.wlan_exp_ver_revision) = version.wlan_exp_ver(output=0)
+                self.wlan_exp_ver_revision) = version.wlan_exp_ver(output=False)
         
         self.node_type            = defaults.WLAN_EXP_BASE
         self.max_associations     = 0
@@ -642,7 +643,18 @@ class WlanExpNode(wn_node.WnNode):
     #-------------------------------------------------------------------------
     def process_parameter(self, identifier, length, values):
         """Extract values from the parameters"""
-        if (identifier == NODE_WLAN_MAX_ASSN):
+        if (identifier == NODE_WLAN_EXP_DESIGN_VER):
+            if (length == 1):                
+                self.wlan_exp_ver_major = (values[0] & 0x00FF0000) >> 16
+                self.wlan_exp_ver_minor = (values[0] & 0x0000FF00) >> 8
+                self.wlan_exp_ver_revision = (values[0] & 0x000000FF)                
+                
+                # Check to see if there is a version mismatch
+                self.check_wlan_exp_ver()
+            else:
+                raise wn_ex.ParameterError("NODE_DESIGN_VER", "Incorrect length")
+
+        elif (identifier == NODE_WLAN_MAX_ASSN):
             if (length == 1):
                 self.max_associations = values[0]
             else:
@@ -673,27 +685,12 @@ class WlanExpNode(wn_node.WnNode):
     #-------------------------------------------------------------------------
     # Misc methods for the Node
     #-------------------------------------------------------------------------
-    def check_ver(self):
+    def check_wlan_exp_ver(self):
         """Check the WLAN Exp version of the node against the current WLAN Exp
         version."""
-        (major, minor, revision) = version.wlan_exp_ver(output=0)
-        
-        # Node %d with Serial # %d has version "%d.%d.%d" which does not match WLAN Exp v%d.%d.%d
-        msg  = "WLAN Exp version mismatch on {0} ({0}):\n".format(self.name, self.sn_str)
-        msg += "({0}):\n".format(self.sn_str)
-        msg += "    Node version = "
-        msg += "{0:d}.{1:d}.{2:d}\n".format(self.wlan_exp_ver_major, 
-                                            self.wlan_exp_ver_minor, 
-                                            self.wlan_exp_ver_revision)
-        msg += "    Host version = "
-        msg += "{0:d}.{1:d}.{2:d}\n".format(major, minor, revision)
-        
-        if (major != self.wlan_exp_ver_major) or (minor != self.wlan_exp_ver_minor):
-            raise wn_ex.WnVersionError(msg)
-        else:
-            if (revision != self.wlan_exp_ver_revision):
-                print("WARNING: " + msg)
-
+        version.wlan_exp_ver_check(major=self.wlan_exp_ver_major,
+                                   minor=self.wlan_exp_ver_minor,
+                                   revision=self.wlan_exp_ver_revision)
 
 # End Class WlanExpNode
 
