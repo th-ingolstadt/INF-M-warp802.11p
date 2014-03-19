@@ -547,11 +547,14 @@ void ltg_cleanup(u32 id, void* callback_arg){
 
 void print_all_observed_statistics(){
 	u32 i;
+	dl_entry*	curr_statistics_entry;
 	statistics_txrx* curr_statistics;
 
-	curr_statistics = (statistics_txrx*)(statistics_table.first);
+	curr_statistics_entry = statistics_table.first;
+
 	xil_printf("\nAll Statistics:\n");
 	for(i=0; i<statistics_table.length; i++){
+		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
 		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_timestamp);
@@ -560,7 +563,7 @@ void print_all_observed_statistics(){
 		xil_printf("     - # Tx Low:         %d\n", curr_statistics->num_low_tx);
 		xil_printf("     - # DATA: Rx MPDUs: %d (%d bytes)\n", curr_statistics->data_num_rx_success, curr_statistics->data_num_rx_bytes);
 		xil_printf("     - # MGMT: Rx MPDUs: %d (%d bytes)\n", curr_statistics->mgmt_num_rx_success, curr_statistics->mgmt_num_rx_bytes);
-		curr_statistics = statistics_next(curr_statistics);
+		curr_statistics_entry = dl_entry_next(curr_statistics_entry);
 	}
 }
 
