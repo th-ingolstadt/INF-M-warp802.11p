@@ -62,7 +62,7 @@ log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 # Unpack the log into numpy structured arrays
 #   gen_log_np_arrays returns a dictionary with log entry type IDs as keys
 #   Global 'wlan_exp_log_entry_types' lists all known log entry types
-log_nd = log_util.gen_log_np_arrays(log_data, log_index)
+log_nd = log_util.log_data_to_np_arrays(log_data, log_index)
 
 # Describe the NumPy arrays
 # log_util.print_log_index_summary(log_nd, "NumPy Array Summary:")

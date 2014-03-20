@@ -503,7 +503,7 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.NodeProcChannel(cmds.RSVD_CHANNEL))
 
 
-    def node_set_tx_rate_unicast(self, node_list, rate):
+    def node_set_tx_rate_unicast(self, rate, node_list=None):
         """Sets the unicast transmit rate of the node to the given nodes in 
         the node_list.  If the node list is empty, then it sets the default
         unicast transmit rate for future associations.  This returns a list 
@@ -523,7 +523,7 @@ class WlanExpNode(wn_node.WnNode):
         return ret_val
 
 
-    def node_get_tx_rate_unicast(self, node_list):
+    def node_get_tx_rate_unicast(self, node_list=None):
         """Gets the unicast transmit rate of the node to the given nodes in 
         the node_list.  If the node list is empty, then it gets the default 
         unicast transmit rate for future associations.  All rates are returned
@@ -557,7 +557,7 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_MULTICAST, cmds.RSVD_TX_RATE))
 
 
-    def node_set_tx_ant_mode_unicast(self, node_list, ant_mode):
+    def node_set_tx_ant_mode_unicast(self, ant_mode, node_list=None):
         """Sets the unicast transmit antenna mode of the node to the given 
         nodes in the node_list.  If the node list is empty, then it sets 
         the default antenna mode for future associations.  This returns a 
@@ -576,7 +576,7 @@ class WlanExpNode(wn_node.WnNode):
         return ret_val
 
 
-    def node_get_tx_ant_mode_unicast(self, node_list):
+    def node_get_tx_ant_mode_unicast(self, node_list=None):
         """Gets the unicast transmit antenna mode of the node to the given 
         nodes in the node_list and returns a list of those antenna modes.
         """
@@ -633,7 +633,7 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     def queue_tx_data_purge_all(self):
         """Purges all data transmit queues on the node."""
-        return self.send_cmd(cmds.QueueTxDataPurgeAll())
+        self.send_cmd(cmds.QueueTxDataPurgeAll())
 
 
 

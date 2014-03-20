@@ -42,7 +42,7 @@ AP_HDF5_FILENAME  = "example_logs/ap_log_stats_{0}.hdf5".format(UNIQUIFIER)
 STA_HDF5_FILENAME = "example_logs/sta_log_stats_{0}.hdf5".format(UNIQUIFIER)
 
 # Set the per-trial duration (in seconds)
-TRIAL_TIME        = 5
+TRIAL_TIME        = 30
 
 
 
@@ -118,9 +118,11 @@ rates = wlan_exp_util.rates
 for node in nodes:
     node.ltg_remove_all()
     node.queue_tx_data_purge_all()
+    node.node_set_tx_rate_unicast(rates[0])
+
+for node in nodes:
     node.log_reset()
     node.stats_reset_txrx()
-
 
 
 print("\nRun Experiment:\n")
@@ -150,11 +152,11 @@ for idx, rate in enumerate(rates):
     print("  Rate {0} ... ".format(wlan_exp_util.tx_rate_to_str(rate)))
 
     # Configure the AP's Tx rate for the selected STA
-    n_ap.node_set_tx_rate_unicast(n_sta, rate)
+    n_ap.node_set_tx_rate_unicast(rate, n_sta)
     time.sleep(TRIAL_TIME)
 
     # Configure the STA's Tx rate for the selected AP
-    n_sta.node_set_tx_rate_unicast(n_ap, rate)
+    n_sta.node_set_tx_rate_unicast(rate, n_ap)
     time.sleep(TRIAL_TIME)
 	
 
