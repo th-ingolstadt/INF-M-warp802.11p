@@ -319,12 +319,17 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	tx_low_entry*  tx_low_event_log_entry;
 	station_info* station;
 	dl_entry*	  entry;
+	u8 			  pkt_type;
+
+	frame_statistics_txrx* frame_stats = NULL;
 
 	void* mpdu = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u32 ts_old = 0;
+
+	pkt_type = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 
 	for(i = 0; i < tx_mpdu->num_tx; i++){
 
@@ -365,7 +370,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		tx_high_event_log_entry->length                   = tx_mpdu->length;
 		tx_high_event_log_entry->rate                     = tx_mpdu->params.phy.rate;
 		tx_high_event_log_entry->chan_num				  = mac_param_chan;
-		tx_high_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
+		tx_high_event_log_entry->pkt_type				  = pkt_type;
 		tx_high_event_log_entry->num_tx                   = tx_mpdu->num_tx;
 		tx_high_event_log_entry->timestamp_create         = tx_mpdu->timestamp_create;
 		tx_high_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
@@ -377,8 +382,33 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		entry = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
 		if(entry != NULL){
 			station = (station_info*)(entry->data);
-			//Process this TX MPDU DONE event to update any statistics used in rate adaptation
-			wlan_mac_high_process_tx_done(tx_mpdu, station);
+
+			switch(pkt_type){
+				case PKT_TYPE_DATA_ENCAP_ETH:
+				case PKT_TYPE_DATA_ENCAP_LTG:
+					frame_stats = &(station->stats->data);
+				break;
+
+				case PKT_TYPE_MGMT:
+					frame_stats = &(station->stats->mgmt);
+				break;
+			}
+
+
+			//Update Transmission Stats
+			if(frame_stats != NULL){
+				(frame_stats->tx_num_packets_total)++;
+				(frame_stats->tx_num_bytes_total) += tx_mpdu->length;
+
+				(frame_stats->tx_num_packets_low)++;
+
+				if((tx_mpdu->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
+					(frame_stats->tx_num_packets_success)++;
+					(frame_stats->tx_num_bytes_success) += tx_mpdu->length;
+				}
+
+			}
+
 		}
 	}
 
@@ -426,7 +456,7 @@ void ltg_event(u32 id, void* callback_arg){
 	u32 payload_length = 0;
 	u8* mpdu_ptr_u8;
 	llc_header* llc_hdr;
-	dl_entry*	  entry;
+	dl_entry*	  station_info_entry;
 	station_info* station;
 	u8* addr_da = ((ltg_pyld_hdr*)callback_arg)->addr_da;
 
@@ -442,10 +472,10 @@ void ltg_event(u32 id, void* callback_arg){
 
 	}
 
-	entry = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
+	station_info_entry = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
 
-	if(entry != NULL){
-		station = (station_info*)(entry->data);
+	if(station_info_entry != NULL){
+		station = (station_info*)(station_info_entry->data);
 
 		if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size){
 			//Send a Data packet to this station
@@ -694,11 +724,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		if(station_stats != NULL){
 			station_stats->last_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
-				(station_stats->data_num_rx_success)++;
-				(station_stats->data_num_rx_bytes) += mpdu_info->length;
+				((station_stats)->data.rx_num_packets)++;
+				((station_stats)->data.rx_num_bytes) += mpdu_info->length;
 			} else if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) {
-				(station_stats->mgmt_num_rx_success)++;
-				(station_stats->mgmt_num_rx_bytes) += mpdu_info->length;
+				((station_stats)->mgmt.rx_num_packets)++;
+				((station_stats)->mgmt.rx_num_bytes) += mpdu_info->length;
 			}
 		}
 
