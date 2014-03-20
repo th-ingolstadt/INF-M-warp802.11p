@@ -1162,7 +1162,7 @@ u32 add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit){
 		// Copy the statistics to the log entry
 		//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
 		//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
-		memcpy( (void *)(&entry->last_timestamp), (void *)(&stats->last_timestamp), stats_size );
+		memcpy( (void *)(&entry->stats), (void *)(&stats), stats_size );
 
 #ifdef USE_WARPNET_WLAN_EXP
 		// Transmit the entry if requested

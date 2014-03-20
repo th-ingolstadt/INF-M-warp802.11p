@@ -158,18 +158,8 @@ typedef struct{
 //          accurately reflects the number of bytes in the struct.
 //
 typedef struct{
-	u64     timestamp;      // Timestamp of the log entry
-	u64     last_timestamp; // Timestamp of the last frame reception
-	u8      addr[6];		// HW Address
-	u8      is_associated;	// Is this device associated with me?
-	u8      rsvd;
-	u32     num_high_tx_total;	 // Total number of high transmissions to this device
-	u32     num_high_tx_success; // Total number of successful high transmissions to this device
-	u32     num_low_tx;		// Total number of low transmissions to this device
-	u32     mgmt_num_rx_success; // MGMT: Total number of successful receptions from this device
-	u32     mgmt_num_rx_bytes;	// MGMT: Total number of received bytes from this device
-	u32     data_num_rx_success; // DATA: Total number of successful receptions from this device
-	u32     data_num_rx_bytes;	// DATA: Total number of received bytes from this device
+	u64             timestamp;      // Timestamp of the log entry
+	statistics_txrx stats;			// Framework's statistics struct
 } txrx_stats_entry;
 
 

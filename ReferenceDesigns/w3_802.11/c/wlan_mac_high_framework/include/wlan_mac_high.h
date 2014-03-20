@@ -90,27 +90,39 @@ typedef struct{
 } rx_info;
 
 /**
- * @brief Statistics Structure
+ * @brief Frame Statistics Structure
  *
- * This struct contains statistics about the communications link. Typically, this struct is
- * pointed to by a larger station_info struct to catalog statistics about a particular
- * station in the network. Additionally, statistics can be decoupled from station_info
- * structs entirely to enable promiscuous statistics about unassociated devices seen in
- * the network.
+ * This struct contains statistics about the communications link. It is intended to
+ * be instantiated multiple times in the broader statistics_txrx struct so that
+ * different packet types can be individually tracked.
  */
 typedef struct{
-	u64     last_timestamp; 	 ///< Timestamp of the last frame reception
-	u8      addr[6];			 ///< HW Address
-	u8      is_associated;		 ///< Is this device associated with me?
-	u8      reserved;
-	u32     num_high_tx_total;		 ///< Total number of transmissions to this device
-	u32     num_high_tx_success; 	 ///< Total number of successful high transmissions to this device
-	u32     num_low_tx;			 	 ///< Total number of low transmissions to this device
-	u32     mgmt_num_rx_success;     ///< Total number of successful receptions from this device (Management)
-	u32     mgmt_num_rx_bytes;	     ///< Total number of received bytes from this device (Management)
-	u32     data_num_rx_success;     ///< Total number of successful receptions from this device (Data)
-	u32     data_num_rx_bytes;	     ///< Total number of received bytes from this device (Data)
+	u64		rx_num_bytes;				///< # of successfully received bytes (de-duplicated)
+	u64		tx_num_bytes_success;		///< # of successfully transmitted bytes (high-level MPDUs)
+	u64		tx_num_bytes_total;			///< Total # of transmitted bytes (high-level MPDUs)
+	u32		rx_num_packets;				///< # of successfully received packets (de-duplicated)
+	u32		tx_num_packets_success;		///< # of successfully transmitted packets (high-level MPDUs)
+	u32		tx_num_packets_total;		///< Total # of transmitted packets (high-level MPDUs)
+	u32		tx_num_packets_low;			///< # of low-level transmitted frames (including retransmissions)
+} frame_statistics_txrx;
+
+/**
+ * @brief Statistics Structure
+ *
+ * This struct contains statistics about the communications link.
+ * Additionally, statistics can be decoupled from station_info
+ * structs entirely to enable promiscuous statistics about
+ * unassociated devices seen in the network.
+ */
+typedef struct{
+	u64     last_timestamp; 	  ///< Timestamp of the last frame reception
+	u8      addr[6];			  ///< HW Address
+	u8      is_associated;		  ///< Is this device associated with me?
+	u8      padding;
+	frame_statistics_txrx	data; ///< Statistics about data types
+	frame_statistics_txrx	mgmt; ///< Statistics about data types
 } statistics_txrx;
+CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
 #define STATION_INFO_FLAG_NEVER_REMOVE 0x0002 ///< Mask for flag in station_info -- never remove
@@ -160,7 +172,6 @@ void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
 void wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback);
 u64  get_usec_timestamp();
-void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station);
 void wlan_mac_high_display_mallinfo();
 void* wlan_mac_high_malloc(u32 size);
 void* wlan_mac_high_calloc(u32 size);

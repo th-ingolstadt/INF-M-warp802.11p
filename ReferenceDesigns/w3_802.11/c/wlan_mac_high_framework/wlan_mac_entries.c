@@ -248,18 +248,21 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 		case ENTRY_TYPE_TXRX_STATS:
 			txrx_stats_entry_log_item = (txrx_stats_entry*) entry;
 			xil_printf("%d: - Statistics Event\n", entry_number );
-			xil_printf("   Last timestamp :    %d\n",        (u32)(txrx_stats_entry_log_item->last_timestamp));
-			xil_printf("   Address        :    %02x",             (txrx_stats_entry_log_item->addr)[0]);
-			for( i = 1; i < 6; i++) { xil_printf(":%02x",         (txrx_stats_entry_log_item->addr)[i]); }
+			xil_printf("   Last timestamp :        %d\n",        (u32)(txrx_stats_entry_log_item->stats.last_timestamp));
+			xil_printf("   Address        :        %02x",             (txrx_stats_entry_log_item->stats.addr)[0]);
+			for( i = 1; i < 6; i++) { xil_printf(":%02x",         (txrx_stats_entry_log_item->stats.addr)[i]); }
 			xil_printf("\n");
-			xil_printf("   Is associated  :    %d\n",              txrx_stats_entry_log_item->is_associated);
-			xil_printf("   Tx total (High):    %d (%d success)\n", txrx_stats_entry_log_item->num_high_tx_total,
-					                                               txrx_stats_entry_log_item->num_high_tx_success);
-			xil_printf("   Tx (Low)       :    %d\n",              txrx_stats_entry_log_item->num_low_tx);
-			xil_printf("   Rx total (DATA):    %d (%d bytes)\n",   txrx_stats_entry_log_item->data_num_rx_success,
-					                                               txrx_stats_entry_log_item->data_num_rx_bytes);
-			xil_printf("   Rx total (MGMT):    %d (%d bytes)\n",   txrx_stats_entry_log_item->mgmt_num_rx_success,
-								                                               txrx_stats_entry_log_item->mgmt_num_rx_bytes);
+			xil_printf("   Is associated  :        %d\n",              txrx_stats_entry_log_item->stats.is_associated);
+			xil_printf("   # Tx High Data MPDUs:   %d (%d successful)\n", txrx_stats_entry_log_item->stats.data.tx_num_packets_total, txrx_stats_entry_log_item->stats.data.tx_num_packets_success);
+			xil_printf("   # Tx High Data bytes:   %d (%d successful)\n", (u32)(txrx_stats_entry_log_item->stats.data.tx_num_bytes_total), (u32)(txrx_stats_entry_log_item->stats.data.tx_num_bytes_success));
+			xil_printf("   # Tx Low Data MPDUs:    %d\n", txrx_stats_entry_log_item->stats.data.tx_num_packets_low);
+			xil_printf("   # Tx High Mgmt MPDUs:   %d (%d successful)\n", txrx_stats_entry_log_item->stats.mgmt.tx_num_packets_total, txrx_stats_entry_log_item->stats.mgmt.tx_num_packets_success);
+			xil_printf("   # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(txrx_stats_entry_log_item->stats.mgmt.tx_num_bytes_total), (u32)(txrx_stats_entry_log_item->stats.mgmt.tx_num_bytes_success));
+			xil_printf("   # Tx Low Mgmt MPDUs:    %d\n", txrx_stats_entry_log_item->stats.mgmt.tx_num_packets_low);
+			xil_printf("   # Rx Data MPDUs:        %d\n", txrx_stats_entry_log_item->stats.data.rx_num_packets);
+			xil_printf("   # Rx Data Bytes:        %d\n", txrx_stats_entry_log_item->stats.data.rx_num_bytes);
+			xil_printf("   # Rx Mgmt MPDUs:        %d\n", txrx_stats_entry_log_item->stats.mgmt.rx_num_packets);
+			xil_printf("   # Rx Mgmt Bytes:        %d\n", txrx_stats_entry_log_item->stats.mgmt.rx_num_bytes);
 		break;
 
 		case ENTRY_TYPE_RX_OFDM:

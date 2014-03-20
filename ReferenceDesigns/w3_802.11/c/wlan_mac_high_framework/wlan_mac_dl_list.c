@@ -17,6 +17,7 @@
 
 /***************************** Include Files *********************************/
 #include "wlan_mac_dl_list.h"
+#include "stdio.h"
 
 
 /******************************** Functions **********************************/
@@ -69,18 +70,22 @@ void dl_entry_insertEnd(dl_list* list, dl_entry* entry_new){
 }
 
 void dl_entry_remove(dl_list* list, dl_entry* entry){
-	if(dl_entry_prev(entry) == NULL){
-		list->first = dl_entry_next(entry);
-	} else {
-		dl_entry_next(dl_entry_prev(entry)) = dl_entry_next(entry);
-	}
+	if(list->length > 0){
+		if(dl_entry_prev(entry) == NULL){
+			list->first = dl_entry_next(entry);
+		} else {
+			dl_entry_next(dl_entry_prev(entry)) = dl_entry_next(entry);
+		}
 
-	if(dl_entry_next(entry) == NULL){
-		list->last = dl_entry_prev(entry);
+		if(dl_entry_next(entry) == NULL){
+			list->last = dl_entry_prev(entry);
+		} else {
+			dl_entry_prev(dl_entry_next(entry)) = dl_entry_prev(entry);
+		}
+		(list->length)--;
 	} else {
-		dl_entry_prev(dl_entry_next(entry)) = dl_entry_prev(entry);
+		xil_printf("Error: attempted to remove dl_entry from dl_list that has nothing in it\n");
 	}
-	(list->length)--;
 }
 
 void dl_list_init(dl_list* list){

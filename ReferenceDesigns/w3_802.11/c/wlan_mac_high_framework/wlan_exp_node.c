@@ -1437,7 +1437,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					// Copy the statistics to the log entry
 					//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
 					//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
-					memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&stats->last_timestamp), stats_size );
+					memcpy( (void *)(&stats_entry->stats), (void *)(&stats), stats_size );
 
 					xil_printf("Getting Statistics for node: %02x", mac_addr[0]);
 					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
@@ -1519,7 +1519,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     						// Copy the statistics to the log entry
     						//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
     						//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
-    						memcpy( (void *)(&stats_entry->last_timestamp), (void *)(&stats->last_timestamp), stats_size );
+    						memcpy( (void *)(&stats_entry->stats), (void *)(&stats), stats_size );
 
                             // Increment the pointers
     						stats_dl_entry = dl_entry_next(stats_dl_entry);

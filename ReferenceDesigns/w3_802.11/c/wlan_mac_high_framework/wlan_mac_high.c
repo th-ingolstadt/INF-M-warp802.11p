@@ -772,34 +772,6 @@ u64 get_usec_timestamp(){
 }
 
 /**
- * @brief Process Transmission "Done" Event
- *
- * When the lower-level MAC finishes transmitting an MPDU, it is reported
- * back to the upper-level MAC via a transmission done message. This function
- * currently only updates statistics with data about the transmissions, but
- * would be a logical place for future extension to automatic rate control.
- *
- * @param tx_frame_info* frame
- * 	- pointer to the transmit frame information struct
- * @param station_info* station
- *  - pointer to the station information struct
- * @return None
- *
- */
-void wlan_mac_high_process_tx_done(tx_frame_info* frame,station_info* station){
-	//This is a good place to add an extension for automatic rate control
-
-	(station->stats->num_high_tx_total)++;
-	(station->stats->num_low_tx) += (frame->num_tx);
-	if((frame->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS && (frame->params.mac.num_tx_max > 1)){
-		(station->stats->num_high_tx_success)++;
-		//If this transmission was successful, then we have implicitly received an
-		//ACK for it. So, we should update the last RX timestamp
-		(station->rx.last_timestamp = get_usec_timestamp());
-	}
-}
-
-/**
  * @brief Display Memory Allocation Information
  *
  * This function is a wrapper around a call to mallinfo(). It prints
@@ -2054,13 +2026,8 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 
-		curr_statistics->num_high_tx_total = 0;
-		curr_statistics->num_high_tx_success = 0;
-		curr_statistics->num_low_tx = 0;
-		curr_statistics->mgmt_num_rx_success = 0;
-		curr_statistics->mgmt_num_rx_bytes = 0;
-		curr_statistics->data_num_rx_success = 0;
-		curr_statistics->data_num_rx_bytes = 0;
+		bzero((void*)(&(curr_statistics->data)), sizeof(frame_statistics_txrx));
+		bzero((void*)(&(curr_statistics->mgmt)), sizeof(frame_statistics_txrx));
 
 		if(curr_statistics->is_associated == 0){
 			//Remove and destroy this entry
