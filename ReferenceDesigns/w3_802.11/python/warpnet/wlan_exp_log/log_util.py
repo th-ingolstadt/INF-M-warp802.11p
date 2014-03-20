@@ -508,6 +508,22 @@ def log_data_to_hdf5(filename, log_data, attr_dict=None, gen_index=True, overwri
         except:
             raise AttributeError("Unable to generate log_data_index - HDF5 file {0} not created".format(filename))
 
+    # Try creating the numpy array of binary data from log_data
+    #  This will catch any errors before opening any files
+
+    try:
+        # Use numpy void datatype to store binary log data. This will assure HDF5 stores data with opaque type.
+        # dtype spec is 'V100' for 100 bytes of log data
+        np_dt     = np.dtype('V{0}'.format(len(log_data))) 
+        np_data   = np.empty((1,), np_dt)
+
+        #Redirect numpy array data pointer to the existing buffer object passed in by user
+        np_data.data = log_data 
+    except:
+        raise AttributeError("Invalid log_data object - unable to create numpy array for log_data. HDF5 file {0} not created".format(filename))
+
+
+    #Inputs are ok - proceed with file creation
 
     # Determine a safe filename for the output HDF5 file
     if overwrite:
@@ -516,7 +532,7 @@ def log_data_to_hdf5(filename, log_data, attr_dict=None, gen_index=True, overwri
     else:
         h5_filename = _get_safe_filename(filename)
 
-    # Open a HDF5 File Object in 'w' (Create file, truncate if exists) mode
+    # Open an HDF5 File Object in 'w' (Create file, truncate if exists) mode
     hf = h5py.File(filename, mode='w')
     
     # Store all data in root group - h5py File object represents file and root group
@@ -527,6 +543,7 @@ def log_data_to_hdf5(filename, log_data, attr_dict=None, gen_index=True, overwri
     log_grp.attrs['wlan_exp_ver'] = np.array(version.wlan_exp_ver(output=False), dtype=np.uint32)
     
     # Add user provided attributes to the group
+    # Try adding all attributes, even if some fail
     if not attr_dict is None:
         for k, v in attr_dict:
             try:
@@ -534,12 +551,8 @@ def log_data_to_hdf5(filename, log_data, attr_dict=None, gen_index=True, overwri
             except:
                 print("WARNING: Could not add attribute '{0}' to HDF5 file {1}".format(k, h5_filename))
     
-    # Create a data set for the log_data
-    # Use numpy void datatype to store binary log data. This will assure HDF5 stores data with opaque type.
-    dt        = np.dtype('V{0}'.format(len(log_data)))
-    data      = np.empty((1,), dt)
-    data.data = log_data    
-    grp.create_dataset("log_data", data=data)
+    # Create a data set for the numpy-formatted log_data (created above)
+    grp.create_dataset("log_data", data=np_data)
     
 
     if(gen_index):
@@ -554,7 +567,7 @@ def log_data_to_hdf5(filename, log_data, attr_dict=None, gen_index=True, overwri
 
             #Group names must be strings - keys here are known to be integers (entry_type_id values)
             index_grp.create_dataset(str(k), data=np.array(v, dtype=dtype))
-    
+
     hf.close()
 
 # End log_data_to_hdf5()
