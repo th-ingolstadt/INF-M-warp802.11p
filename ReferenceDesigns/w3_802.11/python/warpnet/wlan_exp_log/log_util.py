@@ -527,13 +527,13 @@ def log_data_to_hdf5(filename, log_data, attr_dict=None, gen_index=True, overwri
 
 
 
-def log_data_to_hdf5_hier(filename, log_data, group_name, attr_dict=None, gen_index=True):
+def log_data_to_hdf5_group(h5_file, log_data, group_name, attr_dict=None, gen_index=True):
     """Add a wlan_exp_log_data_container with the given group_name to the HDF5
     file.  If the file does not exist, it will be created.
     
     Attributes:
-        filename   -- File name of HDF5 file to appear on disk.  If this file exists, then 
-                      a new group will be added to the file with the specified group_name.
+        h5_file    -- Either an h5py File object, or a name of the HDF5 file to open. If this file
+                      exists, then a new group will be added to the file with the specified group_name.
                       Otherwise a new file will be created with the group.
         log_data   -- Binary WLAN Exp log data
         group_name -- Name of Group within the HDF5 file.  
@@ -546,26 +546,32 @@ def log_data_to_hdf5_hier(filename, log_data, group_name, attr_dict=None, gen_in
     # Process the inputs to generate any error
     (np_data, log_data_index) = _process_hdf5_log_data_inputs(log_data, gen_index)
 
-    # Open a HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
-    hf = h5py.File(filename, mode='a')
+    if type(h5_file) is str:
+        # Open a HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
+        hf = h5py.File(h5_file, mode='a')
+    elif (type(h5_file) is h5py.File):
+        hf = h5_file
+    else:
+        raise AttributeError("Invalid HDF5 file or filename: {0}\n".format(h5_file))
 
-    # Check if the group already exists
-    if(group_name in hf.keys()):
-        raise AttributeError("Group {0} already exists in file\n".format(group_name))
-    
-    # Store all data in the new group
-    log_grp = hf.create_group(group_name)
+    try:
+        # Store all data in the new group
+        log_grp = hf.create_group(group_name)
+    except ValueError:
+        raise AttributeError("Unable to create group {0} in file {1}\n".format(group_name, h5_file))
 
-    # Create a wlan_exp_log_data_container in the root group
+    # Create a wlan_exp_log_data_container in the group
     _create_hdf5_log_data_container(log_grp, np_data, log_data_index)
 
     # Add the attribute dictionary to the group
-    _add_attr_dict_to_group(log_grp, attr_dict)
-    
-    # Close the file 
-    hf.close()
+    if(attr_dict is not None):
+        _add_attr_dict_to_group(log_grp, attr_dict)
 
-# End log_data_to_hdf5_hier()
+    if type(h5_file) is str:
+        # Close the file 
+        hf.close()
+
+# End log_data_to_hdf5_group()
 
 
 
@@ -777,7 +783,7 @@ def _create_hdf5_log_data_container(group, np_data, log_data_index):
 
     # Add default attributes to the group
     group.attrs['wlan_exp_log'] = True
-    group.attrs['wlan_exp_ver'] = np.array(version.wlan_exp_ver(output=False), dtype=np.uint32)
+    group.attrs['wlan_exp_ver'] = np.array(version.wlan_exp_ver(), dtype=np.uint32)
 
     if('log_data' in group.keys() and type(group['log_data']) is h5py.Dataset):
         raise AttributeError("Dataset 'log_data' already exists in group {0}\n".format(group))
@@ -810,8 +816,8 @@ def _add_attr_dict_to_group(group, attr_dict):
     #     Try adding all attributes, even if some fail
     curr_attr_keys = group.attrs.keys()
 
-    if not attr_dict is None:
-        for k, v in attr_dict:
+    if (attr_dict is not None):
+        for k, v in attr_dict.items():
             try:
                 if not k in curr_attr_keys:
                     if (type(k) is str):                    
