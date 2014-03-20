@@ -314,7 +314,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	tx_high_entry* tx_event_log_entry;
 	tx_low_entry*  tx_low_event_log_entry;
 	station_info* station;
-	dl_entry*	  entry;
+	dl_entry*	  station_info_entry;
 
 	void * mpdu = (void*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
@@ -370,9 +370,9 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	}
 
 	if(tx_mpdu->AID != 0){
-		entry = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
-		if(entry != NULL){
-			station = (station_info*)(entry->data);
+		station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
+		if(station_info_entry != NULL){
+			station = (station_info*)(station_info_entry->data);
 			//Process this TX MPDU DONE event to update any statistics used in rate adaptation
 			wlan_mac_high_process_tx_done(tx_mpdu, station);
 		}
