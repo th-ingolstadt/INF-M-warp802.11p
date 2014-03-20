@@ -329,7 +329,8 @@ def gen_log_np_arrays(log_bytes, log_index):
 #-----------------------------------------------------------------------------
 # WLAN Exp Log HDF5 file Utilities
 #-----------------------------------------------------------------------------
-def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_index=True):
+def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_index=True, 
+                     overwrite=False):
     """Create an HDF5 file that contains the log_data, a log_data_index, and any
     user attributes.
     
@@ -383,8 +384,12 @@ def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_in
         if group_name is None:
             raise AttributeError("Group name was not provided but {0} exists.".format(filename))
     
-    # Open a HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
-    hf = h5py.File(filename, mode='a', userblock_size=1024)
+    if overwrite:
+        # Open a HDF5 File Object in 'w' (Create file, truncate if exists) mode
+        hf = h5py.File(filename, mode='w', userblock_size=1024)
+    else:
+        # Open a HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
+        hf = h5py.File(filename, mode='a', userblock_size=1024)
     
     # Create the group if it was specified
     if not group_name is None:
@@ -436,7 +441,7 @@ def hdf5_to_log_data(filename, group_name=None):
 
     Attributes:
         filename   -- File name of HDF5 file that appears on disk.  If this file 
-                      does not exist, raise an AttributeError  
+                      does not exist, this function will raise an AttributeError
         group_name -- Name of Group within the HDF5 file.  If not specified, then 
                       the group_name within the HDF5 file will be '/'.  If the 
                       group_name is not a valid group within the file, then the
@@ -474,12 +479,11 @@ def hdf5_to_log_data_index(filename, group_name=None, gen_index=True):
 
     Attributes:
         filename   -- File name of HDF5 file that appears on disk.  If this file 
-                      does not exist, then the function will print a warning and
-                      return None.  
+                      does not exist, this function will raise an AttributeError
         group_name -- Name of Group within the HDF5 file.  If not specified, then 
                       the group_name within the HDF5 file will be '/'.  If the 
                       group_name is not a valid group within the file, then the
-                      function will print a warning and return None
+                      function will raise an AttributeError
         gen_index  -- Generate the 'log_data_index' from the log_data if the 
                       'log_data_index' is not in the file.
     
@@ -528,6 +532,42 @@ def hdf5_to_log_data_index(filename, group_name=None, gen_index=True):
     hf.close()
 
     return log_data_index
+
+# End hdf5_to_log_data_index()
+
+
+
+def hdf5_to_attr_dict(filename, group_name=None):
+    """Extract the attributes from an HDF5 file that was created to the 
+    wlan_exp_log_data_container format.
+
+    Attributes:
+        filename   -- File name of HDF5 file that appears on disk.  If this file 
+                      does not exist, this function will raise an AttributeError
+        group_name -- Name of Group within the HDF5 file.  If not specified, then 
+                      the group_name within the HDF5 file will be '/'.  If the 
+                      group_name is not a valid group within the file, then the
+                      function will raise an AttributeError
+    
+    Returns:
+        attribute dictionary in the HDF5 file
+    """
+    attr_dict = {}
+
+    (hf, grp) = _hdf5_validation(filename, group_name)
+    
+    # Check the default attributes of the group
+    try:
+        for k, v in grp.items():
+            attr_dict[k] = v        
+    except:
+        msg  = "Group {0} of {1} is not a valid ".format(group_name, filename)
+        msg += "wlan_exp_log_data_container."
+        raise AttributeError(msg)
+    
+    hf.close()
+
+    return attr_dict
 
 # End hdf5_to_log_data_index()
 
