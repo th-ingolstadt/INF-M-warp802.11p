@@ -17,30 +17,57 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides utility functions to parse a WLAN Exp log file.
+This module provides utility functions for handling WLAN Exp log data.
+
+Naming convention:
+
+  log_data       -- The binary data from a WLAN Exp node's log.
+  
+  log_data_index -- This is an index that has not been interpreted / filtered
+                    and corresponds 1-to-1 with what is in given log_data.
+                    The defining characteristic of a log_data_index is that
+                    the dictionary keys are all integers:
+                      { <int> : [<offsets>] }
+
+  log_index      -- A log_index is any index that is not a log_data_index.  In
+                    general, this will be a interpreted / filtered version of
+                    a log_data_index.
+
+  hdf5           -- A data container format that we use to store log_data, 
+                    log_data_index, and other user defined attributes.  You can 
+                    find more documentation on HDF / HDF5 at:
+                        http://www.hdfgroup.org/
+                        http://www.h5py.org/
+
+  numpy          -- A python package that allows easy and fast manipulation of 
+                    large data sets.  You can find more documentaiton on numpy at:
+                        http://www.numpy.org/
 
 Functions (see below for more information):
-    gen_log_index_raw() -- Generate a byte index given a WLAN Exp log file
-    filter_log_index()  -- Filter a log index with given parameters
+    gen_log_data_index() -- Generate a byte index given a WLAN Exp log file
+    filter_log_index()   -- Filter a log index with given parameters
     gen_log_np_arrays()  -- Generate a numpy structured array (ndarray) of log entries
-    gen_hdf5_file()     -- Generate a HDF5 file based on numpy arrays
+    gen_hdf5_file()      -- Generate a HDF5 file based on numpy arrays
+    
 """
 
-__all__ = ['gen_log_index_raw', 
-           'filter_log_index', 
+__all__ = ['gen_log_data_index', 
+           'filter_log_index',
            'gen_log_np_arrays',
-           'gen_hdf5_file']
+           'log_data_to_hdf5',
+           'hdf5_to_log_data',
+           'hdf5_to_log_data_index']
 
 
 #-----------------------------------------------------------------------------
 # WLAN Exp Log Utilities
 #-----------------------------------------------------------------------------
-def gen_log_index_raw(log_bytes):
-    """Parses a binary WARPnet log file by recording the byte index of each
+def gen_log_data_index(log_data):
+    """Parses binary WLAN Exp log data by recording the byte index of each
     entry. The byte indexes are returned in a dictionary with the entry
     type IDs as keys. This method does not unpack or interpret each log
     entry and does not change any values in the log file itself (the
-    log_bytes array argument can be read-only).
+    log_data array argument can be read-only).
 
     Format of log entry header:
 
@@ -55,14 +82,14 @@ def gen_log_index_raw(log_bytes):
 
     offset         = 0
     hdr_size       = 8
-    log_len        = len(log_bytes)
+    log_len        = len(log_data)
     log_index      = dict()
     use_byte_array = 0
 
     # Need to determine if we are using byte arrays or strings for the
     # log_bytes b/c we need to handle the data differently
     try:
-        byte_array_test = log_bytes[offset:offset+hdr_size]
+        byte_array_test = log_data[offset:offset+hdr_size]
         byte_array_test = ord(byte_array_test[0])
     except TypeError:
         use_byte_array  = 1
@@ -84,7 +111,7 @@ def gen_log_index_raw(log_bytes):
 
         # Use raw byte slicing for better performance
         # Values below are hard coded to match current WLAN Exp log entry formats
-        hdr_b = log_bytes[offset:offset+hdr_size]
+        hdr_b = log_data[offset:offset+hdr_size]
 
         if( (hdr_b[2:4] != b'\xed\xac') ):
             raise Exception("ERROR: Log file didn't start with valid entry header (offset %d)!" % (offset))
@@ -114,82 +141,6 @@ def gen_log_index_raw(log_bytes):
 
     return log_index
 
-# End gen_log_index_raw()
-
-
-
-def write_log_index_raw_file(bin_log_file, node=None):
-    """Method to write a raw log index to a file for easy retrieval.
-    
-    Attributes:
-        bin_log_file -- File name of the binary log file
-        node         -- Optional node binary log data came from
-    
-    Also, a 'wlan_exp_log_index_info' entry will be created in the 
-    index that captures information about the framework:
-    
-    'wlan_exp_log_index_info' = {'filename'           = <str>,
-                                 'date'               = <str>,
-                                 'wlan_exp_version'   = <str>}
-
-    If node is present, then the following info will also be present:
-
-    'wlan_exp_log_index_info' = {'node_serial_number' = <str>,
-                                 'node_name'          = <str> }
-
-    """
-    import os
-    import time
-    import pickle
-    import warpnet.wlan_exp.version as version
-
-    # Make sure we have a valid file and create the index file name    
-    if os.path.isfile(bin_log_file):
-        idx_log_file = bin_log_file + ".idx"
-    else:
-        raise TypeError("Filename {0} is not valid.".format(bin_log_file))
-
-    # Read the binary log file
-    with open(bin_log_file, 'rb') as fh:
-        log_b = fh.read()
-    
-    # Generate the raw index of log entry locations sorted by log entry type
-    log_index_raw = gen_log_index_raw(log_b)
-
-    log_index_raw['wlan_exp_log_index_info'] = {
-        'filename'         : bin_log_file,
-        'date'             : time.strftime("%d/%m/%Y  %H:%M:%S"),
-        'wlan_exp_version' : version.wlan_exp_ver_str()
-    }
-
-    # If the node is present, then add the additional fields
-    if not node is None:
-        log_index_raw['wlan_exp_log_index_info'] = {
-            'node_serial_number' : node.sn_str,
-            'node_name'          : node.name
-        }
-    
-    pickle.dump(log_index_raw, open(idx_log_file, "wb"))
-
-# End gen_log_index_raw()
-
-
-
-def read_log_index_raw_file(log_index_raw_file):
-    import pickle
-    import warpnet.wlan_exp.version as version
-    import warpnet.wn_exception as wn_ex
-    
-    log_index_raw = pickle.load(open(log_index_raw_file, "rb"))
-
-    # Check the version in the log index agains the current version
-    try:
-        version.wlan_exp_ver_check(log_index_raw['wlan_exp_log_index_info']['wlan_exp_version'])
-    except wn_ex.VersionError as err:
-        print(err)
-
-    return log_index_raw
-    
 # End gen_log_index_raw()
 
 
@@ -375,6 +326,289 @@ def gen_log_np_arrays(log_bytes, log_index):
 
 
 
+#-----------------------------------------------------------------------------
+# WLAN Exp Log HDF5 file Utilities
+#-----------------------------------------------------------------------------
+def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_index=True):
+    """Create an HDF5 file that contains the log_data, a log_data_index, and any
+    user attributes.
+    
+    For WLAN Exp log data manipulation, it is necessary to define a common file format
+    so that it is easy for multiple consumers, both in python and other languages, to
+    access the data.  To do this, we use HDF5 as the container format with a couple of 
+    additional conventions to hold the log data as well as other pieces of information.
+    Below are the rules that we follow to create an HDF5 file that will contain WLAN
+    Exp log data:
+    
+    wlan_exp_log_data_container (equivalent to a HDF5 group):
+       GROUP:  (named either '/' if group_name is not specified, or 'group_name')
+           |- Attributes:
+           |      |- 'wlan_exp_log'         (1,)      bool
+           |      |- 'wlan_exp_ver'         (3,)      uint32
+           |      |- <user provided attributes in attr_dict>
+           |- Datasets:
+           |      |- 'log_data'             (1,)      voidN  (where N is the size of the data)
+           |- Groups (optional):
+                  |- 'log_data_index'
+                         |- Datasets: 
+                            (dtype depends if largest offset in log_data_index is < 2^32)
+                                |- <int>    (N1,)     uint32/uint64
+                                |- <int>    (N2,)     uint32/uint64
+                                |- ...
+    
+    Attributes:
+        filename   -- File name of HDF5 file to appear on disk.  If this file exists, then 
+                      a new group will be added to the file with the specified group_name.  
+                      If the file exists and group_name is not provided, then this function
+                      will error out.
+        log_data   -- Binary WLAN Exp log data
+        group_name -- Name of Group within the HDF5 file.  If not specified, then the group
+                      name within the HDF5 file will be '/'.  If the file exists, then a 
+                      group_name must be provided.
+        attr_dict  -- An array of user provided attributes that will be added to the group.                      
+        gen_index  -- Generate the 'log_data_index' from the log_data and store it in the 
+                      file.
+        
+    Error condtions:
+       If filename already exists and group_name=None, then this function will raise an
+           AttributeError
+    """
+    import os
+    import h5py
+    import numpy as np
+    import warpnet.wlan_exp.version as version
+    
+    # Error if inputs are not correct        
+    if os.path.isfile(filename):
+        if group_name is None:
+            raise AttributeError("Group name was not provided but {0} exists.".format(filename))
+    
+    # Open a HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
+    hf = h5py.File(filename, mode='a', userblock_size=1024)
+    
+    # Create the group if it was specified
+    if not group_name is None:
+        grp = hf.create_group(group_name)
+    else:
+        grp = hf
+    
+    # Add default attributes to the group
+    grp.attrs['wlan_exp_log'] = True
+    grp.attrs['wlan_exp_ver'] = np.array(version.wlan_exp_ver(output=False), dtype=np.uint32)
+    
+    # Add user provided attributes to the group
+    if not attr_dict is None:
+        try:
+            for k, v in attr_dict:
+                grp.attrs[k] = v
+        except:
+            pass
+    
+    # Create a data set for the log_data
+    if (type(log_data) is bytearray):
+        grp.create_dataset("log_data", data=log_data)
+    else:
+        grp.create_dataset("log_data", data=np.void(log_data))        
+    
+    # Generate the log_data_index
+    if gen_index:
+        log_data_index = gen_log_data_index(log_data)
+        
+        index_grp = grp.create_group("log_data_index")
+        
+        for k, v in log_data_index.items():
+            if (v[-1] < 2**32):
+                dtype = np.uint32
+            else:
+                dtype = np.uint64
+            
+            index_grp.create_dataset(str(k), data=np.array(v, dtype=dtype))
+    
+    hf.close()
+
+# End log_data_to_hdf5()
+    
+
+
+def hdf5_to_log_data(filename, group_name=None):
+    """Extract the log_data from an HDF5 file that was created to the 
+    wlan_exp_log_data_container format.
+
+    Attributes:
+        filename   -- File name of HDF5 file that appears on disk.  If this file 
+                      does not exist, raise an AttributeError  
+        group_name -- Name of Group within the HDF5 file.  If not specified, then 
+                      the group_name within the HDF5 file will be '/'.  If the 
+                      group_name is not a valid group within the file, then the
+                      function will raise an AttributeError
+    
+    Returns:
+        log_data from HDF5 file
+    """
+    import numpy as np
+
+    (hf, grp) = _hdf5_validation(filename, group_name)
+    
+    # Get the log_data from the group data set
+    try:
+        ds          = grp['log_data']
+        log_data_np = np.empty(shape=ds.shape, dtype=ds.dtype)
+        ds.read_direct(log_data_np)
+        log_data    = log_data_np.data
+    except:
+        msg  = "Group {0} of {1} is not a valid ".format(group_name, filename)
+        msg += "wlan_exp_log_data_container."
+        raise AttributeError(msg)
+    
+    hf.close()
+
+    return log_data
+
+# End log_data_to_hdf5()
+
+
+
+def hdf5_to_log_data_index(filename, group_name=None, gen_index=True):
+    """Extract the log_data from an HDF5 file that was created to the 
+    wlan_exp_log_data_container format.
+
+    Attributes:
+        filename   -- File name of HDF5 file that appears on disk.  If this file 
+                      does not exist, then the function will print a warning and
+                      return None.  
+        group_name -- Name of Group within the HDF5 file.  If not specified, then 
+                      the group_name within the HDF5 file will be '/'.  If the 
+                      group_name is not a valid group within the file, then the
+                      function will print a warning and return None
+        gen_index  -- Generate the 'log_data_index' from the log_data if the 
+                      'log_data_index' is not in the file.
+    
+    Returns:
+        log_data_index from HDF5 file
+        generated log_data_index from log_data in HDF5 file
+        None
+    """
+    import numpy as np
+
+    error          = False
+    log_data_index = {}
+
+    (hf, grp) = _hdf5_validation(filename, group_name)
+    
+    # Get the log_data_index group from the specified group
+    try:
+        index_grp   = grp["log_data_index"]
+        
+        for k, v in index_grp.items():
+            log_data_index[int(k)] = v.tolist()
+    except:
+        error = True
+
+    # If there was an error getting the log_data_index from the file and 
+    #   gen_index=True, then generate the log_data_index from the log_data
+    #   in the file
+    if error and gen_index:
+        # Get the log_data from the group data set
+        try:
+            ds          = grp['log_data']
+            log_data_np = np.empty(shape=ds.shape, dtype=ds.dtype)
+            ds.read_direct(log_data_np)
+            log_data    = log_data_np.data
+        except:
+            pass
+
+        log_data_index = gen_log_data_index(log_data)
+        error          = False
+
+    if error:
+        msg  = "Group {0} of {1} is not a valid ".format(group_name, filename)
+        msg += "wlan_exp_log_data_container."
+        raise AttributeError(msg)
+    
+    hf.close()
+
+    return log_data_index
+
+# End hdf5_to_log_data_index()
+
+
+
+def _hdf5_validation(filename, group_name=None):
+    """Extract the log_data from an HDF5 file that was created to the 
+    wlan_exp_log_data_container format.
+
+    Attributes:
+        filename   -- File name of HDF5 file that appears on disk.  If this file 
+                      does not exist, raise an AttributeError  
+        group_name -- Name of Group within the HDF5 file.  If not specified, then 
+                      the group_name within the HDF5 file will be '/'.  If the 
+                      group_name is not a valid group within the file, then the
+                      function will raise an AttributeError
+    
+    Returns:
+        (HDF5 File object, HDF5 group)
+    """
+    import os
+    import h5py
+    import warpnet.wlan_exp.version as version
+    
+    # Error if inputs are not correct        
+    if not os.path.isfile(filename):
+        raise AttributeError("File {0} does not exist.".format(filename))
+    
+    # Open a HDF5 File Object in 'r' (Readonly) mode
+    hf = h5py.File(filename, mode='r')
+    
+    # Find the group if it was specified
+    try:
+        if not group_name is None:
+            grp        = hf[group_name]
+        else:
+            grp        = hf
+            group_name = '/'
+    except:
+        raise AttributeError("Group {0} does not exist in {1}.".format(group_name, filename))
+
+
+    # Check the default attributes of the group
+    try:
+        if grp.attrs['wlan_exp_log']:
+            ver = grp.attrs['wlan_exp_ver']
+            version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2])
+    except:
+        msg  = "Group {0} of {1} is not a valid ".format(group_name, filename)
+        msg += "wlan_exp_log_data_container."
+        raise AttributeError(msg)
+    
+    return (hf, grp)
+
+# End _hdf5_validation()
+
+
+
+#-----------------------------------------------------------------------------
+# WLAN Exp Log Printing Utilities
+#-----------------------------------------------------------------------------
+def print_log_index_summary(log_index, title=None):
+    """Prints a summary of the log_index."""
+    total_len = 0
+
+    if title is None:
+        print('Log Index Summary:\n')
+    else:
+        print(title)
+
+    for k in log_index.keys():
+        print('{0:10d} of Type {1}'.format(len(log_index[k]), k))
+        total_len += len(log_index[k])
+
+    print('--------------------------')
+    print('{0:10d} total entries\n'.format(total_len))
+
+# End log_index_print_summary()
+
+
+
 def print_log_entries(log_bytes, log_index, entries_slice=None):
     """Work in progress - built for debugging address issues, some variant of this will be useful
     for creating text version of raw log w/out requiring numpy"""
@@ -410,6 +644,19 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
 # End print_log_entries()
 
 
+
+
+
+
+
+
+
+
+
+
+#-----------------------------------------------------------------------------
+# Deprecated methods
+#-----------------------------------------------------------------------------
 
 def gen_hdf5_file(filename, np_log_dict, attr_dict=None, compression=None):
     """Generate an HDF5 file from numpy arrays. The np_log_dict input must be either:
@@ -524,23 +771,81 @@ def gen_hdf5_file(filename, np_log_dict, attr_dict=None, compression=None):
 
 
 
-def log_index_print_summary(log_index, title=None):
-    """Prints a summary of the log index generated by gen_log_index()."""
-    total_len = 0
+def write_log_data_index_file(log_data_file, node=None):
+    """Method to write a log data index to a file for easy retrieval.
+    
+    Attributes:
+        log_data_file -- File name of the binary log_data file
+        node          -- Optional node binary log data came from
+    
+    Also, a 'wlan_exp_log_index_info' entry will be created in the 
+    index that captures information about the framework:
+    
+    'wlan_exp_log_index_info' = {'filename'           = <str>,
+                                 'date'               = <str>,
+                                 'wlan_exp_version'   = <str>}
 
-    if title is None:
-        print('Log Index Summary:\n')
+    If node is present, then the following info will also be present:
+
+    'wlan_exp_log_index_info' = {'node_serial_number' = <str>,
+                                 'node_name'          = <str> }
+
+    """
+    import os
+    import time
+    import pickle
+    import warpnet.wlan_exp.version as version
+
+    # Make sure we have a valid file and create the index file name    
+    if os.path.isfile(log_data_file):
+        idx_log_file = log_data_file + ".idx"
     else:
-        print(title)
+        raise TypeError("Filename {0} is not valid.".format(log_data_file))
 
-    for k in log_index.keys():
-        print('{0:10d} of Type {1}'.format(len(log_index[k]), k))
-        total_len += len(log_index[k])
+    # Read the binary log file
+    with open(log_data_file, 'rb') as fh:
+        log_b = fh.read()
+    
+    # Generate the raw index of log entry locations sorted by log entry type
+    log_data_index = gen_log_data_index(log_b)
 
-    print('--------------------------')
-    print('{0:10d} total entries\n'.format(total_len))
+    log_data_index['wlan_exp_log_index_info'] = {
+        'filename'         : log_data_file,
+        'date'             : time.strftime("%d/%m/%Y  %H:%M:%S"),
+        'wlan_exp_version' : version.wlan_exp_ver_str()
+    }
 
-# End log_index_print_summary()
+    # If the node is present, then add the additional fields
+    if not node is None:
+        log_data_index['wlan_exp_log_index_info'] = {
+            'node_serial_number' : node.sn_str,
+            'node_name'          : node.name
+        }
+    
+    pickle.dump(log_data_index, open(idx_log_file, "wb"))
+
+# End gen_log_index_raw()
+
+
+
+def read_log_data_index_file(log_data_index_file):
+    import pickle
+    import warpnet.wlan_exp.version as version
+    import warpnet.wn_exception as wn_ex
+    
+    log_data_index = pickle.load(open(log_data_index_file, "rb"))
+
+    # Check the version in the log index agains the current version
+    try:
+        version.wlan_exp_ver_check(log_data_index['wlan_exp_log_index_info']['wlan_exp_version'])
+    except wn_ex.VersionError as err:
+        print(err)
+
+    return log_data_index
+    
+# End gen_log_index_raw()
+
+
 
 
 
