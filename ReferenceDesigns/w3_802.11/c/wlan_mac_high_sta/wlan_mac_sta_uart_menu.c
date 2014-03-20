@@ -522,10 +522,16 @@ void print_station_status(u8 manual_call){
 				xil_printf("     - Last heard from    %d ms ago\n",((u32)(timestamp - (access_point->rx.last_timestamp)))/1000);
 				xil_printf("     - Last Rx Power:     %d dBm\n",access_point->rx.last_power);
 				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(UNICAST_QID));
-				xil_printf("     - # Tx High MPDUs:   %d (%d successful)\n", access_point->stats->num_high_tx_total, access_point->stats->num_high_tx_success);
-				xil_printf("     - # Tx Low:          %d\n", access_point->stats->num_low_tx);
-				xil_printf("     - # DATA: Rx MPDUs:  %d (%d bytes)\n", access_point->stats->data_num_rx_success, access_point->stats->data_num_rx_bytes);
-				xil_printf("     - # MGMT: Rx MPDUs:  %d (%d bytes)\n", access_point->stats->mgmt_num_rx_success, access_point->stats->mgmt_num_rx_bytes);
+				xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", access_point->stats->data.tx_num_packets_total, access_point->stats->data.tx_num_packets_success);
+				xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(access_point->stats->data.tx_num_bytes_total), (u32)(access_point->stats->data.tx_num_bytes_success));
+				xil_printf("     - # Tx Low Data MPDUs:    %d\n", access_point->stats->data.tx_num_packets_low);
+				xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", access_point->stats->mgmt.tx_num_packets_total, access_point->stats->mgmt.tx_num_packets_success);
+				xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(access_point->stats->mgmt.tx_num_bytes_total), (u32)(access_point->stats->mgmt.tx_num_bytes_success));
+				xil_printf("     - # Tx Low Mgmt MPDUs:    %d\n", access_point->stats->mgmt.tx_num_packets_low);
+				xil_printf("     - # Rx Data MPDUs:        %d\n", access_point->stats->data.rx_num_packets);
+				xil_printf("     - # Rx Data Bytes:        %d\n", access_point->stats->data.rx_num_bytes);
+				xil_printf("     - # Rx Mgmt MPDUs:        %d\n", access_point->stats->mgmt.rx_num_packets);
+				xil_printf("     - # Rx Mgmt Bytes:        %d\n", access_point->stats->mgmt.rx_num_bytes);
 			}
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("\n");
@@ -559,10 +565,16 @@ void print_all_observed_statistics(){
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
 		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_timestamp);
 		xil_printf("     - Associated?       %d\n", curr_statistics->is_associated);
-		xil_printf("     - # Tx High MPDUs:  %d (%d successful)\n", curr_statistics->num_high_tx_total, curr_statistics->num_high_tx_success);
-		xil_printf("     - # Tx Low:         %d\n", curr_statistics->num_low_tx);
-		xil_printf("     - # DATA: Rx MPDUs: %d (%d bytes)\n", curr_statistics->data_num_rx_success, curr_statistics->data_num_rx_bytes);
-		xil_printf("     - # MGMT: Rx MPDUs: %d (%d bytes)\n", curr_statistics->mgmt_num_rx_success, curr_statistics->mgmt_num_rx_bytes);
+		xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_statistics->data.tx_num_packets_total, curr_statistics->data.tx_num_packets_success);
+		xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_statistics->data.tx_num_bytes_total), (u32)(curr_statistics->data.tx_num_bytes_success));
+		xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_statistics->data.tx_num_packets_low);
+		xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", curr_statistics->mgmt.tx_num_packets_total, curr_statistics->mgmt.tx_num_packets_success);
+		xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(curr_statistics->mgmt.tx_num_bytes_total), (u32)(curr_statistics->mgmt.tx_num_bytes_success));
+		xil_printf("     - # Tx Low Mgmt MPDUs:    %d\n", curr_statistics->mgmt.tx_num_packets_low);
+		xil_printf("     - # Rx Data MPDUs:        %d\n", curr_statistics->data.rx_num_packets);
+		xil_printf("     - # Rx Data Bytes:        %d\n", curr_statistics->data.rx_num_bytes);
+		xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_statistics->mgmt.rx_num_packets);
+		xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_statistics->mgmt.rx_num_bytes);
 		curr_statistics_entry = dl_entry_next(curr_statistics_entry);
 	}
 }

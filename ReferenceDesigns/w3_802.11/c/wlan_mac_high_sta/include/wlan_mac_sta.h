@@ -40,6 +40,7 @@
 #define NUM_BASIC_RATES_MAX            10
 
 #define MAX_NUM_TX                      7
+#define MAX_PER_FLOW_QUEUE	           150
 #define MAX_NUM_ASSOC				    1
 
 

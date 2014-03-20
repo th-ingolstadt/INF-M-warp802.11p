@@ -100,7 +100,6 @@ dl_list		 statistics_table;
 u8			 ap_addr[6];
 
 u32			 max_queue_size;
-#define		 MAX_PER_FLOW_QUEUE	150
 
 
 // AP channel
@@ -316,11 +315,17 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	station_info* station;
 	dl_entry*	  station_info_entry;
 
+	u8 			  pkt_type;
+
+	frame_statistics_txrx* frame_stats = NULL;
+
 	void * mpdu = (void*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u32 ts_old = 0;
+
+	pkt_type = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 
 	for(i = 0; i < tx_mpdu->num_tx; i++){
 
@@ -333,7 +338,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 			tx_low_event_log_entry->num_slots				  = tx_low_details[i].num_slots;
 			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details[i].phy_params), sizeof(phy_tx_params));
 			tx_low_event_log_entry->length                    = tx_mpdu->length;
-			tx_low_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
+			tx_low_event_log_entry->pkt_type				  = pkt_type;
 			wlan_mac_high_cdma_finish_transfer();
 
 			if(i==0){
@@ -373,8 +378,31 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
 		if(station_info_entry != NULL){
 			station = (station_info*)(station_info_entry->data);
-			//Process this TX MPDU DONE event to update any statistics used in rate adaptation
-			wlan_mac_high_process_tx_done(tx_mpdu, station);
+			switch(pkt_type){
+				case PKT_TYPE_DATA_ENCAP_ETH:
+				case PKT_TYPE_DATA_ENCAP_LTG:
+					frame_stats = &(station->stats->data);
+				break;
+
+				case PKT_TYPE_MGMT:
+					frame_stats = &(station->stats->mgmt);
+				break;
+			}
+
+
+			//Update Transmission Stats
+			if(frame_stats != NULL){
+				(frame_stats->tx_num_packets_total)++;
+				(frame_stats->tx_num_bytes_total) += tx_mpdu->length;
+
+				(frame_stats->tx_num_packets_low)++;
+
+				if((tx_mpdu->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
+					(frame_stats->tx_num_packets_success)++;
+					(frame_stats->tx_num_bytes_success) += tx_mpdu->length;
+				}
+
+			}
 		}
 	}
 }
@@ -688,11 +716,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		if(station_stats != NULL){
 			station_stats->last_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
-				(station_stats->data_num_rx_success)++;
-				(station_stats->data_num_rx_bytes) += mpdu_info->length;
+				((station_stats)->data.rx_num_packets)++;
+				((station_stats)->data.rx_num_bytes) += mpdu_info->length;
 			} else if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) {
-				(station_stats->mgmt_num_rx_success)++;
-				(station_stats->mgmt_num_rx_bytes) += mpdu_info->length;
+				((station_stats)->mgmt.rx_num_packets)++;
+				((station_stats)->mgmt.rx_num_bytes) += mpdu_info->length;
 			}
 		}
 
@@ -924,34 +952,38 @@ void ltg_event(u32 id, void* callback_arg){
 
 		//Send a Data packet to AP
 		//Checkout 1 element from the queue;
-		queue_checkout(&checkout,1);
 
-		if(checkout.length == 1){ //There was at least 1 free queue element
-			tx_queue_entry = checkout.first;
+		if(queue_num_queued(UNICAST_QID) < max_queue_size){
 
-			wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr, addr_da );
+			queue_checkout(&checkout,1);
 
-			mpdu_ptr_u8 = (u8*)(((tx_queue_buffer*)(tx_queue_entry->data))->frame);
-			tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
+			if(checkout.length == 1){ //There was at least 1 free queue element
+				tx_queue_entry = checkout.first;
 
-			mpdu_ptr_u8 += sizeof(mac_header_80211);
-			llc_hdr = (llc_header*)(mpdu_ptr_u8);
+				wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr, addr_da );
 
-			//Prepare the MPDU LLC header
-			llc_hdr->dsap = LLC_SNAP;
-			llc_hdr->ssap = LLC_SNAP;
-			llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
-			bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
-			llc_hdr->type = LLC_TYPE_CUSTOM;
+				mpdu_ptr_u8 = (u8*)(((tx_queue_buffer*)(tx_queue_entry->data))->frame);
+				tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
-			tx_length += sizeof(llc_header);
-			tx_length += payload_length;
+				mpdu_ptr_u8 += sizeof(mac_header_80211);
+				llc_hdr = (llc_header*)(mpdu_ptr_u8);
 
-	 		wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, ap_station_info, tx_length, MAX_NUM_TX,
-	 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+				//Prepare the MPDU LLC header
+				llc_hdr->dsap = LLC_SNAP;
+				llc_hdr->ssap = LLC_SNAP;
+				llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
+				bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
+				llc_hdr->type = LLC_TYPE_CUSTOM;
 
-			enqueue_after_end(UNICAST_QID, &checkout);
-			check_tx_queue();
+				tx_length += sizeof(llc_header);
+				tx_length += payload_length;
+
+				wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, ap_station_info, tx_length, MAX_NUM_TX,
+								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+				enqueue_after_end(UNICAST_QID, &checkout);
+				check_tx_queue();
+			}
 		}
 	}
 
