@@ -1324,14 +1324,14 @@ u32 add_all_station_info_to_log(u8 stats, u8 transmit){
 	u32                i, status;
 	u32                num_stats;
 	dl_list          * list = get_station_info_list();
-	dl_entry         * curr_entry;
+	dl_entry         * curr_station_info_entry;
 	station_info     * curr_info;
 
 	// Check to see if we have valid statistics
 	if (list == NULL) { return 0; }
 
 	// Get the first statistics structure
-	curr_entry = list->first;
+	curr_station_info_entry = list->first;
 
 	// Set the count variable
 	num_stats = 0;
@@ -1339,7 +1339,7 @@ u32 add_all_station_info_to_log(u8 stats, u8 transmit){
 	// Iterate thru the list
 	for( i = 0; i < list->length; i++){
 
-		curr_info = (station_info*)(curr_entry->data);
+		curr_info = (station_info*)(curr_station_info_entry->data);
 
 		if (stats == EVENT_LOG_STATS) {
 			status = add_station_info_w_stats_to_log(curr_info, transmit);
@@ -1349,7 +1349,7 @@ u32 add_all_station_info_to_log(u8 stats, u8 transmit){
 
 		if (status == SUCCESS) {
 			num_stats++;
-			curr_entry = dl_entry_next(curr_entry);
+			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 		} else {
 			break;
 		}
