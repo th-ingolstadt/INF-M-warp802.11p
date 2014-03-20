@@ -106,6 +106,9 @@ void purge_queue(u16 queue_sel){
 	dl_list		   dequeue;
 	u32            num_queued;
 
+	// The queue purge is not interrupt safe
+	wlan_mac_high_interrupt_stop();
+
 	num_queued = queue_num_queued(queue_sel);
 
 	if( num_queued > 0 ){
@@ -113,6 +116,9 @@ void purge_queue(u16 queue_sel){
 		dequeue_from_beginning(&dequeue, queue_sel, num_queued);
 		queue_checkin(&dequeue);
 	}
+
+	// Re-enable interrupts now that we are done
+	wlan_mac_high_interrupt_start();
 }
 
 void enqueue_after_end(u16 queue_sel, dl_list* list){
