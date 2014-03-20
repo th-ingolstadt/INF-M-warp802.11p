@@ -44,19 +44,27 @@ Naming convention:
                         http://www.numpy.org/
 
 Functions (see below for more information):
-    gen_log_data_index() -- Generate a byte index given a WLAN Exp log file
-    filter_log_index()   -- Filter a log index with given parameters
-    gen_log_np_arrays()  -- Generate a numpy structured array (ndarray) of log entries
-    gen_hdf5_file()      -- Generate a HDF5 file based on numpy arrays
+    gen_log_data_index()               -- Generate a byte index given a WLAN Exp log file
+    filter_log_index()                 -- Filter a log index with given parameters
+    log_data_to_np_arrays()            -- Generate a numpy structured array (ndarray) of log entries
+    np_arrays_to_hdf5()                -- Generate a HDF5 file based on numpy arrays
+    log_data_to_hdf5()                 -- Generate an HDF5 file containing log_data
+    hdf5_is_valid_log_data_container() -- Is the HDF5 file a valid wlan_exp_log_data_container
+    hdf5_to_log_data()                 -- Extract the log data from an HDF5 file
+    hdf5_to_log_data_index()           -- Extract the log_data_index from an HDF5 file
+    hdf5_to_attr_dict()                -- Extract the attribute dictionary from an HDF5 file
     
 """
 
 __all__ = ['gen_log_data_index', 
            'filter_log_index',
-           'gen_log_np_arrays',
+           'log_data_to_np_arrays',
+           'np_arrays_to_hdf5',
            'log_data_to_hdf5',
+           'hdf5_is_valid_log_data_container',
            'hdf5_to_log_data',
-           'hdf5_to_log_data_index']
+           'hdf5_to_log_data_index',
+           'hdf5_to_attr_dict']
 
 
 #-----------------------------------------------------------------------------
@@ -313,16 +321,14 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
 
 
 
-def gen_log_np_arrays(log_bytes, log_index):
-    """Generate numpy structured arrays using the raw log and log
-    index that was generated with gen_log_index().
-    """
+def log_data_to_np_arrays(log_data, log_index):
+    """Generate numpy structured arrays using log_data and a log_index."""
     entries_nd = dict()
 
     for k in log_index.keys():
         # Build a structured array with one element for each byte range enumerated above
         # Store each array in a dictionary indexed by the log entry type
-        entries_nd[k] = k.generate_numpy_array(log_bytes, log_index[k])
+        entries_nd[k] = k.generate_numpy_array(log_data, log_index[k])
 
     return entries_nd
 
@@ -333,6 +339,119 @@ def gen_log_np_arrays(log_bytes, log_index):
 #-----------------------------------------------------------------------------
 # WLAN Exp Log HDF5 file Utilities
 #-----------------------------------------------------------------------------
+def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
+    """Generate an HDF5 file from numpy arrays. The np_log_dict input must be either:
+    (a) A dictionary with numpy record arrays as values; each array will
+        be a dataset in the HDF5 file root group
+    (b) A dictionary of dictionaries like (a); each top-level value will
+        be a group in the root HDF5 group, each numpy array will be a
+        dataset in the group.
+
+    attr_dict is optional. If provied, values in attr_dict will be copied to HDF5 
+      group and dataset attributes. attr_dict values with keys matching np_log_dict keys
+      will be used as dataset attributes named '<the_key>_INFO'.
+      attr_dict entries may have an extra value with key '/', which will be used 
+      as the value for a group attribute named 'INFO'.
+
+      See examples below for supported np_log_dict and attr_dict structures.
+
+    Examples:
+    #No groups - all datasets in root group
+        np_log_dict = {
+            'RX_OFDM':  np_array_of_rx_etries,
+            'TX':       np_array_of_tx_entries
+        }
+
+        attr_dict = {
+            '/':        'Data from some_log_file.bin, node serial number W3-a-00001, written on 2014-03-18',
+            'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
+            'TX':       'Filtered Tx events, only DATA packets'
+        }
+
+    #Two groups, with two datasets in each group
+        np_log_dict = {
+            'Log_Node_A': {
+                'RX_OFDM':  np_array_of_rx_etries_A,
+                'TX':       np_array_of_tx_entries_A
+            },
+            'Log_Node_B': {
+                'RX_OFDM':  np_array_of_rx_etries_B,
+                'TX':       np_array_of_tx_entries_B
+            }
+        }
+
+        attr_dict = {
+            '/':        'Written on 2014-03-18',
+            'Log_Node_A': {
+                '/':        'Data from node_A_log_file.bin, node serial number W3-a-00001',
+                'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
+                'TX':       'Filtered Tx events, only DATA packets'
+            }
+            'Log_Node_B': {
+                '/':        'Data from node_B_log_file.bin, node serial number W3-a-00002',
+                'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
+                'TX':       'Filtered Tx events, only DATA packets'
+            }
+        }
+    """
+    import h5py
+
+    hf = h5py.File(filename, mode='w', userblock_size=1024)
+
+    dk = np_log_dict.keys()
+
+    try:
+        #Copy any user-supplied attributes to root group
+        # h5py uses the h5py.File handle to access the file itself and the root group
+        hf.attrs['INFO'] = attr_dict['/']
+    except:
+        pass
+
+    if type(np_log_dict[dk[0]]) is dict:
+        # np_log_dict is dictionary-of-dictionaries
+        # Create an HDF5 file with one group per value in np_log_dict
+        #   with one dataset per value in np_log_dict[each key]
+        # This is a good structure for one dictionary containing one key-value
+        #   per parsed log file, where the key is the log file name and the
+        #   value is another dictionary containing the log entry arrays
+
+        for grp_k in np_log_dict.keys():
+            #Create one group per log file, using log file name as group name
+            grp = hf.create_group(grp_k)
+            
+            try:
+                grp.attrs['INFO'] = attr_dict[grp_k]['/']
+            except:
+                pass
+
+            for arr_k in np_log_dict[grp_k].keys():
+                #Create one dataset per numpy array of log data
+                ds = grp.create_dataset(arr_k, data=np_log_dict[grp_k][arr_k], compression=compression)
+                
+                try:
+                    ds.attrs[arr_k + '_INFO'] = attr_dict[grp_k][arr_k]
+                except:
+                    pass
+
+    else:
+        # np_log_dict is dictionary-of-arrays
+        #   Create HDF5 file with datasets in root, one per np_log_dict[each key]
+
+        for arr_k in np_log_dict.keys():
+            # Create one dataset per numpy array of log data
+            ds = hf.create_dataset(arr_k, data=np_log_dict[arr_k])
+            
+            try:
+                ds.attrs[arr_k + '_INFO'] = attr_dict[arr_k]
+            except:
+                pass
+    hf.close()
+    return
+
+# End np_arrays_to_hdf5()
+
+
+
 def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_index=True, 
                      overwrite=False):
     """Create an HDF5 file that contains the log_data, a log_data_index, and any
@@ -414,10 +533,10 @@ def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_in
             pass
     
     # Create a data set for the log_data
-    if (type(log_data) is bytearray):
-        grp.create_dataset("log_data", data=log_data)
-    else:
-        grp.create_dataset("log_data", data=np.void(log_data))        
+    dt        = np.dtype('V{0}'.format(len(log_data)))
+    data      = np.empty((1,), dt)
+    data.data = log_data    
+    grp.create_dataset("log_data", data=data)
     
     # Generate the log_data_index
     if gen_index:
@@ -436,7 +555,32 @@ def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_in
     hf.close()
 
 # End log_data_to_hdf5()
+
+
+
+def hdf5_is_valid_log_data_container(filename, group_name=None):
+    """Is the filename a valid wlan_exp_log_data_container
+
+    Attributes:
+        filename   -- File name of HDF5 file that appears on disk.  If this file 
+                      does not exist, return False
+        group_name -- Name of Group within the HDF5 file.  If not specified, then 
+                      the group_name within the HDF5 file will be '/'.  If the 
+                      group_name is not a valid group within the file, then the
+                      function will return False
     
+    Returns:
+        True / False
+    """
+    try:
+        (hf, grp) = _hdf5_extract(filename, group_name)
+    except AttributeError:
+        return False
+    
+    return True
+
+# End hdf5_is_valid_log_data_container()
+
 
 
 def hdf5_to_log_data(filename, group_name=None):
@@ -456,7 +600,7 @@ def hdf5_to_log_data(filename, group_name=None):
     """
     import numpy as np
 
-    (hf, grp) = _hdf5_validation(filename, group_name)
+    (hf, grp) = _hdf5_extract(filename, group_name)
     
     # Get the log_data from the group data set
     try:
@@ -501,7 +645,7 @@ def hdf5_to_log_data_index(filename, group_name=None, gen_index=True):
     error          = False
     log_data_index = {}
 
-    (hf, grp) = _hdf5_validation(filename, group_name)
+    (hf, grp) = _hdf5_extract(filename, group_name)
     
     # Get the log_data_index group from the specified group
     try:
@@ -558,11 +702,11 @@ def hdf5_to_attr_dict(filename, group_name=None):
     """
     attr_dict = {}
 
-    (hf, grp) = _hdf5_validation(filename, group_name)
+    (hf, grp) = _hdf5_extract(filename, group_name)
     
     # Check the default attributes of the group
     try:
-        for k, v in grp.items():
+        for k, v in grp.attrs.items():
             attr_dict[k] = v        
     except:
         msg  = "Group {0} of {1} is not a valid ".format(group_name, filename)
@@ -577,9 +721,8 @@ def hdf5_to_attr_dict(filename, group_name=None):
 
 
 
-def _hdf5_validation(filename, group_name=None):
-    """Extract the log_data from an HDF5 file that was created to the 
-    wlan_exp_log_data_container format.
+def _hdf5_extract(filename, group_name=None):
+    """Extract the file object and the group from the HDF5 file.
 
     Attributes:
         filename   -- File name of HDF5 file that appears on disk.  If this file 
@@ -701,119 +844,6 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
 #-----------------------------------------------------------------------------
 # Deprecated methods
 #-----------------------------------------------------------------------------
-
-def gen_hdf5_file(filename, np_log_dict, attr_dict=None, compression=None):
-    """Generate an HDF5 file from numpy arrays. The np_log_dict input must be either:
-    (a) A dictionary with numpy record arrays as values; each array will
-        be a dataset in the HDF5 file root group
-    (b) A dictionary of dictionaries like (a); each top-level value will
-        be a group in the root HDF5 group, each numpy array will be a
-        dataset in the group.
-
-    attr_dict is optional. If provied, values in attr_dict will be copied to HDF5 
-      group and dataset attributes. attr_dict values with keys matching np_log_dict keys
-      will be used as dataset attributes named '<the_key>_INFO'.
-      attr_dict entries may have an extra value with key '/', which will be used 
-      as the value for a group attribute named 'INFO'.
-
-      See examples below for supported np_log_dict and attr_dict structures.
-
-    Examples:
-    #No groups - all datasets in root group
-        np_log_dict = {
-            'RX_OFDM':  np_array_of_rx_etries,
-            'TX':       np_array_of_tx_entries
-        }
-
-        attr_dict = {
-            '/':        'Data from some_log_file.bin, node serial number W3-a-00001, written on 2014-03-18',
-            'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
-            'TX':       'Filtered Tx events, only DATA packets'
-        }
-
-    #Two groups, with two datasets in each group
-        np_log_dict = {
-            'Log_Node_A': {
-                'RX_OFDM':  np_array_of_rx_etries_A,
-                'TX':       np_array_of_tx_entries_A
-            },
-            'Log_Node_B': {
-                'RX_OFDM':  np_array_of_rx_etries_B,
-                'TX':       np_array_of_tx_entries_B
-            }
-        }
-
-        attr_dict = {
-            '/':        'Written on 2014-03-18',
-            'Log_Node_A': {
-                '/':        'Data from node_A_log_file.bin, node serial number W3-a-00001',
-                'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
-                'TX':       'Filtered Tx events, only DATA packets'
-            }
-            'Log_Node_B': {
-                '/':        'Data from node_B_log_file.bin, node serial number W3-a-00002',
-                'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
-                'TX':       'Filtered Tx events, only DATA packets'
-            }
-        }
-    """
-    import h5py
-
-    hf = h5py.File(filename, mode='w', userblock_size=1024)
-
-    dk = np_log_dict.keys()
-
-    try:
-        #Copy any user-supplied attributes to root group
-        # h5py uses the h5py.File handle to access the file itself and the root group
-        hf.attrs['INFO'] = attr_dict['/']
-    except:
-        pass
-
-    if type(np_log_dict[dk[0]]) is dict:
-        # np_log_dict is dictionary-of-dictionaries
-        # Create an HDF5 file with one group per value in np_log_dict
-        #   with one dataset per value in np_log_dict[each key]
-        # This is a good structure for one dictionary containing one key-value
-        #   per parsed log file, where the key is the log file name and the
-        #   value is another dictionary containing the log entry arrays
-
-        for grp_k in np_log_dict.keys():
-            #Create one group per log file, using log file name as group name
-            grp = hf.create_group(grp_k)
-            
-            try:
-                grp.attrs['INFO'] = attr_dict[grp_k]['/']
-            except:
-                pass
-
-            for arr_k in np_log_dict[grp_k].keys():
-                #Create one dataset per numpy array of log data
-                ds = grp.create_dataset(arr_k, data=np_log_dict[grp_k][arr_k], compression=compression)
-                
-                try:
-                    ds.attrs[arr_k + '_INFO'] = attr_dict[grp_k][arr_k]
-                except:
-                    pass
-
-    else:
-        # np_log_dict is dictionary-of-arrays
-        #   Create HDF5 file with datasets in root, one per np_log_dict[each key]
-
-        for arr_k in np_log_dict.keys():
-            # Create one dataset per numpy array of log data
-            ds = hf.create_dataset(arr_k, data=np_log_dict[arr_k])
-            
-            try:
-                ds.attrs[arr_k + '_INFO'] = attr_dict[arr_k]
-            except:
-                pass
-    hf.close()
-    return
-
-# End gen_hdf5_file()
-
-
 
 def write_log_data_index_file(log_data_file, node=None):
     """Method to write a log data index to a file for easy retrieval.
