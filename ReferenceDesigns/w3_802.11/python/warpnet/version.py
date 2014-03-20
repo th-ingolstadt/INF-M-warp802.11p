@@ -50,11 +50,11 @@ WN_RELEASE              = True
 #-----------------------------------------------------------------------------
 # WARPNet Version Utilities
 #-----------------------------------------------------------------------------
-def wn_ver(output=True):
+def wn_ver(do_print=True):
     """Returns the version of WARPNet for this package.
     
     Attributes:
-        output   -- Print output about the WARPNet version
+        do_print   -- Print output about the WARPNet version
     """
     # Print the release message if this is not an official release    
     if not WN_RELEASE: 
@@ -65,7 +65,7 @@ def wn_ver(output=True):
         print("-" * 60)
         
     # Print the current version and location of the WARPNet Framework
-    if output:
+    if do_print:
         print("WARPNet v" + wn_ver_str() + "\n\n")
         print("Framework Location:")
         print(os.path.dirname(

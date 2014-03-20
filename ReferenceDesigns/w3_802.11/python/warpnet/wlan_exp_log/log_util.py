@@ -517,7 +517,8 @@ def log_data_to_hdf5(filename, log_data, attr_dict=None, gen_index=True, overwri
     _create_hdf5_log_data_container(log_grp, np_data, log_data_index)
 
     # Add the attribute dictionary to the group
-    _add_attr_dict_to_group(log_grp, attr_dict)
+    if(attr_dict is not None):
+        _add_attr_dict_to_group(log_grp, attr_dict)
 
     # Close the file 
     hf.close()
@@ -778,7 +779,7 @@ def _create_hdf5_log_data_container(group, np_data, log_data_index):
     group.attrs['wlan_exp_log'] = True
     group.attrs['wlan_exp_ver'] = np.array(version.wlan_exp_ver(output=False), dtype=np.uint32)
 
-    if('log_data' in group.keys()):
+    if('log_data' in group.keys() and type(group['log_data']) is h5py.Dataset):
         raise AttributeError("Dataset 'log_data' already exists in group {0}\n".format(group))
     
     # Create a data set for the numpy-formatted log_data (created above)
