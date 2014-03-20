@@ -113,8 +113,12 @@ def gen_log_data_index(log_data):
         # Values below are hard coded to match current WLAN Exp log entry formats
         hdr_b = log_data[offset:offset+hdr_size]
 
-        if( (hdr_b[2:4] != b'\xed\xac') ):
-            raise Exception("ERROR: Log file didn't start with valid entry header (offset %d)!" % (offset))
+        if (use_byte_array):
+            if( (bytearray(hdr_b[2:4]) != b'\xed\xac') ):
+                raise Exception("ERROR: Log file didn't start with valid entry header (offset %d)!" % (offset))
+        else:
+            if( (hdr_b[2:4] != b'\xed\xac') ):
+                raise Exception("ERROR: Log file didn't start with valid entry header (offset %d)!" % (offset))
 
         if (use_byte_array):
             entry_type_id = (hdr_b[4] + (hdr_b[5] * 256))
