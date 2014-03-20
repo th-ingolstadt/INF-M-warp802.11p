@@ -397,13 +397,20 @@ entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTR
 entry_station_info.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('mac_addr',               '6s',     '6uint8'),
-            ('host_name',              '16s',    '16uint8'),
             ('aid',                    'H',      'uint16'),
+            ('host_name',              '16s',    '16uint8'),
             ('flags',                  'I',      'uint32'),
-            ('rate',                   'B',      'uint8'),
-            ('antenna_mode',           'B',      'uint8'),
-            ('max_retry',              'B',      'uint8'),
-            ('padding',                'x',      'uint8')])
+            ('rx_last_timestamp',      'Q',      'uint64'),
+            ('rx_last_seq',            'H',      'uint16'),
+            ('rx_last_power',          'b',      'int8'),
+            ('rx_last_power',          'B',      'uint8'),
+            ('tx_phy_rate',            'B',      'uint8'),
+            ('tx_phy_antenna_mode',    'B',      'uint8'),
+            ('tx_phy_power',           'b',      'int8'),
+            ('tx_phy_flags',           'B',      'uint8'),
+            ('tx_mac_num_tx_max',      'B',      'uint8'),
+            ('tx_mac_flags',           'B',      'uint8'),
+            ('padding',                'x',      'uint16')])
 
 
 # WARPNet Command Info
