@@ -25,21 +25,21 @@ import warpnet.wlan_exp.util as wlan_exp_util
 
 
 # NOTE: change these values to match your experiment setup
-LOGFILE = 'example_logs/ap_log_stats.bin'
-# LOGFILE = 'example_logs/sta_log_stats.bin'
+LOGFILE = 'example_logs/ap_log_stats_2014_03_20.hdf5'
+# LOGFILE = 'example_logs/sta_log_stats_2014_03_20.hdf5'
 
 
 print("WLAN Exp Log Example")
 print("Reading log file:  {0}".format(LOGFILE))
 
-with open(LOGFILE, 'rb') as fh:
-    log_b = fh.read()
+# Get the log_data from the file
+log_data = log_util.hdf5_to_log_data(LOGFILE)
 
-# Generate the index of log entry locations sorted by log entry type
-log_index_raw = log_util.gen_log_index_raw(log_b)
+# Get the log_data_index from the file
+log_data_index = log_util.hdf5_to_log_data_index(LOGFILE)
 
-# Describe the raw log
-log_util.log_index_print_summary(log_index_raw, "Raw Log Index:")
+# Describe the log_data_index
+log_util.print_log_index_summary(log_data_index, "Log Data Index:")
 
 
 # Example Log Filters:
@@ -52,20 +52,20 @@ log_util.log_index_print_summary(log_index_raw, "Raw Log Index:")
 
 # Make sure we have 'RX_OFDM', 'TX' and 'RX_ALL' entries in the output index
 #   for examles 1, 2 and 3 respectively
-log_index = log_util.filter_log_index(log_index_raw,
+log_index = log_util.filter_log_index(log_data_index,
                                       include_only=['RX_ALL', 'RX_OFDM', 'TX', 'WN_CMD_INFO', 'NODE_INFO'],
                                       merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
 
-log_util.log_index_print_summary(log_index, "Filtered Log Index:")
+log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 
 
 # Unpack the log into numpy structured arrays
 #   gen_log_np_arrays returns a dictionary with log entry type IDs as keys
 #   Global 'wlan_exp_log_entry_types' lists all known log entry types
-log_nd = log_util.gen_log_np_arrays(log_b, log_index)
+log_nd = log_util.gen_log_np_arrays(log_data, log_index)
 
 # Describe the NumPy arrays
-# log_util.log_index_print_summary(log_nd, "NumPy Array Summary:")
+# log_util.print_log_index_summary(log_nd, "NumPy Array Summary:")
 
 
 ###############################################################################
@@ -78,7 +78,7 @@ log_nd = log_util.gen_log_np_arrays(log_b, log_index)
 log_node_info = log_index['NODE_INFO']
 
 for info in log_node_info:
-    print(log.entry_node_info.entry_as_string(log_b[info:]))
+    print(log.entry_node_info.entry_as_string(log_data[info:]))
 
 
 
