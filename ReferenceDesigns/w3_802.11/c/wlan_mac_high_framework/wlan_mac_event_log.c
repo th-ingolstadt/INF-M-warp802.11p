@@ -1247,24 +1247,10 @@ u32 add_station_info_to_log(station_info * info, u8 transmit){
 
 	station_info_entry * entry;
 	u32                  entry_size        = sizeof(station_info_entry);
-	u32                  tx_params_size    = sizeof(tx_params);
-	u32                  station_info_size = 13 + STATION_INFO_HOSTNAME_MAXLEN;
-	                                                       // Includes:  6 bytes for addr
-	                                                       //            2 bytes for AID
-	                                                       //            4 bytes for flags
-	                                                       //            STATION_INFO_HOSTNAME_MAXLEN+1 bytes for hostname
+	u32                  station_info_size = sizeof(station_info_base);
 
 	// Check to see if we have valid station_info
 	if (info == NULL) { return FAILURE; }
-
-    if ( (station_info_size + tx_params_size) >= entry_size ) {
-    	// If the station info and tx params structures in wlan_mac_high.h are bigger than the
-    	// station info entry, print a warning and return since there is a mismatch in the definition of
-    	// statistics.
-    	xil_printf("WARNING:  Station Info definitions do not match.  Station Info log entry is too small\n");
-    	xil_printf("    to hold station info information.\n");
-    	return FAILURE;
-    }
 
 	entry = (station_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATION_INFO, entry_size );
 
@@ -1274,8 +1260,7 @@ u32 add_station_info_to_log(station_info * info, u8 transmit){
 		// Copy the station info to the log entry
 		//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
 		//          similar to the station info and tx params structures in wlan_mac_high.h
-		memcpy( (void *)(&entry->addr), (void *)(&info->addr), station_info_size );
-		memcpy( (void *)(&entry->rate), (void *)(&info->tx.phy.rate), tx_params_size );
+		memcpy( (void *)(&entry->info), (void *)(&info), station_info_size );
 
 #ifdef USE_WARPNET_WLAN_EXP
 		// Transmit the entry if requested

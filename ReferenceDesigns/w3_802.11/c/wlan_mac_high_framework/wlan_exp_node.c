@@ -611,8 +611,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
         	// Local variables
         	station_info_entry * info_entry;
-			u32                  tx_params_size    = sizeof(tx_params);
-			u32                  station_info_size = 13 + STATION_INFO_HOSTNAME_MAXLEN;
+			u32                  station_info_size = sizeof(station_info_base);
 
         	entry_size = sizeof(station_info_entry);
 
@@ -631,8 +630,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					// Copy the station info to the log entry
 					//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
 					//          similar to the station info and tx params structures in wlan_mac_high.h
-					memcpy( (void *)(&info_entry->addr), (void *)(&curr_station_info->addr), station_info_size );
-					memcpy( (void *)(&info_entry->rate), (void *)(&curr_station_info->tx.phy.rate), tx_params_size );
+					memcpy( (void *)(&info_entry->info), (void *)(&curr_station_info), station_info_size );
 
 					xil_printf("Getting Station Entry for node: %02x", mac_addr[0]);
 					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
@@ -711,8 +709,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         					// Copy the station info to the log entry
         					//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
         					//          similar to the station info and tx params structures in wlan_mac_high.h
-        					memcpy( (void *)(&info_entry->addr), (void *)(&curr_station_info->addr), station_info_size );
-        					memcpy( (void *)(&info_entry->rate), (void *)(&curr_station_info->tx.phy.rate), tx_params_size );
+        					memcpy( (void *)(&info_entry->info), (void *)(&curr_station_info), station_info_size );
 
                             // Increment the pointers
         					curr_station_info_entry         = dl_entry_next(curr_station_info_entry);

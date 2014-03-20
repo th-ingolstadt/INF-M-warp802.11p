@@ -106,23 +106,11 @@ typedef struct{
 
 //-----------------------------------------------
 // Station Info Entry
-//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
-//          accurately reflects the number of bytes in the struct.  Unfortunately,
-//          since the hostname is uses a #define for the length, we have to
-//          use that to determine the size of the rsvd field.  It will be between
-//          1 and 4 bytes.
-//FIXME: This should be replaced with a typedef of station_info
 typedef struct{
 	u64     timestamp;                                  // Timestamp
-	u8      addr[6];									// HW Address
-	u8		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	// Hostname from DHCP requests
-	u16     AID;										// Association ID
-	u32		flags;										// 1-bit flags
-	u8      rate;			                            // Rate of transmission
-	u8      antenna_mode;	                            // Antenna mode (Placeholder)
-	u8	    max_num_tx;                                  // Maximum number of retransmissions
-	u8      rsvd[((STATION_INFO_HOSTNAME_MAXLEN+1)%4) + 1];
+	station_info_base info;								// Framework's station_info struct
 } station_info_entry;
+CASSERT(sizeof(station_info_entry) == 56, station_info_entry_alignment_check);
 
 //-----------------------------------------------
 // Temperature Entry

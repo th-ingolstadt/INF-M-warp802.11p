@@ -129,6 +129,14 @@ CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 
 #define STATION_INFO_HOSTNAME_MAXLEN 15
 
+#define MY_STATION_INFO_COMMON_FIELDS 								   									\
+		u8          addr[6]; 									/* HW Address */ 						\
+		u16         AID; 										/* Association ID */	 				\
+		char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	/* Hostname from DHCP requests */		\
+		u32			flags;										/* 1-bit flags */						\
+		rx_info     rx; 										/* Reception Information Structure */	\
+		tx_params   tx;											/* Transmission Parameters Structure */
+
 /**
  * @brief Station Information Structure
  *
@@ -136,18 +144,22 @@ CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
  * case of a station, information about the associated access point).
  */
 typedef struct{
-	u8          addr[6];									///< HW Address
-	u16         AID;										///< Association ID
-	char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	///< Hostname from DHCP requests
-	u32			flags;										///< 1-bit flags
-	rx_info     rx;											///< Reception Information Structure
-	tx_params   tx;											///< Transmission Parameters Structure
+	MY_STATION_INFO_COMMON_FIELDS
 	statistics_txrx* stats;									///< Statistics Information Structure
 															///< @note This is a pointer to the statistics structure
                             								///< because statistics can survive outside of the context
                             								///< of associated station_info structs.
 } station_info;
-CASSERT(sizeof(station_info) == 52, station_info_alignment_check);
+
+/**
+ * @brief Base Station Information Structure
+ *
+ * This struct is a modification of the station_info struct that eliminates
+ * pointers to other data.
+ */
+typedef struct{
+	MY_STATION_INFO_COMMON_FIELDS
+} station_info_base;
 
 
 //////////// Initialization Functions ////////////
