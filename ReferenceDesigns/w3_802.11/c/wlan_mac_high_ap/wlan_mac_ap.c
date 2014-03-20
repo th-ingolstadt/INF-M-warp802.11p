@@ -233,8 +233,8 @@ void check_tx_queue(){
 	static queue_group_t next_queue_group = MGMT_QGRP;
 	queue_group_t curr_queue_group;
 
-	static dl_entry* next_entry = NULL;
-	dl_entry* curr_entry;
+	static dl_entry* next_station_info_entry = NULL;
+	dl_entry* curr_station_info_entry;
 
 	station_info* curr_station_info;
 
@@ -253,39 +253,39 @@ void check_tx_queue(){
 				break;
 				case DATA_QGRP:
 					next_queue_group = MGMT_QGRP;
-					curr_entry = next_entry;
+					curr_station_info_entry = next_station_info_entry;
 
 						for(i = 0; i < (association_table.length + 1) ; i++){
 							//Loop through all associated stations' queues + the broadcast queue
-							if(curr_entry == NULL){
+							if(curr_station_info_entry == NULL){
 								//Check the broadcast queue
-								next_entry = association_table.first;
+								next_station_info_entry = association_table.first;
 								if(wlan_mac_queue_poll(MCAST_QID)){
 									return;
 								} else {
-									curr_entry = next_entry;
+									curr_station_info_entry = next_station_info_entry;
 								}
 							} else {
-								curr_station_info = (station_info*)(curr_entry->data);
+								curr_station_info = (station_info*)(curr_station_info_entry->data);
 								if( wlan_mac_high_is_valid_association(&association_table, curr_station_info) ){
-									if(curr_entry == association_table.last){
+									if(curr_station_info_entry == association_table.last){
 										//We've reached the end of the table, so we wrap around to the beginning
-										next_entry = NULL;
+										next_station_info_entry = NULL;
 									} else {
-										next_entry = dl_entry_next(curr_entry);
+										next_station_info_entry = dl_entry_next(curr_station_info_entry);
 									}
 
 									if(wlan_mac_queue_poll(AID_TO_QID(curr_station_info->AID))){
 										return;
 									} else {
-										curr_entry = next_entry;
+										curr_station_info_entry = next_station_info_entry;
 									}
 								} else {
 									//This curr_station_info is invalid. Perhaps it was removed from
 									//the association table before check_tx_queue was called. We will
 									//start the round robin checking back at broadcast.
 									//xil_printf("isn't getting here\n");
-									next_entry = NULL;
+									next_station_info_entry = NULL;
 									return;
 								}
 							}
@@ -298,17 +298,17 @@ void check_tx_queue(){
 
 void purge_all_data_tx_queue(){
 	u32 i;
-	dl_entry*	  curr_entry;
+	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
-	curr_entry = association_table.first;
+	curr_station_info_entry = association_table.first;
 
 	for(i=0; i < association_table.length; i++){
-		curr_station_info = (station_info*)(curr_entry->data);
+		curr_station_info = (station_info*)(curr_station_info_entry->data);
 		purge_queue(AID_TO_QID(curr_station_info->AID));       		// Each unicast queue
-		curr_entry = dl_entry_next(curr_entry);
+		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 	}
 }
 
@@ -569,16 +569,16 @@ void association_timestamp_check() {
 	dl_entry* tx_queue_entry;
 	u32 tx_length;
 	station_info* curr_station_info;
-	dl_entry* next_entry;
-	dl_entry* curr_entry;
+	dl_entry* next_station_info_entry;
+	dl_entry* curr_station_info_entry;
 
-	next_entry = association_table.first;
+	next_station_info_entry = association_table.first;
 
 	for(i=0; i < association_table.length; i++) {
-		curr_entry = next_entry;
-		next_entry = dl_entry_next(curr_entry);
+		curr_station_info_entry = next_station_info_entry;
+		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
-		curr_station_info = (station_info*)(curr_entry->data);
+		curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 		time_since_last_rx = (get_usec_timestamp() - curr_station_info->rx.last_timestamp);
 		if((time_since_last_rx > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
@@ -1115,14 +1115,14 @@ u32  deauthenticate_station( station_info* station ) {
 void deauthenticate_stations(){
 	u32 i;
 	station_info* curr_station_info;
-	dl_entry* next_entry;
-	dl_entry* curr_entry;
+	dl_entry* next_station_info_entry;
+	dl_entry* curr_station_info_entry;
 
-	next_entry = association_table.first;
+	next_station_info_entry = association_table.first;
 	for (i = 0; i < association_table.length ; i++){
-		curr_entry = next_entry;
-		next_entry = dl_entry_next(curr_entry);
-		curr_station_info = (station_info*)(curr_entry->data);
+		curr_station_info_entry = next_station_info_entry;
+		next_station_info_entry = dl_entry_next(curr_station_info_entry);
+		curr_station_info = (station_info*)(curr_station_info_entry->data);
 		deauthenticate_station(curr_station_info);
 	}
 }

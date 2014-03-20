@@ -67,7 +67,7 @@ void uart_rx(u8 rxByte){
 	void* ltg_sched_state;
 	u32 ltg_type;
 	u32 i;
-	dl_entry* 	  curr_entry;
+	dl_entry* 	  curr_station_info_entry;
 	station_info* curr_station_info;
 
 	void* ltg_callback_arg;
@@ -161,11 +161,11 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_6M;
 					}
 
-					curr_entry = association_table.first;
+					curr_station_info_entry = association_table.first;
 					for(i=0; i < association_table.length; i++){
-						curr_station_info = (station_info*)(curr_entry->data);
+						curr_station_info = (station_info*)(curr_station_info_entry->data);
 						curr_station_info->tx.phy.rate = default_unicast_rate;
-						curr_entry = dl_entry_next(curr_entry);
+						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 					}
 
 					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
@@ -177,11 +177,11 @@ void uart_rx(u8 rxByte){
 						default_unicast_rate = WLAN_MAC_RATE_54M;
 					}
 
-					curr_entry = association_table.first;
+					curr_station_info_entry = association_table.first;
 					for(i=0; i < association_table.length; i++){
-						curr_station_info = (station_info*)(curr_entry->data);
+						curr_station_info = (station_info*)(curr_station_info_entry->data);
 						curr_station_info->tx.phy.rate = default_unicast_rate;
-						curr_entry = dl_entry_next(curr_entry);
+						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 					}
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
 				break;
@@ -217,10 +217,10 @@ void uart_rx(u8 rxByte){
 						curr_aid = rxByte - 48;
 						curr_traffic_type = TRAFFIC_TYPE_PERIODIC_FIXED;
 
-						curr_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
+						curr_station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
 
-						if(curr_entry != NULL){
-							curr_station_info = (station_info*)(curr_entry->data);
+						if(curr_station_info_entry != NULL){
+							curr_station_info = (station_info*)(curr_station_info_entry->data);
 							uart_mode = UART_MODE_LTG_SIZE_CHANGE;
 							curr_char = 0;
 
@@ -248,10 +248,10 @@ void uart_rx(u8 rxByte){
 						curr_aid = qwerty_row_to_number(rxByte);
 						curr_traffic_type = TRAFFIC_TYPE_RAND_RAND;
 
-						curr_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
+						curr_station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
 
-						if(curr_entry != NULL){
-							curr_station_info = (station_info*)(curr_entry->data);
+						if(curr_station_info_entry != NULL){
+							curr_station_info = (station_info*)(curr_station_info_entry->data);
 							uart_mode = UART_MODE_LTG_SIZE_CHANGE;
 							curr_char = 0;
 
@@ -291,9 +291,9 @@ void uart_rx(u8 rxByte){
 						case TRAFFIC_TYPE_PERIODIC_FIXED:
 							ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_fixed));
 
-							curr_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
-							if(ltg_callback_arg != NULL && curr_entry != NULL){
-								curr_station_info = (station_info*)(curr_entry->data);
+							curr_station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
+							if(ltg_callback_arg != NULL && curr_station_info_entry != NULL){
+								curr_station_info = (station_info*)(curr_station_info_entry->data);
 								((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
 								memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->hdr.addr_da, curr_station_info->addr, 6);
 								((ltg_pyld_fixed*)ltg_callback_arg)->length = str2num(text_entry);
