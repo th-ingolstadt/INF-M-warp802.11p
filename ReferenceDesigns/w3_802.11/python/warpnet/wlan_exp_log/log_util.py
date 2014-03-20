@@ -396,7 +396,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
     """
     import h5py
 
-    hf = h5py.File(filename, mode='w', userblock_size=1024)
+    hf = h5py.File(filename, mode='w')
 
     dk = np_log_dict.keys()
 
@@ -450,9 +450,116 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
 
 # End np_arrays_to_hdf5()
 
+def log_data_to_hdf5(filename, log_data, attr_dict=None, gen_index=True, overwrite=False):
+    """Create an HDF5 file that contains the log_data, a log_data_index, and any
+    user attributes.
+
+    If the requested filename already exists and overwrite==True this
+    method will replace the existing file, destroying any data in the original file.
+
+    If the filename already esists and overwrite==False this method will print a warning, 
+    then create a new filename with a date-time suffix.
+    
+    For WLAN Exp log data manipulation, it is necessary to define a common file format
+    so that it is easy for multiple consumers, both in python and other languages, to
+    access the data.  To do this, we use HDF5 as the container format with a couple of 
+    additional conventions to hold the log data as well as other pieces of information.
+    Below are the rules that we follow to create an HDF5 file that will contain WLAN
+    Exp log data:
+    
+    wlan_exp_log_data_container (equivalent to a HDF5 group):
+       /: Root Group in HDF5 file
+           |- Attributes:
+           |      |- 'wlan_exp_log'         (1,)      bool
+           |      |- 'wlan_exp_ver'         (3,)      uint32
+           |      |- <user provided attributes in attr_dict>
+           |- Datasets:
+           |      |- 'log_data'             (1,)      voidN  (where N is the size of the data)
+           |- Groups (created if gen_index==True):
+                  |- 'log_data_index'
+                         |- Datasets: 
+                            (dtype depends if largest offset in log_data_index is < 2^32)
+                                |- <int>    (N1,)     uint32/uint64
+                                |- <int>    (N2,)     uint32/uint64
+                                |- ...
+    
+    Attributes:
+        filename   -- File name of HDF5 file to appear on disk.  If this file exists, then 
+                      a new group will be added to the file with the specified group_name.  
+                      If the file exists and group_name is not provided, then this function
+                      will error out.
+        log_data   -- Binary WLAN Exp log data
+        attr_dict  -- An array of user provided attributes that will be added to the group.                      
+        gen_index  -- Generate the 'log_data_index' from the log_data and store it in the 
+                      file.
+        overwrite  -- If true method will overwrite existing file with filename
+    """
+    import os
+    import datetime
+    import h5py
+    import numpy as np
+    import warpnet.wlan_exp.version as version
+    
+    # Try generating the index first
+    #  This will catch any errors in the user-supplied log data before opening any files
+    if gen_index:
+        try:
+            log_data_index = gen_log_data_index(log_data)
+        except:
+            raise AttributeError("Unable to generate log_data_index - HDF5 file {0} not created".format(filename))
 
 
-def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_index=True, 
+    # Determine a safe filename for the output HDF5 file
+    if overwrite:
+        print("WARNING: overwriting existing file {0}".format(filename))
+        h5_filename = filename
+    else:
+        h5_filename = _get_safe_filename(filename)
+
+    # Open a HDF5 File Object in 'w' (Create file, truncate if exists) mode
+    hf = h5py.File(filename, mode='w')
+    
+    # Store all data in root group - h5py File object represents file and root group
+    log_grp = hf
+    
+    # Add default attributes to the group
+    log_grp.attrs['wlan_exp_log'] = True
+    log_grp.attrs['wlan_exp_ver'] = np.array(version.wlan_exp_ver(output=False), dtype=np.uint32)
+    
+    # Add user provided attributes to the group
+    if not attr_dict is None:
+        for k, v in attr_dict:
+            try:
+                log_grp.attrs[k] = v
+            except:
+                print("WARNING: Could not add attribute '{0}' to HDF5 file {1}".format(k, h5_filename))
+    
+    # Create a data set for the log_data
+    # Use numpy void datatype to store binary log data. This will assure HDF5 stores data with opaque type.
+    dt        = np.dtype('V{0}'.format(len(log_data)))
+    data      = np.empty((1,), dt)
+    data.data = log_data    
+    grp.create_dataset("log_data", data=data)
+    
+
+    if(gen_index):
+        index_grp = log_grp.create_group("log_data_index")
+        for k, v in log_data_index.items():
+            if (v[-1] < 2**32):
+                #Highest-valued index entry can be safely represented as uint32
+                dtype = np.uint32
+            else:
+                #Highest-valued index entry requires u64
+                dtype = np.uint64
+
+            #Group names must be strings - keys here are known to be integers (entry_type_id values)
+            index_grp.create_dataset(str(k), data=np.array(v, dtype=dtype))
+    
+    hf.close()
+
+# End log_data_to_hdf5()
+
+def log_data_to_hdf5_hier(filename, log_data, group_name=None, attr_dict=None, gen_index=True, 
                      overwrite=False):
     """Create an HDF5 file that contains the log_data, a log_data_index, and any
     user attributes.
@@ -509,10 +616,10 @@ def log_data_to_hdf5(filename, log_data, group_name=None, attr_dict=None, gen_in
     
     if overwrite:
         # Open a HDF5 File Object in 'w' (Create file, truncate if exists) mode
-        hf = h5py.File(filename, mode='w', userblock_size=1024)
+        hf = h5py.File(filename, mode='w')
     else:
         # Open a HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
-        hf = h5py.File(filename, mode='a', userblock_size=1024)
+        hf = h5py.File(filename, mode='a')
     
     # Create the group if it was specified
     if not group_name is None:
@@ -831,11 +938,36 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
 # End print_log_entries()
 
 
+def _get_safe_filename(filename):
+    import os
+    import datetime
 
+    if os.path.isfile(filename):
+        #already know it's a file, so fn_file is not ''
+        (fn_fldr, fn_file) = os.path.split(filename)
+        ext_i = fn_file.find('.')
+        if(ext_i > -1):
+            #Remember the original file extension
+            fn_ext = fn_file[ext_i:]
+            fn_base = fn_file[0:ext_i]
+        else:
+            fn_ext = ''
+            fn_base = fn_file
 
+        #Create a new filename
+        i = 0
+        while True:
+            new_ext = '_{0}_{1}'.format(datetime.datetime.now().strftime("%y%m%d_%H%M%S"), i)
+            safe_filename = fn_fldr + fn_base + new_ext + fn_ext
+            i += 1
+            if not os.path.isfile(safe_filename):
+                #Break the loop if we found a unique file name
+                break
+    else:
+        #File didn't exist - use name as provided
+        safe_filename = filename
 
-
-
+    return safe_filename
 
 
 
