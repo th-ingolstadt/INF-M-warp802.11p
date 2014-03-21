@@ -456,7 +456,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			u32  left_hex;
 			u32  right_hex;
 
-			// If parameter is not the magic number, then set the TX power
 			if ( (temp == NODE_IDENTIFY_ALL) || (temp == node_info.serial_number) ) {
 	            xil_printf("WARPNET Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
 

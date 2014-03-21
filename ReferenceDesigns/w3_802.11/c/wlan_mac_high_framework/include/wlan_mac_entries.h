@@ -98,7 +98,7 @@ typedef struct{
 //
 typedef struct{
 	u64     timestamp;
-	u16     reason;
+	u16     info_type;
 	u16     length;
 	u8    * msg;
 } exp_info_entry;
