@@ -262,7 +262,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                 for v in merge[k]:
                     try:
                         new_index += ret_log_index[v]
-                    except:
+                    except KeyError:
                         msg  = "WARNING:  {0} does ".format(v)
                         msg += "not exist in log index.  Ignoring for merge.\n"
                         print(msg)

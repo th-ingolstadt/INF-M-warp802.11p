@@ -427,7 +427,14 @@ def hdf5_to_log_data_index(filename=None, h5_file=None, group_name=None, gen_ind
         for k, v in index_group.items():
             #Re-construct the log_data_index dictionary, using integers
             # (really entry_type IDs) as the keys and Python lists as values
-            log_data_index[int(k)] = v.tolist()
+            # the [:] slice here is important - flattening the returned numpy array before
+            #  listifying is *way* faster (>10x) than just v.toList()
+            log_data_index[int(k)] = v[:].tolist()
+
+            #Alternative to [:].toList() above - adds safetly in assuring dictionary value is
+            # Python list of ints, an requirement of downstream methods
+            #log_data_index[int(k)] = map(int, v[:]) #fastish
+
     except:
         error = True
     

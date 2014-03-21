@@ -19,11 +19,12 @@ you to play with the data.
 import datetime
 import numpy as np
 
-import warpnet.wlan_exp_log.log_entries as log
 import warpnet.wlan_exp_log.log_util as log_util
 import warpnet.wlan_exp_log.log_util_hdf as hdf
 
 import warpnet.wlan_exp.util as wlan_exp_util
+
+import sys
 
 
 d = datetime.datetime.now()
@@ -49,45 +50,19 @@ log_util.print_log_index_summary(log_data_index, "Log Data Index:")
 print("HDF5 file read + index time: {0}".format(datetime.datetime.now() - d))
 
 
-# Example Log Filters:
-#
-# log_index = log_util.filter_log_index(log_index_raw)
-# log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM'])
-# log_index = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM', 'TX'])
-# log_index = log_util.filter_log_index(log_index_raw, include_only=['TXRX_STATS', 'NODE_INFO'])
-# log_index = log_util.filter_log_index(log_index_raw, merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
-
-# Make sure we have 'RX_OFDM', 'TX' and 'RX_ALL' entries in the output index
-#   for examles 1, 2 and 3 respectively
+# Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
 log_index = log_util.filter_log_index(log_data_index,
-                                      include_only=['RX_ALL', 'RX_OFDM', 'TX', 'WN_CMD_INFO', 'NODE_INFO'],
+                                      include_only=['RX_ALL', 'RX_OFDM', 'TX'],
                                       merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 
 
 # Unpack the log into numpy structured arrays
-#   gen_log_np_arrays returns a dictionary with log entry type IDs as keys
-#   Global 'wlan_exp_log_entry_types' lists all known log entry types
+#   log_data_to_np_arrays returns a dictionary with one key-value pair per
+#    entry type included in the log_index argument. The log_index keys are reused
+#    as the output dictionary keys. Each output dictionary value is a numpy record array
 log_np = log_util.log_data_to_np_arrays(log_data, log_index)
-
-# Describe the NumPy arrays
-# log_util.print_log_index_summary(log_np, "NumPy Array Summary:")
-
-
-###############################################################################
-# Example 1: Count the number of receptions per PHY rate
-#   NOTE:  Since there are only loops, this example can deal with RX_OFDM being an
-#          empty list and does not need a try / except.
-#
-
-# Extract all OFDM receptions
-log_node_info = log_index['NODE_INFO']
-
-for info in log_node_info:
-    print(log.entry_node_info.entry_as_string(log_data[info:]))
-
-
 
 ###############################################################################
 # Example 1: Count the number of receptions per PHY rate
@@ -103,15 +78,12 @@ rx_rates = log_rx_ofdm['rate']
 
 # Initialize an array to count number of Rx per PHY rate
 #   MAC uses rate_indexes 1:8 to encode OFDM rates
-rx_rate_counts = 8*[0]
+rx_rate_counts = np.bincount(rx_rates, minlength=9)
+rx_rate_counts = rx_rate_counts[1:9] #only rate values 1:8 are valid
 
-for ii, r in enumerate(rx_rates):
-	if(r <= len(rx_rate_counts)):
-		rx_rate_counts[r-1] += 1
-	else:
-		print("Invalid rate {0} in rx entry {1}\n".format(r, ii))
-
-print("Example 1: Num Rx per Rate: %s\n" % rx_rate_counts)
+print("Example 1: Num Rx per Rate:")
+for (i,c) in enumerate(rx_rate_counts):
+    print(" Rate %d: %7d" % (i+1, c))
 
 ###############################################################################
 # Example 2: Calculate total number of packets and bytes transmitted to each
@@ -120,48 +92,38 @@ print("Example 1: Num Rx per Rate: %s\n" % rx_rate_counts)
 #          in order to catch index errors when there are no 'TX' entries in the log.
 #
 
-try:
+#Skip this example if the log doesn't contain TX events
+if('TX' in log_np.keys()):
     # Extract all OFDM transmissions
     log_tx = log_np['TX']
 
-    # Extract an array of just the MAC headers
-    tx_hdrs = log_tx['mac_header']
+    #Count number of packets transmitted to each unique address in the 'addr1' field
+    tx_addrs_1 = log_tx['addr1']
+    tx_counts = dict()
 
-    # Create a dictionary of all the address fields
-    #     Address1 - the wireless receiver address for AP transmissions
-    #     Address2 -
-    #     Address3 -
-    tx_addr_dict = {'Address 1': tx_hdrs[:,4:10],
-                    'Address 2': tx_hdrs[:,10:16],
-                    'Address 3': tx_hdrs[:,16:22]}
+    for addr in np.unique(tx_addrs_1):
+        #Find indexes of all instances where addresses match
+        # np.squeeze here flattens the result to a 1-D array
+    	addr_idx = np.squeeze(tx_addrs_1 == addr)
 
-    # Reduce each 6-byte MAC addresses to a unit64 for easier processing
-    for address in sorted(tx_addr_dict.keys()):
-        tx_addr = tx_addr_dict[address]
+        #Count the number of packets (True values in index array) to this address
+    	tx_pkts_to_addr  = np.sum(addr_idx)
 
-        tx_addr = np.sum(tx_addr * [2**40, 2**32, 2**24, 2**16, 2**8, 2**0], 1)
+        #Count the number of bytes to this address
+    	tx_bytes_to_addr = np.sum(log_tx['length'][addr_idx])
 
-        # Build a dictionary using unique MAC addresses as keys
-        tx_counts = dict()
-        for addr in np.unique(tx_addr):
-        	addr_idx = np.squeeze(tx_addr == addr)
+        #Record the results in the output dictionary
+    	tx_counts[addr] = (tx_pkts_to_addr, tx_bytes_to_addr)
 
-        	tx_pkts_to_addr  = np.sum(addr_idx)
-        	tx_bytes_to_addr = np.sum(log_tx['length'][addr_idx])
+    # Print the results
+    msg  = "\nExample 2: Tx Counts:\n"
+    msg += "Addr            \t# Pkts\t# Bytes\n"
+    print(msg)
+    for k in sorted(tx_counts.keys()):
+        # Use the string version of the MAC address as the key for readability
+        print("{0}\t{1}\t{2}".format(wlan_exp_util.mac2str(int(k)), tx_counts[k][0], tx_counts[k][1]))
 
-        	tx_counts[addr] = (tx_pkts_to_addr, tx_bytes_to_addr)
-
-        # Print the results
-        msg  = "\nExample 2: Tx Counts {0}:\n".format(address)
-        msg += "Addr            \t# Pkts\t# Bytes\n"
-        for k in tx_counts.keys():
-        	# Use the string version of the MAC address as the key for readability
-        	msg += "{0}\t{1}\t{2}\n".format(wlan_exp_util.mac2str(k), tx_counts[k][0], tx_counts[k][1])
-        print(msg)
-
-except IndexError:
-    print("\nExample 2: No Transmit packets in log.")
-
+sys.exit()
 
 #################################################################################################
 # Example 3: Calculate total number of packets and bytes received from each distinct MAC address
