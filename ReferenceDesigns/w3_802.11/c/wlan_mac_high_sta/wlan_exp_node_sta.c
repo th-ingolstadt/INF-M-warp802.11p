@@ -68,8 +68,6 @@ extern u32            mac_param_chan_save;
 extern u8             access_point_num_basic_rates;
 extern u8             access_point_basic_rates[NUM_BASIC_RATES_MAX];
 
-extern u8             bcast_addr[6];
-
 /*************************** Variable Definitions ****************************/
 
 
@@ -278,40 +276,6 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 	return respSent;
 }
 
-
-
-/*****************************************************************************/
-/**
-* WLAN Exp mapping of MAC Addr to AID
-*
-* This function contains the mapping of MAC address to AID within a node.
-*
-* @param    MAC Address
-*
-* @return	AID associated with that MAC address
-*
-* @note		None.
-*
-******************************************************************************/
-u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
-	u32 id;
-	station_info * info;
-
-	if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
-		id = 0xFFFFFFFF;
-	} else {
-		info = wlan_mac_high_find_station_info_ADDR(&association_table, mac_addr);
-		if (info != NULL) {
-            id = info->AID;
-		} else {
-			xil_printf("ERROR:  Could not find MAC address = %02x:%02x:%02x:%02x:%02x:%02x\n",
-                       mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-			id = 0;
-		}
-	}
-
-	return id;
-}
 
 
 

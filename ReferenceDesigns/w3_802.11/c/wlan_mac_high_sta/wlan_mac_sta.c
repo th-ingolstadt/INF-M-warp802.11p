@@ -107,9 +107,8 @@ u32 mac_param_chan;
 u32 mac_param_chan_save;
 
 
-// AP MAC address / Broadcast address
+// MAC address
 static u8 eeprom_mac_addr[6];
-const  u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 
 /*************************** Functions Prototypes ****************************/
@@ -255,9 +254,9 @@ int main() {
 		//will spin in this loop until an interrupt happens
 
 #ifdef USE_WARPNET_WLAN_EXP
-		wlan_mac_high_interrupt_stop();
+//		wlan_mac_high_interrupt_stop();
 		transport_poll( WLAN_EXP_ETH );
-		wlan_mac_high_interrupt_start();
+//		wlan_mac_high_interrupt_start();
 #endif
 	}
 	return -1;
