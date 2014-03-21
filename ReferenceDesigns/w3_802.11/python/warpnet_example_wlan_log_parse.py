@@ -29,7 +29,7 @@ import warpnet.wlan_exp.util as wlan_exp_util
 d = datetime.datetime.now()
 
 # NOTE: change these values to match your experiment setup
-LOGFILE = 'example_logs/ap_log_stats_2014_03_21.hdf5'
+LOGFILE = 'example_logs/ap_log_stats_2014_03_20.hdf5'
 # LOGFILE = 'example_logs/sta_log_stats_2014_03_21.hdf5'
 
 
@@ -69,10 +69,10 @@ log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 # Unpack the log into numpy structured arrays
 #   gen_log_np_arrays returns a dictionary with log entry type IDs as keys
 #   Global 'wlan_exp_log_entry_types' lists all known log entry types
-log_nd = log_util.log_data_to_np_arrays(log_data, log_index)
+log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 # Describe the NumPy arrays
-# log_util.print_log_index_summary(log_nd, "NumPy Array Summary:")
+# log_util.print_log_index_summary(log_np, "NumPy Array Summary:")
 
 
 ###############################################################################
@@ -96,7 +96,7 @@ for info in log_node_info:
 #
 
 # Extract all OFDM receptions
-log_rx_ofdm = log_nd['RX_OFDM']
+log_rx_ofdm = log_np['RX_OFDM']
 
 # Extract an array of just the Rx rates
 rx_rates = log_rx_ofdm['rate']
@@ -122,7 +122,7 @@ print("Example 1: Num Rx per Rate: %s\n" % rx_rate_counts)
 
 try:
     # Extract all OFDM transmissions
-    log_tx = log_nd['TX']
+    log_tx = log_np['TX']
 
     # Extract an array of just the MAC headers
     tx_hdrs = log_tx['mac_header']
@@ -171,7 +171,7 @@ FCS_GOOD = 0
 
 try:
     # Extract all receptions
-    log_rx = log_nd['RX_ALL']
+    log_rx = log_np['RX_ALL']
 
     # Extract an array of the MAC headers and FCS results
     rx_hdrs    = log_rx['mac_header']
@@ -218,7 +218,7 @@ except IndexError:
 
 try:
     # Extract all WARPNet commands
-    log_wn_cmd = log_nd['WN_CMD_INFO']
+    log_wn_cmd = log_np['WN_CMD_INFO']
 
     # Extract an array of the source IDs and Commands
     wn_src_id  = log_wn_cmd['src_id']

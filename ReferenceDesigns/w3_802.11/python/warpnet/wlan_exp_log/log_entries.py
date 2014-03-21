@@ -398,9 +398,8 @@ entry_station_info.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('mac_addr',               '6s',     '6uint8'),
             ('aid',                    'H',      'uint16'),
-            ('host_name',              '16s',    '16uint8'),
+            ('host_name',              '20s',    '20uint8'),
             ('flags',                  'I',      'uint32'),
-            ('padding_01',             '4x',     'uint32'),
             ('rx_last_timestamp',      'Q',      'uint64'),
             ('rx_last_seq',            'H',      'uint16'),
             ('rx_last_power',          'b',      'int8'),
@@ -411,7 +410,7 @@ entry_station_info.append_field_defs([
             ('tx_phy_flags',           'B',      'uint8'),
             ('tx_mac_num_tx_max',      'B',      'uint8'),
             ('tx_mac_flags',           'B',      'uint8'),
-            ('padding_02',             '2x',     'uint16')])
+            ('padding',                '2x',     'uint16')])
 
 
 # WARPNet Command Info
