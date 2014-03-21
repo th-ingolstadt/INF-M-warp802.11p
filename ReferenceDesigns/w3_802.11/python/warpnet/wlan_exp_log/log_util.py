@@ -592,6 +592,7 @@ def is_valid_log_data_container(group):
         True / False
     """
     import warpnet.wlan_exp.version as version
+    import numpy as np
 
     try:
         if group.attrs['wlan_exp_log']:
@@ -599,7 +600,9 @@ def is_valid_log_data_container(group):
             version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2])
         
         if group['log_data']:
-            pass
+            if(group['log_data'].dtype.kind != np.dtype(np.void).kind):
+                return False
+
     except:
         return False
     
