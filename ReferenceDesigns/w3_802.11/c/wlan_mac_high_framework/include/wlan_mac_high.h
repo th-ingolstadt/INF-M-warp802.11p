@@ -127,14 +127,13 @@ CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
 #define STATION_INFO_FLAG_NEVER_REMOVE 0x0002 ///< Mask for flag in station_info -- never remove
 
-#define STATION_INFO_HOSTNAME_MAXLEN 15
+#define STATION_INFO_HOSTNAME_MAXLEN 19
 
 #define MY_STATION_INFO_COMMON_FIELDS 								   									\
 		u8          addr[6]; 									/* HW Address */ 						\
 		u16         AID; 										/* Association ID */	 				\
 		char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	/* Hostname from DHCP requests */		\
 		u32			flags;										/* 1-bit flags */						\
-		u32			padding;									/* 1-bit flags */						\
 		rx_info     rx; 										/* Reception Information Structure */	\
 		tx_params   tx;											/* Transmission Parameters Structure */
 

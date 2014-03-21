@@ -2264,8 +2264,10 @@ int node_get_parameter_values(u32 * buffer, unsigned int max_words) {
 *
 ******************************************************************************/
 void node_info_set_wlan_hw_addr  ( u8 * hw_addr  ) {
-    node_info.wlan_hw_addr[0] = (hw_addr[0]<<8)  |  hw_addr[1];
-    node_info.wlan_hw_addr[1] = (hw_addr[2]<<24) | (hw_addr[3]<<16) | (hw_addr[4]<<8) | hw_addr[5];
+	// Note:  Doing processing this way so that when the structure is copied and parsed in the log
+	//   we do not need to mangle the address.
+    node_info.wlan_hw_addr[0] = (hw_addr[2]<<24) | (hw_addr[3]<<16) | (hw_addr[4]<<8) | hw_addr[5];
+    node_info.wlan_hw_addr[1] = (hw_addr[0]<<8)  |  hw_addr[1];
 }
 
 void node_info_set_max_assn      ( u32 max_assn  ) { node_info.wlan_max_assn       = max_assn;  }

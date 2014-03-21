@@ -116,8 +116,8 @@
 #define NODE_WLAN_EXP_DESIGN_VER       6
 #define NODE_WLAN_MAX_ASSN             7
 #define NODE_WLAN_EVENT_LOG_SIZE       8
-#define NODE_WLAN_MAX_STATS            9
-#define NODE_WLAN_MAC_ADDR            10
+#define NODE_WLAN_MAC_ADDR             9
+#define NODE_WLAN_MAX_STATS           10
 #define NODE_MAX_PARAMETER            11
 
 
@@ -140,8 +140,8 @@ typedef struct {
 	u32   wlan_exp_design_ver;              // WLAN Exp - Version (only first 24 bits are valid)
 	u32   wlan_max_assn;                    // WLAN Exp - Max Associations
 	u32   wlan_event_log_size;              // WLAN Exp - Event Log Size
-	u32   wlan_max_stats;                   // WLAN Exp - Max number of promiscuous statistic entries
     u32   wlan_hw_addr[2];                  // WLAN Exp - Wireless MAC address
+	u32   wlan_max_stats;                   // WLAN Exp - Max number of promiscuous statistic entries
 
     u32   eth_device;
     u8    hw_addr[ETH_ADDR_LEN];

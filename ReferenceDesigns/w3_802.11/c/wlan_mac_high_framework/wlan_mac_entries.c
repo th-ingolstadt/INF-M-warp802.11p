@@ -222,7 +222,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
         	exp_info_entry_log_item = (exp_info_entry*) entry;
 			xil_printf("%d: - Experiment Info entry\n", entry_number );
 			xil_printf("   Timestamp:  %d\n", (u32)(exp_info_entry_log_item->timestamp));
-			xil_printf("   Reason   :  %d\n",       exp_info_entry_log_item->reason);
+			xil_printf("   Info Type:  %d\n",       exp_info_entry_log_item->info_type);
 			xil_printf("   Message  :  \n");
 			for( i = 0; i < exp_info_entry_log_item->length; i++) {
 				xil_printf("        ");

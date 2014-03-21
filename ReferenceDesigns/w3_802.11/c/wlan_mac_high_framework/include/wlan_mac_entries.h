@@ -89,6 +89,7 @@ typedef struct{
 	u32     wlan_exp_ver;         // WLAN Exp version
 	u32     wlan_max_assn;        // Max associations of the node
 	u32     wlan_event_log_size;  // Max size of the event log
+	u32     wlan_mac_addr[2];     // WLAN MAC Address
 	u32     wlan_max_stats;       // Max number of promiscuous statistics
 } node_info_entry;
 
