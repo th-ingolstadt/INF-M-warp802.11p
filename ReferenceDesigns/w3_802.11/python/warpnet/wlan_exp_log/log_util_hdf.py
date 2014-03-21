@@ -26,7 +26,7 @@ Naming convention:
   log_data_index -- This is an index that has not been interpreted / filtered
                     and corresponds 1-to-1 with what is in given log_data.
                     The defining characteristic of a log_data_index is that
-                    the dictionary keys are all integers:
+                    the dictionary keys are all integers (entry type IDs):
                       { <int> : [<offsets>] }
 
   log_index      -- A log_index is any index that is not a log_data_index.  In
@@ -46,8 +46,8 @@ Naming convention:
 Functions (see below for more information):
     np_arrays_to_hdf5()           -- Generate a HDF5 file based on numpy arrays
     log_data_to_hdf5()            -- Generate an HDF5 file containing log_data
-    is_valid_log_data_container() -- Is the HDF5 group a valid wlan_exp_log_data_container
-    hdf5_to_log_data()            -- Extract the log data from an HDF5 file
+    is_valid_log_data_container() -- Test whether an HDF5 group a valid wlan_exp_log_data_container
+    hdf5_to_log_data()            -- Extract the log_data from an HDF5 file
     hdf5_to_log_data_index()      -- Extract the log_data_index from an HDF5 file
     hdf5_to_attr_dict()           -- Extract the attribute dictionary from an HDF5 file
     
@@ -185,7 +185,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
     method will replace the existing file, destroying any data in the original file.
 
     If the filename already esists and overwrite==False this method will print a warning, 
-    then create a new filename with a date-time suffix.
+    then create a new filename with a unique date-time suffix.
     
     For WLAN Exp log data manipulation, it is necessary to define a common file format
     so that it is easy for multiple consumers, both in python and other languages, to
@@ -219,14 +219,18 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
         overwrite  -- If true method will overwrite existing file with filename
     """
     import h5py
+    import os
 
     # Process the inputs to generate any error
     (np_data, log_data_index) = _process_hdf5_log_data_inputs(log_data, gen_index)
     
     # Determine a safe filename for the output HDF5 file
     if overwrite:
-        print("WARNING: overwriting existing file {0}".format(filename))
+        if os.path.isfile(filename):
+            print("WARNING: overwriting existing file {0}".format(filename))
+
         h5_filename = filename
+
     else:
         h5_filename = _get_safe_filename(filename)
 
@@ -276,7 +280,7 @@ def log_data_to_hdf5_group(log_data, group_name, filename=None, h5_file=None,
     (np_data, log_data_index) = _process_hdf5_log_data_inputs(log_data, gen_index)
 
     # Open the file object
-    hf    = _open_hdf5_file(filename, h5_file, readonly=False)
+    hf = _open_hdf5_file(filename, h5_file, readonly=False)
 
     # Create the new group
     try:
@@ -292,6 +296,7 @@ def log_data_to_hdf5_group(log_data, group_name, filename=None, h5_file=None,
         _add_attr_dict_to_group(log_grp, attr_dict)
 
     # Close the file if it was opened from the filename
+    #  If the user supplied an already-open h5py.File, don't close it here
     if filename is not None:
         hf.close()
 
@@ -313,12 +318,16 @@ def is_valid_log_data_container(group):
 
     try:
         if group.attrs['wlan_exp_log']:
+            #Require two attributes named 'wlan_exp_log' and 'wlan_exp_ver'
             ver = group.attrs['wlan_exp_ver']
             version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2])
         
         if group['log_data']:
+            #Require a dataset named 'log_data'
             if(group['log_data'].dtype.kind != np.dtype(np.void).kind):
+                #Require the 'log_data' dataset to be HDF5 opaque type (numpy void type)
                 return False
+
     except:
         return False
     
@@ -359,7 +368,11 @@ def hdf5_to_log_data(filename=None, h5_file=None, group_name=None):
     # Get the log_data from the group data set
     ds          = group['log_data']
     log_data_np = np.empty(shape=ds.shape, dtype=ds.dtype)
+
+    #Use the h5py library's HDF5 -> numpy hooks to preserve the log_data size and void type
     ds.read_direct(log_data_np)
+
+    #Point to the numpy array's underlying buffer to find the raw log_data to return
     log_data    = log_data_np.data
 
     # Close the file if it was opened from the filename
@@ -411,6 +424,8 @@ def hdf5_to_log_data_index(filename=None, h5_file=None, group_name=None, gen_ind
         index_group   = group["log_data_index"]
         
         for k, v in index_group.items():
+            #Re-construct the log_data_index dictionary, using integers
+            # (really entry_type IDs) as the keys and Python lists as values
             log_data_index[int(k)] = v.tolist()
     except:
         error = True
