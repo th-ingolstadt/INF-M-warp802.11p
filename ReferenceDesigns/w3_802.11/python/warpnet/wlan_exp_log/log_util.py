@@ -44,15 +44,15 @@ Naming convention:
                         http://www.numpy.org/
 
 Functions (see below for more information):
-    gen_log_data_index()               -- Generate a byte index given a WLAN Exp log file
-    filter_log_index()                 -- Filter a log index with given parameters
-    log_data_to_np_arrays()            -- Generate a numpy structured array (ndarray) of log entries
-    np_arrays_to_hdf5()                -- Generate a HDF5 file based on numpy arrays
-    log_data_to_hdf5()                 -- Generate an HDF5 file containing log_data
-    hdf5_is_valid_log_data_container() -- Is the HDF5 file a valid wlan_exp_log_data_container
-    hdf5_to_log_data()                 -- Extract the log data from an HDF5 file
-    hdf5_to_log_data_index()           -- Extract the log_data_index from an HDF5 file
-    hdf5_to_attr_dict()                -- Extract the attribute dictionary from an HDF5 file
+    gen_log_data_index()          -- Generate a byte index given a WLAN Exp log file
+    filter_log_index()            -- Filter a log index with given parameters
+    log_data_to_np_arrays()       -- Generate a numpy structured array (ndarray) of log entries
+    np_arrays_to_hdf5()           -- Generate a HDF5 file based on numpy arrays
+    log_data_to_hdf5()            -- Generate an HDF5 file containing log_data
+    is_valid_log_data_container() -- Is the HDF5 group a valid wlan_exp_log_data_container
+    hdf5_to_log_data()            -- Extract the log data from an HDF5 file
+    hdf5_to_log_data_index()      -- Extract the log_data_index from an HDF5 file
+    hdf5_to_attr_dict()           -- Extract the attribute dictionary from an HDF5 file
     
 """
 
@@ -61,7 +61,7 @@ __all__ = ['gen_log_data_index',
            'log_data_to_np_arrays',
            'np_arrays_to_hdf5',
            'log_data_to_hdf5',
-           'hdf5_is_valid_log_data_container',
+           'is_valid_log_data_container',
            'hdf5_to_log_data',
            'hdf5_to_log_data_index',
            'hdf5_to_attr_dict']
@@ -532,9 +532,10 @@ def log_data_to_hdf5_group(h5_file, log_data, group_name, attr_dict=None, gen_in
     file.  If the file does not exist, it will be created.
     
     Attributes:
-        h5_file    -- Either an h5py File object, or a name of the HDF5 file to open. If this file
-                      exists, then a new group will be added to the file with the specified group_name.
-                      Otherwise a new file will be created with the group.
+        h5_file    -- Either an h5py File object, or a name of the HDF5 file to open. If 
+                      this file exists, then a new group will be added to the file with 
+                      the specified group_name.  Otherwise a new file will be created 
+                      with the group.
         log_data   -- Binary WLAN Exp log data
         group_name -- Name of Group within the HDF5 file.  
         attr_dict  -- An array of user provided attributes that will be added to the group.                      
@@ -550,12 +551,13 @@ def log_data_to_hdf5_group(h5_file, log_data, group_name, attr_dict=None, gen_in
         # Open a HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
         hf = h5py.File(h5_file, mode='a')
     elif (type(h5_file) is h5py.File):
+        # Use the HDF5 File Object
         hf = h5_file
     else:
         raise AttributeError("Invalid HDF5 file or filename: {0}\n".format(h5_file))
 
+    # Create the new group
     try:
-        # Store all data in the new group
         log_grp = hf.create_group(group_name)
     except ValueError:
         raise AttributeError("Unable to create group {0} in file {1}\n".format(group_name, h5_file))
@@ -575,8 +577,8 @@ def log_data_to_hdf5_group(h5_file, log_data, group_name, attr_dict=None, gen_in
 
 
 
-def hdf5_is_valid_log_data_container(filename, group_name=None):
-    """Is the filename a valid wlan_exp_log_data_container
+def is_valid_log_data_container(group):
+    """Is the HDF5 group a valid wlan_exp_log_data_container
 
     Attributes:
         filename   -- File name of HDF5 file that appears on disk.  If this file 
@@ -589,24 +591,30 @@ def hdf5_is_valid_log_data_container(filename, group_name=None):
     Returns:
         True / False
     """
+    import warpnet.wlan_exp.version as version
+
     try:
-        (hf, grp) = _hdf5_extract(filename, group_name)
-    except AttributeError:
+        if group.attrs['wlan_exp_log']:
+            ver = group.attrs['wlan_exp_ver']
+            version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2])
+        
+        if group['log_data']:
+            pass
+    except:
         return False
     
     return True
 
-# End hdf5_is_valid_log_data_container()
+# End is_valid_log_data_container()
 
 
 
-def hdf5_to_log_data(filename, group_name=None):
+def hdf5_to_log_data(h5_file, group_name=None):
     """Extract the log_data from an HDF5 file that was created to the 
     wlan_exp_log_data_container format.
 
     Attributes:
-        filename   -- File name of HDF5 file that appears on disk.  If this file 
-                      does not exist, this function will raise an AttributeError
+        h5_file    -- Either an h5py File object, or a name of the HDF5 file to open. 
         group_name -- Name of Group within the HDF5 file.  If not specified, then 
                       the group_name within the HDF5 file will be '/'.  If the 
                       group_name is not a valid group within the file, then the
@@ -617,20 +625,26 @@ def hdf5_to_log_data(filename, group_name=None):
     """
     import numpy as np
 
-    (hf, grp) = _hdf5_extract(filename, group_name)
-    
-    # Get the log_data from the group data set
-    try:
-        ds          = grp['log_data']
-        log_data_np = np.empty(shape=ds.shape, dtype=ds.dtype)
-        ds.read_direct(log_data_np)
-        log_data    = log_data_np.data
-    except:
-        msg  = "Group {0} of {1} is not a valid ".format(group_name, filename)
+    # Open the file object
+    hf    = _open_hdf5_file_object(h5_file)
+
+    # Extract the group
+    group = _extract_hdf5_group(hf, group_name)
+
+    # Check that the group is a valid container
+    if not is_valid_log_data_container(group):
+        msg  = "Group {0} of {1} is not a valid ".format(group_name, h5_file)
         msg += "wlan_exp_log_data_container."
         raise AttributeError(msg)
     
-    hf.close()
+    # Get the log_data from the group data set
+    ds          = group['log_data']
+    log_data_np = np.empty(shape=ds.shape, dtype=ds.dtype)
+    ds.read_direct(log_data_np)
+    log_data    = log_data_np.data
+
+    # Close the file object
+    _close_hdf5_file_object(h5_file, hf)
 
     return log_data
 
@@ -778,6 +792,7 @@ def _process_hdf5_log_data_inputs(log_data, gen_index):
 
 def _create_hdf5_log_data_container(group, np_data, log_data_index):
     """Create a wlan_exp_log_data_container in the given group."""
+    import h5py
     import numpy as np
     import warpnet.wlan_exp.version as version
 
@@ -834,55 +849,61 @@ def _add_attr_dict_to_group(group, attr_dict):
 
 
 
-def _hdf5_extract(filename, group_name=None):
+def _open_hdf5_file_object(h5_file):
+    """Open and return an HDF5 file object.
+
+    Attributes:    
+        h5_file    -- Either an h5py File object, or a name of the HDF5 file to open. 
+    """
+    import os
+    import h5py    
+    
+    if type(h5_file) is str:
+        if not os.path.isfile(h5_file):
+            raise AttributeError("File {0} does not exist.".format(h5_file))
+        
+        # Open a HDF5 File Object in 'r' (Readonly) mode
+        file_object = h5py.File(h5_file, mode='r')
+    elif (type(h5_file) is h5py.File):
+        # Use the HDF5 File Object
+        file_object = h5_file
+    else:
+        raise AttributeError("Invalid HDF5 file or filename: {0}\n".format(h5_file))
+
+    return file_object
+
+# End _open_hdf5_file_object()
+
+
+
+def _close_hdf5_file_object(h5_file, file_object):
+    """Close the file object if necessary."""
+    if type(h5_file) is str:
+        file_object.close()
+
+# End _close_hdf5_file_object()
+
+
+
+def _extract_hdf5_group(file_object, group_name=None):
     """Extract the file object and the group from the HDF5 file.
 
     Attributes:
-        filename   -- File name of HDF5 file that appears on disk.  If this file 
-                      does not exist, raise an AttributeError  
-        group_name -- Name of Group within the HDF5 file.  If not specified, then 
-                      the group_name within the HDF5 file will be '/'.  If the 
-                      group_name is not a valid group within the file, then the
-                      function will raise an AttributeError
     
     Returns:
-        (HDF5 File object, HDF5 group)
+        HDF5 group
     """
-    import os
-    import h5py
-    import warpnet.wlan_exp.version as version
+    if group_name is not None:
+        try:
+            group = file_object[group_name]
+        except:
+            raise AttributeError("Group {0} does not exist in {1}.".format(group_name, file_object))
+    else:
+        group = file_object
     
-    # Error if inputs are not correct        
-    if not os.path.isfile(filename):
-        raise AttributeError("File {0} does not exist.".format(filename))
-    
-    # Open a HDF5 File Object in 'r' (Readonly) mode
-    hf = h5py.File(filename, mode='r')
-    
-    # Find the group if it was specified
-    try:
-        if not group_name is None:
-            grp        = hf[group_name]
-        else:
-            grp        = hf
-            group_name = '/'
-    except:
-        raise AttributeError("Group {0} does not exist in {1}.".format(group_name, filename))
+    return group
 
-
-    # Check the default attributes of the group
-    try:
-        if grp.attrs['wlan_exp_log']:
-            ver = grp.attrs['wlan_exp_ver']
-            version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2])
-    except:
-        msg  = "Group {0} of {1} is not a valid ".format(group_name, filename)
-        msg += "wlan_exp_log_data_container."
-        raise AttributeError(msg)
-    
-    return (hf, grp)
-
-# End _hdf5_validation()
+# End _extract_hdf5_group()
 
 
 
