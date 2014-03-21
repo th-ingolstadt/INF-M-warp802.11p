@@ -382,14 +382,15 @@ entry_node_info.append_field_defs([
             ('wlan_max_stats',         'I',      'uint32')])
 
 
-# Experiment Info
-entry_exp_info = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
-entry_exp_info.append_field_defs([
-            ('mac_addr',               '6s',     '6uint8'),
+# Experiment Info header - actual exp_info contains a "message" field that
+#  follows this header. Since the message is variable length it is not described
+#  in the fields list below. Full exp_info entries (header + message) must be extracted
+#  directly by a user script.
+entry_exp_info_hdr = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
+entry_exp_info_hdr.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('info_type',              'I',      'uint16'),
             ('length',                 'I',      'uint16')])
-
 
 # Station Info
 entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
