@@ -19,11 +19,18 @@
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_misc_util.h"
 
-#define QUEUE_BUFFER_SIZE	0x800 	//2KB
+#define QUEUE_BUFFER_SIZE	0x1000 	//4KB
 
 typedef struct{
-	void* station_info_ptr;
+	u8	  metadata_type;
+	u8	  reserved[3];
+	u32   metadata_ptr;
 } tx_queue_metadata;
+
+#define QUEUE_METADATA_TYPE_IGNORE			0x00
+#define QUEUE_METADATA_TYPE_STATION_INFO	0x01
+#define QUEUE_METADATA_TYPE_TX_PARAMS   	0x02
+
 
 typedef struct{
 	tx_queue_metadata metadata;

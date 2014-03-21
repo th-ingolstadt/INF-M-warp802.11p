@@ -67,8 +67,7 @@ extern u8                  promiscuous_stats_enabled;
 
 
 // Declared in each of the AP / STA
-extern u8                  default_tx_gain_target;
-extern u8                  default_unicast_rate;
+extern tx_params           default_unicast_data_tx_params;
 
 extern dl_list		       association_table;
 
@@ -864,19 +863,19 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				// If parameter is not the magic number, then set the TX rate
 				if ( rate != NODE_TX_RATE_RSVD_VAL ) {
 					// Set the rate of all stations
-					default_unicast_rate = rate;
+					default_unicast_data_tx_params.phy.rate = rate;
 					curr_entry = curr_list->first;
 
 					for(i=0; i < curr_list->length; i++){
 						curr_station_info = (station_info*)(curr_entry->data);
-						curr_station_info->tx.phy.rate = default_unicast_rate;
+						curr_station_info->tx.phy.rate = default_unicast_data_tx_params.phy.rate;
 						curr_entry        = dl_entry_next(curr_entry);
 					}
 
-					xil_printf("Setting Default TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+					xil_printf("Setting Default TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_data_tx_params.phy.rate));
 				} else {
 					// Get the default rate
-					rate = default_unicast_rate;
+					rate = default_unicast_data_tx_params.phy.rate;
 				}
 			}
 

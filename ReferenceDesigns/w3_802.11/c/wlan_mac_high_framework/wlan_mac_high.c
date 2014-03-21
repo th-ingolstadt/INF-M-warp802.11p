@@ -925,34 +925,6 @@ void wlan_mac_high_free(void* addr){
 }
 
 /**
- * @brief Get Current Transmit Rate for a Particular Station
- *
- * Currently, this function on pulls the transmit rate element from the station_info
- * struct the user provides. This function is another place where processing can be
- * inserted to alter the rate for automatic rate adaptation.
- *
- * @param station_info* station
- *  - Pointer to station information struct
- * @return u8
- *  - Transmit Rate (WLAN_MAC_RATE_6M, WLAN_MAC_RATE_9M, WLAN_MAC_RATE_12M,
- *  WLAN_MAC_RATE_18M, WLAN_MAC_RATE_24M, WLAN_MAC_RATE_36M, WLAN_MAC_RATE_48M
- *  WLAN_MAC_RATE_54M)
- *
- */
-u8 wlan_mac_high_get_tx_rate(station_info* station){
-	u8 return_value;
-
-	if(((station->tx.phy.rate) >= WLAN_MAC_RATE_6M) && ((station->tx.phy.rate) <= WLAN_MAC_RATE_54M)){
-		return_value = station->tx.phy.rate;
-	} else {
-		xil_printf("Station 0x%08x has invalid rate selection (%d), defaulting to WLAN_MAC_RATE_6M\n",station,station->tx.phy.rate);
-		return_value = WLAN_MAC_RATE_6M;
-	}
-
-	return return_value;
-}
-
-/**
  * @brief Write a Decimal Value to the Hex Display
  *
  * This function will write a decimal value to the board's two-digit hex displays.
@@ -1143,7 +1115,10 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet) {
 
 	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-	station = (station_info*)(((tx_queue_buffer*)(packet->data))->metadata.station_info_ptr);
+
+
+
+
 
 	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_cpu_low_ready() )){
 		//Copy the packet into the transmit packet buffer
@@ -1156,16 +1131,18 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet) {
 		wlan_mac_high_cdma_finish_transfer();
 
 
-		if(station == NULL){
-			//Broadcast transmissions have no station information, so we default to a nominal rate
-			tx_mpdu->AID = 0;
-			tx_mpdu->params.phy.rate = WLAN_MAC_RATE_6M;
-			tx_mpdu->params.phy.power = 10;
-		} else {
-			//Request the rate to use for this station
-			tx_mpdu->AID = station->AID;
-			tx_mpdu->params.phy.rate = wlan_mac_high_get_tx_rate(station);
-			tx_mpdu->params.phy.power = station->tx.phy.power;
+		switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
+			case QUEUE_METADATA_TYPE_IGNORE:
+			break;
+			case QUEUE_METADATA_TYPE_STATION_INFO:
+				station = (station_info*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr);
+				//Note: this would be a good place to add code to handle the automatic adjustment of transmission
+				//properties like rate
+				memcpy(&(tx_mpdu->params), &(station->tx), sizeof(tx_params));
+			break;
+			case QUEUE_METADATA_TYPE_TX_PARAMS:
+				memcpy(&(tx_mpdu->params), (void*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params));
+			break;
 		}
 
 		tx_mpdu->state = TX_MPDU_STATE_READY;
@@ -1331,16 +1308,20 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
 }
 
 
-void wlan_mac_high_setup_tx_frame_info( dl_entry * tx_queue, void * metadata, u32 tx_length, u8 num_tx, u8 flags  ) {
+void wlan_mac_high_setup_tx_frame_info( dl_entry * tx_queue_entry, u32 tx_length, u8 flags  ) {
+
+	tx_queue_buffer* tx_queue = ((tx_queue_buffer*)(tx_queue_entry->data));
 
     // Set up metadata
-	((tx_queue_buffer*)(tx_queue->data))->metadata.station_info_ptr = metadata;
+	tx_queue->metadata.metadata_ptr = QUEUE_METADATA_TYPE_IGNORE; //By default, this frame won't point to any extra metadata.
+																							  //This field should be overwritten by usercode after this function
+																							  //is called.
+	bzero(&(tx_queue->frame_info), sizeof(tx_frame_info));
 
 	// Set up frame info data
-	((tx_queue_buffer*)(tx_queue->data))->frame_info.timestamp_create			 = get_usec_timestamp();
-	((tx_queue_buffer*)(tx_queue->data))->frame_info.length          			 = tx_length;
-	((tx_queue_buffer*)(tx_queue->data))->frame_info.params.mac.num_tx_max       = num_tx;
-	((tx_queue_buffer*)(tx_queue->data))->frame_info.flags           			 = flags;
+	tx_queue->frame_info.timestamp_create			 = get_usec_timestamp();
+	tx_queue->frame_info.length          			 = tx_length;
+	tx_queue->frame_info.flags           			 = flags;
 }
 
 /*****************************************************************************/
