@@ -59,8 +59,6 @@ extern char       * access_point_ssid;
 
 extern u32          mac_param_chan;
 
-extern u8           bcast_addr[6];
-
 /*************************** Variable Definitions ****************************/
 
 
@@ -142,11 +140,14 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
             //
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
+			dl_entry * entry;
+
 			// Check argument to see if we are diassociating one or all AIDs
 			if ( temp == 0xFFFF ) {
 				deauthenticate_stations();                     // Deauthenticate all stations
 			} else {
-                temp = deauthenticate_station( wlan_mac_high_find_station_info_AID( &association_table, temp ) );
+				entry = wlan_mac_high_find_station_info_AID( &association_table, temp );
+                temp = deauthenticate_station( (station_info*)(entry->data) );
 			}
 
 			// Print message to the UART to show which node was disassociated
@@ -297,41 +298,6 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 	}
 
 	return respSent;
-}
-
-
-
-/*****************************************************************************/
-/**
-* WLAN Exp mapping of MAC Addr to AID
-*
-* This function contains the mapping of MAC address to AID within a node.
-*
-* @param    MAC Address
-*
-* @return	AID associated with that MAC address
-*
-* @note		None.
-*
-******************************************************************************/
-u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
-	u32            id;
-	station_info * info;
-
-	if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
-		id = 0xFFFFFFFF;
-	} else {
-		info = wlan_mac_high_find_station_info_ADDR(&association_table, mac_addr);
-		if (info != NULL) {
-            id = info->AID;
-		} else {
-			xil_printf("ERROR:  Could not find MAC address = %02x:%02x:%02x:%02x:%02x:%02x\n",
-                       mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-			id = 0;
-		}
-	}
-
-	return id;
 }
 
 
