@@ -121,7 +121,7 @@ if('TX' in log_np.keys()):
     print(msg)
     for k in sorted(tx_counts.keys()):
         # Use the string version of the MAC address as the key for readability
-        print("{0}\t{1}\t{2}".format(wlan_exp_util.mac2str(int(k)), tx_counts[k][0], tx_counts[k][1]))
+        print("{0}\t{1}\t{2}".format(wlan_exp_util.mac2str(k), tx_counts[k][0], tx_counts[k][1]))
 
 sys.exit()
 

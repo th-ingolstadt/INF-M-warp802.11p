@@ -262,6 +262,12 @@ def mac2str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
     msg = ""
     if not mac_address is None:
+
+        #Force the input address to a Python int
+        # This handles the case of a numpy uint64 input, which kills the >> operator
+        if(type(mac_address) is not int):
+            mac_address = int(mac_address)
+
         msg += "{0:02x}:".format((mac_address >> 40) & 0xFF)
         msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
         msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
