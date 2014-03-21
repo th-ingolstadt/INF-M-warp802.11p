@@ -134,6 +134,7 @@ CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 		u16         AID; 										/* Association ID */	 				\
 		char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	/* Hostname from DHCP requests */		\
 		u32			flags;										/* 1-bit flags */						\
+		u32			padding;									/* 1-bit flags */						\
 		rx_info     rx; 										/* Reception Information Structure */	\
 		tx_params   tx;											/* Transmission Parameters Structure */
 
@@ -160,6 +161,12 @@ typedef struct{
 typedef struct{
 	MY_STATION_INFO_COMMON_FIELDS
 } station_info_base;
+
+
+//////////// Global Constants ////////////
+
+extern const  u8 bcast_addr[6];
+
 
 
 //////////// Initialization Functions ////////////

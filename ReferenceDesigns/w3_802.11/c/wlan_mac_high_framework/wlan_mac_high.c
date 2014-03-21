@@ -55,6 +55,9 @@ extern int _HEAP_SIZE;	 ///< Size of the heap
 
 /*************************** Variable Definitions ****************************/
 
+// Constants
+const  u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
 // HW structures
 static XGpio       Gpio_timestamp;			///< GPIO instance used for 64-bit usec timestamp
 static XGpio       Gpio;					///< General-purpose GPIO instance
@@ -104,6 +107,7 @@ static u32			num_realloc;			///< Tracking variable for number of times realloc h
 
 // Statistics Flags
 u8                  promiscuous_stats_enabled;   ///< Are promiscuous statistics collected (1 = Yes / 0 = No)
+
 
 /******************************** Functions **********************************/
 

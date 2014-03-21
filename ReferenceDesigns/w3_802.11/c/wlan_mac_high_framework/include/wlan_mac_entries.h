@@ -110,7 +110,7 @@ typedef struct{
 	u64     timestamp;                                  // Timestamp
 	station_info_base info;								// Framework's station_info struct
 } station_info_entry;
-CASSERT(sizeof(station_info_entry) == 56, station_info_entry_alignment_check);
+CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
 
 //-----------------------------------------------
 // Temperature Entry
