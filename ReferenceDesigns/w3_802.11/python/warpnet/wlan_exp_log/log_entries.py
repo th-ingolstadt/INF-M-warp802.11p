@@ -379,6 +379,7 @@ entry_node_info.append_field_defs([
             ('wlan_exp_ver',           'I',      'uint32'),
             ('wlan_max_associations',  'I',      'uint32'),
             ('wlan_log_max_size',      'I',      'uint32'),
+            ('wlan_mac_addr',          'Q',      'uint64'),
             ('wlan_max_stats',         'I',      'uint32')])
 
 

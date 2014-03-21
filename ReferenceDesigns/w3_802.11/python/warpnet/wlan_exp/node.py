@@ -51,8 +51,8 @@ __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
 NODE_WLAN_EXP_DESIGN_VER     = 6
 NODE_WLAN_MAX_ASSN           = 7
 NODE_WLAN_EVENT_LOG_SIZE     = 8
-NODE_WLAN_MAX_STATS          = 9
-NODE_WLAN_MAC_ADDR           = 10
+NODE_WLAN_MAC_ADDR           = 9
+NODE_WLAN_MAX_STATS          = 10
 
 
 class WlanExpNode(wn_node.WnNode):
@@ -674,7 +674,7 @@ class WlanExpNode(wn_node.WnNode):
 
         elif   (identifier == NODE_WLAN_MAC_ADDR):
             if (length == 2):
-                self.wlan_mac_address = ((2**32) * (values[0] & 0xFFFF) + values[1])
+                self.wlan_mac_address = ((2**32) * (values[1] & 0xFFFF) + values[0])
             else:
                 raise wn_ex.ParameterError("NODE_WLAN_MAC_ADDR", "Incorrect length")
 
