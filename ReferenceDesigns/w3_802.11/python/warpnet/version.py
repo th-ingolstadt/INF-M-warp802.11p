@@ -47,10 +47,18 @@ WN_XTRA                 = str('')
 WN_RELEASE              = True
 
 
+# Version string
+version  = "WARPNet v"
+version += "{0:d}.".format(WN_MAJOR)
+version += "{0:d}.".format(WN_MINOR)
+version += "{0:d} ".format(WN_REVISION)
+version += "{0:s} ".format(WN_XTRA)
+
+
 #-----------------------------------------------------------------------------
 # WARPNet Version Utilities
 #-----------------------------------------------------------------------------
-def wn_ver(do_print=True):
+def wn_ver():
     """Returns the version of WARPNet for this package.
     
     Attributes:
@@ -64,13 +72,6 @@ def wn_ver(do_print=True):
         print("at your own risk.")
         print("-" * 60)
         
-    # Print the current version and location of the WARPNet Framework
-    if do_print:
-        print("WARPNet v" + wn_ver_str() + "\n\n")
-        print("Framework Location:")
-        print(os.path.dirname(
-                  os.path.abspath(inspect.getfile(inspect.currentframe()))))
-
     return (WN_MAJOR, WN_MINOR, WN_REVISION)
     
 # End of wn_ver()
@@ -137,6 +138,16 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None):
     return True
     
 # End of wn_ver_check()
+
+
+def print_wn_ver():
+    """Print the WARPNet Version."""
+    print("WARPNet v" + wn_ver_str() + "\n\n")
+    print("Framework Location:")
+    print(os.path.dirname(
+              os.path.abspath(inspect.getfile(inspect.currentframe()))))
+
+# End of print_wn_ver()
 
 
 def wn_ver_str(major=WN_MAJOR, minor=WN_MINOR, 

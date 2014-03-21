@@ -336,7 +336,7 @@ class StatsGetTxRx(wn_message.Cmd):
     def process_resp(self, resp):
         import warpnet.wlan_exp_log.log_entries as log
         
-        index   = 8                     # Offset after response arguments
+        index   = 28                     # Offset after response arguments
         data    = resp.get_bytes()
         ret_val = log.entry_txrx_stats.deserialize(data[index:])
 
@@ -781,7 +781,7 @@ class NodeGetStationInfo(wn_message.Cmd):
     def process_resp(self, resp):
         import warpnet.wlan_exp_log.log_entries as log
 
-        index   = 8                     # Offset after response arguments
+        index   = 28                     # Offset after response arguments
         data    = resp.get_bytes()
         ret_val = log.entry_station_info.deserialize(data[index:])
 

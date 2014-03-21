@@ -16,30 +16,37 @@ per PHY rate and the total number of packets transmitted to each distinct
 MAC address.  Finally, it opens up an interactive python shell to allow
 you to play with the data.
 """
+import datetime
 import numpy as np
 
 import warpnet.wlan_exp_log.log_entries as log
 import warpnet.wlan_exp_log.log_util as log_util
+import warpnet.wlan_exp_log.log_util_hdf as hdf
 
 import warpnet.wlan_exp.util as wlan_exp_util
 
 
+d = datetime.datetime.now()
+
 # NOTE: change these values to match your experiment setup
-LOGFILE = 'example_logs/ap_log_stats_2014_03_20.hdf5'
-# LOGFILE = 'example_logs/sta_log_stats_2014_03_20.hdf5'
+LOGFILE = 'example_logs/ap_log_stats_2014_03_21.hdf5'
+# LOGFILE = 'example_logs/sta_log_stats_2014_03_21.hdf5'
 
 
 print("WLAN Exp Log Example")
 print("Reading log file:  {0}".format(LOGFILE))
 
 # Get the log_data from the file
-log_data = log_util.hdf5_to_log_data(LOGFILE)
+log_data = hdf.hdf5_to_log_data(filename=LOGFILE)
 
 # Get the log_data_index from the file
-log_data_index = log_util.hdf5_to_log_data_index(LOGFILE)
+log_data_index = hdf.hdf5_to_log_data_index(filename=LOGFILE)
 
 # Describe the log_data_index
 log_util.print_log_index_summary(log_data_index, "Log Data Index:")
+
+
+print("HDF5 file read + index time: {0}".format(datetime.datetime.now() - d))
 
 
 # Example Log Filters:
@@ -257,6 +264,7 @@ except IndexError:
 
 print("\nDone.")
 
+print("Full processing time: {0}".format(datetime.datetime.now() - d))
 
 
 

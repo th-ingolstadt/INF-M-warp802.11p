@@ -107,7 +107,7 @@ class WlanExpNode(wn_node.WnNode):
         super(WlanExpNode, self).__init__(host_config)
         
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor, 
-                self.wlan_exp_ver_revision) = version.wlan_exp_ver(output=False)
+                self.wlan_exp_ver_revision) = version.wlan_exp_ver()
         
         self.node_type            = defaults.WLAN_EXP_BASE
         self.max_associations     = 0

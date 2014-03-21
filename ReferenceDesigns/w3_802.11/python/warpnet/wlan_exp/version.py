@@ -47,15 +47,19 @@ WLAN_EXP_XTRA           = str('')
 WLAN_EXP_RELEASE        = True
 
 
+# Version string
+version  = "WLAN Exp v"
+version += "{0:d}.".format(WLAN_EXP_MAJOR)
+version += "{0:d}.".format(WLAN_EXP_MINOR)
+version += "{0:d} ".format(WLAN_EXP_REVISION)
+version += "{0:s} ".format(WLAN_EXP_XTRA)
+
+
 #-----------------------------------------------------------------------------
 # WLAN Exp Version Utilities
 #-----------------------------------------------------------------------------
-def wlan_exp_ver(output=True):
-    """Returns the version of WlanExp for this package.
-    
-    Attributes:
-        output   -- Print output about the WLAN Exp version
-    """    
+def wlan_exp_ver():
+    """Returns the version of WlanExp for this package."""    
     # Print the release message if this is not an official release    
     if not WLAN_EXP_RELEASE: 
         print("-" * 60)
@@ -63,13 +67,6 @@ def wlan_exp_ver(output=True):
         print("compatible with released WLAN Exp bitstreams. Please use ")
         print("at your own risk.")
         print("-" * 60)
-    
-    # Print the current version and location of the WLanExp Framework
-    if output:
-        print("WLAN Exp v" + wlan_exp_ver_str() + "\n")
-        print("Framework Location:")
-        print(os.path.dirname(
-                  os.path.abspath(inspect.getfile(inspect.currentframe()))))
     
     return (WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION)
     
@@ -84,7 +81,7 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None):
     if the version specified is newer than the current version.
     
     Attributes:
-        ver_str  -- Version string returned by wn_ver_str()
+        ver_str  -- Version string returned by wlan_exp_ver_str()
         major    -- Major release number for WARPNet
         minor    -- Minor release number for WARPnet
         revision -- Revision release number for WARPNet
@@ -137,6 +134,16 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None):
     return True
     
 # End of wlan_exp_ver()
+
+
+def print_wlan_exp_ver():
+    """Print the WLAN Exp Version."""
+    print("WLAN Exp v" + wlan_exp_ver_str() + "\n")
+    print("Framework Location:")
+    print(os.path.dirname(
+              os.path.abspath(inspect.getfile(inspect.currentframe()))))
+
+# End of print_wlan_exp_ver()
 
 
 def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR, 

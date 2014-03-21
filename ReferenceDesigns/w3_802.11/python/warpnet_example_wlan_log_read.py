@@ -23,10 +23,10 @@ Description:
 """
 import sys
 import time
-import warpnet.wn_config             as wn_config
-import warpnet.wlan_exp.util         as wlan_exp_util
-import warpnet.wlan_exp.ltg          as ltg
-import warpnet.wlan_exp_log.log_util as log_util
+import warpnet.wn_config                 as wn_config
+import warpnet.wlan_exp.util             as wlan_exp_util
+import warpnet.wlan_exp.ltg              as ltg
+import warpnet.wlan_exp_log.log_util_hdf as hdf
 
 
 #-----------------------------------------------------------------------------
@@ -42,7 +42,7 @@ AP_HDF5_FILENAME  = "example_logs/ap_log_stats_{0}.hdf5".format(UNIQUIFIER)
 STA_HDF5_FILENAME = "example_logs/sta_log_stats_{0}.hdf5".format(UNIQUIFIER)
 
 # Set the per-trial duration (in seconds)
-TRIAL_TIME        = 30
+TRIAL_TIME        = 5
 
 
 
@@ -53,7 +53,7 @@ def write_log_file(file_name, data_buffer):
     """Writes log data to a HDF5 file."""
     try:
         data = data_buffer.get_bytes()
-        log_util.log_data_to_hdf5(file_name, data)
+        hdf.log_data_to_hdf5(data, file_name)
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
 

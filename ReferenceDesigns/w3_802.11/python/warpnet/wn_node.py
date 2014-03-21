@@ -101,7 +101,7 @@ class WnNode(object):
     transport_bcast = None
     
     def __init__(self, host_config=None):
-        (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = version.wn_ver(output=False)
+        (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = version.wn_ver()
         
         if not host_config is None:
             self.host_config = host_config

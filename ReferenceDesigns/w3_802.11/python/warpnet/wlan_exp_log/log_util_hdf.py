@@ -230,7 +230,6 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
             print("WARNING: overwriting existing file {0}".format(filename))
 
         h5_filename = filename
-
     else:
         h5_filename = _get_safe_filename(filename)
 
@@ -369,16 +368,18 @@ def hdf5_to_log_data(filename=None, h5_file=None, group_name=None):
     ds          = group['log_data']
     log_data_np = np.empty(shape=ds.shape, dtype=ds.dtype)
 
-    #Use the h5py library's HDF5 -> numpy hooks to preserve the log_data size and void type
+    # Use the h5py library's HDF5 -> numpy hooks to preserve the log_data size and void type
     ds.read_direct(log_data_np)
 
-    #Point to the numpy array's underlying buffer to find the raw log_data to return
-    log_data    = log_data_np.data
+    # Point to the numpy array's underlying buffer to find the raw log_data to return
+    # log_data    = log_data_np.data
+    log_data    = bytes(log_data_np.data)
+    # log_data    = log_data_np.view(dtype=np.dtype('uint8')).data
 
     # Close the file if it was opened from the filename
     if filename is not None:
         hf.close()
-
+    
     return log_data
 
 # End log_data_to_hdf5()
@@ -712,7 +713,8 @@ def _get_safe_filename(filename):
         i = 0
         while True:
             ext           = '_{0}_{1:02d}'.format(time.strftime("%Y%m%d_%H%M%S"), i)
-            safe_filename = fn_fldr + fn_base + ext + fn_ext
+            new_filename  = fn_base + ext + fn_ext
+            safe_filename = os.path.join(fn_fldr, new_filename)
             i            += 1
 
             # Break the loop if we found a unique file name
