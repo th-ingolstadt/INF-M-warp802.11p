@@ -227,11 +227,10 @@ class WlanExpLogEntryType(object):
         # offsets = [o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
         # np_fields = [f for f in self._fields if 'x' not in f[1]]
 
-        names =  [field_name for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
-
+        names   =  [field_name   for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
         formats =  [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
 
-        #print("np_dtype for %s (%d B): %s" % (self.name, np.dtype({'names':names, 'formats':formats, 'offsets':offsets}).itemsize, zip(offsets,formats,names)))
+        # print("np_dtype for %s (%d B): %s" % (self.name, np.dtype({'names':names, 'formats':formats, 'offsets':offsets}).itemsize, zip(offsets,formats,names)))
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
@@ -403,7 +402,7 @@ entry_station_info.append_field_defs([
             ('rx_last_timestamp',      'Q',      'uint64'),
             ('rx_last_seq',            'H',      'uint16'),
             ('rx_last_power',          'b',      'int8'),
-            ('rx_last_power',          'B',      'uint8'),
+            ('rx_last_rate',           'B',      'uint8'),
             ('tx_phy_rate',            'B',      'uint8'),
             ('tx_phy_antenna_mode',    'B',      'uint8'),
             ('tx_phy_power',           'b',      'int8'),
