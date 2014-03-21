@@ -60,6 +60,21 @@ LTG_SCHED_TYPE_UNIFORM_RAND            = 2
 LTG_PYLD_TYPE_FIXED                    = 1
 LTG_PYLD_TYPE_UNIFORM_RAND             = 2
 
+# LTG Payload Min/Max
+#
+#   These defines are a place-holder for now; In the future, the min/max will
+# change.  Currently, the minimum payload size is determined by the size
+# of the LTG header in the payload (as of 0.8, the LTG header only contained
+# the LLC header).  Currently, the maximum payload size is 1500 bytes.  This
+# is a relatively arbitrary amount chosen because 1) in 0.8 the 802.11 phy
+# cannot transmit more than 1600 bytes total per packet; 2) 1500 bytes is 
+# about the size of a standard Ethernet MTU.  If sizes outside the range are
+# requested, the functions will print a warning and adjust the value to the
+# appropriate boundary.
+#
+LTG_PYLD_MIN                           = 8
+LTG_PYLD_MAX                           = 1500
+
 
 # LTG Constants
 #   NOTE:  The C counterparts are found in *_ltg.h
@@ -146,6 +161,25 @@ class Payload(object):
         """Returns a list of parameters of the LTG Payload."""
         raise NotImplementedError
 
+    def validate_length(self, length):
+        """Returns a valid LTG Payload length and prints warnings if 
+        length was invalid.
+        """
+        msg  = "WARNING:  Adjusting LTG Payload length from {0} ".format(length)
+
+        if (length < LTG_PYLD_MIN):
+            msg += "to {0} (min).".format(LTG_PYLD_MIN)
+            print(msg)
+            length = LTG_PYLD_MIN
+
+        if (length > LTG_PYLD_MAX):
+            msg += "to {0} (max).".format(LTG_PYLD_MAX)
+            print(msg)
+            length = LTG_PYLD_MAX
+        
+        return length
+
+
     def serialize(self):
         """Returns a list of 32 bit intergers that can be added as arguments
         to a WnCmd.
@@ -166,7 +200,7 @@ class PayloadFixed(Payload):
 
     def __init__(self, length):
         self.ltg_type = LTG_PYLD_TYPE_FIXED
-        self.length   = length
+        self.length   = self.validate_length(length)
         
     def get_params(self):
         return [self.length]
@@ -183,8 +217,8 @@ class PayloadUniformRandom(Payload):
 
     def __init__(self, min_length, max_length):
         self.ltg_type     = LTG_PYLD_TYPE_UNIFORM_RAND
-        self.min_length = min_length
-        self.max_length = max_length
+        self.min_length = self.validate_length(min_length)
+        self.max_length = self.validate_length(max_length)
         
     def get_params(self):
         return [self.min_length, self.max_length]
