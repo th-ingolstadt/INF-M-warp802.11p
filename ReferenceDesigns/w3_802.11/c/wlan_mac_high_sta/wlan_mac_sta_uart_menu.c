@@ -44,8 +44,7 @@
 extern char*  access_point_ssid;
 
 // Control variables
-extern u8  default_unicast_rate;
-extern s8  default_tx_power;
+extern tx_params default_unicast_data_tx_params;
 extern int association_state;                      // Section 10.3 of 802.11-2012
 extern u8  uart_mode;
 extern u8  active_scan;
@@ -149,46 +148,46 @@ void uart_rx(u8 rxByte){
 				break;
 
 				case ASCII_r:
-					if(default_unicast_rate > WLAN_MAC_RATE_6M){
-						default_unicast_rate--;
+					if((default_unicast_data_tx_params.phy.rate) > WLAN_MAC_RATE_6M){
+						(default_unicast_data_tx_params.phy.rate)--;
 					} else {
-						default_unicast_rate = WLAN_MAC_RATE_6M;
+						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_6M;
 					}
 
-					if(association_table.length > 0) access_point->tx.phy.rate = default_unicast_rate;
+					if(association_table.length > 0) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
 
 
-					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
 				break;
 				case ASCII_R:
-					if(default_unicast_rate < WLAN_MAC_RATE_54M){
-						default_unicast_rate++;
+					if((default_unicast_data_tx_params.phy.rate) < WLAN_MAC_RATE_54M){
+						(default_unicast_data_tx_params.phy.rate)++;
 					} else {
-						default_unicast_rate = WLAN_MAC_RATE_54M;
+						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_54M;
 					}
 
-					if(association_table.length > 0) access_point->tx.phy.rate = default_unicast_rate;
+					if(association_table.length > 0) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
 
-					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_rate));
+					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
 				break;
 				case ASCII_g:
-					if(default_tx_power > TX_POWER_MIN_DBM){
-						default_tx_power--;
+					if((default_unicast_data_tx_params.phy.power) > TX_POWER_MIN_DBM){
+						(default_unicast_data_tx_params.phy.power)--;
 					} else {
-						default_tx_power = TX_POWER_MIN_DBM;
+						(default_unicast_data_tx_params.phy.power) = TX_POWER_MIN_DBM;
 					}
 
-					xil_printf("(-) Default Tx Power: %d dBm\n", default_tx_power);
+					xil_printf("(-) Default Tx Power: %d dBm\n", (default_unicast_data_tx_params.phy.power));
 
 				break;
 				case ASCII_G:
-					if(default_tx_power < TX_POWER_MAX_DBM){
-						default_tx_power++;
+					if((default_unicast_data_tx_params.phy.power) < TX_POWER_MAX_DBM){
+						(default_unicast_data_tx_params.phy.power)++;
 					} else {
-						default_tx_power = TX_POWER_MAX_DBM;
+						(default_unicast_data_tx_params.phy.power) = TX_POWER_MAX_DBM;
 					}
 
-					xil_printf("(+) Default Tx Power: %d dBm\n", default_tx_power);
+					xil_printf("(+) Default Tx Power: %d dBm\n", (default_unicast_data_tx_params.phy.power));
 
 				break;
 			}

@@ -72,10 +72,10 @@ char*  access_point_ssid;
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
 
-// Control variables
-u8  default_unicast_rate;
-s8 default_tx_power;
-u8 default_tx_ant_mode;
+// Default Transmission Parameters;
+tx_params default_unicast_mgmt_tx_params;
+tx_params default_unicast_data_tx_params;
+tx_params default_multicast_mgmt_tx_params;
 
 int association_state;                      // Section 10.3 of 802.11-2012
 u8  uart_mode;
@@ -150,14 +150,25 @@ int main() {
 	xil_printf("\f----- wlan_mac_sta -----\n");
 	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
 
-
 	//xil_printf("_heap_start = 0x%x, %x\n", *(char*)(_heap_start),_heap_start);
 	//xil_printf("_heap_end = 0x%x, %x\n", *(char*)(_heap_end),_heap_end);
 
     // Set Global variables
-	default_unicast_rate = WLAN_MAC_RATE_18M;
-	default_tx_power = TX_POWER_DBM;
-    default_tx_ant_mode = WLAN_TX_ANTMODE_SISO_ANTA;
+	default_unicast_data_tx_params.mac.num_tx_max = MAX_NUM_TX;
+	default_unicast_data_tx_params.phy.power = TX_POWER_DBM;
+	default_unicast_data_tx_params.phy.rate = WLAN_MAC_RATE_18M;
+	default_unicast_data_tx_params.phy.antenna_mode = WLAN_TX_ANTMODE_SISO_ANTA;
+
+	default_unicast_mgmt_tx_params.mac.num_tx_max = MAX_NUM_TX;
+	default_unicast_mgmt_tx_params.phy.power = TX_POWER_DBM;
+	default_unicast_mgmt_tx_params.phy.rate = WLAN_MAC_RATE_6M;
+	default_unicast_mgmt_tx_params.phy.antenna_mode = WLAN_TX_ANTMODE_SISO_ANTA;
+
+	default_multicast_mgmt_tx_params.mac.num_tx_max = 1;
+	default_multicast_mgmt_tx_params.phy.power = TX_POWER_DBM;
+	default_multicast_mgmt_tx_params.phy.rate = WLAN_MAC_RATE_6M;
+	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_TX_ANTMODE_SISO_ANTA;
+
 
 	// Initialize the utility library
     wlan_mac_high_init();
@@ -370,7 +381,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		tx_event_log_entry->timestamp_create         = tx_mpdu->timestamp_create;
 		tx_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
 		tx_event_log_entry->delay_done               = tx_mpdu->delay_done;
-		tx_event_log_entry->ant_mode				 = 0; //TODO;
+		tx_event_log_entry->ant_mode				 = tx_mpdu->params.phy.antenna_mode;
 	}
 
 	if(tx_mpdu->AID != 0){
@@ -417,6 +428,7 @@ void attempt_association(){
 	u16            tx_length;
 	dl_list checkout;
 	dl_entry*	   tx_queue_entry;
+	tx_queue_buffer* tx_queue;
 
 	switch(association_state){
 
@@ -433,13 +445,16 @@ void attempt_association(){
 			queue_checkout(&checkout,1);
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue_entry = checkout.first;
+				tx_queue = (tx_queue_buffer*)(tx_queue_entry->data);
 
 				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr);
 
-				tx_length = wlan_create_association_req_frame((void*)(((tx_queue_buffer*)(tx_queue_entry->data))->frame), &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
+				tx_length = wlan_create_association_req_frame((void*)(tx_queue->frame), &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
 
-		 		wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, NULL, tx_length, MAX_NUM_TX,
-		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+		 		wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+		 		tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+				tx_queue->metadata.metadata_ptr = (u32)(&default_unicast_mgmt_tx_params);
 
 				enqueue_after_end(MANAGEMENT_QID, &checkout);
 				check_tx_queue();
@@ -481,6 +496,7 @@ void attempt_authentication(){
 	u16            tx_length;
 	dl_list checkout;
 	dl_entry*	   tx_queue_entry;
+	tx_queue_buffer* tx_queue;
 
 	switch(association_state){
 
@@ -490,13 +506,16 @@ void attempt_authentication(){
 			queue_checkout(&checkout,1);
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue_entry = checkout.first;
+				tx_queue = (tx_queue_buffer*)(tx_queue_entry->data);
 
 				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr );
 
-				tx_length = wlan_create_auth_frame((void*)(((tx_queue_buffer*)(tx_queue_entry->data))->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
+				tx_length = wlan_create_auth_frame((void*)(tx_queue->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
 
-		 		wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, NULL, tx_length, MAX_NUM_TX,
-		 				         (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+		 		wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+		 		tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+				tx_queue->metadata.metadata_ptr = (u32)(&default_unicast_mgmt_tx_params);
 
 				enqueue_after_end(MANAGEMENT_QID, &checkout);
 				check_tx_queue();
@@ -564,6 +583,7 @@ void probe_req_transmit(){
 	u16 tx_length;
 	dl_list checkout;
 	dl_entry*	tx_queue_entry;
+	tx_queue_buffer* tx_queue;
 
 	mac_param_chan = curr_channel_index + 1; //+1 is to shift [0,10] index to [1,11] channel number
 
@@ -581,12 +601,16 @@ void probe_req_transmit(){
 	queue_checkout(&checkout,1);
 		if(checkout.length == 1){ //There was at least 1 free queue element
 			tx_queue_entry = checkout.first;
+			tx_queue = (tx_queue_buffer*)(tx_queue_entry->data);
 
 			wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr );
 
-			tx_length = wlan_create_probe_req_frame((void*)(((tx_queue_buffer*)(tx_queue_entry->data))->frame),&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
+			tx_length = wlan_create_probe_req_frame((void*)(tx_queue->frame),&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
-	 		wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, NULL, tx_length, 1, 0 );
+	 		wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, tx_length, 0 );
+
+	 		tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+			tx_queue->metadata.metadata_ptr = (u32)(&default_multicast_mgmt_tx_params);
 
 			enqueue_after_end(MANAGEMENT_QID, &checkout);
 			check_tx_queue();
@@ -608,20 +632,26 @@ void probe_req_transmit(){
 
 int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 	dl_entry* tx_queue_entry;
+	tx_queue_buffer* tx_queue;
 	station_info* ap_station_info;
 
 	if(association_table.length == 1){
 		ap_station_info = (station_info*)((association_table.first)->data);
 		//Receives the pre-encapsulated Ethernet frames
 		tx_queue_entry = tx_queue_list->first;
+		tx_queue = (tx_queue_buffer*)(tx_queue_entry->data);
 
 		wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr,(u8*)(&(eth_dest[0])));
 
-		wlan_create_data_frame((void*)(((tx_queue_buffer*)(tx_queue_entry->data))->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
+		wlan_create_data_frame((void*)(tx_queue->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
-			wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, (void*)ap_station_info, tx_length, MAX_NUM_TX,
-							 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+			wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+			tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+			tx_queue->metadata.metadata_ptr = (u32)ap_station_info;
+			tx_queue->frame_info.AID = ap_station_info->AID;
+
 			enqueue_after_end(UNICAST_QID, tx_queue_list);
 			check_tx_queue();
 		} else {
@@ -748,9 +778,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 
 						wlan_mac_high_write_hex_display(associated_station->AID);
-						associated_station->tx.phy.rate = default_unicast_rate;
-						associated_station->tx.phy.power = default_tx_power;
-						associated_station->tx.phy.antenna_mode = default_tx_ant_mode;
+
+						memcpy(&(associated_station->tx),&default_unicast_data_tx_params, sizeof(tx_params));
+
 						xil_printf("Association succeeded\n");
 					} else {
 						association_state = -1;
@@ -928,6 +958,8 @@ void ltg_event(u32 id, void* callback_arg){
 
 	dl_list checkout;
 	dl_entry* tx_queue_entry;
+	tx_queue_buffer* tx_queue;
+
 	u32 tx_length;
 	u8* mpdu_ptr_u8;
 	llc_header* llc_hdr;
@@ -958,10 +990,11 @@ void ltg_event(u32 id, void* callback_arg){
 
 			if(checkout.length == 1){ //There was at least 1 free queue element
 				tx_queue_entry = checkout.first;
+				tx_queue = (tx_queue_buffer*)(tx_queue_entry->data);
 
 				wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr, addr_da );
 
-				mpdu_ptr_u8 = (u8*)(((tx_queue_buffer*)(tx_queue_entry->data))->frame);
+				mpdu_ptr_u8 = (u8*)(tx_queue->frame);
 				tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
 				mpdu_ptr_u8 += sizeof(mac_header_80211);
@@ -977,8 +1010,11 @@ void ltg_event(u32 id, void* callback_arg){
 				tx_length += sizeof(llc_header);
 				tx_length += payload_length;
 
-				wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, ap_station_info, tx_length, MAX_NUM_TX,
-								 (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+				wlan_mac_high_setup_tx_frame_info ( tx_queue_entry, tx_length,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+
+				tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+				tx_queue->metadata.metadata_ptr = (u32)ap_station_info;
+				tx_queue->frame_info.AID = ap_station_info->AID;
 
 				enqueue_after_end(UNICAST_QID, &checkout);
 				check_tx_queue();
