@@ -298,9 +298,12 @@ def mac_addr_desc(mac_addr, desc_map=None):
 
     desc_out = ''
 
+    # IP->MAC multicast def: http://technet.microsoft.com/en-us/library/cc957928.aspx
+
     default_desc_map = [
             (0xFFFFFFFFFFFF, 0xFFFFFFFFFFFF, 'Broadcast'),
-            (0xFFFFFF000000, 0x01005E000000, 'IP Multicast'),
+            (0xFFFFFF800000, 0x01005E000000, 'IP Multicast'),
+            (0xFFFFFFFF0000, 0xFFFFFFFF0000, 'Anonymized Device'),
             (0xFFFFFFFFF000, 0x40D855042000, 'Mango WARP Hardware')]
 
     if(desc_map is None):

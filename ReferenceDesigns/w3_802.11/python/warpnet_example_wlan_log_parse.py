@@ -29,7 +29,7 @@ import warpnet.wlan_exp.util as wlan_exp_util
 from  warpnet.wlan_exp.util import wlan_rates
 
 # NOTE: change these values to match your experiment setup
-LOGFILE = 'example_logs/sta_log_stats_2014_03_20.hdf5'
+LOGFILE = 'example_logs/ap_log_stats_2014_03_20.hdf5'
 
 #Ensure the log file actually exists - quit immediately if not
 if(not os.path.isfile(LOGFILE)):

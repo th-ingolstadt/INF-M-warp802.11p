@@ -15,7 +15,8 @@ def do_replace_addr(addr):
         do_replace = False
 
     #Don't replace multicast IP addresses (01-00-5E-xx-xx-xx)
-    if(addr[0:3] == (0x01, 0x00, 0x5E)):
+    # http://technet.microsoft.com/en-us/library/cc957928.aspx
+    if(addr[0:3] == (0x01, 0x00, 0x5E) and (addr[4] <= 0x7F)):
         do_replace = False
 
     #Don't replace Mango addresses (40-D8-55-04-2X-XX)
