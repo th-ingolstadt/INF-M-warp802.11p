@@ -28,7 +28,6 @@ from  warpnet.wlan_exp.util import wlan_rates
 LOGFILE = 'example_logs/ap_log_stats_2014_03_20.hdf5'
 # LOGFILE = 'example_logs/sta_log_stats_2014_03_21.hdf5'
 
-
 print("WLAN Exp Log Example")
 print("Reading log file:  {0}".format(LOGFILE))
 

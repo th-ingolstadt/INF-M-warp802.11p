@@ -284,10 +284,10 @@ def mac_addr_is_multicast(mac_addr):
     # FF:FF:FF:FF:FF:FF - multicast (broadcast is subset of multicast)
 
     if(type(mac_addr) is list):
-        #Deal with (0,1,2,3,4,5) format here
         msB = mac_addr(0)
 
     elif(type(mac_addr) is not None):
+        #Cast to python int in case input is still numpy uint64
         mac_addr = int(mac_addr) 
         msB = (mac_addr>>40) & 0xFF
 
@@ -296,20 +296,43 @@ def mac_addr_is_multicast(mac_addr):
 
     return ((msB & 0x1) > 0)
 
-def mac_addr_desc(mac_addr):
-    """"Returns a string description of a MAC address, 
-    useful when printing a table of addresses"""
+def mac_addr_desc(mac_addr, desc_map=None):
+    """Returns a string description of a MAC address, 
+    useful when printing a table of addresses
 
+    Custom MAC address descriptions can be provided via the desc_map argument.
+    desc_map must be a list or tuple of 3-tuples (addr_mask, addr_value, descritpion)
+    The mac_addr argument will be bitwise AND'd with each addr_mask, then compared to
+    addr_value. If the result is non-zero the corresponding descprition will be returned.
+
+    If desc_map is not provided a few default 
+    
+    Example:
+    desc_map = [ (0xFFFFFFFFFFFF, 0x000102030405, 'My Custom MAC Addr'), 
+                 (0xFFFFFFFFFFFF, 0x000203040506, 'My Other MAC Addr') ]
+    """
+
+    #Cast to python int in case input is still numpy uint64
     mac_addr = int(mac_addr)
 
-    if(mac_addr == 0xFFFFFFFFFFFF):
-        return 'Broadcast'
-    elif( (mac_addr & 0xFFFFFF000000) == 0x01005E000000):
-        return 'IP Multicast'
-    elif( (mac_addr & 0xFFFFFFFFF000) == 0x40D855042000):
-        return 'Mango WARP Hardware'
+    desc_out = ''
+
+    default_desc_map = [
+            (0xFFFFFFFFFFFF, 0xFFFFFFFFFFFF, 'Broadcast'),
+            (0xFFFFFF000000, 0x01005E000000, 'IP Multicast'),
+            (0xFFFFFFFFF000, 0x40D855042000, 'Mango WARP Hardware')]
+
+    if(desc_map is None):
+        desc_map = default_desc_map
     else:
-        return ''
+        desc_map = list(desc_map) + default_desc_map
+
+    for ii,(mask, req, desc) in enumerate(desc_map):
+        if( (mac_addr & mask) == req):
+            desc_out += desc
+            break
+
+    return desc_out
 
 # Excellent util function for dropping into interactive Python shell
 #   From http://vjethava.blogspot.com/2010/11/matlabs-keyboard-command-in-python.html
