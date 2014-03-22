@@ -1,17 +1,21 @@
 import sys
+import os
 
-import warpnet.wlan_exp_log.log_entries as log
 import warpnet.wlan_exp_log.log_util as log_util
+import warpnet.wlan_exp_log.log_util_hdf as hdf_util
 
 all_addrs = list()
 addr_idx_map = dict()
-
 
 def do_replace_addr(addr):
     do_replace = True
 
     #Don't replace the broadcast address (FF-FF-FF-FF-FF-FF)
     if(addr == (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)):
+        do_replace = False
+
+    #Don't replace multicast IP addresses (01-00-5E-xx-xx-xx)
+    if(addr[0:3] == (0x01, 0x00, 0x5E)):
         do_replace = False
 
     #Don't replace Mango addresses (40-D8-55-04-2X-XX)
@@ -37,9 +41,14 @@ def log_anonymize(filename):
     global all_addrs
 
     print("Anonymizing file %s" % (filename))
-    log_file_in = open(filename, 'rb')
+    # Get the log_data from the file
+    log_bytes = bytearray(hdf_util.hdf5_to_log_data(filename=filename))
+
+    # Get the log_data_index from the file
+    log_data_index = hdf_util.hdf5_to_log_data_index(filename=filename)
     
-    log_bytes = bytearray(log_file_in.read())
+    # Generate the index of log entry locations sorted by log entry type
+    log_index     = log_util.filter_log_index(log_data_index, merge={'RX_ALL': ['RX_OFDM','RX_DSSS']})
 
     # Re-initialize the address-byteindex map per file using the running
     #   list of known MAC addresses
@@ -47,38 +56,24 @@ def log_anonymize(filename):
     for addr in all_addrs:
         addr_idx_map[addr] = list()
 
-    # Generate the index of log entry locations sorted by log entry type
-    log_index_raw = log_util.gen_log_index_raw(log_bytes)
-    log_index     = log_util.filter_log_index(log_index_raw)
-
-    log_util.log_index_print_summary(log_index)
+    log_util.print_log_index_summary(log_index)
 
     # Step 1: Build a dictionary of all MAC addresses in the log, then
     #   map each addresses to a unique anonymous address
     #   Uses tuple(bytearray slice) since bytearray isn't hashable as-is
 
-    #OFDM Rx entries    
+    #Rx entries
     try:
-        for idx in log_index[log.entry_rx_ofdm]:
+        for idx in log_index['RX_ALL']:
             #6-byte addresses at offsets 12, 18, 24
             for o in (12, 18, 24):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
     except KeyError:
         pass
-
-    #DSSS Rx entries
-    try:
-        for idx in log_index[log.entry_rx_dsss]:
-            #6-byte addresses at offsets 12, 18, 24
-            for o in (12, 18, 24):
-                addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
-    except KeyError:
-        pass
-    
 
     #Tx entries
     try:
-        for idx in log_index[log.entry_tx]:
+        for idx in log_index['TX']:
             #6-byte addresses at offsets 20, 26, 32
             for o in (20, 26, 32):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
@@ -87,12 +82,14 @@ def log_anonymize(filename):
 
     #Station Info entries
     try:
-        for idx in log_index[log.entry_station_info]:
+        for idx in log_index['STATION_INFO']:
             #6-byte address at offsets 8
                 o = 8
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
     except KeyError:
         pass
+
+    #TODO: Add WN cmd entries, to cover LTG cmds that might have non-Mango MAC addresses?
 
     #####################
     #Step 2: Enumerate actual MAC addresses and their anonymous replacements
@@ -112,7 +109,7 @@ def log_anonymize(filename):
     #Station info entries contain "hostname", the DHCP client hostname field
     # Replace these with a string version of the new anonymous MAC addr
     try:
-        for idx in log_index[log.entry_station_info]:
+        for idx in log_index['STATION_INFO']:
             #6-byte MAC addr (already anonymized) at offset 8
             #15 character ASCII string at offset 14
             addr_o = 8
@@ -125,11 +122,21 @@ def log_anonymize(filename):
         pass
 
 
-    #Write the modified log to a new binary file
-    log_file_out = open(filename[:-4] + "_anon" + filename[-4:], 'wb')
-    log_file_out.write(log_bytes)
-    log_file_in.close()
-    log_file_out.close()
+    #Write the modified log to a new HDF5 file
+    (fn_fldr, fn_file) = os.path.split(filename)
+
+    # Find the last '.' in the file name and classify everything after that as the <ext>
+    ext_i = fn_file.rfind('.')
+    if (ext_i != -1):
+        # Remember the original file extension
+        fn_ext  = fn_file[ext_i:]
+        fn_base = fn_file[0:ext_i]
+    else:
+        fn_ext  = ''
+        fn_base = fn_file
+
+    newfilename = os.path.join(fn_fldr, fn_base + "_anon" + fn_ext)
+    hdf_util.log_data_to_hdf5(log_bytes, newfilename)
 
     return
 ################################################################################

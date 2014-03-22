@@ -706,8 +706,8 @@ def _get_safe_filename(filename):
         # Already know it's a file, so fn_file is not ''
         (fn_fldr, fn_file) = os.path.split(filename)
         
-        # Find the first '.' in the file and classify everything after that as the <ext>
-        ext_i = fn_file.find('.')
+        # Find the last '.' in the file name and classify everything after that as the <ext>
+        ext_i = fn_file.rfind('.')
         if (ext_i != -1):
             # Remember the original file extension
             fn_ext  = fn_file[ext_i:]

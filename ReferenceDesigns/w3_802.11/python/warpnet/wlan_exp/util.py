@@ -277,25 +277,6 @@ def mac2str(mac_address):
 
     return msg
 
-def mac_addr_is_multicast(mac_addr):
-    #MAC addresses are multicast is the LSB of the most-significant byte is 1
-    # 00:01:01:01:01:01 - not multicast
-    # 01:01:01:01:01:01 - multicast
-    # FF:FF:FF:FF:FF:FF - multicast (broadcast is subset of multicast)
-
-    if(type(mac_addr) is list):
-        msB = mac_addr(0)
-
-    elif(type(mac_addr) is not None):
-        #Cast to python int in case input is still numpy uint64
-        mac_addr = int(mac_addr) 
-        msB = (mac_addr>>40) & 0xFF
-
-    else:
-        return False
-
-    return ((msB & 0x1) > 0)
-
 def mac_addr_desc(mac_addr, desc_map=None):
     """Returns a string description of a MAC address, 
     useful when printing a table of addresses
