@@ -14,11 +14,14 @@ of log entry.  It then uses these arrays to count the number of receptions
 per PHY rate and the total number of packets transmitted to each distinct
 MAC address.  Finally, it optionally opens an interactive python shell to allow
 you to play with the data.
+
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
 """
 import numpy as np
 
 import warpnet.wlan_exp_log.log_util as log_util
-import warpnet.wlan_exp_log.log_util_hdf as hdf
+import warpnet.wlan_exp_log.log_util_hdf as hdf_util
 
 import warpnet.wlan_exp.util as wlan_exp_util
 from  warpnet.wlan_exp.util import wlan_rates
@@ -30,10 +33,10 @@ print("WLAN Exp Log Example")
 print("Reading log file:  {0}".format(LOGFILE))
 
 # Get the log_data from the file
-log_data = hdf.hdf5_to_log_data(filename=LOGFILE)
+log_data = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 
 # Get the log_data_index from the file
-log_data_index = hdf.hdf5_to_log_data_index(filename=LOGFILE)
+log_data_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
 
 # Describe the log_data_index
 log_util.print_log_index_summary(log_data_index, "Log Index Contents:")
