@@ -285,7 +285,8 @@ class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
             np_arr_out[f] = np_arr_orig[f]
 
         #Helper array of powers of 2
-        addr_conv_arr = np.uint64(2)**np.array(range(0,48,8), dtype='uint64')
+#        addr_conv_arr = np.uint64(2)**np.array(range(0,48,8), dtype='uint64') #wrong byte order?
+        addr_conv_arr = np.uint64(2)**np.array(range(40,-1,-8), dtype='uint64')
 
         #Extract all MAC headers (each header is 24-entry uint8 array)
         mac_hdrs = np_arr_orig['mac_header']

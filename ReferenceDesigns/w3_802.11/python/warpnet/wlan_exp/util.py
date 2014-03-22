@@ -50,7 +50,7 @@ __all__ = ['tx_rate_index_to_str',
 # WLAN Exp Rate definitions
 #-----------------------------------------------------------------------------
 
-rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2'},
+wlan_rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2'},
          {'index' :  2, 'rate' :  9.0, 'rate_str' : 'BPSK 3/4'},
          {'index' :  3, 'rate' : 12.0, 'rate_str' : 'QPSK 1/2'},
          {'index' :  4, 'rate' : 18.0, 'rate_str' : 'QPSK 3/4'},
@@ -77,7 +77,7 @@ def tx_rate_index_to_str(tx_rate_index):
     msg     = ""
 
     if type(tx_rate_index) is int:
-        for rate in rates:
+        for rate in wlan_rates:
             if (rate['index'] == tx_rate_index):
                 tx_rate = rate
                 break
@@ -274,8 +274,42 @@ def mac2str(mac_address):
         msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
         msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
         msg += "{0:02x}".format(mac_address & 0xFF)
+
     return msg
 
+def mac_addr_is_multicast(mac_addr):
+    #MAC addresses are multicast is the LSB of the most-significant byte is 1
+    # 00:01:01:01:01:01 - not multicast
+    # 01:01:01:01:01:01 - multicast
+    # FF:FF:FF:FF:FF:FF - multicast (broadcast is subset of multicast)
+
+    if(type(mac_addr) is list):
+        #Deal with (0,1,2,3,4,5) format here
+        msB = mac_addr(0)
+
+    elif(type(mac_addr) is not None):
+        mac_addr = int(mac_addr) 
+        msB = (mac_addr>>40) & 0xFF
+
+    else:
+        return False
+
+    return ((msB & 0x1) > 0)
+
+def mac_addr_desc(mac_addr):
+    """"Returns a string description of a MAC address, 
+    useful when printing a table of addresses"""
+
+    mac_addr = int(mac_addr)
+
+    if(mac_addr == 0xFFFFFFFFFFFF):
+        return 'Broadcast'
+    elif( (mac_addr & 0xFFFFFF000000) == 0x01005E000000):
+        return 'IP Multicast'
+    elif( (mac_addr & 0xFFFFFFFFF000) == 0x40D855042000):
+        return 'Mango WARP Hardware'
+    else:
+        return ''
 
 # Excellent util function for dropping into interactive Python shell
 #   From http://vjethava.blogspot.com/2010/11/matlabs-keyboard-command-in-python.html
