@@ -1,19 +1,18 @@
 """
-This script uses the WLAN Exp Log parsing framework to create useful
-data structures for processing data from log files retrieved from the
-802.11 ref design and WARPnet.
+This script uses the WLAN Exp Log utilities to prase raw log data and print
+a few interesting summary statistics about the log entries.
 
 Hardware Setup:
     - None.  Parsing log data can be done completely off-line
 
 Required Script Changes:
-    - Set LOGFILE to the file name of your WLAN Exp log
+    - Set LOGFILE to the file name of your WLAN Exp log HDF5 file
 
 Description:
     This script parses the log file and generates numpy arrays of each type
 of log entry.  It then uses these arrays to count the number of receptions
 per PHY rate and the total number of packets transmitted to each distinct
-MAC address.  Finally, it opens up an interactive python shell to allow
+MAC address.  Finally, it optionally opens an interactive python shell to allow
 you to play with the data.
 """
 import numpy as np
@@ -26,7 +25,6 @@ from  warpnet.wlan_exp.util import wlan_rates
 
 # NOTE: change these values to match your experiment setup
 LOGFILE = 'example_logs/ap_log_stats_2014_03_20.hdf5'
-# LOGFILE = 'example_logs/sta_log_stats_2014_03_21.hdf5'
 
 print("WLAN Exp Log Example")
 print("Reading log file:  {0}".format(LOGFILE))
@@ -38,7 +36,7 @@ log_data = hdf.hdf5_to_log_data(filename=LOGFILE)
 log_data_index = hdf.hdf5_to_log_data_index(filename=LOGFILE)
 
 # Describe the log_data_index
-log_util.print_log_index_summary(log_data_index, "Log Contents:")
+log_util.print_log_index_summary(log_data_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
 log_index = log_util.filter_log_index(log_data_index,
@@ -47,11 +45,11 @@ log_index = log_util.filter_log_index(log_data_index,
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 
-
 # Unpack the log into numpy structured arrays
 #   log_data_to_np_arrays returns a dictionary with one key-value pair per
 #    entry type included in the log_index argument. The log_index keys are reused
 #    as the output dictionary keys. Each output dictionary value is a numpy record array
+#    Refer to wlan_exp_log.log_entries.py for the definition of each record array datatype
 log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 ###############################################################################
@@ -169,5 +167,8 @@ if('RX_ALL' in log_np.keys()):
             rx_counts[k][1], 
             wlan_exp_util.mac_addr_desc(k)))
 
-print("\nDone.")
+print('')
 
+#Uncomment this line to open an interactive console after the script runs
+# This console will have access to all variables defined above
+#wlan_exp_util.debug_here()
