@@ -228,7 +228,7 @@ int main() {
 	wlan_mac_high_interrupt_init();
 
     // Schedule all events
-	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temperature once every 10 seconds
+//	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temperature once every 10 seconds //TODO add back in
 
 
 	// Reset the event log
@@ -405,7 +405,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 				(frame_stats->tx_num_packets_total)++;
 				(frame_stats->tx_num_bytes_total) += tx_mpdu->length;
 
-				(frame_stats->tx_num_packets_low)++;
+				(frame_stats->tx_num_packets_low) += (tx_mpdu->num_tx);
 
 				if((tx_mpdu->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
 					(frame_stats->tx_num_packets_success)++;
@@ -575,6 +575,10 @@ void stop_active_scan(){
 	repeated_active_scan_scheduled = 0;
 }
 
+void testtest(){
+	xil_printf("testtest\n");
+
+}
 
 void probe_req_transmit(){
 	u32 i;
@@ -587,8 +591,6 @@ void probe_req_transmit(){
 
 	mac_param_chan = curr_channel_index + 1; //+1 is to shift [0,10] index to [1,11] channel number
 
-	//xil_printf("+++ probe_req_transmit mac_param_chan = %d\n", mac_param_chan);
-
 	//Send a message to other processor to tell it to switch channels
 	wlan_mac_high_set_channel( mac_param_chan );
 
@@ -596,7 +598,7 @@ void probe_req_transmit(){
 
 	//xil_printf("Probe Req SSID: %s, Len: %d\n",access_point_ssid, strlen(access_point_ssid));
 
-	for(i = 0; i<NUM_PROBE_REQ; i++){
+	for(i = 0; i<0; i++){ //NUM_PROBE_REQ
 	//Checkout 1 element from the queue;
 	queue_checkout(&checkout,1);
 		if(checkout.length == 1){ //There was at least 1 free queue element
@@ -620,13 +622,12 @@ void probe_req_transmit(){
 	curr_channel_index = (curr_channel_index+1)%11;
 
 	if(curr_channel_index > 0){
-		wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)probe_req_transmit);
+	    wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)probe_req_transmit);
 	} else {
 		wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)print_ap_list);
 	}
+
 }
-
-
 
 
 
@@ -743,7 +744,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		}
 
 		if(station_stats != NULL){
-			station_stats->last_timestamp = get_usec_timestamp();
+			station_stats->last_rx_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_stats)->data.rx_num_packets)++;
 				((station_stats)->data.rx_num_bytes) += mpdu_info->length;
