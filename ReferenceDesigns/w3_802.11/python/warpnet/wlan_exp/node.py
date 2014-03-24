@@ -136,16 +136,6 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Log Commands
     #--------------------------------------------
-    def log_reset(self):
-        """Reset the event log on the node."""
-        # Update the internal state to stay consistent with the node.
-        self.log_total_bytes_read = 0
-        self.log_num_wraps        = 0
-        self.log_next_read_index  = 0
-        
-        self.send_cmd(cmds.LogReset())
-
-
     def log_configure(self, flags):
         """Configure log with the given flags.
         
@@ -341,11 +331,6 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.StatsAddTxRxToLog())
 
 
-    def stats_reset_txrx(self):
-        """Reset the statistics on the node."""
-        self.send_cmd(cmds.StatsResetTxRx())
-        
-
     #--------------------------------------------
     # Local Traffic Generation (LTG) Commands
     #--------------------------------------------
@@ -423,6 +408,22 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Configure Node Attribute Commands
     #--------------------------------------------
+    def node_state_reset(self, flags):
+        """Resets the state of node depending on the flags.
+        
+        Attributes:
+            flags -- Which portion of the node state should be reset:
+                     [0] NODE_RESET_LOG
+                     [1] NODE_RESET_TXRX_STATS
+        """
+        if ((flags & cmds.NODE_RESET_LOG) == cmds.NODE_RESET_LOG):
+            self.log_total_bytes_read = 0
+            self.log_num_wraps        = 0
+            self.log_next_read_index  = 0
+
+        self.send_cmd(cmds.NodeResetState(flags))
+
+
     def node_is_associated(self, node_list):
         """Returns a either a boolean if the node list is a single node,
         or a list of booleans the same dimension as the node_list.  To 

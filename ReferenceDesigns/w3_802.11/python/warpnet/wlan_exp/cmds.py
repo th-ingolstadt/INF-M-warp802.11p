@@ -21,7 +21,6 @@ This module provides class definitions for all WLAN Exp commands.
 
 Functions (see below for more information):
     LogGetEvents()
-    LogReset()
     LogConfigure()
     LogGetStatus() 
     LogGetCapacity()
@@ -29,13 +28,13 @@ Functions (see below for more information):
     StatsGetTxRx()
     StatsGetAllTxRx()
     StatsAddTxRxToLog()
-    StatsResetTxRx()
 
     LTGConfigure()
     LTGStart()
     LTGStop()
     LTGRemove()
 
+    NodeResetState()
     NodeProcTime()
     NodeProcChannel()
     NodeProcTxPower()
@@ -60,11 +59,11 @@ import warpnet.wn_transport_eth_udp as wn_transport
 
 
 
-__all__ = ['LogGetEvents', 'LogReset', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
-           'StatsGetTxRx', 'StatsGetAllTxRx', 'StatsAddTxRxToLog', 'StatsResetTxRx', 
+__all__ = ['LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
+           'StatsGetTxRx', 'StatsGetAllTxRx', 'StatsAddTxRxToLog', 
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
-           'NodeProcTime', 'NodeProcChannel', 'NodeProcTxPower', 'NodeProcTxRate',
-           'NodeProcTxAntMode', 'NodeProcRxAntMode',
+           'NodeResetState', 'NodeProcTime', 'NodeProcChannel', 'NodeProcTxPower', 
+           'NodeProcTxRate', 'NodeProcTxAntMode', 'NodeProcRxAntMode',
            'QueueTxDataPurgeAll']
 
 
@@ -77,12 +76,16 @@ CMD_DISASSOCIATE                       = 20
 
 
 # Node commands and defined values
-CMD_NODE_TIME                          = 30
-CMD_NODE_CHANNEL                       = 31
-CMD_NODE_TX_POWER                      = 32
-CMD_NODE_TX_RATE                       = 33
-CMD_NODE_TX_ANT_MODE                   = 34
-CMD_NODE_RX_ANT_MODE                   = 35
+CMD_NODE_RESET_STATE                   = 30
+CMD_NODE_TIME                          = 31
+CMD_NODE_CHANNEL                       = 32
+CMD_NODE_TX_POWER                      = 33
+CMD_NODE_TX_RATE                       = 34
+CMD_NODE_TX_ANT_MODE                   = 35
+CMD_NODE_RX_ANT_MODE                   = 36
+
+NODE_RESET_LOG                         = 0x00000001
+NODE_RESET_TXRX_STATS                  = 0x00000002
 
 RSVD_TIME                              = 0x0000FFFF0000FFFF
 RSVD_CHANNEL                           = 0xFFFF
@@ -120,14 +123,13 @@ LTG_ERROR                              = 0xFFFFFFFF
 
 
 # Log commands and defined values
-CMD_LOG_RESET                          = 50
-CMD_LOG_CONFIG                         = 51
-CMD_LOG_GET_STATUS                     = 52
-CMD_LOG_GET_CAPACITY                   = 53
-CMD_LOG_GET_ENTRIES                    = 54
-CMD_LOG_ADD_ENTRY                      = 55
-CMD_LOG_ENABLE_ENTRY                   = 56
-CMD_LOG_STREAM_ENTRIES                 = 57
+CMD_LOG_CONFIG                         = 50
+CMD_LOG_GET_STATUS                     = 51
+CMD_LOG_GET_CAPACITY                   = 52
+CMD_LOG_GET_ENTRIES                    = 53
+CMD_LOG_ADD_ENTRY                      = 54
+CMD_LOG_ENABLE_ENTRY                   = 55
+CMD_LOG_STREAM_ENTRIES                 = 56
 
 LOG_CONFIG_FLAG_WRAP                   = 0x00000001
 LOG_CONFIG_FLAG_LOGGING                = 0x00000002
@@ -136,10 +138,9 @@ LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
 
 
 # Statistics commands and defined values
-CMD_STATS_RESET_TXRX                   = 60
-CMD_STATS_CONFIG_TXRX                  = 61
-CMD_STATS_ADD_TXRX_TO_LOG              = 62
-CMD_STATS_GET_TXRX                     = 63
+CMD_STATS_CONFIG_TXRX                  = 60
+CMD_STATS_ADD_TXRX_TO_LOG              = 61
+CMD_STATS_GET_TXRX                     = 62
 
 STATS_CONFIG_FLAG_PROMISC              = 0x00000001
 
@@ -182,18 +183,6 @@ class LogGetEvents(wn_message.BufferCmd):
 
     def process_resp(self, resp):
         return resp
-
-# End Class
-
-
-class LogReset(wn_message.Cmd):
-    """Command to reset the Event log"""
-    def __init__(self):
-        super(LogReset, self).__init__()
-        self.command = _CMD_GRPID_NODE +  CMD_LOG_RESET
-    
-    def process_resp(self, resp):
-        pass
 
 # End Class
 
@@ -364,18 +353,6 @@ class StatsAddTxRxToLog(wn_message.Cmd):
 # End Class
 
 
-class StatsResetTxRx(wn_message.Cmd):
-    """Command to reset the current statistics on the node."""
-    def __init__(self):
-        super(StatsResetTxRx, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_STATS_RESET_TXRX
-    
-    def process_resp(self, resp):
-        pass
-
-# End Class
-
-
 #--------------------------------------------
 # Local Traffic Generation (LTG) Commands
 #--------------------------------------------
@@ -493,6 +470,24 @@ class LTGRemove(wn_message.Cmd):
 #--------------------------------------------
 # Configure Node Attribute Commands
 #--------------------------------------------
+class NodeResetState(wn_message.Cmd):
+    """Command to reset the state of a portion of the node defined by the flags.
+    
+    Attributes:
+        flags -- [0] NODE_RESET_LOG
+                 [1] NODE_RESET_TXRX_STATS
+    """
+    def __init__(self, flags):
+        super(NodeResetState, self).__init__()
+        self.command = _CMD_GRPID_NODE +  CMD_NODE_RESET_STATE        
+        self.add_args(flags)
+    
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
+
 class NodeProcTime(wn_message.Cmd):
     """Command to get / set the time on the node.
     

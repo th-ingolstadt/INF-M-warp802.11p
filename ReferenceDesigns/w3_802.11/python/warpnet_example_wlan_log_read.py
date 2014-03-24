@@ -24,6 +24,7 @@ Description:
 import sys
 import time
 import warpnet.wn_config                 as wn_config
+import warpnet.wlan_exp.cmds             as cmds
 import warpnet.wlan_exp.util             as wlan_exp_util
 import warpnet.wlan_exp.ltg              as ltg
 import warpnet.wlan_exp_log.log_util_hdf as hdf
@@ -32,17 +33,15 @@ import warpnet.wlan_exp_log.log_util_hdf as hdf
 #-----------------------------------------------------------------------------
 # Top Level Script Variables
 #-----------------------------------------------------------------------------
-UNIQUIFIER        = time.strftime("%Y_%m_%d")
-
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
 NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
-AP_HDF5_FILENAME  = "example_logs/ap_log_stats_{0}.hdf5".format(UNIQUIFIER)
-STA_HDF5_FILENAME = "example_logs/sta_log_stats_{0}.hdf5".format(UNIQUIFIER)
+AP_HDF5_FILENAME  = "example_logs/ap_log_stats.hdf5"
+STA_HDF5_FILENAME = "example_logs/sta_log_stats.hdf5"
 
 # Set the per-trial duration (in seconds)
-TRIAL_TIME        = 5
+TRIAL_TIME        = 10
 
 
 
@@ -52,7 +51,10 @@ TRIAL_TIME        = 5
 def write_log_file(file_name, data_buffer):
     """Writes log data to a HDF5 file."""
     try:
+        # Get the byte log_data out of the WARPNet buffer
         data = data_buffer.get_bytes()
+        
+        # Write the byte Log_data to the file 
         hdf.log_data_to_hdf5(data, file_name)
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
@@ -112,27 +114,22 @@ if not n_ap.node_is_associated(n_sta):
 print("\nExperimental Setup:")
 
 # Get the rates that we will move through during the experiment
-rates = wlan_exp_util.rates
+wlan_rates = wlan_exp_util.wlan_rates
 
 # Put each node in a known, good state
 for node in nodes:
     node.ltg_remove_all()
     node.queue_tx_data_purge_all()
-    node.node_set_tx_rate_unicast(rates[0])
+    node.node_set_tx_rate_unicast(wlan_rates[0])
 
 for node in nodes:
-    node.log_reset()
-    node.stats_reset_txrx()
+    node.node_state_reset(cmds.NODE_RESET_LOG + cmds.NODE_RESET_TXRX_STATS)
 
 
 print("\nRun Experiment:\n")
 
 # Look at the initial log sizes for reference
 print_log_size()
-
-# Write Statistics to log
-n_ap.stats_write_txrx_to_log()
-n_sta.stats_write_txrx_to_log()
 
 print("\nStart LTG - AP -> STA:")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
@@ -148,17 +145,18 @@ n_sta.ltg_to_node_start(n_ap)
 
 print("\nStarting trials ...")
 # Create some interesting traffic for the log file
-for idx, rate in enumerate(rates):
+for idx, rate in enumerate(wlan_rates):
     print("  Rate {0} ... ".format(wlan_exp_util.tx_rate_to_str(rate)))
 
     # Configure the AP's Tx rate for the selected STA
     n_ap.node_set_tx_rate_unicast(rate, n_sta)
-    time.sleep(TRIAL_TIME)
 
     # Configure the STA's Tx rate for the selected AP
     n_sta.node_set_tx_rate_unicast(rate, n_ap)
+
+    # Let the LTG flows run at the new rate
     time.sleep(TRIAL_TIME)
-	
+
 
 # Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
 n_ap.ltg_to_node_stop(n_sta)
@@ -166,10 +164,6 @@ n_sta.ltg_to_node_stop(n_ap)
 
 n_ap.queue_tx_data_purge_all()
 n_sta.queue_tx_data_purge_all()
-
-# Write Final Statistics to log
-n_ap.stats_write_txrx_to_log()
-n_sta.stats_write_txrx_to_log()
 
 # Look at the final log sizes for reference
 print_log_size()

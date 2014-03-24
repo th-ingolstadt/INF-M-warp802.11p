@@ -466,7 +466,7 @@ entry_tx.append_field_defs([
             ('padding',                '3x',     '3uint8')])
 
 # Transmit from CPU Low
-entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
+entry_tx_low = WlanExpLogEntry_TxRx(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
 entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('mac_header',             '24s',    '24uint8'),
