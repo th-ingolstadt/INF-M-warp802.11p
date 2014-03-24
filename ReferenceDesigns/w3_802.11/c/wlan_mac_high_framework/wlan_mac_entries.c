@@ -248,7 +248,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 		case ENTRY_TYPE_TXRX_STATS:
 			txrx_stats_entry_log_item = (txrx_stats_entry*) entry;
 			xil_printf("%d: - Statistics Event\n", entry_number );
-			xil_printf("   Last timestamp :        %d\n",        (u32)(txrx_stats_entry_log_item->stats.last_timestamp));
+			xil_printf("   Last timestamp :        %d\n",        (u32)(txrx_stats_entry_log_item->stats.last_rx_timestamp));
 			xil_printf("   Address        :        %02x",             (txrx_stats_entry_log_item->stats.addr)[0]);
 			for( i = 1; i < 6; i++) { xil_printf(":%02x",         (txrx_stats_entry_log_item->stats.addr)[i]); }
 			xil_printf("\n");

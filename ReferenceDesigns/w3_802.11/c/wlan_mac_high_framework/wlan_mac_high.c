@@ -1949,7 +1949,7 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 						oldest_statistics_entry = curr_statistics_entry;
 						oldest_statistics = (statistics_txrx*)(oldest_statistics_entry->data);
 					}
-				} else if(( (curr_statistics->last_timestamp) < (oldest_statistics->last_timestamp)) ){
+				} else if(( (curr_statistics->last_rx_timestamp) < (oldest_statistics->last_rx_timestamp)) ){
 					if(curr_statistics->is_associated == 0){
 						oldest_statistics_entry = curr_statistics_entry;
 						oldest_statistics = (statistics_txrx*)(oldest_statistics_entry->data);

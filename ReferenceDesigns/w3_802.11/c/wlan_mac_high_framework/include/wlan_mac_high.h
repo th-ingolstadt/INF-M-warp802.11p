@@ -115,7 +115,7 @@ typedef struct{
  * unassociated devices seen in the network.
  */
 typedef struct{
-	u64     last_timestamp; 	  ///< Timestamp of the last frame reception
+	u64     last_rx_timestamp; 	  ///< Timestamp of the last frame reception
 	u8      addr[6];			  ///< HW Address
 	u8      is_associated;		  ///< Is this device associated with me?
 	u8      padding;

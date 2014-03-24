@@ -276,7 +276,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 			num_coarse_checks++;
 			next_entry_ptr = wlan_sched_coarse.first;
 
-			for(i=0; i<(wlan_sched_coarse.length); i++){
+			while(next_entry_ptr != NULL){
 				curr_entry_ptr = next_entry_ptr;
 				next_entry_ptr = dl_entry_next(next_entry_ptr);
 
