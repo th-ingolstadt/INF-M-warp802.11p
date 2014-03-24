@@ -425,7 +425,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 				(frame_stats->tx_num_packets_total)++;
 				(frame_stats->tx_num_bytes_total) += tx_mpdu->length;
 
-				(frame_stats->tx_num_packets_low)++;
+				(frame_stats->tx_num_packets_low) += (tx_mpdu->num_tx);
 
 				if((tx_mpdu->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
 					(frame_stats->tx_num_packets_success)++;
@@ -782,7 +782,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		}
 
 		if(station_stats != NULL){
-			station_stats->last_timestamp = get_usec_timestamp();
+			station_stats->last_rx_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_stats)->data.rx_num_packets)++;
 				((station_stats)->data.rx_num_bytes) += mpdu_info->length;

@@ -609,7 +609,7 @@ void print_all_observed_statistics(){
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
-		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_timestamp);
+		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_rx_timestamp);
 		xil_printf("     - Associated?       %d\n", curr_statistics->is_associated);
 		xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_statistics->data.tx_num_packets_total, curr_statistics->data.tx_num_packets_success);
 		xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_statistics->data.tx_num_bytes_total), (u32)(curr_statistics->data.tx_num_bytes_success));
