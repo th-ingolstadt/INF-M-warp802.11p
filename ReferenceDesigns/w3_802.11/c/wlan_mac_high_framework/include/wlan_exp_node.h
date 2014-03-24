@@ -48,12 +48,16 @@
 
 #define NODE_DISASSOCIATE              20
 
-#define NODE_TIME                      30
-#define NODE_CHANNEL                   31
-#define NODE_TX_POWER                  32
-#define NODE_TX_RATE                   33
-#define NODE_TX_ANT_MODE               34
-#define NODE_RX_ANT_MODE               35
+#define NODE_RESET_STATE               30
+#define NODE_TIME                      31
+#define NODE_CHANNEL                   32
+#define NODE_TX_POWER                  33
+#define NODE_TX_RATE                   34
+#define NODE_TX_ANT_MODE               35
+#define NODE_RX_ANT_MODE               36
+
+#define NODE_RESET_LOG                 0x00000001
+#define NODE_RESET_TXRX_STATS          0x00000002
 
 #define NODE_TIME_RSVD_VAL             0xFFFF
 #define NODE_CHANNEL_RSVD_VAL          0xFFFF
@@ -72,24 +76,22 @@
 
 #define NODE_LTG_ERROR                 0xFFFFFFFF
 
-#define NODE_LOG_RESET                 50
-#define NODE_LOG_CONFIG                51
-#define NODE_LOG_GET_INFO              52
-#define NODE_LOG_GET_CAPACITY          53
-#define NODE_LOG_GET_ENTRIES           54
-#define NODE_LOG_ADD_ENTRY             55
-#define NODE_LOG_ENABLE_ENTRY          56
-#define NODE_LOG_STREAM_ENTRIES        57
+#define NODE_LOG_CONFIG                50
+#define NODE_LOG_GET_INFO              51
+#define NODE_LOG_GET_CAPACITY          52
+#define NODE_LOG_GET_ENTRIES           53
+#define NODE_LOG_ADD_ENTRY             54
+#define NODE_LOG_ENABLE_ENTRY          55
+#define NODE_LOG_STREAM_ENTRIES        56
 
 #define NODE_LOG_GET_ALL_ENTRIES       0xFFFFFFFF
 
 #define NODE_LOG_CONFIG_FLAG_WRAP      0x00000001
 #define NODE_LOG_CONFIG_FLAG_LOGGING   0x00000002
 
-#define NODE_STATS_RESET_TXRX          60
-#define NODE_STATS_CONFIG_TXRX         61
-#define NODE_STATS_ADD_TXRX_TO_LOG     62
-#define NODE_STATS_GET_TXRX            63
+#define NODE_STATS_CONFIG_TXRX         60
+#define NODE_STATS_ADD_TXRX_TO_LOG     61
+#define NODE_STATS_GET_TXRX            62
 
 #define NODE_STATS_CONFIG_FLAG_PROMISC 0x00000001
 

@@ -772,6 +772,38 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 
 	    //---------------------------------------------------------------------
+		case NODE_RESET_STATE:
+            // NODE_RESET_STATE Packet Format:
+			//   - cmdArgs32[0]  - Flags
+			//                     [0] - NODE_RESET_LOG
+			//                     [1] - NODE_RESET_TXRX_STATS
+			temp = Xil_Ntohl(cmdArgs32[0]);
+
+			// Disable interrupts so no packets interrupt the reset
+			wlan_mac_high_interrupt_stop();
+			// Configure the LOG based on the flag bits
+			if ( ( temp & NODE_RESET_LOG ) == NODE_RESET_LOG ) {
+				xil_printf("EVENT LOG:  Reset log\n");
+				event_log_reset();
+			}
+
+			if ( ( temp & NODE_RESET_TXRX_STATS ) == NODE_RESET_TXRX_STATS ) {
+				xil_printf("Reseting Statistics\n");
+				reset_station_statistics();
+			}
+
+			// Re-enable interrupts
+			wlan_mac_high_interrupt_start();
+
+			// Send response of success
+            respArgs32[respIndex++] = 0;
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
 		case NODE_TX_POWER:
             // NODE_TX_POWER Packet Format:
 			//   - cmdArgs32[0]  - Power (shifted by TX_POWER_MIN_DBM)
@@ -1128,13 +1160,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
-
-
-	    //---------------------------------------------------------------------
-		case NODE_LOG_RESET:
-			xil_printf("EVENT LOG:  Reset log\n");
-			event_log_reset();
-	    break;
 
 
 	    //---------------------------------------------------------------------
@@ -1620,14 +1645,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				respHdr->length += (5 * sizeof(respArgs32));
 				respHdr->numArgs = respIndex;
             }
-		break;
-
-
-		//---------------------------------------------------------------------
-		case NODE_STATS_RESET_TXRX:
-			xil_printf("Reseting Statistics\n");
-
-			reset_station_statistics();
 		break;
 
 
