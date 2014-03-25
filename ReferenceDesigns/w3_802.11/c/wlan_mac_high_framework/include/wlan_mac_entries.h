@@ -154,8 +154,8 @@ typedef struct{
 
 #define MIN_MAC_PAYLOAD_LOG_LEN 24
 
-//#define MAX_MAC_PAYLOAD_LOG_LEN MIN_MAC_PAYLOAD_LOG_LEN
-#define MAX_MAC_PAYLOAD_LOG_LEN 1500
+#define MAX_MAC_PAYLOAD_LOG_LEN MIN_MAC_PAYLOAD_LOG_LEN
+//#define MAX_MAC_PAYLOAD_LOG_LEN 1500
 
 
 //-----------------------------------------------
