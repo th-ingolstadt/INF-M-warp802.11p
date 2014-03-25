@@ -24,10 +24,9 @@ Description:
 import sys
 import time
 import warpnet.wn_config                 as wn_config
-import warpnet.wlan_exp.cmds             as cmds
 import warpnet.wlan_exp.util             as wlan_exp_util
 import warpnet.wlan_exp.ltg              as ltg
-import warpnet.wlan_exp_log.log_util_hdf as hdf
+import warpnet.wlan_exp_log.log_util_hdf as hdf_util
 
 
 #-----------------------------------------------------------------------------
@@ -55,7 +54,7 @@ def write_log_file(file_name, data_buffer):
         data = data_buffer.get_bytes()
         
         # Write the byte Log_data to the file 
-        hdf.log_data_to_hdf5(data, file_name)
+        hdf_util.log_data_to_hdf5(data, file_name)
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
 
@@ -118,13 +117,8 @@ wlan_rates = wlan_exp_util.wlan_rates
 
 # Put each node in a known, good state
 for node in nodes:
-    node.ltg_remove_all()
-    node.queue_tx_data_purge_all()
     node.node_set_tx_rate_unicast(wlan_rates[0])
-
-for node in nodes:
-    node.node_state_reset(cmds.NODE_RESET_LOG + cmds.NODE_RESET_TXRX_STATS)
-
+    node.node_reset_all()
 
 print("\nRun Experiment:\n")
 
@@ -144,6 +138,7 @@ n_sta.ltg_to_node_configure(n_ap, ltg.FlowConfigCBR(1400, 0))
 n_sta.ltg_to_node_start(n_ap)
 
 print("\nStarting trials ...")
+
 # Create some interesting traffic for the log file
 for idx, rate in enumerate(wlan_rates):
     print("  Rate {0} ... ".format(wlan_exp_util.tx_rate_to_str(rate)))

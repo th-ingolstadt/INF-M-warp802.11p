@@ -408,19 +408,47 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Configure Node Attribute Commands
     #--------------------------------------------
-    def node_state_reset(self, flags):
-        """Resets the state of node depending on the flags.
+    def node_reset_all(self):
+        """Resets all portions of a node."""
+        self.node_reset(log=True, 
+                        txrx_stats=True, 
+                        ltg=True, 
+                        queue_data=True, 
+                        associations=True)
+
+
+    def node_reset(self, log=False, txrx_stats=False, ltg=False, queue_data=False, 
+                   associations=False ):
+        """Resets the state of node depending on the attributes.
         
         Attributes:
-            flags -- Which portion of the node state should be reset:
-                     [0] NODE_RESET_LOG
-                     [1] NODE_RESET_TXRX_STATS
+            log        -- Reset the log
+            txrx_stats -- Reset the TX/RX Statistics
+            ltg        -- Remove all LTGs
+            queue_data -- Purge all TX queue data
         """
-        if ((flags & cmds.NODE_RESET_LOG) == cmds.NODE_RESET_LOG):
+        flags = 0;
+        
+        if log:
+            flags += cmds.NODE_RESET_LOG
             self.log_total_bytes_read = 0
             self.log_num_wraps        = 0
             self.log_next_read_index  = 0
 
+        if txrx_stats:
+            flags += cmds.NODE_RESET_TXRX_STATS
+        
+        if ltg:
+            self.ltg_remove_all()
+        
+        if queue_data:
+            self.queue_tx_data_purge_all()
+
+        if associations:
+            # TODO:  Disassociate all nodes
+            pass
+        
+        # Send the reset command
         self.send_cmd(cmds.NodeResetState(flags))
 
 
