@@ -109,6 +109,23 @@ wn_cmd_entry* get_next_empty_wn_cmd_entry(){
 
 /*****************************************************************************/
 /**
+* Get the next empty time info entry
+*
+* @param    None.
+*
+* @return	time_info_entry *   - Pointer to the next "empty" time info entry or NULL
+*
+* @note		None.
+*
+******************************************************************************/
+time_info_entry* get_next_empty_time_info_entry(){
+
+	// Get the next empty entry
+	return (time_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
+}
+
+/*****************************************************************************/
+/**
 * Get the next empty RX OFDM entry
 *
 * @param    u32 payload_log_len
@@ -200,6 +217,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 	node_info_entry    * node_info_entry_log_item;
 	exp_info_entry     * exp_info_entry_log_item;
 	wn_cmd_entry       * wn_cmd_entry_log_item;
+	time_info_entry    * time_info_entry_log_item;
 	txrx_stats_entry   * txrx_stats_entry_log_item;
 	rx_common_entry    * rx_common_log_item;
 	tx_high_entry      * tx_high_entry_log_item;
@@ -246,6 +264,15 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 				if (i == 10) break;
 				xil_printf("        0x%08x \n", (wn_cmd_entry_log_item->args)[i]);
 			}
+        break;
+
+        case ENTRY_TYPE_TIME_INFO:
+        	time_info_entry_log_item = (time_info_entry*) entry;
+			xil_printf("%d: - Time Info entry\n", entry_number );
+			xil_printf("   Timestamp:  %d\n", (u32)(time_info_entry_log_item->timestamp));
+			xil_printf("   Abs time :  $d\n", (u32)(time_info_entry_log_item->abs_time));
+			xil_printf("   New time :  %d\n", (u32)(time_info_entry_log_item->new_time));
+			xil_printf("   Reason   :  %d\n",       time_info_entry_log_item->reason);
         break;
 
 		case ENTRY_TYPE_TXRX_STATS:

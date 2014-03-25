@@ -49,6 +49,7 @@
 #define ENTRY_TYPE_STATION_INFO        3
 #define ENTRY_TYPE_TEMPERATURE         4
 #define ENTRY_TYPE_WN_CMD              5
+#define ENTRY_TYPE_TIME_INFO           6
 
 //-----------------------------------------------
 // Receive Entries
@@ -80,17 +81,17 @@
 //       Tag Parameter so that population of this structure is easy.
 //
 typedef struct{
-	u32     type;                 // WARPNet Node type
-	u32     id;                   // Node ID
-	u32     hw_gen;               // WARP Hardware Generation
-	u32     wn_ver;               // WARPNet version
-	u64     fpga_dna;             // Node FPGA DNA
-	u32     serial_number;        // Node serial number
-	u32     wlan_exp_ver;         // WLAN Exp version
-	u32     wlan_max_assn;        // Max associations of the node
-	u32     wlan_event_log_size;  // Max size of the event log
-	u32     wlan_mac_addr[2];     // WLAN MAC Address
-	u32     wlan_max_stats;       // Max number of promiscuous statistics
+	u32     type;                      // WARPNet Node type
+	u32     id;                        // Node ID
+	u32     hw_gen;                    // WARP Hardware Generation
+	u32     wn_ver;                    // WARPNet version
+	u64     fpga_dna;                  // Node FPGA DNA
+	u32     serial_number;             // Node serial number
+	u32     wlan_exp_ver;              // WLAN Exp version
+	u32     wlan_max_assn;             // Max associations of the node
+	u32     wlan_event_log_size;       // Max size of the event log
+	u32     wlan_mac_addr[2];          // WLAN MAC Address
+	u32     wlan_max_stats;            // Max number of promiscuous statistics
 } node_info_entry;
 
 
@@ -98,20 +99,21 @@ typedef struct{
 // Experiment Info Entry
 //
 typedef struct{
-	u64     timestamp;
-	u16     info_type;
-	u16     length;
-	u8    * msg;
+	u64     timestamp;                 // Timestamp of the log entry
+	u16     info_type;                 // Type of Experiment Info
+	u16     length;                    // Length of Entry
+	u8    * msg;                       // Pointer to message buffer
 } exp_info_entry;
 
 
 //-----------------------------------------------
 // Station Info Entry
 typedef struct{
-	u64     timestamp;                                  // Timestamp
-	station_info_base info;								// Framework's station_info struct
+	u64     timestamp;                 // Timestamp of the log entry
+	station_info_base info;            // Framework's station_info struct
 } station_info_entry;
 CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
+
 
 //-----------------------------------------------
 // Temperature Entry
@@ -120,12 +122,12 @@ CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
 //           celsius = ((double(temp)/65536.0)/0.00198421639) - 273.15;
 //
 typedef struct{
-	u64     timestamp;       // Timestamp of the log entry
-	u32     id;              // Node ID
-	u32     serial_number;   // Node serial number
-	u32     curr_temp;       // Current Temperature of the node
-	u32     min_temp;        // Minimum recorded temperature of the node
-	u32     max_temp;		 // Maximum recorded temperature of the node
+	u64     timestamp;                 // Timestamp of the log entry
+	u32     id;                        // Node ID
+	u32     serial_number;             // Node serial number
+	u32     curr_temp;                 // Current Temperature of the node
+	u32     min_temp;                  // Minimum recorded temperature of the node
+	u32     max_temp;		           // Maximum recorded temperature of the node
 } temperature_entry;
 
 
@@ -133,12 +135,28 @@ typedef struct{
 // WARPNet Command Entry
 //
 typedef struct{
-	u64     timestamp;      // Timestamp of the log entry
-	u32     command;        // WARPNet command
-	u16     src_id;         // Source ID of the command
-	u16     num_args;       // Number of arguments
-	u32     args[10];	    // Data from the arguments
+	u64     timestamp;                 // Timestamp of the log entry
+	u32     command;                   // WARPNet command
+	u16     src_id;                    // Source ID of the command
+	u16     num_args;                  // Number of arguments
+	u32     args[10];	               // Data from the arguments
 } wn_cmd_entry;
+
+
+//-----------------------------------------------
+// Time Info Entry
+//
+typedef struct{
+	u64     timestamp;                 // Timestamp of the log entry (old timebase)
+	u64     abs_time;                  // Absolute time (0xFFFFFFFF_FFFFFFFF if not known)
+	u64     new_time;                  // New timebase  (0xFFFFFFFF_FFFFFFFF if unchanged)
+	u32     reason;                    // Reason code for log entry:
+	                                   //     0 - WN_SET_TIME
+	                                   //     1 - BEACON
+} time_info_entry;
+
+#define TIME_INFO_ENTRY_WN_SET_TIME              0
+#define TIME_INFO_ENTRY_BEACON                   1
 
 
 //-----------------------------------------------
@@ -147,8 +165,8 @@ typedef struct{
 //          accurately reflects the number of bytes in the struct.
 //
 typedef struct{
-	u64             timestamp;      // Timestamp of the log entry
-	statistics_txrx stats;			// Framework's statistics struct
+	u64             timestamp;         // Timestamp of the log entry
+	statistics_txrx stats;			   // Framework's statistics struct
 } txrx_stats_entry;
 
 
@@ -257,6 +275,7 @@ typedef struct{
 //
 exp_info_entry       * get_next_empty_exp_info_entry(u16 size);
 wn_cmd_entry         * get_next_empty_wn_cmd_entry();
+time_info_entry      * get_next_empty_time_info_entry();
 
 rx_ofdm_entry        * get_next_empty_rx_ofdm_entry(u32 payload_log_len);
 rx_dsss_entry        * get_next_empty_rx_dsss_entry(u32 payload_log_len);

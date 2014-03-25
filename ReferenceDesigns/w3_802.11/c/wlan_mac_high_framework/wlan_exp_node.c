@@ -355,6 +355,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           num_bytes;
 	u32           num_pkts;
 	u64           time;
+	u64           new_time;
+	u64           abs_time;
 
 	u32           entry_size;
 	u32           entry_remaining;
@@ -948,25 +950,58 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// Set / Get node time
 			//
 			// Message format:
-			//     cmdArgs32[0]   Time in microseconds - lower 32 bits (or 0x0000FFFF)
-			//     cmdArgs32[1]   Time in microseconds - upper 32 bits (or 0x0000FFFF)
+			//     cmdArgs32[0]   Read (NODE_TIME_RSVD_VAL) / Write (0)
+			//     cmdArgs32[1]   New Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[2]   New Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[3]   Abs Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[4]   Abs Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
+			//
+			// Response format:
+            //     respArgs32[0]  Time on node in microseconds - lower 32 bits
+			//     respArgs32[1]  Time on node in microseconds - upper 32 bits
 			//
 			temp  = Xil_Ntohl(cmdArgs32[0]);
-			temp2 = Xil_Ntohl(cmdArgs32[1]);
+			time  = get_usec_timestamp();
+
+			time_info_entry * time_entry;
 
 			// If parameter is not the magic number, then set the time on the node
-			if ( ( temp != NODE_TIME_RSVD_VAL ) && ( temp2 != NODE_TIME_RSVD_VAL ) ) {
+			if ( temp != NODE_TIME_RSVD_VAL ) {
 
-				time = (((u64)temp2)<<32) + ((u64)temp);
+				// Get the new time
+				temp     = Xil_Ntohl(cmdArgs32[1]);
+				temp2    = Xil_Ntohl(cmdArgs32[2]);
+				new_time = (((u64)temp2)<<32) + ((u64)temp);
 
-				wlan_mac_high_set_timestamp( time );
+				// If the time is not the reserved value; then update the time
+				// Otherwise, get the current time to return to the host
+				if ( (temp != NODE_TIME_RSVD_VAL) && (temp2 != NODE_TIME_RSVD_VAL) ) {
+  				    wlan_mac_high_set_timestamp( new_time );
+  				    xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
+				} else {
+					new_time = time;
+				}
 
-			    xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
+				// Get the absolute time
+				temp     = Xil_Ntohl(cmdArgs32[3]);
+				temp2    = Xil_Ntohl(cmdArgs32[4]);
+				abs_time = (((u64)temp2)<<32) + ((u64)temp);
+
+				// Create a time info log entry
+				time_entry = get_next_empty_time_info_entry();
+
+				if (time_entry != NULL) {
+				    time_entry->timestamp = time;
+				    time_entry->new_time  = new_time;
+				    time_entry->abs_time  = abs_time;
+				    time_entry->reason    = TIME_INFO_ENTRY_WN_SET_TIME;
+				}
 			} else {
-				time  = get_usec_timestamp();
-				temp  = time & 0xFFFFFFFF;
-				temp2 = (time >> 32) & 0xFFFFFFFF;
+				new_time = time;
 			}
+
+			temp  = new_time & 0xFFFFFFFF;
+			temp2 = (new_time >> 32) & 0xFFFFFFFF;
 
 			// Send response of current power
             respArgs32[respIndex++] = Xil_Htonl( temp );

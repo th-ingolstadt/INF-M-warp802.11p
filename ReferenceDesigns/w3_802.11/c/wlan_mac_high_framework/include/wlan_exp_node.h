@@ -61,7 +61,7 @@
 #define NODE_RESET_LTG                 0x00000004
 #define NODE_TX_DATA_QUEUE             0x00000008
 
-#define NODE_TIME_RSVD_VAL             0xFFFF
+#define NODE_TIME_RSVD_VAL             0xFFFFFFFF
 #define NODE_CHANNEL_RSVD_VAL          0xFFFF
 #define NODE_TX_POWER_RSVD_VAL         0xFFFF
 #define NODE_TX_RATE_RSVD_VAL          0xFFFF
