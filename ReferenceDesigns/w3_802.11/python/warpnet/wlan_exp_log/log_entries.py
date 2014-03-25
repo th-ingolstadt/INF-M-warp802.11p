@@ -289,7 +289,7 @@ class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
         addr_conv_arr = np.uint64(2)**np.array(range(40,-1,-8), dtype='uint64')
 
         #Extract all MAC headers (each header is 24-entry uint8 array)
-        mac_hdrs = np_arr_orig['mac_header']
+        mac_hdrs = np_arr_orig['mac_payload']
 
         #Compute values for address-as-int fields using numpy's dot-product routine
         # MAC header offsets here select the 3 6-byte address fields
@@ -352,7 +352,6 @@ def extend_np_dt(dt_orig, new_fields=None):
 entry_rx_common = WlanExpLogEntry_TxRx(name='RX_ALL', entry_type_id=None)
 entry_rx_common.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
-            ('mac_header',             '24s',    '24uint8'),
             ('length',                 'H',      'uint16'),
             ('rate',                   'B',      'uint8'),
             ('power',                  'b',      'int8'),
@@ -440,12 +439,17 @@ entry_node_temperature.append_field_defs([
 entry_rx_ofdm = WlanExpLogEntry_TxRx(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_ofdm.append_field_defs([
-            ('chan_est',               '256B',   '(64,2)i2')])
+            ('chan_est',               '256B',   '(64,2)i2'),
+            ('mac_payload_len',        'I',      'uint32'),
+            ('mac_payload',            '24s',    '24uint8')])
 
 
 # Receive DSSS
 entry_rx_dsss = WlanExpLogEntry_TxRx(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
 entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
+entry_rx_dsss.append_field_defs([          
+            ('mac_payload_len',        'I',      'uint32'),
+            ('mac_payload',            '24s',    '24uint8')])
 
 
 # Transmit
@@ -454,7 +458,6 @@ entry_tx.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('time_to_accept',         'I',      'uint32'),
             ('time_to_done',           'I',      'uint32'),
-            ('mac_header',             '24s',    '24uint8'),
             ('num_tx',                 'B',      'uint8'),
             ('tx_power',               'b',      'int8'),
             ('chan_num',               'B',      'uint8'),
@@ -463,13 +466,14 @@ entry_tx.append_field_defs([
             ('result',                 'B',      'uint8'),
             ('pkt_type',               'B',      'uint8'),
             ('ant_mode',               'B',      'uint8'),
-            ('padding',                '3x',     '3uint8')])
+            ('padding',                '3x',     '3uint8'),
+            ('mac_payload_len',        'I',      'uint32'),
+            ('mac_payload',            '24s',    '24uint8')])
 
 # Transmit from CPU Low
 entry_tx_low = WlanExpLogEntry_TxRx(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
 entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
-            ('mac_header',             '24s',    '24uint8'),
             ('rate',                   'B',      'uint8'),
             ('ant_mode',               'B',      'uint8'),
             ('tx_power',               'b',      'int8'),
@@ -479,7 +483,9 @@ entry_tx_low.append_field_defs([
             ('length',                 'H',      'uint16'),
             ('num_slots',              'H',      'uint16'),
             ('pkt_type',               'B',      'uint8'),
-            ('padding',                'x',      'uint8')])
+            ('padding',                'x',      'uint8'),
+            ('mac_payload_len',        'I',      'uint32'),
+            ('mac_payload',            '24s',    '24uint8')])
 
 
 # Tx / Rx Statistics

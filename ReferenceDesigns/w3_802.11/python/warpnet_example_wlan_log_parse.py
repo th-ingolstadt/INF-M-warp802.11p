@@ -49,8 +49,7 @@ log_util.print_log_index_summary(log_data_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
 log_index = log_util.filter_log_index(log_data_index,
-                                      include_only=['RX_ALL', 'RX_OFDM', 'TX', 'TX_LOW'],
-                                      merge={'RX_ALL':['RX_OFDM', 'RX_DSSS']})
+                                      include_only=['RX_OFDM', 'TX', 'TX_LOW'])
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 
@@ -201,12 +200,12 @@ for tx in ['TX', 'TX_LOW']:
 # Example 3: Calculate total number of packets and bytes received from each distinct MAC address
 
 # Skip this example if the log doesn't contain RX events
-if('RX_ALL' in log_np.keys()):
+if('RX_OFDM' in log_np.keys()):
     # For this experiment, only look at Good = 0  or Bad = 1 receptions
     FCS_GOOD = 0
 
     # Extract all receptions
-    log_rx = log_np['RX_ALL']
+    log_rx = log_np['RX_OFDM']
 
     # Extract only Rx entries with good checksum (FCS = good)
     rx_good_fcs = log_rx[log_rx['fcs_result'] == FCS_GOOD]
