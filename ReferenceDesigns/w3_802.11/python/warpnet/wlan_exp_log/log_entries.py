@@ -89,6 +89,8 @@ class WlanExpLogEntryType(object):
     fields_np_dt      = None
     fields_fmt_struct = None
 
+    post_np_array_gen_callback = None
+
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
         if name is not None:
@@ -145,7 +147,13 @@ class WlanExpLogEntryType(object):
         WlanExpLogEntryType instance at the given byte_offsets.
         """
         index_iter = [log_bytes[o : o + self.fields_np_dt.itemsize] for o in byte_offsets]
-        return np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
+        np_arr = np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
+
+        if(self.post_np_array_gen_callback is not None):
+            print("Calling post_np_array_gen_callback for {0}".format(self))
+            np_arr = self.post_np_array_gen_callback(np_arr)
+
+        return np_arr
 
     def entry_as_string(self, buf):
         """Generate a string representation of the entry from a buffer."""
@@ -252,19 +260,7 @@ class WlanExpLogEntryType(object):
 
 # End class
 
-
-class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
-    """Subclass for Tx and Rx log entries which computes extra fields from the raw MAC headers
-       and adds them to the numpy array. These fields must be calculated and appened to
-       avoid modifying the source log bytes that the normal numpy array output references
-    """
-    def __init__(self, *args, **kwargs):
-        super(WlanExpLogEntry_TxRx, self).__init__(*args, **kwargs)
-
-    def generate_numpy_array(self, log_bytes, byte_offsets):
-        #Use super class method first (avoids duplicating code)
-        np_arr_orig = super(WlanExpLogEntry_TxRx, self).generate_numpy_array(log_bytes, byte_offsets)
-
+def np_array_add_MAC_addr_fields(np_arr_orig):
         # Extend the default np_arr with convenience fields for MAC header addresses
         # IMPORTANT: np_arr uses the original bytearray as its underlying data
         # We must operate on a copy to avoid clobbering log entries adjacent to the
@@ -285,7 +281,8 @@ class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
             np_arr_out[f] = np_arr_orig[f]
 
         #Helper array of powers of 2
-#        addr_conv_arr = np.uint64(2)**np.array(range(0,48,8), dtype='uint64') #wrong byte order?
+        # this array arranges bytes such that they match other u64 representations of MAC addresses
+        #  elsewhere in the framework
         addr_conv_arr = np.uint64(2)**np.array(range(40,-1,-8), dtype='uint64')
 
         #Extract all MAC headers (each header is 24-entry uint8 array)
@@ -297,24 +294,14 @@ class WlanExpLogEntry_TxRx(WlanExpLogEntryType):
         np_arr_out['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,10:16]))
         np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,16:22]))
 
-        '''
-        A quick benchmark of this implelemtation with simple log_index_gen -> numpy_array_gen
-         using only ofdm_rx events and 1GB log file:
-          Using superclass generate_numpy_array (i.e. no extra fields): 10.8sec
-          Using this generate_numpy_array: 13.3sec
-          Using this generate_numpy_array but with np_arr_out['addrX'] calls removed: 12.3sec
-
-         The loop above to copy existing data into np_arr_out is more expensive than calculating
-          new addr uint64's, but neither is hugely expensive.
-        '''
-
         return np_arr_out
-
-# End class
 
 def extend_np_dt(dt_orig, new_fields=None):
     """Extends a numpy dtype object with additional fields. new_fields input must be dictionary
-    with keys 'names' and 'formats', same as when specifying new dtype objects
+    with keys 'names' and 'formats', same as when specifying new dtype objects. The return
+    dtype will *not* contain byte offset values for existing or new fields, even if exisiting
+    fields had specified offsets. Thus the original dtype should be used to interpret raw data buffers
+    before the extended dtype is used to add new fields.
     """
 
     from collections import OrderedDict
@@ -349,7 +336,7 @@ def extend_np_dt(dt_orig, new_fields=None):
 # Virtual Log Entry Instances
 #-----------------------------------------------------------------------------
 
-entry_rx_common = WlanExpLogEntry_TxRx(name='RX_ALL', entry_type_id=None)
+entry_rx_common = WlanExpLogEntryType(name='RX_ALL', entry_type_id=None)
 entry_rx_common.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('length',                 'H',      'uint16'),
@@ -436,24 +423,25 @@ entry_node_temperature.append_field_defs([
 
 
 # Receive OFDM
-entry_rx_ofdm = WlanExpLogEntry_TxRx(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
+entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_ofdm.append_field_defs([
             ('chan_est',               '256B',   '(64,2)i2'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
-
+entry_rx_ofdm.post_np_array_gen_callback = np_array_add_MAC_addr_fields
 
 # Receive DSSS
-entry_rx_dsss = WlanExpLogEntry_TxRx(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
+entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
 entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_dsss.append_field_defs([          
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
+entry_rx_dsss.post_np_array_gen_callback = np_array_add_MAC_addr_fields
 
 
 # Transmit
-entry_tx = WlanExpLogEntry_TxRx(name='TX', entry_type_id=ENTRY_TYPE_TX)
+entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
 entry_tx.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('time_to_accept',         'I',      'uint32'),
@@ -469,9 +457,10 @@ entry_tx.append_field_defs([
             ('padding',                '3x',     '3uint8'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
+entry_tx.post_np_array_gen_callback = np_array_add_MAC_addr_fields
 
 # Transmit from CPU Low
-entry_tx_low = WlanExpLogEntry_TxRx(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
+entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
 entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('rate',                   'B',      'uint8'),
@@ -486,6 +475,7 @@ entry_tx_low.append_field_defs([
             ('padding',                'x',      'uint8'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
+entry_tx_low.post_np_array_gen_callback = np_array_add_MAC_addr_fields
 
 
 # Tx / Rx Statistics
