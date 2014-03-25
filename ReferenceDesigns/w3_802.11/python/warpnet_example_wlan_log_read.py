@@ -33,8 +33,8 @@ import warpnet.wlan_exp_log.log_util_hdf as hdf_util
 # Top Level Script Variables
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
-HOST_INTERFACES   = ['10.0.0.200']
-NODE_SERIAL_LIST  = ['W3-a-00094', 'W3-a-00418']
+HOST_INTERFACES   = ['10.0.0.250']
+NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
 AP_HDF5_FILENAME  = "example_logs/ap_log_stats.hdf5"
 STA_HDF5_FILENAME = "example_logs/sta_log_stats.hdf5"
@@ -119,6 +119,9 @@ wlan_rates = wlan_exp_util.wlan_rates
 for node in nodes:
     node.node_set_tx_rate_unicast(wlan_rates[0])
     node.node_reset_all()
+
+# Initialize the timebase of the nodes
+wlan_exp_util.init_timebase(host_config)
 
 print("\nRun Experiment:\n")
 

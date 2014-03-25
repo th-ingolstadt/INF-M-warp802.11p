@@ -89,7 +89,7 @@ NODE_RESET_TXRX_STATS                  = 0x00000002
 NODE_RESET_LTG                         = 0x00000004
 NODE_RESET_TX_DATA_QUEUE               = 0x00000008
 
-RSVD_TIME                              = 0x0000FFFF0000FFFF
+RSVD_TIME                              = 0xFFFFFFFF
 RSVD_CHANNEL                           = 0xFFFF
 RSVD_TX_POWER                          = 0xFFFF
 RSVD_TX_RATE                           = 0xFFFF
@@ -441,31 +441,62 @@ class NodeProcTime(wn_message.Cmd):
         of microseconds.
     
     Attributes:
-        time -- Time as either an integer number of microseconds or 
-                  a floating point number in seconds.
+        node_time -- Time as either an integer number of microseconds or 
+                       a floating point number in seconds.
     """
     time_factor = 6
+    time_type   = None
     
-    def __init__(self, time):
+    def __init__(self, node_time):
         super(NodeProcTime, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_TIME
-        
-        if   (type(time) is float):
-            time_to_send = int(round(time, self.time_factor) * (10**self.time_factor))
-        elif (type(time) is int):
-            time_to_send = time
+
+        # Read the time as a float
+        if (node_time == RSVD_TIME):
+            self.time_type = 0
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
+
+        # Write the time
         else:
-            raise TypeError("Time must be either a float or int")
+            import time
+
+            if   (type(node_time) is float):
+                time_to_send   = int(round(node_time, self.time_factor) * (10**self.time_factor))
+                self.time_type = 0
+            elif (type(node_time) is int):
+                time_to_send   = node_time
+                self.time_type = 1
+            else:
+                raise TypeError("Time must be either a float or int")
+
+            now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
             
-        self.add_args((time_to_send & 0xFFFFFFFF))
-        self.add_args(((time_to_send >> 32) & 0xFFFFFFFF))
+            self.add_args(0)
+            self.add_args((time_to_send & 0xFFFFFFFF))
+            self.add_args(((time_to_send >> 32) & 0xFFFFFFFF))
+            self.add_args((now & 0xFFFFFFFF))
+            self.add_args(((now >> 32) & 0xFFFFFFFF))
     
     def process_resp(self, resp):
         args = resp.get_args()
         if len(args) != 2:
             print("Invalid response.")
             print(resp)
-        return ( (2**32 * args[1]) + args[0] )
+
+        time = (2**32 * args[1]) + args[0]
+
+        if   (self.time_type == 0):
+            ret_val = float(time / (10**self.time_factor))
+        elif (self.time_type == 1):
+            ret_val = time
+        else:
+            raise TypeError("Time must be either a float or int")
+            
+        return ret_val
 
 # End Class
 

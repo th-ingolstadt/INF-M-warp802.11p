@@ -58,6 +58,7 @@ ENTRY_TYPE_EXP_INFO               = 2
 ENTRY_TYPE_STATION_INFO           = 3
 ENTRY_TYPE_NODE_TEMPERATURE       = 4
 ENTRY_TYPE_WN_CMD_INFO            = 5
+ENTRY_TYPE_TIME_INFO              = 6
 
 ENTRY_TYPE_RX_OFDM                = 10
 ENTRY_TYPE_RX_DSSS                = 11
@@ -81,15 +82,15 @@ class WlanExpLogEntryType(object):
     """Base class to define a log entry type."""
     # _fields is a list of 3-tuples:
     #     (field_name, field_fmt_struct, field_fmt_np)
-    _fields           = None
+    _fields             = None
 
-    entry_type_id     = None
-    name              = None
+    entry_type_id       = None
+    name                = None
 
-    fields_np_dt      = None
-    fields_fmt_struct = None
+    fields_np_dt        = None
+    fields_fmt_struct   = None
 
-    post_np_array_gen_callback = None
+    gen_numpy_callbacks = None
 
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
@@ -113,10 +114,13 @@ class WlanExpLogEntryType(object):
                 wlan_exp_log_entry_types[entry_type_id] = self
 
         # Initialize fields to empty lists
-        self._fields           = []
+        self._fields             = []
 
         # Initialize unpack variables
-        self.fields_fmt_struct = ''
+        self.fields_fmt_struct   = ''
+        
+        # Initialize callbacks
+        self.gen_numpy_callbacks = []
 
 
     #-------------------------------------------------------------------------
@@ -139,6 +143,14 @@ class WlanExpLogEntryType(object):
             self._fields.append(field_info)
         self._update_field_defs()
 
+    def add_gen_numpy_array_callback(self, callback):
+        """Add callback that is run after the numpy array is generated from the entry type."""
+        if callable(callback):
+            self.gen_numpy_callbacks.append(callback)
+        else:
+            print("ERROR:  Callback must be callable function.")
+
+
     #-------------------------------------------------------------------------
     # Generator methods for the WlanExpLogEntryType
     #-------------------------------------------------------------------------
@@ -149,9 +161,9 @@ class WlanExpLogEntryType(object):
         index_iter = [log_bytes[o : o + self.fields_np_dt.itemsize] for o in byte_offsets]
         np_arr = np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
 
-        if(self.post_np_array_gen_callback is not None):
-            print("Calling post_np_array_gen_callback for {0}".format(self))
-            np_arr = self.post_np_array_gen_callback(np_arr)
+        if self.gen_numpy_callbacks:
+            for callback in self.gen_numpy_callbacks:
+                np_arr = callback(np_arr)
 
         return np_arr
 
@@ -224,10 +236,9 @@ class WlanExpLogEntryType(object):
 
         # Compute the offset of each real field, inferred by the sizes of all previous fields
         #   This loop must look at all real fields, even ignored/padding fields
-        sizes =  list(map(get_np_size, [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in self._fields]))
-        offsets_all = [sum(sizes[0:i]) for i in range(len(sizes))]
+        sizes   = list(map(get_np_size, [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in self._fields]))
+        offsets = [sum(sizes[0:i]) for i in range(len(sizes))]
 
-        offsets = offsets_all
         np_fields = self._fields
 
         # numpy processing ignores the same fields ignored by struct.unpack
@@ -237,8 +248,6 @@ class WlanExpLogEntryType(object):
 
         names   =  [field_name   for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
         formats =  [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
-
-        # print("np_dtype for %s (%d B): %s" % (self.name, np.dtype({'names':names, 'formats':formats, 'offsets':offsets}).itemsize, zip(offsets,formats,names)))
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
@@ -259,6 +268,7 @@ class WlanExpLogEntryType(object):
         return self.name
 
 # End class
+
 
 def np_array_add_MAC_addr_fields(np_arr_orig):
         # Extend the default np_arr with convenience fields for MAC header addresses
@@ -296,6 +306,9 @@ def np_array_add_MAC_addr_fields(np_arr_orig):
 
         return np_arr_out
 
+# End def
+
+
 def extend_np_dt(dt_orig, new_fields=None):
     """Extends a numpy dtype object with additional fields. new_fields input must be dictionary
     with keys 'names' and 'formats', same as when specifying new dtype objects. The return
@@ -331,6 +344,9 @@ def extend_np_dt(dt_orig, new_fields=None):
         dt_new = np.dtype(dt_ext)
 
         return dt_new
+
+# End def
+
 
 #-----------------------------------------------------------------------------
 # Virtual Log Entry Instances
@@ -380,6 +396,7 @@ entry_exp_info_hdr.append_field_defs([
             ('info_type',              'I',      'uint16'),
             ('length',                 'I',      'uint16')])
 
+
 # Station Info
 entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
 entry_station_info.append_field_defs([
@@ -411,6 +428,15 @@ entry_wn_cmd_info.append_field_defs([
             ('args',                   '10I',    '10uint32')])
 
 
+# Time Info
+entry_wn_cmd_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
+entry_wn_cmd_info.append_field_defs([
+            ('timestamp',              'Q',      'uint64'),
+            ('new_time',               'Q',      'uint64'),
+            ('abs_time',               'Q',      'uint64'),
+            ('reason',                 'I',      'uint32')])
+
+
 # Temperature
 entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
 entry_node_temperature.append_field_defs([
@@ -425,23 +451,25 @@ entry_node_temperature.append_field_defs([
 # Receive OFDM
 entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
+entry_rx_ofdm.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_rx_ofdm.append_field_defs([
             ('chan_est',               '256B',   '(64,2)i2'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
-entry_rx_ofdm.post_np_array_gen_callback = np_array_add_MAC_addr_fields
+
 
 # Receive DSSS
 entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
 entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
+entry_rx_dsss.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_rx_dsss.append_field_defs([          
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
-entry_rx_dsss.post_np_array_gen_callback = np_array_add_MAC_addr_fields
 
 
 # Transmit
 entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
+entry_tx.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_tx.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('time_to_accept',         'I',      'uint32'),
@@ -457,10 +485,11 @@ entry_tx.append_field_defs([
             ('padding',                '3x',     '3uint8'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
-entry_tx.post_np_array_gen_callback = np_array_add_MAC_addr_fields
+
 
 # Transmit from CPU Low
 entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
+entry_tx_low.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('rate',                   'B',      'uint8'),
@@ -475,7 +504,6 @@ entry_tx_low.append_field_defs([
             ('padding',                'x',      'uint8'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
-entry_tx_low.post_np_array_gen_callback = np_array_add_MAC_addr_fields
 
 
 # Tx / Rx Statistics

@@ -121,50 +121,50 @@ def init_nodes(nodes_config, host_config= None, node_factory=None, output=False)
 # End of init_nodes()
 
 
-def init_timestamp(nodes, time_base=0, output=False, verbose=False, repeat=1):
-    """Initialize the time on all of the WLAN Exp nodes.
+def init_timebase(host_config=None, timebase=0):
+    """Initialize the timebase on all of the WLAN Exp nodes.
+    
+    This method will iterate through all host interfaces and issue a 
+    broadcast packet on each interface that will set the time to the 
+    timebase.  The method keeps track of how long it takes to send 
+    each packet so that the time on all nodes is as close as possible
+    even across interface.
     
     Attributes:
-        nodes -- A list of nodes on which to initialize the time.
-        time_base -- optional time base 
-        output -- optional output to see jitter across nodes
+        host_config  -- A WnConfiguration object describing the host configuration
+        timebase     -- optional timebase (defaults to 0) 
     """
-    return_times       = None
-    node_start_times   = []
+    # Create a Host Configuration if there is none provided
+    if host_config is None:
+        import warpnet.wn_config as wn_config
+        host_config = wn_config.HostConfiguration()
 
-    print("Initializing {0} node(s) timestamps to: {1}".format(len(nodes), time_base))
+    interfaces   = host_config.get_param('network', 'host_interfaces')
+    tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
+    rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
+   
 
-    if output:
-        return_times = {}
-        for node in nodes:
-            return_times[node.serial_number] = []
-    
-    for i in range(repeat):    
-        start_time = _time()
-    
-        for node in nodes:
-            node_time = time_base + (_time() - start_time)
-            node.node_set_time(node_time)
-            node_start_times.append(node_time)
-        
-        if output:
-            for idx, node in enumerate(nodes):
-                node_start_time = int(round(node_start_times[idx], 6) * (10**6))
-                elapsed_time = int(round(_time() - start_time - node_start_times[idx], 6) * (10**6)) 
-                node_time = node.node_get_time()
-                diff_time = node_start_time + elapsed_time - node_time
-                if (verbose):
-                    print("Node {0}: \n".format(node.serial_number),
-                          "    Start Time          = {0:8d}\n".format(node_start_time),
-                          "    Elapsed System Time = {0:8d}\n".format(elapsed_time),
-                          "    Time from Node      = {0:8d}\n".format(node_time), 
-                          "    Time Difference     = {0:8d}\n".format(diff_time))
+    start_time = _time()
 
-                return_times[node.serial_number].append(diff_time)
+    for interface in interfaces:
+        import warpnet.wn_transport_eth_udp_py_bcast as bcast
+        import warpnet.wlan_exp.cmds                 as cmds
+        import warpnet.wn_util                       as util
 
-    if not return_times is None:
-        return return_times
-        
+        # Create broadcast transport
+        transport_bcast = bcast.TransportEthUdpPyBcast(host_config, interface);
+
+        transport_bcast.wn_open(tx_buf_size, rx_buf_size)
+
+        node_time       = timebase + (_time() - start_time)
+        cmd             = cmds.NodeProcTime(node_time);
+
+        transport_bcast.send(cmd.serialize(), 'message')
+
+        msg  = "Initializing the time of all nodes on "
+        msg += "{0} to: {1}".format(util._get_ip_address_subnet(interface), timebase)        
+        print(msg)
+
 # End of init_timestamp()
 
 
