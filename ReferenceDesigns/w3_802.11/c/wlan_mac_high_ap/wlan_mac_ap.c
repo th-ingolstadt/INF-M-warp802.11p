@@ -351,8 +351,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u32 ts_old = 0;
 	u32 payload_log_len;
-	u32 total_payload_len = max(tx_mpdu->length + sizeof(mac_header_80211) , MAX_MAC_PAYLOAD_LOG_LEN);
-
+	u32 total_payload_len = min(tx_mpdu->length + sizeof(mac_header_80211) , MAX_MAC_PAYLOAD_LOG_LEN);
 	pkt_type = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 
 	for(i = 0; i < tx_mpdu->num_tx; i++){
@@ -386,7 +385,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 
 
-	payload_log_len = max( 1 + ( ( ( total_payload_len ) - 1) / 4 ) , MAX_MAC_PAYLOAD_LOG_LEN );
+	payload_log_len = min( (1 + ( ( ( total_payload_len ) - 1) / 4) )*4 , MAX_MAC_PAYLOAD_LOG_LEN );
+
 	tx_high_event_log_entry = get_next_empty_tx_high_entry(payload_log_len);
 
 	if(tx_high_event_log_entry != NULL){
@@ -720,7 +720,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	dl_entry*	tx_queue_entry;
 	tx_queue_buffer* tx_queue;
 	u32 payload_log_len;
-	u32 total_payload_len = max(length + sizeof(mac_header_80211) , MAX_MAC_PAYLOAD_LOG_LEN);
+	u32 total_payload_len = min(length + sizeof(mac_header_80211) , MAX_MAC_PAYLOAD_LOG_LEN);
 
 
 	dl_entry*	associated_station_entry;
@@ -744,7 +744,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	//*************
 
 	//Determine length required for p
-	payload_log_len = max( 1 + ( ( ( total_payload_len ) - 1) / 4 ) , MAX_MAC_PAYLOAD_LOG_LEN );
+	payload_log_len = min( (1 + ( ( ( total_payload_len ) - 1) / 4) )*4 , MAX_MAC_PAYLOAD_LOG_LEN );
 
 	if(rate != WLAN_MAC_RATE_1M){
 		rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_ofdm_entry(payload_log_len);
