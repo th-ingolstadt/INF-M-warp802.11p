@@ -121,7 +121,6 @@ wn_cmd_entry* get_next_empty_wn_cmd_entry(){
 *
 ******************************************************************************/
 rx_ofdm_entry* get_next_empty_rx_ofdm_entry(u32 payload_log_len){
-
 	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
     return (rx_ofdm_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload  );
 
@@ -141,7 +140,6 @@ rx_ofdm_entry* get_next_empty_rx_ofdm_entry(u32 payload_log_len){
 *
 ******************************************************************************/
 rx_dsss_entry* get_next_empty_rx_dsss_entry(u32 payload_log_len){
-
 	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 	return (rx_dsss_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
 
@@ -159,7 +157,6 @@ rx_dsss_entry* get_next_empty_rx_dsss_entry(u32 payload_log_len){
 *
 ******************************************************************************/
 tx_high_entry* get_next_empty_tx_high_entry(u32 payload_log_len){
-
 	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 	return (tx_high_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
 
