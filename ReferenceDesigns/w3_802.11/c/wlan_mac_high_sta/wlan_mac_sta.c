@@ -334,6 +334,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u32 ts_old = 0;
+	u32 payload_log_len;
+	u32 total_payload_len = max(tx_mpdu->length + sizeof(mac_header_80211) , MAX_MAC_PAYLOAD_LOG_LEN);
 
 	pkt_type = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 
@@ -341,7 +343,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 		tx_low_event_log_entry = get_next_empty_tx_low_entry();
 		if(tx_low_event_log_entry != NULL){
-			wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
+			tx_low_event_log_entry->mac_payload_log_len = sizeof(mac_header_80211);
+			wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_payload), tx_80211_header, sizeof(mac_header_80211));
 			tx_low_event_log_entry->transmission_count        = i+1;
 			tx_low_event_log_entry->timestamp_send            = (u64)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + ts_old);
 			tx_low_event_log_entry->chan_num                  = tx_low_details[i].chan_num;
@@ -353,10 +356,10 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 			if(i==0){
 				//This is the first transmission
-				tx_low_event_log_entry->mac_hdr.frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_RETRY;
+				((mac_header_80211*)(tx_low_event_log_entry->mac_payload))->frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_RETRY;
 			} else {
 				//This is all subsequent transmissions
-				tx_low_event_log_entry->mac_hdr.frame_control_2 |= MAC_FRAME_CTRL2_FLAG_RETRY;
+				((mac_header_80211*)(tx_low_event_log_entry->mac_payload))->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_RETRY;
 			}
 
 		}
@@ -366,11 +369,13 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 
 
-
-	tx_event_log_entry = get_next_empty_tx_high_entry();
+	payload_log_len = max( 1 + ( ( ( total_payload_len ) - 1) / 4 ) , MAX_MAC_PAYLOAD_LOG_LEN );
+	tx_event_log_entry = get_next_empty_tx_high_entry(payload_log_len);
 
 	if(tx_event_log_entry != NULL){
-		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_event_log_entry)->mac_hdr), tx_80211_header, sizeof(mac_header_80211));
+
+		tx_event_log_entry->mac_payload_log_len = total_payload_len;
+		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_event_log_entry)->mac_payload), tx_80211_header, total_payload_len);
 		tx_event_log_entry->result                   = tx_mpdu->state_verbose;
 		tx_event_log_entry->power                    = tx_mpdu->params.phy.power;
 		tx_event_log_entry->length                   = tx_mpdu->length;
@@ -693,30 +698,98 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	u8 is_associated = 0;
 
+	typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
+	copy_order_t copy_order;
+	u32 payload_log_len;
+	u32 total_payload_len = max(length + sizeof(mac_header_80211) , MAX_MAC_PAYLOAD_LOG_LEN);
+
 	//*************
-	// Event logging
-	//*************
-	if(rate != WLAN_MAC_RATE_1M){
-		rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_ofdm_entry();
-	} else {
-		rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_dsss_entry();
-	}
-	if(rx_event_log_entry != NULL){
-		wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
-		rx_event_log_entry->fcs_status = (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
-		rx_event_log_entry->timestamp  =  mpdu_info->timestamp;
-		rx_event_log_entry->power      = mpdu_info->rx_power;
-		rx_event_log_entry->rf_gain    = mpdu_info->rf_gain;
-		rx_event_log_entry->bb_gain    = mpdu_info->bb_gain;
-		rx_event_log_entry->length     = mpdu_info->length;
-		rx_event_log_entry->rate       = mpdu_info->rate;
-		rx_event_log_entry->pkt_type   = wlan_mac_high_pkt_type(mpdu,length);
-		rx_event_log_entry->chan_num   = mac_param_chan;
-		rx_event_log_entry->ant_mode   = mpdu_info->ant_mode;
-#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-		if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
-#endif
-	}
+		// Event logging
+		//*************
+
+		//Determine length required for p
+		payload_log_len = max( 1 + ( ( ( total_payload_len ) - 1) / 4 ) , MAX_MAC_PAYLOAD_LOG_LEN );
+
+		if(rate != WLAN_MAC_RATE_1M){
+			rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_ofdm_entry(payload_log_len);
+		} else {
+			rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_dsss_entry(payload_log_len);
+		}
+
+		if(rx_event_log_entry != NULL){
+
+			//For maximum pipelining, we'll break up the two major log copy operations (packet payload + [optional] channel estimates)
+			//We will start the CDMA operation for whichever of those copies is shorter, then fill in the rest of the log entry
+			//while that copy is under way, and then start the CDMA operation for the larger (which will first block on the shorter if
+			//it is still going).
+
+			if(rate == WLAN_MAC_RATE_1M){
+				//This is a DSSS packet that has no channel estimates
+				copy_order = PAYLOAD_FIRST;
+			} else {
+				//This is an OFDM packet that contains channel estimates
+	#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
+				if( sizeof(mpdu_info->channel_est) < ( total_payload_len ) ){
+					copy_order = CHAN_EST_FIRST;
+				} else {
+					copy_order = PAYLOAD_FIRST;
+				}
+	#else
+				copy_order = PAYLOAD_FIRST;
+	#endif
+			}
+
+
+			switch(copy_order){
+				case PAYLOAD_FIRST:
+					//wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+					if( rate != WLAN_MAC_RATE_1M ){
+						((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = total_payload_len;
+						wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, total_payload_len);
+					} else {
+						((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = total_payload_len;
+						wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, total_payload_len);
+					}
+				break;
+
+				case CHAN_EST_FIRST:
+	#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
+					if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+	#endif
+				break;
+			}
+
+			rx_event_log_entry->fcs_status = (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
+			rx_event_log_entry->timestamp  =  mpdu_info->timestamp;
+			rx_event_log_entry->power      = mpdu_info->rx_power;
+			rx_event_log_entry->rf_gain    = mpdu_info->rf_gain;
+			rx_event_log_entry->bb_gain    = mpdu_info->bb_gain;
+			rx_event_log_entry->length     = mpdu_info->length;
+			rx_event_log_entry->rate       = mpdu_info->rate;
+			rx_event_log_entry->pkt_type   = wlan_mac_high_pkt_type(mpdu,length);
+			rx_event_log_entry->chan_num   = mac_param_chan;
+			rx_event_log_entry->ant_mode   = mpdu_info->ant_mode;
+
+			switch(copy_order){
+				case CHAN_EST_FIRST:
+					//wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
+					if( rate != WLAN_MAC_RATE_1M ){
+						((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = total_payload_len;
+						wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, total_payload_len);
+					} else {
+						((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = total_payload_len;
+						wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, total_payload_len);
+					}
+				break;
+
+				case PAYLOAD_FIRST:
+	#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
+					if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
+	#endif
+				break;
+			}
+
+		}
 
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
 		associated_station_entry = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
