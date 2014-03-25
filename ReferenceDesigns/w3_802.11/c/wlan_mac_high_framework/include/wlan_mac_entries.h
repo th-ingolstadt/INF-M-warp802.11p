@@ -152,6 +152,12 @@ typedef struct{
 } txrx_stats_entry;
 
 
+#define MIN_MAC_PAYLOAD_LOG_LEN 24
+
+//#define MAX_MAC_PAYLOAD_LOG_LEN MIN_MAC_PAYLOAD_LOG_LEN
+#define MAX_MAC_PAYLOAD_LOG_LEN 1500
+
+
 //-----------------------------------------------
 // Common Receive Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
@@ -159,7 +165,6 @@ typedef struct{
 //
 typedef struct{
 	u64  timestamp;
-	mac_header_80211 mac_hdr;
 	u16	 length;
 	u8   rate;
 	s8   power;
@@ -169,11 +174,13 @@ typedef struct{
 	u8 	 ant_mode;
 	u8   rf_gain;
 	u8   bb_gain;
-	u8   rsvd[2];
+	u16  flags; //TODO
 } rx_common_entry;
 
 #define RX_ENTRY_FCS_GOOD 0
 #define RX_ENTRY_FCS_BAD 1
+
+#define RX_ENTRY_FLAGS_IS_DUPLICATE	0x0001
 
 
 //-----------------------------------------------
@@ -184,6 +191,8 @@ typedef struct{
 #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
 	u32	 channel_est[64];
 #endif
+    u32 mac_payload_log_len; //number of payload bytes actually recorded in log entry
+    u32 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4]; //store as u32's to preserve alignment
 } rx_ofdm_entry;
 
 
@@ -192,6 +201,8 @@ typedef struct{
 //
 typedef struct{
 	rx_common_entry rx_common_entry;
+	u32 mac_payload_log_len; //number of payload bytes actually recorded in log entry
+	u32 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4]; //store as u32's to preserve alignment
 } rx_dsss_entry;
 
 
@@ -204,7 +215,6 @@ typedef struct{
 	u64  timestamp_create;
 	u32  delay_accept;
 	u32  delay_done;
-	mac_header_80211 mac_hdr;
 	u8   num_tx;
 	s8 	 power;
 	u8 	 chan_num;
@@ -214,6 +224,8 @@ typedef struct{
 	u8 	 pkt_type;
 	u8	 ant_mode;
 	u8	 rsvd[3];
+	u32 mac_payload_log_len; //number of payload bytes actually recorded in log entry
+	u32 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4]; //store as u32's to preserve alignment
 } tx_high_entry;
 
 //-----------------------------------------------
@@ -223,7 +235,6 @@ typedef struct{
 //
 typedef struct{
 	u64  timestamp_send;
-	mac_header_80211 mac_hdr;
 	phy_tx_params phy_params;
 	u8	 transmission_count;
 	u8 	 chan_num;
@@ -231,6 +242,8 @@ typedef struct{
 	u16  num_slots;
 	u8 	 pkt_type;
 	u8	 reserved[1];
+	u32 mac_payload_log_len; //number of payload bytes actually recorded in log entry
+	u32 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4]; //store as u32's to preserve alignment
 } tx_low_entry;
 
 
@@ -245,11 +258,11 @@ typedef struct{
 exp_info_entry       * get_next_empty_exp_info_entry(u16 size);
 wn_cmd_entry         * get_next_empty_wn_cmd_entry();
 
-rx_ofdm_entry        * get_next_empty_rx_ofdm_entry();
-rx_dsss_entry        * get_next_empty_rx_dsss_entry();
+rx_ofdm_entry        * get_next_empty_rx_ofdm_entry(u32 payload_log_len);
+rx_dsss_entry        * get_next_empty_rx_dsss_entry(u32 payload_log_len);
 station_info_entry   * get_next_empty_station_info_entry();
 
-tx_high_entry        * get_next_empty_tx_high_entry();
+tx_high_entry        * get_next_empty_tx_high_entry(u32 payload_log_len);
 tx_low_entry         * get_next_empty_tx_low_entry();
 
 

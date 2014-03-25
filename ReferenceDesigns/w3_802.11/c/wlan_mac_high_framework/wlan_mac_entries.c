@@ -111,34 +111,40 @@ wn_cmd_entry* get_next_empty_wn_cmd_entry(){
 /**
 * Get the next empty RX OFDM entry
 *
-* @param    None.
+* @param    u32 payload_log_len
+* 				- Number of bytes to set aside for payload.
+* 				@note This needs to be 4-byte aligned.
 *
 * @return	rx_entry *   - Pointer to the next "empty" RX entry or NULL
 *
 * @note		None.
 *
 ******************************************************************************/
-rx_ofdm_entry* get_next_empty_rx_ofdm_entry(){
+rx_ofdm_entry* get_next_empty_rx_ofdm_entry(u32 payload_log_len){
 
-	// Get the next empty entry
-	return (rx_ofdm_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) );
+	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
+    return (rx_ofdm_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload  );
+
 }
 
 /*****************************************************************************/
 /**
 * Get the next empty RX DSSS entry
 *
-* @param    None.
+* @param    u32 payload_log_len
+* 				- Number of bytes to set aside for payload.
+* 				@note This needs to be 4-byte aligned.
 *
 * @return	rx_entry *   - Pointer to the next "empty" RX entry or NULL
 *
 * @note		None.
 *
 ******************************************************************************/
-rx_dsss_entry* get_next_empty_rx_dsss_entry(){
+rx_dsss_entry* get_next_empty_rx_dsss_entry(u32 payload_log_len){
 
-	// Get the next empty entry
-	return (rx_dsss_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) );
+	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
+	return (rx_dsss_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
+
 }
 
 /*****************************************************************************/
@@ -152,10 +158,10 @@ rx_dsss_entry* get_next_empty_rx_dsss_entry(){
 * @note		None.
 *
 ******************************************************************************/
-tx_high_entry* get_next_empty_tx_high_entry(){
+tx_high_entry* get_next_empty_tx_high_entry(u32 payload_log_len){
 
-	// Get the next empty entry
-	return (tx_high_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) );
+	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
+	return (tx_high_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
 
 }
 
