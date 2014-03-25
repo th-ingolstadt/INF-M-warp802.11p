@@ -599,10 +599,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		//---------------------------------------------------------------------
 		case NODE_GET_STATION_INFO:
             // NODE_GET_STATION_INFO Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xFF means all station info)
+			//   - cmdArgs32[0]   - buffer id
+			//   - cmdArgs32[1]   - flags
+            //   - cmdArgs32[2]   - start_address of transfer
+			//   - cmdArgs32[3]   - size of transfer (in bytes)
+			//   - cmdArgs32[4:5] - MAC Address (All 0xFF means all station info)
 			//
 			// Always returns a valid WARPNet Buffer (either 1 or more packets)
-            //   - buffer_id       - uint32  - 0xFFFFFFFF (size of buffer not predetermined)
+            //   - buffer_id       - uint32  - buffer_id
 			//   - flags           - uint32  - 0
 			//   - bytes_remaining - uint32  - Number of bytes remaining in the transfer
 			//   - start_byte      - uint32  - Byte index of the first byte in this packet
@@ -612,7 +616,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			xil_printf("Get Station Info\n");
 
 			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4], &mac_addr[0]);
         	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
         	// Local variables
@@ -623,7 +627,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
             // Initialize constant return values
         	respIndex     = 5;              // There will always be 5 return args
-            respArgs32[0] = 0xFFFFFFFF;
+            respArgs32[0] = cmdArgs32[0];
             respArgs32[1] = 0;
 
             if ( id == 0 ) {
@@ -777,7 +781,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			//   - cmdArgs32[0]  - Flags
 			//                     [0] - NODE_RESET_LOG
 			//                     [1] - NODE_RESET_TXRX_STATS
-			temp = Xil_Ntohl(cmdArgs32[0]);
+			temp   = Xil_Ntohl(cmdArgs32[0]);
+			status = 0;
 
 			// Disable interrupts so no packets interrupt the reset
 			wlan_mac_high_interrupt_stop();
@@ -792,11 +797,27 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				reset_station_statistics();
 			}
 
+			if ( ( temp & NODE_RESET_LTG ) == NODE_RESET_LTG ) {
+				status = ltg_sched_remove( LTG_REMOVE_ALL );
+
+				if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
+					status = NODE_LTG_ERROR;
+				} else {
+					xil_printf("Removing All LTGs.\n");
+				}
+			}
+
+			if ( ( temp & NODE_TX_DATA_QUEUE ) == NODE_TX_DATA_QUEUE ) {
+				xil_printf("Purging All Data Transmit Queues\n");
+				purge_all_data_tx_queue();
+			}
+
 			// Re-enable interrupts
 			wlan_mac_high_interrupt_start();
 
 			// Send response of success
-            respArgs32[respIndex++] = 0;
+            respArgs32[respIndex++] = Xil_Htonl( status );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -1477,9 +1498,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		//---------------------------------------------------------------------
 		case NODE_STATS_GET_TXRX:
             // NODE_GET_STATS Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xFF means all stats)
+			//   - cmdArgs32[0]   - buffer id
+			//   - cmdArgs32[1]   - flags
+            //   - cmdArgs32[2]   - start_address of transfer
+			//   - cmdArgs32[3]   - size of transfer (in bytes)
+			//   - cmdArgs32[4:5] - MAC Address (All 0xFF means all stats)
 			// Always returns a valid WARPNet Buffer (either 1 or more packets)
-            //   - buffer_id       - uint32  - 0xFFFFFFFF (size of buffer not predetermined)
+            //   - buffer_id       - uint32  - buffer_id
 			//   - flags           - uint32  - 0
 			//   - bytes_remaining - uint32  - Number of bytes remaining in the transfer
 			//   - start_byte      - uint32  - Byte index of the first byte in this packet
@@ -1489,7 +1514,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			xil_printf("Get TXRX Statistics\n");
 
 			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4], &mac_addr[0]);
         	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
         	// Local variables
@@ -1501,7 +1526,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
             // Initialize constant return values
         	respIndex     = 5;              // There will always be 5 return args
-            respArgs32[0] = 0xFFFFFFFF;
+            respArgs32[0] = cmdArgs32[0];
             respArgs32[1] = 0;
 
             if ( id == 0 ) {

@@ -58,6 +58,8 @@
 
 #define NODE_RESET_LOG                 0x00000001
 #define NODE_RESET_TXRX_STATS          0x00000002
+#define NODE_RESET_LTG                 0x00000004
+#define NODE_TX_DATA_QUEUE             0x00000008
 
 #define NODE_TIME_RSVD_VAL             0xFFFF
 #define NODE_CHANNEL_RSVD_VAL          0xFFFF
