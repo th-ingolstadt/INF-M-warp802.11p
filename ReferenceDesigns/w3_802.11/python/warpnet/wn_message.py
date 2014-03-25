@@ -250,7 +250,7 @@ class Cmd(CmdRespMessage):
     Attributes:
         resp_type -- Response type of the command.  See WARPNet transport
             for defined response types.  By default, a WnCmd will require
-            a WnResp.
+            a WnResp as a response.
 
     See documentation of WnCmdResp for additional attributes
     """
@@ -300,15 +300,25 @@ class BufferCmd(CmdRespMessage):
     """Base Class for WARPNet Buffer commands.
 
     Arguments:
-        buffer_id -- (uint32) ID of buffer for this message.
-        flags -- (uint32) Flags associated with this message.
+        buffer_id  -- (uint32) ID of buffer for this message.
+        flags      -- (uint32) Flags associated with this message.
         start_byte -- (uint32) Starting address of the buffer for this message.
-        size -- (uint32) Size of the buffer in bytes
+        size       -- (uint32) Size of the buffer in bytes
+                          - Reserved value:  CMD_BUFFER_GET_SIZE_FROM_DATA
 
     Attributes:
         resp_type -- Response type of the command.  See WARPNet transport
-            for defined response types.  By default, a WnCmd will require
-            a WnResp.
+            for defined response types.  By default, a BufferCmd will require
+            a WnBuffer as a repsonse.
+
+    Note:  The wire format of a Buffer command is:
+        Word[0]     -- buffer id
+        Word[1]     -- flags
+        Word[2]     -- start_address of transfer
+        Word[3]     -- size of transfer (in bytes)
+        Word[4 - N] -- Additional arguments
+    
+    To add additional arguments to a BufferCmd, use the add_args() method.
 
     See documentation of WnCmdResp for additional attributes
     """
@@ -322,30 +332,26 @@ class BufferCmd(CmdRespMessage):
         super(BufferCmd, self).__init__(command=command, length=16, num_args=4,
                                         args=[buffer_id, flags, start_byte, size])
 
-        self.resp_type = wn_transport.TRANSPORT_WN_BUFFER
-        self.buffer_id = buffer_id
-        self.flags = flags
+        self.resp_type  = wn_transport.TRANSPORT_WN_BUFFER
+        self.buffer_id  = buffer_id
+        self.flags      = flags
         self.start_byte = start_byte
         if (size == CMD_BUFFER_GET_SIZE_FROM_DATA):
             self.size = 0
         else:
             self.size = size
-        
-        if (False):
-            print("Buffer Command:")
-            print("    command     = {0}".format(command))
-            print("    buffer_id   = {0}".format(buffer_id))
-            print("    flags       = {0}".format(flags))
-            print("    start_byte  = {0}".format(start_byte))
-            print("    size        = {0}".format(size))
-        
-        
     
     def get_resp_type(self):          return self.resp_type        
     def get_buffer_id(self):          return self.buffer_id
     def get_buffer_flags(self):       return self.flags
     def get_buffer_start_byte(self):  return self.start_byte
     def get_buffer_size(self):        return self.size    
+
+    def add_args(self, *args):
+        """Append arguments to current command argument list."""
+        self.args.append(*args)
+        self.num_args += len(args)
+        self.length   += len(args) * 4
 
     def process_resp(self, resp):
         """Process the response of the WARPNet command."""
@@ -372,7 +378,6 @@ class Resp(CmdRespMessage):
     
     See documentation of WnCmdResp for attributes
     """
-    
     def get_args(self):
         """Return the response arguments."""
         return self.args

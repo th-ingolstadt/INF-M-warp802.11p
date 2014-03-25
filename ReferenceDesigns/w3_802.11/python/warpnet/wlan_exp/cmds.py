@@ -60,10 +60,10 @@ import warpnet.wn_transport_eth_udp as wn_transport
 
 
 __all__ = ['LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
-           'StatsGetTxRx', 'StatsGetAllTxRx', 'StatsAddTxRxToLog', 
+           'StatsGetTxRx', 'StatsAddTxRxToLog', 
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
            'NodeResetState', 'NodeProcTime', 'NodeProcChannel', 'NodeProcTxPower', 
-           'NodeProcTxRate', 'NodeProcTxAntMode', 'NodeProcRxAntMode',
+           'NodeProcTxRate', 'NodeProcTxAntMode', 'NodeProcRxAntMode', 'NodeGetStationInfo',
            'QueueTxDataPurgeAll']
 
 
@@ -86,6 +86,8 @@ CMD_NODE_RX_ANT_MODE                   = 36
 
 NODE_RESET_LOG                         = 0x00000001
 NODE_RESET_TXRX_STATS                  = 0x00000002
+NODE_RESET_LTG                         = 0x00000004
+NODE_RESET_TX_DATA_QUEUE               = 0x00000008
 
 RSVD_TIME                              = 0x0000FFFF0000FFFF
 RSVD_CHANNEL                           = 0xFFFF
@@ -272,7 +274,7 @@ class StatsConfigure(wn_message.Cmd):
         flags - [0] Enable promiscuous statisitics
                     (1 - Enabled (default) / 0 - Disabled)
     
-    A value of 0xFFFFFFFF will return a read of the flags.
+    A value of STATS_RSVD_CONFIG will return a read of the flags.
     """
     def __init__(self, flags):
         super(LogConfigure, self).__init__()
@@ -285,54 +287,30 @@ class StatsConfigure(wn_message.Cmd):
 # End Class
 
 
-class StatsGetAllTxRx(wn_message.BufferCmd):
-    """Command to get the statistics from the node"""
-    def __init__(self):
-        command = _CMD_GRPID_NODE + CMD_STATS_GET_TXRX
-        super(StatsGetAllTxRx, self).__init__(
-                command=command, buffer_id=0xFFFFFFFF, flags=0xFFFFFFFF, start_byte=0, size=0)
+class StatsGetTxRx(wn_message.BufferCmd):
+    """Command to get the statistics from the node for a given node."""
+    def __init__(self, node=None):
+        super(StatsGetTxRx, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_STATS_GET_TXRX
 
-        # TODO:  This is using a bastardization of the WARPNet Buffer.
-        #        We should really be able to independently specify that a 
-        #        command requires a buffer as a return parameter instead
-        #        of having to send a fixed set of arguments.  Otherwise,
-        #        we should use a separate command
+        if node is not None:
+            mac_address = node.wlan_mac_address
+        else:
+            mac_address = 0xFFFFFFFFFFFFFFFF            
+
+        self.add_args(((mac_address >> 32) & 0xFFFF))
+        self.add_args((mac_address & 0xFFFFFFFF))
 
     def process_resp(self, resp):
-        # Contains a WN_Buffer of all stats entries.  Need to convert to 
-        # a list of statistics dictionaries.
+        # Contains a WARPNet Buffer of all stats entries.  Need to convert to 
+        #   a list of statistics dictionaries.
         import warpnet.wlan_exp_log.log_entries as log
-
+        
         index   = 0
         data    = resp.get_bytes()
         ret_val = log.entry_txrx_stats.deserialize(data[index:])
 
         return ret_val
-
-# End Class
-
-
-class StatsGetTxRx(wn_message.Cmd):
-    """Command to get the statistics from the node for a given node."""
-    def __init__(self, node):
-        super(StatsGetTxRx, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_STATS_GET_TXRX
-
-        mac_address = node.wlan_mac_address
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
-
-    def process_resp(self, resp):
-        import warpnet.wlan_exp_log.log_entries as log
-        
-        index   = 28                     # Offset after response arguments
-        data    = resp.get_bytes()
-        ret_val = log.entry_txrx_stats.deserialize(data[index:])
-
-        if ret_val:
-            return ret_val[0]
-        else:
-            return None
 
 # End Class
 
@@ -356,114 +334,79 @@ class StatsAddTxRxToLog(wn_message.Cmd):
 #--------------------------------------------
 # Local Traffic Generation (LTG) Commands
 #--------------------------------------------
-class LTGConfigure(wn_message.Cmd):
-    """Command to configure an LTG with the given traffic flow to the 
-    specified node.
-    """
-    def __init__(self, node, traffic_flow):
-        super(LTGConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LTG_CONFIG
+class LTGCommon(wn_message.Cmd):
+    """Common code for LTG Commands."""
+    def __init__(self, node=None):
+        super(LTGCommon, self).__init__()
         
-        mac_address = node.wlan_mac_address
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
-        for arg in traffic_flow.serialize():
-            self.add_args(arg)
+        if not node is None:
+            mac_address = node.wlan_mac_address
+            self.add_args(((mac_address >> 32) & 0xFFFF))
+            self.add_args((mac_address & 0xFFFFFFFF))
+        else:
+            self.add_args(0xFFFFFFFF)
+            self.add_args(0xFFFFFFFF)
 
-    
     def process_resp(self, resp):
         args = resp.get_args()
         if len(args) != 1:
             print("Invalid response.")
             print(resp)
         return args[0]
-
+        
 # End Class
 
-class LTGStart(wn_message.Cmd):
+
+class LTGConfigure(LTGCommon):
+    """Command to configure an LTG with the given traffic flow to the 
+    specified node.
+    """
+    def __init__(self, node, traffic_flow):
+        super(LTGConfigure, self).__init__(node)
+        self.command = _CMD_GRPID_NODE + CMD_LTG_CONFIG
+        
+        for arg in traffic_flow.serialize():
+            self.add_args(arg)
+    
+# End Class
+
+
+class LTGStart(LTGCommon):
     """Command to start a configured LTG to the given node.
     
     NOTE:  By providing no node argument, this command will start all 
     configured LTGs on the node.
     """
     def __init__(self, node=None):
-        super(LTGStart, self).__init__()
+        super(LTGStart, self).__init__(node)
         self.command = _CMD_GRPID_NODE + CMD_LTG_START
 
-        if not node is None:
-            mac_address = node.wlan_mac_address
-            self.add_args(((mac_address >> 32) & 0xFFFF))
-            self.add_args((mac_address & 0xFFFFFFFF))
-        else:
-            self.add_args(0xFFFFFFFF)
-            self.add_args(0xFFFFFFFF)
-
-
-    def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
-
 # End Class
 
 
-class LTGStop(wn_message.Cmd):
+class LTGStop(LTGCommon):
     """Command to stop a configured LTG to the given node.
     
-    NOTE:  By providing no node argument, this command will start all 
+    NOTE:  By providing no node argument, this command will stop all 
     configured LTGs on the node.
     """
     def __init__(self, node=None):
-        super(LTGStop, self).__init__()
+        super(LTGStop, self).__init__(node)
         self.command = _CMD_GRPID_NODE + CMD_LTG_STOP
-
-        if not node is None:
-            mac_address = node.wlan_mac_address
-            self.add_args(((mac_address >> 32) & 0xFFFF))
-            self.add_args((mac_address & 0xFFFFFFFF))
-        else:
-            self.add_args(0xFFFFFFFF)
-            self.add_args(0xFFFFFFFF)
-
     
-    def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
-
 # End Class
 
 
-class LTGRemove(wn_message.Cmd):
+class LTGRemove(LTGCommon):
     """Command to remove a configured LTG to the given node.
     
-    NOTE:  By providing no node argument, this command will start all 
+    NOTE:  By providing no node argument, this command will remove all 
     configured LTGs on the node.
     """
     def __init__(self, node=None):
-        super(LTGRemove, self).__init__()
+        super(LTGRemove, self).__init__(node)
         self.command = _CMD_GRPID_NODE + CMD_LTG_REMOVE
-
-        if not node is None:
-            mac_address = node.wlan_mac_address
-            self.add_args(((mac_address >> 32) & 0xFFFF))
-            self.add_args((mac_address & 0xFFFFFFFF))
-        else:
-            self.add_args(0xFFFFFFFF)
-            self.add_args(0xFFFFFFFF)
-
     
-    def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
-
 # End Class
 
 
@@ -736,22 +679,23 @@ class NodeProcRxAntMode(wn_message.Cmd):
 # End Class
 
 
-class NodeGetAllStationInfo(wn_message.BufferCmd):
-    """Command to get the statistics from the node"""
-    def __init__(self):
-        command = _CMD_GRPID_NODE + CMD_GET_STATION_INFO
-        super(NodeGetAllStationInfo, self).__init__(
-                command=command, buffer_id=0xFFFFFFFF, flags=0xFFFFFFFF, start_byte=0, size=0)
+class NodeGetStationInfo(wn_message.BufferCmd):
+    """Command to get the station info for a given node."""
+    def __init__(self, node=None):
+        super(NodeGetStationInfo, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMD_GET_STATION_INFO
 
-        # TODO:  This is using a bastardization of the WARPNet Buffer.
-        #        We should really be able to independently specify that a 
-        #        command requires a buffer as a return parameter instead
-        #        of having to send a fixed set of arguments.  Otherwise,
-        #        we should use a separate command
+        if node is not None:
+            mac_address = node.wlan_mac_address
+        else:
+            mac_address = 0xFFFFFFFFFFFFFFFF            
+
+        self.add_args(((mac_address >> 32) & 0xFFFF))
+        self.add_args((mac_address & 0xFFFFFFFF))
 
     def process_resp(self, resp):
-        # Contains a WN_Buffer of all stats entries.  Need to convert to 
-        # a list of statistics dictionaries.
+        # Contains a WWARPNet Buffer of all station info entries.  Need to 
+        #   convert to a list of station info dictionaries.
         import warpnet.wlan_exp_log.log_entries as log
 
         index   = 0
@@ -759,31 +703,6 @@ class NodeGetAllStationInfo(wn_message.BufferCmd):
         ret_val = log.entry_station_info.deserialize(data[index:])
 
         return ret_val
-
-# End Class
-
-
-class NodeGetStationInfo(wn_message.Cmd):
-    """Command to get the station info for a given node."""
-    def __init__(self, node):
-        super(NodeGetStationInfo, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_GET_STATION_INFO
-
-        mac_address = node.wlan_mac_address
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
-
-    def process_resp(self, resp):
-        import warpnet.wlan_exp_log.log_entries as log
-
-        index   = 28                     # Offset after response arguments
-        data    = resp.get_bytes()
-        ret_val = log.entry_station_info.deserialize(data[index:])
-
-        if ret_val:
-            return ret_val[0]
-        else:
-            return None
 
 # End Class
 

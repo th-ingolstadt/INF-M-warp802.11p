@@ -312,18 +312,22 @@ class WlanExpNode(wn_node.WnNode):
         statistics for the given nodes.  Otherwise, it will return 
         all the statistics on the node.
         """
-        ret_stats = []
+        ret_val = []
         if not node_list is None:
             if (type(node_list) is list):
                 for node in node_list:
                     stats = self.send_cmd(cmds.StatsGetTxRx(node))
-                    ret_stats.append(stats)
+                    ret_val.append(stats)
             else:
-                ret_stats = self.send_cmd(cmds.StatsGetTxRx(node_list))
+                ret_val = self.send_cmd(cmds.StatsGetTxRx(node_list))
         else:
-            ret_stats = self.send_cmd(cmds.StatsGetAllTxRx())
+            ret_val = self.send_cmd(cmds.StatsGetTxRx())
         
-        return ret_stats
+        # If the list only contains one entry, the just return the entry
+        if (len(ret_val) == 1):
+            ret_val = ret_val[0]
+        
+        return ret_val
     
 
     def stats_write_txrx_to_log(self):
@@ -410,12 +414,15 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     def node_reset_all(self):
         """Resets all portions of a node."""
-        self.node_reset(log=True, 
-                        txrx_stats=True, 
-                        ltg=True, 
-                        queue_data=True, 
-                        associations=True)
+        status = self.node_reset(log=True, 
+                                 txrx_stats=True, 
+                                 ltg=True, 
+                                 queue_data=True, 
+                                 associations=True)
 
+        if (status == cmds.LTG_ERROR):
+            print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
+    
 
     def node_reset(self, log=False, txrx_stats=False, ltg=False, queue_data=False, 
                    associations=False ):
@@ -435,18 +442,10 @@ class WlanExpNode(wn_node.WnNode):
             self.log_num_wraps        = 0
             self.log_next_read_index  = 0
 
-        if txrx_stats:
-            flags += cmds.NODE_RESET_TXRX_STATS
-        
-        if ltg:
-            self.ltg_remove_all()
-        
-        if queue_data:
-            self.queue_tx_data_purge_all()
-
-        if associations:
-            # TODO:  Disassociate all nodes
-            pass
+        if txrx_stats:       flags += cmds.NODE_RESET_TXRX_STATS        
+        if ltg:              flags += cmds.NODE_RESET_LTG        
+        if queue_data:       flags += cmds.NODE_RESET_TX_DATA_QUEUE
+        if associations:     pass    # TODO:  Disassociate all nodes
         
         # Send the reset command
         self.send_cmd(cmds.NodeResetState(flags))
@@ -494,18 +493,22 @@ class WlanExpNode(wn_node.WnNode):
         the station info for the given nodes.  Otherwise, it will return 
         all the station infos on the node.
         """
-        ret_info = []
+        ret_val = []
         if not node_list is None:
             if (type(node_list) is list):
                 for node in node_list:
                     stats = self.send_cmd(cmds.NodeGetStationInfo(node))
-                    ret_info.append(stats)
+                    ret_val.append(stats)
             else:
-                ret_info = self.send_cmd(cmds.NodeGetStationInfo(node_list))
+                ret_val = self.send_cmd(cmds.NodeGetStationInfo(node_list))
         else:
-            ret_info = self.send_cmd(cmds.NodeGetAllStationInfo())
+            ret_val = self.send_cmd(cmds.NodeGetStationInfo())
+
+        # If the list only contains one entry, the just return the entry
+        if (len(ret_val) == 1):
+            ret_val = ret_val[0]
         
-        return ret_info
+        return ret_val
     
 
     def node_set_time(self, time):
