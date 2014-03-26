@@ -29,8 +29,12 @@ from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_t
 import warpnet.wlan_exp.util as wlan_exp_util
 from  warpnet.wlan_exp.util import wlan_rates
 
-# NOTE: change these values to match your experiment setup
-LOGFILE = 'example_logs/sta_log_stats_headers_only.hdf5'
+#Use log file given as command line argument, if present
+if(len(sys.argv) == 1):
+    #No filename on command line
+    LOGFILE = 'example_logs/sta_log_stats_headers_only.hdf5'
+else:
+    LOGFILE = str(sys.argv[1])
 
 # Ensure the log file actually exists - quit immediately if not
 if(not os.path.isfile(LOGFILE)):
@@ -50,7 +54,7 @@ log_util.print_log_index_summary(log_data_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
 log_index = log_util.filter_log_index(log_data_index,
-                                      include_only=['RX_OFDM', 'TX'])
+                                      include_only=['NODE_INFO', 'RX_OFDM', 'TX'])
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 
@@ -60,6 +64,10 @@ log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 #    as the output dictionary keys. Each output dictionary value is a numpy record array
 #    Refer to wlan_exp_log.log_entries.py for the definition of each record array datatype
 log_np = log_util.log_data_to_np_arrays(log_data, log_index)
+
+###############################################################################
+# Example 0: Print node info
+#TODO: use new util methods to print node_info info
 
 
 ###############################################################################
