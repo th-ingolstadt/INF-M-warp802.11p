@@ -92,6 +92,8 @@ class WlanExpLogEntryType(object):
 
     gen_numpy_callbacks = None
 
+    consts = None
+
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
         if name is not None:
@@ -122,6 +124,8 @@ class WlanExpLogEntryType(object):
         # Initialize callbacks
         self.gen_numpy_callbacks = []
 
+        # Initialize dictionary to contain constants specific to each entry type 
+        self.consts = dict()
 
     #-------------------------------------------------------------------------
     # Accessor methods for the WlanExpLogEntryType
@@ -456,6 +460,9 @@ entry_rx_ofdm.append_field_defs([
             ('chan_est',               '256B',   '(64,2)i2'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
+entry_rx_ofdm.consts['FCS_GOOD'] = 0
+entry_rx_ofdm.consts['FCS_BAD'] = 1
+entry_rx_ofdm.consts['FLAG_DUP'] = 0x4
 
 
 # Receive DSSS
@@ -465,6 +472,7 @@ entry_rx_dsss.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_rx_dsss.append_field_defs([          
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
+entry_rx_dsss.consts['FCS_GOOD'] = 0
 
 
 # Transmit
@@ -485,6 +493,7 @@ entry_tx.append_field_defs([
             ('padding',                '3x',     '3uint8'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
+entry_tx.consts['SUCCESS'] = 0
 
 
 # Transmit from CPU Low
