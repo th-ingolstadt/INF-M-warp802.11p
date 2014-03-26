@@ -87,6 +87,9 @@ nodes_config = wn_config.NodesConfiguration(host_config=host_config,
 #  This command will fail if either WARP v3 node does not respond
 nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
 
+# Set the time of the nodes
+wlan_exp_util.broadcast_node_set_time(host_config)
+
 # Extract the AP and STA nodes from the list of initialized nodes
 n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
 n_sta_l = wlan_exp_util.filter_nodes(nodes, 'node_type', 'STA')
@@ -120,8 +123,7 @@ for node in nodes:
     node.node_set_tx_rate_unicast(wlan_rates[0])
     node.node_reset_all()
 
-# Initialize the timebase of the nodes
-wlan_exp_util.init_timebase(host_config)
+
 
 print("\nRun Experiment:\n")
 
