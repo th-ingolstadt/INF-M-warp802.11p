@@ -377,6 +377,17 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
 #-----------------------------------------------------------------------------
 # Deprecated methods
 #-----------------------------------------------------------------------------
+def write_filtered_log_data_file(log_data_index, log_data):
+    """Method to write a binary log data file of only the entries specifed
+    in the log_data_index.
+    
+    This method will iterate through each entry type in the log index and 
+    create a separate binary file for each entry type.
+    
+    """
+    pass
+
+
 
 def write_log_data_index_file(log_data_file, node=None):
     """Method to write a log data index to a file for easy retrieval.

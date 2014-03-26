@@ -41,9 +41,8 @@ import time
 from . import defaults
 
 
-__all__ = ['tx_rate_index_to_str',
-           'init_nodes', 'init_timestamp',
-           'filter_nodes']
+__all__ = ['tx_rate_to_str', 'tx_rate_index_to_str',
+           'init_nodes', 'broadcast_node_set_time', 'filter_nodes']
 
 
 #-----------------------------------------------------------------------------
@@ -121,7 +120,7 @@ def init_nodes(nodes_config, host_config= None, node_factory=None, output=False)
 # End of init_nodes()
 
 
-def init_timebase(host_config=None, timebase=0):
+def broadcast_node_set_time(host_config=None, time=0.0):
     """Initialize the timebase on all of the WLAN Exp nodes.
     
     This method will iterate through all host interfaces and issue a 
@@ -132,8 +131,12 @@ def init_timebase(host_config=None, timebase=0):
     
     Attributes:
         host_config  -- A WnConfiguration object describing the host configuration
-        timebase     -- optional timebase (defaults to 0) 
+        time         -- Optional time to broadcast to the nodes (defaults to 0.0) 
+                        either as an integer number of microseconds or a floating 
+                        point number in seconds
     """
+    time_factor = 6               # Time can be in # of microseconds (ie 10^(-6) seconds)
+    
     # Create a Host Configuration if there is none provided
     if host_config is None:
         import warpnet.wn_config as wn_config
@@ -142,7 +145,13 @@ def init_timebase(host_config=None, timebase=0):
     interfaces   = host_config.get_param('network', 'host_interfaces')
     tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
     rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
-   
+
+    if   (type(time) is float):
+        node_time   = time
+    elif (type(time) is int):
+        node_time   = float(time / (10**time_factor))   # Convert to float
+    else:
+        raise TypeError("Time must be either a float or int")       
 
     start_time = _time()
 
@@ -156,13 +165,13 @@ def init_timebase(host_config=None, timebase=0):
 
         transport_bcast.wn_open(tx_buf_size, rx_buf_size)
 
-        node_time       = timebase + (_time() - start_time)
+        node_time       = node_time + (_time() - start_time)
         cmd             = cmds.NodeProcTime(node_time);
 
         transport_bcast.send(cmd.serialize(), 'message')
 
         msg  = "Initializing the time of all nodes on "
-        msg += "{0} to: {1}".format(util._get_ip_address_subnet(interface), timebase)        
+        msg += "{0} to: {1}".format(util._get_ip_address_subnet(interface), node_time)
         print(msg)
 
 # End of init_timestamp()

@@ -52,7 +52,31 @@ CMD_BUFFER_GET_SIZE_FROM_DATA          = 0xFFFFFFFF
 
 
 class Message(object):
-    """Base class for WARPNet messages."""
+    """Base class for WARPNet messages.
+    
+    Attributes:
+        const   -- Dictionary of constants
+    """
+    const = None
+    
+    def __init__(self):
+        self.const = dict()
+    
+    def add_const(self, name, value):
+        """Add a constant to the Message."""
+        if (name in self.const.keys()):
+            print("WARNING:  Updating value of constant: {0}".format(name))
+        self.const[name] = value
+
+    def get_const(self, name):
+        """Get a constant from the Message."""
+        if (name in self.const.keys()):
+            return self.const[name]
+        else:
+            msg  = "Constant {0} does not exist ".format(name)
+            msg += "in {0}".format(self.__class__.__name__)
+            raise AttributeError(msg)
+    
     def serialize(self,): raise NotImplementedError
     def deserialize(self,): raise NotImplementedError
     def sizeof(self,): raise NotImplementedError
@@ -64,17 +88,18 @@ class TransportHeader(Message):
     """Class for WARPNet transport header.
     
     Attributes:
-        dest_id -- (uint16) Destination ID of the message
-        src_id -- (uint16) Source ID of the message
-        reserved -- (uint8) Reserved field in the header
-        pkt_type -- (uint8) Packet Type
-        length -- (uint16) Length of the payload in bytes
-        seq_num -- (uint16) Sequence number of the message
-        flags -- (uint16) Flags of the message
+        dest_id  -- (uint16) Destination ID of the message
+        src_id   -- (uint16) Source ID of the message
+        reserved -- (uint8)  Reserved field in the header
+        pkt_type -- (uint8)  Packet Type
+        length   -- (uint16) Length of the payload in bytes
+        seq_num  -- (uint16) Sequence number of the message
+        flags    -- (uint16) Flags of the message
     """
     
     def __init__(self, dest_id=0, src_id=0, reserved=0, 
                  pkt_type=PKTTYPE_HTON_MSG, length=0, seq_num=0, flags=0):
+        super(TransportHeader, self).__init__()
         self.dest_id = dest_id
         self.src_id = src_id
         self.reserved = reserved
@@ -187,6 +212,7 @@ class CmdRespMessage(Message):
     raw_data  = None
     
     def __init__(self, command=0, length=0, num_args=0, args=None):
+        super(CmdRespMessage, self).__init__()
         self.command = command
         self.length = length
         self.num_args = num_args
@@ -429,12 +455,15 @@ class Buffer(Message):
     size        = None
     buffer      = None
 
+    missing_bytes = None
 
     def __init__(self, buffer_id=0, flags=0, start_byte=0, size=0, buffer=None):
         self.buffer_id  = buffer_id
         self.flags      = flags
         self.start_byte = start_byte
         self.size       = size
+
+        self.missing_bytes = 0
 
         if buffer is None:
             # Create an empty buffer of the specified size
@@ -485,6 +514,10 @@ class Buffer(Message):
         start_byte      = args[6]
 
         if (buffer_id == self.buffer_id):
+            if ((start_byte - self.missing_bytes) != self.num_bytes):
+                self.missing_bytes = start_byte - self.num_bytes
+                print("Missed packet: {0} vs {1} -- {2}".format(start_byte, self.num_bytes, self.missing_bytes))
+            
             offset = (start_byte - self.start_byte)
             
             self._update_buffer_size(bytes_remaining)
@@ -492,6 +525,7 @@ class Buffer(Message):
             self._set_buffer_complete()            
  
             self.set_flags(flags)
+            
         else:
             print("Data not intended for given WARPNet buffer.  Ignoring.")
 
@@ -511,10 +545,11 @@ class Buffer(Message):
         """Return the size of the buffer including all attributes."""
         return struct.calcsize('!5I %dB' % self.size)
 
-    def get_buffer_id(self):      return self.buffer_id
-    def get_buffer_size(self):    return self.size
-    def get_flags(self):          return self.flags
-    def get_payload_size(self):   return self.size
+    def get_buffer_id(self):           return self.buffer_id
+    def get_buffer_size(self):         return self.size
+    def get_buffer_header_size(self):  return struct.calcsize('!5I')
+    def get_flags(self):               return self.flags
+    def get_payload_size(self):        return self.size
 
     def set_flags(self, flags):
         """Set the bits in the flags field based on the value provided."""
@@ -552,15 +587,17 @@ class Buffer(Message):
             msg += "WARPNet Buffer [{0:d}] ".format(self.buffer_id)
             msg += "({0:d} bytes): \n".format(self.size)
             msg += "    Flags    : 0x{0:08x} \n".format(self.flags)
+            msg += "    Size     : {0:d}\n".format(self.size)
             msg += "    Num bytes: {0:d}\n".format(self.num_bytes)
             msg += "    Complete : {0}\n".format(self.complete)
-            msg += "    Data     : "
-            
-            for i in range(len(self.buffer)):
-                if (i % 16) == 0:
-                    msg += "\n        {0:02x} ".format(self.buffer[i])
-                else:
-                    msg += "{0:02x} ".format(self.buffer[i])
+
+            if (False):
+                msg += "    Data     : "            
+                for i in range(len(self.buffer)):
+                    if (i % 16) == 0:
+                        msg += "\n        {0:02x} ".format(self.buffer[i])
+                    else:
+                        msg += "{0:02x} ".format(self.buffer[i])
         return msg
 
 

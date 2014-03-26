@@ -39,7 +39,6 @@ import warpnet.wn_exception as wn_ex
 from . import version
 from . import defaults
 from . import cmds
-from . import util
 
 
 __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
@@ -136,14 +135,24 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Log Commands
     #--------------------------------------------
-    def log_configure(self, flags):
+    def log_configure(self, log_enable=None, log_wrap_enable=None, 
+                            log_full_payloads=None, log_warpnet_commands=None):
         """Configure log with the given flags.
-        
-        Flags (32 bits):
-            [0] - Allow log to wrap (1 - Enabled / 0 - Disabled )
-            [1] - Log events (1 - Enabled / 0 - Disabled)
+
+        By default all attributes are set to None.  Only attributes that 
+        are given values will be updated on the node.  If an attribute is
+        not specified, then that attribute will retain the same value on
+        the node.
+
+
+        Attributes (default state on the node is in CAPS):
+            log_enable           -- Enable the event log (TRUE/False)
+            log_warp_enable      -- Enable event log wrapping (True/FALSE)
+            log_full_payloads    -- Record full Tx/Rx payloads in event log (True/FALSE)
+            log_warpnet_commands -- Record WARPNet commands in event log (True/FALSE)        
         """
-        self.send_cmd(cmds.LogConfigure(flags))
+        self.send_cmd(cmds.LogConfigure(log_enable, log_wrap_enable, 
+                                        log_full_payloads, log_warpnet_commands))
 
 
     def log_get(self, size, offset=0):

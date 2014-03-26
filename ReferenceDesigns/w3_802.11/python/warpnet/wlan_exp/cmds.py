@@ -133,8 +133,10 @@ CMD_LOG_ADD_ENTRY                      = 54
 CMD_LOG_ENABLE_ENTRY                   = 55
 CMD_LOG_STREAM_ENTRIES                 = 56
 
-LOG_CONFIG_FLAG_WRAP                   = 0x00000001
-LOG_CONFIG_FLAG_LOGGING                = 0x00000002
+LOG_CONFIG_FLAG_LOGGING                = 0x00000001
+LOG_CONFIG_FLAG_WRAP                   = 0x00000002
+LOG_CONFIG_FLAG_LOG_PAYLOADS           = 0x00000004
+LOG_CONFIG_FLAG_LOG_WN_CMDS            = 0x00000008
 
 LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
 
@@ -196,10 +198,36 @@ class LogConfigure(wn_message.Cmd):
         flags - [0] Enable wrapping (1 - Enabled / 0 - Disabled (default))    
                 [1] Log events (1 - Enabled (default) / 0 - Disabled)
     """
-    def __init__(self, flags):
+    def __init__(self, log_enable=None, log_wrap_enable=None, 
+                       log_full_payloads=None, log_warpnet_commands=None):
         super(LogConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LOG_CONFIG
+
+        flags = 0
+        mask  = 0
+
+        if log_enable is not None:
+            mask += LOG_CONFIG_FLAG_LOGGING
+            if log_enable:
+                flags += LOG_CONFIG_FLAG_LOGGING
+        
+        if log_wrap_enable is not None:
+            mask += LOG_CONFIG_FLAG_WRAP
+            if log_wrap_enable:
+                flags += LOG_CONFIG_FLAG_WRAP
+
+        if log_full_payloads is not None:
+            mask += LOG_CONFIG_FLAG_LOG_PAYLOADS
+            if log_full_payloads:
+                flags += LOG_CONFIG_FLAG_LOG_PAYLOADS
+
+        if log_warpnet_commands is not None:
+            mask += LOG_CONFIG_FLAG_LOG_WN_CMDS
+            if log_warpnet_commands:
+                flags += LOG_CONFIG_FLAG_LOG_WN_CMDS
+        
         self.add_args(flags)
+        self.add_args(mask)
     
     def process_resp(self, resp):
         pass

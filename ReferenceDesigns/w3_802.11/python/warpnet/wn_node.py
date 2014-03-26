@@ -327,17 +327,17 @@ class WnNode(object):
             max_attempts -- Maximum number of attempts to send a given command
         """
         resp_type = cmd.get_resp_type()
-        payload = cmd.serialize()
         
         if  (resp_type == wn_transport.TRANSPORT_NO_RESP):
+            payload = cmd.serialize()
             self.transport.send(payload, robust=False)
 
         elif (resp_type == wn_transport.TRANSPORT_WN_RESP):
-            resp = self._receive_resp(payload, max_attempts)
+            resp = self._receive_resp(cmd, max_attempts)
             return cmd.process_resp(resp)
 
         elif (resp_type == wn_transport.TRANSPORT_WN_BUFFER):
-            resp = self._receive_buffer(cmd, payload, max_attempts)
+            resp = self._receive_buffer(cmd, max_attempts)
             return cmd.process_resp(resp)
 
         else:
@@ -345,13 +345,14 @@ class WnNode(object):
                                        "Unknown response type for command")
 
 
-    def _receive_resp(self, payload, max_attempts):
+    def _receive_resp(self, cmd, max_attempts):
         """Internal method to receive a response for a given command payload"""
         reply = b''
         curr_tx = 1
         done = False
         resp = wn_message.Resp()
 
+        payload = cmd.serialize()
         self.transport.send(payload)
 
         while not done:
@@ -371,13 +372,25 @@ class WnNode(object):
         return resp
 
 
-    def _receive_buffer(self, cmd, payload, max_attempts):
-        """Internal method to receive a buffer for a given command payload"""
+    def _receive_buffer(self, cmd, max_attempts):
+        """Internal method to receive a buffer for a given command payload.
+        
+        Depending on the size of the buffer, the framework will split the 
+        single large request into multiple smaller requests.  This is to:
+          1) Minimize the probability that the OS drops a packet
+          2) Minimize the time that the node Ethernet interface is busy 
+             and cannot service other requests
+          3) 
+        """
         reply = b''
         curr_tx = 1
         resp = wn_message.Buffer(cmd.get_buffer_id(), cmd.get_buffer_flags(),
                                  cmd.get_buffer_start_byte(), cmd.get_buffer_size())
 
+        
+
+        # self.transport.rx_buffer_size
+        payload = cmd.serialize()
         self.transport.send(payload)
 
         while not resp.is_buffer_complete():
@@ -386,6 +399,7 @@ class WnNode(object):
             except wn_ex.TransportError:
                 # If there is a timeout, then request missing part of the buffer
                 if curr_tx == max_attempts:
+                    print(resp)
                     raise wn_ex.TransportError(self.transport, 
                               "Max retransmissions without reply from node")
 
