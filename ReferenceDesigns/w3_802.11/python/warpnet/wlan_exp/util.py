@@ -277,6 +277,11 @@ def mac2str(mac_address):
 
     return msg
 
+def sn_to_str(hw_gen, sn_num):
+    if(hw_gen == 3):
+        return ('W3-a-{0:05d}'.format(int(sn_num)))
+
+
 def mac_addr_desc(mac_addr, desc_map=None):
     """Returns a string description of a MAC address, 
     useful when printing a table of addresses

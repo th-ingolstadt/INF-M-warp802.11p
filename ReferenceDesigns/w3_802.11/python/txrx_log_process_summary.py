@@ -67,8 +67,13 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 ###############################################################################
 # Example 0: Print node info
-#TODO: use new util methods to print node_info info
+log_node_info = log_np['NODE_INFO'][0]
 
+print("Node Info:")
+print("  MAC Address:   {0}".format(wlan_exp_util.mac2str(log_node_info['wlan_mac_addr'])))
+print("  Serial Number: {0}".format(wlan_exp_util.sn_to_str(log_node_info['hw_generation'], log_node_info['serial_num'])))
+
+print("\n")
 
 ###############################################################################
 # Example 1: Count the number of receptions per PHY rate
