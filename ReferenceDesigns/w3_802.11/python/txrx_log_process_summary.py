@@ -72,8 +72,8 @@ log_node_info = log_np['NODE_INFO'][0]
 print("Node Info:")
 print("  MAC Address:   {0}".format(wlan_exp_util.mac2str(log_node_info['wlan_mac_addr'])))
 print("  Serial Number: {0}".format(wlan_exp_util.sn_to_str(log_node_info['hw_generation'], log_node_info['serial_num'])))
-
-print("\n")
+print("  wlan_exp Ver:  {0}".format(wlan_exp_util.ver_code_to_str(log_node_info['wlan_exp_ver'])))
+print("")
 
 ###############################################################################
 # Example 1: Count the number of receptions per PHY rate

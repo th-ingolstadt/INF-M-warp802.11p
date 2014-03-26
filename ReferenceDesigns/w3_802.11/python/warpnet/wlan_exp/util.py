@@ -281,6 +281,11 @@ def sn_to_str(hw_gen, sn_num):
     if(hw_gen == 3):
         return ('W3-a-{0:05d}'.format(int(sn_num)))
 
+def ver_code_to_str(ver_code):
+    #ver_code is u32 with 4 bytes:
+    #[x major minor rev]
+    v = int(ver_code)
+    return '{0}.{1}.{2}'.format( ((v>>16) & 0xFF), ((v>>8) & 0xFF), ((v>>0) & 0xFF))
 
 def mac_addr_desc(mac_addr, desc_map=None):
     """Returns a string description of a MAC address, 
