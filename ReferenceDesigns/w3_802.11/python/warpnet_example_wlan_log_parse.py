@@ -29,7 +29,7 @@ import warpnet.wlan_exp.util as wlan_exp_util
 from  warpnet.wlan_exp.util import wlan_rates
 
 # NOTE: change these values to match your experiment setup
-LOGFILE = 'example_logs/sta_log_stats_headersOnly.hdf5'
+LOGFILE = 'example_logs/sta_log_stats_headers_only.hdf5'
 
 # Ensure the log file actually exists - quit immediately if not
 if(not os.path.isfile(LOGFILE)):
@@ -105,7 +105,7 @@ tx_done        = log_tx['time_to_done']
 tx_avg_time    = []
 
 # Calculate the average time to send a packet for each rate
-for rate in np.unique(tx_rates):
+for rate in np.sort(np.unique(tx_rates)):
     # Find indexes of all instances where addresses match
     #   np.squeeze here flattens the result to a 1-D array
     rate_idx = np.squeeze(tx_rates == rate)
