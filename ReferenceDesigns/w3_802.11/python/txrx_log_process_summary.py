@@ -76,22 +76,26 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 #          empty list and does not need a try / except.
 #
 
-#TODO: Add column of #Tx/rate
+# Extract all OFDM transmissions and receptions
+log_tx = log_np['TX']
+log_rx = log_np['RX_OFDM']
 
-# Extract all OFDM receptions
-log_rx_ofdm = log_np['RX_OFDM']
-
-# Extract an array of just the Rx rates
-rx_rates = log_rx_ofdm['rate']
+# Extract arrays of just the rates
+tx_rates = log_tx['rate']
+rx_rates = log_rx['rate']
 
 # Initialize an array to count number of Rx per PHY rate
 #   MAC uses rate_indexes 1:8 to encode OFDM rates
+tx_rate_counts = np.bincount(tx_rates, minlength=9)
+tx_rate_counts = tx_rate_counts[1:9] #only rate values 1:8 are valid
+
 rx_rate_counts = np.bincount(rx_rates, minlength=9)
 rx_rate_counts = rx_rate_counts[1:9] #only rate values 1:8 are valid
 
-print("Example 1: Num Rx Pkts per Rate:")
-for (i,c) in enumerate(rx_rate_counts):
-    print(" {0:2d} Mbps: {1:7}".format(int(wlan_rates[i]['rate']), c))
+print("Example 1: Pkts per Rate:")
+print("  Rate       {0:7} {1:7}".format("Tx","Rx"))
+for i,(tx_c,rx_c) in enumerate(zip(tx_rate_counts, rx_rate_counts)):
+    print(" {0:2d} Mbps: {1:7} {2:7}".format( int(wlan_rates[i]['rate']), tx_c, rx_c))
 
 
 ###############################################################################
@@ -170,7 +174,7 @@ if('RX_OFDM' in log_np.keys()):
         rx_counts[addr] = (rx_pkts_from_addr, rx_bytes_from_addr)
 
     # Print the results
-    print("\nExample 4: Rx Counts (including duplicates):");
+    print("\nExample 3: Rx Counts (including duplicates):");
     print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
         "Src Addr",
         "# Pkts",

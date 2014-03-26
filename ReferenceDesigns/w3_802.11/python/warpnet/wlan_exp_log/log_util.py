@@ -331,11 +331,11 @@ def print_log_index_summary(log_index, title=None):
         print(title)
 
     for k in sorted(log_index.keys()):
-        print('{0:10d} of Type {1}'.format(len(log_index[k]), k))
+        print('{0:>10,} of Type {1}'.format(len(log_index[k]), k))
         total_len += len(log_index[k])
 
     print('--------------------------')
-    print('{0:10d} total entries\n'.format(total_len))
+    print('{0:>10,} total entries\n'.format(total_len))
 
 # End log_index_print_summary()
 
@@ -374,7 +374,6 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
         print(entry_type.entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
 
 # End print_log_entries()
-
 
 
 #-----------------------------------------------------------------------------
@@ -453,6 +452,8 @@ def read_log_data_index_file(log_data_index_file):
 
     return log_data_index
     
+
+
 # End gen_log_index_raw()
 
 
