@@ -270,7 +270,6 @@ void wlan_phy_init() {
 	wlan_phy_rx_pktDet_autoCorr_cfg(200, 50, 4, 0x3F);
 
 	//Configure the default antenna selections as SISO Tx/Rx on RF A
-	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
 	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
 	//Set physical carrier sensing threshold

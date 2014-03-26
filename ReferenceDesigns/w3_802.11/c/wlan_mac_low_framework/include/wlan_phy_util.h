@@ -162,20 +162,6 @@
 #define REG_CLEAR_BITS(addr, mask)	Xil_Out32(addr, (Xil_In32(addr) & ~mask))
 #define REG_SET_BITS(addr, mask)	Xil_Out32(addr, (Xil_In32(addr) | mask))
 
-//Antenna modes (enumerated - these values are *not* written to PHY registers)
-#define RX_ANTMODE_SISO_ANTA		0x1
-#define RX_ANTMODE_SISO_ANTB		0x2
-#define RX_ANTMODE_SISO_ANTC		0x3
-#define RX_ANTMODE_SISO_ANTD		0x4
-#define RX_ANTMODE_SISO_SELDIV_2ANT	0x5
-#define RX_ANTMODE_SISO_SELDIV_4ANT	0x6
-
-#define TX_ANTMODE_SISO_ANTA	0x10
-#define TX_ANTMODE_SISO_ANTB	0x20
-#define TX_ANTMODE_SISO_ANTC	0x30
-#define TX_ANTMODE_SISO_ANTD	0x40
-
-
 //PHY Macros
 //The PHY header offsets deal in units of u64 words, so the << 13 is like a << 16 and >> 3 to convert u8 words to u64 words
 #define wlan_phy_rx_pkt_buf_phy_hdr_offset(d) Xil_Out32(WLAN_RX_PKT_BUF_SEL, ((Xil_In32(WLAN_RX_PKT_BUF_SEL) & (~0x00FF0000)) | (((d)<<13) & 0x00FF0000)))
