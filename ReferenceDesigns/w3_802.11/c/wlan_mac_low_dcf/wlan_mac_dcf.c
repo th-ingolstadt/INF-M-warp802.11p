@@ -69,6 +69,8 @@ int main(){
 	stationLongRetryCount = 0;
 	cw_exp = DCF_CW_EXP_MIN;
 
+	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+
 	red_led_index = 0;
 	green_led_index = 0;
 	userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
@@ -176,6 +178,27 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		break;
 	}
 
+	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
+
+
+	//TODO: tx ant_mode will eventually be a part of wlan_mac_auto_tx_params_g()
+
+	switch(active_rx_ant){
+		case RX_ANTMODE_SISO_ANTA:
+			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+		break;
+		case RX_ANTMODE_SISO_ANTB:
+			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTB);
+		break;
+		case RX_ANTMODE_SISO_ANTC:
+			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTC);
+		break;
+		case RX_ANTMODE_SISO_ANTD:
+			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTD);
+		break;
+	}
+
+
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){};
 
@@ -206,8 +229,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	mpdu_info->length = (u16)length;
 	mpdu_info->rate = (u8)rate;
 
-	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
-	mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
+	mpdu_info->ant_mode = active_rx_ant;
 
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
@@ -284,6 +306,9 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
 	wlan_mac_dcf_hw_unblock_rx_phy();
 
+	//If auto-tx ACK is currently transmitting, wait for it to finish
+	while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_AUTO_TX_PENDING){}
+
 	return return_value;
 }
 
@@ -315,6 +340,10 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
 		n_slots = rand_num_slots();
+
+		//TODO: tx ant_mode will eventually be a part of wlan_mac_MPDU_tx_params_g()
+		wlan_tx_config_ant_mode(mpdu_info->params.phy.antenna_mode);
+//		wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
 		wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
