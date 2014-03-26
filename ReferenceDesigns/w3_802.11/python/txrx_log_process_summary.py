@@ -76,6 +76,8 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 #          empty list and does not need a try / except.
 #
 
+#TODO: Add column of #Tx/rate
+
 # Extract all OFDM receptions
 log_rx_ofdm = log_np['RX_OFDM']
 
@@ -170,7 +172,7 @@ if('RX_OFDM' in log_np.keys()):
     # Print the results
     print("\nExample 4: Rx Counts (including duplicates):");
     print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-        "Dest Addr",
+        "Src Addr",
         "# Pkts",
         "# Bytes",
         "MAC Addr Type"))

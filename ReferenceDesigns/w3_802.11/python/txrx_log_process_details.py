@@ -45,8 +45,7 @@ log_data_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
 log_util.print_log_index_summary(log_data_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
-log_index = log_util.filter_log_index(log_data_index,
-                                      include_only=['RX_OFDM', 'TX', 'TX_LOW'])
+log_index = log_util.filter_log_index(log_data_index, include_only=['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW'])
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 

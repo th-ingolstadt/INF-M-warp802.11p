@@ -330,7 +330,7 @@ def print_log_index_summary(log_index, title=None):
     else:
         print(title)
 
-    for k in log_index.keys():
+    for k in sorted(log_index.keys()):
         print('{0:10d} of Type {1}'.format(len(log_index[k]), k))
         total_len += len(log_index[k])
 
