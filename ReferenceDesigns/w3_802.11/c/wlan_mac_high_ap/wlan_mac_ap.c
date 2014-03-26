@@ -138,22 +138,22 @@ int main(){
 	default_unicast_data_tx_params.mac.num_tx_max = MAX_NUM_TX;
 	default_unicast_data_tx_params.phy.power = TX_POWER_DBM;
 	default_unicast_data_tx_params.phy.rate = WLAN_MAC_RATE_18M;
-	default_unicast_data_tx_params.phy.antenna_mode = WLAN_TX_ANTMODE_SISO_ANTA;
+	default_unicast_data_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
 	default_unicast_mgmt_tx_params.mac.num_tx_max = MAX_NUM_TX;
 	default_unicast_mgmt_tx_params.phy.power = TX_POWER_DBM;
 	default_unicast_mgmt_tx_params.phy.rate = WLAN_MAC_RATE_6M;
-	default_unicast_mgmt_tx_params.phy.antenna_mode = WLAN_TX_ANTMODE_SISO_ANTA;
+	default_unicast_mgmt_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
 	default_multicast_data_tx_params.mac.num_tx_max = 1;
 	default_multicast_data_tx_params.phy.power = TX_POWER_DBM;
 	default_multicast_data_tx_params.phy.rate = WLAN_MAC_RATE_18M;
-	default_multicast_data_tx_params.phy.antenna_mode = WLAN_TX_ANTMODE_SISO_ANTA;
+	default_multicast_data_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
 	default_multicast_mgmt_tx_params.mac.num_tx_max = 1;
 	default_multicast_mgmt_tx_params.phy.power = TX_POWER_DBM;
 	default_multicast_mgmt_tx_params.phy.rate = WLAN_MAC_RATE_6M;
-	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_TX_ANTMODE_SISO_ANTA;
+	default_multicast_mgmt_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
 
 #ifdef USE_WARPNET_WLAN_EXP
