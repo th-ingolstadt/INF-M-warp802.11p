@@ -31,7 +31,8 @@ NODES_CONFIG_INI_FILE             = 'nodes_config.ini'
 
 # WARPNet Node Types
 WN_NODE_TYPE                      = 0
-WN_NODE_TYPE_CLASS                = 'WnNode'
+WN_NODE_CLASS                     = 'WnNode'
+WN_NODE_DESCRIPTION               = 'WARPNet Node'
 
 
 # WARPNet Default values

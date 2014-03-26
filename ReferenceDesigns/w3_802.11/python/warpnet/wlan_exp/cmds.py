@@ -274,7 +274,7 @@ class LogStreamEntries(wn_message.Cmd):
         self.command = _CMD_GRPID_NODE + CMD_LOG_STREAM_ENTRIES
         
         if (type(ip_address) is str):
-            addr = wn_transport.ip2int(ip_address)
+            addr = wn_transport.ip_to_int(ip_address)
         elif (type(ip_address) is int):
             addr = ip_address
         else:

@@ -44,7 +44,7 @@ print('{0:^18} | {1:^8} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
 
 for ii in range(len(tx_stats)):
     print('{0:<18} | {1:8d} | {2:10.1f} | {3:14} | {4:11.3f} | {5:5.1f}'.format(
-        util.mac2str(tx_stats['addr1'][ii]),
+        util.mac_to_str(tx_stats['addr1'][ii]),
         tx_stats['num_pkts'][ii],
         tx_stats['avg_len'][ii],
         tx_stats['tot_len'][ii],

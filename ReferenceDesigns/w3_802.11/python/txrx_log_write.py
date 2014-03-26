@@ -121,6 +121,7 @@ wlan_rates = wlan_exp_util.wlan_rates
 # Put each node in a known, good state
 for node in nodes:
     node.node_set_tx_rate_unicast(wlan_rates[0])
+    node.log_configure(log_full_payloads=True)
     node.node_reset_all()
 
 
@@ -171,8 +172,8 @@ print_log_size()
 # Write Log Files for processing by other scripts
 print("\nWriting Log Files...")
 
-write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new())
-write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new())
+write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new(log_tail_pad=0))
+write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new(log_tail_pad=0))
 
 print("Done.")
 

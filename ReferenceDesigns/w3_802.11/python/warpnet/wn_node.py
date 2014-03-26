@@ -524,7 +524,8 @@ class WnNodeFactory(WnNode):
 
         # Add default classes to the factory
         self.node_add_class(wn_defaults.WN_NODE_TYPE, 
-                            wn_defaults.WN_NODE_TYPE_CLASS)
+                            wn_defaults.WN_NODE_CLASS,
+                            wn_defaults.WN_NODE_DESCRIPTION)
         
     
     def setup(self, node_dict):
@@ -608,20 +609,38 @@ class WnNodeFactory(WnNode):
             return node
 
 
-    def node_add_class(self, wn_node_type, class_name):
+    def node_add_class(self, wn_node_type, class_name, description):
         if (wn_node_type in self.wn_dict):
             print("WARNING: Changing definition of {0}".format(wn_node_type))
             
-        self.wn_dict[wn_node_type] = class_name
+        self.wn_dict[wn_node_type] = {}
+        self.wn_dict[wn_node_type]['class']        = class_name
+        self.wn_dict[wn_node_type]['description']  = description
  
 
     def node_get_class(self, wn_node_type):
+        """Get the class string of the node from the WARPNet type."""
         node_type = wn_node_type
         
         if (node_type in self.wn_dict.keys()):
-            return self.wn_dict[node_type]
+            return self.wn_dict[node_type]['class']
         else:
             return None
+
+
+    def node_get_description(self, wn_node_type):
+        """Get the description of the node from the WARPNet type."""
+        node_type = wn_node_type
+        
+        if (node_type in self.wn_dict.keys()):
+            return self.wn_dict[node_type]['description']
+        else:
+            return None
+
+
+    def get_wn_type_dict(self):
+        """Get the WARPNet Type dictonary."""
+        return self.wn_dict
 
 
     def print_wn_node_types(self):

@@ -174,4 +174,12 @@ def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
 # End of wlan_exp_ver_str()
 
 
+def wlan_exp_ver_code_to_str(ver_code):
+    """Convert four byte version code with format [x major minor rev] to a string."""
+    ver = int(ver_code)
+    return wlan_exp_ver_str(((ver >> 16) & 0xFF), ((ver >> 8) & 0xFF), ((ver >> 0) & 0xFF))
+
+# End of wlan_exp_ver_code_to_str()
+
+
 

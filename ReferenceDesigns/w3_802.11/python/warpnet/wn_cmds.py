@@ -164,7 +164,7 @@ class NodeSetupNetwork(wn_message.Cmd):
         self.command = _CMD_GRPID_NODE + CMD_NODE_NETWORK_SETUP
         self.add_args(node.serial_number)
         self.add_args(node.node_id)
-        self.add_args(node.transport.ip2int(node.transport.ip_address))
+        self.add_args(node.transport.ip_to_int(node.transport.ip_address))
         self.add_args(node.transport.unicast_port)
         self.add_args(node.transport.bcast_port)
     

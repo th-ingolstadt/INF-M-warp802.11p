@@ -750,10 +750,12 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         
         # Add default classes to the factory
         self.node_add_class(defaults.WLAN_EXP_AP_TYPE, 
-                            defaults.WLAN_EXP_AP_CLASS)
+                            defaults.WLAN_EXP_AP_CLASS,
+                            defaults.WLAN_EXP_AP_DESCRIPTION)
 
         self.node_add_class(defaults.WLAN_EXP_STA_TYPE, 
-                            defaults.WLAN_EXP_STA_CLASS)
+                            defaults.WLAN_EXP_STA_CLASS, 
+                            defaults.WLAN_EXP_STA_DESCRIPTION)
 
     
     def node_eval_class(self, node_class, host_config):

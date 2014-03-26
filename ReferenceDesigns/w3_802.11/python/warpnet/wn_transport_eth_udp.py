@@ -21,9 +21,9 @@ This module provides the base class for WARPNet Ethernet UDP transports.
 
 Functions:
     TransportEthUdp() -- Base class for Ethernet UDP transports
-    int2ip() -- Convert 32 bit integer to 'w.x.y.z' IP address string
-    ip2int() -- Convert 'w.x.y.z' IP address string to 32 bit integer
-    mac2str() -- Convert 6 byte MAC address to 'uu:vv:ww:xx:yy:zz' string
+    int_to_ip()       -- Convert 32 bit integer to 'w.x.y.z' IP address string
+    ip_to_int()       -- Convert 'w.x.y.z' IP address string to 32 bit integer
+    mac_to_str()      -- Convert 6 byte MAC address to 'uu:vv:ww:xx:yy:zz' string
 
 """
 
@@ -242,7 +242,7 @@ class TransportEthUdp(tp.Transport):
                 
         elif (identifier == tp.TRANSPORT_IP_ADDR):
             if (length == 1):
-                self.ip_address = self.int2ip(values[0])
+                self.ip_address = self.int_to_ip(values[0])
             else:
                 raise wn_ex.ParameterError("TRANSPORT_IP_ADDR", "Incorrect length")
                 
@@ -271,11 +271,11 @@ class TransportEthUdp(tp.Transport):
     #-------------------------------------------------------------------------
     # Misc methods for the Transport
     #-------------------------------------------------------------------------
-    def int2ip(self, ipaddr):  return int2ip(ipaddr)
+    def int_to_ip(self, ip_address):    return int_to_ip(ip_address)
 
-    def ip2int(self, ipaddr):  return ip2int(ipaddr)
+    def ip_to_int(self, ip_address):    return ip_to_int(ip_address)
 
-    def mac2str(self, mac_address):  return mac2str(mac_address)
+    def mac_to_str(self, mac_address):  return mac_to_str(mac_address)
 
     def __str__(self):
         """Pretty print the Transport parameters"""
@@ -283,7 +283,7 @@ class TransportEthUdp(tp.Transport):
         if not self.mac_address is None:
             msg += "Transport {0}:\n".format(self.transport_type)
             msg += "    IP address    :  {0}\n".format(self.ip_address)
-            msg += "    MAC address   :  {0}\n".format(self.mac2str(self.mac_address)) 
+            msg += "    MAC address   :  {0}\n".format(self.mac_to_str(self.mac_address)) 
             msg += "    Max payload   :  {0}\n".format(self.max_payload)
             msg += "    Unicast port  :  {0}\n".format(self.unicast_port)
             msg += "    Broadcast port:  {0}\n".format(self.bcast_port)
@@ -301,36 +301,51 @@ class TransportEthUdp(tp.Transport):
 # Global methods for the Transport
 #-------------------------------------------------------------------------
 
-def int2ip(ipaddr):
+def int_to_ip(ip_address):
+    """Convert an integer to IP address string (dotted notation)."""
     msg = ""
-    if not ipaddr is None:
-        msg += "{0:d}.".format((ipaddr >> 24) & 0xFF)
-        msg += "{0:d}.".format((ipaddr >> 16) & 0xFF)
-        msg += "{0:d}.".format((ipaddr >>  8) & 0xFF)
-        msg += "{0:d}".format(ipaddr & 0xFF)
+    if ip_address is not None:
+        msg += "{0:d}.".format((ip_address >> 24) & 0xFF)
+        msg += "{0:d}.".format((ip_address >> 16) & 0xFF)
+        msg += "{0:d}.".format((ip_address >>  8) & 0xFF)
+        msg += "{0:d}".format(ip_address & 0xFF)
     return msg
 
+# End def
 
-def ip2int(ipaddr):
+
+def ip_to_int(ip_address):
+    """Convert IP address string (dotted notation) to an integer."""
     ret_val = 0
-    if not ipaddr is None:
+    if ip_address is not None:
         expr = re.compile('\.')
-        tmp = [int(n) for n in expr.split(ipaddr)]
+        tmp = [int(n) for n in expr.split(ip_address)]        
         ret_val = (tmp[3]) + (tmp[2] * 2**8) + (tmp[1] * 2**16) + (tmp[0] * 2**24)
     return ret_val
 
+# End def
 
-def mac2str(mac_address):
+
+def mac_to_str(mac_address):
+    """Convert an integer to a colon separated MAC address string."""
     msg = ""
     if not mac_address is None:
+
+        # Force the input address to a Python int
+        #   This handles the case of a numpy uint64 input, which kills the >> operator
+        if(type(mac_address) is not int):
+            mac_address = int(mac_address)
+
         msg += "{0:02x}:".format((mac_address >> 40) & 0xFF)
         msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
         msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
         msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
         msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
         msg += "{0:02x}".format(mac_address & 0xFF)
+
     return msg
 
+# End def
 
 
 

@@ -50,13 +50,13 @@ __all__ = ['tx_rate_to_str', 'tx_rate_index_to_str',
 #-----------------------------------------------------------------------------
 
 wlan_rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2'},
-         {'index' :  2, 'rate' :  9.0, 'rate_str' : 'BPSK 3/4'},
-         {'index' :  3, 'rate' : 12.0, 'rate_str' : 'QPSK 1/2'},
-         {'index' :  4, 'rate' : 18.0, 'rate_str' : 'QPSK 3/4'},
-         {'index' :  5, 'rate' : 24.0, 'rate_str' : '16-QAM 1/2'},
-         {'index' :  6, 'rate' : 36.0, 'rate_str' : '16-QAM 3/4'},
-         {'index' :  7, 'rate' : 48.0, 'rate_str' : '64-QAM 2/3'},
-         {'index' :  8, 'rate' : 54.0, 'rate_str' : '64-QAM 3/4'}]
+              {'index' :  2, 'rate' :  9.0, 'rate_str' : 'BPSK 3/4'},
+              {'index' :  3, 'rate' : 12.0, 'rate_str' : 'QPSK 1/2'},
+              {'index' :  4, 'rate' : 18.0, 'rate_str' : 'QPSK 3/4'},
+              {'index' :  5, 'rate' : 24.0, 'rate_str' : '16-QAM 1/2'},
+              {'index' :  6, 'rate' : 36.0, 'rate_str' : '16-QAM 3/4'},
+              {'index' :  7, 'rate' : 48.0, 'rate_str' : '64-QAM 2/3'},
+              {'index' :  8, 'rate' : 54.0, 'rate_str' : '64-QAM 3/4'}]
 
 
 def tx_rate_to_str(tx_rate):
@@ -67,7 +67,8 @@ def tx_rate_to_str(tx_rate):
     else:
         print("Invalid TX rate type.  Needed dict, provided {0}.".format(type(tx_rate)))
     return msg
-    
+
+# End def
 
 
 def tx_rate_index_to_str(tx_rate_index):
@@ -88,12 +89,20 @@ def tx_rate_index_to_str(tx_rate_index):
 
     return msg
 
+# End def
 
 
 #-----------------------------------------------------------------------------
 # WLAN Exp Node Utilities
 #-----------------------------------------------------------------------------
-def init_nodes(nodes_config, host_config= None, node_factory=None, output=False):
+
+# WARPNet Type Dictionary
+#   This variable is not valid until init_nodes has been run.
+warpnet_type_dict = None
+
+
+
+def init_nodes(nodes_config, host_config=None, node_factory=None, output=False):
     """Initalize WLAN Exp nodes.
 
     Attributes:
@@ -103,6 +112,8 @@ def init_nodes(nodes_config, host_config= None, node_factory=None, output=False)
                         given WARPNet type
         output -- Print output about the WARPNet nodes
     """
+    global warpnet_type_dict
+    
     # Create a Host Configuration if there is none provided
     if host_config is None:
         import warpnet.wn_config as wn_config
@@ -113,11 +124,14 @@ def init_nodes(nodes_config, host_config= None, node_factory=None, output=False)
         from . import node
         node_factory = node.WlanExpNodeFactory(host_config)
 
+    # Record the WARPNet type dictionary from the NodeFactory for later use
+    warpnet_type_dict = node_factory.get_wn_type_dict()
+
     # Use the WARPNet utility, wn_init_nodes, to initialize the nodes
     import warpnet.wn_util as wn_util
     return wn_util.wn_init_nodes(nodes_config, host_config, node_factory, output)
 
-# End of init_nodes()
+# End def
 
 
 def broadcast_node_set_time(host_config=None, time=0.0):
@@ -174,7 +188,7 @@ def broadcast_node_set_time(host_config=None, time=0.0):
         msg += "{0} to: {1}".format(util._get_ip_address_subnet(interface), node_time)
         print(msg)
 
-# End of init_timestamp()
+# End def
 
 
 #-----------------------------------------------------------------------------
@@ -245,56 +259,90 @@ def filter_nodes(nodes, filter_type, filter_val):
 
     return ret_nodes
 
+# End def
 
-def int2ip(ipaddr):
+
+def int_to_ip(ip_address):
     """Convert an integer to IP address string (dotted notation)."""
-    msg = ""
-    if not ipaddr is None:
-        msg += "{0:d}.".format((ipaddr >> 24) & 0xFF)
-        msg += "{0:d}.".format((ipaddr >> 16) & 0xFF)
-        msg += "{0:d}.".format((ipaddr >>  8) & 0xFF)
-        msg += "{0:d}".format(ipaddr & 0xFF)
-    return msg
+    import warpnet.wn_transport_eth_udp as tport
+    return tport.int_to_ip(ip_address)
+
+# End def
 
 
-def ip2int(ipaddr):
+def ip_to_int(ip_address):
     """Convert IP address string (dotted notation) to an integer."""
-    ret_val = 0
-    if not ipaddr is None:
-        expr = re.compile('\.')
-        tmp = [int(n) for n in expr.split(ipaddr)]        
-        ret_val = (tmp[3]) + (tmp[2] * 2**8) + (tmp[1] * 2**16) + (tmp[0] * 2**24)
-    return ret_val
+    import warpnet.wn_transport_eth_udp as tport
+    return tport.ip_to_int(ip_address)
+
+# End def
 
 
-def mac2str(mac_address):
+def mac_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
-    msg = ""
-    if not mac_address is None:
+    import warpnet.wn_transport_eth_udp as tport
+    return tport.mac_to_str(mac_address)
 
-        #Force the input address to a Python int
-        # This handles the case of a numpy uint64 input, which kills the >> operator
-        if(type(mac_address) is not int):
-            mac_address = int(mac_address)
+# End def
 
-        msg += "{0:02x}:".format((mac_address >> 40) & 0xFF)
-        msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
-        msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
-        msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
-        msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
-        msg += "{0:02x}".format(mac_address & 0xFF)
 
-    return msg
+def sn_to_str(hw_generation, serial_number):
+    """Convert serial number to a string for a given hardware generation."""
+    if(hw_generation == 3):
+        return ('W3-a-{0:05d}'.format(int(serial_number)))
+    else:
+        print("ERROR:  Not valid Hardware Generation: {0}".format(hw_generation))
 
-def sn_to_str(hw_gen, sn_num):
-    if(hw_gen == 3):
-        return ('W3-a-{0:05d}'.format(int(sn_num)))
+# End def
+
 
 def ver_code_to_str(ver_code):
-    #ver_code is u32 with 4 bytes:
-    #[x major minor rev]
-    v = int(ver_code)
-    return '{0}.{1}.{2}'.format( ((v>>16) & 0xFF), ((v>>8) & 0xFF), ((v>>0) & 0xFF))
+    """Convert a WLAN Exp version code to a string."""
+    import warpnet.wlan_exp.version as version
+    return version.wlan_exp_ver_code_to_str(ver_code)
+
+# End def
+
+
+def node_type_to_str(node_type, node_factory=None):
+    """Convert the Node WARPNet Type to a string description.
+
+    Attributes:
+        node_type    -- WARPNet node type code (u32)
+        node_factory -- A WlanExpNodeFactory or subclass to create nodes of a 
+                        given WARPNet type
+    
+    By default, the dictionary of WARPNet types is built dynamically 
+    during init_nodes().  If init_nodes() has not been run, then the method 
+    will try to create a WARPNet type dictionary.  If a node_factory is not 
+    provided then a default WlanExpNodeFactory will be used to determine the 
+    WARPNet type.  If a default WlanExpNodeFactory is used, then only 
+    framework WARPNet types will be known and custom WARPNet types will
+    return:  "Unknown WARPNet type: <value>"
+    """
+    global warpnet_type_dict
+
+    # Build a warpnet_type_dict if it is not present
+    if warpnet_type_dict is None:
+        
+        # Build a default node_factory if it is not present
+        if node_factory is None:
+            from . import node
+            import warpnet.wn_config as wn_config
+    
+            host_config  = wn_config.HostConfiguration()
+            node_factory = node.WlanExpNodeFactory(host_config)
+
+        # Record the WARPNet type dictionary from the NodeFactory for later use
+        warpnet_type_dict = node_factory.get_wn_type_dict()
+
+    if (node_type in warpnet_type_dict.keys()):
+        return warpnet_type_dict[node_type]['description']
+    else:
+        return "Unknown WARPNet type: 0x{0:8x}".format(node_type)
+    
+# End def
+
 
 def mac_addr_desc(mac_addr, desc_map=None):
     """Returns a string description of a MAC address, 
@@ -337,6 +385,9 @@ def mac_addr_desc(mac_addr, desc_map=None):
 
     return desc_out
 
+# End def
+
+
 # Excellent util function for dropping into interactive Python shell
 #   From http://vjethava.blogspot.com/2010/11/matlabs-keyboard-command-in-python.html
 def debug_here(banner=None):
@@ -359,6 +410,8 @@ def debug_here(banner=None):
     except SystemExit:
         return
 
+# End def
+
 
 #-----------------------------------------------------------------------------
 # Internal Methods
@@ -367,14 +420,14 @@ def _get_nodes_by_type(nodes, node_type):
     """Returns all nodes in the list that have the given node_type."""
     return [n for n in nodes if (n.node_type == node_type)]
 
-# End of _get_nodes_by_type()
+# End def
 
 
 def _get_nodes_by_sn(nodes, serial_number):
     """Returns all nodes in the list that have the given serial number."""
     return [n for n in nodes if (n.serial_number == serial_number)]
 
-# End of _get_nodes_by_type()
+# End def
 
 
 def _time():
@@ -384,7 +437,7 @@ def _time():
     except AttributeError:
         return time.clock()
 
-# End of wlan_exp_init_time()
+# End def
 
 
 
