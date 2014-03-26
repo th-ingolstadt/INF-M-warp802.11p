@@ -1,5 +1,5 @@
 import warpnet.wlan_exp_log.log_util as log_util
-from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as log_entry_types
+import warpnet.wlan_exp.util as util
 import numpy as np
 import matplotlib.mlab as mlab
 
@@ -44,7 +44,7 @@ print('{0:^18} | {1:^8} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
 
 for ii in range(len(tx_stats)):
     print('{0:<18} | {1:8d} | {2:10.1f} | {3:14} | {4:11.3f} | {5:5.1f}'.format(
-        log_util.mac_addr_int_to_str(tx_stats['addr1'][ii]),
+        util.mac2str(tx_stats['addr1'][ii]),
         tx_stats['num_pkts'][ii],
         tx_stats['avg_len'][ii],
         tx_stats['tot_len'][ii],
