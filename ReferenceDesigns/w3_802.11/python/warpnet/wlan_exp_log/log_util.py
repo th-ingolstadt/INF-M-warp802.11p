@@ -339,8 +339,6 @@ def print_log_index_summary(log_index, title=None):
 
 # End log_index_print_summary()
 
-
-
 def print_log_entries(log_bytes, log_index, entries_slice=None):
     """Work in progress - built for debugging address issues, some variant of this will be useful
     for creating text version of raw log w/out requiring numpy"""
