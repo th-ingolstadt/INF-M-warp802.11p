@@ -170,12 +170,6 @@ typedef struct{
 } txrx_stats_entry;
 
 
-#define MIN_MAC_PAYLOAD_LOG_LEN 24
-
-#define MAX_MAC_PAYLOAD_LOG_LEN MIN_MAC_PAYLOAD_LOG_LEN
-//#define MAX_MAC_PAYLOAD_LOG_LEN 1500
-
-
 //-----------------------------------------------
 // Common Receive Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
@@ -195,10 +189,18 @@ typedef struct{
 	u16  flags; //TODO
 } rx_common_entry;
 
-#define RX_ENTRY_FCS_GOOD 0
-#define RX_ENTRY_FCS_BAD 1
+#define RX_ENTRY_FCS_GOOD              0
+#define RX_ENTRY_FCS_BAD               1
 
-#define RX_ENTRY_FLAGS_IS_DUPLICATE	0x0001
+#define RX_ENTRY_FLAGS_IS_DUPLICATE	   0x0001
+
+#define MIN_MAC_PAYLOAD_LOG_LEN        24
+#define MAX_MAC_PAYLOAD_LOG_LEN        1500
+
+// To never record payloads, you can set the min / max defines as follows:
+//
+//#define MAX_MAC_PAYLOAD_LOG_LEN        MIN_MAC_PAYLOAD_LOG_LEN
+
 
 
 //-----------------------------------------------
@@ -246,6 +248,7 @@ typedef struct{
 	u32 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4]; //store as u32's to preserve alignment
 } tx_high_entry;
 
+
 //-----------------------------------------------
 // Low-level Transmit Entry
 //   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
@@ -266,8 +269,17 @@ typedef struct{
 
 
 
+/*************************** Function Prototypes *****************************/
+
+extern u32 mac_payload_log_len;
+
 
 /*************************** Function Prototypes *****************************/
+
+//-----------------------------------------------
+// Method to set the global variable mac_payload_log_len
+//
+void set_mac_payload_log_len(u32 payload_len);
 
 
 //-----------------------------------------------

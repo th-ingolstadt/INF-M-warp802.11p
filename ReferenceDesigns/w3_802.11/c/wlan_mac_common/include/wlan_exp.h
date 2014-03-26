@@ -41,9 +41,6 @@
 //   - Disabled by default
 #define WLAN_EXP_WAIT_FOR_ETH          0
 
-// Log WARPNet events in the Event Log
-//   - Enabled by default
-#define WLAN_EXP_ENABLE_LOGGING        1
 
 
 // **********************************************************************

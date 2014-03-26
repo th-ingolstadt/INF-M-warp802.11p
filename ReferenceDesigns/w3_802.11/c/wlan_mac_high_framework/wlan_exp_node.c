@@ -74,16 +74,18 @@ extern dl_list		       association_table;
 
 /*************************** Variable Definitions ****************************/
 
-wn_node_info       node_info;
-wn_tag_parameter   node_parameters[NODE_MAX_PARAMETER];
+wn_node_info          node_info;
+wn_tag_parameter      node_parameters[NODE_MAX_PARAMETER];
 
-wn_function_ptr_t  node_process_callback;
+wn_function_ptr_t     node_process_callback;
 extern function_ptr_t check_queue_callback;
 
 u32                   async_pkt_enable;
 u32                   async_eth_dev_num;
 pktSrcInfo            async_pkt_dest;
 wn_transport_header   async_pkt_hdr;
+
+u32                   wlan_exp_enable_logging = 0;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -93,6 +95,8 @@ int  node_init_parameters( u32 *info );
 int  node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, unsigned int eth_dev_num);
 
 void node_ltg_cleanup(u32 id, void* callback_arg);
+
+void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id);
 
 #ifdef _DEBUG_
 void print_wn_node_info( wn_node_info * info );
@@ -179,30 +183,10 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode,
 	cmdHdr->length  = Xil_Ntohs(cmdHdr->length);
 	cmdHdr->numArgs = Xil_Ntohs(cmdHdr->numArgs);
 
-#if WLAN_EXP_ENABLE_LOGGING
-    // Create a new log entry for each WARPNet command and copy up to the first 10 args
-	//
-	u32 i;
-	wn_cmd_entry* entry      = get_next_empty_wn_cmd_entry();
-	u32         * cmdArgs32  = cmdArgs;
-	u32           num_args   = (cmdHdr->numArgs > 10) ? 10 : cmdHdr->numArgs;
-
-	if (entry != NULL) {
-		entry->timestamp = get_usec_timestamp();
-		entry->command   = cmdHdr->cmd;
-		entry->src_id    = src_id;
-		entry->num_args  = num_args;
-
-		// Add arguments to the entry
-		for (i = 0; i < num_args; i++) {
-			(entry->args)[i] = Xil_Ntohl(cmdArgs32[i]);
-		}
-		// Zero out any other arguments in the entry
-		for (i = num_args; i < 10; i++) {
-			(entry->args)[i] = 0;
-		}
+	// Create a log entry if logging is enabled
+	if (wlan_exp_enable_logging == 1) {
+		create_wn_cmd_log_entry(cmdHdr, cmdArgs, src_id);
 	}
-#endif
 
 	//Outgoing response header must be endian swapped as it's filled in
 	respHdr  = (wn_respHdr*)(fromNode->payload);
@@ -230,12 +214,6 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode,
 	respHdr->cmd     = Xil_Ntohl(respHdr->cmd);
 	respHdr->length  = Xil_Ntohs(respHdr->length);
 	respHdr->numArgs = Xil_Ntohs(respHdr->numArgs);
-
-#if WLAN_EXP_ENABLE_LOGGING
-#ifdef _DEBUG_
-	print_entry( 0, ENTRY_TYPE_WN_CMD, (void *) entry );
-#endif
-#endif
 
 	return;
 }
@@ -1222,8 +1200,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		case NODE_LOG_CONFIG:
             // NODE_LOG_CONFIG Packet Format:
 			//   - cmdArgs32[0]  - flags
-			//                     [ 0] - Wrap = 1; No Wrap = 0;
-			//                     [ 1] - Logging Enabled = 1; Logging Disabled = 0;
+			//                     [ 0] - Logging Enabled = 1; Logging Disabled = 0;
+			//                     [ 1] - Wrap = 1; No Wrap = 0;
+			//                     [ 2] - Full Payloads Enabled = 1; Full Payloads Disabled = 0;
+			//                     [ 3] - Log WN Cmds Enabled = 1; Log WN Cmds Disabled = 0;
+			//   - cmdArgs32[0]  - mask for flags
 			//
             //   - respArgs32[0] - 0           - Success
 			//                     0xFFFF_FFFF - Failure
@@ -1232,19 +1213,42 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			status = 0;
 
 			// Get flags
-			temp = Xil_Ntohl(cmdArgs32[0]);
+			temp  = Xil_Ntohl(cmdArgs32[0]);
+			temp2 = Xil_Ntohl(cmdArgs32[1]);
 
-			// Configure the LOG based on the flag bits
-			if ( ( temp & NODE_LOG_CONFIG_FLAG_WRAP ) == NODE_LOG_CONFIG_FLAG_WRAP ) {
-				event_log_config_wrap( EVENT_LOG_WRAP_ENABLE );
-			} else {
-				event_log_config_wrap( EVENT_LOG_WRAP_DISABLE );
+			xil_printf("EVENT LOG:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+
+			// Configure the LOG based on the flag bit / mask
+			if ( ( temp2 & NODE_LOG_CONFIG_FLAG_LOGGING ) == NODE_LOG_CONFIG_FLAG_LOGGING ) {
+				if ( ( temp & NODE_LOG_CONFIG_FLAG_LOGGING ) == NODE_LOG_CONFIG_FLAG_LOGGING ) {
+					event_log_config_logging( EVENT_LOG_LOGGING_ENABLE );
+				} else {
+					event_log_config_logging( EVENT_LOG_LOGGING_DISABLE );
+				}
 			}
 
-			if ( ( temp & NODE_LOG_CONFIG_FLAG_LOGGING ) == NODE_LOG_CONFIG_FLAG_LOGGING ) {
-				event_log_config_logging( EVENT_LOG_LOGGING_ENABLE );
-			} else {
-				event_log_config_logging( EVENT_LOG_LOGGING_DISABLE );
+			if ( ( temp2 & NODE_LOG_CONFIG_FLAG_WRAP ) == NODE_LOG_CONFIG_FLAG_WRAP ) {
+				if ( ( temp & NODE_LOG_CONFIG_FLAG_WRAP ) == NODE_LOG_CONFIG_FLAG_WRAP ) {
+					event_log_config_wrap( EVENT_LOG_WRAP_ENABLE );
+				} else {
+					event_log_config_wrap( EVENT_LOG_WRAP_DISABLE );
+				}
+			}
+
+			if ( ( temp2 & NODE_LOG_CONFIG_FLAG_PAYLOADS ) == NODE_LOG_CONFIG_FLAG_PAYLOADS ) {
+				if ( ( temp & NODE_LOG_CONFIG_FLAG_PAYLOADS ) == NODE_LOG_CONFIG_FLAG_PAYLOADS ) {
+					set_mac_payload_log_len( MAX_MAC_PAYLOAD_LOG_LEN );
+				} else {
+					set_mac_payload_log_len( MIN_MAC_PAYLOAD_LOG_LEN );
+				}
+			}
+
+			if ( ( temp2 & NODE_LOG_CONFIG_FLAG_WN_CMDS ) == NODE_LOG_CONFIG_FLAG_WN_CMDS ) {
+				if ( ( temp & NODE_LOG_CONFIG_FLAG_WN_CMDS ) == NODE_LOG_CONFIG_FLAG_WN_CMDS ) {
+					wlan_exp_enable_logging = 1;
+				} else {
+					wlan_exp_enable_logging = 0;
+				}
 			}
 
 			// Send response of status
@@ -1319,6 +1323,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             //   - cmdArgs32[2] - start_address of transfer
 			//   - cmdArgs32[3] - size of transfer (in bytes)
 			//                      0xFFFF_FFFF  -> Get everything in the event log
+			//   - cmdArgs32[4] - bytes_per_pkt
 			//
 			//   Return Value:
 			//     - wn_buffer
@@ -1354,15 +1359,15 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             }
 
             bytes_per_pkt     = max_words * 4;
-            num_pkts          = size / bytes_per_pkt + 1;
+            num_pkts          = (size / bytes_per_pkt) + 1;
             if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
             curr_index        = start_index;
             bytes_remaining   = size;
 
-#ifdef _DEBUG_
 			xil_printf("EVENT LOG: Get Entries \n");
-			xil_printf("    curr_index      = 0x%8x\n    size             = %10d\n    num_pkts         = %10d\n", curr_index, size, num_pkts);
-#endif
+			xil_printf("    curr_index       = 0x%8x\n", curr_index);
+			xil_printf("    size             = %10d\n", size);
+			xil_printf("    num_pkts         = %10d\n", num_pkts);
 
             // Initialize constant parameters
             respArgs32[0] = Xil_Htonl( id );
@@ -2430,6 +2435,49 @@ u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
 	return id;
 }
 
+
+
+/*****************************************************************************/
+/**
+* Create WN Command Log Entry
+*
+* This function creates a WN Command Log Entry
+*
+* @param    MAC Address
+*
+* @return	AID associated with that MAC address
+*
+* @note		None.
+*
+******************************************************************************/
+void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id) {
+    // Create a new log entry for each WARPNet command and copy up to the first 10 args
+	//
+	u32 i;
+	wn_cmd_entry* entry      = get_next_empty_wn_cmd_entry();
+	u32         * cmdArgs32  = cmdArgs;
+	u32           num_args   = (cmdHdr->numArgs > 10) ? 10 : cmdHdr->numArgs;
+
+	if (entry != NULL) {
+		entry->timestamp = get_usec_timestamp();
+		entry->command   = cmdHdr->cmd;
+		entry->src_id    = src_id;
+		entry->num_args  = num_args;
+
+		// Add arguments to the entry
+		for (i = 0; i < num_args; i++) {
+			(entry->args)[i] = Xil_Ntohl(cmdArgs32[i]);
+		}
+		// Zero out any other arguments in the entry
+		for (i = num_args; i < 10; i++) {
+			(entry->args)[i] = 0;
+		}
+
+#ifdef _DEBUG_
+		print_entry( 0, ENTRY_TYPE_WN_CMD, (void *) entry );
+#endif
+	}
+}
 
 
 

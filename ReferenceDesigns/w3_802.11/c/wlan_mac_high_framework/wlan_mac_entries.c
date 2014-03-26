@@ -43,7 +43,20 @@
 
 /*********************** Global Variable Definitions *************************/
 
+//-----------------------------------------------
+// mac_payload_log_len
+//
+// Global variable that defines the number of payload bytes that are recorded
+// for each transmission / reception.  This value must be between:
+//     MIN_MAC_PAYLOAD_LOG_LEN
+//     MAX_MAC_PAYLOAD_LOG_LEN
+// and be 4-byte aligned.  Use the set_mac_payload_log_len() method to change
+// the value of this variable.  By default, this is set to the minimum
+// payload length to save space in the log and can be altered by C code or
+// through WARPNet.
+//
 
+u32 mac_payload_log_len = MIN_MAC_PAYLOAD_LOG_LEN;
 
 /*************************** Variable Definitions ****************************/
 
@@ -122,6 +135,45 @@ time_info_entry* get_next_empty_time_info_entry(){
 
 	// Get the next empty entry
 	return (time_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
+}
+
+/*****************************************************************************/
+/**
+* Set max_mac_payload_log_len
+*
+* @param    u32 payload_len
+* 				- Number of bytes to set aside for payload.
+* 				@note This needs to be 4-byte aligned.
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void set_mac_payload_log_len(u32 payload_len){
+	u32 value;
+	u32 offset;
+
+	// Make sure that value is 4-byte aligned.
+	offset = payload_len % 4;
+	if (offset != 0) {
+		value = payload_len;
+	} else {
+		value = payload_len + (4 - offset);
+	}
+
+	// If the value is less than the minimum, then set it to the minimum
+	if (value < MIN_MAC_PAYLOAD_LOG_LEN) {
+		value = MIN_MAC_PAYLOAD_LOG_LEN;
+	}
+
+	// If the value is greater than the maximum, then set it to the maximum
+	if (value > MAX_MAC_PAYLOAD_LOG_LEN) {
+		value = MAX_MAC_PAYLOAD_LOG_LEN;
+	}
+
+	// Set the global variable
+	mac_payload_log_len = value;
 }
 
 /*****************************************************************************/
