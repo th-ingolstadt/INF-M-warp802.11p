@@ -223,6 +223,7 @@ int main() {
 	mac_param_chan = WLAN_CHANNEL;
 	mac_param_chan_save = mac_param_chan;
 	wlan_mac_high_set_channel( mac_param_chan );
+	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_ANTA);
 
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();

@@ -92,9 +92,6 @@ void uart_rx(u8 rxByte){
 	static u8 curr_char = 0;
 
 	u16 ap_sel;
-	wlan_ipc_msg ipc_msg_to_low;
-	u32 ipc_msg_to_low_payload[1];
-	ipc_config_rf_ifc* config_rf_ifc;
 
 	void* ltg_sched_state;
 	u32 ltg_type;
@@ -387,13 +384,7 @@ void uart_rx(u8 rxByte){
 							uart_mode = UART_MODE_MAIN;
 							mac_param_chan = ap_list[ap_sel].chan;
 
-							//Send a message to other processor to tell it to switch channels
-							ipc_msg_to_low.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
-							ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
-							ipc_msg_to_low.payload_ptr = &(ipc_msg_to_low_payload[0]);
-							init_ipc_config(config_rf_ifc,ipc_msg_to_low_payload,ipc_config_rf_ifc);
-							config_rf_ifc->channel = mac_param_chan;
-							ipc_mailbox_write_msg(&ipc_msg_to_low);
+							wlan_mac_high_set_channel(mac_param_chan);
 
 
 							xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
