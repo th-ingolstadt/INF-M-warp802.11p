@@ -742,11 +742,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						respArgs32[4]   = 0;
 					}
 				}
-
-				// Set the length and number of response args
-				respHdr->length += (5 * sizeof(respArgs32));
-				respHdr->numArgs = respIndex;
             }
+
+			// Set the length and number of response args
+			respHdr->length += (5 * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
 		break;
 
 
@@ -1705,11 +1705,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						respArgs32[4]   = 0;
     	            }
     			}
-
-				// Set the length and number of response args
-				respHdr->length += (5 * sizeof(respArgs32));
-				respHdr->numArgs = respIndex;
             }
+
+			// Set the length and number of response args
+			respHdr->length += (5 * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
 		break;
 
 
