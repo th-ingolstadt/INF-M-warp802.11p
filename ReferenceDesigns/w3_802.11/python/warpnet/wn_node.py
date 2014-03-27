@@ -385,7 +385,8 @@ class WnNode(object):
 
         To see performance data, set the 'display_perf' flag to True.
         """
-        display_perf    = True
+        display_perf    = False
+        print_warnings  = True
         
         reply           = b''
         curr_tx         = 1
@@ -436,6 +437,11 @@ class WnNode(object):
                 else:
                     # Exit the loop because communication has totally failed and
                     # there is not point to request the next fragment.
+                    if print_warnings:
+                        msg  = "WARNING:  Fragment starting at {0} ".format(start_idx)
+                        msg += "contained no data.\n"
+                        msg += "          Returning truncated buffer."
+                        print(msg)
                     break
         else:
             # Normal buffer receive flow
@@ -446,6 +452,9 @@ class WnNode(object):
                 try:
                     reply = self.transport.receive()
                 except wn_ex.TransportError:
+                    if print_warnings:
+                        print("WARNING:  Transport timeout.  Requesting missing data.")
+                    
                     # If there is a timeout, then request missing part of the buffer
                     if curr_tx == max_attempts:
                         raise wn_ex.TransportError(self.transport, 
@@ -472,6 +481,8 @@ class WnNode(object):
                             # If we have timed out on a re-request, then there 
                             # is something wrong and we should just clean up
                             # the response and get out of the loop.
+                            if print_warnings:
+                                print("WARNING:  Transport timeout.  Returning truncated buffer.")
                             resp.trim()
                             break
                         else:
