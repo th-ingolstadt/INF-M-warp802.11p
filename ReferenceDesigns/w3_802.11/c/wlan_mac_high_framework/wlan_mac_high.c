@@ -584,6 +584,16 @@ dl_entry* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
 	for( i = 0; i < list->length; i++){
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 		if(wlan_addr_eq(curr_statistics->addr, addr)){
+			//Move this statistics entry to the front of the list to increase
+			//the performance of finding it again.
+			//Note: this performance increase makes the basic assumption that
+			//finding a MAC address in this list will be tied to wanting to find
+			//it again in the future. Busy traffic will naturally float to the front
+			//of the list and make them easier to find again.
+
+			dl_entry_remove(list, curr_statistics_entry);
+			dl_entry_insertBeginning(list, curr_statistics_entry);
+
 			return curr_statistics_entry;
 		} else {
 			curr_statistics_entry = dl_entry_next(curr_statistics_entry);
@@ -1536,6 +1546,20 @@ void wlan_mac_high_set_rx_ant_mode( u8 ant_mode ) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)ant_mode;
+
+	//Sanity check input
+	switch(ant_mode){
+		case RX_ANTMODE_SISO_ANTA:
+		case RX_ANTMODE_SISO_ANTB:
+		break;
+		default:
+			xil_printf("Error: unsupported antenna mode %x\n", ant_mode);
+			return;
+		break;
+	}
+
+
+
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RX_ANT_MODE);
 	ipc_msg_to_low.num_payload_words = 1;
