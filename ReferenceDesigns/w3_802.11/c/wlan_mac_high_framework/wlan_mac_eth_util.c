@@ -520,7 +520,11 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 		out_of_range = 1;
 	}
 
-	if(out_of_range == 0){
+	//if(out_of_range == 0){
+
+		if(out_of_range){
+			xil_printf("Error in Eth DMA send -- source address not reachable by DMA\n");
+		}
 
 		txRing_ptr = XAxiDma_GetTxRing(&ETH_A_DMA_Instance);
 
@@ -545,10 +549,10 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree(txRing_ptr, 1)! Err = %d\n", status); return -1;}
 
 		return 0;
-	} else {
-		xil_printf("Error in Eth DMA send -- source address not reachable by DMA\n");
-		return -1;
-	}
+	//} else {
+	//	xil_printf("Error in Eth DMA send -- source address not reachable by DMA\n");
+	//	return -1;
+	//}
 }
 
 void wlan_poll_eth() {
