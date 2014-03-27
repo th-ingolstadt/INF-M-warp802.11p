@@ -255,6 +255,16 @@ class WlanExpLogEntryType(object):
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
+        # Check our definitions of struct vs numpy are in sync
+        struct_size = calcsize(self.fields_fmt_struct)
+        np_size     = sum(sizes)
+        
+        if (struct_size != np_size):
+            msg  = "WARNING:  Definitions of struct {0} do not match.\n".format(self.name)
+            msg += "    Struct size = {0}    Numpy size = {1}".format(struct_size, np_size)
+            print(msg)
+        
+
     def __eq__(self, other):
         """WlanExpLogEntryType are equal if their names are equal."""
         if type(other) is str:
@@ -397,8 +407,8 @@ entry_node_info.append_field_defs([
 entry_exp_info_hdr = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
 entry_exp_info_hdr.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
-            ('info_type',              'I',      'uint16'),
-            ('length',                 'I',      'uint16')])
+            ('info_type',              'H',      'uint16'),
+            ('length',                 'H',      'uint16')])
 
 
 # Station Info
