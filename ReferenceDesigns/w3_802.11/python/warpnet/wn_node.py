@@ -380,16 +380,68 @@ class WnNode(object):
           1) Minimize the probability that the OS drops a packet
           2) Minimize the time that the node Ethernet interface is busy 
              and cannot service other requests
-          3) 
         """
-        reply = b''
-        curr_tx = 1
-        resp = wn_message.Buffer(cmd.get_buffer_id(), cmd.get_buffer_flags(),
-                                 cmd.get_buffer_start_byte(), cmd.get_buffer_size())
-
+        reply           = b''
+        curr_tx         = 1
+        fragment_size   = 8 * (self.transport.rx_buffer_size // 10)
+        buffer_id       = cmd.get_buffer_id()
+        flags           = cmd.get_buffer_flags()
+        start_byte      = cmd.get_buffer_start_byte()
+        total_size      = cmd.get_buffer_size()
         
+        # Allocate a complete response buffer        
+        resp = wn_message.Buffer(buffer_id, flags, start_byte, total_size)
 
-        # self.transport.rx_buffer_size
+        # If the transfer is more than the fragment size, then split the transaction
+        if (total_size > fragment_size):
+            pass
+
+        """
+            cmd_id    = cmd.command
+            size      = fragment_size
+            start_idx = start_byte
+            num_bytes = 0
+
+            while (num_bytes < total_size):
+                # Create fragmented command
+                print("Chunk: {0} of size {1}/{2}".format(start_idx, num_bytes, total_size))
+    
+                # Handle the case of the last fragment
+                if ((num_bytes + size) > total_size):
+                    size = total_size - num_bytes
+            
+                command = wn_message.BufferCmd(command=cmd_id, buffer_id=buffer_id, 
+                                               flags=flags, start_byte=start_idx, size=size)
+                payload = command.serialize()
+                self.transport.send(payload)
+    
+                num_bytes += size
+                start_idx += size
+    
+                while (resp.get_occupancy() < num_bytes):
+                    try:
+                        reply = self.transport.receive()
+                    except wn_ex.TransportError:
+                        # If there is a timeout, then request missing part of the buffer
+                        if curr_tx == max_attempts:
+                            print(resp)
+                            raise wn_ex.TransportError(self.transport, 
+                                      "Max retransmissions without reply from node")
+                        print("TIMEOUT.  REQUESTING FRAGMENT AGAIN.")
+                        self.transport.send(payload)
+                        curr_tx += 1
+                    else:
+                        resp.add_data_to_buffer(reply)
+                
+                print("  Size     :  {0}".format(size))
+                print("  Num bytes:  {0}".format(num_bytes))
+                print("  Start idx:  {0}".format(start_idx))
+                print(resp)
+            
+            
+
+        else:
+        """        
         payload = cmd.serialize()
         self.transport.send(payload)
 
@@ -399,25 +451,35 @@ class WnNode(object):
             except wn_ex.TransportError:
                 # If there is a timeout, then request missing part of the buffer
                 if curr_tx == max_attempts:
-                    print(resp)
                     raise wn_ex.TransportError(self.transport, 
                               "Max retransmissions without reply from node")
 
-                # TODO:  Currently, we are just requesting the entire buffer
-                #   over.  This is not a good long term solution and should 
-                #   eventually be changed to only request the missing piece
-                #   of the buffer
-                resp = wn_message.Buffer(cmd.get_buffer_id(),
-                                         cmd.get_buffer_flags(),
-                                         cmd.get_buffer_start_byte(),
-                                         cmd.get_buffer_size())
-                
-                self.transport.send(payload)
+                # Get the missing locations
+                locations = resp.get_missing_byte_locations()
+
+                # Send commands to fill in the buffer
+                for location in locations:
+                    # Update the command with the new location
+                    cmd.update_start_byte(location[0])
+                    cmd.update_size(location[2])
+                    
+                    # Use the standard send so that you get a WARPNet buffer 
+                    #   with missing data.  This avoids any race conditions
+                    #   when requesting multiple missing locations.
+                    tmp_resp = self.send_cmd(cmd)
+                    
+                    # Add the response to the buffer
+                    resp.add_data_to_buffer(tmp_resp.serialize())
+               
                 curr_tx += 1
             else:
                 resp.add_data_to_buffer(reply)
-                    
+        
         return resp
+
+
+
+
         
     
     def send_cmd_bcast(self, cmd):

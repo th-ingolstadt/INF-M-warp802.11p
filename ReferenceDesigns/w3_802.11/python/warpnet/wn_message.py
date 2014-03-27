@@ -373,6 +373,14 @@ class BufferCmd(CmdRespMessage):
     def get_buffer_start_byte(self):  return self.start_byte
     def get_buffer_size(self):        return self.size    
 
+    def update_start_byte(self, value):
+        self.start_byte = value
+        self.args[2] = value
+    
+    def update_size(self, value):
+        self.size = value
+        self.args[3] = value
+
     def add_args(self, *args):
         """Append arguments to current command argument list."""
         self.args.append(*args)
@@ -450,12 +458,12 @@ class Buffer(Message):
     complete    = None
     start_byte  = None
     num_bytes   = None
+    tracker     = None
+
     buffer_id   = None
     flags       = None
     size        = None
     buffer      = None
-
-    missing_bytes = None
 
     def __init__(self, buffer_id=0, flags=0, start_byte=0, size=0, buffer=None):
         self.buffer_id  = buffer_id
@@ -463,23 +471,26 @@ class Buffer(Message):
         self.start_byte = start_byte
         self.size       = size
 
-        self.missing_bytes = 0
+        self.tracker    = [{0:start_byte, 1:start_byte, 2:0}]
 
         if buffer is None:
             # Create an empty buffer of the specified size
-            self.complete = False
+            self.complete  = False
             self.num_bytes = 0
-            self.buffer = bytearray(self.size)
+            self.buffer    = bytearray(self.size)
         else:
             self._add_buffer_data(buffer)
 
 
-    def serialize(self, command=0, start_byte=0):
+    def serialize(self, command=None, start_byte=None):
         """Return a bytes object of a packed buffer."""
-        return struct.pack('!I 2H 5I %ds' % self.size, 
-                           command, 16, 4,  # length = Num_args * 4 bytes / arg; Num_args = 4; 
-                           self.buffer_id, self.flags, self.size, start_byte,
-                           self.size, self.buffer)
+        if command is None:      command = 0
+        if start_byte is None:   start_byte = self.start_byte
+        
+        return struct.pack('!I 2H 5I %dB' % self.size, 
+                           command, 20, 5,  # length = Num_args * 4 bytes / arg; Num_args = 5; 
+                           self.buffer_id, self.flags, 0, start_byte,
+                           self.size, *self.buffer)
 
 
     def deserialize(self, raw_data):
@@ -513,11 +524,7 @@ class Buffer(Message):
         bytes_remaining = args[5]
         start_byte      = args[6]
 
-        if (buffer_id == self.buffer_id):
-            if ((start_byte - self.missing_bytes) != self.num_bytes):
-                self.missing_bytes = start_byte - self.num_bytes
-                print("Missed packet: {0} vs {1} -- {2}".format(start_byte, self.num_bytes, self.missing_bytes))
-            
+        if (buffer_id == self.buffer_id):            
             offset = (start_byte - self.start_byte)
             
             self._update_buffer_size(bytes_remaining)
@@ -546,10 +553,11 @@ class Buffer(Message):
         return struct.calcsize('!5I %dB' % self.size)
 
     def get_buffer_id(self):           return self.buffer_id
-    def get_buffer_size(self):         return self.size
-    def get_buffer_header_size(self):  return struct.calcsize('!5I')
     def get_flags(self):               return self.flags
-    def get_payload_size(self):        return self.size
+    def get_start_byte(self):          return self.start_byte    
+    def get_header_size(self):         return struct.calcsize('!5I')
+    def get_buffer_size(self):         return self.size
+    def get_occupancy(self):           return self.num_bytes
 
     def set_flags(self, flags):
         """Set the bits in the flags field based on the value provided."""
@@ -569,6 +577,15 @@ class Buffer(Message):
         """Return the message bytes of the buffer."""
         return self.buffer
 
+    def get_missing_byte_locations(self):
+        """Returns a list of tuples (start_index, end_index, size) that 
+        contain the missing byte locations.
+        """
+        if not self.complete:
+            return self._find_missing_bytes()
+        else:
+            return []
+
     def is_buffer_complete(self):
         """Return if the buffer is complete."""
         return self.complete
@@ -587,6 +604,7 @@ class Buffer(Message):
             msg += "WARPNet Buffer [{0:d}] ".format(self.buffer_id)
             msg += "({0:d} bytes): \n".format(self.size)
             msg += "    Flags    : 0x{0:08x} \n".format(self.flags)
+            msg += "    Start    : {0:d}\n".format(self.start_byte)
             msg += "    Size     : {0:d}\n".format(self.size)
             msg += "    Num bytes: {0:d}\n".format(self.num_bytes)
             msg += "    Complete : {0}\n".format(self.complete)
@@ -642,6 +660,7 @@ class Buffer(Message):
 
         if (num_bytes > 0):
             self.buffer[start_byte:end_byte] = buffer[:num_bytes]
+            self._update_tracker(start_byte, end_byte, num_bytes)
             
         self._set_buffer_complete()
 
@@ -673,6 +692,64 @@ class Buffer(Message):
             self.complete = False
         else:
             print("WARNING: WnBuffer out of sync.  Should never reach here.")
+
+
+    def _update_tracker(self, start_byte, end_byte, size):
+        """Internal method to update the tracker."""
+        done = False
+        for item in self.tracker:
+            if (start_byte == item[1]):
+                item[1] += size
+                item[2] += size
+                done     = True
         
+        if not done:
+            self.tracker.append({0:start_byte, 1:end_byte, 2:size})
+
+    
+    def _find_missing_bytes(self):
+        """Internal method to find the missing bytes using the tracker."""
+        ret_val       = []
+        missing_bytes = self.size - self.num_bytes
+        start         = self.start_byte
+        end           = self.start_byte + self.size
+        tmp_tracker   = list(self.tracker)
+
+        if (missing_bytes != 0):
+            # Find the first item
+            for item in tmp_tracker:
+                if (start == item[0]):
+                    start = item[1]
+                    tmp_tracker.remove(item)
+                    break
+            
+            # Iterate through all the items in the list and remove
+            # them as we build up the holes
+            while tmp_tracker:
+                for item in tmp_tracker:
+                    if ((start + missing_bytes) >= item[0]):                
+                        tmp_size       = item[0] - start
+                        missing_bytes -= tmp_size
+                        ret_val.append((start, item[0], tmp_size))
+                        start          = item[1]
+                        tmp_tracker.remove(item)
+        
+            # Find any holes at the end of the buffer
+            if (missing_bytes != 0):
+                if (end != start):
+                    tmp_size       = end - start
+                    ret_val.append((start, end, tmp_size))
+                    missing_bytes -= tmp_size
+
+            # Print a warning because we missed something    
+            if (missing_bytes != 0):
+                print("WARNING: Could not find all missing bytes: {0}".format(missing_bytes))
+        
+        return ret_val
+
 
 # End Class
+
+
+
+
