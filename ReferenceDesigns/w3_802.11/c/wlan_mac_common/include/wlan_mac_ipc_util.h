@@ -48,30 +48,24 @@
 #define IPC_BUFFER_MAX_NUM_WORDS    100
 
 //IPC Messages
-#define IPC_MBOX_RX_MPDU_READY		0
-#define IPC_MBOX_TX_MPDU_READY		1
-#define IPC_MBOX_TX_MPDU_ACCEPT		2
-#define IPC_MBOX_TX_MPDU_DONE		3
-#define IPC_MBOX_HW_INFO			4
-#define IPC_MBOX_CPU_STATUS			5
-#define IPC_MBOX_CONFIG_RF_IFC		6
-#define IPC_MBOX_CONFIG_MAC			7
-#define IPC_MBOX_CONFIG_PHY_RX		8
-#define IPC_MBOX_CONFIG_PHY_TX		9
-#define IPC_MBOX_SET_TIME			11
-#define IPC_MBOX_DEMO_CONFIG		12
+#define IPC_MBOX_RX_MPDU_READY			0
+#define IPC_MBOX_TX_MPDU_READY			1
+#define IPC_MBOX_TX_MPDU_ACCEPT			2
+#define IPC_MBOX_TX_MPDU_DONE			3
+#define IPC_MBOX_HW_INFO				4
+#define IPC_MBOX_CPU_STATUS				5
+#define IPC_MBOX_CONFIG_CHANNEL			6
+#define IPC_MBOX_CONFIG_MAC				7
+#define IPC_MBOX_CONFIG_PHY_RX			8
+#define IPC_MBOX_CONFIG_PHY_TX			9
+#define IPC_MBOX_SET_TIME				11
+#define IPC_MBOX_DEMO_CONFIG			12
+#define IPC_MBOX_CONFIG_RX_ANT_MODE		13
 
 #define DEMO_CONFIG_FLAGS_EN 0x0001
 
 #define IPC_MBOX_MSG_ID(id) (IPC_MBOX_MSG_ID_DELIM | ((id) & 0xFFF))
 #define IPC_MBOX_MSG_ID_TO_MSG(id) (id) & 0xFFF
-
-//These config structs need to be an integer # of u32
-typedef struct{
-	u8 channel;
-	u8 reserved[3];
-} ipc_config_rf_ifc;
-
 
 typedef struct{
 	u32 slot_config; //TODO: remove
