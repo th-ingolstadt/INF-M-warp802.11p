@@ -172,7 +172,7 @@ print_log_size()
 # Write Log Files for processing by other scripts
 print("\nWriting Log Files...")
 
-write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new(log_tail_pad=0))
+write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new(log_tail_pad=0, max_req_size=2**23))
 write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new(log_tail_pad=0))
 
 print("Done.")

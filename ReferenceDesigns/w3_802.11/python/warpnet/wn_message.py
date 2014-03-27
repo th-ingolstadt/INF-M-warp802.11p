@@ -538,14 +538,42 @@ class Buffer(Message):
 
 
     def append(self, wn_buffer):
-        """Append the contents of the provided WnBuffer to the current
-        WnBuffer."""
+        """Append the contents of the provided WnBuffer to the current WnBuffer."""
         curr_size = self.size
         new_size = curr_size + wn_buffer.get_buffer_size()
         
         self._update_buffer_size(new_size, force=1)
         self._add_buffer_data(curr_size, wn_buffer.get_bytes())
         self._set_buffer_complete()
+
+
+    def merge(self, wn_buffer):
+        """Merge the contents of the provided WnBuffer to the current WnBuffer."""
+        start_byte = wn_buffer.get_start_byte()
+        size       = wn_buffer.get_buffer_size()
+        end_byte   = start_byte + size
+        
+        if (end_byte <= self.size):
+            self._add_buffer_data(start_byte, wn_buffer.get_bytes())
+            self._set_buffer_complete()
+        else:
+            print("WARNING: Unable to merge buffers.  Not enough space allocated.")
+
+
+    def trim(self):
+        """Trim the buffer to the largest contiguous number of bytes received."""
+        locations = self.get_missing_byte_locations()
+        
+        if locations:
+            # NOTE:  This assumes that the missing byte locations are in order
+            #   with the first missing byte after the start byte in the first
+            #   item in the list.
+            missing_start   = locations[0][0]
+            contiguous_size = missing_start - self.start_byte
+
+            self.num_bytes = contiguous_size
+            self._update_buffer_size(contiguous_size, force=1)
+            self._set_buffer_complete()
 
 
     def sizeof(self):
@@ -645,22 +673,35 @@ class Buffer(Message):
             self.size   = size
             self.buffer = bytearray(self.size)
         elif (force == 1):
+            # Update the size of the buffer
+            old_size  = self.size
             self.size = size
+            
+            # Update the buffer allocation
+            if (size > old_size):
+                self.buffer.extend(bytearray(size - old_size))
+            else:
+                self.buffer = self.buffer[:size]
 
 
-    def _add_buffer_data(self, start_byte, buffer):
+    def _add_buffer_data(self, offset, buffer):
         """Internal method to add data to the buffer
+        
+        Only self.size bytes were allocated for the buffer.  Therefore, we 
+        will only take an offset from the start_byte (ie a relative address)
+        for where to store the data in the buffer.
         
         NOTE:  If the provided buffer data is greater than specified buffer
             size, then the data will be truncated.
         """
         buffer_size = len(buffer)
         num_bytes = self._num_bytes_to_add(buffer_size)        
-        end_byte = num_bytes + start_byte
+        end_byte = num_bytes + offset
 
         if (num_bytes > 0):
-            self.buffer[start_byte:end_byte] = buffer[:num_bytes]
-            self._update_tracker(start_byte, end_byte, num_bytes)
+            self.buffer[offset:end_byte] = buffer[:num_bytes]
+            # Need to convert back to absolute addresses for tracker
+            self._update_tracker((offset + self.start_byte), (end_byte + self.start_byte), num_bytes)
             
         self._set_buffer_complete()
 
@@ -705,6 +746,23 @@ class Buffer(Message):
         
         if not done:
             self.tracker.append({0:start_byte, 1:end_byte, 2:size})
+        else:
+            self._compress_tracker()
+
+
+    def _compress_tracker(self):
+        """Internal method to compress the tracker."""
+        # See if we can compress if there is more than one item
+        if (len(self.tracker) > 1):
+            start_item = self.tracker[0]
+            
+            # For each remaining item if the start_byte equals the end_byte
+            # of the start_item, then we can merge the items
+            for item in self.tracker[1:]:
+                if (item[0] == start_item[1]):
+                    start_item[1]  = item[1]
+                    start_item[2] += item[2]
+                    self.tracker.remove(item)
 
     
     def _find_missing_bytes(self):

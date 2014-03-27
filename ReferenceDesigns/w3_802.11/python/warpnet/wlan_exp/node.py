@@ -155,12 +155,14 @@ class WlanExpNode(wn_node.WnNode):
                                         log_full_payloads, log_warpnet_commands))
 
 
-    def log_get(self, size, offset=0):
+    def log_get(self, size, offset=0, max_req_size=None):
         """Low level method to get part of the log file as a WnBuffer.
         
         Attributes:
-            size -- Number of bytes to read from the log
-            offset -- Starting byte to read from the log (optional)
+            size         -- Number of bytes to read from the log
+            offset       -- Starting byte to read from the log (optional)
+            max_req_size -- Max request size that the transport will fragment
+                            the request into.
         
         NOTE:  There is no guarentee that this will return data aligned to 
         event boundaries.  Use log_get_start() and log_get_end() to get 
@@ -168,11 +170,24 @@ class WlanExpNode(wn_node.WnNode):
         
         NOTE:  Log reads are not destructive.  Log entries will only be
         destroyed by a log reset or if the log wraps.
+        
+        NOTE:  During a given log_get command, the Ethernet interface of
+        the node will not be able to respond to any other Ethernet packets
+        that are sent to the node.  This could cause the node to drop 
+        incoming packets and cause contention among multiple log consumers.
+        Therefore, for large requests, having a smaller max_req_size
+        will allow the transport to fragement the command and allow the 
+        node to be responsive to multiple hosts.
+        
+        NOTE:  Some basic analysis shows that fragment sizes of 2**23 (8 MB)
+        add about 2% overhead to the receive time and each command takes less
+        than 1 second (~0.9 sec), which is the default WARPNet transport 
+        timeout.
         """
-        return self.send_cmd(cmds.LogGetEvents(size, offset))
+        return self.send_cmd(cmds.LogGetEvents(size, offset), max_req_size=max_req_size)
 
 
-    def log_get_all_new(self, log_tail_pad=500):
+    def log_get_all_new(self, log_tail_pad=500, max_req_size=None):
         """Get all "new" entries in the log.
 
         Attributes:
@@ -192,15 +207,32 @@ class WlanExpNode(wn_node.WnNode):
 
         if (num_wraps == self.log_num_wraps):
             if (next_index > (self.log_next_read_index + log_tail_pad)):
+                # Get Log data from the node
                 return_val = self.log_get(offset=self.log_next_read_index, 
-                                          size=(next_index - self.log_next_read_index - log_tail_pad))
-                self.log_next_read_index = next_index
+                                          size=(next_index - self.log_next_read_index - log_tail_pad),
+                                          max_req_size=max_req_size)
+                                          
+                # Only increment index by how much was actually read
+                read_size  = return_val.get_buffer_size()
+                if (read_size > 0):
+                    self.log_next_read_index += read_size
+                else:
+                    print("WARNING:  Not able to read data from node.")
         else:
             if ((next_index != 0) or self.log_is_full()):
+                # Get Log data from the node
                 return_val = self.log_get(offset=self.log_next_read_index, 
-                                          size=cmds.LOG_GET_ALL_ENTRIES)
-                self.log_next_read_index = 0
-                self.log_num_wraps       = num_wraps
+                                          size=cmds.LOG_GET_ALL_ENTRIES, 
+                                          max_req_size=max_req_size)
+
+                # Unfortunately, we do not know how much data should have
+                # been returned from the node, but it should not be zero
+                read_size  = return_val.get_buffer_size()
+                if (read_size > 0):
+                    self.log_next_read_index = 0
+                    self.log_num_wraps       = num_wraps
+                else:
+                    print("WARNING:  Not able to read data from node.")                
 
         return return_val
 
