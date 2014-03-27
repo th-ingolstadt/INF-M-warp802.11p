@@ -257,7 +257,7 @@ class WlanExpLogEntryType(object):
 
         # Check our definitions of struct vs numpy are in sync
         struct_size = calcsize(self.fields_fmt_struct)
-        np_size     = sum(sizes)
+        np_size     = self.fields_np_dt.itemsize
         
         if (struct_size != np_size):
             msg  = "WARNING:  Definitions of struct {0} do not match.\n".format(self.name)
