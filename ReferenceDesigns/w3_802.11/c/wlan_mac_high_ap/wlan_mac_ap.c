@@ -198,6 +198,8 @@ int main(){
 	// Set up channel
 	mac_param_chan = WLAN_CHANNEL;
 	wlan_mac_high_set_channel( mac_param_chan );
+	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_ANTA);
+
 
 	// Set SSID
 	access_point_ssid = wlan_mac_high_malloc(strlen(default_AP_SSID)+1);
