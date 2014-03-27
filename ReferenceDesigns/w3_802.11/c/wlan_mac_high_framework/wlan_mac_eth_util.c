@@ -507,29 +507,48 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	// Comment this back in if the dcache is enabled
 	//Xil_DCacheFlushRange((u32)TxPacket, MAX_PKT_LEN);
 
-	txRing_ptr = XAxiDma_GetTxRing(&ETH_A_DMA_Instance);
+	u8 out_of_range = 0;
 
-	status = XAxiDma_BdRingAlloc(txRing_ptr, 1, &cur_bd_ptr);
-	status |= XAxiDma_BdSetBufAddr(cur_bd_ptr, (u32)pkt_ptr);
-	status |= XAxiDma_BdSetLength(cur_bd_ptr, length, txRing_ptr->MaxTransferLen);
-	if(status != XST_SUCCESS) {xil_printf("Error in setting ETH Tx BD! Err = %d\n", status); return -1;}
 
-	//When using 1 BD for 1 pkt set both SOF and EOF
-	XAxiDma_BdSetCtrl(cur_bd_ptr, (XAXIDMA_BD_CTRL_TXSOF_MASK | XAXIDMA_BD_CTRL_TXEOF_MASK) );
+	if((u32)pkt_ptr > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)pkt_ptr < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
+		out_of_range = 1;
+	} else if((u32)pkt_ptr > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)pkt_ptr < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
+		out_of_range = 1;
+	} else if((u32)pkt_ptr > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)pkt_ptr < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
+		out_of_range = 1;
+	} else if((u32)pkt_ptr > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)pkt_ptr < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
+		out_of_range = 1;
+	}
 
-	//Set arbitrary ID
-	XAxiDma_BdSetId(cur_bd_ptr, (u32)pkt_ptr);
+	if(out_of_range == 0){
 
-	//Push the BD ring to hardware; this initiates the actual DMA transfer and Ethernet Tx
-	status = XAxiDma_BdRingToHw(txRing_ptr, 1, cur_bd_ptr);
-	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingToHw(txRing_ptr)! Err = %d\n", status); return -1;}
+		txRing_ptr = XAxiDma_GetTxRing(&ETH_A_DMA_Instance);
 
-	//Wait for this DMA transfer to finish (will be replaced by post-Tx ISR)
-	while (XAxiDma_BdRingFromHw(txRing_ptr, 1, &cur_bd_ptr) == 0) {/*Do Nothing*/}
-	status = XAxiDma_BdRingFree(txRing_ptr, 1, cur_bd_ptr);
-	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree(txRing_ptr, 1)! Err = %d\n", status); return -1;}
+		status = XAxiDma_BdRingAlloc(txRing_ptr, 1, &cur_bd_ptr);
+		status |= XAxiDma_BdSetBufAddr(cur_bd_ptr, (u32)pkt_ptr);
+		status |= XAxiDma_BdSetLength(cur_bd_ptr, length, txRing_ptr->MaxTransferLen);
+		if(status != XST_SUCCESS) {xil_printf("Error in setting ETH Tx BD! Err = %d\n", status); return -1;}
 
-	return 0;
+		//When using 1 BD for 1 pkt set both SOF and EOF
+		XAxiDma_BdSetCtrl(cur_bd_ptr, (XAXIDMA_BD_CTRL_TXSOF_MASK | XAXIDMA_BD_CTRL_TXEOF_MASK) );
+
+		//Set arbitrary ID
+		XAxiDma_BdSetId(cur_bd_ptr, (u32)pkt_ptr);
+
+		//Push the BD ring to hardware; this initiates the actual DMA transfer and Ethernet Tx
+		status = XAxiDma_BdRingToHw(txRing_ptr, 1, cur_bd_ptr);
+		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingToHw(txRing_ptr)! Err = %d\n", status); return -1;}
+
+		//Wait for this DMA transfer to finish (will be replaced by post-Tx ISR)
+		while (XAxiDma_BdRingFromHw(txRing_ptr, 1, &cur_bd_ptr) == 0) {/*Do Nothing*/}
+		status = XAxiDma_BdRingFree(txRing_ptr, 1, cur_bd_ptr);
+		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree(txRing_ptr, 1)! Err = %d\n", status); return -1;}
+
+		return 0;
+	} else {
+		xil_printf("Error in Eth DMA send -- source address not reachable by DMA\n");
+		return -1;
+	}
 }
 
 void wlan_poll_eth() {
