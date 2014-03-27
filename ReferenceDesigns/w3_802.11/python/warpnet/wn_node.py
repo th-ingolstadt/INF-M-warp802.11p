@@ -428,10 +428,15 @@ class WnNode(object):
                 # Send the updated command
                 tmp_resp = self.send_cmd(cmd)
 
-                # Add the response to the buffer and increment loop variables
-                resp.merge(tmp_resp)
-                num_bytes += size
-                start_idx += size
+                if (tmp_resp.get_buffer_size() > 0):
+                    # Add the response to the buffer and increment loop variables
+                    resp.merge(tmp_resp)
+                    num_bytes += size
+                    start_idx += size
+                else:
+                    # Exit the loop because communication has totally failed and
+                    # there is not point to request the next fragment.
+                    break
         else:
             # Normal buffer receive flow
             payload = cmd.serialize()
