@@ -1510,18 +1510,36 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 void wlan_mac_high_set_channel( unsigned int mac_channel ) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload[1];
-	ipc_config_rf_ifc* config_rf_ifc;
-
+	u32                ipc_msg_to_low_payload = mac_channel;
 	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RF_IFC);
-	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_rf_ifc)/sizeof(u32);
-	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_CHANNEL);
+	ipc_msg_to_low.num_payload_words = 1;
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
-	// Initialize the payload
-	init_ipc_config(config_rf_ifc, ipc_msg_to_low_payload, ipc_config_rf_ifc);
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+}
 
-	config_rf_ifc->channel = mac_channel;
+/*****************************************************************************/
+/**
+* Set Rx Antenna Mode
+*
+* Send an IPC message to CPU Low to set the rx antenna mode.
+*
+* @param    ant_mode - antenna mode selection
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wlan_mac_high_set_rx_ant_mode( u8 ant_mode ) {
+
+	wlan_ipc_msg       ipc_msg_to_low;
+	u32                ipc_msg_to_low_payload = (u32)ant_mode;
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RX_ANT_MODE);
+	ipc_msg_to_low.num_payload_words = 1;
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 }

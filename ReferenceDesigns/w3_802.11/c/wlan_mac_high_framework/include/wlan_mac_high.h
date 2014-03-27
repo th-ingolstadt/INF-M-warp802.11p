@@ -211,6 +211,7 @@ void wlan_mac_high_setup_tx_frame_info( dl_entry * tx_queue_entry, u32 tx_length
 void wlan_mac_high_ipc_rx();
 void wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
 void wlan_mac_high_set_channel( unsigned int mac_channel );
+void wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
 void wlan_mac_high_set_dsss( unsigned int dsss_value );
 void wlan_mac_high_set_timestamp( u64 timestamp );
 int  wlan_mac_high_is_cpu_low_initialized();
