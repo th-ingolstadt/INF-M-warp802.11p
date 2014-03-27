@@ -249,8 +249,14 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
-			case IPC_MBOX_CONFIG_RF_IFC:
-				process_config_rf_ifc((ipc_config_rf_ifc*)ipc_msg_from_high_payload);
+			case IPC_MBOX_CONFIG_CHANNEL:
+				mac_param_chan = ipc_msg_from_high_payload[0];
+				//TODO: allow mac_param_chan to select 5GHz channels
+				radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, mac_param_chan);
+			break;
+
+			case IPC_MBOX_CONFIG_RX_ANT_MODE:
+				wlan_rx_config_ant_mode(ipc_msg_from_high_payload[0]);
 			break;
 
 			case IPC_MBOX_CONFIG_MAC:
@@ -427,23 +433,6 @@ void wlan_mac_low_set_time(u64 new_time) {
 	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
 }
 
-/**
- * @brief Process RF Interface Configuration
- *
- * This function process RF interface configurations and directly writes the radio controller.
- *
- * @param ipc_config_rf_ifc config_rf_ifc
- *  - configuration struct
- * @return None
- */
-void process_config_rf_ifc(ipc_config_rf_ifc* config_rf_ifc){
-
-	if((config_rf_ifc->channel)!=0xFF){
-		mac_param_chan = config_rf_ifc->channel;
-		//TODO: allow mac_param_chan to select 5GHz channels
-		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, mac_param_chan);
-	}
-}
 
 /**
  * @brief Process MAC Configuration
