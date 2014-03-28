@@ -35,6 +35,7 @@
 #include "wlan_mac_sta.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_event_log.h"
 
 
 #ifdef WLAN_USE_UART_MENU
@@ -125,6 +126,14 @@ void uart_rx(u8 rxByte){
 
 				case ASCII_2:
 					print_all_observed_statistics();
+				break;
+
+				case ASCII_e:
+			        event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
+					print_event_log_size();
+			        print_event_log( 0xFFFF );
+					print_event_log_size();
+			        event_log_config_logging(EVENT_LOG_LOGGING_ENABLE);
 				break;
 
 				case ASCII_a:
