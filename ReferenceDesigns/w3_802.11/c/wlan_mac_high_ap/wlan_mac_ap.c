@@ -846,6 +846,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			//Check if duplicate
 			if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
 				//Received seq num matched previously received seq num for this STA; ignore the MPDU and finish function
+				if(rx_event_log_entry != NULL){
+					rx_event_log_entry->flags |= RX_ENTRY_FLAGS_IS_DUPLICATE;
+				}
 				goto mpdu_rx_process_end;
 
 			} else {
