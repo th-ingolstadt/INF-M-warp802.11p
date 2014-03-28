@@ -1057,8 +1057,8 @@ int wlan_mac_high_memory_test(){
 int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	//This is a wrapper function around the central DMA simple transfer call. It's arguments
 	//are intended to be similar to memcpy. Note: This function does not block on the transfer.
-	int return_value;
-	u8 out_of_range = 0;
+	int return_value = XST_SUCCESS;
+	u8 out_of_range  = 0;
 
 
 	if((u32)src > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)src < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){

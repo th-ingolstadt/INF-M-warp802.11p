@@ -161,7 +161,7 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode,
 		                  void* pktSrc, u16 src_id, unsigned int eth_dev_num){
 	unsigned char cmd_grp;
 
-	unsigned int respSent;
+	unsigned int respSent = RESP_SENT;
 
 #ifdef _DEBUG_
 	xil_printf("In node_rxFromTransport() \n");
