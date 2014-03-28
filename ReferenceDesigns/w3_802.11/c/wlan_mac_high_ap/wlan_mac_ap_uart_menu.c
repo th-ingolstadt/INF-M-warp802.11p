@@ -104,8 +104,11 @@ void uart_rx(u8 rxByte){
 				break;
 
 				case ASCII_e:
-					print_event_log( 0xFFFF );
+			        event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
 					print_event_log_size();
+			        print_event_log( 0xFFFF );
+					print_event_log_size();
+			        event_log_config_logging(EVENT_LOG_LOGGING_ENABLE);
 				break;
 
 				case ASCII_c:
