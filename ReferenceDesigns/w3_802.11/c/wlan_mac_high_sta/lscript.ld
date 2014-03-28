@@ -62,12 +62,12 @@ SECTIONS
  */
 .text_bram_1 : {
    *wlan_mac_high_framework*(.text)
-   *wlan_mac_common*(.text)
 } > mb_high_ilmb_bram_cntlr_1_mb_high_dlmb_bram_cntlr_1
 
 .text : {
    *(.text)
    *(.text.*)
+   *wlan_mac_common*(.text)
    *(.gnu.linkonce.t.*)
 } > mb_high_ilmb_bram_cntlr_0_mb_high_dlmb_bram_cntlr_0
 
