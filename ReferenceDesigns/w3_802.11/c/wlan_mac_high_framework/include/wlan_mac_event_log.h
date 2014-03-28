@@ -60,7 +60,7 @@
 //   should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
 //   will be the maximum.
 //
-#define MAX_EVENT_LOG -1
+#define MAX_EVENT_LOG                  -1
 
 
 // Define magic number that will indicate the start of an event

@@ -113,7 +113,7 @@ wn_cmdHdr    log_entry_cmd;
 // Internal functions;  Should not be called externally
 //
 void            event_log_move_oldest_address( u32 end_address );
-void            event_log_increment_oldest_address( u32 size );
+void            event_log_increment_oldest_address( u64 end_address, u32 size );
 int             event_log_get_next_empty_address( u32 size, u32 * address );
 
 
@@ -137,7 +137,25 @@ int             event_log_get_next_empty_address( u32 size, u32 * address );
 ******************************************************************************/
 void event_log_init( char * start_address, u32 size ) {
 
-	xil_printf("Initializing Event log (%d bytes) at 0x%x \n", size, start_address );
+	u32 alignment;
+	u32 disable_log = 0;
+
+	// Make sure that the start_address is 64-bit aligned
+	alignment = ((u32)start_address) % 8;
+
+	if (alignment != 0) {
+		start_address = (char *)(((u32)start_address) + (8 - alignment));
+	}
+
+	// The log needs to be at least 4kB long otherwise there is not enough space
+	// to put entries (~2x the largest entry)
+	if (size < 4096) {
+		xil_printf("WARNING: Event log (%d bytes) at 0x%x too small!!!\n", size, start_address);
+		xil_printf("         Disabled event log.\n");
+		disable_log = 1;
+	} else {
+		xil_printf("Initializing Event log (%d bytes) at 0x%x \n", size, start_address);
+	}
 
 	// Set default state of the logging
 	if (EVENT_LOG_DEFAULT_LOGGING) {
@@ -165,6 +183,10 @@ void event_log_init( char * start_address, u32 size ) {
 	log_entry_cmd.cmd     = NODE_LOG_STREAM_ENTRIES;
 	log_entry_cmd.numArgs = 0;
 #endif
+
+	if (disable_log == 1) {
+        event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
+	}
 
 #ifdef _DEBUG_
 	xil_printf("    log_size             = 0x%x;\n", log_size );
@@ -569,15 +591,15 @@ void event_log_move_oldest_address( u32 end_address ) {
 
 		// Check that the entry is still valid.  Otherwise, print a warning and
 		//   issue a log reset.
-	    if ( (entry->entry_id & 0xFFFF0000) != EVENT_LOG_MAGIC_NUMBER ) {
-	    	xil_printf("EVENT LOG ERROR:  Oldest entry corrupted. \n");
-	    	xil_printf("    Please verify that no other code / data is using \n");
-	    	xil_printf("    the event log memory space.  Resetting event log.");
-	    	event_log_reset();
-	    	return;
-	    }
+		if ( (entry->entry_id & 0xFFFF0000) != EVENT_LOG_MAGIC_NUMBER ) {
+			xil_printf("EVENT LOG ERROR:  Oldest entry corrupted. \n");
+			xil_printf("    Please verify that no other code / data is using \n");
+			xil_printf("    the event log memory space.  Resetting event log.\n");
+			event_log_reset();
+			return;
+		}
 
-        // Increment the address and get the next entry
+		// Increment the address and get the next entry
 		log_oldest_address += ( entry->entry_length + sizeof( entry_header ) );
 		entry               = (entry_header *) log_oldest_address;
 	}
@@ -599,19 +621,15 @@ void event_log_move_oldest_address( u32 end_address ) {
 *           function to make sure this is only called when appropriate.
 *
 ******************************************************************************/
-void event_log_increment_oldest_address( u32 size ) {
+void event_log_increment_oldest_address( u64 end_address, u32 size ) {
 
-    u64            end_address;
+    u64            final_end_address;
 
 	// Calculate end address (need to make sure we don't overflow u32)
-    end_address = log_oldest_address + size + wrap_buffer;
+	final_end_address = end_address + wrap_buffer;
 
     // Check to see if we will wrap with the current increment
-    if ( end_address < log_soft_end_address ) {
-    	// We will not wrap
-    	event_log_move_oldest_address(end_address);
-
-    } else {
+    if ( final_end_address >= log_soft_end_address ) {
         // We will wrap the log
 
     	// Reset the log_soft_end_address to the end of the array
@@ -621,11 +639,15 @@ void event_log_increment_oldest_address( u32 size ) {
     	//   at least 'size' bytes from the front of the array.  This is done to mirror
     	//   how allocation of the log_next_address works.  Also, b/c of this allocation
     	//   scheme, we are guaranteed that log_start_address is the beginning of an entry.
-    	log_oldest_address = log_start_address;
-    	end_address        = log_start_address + size + wrap_buffer;
-
-    	event_log_move_oldest_address(end_address);
+    	//
+		//   NOTE:  We need to skip the node_info at the beginning of the buffer.
+    	//
+    	log_oldest_address = log_start_address + sizeof(node_info_entry) + sizeof(entry_header);
+    	final_end_address  = log_oldest_address + size + wrap_buffer;
     }
+
+    // Move the oldest address
+    event_log_move_oldest_address(final_end_address);
 }
 
 
@@ -668,7 +690,8 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 	    end_address = log_next_address + size;
 
 	    // Check if the log has wrapped
-	    if ( log_next_address >= log_oldest_address ) {
+	    if ((log_next_address > log_oldest_address) ||
+	    	((log_next_address == log_start_address) && (log_oldest_address == log_start_address))) {
 	    	// The log has not wrapped
 
 		    // Check to see if we will wrap with the current allocation
@@ -678,15 +701,15 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    	// Check to see if wrapping is enabled
 		    	if ( log_wrap_enabled ) {
 
-					xil_printf("EVENT LOG:  INFO - WRAPPING LOG ! \n");
+					xil_printf("EVENT LOG:  INFO - WRAPPING LOG %d ! \n", log_num_wraps);
 
 					// Compute new end address
-					end_address = log_start_address + size;
+					end_address = log_start_address + sizeof(node_info_entry) + sizeof(entry_header) + size;
 
 					// Check that we are not going to pass the oldest address
 					if ( end_address > log_oldest_address ) {
 
-						event_log_increment_oldest_address( size );
+						event_log_increment_oldest_address( end_address, size );
 					}
 
 					// Increment the number of wraps
@@ -697,7 +720,8 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 					log_next_address     = end_address;
 
 					// Return address is the beginning of the buffer
-					return_address = log_start_address;
+					//  (skipping the node_info at the beginning of the buffer)
+					return_address = log_start_address + sizeof(node_info_entry) + sizeof(entry_header);
 					status         = 0;
 
 		    	} else {
@@ -735,7 +759,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 	    	//   NOTE:  This will set the log_soft_end_address if the oldest_address passes the end of the array
 			if ( end_address > log_oldest_address ) {
 
-				event_log_increment_oldest_address( size );
+				event_log_increment_oldest_address( end_address, size );
 			}
 
 		    // Check to see if we will wrap with the current allocation
@@ -745,10 +769,10 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    	// Check to see if wrapping is enabled
 		    	if ( log_wrap_enabled ) {
 
-					xil_printf("EVENT LOG:  INFO - WRAPPING LOG ! \n");
+					xil_printf("EVENT LOG:  INFO - WRAPPING LOG %d ! \n", log_num_wraps);
 
 					// Compute new end address
-					end_address = log_start_address + size;
+					end_address = log_start_address + sizeof(node_info_entry) + sizeof(entry_header) + size;
 
 					// NOTE:  We have already incremented the log_oldest_address by size.  Since the
 					//   event_log_increment_oldest_address() function follows the same allocation scheme
@@ -763,7 +787,8 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 					log_next_address     = end_address;
 
 					// Return address is the beginning of the buffer
-					return_address = log_start_address;
+					//  (skipping the node_info at the beginning of the buffer)
+					return_address = log_start_address + sizeof(node_info_entry) + sizeof(entry_header);
 					status         = 0;
 
 		    	} else {
