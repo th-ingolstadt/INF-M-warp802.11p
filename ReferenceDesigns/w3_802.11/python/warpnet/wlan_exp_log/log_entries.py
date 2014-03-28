@@ -378,7 +378,7 @@ entry_rx_common.append_field_defs([
             ('ant_mode',               'B',      'uint8'),
             ('rf_gain',                'B',      'uint8'),
             ('bb_gain',                'B',      'uint8'),
-            ('padding',                '2x',     'uint16')])
+            ('flags',                  'H',      'uint16')])
 
 #-----------------------------------------------------------------------------
 # Log Entry Type Instances

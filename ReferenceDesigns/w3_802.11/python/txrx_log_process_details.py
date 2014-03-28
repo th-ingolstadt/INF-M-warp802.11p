@@ -58,28 +58,6 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 
 ###############################################################################
-# Example 1: Count the number of receptions per PHY rate
-#   NOTE:  Since there are only loops, this example can deal with RX_OFDM being an
-#          empty list and does not need a try / except.
-#
-
-# Extract all OFDM receptions
-log_rx_ofdm = log_np['RX_OFDM']
-
-# Extract an array of just the Rx rates
-rx_rates = log_rx_ofdm['rate']
-
-# Initialize an array to count number of Rx per PHY rate
-#   MAC uses rate_indexes 1:8 to encode OFDM rates
-rx_rate_counts = np.bincount(rx_rates, minlength=9)
-rx_rate_counts = rx_rate_counts[1:9] #only rate values 1:8 are valid
-
-print("Example 1: Num Rx Pkts per Rate:")
-for (i,c) in enumerate(rx_rate_counts):
-    print(" {0:2d} Mbps: {1:7}".format(int(wlan_rates[i]['rate']), c))
-
-
-###############################################################################
 # Example 2: Gather some Tx information from the log
 #   NOTE:  Since there are only loops, this example can deal with TX / TX_LOW 
 #          being an empty list and does not need a try / except.
