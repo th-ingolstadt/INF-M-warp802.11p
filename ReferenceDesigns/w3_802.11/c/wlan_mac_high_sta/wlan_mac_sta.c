@@ -770,6 +770,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			rx_event_log_entry->pkt_type   = wlan_mac_high_pkt_type(mpdu,length);
 			rx_event_log_entry->chan_num   = mac_param_chan;
 			rx_event_log_entry->ant_mode   = mpdu_info->ant_mode;
+			rx_event_log_entry->flags      = 0;
 
 			switch(copy_order){
 				case CHAN_EST_FIRST:
