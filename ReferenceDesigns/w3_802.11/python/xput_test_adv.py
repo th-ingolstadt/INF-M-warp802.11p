@@ -4,8 +4,6 @@ import numpy as np
 from matplotlib.pylab import *
 import pandas as pd
 
-ion()
-
 AP_LOGFILE = 'example_logs/ap_log_stats_1dir_w_inf.hdf5'
 STA_LOGFILE = 'example_logs/sta_log_stats_1dir_w_inf.hdf5'
 
@@ -48,52 +46,52 @@ rolling_winow = 10000 #samples
 # AP Rx
 #############
 
-#rx_ap_idx = (rx_ap['addr2'] == addr_sta) & ((rx_ap['flags'] & 0x1) == 0) #needs valid flags field
-rx_ap_idx = (rx_ap['addr2'] == addr_sta)
-
+#Select non-duplicate packets from partner node
+rx_ap_idx = (rx_ap['addr2'] == addr_sta) & ((rx_ap['flags'] & 0x1) == 0) #needs valid flags field
 rx_ap_from_sta = rx_ap[rx_ap_idx]
 
 rx_ap_t = rx_ap_from_sta['timestamp']
 rx_ap_len = rx_ap_from_sta['length']
 
+#Select successful packets to partner node
+tx_ap_idx = (tx_ap['addr1'] == addr_sta) & (tx_ap['result'] == 0)
+tx_ap_to_sta = tx_ap[tx_ap_idx]
+
+tx_ap_t = tx_ap_to_sta['timestamp'] + tx_ap_to_sta['time_to_accept']
+tx_ap_len = tx_ap_to_sta['length']
+
+
 #Convert to Pandas series
 rx_ap_t_pd = pd.to_datetime(rx_ap_t, unit='us')
 rx_ap_len_pd = pd.Series(rx_ap_len, index=rx_ap_t_pd)
 
-rx_ap_len_rs = rx_ap_len_pd.resample(('%dL' % rs_interval), how='sum').fillna(value=0)
-
-rx_xput_ap_r = pd.rolling_mean(rx_ap_len_rs, rolling_winow)
-
-#Strip NaN values (at beginning, where rolling window isn't full)
-rx_xput_ap_r = rx_xput_ap_r[~np.isnan(rx_xput_ap_r)]
-
-
-#############
-# AP Tx
-#############
-
-tx_ap_idx = (tx_ap['addr1'] == addr_sta)
-tx_ap_to_sta = tx_ap[tx_ap_idx]
-
-tx_ap_t = tx_ap_to_sta['timestamp']
-tx_ap_len = tx_ap_to_sta['length']
-
-#Convert to Pandas series
 tx_ap_t_pd = pd.to_datetime(tx_ap_t, unit='us')
 tx_ap_len_pd = pd.Series(tx_ap_len, index=tx_ap_t_pd)
 
+rx_ap_len_rs = rx_ap_len_pd.resample(('%dL' % rs_interval), how='sum').fillna(value=0)
 tx_ap_len_rs = tx_ap_len_pd.resample(('%dL' % rs_interval), how='sum').fillna(value=0)
 
-tx_xput_ap_r = pd.rolling_mean(tx_ap_len_rs, rolling_winow)
+#Merge the indexes
+t_idx = rx_ap_len_rs.index.union(tx_ap_len_rs.index)
 
-#Strip NaN values (at beginning, where rolling window isn't full)
-tx_xput_ap_r = tx_xput_ap_r[~np.isnan(tx_xput_ap_r)]
+#Reindex both Series to the common index, filling 0 in empty slots
+rx_ap_len_rs = rx_ap_len_rs.reindex(t_idx, fill_value=0)
+tx_ap_len_rs = tx_ap_len_rs.reindex(t_idx, fill_value=0)
+
+#Compute rolling means
+rx_xput_ap_r = pd.rolling_mean(rx_ap_len_rs, window=rolling_winow, min_periods=1)
+tx_xput_ap_r = pd.rolling_mean(tx_ap_len_rs, window=rolling_winow, min_periods=1)
+
+#Set NaN values to 0 (no packets == zero throughput)
+rx_xput_ap_r = rx_xput_ap_r.fillna(value=0)
+tx_xput_ap_r = tx_xput_ap_r.fillna(value=0)
+
+#figure(1)
+#clf()
+#plot(tx_fin)
+#plot(rx_fin)
+#plot(tx_fin + rx_fin)
 
 
-
-
-
-
-#############################
-
-plot(rx_ap['timestamp'], rx_ap['rate'],'.')
+#plot(tx_fin, rx_fin, '.')
+#axis([0,700,0,700])
