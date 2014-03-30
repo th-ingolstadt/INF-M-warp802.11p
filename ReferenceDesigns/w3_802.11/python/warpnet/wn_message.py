@@ -553,11 +553,13 @@ class Buffer(Message):
         size       = wn_buffer.get_buffer_size()
         end_byte   = start_byte + size
         
-        if (end_byte <= self.size):
-            self._add_buffer_data(start_byte, wn_buffer.get_bytes())
-            self._set_buffer_complete()
-        else:
-            print("WARNING: Unable to merge buffers.  Not enough space allocated.")
+        if (end_byte > self.size):
+            # Need to update the buffer to allocate more memory first
+            self._update_buffer_size(end_byte, force=1)
+
+        self._add_buffer_data(start_byte, wn_buffer.get_bytes())
+        self._set_buffer_complete()
+            
 
 
     def trim(self):
