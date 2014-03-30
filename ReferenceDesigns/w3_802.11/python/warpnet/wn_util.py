@@ -246,7 +246,7 @@ def wn_get_serial_number(serial_number, output=True):
         print_warning = True
         ret_val       = (sn, sn_str)
         
-    elif type(serial_number) is str:
+    elif type(serial_number) is str or type(serial_number) is unicode:
         expr = re.compile('((?P<prefix>[Ww]3-a-)|)(?P<sn>\d+)')
         m    = expr.match(serial_number)
         if m:

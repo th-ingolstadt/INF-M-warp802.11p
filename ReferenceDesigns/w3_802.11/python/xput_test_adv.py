@@ -4,8 +4,8 @@ import numpy as np
 from matplotlib.pylab import *
 import pandas as pd
 
-AP_LOGFILE = 'example_logs/ap_log_stats_1dir_w_inf.hdf5'
-STA_LOGFILE = 'example_logs/sta_log_stats_1dir_w_inf.hdf5'
+AP_LOGFILE = 'example_logs/ap_log_30s_per_rate.hdf5'
+STA_LOGFILE = 'example_logs/sta_log_30s_per_rate.hdf5'
 
 #Extract the log data and index from the log files
 log_data_ap = hdf_util.hdf5_to_log_data(filename=AP_LOGFILE)
@@ -86,11 +86,11 @@ tx_xput_ap_r = pd.rolling_mean(tx_ap_len_rs, window=rolling_winow, min_periods=1
 rx_xput_ap_r = rx_xput_ap_r.fillna(value=0)
 tx_xput_ap_r = tx_xput_ap_r.fillna(value=0)
 
-#figure(1)
-#clf()
-#plot(tx_fin)
-#plot(rx_fin)
-#plot(tx_fin + rx_fin)
+figure(1)
+clf()
+plot(rx_xput_ap_r)
+plot(tx_xput_ap_r)
+plot(tx_xput_ap_r + rx_xput_ap_r)
 
 
 #plot(tx_fin, rx_fin, '.')
