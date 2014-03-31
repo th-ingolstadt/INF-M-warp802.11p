@@ -493,7 +493,7 @@ void print_station_status(u8 manual_call){
 							access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
 				if(ltg_sched_get_state(0,&ltg_type,&ltg_sched_state) == 0){
 
-					ltg_sched_get_params(0, &ltg_type, &ltg_sched_parameters);
+					ltg_sched_get_params(0, &ltg_sched_parameters);
 					ltg_sched_get_callback_arg(0,&ltg_pyld_callback_arg);
 
 					if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
