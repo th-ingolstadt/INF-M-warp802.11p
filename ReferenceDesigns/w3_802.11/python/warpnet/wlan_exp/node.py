@@ -379,14 +379,14 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Local Traffic Generation (LTG) Commands
     #--------------------------------------------
-    def ltg_to_node_configure(self, node_list, traffic_flow):
+    def ltg_to_node_configure(self, node_list, traffic_flow, restart=False):
         """Configure the node for the given traffic flow to the given nodes."""
         if (type(node_list) is list):
             for node in node_list:
-                status = self.send_cmd(cmds.LTGConfigure(node, traffic_flow))
+                status = self.send_cmd(cmds.LTGConfigure(node, traffic_flow, restart))
                 self._print_ltg_status('configure', status, node.name)
         else:
-            status = self.send_cmd(cmds.LTGConfigure(node_list, traffic_flow))
+            status = self.send_cmd(cmds.LTGConfigure(node_list, traffic_flow, restart))
             self._print_ltg_status('configure', status, node_list.name)
 
 
@@ -552,18 +552,23 @@ class WlanExpNode(wn_node.WnNode):
         return ret_val
     
 
-    def node_set_time(self, time):
+    def node_set_time(self, time, time_id=None):
         """Sets the time in microseconds on the node.
         
         Attributes:
             time -- Time to send to the board (either float in sec or int in us)
         """
-        self.send_cmd(cmds.NodeProcTime(time))
+        self.send_cmd(cmds.NodeProcTime(cmds.TIME_WRITE, time, time_id))
     
 
     def node_get_time(self):
         """Gets the time in microseconds from the node."""
-        return self.send_cmd(cmds.NodeProcTime(cmds.RSVD_TIME))
+        return self.send_cmd(cmds.NodeProcTime(cmds.TIME_READ, cmds.TIME_RSVD))
+
+
+    def node_add_current_time_to_log(self, time_id=None):
+        """Adds the current time in microseconds to the log."""
+        return self.send_cmd(cmds.NodeProcTime(cmds.TIME_ADD_TO_LOG, cmds.TIME_RSVD, time_id))
 
 
     def node_set_channel(self, channel):

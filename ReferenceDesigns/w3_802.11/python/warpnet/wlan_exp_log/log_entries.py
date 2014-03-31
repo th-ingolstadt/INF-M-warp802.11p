@@ -387,6 +387,7 @@ entry_rx_common.append_field_defs([
 # Node Info
 entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
 entry_node_info.append_field_defs([
+            ('timestamp',              'Q',      'uint64'),
             ('node_type',              'I',      'uint32'),
             ('node_id',                'I',      'uint32'),
             ('hw_generation',          'I',      'uint32'),
@@ -446,9 +447,10 @@ entry_wn_cmd_info.append_field_defs([
 entry_wn_cmd_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
 entry_wn_cmd_info.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
+            ('time_id',                'I',      'uint32'),
+            ('reason',                 'I',      'uint32'),
             ('new_time',               'Q',      'uint64'),
-            ('abs_time',               'Q',      'uint64'),
-            ('reason',                 'I',      'uint32')])
+            ('abs_time',               'Q',      'uint64')])
 
 
 # Temperature

@@ -34,7 +34,6 @@ Integer constants:
 
 """
 
-import re
 import sys
 import time
 
@@ -93,6 +92,25 @@ def tx_rate_index_to_str(tx_rate_index):
 
 
 #-----------------------------------------------------------------------------
+# WLAN Exp MAC Address definitions
+#-----------------------------------------------------------------------------
+
+# MAC Description Map
+#   List of tuples:  (mask, MAC value, description) describe various MAC addresses
+#
+# IP -> MAC multicast references: 
+#     http://technet.microsoft.com/en-us/library/cc957928.aspx
+#     http://en.wikipedia.org/wiki/Multicast_address#Ethernet
+#     http://www.cavebear.com/archive/cavebear/Ethernet/multicast.html
+
+mac_desc_map = [(0xFFFFFFFFFFFF, 0xFFFFFFFFFFFF, 'Broadcast'),
+                (0xFFFFFF800000, 0x01005E000000, 'IP v4 Multicast'),
+                (0xFFFF00000000, 0x333300000000, 'IP v6 Multicast'),
+                (0xFFFFFFFF0000, 0xFFFFFFFF0000, 'Anonymized Device'),
+                (0xFFFFFFFFF000, 0x40D855042000, 'Mango WARP Hardware')]
+
+
+#-----------------------------------------------------------------------------
 # WLAN Exp Node Utilities
 #-----------------------------------------------------------------------------
 
@@ -134,7 +152,7 @@ def init_nodes(nodes_config, host_config=None, node_factory=None, output=False):
 # End def
 
 
-def broadcast_node_set_time(host_config=None, time=0.0):
+def broadcast_node_set_time(time, host_config=None, time_id=None):
     """Initialize the timebase on all of the WLAN Exp nodes.
     
     This method will iterate through all host interfaces and issue a 
@@ -148,45 +166,26 @@ def broadcast_node_set_time(host_config=None, time=0.0):
         time         -- Optional time to broadcast to the nodes (defaults to 0.0) 
                         either as an integer number of microseconds or a floating 
                         point number in seconds
+        time_id      -- Optional value to identify broadcast time commands across nodes
     """
-    time_factor = 6               # Time can be in # of microseconds (ie 10^(-6) seconds)
+    import warpnet.wlan_exp.cmds as cmds
+    _broadcast_node_time(time_cmd=cmds.TIME_WRITE, host_config=host_config, time=time, time_id=time_id)
+
+# End def
+
+
+def broadcast_node_add_current_time_to_log(host_config=None, time_id=None):
+    """Add the current host time to the log on each node.
+
+    This method will iterate through all host interfaces and issue a broadcast
+    packet on each interface that will add the current time to the log
     
-    # Create a Host Configuration if there is none provided
-    if host_config is None:
-        import warpnet.wn_config as wn_config
-        host_config = wn_config.HostConfiguration()
-
-    interfaces   = host_config.get_param('network', 'host_interfaces')
-    tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
-    rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
-
-    if   (type(time) is float):
-        node_time   = time
-    elif (type(time) is int):
-        node_time   = float(time / (10**time_factor))   # Convert to float
-    else:
-        raise TypeError("Time must be either a float or int")       
-
-    start_time = _time()
-
-    for interface in interfaces:
-        import warpnet.wn_transport_eth_udp_py_bcast as bcast
-        import warpnet.wlan_exp.cmds                 as cmds
-        import warpnet.wn_util                       as util
-
-        # Create broadcast transport
-        transport_bcast = bcast.TransportEthUdpPyBcast(host_config, interface);
-
-        transport_bcast.wn_open(tx_buf_size, rx_buf_size)
-
-        node_time       = node_time + (_time() - start_time)
-        cmd             = cmds.NodeProcTime(node_time);
-
-        transport_bcast.send(cmd.serialize(), 'message')
-
-        msg  = "Initializing the time of all nodes on "
-        msg += "{0} to: {1}".format(util._get_ip_address_subnet(interface), node_time)
-        print(msg)
+    Attributes:
+        host_config  -- A WnConfiguration object describing the host configuration
+        time_id      -- Optional value to identify broadcast time commands across nodes
+    """
+    import warpnet.wlan_exp.cmds as cmds
+    _broadcast_node_time(time_cmd=cmds.TIME_ADD_TO_LOG, host_config=host_config, time_id=time_id)
 
 # End def
 
@@ -345,38 +344,34 @@ def node_type_to_str(node_type, node_factory=None):
 
 
 def mac_addr_desc(mac_addr, desc_map=None):
-    """Returns a string description of a MAC address, 
-    useful when printing a table of addresses
+    """Returns a string description of a MAC address.
 
-    Custom MAC address descriptions can be provided via the desc_map argument.
-    desc_map must be a list or tuple of 3-tuples (addr_mask, addr_value, descritpion)
+    This is useful when printing a table of addresses.  Custom MAC address 
+    descriptions can be provided via the desc_map argument.  In addition 
+    to the provided desc_map, the global mac_desc_map that describes mappings 
+    of different MAC addresses will also be used.
+
+    Attributes:
+        desc_map -- list or tuple of 3-tuples (addr_mask, addr_value, descritpion)
+
     The mac_addr argument will be bitwise AND'd with each addr_mask, then compared to
     addr_value. If the result is non-zero the corresponding descprition will be returned.
-
-    If desc_map is not provided a few default 
     
     Example:
     desc_map = [ (0xFFFFFFFFFFFF, 0x000102030405, 'My Custom MAC Addr'), 
                  (0xFFFFFFFFFFFF, 0x000203040506, 'My Other MAC Addr') ]
     """
+    global mac_desc_map
 
     #Cast to python int in case input is still numpy uint64
     mac_addr = int(mac_addr)
 
     desc_out = ''
 
-    # IP->MAC multicast def: http://technet.microsoft.com/en-us/library/cc957928.aspx
-
-    default_desc_map = [
-            (0xFFFFFFFFFFFF, 0xFFFFFFFFFFFF, 'Broadcast'),
-            (0xFFFFFF800000, 0x01005E000000, 'IP Multicast'),
-            (0xFFFFFFFF0000, 0xFFFFFFFF0000, 'Anonymized Device'),
-            (0xFFFFFFFFF000, 0x40D855042000, 'Mango WARP Hardware')]
-
     if(desc_map is None):
-        desc_map = default_desc_map
+        desc_map = mac_desc_map
     else:
-        desc_map = list(desc_map) + default_desc_map
+        desc_map = list(desc_map) + mac_desc_map
 
     for ii,(mask, req, desc) in enumerate(desc_map):
         if( (mac_addr & mask) == req):
@@ -436,6 +431,106 @@ def _time():
         return time.perf_counter()
     except AttributeError:
         return time.clock()
+
+# End def
+
+
+def _broadcast_node_time(time_cmd, host_config=None, time=0.0, time_id=None):
+    """Internal method to issue broadcast time commands
+    
+    This method will iterate through all host interfaces and issue a 
+    broadcast packet on each interface that will set the time to the 
+    timebase.  The method keeps track of how long it takes to send 
+    each packet so that the time on all nodes is as close as possible
+    even across interface.
+    
+    Attributes:
+        time_cmd     -- NodeProcTime command to issue
+        host_config  -- A WnConfiguration object describing the host configuration
+        time         -- Optional time to broadcast to the nodes (defaults to 0.0) 
+                        either as an integer number of microseconds or a floating 
+                        point number in seconds
+        time_id      -- Optional value to identify broadcast time commands across nodes
+    """
+    import warpnet.wn_transport_eth_udp_py_bcast as bcast
+    import warpnet.wlan_exp.cmds                 as cmds
+    import warpnet.wn_util                       as util
+
+    time_factor = 6               # Time can be in # of microseconds (ie 10^(-6) seconds)
+    
+    # Create a Host Configuration if there is none provided
+    if host_config is None:
+        import warpnet.wn_config as wn_config
+        host_config = wn_config.HostConfiguration()
+
+    interfaces   = host_config.get_param('network', 'host_interfaces')
+    tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
+    rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
+
+    # Need to convert time input to float so that it can be added to _time()
+    if   (type(time) is float):
+        node_time   = time
+    elif (type(time) is int):
+        node_time   = float(time / (10**time_factor))   # Convert to float
+    else:
+        raise TypeError("Time must be either a float or int")       
+
+    if time_id is None:
+        import random
+        time_id = 2**32 * random.random()
+
+    for idx, interface in enumerate(interfaces):
+        # Create broadcast transport
+        transport_bcast = bcast.TransportEthUdpPyBcast(host_config, interface);
+
+        transport_bcast.wn_open(tx_buf_size, rx_buf_size)
+
+        if (idx == 0):
+            node_time   = node_time
+            start_time  = _time()
+        else:
+            node_time   = node_time + (_time() - start_time)
+            
+        cmd             = cmds.NodeProcTime(time_cmd, node_time, time_id);
+
+        transport_bcast.send(cmd.serialize(), 'message')
+
+        msg = ""
+        if (time_cmd == cmds.TIME_WRITE):
+            msg += "Initializing the time of all nodes on "
+            msg += "{0} to: {1}".format(util._get_ip_address_subnet(interface), node_time)
+        elif (time_cmd == cmds.TIME_ADD_TO_LOG):
+            msg += "Adding current time to log for nodes on {0}".format(util._get_ip_address_subnet(interface))            
+        print(msg)
+
+# End def
+
+
+def _broadcast_node_cmd_helper(cmd, host_config=None):
+    """Internal method to issue broadcast commands 
+
+    Attributes:
+        host_config  -- A WnConfiguration object describing the host configuration
+        cmd          -- A wn_message.Cmd object describing the command
+    """
+    # Create a Host Configuration if there is none provided
+    if host_config is None:
+        import warpnet.wn_config as wn_config
+        host_config = wn_config.HostConfiguration()
+
+    interfaces   = host_config.get_param('network', 'host_interfaces')
+    tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
+    rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
+
+    for interface in interfaces:
+        import warpnet.wn_transport_eth_udp_py_bcast as bcast
+
+        # Create broadcast transport
+        transport_bcast = bcast.TransportEthUdpPyBcast(host_config, interface);
+
+        transport_bcast.wn_open(tx_buf_size, rx_buf_size)
+
+        transport_bcast.send(cmd.serialize(), 'message')
 
 # End def
 

@@ -220,6 +220,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
     """
     import h5py
     import os
+    import warpnet.wlan_exp_log.log_util as log_util
 
     # Process the inputs to generate any error
     (np_data, log_data_index) = _process_hdf5_log_data_inputs(log_data, gen_index)
@@ -231,7 +232,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
 
         h5_filename = filename
     else:
-        h5_filename = _get_safe_filename(filename)
+        h5_filename = log_util._get_safe_filename(filename)
 
     # Open an HDF5 File Object in 'w' (Create file, truncate if exists) mode
     hf = h5py.File(h5_filename, mode='w')
@@ -689,51 +690,6 @@ def _extract_hdf5_group(file_object, group_name=None):
 
 # End _extract_hdf5_group()
 
-
-
-def _get_safe_filename(filename):
-    """Create a 'safe' file name based on the current file name.
-    
-    Given the filename:  <name>.<ext>, the method will change the name the 
-    filename to: <name>_<date>_<id>.<ext>, where <date> is a formatted
-    string from time and <id> is a unique ID starting at zero if more 
-    than one file is created in a given second.
-    """
-    import os
-    import time
-
-    if os.path.isfile(filename):
-        # Already know it's a file, so fn_file is not ''
-        (fn_fldr, fn_file) = os.path.split(filename)
-        
-        # Find the last '.' in the file name and classify everything after that as the <ext>
-        ext_i = fn_file.rfind('.')
-        if (ext_i != -1):
-            # Remember the original file extension
-            fn_ext  = fn_file[ext_i:]
-            fn_base = fn_file[0:ext_i]
-        else:
-            fn_ext  = ''
-            fn_base = fn_file
-
-        # Create a new filename
-        i = 0
-        while True:
-            ext           = '_{0}_{1:02d}'.format(time.strftime("%Y%m%d_%H%M%S"), i)
-            new_filename  = fn_base + ext + fn_ext
-            safe_filename = os.path.join(fn_fldr, new_filename)
-            i            += 1
-
-            # Break the loop if we found a unique file name
-            if not os.path.isfile(safe_filename):
-                break
-    else:
-        # File didn't exist - use name as provided
-        safe_filename = filename
-
-    return safe_filename
-
-# End _get_safe_filename()
 
 
 

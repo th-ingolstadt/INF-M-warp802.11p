@@ -89,7 +89,11 @@ NODE_RESET_TXRX_STATS                  = 0x00000002
 NODE_RESET_LTG                         = 0x00000004
 NODE_RESET_TX_DATA_QUEUE               = 0x00000008
 
-RSVD_TIME                              = 0xFFFFFFFF
+TIME_WRITE                             = 0x00000000
+TIME_READ                              = 0x00000001
+TIME_ADD_TO_LOG                        = 0x00000002
+TIME_RSVD                              = 0xFFFFFFFF
+
 RSVD_CHANNEL                           = 0xFFFF
 RSVD_TX_POWER                          = 0xFFFF
 RSVD_TX_RATE                           = 0xFFFF
@@ -122,6 +126,8 @@ CMD_LTG_STOP                           = 42
 CMD_LTG_REMOVE                         = 43
 
 LTG_ERROR                              = 0xFFFFFFFF
+
+LTG_CONFIG_FLAG_RESTART                = 0x00000001
 
 
 # Log commands and defined values
@@ -389,9 +395,16 @@ class LTGConfigure(LTGCommon):
     """Command to configure an LTG with the given traffic flow to the 
     specified node.
     """
-    def __init__(self, node, traffic_flow):
+    def __init__(self, node, traffic_flow, restart=False):
         super(LTGConfigure, self).__init__(node)
         self.command = _CMD_GRPID_NODE + CMD_LTG_CONFIG
+
+        flags = 0
+        
+        if restart:
+            flags += LTG_CONFIG_FLAG_RESTART
+        
+        self.add_args(flags)
         
         for arg in traffic_flow.serialize():
             self.add_args(arg)
@@ -469,46 +482,69 @@ class NodeProcTime(wn_message.Cmd):
         of microseconds.
     
     Attributes:
+        time_cmd  -- Command to send over the time WARPNet command.  Valid values are:
+                       TIME_READ
+                       TIME_WRITE
+                       TIME_ADD_TO_LOG
         node_time -- Time as either an integer number of microseconds or 
                        a floating point number in seconds.
+        time_id   -- ID to use identify the time command in the log.
     """
     time_factor = 6
     time_type   = None
+    time_cmd    = None
     
-    def __init__(self, node_time):
+    def __init__(self, time_cmd, node_time, time_id=None):
         super(NodeProcTime, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_NODE_TIME
+        self.command  = _CMD_GRPID_NODE + CMD_NODE_TIME
+        self.time_cmd = time_cmd
 
         # Read the time as a float
-        if (node_time == RSVD_TIME):
+        if (time_cmd == TIME_READ):
             self.time_type = 0
-            self.add_args(RSVD_TIME)
-            self.add_args(RSVD_TIME)
-            self.add_args(RSVD_TIME)
-            self.add_args(RSVD_TIME)
-            self.add_args(RSVD_TIME)
+            self.add_args(TIME_READ)
+            self.add_args(TIME_RSVD)
+            self.add_args(TIME_RSVD)
+            self.add_args(TIME_RSVD)
+            self.add_args(TIME_RSVD)
+            self.add_args(TIME_RSVD)
 
-        # Write the time
+        # Write the time / Add time to log
         else:
             import time
 
-            if   (type(node_time) is float):
-                time_to_send   = int(round(node_time, self.time_factor) * (10**self.time_factor))
-                self.time_type = 0
-            elif (type(node_time) is int):
-                time_to_send   = node_time
-                self.time_type = 1
-            else:
-                raise TypeError("Time must be either a float or int")
+            # By default set the time_id to a random number between [0, 2^32)
+            if time_id is None:
+                import random
+                time_id = 2**32 * random.random()
 
+            if (time_cmd == TIME_WRITE):
+                self.add_args(TIME_WRITE)
+
+                # Format the node_time appropriately
+                if   (type(node_time) is float):
+                    time_to_send   = int(round(node_time, self.time_factor) * (10**self.time_factor))
+                    self.time_type = 0
+                elif (type(node_time) is int):
+                    time_to_send   = node_time
+                    self.time_type = 1
+                else:
+                    raise TypeError("Time must be either a float or int")
+            else:
+                self.add_args(TIME_ADD_TO_LOG)
+
+                # Send the reserved value
+                time_to_send = (2*32 * TIME_RSVD) + TIME_RSVD
+
+            # Get the current time on the host
             now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
             
-            self.add_args(0)
+            self.add_args(time_id)
             self.add_args((time_to_send & 0xFFFFFFFF))
             self.add_args(((time_to_send >> 32) & 0xFFFFFFFF))
             self.add_args((now & 0xFFFFFFFF))
             self.add_args(((now >> 32) & 0xFFFFFFFF))
-    
+
     def process_resp(self, resp):
         args = resp.get_args()
         if len(args) != 2:
@@ -670,6 +706,9 @@ class NodeProcTxAntMode(wn_message.Cmd):
 
     def check_ant_mode(self, ant_mode):
         """Check the antenna mode to see if it is valid."""
+        if (ant_mode == RSVD_TX_ANT_MODE):
+            return ant_mode
+
         if ((ant_mode == NODE_TX_ANT_MODE_SISO_ANTA) or
             (ant_mode == NODE_TX_ANT_MODE_SISO_ANTB) or
             (ant_mode == NODE_TX_ANT_MODE_SISO_ANTC) or
@@ -711,6 +750,9 @@ class NodeProcRxAntMode(wn_message.Cmd):
 
     def check_ant_mode(self, ant_mode):
         """Check the antenna mode to see if it is valid."""
+        if (ant_mode == RSVD_RX_ANT_MODE):
+            return ant_mode
+        
         if ((ant_mode == NODE_RX_ANT_MODE_SISO_ANTA) or
             (ant_mode == NODE_RX_ANT_MODE_SISO_ANTB) or
             (ant_mode == NODE_RX_ANT_MODE_SISO_ANTC) or

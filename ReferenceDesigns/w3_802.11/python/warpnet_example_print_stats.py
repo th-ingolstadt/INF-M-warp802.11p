@@ -73,9 +73,8 @@ def initialize_experiment():
     #   information to control and communicate with the nodes
     nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
 
-    # Initialize the time on all nodes
-    #   This will set all the nodes to a common time base.
-    wlan_exp_util.init_timestamp(nodes);
+    # Initialize the time on all nodes to zero
+    wlan_exp_util.broadcast_node_set_time(0.0, host_config)
 
 
 

@@ -138,7 +138,6 @@ def gen_log_data_index(log_data, return_valid_slice=False):
 # End gen_log_index_raw()
 
 
-
 def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
     """Parses a log index to generate a filtered log index.
 
@@ -302,7 +301,6 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
 # End filter_log_index()
 
 
-
 def log_data_to_np_arrays(log_data, log_index):
     """Generate numpy structured arrays using log_data and a log_index."""
     entries_nd = dict()
@@ -339,6 +337,7 @@ def print_log_index_summary(log_index, title=None):
 
 # End log_index_print_summary()
 
+
 def print_log_entries(log_bytes, log_index, entries_slice=None):
     """Work in progress - built for debugging address issues, some variant of this will be useful
     for creating text version of raw log w/out requiring numpy"""
@@ -372,6 +371,56 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
         print(entry_type.entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
 
 # End print_log_entries()
+
+
+
+#-----------------------------------------------------------------------------
+# Internal Log file Utilities
+#-----------------------------------------------------------------------------
+def _get_safe_filename(filename):
+    """Create a 'safe' file name based on the current file name.
+    
+    Given the filename:  <name>.<ext>, the method will change the name the 
+    filename to: <name>_<date>_<id>.<ext>, where <date> is a formatted
+    string from time and <id> is a unique ID starting at zero if more 
+    than one file is created in a given second.
+    """
+    import os
+    import time
+
+    if os.path.isfile(filename):
+        # Already know it's a file, so fn_file is not ''
+        (fn_fldr, fn_file) = os.path.split(filename)
+        
+        # Find the last '.' in the file name and classify everything after that as the <ext>
+        ext_i = fn_file.rfind('.')
+        if (ext_i != -1):
+            # Remember the original file extension
+            fn_ext  = fn_file[ext_i:]
+            fn_base = fn_file[0:ext_i]
+        else:
+            fn_ext  = ''
+            fn_base = fn_file
+
+        # Create a new filename
+        i = 0
+        while True:
+            ext           = '_{0}_{1:02d}'.format(time.strftime("%Y%m%d_%H%M%S"), i)
+            new_filename  = fn_base + ext + fn_ext
+            safe_filename = os.path.join(fn_fldr, new_filename)
+            i            += 1
+
+            # Break the loop if we found a unique file name
+            if not os.path.isfile(safe_filename):
+                break
+    else:
+        # File didn't exist - use name as provided
+        safe_filename = filename
+
+    return safe_filename
+
+# End _get_safe_filename()
+
 
 
 #-----------------------------------------------------------------------------
