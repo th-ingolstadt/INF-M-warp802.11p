@@ -66,7 +66,8 @@ u32 num_slots = SLOT_CONFIG_RAND;
 
 void uart_rx(u8 rxByte){
 	void* ltg_sched_state;
-	u32 ltg_type;
+	u32 ltg_sched_type;
+
 	u32 i;
 	dl_entry* 	  curr_station_info_entry;
 	station_info* curr_station_info;
@@ -228,7 +229,7 @@ void uart_rx(u8 rxByte){
 							uart_mode = UART_MODE_LTG_SIZE_CHANGE;
 							curr_char = 0;
 
-							if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_type,&ltg_sched_state) == 0){
+							if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_sched_type,&ltg_sched_state) == 0){
 								//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
 								if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
 									//This LTG is currently running. We'll turn it off.
@@ -259,7 +260,7 @@ void uart_rx(u8 rxByte){
 							uart_mode = UART_MODE_LTG_SIZE_CHANGE;
 							curr_char = 0;
 
-							if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_type,&ltg_sched_state) == 0){
+							if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_sched_type,&ltg_sched_state) == 0){
 								//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
 								if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
 									//This LTG is currently running. We'll turn it off.
@@ -512,6 +513,10 @@ void print_menu(){
 
 
 void print_station_status(){
+
+//	xil_printf("print_station_status\n");
+
+//#if 0
 	u32 i;
 	station_info* curr_station_info;
 	dl_entry*	  curr_entry;
@@ -521,7 +526,7 @@ void print_station_status(){
 	void* ltg_sched_parameters;
 	void* ltg_pyld_callback_arg;
 
-	u32 ltg_type;
+	u32 ltg_sched_type;
 
 	if(uart_mode == UART_MODE_INTERACTIVE){
 		timestamp = get_usec_timestamp();
@@ -540,13 +545,14 @@ void print_station_status(){
 			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->AID,
 					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 
-			if(ltg_sched_get_state(AID_TO_LTG_ID(curr_station_info->AID),&ltg_type,&ltg_sched_state) == 0){
 
-				ltg_sched_get_params(AID_TO_LTG_ID(curr_station_info->AID), &ltg_type, &ltg_sched_parameters);
+			if(ltg_sched_get_state(AID_TO_LTG_ID(curr_station_info->AID),&ltg_sched_type,&ltg_sched_state) == 0){
+
+				ltg_sched_get_params(AID_TO_LTG_ID(curr_station_info->AID), &ltg_sched_parameters);
 				ltg_sched_get_callback_arg(AID_TO_LTG_ID(curr_station_info->AID),&ltg_pyld_callback_arg);
 
 				if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
-					switch(ltg_type){
+					switch(ltg_sched_type){
 						case LTG_SCHED_TYPE_PERIODIC:
 							xil_printf("  Periodic LTG Schedule Enabled\n");
 							xil_printf("  Packet Tx Interval: %d microseconds\n", ((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_usec);
@@ -557,7 +563,7 @@ void print_station_status(){
 						break;
 					}
 
-					switch(((ltg_pyld_hdr*)(ltg_sched_state))->type){
+					switch(((ltg_pyld_hdr*)(ltg_sched_parameters))->type){
 						case LTG_PYLD_TYPE_FIXED:
 							xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed*)(ltg_pyld_callback_arg))->length);
 						break;
@@ -567,7 +573,9 @@ void print_station_status(){
 					}
 
 				}
+
 			}
+
 
 			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx.last_timestamp)))/1000);
 			xil_printf("     - Last Rx Power:          %d dBm\n",curr_station_info->rx.last_power);
@@ -586,6 +594,7 @@ void print_station_status(){
 			curr_entry = dl_entry_next(curr_entry);
 
 		}
+
 			xil_printf("---------------------------------------------------\n");
 			xil_printf("\n");
 			xil_printf("[r] - reset statistics\n");
@@ -595,9 +604,10 @@ void print_station_status(){
 			xil_printf(" on the keyboard that corresponds to an associated station's AID\n");
 			xil_printf(" and follow the prompts. Pressing Esc at any time will halt all\n");
 			xil_printf(" local traffic generation and return you to the main menu.");
+
 	}
 
-
+//
 }
 
 void print_all_observed_statistics(){
@@ -610,6 +620,8 @@ void print_all_observed_statistics(){
 	xil_printf("\nAll Statistics:\n");
 	for(i=0; i<statistics_table.length; i++){
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
+
+#if 0
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
 		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_rx_timestamp);
@@ -624,6 +636,7 @@ void print_all_observed_statistics(){
 		xil_printf("     - # Rx Data Bytes:        %d\n", curr_statistics->data.rx_num_bytes);
 		xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_statistics->mgmt.rx_num_packets);
 		xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_statistics->mgmt.rx_num_bytes);
+#endif
 		curr_statistics_entry = dl_entry_next(curr_statistics_entry);
 	}
 }
