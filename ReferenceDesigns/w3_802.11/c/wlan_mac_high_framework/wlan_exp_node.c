@@ -64,7 +64,7 @@ extern struct sockaddr_in  addr_async;
 
 // Declared in wlan_mac_high.c
 extern u8                  promiscuous_stats_enabled;
-
+extern u8                  rx_ant_mode_tracker;
 
 // Declared in each of the AP / STA
 extern tx_params           default_unicast_data_tx_params;
@@ -324,6 +324,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     unsigned int  temp, temp2, i, j;
 
     // Variables for functions
+    u32           msg_cmd;
     u32           id;
     u32           flags;
     u32           serial_number;
@@ -797,7 +798,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				}
 			}
 
-			if ( ( temp & NODE_TX_DATA_QUEUE ) == NODE_TX_DATA_QUEUE ) {
+			if ( ( temp & NODE_RESET_TX_DATA_QUEUE ) == NODE_RESET_TX_DATA_QUEUE ) {
 				xil_printf("Purging All Data Transmit Queues\n");
 				purge_all_data_tx_queue();
 			}
@@ -1047,7 +1048,30 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		break;
 
 
-		//wlan_mac_high_set_rx_ant_mode
+	    //---------------------------------------------------------------------
+		case NODE_RX_ANT_MODE:
+            // NODE_RX_ANT_MODE Packet Format:
+			//   - cmdArgs32[0]      - Antenna Mode
+            //
+			// NOTE:  This method assumes that the Antenna mode received is valid.
+			// The checking will be done on either the host, in CPU Low or both.
+
+        	// Get node RX antenna mode
+			ant_mode = Xil_Ntohl(cmdArgs32[0]);
+
+            if (ant_mode != NODE_RX_ANT_MODE_RSVD_VAL) {
+				xil_printf("Setting RX antenna mode to %d \n", ant_mode);
+            	wlan_mac_high_set_rx_ant_mode(ant_mode);
+            } else {
+            	ant_mode = rx_ant_mode_tracker;
+            }
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( ant_mode );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
 
 
 		// Case NODE_CHANNEL is implemented in the child classes
@@ -1058,58 +1082,70 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// Set / Get node time
 			//
 			// Message format:
-			//     cmdArgs32[0]   Read (NODE_TIME_RSVD_VAL) / Write (0)
-			//     cmdArgs32[1]   New Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
-			//     cmdArgs32[2]   New Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
-			//     cmdArgs32[3]   Abs Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
-			//     cmdArgs32[4]   Abs Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[0]   Command:
+			//                      - Write       (NODE_TIME_WRITE_VAL)
+			//                      - Read        (NODE_TIME_READ_VAL)
+			//                      - Add to log  (NODE_TIME_ADD_TO_LOG_VAL)
+			//     cmdArgs32[1]   ID
+			//     cmdArgs32[2]   New Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[3]   New Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[4]   Abs Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[5]   Abs Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
 			//
 			// Response format:
             //     respArgs32[0]  Time on node in microseconds - lower 32 bits
 			//     respArgs32[1]  Time on node in microseconds - upper 32 bits
 			//
-			temp  = Xil_Ntohl(cmdArgs32[0]);
-			time  = get_usec_timestamp();
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			id      = Xil_Ntohl(cmdArgs32[1]);
+			time    = get_usec_timestamp();
 
 			time_info_entry * time_entry;
 
-			// If parameter is not the magic number, then set the time on the node
-			if ( temp != NODE_TIME_RSVD_VAL ) {
+			// If parameter is not NODE_TIME_READ_VAL, then either set the time on the node
+			//   or just add a log entry.
+			if ( msg_cmd != NODE_TIME_READ_VAL ) {
 
 				// Get the new time
-				temp     = Xil_Ntohl(cmdArgs32[1]);
-				temp2    = Xil_Ntohl(cmdArgs32[2]);
+				temp     = Xil_Ntohl(cmdArgs32[2]);
+				temp2    = Xil_Ntohl(cmdArgs32[3]);
 				new_time = (((u64)temp2)<<32) + ((u64)temp);
 
-				// If the time is not the reserved value; then update the time
-				// Otherwise, get the current time to return to the host
-				if ( (temp != NODE_TIME_RSVD_VAL) && (temp2 != NODE_TIME_RSVD_VAL) ) {
-  				    wlan_mac_high_set_timestamp( new_time );
-  				    xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
-				} else {
-					new_time = time;
+				// If this is a write, then update the time on the node
+				if (msg_cmd == NODE_TIME_WRITE_VAL){
+					wlan_mac_high_set_timestamp( new_time );
+					xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
 				}
 
 				// Get the absolute time
-				temp     = Xil_Ntohl(cmdArgs32[3]);
-				temp2    = Xil_Ntohl(cmdArgs32[4]);
+				temp     = Xil_Ntohl(cmdArgs32[4]);
+				temp2    = Xil_Ntohl(cmdArgs32[5]);
 				abs_time = (((u64)temp2)<<32) + ((u64)temp);
 
 				// Create a time info log entry
 				time_entry = get_next_empty_time_info_entry();
 
 				if (time_entry != NULL) {
-				    time_entry->timestamp = time;
-				    time_entry->new_time  = new_time;
-				    time_entry->abs_time  = abs_time;
-				    time_entry->reason    = TIME_INFO_ENTRY_WN_SET_TIME;
+				    time_entry->timestamp  = time;
+				    time_entry->time_id    = id;
+				    if ( msg_cmd == NODE_TIME_WRITE_VAL) {
+						time_entry->reason = TIME_INFO_ENTRY_WN_SET_TIME;
+				    } else {
+						time_entry->reason = TIME_INFO_ENTRY_WN_ADD_LOG;
+				    }
+				    time_entry->new_time   = new_time;
+				    time_entry->abs_time   = abs_time;
 				}
-			} else {
-				new_time = time;
+
+				// If this was a write, then update the time value so we can return it to the host
+				//   This is done after the log entry to the fields are correct in the entry.
+				if (msg_cmd == NODE_TIME_WRITE_VAL){
+					time = new_time;
+				}
 			}
 
-			temp  = new_time & 0xFFFFFFFF;
-			temp2 = (new_time >> 32) & 0xFFFFFFFF;
+			temp  = time & 0xFFFFFFFF;
+			temp2 = (time >> 32) & 0xFFFFFFFF;
 
 			// Send response of current power
             respArgs32[respIndex++] = Xil_Htonl( temp );
@@ -1124,7 +1160,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		case NODE_LTG_CONFIG:
             // NODE_LTG_START Packet Format:
 			//   - cmdArgs32[0 - 1]  - MAC Address
-			//   - cmdArgs32[2 - N]  - LTG Schedule (packed)
+			//   - cmdArgs32[2]      - Flags
+			//                         [0] - Restart the LTG flow if running
+			//   - cmdArgs32[3 - N]  - LTG Schedule (packed)
 			//                         [0] - [31:16] Type    [15:0] Length
 			//   - cmdArgs32[N+1 - M]- LTG Payload (packed)
 			//                         [0] - [31:16] Type    [15:0] Length
@@ -1143,11 +1181,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	void *         params;
 
         	status = NODE_LTG_ERROR;
+			flags  = Xil_Ntohl(cmdArgs32[2]);
 
         	if ((id != NODE_CONFIG_ALL_ASSOCIATED) || (id != 0)){
 				// Check to see if LTG ID already exists
 				if( ltg_sched_get_callback_arg( id, &ltg_callback_arg ) == 0 ) {
 					// This LTG has already been configured. We need to free the old callback argument so we can create a new one.
+					xil_printf("Stopping LTG %d\n", id);
 					running = ltg_sched_stop( id );
 					wlan_mac_high_free( ltg_callback_arg );
 				}
@@ -1163,7 +1203,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 					xil_printf("LTG %d configured\n", id);
 
-					if (running == 0) {
+					if (running == 0 && ((flags & NODE_LTG_CONFIG_FLAG_RESTART) == NODE_LTG_CONFIG_FLAG_RESTART)) {
 						xil_printf("Re-starting LTG %d\n", id);
 						ltg_sched_start( id );
 					}

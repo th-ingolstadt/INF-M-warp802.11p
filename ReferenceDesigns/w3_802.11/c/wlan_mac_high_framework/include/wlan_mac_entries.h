@@ -81,6 +81,9 @@
 //       Tag Parameter so that population of this structure is easy.
 //
 typedef struct{
+	u64     timestamp;                 // Timestamp of the node info
+	                                   //   - This will reflect the oldest time of an
+	                                   //     entry for a given log wrap
 	u32     type;                      // WARPNet Node type
 	u32     id;                        // Node ID
 	u32     hw_gen;                    // WARP Hardware Generation
@@ -148,15 +151,19 @@ typedef struct{
 //
 typedef struct{
 	u64     timestamp;                 // Timestamp of the log entry (old timebase)
-	u64     abs_time;                  // Absolute time (0xFFFFFFFF_FFFFFFFF if not known)
-	u64     new_time;                  // New timebase  (0xFFFFFFFF_FFFFFFFF if unchanged)
+	u32     time_id;                   // ID of the time info entry so that these entries
+	                                   //   can be synced across multiple nodes
 	u32     reason;                    // Reason code for log entry:
 	                                   //     0 - WN_SET_TIME
 	                                   //     1 - BEACON
+	                                   //     2 - WN_ADD_LOG
+	u64     abs_time;                  // Absolute time (0xFFFFFFFF_FFFFFFFF if not known)
+	u64     new_time;                  // New timebase  (0xFFFFFFFF_FFFFFFFF if unchanged)
 } time_info_entry;
 
 #define TIME_INFO_ENTRY_WN_SET_TIME              0
 #define TIME_INFO_ENTRY_BEACON                   1
+#define TIME_INFO_ENTRY_WN_ADD_LOG               2
 
 
 //-----------------------------------------------

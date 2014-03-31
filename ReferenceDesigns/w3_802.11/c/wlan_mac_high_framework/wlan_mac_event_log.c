@@ -671,10 +671,12 @@ void event_log_increment_oldest_address( u64 end_address, u32 size ) {
 ******************************************************************************/
 int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 
-	int   status         = 1;            // Initialize status to FAILED
-	u32   return_address = 0;
+	int               status         = 1;            // Initialize status to FAILED
+	u32               return_address = 0;
 
-	u64   end_address;
+	u64               end_address;
+	node_info_entry * entry;
+
 
 	// If the log is empty, then set the flag to zero to indicate the log is not empty
 	if ( log_empty ) { log_empty = 0; }
@@ -714,6 +716,10 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 
 					// Increment the number of wraps
 					log_num_wraps += 1;
+
+					// Update the node_info_entry timestamp
+					entry = (node_info_entry *)(log_start_address + sizeof(entry_header));
+					entry->timestamp = get_usec_timestamp();
 
 					// Set the log_soft_end_address and allocate the new entry from the beginning of the buffer
 					log_soft_end_address = log_next_address;
@@ -781,6 +787,10 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 
 					// Increment the number of wraps
 					log_num_wraps += 1;
+
+					// Update the node_info_entry timestamp
+					entry = (node_info_entry *)(log_start_address + sizeof(entry_header));
+					entry->timestamp = get_usec_timestamp();
 
 					// Set the log_soft_end_address and allocate the new entry from the beginning of the buffer
 					log_soft_end_address = log_next_address;
@@ -1126,6 +1136,8 @@ void add_node_info_entry(u8 transmit){
 	entry = (node_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry) );
 
 	if ( entry != NULL ) {
+		entry->timestamp = get_usec_timestamp();
+
 		// Add the node parameters
 		temp0 = node_get_parameter_values( (u32 *)entry, max_words);
 

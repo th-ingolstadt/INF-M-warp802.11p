@@ -322,9 +322,10 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
         	time_info_entry_log_item = (time_info_entry*) entry;
 			xil_printf("%d: - Time Info entry\n", entry_number );
 			xil_printf("   Timestamp:  %d\n", (u32)(time_info_entry_log_item->timestamp));
+			xil_printf("   Time id  :  %d\n",       time_info_entry_log_item->time_id);
+			xil_printf("   Reason   :  %d\n",       time_info_entry_log_item->reason);
 			xil_printf("   Abs time :  $d\n", (u32)(time_info_entry_log_item->abs_time));
 			xil_printf("   New time :  %d\n", (u32)(time_info_entry_log_item->new_time));
-			xil_printf("   Reason   :  %d\n",       time_info_entry_log_item->reason);
         break;
 
 		case ENTRY_TYPE_TXRX_STATS:

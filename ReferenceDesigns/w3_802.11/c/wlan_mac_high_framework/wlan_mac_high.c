@@ -108,6 +108,9 @@ static u32			num_realloc;			///< Tracking variable for number of times realloc h
 // Statistics Flags
 u8                  promiscuous_stats_enabled;   ///< Are promiscuous statistics collected (1 = Yes / 0 = No)
 
+// Receive Antenna mode tracker
+u8                  rx_ant_mode_tracker = 0;     ///< Tracking variable for RX Antenna mode for CPU Low
+
 
 /******************************** Functions **********************************/
 
@@ -1551,6 +1554,7 @@ void wlan_mac_high_set_rx_ant_mode( u8 ant_mode ) {
 	switch(ant_mode){
 		case RX_ANTMODE_SISO_ANTA:
 		case RX_ANTMODE_SISO_ANTB:
+			rx_ant_mode_tracker = ant_mode;
 		break;
 		default:
 			xil_printf("Error: unsupported antenna mode %x\n", ant_mode);
