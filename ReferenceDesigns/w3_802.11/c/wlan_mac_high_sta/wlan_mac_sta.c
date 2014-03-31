@@ -76,6 +76,7 @@ mac_header_80211_common tx_header_common;
 tx_params default_unicast_mgmt_tx_params;
 tx_params default_unicast_data_tx_params;
 tx_params default_multicast_mgmt_tx_params;
+tx_params default_multicast_data_tx_params;
 
 int association_state;                      // Section 10.3 of 802.11-2012
 u8  uart_mode;
