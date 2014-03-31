@@ -18,7 +18,7 @@
 
 /***************************** Include Files *********************************/
 #include "xparameters.h"
-#include "stdlib.h"
+//#include "stdlib.h"
 #include "xil_types.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_schedule.h"
@@ -232,7 +232,7 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 *
 ******************************************************************************/
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
-	u32 i;
+
 
 	dl_entry*	next_entry_ptr;
 	dl_entry*	curr_entry_ptr;
@@ -243,13 +243,15 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 			num_fine_checks++;
 			next_entry_ptr = wlan_sched_fine.first;
 
-			for(i=0; i<(wlan_sched_fine.length); i++){
+			//for(i=0; i<(wlan_sched_fine.length); i++){
+			while(next_entry_ptr != NULL){
 				curr_entry_ptr = next_entry_ptr;
 				next_entry_ptr = dl_entry_next(next_entry_ptr);
 
 				curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
 				if(num_fine_checks >= (curr_sched_ptr->target)){
+				//	xil_printf("%d: FINE:   %d > %d\n", curr_sched_ptr->id, (u32)num_fine_checks, (u32)(curr_sched_ptr->target));
 					curr_sched_ptr->callback(curr_sched_ptr->id);
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
 						(curr_sched_ptr->num_calls)--;
@@ -283,7 +285,9 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 				curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
 				if(num_coarse_checks >= (curr_sched_ptr->target)){
+
 					curr_sched_ptr->callback(curr_sched_ptr->id);
+
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
 						(curr_sched_ptr->num_calls)--;
 					}

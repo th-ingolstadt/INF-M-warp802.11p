@@ -44,7 +44,6 @@
 //to cast back and forth between the tg_schedule and dl_entry.
 typedef struct tg_schedule tg_schedule;
 struct tg_schedule{
-	dl_entry entry;
 	u32 id;
 	u32 type;
 	u64 timestamp;
@@ -53,10 +52,6 @@ struct tg_schedule{
 	function_ptr_t cleanup_callback;
 	void* state;
 };
-
-//Helper macros for traversing the doubly-linked list
-#define tg_schedule_next(x) ( (tg_schedule*)dl_entry_next(&(x->entry)) )
-#define tg_schedule_prev(x) ( (tg_schedule*)dl_entry_prev(&(x->entry)) )
 
 //LTG Schedules
 
@@ -112,10 +107,10 @@ int ltg_sched_start(u32 id);
 int ltg_sched_start_all();
 int ltg_sched_stop(u32 id);
 int ltg_sched_stop_all();
-int ltg_sched_start_l(tg_schedule* curr_tg);
-int ltg_sched_stop_l(tg_schedule* curr_tg);
+int ltg_sched_start_l(dl_entry* curr_tg_dl_entry);
+int ltg_sched_stop_l(dl_entry* curr_tg_dl_entry);
 int ltg_sched_get_state(u32 id, u32* type, void** state);
-int ltg_sched_get_params(u32 id, u32* type, void** params);
+int ltg_sched_get_params(u32 id, void** params);
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
 
 // WLAN Exp function to LTG -- users may call these directly or modify if needed
@@ -124,9 +119,9 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
 
 //Internal functions to LTG -- users should not need to call these directly
 void ltg_sched_check();
-tg_schedule* ltg_sched_create();
-void ltg_sched_destroy(tg_schedule* tg);
+dl_entry* ltg_sched_create();
+void ltg_sched_destroy(dl_entry* tg_dl_entry);
 void ltg_sched_destroy_params(tg_schedule *tg);
-tg_schedule* ltg_sched_find_tg_schedule(u32 id);
+dl_entry* ltg_sched_find_tg_schedule(u32 id);
 
 #endif /* WLAN_MAC_LTG_H_ */

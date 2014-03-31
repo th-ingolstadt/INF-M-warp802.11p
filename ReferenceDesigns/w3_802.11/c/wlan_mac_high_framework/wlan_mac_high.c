@@ -51,6 +51,8 @@ extern int __bss_start;	 ///< Start address of the bss section
 extern int __bss_end;	 ///< End address of the bss section
 extern int _heap_start;	 ///< Start address of the heap
 extern int _HEAP_SIZE;	 ///< Size of the heap
+extern int _stack_end;
+extern int __stack;
 
 
 /*************************** Variable Definitions ****************************/
@@ -185,6 +187,9 @@ void wlan_mac_high_init(){
 	// Initialize the utility library
 	// ***************************************************
 	wlan_lib_init();
+
+	mtshr(&__stack);
+	mtslr(&_stack_end);
 
 	// ***************************************************
     // Initialize callbacks and global state variables
