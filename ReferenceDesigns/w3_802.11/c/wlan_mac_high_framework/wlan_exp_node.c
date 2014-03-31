@@ -71,6 +71,12 @@ extern tx_params           default_unicast_data_tx_params;
 
 extern dl_list		       association_table;
 
+extern tx_params           default_unicast_mgmt_tx_params;
+extern tx_params           default_unicast_data_tx_params;
+extern tx_params           default_multicast_mgmt_tx_params;
+extern tx_params           default_multicast_data_tx_params;
+
+
 
 /*************************** Variable Definitions ****************************/
 
@@ -335,6 +341,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u64           time;
 	u64           new_time;
 	u64           abs_time;
+	u32           rate;
+	u32           ant_mode;
+	u32           type;
 
 	u32           entry_size;
 	u32           entry_remaining;
@@ -553,7 +562,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					// Update User IO
 					xil_printf("\n!!! Waiting for Network Configuration !!! \n\n");
             	} else {
-                    xil_printf("NODE_CONFIG_RESET Packet ignored.  Network already reset for node %d.\n", node_info.node);
+                    xil_printf("NODE_CONFIG_RESET Packet ignored.  Network configuration already reset on node.\n");
                     xil_printf("    Use NODE_CONFIG_SETUP command to set the network configuration.\n\n");
             	}
             } else {
@@ -821,12 +830,27 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				    xil_printf("Setting TX power = %d\n", power);
 
 		        	// Set the default power for new associations
+				    default_unicast_mgmt_tx_params.phy.power = power;
+				    default_unicast_data_tx_params.phy.power = power;
 
-		        	// Update the Tx power in each current association
+				    // Update the Tx power in each current association
+					curr_list  = get_station_info_list();
+					curr_entry = curr_list->first;
+
+					for(i=0; i < curr_list->length; i++){
+						curr_station_info = (station_info*)(curr_entry->data);
+						curr_station_info->tx.phy.power = power;
+						curr_entry = dl_entry_next(curr_entry);
+					}
 
 		        	// Set the multicast power
+				    default_multicast_mgmt_tx_params.phy.power = power;
+				    default_multicast_data_tx_params.phy.power = power;
 
 		        	// Send IPC to CPU low to set the Tx power for control frames
+
+				    // TODO !!!
+
 
 		        } else {
 					// Get default power for new associations
@@ -855,61 +879,78 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			//   - cmdArgs32[2]      - Type
 			//   - cmdArgs32[3]      - Rate
 
-			// TODO:  THIS NEEDS TO BE UPDATED FOR TYPE WHEN IMPLEMENTED IN FRAMEWORK
-
 			// Get MAC Address
         	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
         	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
-			// Local variables
-			u32  rate;
-
-        	// Get node TX rate and adjust so that it is a legal value
+        	// Get node TX type and rate and adjust so that it is a legal value
+			type = Xil_Ntohl(cmdArgs32[2]);
 			rate = Xil_Ntohl(cmdArgs32[3]);
 
-			if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
-			if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
+			// If parameter is not the magic number, then adjust the rate so that
+			// it falls in an acceptable range
+			if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+				if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
+				if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
+			}
 
-			curr_list = get_station_info_list();
+			// Check the type and perform the correct operation
+			if (type == NODE_UNICAST_VAL) {
+				curr_list = get_station_info_list();
 
-			// If the ID is not for all nodes, configure the node
-			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-				// Set the rate of the station
-
-				curr_entry = curr_list->first;
-
-				for(i=0; i < curr_list->length; i++){
-					curr_station_info = (station_info*)(curr_entry->data);
-					if (curr_station_info->AID == id){
-						// If parameter is not the magic number, then set the TX rate
-						if ( rate != NODE_TX_RATE_RSVD_VAL ) {
-							curr_station_info->tx.phy.rate = rate;
-							xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
-						} else {
-							rate = curr_station_info->tx.phy.rate;
-						}
-						break;
-					}
-					curr_entry = dl_entry_next(curr_entry);
-				}
-			} else {
-				// If parameter is not the magic number, then set the TX rate
-				if ( rate != NODE_TX_RATE_RSVD_VAL ) {
-					// Set the rate of all stations
-					default_unicast_data_tx_params.phy.rate = rate;
+				// If the ID is not for all nodes, configure the node
+				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+					// Set the rate of the station
 					curr_entry = curr_list->first;
 
 					for(i=0; i < curr_list->length; i++){
 						curr_station_info = (station_info*)(curr_entry->data);
-						curr_station_info->tx.phy.rate = default_unicast_data_tx_params.phy.rate;
-						curr_entry        = dl_entry_next(curr_entry);
+						if (curr_station_info->AID == id){
+							// If parameter is not the magic number, then set the TX rate
+							if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+								curr_station_info->tx.phy.rate = rate;
+								xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
+							} else {
+								rate = curr_station_info->tx.phy.rate;
+							}
+							break;
+						}
+						curr_entry = dl_entry_next(curr_entry);
 					}
+				} else {
+					// If parameter is not the magic number, then set the TX rate
+					if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+						// Set the default unicast rate
+						default_unicast_data_tx_params.phy.rate = rate;
 
-					xil_printf("Setting Default TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(default_unicast_data_tx_params.phy.rate));
+						// Set the rate of all stations
+						curr_entry = curr_list->first;
+
+						for(i=0; i < curr_list->length; i++){
+							curr_station_info = (station_info*)(curr_entry->data);
+							curr_station_info->tx.phy.rate = rate;
+							curr_entry        = dl_entry_next(curr_entry);
+						}
+
+						xil_printf("Setting Default Unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+					} else {
+						// Get the default rate
+						rate = default_unicast_data_tx_params.phy.rate;
+					}
+				}
+			} else if (type == NODE_MULTICAST_VAL) {
+				// If parameter is not the magic number, then set the TX rate
+				if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+					// Set the default multicast rate
+					default_multicast_data_tx_params.phy.rate = rate;
+
+					xil_printf("Setting Default Multicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
 				} else {
 					// Get the default rate
-					rate = default_unicast_data_tx_params.phy.rate;
+					rate = default_multicast_data_tx_params.phy.rate;
 				}
+			} else {
+				xil_printf("WARNING:  Unknown type for NODE_TX_RATE: %d \n", type);
 			}
 
 			// Send response of current rate
@@ -918,6 +959,95 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_TX_ANT_MODE:
+            // NODE_TX_ANT_MODE Packet Format:
+			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all nodes)
+			//   - cmdArgs32[2]      - Type
+			//   - cmdArgs32[3]      - Antenna Mode
+
+			// Get MAC Address
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+        	// Get node TX type and rate and adjust so that it is a legal value
+			type     = Xil_Ntohl(cmdArgs32[2]);
+			ant_mode = Xil_Ntohl(cmdArgs32[3]);
+
+			// NOTE:  This method assumes that the Antenna mode received is valid.
+			// The checking will be done on either the host, in CPU Low or both.
+
+			// Check the type and perform the correct operation
+			if (type == NODE_UNICAST_VAL) {
+				curr_list = get_station_info_list();
+
+				// If the ID is not for all nodes, configure the node
+				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+					// Set the rate of the station
+					curr_entry = curr_list->first;
+
+					for(i=0; i < curr_list->length; i++){
+						curr_station_info = (station_info*)(curr_entry->data);
+						if (curr_station_info->AID == id){
+							// If parameter is not the magic number, then set the TX rate
+							if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
+								curr_station_info->tx.phy.antenna_mode = ant_mode;
+								xil_printf("Setting TX antenna mode on AID %d to %d \n", id, ant_mode);
+							} else {
+								ant_mode = curr_station_info->tx.phy.antenna_mode;
+							}
+							break;
+						}
+						curr_entry = dl_entry_next(curr_entry);
+					}
+				} else {
+					// If parameter is not the magic number, then set the TX rate
+					if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
+						// Set the default unicast rate
+						default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
+
+						// Set the rate of all stations
+						curr_entry = curr_list->first;
+
+						for(i=0; i < curr_list->length; i++){
+							curr_station_info = (station_info*)(curr_entry->data);
+							curr_station_info->tx.phy.antenna_mode = ant_mode;
+							curr_entry        = dl_entry_next(curr_entry);
+						}
+
+						xil_printf("Setting Default Unicast TX antenna mode to %d \n", ant_mode);
+					} else {
+						// Get the default rate
+						ant_mode = default_unicast_data_tx_params.phy.antenna_mode;
+					}
+				}
+			} else if (type == NODE_MULTICAST_VAL) {
+				// If parameter is not the magic number, then set the TX rate
+				if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
+					// Set the default multicast rate
+					default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
+					default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+
+					xil_printf("Setting Default Multicast TX antenna mode to %d\n", ant_mode);
+				} else {
+					// Get the default rate
+					ant_mode = (default_multicast_mgmt_tx_params.phy.antenna_mode << 16) + default_multicast_data_tx_params.phy.antenna_mode;
+				}
+			} else {
+				xil_printf("WARNING:  Unknown type for NODE_TX_ANT_MODE: %d \n", type);
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( ant_mode );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//wlan_mac_high_set_rx_ant_mode
 
 
 		// Case NODE_CHANNEL is implemented in the child classes
@@ -1007,6 +1137,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
             // Local variables
+        	int            running = -1;
 			u32            s1, s2, t1, t2;
 			void *         ltg_callback_arg;
         	void *         params;
@@ -1017,7 +1148,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				// Check to see if LTG ID already exists
 				if( ltg_sched_get_callback_arg( id, &ltg_callback_arg ) == 0 ) {
 					// This LTG has already been configured. We need to free the old callback argument so we can create a new one.
-					ltg_sched_stop( id );
+					running = ltg_sched_stop( id );
 					wlan_mac_high_free( ltg_callback_arg );
 				}
 
@@ -1031,6 +1162,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					status = ltg_sched_configure( id, t1, params, ltg_callback_arg, &node_ltg_cleanup );
 
 					xil_printf("LTG %d configured\n", id);
+
+					if (running == 0) {
+						xil_printf("Re-starting LTG %d\n", id);
+						ltg_sched_start( id );
+					}
 				} else {
 					xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg\n");
 				}
