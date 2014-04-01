@@ -339,14 +339,26 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
-		n_slots = rand_num_slots();
+
 
 		//TODO: tx ant_mode will eventually be a part of wlan_mac_MPDU_tx_params_g()
 		wlan_tx_config_ant_mode(mpdu_info->params.phy.antenna_mode);
 //		wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
-		wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
+
+		if(i == 0){
+			//This is the first transmission, so we speculatively draw a backoff in case
+			//the backoff counter is currently 0 but the medium is busy. Prior to all other
+			//(re)transmissions, an explicit backoff will have been started at the end of
+			//the previous iteration of this loop.
+			n_slots = rand_num_slots();
+			wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
+		} else {
+			wlan_mac_MPDU_tx_params_g(pkt_buf, 0, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
+		}
+
+
 
 		//Submit the MPDU for transmission
 		wlan_mac_MPDU_tx_start(1);
@@ -370,7 +382,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				low_tx_details[i].phy_params.power = mpdu_info->params.phy.power;
 				low_tx_details[i].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
 				low_tx_details[i].chan_num = wlan_mac_low_get_active_channel();
-				low_tx_details[i].num_slots = 0; //TODO
+				low_tx_details[i].num_slots = n_slots; //TODO
+				low_tx_details[i].cw = (1 << cw_exp)-1; //(2^(CW_EXP) - 1)
 			}
 			tx_status = wlan_mac_get_status();
 
