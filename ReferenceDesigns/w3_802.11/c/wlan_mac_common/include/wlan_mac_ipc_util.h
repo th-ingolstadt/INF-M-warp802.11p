@@ -121,9 +121,10 @@ typedef struct {
 typedef struct {
 	u32   tx_start_delta;
 	phy_tx_params phy_params;
-	u16   num_slots; //TODO
+	u16   num_slots;
+	u16	  cw;
 	u8 	  chan_num;
-	u8 	  padding;
+	u8 	  padding[3];
 } wlan_mac_low_tx_details;
 
 
