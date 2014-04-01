@@ -116,6 +116,7 @@ typedef struct{
 	u64     timestamp;                 // Timestamp of the log entry
 	station_info_base info;            // Framework's station_info struct
 } station_info_entry;
+
 CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
 
 
@@ -271,8 +272,9 @@ typedef struct{
 	u8 	 chan_num;
 	u16  length;
 	u16  num_slots;
+	u16  cw;
 	u8 	 pkt_type;
-	u8	 reserved[1];
+	u8	 reserved[3];
 	u32 mac_payload_log_len; //number of payload bytes actually recorded in log entry
 	u32 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4]; //store as u32's to preserve alignment
 } tx_low_entry;
