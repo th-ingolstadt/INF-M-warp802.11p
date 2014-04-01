@@ -1139,13 +1139,13 @@ void add_node_info_entry(u8 transmit){
 		entry->timestamp = get_usec_timestamp();
 
 		// Add the node parameters
-		temp0 = node_get_parameter_values( (u32 *)entry, max_words);
+		temp0 = node_get_parameter_values( (u32 *)&(entry->type), max_words);
 
 		// Check to make sure that there was no mismatch in sizes
 		//   NOTE: During initialization of the log, the hardware parameters are not yet defined.
 		//       Therefore, we need to ignore when we get zero and be sure to reset the log
 		//       before normal operation
-		if ( (temp0 != max_words) && (temp0 != 0) ) {
+		if ( (temp0 != (max_words - 2)) && (temp0 != 0) ) {
 			xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
 			print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
 		}
