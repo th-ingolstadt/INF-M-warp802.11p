@@ -76,6 +76,7 @@ typedef struct{
 	u64 timestamp_create;
 	u32 delay_accept;
 	u32 delay_done;
+	u64	unique_seq;
 	u8 state;
 	u8 state_verbose;
 	u8 flags;
