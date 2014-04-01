@@ -504,6 +504,7 @@ entry_tx.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('time_to_accept',         'I',      'uint32'),
             ('time_to_done',           'I',      'uint32'),
+            ('unique_seq',             'Q',      'uint64'),
             ('num_tx',                 'B',      'uint8'),
             ('tx_power',               'b',      'int8'),
             ('chan_num',               'B',      'uint8'),
@@ -523,6 +524,7 @@ entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LO
 entry_tx_low.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
+            ('unique_seq',             'Q',      'uint64'),
             ('rate',                   'B',      'uint8'),
             ('ant_mode',               'B',      'uint8'),
             ('tx_power',               'b',      'int8'),
