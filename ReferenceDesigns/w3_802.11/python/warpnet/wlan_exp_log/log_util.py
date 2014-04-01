@@ -412,6 +412,7 @@ def _get_safe_filename(filename):
 
             # Break the loop if we found a unique file name
             if not os.path.isfile(safe_filename):
+                print('Warning: Using replacement file name "{0}" in place of requested "{1}"'.format(safe_filename, filename))
                 break
     else:
         # File didn't exist - use name as provided
