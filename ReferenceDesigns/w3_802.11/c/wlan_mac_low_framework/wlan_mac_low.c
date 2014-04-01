@@ -33,6 +33,7 @@
 
 static u32					mac_param_chan; 										///< Current channel of the lower-level MAC
 static u8           		mac_param_band;											///< Current band of the lower-level MAC
+static s8					mac_param_ctrl_tx_pow;									///< Current transmit power (dBm) for control packets
 static u8   				rx_pkt_buf;												///< Current receive buffer of the lower-level MAC
 static u32  				cpu_low_status;											///< Status flags that are reported to upper-level MAC
 static wlan_mac_hw_info    	hw_info;												///< Information about the hardware reported to upper-level MAC
@@ -61,6 +62,7 @@ int wlan_mac_low_init(u32 type){
 	wlan_ipc_msg ipc_msg_to_high;
 
 	mac_param_band = RC_24GHZ;
+	mac_param_ctrl_tx_pow = 10;
 	cpu_low_status = 0;
 
 	frame_rx_callback	= (function_ptr_t)nullCallback;
@@ -253,6 +255,10 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				mac_param_chan = ipc_msg_from_high_payload[0];
 				//TODO: allow mac_param_chan to select 5GHz channels
 				radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, mac_param_chan);
+			break;
+
+			case IPC_MBOX_CONFIG_TX_CTRL_POW:
+				mac_param_ctrl_tx_pow = (s8)ipc_msg_from_high_payload[0];
 			break;
 
 			case IPC_MBOX_CONFIG_RX_ANT_MODE:
@@ -500,6 +506,10 @@ wlan_mac_hw_info* wlan_mac_low_get_hw_info(){
  */
 u32 wlan_mac_low_get_active_channel(){
 	return mac_param_chan;
+}
+
+s8 wlan_mac_low_get_current_ctrl_tx_pow(){
+	return mac_param_ctrl_tx_pow;
 }
 
 

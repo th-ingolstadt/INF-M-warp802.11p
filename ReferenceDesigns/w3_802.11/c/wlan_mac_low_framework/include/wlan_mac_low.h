@@ -180,6 +180,7 @@ void process_config_mac(ipc_config_mac* config_mac);
 void wlan_mac_low_init_hw_info( u32 type );
 wlan_mac_hw_info* wlan_mac_low_get_hw_info();
 u32 wlan_mac_low_get_active_channel();
+s8 wlan_mac_low_get_current_ctrl_tx_pow();
 inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);
 inline u32 wlan_mac_low_poll_frame_rx();
 void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
