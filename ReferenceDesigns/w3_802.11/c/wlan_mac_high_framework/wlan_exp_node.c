@@ -1195,8 +1195,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				}
 
 				// Get Schedule
-				params           = ltg_sched_deserialize( &(((u32 *)cmdArgs)[2]), &t1, &s1 );
-				ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[3 + s1]), &t2, &s2);
+				params           = ltg_sched_deserialize( &(((u32 *)cmdArgs)[3]), &t1, &s1 );
+				ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[4 + s1]), &t2, &s2);
 
 				if( (ltg_callback_arg != NULL) && (params != NULL) ) {
 					memcpy(((ltg_pyld_hdr*)ltg_callback_arg)->addr_da,mac_addr,6);
