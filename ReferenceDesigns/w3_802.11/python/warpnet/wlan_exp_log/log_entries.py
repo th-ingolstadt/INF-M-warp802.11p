@@ -89,6 +89,7 @@ class WlanExpLogEntryType(object):
 
     fields_np_dt        = None
     fields_fmt_struct   = None
+    field_offsets       = None 
 
     gen_numpy_callbacks = None
 
@@ -127,6 +128,10 @@ class WlanExpLogEntryType(object):
         # Initialize dictionary to contain constants specific to each entry type 
         self.consts = dict()
 
+        # Initialize variable that contains field names and byte offsets 
+        self.field_offsets       = {} 
+
+
     #-------------------------------------------------------------------------
     # Accessor methods for the WlanExpLogEntryType
     #-------------------------------------------------------------------------
@@ -137,6 +142,8 @@ class WlanExpLogEntryType(object):
         return [field_fmt_struct for (field_name, field_fmt_struct, field_fmt_np) in self._fields]
 
     def get_field_defs(self):          return self._fields
+
+    def get_field_offsets(self):       return self.field_offsets
 
     def get_entry_type_id(self):       return self.entry_type_id
 
@@ -255,6 +262,9 @@ class WlanExpLogEntryType(object):
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
+        # Update the field offsets 
+        self.field_offsets = dict(zip(names, offsets))
+        
         # Check our definitions of struct vs numpy are in sync
         struct_size = calcsize(self.fields_fmt_struct)
         np_size     = self.fields_np_dt.itemsize
