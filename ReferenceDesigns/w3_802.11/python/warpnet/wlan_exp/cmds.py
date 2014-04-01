@@ -534,7 +534,7 @@ class NodeProcTime(wn_message.Cmd):
                 self.add_args(TIME_ADD_TO_LOG)
 
                 # Send the reserved value
-                time_to_send = (2*32 * TIME_RSVD) + TIME_RSVD
+                time_to_send = (TIME_RSVD << 32) + TIME_RSVD
 
             # Get the current time on the host
             now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
