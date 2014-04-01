@@ -335,7 +335,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
-	u32 ts_old = 0;
+	u64 ts_old = 0;
 	u32 payload_log_len;
 	u32 total_payload_len = min(tx_mpdu->length + sizeof(mac_header_80211) , mac_payload_log_len);
 
