@@ -159,8 +159,8 @@ typedef struct{
 	                                   //     0 - WN_SET_TIME
 	                                   //     1 - BEACON
 	                                   //     2 - WN_ADD_LOG
-	u64     abs_time;                  // Absolute time (0xFFFFFFFF_FFFFFFFF if not known)
 	u64     new_time;                  // New timebase  (0xFFFFFFFF_FFFFFFFF if unchanged)
+	u64     abs_time;                  // Absolute time (0xFFFFFFFF_FFFFFFFF if not known)
 } time_info_entry;
 
 #define TIME_INFO_ENTRY_WN_SET_TIME              0

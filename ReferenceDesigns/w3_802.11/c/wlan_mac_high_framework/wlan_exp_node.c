@@ -1122,6 +1122,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				temp2    = Xil_Ntohl(cmdArgs32[5]);
 				abs_time = (((u64)temp2)<<32) + ((u64)temp);
 
+				xil_printf("WARPNET:  Absolute time = 0x%08x 0x%08x\n", temp2, temp);
+
 				// Create a time info log entry
 				time_entry = get_next_empty_time_info_entry();
 
