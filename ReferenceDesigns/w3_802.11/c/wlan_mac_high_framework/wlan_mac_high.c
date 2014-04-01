@@ -1340,7 +1340,10 @@ void wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, dl_ent
 	tx_queue->frame_info.timestamp_create			 = get_usec_timestamp();
 	tx_queue->frame_info.length          			 = tx_length;
 	tx_queue->frame_info.flags           			 = flags;
-	tx_queue->frame_info.unique_seq					 = header->seq_num;
+	tx_queue->frame_info.unique_seq					 = (header->seq_num)-1; //FIXME. This is very counterintuitive and needs to be fixed. Basically,
+																			//the seq_num field gets incremented just after it is inserted into the
+																			//the MAC header. If this function is called after that (dangerous assumption),
+																			//then we should decrement the value recognizing it had previously been incremented.
 }
 
 /*****************************************************************************/
