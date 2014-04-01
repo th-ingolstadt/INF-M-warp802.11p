@@ -445,8 +445,8 @@ entry_wn_cmd_info.append_field_defs([
 
 
 # Time Info
-entry_wn_cmd_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
-entry_wn_cmd_info.append_field_defs([
+entry_time_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
+entry_time_info.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('new_time',               'Q',      'uint64'),
             ('abs_time',               'Q',      'uint64'),
