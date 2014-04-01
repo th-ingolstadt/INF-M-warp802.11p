@@ -89,8 +89,6 @@ class WlanExpLogEntryType(object):
 
     fields_np_dt        = None
     fields_fmt_struct   = None
-    
-    field_offsets       = None
 
     gen_numpy_callbacks = None
 
@@ -120,11 +118,8 @@ class WlanExpLogEntryType(object):
         # Initialize fields to empty lists
         self._fields             = []
 
-        # Initialize unpack variable
+        # Initialize unpack variables
         self.fields_fmt_struct   = ''
-
-        # Initialize variable that contains field names and byte offsets
-        self.field_offsets       = {}
         
         # Initialize callbacks
         self.gen_numpy_callbacks = []
@@ -142,8 +137,6 @@ class WlanExpLogEntryType(object):
         return [field_fmt_struct for (field_name, field_fmt_struct, field_fmt_np) in self._fields]
 
     def get_field_defs(self):          return self._fields
-
-    def get_field_offsets(self):       return self.field_offsets
 
     def get_entry_type_id(self):       return self.entry_type_id
 
@@ -262,9 +255,6 @@ class WlanExpLogEntryType(object):
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
-        # Update the field offsets
-        self.field_offsets = {names[idx]: offsets[idx] for idx in range(len(names))}
-
         # Check our definitions of struct vs numpy are in sync
         struct_size = calcsize(self.fields_fmt_struct)
         np_size     = self.fields_np_dt.itemsize
@@ -302,8 +292,8 @@ def np_array_add_MAC_addr_fields(np_arr_orig):
 
         # Create a new numpy dtype with additional fields
         dt_new = extend_np_dt(np_arr_orig.dtype,
-                {'names': ('addr1', 'addr2', 'addr3'),
-                 'formats': ('uint64', 'uint64', 'uint64')})
+                {'names': ('addr1', 'addr2', 'addr3', 'mac_seq'),
+                 'formats': ('uint64', 'uint64', 'uint64', 'uint16')})
 
         #Initialize the output array (same shape, new dtype)
         np_arr_out = np.zeros(np_arr_orig.shape, dtype=dt_new)
@@ -327,6 +317,8 @@ def np_array_add_MAC_addr_fields(np_arr_orig):
         np_arr_out['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 4:10]))
         np_arr_out['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,10:16]))
         np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,16:22]))
+
+        np_arr_out['mac_seq'] = np.dot(mac_hdrs[:,22:24], [1, 256]) // 16
 
         return np_arr_out
 
@@ -393,7 +385,6 @@ entry_rx_common.append_field_defs([
 #-----------------------------------------------------------------------------
 # Log Entry Type Instances
 #-----------------------------------------------------------------------------
-
 # Node Info
 entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
 entry_node_info.append_field_defs([
@@ -457,10 +448,9 @@ entry_wn_cmd_info.append_field_defs([
 entry_wn_cmd_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
 entry_wn_cmd_info.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
-            ('time_id',                'I',      'uint32'),
-            ('reason',                 'I',      'uint32'),
             ('new_time',               'Q',      'uint64'),
-            ('abs_time',               'Q',      'uint64')])
+            ('abs_time',               'Q',      'uint64'),
+            ('reason',                 'I',      'uint32')])
 
 
 # Temperature
@@ -504,7 +494,7 @@ entry_tx.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('time_to_accept',         'I',      'uint32'),
             ('time_to_done',           'I',      'uint32'),
-            ('unique_seq',             'Q',      'uint64'),
+            ('uniq_seq',               'Q',      'uint64'),
             ('num_tx',                 'B',      'uint8'),
             ('tx_power',               'b',      'int8'),
             ('chan_num',               'B',      'uint8'),
@@ -518,13 +508,12 @@ entry_tx.append_field_defs([
             ('mac_payload',            '24s',    '24uint8')])
 entry_tx.consts['SUCCESS'] = 0
 
-
 # Transmit from CPU Low
 entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
 entry_tx_low.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
-            ('unique_seq',             'Q',      'uint64'),
+            ('uniq_seq',               'Q',      'uint64'),
             ('rate',                   'B',      'uint8'),
             ('ant_mode',               'B',      'uint8'),
             ('tx_power',               'b',      'int8'),
@@ -533,8 +522,9 @@ entry_tx_low.append_field_defs([
             ('chan_num',               'B',      'uint8'),
             ('length',                 'H',      'uint16'),
             ('num_slots',              'H',      'uint16'),
+            ('cw',                     'H',      'uint16'),
             ('pkt_type',               'B',      'uint8'),
-            ('padding',                'x',      'uint8'),
+            ('padding',                '3x',     '3uint8'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
 
