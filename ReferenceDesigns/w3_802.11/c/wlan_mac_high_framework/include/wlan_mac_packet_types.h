@@ -21,8 +21,9 @@ typedef struct{
 	u8* address_1;
 	u8* address_2;
 	u8* address_3;
-	u16 seq_num;
 	u8 frag_num;
+	u8 reserved;
+	u64 seq_num;
 } mac_header_80211_common;
 
 typedef struct{

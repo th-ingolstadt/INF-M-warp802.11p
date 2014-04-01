@@ -32,6 +32,7 @@
 
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_high.h"
+#include "wlan_mac_misc_util.h"
 
 #define WLAN_MAC_ENTRIES_LOG_CHAN_EST
 
@@ -242,6 +243,7 @@ typedef struct{
 	u64  timestamp_create;
 	u32  delay_accept;
 	u32  delay_done;
+	u64	 unique_seq;
 	u8   num_tx;
 	s8 	 power;
 	u8 	 chan_num;
@@ -263,6 +265,7 @@ typedef struct{
 //
 typedef struct{
 	u64  timestamp_send;
+	u64	 unique_seq;
 	phy_tx_params phy_params;
 	u8	 transmission_count;
 	u8 	 chan_num;

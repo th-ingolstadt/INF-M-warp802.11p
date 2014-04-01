@@ -1326,20 +1326,21 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
 }
 
 
-void wlan_mac_high_setup_tx_frame_info( dl_entry * tx_queue_entry, u32 tx_length, u8 flags  ) {
+void wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, dl_entry * tx_queue_entry, u32 tx_length, u8 flags  ) {
 
 	tx_queue_buffer* tx_queue = ((tx_queue_buffer*)(tx_queue_entry->data));
 
     // Set up metadata
 	tx_queue->metadata.metadata_ptr = QUEUE_METADATA_TYPE_IGNORE; //By default, this frame won't point to any extra metadata.
-																							  //This field should be overwritten by usercode after this function
-																							  //is called.
+																  //This field should be overwritten by usercode after this function
+																  //is called.
 	bzero(&(tx_queue->frame_info), sizeof(tx_frame_info));
 
 	// Set up frame info data
 	tx_queue->frame_info.timestamp_create			 = get_usec_timestamp();
 	tx_queue->frame_info.length          			 = tx_length;
 	tx_queue->frame_info.flags           			 = flags;
+	tx_queue->frame_info.unique_seq					 = header->seq_num;
 }
 
 /*****************************************************************************/

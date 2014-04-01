@@ -390,6 +390,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   Creation Time:    %d\n",		(u32)(tx_high_entry_log_item->timestamp_create));
 			xil_printf("   Accept Delay:     %d\n",		(u32)(tx_high_entry_log_item->delay_accept));
 			xil_printf("   Done Delay:       %d\n",		(u32)(tx_high_entry_log_item->delay_done));
+			xil_printf("   Tx Unique Seq:    %d\n",		(u32)(tx_high_entry_log_item->unique_seq));
 			xil_printf("   Tx Power:         %d\n",     tx_high_entry_log_item->power);
 			xil_printf("   Rate:             %d\n",     tx_high_entry_log_item->rate);
 			xil_printf("   Length:           %d\n",     tx_high_entry_log_item->length);
@@ -403,6 +404,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			tx_low_entry_log_item = (tx_low_entry*) entry;
 			xil_printf("%d: - Tx Low Event\n", entry_number);
 			xil_printf("   Tx Start Time:    %d\n",		(u32)(tx_low_entry_log_item->timestamp_send));
+			xil_printf("   Tx Unique Seq:    %d\n",		(u32)(tx_low_entry_log_item->unique_seq));
 			xil_printf("   Tx Count:         %d\n",		tx_low_entry_log_item->transmission_count);
 			xil_printf("   Power:            %d\n",     tx_low_entry_log_item->phy_params.power);
 			xil_printf("   Rate:             %d\n",     tx_low_entry_log_item->phy_params.rate);
