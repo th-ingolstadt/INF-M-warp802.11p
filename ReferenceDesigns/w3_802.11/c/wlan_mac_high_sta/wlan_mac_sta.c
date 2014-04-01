@@ -352,6 +352,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 			tx_low_event_log_entry->timestamp_send            = (u64)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + (u64)ts_old);
 			tx_low_event_log_entry->chan_num                  = tx_low_details[i].chan_num;
 			tx_low_event_log_entry->num_slots				  = tx_low_details[i].num_slots;
+			tx_low_event_log_entry->cw						  = tx_low_details[i].cw;
 			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details[i].phy_params), sizeof(phy_tx_params));
 			tx_low_event_log_entry->length                    = tx_mpdu->length;
 			tx_low_event_log_entry->pkt_type				  = pkt_type;
