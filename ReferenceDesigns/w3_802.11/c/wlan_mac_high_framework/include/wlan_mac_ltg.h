@@ -46,7 +46,7 @@ typedef struct tg_schedule tg_schedule;
 struct tg_schedule{
 	u32 id;
 	u32 type;
-	u64 timestamp;
+	u64 target;
 	void* params;
 	void* callback_arg;
 	function_ptr_t cleanup_callback;
@@ -61,17 +61,17 @@ typedef struct {
 } ltg_sched_state_hdr;
 
 typedef struct {
-	u32 interval_usec;
+	u32 interval_count;
 } ltg_sched_periodic_params;
 
 typedef struct {
 	ltg_sched_state_hdr hdr;
-	u32 time_to_next_usec;
+	u32 time_to_next_count;
 } ltg_sched_periodic_state;
 
 typedef struct {
-	u32 min_interval;
-	u32 max_interval;
+	u32 min_interval_count;
+	u32 max_interval_count;
 } ltg_sched_uniform_rand_params;
 
 typedef struct {
@@ -97,6 +97,11 @@ typedef struct {
 	u16 min_length;
 	u16 max_length;
 } ltg_pyld_uniform_rand;
+
+
+//Note: This definition simply reflects the use of the fast timer for LTG polling. To increase LTG
+//polling rate at the cost of more overhead in checking LTGs, increase the speed of the fast timer.
+#define LTG_POLL_INTERVAL FAST_TIMER_DUR_US
 
 //External function to LTG -- user code interacts with the LTG via these functions
 int wlan_mac_ltg_sched_init();
