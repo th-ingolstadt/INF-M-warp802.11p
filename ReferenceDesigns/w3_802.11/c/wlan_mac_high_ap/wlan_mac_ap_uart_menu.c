@@ -376,7 +376,7 @@ void uart_rx(u8 rxByte){
 						switch(curr_traffic_type){
 							case TRAFFIC_TYPE_PERIODIC_FIXED:
 								if(ltg_callback_arg != NULL){
-									periodic_params.interval_usec = str2num(text_entry);
+									periodic_params.interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
 									ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
 									ltg_sched_start(AID_TO_LTG_ID(curr_aid));
 								} else {
@@ -386,8 +386,8 @@ void uart_rx(u8 rxByte){
 							break;
 							case TRAFFIC_TYPE_RAND_RAND:
 								if(ltg_callback_arg != NULL){
-									rand_params.min_interval = 0;
-									rand_params.max_interval = str2num(text_entry);
+									rand_params.min_interval_count = 0;
+									rand_params.max_interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
 									ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_UNIFORM_RAND, &rand_params, ltg_callback_arg, &ltg_cleanup);
 									ltg_sched_start(AID_TO_LTG_ID(curr_aid));
 								} else {
@@ -555,11 +555,11 @@ void print_station_status(){
 					switch(ltg_sched_type){
 						case LTG_SCHED_TYPE_PERIODIC:
 							xil_printf("  Periodic LTG Schedule Enabled\n");
-							xil_printf("  Packet Tx Interval: %d microseconds\n", ((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_usec);
+							xil_printf("  Packet Tx Interval: %d microseconds\n", LTG_POLL_INTERVAL*((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_count);
 						break;
 						case LTG_SCHED_TYPE_UNIFORM_RAND:
 							xil_printf("  Uniform Random LTG Schedule Enabled\n");
-							xil_printf("  Packet Tx Interval: Uniform over range of [%d,%d] microseconds\n", ((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->min_interval,((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->max_interval);
+							xil_printf("  Packet Tx Interval: Uniform over range of [%d,%d] microseconds\n", LTG_POLL_INTERVAL*((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->min_interval_count, LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->max_interval_count);
 						break;
 					}
 
@@ -621,7 +621,7 @@ void print_all_observed_statistics(){
 	for(i=0; i<statistics_table.length; i++){
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 
-#if 0
+
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
 		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_rx_timestamp);
@@ -636,7 +636,7 @@ void print_all_observed_statistics(){
 		xil_printf("     - # Rx Data Bytes:        %d\n", curr_statistics->data.rx_num_bytes);
 		xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_statistics->mgmt.rx_num_packets);
 		xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_statistics->mgmt.rx_num_bytes);
-#endif
+
 		curr_statistics_entry = dl_entry_next(curr_statistics_entry);
 	}
 }
