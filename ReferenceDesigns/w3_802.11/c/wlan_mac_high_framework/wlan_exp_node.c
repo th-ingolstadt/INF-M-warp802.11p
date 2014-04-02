@@ -849,9 +849,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				    default_multicast_data_tx_params.phy.power = power;
 
 		        	// Send IPC to CPU low to set the Tx power for control frames
-
-				    // TODO !!!
-
+				    wlan_mac_high_set_tx_ctrl_pow(power);
 
 		        } else {
 					// Get default power for new associations

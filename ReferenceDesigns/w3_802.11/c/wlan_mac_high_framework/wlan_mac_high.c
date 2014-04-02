@@ -1563,6 +1563,7 @@ void wlan_mac_high_set_rx_ant_mode( u8 ant_mode ) {
 	switch(ant_mode){
 		case RX_ANTMODE_SISO_ANTA:
 		case RX_ANTMODE_SISO_ANTB:
+		case RX_ANTMODE_SISO_SELDIV_2ANT:
 			rx_ant_mode_tracker = ant_mode;
 		break;
 		default:
