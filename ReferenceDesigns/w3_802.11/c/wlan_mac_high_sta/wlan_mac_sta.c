@@ -338,13 +338,14 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u64 ts_old = 0;
 	u32 payload_log_len;
+	u32 extra_payload;
 	u32 total_payload_len = min(tx_mpdu->length + sizeof(mac_header_80211) , mac_payload_log_len);
 
 	pkt_type = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 
 	for(i = 0; i < tx_mpdu->num_tx; i++){
 
-		tx_low_event_log_entry = get_next_empty_tx_low_entry();
+		tx_low_event_log_entry = (tx_low_entry *)get_next_empty_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
 		if(tx_low_event_log_entry != NULL){
 			tx_low_event_log_entry->mac_payload_log_len = sizeof(mac_header_80211);
 			wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_payload), tx_80211_header, sizeof(mac_header_80211));
@@ -372,10 +373,10 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		ts_old += tx_low_details[i].tx_start_delta;
 	}
 
-
-
 	payload_log_len = min( (1 + ( ( ( total_payload_len ) - 1) / 4) )*4 , mac_payload_log_len );
-	tx_event_log_entry = get_next_empty_tx_high_entry(payload_log_len);
+	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
+
+	tx_event_log_entry = (tx_high_entry *)get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
 
 	if(tx_event_log_entry != NULL){
 
@@ -707,6 +708,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
 	copy_order_t copy_order;
 	u32 payload_log_len;
+	u32 extra_payload;
 	u32 total_payload_len = min(length + sizeof(mac_header_80211) , mac_payload_log_len);
 
 	//*************
@@ -715,11 +717,12 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	//Determine length required for p
 	payload_log_len = min( (1 + ( ( ( total_payload_len ) - 1) / 4) )*4 , mac_payload_log_len );
+	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 
 	if(rate != WLAN_MAC_RATE_1M){
-		rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_ofdm_entry(payload_log_len);
+		rx_event_log_entry = (rx_common_entry*)get_next_empty_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload );
 	} else {
-		rx_event_log_entry = (rx_common_entry*)get_next_empty_rx_dsss_entry(payload_log_len);
+		rx_event_log_entry = (rx_common_entry*)get_next_empty_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
 	}
 
 		if(rx_event_log_entry != NULL){
