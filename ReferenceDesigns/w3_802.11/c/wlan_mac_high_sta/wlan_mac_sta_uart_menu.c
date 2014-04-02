@@ -265,7 +265,7 @@ void uart_rx(u8 rxByte){
 								if(ltg_callback_arg != NULL){
 									((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
 									((ltg_pyld_fixed*)ltg_callback_arg)->length = str2num(text_entry);
-									memcpy(((ltg_pyld_hdr*)ltg_callback_arg)->addr_da, access_point->addr, 6);
+									memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->addr_da, access_point->addr, 6);
 
 									//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
 									//simply an artifact of the sequential nature of UART entry. We won't start the scheduler until we call configure again with that updated
@@ -287,7 +287,7 @@ void uart_rx(u8 rxByte){
 									((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
 									((ltg_pyld_uniform_rand*)ltg_callback_arg)->min_length = 0;
 									((ltg_pyld_uniform_rand*)ltg_callback_arg)->max_length = str2num(text_entry);
-									memcpy(((ltg_pyld_hdr*)ltg_callback_arg)->addr_da, access_point->addr, 6);
+									memcpy(((ltg_pyld_uniform_rand*)ltg_callback_arg)->addr_da, access_point->addr, 6);
 
 									//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
 									//simply an artifact of the sequential nature of UART entry. We won't start the scheduler until we call configure again with that updated
@@ -338,6 +338,7 @@ void uart_rx(u8 rxByte){
 					switch(curr_traffic_type){
 						case TRAFFIC_TYPE_PERIODIC_FIXED:
 							if(ltg_callback_arg != NULL){
+								periodic_params.duration_count = LTG_DURATION_FOREVER;
 								periodic_params.interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
 								ltg_sched_configure(0, LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
 								ltg_sched_start(0);
@@ -348,6 +349,7 @@ void uart_rx(u8 rxByte){
 						break;
 						case TRAFFIC_TYPE_RAND_RAND:
 							if(ltg_callback_arg != NULL){
+								rand_params.duration_count = LTG_DURATION_FOREVER;
 								rand_params.min_interval_count = 0;
 								rand_params.max_interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
 								ltg_sched_configure(0, LTG_SCHED_TYPE_UNIFORM_RAND, &rand_params, ltg_callback_arg, &ltg_cleanup);
