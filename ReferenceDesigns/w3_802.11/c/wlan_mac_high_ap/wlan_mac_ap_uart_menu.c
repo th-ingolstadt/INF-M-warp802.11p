@@ -107,8 +107,10 @@ void uart_rx(u8 rxByte){
 				case ASCII_e:
 			        event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
 					print_event_log_size();
+#ifdef _DEBUG_
 			        print_event_log( 0xFFFF );
 					print_event_log_size();
+#endif
 			        event_log_config_logging(EVENT_LOG_LOGGING_ENABLE);
 				break;
 
