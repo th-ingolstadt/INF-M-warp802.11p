@@ -53,6 +53,7 @@ WLAN_EXP_LOG_DELIM = 0xACED
 
 # WLAN Exp Log Entry Constants
 #   NOTE:  The C counterparts are found in wlan_mac_entries.h
+ENTRY_TYPE_NULL                   = 0
 ENTRY_TYPE_NODE_INFO              = 1
 ENTRY_TYPE_EXP_INFO               = 2
 ENTRY_TYPE_STATION_INFO           = 3
@@ -178,6 +179,7 @@ class WlanExpLogEntryType(object):
 
         return np_arr
 
+
     def entry_as_string(self, buf):
         """Generate a string representation of the entry from a buffer."""
         entry_size = calcsize(self.fields_fmt_struct)
@@ -199,6 +201,7 @@ class WlanExpLogEntryType(object):
         str_out += "\n"
 
         return str_out
+
 
     def deserialize(self, buf):
         """Unpack the buffer of log entries into a list of dictionaries."""
@@ -372,6 +375,19 @@ def extend_np_dt(dt_orig, new_fields=None):
         return dt_new
 
 # End def
+
+
+#-----------------------------------------------------------------------------
+# NULL Log Entry Instance
+#-----------------------------------------------------------------------------
+
+# The NULL entry is used to "remove" an existing entry within the log.
+#   By replacing the current entry type with the NULL entry type and zeroing
+#   out all data following the header, we can effectively remove an entry
+#   without changing the memory footprint of the log.  NULL entries will 
+#   be filtered and never show up in the log_data_index.
+
+entry_null = WlanExpLogEntryType(name='NULL', entry_type_id=ENTRY_TYPE_NULL)
 
 
 #-----------------------------------------------------------------------------
