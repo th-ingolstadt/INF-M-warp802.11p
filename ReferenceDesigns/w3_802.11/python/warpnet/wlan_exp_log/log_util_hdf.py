@@ -607,7 +607,8 @@ def _add_attr_dict_to_group(group, attr_dict):
                         print("WARNING: Converting '{0}' to string to add attribute.".format(k))
                         group.attrs[str(k)] = v
                 else:
-                    print("WARNING: Attribute '{0}' already exists, ignoring".format(k))
+                    if (k not in ['wlan_exp_log', 'wlan_exp_ver']):
+                        print("WARNING: Attribute '{0}' already exists, ignoring".format(k))
             except:
                 print("WARNING: Could not add attribute '{0}' to group {1}".format(k, group))
 
