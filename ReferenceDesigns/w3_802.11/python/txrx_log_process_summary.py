@@ -20,6 +20,7 @@ License:   Copyright 2014, Mango Communications. All rights reserved.
 """
 import os
 import sys
+import time
 import numpy as np
 
 import warpnet.wlan_exp_log.log_util as log_util
@@ -54,7 +55,7 @@ log_util.print_log_index_summary(log_data_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
 log_index = log_util.filter_log_index(log_data_index,
-                                      include_only=['NODE_INFO', 'RX_OFDM', 'TX'])
+                                      include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX'])
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 
@@ -66,7 +67,7 @@ log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 ###############################################################################
-# Example 0: Print node info
+# Example 0: Print node info / Time info
 log_node_info = log_np['NODE_INFO'][0]
 
 print("Node Info:")
@@ -75,6 +76,13 @@ print("  MAC Address  : {0}".format(wlan_exp_util.mac_addr_to_str(log_node_info[
 print("  Serial Number: {0}".format(wlan_exp_util.sn_to_str(log_node_info['hw_generation'], log_node_info['serial_num'])))
 print("  WLAN Exp Ver : {0}".format(wlan_exp_util.ver_code_to_str(log_node_info['wlan_exp_ver'])))
 print("")
+
+
+log_time_info = log_np['TIME_INFO'][0]
+
+print("Experiment Started at: {0}".format(time.ctime(float(log_time_info['abs_time'] / 1E6))))
+print("")
+
 
 ###############################################################################
 # Example 1: Count the number of receptions per PHY rate
