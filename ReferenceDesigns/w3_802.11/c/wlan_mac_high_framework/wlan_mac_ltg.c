@@ -32,7 +32,7 @@ static dl_list tg_list;
 
 static function_ptr_t ltg_callback;
 
-static u64 num_sched_checks;
+static u64 num_ltg_checks;
 static u32 schedule_id;
 static u8  schedule_running;
 
@@ -40,7 +40,7 @@ int wlan_mac_ltg_sched_init(){
 
 	int return_value = 0;
 	schedule_running = 0;
-	num_sched_checks = 0;
+	num_ltg_checks = 0;
 	ltg_sched_remove(LTG_REMOVE_ALL);
 	dl_list_init(&tg_list);
 	ltg_callback = (function_ptr_t)nullCallback;
@@ -187,12 +187,26 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 
 	switch(curr_tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
-			curr_tg->target = num_sched_checks + (((ltg_sched_periodic_params*)(curr_tg->params))->interval_count);
+			curr_tg->target = num_ltg_checks + (((ltg_sched_periodic_params*)(curr_tg->params))->interval_count);
+
+			if(((ltg_sched_periodic_params*)(curr_tg->params))->duration_count != LTG_DURATION_FOREVER){
+				curr_tg->stop_target = num_ltg_checks + ((ltg_sched_periodic_params*)(curr_tg->params))->duration_count;
+			} else {
+				curr_tg->stop_target = LTG_DURATION_FOREVER;
+			}
+
 			((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 1;
 		break;
 		case LTG_SCHED_TYPE_UNIFORM_RAND:
 			random_timestamp = (rand()%(((ltg_sched_uniform_rand_params*)(curr_tg->params))->max_interval_count - ((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count))+((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count;
-			curr_tg->target = num_sched_checks + (random_timestamp/FAST_TIMER_DUR_US);
+			curr_tg->target = num_ltg_checks + (random_timestamp/FAST_TIMER_DUR_US);
+
+			if(((ltg_sched_uniform_rand_params*)(curr_tg->params))->duration_count != LTG_DURATION_FOREVER){
+				curr_tg->stop_target = num_ltg_checks + ((ltg_sched_periodic_params*)(curr_tg->params))->duration_count;
+			} else {
+				curr_tg->stop_target = LTG_DURATION_FOREVER;
+			}
+
 			((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 1;
 		break;
 
@@ -219,18 +233,25 @@ void ltg_sched_check(){
 
 	u32 i;
 
-	num_sched_checks++;
+	num_ltg_checks++;
 	if(tg_list.length > 0){
 
 		curr_tg_dl_entry = tg_list.first;
-		for(i = 0; i < tg_list.length; i++ ){
+		for( i = 0; i < tg_list.length; i++ ){
 			curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
-			if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled && num_sched_checks >= ( curr_tg->target) ){
-				ltg_sched_stop_l(curr_tg_dl_entry);
-				ltg_sched_start_l(curr_tg_dl_entry);
-				ltg_callback(curr_tg->id, curr_tg->callback_arg);
+			if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled){
+
+				if( num_ltg_checks >= ( curr_tg->target ) ){
+					ltg_callback(curr_tg->id, curr_tg->callback_arg);
+				}
+
+				if( curr_tg->stop_target != LTG_DURATION_FOREVER && num_ltg_checks >= ( curr_tg->stop_target )){
+					ltg_sched_stop_l(curr_tg_dl_entry);
+				}
+
 			}
+
 			curr_tg_dl_entry = dl_entry_next(curr_tg_dl_entry);
 		}
 	}
@@ -298,18 +319,18 @@ int ltg_sched_get_state(u32 id, u32* type, void** state){
 
 	switch(curr_tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
-			if(num_sched_checks < (curr_tg->target) ){
-				((ltg_sched_periodic_state*)(curr_tg->state))->time_to_next_count = (u32)(curr_tg->target - num_sched_checks);
+			if(num_ltg_checks < (curr_tg->target) ){
+				((ltg_sched_periodic_state*)(curr_tg->state))->time_to_next_count = (u32)(curr_tg->target - num_ltg_checks);
 			} else {
 				((ltg_sched_periodic_state*)(curr_tg->state))->time_to_next_count = 0;
 			}
 		break;
 
 		case LTG_SCHED_TYPE_UNIFORM_RAND:
-			if(num_sched_checks < (curr_tg->target) ){
-				((ltg_sched_uniform_rand_state*)(curr_tg->state))->time_to_next_usec = (u32)(curr_tg->target - num_sched_checks);
+			if(num_ltg_checks < (curr_tg->target) ){
+				((ltg_sched_uniform_rand_state*)(curr_tg->state))->time_to_next_count = (u32)(curr_tg->target - num_ltg_checks);
 			} else {
-				((ltg_sched_uniform_rand_state*)(curr_tg->state))->time_to_next_usec = 0;
+				((ltg_sched_uniform_rand_state*)(curr_tg->state))->time_to_next_count = 0;
 			}
 		break;
 		default:
@@ -469,6 +490,9 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
         	if (size == 1){
         		ret_val = (void *) wlan_mac_high_malloc(sizeof(ltg_sched_periodic_params));
         	    if (ret_val != NULL){
+
+        	    	((ltg_sched_periodic_params *)ret_val)->duration_count = LTG_DURATION_FOREVER; //TODO: This should be exposed up through WN
+
         	    	((ltg_sched_periodic_params *)ret_val)->interval_count = (Xil_Ntohl(src[1]))/LTG_POLL_INTERVAL;
 
         	    	xil_printf("LTG Sched Periodic: %d usec\n", LTG_POLL_INTERVAL*((ltg_sched_periodic_params *)ret_val)->interval_count);
@@ -480,6 +504,9 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
         	if (size == 2){
         		ret_val = (void *) wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
         	    if (ret_val != NULL){
+
+        	    	((ltg_sched_uniform_rand_params *)ret_val)->duration_count = LTG_DURATION_FOREVER; //TODO: This should be exposed up through WN
+
         	    	((ltg_sched_uniform_rand_params *)ret_val)->min_interval_count = Xil_Ntohl(src[1])/LTG_POLL_INTERVAL;
         	    	((ltg_sched_uniform_rand_params *)ret_val)->max_interval_count = Xil_Ntohl(src[2])/LTG_POLL_INTERVAL;
 

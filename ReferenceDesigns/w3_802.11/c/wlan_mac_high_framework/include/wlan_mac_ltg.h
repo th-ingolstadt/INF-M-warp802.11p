@@ -47,6 +47,7 @@ struct tg_schedule{
 	u32 id;
 	u32 type;
 	u64 target;
+	u64	stop_target;
 	void* params;
 	void* callback_arg;
 	function_ptr_t cleanup_callback;
@@ -55,6 +56,8 @@ struct tg_schedule{
 
 //LTG Schedules
 
+#define LTG_DURATION_FOREVER 0
+
 typedef struct {
 	u8 enabled;
 	u8 reserved[3];
@@ -62,6 +65,7 @@ typedef struct {
 
 typedef struct {
 	u32 interval_count;
+	u64 duration_count;
 } ltg_sched_periodic_params;
 
 typedef struct {
@@ -72,30 +76,32 @@ typedef struct {
 typedef struct {
 	u32 min_interval_count;
 	u32 max_interval_count;
+	u64 duration_count;
 } ltg_sched_uniform_rand_params;
 
 typedef struct {
 	ltg_sched_state_hdr hdr;
-	u32 time_to_next_usec;
+	u32 time_to_next_count;
 } ltg_sched_uniform_rand_state;
 
 //LTG Payload Profiles
 
 typedef struct {
 	u32 type;
-	u8 addr_da[6];
 } ltg_pyld_hdr;
 
 typedef struct {
 	ltg_pyld_hdr hdr;
+	u8 addr_da[6];
 	u16 length;
-	u8 reserved[2];
 } ltg_pyld_fixed;
 
 typedef struct {
 	ltg_pyld_hdr hdr;
+	u8 addr_da[6];
 	u16 min_length;
 	u16 max_length;
+	u16 padding;
 } ltg_pyld_uniform_rand;
 
 

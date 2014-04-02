@@ -1179,6 +1179,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			u32            s1, s2, t1, t2;
 			void *         ltg_callback_arg;
         	void *         params;
+        	u32   		   temp;
+			u16    		   type;
 
         	status = NODE_LTG_ERROR;
 			flags  = Xil_Ntohl(cmdArgs32[2]);
@@ -1196,8 +1198,25 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				params           = ltg_sched_deserialize( &(((u32 *)cmdArgs)[3]), &t1, &s1 );
 				ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[4 + s1]), &t2, &s2);
 
+
+
+
 				if( (ltg_callback_arg != NULL) && (params != NULL) ) {
-					memcpy(((ltg_pyld_hdr*)ltg_callback_arg)->addr_da,mac_addr,6);
+
+					temp  = Xil_Ntohl((((u32 *)cmdArgs)[4 + s1]));
+					type  = (temp >> 16) & 0xFFFF;
+
+					switch(type){
+						case LTG_PYLD_TYPE_FIXED:
+							memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->addr_da,mac_addr,6);
+						break;
+
+						case LTG_PYLD_TYPE_UNIFORM_RAND:
+							memcpy(((ltg_pyld_uniform_rand*)ltg_callback_arg)->addr_da,mac_addr,6);
+						break;
+					}
+
+
 					// Configure the LTG
 					status = ltg_sched_configure( id, t1, params, ltg_callback_arg, &node_ltg_cleanup );
 
