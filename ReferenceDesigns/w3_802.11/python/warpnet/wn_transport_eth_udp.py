@@ -23,7 +23,7 @@ Functions:
     TransportEthUdp() -- Base class for Ethernet UDP transports
     int_to_ip()       -- Convert 32 bit integer to 'w.x.y.z' IP address string
     ip_to_int()       -- Convert 'w.x.y.z' IP address string to 32 bit integer
-    mac_to_str()      -- Convert 6 byte MAC address to 'uu:vv:ww:xx:yy:zz' string
+    mac_addr_to_str()      -- Convert 6 byte MAC address to 'uu:vv:ww:xx:yy:zz' string
 
 """
 
@@ -275,7 +275,7 @@ class TransportEthUdp(tp.Transport):
 
     def ip_to_int(self, ip_address):    return ip_to_int(ip_address)
 
-    def mac_to_str(self, mac_address):  return mac_to_str(mac_address)
+    def mac_addr_to_str(self, mac_address):  return mac_addr_to_str(mac_address)
 
     def __str__(self):
         """Pretty print the Transport parameters"""
@@ -283,7 +283,7 @@ class TransportEthUdp(tp.Transport):
         if not self.mac_address is None:
             msg += "Transport {0}:\n".format(self.transport_type)
             msg += "    IP address    :  {0}\n".format(self.ip_address)
-            msg += "    MAC address   :  {0}\n".format(self.mac_to_str(self.mac_address)) 
+            msg += "    MAC address   :  {0}\n".format(self.mac_addr_to_str(self.mac_address)) 
             msg += "    Max payload   :  {0}\n".format(self.max_payload)
             msg += "    Unicast port  :  {0}\n".format(self.unicast_port)
             msg += "    Broadcast port:  {0}\n".format(self.bcast_port)
@@ -326,7 +326,7 @@ def ip_to_int(ip_address):
 # End def
 
 
-def mac_to_str(mac_address):
+def mac_addr_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
     msg = ""
     if not mac_address is None:
