@@ -105,15 +105,10 @@ NODE_TX_POWER_MIN_DBM                  = -12
 
 NODE_RX_ANT_MODE_SISO_ANTA             = 0x1
 NODE_RX_ANT_MODE_SISO_ANTB             = 0x2
-NODE_RX_ANT_MODE_SISO_ANTC             = 0x3
-NODE_RX_ANT_MODE_SISO_ANTD             = 0x4
 NODE_RX_ANT_MODE_SISO_SELDIV_2ANT      = 0x5
-NODE_RX_ANT_MODE_SISO_SELDIV_4ANT      = 0x6
 
 NODE_TX_ANT_MODE_SISO_ANTA             = 0x10
 NODE_TX_ANT_MODE_SISO_ANTB             = 0x20
-NODE_TX_ANT_MODE_SISO_ANTC             = 0x30
-NODE_TX_ANT_MODE_SISO_ANTD             = 0x40
 
 NODE_UNICAST                           = 0x0000
 NODE_MULTICAST                         = 0x0001
@@ -710,16 +705,12 @@ class NodeProcTxAntMode(wn_message.Cmd):
             return ant_mode
 
         if ((ant_mode == NODE_TX_ANT_MODE_SISO_ANTA) or
-            (ant_mode == NODE_TX_ANT_MODE_SISO_ANTB) or
-            (ant_mode == NODE_TX_ANT_MODE_SISO_ANTC) or
-            (ant_mode == NODE_TX_ANT_MODE_SISO_ANTD)):
+            (ant_mode == NODE_TX_ANT_MODE_SISO_ANTB)):
             return ant_mode
         else:
             msg  = "The antenna mode must be one of the following defines:\n"
             msg += "    NODE_TX_ANT_MODE_SISO_ANTA\n"
             msg += "    NODE_TX_ANT_MODE_SISO_ANTB\n"
-            msg += "    NODE_TX_ANT_MODE_SISO_ANTC\n"
-            msg += "    NODE_TX_ANT_MODE_SISO_ANTD\n"
             raise ValueError(msg)
     
     def process_resp(self, resp):
@@ -755,19 +746,13 @@ class NodeProcRxAntMode(wn_message.Cmd):
         
         if ((ant_mode == NODE_RX_ANT_MODE_SISO_ANTA) or
             (ant_mode == NODE_RX_ANT_MODE_SISO_ANTB) or
-            (ant_mode == NODE_RX_ANT_MODE_SISO_ANTC) or
-            (ant_mode == NODE_RX_ANT_MODE_SISO_ANTD) or
-            (ant_mode == NODE_RX_ANT_MODE_SISO_SELDIV_2ANT) or
-            (ant_mode == NODE_RX_ANT_MODE_SISO_SELDIV_4ANT)):
+            (ant_mode == NODE_RX_ANT_MODE_SISO_SELDIV_2ANT)):
             return ant_mode
         else:
             msg  = "The antenna mode must be one of the following defines:\n"
             msg += "    NODE_RX_ANT_MODE_SISO_ANTA\n"
             msg += "    NODE_RX_ANT_MODE_SISO_ANTB\n"
-            msg += "    NODE_RX_ANT_MODE_SISO_ANTC\n"
-            msg += "    NODE_RX_ANT_MODE_SISO_ANTD\n"
             msg += "    NODE_RX_ANT_MODE_SISO_SELDIV_2ANT"
-            msg += "    NODE_RX_ANT_MODE_SISO_SELDIV_4ANT"
             raise ValueError(msg)
     
     def process_resp(self, resp):
