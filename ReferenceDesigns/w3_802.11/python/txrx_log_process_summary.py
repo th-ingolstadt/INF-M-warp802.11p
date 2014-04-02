@@ -32,7 +32,7 @@ from  warpnet.wlan_exp.util import wlan_rates
 #Use log file given as command line argument, if present
 if(len(sys.argv) == 1):
     #No filename on command line
-    LOGFILE = 'example_logs/sta_log_stats.hdf5'
+    LOGFILE = 'example_logs/raw_sta_log_10s_per_rate.hdf5'
 else:
     LOGFILE = str(sys.argv[1])
 
@@ -71,7 +71,7 @@ log_node_info = log_np['NODE_INFO'][0]
 
 print("Node Info:")
 print("  Node Type    : {0}".format(wlan_exp_util.node_type_to_str(log_node_info['node_type'])))
-print("  MAC Address  : {0}".format(wlan_exp_util.mac_to_str(log_node_info['wlan_mac_addr'])))
+print("  MAC Address  : {0}".format(wlan_exp_util.mac_addr_to_str(log_node_info['wlan_mac_addr'])))
 print("  Serial Number: {0}".format(wlan_exp_util.sn_to_str(log_node_info['hw_generation'], log_node_info['serial_num'])))
 print("  WLAN Exp Ver : {0}".format(wlan_exp_util.ver_code_to_str(log_node_info['wlan_exp_ver'])))
 print("")
@@ -142,7 +142,7 @@ if('TX' in log_np.keys()):
     for k in sorted(tx_counts.keys()):
         # Use the string version of the MAC address as the key for readability
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-            wlan_exp_util.mac_to_str(k), 
+            wlan_exp_util.mac_addr_to_str(k), 
             tx_counts[k][0], 
             tx_counts[k][1], 
             wlan_exp_util.mac_addr_desc(k)))
@@ -190,7 +190,7 @@ if('RX_OFDM' in log_np.keys()):
     for k in sorted(rx_counts.keys()):
         # Use the string version of the MAC address as the key for readability
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-            wlan_exp_util.mac_to_str(k), 
+            wlan_exp_util.mac_addr_to_str(k), 
             rx_counts[k][0], 
             rx_counts[k][1], 
             wlan_exp_util.mac_addr_desc(k)))

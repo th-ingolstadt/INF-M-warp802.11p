@@ -86,7 +86,7 @@ grid(ax, 'On');
 if(~isempty(varargin))
     log_filename = varargin{1};
 else
-    log_filename = 'rx_ofdm_entries.hdf5';
+    log_filename = '../sample_data/np_rx_ofdm_entries.hdf5';
 end
 
 rx_entries = rx_data_from_hdf5(log_filename);
