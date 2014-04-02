@@ -5,8 +5,8 @@ import numpy as np
 import datetime
 
 # NOTE: change these values to match your experiment setup
-LOGFILE_IN = 'example_logs/raw_sta_log_10s_per_rate.hdf5'
-HDF5_FILE_OUT = 'example_logs/np_rx_ofdm_entries.hdf5'
+LOGFILE_IN = 'sample_data/raw_log_sta_10s_per_rate.hdf5'
+HDF5_FILE_OUT = 'sample_data/np_rx_ofdm_entries.hdf5'
 
 print("WLAN Exp Log Example: OFDM Rx Entry Exporter")
 

@@ -120,10 +120,12 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         }
     """
     import h5py
-
-    hf = h5py.File(filename, mode='w')
+    import warpnet.wlan_exp_log.log_util as log_util
 
     dk = np_log_dict.keys()
+
+    h5_filename = log_util._get_safe_filename(filename)
+    hf = h5py.File(h5_filename, mode='w')
 
     try:
         #Copy any user-supplied attributes to root group
