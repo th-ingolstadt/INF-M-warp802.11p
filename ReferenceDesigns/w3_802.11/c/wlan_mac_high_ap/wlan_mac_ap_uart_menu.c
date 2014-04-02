@@ -302,7 +302,7 @@ void uart_rx(u8 rxByte){
 							if(ltg_callback_arg != NULL && curr_station_info_entry != NULL){
 								curr_station_info = (station_info*)(curr_station_info_entry->data);
 								((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
-								memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->hdr.addr_da, curr_station_info->addr, 6);
+								memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->addr_da, curr_station_info->addr, 6);
 								((ltg_pyld_fixed*)ltg_callback_arg)->length = str2num(text_entry);
 
 								//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
@@ -323,7 +323,7 @@ void uart_rx(u8 rxByte){
 							ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_uniform_rand));
 							if(ltg_callback_arg != NULL){
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
-								memcpy(((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.addr_da, curr_station_info->addr, 6);
+								memcpy(((ltg_pyld_uniform_rand*)ltg_callback_arg)->addr_da, curr_station_info->addr, 6);
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->min_length = 0;
 								((ltg_pyld_uniform_rand*)ltg_callback_arg)->max_length = str2num(text_entry);
 
@@ -378,6 +378,7 @@ void uart_rx(u8 rxByte){
 						switch(curr_traffic_type){
 							case TRAFFIC_TYPE_PERIODIC_FIXED:
 								if(ltg_callback_arg != NULL){
+									periodic_params.duration_count = LTG_DURATION_FOREVER;
 									periodic_params.interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
 									ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
 									ltg_sched_start(AID_TO_LTG_ID(curr_aid));
@@ -388,6 +389,7 @@ void uart_rx(u8 rxByte){
 							break;
 							case TRAFFIC_TYPE_RAND_RAND:
 								if(ltg_callback_arg != NULL){
+									rand_params.duration_count = LTG_DURATION_FOREVER;
 									rand_params.min_interval_count = 0;
 									rand_params.max_interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
 									ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_UNIFORM_RAND, &rand_params, ltg_callback_arg, &ltg_cleanup);

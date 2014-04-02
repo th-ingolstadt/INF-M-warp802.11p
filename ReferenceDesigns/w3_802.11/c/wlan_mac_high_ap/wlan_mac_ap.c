@@ -494,16 +494,19 @@ void ltg_event(u32 id, void* callback_arg){
 	llc_header* llc_hdr;
 	dl_entry*	  station_info_entry;
 	station_info* station;
-	u8* addr_da = ((ltg_pyld_hdr*)callback_arg)->addr_da;
+	u8* addr_da;
 
 	switch(((ltg_pyld_hdr*)callback_arg)->type){
 		case LTG_PYLD_TYPE_FIXED:
+			addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
 			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
 		break;
 		case LTG_PYLD_TYPE_UNIFORM_RAND:
+			addr_da = ((ltg_pyld_uniform_rand*)callback_arg)->addr_da;
 			payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
 		break;
 		default:
+			addr_da = 0;
 		break;
 
 	}
