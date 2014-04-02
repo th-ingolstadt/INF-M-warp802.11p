@@ -277,7 +277,7 @@ def ip_to_int(ip_address):
 # End def
 
 
-def mac_to_str(mac_address):
+def mac_addr_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
     import warpnet.wn_transport_eth_udp as tport
     return tport.mac_to_str(mac_address)

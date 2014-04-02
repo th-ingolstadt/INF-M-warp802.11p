@@ -4,8 +4,8 @@ import numpy as np
 from matplotlib.pylab import *
 import pandas as pd
 
-AP_LOGFILE = 'example_logs/ap_log_30s_per_rate.hdf5'
-STA_LOGFILE = 'example_logs/sta_log_30s_per_rate.hdf5'
+AP_LOGFILE = 'example_logs/ap_log_30s_per_rate_bidir.hdf5'
+STA_LOGFILE = 'example_logs/sta_log_30s_per_rate_bidir.hdf5'
 
 #Extract the log data and index from the log files
 log_data_ap = hdf_util.hdf5_to_log_data(filename=AP_LOGFILE)
@@ -41,10 +41,6 @@ print('STA Rx: {0}, STA Tx: {1}'.format(len(rx_sta), len(tx_sta)))
 #Resample docs: http://stackoverflow.com/questions/17001389/pandas-resample-documentation
 rs_interval = 1 #msec
 rolling_winow = 10000 #samples
-
-#############
-# AP Rx
-#############
 
 #Select non-duplicate packets from partner node
 rx_ap_idx = (rx_ap['addr2'] == addr_sta) & ((rx_ap['flags'] & 0x1) == 0) #needs valid flags field
@@ -86,6 +82,8 @@ tx_xput_ap_r = pd.rolling_mean(tx_ap_len_rs, window=rolling_winow, min_periods=1
 rx_xput_ap_r = rx_xput_ap_r.fillna(value=0)
 tx_xput_ap_r = tx_xput_ap_r.fillna(value=0)
 
+
+sys.exit()
 figure(1)
 clf()
 plot(rx_xput_ap_r)
