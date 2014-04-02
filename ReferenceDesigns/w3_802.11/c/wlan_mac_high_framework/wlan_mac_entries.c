@@ -33,6 +33,7 @@
 #include "xil_types.h"
 
 // WLAN includes
+#include "wlan_exp_common.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 
@@ -68,74 +69,6 @@ u32 mac_payload_log_len = MIN_MAC_PAYLOAD_LOG_LEN;
 
 /******************************** Functions **********************************/
 
-
-/*****************************************************************************/
-/**
-* Get the next empty experiment info entry
-*
-* @param    size - Amount of space to be allocated for experiment info entry message
-*
-* @return	exp_info_entry *   - Pointer to the next "empty" Experiment info entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-exp_info_entry* get_next_empty_exp_info_entry(u16 size){
-
-	// Get the next empty entry
-	return (exp_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_EXP_INFO, sizeof(exp_info_entry) + size - 4 );
-}
-
-/*****************************************************************************/
-/**
-* Get the next empty station info entry
-*
-* @param    None.
-*
-* @return	station_info_entry *   - Pointer to the next "empty" Station info entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-station_info_entry* get_next_empty_station_info_entry(){
-
-	// Get the next empty entry
-	return (station_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry) );
-}
-
-/*****************************************************************************/
-/**
-* Get the next empty WARPNet command entry
-*
-* @param    None.
-*
-* @return	wn_cmd_entry *   - Pointer to the next "empty" WARPNet command entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-wn_cmd_entry* get_next_empty_wn_cmd_entry(){
-
-	// Get the next empty entry
-	return (wn_cmd_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_WN_CMD, sizeof(wn_cmd_entry) );
-}
-
-/*****************************************************************************/
-/**
-* Get the next empty time info entry
-*
-* @param    None.
-*
-* @return	time_info_entry *   - Pointer to the next "empty" time info entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-time_info_entry* get_next_empty_time_info_entry(){
-
-	// Get the next empty entry
-	return (time_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
-}
 
 /*****************************************************************************/
 /**
@@ -176,78 +109,42 @@ void set_mac_payload_log_len(u32 payload_len){
 	mac_payload_log_len = value;
 }
 
+
+
 /*****************************************************************************/
 /**
-* Get the next empty RX OFDM entry
+* Get the next empty log entry
 *
-* @param    u32 payload_log_len
-* 				- Number of bytes to set aside for payload.
+* @param    u16 entry_type_id
+*               - ID of the entry being requested
+*           u16 entry_size
+* 				- Number of total bytes in the entry.
 * 				@note This needs to be 4-byte aligned.
 *
-* @return	rx_entry *   - Pointer to the next "empty" RX entry or NULL
+* @return	void *
+*               - Pointer to memory that was allocated for the entry in the log
+*               @note This can be NULL if an entry was not allocated
 *
 * @note		None.
 *
 ******************************************************************************/
-rx_ofdm_entry* get_next_empty_rx_ofdm_entry(u32 payload_log_len){
-	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
-    return (rx_ofdm_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload  );
+void * get_next_empty_entry(u16 entry_type_id, u16 entry_size){
 
+	void *    ret_val   = NULL;
+
+	//
+	// NOTE:  This is where filtering on entry_type_id would be in future implementations
+	//
+
+	ret_val = event_log_get_next_empty_entry( entry_type_id, entry_size );
+
+	return ret_val;
 }
 
-/*****************************************************************************/
-/**
-* Get the next empty RX DSSS entry
-*
-* @param    u32 payload_log_len
-* 				- Number of bytes to set aside for payload.
-* 				@note This needs to be 4-byte aligned.
-*
-* @return	rx_entry *   - Pointer to the next "empty" RX entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-rx_dsss_entry* get_next_empty_rx_dsss_entry(u32 payload_log_len){
-	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
-	return (rx_dsss_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
 
-}
 
-/*****************************************************************************/
-/**
-* Get the next empty TX high entry
-*
-* @param    None.
-*
-* @return	tx_high_entry *   - Pointer to the next "empty" TX high entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-tx_high_entry* get_next_empty_tx_high_entry(u32 payload_log_len){
-	u32 extra_payload = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
-	return (tx_high_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
+#ifdef _DEBUG_
 
-}
-
-/*****************************************************************************/
-/**
-* Get the next empty TX low entry
-*
-* @param    None.
-*
-* @return	tx_low_entry *   - Pointer to the next "empty" TX low entry or NULL
-*
-* @note		None.
-*
-******************************************************************************/
-tx_low_entry* get_next_empty_tx_low_entry(){
-
-	// Get the next empty entry
-	return (tx_low_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
-
-}
 
 /*****************************************************************************/
 /**
@@ -298,10 +195,10 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   Timestamp:  %d\n", (u32)(exp_info_entry_log_item->timestamp));
 			xil_printf("   Info Type:  %d\n",       exp_info_entry_log_item->info_type);
 			xil_printf("   Message  :  \n");
-			for( i = 0; i < exp_info_entry_log_item->length; i++) {
+			for( i = 0; i < exp_info_entry_log_item->info_length; i++) {
 				xil_printf("        ");
 				for( j = 0; j < 16; j++){
-					xil_printf("0x%02x ", (exp_info_entry_log_item->msg)[16*i + j]);
+					xil_printf("0x%02x ", (exp_info_entry_log_item->info_payload)[16*i + j]);
 				}
 				xil_printf("\n");
 			}
@@ -422,5 +319,5 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 
 }
 
-
+#endif
 

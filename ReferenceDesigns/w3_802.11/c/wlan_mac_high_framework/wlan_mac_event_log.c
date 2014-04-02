@@ -904,6 +904,7 @@ void * event_log_get_next_empty_entry( u16 entry_type, u16 entry_size ) {
 }
 
 
+#ifdef _DEBUG_
 
 /*****************************************************************************/
 /**
@@ -941,10 +942,6 @@ void print_event_log( u32 num_entrys ) {
 
     			entry_hdr = (entry_header*) entry_address;
     			event     = (void *) ( entry_address + entry_hdr_size );
-
-#ifdef _DEBUG_
-                xil_printf(" Entry [%d] - addr = 0x%8x;  size = 0x%4x \n", i, entry_address, entry_hdr->entry_length );
-#endif
 
         		// Print entry
     		    print_entry( (0x0000FFFF & entry_hdr->entry_id), entry_hdr->entry_type, event );
@@ -1011,7 +1008,7 @@ void print_event_log( u32 num_entrys ) {
     }
 }
 
-
+#endif
 
 /*****************************************************************************/
 /**
@@ -1147,7 +1144,9 @@ void add_node_info_entry(u8 transmit){
 		//       before normal operation
 		if ( (temp0 != (max_words - 2)) && (temp0 != 0) ) {
 			xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
+#ifdef _DEBUG_
 			print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
+#endif
 		}
 
 		// Transmit the entry if requested
@@ -1191,7 +1190,7 @@ u32 add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit){
     	return FAILURE;
     }
 
-	entry = (txrx_stats_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TXRX_STATS, entry_size );
+	entry = (txrx_stats_entry *)get_next_empty_entry( ENTRY_TYPE_TXRX_STATS, entry_size );
 
 	if ( entry != NULL ) {
 		entry->timestamp = get_usec_timestamp();
@@ -1289,7 +1288,7 @@ u32 add_station_info_to_log(station_info * info, u8 transmit){
 	// Check to see if we have valid station_info
 	if (info == NULL) { return FAILURE; }
 
-	entry = (station_info_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_STATION_INFO, entry_size );
+	entry = (station_info_entry *)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, entry_size );
 
 	if ( entry != NULL ) {
 		entry->timestamp = get_usec_timestamp();
@@ -1400,7 +1399,7 @@ u32 add_temperature_to_log(u8 transmit){
 	temperature_entry  * entry;
 	u32                  entry_size        = sizeof(temperature_entry);
 
-	entry = (temperature_entry *)event_log_get_next_empty_entry( ENTRY_TYPE_TEMPERATURE, entry_size );
+	entry = (temperature_entry *)get_next_empty_entry( ENTRY_TYPE_TEMPERATURE, entry_size );
 
 	if ( entry != NULL ) {
 		entry->timestamp     = get_usec_timestamp();
