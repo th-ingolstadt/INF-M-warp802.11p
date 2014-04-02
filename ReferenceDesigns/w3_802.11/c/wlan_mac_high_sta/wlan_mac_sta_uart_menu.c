@@ -336,7 +336,7 @@ void uart_rx(u8 rxByte){
 					switch(curr_traffic_type){
 						case TRAFFIC_TYPE_PERIODIC_FIXED:
 							if(ltg_callback_arg != NULL){
-								periodic_params.interval_usec = str2num(text_entry);
+								periodic_params.interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
 								ltg_sched_configure(0, LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
 								ltg_sched_start(0);
 							} else {
@@ -346,8 +346,8 @@ void uart_rx(u8 rxByte){
 						break;
 						case TRAFFIC_TYPE_RAND_RAND:
 							if(ltg_callback_arg != NULL){
-								rand_params.min_interval = 0;
-								rand_params.max_interval = str2num(text_entry);
+								rand_params.min_interval_count = 0;
+								rand_params.max_interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
 								ltg_sched_configure(0, LTG_SCHED_TYPE_UNIFORM_RAND, &rand_params, ltg_callback_arg, &ltg_cleanup);
 								ltg_sched_start(0);
 							} else {
@@ -500,11 +500,11 @@ void print_station_status(u8 manual_call){
 						switch(ltg_type){
 							case LTG_SCHED_TYPE_PERIODIC:
 								xil_printf("  Periodic LTG Schedule Enabled\n");
-								xil_printf("  Packet Tx Interval: %d microseconds\n", ((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_usec);
+								xil_printf("  Packet Tx Interval: %d microseconds\n", LTG_POLL_INTERVAL*((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_count);
 							break;
 							case LTG_SCHED_TYPE_UNIFORM_RAND:
 								xil_printf("  Uniform Random LTG Schedule Enabled\n");
-								xil_printf("  Packet Tx Interval: Uniform over range of [%d,%d] microseconds\n", ((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->min_interval,((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->max_interval);
+								xil_printf("  Packet Tx Interval: Uniform over range of [%d,%d] microseconds\n", LTG_POLL_INTERVAL*((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->min_interval_count,LTG_POLL_INTERVAL*((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->max_interval_count);
 							break;
 						}
 
