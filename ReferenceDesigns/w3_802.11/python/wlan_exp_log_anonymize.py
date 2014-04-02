@@ -33,15 +33,24 @@ import time
 import warpnet.wlan_exp_log.log_util     as log_util
 import warpnet.wlan_exp_log.log_util_hdf as hdf_util
 
+
+#-----------------------------------------------------------------------------
+# Global Variables
+#-----------------------------------------------------------------------------
+
 # Global flag to print performance data
 print_time = False
-
 
 all_addrs = list()
 addr_idx_map = dict()
 
 
+
+#-----------------------------------------------------------------------------
+# Anonymizer Methods
+#-----------------------------------------------------------------------------
 def do_replace_addr(addr):
+    """Determine if the MAC address should be replaced."""
     do_replace = True
 
     # NOTE:  This list should stay in sync with wlan_exp.util mac_desc_map
@@ -68,6 +77,9 @@ def do_replace_addr(addr):
 
 
 def addr_to_replace(addr, byte_index, addr_idx_map):
+    """Build map of all indexes for a particular address so they can all be 
+    replaced by the same value.
+    """
     global all_addrs
     if(do_replace_addr(addr)):
         if(addr not in all_addrs):
@@ -80,15 +92,19 @@ def addr_to_replace(addr, byte_index, addr_idx_map):
 
 
 def log_anonymize(filename):
+    """Anonymize the log."""
     global all_addrs
 
-    print("Anonymizing file %s" % (filename))
     # Get the log_data from the file
     log_bytes = bytearray(hdf_util.hdf5_to_log_data(filename=filename))
 
     # Get the log_data_index from the file
     log_data_index = hdf_util.hdf5_to_log_data_index(filename=filename)
-    
+
+    # Get the user attributes from the file
+    log_attr_dict  = hdf_util.hdf5_to_attr_dict(filename=filename)
+
+
     # Generate the index of log entry locations sorted by log entry type
     log_index     = log_util.filter_log_index(log_data_index)
 
@@ -111,7 +127,7 @@ def log_anonymize(filename):
     start_time = time.time()
 
     # Station Info entries
-    print("    STATION_INFO entries")
+    print("    Anonmyizing STATION_INFO entries")
     try:
         for idx in log_index['STATION_INFO']:
             # 6-byte address at offsets 8
@@ -124,7 +140,7 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
     # Tx/Rx Statistics entries
-    print("    TXRX_STATS entries")
+    print("    Anonmyizing TXRX_STATS entries")
     try:
         for idx in log_index['TXRX_STATS']:
             # 6-byte addresses at offsets 16
@@ -137,7 +153,7 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
     # Rx DSSS entries
-    print("    RX_DSSS entries")
+    print("    Anonmyizing RX_DSSS entries")
     try:
         for idx in log_index['RX_DSSS']:
             # 6-byte addresses at offsets 28, 34, 40
@@ -150,7 +166,7 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
     # Rx OFDM entries
-    print("    RX_OFDM entries")
+    print("    Anonmyizing RX_OFDM entries")
     try:
         for idx in log_index['RX_OFDM']:
             # 6-byte addresses at offsets 284, 290, 296
@@ -163,7 +179,7 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
     # Tx entries
-    print("    TX entries")
+    print("    Anonmyizing TX entries")
     try:
         for idx in log_index['TX']:
             # 6-byte addresses at offsets 44, 50, 56
@@ -176,7 +192,7 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
     # Tx Low entries
-    print("    TX_LOW entries")
+    print("    Anonmyizing TX_LOW entries")
     try:
         for idx in log_index['TX_LOW']:
             # 6-byte addresses at offsets 40, 46, 52
@@ -193,6 +209,8 @@ def log_anonymize(filename):
 
     print("Anonmyizing file step 2 ...")
 
+    print("    Enumerate MAC addresses and their anonymous replacements")
+
     addr_map = dict()
     for ii,addr in enumerate(all_addrs):
         anon_addr = (0xFF, 0xFF, 0xFF, 0xFF, (ii//256), (ii%256))
@@ -206,6 +224,8 @@ def log_anonymize(filename):
 
     print("Anonmyizing file step 3 ...")
 
+    print("    Replace all MAC addresses in the log")
+
     for old_addr in addr_idx_map.keys():
         new_addr = bytearray(addr_map[old_addr])
         for byte_idx in addr_idx_map[old_addr]:
@@ -218,6 +238,8 @@ def log_anonymize(filename):
     # Step 4: Other annonymization steps
 
     print("Anonmyizing file step 4 ...")
+
+    print("    Replace STATION_INFO hostnames")
 
     # Station info entries contain "hostname", the DHCP client hostname field
     #   Replace these with a string version of the new anonymous MAC addr
@@ -234,12 +256,16 @@ def log_anonymize(filename):
     except KeyError:
         pass
 
+    print("    Remove all WN_CMD_INFO entries")
+
     # WARPNet Command info entries contain command arguments that could possibly 
     #   contain sensitive information.  Replace with NULL entries.
     try:
         log_util.overwrite_entries_with_null_entry(log_bytes, log_index['WN_CMD_INFO'])
     except:
         pass
+
+    print("    Remove all payloads")
 
     # Overwrite all payloads with zeros
     try:
@@ -271,22 +297,32 @@ def log_anonymize(filename):
 
     print("Writing new file {0} ...".format(newfilename))
 
-    hdf_util.log_data_to_hdf5(log_bytes, newfilename)
+    # Copy any user attributes to the new anonymized file
+    hdf_util.log_data_to_hdf5(log_bytes, newfilename, attr_dict=log_attr_dict)
 
     return
-################################################################################
 
 
-if(len(sys.argv) < 2):
-    print("ERROR: must provide at least one log file input")
-    sys.exit()
-else:
-    for filename in sys.argv[1:]:
-        log_anonymize(filename)
+#-----------------------------------------------------------------------------
+# Main
+#-----------------------------------------------------------------------------
 
-print("MAC Address Mapping:")
-for ii,addr in enumerate(all_addrs):
-    anon_addr = (0xFF, 0xFF, 0xFF, 0xFF, (ii//256), (ii%256))
-    print("%2d: %02x:%02x:%02x:%02x:%02x:%02x -> %02x:%02x:%02x:%02x:%02x:%02x" %
-        (ii, addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], 
-         anon_addr[0], anon_addr[1], anon_addr[2], anon_addr[3], anon_addr[4], anon_addr[5]))
+if __name__ == '__main__':
+    if(len(sys.argv) < 2):
+        print("ERROR: must provide at least one log file input")
+        sys.exit()
+    else:
+        for filename in sys.argv[1:]:
+            # Ensure the log file actually exists; Print an error and continue to the next file.
+            if(not os.path.isfile(filename)):
+                print("\nERROR: File {0} not found".format(filename))
+            else:
+                print("\nAnonymizing file '{0}' ({1:5.1f} MB)\n".format(filename, (os.path.getsize(filename)/1E6)))
+                log_anonymize(filename)
+    
+    print("\nMAC Address Mapping:")
+    for ii,addr in enumerate(all_addrs):
+        anon_addr = (0xFF, 0xFF, 0xFF, 0xFF, (ii//256), (ii%256))
+        print("%2d: %02x:%02x:%02x:%02x:%02x:%02x -> %02x:%02x:%02x:%02x:%02x:%02x" %
+            (ii, addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], 
+             anon_addr[0], anon_addr[1], anon_addr[2], anon_addr[3], anon_addr[4], anon_addr[5]))
