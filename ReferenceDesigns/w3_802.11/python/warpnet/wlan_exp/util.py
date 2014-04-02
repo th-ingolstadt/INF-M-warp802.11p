@@ -48,14 +48,14 @@ __all__ = ['tx_rate_to_str', 'tx_rate_index_to_str',
 # WLAN Exp Rate definitions
 #-----------------------------------------------------------------------------
 
-wlan_rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2'},
-              {'index' :  2, 'rate' :  9.0, 'rate_str' : 'BPSK 3/4'},
-              {'index' :  3, 'rate' : 12.0, 'rate_str' : 'QPSK 1/2'},
-              {'index' :  4, 'rate' : 18.0, 'rate_str' : 'QPSK 3/4'},
-              {'index' :  5, 'rate' : 24.0, 'rate_str' : '16-QAM 1/2'},
-              {'index' :  6, 'rate' : 36.0, 'rate_str' : '16-QAM 3/4'},
-              {'index' :  7, 'rate' : 48.0, 'rate_str' : '64-QAM 2/3'},
-              {'index' :  8, 'rate' : 54.0, 'rate_str' : '64-QAM 3/4'}]
+wlan_rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2', 'NDBPS': 24},
+              {'index' :  2, 'rate' :  9.0, 'rate_str' : 'BPSK 3/4', 'NDBPS': 36},
+              {'index' :  3, 'rate' : 12.0, 'rate_str' : 'QPSK 1/2', 'NDBPS': 48},
+              {'index' :  4, 'rate' : 18.0, 'rate_str' : 'QPSK 3/4', 'NDBPS': 72},
+              {'index' :  5, 'rate' : 24.0, 'rate_str' : '16-QAM 1/2', 'NDBPS': 96},
+              {'index' :  6, 'rate' : 36.0, 'rate_str' : '16-QAM 3/4', 'NDBPS': 144},
+              {'index' :  7, 'rate' : 48.0, 'rate_str' : '64-QAM 2/3', 'NDBPS': 192},
+              {'index' :  8, 'rate' : 54.0, 'rate_str' : '64-QAM 3/4', 'NDBPS': 216}]
 
 
 def tx_rate_to_str(tx_rate):
