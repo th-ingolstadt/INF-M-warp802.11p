@@ -133,6 +133,12 @@ def gen_log_data_index(log_data, return_valid_slice=False):
         # Increment the byte offset for the next iteration
         offset += entry_size
 
+    # Remove all NULL entries from the log_index
+    try:
+        del log_index[0]
+    except KeyError:
+        pass
+
     return log_index
 
 # End gen_log_index_raw()
@@ -312,7 +318,94 @@ def log_data_to_np_arrays(log_data, log_index):
 
     return entries_nd
 
-# End gen_log_np_arrays()
+# End log_data_to_np_arrays()
+
+
+
+#-----------------------------------------------------------------------------
+# WLAN Exp Log Misc Utilities
+#-----------------------------------------------------------------------------
+def overwrite_entries_with_null_entry(log_data, byte_offsets):
+    """Overwrite the entries in byte_offsets with NULL entries."""
+    # See documentation above on header format
+    hdr_size         = 8
+
+    for offset in byte_offsets:
+        hdr_b = log_data[offset - hdr_size : offset]
+        
+        if( (bytearray(hdr_b[2:4]) != b'\xed\xac') ):
+            raise Exception("ERROR: Offset not a valid entry header (offset {0})!".format(offset))
+
+        hdr_b[4:6] = bytearray([0] * 2)
+        entry_size = (hdr_b[6] + (hdr_b[7] * 256))
+
+        # Write over the log entry with zeros
+        log_data[offset : offset + entry_size] = bytearray([0] * entry_size)
+        
+# End overwrite_entries_with_null_entry()
+
+
+
+def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
+    """Overwrite any payloads with zeros.
+
+    Attributes:
+        log_data        -- Binary log data to be modified
+        byte_offsets    -- Offsets in the log data that need to be modified
+        payload_offsets -- Dictionary of { entry_type_id : <payload offset> }
+
+    By default, if payload_offsets is not specified, the method will iterate through all
+    the entry types and calculate the defined size of the entry (ie it will use calcsize
+    on the struct format of the entry).  Sometimes, this is not the desired behavior
+    and calling code woudl want to specify a different amount of the payload to keep.  
+    For example, for data transmissions / receptions, it might be desired to also keep 
+    the SNAP headers and potentially the IP headers.  In this case, the calling code 
+    would get the appropriate set of byte_offsets and then create a payload_offsets 
+    dictionary with the desired "size" of the entry for those byte_offsets.  This will 
+    result in the calling code potentially calling this function multiple times with 
+    different payload_offsets for a given entry_type_id.  
+    
+    NOTE:  This method relies on the fact that for variable length log entries, the 
+    variable length data, ie the payload, is always at the end of the entry.  We also 
+    know, based on the entry type, the size of the entry without the payload.  Therefore, 
+    from the entry header, we can determine how many payload bytes are after the defined 
+    fields and zero them out.    
+    """
+    import struct
+    from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
+
+    # See documentation above on header format
+    hdr_size         = 8
+
+
+    if payload_offsets is None:
+        payload_offsets  = {}
+    
+        # Create temp data structure:  { entry_type_id : <payload offset>}
+        for entry_type_id, entry_type in entry_types.items():
+            payload_offsets[entry_type_id] = struct.calcsize(entry_type.fields_fmt_struct)
+
+
+    for offset in byte_offsets:
+        hdr_b = log_data[offset - hdr_size : offset]
+        
+        if( (bytearray(hdr_b[2:4]) != b'\xed\xac') ):
+            raise Exception("ERROR: Offset not a valid entry header (offset {0})!".format(offset))
+
+        entry_type_id = (hdr_b[4] + (hdr_b[5] * 256))
+        entry_size    = (hdr_b[6] + (hdr_b[7] * 256))
+
+        try:
+            len_offset  = payload_offsets[entry_type_id]
+
+            # Write over the log entry payload with zeros
+            if entry_size > len_offset:
+                log_data[offset + len_offset : offset + entry_size] = bytearray([0] * (entry_size - len_offset))
+
+        except KeyError:
+            print("WARNING:  Unknown entry type id {0} at offset {1}".format(entry_type_id, offset))
+
+# End overwrite_payloads()
 
 
 
@@ -412,7 +505,9 @@ def _get_safe_filename(filename):
 
             # Break the loop if we found a unique file name
             if not os.path.isfile(safe_filename):
-                print('Warning: File "{0}" already exists.\n   Using replacement file name "{1}"'.format(filename, safe_filename))
+                msg  = 'WARNING: File "{0}" already exists.\n'.format(filename)
+                msg += '    Using replacement file name "{0}"'.format(safe_filename)
+                print(msg)
                 break
     else:
         # File didn't exist - use name as provided
