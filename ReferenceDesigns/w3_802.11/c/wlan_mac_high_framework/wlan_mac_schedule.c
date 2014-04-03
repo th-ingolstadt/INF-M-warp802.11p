@@ -71,8 +71,8 @@ int wlan_mac_schedule_init(){
 	XTmrCtr_SetHandler(&TimerCounterInst, timer_handler, &TimerCounterInst);
 
 	//Enable interrupt of timer and auto-reload so it continues repeatedly
-	XTmrCtr_SetOptions(&TimerCounterInst, TIMER_CNTR_FAST, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION);
-	XTmrCtr_SetOptions(&TimerCounterInst, TIMER_CNTR_SLOW, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION);
+	XTmrCtr_SetOptions(&TimerCounterInst, TIMER_CNTR_FAST, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
+	XTmrCtr_SetOptions(&TimerCounterInst, TIMER_CNTR_SLOW, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
 
 
 	return 0;
@@ -265,12 +265,14 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 					}
 				}
 			}
-
+			/*
 			if(wlan_sched_fine.length > 0){
 				//There are still schedules pending. Restart the timer.
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_FAST, FAST_TIMER_DUR_US*(TIMER_FREQ/1000000));
 				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
 			}
+			*/
+
 
 		break;
 
@@ -300,15 +302,24 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 					}
 				}
 			}
-
+			/*
 			if(wlan_sched_coarse.length > 0){
 				//There are still schedules pending. Restart the timer.
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_SLOW, SLOW_TIMER_DUR_US*(TIMER_FREQ/1000000));
 				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
 			}
+			*/
 
 		break;
 	}
+
+	if(wlan_sched_fine.length == 0){
+		XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_FAST);
+	}
+	if(wlan_sched_coarse.length == 0) {
+		XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_SLOW);
+	}
+
 }
 
 /*****************************************************************************/
