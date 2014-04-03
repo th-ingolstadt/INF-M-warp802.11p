@@ -43,8 +43,6 @@
 #define UART_MODE_MAIN                 0
 #define UART_MODE_INTERACTIVE          1
 #define UART_MODE_SSID_CHANGE          2
-#define UART_MODE_LTG_SIZE_CHANGE	   3
-#define UART_MODE_LTG_INTERVAL_CHANGE  4
 
 // **********************************************************************
 // Common Defines
@@ -156,7 +154,6 @@ void print_menu();
 void print_ssid_menu();
 void print_queue_status();
 void print_station_status();
-void ltg_cleanup(u32 id, void* callback_arg);
 void start_periodic_print();
 void print_all_observed_statistics();
 void stop_periodic_print();

@@ -51,30 +51,23 @@ extern dl_list association_table;
 extern dl_list statistics_table;
 
 extern char* access_point_ssid;
-static u8 curr_aid;
-static u8 curr_traffic_type;
 static u32 cpu_high_status;
 static u32 schedule_ID;
 static u8 print_scheduled = 0;
 
-#define TRAFFIC_TYPE_PERIODIC_FIXED		1
-#define TRAFFIC_TYPE_PERIODIC_RAND		2
-#define TRAFFIC_TYPE_RAND_FIXED			3
-#define TRAFFIC_TYPE_RAND_RAND			4
-
 u32 num_slots = SLOT_CONFIG_RAND;
 
+ltg_pyld_all_assoc_fixed 	traffic_blast_pyld;
+ltg_sched_periodic_params 	traffic_blast_sched;
+u32							traffic_blast_ltg_id;
+
 void uart_rx(u8 rxByte){
-	void* ltg_sched_state;
-	u32 ltg_sched_type;
 
 	u32 i;
 	dl_entry* 	  curr_station_info_entry;
 	station_info* curr_station_info;
 
-	void* ltg_callback_arg;
-	ltg_sched_periodic_params periodic_params;
-	ltg_sched_uniform_rand_params rand_params;
+	void* ltg_state;
 
 	#define MAX_NUM_CHARS 31
 	static char text_entry[MAX_NUM_CHARS+1];
@@ -85,6 +78,7 @@ void uart_rx(u8 rxByte){
 		stop_periodic_print();
 		print_menu();
 		ltg_sched_remove(LTG_REMOVE_ALL);
+		traffic_blast_ltg_id = LTG_ID_INVALID;
 		return;
 	}
 
@@ -217,212 +211,52 @@ void uart_rx(u8 rxByte){
 					//Deauthenticate all stations
 					deauthenticate_stations();
 				break;
-				default:
-					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
-						//This if range covers the numbers [1,...,9,0] on a keyboard.
 
-						curr_aid = rxByte - 48;
-						curr_traffic_type = TRAFFIC_TYPE_PERIODIC_FIXED;
+				case ASCII_b:
+					//Toggle Traffic Blaster
 
-						curr_station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
+					//First, we'll see if an LTG has been created and create a new one if not.
 
-						if(curr_station_info_entry != NULL){
-							curr_station_info = (station_info*)(curr_station_info_entry->data);
-							uart_mode = UART_MODE_LTG_SIZE_CHANGE;
-							curr_char = 0;
+					if(traffic_blast_ltg_id == LTG_ID_INVALID){
+						//Set up and start
+						traffic_blast_pyld.hdr.type = LTG_PYLD_TYPE_ALL_ASSOC_FIXED;
+						traffic_blast_pyld.length = 1400;
+						traffic_blast_sched.duration_count = LTG_DURATION_FOREVER;
+						traffic_blast_sched.interval_count = 0;
 
-							if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_sched_type,&ltg_sched_state) == 0){
-								//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
-								if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
-									//This LTG is currently running. We'll turn it off.
-									ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
-									uart_mode = UART_MODE_INTERACTIVE;
+						traffic_blast_ltg_id = ltg_sched_create(LTG_SCHED_TYPE_PERIODIC, &traffic_blast_sched, &traffic_blast_pyld, NULL);
 
-									start_periodic_print();
-									return;
-								}
-							}
-							xil_printf("\n\n Configuring Local Traffic Generator (LTG) for AID %d\n", curr_aid);
-							xil_printf("\nEnter packet payload size (in bytes): ");
-						}
-
-					}
-					if( is_qwerty_row(rxByte) ){
-						//This if range covers the range [q,p] on a keyboard (the letters directly below [1,...,9,0])
-						//This is a "hidden" UART feature to show how other kinds of LTG traffic sources can be set up.
-						//Specifically, this will set up a random interval, random payload length traffic source.
-
-						curr_aid = qwerty_row_to_number(rxByte);
-						curr_traffic_type = TRAFFIC_TYPE_RAND_RAND;
-
-						curr_station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
-
-						if(curr_station_info_entry != NULL){
-							curr_station_info = (station_info*)(curr_station_info_entry->data);
-							uart_mode = UART_MODE_LTG_SIZE_CHANGE;
-							curr_char = 0;
-
-							if(ltg_sched_get_state(AID_TO_LTG_ID(curr_aid),&ltg_sched_type,&ltg_sched_state) == 0){
-								//A scheduler of ID = AID_TO_LTG_ID(curr_aid) has been previously configured
-								if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
-									//This LTG is currently running. We'll turn it off.
-									ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
-									uart_mode = UART_MODE_INTERACTIVE;
-
-									start_periodic_print();
-									return;
-								}
-							}
-							xil_printf("\n\n Configuring Random Local Traffic Generator (LTG) for AID %d\n", curr_aid);
-							xil_printf("\nEnter maximum payload size (in bytes): ");
-						}
-
-					}
-
-				break;
-			}
-		break;
-
-		case UART_MODE_LTG_SIZE_CHANGE:
-			switch(rxByte){
-				case ASCII_CR:
-					text_entry[curr_char] = 0;
-					curr_char = 0;
-
-					if(ltg_sched_get_callback_arg(AID_TO_LTG_ID(curr_aid),&ltg_callback_arg) == 0){
-						//This LTG has already been configured. We need to free the old callback argument so we can create a new one.
-						ltg_sched_stop(AID_TO_LTG_ID(curr_aid));
-						wlan_mac_high_free(ltg_callback_arg);
-					}
-					switch(curr_traffic_type){
-						case TRAFFIC_TYPE_PERIODIC_FIXED:
-							ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_fixed));
-
-							curr_station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, curr_aid);
-							if(ltg_callback_arg != NULL && curr_station_info_entry != NULL){
-								curr_station_info = (station_info*)(curr_station_info_entry->data);
-								((ltg_pyld_fixed*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_FIXED;
-								memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->addr_da, curr_station_info->addr, 6);
-								((ltg_pyld_fixed*)ltg_callback_arg)->length = str2num(text_entry);
-
-								//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
-								//simply an artifact of the sequential nature of UART entry. We won't start the scheduler until we call configure again with that updated
-								//entry.
-								ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
-
-								uart_mode = UART_MODE_LTG_INTERVAL_CHANGE;
-								xil_printf("\nEnter packet Tx interval (in microseconds): ");
-							} else {
-								xil_printf("Error allocating memory for ltg_callback_arg\n");
-								uart_mode = UART_MODE_INTERACTIVE;
-								start_periodic_print();
-							}
-
-						break;
-						case TRAFFIC_TYPE_RAND_RAND:
-							ltg_callback_arg = wlan_mac_high_malloc(sizeof(ltg_pyld_uniform_rand));
-							if(ltg_callback_arg != NULL){
-								((ltg_pyld_uniform_rand*)ltg_callback_arg)->hdr.type = LTG_PYLD_TYPE_UNIFORM_RAND;
-								memcpy(((ltg_pyld_uniform_rand*)ltg_callback_arg)->addr_da, curr_station_info->addr, 6);
-								((ltg_pyld_uniform_rand*)ltg_callback_arg)->min_length = 0;
-								((ltg_pyld_uniform_rand*)ltg_callback_arg)->max_length = str2num(text_entry);
-
-								//Note: This call to configure is incomplete. At this stage in the uart menu, the periodic_params argument hasn't been updated. This is
-								//simply an artifact of the sequential nature of UART entry. We won't start the scheduler until we call configure again with that updated
-								//entry.
-								ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_UNIFORM_RAND, &rand_params, ltg_callback_arg, &ltg_cleanup);
-
-								uart_mode = UART_MODE_LTG_INTERVAL_CHANGE;
-								xil_printf("\nEnter maximum packet Tx interval (in microseconds): ");
-							} else {
-								xil_printf("Error allocating memory for ltg_callback_arg\n");
-								uart_mode = UART_MODE_INTERACTIVE;
-								start_periodic_print();
-							}
-
-						break;
-					}
-
-
-
-				break;
-				case ASCII_DEL:
-					if(curr_char > 0){
-						curr_char--;
-						xil_printf("\b \b");
-					}
-				break;
-				default:
-					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
-						//the user entered a character
-						if(curr_char < MAX_NUM_CHARS){
-							xil_printf("%c", rxByte);
-							text_entry[curr_char] = rxByte;
-							curr_char++;
-						}
-					}
-				break;
-			}
-		break;
-
-		case UART_MODE_LTG_INTERVAL_CHANGE:
-				switch(rxByte){
-					case ASCII_CR:
-						text_entry[curr_char] = 0;
-						curr_char = 0;
-
-						if(ltg_sched_get_callback_arg(AID_TO_LTG_ID(curr_aid),&ltg_callback_arg) != 0){
-							xil_printf("Error: expected to find an already configured LTG ID %d\n", AID_TO_LTG_ID(curr_aid));
-							return;
-						}
-						switch(curr_traffic_type){
-							case TRAFFIC_TYPE_PERIODIC_FIXED:
-								if(ltg_callback_arg != NULL){
-									periodic_params.duration_count = LTG_DURATION_FOREVER;
-									periodic_params.interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
-									ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_PERIODIC, &periodic_params, ltg_callback_arg, &ltg_cleanup);
-									ltg_sched_start(AID_TO_LTG_ID(curr_aid));
-								} else {
-									xil_printf("Error: ltg_callback_arg was NULL\n");
-								}
-
-							break;
-							case TRAFFIC_TYPE_RAND_RAND:
-								if(ltg_callback_arg != NULL){
-									rand_params.duration_count = LTG_DURATION_FOREVER;
-									rand_params.min_interval_count = 0;
-									rand_params.max_interval_count = str2num(text_entry) / LTG_POLL_INTERVAL;
-									ltg_sched_configure(AID_TO_LTG_ID(curr_aid), LTG_SCHED_TYPE_UNIFORM_RAND, &rand_params, ltg_callback_arg, &ltg_cleanup);
-									ltg_sched_start(AID_TO_LTG_ID(curr_aid));
-								} else {
-									xil_printf("Error: ltg_callback_arg was NULL\n");
-								}
-
+						if(traffic_blast_ltg_id == LTG_ID_INVALID){
+							xil_printf("Error in creating LTG\n");
 							break;
 						}
 
-						uart_mode = UART_MODE_INTERACTIVE;
-						start_periodic_print();
+					}
 
-					break;
-					case ASCII_DEL:
-						if(curr_char > 0){
-							curr_char--;
-							xil_printf("\b \b");
-						}
-					break;
-					default:
-						if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
-							//the user entered a character
-							if(curr_char < MAX_NUM_CHARS){
-								xil_printf("%c", rxByte);
-								text_entry[curr_char] = rxByte;
-								curr_char++;
-							}
-						}
-					break;
-				}
-			break;
+					//Second, we'll check to see if this LTG ID is currently running. If we just created it in the above,
+					//this check isn't necessary (we know it's not running). We'll ask anyway so that we have fewer cases
+					//to deal with.
+
+					ltg_sched_get_state(traffic_blast_ltg_id, NULL, &ltg_state);
+
+					//Note: Here I have the luxury of knowing what type ltg_state is. In general, the second argument
+					//to ltg_sched_get_state can be used to figure out what type to cast ltg_state to
+
+					switch(((ltg_sched_periodic_state*)ltg_state)->hdr.enabled){
+						case 0:
+							//LTG is not running, so let's start it
+							ltg_sched_start(traffic_blast_ltg_id);
+						break;
+
+						case 1:
+							//LTG is running, so let's stop it
+							ltg_sched_stop(traffic_blast_ltg_id);
+						break;
+					}
+				break;
+
+			}
+		break;
 
 		case UART_MODE_SSID_CHANGE:
 			switch(rxByte){
@@ -526,11 +360,6 @@ void print_station_status(){
 	dl_entry*	  curr_entry;
 
 	u64 timestamp;
-	void* ltg_sched_state;
-	void* ltg_sched_parameters;
-	void* ltg_pyld_callback_arg;
-
-	u32 ltg_sched_type;
 
 	if(uart_mode == UART_MODE_INTERACTIVE){
 		timestamp = get_usec_timestamp();
@@ -548,38 +377,6 @@ void print_station_status(){
 			}
 			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->AID,
 					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
-
-
-			if(ltg_sched_get_state(AID_TO_LTG_ID(curr_station_info->AID),&ltg_sched_type,&ltg_sched_state) == 0){
-
-				ltg_sched_get_params(AID_TO_LTG_ID(curr_station_info->AID), &ltg_sched_parameters);
-				ltg_sched_get_callback_arg(AID_TO_LTG_ID(curr_station_info->AID),&ltg_pyld_callback_arg);
-
-				if(((ltg_sched_state_hdr*)ltg_sched_state)->enabled == 1){
-					switch(ltg_sched_type){
-						case LTG_SCHED_TYPE_PERIODIC:
-							xil_printf("  Periodic LTG Schedule Enabled\n");
-							xil_printf("  Packet Tx Interval: %d microseconds\n", LTG_POLL_INTERVAL*((ltg_sched_periodic_params*)(ltg_sched_parameters))->interval_count);
-						break;
-						case LTG_SCHED_TYPE_UNIFORM_RAND:
-							xil_printf("  Uniform Random LTG Schedule Enabled\n");
-							xil_printf("  Packet Tx Interval: Uniform over range of [%d,%d] microseconds\n", LTG_POLL_INTERVAL*((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->min_interval_count, LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params*)(ltg_sched_parameters))->max_interval_count);
-						break;
-					}
-
-					switch(((ltg_pyld_hdr*)(ltg_sched_parameters))->type){
-						case LTG_PYLD_TYPE_FIXED:
-							xil_printf("  Fixed Packet Length: %d bytes\n", ((ltg_pyld_fixed*)(ltg_pyld_callback_arg))->length);
-						break;
-						case LTG_PYLD_TYPE_UNIFORM_RAND:
-							xil_printf("  Random Packet Length: Uniform over [%d,%d] bytes\n", ((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->min_length,((ltg_pyld_uniform_rand*)(ltg_pyld_callback_arg))->max_length);
-						break;
-					}
-
-				}
-
-			}
-
 
 			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx.last_timestamp)))/1000);
 			xil_printf("     - Last Rx Power:          %d dBm\n",curr_station_info->rx.last_power);
@@ -603,11 +400,6 @@ void print_station_status(){
 			xil_printf("\n");
 			xil_printf("[r] - reset statistics\n");
 			xil_printf("[d] - deauthenticate all stations\n\n");
-			xil_printf(" The interactive AP menu supports sending arbitrary traffic\n");
-			xil_printf(" to any associated station. To use this feature, press any number\n");
-			xil_printf(" on the keyboard that corresponds to an associated station's AID\n");
-			xil_printf(" and follow the prompts. Pressing Esc at any time will halt all\n");
-			xil_printf(" local traffic generation and return you to the main menu.");
 
 	}
 
@@ -657,11 +449,6 @@ void stop_periodic_print(){
 		print_scheduled = 0;
 		wlan_mac_remove_schedule(SCHEDULE_COARSE, schedule_ID);
 	}
-}
-
-
-void ltg_cleanup(u32 id, void* callback_arg){
-	wlan_mac_high_free(callback_arg);
 }
 
 int is_qwerty_row(u8 rxByte){

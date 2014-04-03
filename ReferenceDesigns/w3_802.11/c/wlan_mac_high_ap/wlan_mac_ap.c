@@ -500,20 +500,27 @@ void ltg_event(u32 id, void* callback_arg){
 		case LTG_PYLD_TYPE_FIXED:
 			addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
 			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
+			station_info_entry = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
 		break;
 		case LTG_PYLD_TYPE_UNIFORM_RAND:
 			addr_da = ((ltg_pyld_uniform_rand*)callback_arg)->addr_da;
 			payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
+			station_info_entry = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
+		break;
+		case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
+			payload_length = ((ltg_pyld_all_assoc_fixed*)callback_arg)->length;
+			station_info_entry = association_table.first;
 		break;
 		default:
 			addr_da = 0;
+			return;
 		break;
 
 	}
 
-	station_info_entry = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
 
-	if(station_info_entry != NULL){
+
+	while(station_info_entry != NULL){
 		station = (station_info*)(station_info_entry->data);
 
 		if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size){
@@ -557,6 +564,13 @@ void ltg_event(u32 id, void* callback_arg){
 				check_tx_queue();
 			}
 		}
+
+		if(LTG_PYLD_TYPE_ALL_ASSOC_FIXED){
+			station_info_entry = dl_entry_next(station_info_entry);
+		} else {
+			station_info_entry = NULL;
+		}
+
 	}
 }
 
