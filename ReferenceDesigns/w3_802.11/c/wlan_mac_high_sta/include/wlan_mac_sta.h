@@ -51,8 +51,6 @@
 #define UART_MODE_MAIN                 0
 #define UART_MODE_INTERACTIVE          1
 #define UART_MODE_AP_LIST              2
-#define UART_MODE_LTG_SIZE_CHANGE	   3
-#define UART_MODE_LTG_INTERVAL_CHANGE  4
 
 
 
