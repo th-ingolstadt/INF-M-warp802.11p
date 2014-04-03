@@ -1218,7 +1218,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 
 					// Configure the LTG
+#if 0				//TODO
+					!!! ltg_sched_configure no longer exists, use ltg_sched_create instead. See UART for example.
 					status = ltg_sched_configure( id, t1, params, ltg_callback_arg, &node_ltg_cleanup );
+
+#endif
 
 					xil_printf("LTG %d configured\n", id);
 

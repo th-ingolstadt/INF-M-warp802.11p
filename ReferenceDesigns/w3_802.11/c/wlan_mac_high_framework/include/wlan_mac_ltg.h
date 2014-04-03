@@ -29,6 +29,7 @@
 //profile
 #define LTG_PYLD_TYPE_FIXED				1
 #define LTG_PYLD_TYPE_UNIFORM_RAND		2
+#define LTG_PYLD_TYPE_ALL_ASSOC_FIXED	3
 
 
 #define LTG_REMOVE_ALL                  0xFFFFFFFF
@@ -98,6 +99,12 @@ typedef struct {
 
 typedef struct {
 	ltg_pyld_hdr hdr;
+	u16 length;
+	u16 padding;
+} ltg_pyld_all_assoc_fixed;
+
+typedef struct {
+	ltg_pyld_hdr hdr;
 	u8 addr_da[6];
 	u16 min_length;
 	u16 max_length;
@@ -109,10 +116,12 @@ typedef struct {
 //polling rate at the cost of more overhead in checking LTGs, increase the speed of the fast timer.
 #define LTG_POLL_INTERVAL FAST_TIMER_DUR_US
 
+#define LTG_ID_INVALID	0xFFFF
+
 //External function to LTG -- user code interacts with the LTG via these functions
 int wlan_mac_ltg_sched_init();
 void wlan_mac_ltg_sched_set_callback(void(*callback)());
-int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void(*callback)());
+u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*callback)());
 int ltg_sched_remove(u32 id);
 int ltg_sched_start(u32 id);
 int ltg_sched_start_all();
@@ -130,8 +139,8 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
 
 //Internal functions to LTG -- users should not need to call these directly
 void ltg_sched_check();
-dl_entry* ltg_sched_create();
-void ltg_sched_destroy(dl_entry* tg_dl_entry);
+dl_entry* ltg_sched_create_l();
+void ltg_sched_destroy_l(dl_entry* tg_dl_entry);
 void ltg_sched_destroy_params(tg_schedule *tg);
 dl_entry* ltg_sched_find_tg_schedule(u32 id);
 

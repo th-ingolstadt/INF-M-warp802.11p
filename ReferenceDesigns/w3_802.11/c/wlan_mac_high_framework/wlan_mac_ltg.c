@@ -52,91 +52,77 @@ void wlan_mac_ltg_sched_set_callback(void(*callback)()){
 	ltg_callback = (function_ptr_t)callback;
 }
 
-int ltg_sched_configure(u32 id, u32 type, void* params, void* callback_arg, void(*cleanup_callback)()){
-	//This function can be called on uninitalized schedule IDs or on schedule IDs that had
-	//been previously configured. In the event that they had been previously configured, care
-	//must be taken by the calling application to free previous the previous callback_arg if
-	//applicable.
+u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_callback)()){
+
+	static u32 id = 0;
+	u32 return_value;
 
 	tg_schedule* curr_tg;
 	dl_entry*	 curr_tg_dl_entry;
 
-	u8 create_new = 1;
-	u8 is_enabled = 0;
+	//Create a new tg for this id
+	curr_tg_dl_entry = ltg_sched_create_l();
 
-	curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
-
-	if(curr_tg_dl_entry != NULL){
-		//A schedule with this ID has already been configured. We'll destroy it
-		//and overwrite its parameters.
-		curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
-
-		create_new = 0;
-		is_enabled = ((ltg_sched_state_hdr*)(curr_tg->state))->enabled;
-
-		//Stop this LTG to make this function interrupt safe. The ltg_sched_check function
-		//might be called at any point during this function. A partially-configured LTG
-		//that is currently running would result in very difficult-to-debug results if
-		//it happens to execute.
-		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
-		ltg_sched_destroy_params(curr_tg);
+	if(curr_tg_dl_entry == NULL){
+		return_value = LTG_ID_INVALID;
+		return return_value;
 	}
 
-	//Create a new tg for this id if we didn't find it in the list
-	if(create_new){
-		curr_tg_dl_entry = ltg_sched_create();
-		dl_entry_insertEnd(&tg_list,curr_tg_dl_entry);
+	dl_entry_insertEnd(&tg_list,curr_tg_dl_entry);
+
+	curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
+
+	curr_tg->id = id;
+
+	return_value = id;
+
+	id++;
+	if(id == LTG_ID_INVALID){
+		id++;
 	}
 
-	if(curr_tg_dl_entry != NULL){
+	curr_tg->type = type;
+	curr_tg->cleanup_callback = (function_ptr_t)cleanup_callback;
+	switch(type){
+		case LTG_SCHED_TYPE_PERIODIC:
+			curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_params));
+			curr_tg->state = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_state));
 
-		curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
-
-		curr_tg->id = id;
-		curr_tg->type = type;
-		curr_tg->cleanup_callback = (function_ptr_t)cleanup_callback;
-		switch(type){
-			case LTG_SCHED_TYPE_PERIODIC:
-				curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_params));
-				curr_tg->state = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_state));
-
-				if(curr_tg->params != NULL){
-					memcpy(curr_tg->params, params, sizeof(ltg_sched_periodic_params));
-					curr_tg->callback_arg = callback_arg;
-				} else {
-					xil_printf("Failed to initialize parameter struct\n");
-					ltg_sched_destroy(curr_tg_dl_entry);
-					return -1;
-				}
-			break;
-			case LTG_SCHED_TYPE_UNIFORM_RAND:
-				curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
-				curr_tg->state = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
-
-				if(curr_tg->params != NULL){
-					memcpy(curr_tg->params, params, sizeof(ltg_sched_uniform_rand_params));
-					curr_tg->callback_arg = callback_arg;
-				} else {
-					xil_printf("Failed to initialize parameter struct\n");
-					ltg_sched_destroy(curr_tg_dl_entry);
-					return -1;
-				}
-			break;
-			default:
-				xil_printf("Unknown type %d, destroying tg_schedule struct\n");
-				ltg_sched_destroy(curr_tg_dl_entry);
+			if(curr_tg->params != NULL && curr_tg->state != NULL){
+				memcpy(curr_tg->params, params, sizeof(ltg_sched_periodic_params));
+				curr_tg->callback_arg = callback_arg;
+			} else {
+				xil_printf("Failed to initialize LTG structs\n");
+				dl_entry_remove(&tg_list,curr_tg_dl_entry);
+				ltg_sched_destroy_l(curr_tg_dl_entry);
 				return -1;
-			break;
-		}
-		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = is_enabled;
+			}
+		break;
+		case LTG_SCHED_TYPE_UNIFORM_RAND:
+			curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
+			curr_tg->state = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
 
-
-	} else {
-		xil_printf("Failed to initialize tg_schedule struct\n");
-		return -1;
+			if(curr_tg->params != NULL && curr_tg->state != NULL){
+				memcpy(curr_tg->params, params, sizeof(ltg_sched_uniform_rand_params));
+				curr_tg->callback_arg = callback_arg;
+			} else {
+				xil_printf("Failed to initialize LTG structs\n");
+				dl_entry_remove(&tg_list,curr_tg_dl_entry);
+				ltg_sched_destroy_l(curr_tg_dl_entry);
+				return_value = LTG_ID_INVALID;
+				return return_value;
+			}
+		break;
+		default:
+			xil_printf("Unknown type %d, destroying tg_schedule struct\n");
+			dl_entry_remove(&tg_list,curr_tg_dl_entry);
+			ltg_sched_destroy_l(curr_tg_dl_entry);
+			return_value = LTG_ID_INVALID;
+			return return_value;
+		break;
 	}
-
-	return 0;
+	((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+	return return_value;
 }
 
 int ltg_sched_start(u32 id){
@@ -212,7 +198,8 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 
 		default:
 			xil_printf("Unknown type %d, destroying tg_schedule struct\n");
-			ltg_sched_destroy(curr_tg_dl_entry);
+			dl_entry_remove(&tg_list,curr_tg_dl_entry);
+			ltg_sched_destroy_l(curr_tg_dl_entry);
 			return -1;
 		break;
 	}
@@ -314,8 +301,8 @@ int ltg_sched_get_state(u32 id, u32* type, void** state){
 
 	curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
-	*type = curr_tg->type;
-	*state = curr_tg->state;
+	if(type != NULL) *type = curr_tg->type;
+	if(state != NULL) *state = curr_tg->state;
 
 	switch(curr_tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
@@ -399,8 +386,10 @@ int ltg_sched_remove(u32 id){
 		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
 			dl_entry_remove(&tg_list, curr_tg_dl_entry);
 			ltg_sched_stop_l(curr_tg_dl_entry);
-			curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
-			ltg_sched_destroy(curr_tg_dl_entry);
+			if(curr_tg->cleanup_callback != NULL){
+				curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
+			}
+			ltg_sched_destroy_l(curr_tg_dl_entry);
 			if(id != LTG_REMOVE_ALL) return 0;
 		}
 	}
@@ -412,7 +401,7 @@ int ltg_sched_remove(u32 id){
 	}
 }
 
-dl_entry* ltg_sched_create(){
+dl_entry* ltg_sched_create_l(){
 	dl_entry* curr_tg_dl_entry;
 	tg_schedule* curr_tg;
 
@@ -444,7 +433,7 @@ void ltg_sched_destroy_params(tg_schedule *tg){
 	}
 }
 
-void ltg_sched_destroy(dl_entry* tg_dl_entry){
+void ltg_sched_destroy_l(dl_entry* tg_dl_entry){
 	tg_schedule* curr_tg;
 
 	curr_tg = (tg_schedule*)(tg_dl_entry->data);
