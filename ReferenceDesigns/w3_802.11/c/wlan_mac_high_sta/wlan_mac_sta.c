@@ -227,6 +227,8 @@ int main() {
 	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_ANTA);
 	wlan_mac_high_set_tx_ctrl_pow(TX_POWER_DBM);
 
+	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_ADDR_STANDARD);
+
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
 
@@ -710,6 +712,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u32 payload_log_len;
 	u32 extra_payload;
 	u32 total_payload_len = min(length + sizeof(mac_header_80211) , mac_payload_log_len);
+	u8 unicast_to_me, to_multicast;
 
 	//*************
 	// Event logging
@@ -801,7 +804,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		}
 
-	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
+		unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr);
+		to_multicast = wlan_addr_mcast(rx_80211_header->address_1);
+
+		if( mpdu_info->state == RX_MPDU_STATE_FCS_GOOD && (unicast_to_me || to_multicast)){
 		associated_station_entry = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
 		if(associated_station_entry != NULL) {
 			associated_station = (station_info*)(associated_station_entry->data);
