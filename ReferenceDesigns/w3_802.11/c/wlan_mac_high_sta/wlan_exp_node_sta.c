@@ -112,9 +112,10 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 	unsigned int  respSent   = NO_RESP_SENT;       // Initialize return value to NO_RESP_SENT
     unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
-    unsigned int  status;
-    unsigned int  temp;
+    int           status;
 
+    u32           temp;
+    u32           msg_cmd;
 
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
@@ -153,12 +154,16 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 		//---------------------------------------------------------------------
 		case NODE_CHANNEL:
-			// Get channel parameter
-			temp = Xil_Ntohl(cmdArgs32[0]);
+			//   - cmdArgs32[0]      - Command
+			//   - cmdArgs32[1]      - Channel
 
-			// If parameter is not the magic number, then set the mac channel
-			//   NOTE:  We modulate temp so that we always have a valid channel
-			if ( temp != NODE_CHANNEL_RSVD_VAL ) {
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			temp    = Xil_Ntohl(cmdArgs32[1]);
+			status  = NODE_SUCCESS;
+
+			if ( msg_cmd == NODE_WRITE_VAL ) {
+				// Set the Channel
+				//   NOTE:  We modulate temp so that we always have a valid channel
 				temp = temp % 12;          // Get a channel number between 0 - 11
 				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
 
@@ -170,7 +175,8 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			    xil_printf("Setting Channel = %d\n", mac_param_chan);
 			}
 
-			// Send response of current channel
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
             respArgs32[respIndex++] = Xil_Htonl( mac_param_chan );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
