@@ -77,7 +77,7 @@ print("  Serial Number: {0}".format(wlan_exp_util.sn_to_str(log_node_info['hw_ge
 print("  WLAN Exp Ver : {0}".format(wlan_exp_util.ver_code_to_str(log_node_info['wlan_exp_ver'])))
 print("")
 
-if(len(log_np['TIME_INFO'] > 0):
+if(len(log_np['TIME_INFO']) > 0):
     log_time_info = log_np['TIME_INFO'][0]
 
     print("Experiment Started at: {0}".format(time.ctime(float(log_time_info['abs_time'] / 1E6))))

@@ -26,7 +26,7 @@ import warpnet.wlan_exp.ltg   as ltg
 
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
+NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
 # Select some PHY rates to test
 #  wlan_exp_util.rates is an array of dictionaries with keys:
@@ -34,7 +34,7 @@ NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 #  NOTE: rates must be a list for the below loops to work.  To select a
 #    single rate please use the syntax:  wlan_exp_util.rates[0:1] to select
 #    just entry [0] of the list.
-rates = wlan_exp_util.rates[0:4]
+wlan_rates = wlan_exp_util.wlan_rates[0:]
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME = 10
@@ -71,20 +71,24 @@ else:
 
 # Initialize each node and gather some print some experiment information
 print("\nExperimental Setup:")
+# Put each node in a known, good state
 for node in nodes:
-    # Put each node in a known, good state
-    node.ltg_remove_all()
-    node.log_reset()
-    node.stats_reset_txrx()
+    node.node_set_tx_rate_unicast(wlan_exp_util.wlan_rates[3], curr_assoc=True, new_assoc=True)
+    node.log_configure(log_full_payloads=False)
+    node.node_reset_all()
 
     # Get some additional information about the experiment
-    channel = node.node_get_channel()
-    tx_gain = node.node_get_tx_gain()
+    channel  = node.node_get_channel()
+    tx_power = node.node_get_tx_power()
 
     print("\n{0}:".format(node.name))
-    print("    Channel = {0}".format(channel))
-    print("    Tx Gain = {0}".format(tx_gain))
+    print("    Channel  = {0}".format(channel))
+    print("    Tx Power = {0}".format(tx_power))
 
+print("")
+
+# Add the current time to all the nodes
+wlan_exp_util.broadcast_node_add_current_time_to_log(host_config)
 
 # Check that the nodes are associated.  Otherwise, the LTGs below will fail.
 if not n_ap.node_is_associated(n_sta):
@@ -93,10 +97,11 @@ if not n_ap.node_is_associated(n_sta):
     sys.exit(0)
 
 
+print("\nStart LTG - AP -> STA:")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
-#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts)
-n_ap.ltg_to_node_configure(n_sta, ltg.FlowConfigCBR(1400, 0))
-n_ap.ltg_to_node_start(n_sta)
+#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
+#  Start the flow immediately
+ap_ltg_id  = n_ap.ltg_to_node_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
 
 # Arrays to hold results
 rx_bytes = []
@@ -105,11 +110,11 @@ rx_time_spans = []
 print("\nRun Experiment:")
 
 # Iterate over each selected Tx rate, running a new trial for each rate
-for ii,rate in enumerate(rates):
+for ii,rate in enumerate(wlan_rates):
     print("\nStarting {0} sec trial for rate {1} ...".format(TRIAL_TIME, wlan_exp_util.tx_rate_to_str(rate)))
 
     #Configure the AP's Tx rate for the selected station
-    n_ap.node_set_tx_rate(n_sta, rate)
+    n_ap.node_set_tx_rate_unicast(rate, device_list=n_sta)
 
     #Record the station's initial Tx/Rx stats
     rx_stats_start = n_sta.stats_get_txrx(n_ap)
@@ -128,12 +133,12 @@ for ii,rate in enumerate(rates):
 print("\n")
 
 # Stop the LTG flow so that nodes are in a known, good state
-n_ap.ltg_to_node_stop(n_sta)
+n_ap.ltg_to_node_stop(ap_ltg_id)
 
 #Calculate and display the throughput results
 print("Results:")
 
-for ii in range(len(rates)):
+for ii in range(len(wlan_rates)):
     #Timestamps are in microseconds; bits/usec == Mbits/sec
     #  NOTE: In Python 3.x, the division operator is always floating point.
     #    In order to be compatible with all versions of python, cast
@@ -141,4 +146,4 @@ for ii in range(len(rates)):
     num_bytes = float(rx_bytes[ii] * 8)
     time_span = float(rx_time_spans[ii])
     xput = num_bytes / time_span
-    print("    Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rates[ii]['rate'], xput))
+    print("    Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(wlan_rates[ii]['rate'], xput))

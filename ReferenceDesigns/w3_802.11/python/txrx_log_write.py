@@ -120,7 +120,7 @@ wlan_rates = wlan_exp_util.wlan_rates
 
 # Put each node in a known, good state
 for node in nodes:
-    node.node_set_tx_rate_unicast(wlan_rates[3])
+    node.node_set_tx_rate_unicast(wlan_rates[3], curr_assoc=True, new_assoc=True)
     node.log_configure(log_full_payloads=True)
     node.node_reset_all()
 
@@ -136,15 +136,16 @@ print_log_size()
 
 print("\nStart LTG - AP -> STA:")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
-#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts)
-n_ap.ltg_to_node_configure(n_sta, ltg.FlowConfigCBR(1400, 0))
-n_ap.ltg_to_node_start(n_sta)
+#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
+#  Start the flow immediately
+ap_ltg_id  = n_ap.ltg_to_node_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
 
 print("\nStart LTG - STA -> AP:")
 # Start a flow from the STA's local traffic generator (LTG) to the AP
-#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts)
-n_sta.ltg_to_node_configure(n_ap, ltg.FlowConfigCBR(1400, 0))
-n_sta.ltg_to_node_start(n_ap)
+#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
+#  Start the flow immediately
+sta_ltg_id = n_sta.ltg_to_node_configure(ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
+
 
 print("\nStarting trials ...")
 
@@ -153,18 +154,18 @@ for idx, rate in enumerate(wlan_rates):
     print("  Rate {0} ... ".format(wlan_exp_util.tx_rate_to_str(rate)))
 
     # Configure the AP's Tx rate for the selected STA
-    n_ap.node_set_tx_rate_unicast(rate, n_sta)
+    n_ap.node_set_tx_rate_unicast(rate, device_list=n_sta)
 
     # Configure the STA's Tx rate for the selected AP
-    n_sta.node_set_tx_rate_unicast(rate, n_ap)
+    n_sta.node_set_tx_rate_unicast(rate, device_list=n_ap)
 
     # Let the LTG flows run at the new rate
     time.sleep(TRIAL_TIME)
 
 
 # Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
-n_ap.ltg_to_node_stop(n_sta)
-n_sta.ltg_to_node_stop(n_ap)
+n_ap.ltg_to_node_stop(ap_ltg_id)
+n_sta.ltg_to_node_stop(sta_ltg_id)
 
 n_ap.queue_tx_data_purge_all()
 n_sta.queue_tx_data_purge_all()
@@ -176,7 +177,7 @@ print_log_size()
 print("\nWriting Log Files...")
 
 write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new(log_tail_pad=0, max_req_size=2**23))
-write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new(log_tail_pad=0))
+write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new(log_tail_pad=0, max_req_size=2**23))
 
 print("Done.")
 
