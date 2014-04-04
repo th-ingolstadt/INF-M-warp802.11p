@@ -655,7 +655,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						// Copy the station info to the log entry
 						//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
 						//          similar to the station info and tx params structures in wlan_mac_high.h
-						memcpy( (void *)(&info_entry->info), (void *)(&curr_station_info), station_info_size );
+						memcpy( (void *)(&info_entry->info), (void *)(curr_station_info), station_info_size );
 
 						xil_printf("Getting Station Entry for node: %02x", mac_addr[0]);
 						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
@@ -734,7 +734,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 								// Copy the station info to the log entry
 								//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
 								//          similar to the station info and tx params structures in wlan_mac_high.h
-								memcpy( (void *)(&info_entry->info), (void *)(&curr_station_info), station_info_size );
+								memcpy( (void *)(&info_entry->info), (void *)(curr_station_info), station_info_size );
 
 								// Increment the pointers
 								curr_entry         = dl_entry_next(curr_entry);
@@ -1179,86 +1179,52 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_LTG_CONFIG:
             // NODE_LTG_START Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address
-			//   - cmdArgs32[2]      - Flags
+			//   - cmdArgs32[0]      - Flags
 			//                         [0] - Restart the LTG flow if running
-			//   - cmdArgs32[3 - N]  - LTG Schedule (packed)
+			//   - cmdArgs32[1 - N]  - LTG Schedule (packed)
 			//                         [0] - [31:16] Type    [15:0] Length
 			//   - cmdArgs32[N+1 - M]- LTG Payload (packed)
 			//                         [0] - [31:16] Type    [15:0] Length
 			//
-            //   - respArgs32[0] - 0           - Success
-			//                     0xFFFF_FFFF - Failure
+            //   - respArgs32[0]     - NODE_SUCCESS
+			//                       - NODE_LTG_ERROR
 
-			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
-        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+        	status = NODE_LTG_ERROR;
+        	id     = LTG_ID_INVALID;
+			flags  = Xil_Ntohl(cmdArgs32[0]);
 
-            // Local variables
-        	int            running = -1;
+			// Local variables
 			u32            s1, s2, t1, t2;
 			void *         ltg_callback_arg;
         	void *         params;
-        	u32   		   temp;
-			u16    		   type;
 
-        	status = NODE_LTG_ERROR;
-			flags  = Xil_Ntohl(cmdArgs32[2]);
+			// Get Schedule
+			params           = ltg_sched_deserialize( &(((u32 *)cmdArgs)[1]), &t1, &s1 );
+			ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[2 + s1]), &t2, &s2);
 
-        	if ((id != NODE_CONFIG_ALL_ASSOCIATED) || (id != 0)){
-				// Check to see if LTG ID already exists
-				if( ltg_sched_get_callback_arg( id, &ltg_callback_arg ) == 0 ) {
-					// This LTG has already been configured. We need to free the old callback argument so we can create a new one.
-					xil_printf("Stopping LTG %d\n", id);
-					running = ltg_sched_stop( id );
-					wlan_mac_high_free( ltg_callback_arg );
-				}
+			if( (ltg_callback_arg != NULL) && (params != NULL) ) {
 
-				// Get Schedule
-				params           = ltg_sched_deserialize( &(((u32 *)cmdArgs)[3]), &t1, &s1 );
-				ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[4 + s1]), &t2, &s2);
+				// Configure the LTG
+				id = ltg_sched_create(t1, params, ltg_callback_arg, &node_ltg_cleanup);
 
+				if(id == LTG_ID_INVALID){
+					xil_printf("ERROR:  Could not create LTG.\n");
+				} else {
+					status = NODE_SUCCESS;
+					xil_printf("LTG %d configured\n", status);
 
-
-
-				if( (ltg_callback_arg != NULL) && (params != NULL) ) {
-
-					temp  = Xil_Ntohl((((u32 *)cmdArgs)[4 + s1]));
-					type  = (temp >> 16) & 0xFFFF;
-
-					switch(type){
-						case LTG_PYLD_TYPE_FIXED:
-							memcpy(((ltg_pyld_fixed*)ltg_callback_arg)->addr_da,mac_addr,6);
-						break;
-
-						case LTG_PYLD_TYPE_UNIFORM_RAND:
-							memcpy(((ltg_pyld_uniform_rand*)ltg_callback_arg)->addr_da,mac_addr,6);
-						break;
-					}
-
-
-					// Configure the LTG
-#if 0				//TODO
-					!!! ltg_sched_configure no longer exists, use ltg_sched_create instead. See UART for example.
-					status = ltg_sched_configure( id, t1, params, ltg_callback_arg, &node_ltg_cleanup );
-
-#endif
-
-					xil_printf("LTG %d configured\n", id);
-
-					if (running == 0 && ((flags & NODE_LTG_CONFIG_FLAG_RESTART) == NODE_LTG_CONFIG_FLAG_RESTART)) {
-						xil_printf("Re-starting LTG %d\n", id);
+					if ((flags & NODE_LTG_CONFIG_FLAG_AUTOSTART) == NODE_LTG_CONFIG_FLAG_AUTOSTART) {
+						xil_printf("Starting LTG %d\n", id);
 						ltg_sched_start( id );
 					}
-				} else {
-					xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg\n");
 				}
-        	} else {
-				xil_printf("ERROR:  LTG ID = 0x%x is not usable for LTG_CONFIG\n", id);
-        	}
+			} else {
+				xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg or params\n");
+			}
 
-			// Send response of current channel
+			// Send response
             respArgs32[respIndex++] = Xil_Htonl( status );
+            respArgs32[respIndex++] = Xil_Htonl( id );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -1268,44 +1234,35 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_LTG_START:
             // NODE_LTG_START Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address
-			//                         - 0xFFFF_FFFF_FFFF  -> Start all IDs
+			//   - cmdArgs32[0]      - LTG ID
 			//
-            //   - respArgs32[0] - 0           - Success
-			//                     0xFFFF_FFFF - Failure
+            //   - respArgs32[0]     - NODE_SUCCESS
+			//                       - NODE_LTG_ERROR
 
-			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
-        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+			status = NODE_LTG_ERROR;
+			id     = Xil_Ntohl(cmdArgs32[0]);
 
-			// If parameter is not the magic number, then start the LTG
-        	status = NODE_LTG_ERROR;
+			if ( id != LTG_ID_INVALID ) {
+				// Try to start the ID
+				status = ltg_sched_start( id );
 
-        	if ( id != 0 ){
-				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-					// Try to start the ID
-					status = ltg_sched_start( id );
-
-					if ( status != 0 ) {
-						xil_printf("WARNING:  LTG - LTG %d failed to start.\n", id);
-						status = NODE_LTG_ERROR;
-					} else {
-						xil_printf("Starting LTG %d.\n", id);
-					}
+				if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - LTG %d failed to start.\n", id);
+					status = NODE_LTG_ERROR;
 				} else {
-					// Start all LTGs
-					status = ltg_sched_start_all();
-
-					if ( status != 0 ) {
-						xil_printf("WARNING:  LTG - Some LTGs failed to start.\n");
-						status = NODE_LTG_ERROR;
-					} else {
-						xil_printf("Starting all LTGs.\n");
-					}
+					xil_printf("Starting LTG %d.\n", id);
 				}
-        	} else {
-				xil_printf("ERROR:  Could not find ID for MAC address.\n");
-        	}
+			} else {
+				// Start all LTGs
+				status = ltg_sched_start_all();
+
+				if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - Some LTGs failed to start.\n");
+					status = NODE_LTG_ERROR;
+				} else {
+					xil_printf("Starting all LTGs.\n");
+				}
+			}
 
 			// Send response of current rate
             respArgs32[respIndex++] = Xil_Htonl( status );
@@ -1318,44 +1275,35 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_LTG_STOP:
             // NODE_LTG_STOP Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address
-			//                         - 0xFFFF_FFFF_FFFF  -> Stop all IDs
+			//   - cmdArgs32[0]      - LTG ID
 			//
-            //   - respArgs32[0] - 0           - Success
-			//                     0xFFFF_FFFF - Failure
+            //   - respArgs32[0]     - NODE_SUCCESS
+			//                       - NODE_LTG_ERROR
 
-			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
-        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
-
-			// If parameter is not the magic number, then stop the LTG
 			status = NODE_LTG_ERROR;
+			id     = Xil_Ntohl(cmdArgs32[0]);
 
-        	if ( id != 0 ){
-				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-					// Try to start the ID
-					status = ltg_sched_stop( id );
+			if ( id != LTG_ID_INVALID ) {
+				// Try to start the ID
+				status = ltg_sched_stop( id );
 
-					if ( status != 0 ) {
-						xil_printf("WARNING:  LTG - LTG %d failed to stop.\n", id);
-						status = NODE_LTG_ERROR;
-					} else {
-						xil_printf("Stopping LTG %d.\n", id);
-					}
+				if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - LTG %d failed to stop.\n", id);
+					status = NODE_LTG_ERROR;
 				} else {
-					// Start all LTGs
-					status = ltg_sched_stop_all();
-
-					if ( status != 0 ) {
-						xil_printf("WARNING:  LTG - Some LTGs failed to stop.\n");
-						status = NODE_LTG_ERROR;
-					} else {
-						xil_printf("Stopping all LTGs.\n");
-					}
+					xil_printf("Stopping LTG %d.\n", id);
 				}
-        	} else {
-				xil_printf("ERROR:  Could not find ID for MAC address.\n");
-        	}
+			} else {
+				// Start all LTGs
+				status = ltg_sched_stop_all();
+
+				if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - Some LTGs failed to stop.\n");
+					status = NODE_LTG_ERROR;
+				} else {
+					xil_printf("Stopping all LTGs.\n");
+				}
+			}
 
 			// Send response of current rate
             respArgs32[respIndex++] = Xil_Htonl( status );
@@ -1368,44 +1316,35 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_LTG_REMOVE:
             // NODE_LTG_REMOVE Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address
-			//                         - 0xFFFF_FFFF_FFFF  -> Remove all IDs
+			//   - cmdArgs32[0]      - LTG ID
 			//
-            //   - respArgs32[0] - 0           - Success
-			//                     0xFFFF_FFFF - Failure
+            //   - respArgs32[0]     - NODE_SUCCESS
+			//                       - NODE_LTG_ERROR
 
-			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
-        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
-
-			// If parameter is not the magic number, then remove the LTG
 			status = NODE_LTG_ERROR;
+			id     = Xil_Ntohl(cmdArgs32[0]);
 
-        	if ( id != 0 ){
-				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-					// Try to remove the ID
-					status = ltg_sched_remove( id );
+			if ( id != LTG_ID_INVALID ) {
+				// Try to remove the ID
+				status = ltg_sched_remove( id );
 
-					if ( status != 0 ) {
-						xil_printf("WARNING:  LTG - LTG %d failed to remove.\n", id);
-						status = NODE_LTG_ERROR;
-					} else {
-						xil_printf("Removing LTG %d.\n", id);
-					}
+				if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - LTG %d failed to remove.\n", id);
+					status = NODE_LTG_ERROR;
 				} else {
-					// Remove all LTGs
-					status = ltg_sched_remove( id );
-
-					if ( status != 0 ) {
-						xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
-						status = NODE_LTG_ERROR;
-					} else {
-						xil_printf("Removing All LTGs.\n");
-					}
+					xil_printf("Removing LTG %d.\n", id);
 				}
-        	} else {
-				xil_printf("ERROR:  Could not find ID for MAC address.\n");
-        	}
+			} else {
+				// Remove all LTGs
+				status = ltg_sched_remove( id );
+
+				if ( status != 0 ) {
+					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
+					status = NODE_LTG_ERROR;
+				} else {
+					xil_printf("Removing All LTGs.\n");
+				}
+			}
 
 			// Send response of status
             respArgs32[respIndex++] = Xil_Htonl( status );
@@ -1779,7 +1718,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	// Local variables
         	statistics_txrx  * stats;
         	txrx_stats_entry * stats_entry;
-        	u32                stats_size  = sizeof(statistics_txrx) - sizeof(dl_entry);
+        	u32                stats_size  = sizeof(statistics_txrx);
 
         	entry_size = sizeof(txrx_stats_entry);
 
@@ -1812,7 +1751,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     					// Copy the statistics to the log entry
     					//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
     					//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
-    					memcpy( (void *)(&stats_entry->stats), (void *)(&stats), stats_size );
+    					memcpy( (void *)(&stats_entry->stats), (void *)stats, stats_size );
 
     					xil_printf("Getting Statistics for node: %02x", mac_addr[0]);
     					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
@@ -1899,7 +1838,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         						// Copy the statistics to the log entry
         						//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
         						//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
-        						memcpy( (void *)(&stats_entry->stats), (void *)(&stats), stats_size );
+        						memcpy( (void *)(&stats_entry->stats), (void *)(stats), stats_size );
 
                                 // Increment the pointers
         						curr_entry  = dl_entry_next(curr_entry);

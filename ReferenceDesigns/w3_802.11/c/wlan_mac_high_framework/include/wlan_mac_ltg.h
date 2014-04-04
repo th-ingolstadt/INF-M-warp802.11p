@@ -114,9 +114,9 @@ typedef struct {
 
 //Note: This definition simply reflects the use of the fast timer for LTG polling. To increase LTG
 //polling rate at the cost of more overhead in checking LTGs, increase the speed of the fast timer.
-#define LTG_POLL_INTERVAL FAST_TIMER_DUR_US
+#define LTG_POLL_INTERVAL              FAST_TIMER_DUR_US
 
-#define LTG_ID_INVALID	0xFFFF
+#define LTG_ID_INVALID	               0xFFFFFFFF
 
 //External function to LTG -- user code interacts with the LTG via these functions
 int wlan_mac_ltg_sched_init();

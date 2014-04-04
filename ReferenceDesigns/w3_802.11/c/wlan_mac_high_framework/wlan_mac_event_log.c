@@ -1198,7 +1198,7 @@ u32 add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit){
 		// Copy the statistics to the log entry
 		//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
 		//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
-		memcpy( (void *)(&entry->stats), (void *)(&stats), stats_size );
+		memcpy( (void *)(&entry->stats), (void *)(stats), stats_size );
 
 #ifdef USE_WARPNET_WLAN_EXP
 		// Transmit the entry if requested
@@ -1296,7 +1296,7 @@ u32 add_station_info_to_log(station_info * info, u8 transmit){
 		// Copy the station info to the log entry
 		//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
 		//          similar to the station info and tx params structures in wlan_mac_high.h
-		memcpy( (void *)(&entry->info), (void *)(&info), station_info_size );
+		memcpy( (void *)(&entry->info), (void *)(info), station_info_size );
 
 #ifdef USE_WARPNET_WLAN_EXP
 		// Transmit the entry if requested

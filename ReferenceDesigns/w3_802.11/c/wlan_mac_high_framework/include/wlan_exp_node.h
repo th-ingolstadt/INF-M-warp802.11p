@@ -84,7 +84,7 @@
 
 #define NODE_LTG_ERROR                 0x000001
 
-#define NODE_LTG_CONFIG_FLAG_RESTART   0x00000001
+#define NODE_LTG_CONFIG_FLAG_AUTOSTART 0x00000001
 
 #define NODE_LOG_CONFIG                50
 #define NODE_LOG_GET_INFO              51
