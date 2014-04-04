@@ -34,12 +34,12 @@
 #define NODE_INFO                       1
 #define NODE_IDENTIFY                   2
 
-#define NODE_IDENTIFY_ALL              0xFFFF
+#define NODE_IDENTIFY_ALL              0xFFFFFFFF
 
 #define NODE_CONFIG_SETUP               3
 #define NODE_CONFIG_RESET               4
 
-#define NODE_CONFIG_RESET_ALL          0xFFFF
+#define NODE_CONFIG_RESET_ALL          0xFFFFFFFF
 
 #define NODE_TEMPERATURE                5
 
@@ -56,31 +56,33 @@
 #define NODE_TX_ANT_MODE               35
 #define NODE_RX_ANT_MODE               36
 
+#define NODE_WRITE_VAL                 0x00000000
+#define NODE_READ_VAL                  0x00000001
+#define NODE_WRITE_DEFAULT_VAL         0x00000002
+#define NODE_READ_DEFAULT_VAL          0x00000004
+
+#define NODE_CONFIG_ALL_ASSOCIATED     0xFFFFFFFF
+
+#define NODE_SUCCESS                   0x00000000
+#define NODE_ERROR                     0xFF000000
+
 #define NODE_RESET_LOG                 0x00000001
 #define NODE_RESET_TXRX_STATS          0x00000002
 #define NODE_RESET_LTG                 0x00000004
 #define NODE_RESET_TX_DATA_QUEUE       0x00000008
 
-#define NODE_TIME_WRITE_VAL            0x00000000
-#define NODE_TIME_READ_VAL             0x00000001
 #define NODE_TIME_ADD_TO_LOG_VAL       0x00000002
 #define NODE_TIME_RSVD_VAL             0xFFFFFFFF
 
-#define NODE_CHANNEL_RSVD_VAL          0xFFFF
-#define NODE_TX_POWER_RSVD_VAL         0xFFFF
-#define NODE_TX_RATE_RSVD_VAL          0xFFFF
-#define NODE_TX_ANT_MODE_RSVD_VAL      0xFFFF
-#define NODE_RX_ANT_MODE_RSVD_VAL      0xFFFF
-
-#define NODE_UNICAST_VAL               0x0000
-#define NODE_MULTICAST_VAL             0x0001
+#define NODE_UNICAST_VAL               0x00000000
+#define NODE_MULTICAST_VAL             0x00000001
 
 #define NODE_LTG_CONFIG                40
 #define NODE_LTG_START                 41
 #define NODE_LTG_STOP                  42
 #define NODE_LTG_REMOVE                43
 
-#define NODE_LTG_ERROR                 0xFFFFFFFF
+#define NODE_LTG_ERROR                 0x000001
 
 #define NODE_LTG_CONFIG_FLAG_RESTART   0x00000001
 
@@ -109,9 +111,6 @@
 
 #define NODE_QUEUE_TX_DATA_PURGE_ALL   70
 
-
-
-#define NODE_CONFIG_ALL_ASSOCIATED     0xFFFFFFFF
 
 // ****************************************************************************
 // Define Node Parameters

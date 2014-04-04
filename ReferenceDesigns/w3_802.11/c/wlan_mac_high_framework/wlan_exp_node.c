@@ -104,6 +104,10 @@ void node_ltg_cleanup(u32 id, void* callback_arg);
 
 void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id);
 
+u8   node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate);
+u8   node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
+
+
 #ifdef _DEBUG_
 void print_wn_node_info( wn_node_info * info );
 void print_wn_parameters( wn_tag_parameter *param, int num_params );
@@ -434,12 +438,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             #define NODE_IDENTIFY_NUM_BLINKS         25
             #define NODE_IDENTIFY_BLINK_USEC_HALF    200000
 
-			// Send the response early so that code does not time out while waiting for blinks
-			//   The node is responsible for waiting until the LED blinking is done before issuing the
-			//   node another command.
-			node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
-			respSent = RESP_SENT;
-
+			// Get the serial number to identify
 			temp = Xil_Ntohl(cmdArgs32[0]);
 
 			u32  left_hex;
@@ -447,6 +446,15 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 			if ( (temp == NODE_IDENTIFY_ALL) || (temp == node_info.serial_number) ) {
 	            xil_printf("WARPNET Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
+
+				// Send the response early so that code does not time out while waiting for blinks
+				//   The host is responsible for waiting until the LED blinking is done before issuing the
+				//   node another command.
+	            respArgs32[respIndex++] = Xil_Htonl( NODE_SUCCESS );
+	            respHdr->length        += (respIndex * sizeof(respArgs32));
+				respHdr->numArgs        = respIndex;
+				node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+				respSent                = RESP_SENT;
 
 	            // Store the original value
             	left_hex  = userio_read_hexdisp_left(USERIO_BASEADDR);
@@ -464,6 +472,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 		            userio_write_hexdisp_right(USERIO_BASEADDR, right_hex );
 					usleep(NODE_IDENTIFY_BLINK_USEC_HALF);
 				}
+			} else {
+	            respArgs32[respIndex++] = Xil_Htonl( NODE_ERROR );
+	            respHdr->length        += (respIndex * sizeof(respArgs32));
+				respHdr->numArgs        = respIndex;
 			}
         break;
 
@@ -615,19 +627,18 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
         	entry_size = sizeof(station_info_entry);
 
-            // Initialize constant return values
+            // Initialize return values
         	respIndex     = 5;              // There will always be 5 return args
             respArgs32[0] = cmdArgs32[0];
             respArgs32[1] = 0;
+			respArgs32[2] = 0;
+			respArgs32[3] = 0;
+			respArgs32[4] = 0;
 
             if ( id == 0 ) {
 				// If we cannot find the MAC address, print a warning and return an empty buffer
 				xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
 				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-				respArgs32[2]    = 0;
-				respArgs32[3]    = 0;
-				respArgs32[4]    = 0;
 
             } else {
 				// If parameter is not the magic number to return all Station Info structures
@@ -658,10 +669,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						// If we cannot find the MAC address, print a warning and return an empty buffer
 						xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
 						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-						respArgs32[2]    = 0;
-						respArgs32[3]    = 0;
-						respArgs32[4]    = 0;
 					}
 				} else {
 					// Create a WARPNet buffer response to send all station_info entries
@@ -745,11 +752,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						}
 
 						respSent = RESP_SENT;
-					} else {
-						// Set empty response args
-						respArgs32[2]   = 0;
-						respArgs32[3]   = 0;
-						respArgs32[4]   = 0;
 					}
 				}
             }
@@ -817,13 +819,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_TX_POWER:
             // NODE_TX_POWER Packet Format:
-			//   - cmdArgs32[0]  - Power (shifted by TX_POWER_MIN_DBM)
-			temp = Xil_Ntohl(cmdArgs32[0]);
+			//   - cmdArgs32[0]  - Command
+			//   - cmdArgs32[1]  - Power (shifted by TX_POWER_MIN_DBM)
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			temp    = Xil_Ntohl(cmdArgs32[1]);
+			status  = NODE_SUCCESS;
 
-			// If parameter is not the magic number, then set the TX power
-			if ( temp != NODE_TX_POWER_RSVD_VAL ) {
+			// Shift temp to get power
+			power = temp + TX_POWER_MIN_DBM;
 
-				power = temp + TX_POWER_MIN_DBM;
+			// Operate on the msg_cmd
+			if ( msg_cmd == NODE_WRITE_VAL ) {
 
 				// Check that the power is within the specified bounds
 		        if ((power >= TX_POWER_MIN_DBM) && (power <= TX_POWER_MAX_DBM)){
@@ -852,19 +858,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				    wlan_mac_high_set_tx_ctrl_pow(power);
 
 		        } else {
-					// Get default power for new associations
-					power = temp + TX_POWER_MIN_DBM;
+		        	status = NODE_ERROR;
 		        }
-			} else {
-				// Get default power for new associations
-				power = temp + TX_POWER_MIN_DBM;
 			}
 
-			// Shift the return value so that we do not transmit negative numbers
-			temp = power - TX_POWER_MIN_DBM;
-
-			// Send response of current power
-            respArgs32[respIndex++] = Xil_Htonl( temp );
+			// Send response
+			//   - Shift power values so that we do not transmit negative numbers
+            respArgs32[respIndex++] = Xil_Htonl( status );
+            respArgs32[respIndex++] = Xil_Htonl( default_unicast_mgmt_tx_params.phy.power   - TX_POWER_MIN_DBM );
+            respArgs32[respIndex++] = Xil_Htonl( default_unicast_data_tx_params.phy.power   - TX_POWER_MIN_DBM );
+            respArgs32[respIndex++] = Xil_Htonl( default_multicast_mgmt_tx_params.phy.power - TX_POWER_MIN_DBM );
+            respArgs32[respIndex++] = Xil_Htonl( default_multicast_data_tx_params.phy.power - TX_POWER_MIN_DBM );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -874,85 +878,78 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_TX_RATE:
             // NODE_TX_RATE Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all nodes)
-			//   - cmdArgs32[2]      - Type
-			//   - cmdArgs32[3]      - Rate
+			//   - cmdArgs32[0]      - Command
+			//   - cmdArgs32[1]      - Type
+			//   - cmdArgs32[2]      - Rate
+			//   - cmdArgs32[3 - 4]  - MAC Address (All 0xF means all nodes)
 
-			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
-        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			type    = Xil_Ntohl(cmdArgs32[1]);
+			rate    = Xil_Ntohl(cmdArgs32[2]);
+			status  = NODE_SUCCESS;
 
-        	// Get node TX type and rate and adjust so that it is a legal value
-			type = Xil_Ntohl(cmdArgs32[2]);
-			rate = Xil_Ntohl(cmdArgs32[3]);
+			// Adjust the rate so that it falls in an acceptable range
+			if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
+			if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
 
-			// If parameter is not the magic number, then adjust the rate so that
-			// it falls in an acceptable range
-			if ( rate != NODE_TX_RATE_RSVD_VAL ) {
-				if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
-				if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
-			}
-
-			// Check the type and perform the correct operation
 			if (type == NODE_UNICAST_VAL) {
-				curr_list = get_station_info_list();
+				switch (msg_cmd) {
+                    case NODE_WRITE_VAL:
+                    case NODE_READ_VAL:
+        				// Get MAC Address
+        				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
+        				id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
-				// If the ID is not for all nodes, configure the node
-				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-					// Set the rate of the station
-					curr_entry = curr_list->first;
+        				rate = node_process_tx_rate( msg_cmd, id, (rate & 0xFF));
 
-					for(i=0; i < curr_list->length; i++){
-						curr_station_info = (station_info*)(curr_entry->data);
-						if (curr_station_info->AID == id){
-							// If parameter is not the magic number, then set the TX rate
-							if ( rate != NODE_TX_RATE_RSVD_VAL ) {
-								curr_station_info->tx.phy.rate = rate;
-								xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
-							} else {
-								rate = curr_station_info->tx.phy.rate;
-							}
-							break;
-						}
-						curr_entry = dl_entry_next(curr_entry);
-					}
-				} else {
-					// If parameter is not the magic number, then set the TX rate
-					if ( rate != NODE_TX_RATE_RSVD_VAL ) {
-						// Set the default unicast rate
-						default_unicast_data_tx_params.phy.rate = rate;
+        				if ( (rate << 24) == NODE_ERROR ) {
+        					status = NODE_ERROR;
+        				}
+                    break;
 
-						// Set the rate of all stations
-						curr_entry = curr_list->first;
+                    case NODE_WRITE_DEFAULT_VAL:
+    					// Set the default unicast rate
+    					default_unicast_data_tx_params.phy.rate = rate;
+    					xil_printf("Setting Default Unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+					break;
 
-						for(i=0; i < curr_list->length; i++){
-							curr_station_info = (station_info*)(curr_entry->data);
-							curr_station_info->tx.phy.rate = rate;
-							curr_entry        = dl_entry_next(curr_entry);
-						}
+                    case NODE_READ_DEFAULT_VAL:
+    					// Get the default rate
+    					rate = default_unicast_data_tx_params.phy.rate;
+					break;
 
-						xil_printf("Setting Default Unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
-					} else {
-						// Get the default rate
-						rate = default_unicast_data_tx_params.phy.rate;
-					}
+                    default:
+    					xil_printf("Unknown command: %d\n", msg_cmd);
+    					status = NODE_ERROR;
+                    break;
 				}
 			} else if (type == NODE_MULTICAST_VAL) {
-				// If parameter is not the magic number, then set the TX rate
-				if ( rate != NODE_TX_RATE_RSVD_VAL ) {
-					// Set the default multicast rate
-					default_multicast_data_tx_params.phy.rate = rate;
+				switch (msg_cmd) {
+                    case NODE_WRITE_VAL:
+                    case NODE_WRITE_DEFAULT_VAL:
+    					// Set the default multicast rate
+    					default_multicast_data_tx_params.phy.rate = rate;
+    					xil_printf("Setting Default Multicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+					break;
 
-					xil_printf("Setting Default Multicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
-				} else {
-					// Get the default rate
-					rate = default_multicast_data_tx_params.phy.rate;
+                    case NODE_READ_VAL:
+                    case NODE_READ_DEFAULT_VAL:
+    					// Get the default rate
+    					rate = default_multicast_data_tx_params.phy.rate;
+					break;
+
+                    default:
+    					xil_printf("Unknown command: %d\n", msg_cmd);
+    					status = NODE_ERROR;
+                    break;
 				}
 			} else {
 				xil_printf("WARNING:  Unknown type for NODE_TX_RATE: %d \n", type);
+				status = NODE_ERROR;
 			}
 
-			// Send response of current rate
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
             respArgs32[respIndex++] = Xil_Htonl( rate );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
@@ -963,82 +960,80 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_TX_ANT_MODE:
             // NODE_TX_ANT_MODE Packet Format:
-			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all nodes)
-			//   - cmdArgs32[2]      - Type
-			//   - cmdArgs32[3]      - Antenna Mode
+			//   - cmdArgs32[0]      - Command
+			//   - cmdArgs32[1]      - Type
+			//   - cmdArgs32[2]      - Antenna Mode
+			//   - cmdArgs32[3 - 4]  - MAC Address (All 0xF means all nodes)
 
-			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
-        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
-
-        	// Get node TX type and rate and adjust so that it is a legal value
-			type     = Xil_Ntohl(cmdArgs32[2]);
-			ant_mode = Xil_Ntohl(cmdArgs32[3]);
+			msg_cmd  = Xil_Ntohl(cmdArgs32[0]);
+			type     = Xil_Ntohl(cmdArgs32[1]);
+			ant_mode = Xil_Ntohl(cmdArgs32[2]);
+			status  = NODE_SUCCESS;
 
 			// NOTE:  This method assumes that the Antenna mode received is valid.
 			// The checking will be done on either the host, in CPU Low or both.
 
-			// Check the type and perform the correct operation
 			if (type == NODE_UNICAST_VAL) {
-				curr_list = get_station_info_list();
+				switch (msg_cmd) {
+                    case NODE_WRITE_VAL:
+                    case NODE_READ_VAL:
+        				// Get MAC Address
+        				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
+        				id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
-				// If the ID is not for all nodes, configure the node
-				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
-					// Set the rate of the station
-					curr_entry = curr_list->first;
+        				ant_mode = node_process_tx_ant_mode( msg_cmd, id, (ant_mode & 0xFF));
 
-					for(i=0; i < curr_list->length; i++){
-						curr_station_info = (station_info*)(curr_entry->data);
-						if (curr_station_info->AID == id){
-							// If parameter is not the magic number, then set the TX rate
-							if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
-								curr_station_info->tx.phy.antenna_mode = ant_mode;
-								xil_printf("Setting TX antenna mode on AID %d to %d \n", id, ant_mode);
-							} else {
-								ant_mode = curr_station_info->tx.phy.antenna_mode;
-							}
-							break;
-						}
-						curr_entry = dl_entry_next(curr_entry);
-					}
-				} else {
-					// If parameter is not the magic number, then set the TX rate
-					if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
+        				if ( (ant_mode << 24) == NODE_ERROR ) {
+        					status = NODE_ERROR;
+        				}
+                    break;
+
+                    case NODE_WRITE_DEFAULT_VAL:
 						// Set the default unicast rate
 						default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
-
-						// Set the rate of all stations
-						curr_entry = curr_list->first;
-
-						for(i=0; i < curr_list->length; i++){
-							curr_station_info = (station_info*)(curr_entry->data);
-							curr_station_info->tx.phy.antenna_mode = ant_mode;
-							curr_entry        = dl_entry_next(curr_entry);
-						}
-
 						xil_printf("Setting Default Unicast TX antenna mode to %d \n", ant_mode);
-					} else {
+					break;
+
+                    case NODE_READ_DEFAULT_VAL:
 						// Get the default rate
 						ant_mode = default_unicast_data_tx_params.phy.antenna_mode;
-					}
+					break;
+
+                    default:
+    					xil_printf("Unknown command: %d\n", msg_cmd);
+    					status = NODE_ERROR;
+                    break;
 				}
 			} else if (type == NODE_MULTICAST_VAL) {
-				// If parameter is not the magic number, then set the TX rate
-				if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
-					// Set the default multicast rate
-					default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
-					default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+				switch (msg_cmd) {
+                    case NODE_WRITE_VAL:
+                    case NODE_WRITE_DEFAULT_VAL:
+    					// Set the default multicast rate
+    					default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
+    					default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
 
-					xil_printf("Setting Default Multicast TX antenna mode to %d\n", ant_mode);
-				} else {
-					// Get the default rate
-					ant_mode = (default_multicast_mgmt_tx_params.phy.antenna_mode << 16) + default_multicast_data_tx_params.phy.antenna_mode;
+    					ant_mode = (ant_mode << 16) + ant_mode;
+    					xil_printf("Setting Default Multicast TX antenna mode to %d\n", ant_mode);
+					break;
+
+                    case NODE_READ_VAL:
+                    case NODE_READ_DEFAULT_VAL:
+    					// Get the default rate
+    					ant_mode = (default_multicast_mgmt_tx_params.phy.antenna_mode << 16) + default_multicast_data_tx_params.phy.antenna_mode;
+					break;
+
+                    default:
+    					xil_printf("Unknown command: %d\n", msg_cmd);
+    					status = NODE_ERROR;
+                    break;
 				}
 			} else {
-				xil_printf("WARNING:  Unknown type for NODE_TX_ANT_MODE: %d \n", type);
+				xil_printf("WARNING:  Unknown type for NODE_TX_RATE: %d \n", type);
+				status = NODE_ERROR;
 			}
 
-			// Send response of current rate
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
             respArgs32[respIndex++] = Xil_Htonl( ant_mode );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
@@ -1049,22 +1044,36 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	    //---------------------------------------------------------------------
 		case NODE_RX_ANT_MODE:
             // NODE_RX_ANT_MODE Packet Format:
-			//   - cmdArgs32[0]      - Antenna Mode
+			//   - cmdArgs32[0]      - Command
+			//   - cmdArgs32[1]      - Antenna Mode
             //
 			// NOTE:  This method assumes that the Antenna mode received is valid.
 			// The checking will be done on either the host, in CPU Low or both.
 
-        	// Get node RX antenna mode
-			ant_mode = Xil_Ntohl(cmdArgs32[0]);
+			msg_cmd  = Xil_Ntohl(cmdArgs32[0]);
+			ant_mode = Xil_Ntohl(cmdArgs32[1]);
+			status  = NODE_SUCCESS;
 
-            if (ant_mode != NODE_RX_ANT_MODE_RSVD_VAL) {
-				xil_printf("Setting RX antenna mode to %d \n", ant_mode);
-            	wlan_mac_high_set_rx_ant_mode(ant_mode);
-            } else {
-            	ant_mode = rx_ant_mode_tracker;
-            }
+			switch (msg_cmd) {
+				case NODE_WRITE_VAL:
+				case NODE_WRITE_DEFAULT_VAL:
+					xil_printf("Setting RX antenna mode to %d \n", ant_mode);
+	            	wlan_mac_high_set_rx_ant_mode(ant_mode);
+				break;
 
-			// Send response of current rate
+				case NODE_READ_VAL:
+				case NODE_READ_DEFAULT_VAL:
+	            	ant_mode = rx_ant_mode_tracker;
+				break;
+
+				default:
+					xil_printf("Unknown command: %d\n", msg_cmd);
+					status = NODE_ERROR;
+				break;
+			}
+
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
             respArgs32[respIndex++] = Xil_Htonl( ant_mode );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
@@ -1091,63 +1100,74 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			//     cmdArgs32[5]   Abs Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
 			//
 			// Response format:
-            //     respArgs32[0]  Time on node in microseconds - lower 32 bits
-			//     respArgs32[1]  Time on node in microseconds - upper 32 bits
+			//     respArgs32[0]  Status
+            //     respArgs32[1]  Time on node in microseconds - lower 32 bits
+			//     respArgs32[2]  Time on node in microseconds - upper 32 bits
 			//
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
 			id      = Xil_Ntohl(cmdArgs32[1]);
 			time    = get_usec_timestamp();
+			status  = NODE_SUCCESS;
 
 			time_info_entry * time_entry;
 
-			// If parameter is not NODE_TIME_READ_VAL, then either set the time on the node
-			//   or just add a log entry.
-			if ( msg_cmd != NODE_TIME_READ_VAL ) {
+			switch (msg_cmd) {
+				case NODE_WRITE_VAL:
+				case NODE_TIME_ADD_TO_LOG_VAL:
+					// Get the new time
+					temp     = Xil_Ntohl(cmdArgs32[2]);
+					temp2    = Xil_Ntohl(cmdArgs32[3]);
+					new_time = (((u64)temp2)<<32) + ((u64)temp);
 
-				// Get the new time
-				temp     = Xil_Ntohl(cmdArgs32[2]);
-				temp2    = Xil_Ntohl(cmdArgs32[3]);
-				new_time = (((u64)temp2)<<32) + ((u64)temp);
+					// If this is a write, then update the time on the node
+					if (msg_cmd == NODE_WRITE_VAL){
+						wlan_mac_high_set_timestamp( new_time );
+						xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
+					}
 
-				// If this is a write, then update the time on the node
-				if (msg_cmd == NODE_TIME_WRITE_VAL){
-					wlan_mac_high_set_timestamp( new_time );
-					xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
-				}
+					// Get the absolute time
+					temp     = Xil_Ntohl(cmdArgs32[4]);
+					temp2    = Xil_Ntohl(cmdArgs32[5]);
+					abs_time = (((u64)temp2)<<32) + ((u64)temp);
 
-				// Get the absolute time
-				temp     = Xil_Ntohl(cmdArgs32[4]);
-				temp2    = Xil_Ntohl(cmdArgs32[5]);
-				abs_time = (((u64)temp2)<<32) + ((u64)temp);
+					xil_printf("WARPNET:  Absolute time = 0x%08x 0x%08x\n", temp2, temp);
 
-				xil_printf("WARPNET:  Absolute time = 0x%08x 0x%08x\n", temp2, temp);
+					// Create a time info log entry
+					time_entry = (time_info_entry *)get_next_empty_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
 
-				// Create a time info log entry
-				time_entry = (time_info_entry *)get_next_empty_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
+					if (time_entry != NULL) {
+					    time_entry->timestamp  = time;
+					    time_entry->time_id    = id;
+					    if ( msg_cmd == NODE_WRITE_VAL) {
+							time_entry->reason = TIME_INFO_ENTRY_WN_SET_TIME;
+					    } else {
+							time_entry->reason = TIME_INFO_ENTRY_WN_ADD_LOG;
+					    }
+					    time_entry->new_time   = new_time;
+					    time_entry->abs_time   = abs_time;
+					}
 
-				if (time_entry != NULL) {
-				    time_entry->timestamp  = time;
-				    time_entry->time_id    = id;
-				    if ( msg_cmd == NODE_TIME_WRITE_VAL) {
-						time_entry->reason = TIME_INFO_ENTRY_WN_SET_TIME;
-				    } else {
-						time_entry->reason = TIME_INFO_ENTRY_WN_ADD_LOG;
-				    }
-				    time_entry->new_time   = new_time;
-				    time_entry->abs_time   = abs_time;
-				}
+					// If this was a write, then update the time value so we can return it to the host
+					//   This is done after the log entry to the fields are correct in the entry.
+					if (msg_cmd == NODE_WRITE_VAL){
+						time = new_time;
+					}
+			    break;
 
-				// If this was a write, then update the time value so we can return it to the host
-				//   This is done after the log entry to the fields are correct in the entry.
-				if (msg_cmd == NODE_TIME_WRITE_VAL){
-					time = new_time;
-				}
+				case NODE_READ_VAL:
+				break;
+
+				default:
+					xil_printf("Unknown command: %d\n", msg_cmd);
+					status = NODE_ERROR;
+				break;
 			}
 
 			temp  = time & 0xFFFFFFFF;
 			temp2 = (time >> 32) & 0xFFFFFFFF;
 
-			// Send response of current power
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
             respArgs32[respIndex++] = Xil_Htonl( temp );
             respArgs32[respIndex++] = Xil_Htonl( temp2 );
 
@@ -2131,6 +2151,212 @@ u32 wlan_exp_get_info_cmd_helper( u32 command, u32 * cmdArgs, u32 * respArgs,
     return ret_val;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	    //---------------------------------------------------------------------
+		case NODE_TX_RATE:
+
+			// NODE_TX_RATE Packet Format:
+			//   - cmdArgs32[0]      - Command
+			//                         - Write
+			//                         - Write All
+			//                         - Read
+			//                         - Read All
+			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all nodes)
+			//   - cmdArgs32[2]      - Type
+			//   - cmdArgs32[3]      - Rate
+
+			// Get MAC Address
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+        	// Get node TX type and rate and adjust so that it is a legal value
+			type = Xil_Ntohl(cmdArgs32[2]);
+			rate = Xil_Ntohl(cmdArgs32[3]);
+
+			// If parameter is not the magic number, then adjust the rate so that
+			// it falls in an acceptable range
+			if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+				if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
+				if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
+			}
+
+			// Check the type and perform the correct operation
+			if (type == NODE_UNICAST_VAL) {
+				curr_list = get_station_info_list();
+
+				// If the ID is not for all nodes, configure the node
+				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+					// Set the rate of the station
+					curr_entry = curr_list->first;
+
+					for(i=0; i < curr_list->length; i++){
+						curr_station_info = (station_info*)(curr_entry->data);
+						if (curr_station_info->AID == id){
+							// If parameter is not the magic number, then set the TX rate
+							if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+								curr_station_info->tx.phy.rate = rate;
+								xil_printf("Setting TX rate on AID %d = %d Mbps\n", id, wlan_lib_mac_rate_to_mbps(rate));
+							} else {
+								rate = curr_station_info->tx.phy.rate;
+							}
+							break;
+						}
+						curr_entry = dl_entry_next(curr_entry);
+					}
+				} else {
+					// If parameter is not the magic number, then set the TX rate
+					if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+						// Set the default unicast rate
+						default_unicast_data_tx_params.phy.rate = rate;
+
+						// Set the rate of all stations
+						curr_entry = curr_list->first;
+
+						for(i=0; i < curr_list->length; i++){
+							curr_station_info = (station_info*)(curr_entry->data);
+							curr_station_info->tx.phy.rate = rate;
+							curr_entry        = dl_entry_next(curr_entry);
+						}
+
+						xil_printf("Setting Default Unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+					} else {
+						// Get the default rate
+						rate = default_unicast_data_tx_params.phy.rate;
+					}
+				}
+			} else if (type == NODE_MULTICAST_VAL) {
+				// If parameter is not the magic number, then set the TX rate
+				if ( rate != NODE_TX_RATE_RSVD_VAL ) {
+					// Set the default multicast rate
+					default_multicast_data_tx_params.phy.rate = rate;
+
+					xil_printf("Setting Default Multicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+				} else {
+					// Get the default rate
+					rate = default_multicast_data_tx_params.phy.rate;
+				}
+			} else {
+				xil_printf("WARNING:  Unknown type for NODE_TX_RATE: %d \n", type);
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( rate );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case NODE_TX_ANT_MODE:
+            // NODE_TX_ANT_MODE Packet Format:
+			//   - cmdArgs32[0 - 1]  - MAC Address (All 0xF means all nodes)
+			//   - cmdArgs32[2]      - Type
+			//   - cmdArgs32[3]      - Antenna Mode
+
+			// Get MAC Address
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+        	// Get node TX type and rate and adjust so that it is a legal value
+			type     = Xil_Ntohl(cmdArgs32[2]);
+			ant_mode = Xil_Ntohl(cmdArgs32[3]);
+
+			// NOTE:  This method assumes that the Antenna mode received is valid.
+			// The checking will be done on either the host, in CPU Low or both.
+
+			// Check the type and perform the correct operation
+			if (type == NODE_UNICAST_VAL) {
+				curr_list = get_station_info_list();
+
+				// If the ID is not for all nodes, configure the node
+				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+					// Set the rate of the station
+					curr_entry = curr_list->first;
+
+					for(i=0; i < curr_list->length; i++){
+						curr_station_info = (station_info*)(curr_entry->data);
+						if (curr_station_info->AID == id){
+							// If parameter is not the magic number, then set the TX rate
+							if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
+								curr_station_info->tx.phy.antenna_mode = ant_mode;
+								xil_printf("Setting TX antenna mode on AID %d to %d \n", id, ant_mode);
+							} else {
+								ant_mode = curr_station_info->tx.phy.antenna_mode;
+							}
+							break;
+						}
+						curr_entry = dl_entry_next(curr_entry);
+					}
+				} else {
+					// If parameter is not the magic number, then set the TX rate
+					if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
+						// Set the default unicast rate
+						default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
+
+						// Set the rate of all stations
+						curr_entry = curr_list->first;
+
+						for(i=0; i < curr_list->length; i++){
+							curr_station_info = (station_info*)(curr_entry->data);
+							curr_station_info->tx.phy.antenna_mode = ant_mode;
+							curr_entry        = dl_entry_next(curr_entry);
+						}
+
+						xil_printf("Setting Default Unicast TX antenna mode to %d \n", ant_mode);
+					} else {
+						// Get the default rate
+						ant_mode = default_unicast_data_tx_params.phy.antenna_mode;
+					}
+				}
+			} else if (type == NODE_MULTICAST_VAL) {
+				// If parameter is not the magic number, then set the TX rate
+				if ( ant_mode != NODE_TX_ANT_MODE_RSVD_VAL ) {
+					// Set the default multicast rate
+					default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
+					default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+
+					xil_printf("Setting Default Multicast TX antenna mode to %d\n", ant_mode);
+				} else {
+					// Get the default rate
+					ant_mode = (default_multicast_mgmt_tx_params.phy.antenna_mode << 16) + default_multicast_data_tx_params.phy.antenna_mode;
+				}
+			} else {
+				xil_printf("WARNING:  Unknown type for NODE_TX_ANT_MODE: %d \n", type);
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( ant_mode );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+
+
+
+
+
+
 #endif
 
 
@@ -2677,6 +2903,145 @@ void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id) {
 #endif
 	}
 }
+
+
+
+/*****************************************************************************/
+/**
+* Process TX Rate
+*
+* @param    cmd      - NODE_WRITE_VAL or NODE_READ_VAL
+*           aid      - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
+*           tx_rate  - Rate to set the node (function assumes rate is valid)
+* @return	rate     - 0xFF on ERROR
+* @note		None.
+*
+******************************************************************************/
+u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
+
+	u32           i;
+	u8            rate;
+	dl_list     * curr_list;
+	dl_entry	* curr_entry;
+	station_info* curr_station_info;
+
+	rate = NODE_ERROR >> 24;
+
+	// For Writes
+	if ( cmd == NODE_WRITE_VAL ) {
+
+		curr_list  = get_station_info_list();
+		curr_entry = curr_list->first;
+
+		if (curr_list->length == 0) {
+			return tx_rate;
+		}
+
+		for(i=0; i < curr_list->length; i++){
+			curr_station_info = (station_info*)(curr_entry->data);
+
+			if ( aid == NODE_CONFIG_ALL_ASSOCIATED ) {
+				xil_printf("Setting TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
+				curr_station_info->tx.phy.rate = tx_rate;
+				rate                           = tx_rate;
+
+			} else if ( aid == curr_station_info->AID ) {
+				xil_printf("Setting TX rate on AID %d = %d Mbps\n", aid, wlan_lib_mac_rate_to_mbps(tx_rate));
+				curr_station_info->tx.phy.rate = tx_rate;
+				rate                           = tx_rate;
+				break;
+			}
+			curr_entry = dl_entry_next(curr_entry);
+		}
+	} else {
+
+		if ( aid != NODE_CONFIG_ALL_ASSOCIATED ) {
+			curr_list  = get_station_info_list();
+			curr_entry = curr_list->first;
+
+			for(i=0; i < curr_list->length; i++){
+				curr_station_info = (station_info*)(curr_entry->data);
+				if ( aid == curr_station_info->AID ) {
+					rate = curr_station_info->tx.phy.rate;
+					break;
+				}
+				curr_entry = dl_entry_next(curr_entry);
+			}
+		}
+	}
+
+	return rate;
+}
+
+
+
+/*****************************************************************************/
+/**
+* Process TX Antenna Mode
+*
+* @param    cmd      - NODE_WRITE_VAL or NODE_READ_VAL
+*           aid      - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
+*           ant_mode - Antenna mode (function assumes antenna mode is valid)
+* @return	mode     - 0xFF on ERROR
+* @note		None.
+*
+******************************************************************************/
+u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
+
+	u32           i;
+	u8            mode;
+	dl_list     * curr_list;
+	dl_entry	* curr_entry;
+	station_info* curr_station_info;
+
+	mode = NODE_ERROR >> 24;
+
+	// For Writes
+	if ( cmd == NODE_WRITE_VAL ) {
+
+		curr_list  = get_station_info_list();
+		curr_entry = curr_list->first;
+
+		if (curr_list->length == 0) {
+			return ant_mode;
+		}
+
+		for(i=0; i < curr_list->length; i++){
+			curr_station_info = (station_info*)(curr_entry->data);
+
+			if ( aid == NODE_CONFIG_ALL_ASSOCIATED ) {
+				xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
+				curr_station_info->tx.phy.antenna_mode = ant_mode;
+				mode                                   = ant_mode;
+
+			} else if ( aid == curr_station_info->AID ) {
+				xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
+				curr_station_info->tx.phy.antenna_mode = ant_mode;
+				mode                                   = ant_mode;
+				break;
+			}
+			curr_entry = dl_entry_next(curr_entry);
+		}
+	} else {
+
+		if ( aid != NODE_CONFIG_ALL_ASSOCIATED ) {
+			curr_list  = get_station_info_list();
+			curr_entry = curr_list->first;
+
+			for(i=0; i < curr_list->length; i++){
+				curr_station_info = (station_info*)(curr_entry->data);
+				if ( aid == curr_station_info->AID ) {
+					mode = curr_station_info->tx.phy.antenna_mode;
+					break;
+				}
+				curr_entry = dl_entry_next(curr_entry);
+			}
+		}
+	}
+
+	return mode;
+}
+
 
 
 
