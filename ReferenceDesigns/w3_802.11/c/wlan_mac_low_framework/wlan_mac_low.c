@@ -251,7 +251,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u64 new_timestamp;
 	wlan_mac_low_tx_details* low_tx_details;
 	u32 low_tx_details_size;
-
+	u32 temp1;
+	u32 temp2;
 
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 			case IPC_MBOX_CONFIG_CHANNEL:
@@ -265,7 +266,20 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			break;
 
 			case IPC_MBOX_CONFIG_RX_FILTER:
-				mac_param_rx_filter = (u32)ipc_msg_from_high_payload[0];
+				temp1 = (u32)ipc_msg_from_high_payload[0];
+				temp2 = 0;
+				if((temp1 & RX_FILTER_FCS_MASK) == RX_FILTER_FCS_NOCHANGE){
+					temp2 |= (mac_param_rx_filter & RX_FILTER_FCS_MASK);
+				} else {
+					temp2 |= (temp1 & RX_FILTER_FCS_MASK);
+				}
+				if((temp1 & RX_FILTER_ADDR_MASK) == RX_FILTER_ADDR_NOCHANGE){
+					temp2 |= (mac_param_rx_filter & RX_FILTER_ADDR_MASK);
+				} else {
+					temp2 |= (temp1 & RX_FILTER_ADDR_MASK);
+				}
+
+				mac_param_rx_filter = temp2;
 			break;
 
 			case IPC_MBOX_CONFIG_RX_ANT_MODE:
