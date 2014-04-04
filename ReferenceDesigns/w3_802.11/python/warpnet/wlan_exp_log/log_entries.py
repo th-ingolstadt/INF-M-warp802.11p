@@ -1,46 +1,22 @@
-# -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Log Entries
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
+-----------
+Log Entries
+-----------
 
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a pom   1/27/14 Initial release
-1.01a pom   3/11/14 Major structural updates to allow better long term
-                      flexibility and maintainability
+This module defines each type of log entry that may exist
+in the event log of an 802.11 Reference Design Node.
 
-------------------------------------------------------------------------------
+The log entry definitions in this file must match the corresponding
+definitions in the wlan_mac_entries.h header file in the C code
+running on the node.
 
-This module provides definitions for WLAN Exp Log entries
-
-Functions (see below for more information):
-    WlanExpLogEntry()        -- Base class for a log entry
-
-Integer constants:
-    WLAN_EXP_LOG_DELIM       -- Wlan Exp Log delimiter
-    ENTRY_TYPE_*             -- Wlan Exp Log entry types
-
-Global variables:
-    wlan_exp_log_entry_types -- Dictionary of 'name' -> 'type' mappings
-
-    entry_rx_common          -- Common receive fields
-    entry_node_info          -- Node Information entry
-    entry_station_info       -- Station Information entry
-    entry_wn_cmd_info        -- WARPNet Command Information entry
-    entry_node_temperature   -- Temperature entry
-    entry_rx_ofdm            -- Receive OFDM entry
-    entry_rx_dsss            -- Receive DSSS entry
-    entry_tx                 -- Transmit entry (CPU High)
-    entry_tx_low             -- Transmit entry (CPU Low)
-    entry_txrx_stats         -- Transmit / Receive Statistics entry
+This module maintains a dictionary which contains a reference to each
+known log entry type. This dictionary is stored in the variable
+``wlan_exp_log_entry_types``. The dictionary is populated with the log
+entry types defined in log_entries.py during import. Additinal log
+entry types may be added to the dictionary after import. Customs
+log entry types should be added before any of wlan_exp_log methods
+are used to retrieve and parse log data from a node.
 
 """
 from struct import unpack, calcsize, error
@@ -204,7 +180,17 @@ class WlanExpLogEntryType(object):
 
 
     def deserialize(self, buf):
-        """Unpack the buffer of log entries into a list of dictionaries."""
+        """Unpacks one or more raw log entries of the same type into a list of dictionaries
+
+        Args:
+            buf (bytearray): Array of raw log data containing 1 or more log entries
+            of the same type.
+        
+        Returns:
+            List of dictoinaries. Each dictionary has one value per field in the
+            log entry definition using the field names as keys.
+
+        """
         from collections import OrderedDict
 
         ret_val    = []

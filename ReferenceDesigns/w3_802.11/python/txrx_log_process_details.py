@@ -165,7 +165,7 @@ for tx in ['TX', 'TX_LOW']:
         for k in sorted(tx_counts.keys()):
             # Use the string version of the MAC address as the key for readability
             print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-                wlan_exp_util.mac_to_str(k), 
+                wlan_exp_util.mac_addr_to_str(k), 
                 tx_counts[k][0], 
                 tx_counts[k][1], 
                 wlan_exp_util.mac_addr_desc(k)))
@@ -214,7 +214,7 @@ if('RX_OFDM' in log_np.keys()):
     for k in sorted(rx_counts.keys()):
         # Use the string version of the MAC address as the key for readability
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-            wlan_exp_util.mac_to_str(k), 
+            wlan_exp_util.mac_addr_to_str(k), 
             rx_counts[k][0], 
             rx_counts[k][1], 
             wlan_exp_util.mac_addr_desc(k)))
