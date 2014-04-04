@@ -551,8 +551,7 @@ void ltg_event(u32 id, void* callback_arg){
 				bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
 				llc_hdr->type = LLC_TYPE_CUSTOM;
 
-				tx_length += sizeof(llc_header);
-				tx_length += payload_length;
+				tx_length += min(payload_length, sizeof(llc_header));
 
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
 
