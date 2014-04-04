@@ -713,6 +713,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u32 payload_log_len;
 	u32 extra_payload;
 	u8 unicast_to_me, to_multicast;
+	station_info_entry* associated_station_log_entry;
 
 	//*************
 	// Event logging
@@ -877,10 +878,24 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						association_state = 4;
 
 						if(association_table.length > 0){
+
+							associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+							if(associated_station_log_entry != NULL){
+								associated_station_log_entry->timestamp = get_usec_timestamp();
+								memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
+								associated_station_log_entry->info.AID = 0;
+							}
+
 							wlan_mac_high_remove_association(&association_table, &statistics_table, associated_station->addr);
 						}
 
 						associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
+
+						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+						if(associated_station_log_entry != NULL){
+							associated_station_log_entry->timestamp = get_usec_timestamp();
+							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
+						}
 
 
 						wlan_mac_high_write_hex_display(associated_station->AID);
@@ -917,7 +932,15 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			break;
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
-					if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)){
+					if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_2) != NULL)){
+
+						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+						if(associated_station_log_entry != NULL){
+							associated_station_log_entry->timestamp = get_usec_timestamp();
+							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
+							associated_station_log_entry->info.AID = 0;
+						}
+
 						wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
 						purge_queue(UNICAST_QID);
 						wlan_mac_high_write_hex_display(0);
