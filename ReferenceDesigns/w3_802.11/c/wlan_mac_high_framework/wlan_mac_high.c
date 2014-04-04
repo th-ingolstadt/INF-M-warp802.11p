@@ -1610,6 +1610,43 @@ void wlan_mac_high_set_tx_ctrl_pow( s8 pow ) {
 }
 
 
+/*****************************************************************************/
+/**
+* Set Rx Filter
+*
+* Send an IPC message to CPU Low to set the filter for receptions. This will
+* allow or disallow different packets from being passed up to CPU_High
+*
+* @param    filter_mode
+* 				- RX_FILTER_FCS_GOOD
+* 				- RX_FILTER_FCS_ALL
+* 				- RX_FILTER_ADDR_STANDARD	(unicast to me or multicast)
+* 				- RX_FILTER_ADDR_ALL_MPDU	(all MPDU frames to any address)
+* 				- RX_FILTER_ADDR_ALL			(all observed frames, including control)
+*
+* @note	FCS and ADDR filter selections must be bit-wise ORed together. For example,
+* wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_ADDR_ALL)
+*
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wlan_mac_high_set_rx_filter_mode( u32 filter_mode ) {
+
+	wlan_ipc_msg       ipc_msg_to_low;
+	u32                ipc_msg_to_low_payload = (u32)filter_mode;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RX_FILTER);
+	ipc_msg_to_low.num_payload_words = 1;
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+}
+
+
 
 /*****************************************************************************/
 /**
@@ -1695,7 +1732,7 @@ inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 
 		if(length < (sizeof(mac_header_80211) + sizeof(llc_header))){
 			//This was a DATA packet, but it wasn't long enough to have an LLC header.
-			return NULL;
+			return PKT_TYPE_DATA_OTHER;
 		} else {
 			switch(llc_hdr->type){
 				case LLC_TYPE_ARP:
@@ -1706,7 +1743,7 @@ inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 					return PKT_TYPE_DATA_ENCAP_LTG;
 				break;
 				default:
-					return NULL;
+					return PKT_TYPE_DATA_OTHER;
 				break;
 			}
 		}

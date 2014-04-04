@@ -67,10 +67,11 @@
 
 #define NUM_VALID_RATES 12 						///< Number of supported rates
 
-#define PKT_TYPE_DATA_ENCAP_ETH	1				///< Encapsulated Ethernet Type
-#define PKT_TYPE_DATA_ENCAP_LTG	2				///< Encapsulated LTG Type
-#define PKT_TYPE_MGMT			3				///< Management Type
-#define PKT_TYPE_CONTROL		4				///< Control Type
+#define PKT_TYPE_DATA_OTHER		1				///< Other Data
+#define PKT_TYPE_DATA_ENCAP_ETH	2				///< Encapsulated Ethernet Type
+#define PKT_TYPE_DATA_ENCAP_LTG	3				///< Encapsulated LTG Type
+#define PKT_TYPE_MGMT			11				///< Management Type
+#define PKT_TYPE_CONTROL		21				///< Control Type
 
 #define ADD_ASSOCIATION_ANY_AID 0				///< Special argument to function that adds associations
 
@@ -213,6 +214,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
 void wlan_mac_high_set_channel( unsigned int mac_channel );
 void wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
 void wlan_mac_high_set_tx_ctrl_pow( s8 pow );
+void wlan_mac_high_set_rx_filter_mode( u32 filter_mode );
 void wlan_mac_high_set_dsss( unsigned int dsss_value );
 void wlan_mac_high_set_timestamp( u64 timestamp );
 int  wlan_mac_high_is_cpu_low_initialized();
