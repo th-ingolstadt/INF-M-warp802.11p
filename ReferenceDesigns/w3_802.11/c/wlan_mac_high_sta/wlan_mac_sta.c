@@ -227,7 +227,7 @@ int main() {
 	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_ANTA);
 	wlan_mac_high_set_tx_ctrl_pow(TX_POWER_DBM);
 
-	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_ADDR_STANDARD);
+	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_ADDR_ALL_MPDU);
 
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
