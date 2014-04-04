@@ -288,7 +288,7 @@ typedef struct{
 
 //-----------------------------------------------
 // High-level Transmit Entry
-//   NOTE:  rsvd field is to have a 32-bit aligned struct.  That way sizeof()
+//   NOTE:  padding field is to have a 32-bit aligned struct.  That way sizeof()
 //          accurately reflects the number of bytes in the struct.
 //
 //   NOTE:  Entry mac_payload stored as u32 array to preserve alignment.
@@ -310,7 +310,7 @@ typedef struct{
 	u8                  result;                  // Result of the transmission
 	u8                  pkt_type;                // Type of packet
 	u8	                ant_mode;                // Antenna mode used for transmission
-	u8	                rsvd[3];                 //
+	u8	                padding[3];              // Padding for alignment
 	u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
 	u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_high_entry;
