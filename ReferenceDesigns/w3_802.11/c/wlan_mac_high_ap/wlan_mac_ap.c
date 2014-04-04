@@ -681,6 +681,7 @@ void association_timestamp_check() {
 	station_info* curr_station_info;
 	dl_entry* next_station_info_entry;
 	dl_entry* curr_station_info_entry;
+	station_info_entry* associated_station_log_entry;
 
 	next_station_info_entry = association_table.first;
 
@@ -718,6 +719,12 @@ void association_timestamp_check() {
 		 		purge_queue(AID_TO_QID(curr_station_info->AID));
 
 				//Remove this STA from association list
+				associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+				if(associated_station_log_entry != NULL){
+					associated_station_log_entry->timestamp = get_usec_timestamp();
+					memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(curr_station_info), sizeof(station_info_base) );
+					associated_station_log_entry->info.AID = 0;
+				}
 				xil_printf("\n\nDisassociation due to inactivity:\n");
 				wlan_mac_high_remove_association( &association_table, &statistics_table, curr_station_info->addr );
 			}
@@ -743,6 +750,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u32 payload_log_len;
 	u32 extra_payload;
 	u8 unicast_to_me, to_multicast;
+	station_info_entry* associated_station_log_entry;
 
 
 	dl_entry*	associated_station_entry;
@@ -1126,6 +1134,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(association_table.length < MAX_NUM_ASSOC) associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
 
+					associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+					if(associated_station_log_entry != NULL){
+						associated_station_log_entry->timestamp = get_usec_timestamp();
+						memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
+					}
+
+
 					if(associated_station != NULL) {
 
 						memcpy(&(associated_station->tx),&default_unicast_data_tx_params, sizeof(tx_params));
@@ -1179,6 +1194,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_DISASSOC): //Disassociation
 
+					if(associated_station != NULL){
+						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+						if(associated_station_log_entry != NULL){
+							associated_station_log_entry->timestamp = get_usec_timestamp();
+							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
+							associated_station_log_entry->info.AID = 0;
+						}
+					}
 					wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
 
 			break;
@@ -1293,6 +1316,7 @@ u32  deauthenticate_station( station_info* station ) {
 	tx_queue_buffer* tx_queue;
 	u32            tx_length;
 	u32            aid;
+	station_info_entry* associated_station_log_entry;
 
 	if(station == NULL){
 		return 0;
@@ -1323,7 +1347,15 @@ u32  deauthenticate_station( station_info* station ) {
 		enqueue_after_end(MANAGEMENT_QID, &checkout);
 		check_tx_queue();
 
+
+
 		// Remove this STA from association list
+		associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+		if(associated_station_log_entry != NULL){
+			associated_station_log_entry->timestamp = get_usec_timestamp();
+			memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(station), sizeof(station_info_base) );
+			associated_station_log_entry->info.AID = 0;
+		}
 		wlan_mac_high_remove_association( &association_table, &statistics_table, station->addr );
 	}
 
