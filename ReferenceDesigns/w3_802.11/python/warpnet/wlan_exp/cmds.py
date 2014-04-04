@@ -117,7 +117,9 @@ CMD_LTG_REMOVE                         = 43
 
 LTG_ERROR                              = 0xFFFFFFFF
 
-LTG_CONFIG_FLAG_RESTART                = 0x00000001
+LTG_ID_INVALID                         = 0xFFFFFFFF
+
+LTG_CONFIG_FLAG_AUTOSTART              = 0x00000001
 
 
 # Log commands and defined values
@@ -360,19 +362,20 @@ class StatsAddTxRxToLog(wn_message.Cmd):
 #--------------------------------------------
 class LTGCommon(wn_message.Cmd):
     """Common code for LTG Commands."""
-    def __init__(self, node=None):
+    name = None
+    
+    def __init__(self, ltg_id=None):
         super(LTGCommon, self).__init__()
         
-        if not node is None:
-            mac_address = node.wlan_mac_address
-            self.add_args(((mac_address >> 32) & 0xFFFF))
-            self.add_args((mac_address & 0xFFFFFFFF))
+        if ltg_id is not None:
+            self.add_args(ltg_id)
         else:
-            self.add_args(0xFFFFFFFF)
-            self.add_args(0xFFFFFFFF)
+            self.add_args(LTG_ID_INVALID)
 
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=1):
+        if resp.resp_is_valid(num_args=1, 
+                              status_errors=[LTG_ERROR], 
+                              name='LTG {0} command'.format(self.name)):
             args = resp.get_args()
             return args[0]
         else:
@@ -381,23 +384,34 @@ class LTGCommon(wn_message.Cmd):
 # End Class
 
 
-class LTGConfigure(LTGCommon):
+class LTGConfigure(wn_message.Cmd):
     """Command to configure an LTG with the given traffic flow to the 
     specified node.
     """
-    def __init__(self, node, traffic_flow, restart=False):
-        super(LTGConfigure, self).__init__(node)
+    name = 'configure'
+
+    def __init__(self, traffic_flow, auto_start=False):
+        super(LTGConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_LTG_CONFIG
 
         flags = 0
         
-        if restart:
-            flags += LTG_CONFIG_FLAG_RESTART
+        if auto_start:
+            flags += LTG_CONFIG_FLAG_AUTOSTART
         
         self.add_args(flags)
         
         for arg in traffic_flow.serialize():
             self.add_args(arg)
+
+    def process_resp(self, resp):
+        if resp.resp_is_valid(num_args=2, 
+                              status_errors=[LTG_ERROR], 
+                              name='LTG {0} command'.format(self.name)):
+            args = resp.get_args()
+            return args[1]
+        else:
+            return LTG_ERROR
     
 # End Class
 
@@ -408,8 +422,10 @@ class LTGStart(LTGCommon):
     NOTE:  By providing no node argument, this command will start all 
     configured LTGs on the node.
     """
-    def __init__(self, node=None):
-        super(LTGStart, self).__init__(node)
+    name = 'start'
+
+    def __init__(self, ltg_id=None):
+        super(LTGStart, self).__init__(ltg_id)
         self.command = _CMD_GRPID_NODE + CMD_LTG_START
 
 # End Class
@@ -421,8 +437,10 @@ class LTGStop(LTGCommon):
     NOTE:  By providing no node argument, this command will stop all 
     configured LTGs on the node.
     """
-    def __init__(self, node=None):
-        super(LTGStop, self).__init__(node)
+    name = 'stop'
+
+    def __init__(self, ltg_id=None):
+        super(LTGStop, self).__init__(ltg_id)
         self.command = _CMD_GRPID_NODE + CMD_LTG_STOP
     
 # End Class
@@ -434,8 +452,10 @@ class LTGRemove(LTGCommon):
     NOTE:  By providing no node argument, this command will remove all 
     configured LTGs on the node.
     """
-    def __init__(self, node=None):
-        super(LTGRemove, self).__init__(node)
+    name = 'remove'
+
+    def __init__(self, ltg_id=None):
+        super(LTGRemove, self).__init__(ltg_id)
         self.command = _CMD_GRPID_NODE + CMD_LTG_REMOVE
     
 # End Class

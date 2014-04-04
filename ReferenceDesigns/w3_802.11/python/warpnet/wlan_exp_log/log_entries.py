@@ -200,10 +200,10 @@ class WlanExpLogEntryType(object):
         for k in entry.keys():
             s = entry[k]
             if((type(s) is int) or (type(s) is long)):
-                str_out += "\n    {0:25s} = {1:20d} (0x{1:16x})".format(k, s)
+                str_out += "\n    {0:30s} = {1:20d} (0x{1:16x})".format(k, s)
             elif(type(s) is str):
                 s = map(ord, list(entry[k]))
-                str_out += "\n    {0:25s} = [".format(k)
+                str_out += "\n    {0:30s} = [".format(k)
                 for x in s:
                     str_out += "{0:d}, ".format(x)
                 str_out += "\b\b]"

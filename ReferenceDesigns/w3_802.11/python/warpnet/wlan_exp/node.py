@@ -380,75 +380,66 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Local Traffic Generation (LTG) Commands
     #--------------------------------------------
-    def ltg_to_node_configure(self, node_list, traffic_flow, restart=False):
-        """Configure the node for the given traffic flow to the given nodes."""
-        if (type(node_list) is list):
-            for node in node_list:
-                status = self.send_cmd(cmds.LTGConfigure(node, traffic_flow, restart))
-                self._print_ltg_status('configure', status, node.name)
-        else:
-            status = self.send_cmd(cmds.LTGConfigure(node_list, traffic_flow, restart))
-            self._print_ltg_status('configure', status, node_list.name)
+    def ltg_to_node_configure(self, traffic_flow, auto_start=False):
+        """Configure the node for the given traffic flow."""
+        return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
 
 
-    def ltg_to_node_remove(self, node_list):
-        """Remove the LTG flow to the given nodes from the node."""
-        if (type(node_list) is list):
-            for node in node_list:
-                status = self.send_cmd(cmds.LTGRemove(node))
-                self._print_ltg_status('remove', status, node.name)
+    def ltg_to_node_remove(self, ltg_id_list):
+        """Remove the LTG flows."""
+        if (type(ltg_id_list) is list):
+            for ltg_id in ltg_id_list:
+                status = self.send_cmd(cmds.LTGRemove(ltg_id))
+                self._print_ltg_error(status, "remove LTG {0}".format(ltg_id))
         else:
-            status = self.send_cmd(cmds.LTGRemove(node_list))
-            self._print_ltg_status('remove', status, node_list.name)
+            status = self.send_cmd(cmds.LTGRemove(ltg_id_list))
+            self._print_ltg_error(status, "remove LTG {0}".format(ltg_id_list))
         
 
-    def ltg_to_node_start(self, node_list):
-        """Start the LTG flow to the given nodes."""
-        if (type(node_list) is list):
-            for node in node_list:
-                status = self.send_cmd(cmds.LTGStart(node))
-                self._print_ltg_status('start', status, node.name)
+    def ltg_to_node_start(self, ltg_id_list):
+        """Start the LTG flow."""
+        if (type(ltg_id_list) is list):
+            for ltg_id in ltg_id_list:
+                status = self.send_cmd(cmds.LTGStart(ltg_id))
+                self._print_ltg_error(status, "start LTG {0}".format(ltg_id))
         else:
-            status = self.send_cmd(cmds.LTGStart(node_list))
-            self._print_ltg_status('start', status, node_list.name)
+            status = self.send_cmd(cmds.LTGStart(ltg_id_list))
+            self._print_ltg_error(status, "start LTG {0}".format(ltg_id_list))
 
 
-    def ltg_to_node_stop(self, node_list):
+    def ltg_to_node_stop(self, ltg_id_list):
         """Stop the LTG flow to the given nodes."""
-        if (type(node_list) is list):
-            for node in node_list:
-                status = self.send_cmd(cmds.LTGStop(node))
-                self._print_ltg_status('stop', status, node.name)
+        if (type(ltg_id_list) is list):
+            for ltg_id in ltg_id_list:
+                status = self.send_cmd(cmds.LTGStop(ltg_id))
+                self._print_ltg_error(status, "stop LTG {0}".format(ltg_id))
         else:
-            status = self.send_cmd(cmds.LTGStop(node_list))
-            self._print_ltg_status('stop', status, node_list.name)
+            status = self.send_cmd(cmds.LTGStop(ltg_id_list))
+            self._print_ltg_error(status, "stop LTG {0}".format(ltg_id_list))
 
 
     def ltg_remove_all(self):
         """Stops and removes all LTG flows on the node."""
         status = self.send_cmd(cmds.LTGRemove())
-        if (status == cmds.LTG_ERROR):
-            print("LTG ERROR: Could not remove all LTGs on {0}".format(self.name))
+        self._print_ltg_error(status, "remove all LTGs")
         
 
     def ltg_start_all(self):
         """Start all LTG flows on the node."""
         status = self.send_cmd(cmds.LTGStart())
-        if (status == cmds.LTG_ERROR):
-            print("LTG ERROR: Could not start all LTGs on {0}".format(self.name))
+        self._print_ltg_error(status, "start all LTGs")
 
 
     def ltg_stop_all(self):
         """Stop all LTG flows on the node."""
         status = self.send_cmd(cmds.LTGStop())
-        if (status == cmds.LTG_ERROR):
-            print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
+        self._print_ltg_error(status, "stop all LTGs")
 
 
-    def _print_ltg_status(self, ltg_cmd_type, status, node_name):
+    def _print_ltg_error(self, status, msg):
+        """Print an LTG error message."""
         if (status == cmds.LTG_ERROR):
-            print("LTG ERROR: Could not {0} LTG".format(ltg_cmd_type))
-            print("    from {0} to {1}".format(self.name, node_name))
+            print("LTG ERROR: Could not {0} on {1}".format(msg, self.name))
 
 
     #--------------------------------------------

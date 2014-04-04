@@ -59,6 +59,7 @@ LTG_SCHED_TYPE_UNIFORM_RAND            = 2
 #   NOTE:  The C counterparts are found in *_ltg.h
 LTG_PYLD_TYPE_FIXED                    = 1
 LTG_PYLD_TYPE_UNIFORM_RAND             = 2
+LTG_PYLD_TYPE_ALL_ASSOC_FIXED          = 3
 
 # LTG Payload Min/Max
 #
@@ -113,35 +114,54 @@ class Schedule(object):
 
 
 class SchedulePeriodic(Schedule):
-    """LTG Schedule that will generate a payload every 'interval' 
-    microseconds.    
+    """LTG Schedule that will generate a payload every 'interval' microseconds.
+    
+    Attributes:
+        interval (float) -- Interval in seconds to generate a payload
+        duration (float) -- Duration in seconds of schedule
     """
-    interval = None
+    time_factor = 6                    # Time on node is in microseconds
+    interval    = None
+    duration    = None
 
-    def __init__(self, interval):
+    def __init__(self, interval, duration):
         self.ltg_type = LTG_SCHED_TYPE_PERIODIC
-        self.interval = interval
+        self.interval = int(round(float(interval), self.time_factor) * (10**self.time_factor))
+        self.duration = int(round(float(duration), self.time_factor) * (10**self.time_factor))
+        
         
     def get_params(self):
-        return [self.interval]
+        duration0 = ((self.duration >> 32) & 0xFFFFFFFF)
+        duration1 = (self.duration & 0xFFFFFFFF)
+        return [self.interval, duration0, duration1]
 
 # End Class WlanExpLTGSchedPeriodic
     
 
 class ScheduleUniformRandom(Schedule):
     """LTG Schedule that will generate a payload a uniformly random time 
-    between min_interval and max_interval microseconds.    
+    between min_interval and max_interval microseconds.
+    
+    Attributes:
+        min_interval (float) -- Minimum interval in seconds to generate a payload
+        max_interval (float) -- Maximum interval in seconds to generate a payload
+        duration     (float) -- Duration in seconds of schedule    
     """
+    time_factor  = 6                   # Time on node is in microseconds
     min_interval = None
     max_interval = None
+    duration     = None
 
-    def __init__(self, min_interval, max_interval):
+    def __init__(self, min_interval, max_interval, duration):
         self.ltg_type     = LTG_PYLD_TYPE_UNIFORM_RAND
-        self.min_interval = min_interval
-        self.max_interval = max_interval
+        self.min_interval = int(round(float(min_interval), self.time_factor) * (10**self.time_factor))
+        self.max_interval = int(round(float(max_interval), self.time_factor) * (10**self.time_factor))
+        self.duration     = int(round(float(duration), self.time_factor) * (10**self.time_factor))
         
     def get_params(self):
-        return [self.min_interval, self.max_interval]
+        duration0 = ((self.duration >> 32) & 0xFFFFFFFF)
+        duration1 = (self.duration & 0xFFFFFFFF)
+        return [self.min_interval, self.max_interval, duration0, duration1]
 
 # End Class WlanExpLTGSchedUniformRand
 
@@ -196,14 +216,18 @@ class Payload(object):
 
 class PayloadFixed(Payload):
     """LTG payload that will generate a fixed payload of the given length."""    
-    length = None
+    dest_addr = None
+    length    = None
 
-    def __init__(self, length):
-        self.ltg_type = LTG_PYLD_TYPE_FIXED
-        self.length   = self.validate_length(length)
+    def __init__(self, dest_addr, length):
+        self.ltg_type  = LTG_PYLD_TYPE_FIXED
+        self.dest_addr = dest_addr
+        self.length    = self.validate_length(length)
         
     def get_params(self):
-        return [self.length]
+        addr0 = ((self.dest_addr >> 32) & 0xFFFF)
+        addr1 = (self.dest_addr & 0xFFFFFFFF)
+        return [addr0, addr1, self.length]
 
 # End Class PayloadFixed
     
@@ -212,18 +236,37 @@ class PayloadUniformRandom(Payload):
     """LTG payload that will generate a payload with uniformly random size 
     between min_length and max_length bytes.    
     """
+    dest_addr  = None
     min_length = None
     max_length = None
 
-    def __init__(self, min_length, max_length):
-        self.ltg_type     = LTG_PYLD_TYPE_UNIFORM_RAND
+    def __init__(self, dest_addr, min_length, max_length):
+        self.ltg_type   = LTG_PYLD_TYPE_UNIFORM_RAND
+        self.dest_addr  = dest_addr
         self.min_length = self.validate_length(min_length)
         self.max_length = self.validate_length(max_length)
         
     def get_params(self):
-        return [self.min_length, self.max_length]
+        addr0 = ((self.dest_addr >> 32) & 0xFFFF)
+        addr1 = (self.dest_addr & 0xFFFFFFFF)
+        return [addr0, addr1, self.min_length, self.max_length]
 
 # End Class PayloadUniformRand
+
+
+class PayloadAllAssocFixed(Payload):
+    """LTG payload that will generate a fixed payload of the given length
+    to all associated deivces."""
+    length    = None
+
+    def __init__(self, length):
+        self.ltg_type  = LTG_PYLD_TYPE_ALL_ASSOC_FIXED
+        self.length    = self.validate_length(length)
+        
+    def get_params(self):
+        return [self.length]
+
+# End Class PayloadAllAssocFixed
 
 
 #-----------------------------------------------------------------------------
@@ -252,21 +295,52 @@ class FlowConfig(object):
 
 
 class FlowConfigCBR(FlowConfig):
-    """Class to implement a Constant Bit Rate LTG flow configuration."""
-    def __init__(self, size, interval):
-        self.ltg_schedule = SchedulePeriodic(interval)
-        self.ltg_payload  = PayloadFixed(size)
+    """Class to implement a Constant Bit Rate LTG flow configuration to a given device.
+    
+    Attributes:
+        dest_addr    -- Destination MAC address
+        size         -- Length of the LTG payload (in bytes)
+        interval     -- Interval between packets (in float seconds)
+        duration     -- Duration of the traffic flow (in float seconds)
+    """
+    def __init__(self, dest_addr, size, interval, duration):
+        self.ltg_schedule = SchedulePeriodic(interval, duration)
+        self.ltg_payload  = PayloadFixed(dest_addr, size)
+
+# End Class FlowConfigCBR
+
+
+class FlowConfigAllAssocCBR(FlowConfig):
+    """Class to implement a Constant Bit Rate LTG flow configuration to all associated
+    devices.
+    
+    Attributes:
+        size         -- Length of the LTG payload (in bytes)
+        interval     -- Interval between packets (in float seconds)
+        duration     -- Duration of the traffic flow (in float seconds)
+    """
+    def __init__(self, size, interval, duration):
+        self.ltg_schedule = SchedulePeriodic(interval, duration)
+        self.ltg_payload  = PayloadAllAssocFixed(size)
 
 # End Class FlowConfigCBR
 
 
 class FlowConfigRandomRandom(FlowConfig):
-    """Class to implement an LTG flow configuration with random period 
-    and random sized payload.
+    """Class to implement an LTG flow configuration with random period and random 
+    sized payload to a given device.
+
+    Attributes:
+        dest_addr    -- Destination MAC address
+        min_length   -- Minimum length of the LTG payload (in bytes)
+        max_length   -- Maximum length of the LTG payload (in bytes)
+        min_interval -- Minimum interval between packets (in float seconds)
+        max_interval -- Maximum interval between packets (in float seconds)
+        duration     -- Duration of the traffic flow (in float seconds)
     """
-    def __init__(self, min_length, max_length, min_interval, max_interval):
-        self.ltg_schedule = ScheduleUniformRandom(min_interval, max_interval)
-        self.ltg_payload  = PayloadUniformRandom(min_length, max_length)
+    def __init__(self, dest_addr, min_length, max_length, min_interval, max_interval, duration):
+        self.ltg_schedule = ScheduleUniformRandom(min_interval, max_interval, duration)
+        self.ltg_payload  = PayloadUniformRandom(dest_addr, min_length, max_length)
 
 # End Class FlowConfigRandom
 
