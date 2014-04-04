@@ -278,13 +278,15 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		if(pass_up){
 			//This packet should be passed up to CPU_high for further processing
 
-			if(unicast_to_me){
-				//This good FCS, unicast, noncontrol packet was ACKed.
-				mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
-			}
+			if(!WLAN_IS_CTRL_FRAME(rx_header)){
+				if(unicast_to_me){
+					//This good FCS, unicast, noncontrol packet was ACKed.
+					mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
+				}
 
-			if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
-				mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
+				if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
+					mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
+				}
 			}
 
 			//Unlock the pkt buf mutex before passing the packet up
@@ -293,15 +295,9 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 				xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
 				wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
 			} else {
-
-				if(length >= sizeof(mac_header_80211)){
-					wlan_mac_low_frame_ipc_send();
-					//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
-					wlan_mac_low_lock_empty_rx_pkt_buf();
-
-				} else {
-					warp_printf(PL_ERROR, "Error: received non-control packet of length %d, which is not valid\n", length);
-				}
+				wlan_mac_low_frame_ipc_send();
+				//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
+				wlan_mac_low_lock_empty_rx_pkt_buf();
 			}
 		} //END if (to_me or to_multicast)
 	} else {
