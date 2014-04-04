@@ -1,7 +1,6 @@
 """
------------
-Log Entries
------------
+log_entries.py
+===========
 
 This module defines each type of log entry that may exist
 in the event log of an 802.11 Reference Design Node.
@@ -12,11 +11,36 @@ running on the node.
 
 This module maintains a dictionary which contains a reference to each
 known log entry type. This dictionary is stored in the variable
-``wlan_exp_log_entry_types``. The dictionary is populated with the log
-entry types defined in log_entries.py during import. Additinal log
-entry types may be added to the dictionary after import. Customs
-log entry types should be added before any of wlan_exp_log methods
-are used to retrieve and parse log data from a node.
+``wlan_exp_log_entry_types``. The :class:`WlanExpLogEntryType` constructor
+automatically adds each log entry type definition to this dictionary. Users
+may access the dictionary to view currently defined log entry types. But user code
+should not modify the dictionary contents directly.
+
+Custom Log Entry Types
+----------------------
+The :mod:`log_entries` module includes definitions for the log entry types implemented in
+the current 802.11 Reference Design C code.
+
+Log entry types defined here must match the corresponding entry definitions in the node C code.
+Custom entries can be defined and added to the global dictionary by user scripts.
+
+Log entry type definitions are instances of the :class:`WlanExpLogEntryType` class. The 
+:class:`WlanExpLogEntryType` constructor requires two arguments: ``name`` and ``entry_type_id``.
+Both the name and entry type ID **must** be unique relative to the existing entry types defined in
+:mod:`log_entries`.
+
+To define a custom log entry type::
+
+    import warpnet.wlan_exp_log.log_entries as log_entries
+    
+    #name and entry_type_id must not collide with existing log entry type definitions
+    my_entry_type = log_entries.WlanExpLogEntryType(name='MY_ENTRY', entry_type_id=999)
+    my_entry_type.append_field_defs([
+            ('timestamp',              'Q',      'uint64'),
+            ('field_A',                'H',      'uint16'),
+            ('field_B',                'H',      'uint16')])
+
+
 
 """
 from struct import unpack, calcsize, error
@@ -61,16 +85,16 @@ class WlanExpLogEntryType(object):
     #     (field_name, field_fmt_struct, field_fmt_np)
     _fields             = None
 
-    entry_type_id       = None
-    name                = None
+    entry_type_id       = None #:Unique integer ID for entry type
+    name                = None #:Unique string name for entry type
 
-    fields_np_dt        = None
-    fields_fmt_struct   = None
-    field_offsets       = None 
+    fields_np_dt        = None #:numpy dtype object describing format
+    fields_fmt_struct   = None #:List of field formats, in struct module format
+    _field_offsets       = None
 
     gen_numpy_callbacks = None
 
-    consts = None
+    consts = None #:Container for user-defined, entry-specific constants
 
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
@@ -106,7 +130,7 @@ class WlanExpLogEntryType(object):
         self.consts = dict()
 
         # Initialize variable that contains field names and byte offsets 
-        self.field_offsets       = {} 
+        self._field_offsets       = {} 
 
 
     #-------------------------------------------------------------------------
@@ -120,16 +144,26 @@ class WlanExpLogEntryType(object):
 
     def get_field_defs(self):          return self._fields
 
-    def get_field_offsets(self):       return self.field_offsets
+    def get_field_offsets(self):       return self._field_offsets
 
     def get_entry_type_id(self):       return self.entry_type_id
 
     def append_field_defs(self, field_info):
+        """Adds fields to the definition of the log entry type.
+
+        Arg ``field_info`` must be a list of 3-tuples. Each 3-tuple must be of the form
+        ``(field_name, field_type_struct, field_type_numpy)`` where:
+        
+        * ``field_name``: Name of field as string
+        * ``field_type_struct``: Field type as string, using formats specified by ``struct`` module
+        * ``field_type_numpy``: Field type as string, using formats specified by numpy ``dtype``
+        """
         if type(field_info) is list:
             self._fields.extend(field_info)
         else:
             self._fields.append(field_info)
         self._update_field_defs()
+
 
     def add_gen_numpy_array_callback(self, callback):
         """Add callback that is run after the numpy array is generated from the entry type."""
@@ -252,7 +286,7 @@ class WlanExpLogEntryType(object):
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
         # Update the field offsets 
-        self.field_offsets = dict(zip(names, offsets))
+        self._field_offsets = dict(zip(names, offsets))
         
         # Check our definitions of struct vs numpy are in sync
         struct_size = calcsize(self.fields_fmt_struct)
