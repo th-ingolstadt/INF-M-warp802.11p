@@ -49,6 +49,10 @@ __all__ = ['NodeGetWarpNetType', 'NodeIdentify', 'NodeGetHwInfo',
            'Ping', 'TestPayloadSize', 'AddNodeGrpId', 'ClearNodeGrpId']
 
 
+# Reserved WARPNet Type
+WARPNET_RSVD_TYPE       = 0xFFFFFFFF
+
+
 # WARPNet Command Groups
 GRPID_WARPNET           = 0xFF
 GRPID_NODE              = 0x00
@@ -71,13 +75,13 @@ CMD_WARPNET_TYPE        = 0xFFFFFF
 CMD_INFO                = 0x000001
 CMD_IDENTIFY            = 0x000002
 
-IDENTIFY_ALL_NODES      = 0xFFFF
+IDENTIFY_ALL_NODES      = 0xFFFFFFFF
 IDENTIFY_WAIT_TIME      = 10
 
 CMD_NODE_NETWORK_SETUP  = 0x000003
 CMD_NODE_NETWORK_RESET  = 0x000004
 
-NETWORK_RESET_ALL_NODES = 0xFFFF
+NETWORK_RESET_ALL_NODES = 0xFFFFFFFF
 
 CMD_NODE_TEMPERATURE    = 0x000005
 
@@ -109,11 +113,11 @@ class NodeGetWarpNetType(wn_message.Cmd):
         self.command = _CMD_GRPID_WARPNET + CMD_WARPNET_TYPE
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response:")
-            print(resp)
-        return args[0]
+        if resp.resp_is_valid(num_args=1):
+            args = resp.get_args()
+            return args[0]
+        else:
+            return WARPNET_RSVD_TYPE
 
 # End Class
 
@@ -210,16 +214,14 @@ class NodeGetTemperature(wn_message.Cmd):
         self.command = _CMD_GRPID_NODE + CMD_NODE_TEMPERATURE
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 3:
-            print("Invalid response.")
-            print(resp)
-            return (0, 0, 0)
-        else:
+        if resp.resp_is_valid(num_args=3):
+            args = resp.get_args()
             curr_temp = ((float(args[0])/65536.0)/0.00198421639) - 273.15
             min_temp  = ((float(args[1])/65536.0)/0.00198421639) - 273.15
             max_temp  = ((float(args[2])/65536.0)/0.00198421639) - 273.15
             return (curr_temp, min_temp, max_temp)
+        else:
+            return (0, 0, 0)
 
 # End Class
 
@@ -249,11 +251,11 @@ class TestPayloadSize(wn_message.Cmd):
             self.add_args(i)
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
+        if resp.resp_is_valid(num_args=1):
+            args = resp.get_args()
+            return args[0]
+        else:
+            return 0
         
 # End Class
 

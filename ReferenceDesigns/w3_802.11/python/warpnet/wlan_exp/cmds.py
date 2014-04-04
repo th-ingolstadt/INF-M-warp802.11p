@@ -84,34 +84,29 @@ CMD_NODE_TX_RATE                       = 34
 CMD_NODE_TX_ANT_MODE                   = 35
 CMD_NODE_RX_ANT_MODE                   = 36
 
+NODE_WRITE                             = 0x00000000
+NODE_READ                              = 0x00000001
+NODE_WRITE_DEFAULT                     = 0x00000002
+NODE_READ_DEFAULT                      = 0x00000004
+
+NODE_RSVD                              = 0xFFFFFFFF 
+
+NODE_SUCCESS                           = 0x00000000
+NODE_ERROR                             = 0xFF000000
+
 NODE_RESET_LOG                         = 0x00000001
 NODE_RESET_TXRX_STATS                  = 0x00000002
 NODE_RESET_LTG                         = 0x00000004
 NODE_RESET_TX_DATA_QUEUE               = 0x00000008
 
-TIME_WRITE                             = 0x00000000
-TIME_READ                              = 0x00000001
 TIME_ADD_TO_LOG                        = 0x00000002
-TIME_RSVD                              = 0xFFFFFFFF
-
-RSVD_CHANNEL                           = 0xFFFF
-RSVD_TX_POWER                          = 0xFFFF
-RSVD_TX_RATE                           = 0xFFFF
-RSVD_TX_ANT_MODE                       = 0xFFFF
-RSVD_RX_ANT_MODE                       = 0xFFFF
+RSVD_TIME                              = 0xFFFFFFFF
 
 NODE_TX_POWER_MAX_DBM                  = 19
 NODE_TX_POWER_MIN_DBM                  = -12
 
-NODE_RX_ANT_MODE_SISO_ANTA             = 0x1
-NODE_RX_ANT_MODE_SISO_ANTB             = 0x2
-NODE_RX_ANT_MODE_SISO_SELDIV_2ANT      = 0x5
-
-NODE_TX_ANT_MODE_SISO_ANTA             = 0x10
-NODE_TX_ANT_MODE_SISO_ANTB             = 0x20
-
-NODE_UNICAST                           = 0x0000
-NODE_MULTICAST                         = 0x0001
+NODE_UNICAST                           = 0x00000000
+NODE_MULTICAST                         = 0x00000001
 
 
 # LTG commands and defined values
@@ -243,11 +238,11 @@ class LogGetStatus(wn_message.Cmd):
         self.command = _CMD_GRPID_NODE + CMD_LOG_GET_STATUS
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 4:
-            print("Invalid response.")
-            print(resp)
-        return (args[0], args[1], args[2], args[3])
+        if resp.resp_is_valid(num_args=4):
+            args = resp.get_args()
+            return (args[0], args[1], args[2], args[3])
+        else:
+            return (0,0,0,0)
 
 # End Class
 
@@ -259,11 +254,11 @@ class LogGetCapacity(wn_message.Cmd):
         self.command = _CMD_GRPID_NODE + CMD_LOG_GET_CAPACITY
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 2:
-            print("Invalid response.")
-            print(resp)
-        return (args[0], args[1])
+        if resp.resp_is_valid(num_args=2):
+            args = resp.get_args()
+            return (args[0], args[1])
+        else:
+            return (0,0)
 
 # End Class
 
@@ -351,11 +346,11 @@ class StatsAddTxRxToLog(wn_message.Cmd):
         self.command = _CMD_GRPID_NODE + CMD_STATS_ADD_TXRX_TO_LOG
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
+        if resp.resp_is_valid(num_args=1):
+            args = resp.get_args()
+            return args[0]
+        else:
+            return 0
 
 # End Class
 
@@ -377,11 +372,11 @@ class LTGCommon(wn_message.Cmd):
             self.add_args(0xFFFFFFFF)
 
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
+        if resp.resp_is_valid(num_args=1):
+            args = resp.get_args()
+            return args[0]
+        else:
+            return LTG_ERROR
         
 # End Class
 
@@ -477,9 +472,9 @@ class NodeProcTime(wn_message.Cmd):
         of microseconds.
     
     Attributes:
-        time_cmd  -- Command to send over the time WARPNet command.  Valid values are:
-                       TIME_READ
-                       TIME_WRITE
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       NODE_READ
+                       NODE_WRITE
                        TIME_ADD_TO_LOG
         node_time -- Time as either an integer number of microseconds or 
                        a floating point number in seconds.
@@ -489,20 +484,20 @@ class NodeProcTime(wn_message.Cmd):
     time_type   = None
     time_cmd    = None
     
-    def __init__(self, time_cmd, node_time, time_id=None):
+    def __init__(self, cmd, node_time, time_id=None):
         super(NodeProcTime, self).__init__()
         self.command  = _CMD_GRPID_NODE + CMD_NODE_TIME
-        self.time_cmd = time_cmd
+        self.time_cmd = cmd
 
         # Read the time as a float
-        if (time_cmd == TIME_READ):
+        if (cmd == NODE_READ):
             self.time_type = 0
-            self.add_args(TIME_READ)
-            self.add_args(TIME_RSVD)
-            self.add_args(TIME_RSVD)
-            self.add_args(TIME_RSVD)
-            self.add_args(TIME_RSVD)
-            self.add_args(TIME_RSVD)
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
+            self.add_args(RSVD_TIME)
 
         # Write the time / Add time to log
         else:
@@ -513,8 +508,8 @@ class NodeProcTime(wn_message.Cmd):
                 import random
                 time_id = 2**32 * random.random()
 
-            if (time_cmd == TIME_WRITE):
-                self.add_args(TIME_WRITE)
+            if (cmd == NODE_WRITE):
+                self.add_args(NODE_WRITE)
 
                 # Format the node_time appropriately
                 if   (type(node_time) is float):
@@ -529,7 +524,7 @@ class NodeProcTime(wn_message.Cmd):
                 self.add_args(TIME_ADD_TO_LOG)
 
                 # Send the reserved value
-                time_to_send = (TIME_RSVD << 32) + TIME_RSVD
+                time_to_send = (RSVD_TIME << 32) + RSVD_TIME
 
             # Get the current time on the host
             now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
@@ -540,20 +535,20 @@ class NodeProcTime(wn_message.Cmd):
             self.add_args((now & 0xFFFFFFFF))
             self.add_args(((now >> 32) & 0xFFFFFFFF))
 
+
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 2:
-            print("Invalid response.")
-            print(resp)
+        if resp.resp_is_valid(num_args=3, status_errors=[NODE_ERROR], name='Time command'):
+            args = resp.get_args()
+            time = (2**32 * args[2]) + args[1]
+        else:
+            time = 0
 
-        time = (2**32 * args[1]) + args[0]
-
+        ret_val = 0
+        
         if   (self.time_type == 0):
             ret_val = float(time / (10**self.time_factor))
         elif (self.time_type == 1):
             ret_val = time
-        else:
-            raise TypeError("Time must be either a float or int")
             
         return ret_val
 
@@ -564,23 +559,26 @@ class NodeProcChannel(wn_message.Cmd):
     """Command to get / set the channel of the node.
     
     Attributes:
-        channel -- 802.11 Channel for the node.  Should be a value between
-                   0 and 11.  Checking is done on the node and the current
-                   channel will always be returned by the node.  A value 
-                   of RSVD_CHANNEL will only return the channel.
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       NODE_READ
+                       NODE_WRITE
+        channel   -- 802.11 Channel for the node.  Should be a value between
+                       0 and 11.  Checking is done on the node and the current
+                       channel will always be returned by the node.  
     """
-    def __init__(self, channel):
+    def __init__(self, cmd, channel):
         super(NodeProcChannel, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_CHANNEL
 
-        self.add_args((channel & 0xFFFF))
+        self.add_args(cmd)
+        self.add_args(channel)
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
+        if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Channel command'):
+            args = resp.get_args()
+            return args[1]
+        else:
+            return NODE_ERROR
 
 # End Class
 
@@ -589,32 +587,44 @@ class NodeProcTxPower(wn_message.Cmd):
     """Command to get / set the transmit power of the node.
     
     Attributes:
-        power -- Transmit power for the WARP node (in dBm).  Should be an 
-                 integer value between NODE_TX_POWER_MIN_DBM and 
-                 NODE_TX_POWER_MAX_DBM.  A value of RSVD_TX_POWER will return 
-                 the gain without setting it.
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       NODE_READ
+                       NODE_WRITE
+        power     -- Transmit power for the WARP node (in dBm).
     """
-    def __init__(self, power):
+    def __init__(self, cmd, power):
         super(NodeProcTxPower, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_TX_POWER
 
-        if (power == RSVD_TX_POWER):
+        self.add_args(cmd)
+
+        if (cmd == NODE_READ):
             self.add_args(power)
-        else:
-            if ((power >= NODE_TX_POWER_MIN_DBM) and (power <= NODE_TX_POWER_MAX_DBM)):
-                # Shift the value so that there are only positive integers over the wire
-                self.add_args(power - NODE_TX_POWER_MIN_DBM)
-            else:
-                msg  = "Transmit power must be a value in dBm between:  "
-                msg += "{0} and {1}".format(NODE_TX_POWER_MIN_DBM, NODE_TX_POWER_MAX_DBM)
-                raise ValueError(msg)
+
+        if (cmd == NODE_WRITE):
+            if (power > NODE_TX_POWER_MAX_DBM):
+                msg  = "WARNING:  Requested power too high.\n"
+                msg += "    Adjusting transmit power from {0} to {1}".format(power, NODE_TX_POWER_MAX_DBM)
+                print(msg)
+                power = NODE_TX_POWER_MAX_DBM
+
+            if (power < NODE_TX_POWER_MIN_DBM):
+                msg  = "WARNING:  Requested power too low. \n"
+                msg += "    Adjusting transmit power from {0} to {1}".format(power, NODE_TX_POWER_MIN_DBM)
+                print(msg)
+                power = NODE_TX_POWER_MIN_DBM
+
+            # Shift the value so that there are only positive integers over the wire
+            self.add_args(power - NODE_TX_POWER_MIN_DBM)
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
+        if resp.resp_is_valid(num_args=5, status_errors=[NODE_ERROR], name='Power command'):
+            args = resp.get_args()
+            # Shift values back to the original range
+            args = [x + NODE_TX_POWER_MIN_DBM for x in args]
+            return args[1:]
+        else:
+            return []
 
 # End Class
 
@@ -623,26 +633,26 @@ class NodeProcTxRate(wn_message.Cmd):
     """Command to get / set the transmit rate of the node.
     
     Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       NODE_READ
+                       NODE_WRITE
+                       NODE_WRITE_DEFAULT
+                       NODE_READ_DEFAULT 
         node_type -- Is this for unicast transmit or multicast transmit.
         rate      -- 802.11 transmit rate for the node.  Should be an entry
                      from the rates table in wlan_exp.util.  Checking is
                      done on the node and the current rate will always be 
-                     returned by the node.  A value of RSVD_TX_RATE will only 
-                     return the rate.
-        node      -- Node for which the rate is being set.  If node is 
-                     not provided, then the default rate is set.
+                     returned by the node.
+        device    -- 802.11 device for which the rate is being set.  
     """
-    def __init__(self, node_type, rate, node=None):
+    rate     = None
+    dev_name = None
+    
+    def __init__(self, cmd, node_type, rate=None, device=None):
         super(NodeProcTxRate, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_TX_RATE
-        
-        if not node is None:
-            mac_address = node.wlan_mac_address
-            self.add_args(((mac_address >> 32) & 0xFFFF))
-            self.add_args((mac_address & 0xFFFFFFFF))
-        else:
-            self.add_args(0xFFFFFFFF)
-            self.add_args(0xFFFFFFFF)
+
+        self.add_args(cmd)
 
         if ((node_type == NODE_UNICAST) or (node_type == NODE_MULTICAST)):
             self.add_args(node_type)
@@ -650,18 +660,39 @@ class NodeProcTxRate(wn_message.Cmd):
             msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
             raise ValueError(msg)
         
-        try:
-            self.add_args((rate['index'] & 0xFFFF))
-        except (KeyError, TypeError):
-            msg  = "The TX rate must be an entry from the rates table in wlan_exp.util"
-            raise ValueError(msg)
+        if rate is not None:
+            try:
+                self.rate = rate['index']
+                self.add_args(self.rate)
+            except (KeyError, TypeError):
+                msg  = "The TX rate must be an entry from the rates table in wlan_exp.util"
+                raise ValueError(msg)
+        else:
+            self.add_args(0)
+
+        if device is not None:
+            mac_address   = device.wlan_mac_address
+            self.dev_name = device.name
+            self.add_args(((mac_address >> 32) & 0xFFFF))
+            self.add_args((mac_address & 0xFFFFFFFF))
+        else:
+            self.add_args(0xFFFFFFFF)
+            self.add_args(0xFFFFFFFF)
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
+        import warpnet.wlan_exp.util as wlan_exp_util
+        
+        if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Tx rate command'):
+            args = resp.get_args()
+            if self.rate is not None:
+                if (args[1] != self.rate):
+                    msg  = "WARNING: Device {0} rate mismatch.\n".format(self.dev_name)
+                    msg += "    Tried to set rate to {0}\n".format(wlan_exp_util.tx_rate_index_to_str(self.rate))
+                    msg += "    Actually set rate to {0}\n".format(wlan_exp_util.tx_rate_index_to_str(args[1]))
+                    print(msg)
+            return wlan_exp_util.find_tx_rate_by_index(args[1])
+        else:
+            return None
 
 # End Class
 
@@ -670,55 +701,69 @@ class NodeProcTxAntMode(wn_message.Cmd):
     """Command to get / set the transmit antenna mode of the node.
     
     Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       NODE_READ
+                       NODE_WRITE
+                       NODE_WRITE_DEFAULT
+                       NODE_READ_DEFAULT 
         node_type -- Is this for unicast transmit or multicast transmit.
         ant_mode  -- Transmit antenna mode for the node.  Checking is
                      done both in the command and on the node.  The current
-                     antenna mode will be returned by the node.  A value of 
-                     RSVD_TX_ANT_MODE will only return the antenna mode.
-        node      -- Node for which the antenna mode is being set.  If node
-                     is not provided, then the default antenna mode is set.
+                     antenna mode will be returned by the node.  
+        device    -- 802.11 device for which the rate is being set.  
     """
-    def __init__(self, node_type, ant_mode, node=None):
+    node_type = None    
+    
+    def __init__(self, cmd, node_type, ant_mode=None, device=None):
         super(NodeProcTxAntMode, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_TX_ANT_MODE
+
+        self.add_args(cmd)
         
-        if not node is None:
-            mac_address = node.wlan_mac_address
+        if ((node_type == NODE_UNICAST) or (node_type == NODE_MULTICAST)):
+            self.node_type = node_type
+            self.add_args(node_type)
+        else:
+            msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
+            raise ValueError(msg)
+        
+        if ant_mode is not None:
+            self.add_args(self.check_ant_mode(ant_mode))
+        else:
+            self.add_args(0)
+
+        if device is not None:
+            mac_address = device.wlan_mac_address
             self.add_args(((mac_address >> 32) & 0xFFFF))
             self.add_args((mac_address & 0xFFFFFFFF))
         else:
             self.add_args(0xFFFFFFFF)
             self.add_args(0xFFFFFFFF)
 
-        if ((node_type == NODE_UNICAST) or (node_type == NODE_MULTICAST)):
-            self.add_args(node_type)
-        else:
-            msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
-            raise ValueError(msg)
-        
-        self.add_args(self.check_ant_mode(ant_mode))
-
 
     def check_ant_mode(self, ant_mode):
         """Check the antenna mode to see if it is valid."""
-        if (ant_mode == RSVD_TX_ANT_MODE):
-            return ant_mode
-
-        if ((ant_mode == NODE_TX_ANT_MODE_SISO_ANTA) or
-            (ant_mode == NODE_TX_ANT_MODE_SISO_ANTB)):
-            return ant_mode
-        else:
-            msg  = "The antenna mode must be one of the following defines:\n"
-            msg += "    NODE_TX_ANT_MODE_SISO_ANTA\n"
-            msg += "    NODE_TX_ANT_MODE_SISO_ANTB\n"
+        try:
+            return ant_mode['index']
+        except KeyError:
+            msg  = "The antenna mode must be an entry from the wlan_tx_ant_mode\n"
+            msg += "    list in wlan_exp.util\n"
             raise ValueError(msg)
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
+        import warpnet.wlan_exp.util as wlan_exp_util
+        
+        if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Tx antenna mode command'):
+            args = resp.get_args()
+            if   (self.node_type == NODE_UNICAST):
+                return wlan_exp_util.find_tx_ant_mode_by_index(args[1])
+            elif (self.node_type == NODE_MULTICAST):
+                return [wlan_exp_util.find_tx_ant_mode_by_index((args[1] >> 16) & 0xFFFF),
+                        wlan_exp_util.find_tx_ant_mode_by_index(args[1] & 0xFFFF)]
+            else:
+                return NODE_ERROR
+        else:
+            return NODE_ERROR
 
 # End Class
 
@@ -727,40 +772,41 @@ class NodeProcRxAntMode(wn_message.Cmd):
     """Command to get / set the receive antenna mode of the node.
     
     Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       NODE_READ
+                       NODE_WRITE
         ant_mode  -- Receive antenna mode for the node.  Checking is
                      done both in the command and on the node.  The current
-                     antenna mode will be returned by the node.  A value of 
-                     RSVD_RX_ANT_MODE will only return the antenna mode.
+                     antenna mode will be returned by the node.  
     """
-    def __init__(self, ant_mode):
+    def __init__(self, cmd, ant_mode=None):
         super(NodeProcRxAntMode, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_NODE_RX_ANT_MODE
         
-        self.add_args(self.check_ant_mode(ant_mode))
+        self.add_args(cmd)
+        if ant_mode is not None:
+            self.add_args(self.check_ant_mode(ant_mode))
+        else:
+            self.add_args(NODE_RSVD)
 
 
     def check_ant_mode(self, ant_mode):
         """Check the antenna mode to see if it is valid."""
-        if (ant_mode == RSVD_RX_ANT_MODE):
-            return ant_mode
-        
-        if ((ant_mode == NODE_RX_ANT_MODE_SISO_ANTA) or
-            (ant_mode == NODE_RX_ANT_MODE_SISO_ANTB) or
-            (ant_mode == NODE_RX_ANT_MODE_SISO_SELDIV_2ANT)):
-            return ant_mode
-        else:
-            msg  = "The antenna mode must be one of the following defines:\n"
-            msg += "    NODE_RX_ANT_MODE_SISO_ANTA\n"
-            msg += "    NODE_RX_ANT_MODE_SISO_ANTB\n"
-            msg += "    NODE_RX_ANT_MODE_SISO_SELDIV_2ANT"
+        try:
+            return ant_mode['index']
+        except KeyError:
+            msg  = "The antenna mode must be an entry from the wlan_rx_ant_mode\n"
+            msg += "    list in wlan_exp.util\n"
             raise ValueError(msg)
     
     def process_resp(self, resp):
-        args = resp.get_args()
-        if len(args) != 1:
-            print("Invalid response.")
-            print(resp)
-        return args[0]
+        import warpnet.wlan_exp.util as wlan_exp_util
+        
+        if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Rx antenna mode command'):
+            args = resp.get_args()
+            return wlan_exp_util.find_rx_ant_mode_by_index(args[1])
+        else:
+            return NODE_ERROR
 
 # End Class
 

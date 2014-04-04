@@ -344,23 +344,24 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.StatsConfigure(cmds.STATS_RSVD_CONFIG))
 
 
-    def stats_get_txrx(self, node_list=None):
+    def stats_get_txrx(self, device_list=None):
         """Get the statistics from the node.
         
-        Returns a list of statistic dictionaries.
+        Returns a list of statistic dictionaries.  If the list only contains
+            one entry, then just the single entry is returned
 
-        If a node_list is provided, then the command will only return
-        statistics for the given nodes.  Otherwise, it will return 
-        all the statistics on the node.
+        If a device_list is provided, then the command will only return
+            statistics for the given devices.  Otherwise, it will return all
+            the statistics on the node.
         """
         ret_val = []
-        if not node_list is None:
-            if (type(node_list) is list):
-                for node in node_list:
-                    stats = self.send_cmd(cmds.StatsGetTxRx(node))
+        if not device_list is None:
+            if (type(device_list) is list):
+                for device in device_list:
+                    stats = self.send_cmd(cmds.StatsGetTxRx(device))
                     ret_val.append(stats)
             else:
-                ret_val = self.send_cmd(cmds.StatsGetTxRx(node_list))
+                ret_val = self.send_cmd(cmds.StatsGetTxRx(device_list))
         else:
             ret_val = self.send_cmd(cmds.StatsGetTxRx())
         
@@ -492,30 +493,50 @@ class WlanExpNode(wn_node.WnNode):
         self.send_cmd(cmds.NodeResetState(flags))
 
 
-    def node_is_associated(self, node_list):
-        """Returns a either a boolean if the node list is a single node,
-        or a list of booleans the same dimension as the node_list.  To 
-        return True, both the current node and the node in the node_list 
-        must be associated with each other.
+    def node_is_associated(self, device_list):
+        """Is the node associated with the devices in the device list.
+        
+        Returns:
+            A boolean or list of booleans.  
+            
+        If the device_list is a single device, then only a boolean is 
+        returned.  If the device_list is a list of devices, then a list of
+        booleans will be returned in the same order as the devices in the
+        list.
+        
+        For node_is_associated to return True, one of the following conditions 
+        must be met:
+          1) If the device is a wlan_exp node, then both the node and the 
+             device must be associated.
+          2) If the device is a 802.11 device, then only the node must be 
+             associated with the device, since we cannot know the state of
+             the 802.11 device.
         """
         ret_val = []
         
-        if not node_list is None:
-            if (type(node_list) is list):
-                for idx, node in enumerate(node_list):
-                    my_info   = self.node_get_station_info(node)
-                    node_info = node.send_cmd(cmds.NodeGetStationInfo(self))
+        if device_list is not None:
+            if (type(device_list) is list):
+                for idx, device in enumerate(device_list):
+                    my_info   = self.node_get_station_info(device)
+                    
+                    try:
+                        dev_info = device.send_cmd(cmds.NodeGetStationInfo(self))
+                    except AttributeError:
+                        dev_info = True
                     
                     # If the lists are not empty, then the nodes are associated
-                    if my_info and node_info:
+                    if my_info and dev_info:
                         ret_val.append(True)
                     else:
                         ret_val.append(False)
             else:
-                my_info   = self.node_get_station_info(node_list)
-                node_info = node_list.send_cmd(cmds.NodeGetStationInfo(self))
+                my_info   = self.node_get_station_info(device_list)
+                try:
+                    dev_info = device_list.send_cmd(cmds.NodeGetStationInfo(self))
+                except AttributeError:
+                    dev_info = True
 
-                if my_info and node_info:
+                if my_info and dev_info:
                     ret_val = True
                 else:
                     ret_val = False
@@ -525,23 +546,26 @@ class WlanExpNode(wn_node.WnNode):
         return ret_val
 
 
-    def node_get_station_info(self, node_list=None):
+    def node_get_station_info(self, device_list=None):
         """Get the station info from the node.
         
-        Returns a list of station info dictionaries.
+        Returns:
+            A station info dictionary or list of station info dictionaries.
 
-        If a node_list is provided, then the command will only return
-        the station info for the given nodes.  Otherwise, it will return 
-        all the station infos on the node.
+        If the device_list is a single device, then only a station info is 
+        returned.  If the device_list is a list of devices, then a list of
+        station infos will be returned in the same order as the devices in
+        the list.  If the device_list is not specified, then all the 
+        station infos on the node will be returned.
         """
         ret_val = []
-        if not node_list is None:
-            if (type(node_list) is list):
-                for node in node_list:
-                    stats = self.send_cmd(cmds.NodeGetStationInfo(node))
+        if not device_list is None:
+            if (type(device_list) is list):
+                for device in device_list:
+                    stats = self.send_cmd(cmds.NodeGetStationInfo(device))
                     ret_val.append(stats)
             else:
-                ret_val = self.send_cmd(cmds.NodeGetStationInfo(node_list))
+                ret_val = self.send_cmd(cmds.NodeGetStationInfo(device_list))
         else:
             ret_val = self.send_cmd(cmds.NodeGetStationInfo())
 
@@ -558,152 +582,232 @@ class WlanExpNode(wn_node.WnNode):
         Attributes:
             time -- Time to send to the board (either float in sec or int in us)
         """
-        self.send_cmd(cmds.NodeProcTime(cmds.TIME_WRITE, time, time_id))
+        self.send_cmd(cmds.NodeProcTime(cmds.NODE_WRITE, time, time_id))
     
 
     def node_get_time(self):
         """Gets the time in microseconds from the node."""
-        return self.send_cmd(cmds.NodeProcTime(cmds.TIME_READ, cmds.TIME_RSVD))
+        return self.send_cmd(cmds.NodeProcTime(cmds.NODE_READ, cmds.RSVD_TIME))
 
 
     def node_add_current_time_to_log(self, time_id=None):
         """Adds the current time in microseconds to the log."""
-        return self.send_cmd(cmds.NodeProcTime(cmds.TIME_ADD_TO_LOG, cmds.TIME_RSVD, time_id))
+        return self.send_cmd(cmds.NodeProcTime(cmds.TIME_ADD_TO_LOG, cmds.RSVD_TIME, time_id))
 
 
     def node_set_channel(self, channel):
         """Sets the channel of the node and returns the channel that was set."""
-        return self.send_cmd(cmds.NodeProcChannel(channel))
+        return self.send_cmd(cmds.NodeProcChannel(cmds.NODE_WRITE, channel))
     
 
     def node_get_channel(self):
         """Gets the current channel of the node."""
-        return self.send_cmd(cmds.NodeProcChannel(cmds.RSVD_CHANNEL))
+        return self.send_cmd(cmds.NodeProcChannel(cmds.NODE_READ, cmds.NODE_RSVD))
 
 
-    def node_set_tx_rate_unicast(self, rate, node_list=None):
-        """Sets the unicast transmit rate of the node to the given nodes in 
-        the node_list.  If the node list is empty, then it sets the default
-        unicast transmit rate for future associations.  This returns a list 
-        of unicast transmit rates that were set.  The rate provided must be
-        an entry in the rates table found in wlan_exp.util
-        """
-        ret_val = []
+    def node_set_tx_rate_unicast(self, rate, device_list=None, curr_assoc=False, new_assoc=False):
+        """Sets the unicast transmit rate of the node.
         
-        if (type(node_list) is list):
-            for node in node_list:
-                val = self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_UNICAST, rate, node))
-                ret_val.append(val)
-        else:
-            val = self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_UNICAST, rate, node_list))
-            ret_val.append(val)
+        One of device_list, curr_assoc or new_assoc must be set.  The device_list
+        and curr_assoc are mutually exclusive with curr_assoc having precedence
+        (ie if curr_assoc is True, then device_list will be ignored).
 
-        return ret_val
-
-
-    def node_get_tx_rate_unicast(self, node_list=None):
-        """Gets the unicast transmit rate of the node to the given nodes in 
-        the node_list.  If the node list is empty, then it gets the default 
-        unicast transmit rate for future associations.  All rates are returned
-        as an index in to the rates table found in wlan_exp.util
+        Attributes:
+            rate        -- Entry from the wlan_rates list in wlan_exp.util
+            device_list -- List of 802.11 devices for which to set the Tx unicast rate to 'rate'
+            curr_assoc  -- All current assocations will have Tx unicast rate set to 'rate'
+            new_assoc   -- All new associations will have Tx unicast rate set to 'rate'
         """
-        ret_val = []
+        self._node_set_tx_param_unicast(cmds.NodeProcTxRate, rate, 'rate', device_list, curr_assoc, new_assoc)
         
-        if (type(node_list) is list):
-            for node in node_list:
-                val = self.send_cmd(cmds.ProcNodeTxRate(cmds.NODE_UNICAST, cmds.RSVD_TX_RATE, node))
-                ret_val.append(val)
-        else:
-            val = self.send_cmd(cmds.ProcNodeTxRate(cmds.NODE_UNICAST, cmds.RSVD_TX_RATE, node_list))
-            ret_val.append(val)
 
-        return ret_val
+    def node_get_tx_rate_unicast(self, device_list=None, new_assoc=False):
+        """Gets the unicast transmit rate of the node.
+
+        Attributes:
+            device_list -- List of 802.11 devices for which to get the Tx unicast rate
+            new_assoc   -- Get the Tx unicast rate for all new associations 
+        
+        Returns:
+            A list of entries from the wlan_rates list in wlan_exp.util
+
+        If both new_assoc and device_list are specified, the return list will always have 
+        the Tx unicast rate for all new associations as the first item in the list.
+        """
+        return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', device_list, new_assoc)
 
 
     def node_set_tx_rate_multicast_data(self, rate):
-        """Sets the multicast transmit rate for a node and returns the rate 
-        that was set.  The rate provided must be an entry in the rates table 
-        found in wlan_exp.util
+        """Sets the multicast transmit rate for a node.
+
+        Attributes:
+            rate      -- Entry from the wlan_rates list in wlan_exp.util 
         """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_MULTICAST, rate))
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_WRITE, cmds.NODE_MULTICAST, rate))
 
 
     def node_get_tx_rate_multicast_data(self):
-        """Gets the current multicast transmit rate for a node as an index
-        in to the rates table found in wlan_exp.util
+        """Gets the current multicast transmit rate for a node.
+
+        Returns:
+            An entry from the wlan_rates list in wlan_exp.util
         """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_MULTICAST, cmds.RSVD_TX_RATE))
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_READ, cmds.NODE_MULTICAST))
 
 
-    def node_set_tx_ant_mode_unicast(self, ant_mode, node_list=None):
-        """Sets the unicast transmit antenna mode of the node to the given 
-        nodes in the node_list.  If the node list is empty, then it sets 
-        the default antenna mode for future associations.  This returns a 
-        list of antenna modes that were set.
-        """
-        ret_val = []
+    def node_set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
+        """Sets the unicast transmit antenna mode of the node.
         
-        if (type(node_list) is list):
-            for node in node_list:
-                val = self.send_cmd(cmds.ProcNodeTxAntMode(cmds.NODE_UNICAST, ant_mode, node))
-                ret_val.append(val)
-        else:
-            val = self.send_cmd(cmds.ProcNodeTxAntMode(cmds.NODE_UNICAST, ant_mode, node_list))
-            ret_val.append(val)
+        One of device_list, curr_assoc or new_assoc must be set.  The device_list
+        and curr_assoc are mutually exclusive with curr_assoc having precedence
+        (ie if curr_assoc is True, then device_list will be ignored).
 
-        return ret_val
-
-
-    def node_get_tx_ant_mode_unicast(self, node_list=None):
-        """Gets the unicast transmit antenna mode of the node to the given 
-        nodes in the node_list and returns a list of those antenna modes.
+        Attributes:
+            ant_mode    -- Entry from the wlan_tx_ant_mode list in wlan_exp.util
+            device_list -- List of 802.11 devices for which to set the Tx unicast rate to 'rate'
+            curr_assoc  -- All current assocations will have Tx unicast rate set to 'rate'
+            new_assoc   -- All new associations will have Tx unicast rate set to 'rate'
         """
-        ret_val = []
-        
-        if (type(node_list) is list):
-            for node in node_list:
-                val = self.send_cmd(cmds.ProcNodeTxAntMode(cmds.NODE_UNICAST, cmds.RSVD_TX_ANT_MODE, node))
-                ret_val.append(val)
-        else:
-            val = self.send_cmd(cmds.ProcNodeTxAntMode(cmds.NODE_UNICAST, cmds.RSVD_TX_ANT_MODE, node_list))
-            ret_val.append(val)
+        self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, ant_mode, 'antenna mode', 
+                                        device_list, curr_assoc, new_assoc)
 
-        return ret_val
+
+    def node_get_tx_ant_mode_unicast(self, device_list=None, new_assoc=False):
+        """Gets the unicast transmit antenna mode of the node.
+
+        Attributes:
+            device_list -- List of 802.11 devices for which to get the Tx unicast rate
+            new_assoc   -- Get the Tx unicast rate for all new associations 
+        
+        Returns:
+            A list of antenna modes
+
+        If both new_assoc and device_list are specified, the return list will always have 
+        the Tx unicast antenna mode for all new associations as the first item in the list.
+        """
+        return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', device_list, new_assoc)
 
 
     def node_set_tx_ant_mode_multicast(self, ant_mode):
         """Sets the multicast transmit antenna mode for a node and returns the 
         antenna mode that was set.
         """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_MULTICAST, ant_mode))
+        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_WRITE, cmds.NODE_MULTICAST, ant_mode))
 
 
     def node_get_tx_ant_mode_multicast(self):
-        """Gets the current multicast transmit antenna mode for a node."""
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_MULTICAST, cmds.RSVD_TX_ANT_MODE))
+        """Gets the current multicast transmit antenna mode for a node.
+        
+        Returns:
+          A list of antenna modes:  [<multicast management tx antenna mode>,
+                                     <multicast data tx antenna mode>]
+        
+        """
+        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_READ, cmds.NODE_MULTICAST))
 
 
     def node_set_rx_ant_mode(self, ant_mode):
         """Sets the receive antenna mode for a node and returns the 
         antenna mode that was set.
         """
-        return self.send_cmd(cmds.NodeProcRxAntMode(ant_mode))
+        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.NODE_WRITE, ant_mode))
 
 
     def node_get_rx_ant_mode(self):
         """Gets the current receive antenna mode for a node."""
-        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.RSVD_RX_ANT_MODE))
+        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.NODE_READ))
 
 
     def node_set_tx_power(self, power):
         """Sets the transmit power of the node and returns the power that was set."""
-        return self.send_cmd(cmds.NodeProcTxPower(power))
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.NODE_WRITE, power))
 
 
     def node_get_tx_power(self):
-        """Gets the current transmit power of the node."""
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.RSVD_TX_POWER))
+        """Gets the current transmit power of the node.
+        
+        Returns:
+          A list of tx powers:  [<unicast management tx power>,
+                                 <unicast data tx power>,
+                                 <multicast management tx power>,
+                                 <multicast data tx power>]
+        """
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.NODE_READ, cmds.NODE_RSVD))
 
+
+    def _node_set_tx_param_unicast(self, cmd, param, param_name, 
+                                         device_list=None, curr_assoc=False, new_assoc=False):
+        """Sets the unicast transmit param of the node.
+        
+        One of device_list, curr_assoc or new_assoc must be set.  The device_list
+        and curr_assoc are mutually exclusive with curr_assoc having precedence
+        (ie if curr_assoc is True, then device_list will be ignored).
+
+        Attributes:
+            cmd         -- WnCmd to be used to set param
+            param       -- Parameter to be set
+            param_name  -- Name of parameter for error messages
+            device_list -- List of 802.11 devices for which to set the Tx unicast param
+            curr_assoc  -- All current assocations will have Tx unicast param set
+            new_assoc   -- All new associations will have Tx unicast param set
+        """
+        if (device_list is None) and (not curr_assoc) and (not new_assoc):
+            msg  = "\nCannot set the unicast transmit {0}:\n".format(param_name)
+            msg += "    Must specify either a list of devices, all current associations,\n"
+            msg += "    or all new assocations on which to set the {0}.".format(param_name)
+            raise ValueError(msg)
+        
+        if new_assoc:
+            self.send_cmd(cmd(cmds.NODE_WRITE_DEFAULT, cmds.NODE_UNICAST, param))
+            
+        if curr_assoc:
+            self.send_cmd(cmd(cmds.NODE_WRITE, cmds.NODE_UNICAST, param))
+        else:
+            if (device_list is not None):
+                try:
+                    for device in device_list:
+                        self.send_cmd(cmd(cmds.NODE_WRITE, cmds.NODE_UNICAST, param, device))
+                except TypeError:
+                    self.send_cmd(cmd(cmds.NODE_WRITE, cmds.NODE_UNICAST, param, device_list))
+
+
+    def _node_get_tx_param_unicast(self, cmd, param_name, device_list=None, new_assoc=False):
+        """Gets the unicast transmit param of the node.
+
+        Attributes:
+            cmd         -- WnCmd to be used to get param
+            param_name  -- Name of parameter for error messages
+            device_list -- List of 802.11 devices for which to get the Tx unicast rate
+            new_assoc   -- Get the Tx unicast rate for all new associations 
+        
+        Returns:
+            A list of params
+
+        If both new_assoc and device_list are specified, the return list will always have 
+        the param for all new associations as the first item in the list.
+        """
+        ret_val = []
+
+        if (device_list is None) and (not new_assoc):
+            msg  = "\nCannot get the unicast transmit {0}:\n".format(param_name)
+            msg += "    Must specify either a list of devices or all new associations\n"
+            msg += "    for which to get the {0}.".format(param_name)
+            raise ValueError(msg)
+        
+        if new_assoc:
+            val = self.send_cmd(cmd(cmds.NODE_READ_DEFAULT, cmds.NODE_UNICAST))
+            ret_val.append(val)
+            
+        if (device_list is not None):
+            try:
+                for device in device_list:
+                    val = self.send_cmd(cmd(cmds.NODE_READ, cmds.NODE_UNICAST, device=device))
+                    ret_val.append(val)
+            except TypeError:
+                val = self.send_cmd(cmd(cmds.NODE_READ, cmds.NODE_UNICAST, device=device_list))
+                ret_val.append(val)        
+
+        return ret_val
 
 
     #--------------------------------------------

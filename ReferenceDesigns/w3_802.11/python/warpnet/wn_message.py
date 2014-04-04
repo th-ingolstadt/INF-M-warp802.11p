@@ -416,6 +416,30 @@ class Resp(CmdRespMessage):
         """Return the response arguments."""
         return self.args
 
+
+    def resp_is_valid(self, num_args, status_errors=None, name=None):
+        if len(self.args) != num_args:
+            print("Invalid response:\n{0}".format(self))
+            return False
+
+        if status_errors is not None:
+            if self.args:
+                if (self.args[0] in status_errors):
+                    if name is not None:
+                        print("STATUS ERROR: {0} - received 0x{1:x}".format(name, self.args[0]))
+                    else:
+                        print("STATUS ERROR: Received 0x{1:x}".format(self.args[0]))                        
+                    return False
+            else:
+                if name is not None:
+                    print("STATUS ERROR: {0} - no status in response".format(name))
+                else:
+                    print("STATUS ERROR: No status in response")                    
+                return False
+
+        return True
+                
+
     def __str__(self):
         """Pretty print the WnResponse"""
         msg = ""

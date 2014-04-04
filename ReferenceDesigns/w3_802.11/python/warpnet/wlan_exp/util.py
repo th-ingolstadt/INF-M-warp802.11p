@@ -47,7 +47,6 @@ __all__ = ['tx_rate_to_str', 'tx_rate_index_to_str',
 #-----------------------------------------------------------------------------
 # WLAN Exp Rate definitions
 #-----------------------------------------------------------------------------
-
 wlan_rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2', 'NDBPS': 24},
               {'index' :  2, 'rate' :  9.0, 'rate_str' : 'BPSK 3/4', 'NDBPS': 36},
               {'index' :  3, 'rate' : 12.0, 'rate_str' : 'QPSK 1/2', 'NDBPS': 48},
@@ -57,36 +56,94 @@ wlan_rates = [{'index' :  1, 'rate' :  6.0, 'rate_str' : 'BPSK 1/2', 'NDBPS': 24
               {'index' :  7, 'rate' : 48.0, 'rate_str' : '64-QAM 2/3', 'NDBPS': 192},
               {'index' :  8, 'rate' : 54.0, 'rate_str' : '64-QAM 3/4', 'NDBPS': 216}]
 
+def find_tx_rate_by_index(index):
+    """Return the wlan_rates entry for the given index."""
+    return _find_param_by_index(index, wlan_rates, 'tx rate')
 
-def tx_rate_to_str(tx_rate):
-    """Convert a TX rate from the 'rates' list to a string."""
+# End def
+
+
+def tx_rate_to_str(rate):
+    """Convert a wlan_rates entry to a string."""
     msg = ""
-    if type(tx_rate) is dict:
-        msg += "{0:2.1f} Mbps ({1})".format(tx_rate['rate'], tx_rate['rate_str'])
+    if type(rate) is dict:
+        msg += "{0:2.1f} Mbps ({1})".format(rate['rate'], rate['rate_str'])
     else:
-        print("Invalid TX rate type.  Needed dict, provided {0}.".format(type(tx_rate)))
+        print("Invalid Tx rate type.  Needed dict, provided {0}.".format(type(rate)))
     return msg
 
 # End def
 
 
-def tx_rate_index_to_str(tx_rate_index):
-    """Convert a TX rate index to a string."""
-    tx_rate = None
-    msg     = ""
+def tx_rate_index_to_str(index):
+    """Convert a wlan_rates entry index to a string."""
+    rate = find_tx_rate_by_index(index)
+    return tx_rate_to_str(rate)
 
-    if type(tx_rate_index) is int:
-        for rate in wlan_rates:
-            if (rate['index'] == tx_rate_index):
-                tx_rate = rate
-                break
+# End def
 
-    if not tx_rate is None:
-        msg += "{0:2.1f} Mbps ({1})".format(tx_rate['rate'], tx_rate['rate_str'])
+
+#-----------------------------------------------------------------------------
+# WLAN Exp Antenna Mode definitions
+#-----------------------------------------------------------------------------
+wlan_rx_ant_mode = [{'index' :  0x01, 'ant_mode_str' : 'Rx SISO Antenna A'},
+                    {'index' :  0x02, 'ant_mode_str' : 'Rx SISO Antenna B'},
+                    {'index' :  0x05, 'ant_mode_str' : 'Rx SISO Selection Diversity 2 Antennas'}]
+                    
+wlan_tx_ant_mode = [{'index' :  0x10, 'ant_mode_str' : 'Tx SISO Antenna A'},
+                    {'index' :  0x20, 'ant_mode_str' : 'Tx SISO Antenna B'}]
+
+
+def find_rx_ant_mode_by_index(index):
+    """Return the wlan_rx_ant_mode entry for the given index."""
+    return _find_param_by_index(index, wlan_rx_ant_mode, 'rx antenna mode')
+
+# End def
+
+
+def rx_ant_mode_to_str(ant_mode):
+    """Convert a wlan_rx_ant_mode entry to a string."""
+    msg = ""
+    if type(ant_mode) is dict:
+        msg += "{0}".format(ant_mode['ant_mode_str'])
     else:
-        print("Unknown tx rate index: {0}".format(tx_rate_index))
-
+        print("Invalid Rx antenna mode type.  Needed dict, provided {0}.".format(type(ant_mode)))
     return msg
+
+# End def
+
+
+def rx_ant_mode_index_to_str(index):
+    """Convert a wlan_rx_ant_mode entry index to a string."""
+    ant_mode = find_rx_ant_mode_by_index(index)
+    return rx_ant_mode_to_str(ant_mode)
+
+# End def
+
+
+def find_tx_ant_mode_by_index(index):
+    """Return the wlan_tx_ant_mode entry for the given index."""
+    return _find_param_by_index(index, wlan_tx_ant_mode, 'tx antenna mode')
+
+# End def
+
+
+def tx_ant_mode_to_str(ant_mode):
+    """Convert a wlan_tx_ant_mode entry to a string."""
+    msg = ""
+    if type(ant_mode) is dict:
+        msg += "{0}".format(ant_mode['ant_mode_str'])
+    else:
+        print("Invalid Tx antenna mode type.  Needed dict, provided {0}.".format(type(ant_mode)))
+    return msg
+
+# End def
+
+
+def tx_ant_mode_index_to_str(index):
+    """Convert a wlan_tx_ant_mode entry index to a string."""
+    ant_mode = find_tx_ant_mode_by_index(index)
+    return tx_ant_mode_to_str(ant_mode)
 
 # End def
 
@@ -169,7 +226,7 @@ def broadcast_node_set_time(time, host_config=None, time_id=None):
         time_id      -- Optional value to identify broadcast time commands across nodes
     """
     import warpnet.wlan_exp.cmds as cmds
-    _broadcast_node_time(time_cmd=cmds.TIME_WRITE, host_config=host_config, time=time, time_id=time_id)
+    _broadcast_node_time(time_cmd=cmds.NODE_WRITE, host_config=host_config, time=time, time_id=time_id)
 
 # End def
 
@@ -496,7 +553,7 @@ def _broadcast_node_time(time_cmd, host_config=None, time=0.0, time_id=None):
         transport_bcast.send(cmd.serialize(), 'message')
 
         msg = ""
-        if (time_cmd == cmds.TIME_WRITE):
+        if (time_cmd == cmds.NODE_WRITE):
             msg += "Initializing the time of all nodes on "
             msg += "{0} to: {1}".format(util._get_ip_address_subnet(interface), node_time)
         elif (time_cmd == cmds.TIME_ADD_TO_LOG):
@@ -531,6 +588,25 @@ def _broadcast_node_cmd_helper(cmd, host_config=None):
         transport_bcast.wn_open(tx_buf_size, rx_buf_size)
 
         transport_bcast.send(cmd.serialize(), 'message')
+
+# End def
+
+
+
+def _find_param_by_index(index, param_list, param_name):
+    """Return the entry for the given index."""
+    ret_val = None
+
+    if type(index) is int:
+        for param in param_list:
+            if (param['index'] == index):
+                ret_val = param
+                break
+
+    if ret_val is None:
+        print("Unknown {0} index: {1}".format(param_name, index))
+    
+    return ret_val
 
 # End def
 
