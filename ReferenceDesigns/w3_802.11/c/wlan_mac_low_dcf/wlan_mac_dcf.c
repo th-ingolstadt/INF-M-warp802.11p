@@ -331,6 +331,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		}
 
 	} //END else (FCS bad)
+
 	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
 	wlan_mac_dcf_hw_unblock_rx_phy();
 
@@ -372,6 +373,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//TODO: tx ant_mode will eventually be a part of wlan_mac_MPDU_tx_params_g()
 		wlan_tx_config_ant_mode(mpdu_info->params.phy.antenna_mode);
 //		wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
 
@@ -381,14 +383,12 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			//(re)transmissions, an explicit backoff will have been started at the end of
 			//the previous iteration of this loop.
 			n_slots = rand_num_slots();
-			wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
+			wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
 		} else {
-			wlan_mac_MPDU_tx_params_g(pkt_buf, 0, req_timeout,wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
+			wlan_mac_MPDU_tx_params_g(pkt_buf, 0, 		req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
 		}
 
-
-
-		//Submit the MPDU for transmission
+		//Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
 		wlan_mac_MPDU_tx_start(1);
 		wlan_mac_MPDU_tx_start(0);
 
