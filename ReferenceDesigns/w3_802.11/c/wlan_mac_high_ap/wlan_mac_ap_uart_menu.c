@@ -39,7 +39,11 @@
 #include "wlan_mac_schedule.h"
 
 
-#ifdef WLAN_USE_UART_MENU
+#ifndef WLAN_USE_UART_MENU
+
+void uart_rx(u8 rxByte){ };
+
+#else
 
 static u8 uart_mode = UART_MODE_MAIN;
 extern tx_params default_unicast_data_tx_params;
