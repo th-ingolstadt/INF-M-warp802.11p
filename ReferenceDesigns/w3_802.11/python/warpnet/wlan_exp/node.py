@@ -187,7 +187,7 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.LogGetEvents(size, offset), max_req_size=max_req_size)
 
 
-    def log_get_all_new(self, log_tail_pad=500, max_req_size=None):
+    def log_get_all_new(self, log_tail_pad=500, max_req_size=2**23):
         """Get all "new" entries in the log.
 
         Attributes:
