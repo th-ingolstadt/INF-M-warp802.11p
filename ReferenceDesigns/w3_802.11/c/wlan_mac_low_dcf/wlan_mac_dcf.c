@@ -258,15 +258,15 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 		rx_filter = wlan_mac_low_get_current_rx_filter();
 
-		switch(rx_filter & RX_FILTER_ADDR_MASK){
+		switch(rx_filter & RX_FILTER_HDR_NOCHANGE){
 			default:
-			case RX_FILTER_ADDR_STANDARD:
+			case RX_FILTER_HDR_ADDR_MATCH_MPDU:
 				pass_up = (unicast_to_me || to_multicast) && !WLAN_IS_CTRL_FRAME(rx_header);
 			break;
-			case RX_FILTER_ADDR_ALL_MPDU:
+			case RX_FILTER_HDR_ALL_MPDU:
 				pass_up = !WLAN_IS_CTRL_FRAME(rx_header);
 			break;
-			case RX_FILTER_ADDR_ALL:
+			case RX_FILTER_HDR_ALL:
 				pass_up = 1;
 			break;
 		}
