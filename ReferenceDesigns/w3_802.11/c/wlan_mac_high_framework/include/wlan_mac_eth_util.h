@@ -133,7 +133,7 @@ int eth_bd_total_size();
 int wlan_eth_dma_init();
 int wlan_mpdu_eth_send(void* mpdu, u16 length);
 int wlan_eth_dma_send(u8* pkt_ptr, u32 length);
-inline void wlan_poll_eth();
+inline void wlan_poll_eth_rx();
 int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len);
 void wlan_eth_dma_update();
 int wlan_eth_setup_interrupt(XIntc* intc);

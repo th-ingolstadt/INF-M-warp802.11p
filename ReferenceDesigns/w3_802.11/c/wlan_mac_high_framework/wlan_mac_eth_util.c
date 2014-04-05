@@ -134,7 +134,7 @@ void RxIntrHandler(void *Callback){
 	XAxiDma_BdRingAckIrq(RxRingPtr, IrqStatus);
 
 	if ((IrqStatus & (XAXIDMA_IRQ_DELAY_MASK | XAXIDMA_IRQ_IOC_MASK))) {
-		wlan_poll_eth();
+		wlan_poll_eth_rx();
 	}
 
 	XIntc_Start(Intc_ptr, XIN_REAL_MODE);
@@ -555,7 +555,21 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	//}
 }
 
-void wlan_poll_eth() {
+/**
+ * @brief Process any Ethernet packets that have been received by the ETH DMA
+ *
+ * This function checks for any ETH DMA buffer descriptors that have been used by the DMA, indicating
+ * new Ethernet receptions. For each occupied buffer descriptor this function encapsulates the Ethernet packet
+ * and calls the MAC's callback to either enqueue (for eventual wireless Tx) or reject the packet.
+ *
+ * Occupied ETH DMA buffer descriptors are freed and resubmitted to hardware for use by future Ethernet receptions
+ *
+ * This function requires the MAC implement a function (assigned to the eth_rx_callback function pointer) that
+ * returns 0 or 1, indicating the MAC's handling of the packet:
+ *  0: Packet was not enqueued and will not be processed by wireless MAC; framework should immediately discard
+ *  1: Packet was enqueued for eventual wireless transmission; MAC will check in occupied queue entry when finished
+*/
+inline void wlan_poll_eth_rx() {
 	XAxiDma_BdRing *rxRing_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
 	XAxiDma_Bd *first_bd_ptr;
@@ -576,75 +590,115 @@ void wlan_poll_eth() {
 
 	static u32 max_bd_count = 0;
 
+	//Retrieve the ETH DMA Rx ring
 	rxRing_ptr = XAxiDma_GetRxRing(&ETH_A_DMA_Instance);
 
-	//Check if any Rx BDs have been executed
-	//TODO: process XAXIDMA_ALL_BDS instead of 1 at a time
-	//bd_count = XAxiDma_BdRingFromHw(rxRing_ptr, 1, &cur_bd_ptr);
+	//Lookup how many ETH Rx packets have been processed by the DMA
 	bd_count = XAxiDma_BdRingFromHw(rxRing_ptr, XAXIDMA_ALL_BDS, &first_bd_ptr);
 	cur_bd_ptr = first_bd_ptr;
-
-	if(bd_count > max_bd_count){
-		max_bd_count = bd_count;
-		//xil_printf("max_bd_count = %d\n",max_bd_count);
-	}
 
 	if(bd_count == 0) {
 		//No Rx BDs have been processed - no new Eth receptions waiting
 		return;
 	}
 
-	for(i=0;i<bd_count;i++){
+	//Update local stats variable (used to gauge high-water mark for ETH DMA activity)
+	if(bd_count > max_bd_count){
+		max_bd_count = bd_count;
+		//xil_printf("max_bd_count = %d\n",max_bd_count);
+	}
+
+	//At least one new ETH Rx packet is ready for processing
+	for(i=0; i<bd_count; i++) {
 		packet_is_queued = 0;
+
 		//A packet has been received and transferred by DMA
+		// We use the DMA "ID" field to hold a pointer to the Tx queue entry containing the packet contents
 		tx_queue_entry = (dl_entry*)XAxiDma_BdGetId(cur_bd_ptr);
 
-		//xil_printf("DMA has filled in packet_bd at 0x%08x\n", tx_queue);
-
+		//Lookup length and data pointers from the DMA metadata
 		eth_rx_len = XAxiDma_BdGetActualLength(cur_bd_ptr, rxRing_ptr->MaxTransferLen);
 		eth_rx_buf = XAxiDma_BdGetBufAddr(cur_bd_ptr);
 
 		//After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
-
 		mpdu_start_ptr = (void*)((tx_queue_buffer*)(tx_queue_entry->data))->frame;
 		eth_start_ptr = (u8*)eth_rx_buf;
 
+		//Create an empty DL list to hold the queue entry
+		// This wrapping is required to enqueue the packet (enqueue == merge DL lists)
 		dl_list_init(&tx_queue_list);
 		dl_entry_insertEnd(&tx_queue_list, tx_queue_entry);
 
+		//Encapsulate the Ethernet packet
+		// See the 802.11 Ref Design user guide for details on the encapsulation process
 		mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 
-		if(mpdu_tx_len>0){
+		if(mpdu_tx_len == 0) {
+			//Encapsulation failed for some reason (probably unknown ETHERTYPE value)
+			// Don't pass the invalid frame to the MAC - just cleanup and punt
+			packet_is_queued = 0;
+		} else {
+			//Call the MAC's callback to process the packet
+			// MAC will either enqueue the packet for eventual transmission or reject the packet
 			packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
 		}
 
+		//If the packet was not successfully enqueued, discard it and return its queue entry to the free pool
+		// For packets that are successfully enqueued, this cleanup is part of the post-wireless-Tx handler
+		if(packet_is_queued == 0) {
+			//Either the packet was invalid, or the MAC code failed to enqueue this packet
+			// The MAC will fail if the appropriate queue was full or the Ethernet addresses were not recognized.
 
-		if(packet_is_queued == 0){
-			//xil_printf("   ...checking in\n");
+			//Return the occupied queue entry to the free pool
 			queue_checkin(&tx_queue_list);
 		}
 
-		//TODO: Option A: We free this single BD and run the routine to checkout as many queues as we can and hook them up to BDs
-		//Results: pretty good TCP performance
-		//Free this bd
+		//Free the ETH DMA buffer descriptor
 		status = XAxiDma_BdRingFree(rxRing_ptr, 1, cur_bd_ptr);
 		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree of Rx BD! Err = %d\n", status); return;}
+
+		//Call helper function to reassign just-freed DMA buffer descriptor to a new queue entry
 		wlan_eth_dma_update();
 
 		//Update cur_bd_ptr to the next BD in the chain for the next iteration
 		cur_bd_ptr = XAxiDma_BdRingNext(rxRing_ptr, cur_bd_ptr);
-
 	}
-	//TODO: Option B: We free all BDs at once and run the routine to checkout as many queues as we can and hook them up to BDs
-	//Results: pretty lackluster TCP performance. needs further investigation
-	//Free this bd
-	//status = XAxiDma_BdRingFree(rxRing_ptr, bd_count, first_bd_ptr);
-	//if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree of Rx BD! Err = %d\n", status); return;}
-	//wlan_eth_dma_update();
 
 	return;
 }
 
+/**
+ * @brief Encapsulates Ethernet packets for wireless transmission
+ *
+ * This function implements the encapsulation process for 802.11 transmission of Ethernet packets
+ *
+ * The encapsulation process depends on the node's role:
+ * AP:
+ *  -Copy original packet's source and destination addresses to temporary space
+ *  -Add an LLC header (8 bytes) in front of the Ethernet payload
+ *   -LLC header includes original packet's ETHER_TYPE field; only IPV4 and ARP are currently supported
+ *
+ * STA:
+ *  -Copy original packet's source and destination addresses to temporary space
+ *  -Add an LLC header (8 bytes) in front of the Ethernet payload
+ *   -LLC header includes original packet's ETHER_TYPE field; only IPV4 and ARP are currently supported
+ *  -If packet is ARP Request, overwrite ARP header's source address with STA wireless MAC address
+ *  -If packet is UDP packet containing a DHCP request
+ *    -Assert DHCP header's BROADCAST flag
+ *    -Disable the UDP packet checksum (otherwise it would be invliad after modifying the BROADCAST flag)
+ *
+ * @param u8* mpdu_start_ptr
+ *  - Pointer to the first byte of the MPDU payload (first byte of the eventual MAC header)
+ * @param u8* eth_dest
+ *  - Pointer to 6 bytes of free memory; will be overwritten with Ethernet packet's destination address
+ * @param u8* eth_src
+ *  - Pointer to 6 bytes of free memory; will be overwritten with Ethernet packet's source address
+ * @param u8* eth_start_ptr
+ *  - Pointer to first byte of received Ethernet packet's header
+ * @param u32 eth_rx_len
+ *  - Length (in bytes) of the packet payload
+ * @return 0 for if packet type is unrecognized (failed encapsulation), otherwise returns length of encapsulated packet (in bytes)
+*/
 int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len){
 	u8* eth_mid_ptr;
 	u8 continue_loop;
@@ -680,17 +734,6 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 				case ETH_TYPE_ARP:
 					llc_hdr->type = LLC_TYPE_ARP;
 					arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
-					///DEBUG FIXME
-			//		xil_printf("arp->eth_dst = 0x%02x-0x%02x-0x%02x-0x%02x-0x%02x-0x%02x\n", arp->eth_dst[0],arp->eth_dst[1],arp->eth_dst[2],arp->eth_dst[3],arp->eth_dst[4], arp->eth_dst[5]);
-			//		xil_printf("arp->eth_src = 0x%02x-0x%02x-0x%02x-0x%02x-0x%02x-0x%02x\n", arp->eth_src[0],arp->eth_src[1],arp->eth_src[2],arp->eth_src[3],arp->eth_src[4], arp->eth_src[5]);
-			//		xil_printf("arp->hlen = %d\n", arp->hlen);
-			//		xil_printf("arp->htype = %d\n", arp->htype);
-			//		xil_printf("arp->ip_dst = %d.%d.%d.%d\n", arp->ip_dst[0], arp->ip_dst[1], arp->ip_dst[2], arp->ip_dst[3]);
-			//		xil_printf("arp->ip_src = %d.%d.%d.%d\n", arp->ip_src[0], arp->ip_src[1], arp->ip_src[2], arp->ip_src[3]);
-			//		xil_printf("arp->oper = %d\n", arp->oper);
-			//		xil_printf("arp->plen = %d\n", arp->plen);
-			//		xil_printf("arp->ptype = %d\n", arp->ptype);
-					///DEBUG FIXME
 				break;
 				case ETH_TYPE_IP:
 					llc_hdr->type = LLC_TYPE_IP;
@@ -705,34 +748,27 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 
 		case ENCAP_MODE_STA:
 
-			//Save this ethernet src address for d
+			//Save this ethernet src address
 			memcpy(eth_sta_mac_addr, eth_src, 6);
 			memcpy(eth_src, hw_info.hw_addr_wlan, 6);
 
 			switch(eth_hdr->type) {
 				case ETH_TYPE_ARP:
-					arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
-
-
-
-
-					//Here we hijack ARP messages and overwrite their source MAC address field with
-					//the station's wireless MAC address.
-					memcpy(arp->eth_src, hw_info.hw_addr_wlan, 6);
-
 					llc_hdr->type = LLC_TYPE_ARP;
-					//packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
 
+					//Overwrite ARP request source MAC address field with the station's wireless MAC address.
+					arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+					memcpy(arp->eth_src, hw_info.hw_addr_wlan, 6);
 
 				break;
 				case ETH_TYPE_IP:
 
 					llc_hdr->type = LLC_TYPE_IP;
-					ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
 
+					//Check if IPv4 packet is a DHCP Discover in a UDP frame
+					ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
 					if(ip_hdr->prot == IPV4_PROT_UDP){
 						udp = (udp_header*)((void*)ip_hdr + 4*((u8)(ip_hdr->ver_ihl) & 0xF));
-						udp->checksum = 0; //Disable the checksum since we are about to mess with the bytes in the packet
 
 						if(Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPC || Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPS){
 							//This is a DHCP Discover packet, which contains the source hardware address
@@ -740,16 +776,25 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 							//For STA encapsulation, we need to overwrite this address with the MAC addr
 							//of the wireless station.
 
+							//Disable the checksum since we are about to mess with the bytes in the packet
+							udp->checksum = 0;
+
 							dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
 
 							if(Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE){
 								eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
 
+								//Assert the DHCP Discover's BROADCAST flag; this signals to any DHCP severs that their responses
+								// should be sent to the broadcast address. This is necessary for the DHCP response to propagate back
+								// through the wired-wireless portal at the AP, through the STA Rx MAC filters, back out the
+								// wireless-wired portal at the STA, and finally into the DHCP listener at the wired device
 								dhcp->flags = Xil_Htons(DHCP_BOOTP_FLAGS_BROADCAST);
 
 								//Tagged DHCP Options
 								continue_loop = 1;
 
+								//FIXME: Why does this loop exist? It doesn't affect any state. It looks like it mucked
+								// with addresses in old code, but maybe this isn't required anymore?
 								while(continue_loop){
 									switch(eth_mid_ptr[0]){
 
@@ -774,22 +819,22 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 										break;
 									}
 									eth_mid_ptr += (2+eth_mid_ptr[1]);
-								}
-							}
-						}
-					}
-
-
+								}//END loop over DHCP tags
+							}//END is DHCP valid
+						}//END is DHCP
+					}//END is UDP
 				break;
 				default:
 					//Unknown/unsupported EtherType; don't process the Eth frame
 					return 0;
 				break;
-		}
+		}//END switch(pkt type)
 
 		break;
 
-	}
+	}//END switch(encap mode)
+
+	//If we got this far, the packet was successfully encapsulated; return the post-encapsulation length
 	return mpdu_tx_len;
 }
 
