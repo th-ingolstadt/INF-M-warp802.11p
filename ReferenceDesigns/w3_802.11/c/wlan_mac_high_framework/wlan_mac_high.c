@@ -1739,7 +1739,7 @@ inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 				case LLC_TYPE_IP:
 					return PKT_TYPE_DATA_ENCAP_ETH;
 				break;
-				case LLC_TYPE_CUSTOM:
+				case LLC_TYPE_WLAN_LTG:
 					return PKT_TYPE_DATA_ENCAP_LTG;
 				break;
 				default:

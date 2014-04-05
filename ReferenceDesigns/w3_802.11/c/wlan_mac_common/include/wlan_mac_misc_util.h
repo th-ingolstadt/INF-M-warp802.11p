@@ -93,8 +93,8 @@ typedef struct{
 #define TX_MPDU_STATE_TX_PENDING	1
 #define TX_MPDU_STATE_READY			2
 
-#define TX_MPDU_STATE_VERBOSE_SUCCESS	0
-#define TX_MPDU_STATE_VERBOSE_FAILURE	1
+#define TX_MPDU_RESULT_SUCCESS	0
+#define TX_MPDU_RESULT_FAILURE	1
 
 #define TX_MPDU_FLAGS_REQ_TO				0x01
 #define TX_MPDU_FLAGS_FILL_TIMESTAMP		0x02
@@ -161,15 +161,15 @@ typedef struct{
 #define TX_ANTMODE_SISO_ANTC	0x30
 #define TX_ANTMODE_SISO_ANTD	0x40
 
-#define RX_FILTER_FCS_GOOD				0x1000
-#define RX_FILTER_FCS_ALL				0x2000
+#define RX_FILTER_FCS_GOOD				0x1000  //Pass only packets with good checksum result
+#define RX_FILTER_FCS_ALL				0x2000  //Pass packets with any checksum result
 #define RX_FILTER_FCS_MASK				0xF000
 #define RX_FILTER_FCS_NOCHANGE			RX_FILTER_FCS_MASK
 
-#define RX_FILTER_ADDR_STANDARD 		0x0001
-#define RX_FILTER_ADDR_ALL_MPDU 		0x0002
-#define RX_FILTER_ADDR_ALL				0x0003
-#define RX_FILTER_ADDR_MASK				0x0FFF
-#define RX_FILTER_ADDR_NOCHANGE			RX_FILTER_ADDR_MASK
+#define RX_FILTER_HDR_ADDR_MATCH_MPDU 	0x0001	//Pass any unicast-to-me or multicast data or management packet
+#define RX_FILTER_HDR_ALL_MPDU 			0x0002  //Pass any data or management packet (no address filter)
+#define RX_FILTER_HDR_ALL				0x0003  //Pass any packet (no type or address filters)
+#define RX_FILTER_HDR_MASK				0x0FFF
+#define RX_FILTER_HDR_NOCHANGE			RX_FILTER_HDR_MASK
 
 #endif /* WLAN_MAC_MISC_UTIL_H_ */

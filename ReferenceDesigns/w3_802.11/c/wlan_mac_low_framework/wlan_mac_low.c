@@ -66,7 +66,7 @@ int wlan_mac_low_init(u32 type){
 	mac_param_ctrl_tx_pow = 10;
 	cpu_low_status = 0;
 
-	mac_param_rx_filter = RX_FILTER_FCS_ALL | RX_FILTER_ADDR_STANDARD;
+	mac_param_rx_filter = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
 
 	frame_rx_callback	= (function_ptr_t)nullCallback;
 	frame_tx_callback	= (function_ptr_t)nullCallback;
@@ -274,10 +274,10 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				} else {
 					temp2 |= (temp1 & RX_FILTER_FCS_MASK);
 				}
-				if((temp1 & RX_FILTER_ADDR_MASK) == RX_FILTER_ADDR_NOCHANGE){
-					temp2 |= (mac_param_rx_filter & RX_FILTER_ADDR_MASK);
+				if((temp1 & RX_FILTER_HDR_NOCHANGE) == RX_FILTER_HDR_NOCHANGE){
+					temp2 |= (mac_param_rx_filter & RX_FILTER_HDR_NOCHANGE);
 				} else {
-					temp2 |= (temp1 & RX_FILTER_ADDR_MASK);
+					temp2 |= (temp1 & RX_FILTER_HDR_NOCHANGE);
 				}
 
 				mac_param_rx_filter = temp2;
@@ -429,9 +429,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
 					if(status == 0){
-						tx_mpdu->tx_result = TX_MPDU_STATE_VERBOSE_SUCCESS;
+						tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
 					} else {
-						tx_mpdu->tx_result = TX_MPDU_STATE_VERBOSE_FAILURE;
+						tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
 					}
 
 					//Revert the state of the packet buffer and return control to CPU High

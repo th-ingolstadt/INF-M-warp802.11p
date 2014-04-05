@@ -52,6 +52,7 @@ int w3_node_init() {
 
 	//Initialize the AD9512 clock buffers (RF reference and sampling clocks)
 	status = clk_init(CLK_BASEADDR, 2);
+
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in clk_init (%d)\n", status);
 		ret = XST_FAILURE;
@@ -79,9 +80,11 @@ int w3_node_init() {
 
 	//Initialize the radio_controller core and MAX2829 transceivers for on-board RF interfaces
 	status = radio_controller_init(RC_BASEADDR, RC_ALL_RF, 1, 1);
+
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
-		ret = XST_FAILURE;
+		//FIXME: Allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
+		//ret = XST_FAILURE;
 	}
 
 	//Initialize the EEPROM read/write core
@@ -362,6 +365,7 @@ void wlan_radio_init() {
 
 	//Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
 	clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+
 	ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
 
 

@@ -107,7 +107,7 @@ typedef struct{
 #define LLC_CNTRL_UNNUMBERED			0x03
 #define LLC_TYPE_ARP					0x0608
 #define LLC_TYPE_IP						0x0008
-#define LLC_TYPE_CUSTOM					0x9090
+#define LLC_TYPE_WLAN_LTG				0x9090 //Non-standard type for LTG packets
 
 
 #define ETH_A_DMA_DEV_ID	XPAR_MB_HIGH_ETH_DMA_DEVICE_ID
