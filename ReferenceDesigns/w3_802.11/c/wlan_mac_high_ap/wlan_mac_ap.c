@@ -687,7 +687,25 @@ void ltg_event(u32 id, void* callback_arg){
 }
 
 
-
+/**
+ * @brief Callback to handle insertion of an Ethernet reception into the corresponding wireless Tx queue
+ *
+ * This function is called when a new Ethernet packet is received that must be transmitted via the wireless interface.
+ * The packet must be encapsulated before it is passed to this function. Ethernet encapsulation is impleted in the mac_high framework.
+ *
+ * The tx_queue_list argument is a DL list, but must contain exactly one queue entry which contains the encapsulated packet
+ * A list container is used here to ease merging of the list with the target queue.
+ *
+ * @param dl_list* tx_queue_list
+ *  - A DL list containing a single queue element containing the packet to transmit
+ * @param u8* eth_dest
+ *  - 6-byte destination address from original Ethernet packet
+ * @param u8* eth_src
+ *  - 6-byte source address from original Ethernet packet
+ * @param u16 tx_length
+ *  - Length (in bytes) of the packet payload
+ * @return 0 for successful enqueuing of the packet, 1 otherwise
+*/
 int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 	//Receives the pre-encapsulated Ethernet frames
 	station_info* station;
