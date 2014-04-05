@@ -386,7 +386,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_high_event_log_entry)->mac_payload), tx_80211_header, total_payload_len);
 		bzero(tx_high_event_log_entry->padding , sizeof(tx_high_event_log_entry->padding));
 		tx_high_event_log_entry->unique_seq				 = tx_mpdu->unique_seq;
-		tx_high_event_log_entry->result                   = tx_mpdu->state_verbose;
+		tx_high_event_log_entry->result                   = tx_mpdu->tx_result;
 		tx_high_event_log_entry->power                    = tx_mpdu->params.phy.power;
 		tx_high_event_log_entry->length                   = tx_mpdu->length;
 		tx_high_event_log_entry->rate                     = tx_mpdu->params.phy.rate;
@@ -422,7 +422,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 				(frame_stats->tx_num_packets_low) += (tx_mpdu->num_tx);
 
-				if((tx_mpdu->state_verbose) == TX_MPDU_STATE_VERBOSE_SUCCESS){
+				if((tx_mpdu->tx_result) == TX_MPDU_STATE_VERBOSE_SUCCESS){
 					(frame_stats->tx_num_packets_success)++;
 					(frame_stats->tx_num_bytes_success) += tx_mpdu->length;
 				}
