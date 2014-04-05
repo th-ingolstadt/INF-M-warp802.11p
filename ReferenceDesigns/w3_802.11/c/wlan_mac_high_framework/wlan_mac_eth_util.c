@@ -838,8 +838,25 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 	return mpdu_tx_len;
 }
 
-void wlan_eth_dma_update(){
-	//Used to submit new BDs to the DMA hardware if space is available
+/**
+ * @brief Recycles any free-but-unassigned ETH DMA buffer descriptors
+ *
+ * This function checks if any ETH DMA Rx buffer descriptors have been freed by the packet handling
+ * code above. For each free BD, this function attempts to checkout a Tx queue entry and assign its
+ * payload to the BD. If successful, the BD is then submitted to the DMA hardware for use by future
+ * Ethernet receptions. If unsuccessful the BD is left free, to be recycled on the next iteration of
+ * this function.
+ *
+ * The total number of ETH Rx buffer descriptors is set at boot during the DMA init. The same number
+ * of Tx queue entries are effectively reserved by the MAC in its queue size calculations. This function
+ * can handle the case of more ETH Rx BDs than free Tx queue entries, though this should never happen.
+ *
+ * This function should be called frequently to assure enough Rx BDs are available to the DMA hardware.
+ * The reference implementation calls this function immediately upon freeing an Rx BD. This is perhaps
+ * a bit aggressive, but we have not observed any resulting performance penalty.
+ *
+*/
+void wlan_eth_dma_update() {
 	int bd_count;
 	int status;
 	XAxiDma_BdRing *ETH_A_RxRing_ptr;
@@ -856,55 +873,55 @@ void wlan_eth_dma_update(){
 
 	num_available_packet_bd = queue_num_free();
 
-	if(min(num_available_packet_bd,bd_count)>0){
-//		xil_printf("%d BDs are free\n",bd_count);
-//		xil_printf("%d packet_bds are free\n", num_available_packet_bd);
-//		xil_printf("Attaching %d BDs to packet_bds\n",min(bd_count,num_available_packet_bd));
+	//Calculate number of BD-queue pairs to attempt
+	// Minimum of:
+	//  -Number of free BDs in the ETH Rx ring
+	//  -Number of free Tx queue entries
+	u32 bd_queue_pairs_to_process = min(num_available_packet_bd, bd_count);
 
-		//Checkout ETH_A_NUM_RX_BD packet_bds
-		queue_checkout(&checkout, min(bd_count,num_available_packet_bd));
+	if(bd_queue_pairs_to_process > 0) {
+		//Checkout free queue entries for each BD we can process
+		queue_checkout(&checkout, bd_queue_pairs_to_process);
 
-		status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, min(bd_count,checkout.length), &first_bd_ptr);
+		//Update number of BDs to process if queue couldn't provide enough free entries
+		// Handles rare race of queue status changing between queue_num_free() and queue_checkout()
+		bd_queue_pairs_to_process = min(bd_queue_pairs_to_process, checkout.length);
+
+		status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, bd_queue_pairs_to_process, &first_bd_ptr);
 		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return;}
 
 		tx_queue_entry = checkout.first;
 
 		//Iterate over each Rx buffer descriptor
 		cur_bd_ptr = first_bd_ptr;
-		for(i = 0; i < min(bd_count,checkout.length); i++) {
-			//Set the memory address for this BD's buffer
-
+		for(i = 0; i < bd_queue_pairs_to_process; i++) {
+			//Set the memory address for this BD's buffer to the Tx queue entry's data area
+			// This pointer is offset by the size of a MAC header and LLC header, which results in the Ethernet
+			//  payload being copied to its post-encapsulated location. This speeds up the encapsulation process by
+			//  skipping any re-copying of Ethernet payloads
 			buf_addr = (u32)((void*)((tx_queue_buffer*)(tx_queue_entry->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
-
 			status = XAxiDma_BdSetBufAddr(cur_bd_ptr, buf_addr);
 			if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetBufAddr failed (bd %d, addr 0x08x)! Err = %d\n", i, buf_addr, status); return;}
 
 			//Set every Rx BD to max length (this assures 1 BD per Rx pkt)
+			// The ETH DMA hardware will record the actual Rx length in its per-BD meta data
 			status = XAxiDma_BdSetLength(cur_bd_ptr, ETH_A_PKT_BUF_SIZE, ETH_A_RxRing_ptr->MaxTransferLen);
 			if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetLength failed (bd %d, addr 0x08x)! Err = %d\n", i, buf_addr, status); return;}
 
 			//Rx BD's don't need control flags before use; DMA populates these post-Rx
 			XAxiDma_BdSetCtrl(cur_bd_ptr, 0);
 
-			//BD ID is arbitrary; use pointer to the packet_bd associated with this BD
+			//BD ID is arbitrary; use pointer to the queue entry associated with this BD
 			XAxiDma_BdSetId(cur_bd_ptr, (u32)tx_queue_entry);
 
-			//Update cur_bd_ptr to the next BD in the chain for the next iteration
+			//Update the BD and queue entry pointers to the next list elements (this loop traverses both lists simultaneously)
 			cur_bd_ptr = XAxiDma_BdRingNext(ETH_A_RxRing_ptr, cur_bd_ptr);
-
-			//Remove this tx_queue from the checkout list
-			//packet_bd_remove(&checkout,tx_queue);
-
-			//Traverse forward in the checked-out packet_bd list
 			tx_queue_entry = dl_entry_next(tx_queue_entry);
 		}
 
 		//Push the Rx BD ring to hardware and start receiving
-		status = XAxiDma_BdRingToHw(ETH_A_RxRing_ptr, min(num_available_packet_bd,bd_count), first_bd_ptr);
-
-		//Check any remaining unused entries from the checkout list back in
-		//queue_checkin(&checkout);
-
+		status = XAxiDma_BdRingToHw(ETH_A_RxRing_ptr, bd_queue_pairs_to_process, first_bd_ptr);
+		if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdRingToHw failed! Err = %d\n", status);}
 	}
 	return;
 }
