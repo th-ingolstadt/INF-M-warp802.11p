@@ -240,7 +240,7 @@ def wn_get_serial_number(serial_number, output=True):
     ret_val       = None
     print_warning = False    
     
-    if type(serial_number) is int:
+    if type(serial_number) is int or type(serial_number) is long:
         sn            = serial_number
         sn_str        = "W3-a-{0:05d}".format(sn)
         print_warning = True
