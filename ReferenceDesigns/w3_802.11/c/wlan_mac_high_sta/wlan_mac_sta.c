@@ -53,10 +53,10 @@
 /*************************** Constant Definitions ****************************/
 
 #define  WLAN_EXP_ETH                  WN_ETH_B
-#define  WLAN_EXP_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA
+#define  WLAN_EXP_NODE_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA
 
-#define  WLAN_CHANNEL                  1
-#define  TX_POWER_DBM				   10
+#define  WLAN_DEFAULT_CHANNEL                  1
+#define  WLAN_DEFAULT_TX_PWR				   10
 
 
 /*********************** Global Variable Definitions *************************/
@@ -109,7 +109,7 @@ u32 mac_param_chan_save;
 
 
 // MAC address
-static u8 eeprom_mac_addr[6];
+static u8 wlan_mac_addr[6];
 
 
 /*************************** Functions Prototypes ****************************/
@@ -156,17 +156,17 @@ int main() {
 
     // Set Global variables
 	default_unicast_data_tx_params.mac.num_tx_max = MAX_NUM_TX;
-	default_unicast_data_tx_params.phy.power = TX_POWER_DBM;
+	default_unicast_data_tx_params.phy.power = WLAN_DEFAULT_TX_PWR;
 	default_unicast_data_tx_params.phy.rate = WLAN_MAC_RATE_18M;
 	default_unicast_data_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
 	default_unicast_mgmt_tx_params.mac.num_tx_max = MAX_NUM_TX;
-	default_unicast_mgmt_tx_params.phy.power = TX_POWER_DBM;
+	default_unicast_mgmt_tx_params.phy.power = WLAN_DEFAULT_TX_PWR;
 	default_unicast_mgmt_tx_params.phy.rate = WLAN_MAC_RATE_6M;
 	default_unicast_mgmt_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
 	default_multicast_mgmt_tx_params.mac.num_tx_max = 1;
-	default_multicast_mgmt_tx_params.phy.power = TX_POWER_DBM;
+	default_multicast_mgmt_tx_params.phy.power = WLAN_DEFAULT_TX_PWR;
 	default_multicast_mgmt_tx_params.phy.rate = WLAN_MAC_RATE_6M;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
@@ -176,7 +176,7 @@ int main() {
 #ifdef USE_WARPNET_WLAN_EXP
 	node_info_set_max_assn( MAX_NUM_ASSOC );
 	node_info_set_max_stats( MAX_NUM_PROMISC_STATS );
-	wlan_exp_configure(WLAN_EXP_TYPE, WLAN_EXP_ETH);
+	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_ETH);
 #endif
 
 	// Initialize callbacks
@@ -208,11 +208,11 @@ int main() {
 
 	// CPU Low will pass HW information to CPU High as part of the boot process
 	//   - Get necessary HW information
-	memcpy((void*) &(eeprom_mac_addr[0]), (void*) wlan_mac_high_get_eeprom_mac_addr(), 6);
+	memcpy((void*) &(wlan_mac_addr[0]), (void*) wlan_mac_high_get_eeprom_mac_addr(), 6);
 
 
     // Set Header information
-	tx_header_common.address_2 = &(eeprom_mac_addr[0]);
+	tx_header_common.address_2 = &(wlan_mac_addr[0]);
 	tx_header_common.seq_num = 0;
 
 
@@ -221,13 +221,16 @@ int main() {
 
 
 	// Set up channel
-	mac_param_chan = WLAN_CHANNEL;
+	mac_param_chan = WLAN_DEFAULT_CHANNEL;
 	mac_param_chan_save = mac_param_chan;
 	wlan_mac_high_set_channel( mac_param_chan );
 	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_ANTA);
-	wlan_mac_high_set_tx_ctrl_pow(TX_POWER_DBM);
+	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
 
-	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_ADDR_ALL_MPDU);
+	// Configure CPU Low's filter for passing Rx packets up to CPU High
+	//  Default is "promiscuous" mode - pass all data and management packets with good or bad checksums
+	//   This allows logging of all data/management receptions, even if they're not intended for this node
+	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL_MPDU);
 
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -243,7 +246,7 @@ int main() {
     xil_printf("WLAN MAC Station boot complete: \n");
     xil_printf("  Default SSID : %s \n", access_point_ssid);
     xil_printf("  Channel      : %d \n", mac_param_chan);
-	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",eeprom_mac_addr[0],eeprom_mac_addr[1],eeprom_mac_addr[2],eeprom_mac_addr[3],eeprom_mac_addr[4],eeprom_mac_addr[5]);
+	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",wlan_mac_addr[0],wlan_mac_addr[1],wlan_mac_addr[2],wlan_mac_addr[3],wlan_mac_addr[4],wlan_mac_addr[5]);
 
 
 #ifdef WLAN_USE_UART_MENU
@@ -422,7 +425,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 				(frame_stats->tx_num_packets_low) += (tx_mpdu->num_tx);
 
-				if((tx_mpdu->tx_result) == TX_MPDU_STATE_VERBOSE_SUCCESS){
+				if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
 					(frame_stats->tx_num_packets_success)++;
 					(frame_stats->tx_num_bytes_success) += tx_mpdu->length;
 				}
@@ -817,7 +820,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		}
 
-		unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr);
+		unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
 		to_multicast = wlan_addr_mcast(rx_80211_header->address_1);
 
 		if( mpdu_info->state == RX_MPDU_STATE_FCS_GOOD && (unicast_to_me || to_multicast)){
@@ -912,7 +915,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			break;
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication
-					if(association_state == 1 && wlan_addr_eq(rx_80211_header->address_3, ap_addr) && wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr)) {
+					if(association_state == 1 && wlan_addr_eq(rx_80211_header->address_3, ap_addr) && wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
 						mpdu_ptr_u8 += sizeof(mac_header_80211);
 						switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
 							case AUTH_ALGO_OPEN_SYSTEM:
@@ -932,7 +935,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			break;
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
-					if(wlan_addr_eq(rx_80211_header->address_1, eeprom_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_2) != NULL)){
+					if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_2) != NULL)){
 
 						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 						if(associated_station_log_entry != NULL){
@@ -1137,7 +1140,7 @@ void ltg_event(u32 id, void* callback_arg){
 				llc_hdr->ssap = LLC_SNAP;
 				llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
 				bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
-				llc_hdr->type = LLC_TYPE_CUSTOM;
+				llc_hdr->type = LLC_TYPE_WLAN_LTG;
 
 				tx_length += max(payload_length, sizeof(llc_header));
 
