@@ -1211,7 +1211,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 					xil_printf("ERROR:  Could not create LTG.\n");
 				} else {
 					status = NODE_SUCCESS;
-					xil_printf("LTG %d configured\n", status);
+					xil_printf("LTG %d configured\n", id);
 
 					if ((flags & NODE_LTG_CONFIG_FLAG_AUTOSTART) == NODE_LTG_CONFIG_FLAG_AUTOSTART) {
 						xil_printf("Starting LTG %d\n", id);

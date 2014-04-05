@@ -78,7 +78,7 @@ typedef struct{
 	u32 delay_done;
 	u64	unique_seq;
 	u8 state;
-	u8 state_verbose;
+	u8 tx_result;
 	u8 flags;
 	u8 num_tx;
 	u16 length;

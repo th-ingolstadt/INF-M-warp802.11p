@@ -246,7 +246,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	wlan_ipc_msg ipc_msg_to_high;
 	u32 status;
 	mac_header_80211* tx_80211_header;
-	u16 n_dbps;
+	u16 ACK_N_DBPS;
 	u32 isLocked, owner;
 	u64 new_timestamp;
 	wlan_mac_low_tx_details* low_tx_details;
@@ -332,85 +332,109 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 //					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
-					//Convert human-readable rates into PHY rates
-					//n_dbps is used to calculate duration of received ACKs.
-					//This rate selection is specified in 9.7.6.5.2 of 802.11-2012
 
+					//Convert rate index into rate code used in PHY's SIGNAL field
+					//ACK_N_DBPS is used to calculate duration of received ACKs.
+					//The selection of ACK rates given DATA rates is specified in 9.7.6.5.2 of 802.11-2012
 					switch(tx_mpdu->params.phy.rate){
 						case WLAN_MAC_RATE_1M:
 							warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
+
+							//Default to BPSK 1/2 if user requests DSSS Tx (should never happen - CPU High will catch this first)
+							rate = WLAN_PHY_RATE_BPSK12;
+							ACK_N_DBPS = N_DBPS_R6;
 						break;
 						case WLAN_MAC_RATE_6M:
 							rate = WLAN_PHY_RATE_BPSK12;
-							n_dbps = N_DBPS_R6;
+							ACK_N_DBPS = N_DBPS_R6;
 						break;
 						case WLAN_MAC_RATE_9M:
 							rate = WLAN_PHY_RATE_BPSK34;
-							n_dbps = N_DBPS_R6;
+							ACK_N_DBPS = N_DBPS_R6;
 						break;
 						case WLAN_MAC_RATE_12M:
 							rate = WLAN_PHY_RATE_QPSK12;
-							n_dbps = N_DBPS_R12;
+							ACK_N_DBPS = N_DBPS_R12;
 						break;
 						case WLAN_MAC_RATE_18M:
 							rate = WLAN_PHY_RATE_QPSK34;
-							n_dbps = N_DBPS_R12;
+							ACK_N_DBPS = N_DBPS_R12;
 						break;
 						case WLAN_MAC_RATE_24M:
 							rate = WLAN_PHY_RATE_16QAM12;
-							n_dbps = N_DBPS_R24;
+							ACK_N_DBPS = N_DBPS_R24;
 						break;
 						case WLAN_MAC_RATE_36M:
 							rate = WLAN_PHY_RATE_16QAM34;
-							n_dbps = N_DBPS_R24;
+							ACK_N_DBPS = N_DBPS_R24;
 						break;
 						case WLAN_MAC_RATE_48M:
 							rate = WLAN_PHY_RATE_64QAM23;
-							n_dbps = N_DBPS_R24;
+							ACK_N_DBPS = N_DBPS_R24;
 						break;
 						case WLAN_MAC_RATE_54M:
 							rate = WLAN_PHY_RATE_64QAM34;
-							n_dbps = N_DBPS_R24;
+							ACK_N_DBPS = N_DBPS_R24;
 						break;
 						default:
-							xil_printf("Rate %d\n", tx_mpdu->params.phy.rate);
-							xil_printf("Len %d\n", tx_mpdu->length);
+							//Default to BSPK 1/2 if CPU High requests invalid rate
+							rate = WLAN_PHY_RATE_BPSK12;
+							ACK_N_DBPS = N_DBPS_R6;
+
+							xil_printf("Invalid rate in Tx MPDU Info: %d\n", tx_mpdu->params.phy.rate);
 						break;
 					}
 
 					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
+						//Get pointer to start of MAC header in packet buffer
 						tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
-						tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES, n_dbps) + T_SIFS;
+
+						//Compute and fill in the duration of any time-on-air following this packet's transmission
+						// For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
+						tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES, ACK_N_DBPS) + T_SIFS;
 					}
 
 					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-						//This is a semi-temporary fix until timestamp addition is added
-						//to the MAC hardware
+						//Some management packets contain the node's local 64-bit microsecond timer value
+						// The Tx hardware can insert this value into the outgoing byte stream automatically
+						// This ensures the timestamp value is not skewed by any pre-Tx deferrals
 
+						//The macros below set the first and last byte index where the Tx logic should insert
+						// the 8-byte timestamp.
+						//In the current implementation these indexes must span an 8-byte-aligned
+						// region of the packet buffer (i.e. (start_ind % 8)==0 )
 						wlan_phy_tx_timestamp_ins_start((24+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
 						wlan_phy_tx_timestamp_ins_end((31+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
 
 					} else {
+						//When start>end, the Tx logic will not insert any timestamp
 						wlan_phy_tx_timestamp_ins_start(1);
 						wlan_phy_tx_timestamp_ins_end(0);
 					}
 
-
+					//Allocate memory to store the record of each transmission of this MPDU
+					// Allocating dynamically gives flexibility to change num_tx_max per packet, constrained only
+					//  by CPU Low's heap size. malloc failures are handled by skipping TX_LOW log data but proceeding
+					//  normally with actual MPDU transmission
 					low_tx_details_size = sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.num_tx_max;
 					low_tx_details = malloc(low_tx_details_size);
+
+					//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
+					// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
 					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
 
-
+					//Record the total time this MPDU spent in the Tx state machine
 					tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
+
 					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
-
 					if(status == 0){
-						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_SUCCESS;
+						tx_mpdu->tx_result = TX_MPDU_STATE_VERBOSE_SUCCESS;
 					} else {
-						tx_mpdu->state_verbose = TX_MPDU_STATE_VERBOSE_FAILURE;
+						tx_mpdu->tx_result = TX_MPDU_STATE_VERBOSE_FAILURE;
 					}
 
+					//Revert the state of the packet buffer and return control to CPU High
 					tx_mpdu->state = TX_MPDU_STATE_EMPTY;
 
 					if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
@@ -419,8 +443,11 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					} else {
 						ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
 
+						//Add the per-Tx-event details to the IPC message so CPU High can add them to the log as TX_LOW entries
 						if(low_tx_details != NULL){
 							ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
+
+							//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
 							if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
 								ipc_msg_to_high.num_payload_words = ( (tx_mpdu->num_tx)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
 							} else {
@@ -435,18 +462,18 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					}
 
 					free(low_tx_details);
-
-
 				}
 			break;
 		}
 }
 
 /**
- * @brief Set Time of System
+ * @brief Set MAC microsecond timer
  *
- * This function sets the microsecond counter common to the implementation to
- * a value specified as a parameter to the function.
+ * This function sets the MAC core's microsecond timer
+ * The timer starts at 0 at FPGA configuration time and counts up forever.
+ * Some 802.11 handshakes require updating the local timer to match a partner
+ *  node's timer value (reception of a beacon, for example)
  *
  * @param u64 new_time
  *  - the new base timestamp for the system
@@ -499,10 +526,11 @@ void wlan_mac_low_init_hw_info( u32 type ) {
     //   - NOTE:  The w3_eeprom_readEthAddr() function handles the case when the WARP v3
     //     hardware does not have a valid Ethernet address
     //
+    // Use address 0 for the WLAN interface, address 1 for the Ethernet interface
 	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 0, hw_info.hw_addr_wlan);
 	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 1, hw_info.hw_addr_wn);
 
-    // WARPNet will use ethernet device 1 unless you change this function
+    // WARPNet will use ethernet device 1 (ETH_B) by default
     hw_info.wn_exp_eth_device = 1;
 }
 
@@ -514,7 +542,7 @@ void wlan_mac_low_init_hw_info( u32 type ) {
  * @param None
  * @return None
  */
-wlan_mac_hw_info* wlan_mac_low_get_hw_info(){
+inline wlan_mac_hw_info* wlan_mac_low_get_hw_info(){
 	return &hw_info;
 }
 
@@ -542,14 +570,17 @@ inline u32 wlan_mac_low_get_current_rx_filter(){
 /**
  * @brief Calculates Rx Power (in dBm)
  *
- * This function calculates receive power for a given RSSI and LNA gain.
+ * This function calculates receive power for a given band, RSSI and LNA gain. This
+ * provides a reasonable estimate of Rx power, accurate to a few dB for standard waveforms.
+ *
+ * This function does not use the VGA gain setting or I/Q magnitudes. The PHY should use these
+ * to refine its own power measurement if needed.
  *
  * @param None
  * @return None
- * @note This function's calculations change based on mac_param_band.
  */
 inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
-#define RSSI_SLOPE_BITSHIFT		3 //Was 4 in old PHY; sliced 16MSB in v31
+#define RSSI_SLOPE_BITSHIFT		3
 #define RSSI_OFFSET_LNA_LOW		(-61)
 #define RSSI_OFFSET_LNA_MED		(-76)
 #define RSSI_OFFSET_LNA_HIGH	(-92)
@@ -593,10 +624,11 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 inline u32 wlan_mac_low_poll_frame_rx(){
 	u32 return_status = 0;
 	u32 rate, length;
+
+	//Read the MAC/PHY status
 	u32 mac_hw_status = wlan_mac_get_status();
 
-	//is the MAC currently blocking the rx PHY
-	//WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED
+	//Check if PHY is currently receiving or has finished receiving
 	if(mac_hw_status & (WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
 
 		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
@@ -604,6 +636,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 		length = wlan_mac_get_rx_phy_length() - WLAN_PHY_FCS_NBYTES; //Strip off FCS
 		rate =  wlan_mac_get_rx_phy_rate();
 
+		//Translate the PHY's rate code (from the SIGNAL field) into a rate index for use by the MAC
 		switch(rate){
 			case WLAN_PHY_RATE_DSSS_1M:
 				rate = WLAN_MAC_RATE_1M;
@@ -632,13 +665,17 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			case WLAN_PHY_RATE_64QAM34:
 				rate = WLAN_MAC_RATE_54M;
 			break;
+			default:
+				//Assume DSSS if PHY-reported rate was somehow invalid
+				rate = WLAN_MAC_RATE_1M;
+			break;
 		}
 
 		if(wlan_mac_get_rx_phy_sel() == WLAN_RX_PHY_OFDM) {
 			//OFDM packet is being received
 
 			if(rate == WLAN_MAC_RATE_1M){
-				xil_printf("Rate DSSS, PHY SEL OFDM\n");	  //DEBUG FIXME
+				xil_printf("ERROR: PHY reported DSSS rate, OFDM PHY active\n");	  //DEBUG FIXME
 			}
 
 			return_status |= frame_rx_callback(rx_pkt_buf, rate, length);
@@ -646,12 +683,18 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			//DSSS packet is being received
 
 			if(rate != WLAN_MAC_RATE_1M){
-				xil_printf("Rate OFDM, PHY SEL DSSS\n");	  //DEBUG FIXME
+				xil_printf("ERROR: PHY reported OFDM rate, DSSS PHY active\n");	  //DEBUG FIXME
 			}
 
+			//Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
+			// function to treat OFDM and DSSS payloads the same
 			length = length-5;
+
 			return_status |= frame_rx_callback(rx_pkt_buf, rate, length);
 		}
+
+		//Current frame_rx_callback() always unblocks PHY
+		// uncomment this unblock_rx_phy if custom frame_rx_callback does not wait to unblock the PHY
 		//wlan_mac_dcf_hw_unblock_rx_phy();
 	}
 
@@ -670,7 +713,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
  * @return None
  *
  */
-void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
+inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
 	frame_rx_callback = callback;
 }
 
@@ -686,7 +729,7 @@ void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
  * @return None
  *
  */
-void wlan_mac_low_set_frame_tx_callback(function_ptr_t callback){
+inline void wlan_mac_low_set_frame_tx_callback(function_ptr_t callback){
 	frame_tx_callback = callback;
 }
 
@@ -703,7 +746,7 @@ void wlan_mac_low_set_frame_tx_callback(function_ptr_t callback){
  */
 void wlan_mac_low_frame_ipc_send(){
 	wlan_ipc_msg ipc_msg_to_high;
-	//IPC_MBOX_GRP_PKT_BUF -> IPC_MBOX_GRP_RX_MPDU_DONE
+
 	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_RX_MPDU_READY);
 	ipc_msg_to_high.arg0 = rx_pkt_buf;
 	ipc_msg_to_high.num_payload_words = 0;
@@ -722,7 +765,7 @@ void wlan_mac_low_frame_ipc_send(){
  * rx_pkt_buf is still valid.
  */
 inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
-	//This function blocks until it safely finds a packet buffer for the PHY RX to stash receptions
+	//This function blocks until it safely finds a packet buffer for the PHY RX to store a future reception
 	rx_frame_info* rx_mpdu;
 	u32 i = 1;
 
@@ -732,12 +775,15 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
 		if((rx_mpdu->state) == RX_MPDU_STATE_EMPTY){
 			if(lock_pkt_buf_rx(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
 
+				//By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
+				// However zeroing out the pkt buffer can be helpful when debugging Rx PHY behaviors
 				//bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
 
 				rx_mpdu->state = RX_MPDU_STATE_RX_PENDING;
+
+				//Set the OFDM and DSSS PHYs to use the same Rx pkt buffer
 				wlan_phy_rx_pkt_buf_ofdm(rx_pkt_buf);
 				wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
-
 
 				return;
 			}
@@ -757,12 +803,26 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
  * - microsecond timestamp
  */
 inline u64 get_usec_timestamp(){
+
+	//The MAC core register interface is only 32-bit, so the 64-bit timestamp
+	// is read from two 32-bit registers and reconstructed here.
+
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
+
 	timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_MSB);
 	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_LSB);
+
+	//Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
+	if( (timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_REG_TIMESTAMP_MSB) & 0x1) ) {
+		//32-LSB wrapped - start over
+		timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_MSB);
+		timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_LSB);
+	}
+
 	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+
 	return timestamp_u64;
 }
 
@@ -779,9 +839,12 @@ inline u64 get_rx_start_timestamp() {
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
+
+	//RX_START timestamp is captured once per reception - no race condition between 32-bit reads
 	timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_RX_TIMESTAMP_MSB);
 	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_RX_TIMESTAMP_LSB);
 	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+
 	return timestamp_u64;
 }
 
@@ -800,11 +863,13 @@ inline u64 get_tx_start_timestamp() {
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
+
+	//TX_START timestamp is captured once per transmission - no race condition between 32-bit reads
 	timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
 	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
 	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
-	return timestamp_u64;
 
+	return timestamp_u64;
 }
 
 /**
@@ -846,6 +911,8 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 	if(mac_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) {
 		return RX_MPDU_STATE_FCS_GOOD;
 	} else {
+		//Ensure auto-Tx logic is disabled if FCS was bad
+		// Actual MAC code above should do the same thing - no harm disabling twice
 		wlan_mac_auto_tx_en(0);
 		return RX_MPDU_STATE_FCS_BAD;
 	}
