@@ -150,9 +150,9 @@ int main(){
 	dl_list_init(&statistics_table);
 
 	//Calculate the maximum length of any Tx queue
-	// (queue_total_size()- eth_bd_total_size()) is the number of queue entries available after dedicating some to the ETH DMA
+	// (queue_total_size()- eth_get_num_rx_bd()) is the number of queue entries available after dedicating some to the ETH DMA
 	// MAX_PER_FLOW_QUEUE is the absolute max length of any queue; long queues (a.k.a. buffer bloat) are bad
-	max_queue_size = min((queue_total_size()- eth_bd_total_size()) / (association_table.length+1), MAX_PER_FLOW_QUEUE);
+	max_queue_size = min((queue_total_size()- eth_get_num_rx_bd()) / (association_table.length+1), MAX_PER_FLOW_QUEUE);
 
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
@@ -170,7 +170,7 @@ int main(){
     // Wait for CPU Low to initialize
 	while( wlan_mac_high_is_cpu_low_initialized() == 0 ){
 		xil_printf("waiting on CPU_LOW to boot\n");
-	};
+	}
 
 	// The node's MAC address is stored in the EEPROM, accessible only to CPU Low
 	// CPU Low provides this to CPU High after it boots
@@ -474,6 +474,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	tx_high_event_log_entry = (tx_high_entry *)get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
 
 	if(tx_high_event_log_entry != NULL){
+		//Fill in the TX log entry
+		// This is done one field at a time, as the TX log entry format is not a byte-for-byte copy of the tx_frame_info
 		tx_high_event_log_entry->mac_payload_log_len = total_payload_len;
 		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_high_event_log_entry)->mac_payload), tx_80211_header, total_payload_len);
 		bzero(tx_high_event_log_entry->padding , sizeof(tx_high_event_log_entry->padding));
