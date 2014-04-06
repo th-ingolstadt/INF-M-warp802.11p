@@ -24,86 +24,55 @@
 
 #include "wlan_mac_dl_list.h"
 
-
-// **********************************************************************
-// Switches for various modes
-//
-
 // Enable the WLAN UART Menu
-//    NOTE:  To enable the WLAN Exp framework, please modify wlan_exp_common.h
 #define WLAN_USE_UART_MENU
 
 // Allow Ethernet transmission of packets received by an associated station
 // destined for another associated station
 //#define ALLOW_ETH_TX_OF_WIRELESS_TX
 
-// **********************************************************************
 // UART Menu Modes
-//
 #define UART_MODE_MAIN                 0
 #define UART_MODE_INTERACTIVE          1
 #define UART_MODE_SSID_CHANGE          2
 
-// **********************************************************************
 // Common Defines
-//
-#define MAX_NUM_TX                      7
-#define MAX_PER_FLOW_QUEUE	           150
-#define MAX_NUM_ASSOC				   11
+#define MAX_NUM_TX            7   ///max number of wireless Tx for any MPDU (= max_num_retransmissions + 1)
+#define MAX_TX_QUEUE_LEN	  150 ///max number of entries in any Tx queue
+#define MAX_NUM_ASSOC		  11  ///max number of associations the AP will attempt
 
-#define AID_TO_QID(x) ((x)+1)
 #define MCAST_QID 0
 #define MANAGEMENT_QID 1
-
-
-// **********************************************************************
-// Timing Parameters
-//
+#define AID_TO_QID(x) ((x)+1) ///map association ID to Tx queue ID; min AID is 1
 
 // Time between beacon transmissions
-//
-#define BEACON_INTERVAL_MS             (100) //100 , 1000000
+#define BEACON_INTERVAL_MS             (100)
 #define BEACON_INTERVAL_US             (BEACON_INTERVAL_MS*1000)
 
-
-// Time between association table check
-// Periodically, the association table is culled through and inactive stations are explicitly purged.
-//
+// Period for checking association table for stale STA associations
 #define ASSOCIATION_CHECK_INTERVAL_MS  (1000)
 #define ASSOCIATION_CHECK_INTERVAL_US  (ASSOCIATION_CHECK_INTERVAL_MS*1000)
 
-// The amount of time since the last time a station was heard from.
-// After this interval, a station can be purged from the association table
-//
+// Timeout for last reception for an association STA; timed-out STA's are subject to de-association
 #define ASSOCIATION_TIMEOUT_S          (300)
 #define ASSOCIATION_TIMEOUT_US         (ASSOCIATION_TIMEOUT_S*1000000)
 
-// When the node is in the state where it temporarily allows associations, this interval
-// defines how long the window for new associations is open
-//
+// Interval to allow associations after entering ASSOCIATION_ALLOW_TEMPORARY mode
 #define ASSOCIATION_ALLOW_INTERVAL_MS  (30000)
 #define ASSOCIATION_ALLOW_INTERVAL_US  (ASSOCIATION_ALLOW_INTERVAL_MS*1000)
 
-// Time between blinking behavior in hex displays
-//
+// Blinking period for hex displays, when used to show association mode
 #define ANIMATION_RATE_US              (100000)
 
-
-// **********************************************************************
-// Association defines
-//
+// Association modes
 #define ASSOCIATION_ALLOW_NONE          0x0
 #define ASSOCIATION_ALLOW_TEMPORARY     0x1
 #define ASSOCIATION_ALLOW_PERMANENT     0x3
 
 
-/*********************** Global Structure Definitions ************************/
-
-
-/****************************** Helper Macros ********************************/
+// LTG helper macros and defines
 #define LTG_ID_TO_AID(ltg_id) (ltg_id)
 #define AID_TO_LTG_ID(aid)	  (aid)
-//#define AID_SCHED_PYLD_GRP_TO_LTG_ID(aid,sched,pyld) ( ((pyld&0xFF)<<24) + ((sched&0xFF)<<16) + (aid&0xFFFF) )
 
 #define LTG_ID_GRP_SCHED_CONSTANT 1
 #define LTG_ID_GRP_SCHED_RANDOM	  2
@@ -113,8 +82,6 @@
 
 
 /*************************** Function Prototypes *****************************/
-
-
 int  main();
 
 void ltg_event(u32 id, void* callback_arg);

@@ -152,7 +152,7 @@ int main(){
 	//Calculate the maximum length of any Tx queue
 	// (queue_total_size()- eth_get_num_rx_bd()) is the number of queue entries available after dedicating some to the ETH DMA
 	// MAX_PER_FLOW_QUEUE is the absolute max length of any queue; long queues (a.k.a. buffer bloat) are bad
-	max_queue_size = min((queue_total_size()- eth_get_num_rx_bd()) / (association_table.length+1), MAX_PER_FLOW_QUEUE);
+	max_queue_size = min((queue_total_size()- eth_get_num_rx_bd()) / (association_table.length+1), MAX_TX_QUEUE_LEN);
 
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
