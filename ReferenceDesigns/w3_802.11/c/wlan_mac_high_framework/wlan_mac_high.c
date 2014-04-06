@@ -45,15 +45,15 @@
 
 /*********************** Global Variable Definitions *************************/
 
+//These variables are defined by the linker at compile time
 extern int __data_start; ///< Start address of the data secion
 extern int __data_end;	 ///< End address of the data section
 extern int __bss_start;	 ///< Start address of the bss section
 extern int __bss_end;	 ///< End address of the bss section
 extern int _heap_start;	 ///< Start address of the heap
 extern int _HEAP_SIZE;	 ///< Size of the heap
-extern int _stack_end;
-extern int __stack;
-
+extern int _stack_end;	 ///< Start of the stack (stack counts backwards)
+extern int __stack;	 	 ///< End of the stack
 
 /*************************** Variable Definitions ****************************/
 
@@ -120,12 +120,13 @@ u8                  rx_ant_mode_tracker = 0;     ///< Tracking variable for RX A
  * @brief Initialize Heap and Data Sections
  *
  * Dynamic memory allocation through malloc uses metadata in the data section
- * of the linker. This metadata is not reset upon software reset (i.e., when a
+ * of the elf binary. This metadata is not reset upon software reset (i.e., when a
  * user presses the reset button on the hardware). This will cause failures on
  * subsequent boots because this metadata has not be reset back to its original
- * state at the first boot. This function offers a solution to this problem by
- * backing up the data section into dedicated BRAM on the first boot. In
- * subsequent boots, this data is restored from the dedicated BRAM.
+ * state at the first boot.
+ *
+ * This function backs up the original data section to a dedicated BRAM, so it can
+ * be copied back on subsequent soft resets.
  *
  * @param None
  * @return None

@@ -16,6 +16,9 @@
 #ifndef WLAN_MAC_ETH_UTIL_H_
 #define WLAN_MAC_ETH_UTIL_H_
 
+//The struct definitions below are used to interpret packet payloads
+// The code never creates instances of these structs
+
 typedef struct{
 	u8 address_destination[6];
 	u8 address_source[6];
@@ -34,9 +37,6 @@ typedef struct{
 	u8 ip_src[4];
 	u8 ip_dest[4];
 } ipv4_header;
-
-#define IPV4_PROT_UDP 0x11
-
 
 typedef struct{
 	u16 htype;
@@ -75,26 +75,6 @@ typedef struct{
 	u32 magic_cookie;
 } dhcp_packet;
 
-#define DHCP_BOOTP_FLAGS_BROADCAST	0x8000
-#define DHCP_MAGIC_COOKIE 0x63825363
-#define DHCP_OPTION_TAG_TYPE		53
-	#define DHCP_OPTION_TYPE_DISCOVER 1
-	#define DHCP_OPTION_TYPE_OFFER 2
-	#define DHCP_OPTION_TYPE_REQUEST  3
-	#define DHCP_OPTION_TYPE_ACK	  5
-#define DHCP_OPTION_TAG_IDENTIFIER	61
-#define DHCP_OPTION_END				255
-#define DHCP_OPTION_END				255
-#define DHCP_HOST_NAME				12
-
-#define UDP_SRC_PORT_BOOTPC 68
-#define UDP_SRC_PORT_BOOTPS 67
-
-
-
-#define ETH_TYPE_ARP 	0x0608
-#define ETH_TYPE_IP 	0x0008
-
 typedef struct{
 	u8 dsap;
 	u8 ssap;
@@ -103,12 +83,32 @@ typedef struct{
 	u16 type;
 } llc_header;
 
+//Magic numbers used for Ethernet/IP/UDP/DHCP/ARP packet interpretation
+#define DHCP_BOOTP_FLAGS_BROADCAST	0x8000
+#define DHCP_MAGIC_COOKIE 0x63825363
+#define DHCP_OPTION_TAG_TYPE		53
+#define DHCP_OPTION_TYPE_DISCOVER 1
+#define DHCP_OPTION_TYPE_OFFER 2
+#define DHCP_OPTION_TYPE_REQUEST  3
+#define DHCP_OPTION_TYPE_ACK	  5
+#define DHCP_OPTION_TAG_IDENTIFIER	61
+#define DHCP_OPTION_END				255
+#define DHCP_OPTION_END				255
+#define DHCP_HOST_NAME				12
+
+#define IPV4_PROT_UDP 0x11
+
+#define UDP_SRC_PORT_BOOTPC 68
+#define UDP_SRC_PORT_BOOTPS 67
+
+#define ETH_TYPE_ARP 	0x0608
+#define ETH_TYPE_IP 	0x0008
+
 #define LLC_SNAP 						0xAA
 #define LLC_CNTRL_UNNUMBERED			0x03
 #define LLC_TYPE_ARP					0x0608
 #define LLC_TYPE_IP						0x0008
 #define LLC_TYPE_WLAN_LTG				0x9090 //Non-standard type for LTG packets
-
 
 #define ETH_A_DMA_DEV_ID	XPAR_MB_HIGH_ETH_DMA_DEVICE_ID
 
@@ -121,8 +121,11 @@ typedef struct{
 //Number of Tx and Rx DMA buffer descriptors
 #define ETH_A_NUM_TX_BD		1
 
-#define ETH_A_BUF_MEM_BASE		(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + (48*1024)) //bottom 48kB are Tx queues
-
+//Store DMA BDs in the AUX BRAM for fastest access; packet contents are still in DRAM
+// First 48KB of AUX BRAM is used for Tx queue entry descriptors
+// ETH DMA BDs are stored after the queue descriptors
+//FIXME: 48 is a magic number - any way to make auto-calculated based on max num Tx queue entries?
+#define ETH_A_BUF_MEM_BASE		(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + (48*1024))
 #define ETH_A_TX_BD_SPACE_BASE	(ETH_A_BUF_MEM_BASE)
 #define ETH_A_RX_BD_SPACE_BASE	(ETH_A_TX_BD_SPACE_BASE + (ETH_A_NUM_TX_BD * XAXIDMA_BD_MINIMUM_ALIGNMENT)) //safer than sizeof(XAxiDma_Bd)?
 
