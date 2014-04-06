@@ -143,7 +143,7 @@ int main() {
 	ap_list = NULL;
 	repeated_active_scan_scheduled = 0;
 
-	max_queue_size = MAX_PER_FLOW_QUEUE;
+	max_queue_size = MAX_TX_QUEUE_LEN;
 
 	//Unpause the queue
 	pause_queue = 0;
