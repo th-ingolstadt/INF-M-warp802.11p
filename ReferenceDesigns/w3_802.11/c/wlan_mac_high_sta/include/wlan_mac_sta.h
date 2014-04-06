@@ -22,20 +22,15 @@
 
 #include "wlan_mac_dl_list.h"
 
-
-// **********************************************************************
 // Enable the WLAN UART Menu
-//    NOTE:  To enable the WLAN Exp framework, please modify wlan_exp_common.h
- #define WLAN_USE_UART_MENU
+#define WLAN_USE_UART_MENU
 
-#define MCAST_QID 0
-#define MANAGEMENT_QID 1
-#define UNICAST_QID 2
+// Tx queue IDs
+#define MCAST_QID 		0
+#define MANAGEMENT_QID 	1
+#define UNICAST_QID 	2
 
-
-// **********************************************************************
 // Common Defines
-//
 #define SSID_LEN_MAX                   32
 #define NUM_BASIC_RATES_MAX            10
 
@@ -43,30 +38,26 @@
 #define MAX_TX_QUEUE_LEN	  150 ///max number of entries in any Tx queue
 #define MAX_NUM_ASSOC		  1   ///max number of associations the STA will attempt
 
-
-
-// **********************************************************************
 // UART Menu Modes
-//
 #define UART_MODE_MAIN                 0
 #define UART_MODE_INTERACTIVE          1
 #define UART_MODE_AP_LIST              2
 
-
-
-// **********************************************************************
 // Timing Parameters
-//
+
+//Timeout for association request-response handshake
 #define ASSOCIATION_TIMEOUT_US         100000
 #define ASSOCIATION_NUM_TRYS           5
 
+//Timeout for authentication handshake
 #define AUTHENTICATION_TIMEOUT_US      100000
 #define AUTHENTICATION_NUM_TRYS        5
 
+//Number of probe requests to send per channel when active scanning
 #define NUM_PROBE_REQ                  5
 
-//The amount of time the active scan procedure will dwell on each channel before
-//moving to the next channel.
+//Time the active scan procedure will dwell on each channel before
+//moving to the next channel (microseconds)
 #define ACTIVE_SCAN_DWELL			   100000
 
 //The amount of time between full active scans when looking for a particular SSID
@@ -75,12 +66,7 @@
 //than 11*ACTIVE_SCAN_DWELL.
 #define ACTIVE_SCAN_UPDATE_RATE		  5000000
 
-
-
-/*********************** Global Structure Definitions ************************/
-//
 // Information about APs
-//
 typedef struct{
 	u8   bssid[6];
 	u8   chan;
@@ -92,9 +78,7 @@ typedef struct{
 } ap_info;
 
 
-
 /*************************** Function Prototypes *****************************/
-
 int main();
 
 void ltg_event(u32 id, void* callback_arg);
