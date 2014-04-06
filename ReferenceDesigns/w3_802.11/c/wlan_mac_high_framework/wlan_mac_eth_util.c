@@ -11,7 +11,6 @@
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
- *  @bug No known bugs.
  */
 
 #include "xaxiethernet.h"
@@ -43,9 +42,8 @@ static XIntc* Intc_ptr;
 
 u32 ETH_A_NUM_RX_BD;
 
-#define RX_INTR_ID		XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
-#define TX_INTR_ID		XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
-
+#define ETH_A_RX_INTR_ID		XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
+#define ETH_A_TX_INTR_ID		XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
 
 //The station code's implementation of encapsulation and de-encapsulation has an important
 //limitation: only one device may be plugged into the station's Ethernet port. The station
@@ -57,6 +55,13 @@ u8 eth_sta_mac_addr[6];
 
 extern wlan_mac_hw_info   	hw_info;
 
+/**
+ * @brief Initializes the axi_dma hardware and framework for handling Ethernet Tx/Rx via the DMA
+ *
+ * This function must be called once at boot, before any Ethernet configuration or Tx/Rx operations.
+ *
+ * @return 0 on success
+*/
 int wlan_eth_init() {
 		int status;
 
@@ -89,51 +94,92 @@ int wlan_eth_init() {
 		return 0;
 }
 
+/**
+ * @brief Sets the MAC callback for Ethernet receptions
+ *
+ * The framework will call the MAC's callback for each Ethernet reception that is a candidate
+ * for wireless transmission. The framework may reject some packets for malformed or unrecognized
+ * Ethernet headers. The MAC may reject more, based on Ethernet address or packet contents.
+ *
+ * @param void(*callback)
+ *  -Function pointer to the MAC's Ethernet Rx callback
+ */
 void wlan_mac_util_set_eth_rx_callback(void(*callback)()){
 	eth_rx_callback = (function_ptr_t)callback;
+	return;
 }
 
-void wlan_mac_util_set_eth_encap_mode(u8 mode){
+/**
+ * @brief Sets the wired-wireless encapsulation mode
+ *
+ * @param u8 mode
+ *  -Must be ENCAP_MODE_AP or ENCAP_MODE_STA, indicating AP-style or STA-style encapsulation/de-encapsulation
+ */
+void wlan_mac_util_set_eth_encap_mode(u8 mode) {
 	eth_encap_mode = mode;
+	return;
 }
 
-int eth_bd_total_size(){
+/**
+ * @brief Returns the total number of axi_dma Rx buffer descriptors
+ */
+inline int eth_get_num_rx_bd() {
 	return ETH_A_NUM_RX_BD;
 }
 
+/**
+ * @brief Configures and connects the axi_dma interrupt to the system interrupt controller
+ *
+ * @param XIntc* intc
+ *  - axi_intc driver instance - this function must be called after the axi_intc is setup
+ * @return 0 on success, non-zero otherwise
+*/
 int wlan_eth_setup_interrupt(XIntc* intc){
 	Intc_ptr = intc;
-	XAxiDma_BdRing *RxRingPtr = XAxiDma_GetRxRing(&ETH_A_DMA_Instance);
 	int Status;
 
-	Status = XIntc_Connect(Intc_ptr, RX_INTR_ID,(XInterruptHandler) RxIntrHandler, RxRingPtr);
-	if (Status != XST_SUCCESS) {
+	//The interrupt controller will remember an arbitrary value and pass it to the callback
+	// when this interrupt fires. We use this to pass the axi_dma Rx BD ring pointer into
+	// the eth_rx_interrupt_handler() callback
+	XAxiDma_BdRing *RxRingPtr = XAxiDma_GetRxRing(&ETH_A_DMA_Instance);
 
-		xil_printf("Failed tx connect intc\r\n");
+	//Connect the axi_dma interrupt
+	Status = XIntc_Connect(Intc_ptr, ETH_A_RX_INTR_ID, (XInterruptHandler)eth_rx_interrupt_handler, RxRingPtr);
+
+	if (Status != XST_SUCCESS) {
+		xil_printf("ERROR: Failed to connect axi_dma interrupt to intc! (%d)\n", Status);
 		return XST_FAILURE;
 	}
 
-	XIntc_Enable(Intc_ptr, RX_INTR_ID);
-
-
+	XIntc_Enable(Intc_ptr, ETH_A_RX_INTR_ID);
 
 	return 0;
 }
 
-void RxIntrHandler(void *Callback){
-	XAxiDma_BdRing *RxRingPtr = (XAxiDma_BdRing *) Callback;
+/**
+ * @brief Interrupt handler for ETH DMA receptions
+ *
+* @param void* callbarck_arg
+ *  - Argument passed in by interrupt controller (pointer to axi_dma Rx BD ring for Eth Rx)
+*/
+void eth_rx_interrupt_handler(void *callbarck_arg) {
+	XAxiDma_BdRing *RxRingPtr = (XAxiDma_BdRing *) callbarck_arg;
 	u32 IrqStatus;
 
 #ifdef _ISR_PERF_MON_EN_
 	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
 #endif
 
+	//FIXME: Why do we explicitly disable interrupts here? Doesn't everything below happen in the context
+	// of the ISR anyway?
 	XIntc_Stop(Intc_ptr);
 
 	IrqStatus = XAxiDma_BdRingGetIrq(RxRingPtr);
 	XAxiDma_BdRingAckIrq(RxRingPtr, IrqStatus);
 
 	if ((IrqStatus & (XAXIDMA_IRQ_DELAY_MASK | XAXIDMA_IRQ_IOC_MASK))) {
+		//Interrupt status indicates at least one reception is completed
+		// Call helper function to handle the received packet
 		wlan_poll_eth_rx();
 	}
 
@@ -144,6 +190,15 @@ void RxIntrHandler(void *Callback){
 #endif
 	return;
 }
+
+/**
+ * @brief Initializes the axi_dma core that handles Tx/Rx of Ethernet packets on ETH A
+ *
+ * Refer to the axi_dma docs and axi_ethernet driver examples for more details on using
+ * the axi_dma's scatter-gather mode to handle Ethernet Tx/Rx.
+ *
+ * @return 0 on success, -1 otherwise
+*/
 int wlan_eth_dma_init() {
 	int status;
 	int bd_count;
@@ -159,7 +214,7 @@ int wlan_eth_dma_init() {
 	XAxiDma_Bd *first_bd_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
 
-	dl_list checkout;
+	dl_list 	tx_queue_entry_list;
 	dl_entry*	tx_queue_entry;
 
 	ETH_A_DMA_CFG_ptr = XAxiDma_LookupConfig(ETH_A_DMA_DEV_ID);
@@ -177,10 +232,10 @@ int wlan_eth_dma_init() {
 	XAxiDma_BdRingIntDisable(ETH_A_TxRing_ptr, XAXIDMA_IRQ_ALL_MASK);
 	XAxiDma_BdRingIntDisable(ETH_A_RxRing_ptr, XAXIDMA_IRQ_ALL_MASK);
 
-	//Disable delays and coalescing (for now - these will be useful when we transition to interrupts)
+	//Disable delays and coalescing by default
+	// We observed no performance increase with interrupt coalescing
 	XAxiDma_BdRingSetCoalesce(ETH_A_TxRing_ptr, 1, 0);
 	XAxiDma_BdRingSetCoalesce(ETH_A_RxRing_ptr, 1, 0);
-	//XAxiDma_BdRingSetCoalesce(ETH_A_RxRing_ptr, 201, 255);
 
 	//Setup Tx/Rx buffer descriptor rings in memory
 	status =  XAxiDma_BdRingCreate(ETH_A_TxRing_ptr, ETH_A_TX_BD_SPACE_BASE, ETH_A_TX_BD_SPACE_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, ETH_A_NUM_TX_BD);
@@ -203,22 +258,22 @@ int wlan_eth_dma_init() {
 	status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, bd_count, &first_bd_ptr);
 	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return -1;}
 
-	//Checkout ETH_A_NUM_RX_BD packet_bds
-	queue_checkout(&checkout, ETH_A_NUM_RX_BD);
+	//Request one wireless Tx queue entry for each Ethernet Rx buffer descriptor
+	queue_checkout(&tx_queue_entry_list, ETH_A_NUM_RX_BD);
 
-	if(checkout.length == ETH_A_NUM_RX_BD){
-		tx_queue_entry = checkout.first;
+	if(tx_queue_entry_list.length == ETH_A_NUM_RX_BD){
+		tx_queue_entry = tx_queue_entry_list.first;
 	} else {
-		xil_printf("Error during wlan_eth_dma_init: able to check out %d of %d packet_bds\n", checkout.length, ETH_A_NUM_RX_BD);
+		xil_printf("Error during wlan_eth_dma_init: able to check out %d of %d packet_bds\n", tx_queue_entry_list.length, ETH_A_NUM_RX_BD);
 		return -1;
 	}
 
 	//Iterate over each Rx buffer descriptor
 	cur_bd_ptr = first_bd_ptr;
 	for(i = 0; i < bd_count; i++) {
-		//Set the memory address for this BD's buffer
+		//Set the memory address for this BD's buffer to the corresponding Tx queue entry buffer
+		// The Ethernet payload will be copied to an offset in the queue entry, leaving room for meta data at the front
 		buf_addr = (u32)((void*)((tx_queue_buffer*)(tx_queue_entry->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
-
 		status = XAxiDma_BdSetBufAddr(cur_bd_ptr, buf_addr);
 		if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetBufAddr failed (bd %d, addr 0x08x)! Err = %d\n", i, buf_addr, status); return -1;}
 
