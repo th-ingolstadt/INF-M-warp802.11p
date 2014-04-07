@@ -326,7 +326,25 @@ void purge_all_data_tx_queue(){
 	purge_queue(UNICAST_QID);         // Unicast Queue
 }
 
-void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details){
+/**
+ * @brief Callback to handle a packet after it was transmitted by the lower-level MAC
+ *
+ * This function is called when CPU Low indicates it has completed the Tx process for a packet previously
+ * submitted by CPU High.
+ *
+ * CPU High has two responsibilities post-Tx:
+ *  - Cleanup any resources dedicated to the packet
+ *  - Update any statistics and log info to reflect the Tx result
+ *
+ * @param tx_frame_info* tx_mpdu
+ *  - Pointer to the MPDU which was just transmitted
+ * @param wlan_mac_low_tx_details* tx_low_details
+ *  - Pointer to the array of data recorded by the lower-level MAC about each re-transmission of the MPDU
+ * @param u16 num_tx_low_details
+ *  - number of elements in array pointed to by previous argument
+ * @return None
+*/
+void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details){
 	u32 i;
 	tx_high_entry* tx_high_event_log_entry;
 	tx_low_entry*  tx_low_event_log_entry;
@@ -348,7 +366,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 	pkt_type = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
 
-	for(i = 0; i < tx_mpdu->num_tx; i++){
+	for(i = 0; i < num_tx_low_details; i++){
 
 		tx_low_event_log_entry = (tx_low_entry *)get_next_empty_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
 		if(tx_low_event_log_entry != NULL){
