@@ -284,6 +284,17 @@ void wlan_mac_high_init(){
 		}
 	}
 
+	// At boot init
+	userio_set_ctrlSrc_hw(USERIO_BASEADDR, (W3_USERIO_CTRLSRC_HEXDISP_DP_L | W3_USERIO_CTRLSRC_HEXDISP_DP_R));
+	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, ((W3_USERIO_CTRLSRC_HEXDISP_DP_L | W3_USERIO_CTRLSRC_HEXDISP_DP_R)));
+
+	userio_set_pwm_period(USERIO_BASEADDR, 500);
+
+	//Ramp must be disabled when changing ramp params
+	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
+	userio_set_pwm_ramp_min(USERIO_BASEADDR, 2);
+	userio_set_pwm_ramp_max(USERIO_BASEADDR, 450);
+
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
 	// ***************************************************
@@ -944,6 +955,35 @@ void wlan_mac_high_free(void* addr){
 }
 
 /**
+ * @brief Enable blinking of Hex Display's Decimal Points"
+ *
+ * This function will tell the User I/O to begin blinking the decimal points present on the
+ * hex displays on the board.
+ *
+ * @param None
+ * @return None
+ *
+ */
+void wlan_mac_high_enable_hex_dot_blink(){
+	userio_set_pwm_ramp_en(USERIO_BASEADDR, 1);
+}
+
+/**
+ * @brief Disable blinking of Hex Display's Decimal Points"
+ *
+ * This function will tell the User I/O to begin blinking the decimal points present on the
+ * hex displays on the board.
+ *
+ * @param None
+ * @return None
+ *
+ */
+void wlan_mac_high_disable_hex_dot_blink(){
+	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
+}
+
+
+/**
  * @brief Write a Decimal Value to the Hex Display
  *
  * This function will write a decimal value to the board's two-digit hex displays.
@@ -957,32 +997,6 @@ void wlan_mac_high_write_hex_display(u8 val){
    userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
    userio_write_hexdisp_left(USERIO_BASEADDR, val/10);
    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
-}
-
-/**
- * @brief Write Decimal Points in the Hex Display
- *
- * This can toggle the decimal point in each hex digit on the board.
- *
- * @param u8 dots_on
- *  - 1 to turn on both the left and right hex display dots
- *  - 0 to turn off both the left and right hex display dots
- * @return None
- *
- */
-void wlan_mac_high_write_hex_display_dots(u8 dots_on){
-	u32 left_hex,right_hex;
-
-	left_hex = userio_read_hexdisp_left(USERIO_BASEADDR);
-	right_hex = userio_read_hexdisp_right(USERIO_BASEADDR);
-
-	if(dots_on){
-		userio_write_hexdisp_left(USERIO_BASEADDR, W3_USERIO_HEXDISP_DP | left_hex);
-		userio_write_hexdisp_right(USERIO_BASEADDR, W3_USERIO_HEXDISP_DP | right_hex);
-	} else {
-		userio_write_hexdisp_left(USERIO_BASEADDR, (~W3_USERIO_HEXDISP_DP) & left_hex);
-		userio_write_hexdisp_right(USERIO_BASEADDR, (~W3_USERIO_HEXDISP_DP) & right_hex);
-	}
 }
 
 /**
