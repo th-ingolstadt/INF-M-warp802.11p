@@ -550,7 +550,8 @@ entry_tx.append_field_defs([
             ('result',                 'B',      'uint8'),
             ('pkt_type',               'B',      'uint8'),
             ('ant_mode',               'B',      'uint8'),
-            ('padding',                '3x',     '3uint8'),
+            ('queue_id',               'B',      'uint8'),
+            ('padding',                '2x',     '2uint8'),
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
 entry_tx.consts['SUCCESS'] = 0
