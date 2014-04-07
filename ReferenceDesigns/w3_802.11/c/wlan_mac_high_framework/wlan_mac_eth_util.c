@@ -560,7 +560,10 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	status = XAxiDma_BdRingAlloc(txRing_ptr, 1, &cur_bd_ptr);
 	status |= XAxiDma_BdSetBufAddr(cur_bd_ptr, (u32)pkt_ptr);
 	status |= XAxiDma_BdSetLength(cur_bd_ptr, length, txRing_ptr->MaxTransferLen);
-	if(status != XST_SUCCESS) {xil_printf("Error in setting ETH Tx BD! Err = %d\n", status); return -1;}
+	if(status != XST_SUCCESS) {
+		xil_printf("Error in setting ETH Tx BD! Err = %d\n", status);
+		return -1;
+	}
 
 	//When using 1 BD for 1 pkt set both start-of-frame (SOF) and end-of-frame (EOF)
 	XAxiDma_BdSetCtrl(cur_bd_ptr, (XAXIDMA_BD_CTRL_TXSOF_MASK | XAXIDMA_BD_CTRL_TXEOF_MASK) );
