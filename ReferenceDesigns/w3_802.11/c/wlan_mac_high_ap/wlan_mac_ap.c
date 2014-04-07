@@ -1263,14 +1263,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(association_table.length < MAX_NUM_ASSOC) associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
 
-					associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-					if(associated_station_log_entry != NULL){
-						associated_station_log_entry->timestamp = get_usec_timestamp();
-						memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
-					}
-
-
 					if(associated_station != NULL) {
+
+						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+						if(associated_station_log_entry != NULL){
+							associated_station_log_entry->timestamp = get_usec_timestamp();
+							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
+						}
 
 						memcpy(&(associated_station->tx),&default_unicast_data_tx_params, sizeof(tx_params));
 
