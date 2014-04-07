@@ -150,6 +150,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//tx_rate will be used in the construction of ACK packets. tx_rate is set to the incoming rx_rate
 	//This rate selection is specified in 9.7.6.5.2 of 802.11-2012
 	switch(rate){
+		default:
 		case WLAN_MAC_RATE_1M:
 			tx_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
 		break;
@@ -470,7 +471,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				}
 			} else {
 				if( (tx_status&WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE)){
-					rx_status = wlan_mac_low_poll_frame_rx();
+					wlan_mac_low_poll_frame_rx();
 				}
 			}
 		} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
