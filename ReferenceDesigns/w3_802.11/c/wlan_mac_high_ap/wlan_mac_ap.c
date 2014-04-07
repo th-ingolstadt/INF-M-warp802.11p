@@ -87,9 +87,6 @@ u32 		 mac_param_chan;
 // MAC address
 static u8 wlan_mac_addr[6];
 
-// Misc
-u32 animation_schedule_id;
-
 u8 tim_bitmap[1] = {0x0};
 u8 tim_control = 1;
 
@@ -213,7 +210,7 @@ int main(){
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
 
 	//  Periodic blinking of hex display leds (to indicate new associations are allowed)
-	animation_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ANIMATION_RATE_US, SCHEDULE_REPEAT_FOREVER, (void*)animate_hex);
+	wlan_mac_high_enable_hex_dot_blink();
 
 	// By default accept new associations forever
 	enable_associations( ASSOCIATION_ALLOW_PERMANENT );
@@ -555,7 +552,7 @@ void up_button(){
 
         case ASSOCIATION_ALLOW_NONE:
         	// Update state to allow associations temporarily
-        	animation_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ANIMATION_RATE_US, SCHEDULE_REPEAT_FOREVER, (void*)animate_hex);
+        	wlan_mac_high_enable_hex_dot_blink();
     		enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
     		wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
         break;
@@ -572,6 +569,7 @@ void up_button(){
     		disable_associations();
         break;
 	}
+
 
 	return;
 }
@@ -1407,19 +1405,11 @@ void disable_associations(){
 		allow_assoc      = 0;
 
 		// Stop the animation on the hex displays from continuing
-		wlan_mac_remove_schedule(SCHEDULE_COARSE, animation_schedule_id);
+		wlan_mac_high_disable_hex_dot_blink();
 
 		// Set the hex display
 		wlan_mac_high_write_hex_display(association_table.length);
-		wlan_mac_high_write_hex_display_dots(0);
 	}
-}
-
-void animate_hex(){
-	static u8 i = 0;
-	//wlan_mac_high_write_hex_display(next_free_assoc_index,i%2);
-	wlan_mac_high_write_hex_display_dots(i%2);
-	i++;
 }
 
 
