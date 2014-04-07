@@ -370,7 +370,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
 
-
 		//TODO: tx ant_mode will eventually be a part of wlan_mac_MPDU_tx_params_g()
 		wlan_tx_config_ant_mode(mpdu_info->params.phy.antenna_mode);
 //		wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
