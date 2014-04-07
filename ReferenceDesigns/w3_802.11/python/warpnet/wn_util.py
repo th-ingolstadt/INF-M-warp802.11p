@@ -233,36 +233,52 @@ def wn_get_serial_number(serial_number, output=True):
     Acceptable inputs:
         'W3-a-00001' or 'w3-a-00001' -- Succeeds quietly
         '00001' or '1' or 1          -- Succeeds with a warning
-
+    
     Returns:
         Tuple:  (serial_number, serial_number_str)
     """
+    max_sn        = 100000
+    sn_valid      = True
     ret_val       = None
     print_warning = False    
     
-    if type(serial_number) is int or type(serial_number) is long:
-        sn            = serial_number
-        sn_str        = "W3-a-{0:05d}".format(sn)
-        print_warning = True
-        ret_val       = (sn, sn_str)
-        
-    elif type(serial_number) is str or type(serial_number) is unicode:
-        expr = re.compile('((?P<prefix>[Ww]3-a-)|)(?P<sn>\d+)')
-        m    = expr.match(serial_number)
+    
+    expr = re.compile('((?P<prefix>[Ww]3-a-)|)(?P<sn>\d+)')
+    m    = expr.match(str(serial_number))
+    
+    try:
         if m:
-            sn      = int(m.group('sn'))
-            sn_str  = "W3-a-{0:05d}".format(sn)            
+            sn = int(m.group('sn'))
             
-            if not m.group('prefix'):
-                print_warning = True            
-            
-            ret_val = (sn, sn_str)
+            if (sn < max_sn):
+                sn_str  = "W3-a-{0:05d}".format(sn)            
+                
+                if not m.group('prefix'):
+                    print_warning = True            
+                
+                ret_val = (sn, sn_str)
+            else:
+                raise ValueError
+        
         else:
-            msg  = "Incorrect serial number.  \n"
-            msg += "    Should be of the form : W3-a-XXXXX\n"
-            raise TypeError(msg)
-    else:
-        raise TypeError("Serial number should be an int or str.")
+            sn = int(serial_number)
+            
+            if (sn < max_sn):
+                sn_str        = "W3-a-{0:05d}".format(sn)
+                print_warning = True
+                ret_val       = (sn, sn_str)
+            else:
+                raise ValueError
+    
+    except ValueError:
+        sn_valid = False
+    
+    if not sn_valid:
+        msg  = "Incorrect serial number: {0}\n".format(serial_number)
+        msg += "Requires one of:\n"
+        msg += "    - A string of the form: 'W3-a-XXXXX'\n"
+        msg += "    - An integer that is less than 5 digits.\n"
+        raise TypeError(msg)    
     
     if print_warning and output:
         msg  = "Interpreting provided serial number as "
