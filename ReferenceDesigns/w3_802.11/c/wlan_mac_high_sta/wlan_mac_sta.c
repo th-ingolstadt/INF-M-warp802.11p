@@ -406,7 +406,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		tx_high_event_log_entry->mac_payload_log_len = total_payload_len;
 		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_high_event_log_entry)->mac_payload), tx_80211_header, total_payload_len);
 		bzero(tx_high_event_log_entry->padding , sizeof(tx_high_event_log_entry->padding));
-		tx_high_event_log_entry->unique_seq				 = tx_mpdu->unique_seq;
+		tx_high_event_log_entry->unique_seq				  = tx_mpdu->unique_seq;
+		tx_high_event_log_entry->queue_id				  = tx_mpdu->QID;
 		tx_high_event_log_entry->result                   = tx_mpdu->tx_result;
 		tx_high_event_log_entry->power                    = tx_mpdu->params.phy.power;
 		tx_high_event_log_entry->length                   = tx_mpdu->length;
@@ -487,7 +488,7 @@ void attempt_association(){
 
 				tx_length = wlan_create_association_req_frame((void*)(tx_queue->frame), &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
 
-		 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+		 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
 
 		 		tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 				tx_queue->metadata.metadata_ptr = (u32)(&default_unicast_mgmt_tx_params);
@@ -548,7 +549,7 @@ void attempt_authentication(){
 
 				tx_length = wlan_create_auth_frame((void*)(tx_queue->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
 
-		 		wlan_mac_high_setup_tx_frame_info (&tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+		 		wlan_mac_high_setup_tx_frame_info (&tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
 
 		 		tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 				tx_queue->metadata.metadata_ptr = (u32)(&default_unicast_mgmt_tx_params);
@@ -645,7 +646,7 @@ void probe_req_transmit(){
 
 			tx_length = wlan_create_probe_req_frame((void*)(tx_queue->frame),&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
-	 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, 0 );
+	 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, 0, MANAGEMENT_QID );
 
 	 		tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 			tx_queue->metadata.metadata_ptr = (u32)(&default_multicast_mgmt_tx_params);
@@ -683,7 +684,7 @@ int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_l
 		wlan_create_data_frame((void*)(tx_queue->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
 
 			tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 			tx_queue->metadata.metadata_ptr = (u32)ap_station_info;
@@ -1162,7 +1163,7 @@ void ltg_event(u32 id, void* callback_arg){
 
 				tx_length += max(payload_length, sizeof(llc_header));
 
-				wlan_mac_high_setup_tx_frame_info (&tx_header_common, tx_queue_entry, tx_length,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO) );
+				wlan_mac_high_setup_tx_frame_info (&tx_header_common, tx_queue_entry, tx_length,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
 
 				tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 				tx_queue->metadata.metadata_ptr = (u32)ap_station_info;
