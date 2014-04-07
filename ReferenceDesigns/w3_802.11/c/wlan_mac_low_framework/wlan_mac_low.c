@@ -385,6 +385,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						break;
 					}
 
+
 					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
 						//Get pointer to start of MAC header in packet buffer
 						tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
