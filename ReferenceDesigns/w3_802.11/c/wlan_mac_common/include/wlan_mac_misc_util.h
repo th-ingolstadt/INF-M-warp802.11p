@@ -79,10 +79,13 @@ typedef struct{
 	u64	unique_seq;
 	u8 state;
 	u8 tx_result;
-	u8 flags;
+	u8 QID;
 	u8 num_tx;
+	u8 flags;
+	u8 padding1[3];
 	u16 length;
 	u16 AID;
+	u8 padding2[4];
 	tx_params params;
 } tx_frame_info;
 
