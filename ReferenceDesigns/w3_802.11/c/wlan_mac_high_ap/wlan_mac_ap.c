@@ -394,9 +394,11 @@ void purge_all_data_tx_queue(){
  *  - Pointer to the MPDU which was just transmitted
  * @param wlan_mac_low_tx_details* tx_low_details
  *  - Pointer to the array of data recorded by the lower-level MAC about each re-transmission of the MPDU
+ * @param u16 num_tx_low_details
+ *  - number of elements in array pointed to by previous argument
  * @return None
 */
-void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details) {
+void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details) {
 	u32 i;
 	tx_high_entry* tx_high_event_log_entry;
 	tx_low_entry*  tx_low_event_log_entry;
@@ -421,10 +423,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 	pkt_type = wlan_mac_high_pkt_type(mpdu, tx_mpdu->length);
 
-	// Iterate over the array of Tx records for this MPDO and create TX_LOW log entries for each
-	// FIXME: what if length(tx_low_details) < (tx_mpdu->num_tx)? This can happen if CPU_Low fails to malloc;
-	//  should length(tx_low_details) be an argument in the IPC msg?
-	for(i = 0; i < tx_mpdu->num_tx; i++) {
+	for(i = 0; i < num_tx_low_details; i++) {
 
 		//Request space for a TX_LOW log entry
 		tx_low_event_log_entry = (tx_low_entry *)get_next_empty_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
@@ -870,7 +869,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	void * mpdu = pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 	u16 tx_length;
-	u8 send_response;
+	u8 send_response = 0;
 	mac_header_80211* rx_80211_header;
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u16 rx_seq;
