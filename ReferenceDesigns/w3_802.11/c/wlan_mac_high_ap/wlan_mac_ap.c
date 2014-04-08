@@ -704,7 +704,7 @@ void ltg_event(u32 id, void* callback_arg){
  *  - 6-byte source address from original Ethernet packet
  * @param u16 tx_length
  *  - Length (in bytes) of the packet payload
- * @return 0 for successful enqueuing of the packet, 1 otherwise
+ * @return 1 for successful enqueuing of the packet, 0 otherwise
 */
 int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length){
 	//Receives the pre-encapsulated Ethernet frames
