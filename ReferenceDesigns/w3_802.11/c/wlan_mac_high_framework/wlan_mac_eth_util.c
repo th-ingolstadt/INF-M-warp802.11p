@@ -535,6 +535,12 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	XAxiDma_BdRing *txRing_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
 
+
+	if( (length == 0) || (length > 1514) ){
+		xil_printf("Error in wlan_eth_dma_send: length = %d\n", length);
+		return -1;
+	}
+
 	//Important: if the data cache is enabled the cache must be flushed before attempting to send a packet
 	// via the ETH DMA. The DMA will read packet contents directly from RAM, bypassing any cache checking
 	// normally done by the MicroBlaze
@@ -554,16 +560,24 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	//if(out_of_range == 0){
 
 	//Get pointer to the axi_dma Tx buffer descriptor ring
+
+
+
 	txRing_ptr = XAxiDma_GetTxRing(&ETH_A_DMA_Instance);
+
+	//FIXME: Now that we have checked out a ring, we should be sure to check it back in even if configuring it fails
+	//for some reason.
 
 	//Allocate and setup one Tx BD
 	status = XAxiDma_BdRingAlloc(txRing_ptr, 1, &cur_bd_ptr);
-	if(cur_bd_ptr != 0xBF54C000) {xil_printf("TX BD at wrong address! 0x08%x != 0x%08x\n", cur_bd_ptr, 0xBF54C000);}
+	//if((u32)cur_bd_ptr != 0xBF54C000) {xil_printf("TX BD at wrong address! 0x08%x != 0x%08x\n", cur_bd_ptr, 0xBF54C000);}
 
 	status |= XAxiDma_BdSetBufAddr(cur_bd_ptr, (u32)pkt_ptr);
 	status |= XAxiDma_BdSetLength(cur_bd_ptr, length, txRing_ptr->MaxTransferLen);
 	if(status != XST_SUCCESS) {
+		xil_printf("length = %d, txRing_ptr->MaxTransferLen = %d\n", length, txRing_ptr->MaxTransferLen );
 		xil_printf("Error in setting ETH Tx BD! Err = %d\n", status);
+		//while(1){}
 		return -1;
 	}
 

@@ -1149,10 +1149,6 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet) {
 	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
 
-
-
-
-
 	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_cpu_low_ready() )){
 		//Copy the packet into the transmit packet buffer
 		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
