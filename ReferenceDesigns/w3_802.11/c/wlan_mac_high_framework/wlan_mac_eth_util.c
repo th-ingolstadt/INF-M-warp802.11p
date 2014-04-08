@@ -558,6 +558,8 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 
 	//Allocate and setup one Tx BD
 	status = XAxiDma_BdRingAlloc(txRing_ptr, 1, &cur_bd_ptr);
+	if(cur_bd_ptr != 0xBF54C000) {xil_printf("TX BD at wrong address! 0x08%x != 0x%08x\n", cur_bd_ptr, 0xBF54C000);}
+
 	status |= XAxiDma_BdSetBufAddr(cur_bd_ptr, (u32)pkt_ptr);
 	status |= XAxiDma_BdSetLength(cur_bd_ptr, length, txRing_ptr->MaxTransferLen);
 	if(status != XST_SUCCESS) {
