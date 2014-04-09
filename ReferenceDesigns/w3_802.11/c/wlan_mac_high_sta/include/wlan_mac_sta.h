@@ -83,11 +83,11 @@ int main();
 
 void ltg_event(u32 id, void* callback_arg);
 
-int ethernet_receive(dl_list* tx_queue_list, u8* eth_dest, u8* eth_src, u16 tx_length);
+int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details);
-void check_tx_queue();
+void poll_tx_queues();
 void purge_all_data_tx_queue();
 
 void start_active_scan();
