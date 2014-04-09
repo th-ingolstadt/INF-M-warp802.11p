@@ -1133,12 +1133,12 @@ void wlan_mac_high_cdma_finish_transfer(){
  *
  * This function passes off an MPDU to the lower-level processor for transmission.
  *
- * @param dl_entry* packet
+ * @param tx_queue_entry* packet
  *  - Pointer to the packet that should be transmitted
  * @return None
  *
  */
-void wlan_mac_high_mpdu_transmit(dl_entry* packet) {
+void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu;
 	station_info* station;
@@ -1149,11 +1149,12 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet) {
 	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
 
-	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_cpu_low_ready() )){
+	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_ready_for_tx() )){
 		//Copy the packet into the transmit packet buffer
 		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 		src_addr = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
 		xfer_len = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
+
 
 		wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
 
@@ -1337,26 +1338,22 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
 }
 
 
-void wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, dl_entry * tx_queue_entry, u32 tx_length, u8 flags, u8 QID ) {
+void wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_queue_element * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID ) {
 
-	tx_queue_buffer* tx_queue = ((tx_queue_buffer*)(tx_queue_entry->data));
+	tx_queue_buffer* curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
 
-    // Set up metadata
-	tx_queue->metadata.metadata_ptr = QUEUE_METADATA_TYPE_IGNORE; //By default, this frame won't point to any extra metadata.
-																  //This field should be overwritten by usercode after this function
-																  //is called.
-	bzero(&(tx_queue->frame_info), sizeof(tx_frame_info));
+	bzero(&(curr_tx_queue_buffer->frame_info), sizeof(tx_frame_info));
 
 	// Set up frame info data
-	tx_queue->frame_info.timestamp_create			 = get_usec_timestamp();
-	tx_queue->frame_info.length          			 = tx_length;
-	tx_queue->frame_info.flags                       = flags;
+	curr_tx_queue_buffer->frame_info.timestamp_create			 = get_usec_timestamp();
+	curr_tx_queue_buffer->frame_info.length          			 = tx_length;
+	curr_tx_queue_buffer->frame_info.flags                       = flags;
 
-	tx_queue->frame_info.unique_seq					 = (header->seq_num)-1; //FIXME. This is very counterintuitive and needs to be fixed. Basically,
+	curr_tx_queue_buffer->frame_info.unique_seq					 = (header->seq_num)-1; //FIXME. This is very counterintuitive and needs to be fixed. Basically,
 																			//the seq_num field gets incremented just after it is inserted into the
 																			//the MAC header. If this function is called after that (dangerous assumption),
 																			//then we should decrement the value recognizing it had previously been incremented.
-	tx_queue->frame_info.QID = QID;
+	curr_tx_queue_buffer->frame_info.QID = QID;
 }
 
 /*****************************************************************************/
@@ -1724,7 +1721,7 @@ int wlan_mac_high_is_cpu_low_initialized(){
 	return ( (cpu_low_status & CPU_STATUS_INITIALIZED) != 0 );
 }
 
-int wlan_mac_high_is_cpu_low_ready(){
+int wlan_mac_high_is_ready_for_tx(){
 	// xil_printf("cpu_high_status = 0x%08x\n",cpu_high_status);
 	return ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0);
 }

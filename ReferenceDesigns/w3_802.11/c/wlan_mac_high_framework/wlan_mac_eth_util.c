@@ -214,8 +214,7 @@ int wlan_eth_dma_init() {
 	XAxiDma_Bd *first_bd_ptr;
 	XAxiDma_Bd *cur_bd_ptr;
 
-	dl_list 	tx_queue_entry_list;
-	dl_entry*	tx_queue_entry;
+	tx_queue_element*	curr_tx_queue_element;
 
 	ETH_A_DMA_CFG_ptr = XAxiDma_LookupConfig(ETH_A_DMA_DEV_ID);
 	status = XAxiDma_CfgInitialize(&ETH_A_DMA_Instance, ETH_A_DMA_CFG_ptr);
@@ -258,22 +257,20 @@ int wlan_eth_dma_init() {
 	status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, bd_count, &first_bd_ptr);
 	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return -1;}
 
-	//Request one wireless Tx queue entry for each Ethernet Rx buffer descriptor
-	queue_checkout(&tx_queue_entry_list, ETH_A_NUM_RX_BD);
-
-	if(tx_queue_entry_list.length == ETH_A_NUM_RX_BD){
-		tx_queue_entry = tx_queue_entry_list.first;
-	} else {
-		xil_printf("Error during wlan_eth_dma_init: able to check out %d of %d packet_bds\n", tx_queue_entry_list.length, ETH_A_NUM_RX_BD);
-		return -1;
-	}
-
 	//Iterate over each Rx buffer descriptor
 	cur_bd_ptr = first_bd_ptr;
 	for(i = 0; i < bd_count; i++) {
+
+		curr_tx_queue_element = queue_checkout();
+
+		if(curr_tx_queue_element == NULL){
+			xil_printf("Error during wlan_eth_dma_init: unable to check out sufficient tx_queue_element\n");
+			return -1;
+		}
+
 		//Set the memory address for this BD's buffer to the corresponding Tx queue entry buffer
 		// The Ethernet payload will be copied to an offset in the queue entry, leaving room for meta data at the front
-		buf_addr = (u32)((void*)((tx_queue_buffer*)(tx_queue_entry->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
+		buf_addr = (u32)((void*)((tx_queue_buffer*)(curr_tx_queue_element->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
 		status = XAxiDma_BdSetBufAddr(cur_bd_ptr, buf_addr);
 		if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetBufAddr failed (bd %d, addr 0x08x)! Err = %d\n", i, buf_addr, status); return -1;}
 
@@ -285,13 +282,10 @@ int wlan_eth_dma_init() {
 		XAxiDma_BdSetCtrl(cur_bd_ptr, 0);
 
 		//BD ID is arbitrary; use pointer to the dl_entry associated with this BD
-		XAxiDma_BdSetId(cur_bd_ptr, (u32)tx_queue_entry);
+		XAxiDma_BdSetId(cur_bd_ptr, (u32)curr_tx_queue_element);
 
 		//Update cur_bd_ptr to the next BD in the chain for the next iteration
 		cur_bd_ptr = XAxiDma_BdRingNext(ETH_A_RxRing_ptr, cur_bd_ptr);
-
-		//Traverse forward in the checked-out packet_bd list
-		tx_queue_entry = dl_entry_next(tx_queue_entry);
 	}
 
 	//Push the Rx BD ring to hardware and start receiving
@@ -626,10 +620,9 @@ inline void wlan_poll_eth_rx() {
 	XAxiDma_Bd *first_bd_ptr;
 	u8* mpdu_start_ptr;
 	u8* eth_start_ptr;
-	dl_entry* tx_queue_entry;
+	tx_queue_element* curr_tx_queue_element;
 	u32 eth_rx_len, eth_rx_buf;
 	u32 mpdu_tx_len;
-	dl_list tx_queue_list;
 	u32 i;
 
 	int bd_count;
@@ -665,20 +658,15 @@ inline void wlan_poll_eth_rx() {
 
 		//A packet has been received and transferred by DMA
 		// We use the DMA "ID" field to hold a pointer to the Tx queue entry containing the packet contents
-		tx_queue_entry = (dl_entry*)XAxiDma_BdGetId(cur_bd_ptr);
+		curr_tx_queue_element = (tx_queue_element*)XAxiDma_BdGetId(cur_bd_ptr);
 
 		//Lookup length and data pointers from the DMA metadata
 		eth_rx_len = XAxiDma_BdGetActualLength(cur_bd_ptr, rxRing_ptr->MaxTransferLen);
 		eth_rx_buf = XAxiDma_BdGetBufAddr(cur_bd_ptr);
 
 		//After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
-		mpdu_start_ptr = (void*)((tx_queue_buffer*)(tx_queue_entry->data))->frame;
+		mpdu_start_ptr = (void*)((tx_queue_buffer*)(curr_tx_queue_element->data))->frame;
 		eth_start_ptr = (u8*)eth_rx_buf;
-
-		//Create an empty DL list to hold the queue entry
-		// This wrapping is required to enqueue the packet (enqueue == merge DL lists)
-		dl_list_init(&tx_queue_list);
-		dl_entry_insertEnd(&tx_queue_list, tx_queue_entry);
 
 		//Encapsulate the Ethernet packet
 		// See the 802.11 Ref Design user guide for details on the encapsulation process
@@ -691,7 +679,7 @@ inline void wlan_poll_eth_rx() {
 		} else {
 			//Call the MAC's callback to process the packet
 			// MAC will either enqueue the packet for eventual transmission or reject the packet
-			packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+			packet_is_queued = eth_rx_callback(curr_tx_queue_element, eth_dest, eth_src, mpdu_tx_len);
 		}
 
 		//If the packet was not successfully enqueued, discard it and return its queue entry to the free pool
@@ -701,7 +689,7 @@ inline void wlan_poll_eth_rx() {
 			// The MAC will fail if the appropriate queue was full or the Ethernet addresses were not recognized.
 
 			//Return the occupied queue entry to the free pool
-			queue_checkin(&tx_queue_list);
+			queue_checkin(curr_tx_queue_element);
 		}
 
 		//Free the ETH DMA buffer descriptor
@@ -935,7 +923,7 @@ void wlan_eth_dma_update() {
 
 	if(bd_queue_pairs_to_process > 0) {
 		//Checkout free queue entries for each BD we can process
-		queue_checkout(&checkout, bd_queue_pairs_to_process);
+		queue_checkout_list(&checkout, bd_queue_pairs_to_process);
 
 		//Update number of BDs to process if queue couldn't provide enough free entries
 		// Handles rare race of queue status changing between queue_num_free() and queue_checkout()

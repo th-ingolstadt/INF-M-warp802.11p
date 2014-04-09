@@ -60,11 +60,6 @@ int queue_init(){
 	if(dram_present == 1){
 		MAX_SIZE_FOR_PACKET_BD_DL_LIST = 48000;
 		QUEUE_NUM_DL_ENTRY = MAX_SIZE_FOR_PACKET_BD_DL_LIST / (sizeof(dl_entry));
-
-		//Use DRAM
-		//QUEUE_NUM_DL_ENTRY = 2400; //FIXME: Temporary fix to deal with the embiggened dl_entry struct
-		//QUEUE_NUM_DL_ENTRY = 3000; ///Do not increase. The user scratch place in DRAM begins immediately following
-						   ///the queue.
 		xil_printf("Queue of %d placed in DRAM: using %d kB\n", QUEUE_NUM_DL_ENTRY, (QUEUE_NUM_DL_ENTRY*QUEUE_BUFFER_SIZE)/1024);
 		QUEUE_BUFFER_SPACE = (void*)(DDR3_BASEADDR);
 
@@ -103,8 +98,9 @@ int queue_total_size(){
 }
 
 void purge_queue(u16 queue_sel){
-	dl_list		   dequeue;
-	u32            num_queued;
+	u32             num_queued;
+	u32			    i;
+	tx_queue_element* curr_tx_queue_element;
 
 	// The queue purge is not interrupt safe
 	wlan_mac_high_interrupt_stop();
@@ -113,19 +109,21 @@ void purge_queue(u16 queue_sel){
 
 	if( num_queued > 0 ){
 		xil_printf("purging %d packets from queue for queue ID %d\n", num_queued, queue_sel);
-		dequeue_from_beginning(&dequeue, queue_sel, num_queued);
-		queue_checkin(&dequeue);
+
+		for(i = 0; i < num_queued; i++){
+			curr_tx_queue_element = dequeue_from_head(queue_sel);
+			queue_checkin(curr_tx_queue_element);
+		}
 	}
 
 	// Re-enable interrupts now that we are done
 	wlan_mac_high_interrupt_start();
 }
 
-void enqueue_after_end(u16 queue_sel, dl_list* list){
+void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
 	u32 i;
 
-	dl_entry* next_dl_entry;
-	dl_entry* curr_dl_entry;
+	dl_entry* curr_dl_entry = (dl_entry*)tqe;
 
     if((queue_sel+1) > num_queue_tx){
     	queue_tx = wlan_mac_high_realloc(queue_tx, (queue_sel+1)*sizeof(dl_list));
@@ -142,22 +140,14 @@ void enqueue_after_end(u16 queue_sel, dl_list* list){
 
     }
 
-	curr_dl_entry = (dl_entry*)(list->first);
+	dl_entry_insertEnd(&(queue_tx[queue_sel]),curr_dl_entry);
 
-	while(curr_dl_entry != NULL){
-		next_dl_entry = dl_entry_next(curr_dl_entry);
-		dl_entry_remove(list,curr_dl_entry);
-		dl_entry_insertEnd(&(queue_tx[queue_sel]),curr_dl_entry);
-		curr_dl_entry = next_dl_entry;
-	}
 	return;
 }
 
-void dequeue_from_beginning(dl_list* new_list, u16 queue_sel, u16 num_packet_bd){
-	u32 i,num_dequeue;
+tx_queue_element* dequeue_from_head(u16 queue_sel){
+	tx_queue_element* tqe;
 	dl_entry* curr_dl_entry;
-
-	dl_list_init(new_list);
 
 	if((queue_sel+1) > num_queue_tx){
 		//The calling function is asking to empty from a queue_tx element that is
@@ -166,24 +156,17 @@ void dequeue_from_beginning(dl_list* new_list, u16 queue_sel, u16 num_packet_bd)
 		//ready to send to a station before any have ever been queued up for that
 		//station. In this case, we simply return the newly initialized new_list
 		//that says that no packets are currently in the queue_sel queue_tx.
-		return;
+		return NULL;
 	} else {
-
-		if(num_packet_bd <= queue_tx[queue_sel].length){
-			num_dequeue = num_packet_bd;
+		if(queue_tx[queue_sel].length == 0){
+			return NULL;
 		} else {
-			num_dequeue = queue_tx[queue_sel].length;
-		}
-
-		for (i=0;i<num_dequeue;i++){
 			curr_dl_entry = (queue_tx[queue_sel].first);
-			//Remove from free list
 			dl_entry_remove(&queue_tx[queue_sel],curr_dl_entry);
-			//Add to new checkout list
-			dl_entry_insertEnd(new_list,curr_dl_entry);
+			tqe = (tx_queue_element*)curr_dl_entry;
+			return tqe;
 		}
 	}
-	return;
 }
 
 u32 queue_num_free(){
@@ -198,7 +181,25 @@ u32 queue_num_queued(u16 queue_sel){
 	}
 }
 
-void queue_checkout(dl_list* new_list, u16 num_packet_bd){
+tx_queue_element* queue_checkout(){
+	tx_queue_element* tqe;
+
+	if(queue_free.length > 0){
+		tqe = ((tx_queue_element*)(queue_free.first));
+		dl_entry_remove(&queue_free,queue_free.first);
+		((tx_queue_buffer*)(tqe->data))->metadata.metadata_type = QUEUE_METADATA_TYPE_IGNORE;
+		return tqe;
+	} else {
+		return NULL;
+	}
+}
+
+void queue_checkin(tx_queue_element* tqe){
+	dl_entry_insertEnd(&queue_free,(dl_entry*)tqe);
+	return;
+}
+
+void queue_checkout_list(dl_list* new_list, u16 num_tqe){
 	//Checks out up to num_packet_bd number of packet_bds from the free list. If num_packet_bd are not free,
 	//then this function will return the number that are free and only check out that many.
 
@@ -207,8 +208,8 @@ void queue_checkout(dl_list* new_list, u16 num_packet_bd){
 
 	dl_list_init(new_list);
 
-	if(num_packet_bd <= queue_free.length){
-		num_checkout = num_packet_bd;
+	if(num_tqe <= queue_free.length){
+		num_checkout = num_tqe;
 	} else {
 		num_checkout = queue_free.length;
 	}
@@ -225,40 +226,23 @@ void queue_checkout(dl_list* new_list, u16 num_packet_bd){
 	return;
 }
 
-void queue_checkin(dl_list* list){
-	dl_entry* curr_dl_entry;
-	dl_entry* next_dl_entry;
 
-	curr_dl_entry = list->first;
 
-	while(curr_dl_entry != NULL){
-		next_dl_entry = dl_entry_next(curr_dl_entry);
-		dl_entry_remove(list,curr_dl_entry);
-		dl_entry_insertEnd(&queue_free,curr_dl_entry);
-		curr_dl_entry = next_dl_entry;
-	}
-
-	return;
-}
-
-int wlan_mac_queue_poll(u16 queue_sel){
+inline int dequeue_transmit_checkin(u16 queue_sel){
 	int return_value = 0;
 
-	dl_list dequeue;
-	dl_entry* tx_queue_entry;
+	tx_queue_element* curr_tx_queue_element;
 
-	dequeue_from_beginning(&dequeue, queue_sel,1);
+	if(wlan_mac_high_is_ready_for_tx()){
 
-	//xil_printf("wlan_mac_poll_tx_queue(%d)\n", queue_sel);
+		curr_tx_queue_element = dequeue_from_head(queue_sel);
 
-	if(dequeue.length == 1){
-		return_value = 1;
-		tx_queue_entry = dequeue.first;
-
-		wlan_mac_high_mpdu_transmit(tx_queue_entry);
-		queue_checkin(&dequeue);
-		wlan_eth_dma_update();
+		if(curr_tx_queue_element != NULL){
+			return_value = 1;
+			wlan_mac_high_mpdu_transmit(curr_tx_queue_element);
+			queue_checkin(curr_tx_queue_element);
+			wlan_eth_dma_update();
+		}
 	}
-
 	return return_value;
 }

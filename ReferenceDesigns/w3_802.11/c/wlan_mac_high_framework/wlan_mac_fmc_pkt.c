@@ -48,8 +48,7 @@ int fmc_ipc_rx(){
 	u32 pkt_bytes_read;
 	u16 num_words;
 	u64 timestamp = get_usec_timestamp();
-	dl_list checkout;
-	dl_entry*	tx_queue_entry;
+	tx_queue_element*	curr_tx_queue_element;
 	void* buf_addr;
 	u8 packet_is_queued = 0;
 
@@ -58,7 +57,6 @@ int fmc_ipc_rx(){
 	u8* mpdu_start_ptr;
 	u8* eth_start_ptr;
 	u32 eth_rx_len, eth_rx_buf;
-	dl_list tx_queue_list;
 	u32 mpdu_tx_len;
 
 	//while((XMbox_IsEmpty(&fmc_ipc_mailbox)==0)  &&   (get_usec_timestamp() < (timestamp+FMC_TIMEOUT_USEC))){
@@ -102,12 +100,11 @@ int fmc_ipc_rx(){
 				//xil_printf("    Length: %d\n", ipc_msg_from_fmc.size_bytes);
 
 				if(ipc_msg_from_fmc.size_bytes < FMC_IPC_BUFFER_SIZE){
-					queue_checkout(&checkout, 1);
+					curr_tx_queue_element = queue_checkout();
 
-					if(checkout.length == 1){
-						tx_queue_entry = checkout.first;
+					if(curr_tx_queue_element != NULL){
 
-						buf_addr = (void*)((tx_queue_buffer*)(tx_queue_entry->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header) - MBOX_ALIGN_OFFSET;
+						buf_addr = (void*)((tx_queue_buffer*)(curr_tx_queue_element->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header) - MBOX_ALIGN_OFFSET;
 
                         if( ( ipc_msg_from_fmc.size_bytes + MBOX_ALIGN_OFFSET ) & 0x3){
 							num_words = (ipc_msg_from_fmc.size_bytes+4+MBOX_ALIGN_OFFSET)>>2; //Division by 4
@@ -121,7 +118,7 @@ int fmc_ipc_rx(){
 						while(pkt_bytes_read < (num_words<<2)){
 							if(get_usec_timestamp() > (timestamp+FMC_TIMEOUT_USEC)){
 								xil_printf("Timeout in packet read!\n");
-								queue_checkin(&checkout);
+								queue_checkin(curr_tx_queue_element);
 								return 0; //Stuff is still in the mailbox. Returning 0 tells the ISR to not clear the interrupt.
 							}
 
@@ -150,11 +147,9 @@ int fmc_ipc_rx(){
 						eth_rx_buf = (u32)((u8 *)buf_addr + MBOX_ALIGN_OFFSET);
 
 						//After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
-						mpdu_start_ptr = ((tx_queue_buffer*)(tx_queue_entry->data))->frame;
+						mpdu_start_ptr = ((tx_queue_buffer*)(curr_tx_queue_element->data))->frame;
 						eth_start_ptr = (u8*)eth_rx_buf;
 
-						dl_list_init(&tx_queue_list);
-						dl_entry_insertEnd(&tx_queue_list, tx_queue_entry);
 
 						mpdu_tx_len = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 
@@ -167,12 +162,12 @@ int fmc_ipc_rx(){
 							xil_printf("     eth_dest: %02x-%02x-%02x-%02x-%02x-%02x\n", eth_dest[0],eth_dest[1],eth_dest[2],eth_dest[3],eth_dest[4],eth_dest[5]);
 							xil_printf("     eth_src:  %02x-%02x-%02x-%02x-%02x-%02x\n", eth_src[0],eth_src[1],eth_src[2],eth_src[3],eth_src[4],eth_src[5]);
 #endif
-							packet_is_queued = eth_rx_callback(&tx_queue_list, eth_dest, eth_src, mpdu_tx_len);
+							packet_is_queued = eth_rx_callback(curr_tx_queue_element, eth_dest, eth_src, mpdu_tx_len);
 						}
 
 						if(packet_is_queued == 0){
 						//	xil_printf("   ...checking in\n");
-							queue_checkin(&checkout);
+							queue_checkin(curr_tx_queue_element);
 						}
 
 						return 0;
