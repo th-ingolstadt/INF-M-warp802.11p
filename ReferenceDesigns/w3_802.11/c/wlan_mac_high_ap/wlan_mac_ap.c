@@ -602,15 +602,18 @@ void ltg_event(u32 id, void* callback_arg){
 	dl_entry*	  station_info_entry;
 	station_info* station;
 	u8* addr_da;
+	u8 is_multicast;
 
 	switch(((ltg_pyld_hdr*)callback_arg)->type){
 		case LTG_PYLD_TYPE_FIXED:
 			addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
+			is_multicast = wlan_addr_mcast(addr_da);
 			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
 			station_info_entry = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
 		break;
 		case LTG_PYLD_TYPE_UNIFORM_RAND:
 			addr_da = ((ltg_pyld_uniform_rand*)callback_arg)->addr_da;
+			is_multicast = wlan_addr_mcast(addr_da);
 			payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
 			station_info_entry = wlan_mac_high_find_station_info_ADDR(&association_table, addr_da);
 		break;
@@ -625,12 +628,8 @@ void ltg_event(u32 id, void* callback_arg){
 		break;
 	}
 
-	//Iterate over destination STAs
-	// Single-packet LTGs will execute this loop once
-	while(station_info_entry != NULL) {
-		station = (station_info*)(station_info_entry->data);
-
-		if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size) {
+	if(is_multicast){
+		if(queue_num_queued(MCAST_QID) < max_queue_size) {
 			//Send a Data packet to this station
 			//Checkout 1 element from the queue;
 			queue_checkout(&checkout, 1);
@@ -640,7 +639,7 @@ void ltg_event(u32 id, void* callback_arg){
 
 				tx_queue = ((tx_queue_buffer*)(tx_queue_entry->data));
 
-				wlan_mac_high_setup_tx_header( &tx_header_common, station->addr, wlan_mac_addr );
+				wlan_mac_high_setup_tx_header( &tx_header_common, addr_da, wlan_mac_addr );
 
 				mpdu_ptr_u8 = (u8*)(tx_queue->frame);
 				tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
@@ -659,29 +658,78 @@ void ltg_event(u32 id, void* callback_arg){
 				tx_length += max(payload_length, sizeof(llc_header));
 
 				//Finally prepare the 802.11 header
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(station->AID));
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MCAST_QID);
 
 				//Update the queue entry metadata to reflect the new new queue entry contents
-				tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-				tx_queue->metadata.metadata_ptr = (u32)station;
-				tx_queue->frame_info.AID = station->AID;
+				tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+				tx_queue->metadata.metadata_ptr = (u32)(&default_multicast_data_tx_params);
 
 				//Submit the new packet to the appropriate queue
-				enqueue_after_end(AID_TO_QID(station->AID), &checkout);
+				enqueue_after_end(MCAST_QID, &checkout);
 
 				//Poll all Tx queues, in case the just-submitted packet can be de-queueued and transmitted immediately
 				check_tx_queue();
 			}
 		} //END successful queue checkout
+	} else {
+		//Iterate over destination STAs
+		// Single-packet LTGs will execute this loop once
+		while(station_info_entry != NULL) {
+			station = (station_info*)(station_info_entry->data);
 
-		//Select next STA if transmitted to all; otherwise terminate loop
-		if(LTG_PYLD_TYPE_ALL_ASSOC_FIXED){
-			station_info_entry = dl_entry_next(station_info_entry);
-		} else {
-			station_info_entry = NULL;
-		}
+			if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size) {
+				//Send a Data packet to this station
+				//Checkout 1 element from the queue;
+				queue_checkout(&checkout, 1);
 
-	} //END iterate over all selected STAs
+				if(checkout.length == 1){ //There was at least 1 free queue element
+					tx_queue_entry = checkout.first;
+
+					tx_queue = ((tx_queue_buffer*)(tx_queue_entry->data));
+
+					wlan_mac_high_setup_tx_header( &tx_header_common, station->addr, wlan_mac_addr );
+
+					mpdu_ptr_u8 = (u8*)(tx_queue->frame);
+					tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
+
+					mpdu_ptr_u8 += sizeof(mac_header_80211);
+					llc_hdr = (llc_header*)(mpdu_ptr_u8);
+
+					//Prepare the MPDU LLC header
+					llc_hdr->dsap = LLC_SNAP;
+					llc_hdr->ssap = LLC_SNAP;
+					llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
+					bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
+					llc_hdr->type = LLC_TYPE_WLAN_LTG;
+
+					//LTG packets always have LLC header, plus any extra payload requested by user
+					tx_length += max(payload_length, sizeof(llc_header));
+
+					//Finally prepare the 802.11 header
+					wlan_mac_high_setup_tx_frame_info ( &tx_header_common, tx_queue_entry, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(station->AID));
+
+					//Update the queue entry metadata to reflect the new new queue entry contents
+					tx_queue->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+					tx_queue->metadata.metadata_ptr = (u32)station;
+					tx_queue->frame_info.AID = station->AID;
+
+					//Submit the new packet to the appropriate queue
+					enqueue_after_end(AID_TO_QID(station->AID), &checkout);
+
+					//Poll all Tx queues, in case the just-submitted packet can be de-queueued and transmitted immediately
+					check_tx_queue();
+				}
+			} //END successful queue checkout
+
+			//Select next STA if transmitted to all; otherwise terminate loop
+			if(LTG_PYLD_TYPE_ALL_ASSOC_FIXED){
+				station_info_entry = dl_entry_next(station_info_entry);
+			} else {
+				station_info_entry = NULL;
+			}
+
+		} //END iterate over all selected STAs
+	}
 
 	return;
 }
