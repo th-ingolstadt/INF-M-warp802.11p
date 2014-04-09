@@ -1,22 +1,6 @@
-# -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Log Utilities
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a pom  01/27/14 Initial release
-1.10a ejw  03/21/14 Major restructuring / documenting
-
-------------------------------------------------------------------------------
+log_util.py
+==============
 
 This module provides utility functions for handling WLAN Exp log data.
 
@@ -37,12 +21,7 @@ Naming convention:
   numpy          -- A python package that allows easy and fast manipulation of 
                     large data sets.  You can find more documentaiton on numpy at:
                         http://www.numpy.org/
-
-Functions (see below for more information):
-    gen_log_data_index()          -- Generate a byte index given a WLAN Exp log file
-    filter_log_index()            -- Filter a log index with given parameters
-    log_data_to_np_arrays()       -- Generate a numpy structured array (ndarray) of log entries
-    
+----
 """
 
 __all__ = ['gen_log_data_index', 
@@ -432,7 +411,7 @@ def print_log_index_summary(log_index, title=None):
 # End log_index_print_summary()
 
 
-def print_log_entries(log_bytes, log_index, entries_slice=None):
+def _print_log_entries(log_bytes, log_index, entries_slice=None):
     """Work in progress - built for debugging address issues, some variant of this will be useful
     for creating text version of raw log w/out requiring numpy"""
 
@@ -462,7 +441,7 @@ def print_log_entries(log_bytes, log_index, entries_slice=None):
         entry_type = entry_types[entry_type_id]
 
         #Use the entry_type's class method to string-ify itself
-        print(entry_type.entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
+        print(entry_type._entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
 
 # End print_log_entries()
 

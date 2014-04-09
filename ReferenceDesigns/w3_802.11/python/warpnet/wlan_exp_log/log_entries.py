@@ -1,6 +1,6 @@
 """
 log_entries.py
-===========
+==============
 
 This module defines each type of log entry that may exist
 in the event log of an 802.11 Reference Design Node.
@@ -40,8 +40,7 @@ To define a custom log entry type::
             ('field_A',                'H',      'uint16'),
             ('field_B',                'H',      'uint16')])
 
-
-
+----
 """
 from struct import unpack, calcsize, error
 import numpy as np
@@ -190,8 +189,11 @@ class WlanExpLogEntryType(object):
         return np_arr
 
 
-    def entry_as_string(self, buf):
-        """Generate a string representation of the entry from a buffer."""
+    def _entry_as_string(self, buf):
+        """Generate a string representation of the entry from a buffer. This method sould only
+        be used for debugging log data parsing and log index generation, not for general creation
+        of text log files."""
+        
         entry_size = calcsize(self.fields_fmt_struct)
         entry      = self.deserialize(buf[0:entry_size])[0]
                 
