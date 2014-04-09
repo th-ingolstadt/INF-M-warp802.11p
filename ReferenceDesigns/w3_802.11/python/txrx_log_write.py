@@ -66,8 +66,8 @@ def print_log_size():
     ap_log_size  = n_ap.log_get_size()
     sta_log_size = n_sta.log_get_size()
     
-    print("Log Sizes:  AP  = {0:10d} bytes".format(ap_log_size))
-    print("            STA = {0:10d} bytes".format(sta_log_size))
+    print("Log Sizes:  AP  = {0:10,d} bytes".format(ap_log_size))
+    print("            STA = {0:10,d} bytes".format(sta_log_size))
 
 
 
@@ -88,7 +88,7 @@ nodes_config = wn_config.NodesConfiguration(host_config=host_config,
 nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
 
 # Set the time of all the nodes to zero
-wlan_exp_util.broadcast_node_set_time(0.0, host_config)
+wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
 
 # Extract the AP and STA nodes from the list of initialized nodes
 n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
@@ -106,7 +106,7 @@ else:
     sys.exit(0)
 
 # Check that the nodes are associated.  Otherwise, the LTGs below will fail.
-if not n_ap.node_is_associated(n_sta):
+if not n_ap.is_associated(n_sta):
     print("\nERROR: Nodes are not associated.")
     print("    Ensure that the AP and the STA are associated.")
     sys.exit(0)
@@ -120,12 +120,12 @@ wlan_rates = wlan_exp_util.wlan_rates
 
 # Put each node in a known, good state
 for node in nodes:
-    node.node_set_tx_rate_unicast(wlan_rates[3], curr_assoc=True, new_assoc=True)
+    node.set_tx_rate_unicast(wlan_rates[3], curr_assoc=True, new_assoc=True)
     node.log_configure(log_full_payloads=True)
-    node.node_reset_all()
+    node.reset_all()
 
 # Add the current time to all the nodes
-wlan_exp_util.broadcast_node_add_current_time_to_log(host_config)
+wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
 
 
 
@@ -154,10 +154,10 @@ for idx, rate in enumerate(wlan_rates):
     print("  Rate {0} ... ".format(wlan_exp_util.tx_rate_to_str(rate)))
 
     # Configure the AP's Tx rate for the selected STA
-    n_ap.node_set_tx_rate_unicast(rate, device_list=n_sta)
+    n_ap.set_tx_rate_unicast(rate, device_list=n_sta)
 
     # Configure the STA's Tx rate for the selected AP
-    n_sta.node_set_tx_rate_unicast(rate, device_list=n_ap)
+    n_sta.set_tx_rate_unicast(rate, device_list=n_ap)
 
     # Let the LTG flows run at the new rate
     time.sleep(TRIAL_TIME)
@@ -176,8 +176,8 @@ print_log_size()
 # Write Log Files for processing by other scripts
 print("\nWriting Log Files...")
 
-write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new(log_tail_pad=0, max_req_size=2**23))
-write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new(log_tail_pad=0, max_req_size=2**23))
+write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new(log_tail_pad=0))
+write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new(log_tail_pad=0))
 
 print("Done.")
 

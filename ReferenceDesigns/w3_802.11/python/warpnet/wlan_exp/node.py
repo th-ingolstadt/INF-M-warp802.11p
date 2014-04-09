@@ -202,7 +202,9 @@ class WlanExpNode(wn_node.WnNode):
            WARPNet Buffer that contains all entries since the last time the 
              log was read.
         """
-        return_val = b''
+        import warpnet.wn_message as wn_message
+        
+        return_val = wn_message.Buffer()
         (next_index, oldest_index, num_wraps) = self.log_get_indexes()
 
         if (num_wraps == self.log_num_wraps):
@@ -445,19 +447,19 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Configure Node Attribute Commands
     #--------------------------------------------
-    def node_reset_all(self):
+    def reset_all(self):
         """Resets all portions of a node."""
-        status = self.node_reset(log=True, 
-                                 txrx_stats=True, 
-                                 ltg=True, 
-                                 queue_data=True, 
-                                 associations=True)
+        status = self.reset(log=True, 
+                            txrx_stats=True, 
+                            ltg=True, 
+                            queue_data=True, 
+                            associations=True)
 
         if (status == cmds.LTG_ERROR):
             print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
     
 
-    def node_reset(self, log=False, txrx_stats=False, ltg=False, queue_data=False, 
+    def reset(self, log=False, txrx_stats=False, ltg=False, queue_data=False, 
                    associations=False ):
         """Resets the state of node depending on the attributes.
         
@@ -484,7 +486,7 @@ class WlanExpNode(wn_node.WnNode):
         self.send_cmd(cmds.NodeResetState(flags))
 
 
-    def node_is_associated(self, device_list):
+    def is_associated(self, device_list):
         """Is the node associated with the devices in the device list.
         
         Returns:
@@ -495,7 +497,7 @@ class WlanExpNode(wn_node.WnNode):
         booleans will be returned in the same order as the devices in the
         list.
         
-        For node_is_associated to return True, one of the following conditions 
+        For is_associated to return True, one of the following conditions 
         must be met:
           1) If the device is a wlan_exp node, then both the node and the 
              device must be associated.
@@ -508,7 +510,7 @@ class WlanExpNode(wn_node.WnNode):
         if device_list is not None:
             if (type(device_list) is list):
                 for idx, device in enumerate(device_list):
-                    my_info   = self.node_get_station_info(device)
+                    my_info   = self.get_station_info(device)
                     
                     try:
                         dev_info = device.send_cmd(cmds.NodeGetStationInfo(self))
@@ -521,7 +523,7 @@ class WlanExpNode(wn_node.WnNode):
                     else:
                         ret_val.append(False)
             else:
-                my_info   = self.node_get_station_info(device_list)
+                my_info   = self.get_station_info(device_list)
                 try:
                     dev_info = device_list.send_cmd(cmds.NodeGetStationInfo(self))
                 except AttributeError:
@@ -537,7 +539,7 @@ class WlanExpNode(wn_node.WnNode):
         return ret_val
 
 
-    def node_get_station_info(self, device_list=None):
+    def get_station_info(self, device_list=None):
         """Get the station info from the node.
         
         Returns:
@@ -567,7 +569,7 @@ class WlanExpNode(wn_node.WnNode):
         return ret_val
     
 
-    def node_set_time(self, time, time_id=None):
+    def set_time(self, time, time_id=None):
         """Sets the time in microseconds on the node.
         
         Attributes:
@@ -576,27 +578,27 @@ class WlanExpNode(wn_node.WnNode):
         self.send_cmd(cmds.NodeProcTime(cmds.NODE_WRITE, time, time_id))
     
 
-    def node_get_time(self):
+    def get_time(self):
         """Gets the time in microseconds from the node."""
         return self.send_cmd(cmds.NodeProcTime(cmds.NODE_READ, cmds.RSVD_TIME))
 
 
-    def node_add_current_time_to_log(self, time_id=None):
+    def write_time_to_log(self, time_id=None):
         """Adds the current time in microseconds to the log."""
         return self.send_cmd(cmds.NodeProcTime(cmds.TIME_ADD_TO_LOG, cmds.RSVD_TIME, time_id))
 
 
-    def node_set_channel(self, channel):
+    def set_channel(self, channel):
         """Sets the channel of the node and returns the channel that was set."""
         return self.send_cmd(cmds.NodeProcChannel(cmds.NODE_WRITE, channel))
     
 
-    def node_get_channel(self):
+    def get_channel(self):
         """Gets the current channel of the node."""
         return self.send_cmd(cmds.NodeProcChannel(cmds.NODE_READ, cmds.NODE_RSVD))
 
 
-    def node_set_tx_rate_unicast(self, rate, device_list=None, curr_assoc=False, new_assoc=False):
+    def set_tx_rate_unicast(self, rate, device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast transmit rate of the node.
         
         One of device_list, curr_assoc or new_assoc must be set.  The device_list
@@ -612,7 +614,7 @@ class WlanExpNode(wn_node.WnNode):
         self._node_set_tx_param_unicast(cmds.NodeProcTxRate, rate, 'rate', device_list, curr_assoc, new_assoc)
         
 
-    def node_get_tx_rate_unicast(self, device_list=None, new_assoc=False):
+    def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
         """Gets the unicast transmit rate of the node.
 
         Attributes:
@@ -628,7 +630,7 @@ class WlanExpNode(wn_node.WnNode):
         return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', device_list, new_assoc)
 
 
-    def node_set_tx_rate_multicast_data(self, rate):
+    def set_tx_rate_multicast_data(self, rate):
         """Sets the multicast transmit rate for a node.
 
         Attributes:
@@ -637,7 +639,7 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_WRITE, cmds.NODE_MULTICAST, rate))
 
 
-    def node_get_tx_rate_multicast_data(self):
+    def get_tx_rate_multicast_data(self):
         """Gets the current multicast transmit rate for a node.
 
         Returns:
@@ -646,7 +648,7 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_READ, cmds.NODE_MULTICAST))
 
 
-    def node_set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
+    def set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast transmit antenna mode of the node.
         
         One of device_list, curr_assoc or new_assoc must be set.  The device_list
@@ -663,7 +665,7 @@ class WlanExpNode(wn_node.WnNode):
                                         device_list, curr_assoc, new_assoc)
 
 
-    def node_get_tx_ant_mode_unicast(self, device_list=None, new_assoc=False):
+    def get_tx_ant_mode_unicast(self, device_list=None, new_assoc=False):
         """Gets the unicast transmit antenna mode of the node.
 
         Attributes:
@@ -679,14 +681,14 @@ class WlanExpNode(wn_node.WnNode):
         return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', device_list, new_assoc)
 
 
-    def node_set_tx_ant_mode_multicast(self, ant_mode):
+    def set_tx_ant_mode_multicast(self, ant_mode):
         """Sets the multicast transmit antenna mode for a node and returns the 
         antenna mode that was set.
         """
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_WRITE, cmds.NODE_MULTICAST, ant_mode))
 
 
-    def node_get_tx_ant_mode_multicast(self):
+    def get_tx_ant_mode_multicast(self):
         """Gets the current multicast transmit antenna mode for a node.
         
         Returns:
@@ -697,24 +699,24 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_READ, cmds.NODE_MULTICAST))
 
 
-    def node_set_rx_ant_mode(self, ant_mode):
+    def set_rx_ant_mode(self, ant_mode):
         """Sets the receive antenna mode for a node and returns the 
         antenna mode that was set.
         """
         return self.send_cmd(cmds.NodeProcRxAntMode(cmds.NODE_WRITE, ant_mode))
 
 
-    def node_get_rx_ant_mode(self):
+    def get_rx_ant_mode(self):
         """Gets the current receive antenna mode for a node."""
         return self.send_cmd(cmds.NodeProcRxAntMode(cmds.NODE_READ))
 
 
-    def node_set_tx_power(self, power):
+    def set_tx_power(self, power):
         """Sets the transmit power of the node and returns the power that was set."""
         return self.send_cmd(cmds.NodeProcTxPower(cmds.NODE_WRITE, power))
 
 
-    def node_get_tx_power(self):
+    def get_tx_power(self):
         """Gets the current transmit power of the node.
         
         Returns:

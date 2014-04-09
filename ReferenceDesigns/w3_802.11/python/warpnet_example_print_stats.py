@@ -74,7 +74,7 @@ def initialize_experiment():
     nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
 
     # Initialize the time on all nodes to zero
-    wlan_exp_util.broadcast_node_set_time(0.0, host_config)
+    wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
 
 
 
@@ -98,7 +98,7 @@ def run_experiment():
 
         # For each of the APs, get the statistics
         for ap in nodes_ap:
-            station_info = ap.node_get_station_info()
+            station_info = ap.get_station_info()
             stats        = ap.stats_get_txrx()
             print_stats(stats, station_info)
        

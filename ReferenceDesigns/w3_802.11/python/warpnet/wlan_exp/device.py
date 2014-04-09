@@ -30,10 +30,6 @@ __all__ = ['WlanDevice']
 
 
 
-WLAN_DEVICE_FLAG_DISABLE_ASSOC_CHECK             = 0x0001
-WLAN_DEVICE_FLAG_NEVER_REMOVE                    = 0x0002
-
-
 class WlanDevice(object):
     """Base Class for WLAN Device.
     
@@ -41,21 +37,18 @@ class WlanDevice(object):
     
     Attributes:
         device_type       -- Unique type of the Wlan Device
-        description       -- String description of this node (user generated)
+        name              -- String description of this node (user generated)
 
         wlan_mac_address  -- MAC Address of WLAN Device
-        host_name         -- Host name for this node (auto-populated from station info)
-        assocations       -- List of WlanDevices that are associated with this device
     """
     device_type           = None
-    description           = None
+    name                  = None
     
     wlan_mac_address      = None
-    host_name             = None
-    associations          = None
     
-    def __init__(self, station_info=None, mac_address=None, host_name=None):
-        pass
+    def __init__(self, mac_address, name=None):
+        self.wlan_mac_address = mac_address
+        self.name             = name
 
 
     #-------------------------------------------------------------------------
@@ -67,20 +60,9 @@ class WlanDevice(object):
         return self.wlan_mac_address
 
 
-    def get_host_name(self):
-        """Get the host name of the 802.11 device."""
+    def get_name(self):
+        """Get the name of the 802.11 device."""
         return self.host_name
-
-
-    def update_from_station_info(self, station_info):
-        """Update the fields of the device from the station info."""
-        pass
-
-
-    def create_station_info(self, disable_association_check=False, never_remove=False):
-        """Create a station info from the given WlanDevice."""
-        pass
-    
     
 
 # End Class WlanDevice

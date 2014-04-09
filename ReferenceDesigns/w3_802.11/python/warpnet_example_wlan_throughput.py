@@ -53,7 +53,7 @@ nodes_config = wn_config.NodesConfiguration(host_config=host_config,
 nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
 
 # Set the time of all the nodes to zero
-wlan_exp_util.broadcast_node_set_time(0.0, host_config)
+wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
 
 # Extract the AP and STA nodes from the list of initialized nodes
 n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
@@ -73,13 +73,13 @@ else:
 print("\nExperimental Setup:")
 # Put each node in a known, good state
 for node in nodes:
-    node.node_set_tx_rate_unicast(wlan_exp_util.wlan_rates[3], curr_assoc=True, new_assoc=True)
+    node.set_tx_rate_unicast(wlan_exp_util.wlan_rates[3], curr_assoc=True, new_assoc=True)
     node.log_configure(log_full_payloads=False)
-    node.node_reset_all()
+    node.reset_all()
 
     # Get some additional information about the experiment
-    channel  = node.node_get_channel()
-    tx_power = node.node_get_tx_power()
+    channel  = node.get_channel()
+    tx_power = node.get_tx_power()
 
     print("\n{0}:".format(node.name))
     print("    Channel  = {0}".format(channel))
@@ -88,10 +88,10 @@ for node in nodes:
 print("")
 
 # Add the current time to all the nodes
-wlan_exp_util.broadcast_node_add_current_time_to_log(host_config)
+wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
 
 # Check that the nodes are associated.  Otherwise, the LTGs below will fail.
-if not n_ap.node_is_associated(n_sta):
+if not n_ap.is_associated(n_sta):
     print("\nERROR: Nodes are not associated.")
     print("    Ensure that the AP and the STA are associated.")
     sys.exit(0)
@@ -114,7 +114,7 @@ for ii,rate in enumerate(wlan_rates):
     print("\nStarting {0} sec trial for rate {1} ...".format(TRIAL_TIME, wlan_exp_util.tx_rate_to_str(rate)))
 
     #Configure the AP's Tx rate for the selected station
-    n_ap.node_set_tx_rate_unicast(rate, device_list=n_sta)
+    n_ap.set_tx_rate_unicast(rate, device_list=n_sta)
 
     #Record the station's initial Tx/Rx stats
     rx_stats_start = n_sta.stats_get_txrx(n_ap)

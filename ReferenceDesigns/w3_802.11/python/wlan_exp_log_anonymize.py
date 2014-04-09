@@ -53,7 +53,7 @@ def do_replace_addr(addr):
     """Determine if the MAC address should be replaced."""
     do_replace = True
 
-    # NOTE:  This list should stay in sync with wlan_exp.util mac_desc_map
+    # NOTE:  This list should stay in sync with wlan_exp.util mac_addr_desc_map
 
     # Don't replace the broadcast address (FF-FF-FF-FF-FF-FF)
     if(addr == (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)):
