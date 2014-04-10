@@ -110,7 +110,7 @@ def setup_experiment():
         n_ap = n_ap_l[0]
     else:
         print("ERROR: Node configurations did not match requirements of script.\n")
-        sys.exit(0)
+        return 
 
     # Add the current time to all the nodes
     wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
@@ -124,7 +124,7 @@ def run_experiment():
     
     print("\nRun Experiment:\n")
     print("Use Ctrl-C to end the experiment.\n")
-    print("Warning: May take up to {0} seconds to end experiment".format(TRIAL_TIME))
+    print("    NOTE: May take up to {0} seconds to end experiment.".format(TRIAL_TIME))
 
     for node in nodes:
         # Reset the log and statistics now that we are ready to start 
