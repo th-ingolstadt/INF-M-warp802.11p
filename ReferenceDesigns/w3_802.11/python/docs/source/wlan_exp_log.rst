@@ -77,17 +77,17 @@ In actual experiments the log data and corresponding index will be **much** larg
 
 Tools
 -----
-The :ref:`log_util.gen_log_data_index(log_data)` method will read a raw log data array and generate the log data index.
+The `log_util.gen_log_data_index(log_data)` method will read a raw log data array and generate the log data index.
 
-The :ref:`log_util_hdf.log_data_to_hdf5` method will optionally create and save the raw log index when saving log data to an HDF5 file.
+The `log_util_hdf.log_data_to_hdf5` method will optionally create and save the raw log index when saving log data to an HDF5 file.
 
-The :ref:`log_util_hdf.hdf5_to_log_data_index` method will read a raw log index previously saved to an HDF5 file.
+The `log_util_hdf.hdf5_to_log_data_index` method will read a raw log index previously saved to an HDF5 file.
 
 Archiving Log Data
 ==================
 Log data retrieved from an 802.11 Reference Design node will initially be stored in RAM as a bytearray. In most experiments it is useful to write the log data to a file for archival and future processing.
 
-We recommend storing log data in `HDF5 files <http://www.hdfgroup.org/HDF5/>` using the `h5py package <http://docs.h5py.org/en/latest/index.html>`. The HDF5 format is open, fast, well documented and supported by a wide variety of tools.
+We recommend storing log data in `HDF5 files <http://www.hdfgroup.org/HDF5/>`_ using the `h5py package <http://docs.h5py.org/en/latest/index.html>`_. The HDF5 format is open, fast, well documented and supported by a wide variety of tools.
 
 HDF5 Log Data Format
 --------------------
@@ -97,9 +97,11 @@ The HDF5 format is built from two types of objects:
 * **Dataset** - an array of homogenous data with arbitrary dimensions
 * **Group** - a named level of hierarchy which can contain datasets and other groups
 
-One important concept is the root group. Every HDF5 file has a root group and the root group is always named `'/'`. Named datasets and groups can be added to the root group to build more complex hierarchy.
+Datasets and groups can also store **attributes**. Datasets and attributes retain their data types and dimensions when written to HDF5 files. The h5py package uses numpy arrays and datatypes as the Python interface to the underlying HDF5 data.
 
-The h5py package supports building HDF5 files with arbitrary hierarchy. We define a simple HDF5 hierarchy for storing 802.11 Reference Design log data in an HDF5 group. We call this group format a `wlan_exp_log_data_container`. When an HDF5 group is used as a `wlan_exp_log_data_container` it must have the format illustrated below::
+One important concept is the **root group**. Every HDF5 file has a root group named ``'/'``. Named datasets and groups can be added to the root group to build more complex hierarchy. Sub-groups have names, forming Unix-like paths to datasets and other groups, always starting with the root group ``'/'``.
+
+The h5py package supports building HDF5 files with arbitrary hierarchy. We define a simple HDF5 hierarchy for storing 802.11 Reference Design log data in an HDF5 group. We call this group format a ``wlan_exp_log_data_container``. When an HDF5 group is used as a ``wlan_exp_log_data_container`` it must have the format illustrated below::
 
     wlan_exp_log_data_container (HDF5 group):
            |- Attributes:
@@ -108,7 +110,7 @@ The h5py package supports building HDF5 files with arbitrary hierarchy. We defin
            |      |- <user provided attributes>
            |- Datasets:
            |      |- 'log_data'             (1,)      voidN  (where N is the size of the data in bytes)
-           |- Groups (optional)
+           |- Groups (optional):
                   |- 'raw_log_index'
                          |- Datasets: 
                             (dtype depends if largest offset in log_data_index is < 2^32)
@@ -118,34 +120,29 @@ The h5py package supports building HDF5 files with arbitrary hierarchy. We defin
 
 The elements of this format are:
 
-* `'wlan_exp_log'` attribute: must be present with boolean value True
-* `'wlan_exp_ver'` attribute: 3-tuple of integers recording the `(major,minor,rev)` version of the wlan_exp package that wrote the file
-* `'log_data'` dataset: the raw bytearray retrieved from the 802.11 Reference Design node, stored as a scalar value using the HDF5 opaque type
-* `'log_data_index'` sub-group (optional): if present, must be a group with one dataset per log entry type, where each dataset contains the array of integers indicating the entry's location in the `log_data`. This group-of-datasets encodes the dictionary-of-arrays normally used to represent the raw_log_index.
+* ``wlan_exp_log`` attribute: must be present with boolean value True
+* ``wlan_exp_ver`` attribute: 3-tuple of integers recording the `(major,minor,rev)` version of the wlan_exp package that wrote the file
+* ``log_data`` dataset: the raw bytearray retrieved from the 802.11 Reference Design node, stored as a scalar value using the HDF5 opaque type
+* ``log_data_index`` sub-group (optional): if present, must be a group with one dataset per log entry type, where each dataset contains the array of integers indicating the location of each log entry in the ``log_data``. This group-of-datasets encodes the dictionary-of-arrays normally used to represent the raw_log_index.
 * User provided attributes: additional attributes provided at the time of file creation. The `log_util_hdf` methods store these attributes when supplied by the user code. These can be useful to store additional experiment-specific details about the log data (i.e. date/time of the experiment, physical location of the nodes, etc.).
-
-
-
-
-
-
-
-
-
-
-
-
-Datasets and groups can also store **attributes**. Datasets and attributes retain their data types and dimensions when written to HDF5 files. The h5py package uses numpy arrays and datatypes as the Python interface to the underlying HDF5 data.
 
 
 Writing Log Data Files
 ----------------------
 
+The `log_data_to_hdf5(log_data, filename)` method will create an HDF5 file with name `filename` for the supplied `log_data` bytearray. This method will automatically generate and store a raw log index for the ``log_data``.
+
+The `log_data_to_hdf5` method will create an HDF5 file with a single log_data array (i.e. with log data from a single node) stored in the root group.
+
 Reading Log Data Files
 ----------------------
 
-The :ref:`log_util_hdf` module provides methods for storing log data in HDF5 files.
+The `hdf5_to_log_data(filename)` method will read a ``log_data`` array from the HDF5 file named ``filename``. The format of the returned array is identical to the bytearray retrieved from an 802.11 Reference Design node and can be used wherever the original ``log_data`` array would have been used.
 
+The `hdf5_to_log_data_index(filename)` method will read a raw log index from the HDF5 file named ``filename``. The dictionary returned will be identical to re-generating the index from scratch (i.e. by calling `log_util.gen_log_data_index(hdf5_to_log_data(filename))`). Retrieving the raw index from an HDF5 file is typically must faster than re-generating the index from the log data.
+
+Examples
+--------
 
 
 
