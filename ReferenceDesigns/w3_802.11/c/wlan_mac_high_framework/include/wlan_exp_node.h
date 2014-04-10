@@ -55,6 +55,7 @@
 #define NODE_TX_RATE                   34
 #define NODE_TX_ANT_MODE               35
 #define NODE_RX_ANT_MODE               36
+#define NODE_LOW_TO_HIGH_FILTER        37
 
 #define NODE_WRITE_VAL                 0x00000000
 #define NODE_READ_VAL                  0x00000001

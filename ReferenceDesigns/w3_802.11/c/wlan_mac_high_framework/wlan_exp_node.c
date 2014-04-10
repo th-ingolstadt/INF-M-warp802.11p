@@ -865,10 +865,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			// Send response
 			//   - Shift power values so that we do not transmit negative numbers
             respArgs32[respIndex++] = Xil_Htonl( status );
-            respArgs32[respIndex++] = Xil_Htonl( default_unicast_mgmt_tx_params.phy.power   - TX_POWER_MIN_DBM );
             respArgs32[respIndex++] = Xil_Htonl( default_unicast_data_tx_params.phy.power   - TX_POWER_MIN_DBM );
-            respArgs32[respIndex++] = Xil_Htonl( default_multicast_mgmt_tx_params.phy.power - TX_POWER_MIN_DBM );
+            respArgs32[respIndex++] = Xil_Htonl( default_unicast_mgmt_tx_params.phy.power   - TX_POWER_MIN_DBM );
             respArgs32[respIndex++] = Xil_Htonl( default_multicast_data_tx_params.phy.power - TX_POWER_MIN_DBM );
+            respArgs32[respIndex++] = Xil_Htonl( default_multicast_mgmt_tx_params.phy.power - TX_POWER_MIN_DBM );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -1090,8 +1090,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			//
 			// Message format:
 			//     cmdArgs32[0]   Command:
-			//                      - Write       (NODE_TIME_WRITE_VAL)
-			//                      - Read        (NODE_TIME_READ_VAL)
+			//                      - Write       (NODE_WRITE_VAL)
+			//                      - Read        (NODE_READ_VAL)
 			//                      - Add to log  (NODE_TIME_ADD_TO_LOG_VAL)
 			//     cmdArgs32[1]   ID
 			//     cmdArgs32[2]   New Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
@@ -1177,6 +1177,41 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 
 	    //---------------------------------------------------------------------
+		case NODE_LOW_TO_HIGH_FILTER:
+			// Set node MAC low to high filter
+			//
+			// Message format:
+			//     cmdArgs32[0]   Command
+			//     cmdArgs32[1]   RX Filter
+			//
+			// Response format:
+			//     respArgs32[0]  Status
+			//
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			temp    = Xil_Ntohl(cmdArgs32[1]);
+			status  = NODE_SUCCESS;
+
+			switch (msg_cmd) {
+				case NODE_WRITE_VAL:
+					xil_printf("Setting RX filter = 0x%08x\n", temp);
+					wlan_mac_high_set_rx_filter_mode(temp);
+			    break;
+
+				default:
+					xil_printf("Unknown command: %d\n", msg_cmd);
+					status = NODE_ERROR;
+				break;
+			}
+
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
 		case NODE_LTG_CONFIG:
             // NODE_LTG_START Packet Format:
 			//   - cmdArgs32[0]      - Flags
@@ -1726,15 +1761,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
         	respIndex     = 5;              // There will always be 5 return args
             respArgs32[0] = cmdArgs32[0];
             respArgs32[1] = 0;
+			respArgs32[2] = 0;
+			respArgs32[3] = 0;
+			respArgs32[4] = 0;
 
             if ( id == 0 ) {
 				// If we cannot find the MAC address, print a warning and return an empty buffer
 				xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
 				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-				respArgs32[2]    = 0;
-				respArgs32[3]    = 0;
-				respArgs32[4]    = 0;
 
             } else {
 				// If parameter is not the magic number to return all statistics structures
@@ -1765,17 +1799,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 						// If we cannot find the MAC address, print a warning and return an empty buffer
 						xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
 						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-						respArgs32[2]    = 0;
-						respArgs32[3]    = 0;
-						respArgs32[4]    = 0;
     				}
     			} else {
     				// Create a WARPNet buffer response to send all stats entries
-
-    	            // Initialize constant parameters
-    	            respArgs32[0] = 0xFFFFFFFF;
-    	            respArgs32[1] = 0;
 
                     // Get the list of TXRX Statistics
     	            curr_list     = get_statistics();
@@ -1856,11 +1882,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
     					}
 
     					respSent = RESP_SENT;
-    	            } else {
-						// Set empty response args
-						respArgs32[2]   = 0;
-						respArgs32[3]   = 0;
-						respArgs32[4]   = 0;
     	            }
     			}
             }
