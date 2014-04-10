@@ -234,9 +234,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	mpdu_info->length = (u16)length;
 	mpdu_info->rate = (u8)rate;
 
-
-
-
 	mpdu_info->channel = wlan_mac_low_get_active_channel();
 
 	if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
