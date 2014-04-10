@@ -347,6 +347,11 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 
 	u32 len_to_send;
 
+	if(length < (sizeof(mac_header_80211) + sizeof(llc_header))){
+		xil_printf("Error in wlan_mpdu_eth_send: length of %d is too small... must be at least %d\n", length, (sizeof(mac_header_80211) + sizeof(llc_header)));
+		return -1;
+	}
+
 	//Get helper pointers to various byte offsets in the packet payload
 	rx80211_hdr = (mac_header_80211*)((void *)mpdu);
 	llc_hdr = (llc_header*)((void *)mpdu + sizeof(mac_header_80211));
