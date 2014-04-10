@@ -4,25 +4,39 @@ import wlan_exp.log.util_hdf           as hdf_util
 import numpy                           as np
 import datetime
 
-# NOTE: change these values to match your experiment setup
-LOGFILE_IN    = 'sample_data/raw_log_sta_10s_per_rate.hdf5'
-HDF5_FILE_OUT = 'sample_data/np_rx_ofdm_entries.hdf5'
+#Use log file given as command line argument, if present
+if(len(sys.argv) == 1):
+    #No filename on command line
+    LOGFILE_IN = '../sample_data/ap_log_stats.hdf5'
+    HDF5_FILE_OUT = 'np_rx_ofdm_entries.hdf5'
+elif(len(sys.argv) == 2):
+    LOGFILE_IN = str(sys.argv[1])
+    HDF5_FILE_OUT = 'np_rx_ofdm_entries.hdf5'
+elif(len(sys.argv) == 3):
+    LOGFILE_IN = str(sys.argv[1])
+    HDF5_FILE_OUT = str(sys.argv[2])
 
 print("WLAN Exp Log Example: OFDM Rx Entry Exporter")
+
+# Ensure the log file actually exists - quit immediately if not
+if(not os.path.isfile(LOGFILE)):
+    print("ERROR: Logfile {0} not found".format(LOGFILE_IN))
+    sys.exit()
+else:
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE_IN, (os.path.getsize(LOGFILE_IN)/1E6)))
 
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE_IN)
 raw_log_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE_IN)
 
 #Generate indexes with just Rx_OFDM events
-entries_filt = ['RX_OFDM']
-log_index_rx = log_util.filter_log_index(raw_log_index, include_only=entries_filt)
+log_index_rx = log_util.filter_log_index(raw_log_index, include_only=['RX_OFDM'])
 
 # Generate numpy array of all OFDM Rx entries
 log_np = log_util.log_data_to_np_arrays(log_data, log_index_rx)
 log_rx_ofdm = log_np['RX_OFDM']
 
 #####
-#Find the source for which we have the most receptions
+#Find the source address for which we have the most receptions
 
 #Extract unique values for address 2 (transmitting address in received MAC headers)
 uniq_addrs = np.unique(log_rx_ofdm['addr2'])
@@ -56,3 +70,4 @@ attr_dict = {'/': root_desc, 'RX_OFDM': ds_desc}
 
 print('Genereating HDF5 file {0}'.format(HDF5_FILE_OUT))
 hdf_util.np_arrays_to_hdf5(HDF5_FILE_OUT, np_log_dict=log_dict, attr_dict=attr_dict, compression=None)
+
