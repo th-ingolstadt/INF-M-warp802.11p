@@ -1,13 +1,15 @@
-import wlan_exp.util                   as wlan_exp_util
-import wlan_exp.log.util               as log_util
-import wlan_exp.log.util_hdf           as hdf_util
-import numpy                           as np
+import sys
+import os
 import datetime
+import numpy as np
+import wlan_exp.util as wlan_exp_util
+import wlan_exp.log.util as log_util
+import wlan_exp.log.util_hdf as hdf_util
 
 #Use log file given as command line argument, if present
 if(len(sys.argv) == 1):
     #No filename on command line
-    LOGFILE_IN = '../sample_data/ap_log_stats.hdf5'
+    LOGFILE_IN = '../../sample_data/sta_log_uni.hdf5'
     HDF5_FILE_OUT = 'np_rx_ofdm_entries.hdf5'
 elif(len(sys.argv) == 2):
     LOGFILE_IN = str(sys.argv[1])
@@ -19,7 +21,7 @@ elif(len(sys.argv) == 3):
 print("WLAN Exp Log Example: OFDM Rx Entry Exporter")
 
 # Ensure the log file actually exists - quit immediately if not
-if(not os.path.isfile(LOGFILE)):
+if(not os.path.isfile(LOGFILE_IN)):
     print("ERROR: Logfile {0} not found".format(LOGFILE_IN))
     sys.exit()
 else:
