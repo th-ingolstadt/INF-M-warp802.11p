@@ -588,6 +588,29 @@ class WlanExpNode(wn_node.WnNode):
         return self.send_cmd(cmds.NodeProcTime(cmds.TIME_ADD_TO_LOG, cmds.RSVD_TIME, time_id))
 
 
+    def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
+        """Sets the filter on the packets that are passed from the low MAC to the high MAC.
+        
+        Attributes:
+            mac_header -- MAC header filter.  Values can be:
+                            'MPDU_TO_ME' -- Pass any unicast-to-me or multicast data or 
+                                            management packet
+                            'ALL_MPDU'   -- Pass any data or management packet (no address filter)
+                            'ALL'        -- Pass any packet (no type or address filters)
+            FCS        -- FCS status filter.  Values can be:
+                            'GOOD'       -- Pass only packets with good checksum result
+                            'ALL'        -- Pass packets with any checksum result
+        
+        NOTE:  One thing to note is that even though all packets are passed in the 'ALL' case 
+        of the mac_header filter, the high MAC does not necessarily get to decide the node's 
+        response to all packets.  For example, ACKs will still be transmitted for receptions
+        by the low MAC since there is not enough time in the 802.11 protocol for the high MAC 
+        to decide on the response.  Default behavior like this can only be modified in the 
+        low MAC.
+        """
+        self.send_cmd(cmds.NodeSetLowToHighFilter(mac_header, fcs))
+        
+
     def set_channel(self, channel):
         """Sets the channel of the node and returns the channel that was set."""
         return self.send_cmd(cmds.NodeProcChannel(cmds.NODE_WRITE, channel))

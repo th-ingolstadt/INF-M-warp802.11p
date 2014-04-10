@@ -64,7 +64,7 @@ __all__ = ['LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
            'NodeResetState', 'NodeProcTime', 'NodeProcChannel', 'NodeProcTxPower', 
            'NodeProcTxRate', 'NodeProcTxAntMode', 'NodeProcRxAntMode', 'NodeGetStationInfo',
-           'QueueTxDataPurgeAll']
+           'NodeSetLowToHighFilter', 'QueueTxDataPurgeAll']
 
 
 # WLAN Exp Command IDs (Extension of WARPNet Command IDs)
@@ -83,6 +83,7 @@ CMD_NODE_TX_POWER                      = 33
 CMD_NODE_TX_RATE                       = 34
 CMD_NODE_TX_ANT_MODE                   = 35
 CMD_NODE_RX_ANT_MODE                   = 36
+CMD_NODE_LOW_TO_HIGH_FILTER            = 37
 
 NODE_WRITE                             = 0x00000000
 NODE_READ                              = 0x00000001
@@ -107,6 +108,15 @@ NODE_TX_POWER_MIN_DBM                  = -12
 
 NODE_UNICAST                           = 0x00000000
 NODE_MULTICAST                         = 0x00000001
+
+RX_FILTER_FCS_GOOD                     = 0x1000
+RX_FILTER_FCS_ALL                      = 0x2000
+RX_FILTER_FCS_NOCHANGE                 = 0xF000
+
+RX_FILTER_HDR_ADDR_MATCH_MPDU          = 0x0001
+RX_FILTER_HDR_ALL_MPDU                 = 0x0002
+RX_FILTER_HDR_ALL                      = 0x0003
+RX_FILTER_HDR_NOCHANGE                 = 0x0FFF
 
 
 # LTG commands and defined values
@@ -512,8 +522,8 @@ class NodeProcTime(wn_message.Cmd):
         # Read the time as a float
         if (cmd == NODE_READ):
             self.time_type = 0
-            self.add_args(RSVD_TIME)
-            self.add_args(RSVD_TIME)
+            self.add_args(NODE_READ)
+            self.add_args(RSVD_TIME)             # Reads do not need a time_id
             self.add_args(RSVD_TIME)
             self.add_args(RSVD_TIME)
             self.add_args(RSVD_TIME)
@@ -549,7 +559,7 @@ class NodeProcTime(wn_message.Cmd):
             # Get the current time on the host
             now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
             
-            self.add_args(time_id)
+            self.add_args(int(time_id))
             self.add_args((time_to_send & 0xFFFFFFFF))
             self.add_args(((time_to_send >> 32) & 0xFFFFFFFF))
             self.add_args((now & 0xFFFFFFFF))
@@ -571,6 +581,72 @@ class NodeProcTime(wn_message.Cmd):
             ret_val = time
             
         return ret_val
+
+# End Class
+
+
+class NodeSetLowToHighFilter(wn_message.Cmd):
+    """Command to set the low to high filter on the node.
+    
+    Attributes:
+        mac_header -- MAC header filter.  Values can be:
+                        'MPDU_TO_ME' -- Pass any unicast-to-me or multicast data or 
+                                        management packet
+                        'ALL_MPDU'   -- Pass any data or management packet (no address filter)
+                        'ALL'        -- Pass any packet (no type or address filters)
+        FCS        -- FCS status filter.  Values can be:
+                        'GOOD'       -- Pass only packets with good checksum result
+                        'ALL'        -- Pass packets with any checksum result
+    """    
+    def __init__(self, cmd, mac_header=None, fcs=None):
+        super(NodeSetLowToHighFilter, self).__init__()
+        self.command  = _CMD_GRPID_NODE + CMD_NODE_LOW_TO_HIGH_FILTER
+
+        self.add_args(NODE_WRITE)
+
+        rx_filter = 0
+
+        if mac_header is None:
+            rx_filter += RX_FILTER_HDR_NOCHANGE
+        else:
+            mac_header = str(mac_header)
+            mac_header.upper()
+            
+            if   (mac_header == 'MPDU_TO_ME'):
+                rx_filter += RX_FILTER_HDR_ADDR_MATCH_MPDU
+            elif (mac_header == 'ALL_MPDU'):
+                rx_filter += RX_FILTER_HDR_ALL_MPDU
+            elif (mac_header == 'ALL'):
+                rx_filter += RX_FILTER_HDR_ALL
+            else:
+                msg  = "WARNING:  Not a valid mac_header value.\n"
+                msg += "    Provided:  {0}\n".format(mac_header)
+                msg += "    Requires:  ['MPDU_TO_ME', 'ALL_MPDU', 'ALL']"
+                print(msg)
+                rx_filter += RX_FILTER_HDR_NOCHANGE
+
+        if fcs is None:
+            rx_filter += RX_FILTER_FCS_NOCHANGE
+        else:
+            fcs = str(fcs)
+            fcs.upper()
+
+            if   (fcs == 'GOOD'):
+                rx_filter += RX_FILTER_FCS_GOOD
+            elif (fcs == 'ALL'):
+                rx_filter += RX_FILTER_FCS_NOCHANGE
+            else:
+                msg  = "WARNING: Not a valid fcs value.\n"
+                msg += "    Provided:  {0}\n".format(fcs)
+                msg += "    Requires:  ['GOOD', 'ALL']"
+                print(msg)
+                rx_filter += RX_FILTER_FCS_NOCHANGE
+
+        self.add_args(rx_filter)
+
+
+    def process_resp(self, resp):
+        pass
 
 # End Class
 

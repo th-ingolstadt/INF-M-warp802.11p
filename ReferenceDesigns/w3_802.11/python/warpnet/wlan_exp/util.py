@@ -528,10 +528,7 @@ def _broadcast_time_to_nodes(time_cmd, host_config, time=0.0, time_id=None):
     else:
         raise TypeError("Time must be either a float or int")       
 
-    if time_id is None:
-        import random
-        time_id = 2**32 * random.random()
-
+    # Send the broadcast commands for ech interface
     for idx, interface in enumerate(interfaces):
         # Create broadcast transport
         transport_bcast = bcast.TransportEthUdpPyBcast(host_config, interface);
