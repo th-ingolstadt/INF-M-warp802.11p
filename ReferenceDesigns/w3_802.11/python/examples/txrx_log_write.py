@@ -23,10 +23,12 @@ Description:
 """
 import sys
 import time
-import wlan_exp.config                   as config
-import wlan_exp.util                     as wlan_exp_util
-import wlan_exp.ltg                      as ltg
-import wlan_exp.log.util_hdf             as hdf_util
+
+import wlan_exp.config as wlan_exp_config
+import wlan_exp.util as wlan_exp_util
+import wlan_exp.ltg as wlan_exp_ltg
+
+import wlan_exp.log.util_hdf as hdf_util
 
 
 #-----------------------------------------------------------------------------
@@ -34,7 +36,7 @@ import wlan_exp.log.util_hdf             as hdf_util
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
+NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 
 AP_HDF5_FILENAME  = "sample_data/ap_log_stats.hdf5"
 STA_HDF5_FILENAME = "sample_data/sta_log_stats.hdf5"
@@ -50,6 +52,8 @@ TRIAL_TIME        = 10
 def write_log_file(file_name, data_buffer):
     """Writes log data to a HDF5 file."""
     try:
+        print("    {0}".format(file_name))
+        
         # Get the byte log_data out of the WARPNet buffer
         data = data_buffer.get_bytes()
         
@@ -66,7 +70,7 @@ def print_log_size():
     ap_log_size  = n_ap.log_get_size()
     sta_log_size = n_sta.log_get_size()
     
-    print("Log Sizes:  AP  = {0:10,d} bytes".format(ap_log_size))
+    print("\nLog Sizes:  AP  = {0:10,d} bytes".format(ap_log_size))
     print("            STA = {0:10,d} bytes".format(sta_log_size))
 
 
@@ -77,11 +81,11 @@ def print_log_size():
 print("\nInitializing experiment\n")
 
 # Create an object that describes the configuration of the host PC
-host_config  = config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
+host_config  = wlan_exp_config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config = config.WlanExpNodesConfiguration(host_config=host_config,
-                                                serial_numbers=NODE_SERIAL_LIST)
+nodes_config = wlan_exp_config.WlanExpNodesConfiguration(host_config=host_config,
+                                                         serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #  This command will fail if either WARP v3 node does not respond
@@ -116,12 +120,12 @@ if not n_ap.is_associated(n_sta):
 print("\nExperimental Setup:")
 
 # Get the rates that we will move through during the experiment
-wlan_rates = wlan_exp_util.wlan_rates
+rate = wlan_exp_util.wlan_rates[3]
 
 # Put each node in a known, good state
 for node in nodes:
-    node.set_tx_rate_unicast(wlan_rates[3], curr_assoc=True, new_assoc=True)
-    node.log_configure(log_full_payloads=True)
+    node.set_tx_rate_unicast(rate, curr_assoc=True, new_assoc=True)
+    node.log_configure(log_full_payloads=False)
     node.reset_all()
 
 # Add the current time to all the nodes
@@ -129,46 +133,48 @@ wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
 
 
 
-print("\nRun Experiment:\n")
+print("\nRun Experiment:")
 
 # Look at the initial log sizes for reference
 print_log_size()
 
-print("\nStart LTG - AP -> STA:")
+
+print("\nStart LTG - AP -> STA")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
+ap_ltg_id  = n_ap.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
 
-print("\nStart LTG - STA -> AP:")
+# Let the LTG flows run at the new rate
+time.sleep(TRIAL_TIME)
+
+
+print("\nStart LTG - STA -> AP")
 # Start a flow from the STA's local traffic generator (LTG) to the AP
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-sta_ltg_id = n_sta.ltg_configure(ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
+sta_ltg_id = n_sta.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
+
+# Let the LTG flows run at the new rate
+time.sleep(TRIAL_TIME)
 
 
-print("\nStarting trials ...")
+print("\nStop  LTG - STA -> AP")
 
-# Create some interesting traffic for the log file
-for idx, rate in enumerate(wlan_rates):
-    print("  Rate {0} ... ".format(wlan_exp_util.tx_rate_to_str(rate)))
+# Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
+n_sta.ltg_stop(sta_ltg_id)
+n_sta.queue_tx_data_purge_all()
 
-    # Configure the AP's Tx rate for the selected STA
-    n_ap.set_tx_rate_unicast(rate, device_list=n_sta)
+# Let the LTG flows run at the new rate
+time.sleep(TRIAL_TIME)
 
-    # Configure the STA's Tx rate for the selected AP
-    n_sta.set_tx_rate_unicast(rate, device_list=n_ap)
 
-    # Let the LTG flows run at the new rate
-    time.sleep(TRIAL_TIME)
-
+print("\nStop  LTG - AP -> STA")
 
 # Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
 n_ap.ltg_stop(ap_ltg_id)
-n_sta.ltg_stop(sta_ltg_id)
-
 n_ap.queue_tx_data_purge_all()
-n_sta.queue_tx_data_purge_all()
+
 
 # Look at the final log sizes for reference
 print_log_size()
