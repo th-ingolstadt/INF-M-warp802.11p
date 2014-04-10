@@ -35,14 +35,13 @@ import wlan_exp.log.util_hdf as hdf_util
 # Top Level Script Variables
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
-HOST_INTERFACES   = ['10.0.0.200']
-NODE_SERIAL_LIST  = ['W3-a-00189', 'W3-a-00094']
+HOST_INTERFACES   = ['10.0.0.250']
+NODE_SERIAL_LIST  = ['W3-a-00001']
 
 AP_HDF5_FILENAME  = "log_files/ap_log_stats.hdf5"
-STA_HDF5_FILENAME = "log_files/sta_log_stats.hdf5"
 
 # Set the per-trial duration (in seconds)
-TRIAL_TIME        = 30
+TRIAL_TIME        = 120
 
 
 
@@ -65,13 +64,11 @@ def write_log_file(file_name, data_buffer):
 
 def print_log_size():
     """Prints the size of the AP / STA Logs."""
-    global n_ap, n_sta
+    global n_ap
 
     ap_log_size  = n_ap.log_get_size()
-    sta_log_size = n_sta.log_get_size()
     
     print("\nLog Sizes:  AP  = {0:10,d} bytes".format(ap_log_size))
-    print("            STA = {0:10,d} bytes".format(sta_log_size))
 
 
 
@@ -96,26 +93,17 @@ wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
 
 # Extract the AP and STA nodes from the list of initialized nodes
 n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
-n_sta_l = wlan_exp_util.filter_nodes(nodes, 'node_type', 'STA')
 
 
 # Check that we have a valid AP and STA
-if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
+if ((len(n_ap_l) == 1)):
     # Extract the two nodes from the lists for easier referencing below
     n_ap = n_ap_l[0]
-    n_sta = n_sta_l[0]
+
 else:
     print("ERROR: Node configurations did not match requirements of script.\n")
     print(" Ensure two nodes are ready, one using the AP design, one using the STA design\n")
     sys.exit(0)
-
-# Check that the nodes are associated.  Otherwise, the LTGs below will fail.
-if not n_ap.is_associated(n_sta):
-    print("\nERROR: Nodes are not associated.")
-    print("    Ensure that the AP and the STA are associated.")
-    sys.exit(0)
-
-
 
 print("\nExperimental Setup:")
 
@@ -138,43 +126,7 @@ print("\nRun Experiment:")
 # Look at the initial log sizes for reference
 print_log_size()
 
-
-print("\nStart LTG - AP -> STA")
-# Start a flow from the AP's local traffic generator (LTG) to the STA
-#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
-#  Start the flow immediately
-ap_ltg_id  = n_ap.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
-
-# Let the LTG flows run at the new rate
 time.sleep(TRIAL_TIME)
-
-
-print("\nStart LTG - STA -> AP")
-# Start a flow from the STA's local traffic generator (LTG) to the AP
-#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
-#  Start the flow immediately
-sta_ltg_id = n_sta.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
-
-# Let the LTG flows run at the new rate
-time.sleep(TRIAL_TIME)
-
-
-print("\nStop  LTG - STA -> AP")
-
-# Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
-n_sta.ltg_stop(sta_ltg_id)
-n_sta.queue_tx_data_purge_all()
-
-# Let the LTG flows run at the new rate
-time.sleep(TRIAL_TIME)
-
-
-print("\nStop  LTG - AP -> STA")
-
-# Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
-n_ap.ltg_stop(ap_ltg_id)
-n_ap.queue_tx_data_purge_all()
-
 
 # Look at the final log sizes for reference
 print_log_size()
@@ -183,7 +135,6 @@ print_log_size()
 print("\nWriting Log Files...")
 
 write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new(log_tail_pad=0))
-write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new(log_tail_pad=0))
 
 print("Done.")
 
