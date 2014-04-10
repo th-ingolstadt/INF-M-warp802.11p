@@ -53,9 +53,9 @@ defining other sub-classes of WARPNet Cmd and BufferCmd.
 
 """
 
-import warpnet.wn_cmds as wn_cmds
-import warpnet.wn_message as wn_message
-import warpnet.wn_transport_eth_udp as wn_transport
+import wlan_exp.warpnet.cmds                as wn_cmds
+import wlan_exp.warpnet.message             as wn_message
+import wlan_exp.warpnet.transport_eth_udp   as wn_transport
 
 
 
@@ -340,11 +340,11 @@ class StatsGetTxRx(wn_message.BufferCmd):
     def process_resp(self, resp):
         # Contains a WARPNet Buffer of all stats entries.  Need to convert to 
         #   a list of statistics dictionaries.
-        import warpnet.wlan_exp_log.log_entries as log
+        import wlan_exp.log.entry_types as entry_types
         
         index   = 0
         data    = resp.get_bytes()
-        ret_val = log.entry_txrx_stats.deserialize(data[index:])
+        ret_val = entry_types.entry_txrx_stats.deserialize(data[index:])
 
         return ret_val
 
@@ -378,6 +378,8 @@ class LTGCommon(wn_message.Cmd):
         super(LTGCommon, self).__init__()
         
         if ltg_id is not None:
+            if type(ltg_id) is not int:
+                raise TypeError("LTG ID must be an integer.")
             self.add_args(ltg_id)
         else:
             self.add_args(LTG_ID_INVALID)
@@ -776,17 +778,17 @@ class NodeProcTxRate(wn_message.Cmd):
             self.add_args(0xFFFFFFFF)
     
     def process_resp(self, resp):
-        import warpnet.wlan_exp.util as wlan_exp_util
+        import wlan_exp.util as util
         
         if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Tx rate command'):
             args = resp.get_args()
             if self.rate is not None:
                 if (args[1] != self.rate):
                     msg  = "WARNING: Device {0} rate mismatch.\n".format(self.dev_name)
-                    msg += "    Tried to set rate to {0}\n".format(wlan_exp_util.tx_rate_index_to_str(self.rate))
-                    msg += "    Actually set rate to {0}\n".format(wlan_exp_util.tx_rate_index_to_str(args[1]))
+                    msg += "    Tried to set rate to {0}\n".format(util.tx_rate_index_to_str(self.rate))
+                    msg += "    Actually set rate to {0}\n".format(util.tx_rate_index_to_str(args[1]))
                     print(msg)
-            return wlan_exp_util.find_tx_rate_by_index(args[1])
+            return util.find_tx_rate_by_index(args[1])
         else:
             return None
 
@@ -847,15 +849,15 @@ class NodeProcTxAntMode(wn_message.Cmd):
             raise ValueError(msg)
     
     def process_resp(self, resp):
-        import warpnet.wlan_exp.util as wlan_exp_util
+        import wlan_exp.util as util
         
         if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Tx antenna mode command'):
             args = resp.get_args()
             if   (self.node_type == NODE_UNICAST):
-                return wlan_exp_util.find_tx_ant_mode_by_index(args[1])
+                return util.find_tx_ant_mode_by_index(args[1])
             elif (self.node_type == NODE_MULTICAST):
-                return [wlan_exp_util.find_tx_ant_mode_by_index((args[1] >> 16) & 0xFFFF),
-                        wlan_exp_util.find_tx_ant_mode_by_index(args[1] & 0xFFFF)]
+                return [util.find_tx_ant_mode_by_index((args[1] >> 16) & 0xFFFF),
+                        util.find_tx_ant_mode_by_index(args[1] & 0xFFFF)]
             else:
                 return NODE_ERROR
         else:
@@ -896,11 +898,11 @@ class NodeProcRxAntMode(wn_message.Cmd):
             raise ValueError(msg)
     
     def process_resp(self, resp):
-        import warpnet.wlan_exp.util as wlan_exp_util
+        import wlan_exp.util as util
         
         if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Rx antenna mode command'):
             args = resp.get_args()
-            return wlan_exp_util.find_rx_ant_mode_by_index(args[1])
+            return util.find_rx_ant_mode_by_index(args[1])
         else:
             return NODE_ERROR
 
@@ -924,11 +926,11 @@ class NodeGetStationInfo(wn_message.BufferCmd):
     def process_resp(self, resp):
         # Contains a WWARPNet Buffer of all station info entries.  Need to 
         #   convert to a list of station info dictionaries.
-        import warpnet.wlan_exp_log.log_entries as log
+        import wlan_exp.log.entry_types as entry_types
 
         index   = 0
         data    = resp.get_bytes()
-        ret_val = log.entry_station_info.deserialize(data[index:])
+        ret_val = entry_types.entry_station_info.deserialize(data[index:])
 
         return ret_val
 

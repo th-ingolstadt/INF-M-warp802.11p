@@ -34,9 +34,9 @@ except ImportError:  # Python 2
     import ConfigParser as configparser
 
 
-from . import wn_defaults
-from . import wn_util
-from . import wn_exception as wn_ex
+from . import defaults       as wn_defaults
+from . import util           as wn_util
+from . import exception      as wn_ex
 
 
 __all__ = ['HostConfiguration', 'NodesConfiguration']
@@ -89,7 +89,7 @@ class HostConfiguration(object):
         wn_defaults will used.
         
         """
-        from . import wn_util
+        from . import util as wn_util
         
         # Set initial values
         my_host_interfaces     = []

@@ -30,7 +30,7 @@ Functions (see below for more information):
 import sys
 import re
 
-from . import wn_exception as wn_ex
+from . import exception as wn_ex
 from . import version
 
 
@@ -61,7 +61,7 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
 
     # Create a Host Configuration if there is none provided
     if host_config is None:
-        import warpnet.wn_config as wn_config
+        from . import config as wn_config
         host_config = wn_config.HostConfiguration()
 
     host_id = host_config.get_param('network', 'host_id')
@@ -76,7 +76,7 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
 
     # If node_factory is not defined, create a default WnNodeFactory
     if node_factory is None:
-        import warpnet.wn_node as wn_node
+        from . import node as wn_node
         node_factory = wn_node.WnNodeFactory(host_config)
 
     # Send a broadcast network reset command to make sure all nodes are
@@ -120,9 +120,9 @@ def wn_identify_all_nodes(host_interfaces):
     All nodes should blink their Red LEDs for 10 seconds.    
     """
     import time
-    import warpnet.wn_cmds as wn_cmds
-    import warpnet.wn_config as wn_config
-    import warpnet.wn_transport_eth_udp_py_bcast as tp_bcast
+    from . import cmds                       as wn_cmds
+    from . import config                     as wn_config
+    from . import transport_eth_udp_py_bcast as tp_bcast
 
     if type(host_interfaces) is str:
         my_host_interfaces = [host_interfaces]
@@ -175,9 +175,9 @@ def wn_reset_network_inf_all_nodes(host_config=None, host_interfaces=None):
     This will issue a broadcast network interface reset for all nodes on 
     each of the host_interfaces.
     """
-    import warpnet.wn_cmds as wn_cmds
-    import warpnet.wn_config as wn_config
-    import warpnet.wn_transport_eth_udp_py_bcast as tp_bcast
+    from . import cmds                       as wn_cmds
+    from . import config                     as wn_config
+    from . import transport_eth_udp_py_bcast as tp_bcast
 
     if not host_config is None:
         my_host_interfaces = host_config.get_param('network', 'host_interfaces')
@@ -299,7 +299,7 @@ def wn_setup():
     
     NOTE:      
     """
-    import warpnet.wn_config as wn_config
+    from . import config as wn_config
     config = wn_config.HostConfiguration()
 
     print("-" * 70)
@@ -500,7 +500,7 @@ def wn_nodes_setup(ini_file=None):
     # base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     # config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
 
-    import warpnet.wn_config as wn_config
+    from . import config as wn_config
     nodes_config = wn_config.NodesConfiguration(ini_file=ini_file)
 
     # Actions Menu    

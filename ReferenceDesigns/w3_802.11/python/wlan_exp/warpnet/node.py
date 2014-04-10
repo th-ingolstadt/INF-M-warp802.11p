@@ -33,15 +33,15 @@ make sure that the values of these hardware parameters are not reused.
 """
 
 from . import version
-from . import wn_defaults
-from . import wn_util
-from . import wn_config
-from . import wn_message
-from . import wn_cmds
-from . import wn_exception as wn_ex
-from . import wn_transport
-from . import wn_transport_eth_udp_py as unicast_tp
-from . import wn_transport_eth_udp_py_bcast as bcast_tp
+from . import defaults                      as wn_defaults
+from . import util                          as wn_util
+from . import config                        as wn_config
+from . import message                       as wn_message
+from . import cmds                          as wn_cmds
+from . import exception                     as wn_ex
+from . import transport                     as wn_transport
+from . import transport_eth_udp_py          as unicast_tp
+from . import transport_eth_udp_py_bcast    as bcast_tp
 
 
 __all__ = ['WnNode', 'WnNodeFactory']
@@ -673,22 +673,22 @@ class WnNodeFactory(WnNode):
         class function instead of returning an error so that the calls 
         will propagate to catch all node types.
         """
-        import warpnet
+        from . import node
         
-        node = None
+        tmp_node = None
 
         try:
             full_node_class = node_class + "(host_config)"
-            node = eval(full_node_class, globals(), locals())
+            tmp_node = eval(full_node_class, globals(), locals())
         except:
             pass
         
-        if node is None:
+        if tmp_node is None:
             self.print_wn_node_types()
             msg = "Cannot create node of class: {0}".format(node_class)
             raise wn_ex.ConfigError(msg)
         else:
-            return node
+            return tmp_node
 
 
     def node_add_class(self, wn_node_type, class_name, description):

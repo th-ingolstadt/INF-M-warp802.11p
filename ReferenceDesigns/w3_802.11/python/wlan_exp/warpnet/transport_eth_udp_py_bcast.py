@@ -32,8 +32,8 @@ Integer constants:
 
 import re
 
-from . import wn_config
-from . import wn_transport_eth_udp as tp
+from . import config            as wn_config
+from . import transport_eth_udp as tp
 
 
 __all__ = ['TransportEthUdpPyBcast']

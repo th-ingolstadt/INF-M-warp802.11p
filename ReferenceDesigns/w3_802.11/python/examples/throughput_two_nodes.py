@@ -101,7 +101,7 @@ print("\nStart LTG - AP -> STA:")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-ap_ltg_id  = n_ap.ltg_to_node_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
+ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
 
 # Arrays to hold results
 rx_bytes = []
@@ -133,7 +133,7 @@ for ii,rate in enumerate(wlan_rates):
 print("\n")
 
 # Stop the LTG flow so that nodes are in a known, good state
-n_ap.ltg_to_node_stop(ap_ltg_id)
+n_ap.ltg_stop(ap_ltg_id)
 
 #Calculate and display the throughput results
 print("Results:")

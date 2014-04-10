@@ -31,10 +31,10 @@ Both the name and entry type ID **must** be unique relative to the existing entr
 
 To define a custom log entry type::
 
-    import warpnet.wlan_exp_log.log_entries as log_entries
+    import wlan_exp.log.entry_types as entry_types
     
     #name and entry_type_id must not collide with existing log entry type definitions
-    my_entry_type = log_entries.WlanExpLogEntryType(name='MY_ENTRY', entry_type_id=999)
+    my_entry_type = entry_types.WlanExpLogEntryType(name='MY_ENTRY', entry_type_id=999)
     my_entry_type.append_field_defs([
             ('timestamp',              'Q',      'uint64'),
             ('field_A',                'H',      'uint16'),
@@ -72,7 +72,7 @@ ENTRY_TYPE_TXRX_STATS             = 30
 # Log Entry Type Container
 #-----------------------------------------------------------------------------
 
-wlan_exp_log_entry_types          = dict()
+log_entry_types          = dict()
 
 #-----------------------------------------------------------------------------
 # Log Entry Type Base Class
@@ -98,10 +98,10 @@ class WlanExpLogEntryType(object):
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
         if name is not None:
-            if(name in wlan_exp_log_entry_types.keys()):
+            if(name in log_entry_types.keys()):
                 print("WARNING: replacing exisitng WlanExpLogEntryType with name {0}".format(name))
             self.name = name
-            wlan_exp_log_entry_types[name] = self
+            log_entry_types[name] = self
         else:
             raise Exception("ERROR: new WlanExpLogEntryType instance must have valid name")
 
@@ -111,10 +111,10 @@ class WlanExpLogEntryType(object):
             if type(entry_type_id) is not int:
                 raise Exception("ERROR: WlanExpLogEntryType entry_type_id must be int")
             else:
-                if(entry_type_id in wlan_exp_log_entry_types.keys()):
+                if(entry_type_id in log_entry_types.keys()):
                     print("WARNING: replacing exisitng WlanExpLogEntryType with ID {0}".format(entry_type_id))
                 self.entry_type_id = entry_type_id
-                wlan_exp_log_entry_types[entry_type_id] = self
+                log_entry_types[entry_type_id] = self
 
         # Initialize fields to empty lists
         self._fields             = []

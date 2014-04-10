@@ -40,8 +40,8 @@ defining other sub-classes of WARPNet Cmd and BufferCmd.
 """
 
 
-from . import wn_message
-from . import wn_util
+from . import message     as wn_message
+from . import util        as wn_util
 
 
 __all__ = ['NodeGetWarpNetType', 'NodeIdentify', 'NodeGetHwInfo', 

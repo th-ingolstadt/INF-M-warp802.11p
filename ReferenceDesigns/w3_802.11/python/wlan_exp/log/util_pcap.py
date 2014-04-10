@@ -124,7 +124,7 @@ def gen_log_pcap_index(log_data, event_types=None):
 
 
     # Create a list of entry type ids to filter the index
-    import warpnet.wlan_exp_log.log_entries as log_entries
+    from . import entry_types
     event_type_offsets = {}
 
     if event_types is None:
@@ -140,7 +140,7 @@ def gen_log_pcap_index(log_data, event_types=None):
     
     for event_type in event_types:
         try:
-            entry         = log_entries.wlan_exp_log_entry_types[event_type]
+            entry         = entry_types.wlan_exp_log_entry_types[event_type]
             entry_offsets = entry.get_field_offsets()
 
             event_type_offsets[entry.get_entry_type_id()] = [entry_offsets['timestamp'],
@@ -225,7 +225,7 @@ def log_data_to_pcap(log_data, filename, event_types=None, overwrite=False):
         overwrite   -- If true method will overwrite existing file with filename
     """
     import os
-    import warpnet.wlan_exp_log.log_util as log_util
+    from . import util as log_util
 
     # Process the inputs to generate any error
     log_pcap_index = _process_pcap_log_data_inputs(log_data, event_types)

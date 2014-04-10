@@ -219,7 +219,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
         WARNING:  D does not exist in log index.  Ignoring for merge.
         x == {'M': []}
     """
-    from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
+    from entry_types import log_entry_types
 
     ret_log_index = {}
 
@@ -234,7 +234,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
 
     # Start by creating a new dictionary with the same values as the log_index input
     #  but using the WlanExpLogEntryType instances as keys
-    ret_log_index = {entry_types[k] : log_index[k] for k in log_index.keys()}
+    ret_log_index = {log_entry_types[k] : log_index[k] for k in log_index.keys()}
 
     # Filter the log_index
     try:
@@ -253,14 +253,14 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
 
                 # Add the new merged index lists to the output dictionary
                 # Use the type instance corresponding to the user-supplied string as the key
-                ret_log_index[entry_types[k]] = sorted(new_index)
+                ret_log_index[log_entry_types[k]] = sorted(new_index)
 
         # Filter the resulting log index by 'include' / 'exclude' lists
         if include_only is not None:
             new_log_index = {}
 
             for entry_name in include_only:
-                new_log_index[entry_types[entry_name]] = []
+                new_log_index[log_entry_types[entry_name]] = []
                 for k in ret_log_index.keys():
                     if k == entry_name:
                         new_log_index[k] = ret_log_index[k]
@@ -351,7 +351,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
     fields and zero them out.    
     """
     import struct
-    from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
+    from entry_types import log_entry_types
 
     # See documentation above on header format
     hdr_size         = 8
@@ -361,7 +361,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
         payload_offsets  = {}
     
         # Create temp data structure:  { entry_type_id : <payload offset>}
-        for entry_type_id, entry_type in entry_types.items():
+        for entry_type_id, entry_type in log_entry_types.items():
             payload_offsets[entry_type_id] = struct.calcsize(entry_type.fields_fmt_struct)
 
 
@@ -416,7 +416,7 @@ def _print_log_entries(log_bytes, log_index, entries_slice=None):
     for creating text version of raw log w/out requiring numpy"""
 
     from itertools import chain
-    from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
+    from entry_types import log_entry_types
     hdr_size = 8
 
     if(entries_slice is not None) and (type(entries_slice) is slice):
@@ -438,7 +438,7 @@ def _print_log_entries(log_bytes, log_index, entries_slice=None):
         entry_size = (ord(hdr_b[6]) + (ord(hdr_b[7]) * 256))
 
         #Lookup the corresponding entry object instance (KeyError here indicates corrupt log or index)
-        entry_type = entry_types[entry_type_id]
+        entry_type = log_entry_types[entry_type_id]
 
         #Use the entry_type's class method to string-ify itself
         print(entry_type._entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
@@ -506,9 +506,8 @@ def calc_tx_time(rate, payload_length):
     account for MAC overhead. The payload_length argument must include any MAC fields
     (typically a 24-byte MAC header plus 4 byte FCS).
     """
-    
-    from  warpnet.wlan_exp.util import wlan_rates
-    import math
+    import math    
+    from wlan_exp.util import wlan_rates
 
     try:
         r = wlan_rates[rate-1]

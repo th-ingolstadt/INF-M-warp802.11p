@@ -33,12 +33,12 @@ pleasemake sure that the values of these hardware parameters are not reused.
 """
 
 
-import warpnet.wn_node as wn_node
-import warpnet.wn_exception as wn_ex
+import wlan_exp.warpnet.node           as wn_node
+import wlan_exp.warpnet.exception      as wn_ex
 
-from . import version
-from . import defaults
-from . import cmds
+import wlan_exp.version                as version
+import wlan_exp.defaults               as defaults
+import wlan_exp.cmds                   as cmds
 
 
 __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
@@ -202,7 +202,7 @@ class WlanExpNode(wn_node.WnNode):
            WARPNet Buffer that contains all entries since the last time the 
              log was read.
         """
-        import warpnet.wn_message as wn_message
+        import wlan_exp.warpnet.message as wn_message
         
         return_val = wn_message.Buffer()
         (next_index, oldest_index, num_wraps) = self.log_get_indexes()
@@ -382,12 +382,12 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Local Traffic Generation (LTG) Commands
     #--------------------------------------------
-    def ltg_to_node_configure(self, traffic_flow, auto_start=False):
+    def ltg_configure(self, traffic_flow, auto_start=False):
         """Configure the node for the given traffic flow."""
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
 
 
-    def ltg_to_node_remove(self, ltg_id_list):
+    def ltg_remove(self, ltg_id_list):
         """Remove the LTG flows."""
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
@@ -398,7 +398,7 @@ class WlanExpNode(wn_node.WnNode):
             self._print_ltg_error(status, "remove LTG {0}".format(ltg_id_list))
         
 
-    def ltg_to_node_start(self, ltg_id_list):
+    def ltg_start(self, ltg_id_list):
         """Start the LTG flow."""
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
@@ -409,7 +409,7 @@ class WlanExpNode(wn_node.WnNode):
             self._print_ltg_error(status, "start LTG {0}".format(ltg_id_list))
 
 
-    def ltg_to_node_stop(self, ltg_id_list):
+    def ltg_stop(self, ltg_id_list):
         """Stop the LTG flow to the given nodes."""
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
@@ -922,8 +922,8 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         overall structure but a different import.  Please call the super
         class so that the calls will propagate to catch all node types.
         """
-        from . import node_ap
-        from . import node_sta
+        import wlan_exp.node_ap   as node_ap
+        import wlan_exp.node_sta  as node_sta
         
         node = None
 

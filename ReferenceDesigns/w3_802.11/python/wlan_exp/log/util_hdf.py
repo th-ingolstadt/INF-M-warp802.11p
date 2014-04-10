@@ -107,7 +107,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
     """
     import h5py
     import os
-    import warpnet.wlan_exp_log.log_util as log_util
+    from . import util as log_util
 
     # Process the inputs to generate any error
     (np_data, log_data_index) = _process_hdf5_log_data_inputs(log_data, gen_index)
@@ -201,7 +201,7 @@ def is_valid_log_data_container(group):
         True / False
     """
     import numpy as np
-    import warpnet.wlan_exp.version as version
+    import wlan_exp.version as version
 
     try:
         if group.attrs['wlan_exp_log']:
@@ -291,7 +291,7 @@ def hdf5_to_log_data_index(filename=None, h5_file=None, group_name=None, gen_ind
         log_data_index from HDF5 file
         generated log_data_index from log_data in HDF5 file
     """
-    import warpnet.wlan_exp_log.log_util as log_util
+    from . import util as log_util
     
     error          = False
     log_data_index = {}
@@ -456,7 +456,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         }
     """
     import h5py
-    import warpnet.wlan_exp_log.log_util as log_util
+    from . import util as log_util
 
     dk = np_log_dict.keys()
 
@@ -521,7 +521,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
 def _process_hdf5_log_data_inputs(log_data, gen_index):
     """Process the log_data and gen_index inputs to create numpy data and a log_data_index."""
     import numpy as np
-    import warpnet.wlan_exp_log.log_util as log_util
+    from . import util as log_util
     
     # Try generating the index first
     #     This will catch any errors in the user-supplied log data before opening any files
@@ -558,7 +558,7 @@ def _create_hdf5_log_data_container(group, np_data, log_data_index):
     """Create a wlan_exp_log_data_container in the given group."""
     import h5py
     import numpy as np
-    import warpnet.wlan_exp.version as version
+    import wlan_exp.version as version
 
     # Add default attributes to the group
     group.attrs['wlan_exp_log'] = True

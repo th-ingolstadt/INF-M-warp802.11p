@@ -16,17 +16,17 @@ with open('README') as readme_file:
     long_description = readme_file.read()
 
 setup( 
-    name = 'warpnet',
-    description = 'Toolchain for Python WARPNet',
-    version = '2.0.0',
+    name = 'wlan_exp',
+    description = 'Toolchain for Python WLAN Experiment Framework',
+    version = '0.9.0',
     author = 'Mango Communications',
     author_email = 'info@mangocomm.com',
     
     license = 'LICENSE',
     long_description = long_description,
     
-    package_dir = {'warpnet':''},
-    packages = ['warpnet'],
+    package_dir = {'wlan_exp':''},
+    packages = ['wlan_exp'],
     scripts = ['']    
     
 )

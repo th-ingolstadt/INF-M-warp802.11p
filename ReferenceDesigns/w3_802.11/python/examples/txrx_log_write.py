@@ -23,10 +23,10 @@ Description:
 """
 import sys
 import time
-import warpnet.wn_config                 as wn_config
-import warpnet.wlan_exp.util             as wlan_exp_util
-import warpnet.wlan_exp.ltg              as ltg
-import warpnet.wlan_exp_log.log_util_hdf as hdf_util
+import wlan_exp.config                   as config
+import wlan_exp.util                     as wlan_exp_util
+import wlan_exp.ltg                      as ltg
+import wlan_exp.log.util_hdf             as hdf_util
 
 
 #-----------------------------------------------------------------------------
@@ -36,8 +36,8 @@ import warpnet.wlan_exp_log.log_util_hdf as hdf_util
 HOST_INTERFACES   = ['10.0.0.250']
 NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
-AP_HDF5_FILENAME  = "example_logs/ap_log_stats.hdf5"
-STA_HDF5_FILENAME = "example_logs/sta_log_stats.hdf5"
+AP_HDF5_FILENAME  = "../sample_data/ap_log_stats.hdf5"
+STA_HDF5_FILENAME = "../sample_data/sta_log_stats.hdf5"
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME        = 10
@@ -77,11 +77,11 @@ def print_log_size():
 print("\nInitializing experiment\n")
 
 # Create an object that describes the configuration of the host PC
-host_config = wn_config.HostConfiguration(host_interfaces=HOST_INTERFACES)
+host_config  = config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config = wn_config.NodesConfiguration(host_config=host_config,
-                                            serial_numbers=NODE_SERIAL_LIST)
+nodes_config = config.WlanExpNodesConfiguration(host_config=host_config,
+                                                serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #  This command will fail if either WARP v3 node does not respond
@@ -138,13 +138,13 @@ print("\nStart LTG - AP -> STA:")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-ap_ltg_id  = n_ap.ltg_to_node_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
+ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
 
 print("\nStart LTG - STA -> AP:")
 # Start a flow from the STA's local traffic generator (LTG) to the AP
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-sta_ltg_id = n_sta.ltg_to_node_configure(ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
+sta_ltg_id = n_sta.ltg_configure(ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
 
 
 print("\nStarting trials ...")
@@ -164,8 +164,8 @@ for idx, rate in enumerate(wlan_rates):
 
 
 # Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
-n_ap.ltg_to_node_stop(ap_ltg_id)
-n_sta.ltg_to_node_stop(sta_ltg_id)
+n_ap.ltg_stop(ap_ltg_id)
+n_sta.ltg_stop(sta_ltg_id)
 
 n_ap.queue_tx_data_purge_all()
 n_sta.queue_tx_data_purge_all()

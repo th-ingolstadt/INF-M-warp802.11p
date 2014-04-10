@@ -33,7 +33,7 @@ Integer constants:
 import os
 import inspect
 
-import warpnet.wn_exception as wn_ex
+import wlan_exp.warpnet.exception as wn_ex
 
 
 __all__ = ['wlan_exp_ver', 'wlan_exp_ver_check', 'wlan_exp_ver_str']

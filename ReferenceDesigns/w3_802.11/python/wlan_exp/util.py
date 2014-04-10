@@ -37,7 +37,7 @@ Integer constants:
 import sys
 import time
 
-from . import defaults
+import wlan_exp.defaults as defaults
 
 
 __all__ = ['tx_rate_to_str', 'tx_rate_index_to_str',
@@ -192,19 +192,19 @@ def init_nodes(nodes_config, host_config=None, node_factory=None, output=False):
     
     # Create a Host Configuration if there is none provided
     if host_config is None:
-        import warpnet.wn_config as wn_config
+        import wlan_exp.warpnet.config as wn_config
         host_config = wn_config.HostConfiguration()
 
     # If node_factory is not defined, create a default WlanExpNodeFactory
     if node_factory is None:
-        from . import node
+        import wlan_exp.node as node
         node_factory = node.WlanExpNodeFactory(host_config)
 
     # Record the WARPNet type dictionary from the NodeFactory for later use
     warpnet_type_dict = node_factory.get_wn_type_dict()
 
     # Use the WARPNet utility, wn_init_nodes, to initialize the nodes
-    import warpnet.wn_util as wn_util
+    import wlan_exp.warpnet.util as wn_util
     return wn_util.wn_init_nodes(nodes_config, host_config, node_factory, output)
 
 # End def
@@ -225,7 +225,7 @@ def broadcast_cmd_set_time(time, host_config, time_id=None):
                         in seconds or an integer number of microseconds                 
         time_id      -- Optional value to identify broadcast time commands across nodes
     """
-    import warpnet.wlan_exp.cmds as cmds
+    import wlan_exp.cmds as cmds
     _broadcast_time_to_nodes(time_cmd=cmds.NODE_WRITE, host_config=host_config, time=time, time_id=time_id)
 
 # End def
@@ -241,7 +241,7 @@ def broadcast_cmd_write_time_to_logs(host_config, time_id=None):
         host_config  -- A WnConfiguration object describing the host configuration
         time_id      -- Optional value to identify broadcast time commands across nodes
     """
-    import warpnet.wlan_exp.cmds as cmds
+    import wlan_exp.cmds as cmds
     _broadcast_time_to_nodes(time_cmd=cmds.TIME_ADD_TO_LOG, host_config=host_config, time_id=time_id)
 
 # End def
@@ -295,7 +295,7 @@ def filter_nodes(nodes, filter_type, filter_val):
 
 
     elif (filter_type == 'serial_number'):
-        import warpnet.wn_util as wn_util
+        import wlan_exp.warpnet.util as wn_util
 
         try:
             (sn, sn_str) = wn_util.wn_get_serial_number(filter_val)
@@ -320,7 +320,7 @@ def filter_nodes(nodes, filter_type, filter_val):
 
 def int_to_ip(ip_address):
     """Convert an integer to IP address string (dotted notation)."""
-    import warpnet.wn_transport_eth_udp as tport
+    import wlan_exp.warpnet.transport_eth_udp as tport
     return tport.int_to_ip(ip_address)
 
 # End def
@@ -328,7 +328,7 @@ def int_to_ip(ip_address):
 
 def ip_to_int(ip_address):
     """Convert IP address string (dotted notation) to an integer."""
-    import warpnet.wn_transport_eth_udp as tport
+    import wlan_exp.warpnet.transport_eth_udp as tport
     return tport.ip_to_int(ip_address)
 
 # End def
@@ -336,7 +336,7 @@ def ip_to_int(ip_address):
 
 def mac_addr_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
-    import warpnet.wn_transport_eth_udp as tport
+    import wlan_exp.warpnet.transport_eth_udp as tport
     return tport.mac_addr_to_str(mac_address)
 
 # End def
@@ -354,7 +354,7 @@ def sn_to_str(hw_generation, serial_number):
 
 def ver_code_to_str(ver_code):
     """Convert a WLAN Exp version code to a string."""
-    import warpnet.wlan_exp.version as version
+    import wlan_exp.version as version
     return version.wlan_exp_ver_code_to_str(ver_code)
 
 # End def
@@ -383,8 +383,8 @@ def node_type_to_str(node_type, node_factory=None):
         
         # Build a default node_factory if it is not present
         if node_factory is None:
-            from . import node
-            import warpnet.wn_config as wn_config
+            import wlan_exp.node           as node
+            import wlan_exp.warpnet.config as wn_config
     
             host_config  = wn_config.HostConfiguration()
             node_factory = node.WlanExpNodeFactory(host_config)
@@ -509,9 +509,9 @@ def _broadcast_time_to_nodes(time_cmd, host_config, time=0.0, time_id=None):
                         point number in seconds
         time_id      -- Optional value to identify broadcast time commands across nodes
     """
-    import warpnet.wn_transport_eth_udp_py_bcast as bcast
-    import warpnet.wlan_exp.cmds                 as cmds
-    import warpnet.wn_util                       as util
+    import wlan_exp.warpnet.transport_eth_udp_py_bcast as bcast
+    import wlan_exp.warpnet.util                       as util
+    import wlan_exp.cmds                               as cmds
 
     time_factor = 6               # Time can be in # of microseconds (ie 10^(-6) seconds)
 
@@ -569,7 +569,7 @@ def _broadcast_cmd_to_nodes_helper(cmd, host_config):
     rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
 
     for interface in interfaces:
-        import warpnet.wn_transport_eth_udp_py_bcast as bcast
+        import wlan_exp.warpnet.transport_eth_udp_py_bcast as bcast
 
         # Create broadcast transport
         transport_bcast = bcast.TransportEthUdpPyBcast(host_config, interface);

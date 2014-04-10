@@ -33,7 +33,7 @@ Integer constants:
 import os
 import inspect
 
-from . import wn_exception as wn_ex
+from . import exception as wn_ex
 
 
 __all__ = ['wn_ver', 'wn_ver_check', 'wn_ver_str']
