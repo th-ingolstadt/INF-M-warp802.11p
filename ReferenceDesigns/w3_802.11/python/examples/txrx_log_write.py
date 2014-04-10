@@ -36,8 +36,8 @@ import wlan_exp.log.util_hdf             as hdf_util
 HOST_INTERFACES   = ['10.0.0.250']
 NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
-AP_HDF5_FILENAME  = "../sample_data/ap_log_stats.hdf5"
-STA_HDF5_FILENAME = "../sample_data/sta_log_stats.hdf5"
+AP_HDF5_FILENAME  = "sample_data/ap_log_stats.hdf5"
+STA_HDF5_FILENAME = "sample_data/sta_log_stats.hdf5"
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME        = 10

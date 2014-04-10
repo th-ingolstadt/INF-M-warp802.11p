@@ -1,7 +1,6 @@
-import warpnet.wlan_exp_log.log_util as log_util
-from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as log_entry_types
-import numpy as np
-import pandas as pd
+import wlan_exp.log.util        as log_util
+import numpy                    as np
+import pandas                   as pd
 from matplotlib.pyplot import *
 
 with open('big_logs/sta_log_stats_2014_03_06.bin', 'rb') as fh:

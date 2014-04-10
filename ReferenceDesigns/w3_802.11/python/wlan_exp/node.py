@@ -349,27 +349,32 @@ class WlanExpNode(wn_node.WnNode):
     def stats_get_txrx(self, device_list=None):
         """Get the statistics from the node.
         
-        Returns a list of statistic dictionaries.  If the list only contains
-            one entry, then just the single entry is returned
-
-        If a device_list is provided, then the command will only return
-            statistics for the given devices.  Otherwise, it will return all
-            the statistics on the node.
+        Returns a list of statistic dictionaries or a single dictionary.  
+        
+        If the device_list is a single device, then a single dictionary or 
+        None is returned.  If the device_list is a list of devices, then a 
+        list of dictionaries will be returned in the same order as the 
+        devices in the list.  If any of the staistics are not there, 
+        None will be inserted in the list.  If the device_list is not 
+        specified, then all the statistics on the node will be returned.
         """
         ret_val = []
         if not device_list is None:
             if (type(device_list) is list):
                 for device in device_list:
                     stats = self.send_cmd(cmds.StatsGetTxRx(device))
-                    ret_val.append(stats)
+                    if (len(stats) == 1):
+                        ret_val.append(stats)
+                    else:
+                        ret_val.append(None)
             else:
                 ret_val = self.send_cmd(cmds.StatsGetTxRx(device_list))
+                if (len(ret_val) == 1):
+                    ret_val = ret_val[0]
+                else:
+                    ret_val = None
         else:
             ret_val = self.send_cmd(cmds.StatsGetTxRx())
-        
-        # If the list only contains one entry, the just return the entry
-        if (len(ret_val) == 1):
-            ret_val = ret_val[0]
         
         return ret_val
     
@@ -545,27 +550,31 @@ class WlanExpNode(wn_node.WnNode):
         Returns:
             A station info dictionary or list of station info dictionaries.
 
-        If the device_list is a single device, then only a station info is 
-        returned.  If the device_list is a list of devices, then a list of
-        station infos will be returned in the same order as the devices in
-        the list.  If the device_list is not specified, then all the 
-        station infos on the node will be returned.
+        If the device_list is a single device, then only a station info or 
+        None is returned.  If the device_list is a list of devices, then a 
+        list of station infos will be returned in the same order as the 
+        devices in the list.  If any of the station info are not there, 
+        None will be inserted in the list.  If the device_list is not 
+        specified, then all the station infos on the node will be returned.
         """
         ret_val = []
         if not device_list is None:
             if (type(device_list) is list):
                 for device in device_list:
-                    stats = self.send_cmd(cmds.NodeGetStationInfo(device))
-                    ret_val.append(stats)
+                    info = self.send_cmd(cmds.NodeGetStationInfo(device))
+                    if (len(info) == 1):
+                        ret_val.append(info)
+                    else:
+                        ret_val.append(None)
             else:
                 ret_val = self.send_cmd(cmds.NodeGetStationInfo(device_list))
+                if (len(ret_val) == 1):
+                    ret_val = ret_val[0]
+                else:
+                    ret_val = None
         else:
             ret_val = self.send_cmd(cmds.NodeGetStationInfo())
 
-        # If the list only contains one entry, the just return the entry
-        if (len(ret_val) == 1):
-            ret_val = ret_val[0]
-        
         return ret_val
     
 

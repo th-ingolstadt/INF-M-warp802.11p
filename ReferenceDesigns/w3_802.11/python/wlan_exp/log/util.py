@@ -219,7 +219,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
         WARNING:  D does not exist in log index.  Ignoring for merge.
         x == {'M': []}
     """
-    from entry_types import log_entry_types
+    from .entry_types import log_entry_types
 
     ret_log_index = {}
 

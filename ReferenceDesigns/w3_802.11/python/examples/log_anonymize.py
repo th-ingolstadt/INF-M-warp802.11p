@@ -99,14 +99,14 @@ def log_anonymize(filename):
     log_bytes = bytearray(hdf_util.hdf5_to_log_data(filename=filename))
 
     # Get the log_data_index from the file
-    log_data_index = hdf_util.hdf5_to_log_data_index(filename=filename)
+    raw_log_index = hdf_util.hdf5_to_log_data_index(filename=filename)
 
     # Get the user attributes from the file
     log_attr_dict  = hdf_util.hdf5_to_attr_dict(filename=filename)
 
 
     # Generate the index of log entry locations sorted by log entry type
-    log_index     = log_util.filter_log_index(log_data_index)
+    log_index     = log_util.filter_log_index(raw_log_index)
 
     # Re-initialize the address-byteindex map per file using the running
     #   list of known MAC addresses

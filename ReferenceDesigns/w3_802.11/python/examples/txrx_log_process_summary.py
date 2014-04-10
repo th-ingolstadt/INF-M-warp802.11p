@@ -21,19 +21,19 @@ License:   Copyright 2014, Mango Communications. All rights reserved.
 import os
 import sys
 import time
-import numpy as np
+import numpy                 as np
 
-import warpnet.wlan_exp_log.log_util as log_util
-import warpnet.wlan_exp_log.log_util_hdf as hdf_util
-from warpnet.wlan_exp_log.log_entries import wlan_exp_log_entry_types as entry_types
+import wlan_exp.log.util     as log_util
+import wlan_exp.log.util_hdf as hdf_util
+from wlan_exp.log.entry_types import log_entry_types
 
-import warpnet.wlan_exp.util as wlan_exp_util
-from  warpnet.wlan_exp.util import wlan_rates
+import wlan_exp.util         as wlan_exp_util
+from  wlan_exp.util import wlan_rates
 
 #Use log file given as command line argument, if present
 if(len(sys.argv) == 1):
     #No filename on command line
-    LOGFILE = 'example_logs/raw_sta_log_10s_per_rate.hdf5'
+    LOGFILE = 'sample_data/ap_log_stats.hdf5'
 else:
     LOGFILE = str(sys.argv[1])
 
@@ -45,16 +45,16 @@ else:
     print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/1E6)))
 
 # Get the log_data from the file
-log_data = hdf_util.hdf5_to_log_data(filename=LOGFILE)
+log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 
 # Get the log_data_index from the file
-log_data_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
+raw_log_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
 
 # Describe the log_data_index
-log_util.print_log_index_summary(log_data_index, "Log Index Contents:")
+log_util.print_log_index_summary(raw_log_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
-log_index = log_util.filter_log_index(log_data_index,
+log_index = log_util.filter_log_index(raw_log_index,
                                       include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX'])
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
@@ -165,7 +165,7 @@ if('RX_OFDM' in log_np.keys()):
 
     # For this experiment, only look at Good = 0  or Bad = 1 receptions
     # Extract only Rx entries with good checksum (FCS = good)
-    rx_good_fcs = log_rx[log_rx['fcs_result'] == entry_types['RX_OFDM'].consts['FCS_GOOD']]
+    rx_good_fcs = log_rx[log_rx['fcs_result'] == log_entry_types['RX_OFDM'].consts['FCS_GOOD']]
 
     # Extract addr2 field from all good packets
     rx_addrs_2 = rx_good_fcs['addr2']

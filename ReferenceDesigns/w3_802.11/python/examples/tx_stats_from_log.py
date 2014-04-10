@@ -1,26 +1,43 @@
-import warpnet.wlan_exp_log.log_util as log_util
-import warpnet.wlan_exp.util as util
-import numpy as np
-import matplotlib.mlab as mlab
+import os
+import sys
+import wlan_exp.log.util     as log_util
+import wlan_exp.log.util_hdf as hdf_util
+import wlan_exp.util         as wlan_exp_util
+import numpy                 as np
+import matplotlib.mlab       as mlab
 
-#LOGFILE = 'example_logs/ap_log_stats.bin'
-LOGFILE = 'big_logs/ap_log_stats_2014_03_06.bin'
 
-with open(LOGFILE, 'rb') as fh:
-    log_b = fh.read()
+#Use log file given as command line argument, if present
+if(len(sys.argv) == 1):
+    #No filename on command line
+    LOGFILE = 'sample_data/ap_log_stats.hdf5'
+else:
+    LOGFILE = str(sys.argv[1])
 
-log_index_raw = log_util.gen_log_index_raw(log_b)
+# Ensure the log file actually exists - quit immediately if not
+if(not os.path.isfile(LOGFILE)):
+    print("ERROR: Logfile {0} not found".format(LOGFILE))
+    sys.exit()
+else:
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/1E6)))
 
-#Extract just OFDM Tx events
-log_idx_tx = log_util.filter_log_index(log_index_raw, include_only=['TX'])
 
-#Generate numpy array
-tx_recs = log_util.gen_log_np_arrays(log_b, log_idx_tx).values()[0]
+# Get the log_data from the file
+log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 
-#Define the fields to group by
+# Get the log_data_index from the file
+raw_log_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
+
+# Extract just OFDM Tx events
+tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX'])
+
+# Generate numpy array
+tx_recs       = log_np = log_util.log_data_to_np_arrays(log_data, tx_log_index)
+
+# Define the fields to group by
 group_fields = ('addr1',)
 
-#Define the aggregation functions
+# Define the aggregation functions
 stat_calc = (
     ('retry_count',  np.mean, 'avg_num_tx'),
     ('length',       len,     'num_pkts'),
@@ -28,10 +45,10 @@ stat_calc = (
     ('length',       sum,     'tot_len'),
     ('time_to_done', np.mean, 'avg_time'))
 
-#Calculate the aggregate statistics
+# Calculate the aggregate statistics
 tx_stats = mlab.rec_groupby(tx_recs, group_fields, stat_calc)
 
-#Display the results
+# Display the results
 print('\nTx Statistics for {0}:\n'.format(LOGFILE))
 
 print('{0:^18} | {1:^8} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
@@ -44,7 +61,7 @@ print('{0:^18} | {1:^8} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
 
 for ii in range(len(tx_stats)):
     print('{0:<18} | {1:8d} | {2:10.1f} | {3:14} | {4:11.3f} | {5:5.1f}'.format(
-        util.mac_addr_to_str(tx_stats['addr1'][ii]),
+        wlan_exp_util.mac_addr_to_str(tx_stats['addr1'][ii]),
         tx_stats['num_pkts'][ii],
         tx_stats['avg_len'][ii],
         tx_stats['tot_len'][ii],

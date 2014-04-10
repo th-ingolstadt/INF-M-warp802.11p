@@ -38,16 +38,16 @@ statistics and display them.
 import time
 
 # Import WARPNet Framework
-import warpnet.wn_config as wn_config
+import wlan_exp.config       as config
 
 # Import WLAN Exp Framework
-import warpnet.wlan_exp.util as wlan_exp_util
+import wlan_exp.util         as wlan_exp_util
 
 
 
 # TOP Level script variables
 HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00006']
+NODE_SERIAL_LIST  = ['W3-a-00001']
 
 
 nodes = []
@@ -61,12 +61,12 @@ def initialize_experiment():
 
     # Create a WnConfiguration
     #   This describes the Host configuration.
-    host_config = wn_config.HostConfiguration(host_interfaces=HOST_INTERFACES)
+    host_config  = config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
     
     # Create a WnNodesConfiguration
     #   This describes each node to be initialized
-    nodes_config = wn_config.NodesConfiguration(host_config=host_config,
-                                                serial_numbers=NODE_SERIAL_LIST)
+    nodes_config = config.WlanExpNodesConfiguration(host_config=host_config,
+                                                    serial_numbers=NODE_SERIAL_LIST)
 
     # Initialize the Nodes
     #   This will initialize all of the networking and gather the necessary
@@ -108,10 +108,10 @@ def run_experiment():
 
 def print_stats(stats, station_info=None):
     """Helper method to print the statistics."""
-    print("-------------------- -------------------------- --------------------------- ")
-    print("                           Number of Packets        Number of Bytes         ")
-    print("ID                   Tx       Rx Data  Rx Mgmt  Tx       Rx Data  Rx Mgmt   ")
-    print("-------------------- -------- -------- -------- -------- -------- --------- ")
+    print("-------------------- ----------------------------------- ----------------------------------- ")
+    print("                               Number of Packets                   Number of Bytes           ")
+    print("ID                   Tx Data  Tx Mgmt  Rx Data  Rx Mgmt  Tx Data  Tx Mgmt  Rx Data  Rx Mgmt  ")
+    print("-------------------- -------- -------- -------- -------- -------- -------- -------- -------- ")
 
     msg = ""
     for stat in stats:
@@ -123,20 +123,25 @@ def print_stats(stats, station_info=None):
                 if (stat['mac_addr'] == station['mac_addr']):
                     stat_id  = station['host_name']
                     stat_id  = stat_id.strip('\x00')
-                    hostname = True
+                    if (stat_id == ''):
+                        stat_id  = stat['mac_addr']
+                        hostname = False
+                    else:
+                        hostname = True
         
         if not hostname:
             stat_id = ''.join('{0:02X}:'.format(ord(x)) for x in stat_id)[:-1]
 
         msg += "{0:<20} ".format(stat_id)
-        msg += "{0:8d} ".format(stat['num_high_tx_total'])
-        msg += "{0:8d} ".format(stat['data_num_rx_success'])
-        msg += "{0:8d} ".format(stat['mgmt_num_rx_success'])
-        msg += "{0:8d} ".format(0)
+        msg += "{0:8d} ".format(stat['data_num_tx_packets_success'])
+        msg += "{0:8d} ".format(stat['mgmt_num_tx_packets_success'])        
+        msg += "{0:8d} ".format(stat['data_num_rx_packets'])
+        msg += "{0:8d} ".format(stat['mgmt_num_rx_packets'])
+        msg += "{0:8d} ".format(stat['data_num_tx_bytes_success'])
+        msg += "{0:8d} ".format(stat['mgmt_num_tx_bytes_success'])
         msg += "{0:8d} ".format(stat['data_num_rx_bytes'])
         msg += "{0:8d} ".format(stat['mgmt_num_rx_bytes'])
         msg += "\n"
-
     print(msg)
 
 

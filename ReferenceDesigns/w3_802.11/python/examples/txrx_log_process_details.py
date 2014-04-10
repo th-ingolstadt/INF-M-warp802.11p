@@ -17,16 +17,20 @@ License:   Copyright 2014, Mango Communications. All rights reserved.
 """
 import os
 import sys
-import numpy as np
+import numpy                 as np
 
-import warpnet.wlan_exp_log.log_util as log_util
-import warpnet.wlan_exp_log.log_util_hdf as hdf_util
+import wlan_exp.log.util     as log_util
+import wlan_exp.log.util_hdf as hdf_util
 
-import warpnet.wlan_exp.util as wlan_exp_util
-from  warpnet.wlan_exp.util import wlan_rates
+import wlan_exp.util         as wlan_exp_util
+from   wlan_exp.util     import wlan_rates
 
-# NOTE: change these values to match your experiment setup
-LOGFILE = 'example_logs/sta_log_stats_headers_only.hdf5'
+# Use log file given as command line argument, if present
+if(len(sys.argv) == 1):
+    #No filename on command line
+    LOGFILE = 'sample_data/sta_log_stats.hdf5'
+else:
+    LOGFILE = str(sys.argv[1])
 
 # Ensure the log file actually exists - quit immediately if not
 if(not os.path.isfile(LOGFILE)):
@@ -36,16 +40,16 @@ else:
     print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/1E6)))
 
 # Get the log_data from the file
-log_data = hdf_util.hdf5_to_log_data(filename=LOGFILE)
+log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 
 # Get the log_data_index from the file
-log_data_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
+raw_log_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
 
 # Describe the log_data_index
-log_util.print_log_index_summary(log_data_index, "Log Index Contents:")
+log_util.print_log_index_summary(raw_log_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
-log_index = log_util.filter_log_index(log_data_index, include_only=['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW'])
+log_index = log_util.filter_log_index(raw_log_index, include_only=['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW'])
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 

@@ -240,10 +240,10 @@ class WlanExpLogEntryType(object):
                 all_names = self.get_field_names()
                 all_fmts  = self.get_field_struct_formats()
 
-                #Filter out names for fields ignored during unpacking
+                # Filter out names for fields ignored during unpacking
                 names = [n for (n,f) in zip(all_names, all_fmts) if 'x' not in f]
 
-                #Use OrderedDict to preserve user-specified field order
+                # Use OrderedDict to preserve user-specified field order
                 ret_val.append(OrderedDict(zip(names, dataTuple)))
 
             except error as err:
@@ -592,12 +592,12 @@ entry_txrx_stats.append_field_defs([
             ('data_num_tx_bytes_total',        'Q',      'uint64'),
             ('data_num_rx_packets',            'I',      'uint32'),
             ('data_num_tx_packets_success',    'I',      'uint32'),
-            ('data_num_tx_packets_total',      'I',      'uint32'),            
+            ('data_num_tx_packets_total',      'I',      'uint32'),
             ('data_num_tx_packets_low',        'I',      'uint32'),
             ('mgmt_num_rx_bytes',              'Q',      'uint64'),
             ('mgmt_num_tx_bytes_success',      'Q',      'uint64'),
             ('mgmt_num_tx_bytes_total',        'Q',      'uint64'),
             ('mgmt_num_rx_packets',            'I',      'uint32'),
             ('mgmt_num_tx_packets_success',    'I',      'uint32'),
-            ('mgmt_num_tx_packets_total',      'I',      'uint32'),            
+            ('mgmt_num_tx_packets_total',      'I',      'uint32'),
             ('mgmt_num_tx_packets_low',        'I',      'uint32')])

@@ -20,9 +20,9 @@ Description:
 """
 import sys
 import time
-import warpnet.wn_config as wn_config
-import warpnet.wlan_exp.util  as wlan_exp_util
-import warpnet.wlan_exp.ltg   as ltg
+import wlan_exp.config        as config
+import wlan_exp.util          as wlan_exp_util
+import wlan_exp.ltg           as ltg
 
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
@@ -42,11 +42,11 @@ TRIAL_TIME = 10
 print("\nInitializing experiment\n")
 
 # Create an object that describes the configuration of the host PC
-host_config = wn_config.HostConfiguration(host_interfaces=HOST_INTERFACES)
+host_config  = config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config = wn_config.NodesConfiguration(host_config=host_config,
-                                            serial_numbers=NODE_SERIAL_LIST)
+nodes_config = config.WlanExpNodesConfiguration(host_config=host_config,
+                                                serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #  This command will fail if either WARP v3 node does not respond
@@ -83,7 +83,7 @@ for node in nodes:
 
     print("\n{0}:".format(node.name))
     print("    Channel  = {0}".format(channel))
-    print("    Tx Power = {0}".format(tx_power))
+    print("    Tx Power = {0} dBm".format(tx_power[0]))
 
 print("")
 
