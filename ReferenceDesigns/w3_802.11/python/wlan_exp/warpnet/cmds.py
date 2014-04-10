@@ -132,13 +132,12 @@ class NodeIdentify(wn_message.Cmd):
         super(NodeIdentify, self).__init__()
         self.command = _CMD_GRPID_NODE + CMD_IDENTIFY
 
-        (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
-        
-        if (sn == IDENTIFY_ALL_NODES):
-            self.id = "All nodes"
+        if (serial_number == IDENTIFY_ALL_NODES):
+            (sn, sn_str) = (IDENTIFY_ALL_NODES, "All nodes")
         else:
-            self.id = sn_str
-        
+            (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
+
+        self.id = sn_str
         self.add_args(sn)
             
     def process_resp(self, resp):
