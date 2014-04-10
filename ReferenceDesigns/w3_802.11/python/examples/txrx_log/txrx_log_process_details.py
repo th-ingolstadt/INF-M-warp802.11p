@@ -17,18 +17,18 @@ License:   Copyright 2014, Mango Communications. All rights reserved.
 """
 import os
 import sys
-import numpy                 as np
+import numpy as np
 
-import wlan_exp.log.util     as log_util
+import wlan_exp.util as wlan_exp_util
+
+import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
 
-import wlan_exp.util         as wlan_exp_util
-from   wlan_exp.util     import wlan_rates
 
 # Use log file given as command line argument, if present
 if(len(sys.argv) == 1):
     #No filename on command line
-    LOGFILE = 'sample_data/sta_log_stats.hdf5'
+    LOGFILE = 'log_files/sta_log_stats.hdf5'
 else:
     LOGFILE = str(sys.argv[1])
 
@@ -38,6 +38,7 @@ if(not os.path.isfile(LOGFILE)):
     sys.exit()
 else:
     print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/1E6)))
+
 
 # Get the log_data from the file
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
@@ -83,13 +84,16 @@ tx_done        = log_tx['time_to_done']
 tx_avg_time    = []
 
 # Calculate the average time to send a packet for each rate
-for rate in np.sort(np.unique(tx_rates)):
+for rate in range(1, 9):
     # Find indexes of all instances where addresses match
     #   np.squeeze here flattens the result to a 1-D array
     rate_idx = np.squeeze(tx_rates == rate)
 
     # Calculate the average time to send a packet and add it to the array
-    tx_avg_time.append(np.average(tx_done[rate_idx]))
+    if np.any(rate_idx):
+        tx_avg_time.append(np.average(tx_done[rate_idx]))
+    else:
+        tx_avg_time.append(0)
 
 # Extract all OFDM CPU Low transmissions
 log_tx_low = log_np['TX_LOW']
@@ -110,7 +114,7 @@ print("{0:9} {1:^32} {2:^20}".format(
     "Rate", "# Tx Pkts", "Avg Tx time (us)"))
 print("{0:9} {1:>10} {2:>10} {3:>10} {4:>10}".format(
     "", "CPU High", "CPU Low", "Re-trans", "CPU High"))
-for (i,c) in enumerate(wlan_rates):
+for (i,c) in enumerate(wlan_exp_util.wlan_rates):
     retrans = tx_low_rate_counts[i] - tx_rate_counts[i]
     total_retrans  += retrans
     

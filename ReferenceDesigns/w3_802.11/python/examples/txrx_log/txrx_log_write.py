@@ -63,18 +63,6 @@ def write_log_file(file_name, data_buffer):
         print("Error writing log file: {0}".format(err))
 
 
-def print_log_size():
-    """Prints the size of the AP / STA Logs."""
-    global n_ap, n_sta
-
-    ap_log_size  = n_ap.log_get_size()
-    sta_log_size = n_sta.log_get_size()
-    
-    print("\nLog Sizes:  AP  = {0:10,d} bytes".format(ap_log_size))
-    print("            STA = {0:10,d} bytes".format(sta_log_size))
-
-
-
 #-----------------------------------------------------------------------------
 # Experiment Script
 #-----------------------------------------------------------------------------
@@ -135,10 +123,6 @@ wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
 
 print("\nRun Experiment:")
 
-# Look at the initial log sizes for reference
-print_log_size()
-
-
 print("\nStart LTG - AP -> STA")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
@@ -177,7 +161,11 @@ n_ap.queue_tx_data_purge_all()
 
 
 # Look at the final log sizes for reference
-print_log_size()
+ap_log_size  = n_ap.log_get_size()
+sta_log_size = n_sta.log_get_size()
+
+print("\nLog Sizes:  AP  = {0:10,d} bytes".format(ap_log_size))
+print("            STA = {0:10,d} bytes".format(sta_log_size))
 
 # Write Log Files for processing by other scripts
 print("\nWriting Log Files...")
