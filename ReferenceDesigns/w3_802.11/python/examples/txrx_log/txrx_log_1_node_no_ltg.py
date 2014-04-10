@@ -35,8 +35,8 @@ import wlan_exp.log.util_hdf as hdf_util
 # Top Level Script Variables
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
-HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
+HOST_INTERFACES   = ['10.0.0.200']
+NODE_SERIAL_LIST  = ['W3-a-00189', 'W3-a-00094']
 
 AP_HDF5_FILENAME  = "log_files/ap_log_stats.hdf5"
 STA_HDF5_FILENAME = "log_files/sta_log_stats.hdf5"
