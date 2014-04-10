@@ -57,7 +57,7 @@
 
 // Version info (MAJOR.MINOR.REV, all must be ints)
 #define WLAN_EXP_VER_MAJOR        0
-#define WLAN_EXP_VER_MINOR        8
+#define WLAN_EXP_VER_MINOR        9
 #define WLAN_EXP_VER_REV          0
 
 #define REQ_WLAN_EXP_HW_VER       (WLAN_EXP_VER_MAJOR<<16)|(WLAN_EXP_VER_MINOR<<8)|(WLAN_EXP_VER_REV)
