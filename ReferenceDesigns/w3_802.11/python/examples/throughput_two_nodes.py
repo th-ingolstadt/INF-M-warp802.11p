@@ -28,13 +28,6 @@ import wlan_exp.ltg           as ltg
 HOST_INTERFACES   = ['10.0.0.250']
 NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
-# Select some PHY rates to test
-#  wlan_exp_util.rates is an array of dictionaries with keys:
-#      'rate_index', 'rate', 'rate_str'
-#  NOTE: rates must be a list for the below loops to work.  To select a
-#    single rate please use the syntax:  wlan_exp_util.rates[0:1] to select
-#    just entry [0] of the list.
-wlan_rates = wlan_exp_util.wlan_rates[0:]
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME = 10
@@ -71,10 +64,13 @@ else:
 
 # Initialize each node and gather some print some experiment information
 print("\nExperimental Setup:")
+
+# Set the rate of both nodes to 18 Mbps
+rate = wlan_exp_util.wlan_rates[3]
+
 # Put each node in a known, good state
 for node in nodes:
-    node.set_tx_rate_unicast(wlan_exp_util.wlan_rates[3], curr_assoc=True, new_assoc=True)
-    node.log_configure(log_full_payloads=False)
+    node.set_tx_rate_unicast(rate, curr_assoc=True, new_assoc=True)
     node.reset_all()
 
     # Get some additional information about the experiment
@@ -83,7 +79,8 @@ for node in nodes:
 
     print("\n{0}:".format(node.name))
     print("    Channel  = {0}".format(channel))
-    print("    Tx Power = {0} dBm".format(tx_power[0]))
+    print("    Tx Power = {0} dBm".format(tx_power[0]))  # Unicast Data power
+    print("    Rate     = {0}".format(wlan_exp_util.tx_rate_to_str(rate)))
 
 print("")
 
@@ -97,53 +94,122 @@ if not n_ap.is_associated(n_sta):
     sys.exit(0)
 
 
-print("\nStart LTG - AP -> STA:")
+print("\nRun Experiment:")
+
+
+#-------------------------------------------------------------------------
+#  Experiment 1:  AP -> STA throughput
+#
+
+print("\nTesting AP -> STA throughput for rate {0} ...".format(wlan_exp_util.tx_rate_to_str(rate)))
+
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
 ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
 
-# Arrays to hold results
-rx_bytes = []
-rx_time_spans = []
+# Record the station's initial Tx/Rx stats for the AP
+ap_rx_stats_start = n_sta.stats_get_txrx(n_ap)
 
-print("\nRun Experiment:")
+# Wait for the TRIAL_TIME
+time.sleep(TRIAL_TIME)
 
-# Iterate over each selected Tx rate, running a new trial for each rate
-for ii,rate in enumerate(wlan_rates):
-    print("\nStarting {0} sec trial for rate {1} ...".format(TRIAL_TIME, wlan_exp_util.tx_rate_to_str(rate)))
+# Record the station's ending Tx/Rx stats for the AP
+ap_rx_stats_end = n_sta.stats_get_txrx(n_ap)
 
-    #Configure the AP's Tx rate for the selected station
-    n_ap.set_tx_rate_unicast(rate, device_list=n_sta)
-
-    #Record the station's initial Tx/Rx stats
-    rx_stats_start = n_sta.stats_get_txrx(n_ap)
-
-    #Wait for a while
-    time.sleep(TRIAL_TIME)
-
-    #Record the station's ending Tx/Rx stats
-    rx_stats_end = n_sta.stats_get_txrx(n_ap)
-
-    #Compute the number of new bytes received and the time span
-    rx_bytes.insert(ii, rx_stats_end['data_num_rx_bytes'] - rx_stats_start['data_num_rx_bytes'])
-    rx_time_spans.insert(ii, rx_stats_end['timestamp'] - rx_stats_start['timestamp'])
-    print("Done.")
-
-print("\n")
-
-# Stop the LTG flow so that nodes are in a known, good state
+# Stop the LTG flow and purge any remaining transmissions in the queue 
+#  so that nodes are in a known, good state
 n_ap.ltg_stop(ap_ltg_id)
+n_ap.queue_tx_data_purge_all()
 
-#Calculate and display the throughput results
-print("Results:")
+# Timestamps are in microseconds; bits/usec == Mbits/sec
+# NOTE: In Python 3.x, the division operator is always floating point.
+#    In order to be compatible with all versions of python, cast
+#    operands to floats to ensure floating point division
+ap_num_bytes = float((ap_rx_stats_end['data_num_rx_bytes'] - ap_rx_stats_start['data_num_rx_bytes']) * 8)
+ap_time_span = float(ap_rx_stats_end['timestamp'] - ap_rx_stats_start['timestamp'])
+ap_xput      = ap_num_bytes / ap_time_span
+print("    Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], ap_xput))
 
-for ii in range(len(wlan_rates)):
-    #Timestamps are in microseconds; bits/usec == Mbits/sec
-    #  NOTE: In Python 3.x, the division operator is always floating point.
-    #    In order to be compatible with all versions of python, cast
-    #    operands to floats to ensure floating point division
-    num_bytes = float(rx_bytes[ii] * 8)
-    time_span = float(rx_time_spans[ii])
-    xput = num_bytes / time_span
-    print("    Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(wlan_rates[ii]['rate'], xput))
+
+#-------------------------------------------------------------------------
+#  Experiment 2:  STA -> AP throughput
+#
+
+print("\nTesting STA -> AP throughput for rate {0} ...".format(wlan_exp_util.tx_rate_to_str(rate)))
+
+# Start a flow from the AP's local traffic generator (LTG) to the STA
+#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
+#  Start the flow immediately
+sta_ltg_id  = n_sta.ltg_configure(ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
+
+# Record the AP's initial Tx/Rx stats for the station
+sta_rx_stats_start = n_ap.stats_get_txrx(n_sta)
+
+# Wait for the TRIAL_TIME
+time.sleep(TRIAL_TIME)
+
+# Record the AP's ending Tx/Rx stats for the station
+sta_rx_stats_end = n_ap.stats_get_txrx(n_sta)
+
+# Stop the LTG flow and purge any remaining transmissions in the queue 
+#  so that nodes are in a known, good state
+n_sta.ltg_stop(sta_ltg_id)
+n_sta.queue_tx_data_purge_all()
+
+# Timestamps are in microseconds; bits/usec == Mbits/sec
+# NOTE: In Python 3.x, the division operator is always floating point.
+#    In order to be compatible with all versions of python, cast
+#    operands to floats to ensure floating point division
+sta_num_bytes = float((sta_rx_stats_end['data_num_rx_bytes'] - sta_rx_stats_start['data_num_rx_bytes']) * 8)
+sta_time_span = float(sta_rx_stats_end['timestamp'] - sta_rx_stats_start['timestamp'])
+sta_xput      = sta_num_bytes / sta_time_span
+print("    Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], sta_xput))
+
+
+#-------------------------------------------------------------------------
+#  Experiment 3:  Head-to-head throughput
+#
+
+print("\nTesting Head-to-Head throughput for rate {0} ...".format(wlan_exp_util.tx_rate_to_str(rate)))
+
+
+# Start both local traffic generator (LTG) flows
+#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
+#  Start the flow immediately
+sta_ltg_id = n_sta.ltg_configure(ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
+ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
+
+# Record the initial Tx/Rx stats
+sta_rx_stats_start = n_ap.stats_get_txrx(n_sta)
+ap_rx_stats_start  = n_sta.stats_get_txrx(n_ap)
+
+# Wait for the TRIAL_TIME
+time.sleep(TRIAL_TIME)
+
+# Record the ending Tx/Rx stats
+sta_rx_stats_end = n_ap.stats_get_txrx(n_sta)
+ap_rx_stats_end  = n_sta.stats_get_txrx(n_ap)
+
+# Stop the LTG flows and purge any remaining transmissions in the queue 
+#  so that nodes are in a known, good state
+n_sta.ltg_stop(sta_ltg_id)
+n_sta.queue_tx_data_purge_all()
+n_ap.ltg_stop(ap_ltg_id)
+n_ap.queue_tx_data_purge_all()
+
+
+# Timestamps are in microseconds; bits/usec == Mbits/sec
+# NOTE: In Python 3.x, the division operator is always floating point.
+#    In order to be compatible with all versions of python, cast
+#    operands to floats to ensure floating point division
+sta_num_bytes = float((sta_rx_stats_end['data_num_rx_bytes'] - sta_rx_stats_start['data_num_rx_bytes']) * 8)
+sta_time_span = float(sta_rx_stats_end['timestamp'] - sta_rx_stats_start['timestamp'])
+sta_xput      = sta_num_bytes / sta_time_span
+print("    STA Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], sta_xput))
+ap_num_bytes = float((ap_rx_stats_end['data_num_rx_bytes'] - ap_rx_stats_start['data_num_rx_bytes']) * 8)
+ap_time_span = float(ap_rx_stats_end['timestamp'] - ap_rx_stats_start['timestamp'])
+ap_xput      = ap_num_bytes / ap_time_span
+print("    AP  Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], ap_xput))
+
+
