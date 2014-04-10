@@ -673,7 +673,10 @@ void ltg_event(u32 id, void* callback_arg){
 	} else {
 		//Iterate over destination STAs
 		// Single-packet LTGs will execute this loop once
+
+
 		while(station_info_entry != NULL) {
+
 			station = (station_info*)(station_info_entry->data);
 
 			if(queue_num_queued(AID_TO_QID(station->AID)) < max_queue_size) {
@@ -720,13 +723,14 @@ void ltg_event(u32 id, void* callback_arg){
 			} //END successful queue checkout
 
 			//Select next STA if transmitted to all; otherwise terminate loop
-			if(LTG_PYLD_TYPE_ALL_ASSOC_FIXED){
+			if(((ltg_pyld_hdr*)callback_arg)->type == LTG_PYLD_TYPE_ALL_ASSOC_FIXED){
 				station_info_entry = dl_entry_next(station_info_entry);
 			} else {
 				station_info_entry = NULL;
 			}
 
 		} //END iterate over all selected STAs
+
 	}
 
 	return;
