@@ -14,12 +14,12 @@ import wlan_exp.log.util_hdf as hdf_util
 # Experiment Variables
 #-----------------------------------------------------------------------------
 HOST_INTERFACES    = ['10.0.0.250']
-NODE_SERIAL_LIST   = ['W3-a-00006']
+NODE_SERIAL_LIST   = ['W3-a-00001']
 
 AP_HDF5_FILENAME   = 'log_files/ap_traffic_capture.hdf5'
 
 # Interval for printing
-TRIAL_TIME         = 10
+TRIAL_TIME         = 5
 
 
 #-----------------------------------------------------------------------------
@@ -37,7 +37,7 @@ def write_hdf5_file(file_name, data):
     """Writes log data to a HDF5 file."""
     try:
         # Write the byte Log_data to the file 
-        hdf_util.log_data_to_hdf5(data, file_name, overwrite=True)
+        hdf_util.log_data_to_hdf5(data, file_name)
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
 
@@ -124,6 +124,7 @@ def run_experiment():
     
     print("\nRun Experiment:\n")
     print("Use Ctrl-C to end the experiment.\n")
+    print("Warning: May take up to {0} seconds to end experiment".format(TRIAL_TIME))
 
     for node in nodes:
         # Reset the log and statistics now that we are ready to start 
