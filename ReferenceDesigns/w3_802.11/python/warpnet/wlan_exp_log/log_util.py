@@ -32,7 +32,7 @@ __all__ = ['gen_log_data_index',
 #-----------------------------------------------------------------------------
 # WLAN Exp Log Utilities
 #-----------------------------------------------------------------------------
-def gen_log_data_index(log_data, return_valid_slice=False):
+def gen_log_data_index(log_data):
     """Parses binary WLAN Exp log data by recording the byte index of each
     entry. The byte indexes are returned in a dictionary with the entry
     type IDs as keys. This method does not unpack or interpret each log
@@ -400,7 +400,7 @@ def print_log_index_summary(log_index, title=None):
     else:
         print(title)
 
-#    for k in sorted(log_index.keys()): #broken in python 3?
+#    for k in sorted(log_index.keys()): #broken in python 3? WlanExpLogEntryType instances not sortable
     for k in (log_index.keys()):
         print('{0:>10,} of Type {1}'.format(len(log_index[k]), k))
         total_len += len(log_index[k])
@@ -446,17 +446,19 @@ def _print_log_entries(log_bytes, log_index, entries_slice=None):
 # End print_log_entries()
 
 
-
-#-----------------------------------------------------------------------------
-# Internal Log file Utilities
-#-----------------------------------------------------------------------------
 def _get_safe_filename(filename):
     """Create a 'safe' file name based on the current file name.
     
-    Given the filename:  <name>.<ext>, the method will change the name the 
-    filename to: <name>_<date>_<id>.<ext>, where <date> is a formatted
+    Given the filename <path>/<name>.<ext>, this method first checks if the
+    file already exists. If so, a new name is calculated with the form:
+    <path>/<name>_<date>_<id>.<ext>, where <date> is a formatted
     string from time and <id> is a unique ID starting at zero if more 
-    than one file is created in a given second.
+    than one file is created in a given second. If the requested filename
+    did not already exist, the name is returned unchanged.
+
+    This method is only suitable in environments where it can
+    safely assumed that no conflicting files will be created in between the
+    os.path.isfile() calls below and the use of the returned safe filename.
     """
     import os
     import time
@@ -498,100 +500,11 @@ def _get_safe_filename(filename):
 # End _get_safe_filename()
 
 
-
-#-----------------------------------------------------------------------------
-# Deprecated methods
-#-----------------------------------------------------------------------------
-def write_filtered_log_data_file(log_data_index, log_data):
-    """Method to write a binary log data file of only the entries specifed
-    in the log_data_index.
-    
-    This method will iterate through each entry type in the log index and 
-    create a separate binary file for each entry type.
-    
-    """
-    pass
-
-
-
-def write_log_data_index_file(log_data_file, node=None):
-    """Method to write a log data index to a file for easy retrieval.
-    
-    Attributes:
-        log_data_file -- File name of the binary log_data file
-        node          -- Optional node binary log data came from
-    
-    Also, a 'wlan_exp_log_index_info' entry will be created in the 
-    index that captures information about the framework:
-    
-    'wlan_exp_log_index_info' = {'filename'           = <str>,
-                                 'date'               = <str>,
-                                 'wlan_exp_version'   = <str>}
-
-    If node is present, then the following info will also be present:
-
-    'wlan_exp_log_index_info' = {'node_serial_number' = <str>,
-                                 'node_name'          = <str> }
-
-    """
-    import os
-    import time
-    import pickle
-    import warpnet.wlan_exp.version as version
-
-    # Make sure we have a valid file and create the index file name    
-    if os.path.isfile(log_data_file):
-        idx_log_file = log_data_file + ".idx"
-    else:
-        raise TypeError("Filename {0} is not valid.".format(log_data_file))
-
-    # Read the binary log file
-    with open(log_data_file, 'rb') as fh:
-        log_b = fh.read()
-    
-    # Generate the raw index of log entry locations sorted by log entry type
-    log_data_index = gen_log_data_index(log_b)
-
-    log_data_index['wlan_exp_log_index_info'] = {
-        'filename'         : log_data_file,
-        'date'             : time.strftime("%d/%m/%Y  %H:%M:%S"),
-        'wlan_exp_version' : version.wlan_exp_ver_str()
-    }
-
-    # If the node is present, then add the additional fields
-    if not node is None:
-        log_data_index['wlan_exp_log_index_info'] = {
-            'node_serial_number' : node.sn_str,
-            'node_name'          : node.name
-        }
-    
-    pickle.dump(log_data_index, open(idx_log_file, "wb"))
-
-# End gen_log_index_raw()
-
-
-
-def read_log_data_index_file(log_data_index_file):
-    import pickle
-    import warpnet.wlan_exp.version as version
-    import warpnet.wn_exception as wn_ex
-    
-    log_data_index = pickle.load(open(log_data_index_file, "rb"))
-
-    # Check the version in the log index agains the current version
-    try:
-        version.wlan_exp_ver_check(log_data_index['wlan_exp_log_index_info']['wlan_exp_version'])
-    except wn_ex.VersionError as err:
-        print(err)
-
-    return log_data_index
-
-
 def calc_tx_time(rate, payload_length):
     """Calculates the duration of an 802.11 transmission given its rate and payload length.
     This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not* 
     account for MAC overhead. The payload_length argument must include any MAC fields
-    (typically a 24-byte MAC header).
+    (typically a 24-byte MAC header plus 4 byte FCS).
     """
     
     from  warpnet.wlan_exp.util import wlan_rates
