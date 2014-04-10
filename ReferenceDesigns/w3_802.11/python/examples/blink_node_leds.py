@@ -14,7 +14,7 @@ Description:
 blink their LEDs.
 """
 import time
-import warpnet.wn_util as wn_util
+import wlan_exp.warpnet.util as wn_util
 
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']

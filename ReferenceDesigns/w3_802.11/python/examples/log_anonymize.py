@@ -30,8 +30,8 @@ import sys
 import os
 import time
 
-import warpnet.wlan_exp_log.log_util     as log_util
-import warpnet.wlan_exp_log.log_util_hdf as hdf_util
+import wlan_exp.log.util     as log_util
+import wlan_exp.log.util_hdf as hdf_util
 
 
 #-----------------------------------------------------------------------------
