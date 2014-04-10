@@ -180,11 +180,14 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		break;
 	}
 
-	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
+	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+
 
 
 	//TODO: tx ant_mode will eventually be a part of wlan_mac_auto_tx_params_g()
-
+	//TOOD: Ticket 155
+#if 0
+	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	switch(active_rx_ant){
 		case RX_ANTMODE_SISO_ANTA:
 			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
@@ -199,7 +202,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTD);
 		break;
 	}
-
+#endif
 
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){};
@@ -231,6 +234,20 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	mpdu_info->length = (u16)length;
 	mpdu_info->rate = (u8)rate;
 
+
+
+
+	mpdu_info->channel = wlan_mac_low_get_active_channel();
+
+	if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
+		return_value |= POLL_MAC_TYPE_ACK;
+	}
+
+	mpdu_info->timestamp = get_rx_start_timestamp();
+
+	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
+
+	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	mpdu_info->ant_mode = active_rx_ant;
 
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
@@ -241,15 +258,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 
 	mpdu_info->rx_power = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
-	mpdu_info->channel = wlan_mac_low_get_active_channel();
-
-	if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
-		return_value |= POLL_MAC_TYPE_ACK;
-	}
-
-	mpdu_info->timestamp = get_rx_start_timestamp();
-
-	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
 		green_led_index = (green_led_index + 1) % NUM_LEDS;
