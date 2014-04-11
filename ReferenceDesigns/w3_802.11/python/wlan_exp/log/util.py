@@ -30,6 +30,18 @@ __all__ = ['gen_raw_log_index',
 
 
 #-----------------------------------------------------------------------------
+# Top level check for memory configuration
+#-----------------------------------------------------------------------------
+import sys
+
+if (sys.maxsize <= 2**32):
+    print("\n" + ("-" * 75))
+    print("WARNING: Processing large log files requires 64-bit python.")
+    print(("-" * 75) + "\n")
+
+
+
+#-----------------------------------------------------------------------------
 # WLAN Exp Log Utilities
 #-----------------------------------------------------------------------------
 def gen_raw_log_index(log_data):
