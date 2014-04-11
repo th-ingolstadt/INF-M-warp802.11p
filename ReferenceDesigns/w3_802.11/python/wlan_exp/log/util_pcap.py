@@ -37,7 +37,7 @@ Functions (see below for more information):
     
 """
 
-__all__ = ['log_data_to_pcap']
+__all__ = []
 
 
 #-----------------------------------------------------------------------------
@@ -90,145 +90,30 @@ pcap_packet_header     = [('ts_sec',   0),
 #-----------------------------------------------------------------------------
 # WLAN Exp Log PCAP file Utilities
 #-----------------------------------------------------------------------------
-def gen_log_pcap_index(log_data, event_types=None):
-    """Parses binary WLAN Exp log data by recording the byte index of each
-    entry payload. The byte indexes are returned in a list of tuples: 
-    (entry_type_id, timestamp_offset, length_offset, payload_offset).
-    
-    This method will only add entrys to the index if they are listed in 
-    the entry_types field (ie this method will filter out any entries 
-    not part of the event_types field).  By default, if no event_types
-    are specified, then the default list contains:
-        RX_DSSS
-        RX_OFDM
-        TX
-        TX_LOW
-    entries.  This method does not change any values in the log file itself 
-    (the log_data array argument can be read-only).
-
-    Format of log entry header:
-
-        typedef struct{
-            u32 delimiter;
-            u16 entry_type;
-            u16 entry_length;
-        } entry_header;
-
-    fmt_log_hdr = 'I H H' #if we were using struct.unpack
-    """
-    offset         = 0
-    hdr_size       = 8
-    log_len        = len(log_data)
-    log_index      = []
-    use_byte_array = 0
-
-
-    # Create a list of entry type ids to filter the index
-    from . import entry_types
-    event_type_offsets = {}
-
-    if event_types is None:
-        event_types = ['RX_DSSS', 'RX_OFDM', 'TX', 'TX_LOW' ]
-
-    if   type(event_types) is list:
-        pass
-    elif type(event_types) is str:
-        event_types = [event_types]
-    else:
-        print("ERROR:  event_types is not a list or string.")
-        return log_index
-    
-    for event_type in event_types:
-        try:
-            entry         = entry_types.wlan_exp_log_entry_types[event_type]
-            entry_offsets = entry.get_field_offsets()
-
-            event_type_offsets[entry.get_entry_type_id()] = [entry_offsets['timestamp'],
-                                                             entry_offsets['length'],
-                                                             entry_offsets['mac_payload_len']]
-        except KeyError:
-            print("Could not filter log data with event type: {0}".format(event_type))
-
-
-    # Need to determine if we are using byte arrays or strings for the
-    # log_bytes b/c we need to handle the data differently
-    try:
-        byte_array_test = log_data[offset:offset+hdr_size]
-        byte_array_test = ord(byte_array_test[0])
-    except TypeError:
-        use_byte_array  = 1
-
-
-    while True:
-        # Stop here if the next log entry header is incomplete
-        if( (offset + hdr_size) > log_len):
-            break
-
-        # Check if entry starts with valid header.  Follow the same rules as 
-        # warpnet.wlan_exp_log.log_uitl.gen_log_pcap_index()
-
-        # Values below are hard coded to match current WLAN Exp log entry formats
-        hdr_b = log_data[offset:offset+hdr_size]
-
-        if (use_byte_array):
-            if( (bytearray(hdr_b[2:4]) != b'\xed\xac') ):
-                raise Exception("ERROR: Log file didn't start with valid entry header (offset %d)!" % (offset))
-
-            entry_type_id = (hdr_b[4] + (hdr_b[5] * 256))
-            entry_size = (hdr_b[6] + (hdr_b[7] * 256))
-        else:
-            if( (hdr_b[2:4] != b'\xed\xac') ):
-                raise Exception("ERROR: Log file didn't start with valid entry header (offset %d)!" % (offset))
-
-            entry_type_id = (ord(hdr_b[4]) + (ord(hdr_b[5]) * 256))
-            entry_size = (ord(hdr_b[6]) + (ord(hdr_b[7]) * 256))
-
-        offset += hdr_size
-
-        # Stop here if the last log entry is incomplete
-        if( (offset + entry_size) > log_len):
-            break
-
-        #Try/except slightly faster than "if(entry_type_id in log_index.keys()):"
-        # ~3 seconds faster (13s -> 10s) for ~1GB log file
-        try:
-            offsets = event_type_offsets[entry_type_id]
-            log_index.append((entry_type_id, offset + offsets[0], offset + offsets[1], offset + offsets[2]))
-        except KeyError:
-            pass
-
-        # Increment the byte offset for the next iteration
-        offset += entry_size
-
-    return log_index
-
-# End gen_log_pcap_index()
-
-
-
-def log_data_to_pcap(log_data, filename, event_types=None, overwrite=False):
-    """Create an PCAP file that contains the log_data for the events in 
+def _log_data_to_pcap(log_data, log_index, filename, overwrite=False):
+    """Create an PCAP file that contains the log_data for the entries in log_index 
 
     If the requested filename already exists and overwrite==True this
     method will replace the existing file, destroying any data in the original file.
 
     If the filename already esists and overwrite==False this method will print a warning, 
     then create a new filename with a unique date-time suffix.
-
-    This will iterate through the log_data to generate a pcap file based on 
-    the event_types requested.
+    
+    NOTE:  Currently log_data_to_pcap only supports ['RX_DSSS', 'RX_OFDM', 'TX', 'TX_LOW']
+    entry types.  If other entry types are contained within the log_index, they will
+    be ignored but a warning will be printed.
     
     Attributes:
         log_data    -- Binary WLAN Exp log data
+        log_index   -- Filtered log index
         filename    -- File name of PCAP file to appear on disk.
-        event_types -- List of WLAN Exp log event types that should appear in the file
         overwrite   -- If true method will overwrite existing file with filename
     """
     import os
     from . import util as log_util
 
     # Process the inputs to generate any error
-    log_pcap_index = _process_pcap_log_data_inputs(log_data, event_types)
+    log_pcap_index = _gen_pcap_log_index(log_index)
     
     # Determine a safe filename for the output PCAP file
     if overwrite:
@@ -256,6 +141,60 @@ def log_data_to_pcap(log_data, filename, event_types=None, overwrite=False):
 #-----------------------------------------------------------------------------
 # Internal PCAP file Utilities
 #-----------------------------------------------------------------------------
+def _gen_pcap_log_index(log_index):
+    """Uses a log index to create a pcap log index.
+
+    For each supported entry in the log index, an entry is created in the
+    pcap_log_index that is a list of tuples: 
+    (entry_type_id, timestamp_offset, length_offset, payload_offset).
+
+    Currently supported entry_types are:    
+        RX_DSSS
+        RX_OFDM
+        TX
+        TX_LOW
+    """
+    pcap_log_index = []
+
+    # Create a list of entry type ids to filter the index
+    from . import entry_types
+    entry_type_offsets = {}
+
+    supported_entry_types = ['RX_DSSS', 'RX_OFDM', 'TX', 'TX_LOW' ]
+    
+    for entry_type in supported_entry_types:
+        try:
+            entry         = entry_types.log_entry_types[entry_type]
+            entry_offsets = entry.get_field_offsets()
+
+            entry_type_offsets[entry_type] = [entry_offsets['timestamp'],
+                                              entry_offsets['length'],
+                                              entry_offsets['mac_payload_len']]
+        except KeyError:
+            print("Could not filter log data with event type: {0}".format(entry_type))
+
+
+    # Create the raw pcap log index
+    for entry_type in log_index.keys():
+        try: 
+            offsets = entry_type_offsets[entry_type]
+            for offset in log_index[entry_type]:
+                pcap_log_index.append((entry_type, offset + offsets[0], offset + offsets[1], offset + offsets[2]))
+        except KeyError:
+            print("Can not use entry type: {0} in PCAP generation.".format(entry_type))
+
+    
+    # Sort the PCAP data
+    from operator import itemgetter
+    
+    sorted(pcap_log_index, key=itemgetter(1))
+
+    return pcap_log_index
+
+# End _gen_log_pcap_index()
+
+
+
 def _serialize_header(header, fmt):
     """Use the struct library to serialize the header dictionary using the given format."""
     import struct
@@ -271,23 +210,6 @@ def _serialize_header(header, fmt):
         print("Error packing header: {0}".format(err))
     
     return ret_val
-
-# End def
-
-
-
-def _process_pcap_log_data_inputs(log_data, event_types=None):
-    """Process the log_data and gen_index inputs to create numpy data and a raw_log_index."""
-    
-    # Try generating the pcap index first
-    #     This will catch any errors in the user-supplied log data before opening any files
-    try:
-        log_pcap_index = gen_log_pcap_index(log_data, event_types)
-    except:
-        msg  = "Unable to generate log_pcap_index"
-        raise AttributeError(msg)
-
-    return log_pcap_index
 
 # End def
 
