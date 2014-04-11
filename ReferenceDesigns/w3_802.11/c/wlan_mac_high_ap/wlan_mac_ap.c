@@ -94,9 +94,12 @@ u8 tim_control = 1;
 
 int main(){
 
-	xil_printf("\f----- Mango 802.11 Reference Design -----\n");
-	xil_printf("--------------- wlan_mac_ap --------------\n");
-	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
+	xil_printf("\f");
+	xil_printf("----- Mango 802.11 Reference Design -----\n");
+	xil_printf("----- v0.9 Beta -------------------------\n");
+	xil_printf("----- wlan_mac_ap -----------------------\n");
+
+	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
 	//heap_init() must be executed before any use of malloc. This explicit init
 	// handles the case of soft-reset of the MicroBlaze leaving stale values in the heap RAM
