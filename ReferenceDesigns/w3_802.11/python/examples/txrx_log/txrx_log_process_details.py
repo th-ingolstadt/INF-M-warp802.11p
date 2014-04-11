@@ -43,10 +43,10 @@ else:
 # Get the log_data from the file
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 
-# Get the log_data_index from the file
-raw_log_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
+# Get the raw_log_index from the file
+raw_log_index = hdf_util.hdf5_to_raw_log_index(filename=LOGFILE)
 
-# Describe the log_data_index
+# Describe the raw_log_index
 log_util.print_log_index_summary(raw_log_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries

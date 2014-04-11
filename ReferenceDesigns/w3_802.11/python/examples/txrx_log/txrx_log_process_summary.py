@@ -49,7 +49,7 @@ else:
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 
 # Get the raw_log_index from the file
-raw_log_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE)
+raw_log_index = hdf_util.hdf5_to_raw_log_index(filename=LOGFILE)
 
 # Describe the raw_log_index
 log_util.print_log_index_summary(raw_log_index, "Raw Log Index Contents:")

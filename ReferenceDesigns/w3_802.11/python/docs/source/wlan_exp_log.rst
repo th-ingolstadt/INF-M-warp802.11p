@@ -77,11 +77,11 @@ In actual experiments the log data and corresponding index will be **much** larg
 
 Tools
 -----
-The `log_util.gen_log_data_index(log_data)` method will read a raw log data array and generate the log data index.
+The `log_util.gen_raw_log_index(log_data)` method will read a raw log data array and generate the log data index.
 
 The `log_util_hdf.log_data_to_hdf5` method will optionally create and save the raw log index when saving log data to an HDF5 file.
 
-The `log_util_hdf.hdf5_to_log_data_index` method will read a raw log index previously saved to an HDF5 file.
+The `log_util_hdf.hdf5_to_raw_log_index` method will read a raw log index previously saved to an HDF5 file.
 
 Archiving Log Data
 ==================
@@ -113,7 +113,7 @@ The h5py package supports building HDF5 files with arbitrary hierarchy. We defin
            |- Groups (optional):
                   |- 'raw_log_index'
                          |- Datasets: 
-                            (dtype depends if largest offset in log_data_index is < 2^32)
+                            (dtype depends if largest offset in raw_log_index is < 2^32)
                                 |- <int>    (N1,)     uint32/uint64
                                 |- <int>    (N2,)     uint32/uint64
                                 |- ...
@@ -123,7 +123,7 @@ The elements of this format are:
 * ``wlan_exp_log`` attribute: must be present with boolean value True
 * ``wlan_exp_ver`` attribute: 3-tuple of integers recording the `(major,minor,rev)` version of the wlan_exp package that wrote the file
 * ``log_data`` dataset: the raw bytearray retrieved from the 802.11 Reference Design node, stored as a scalar value using the HDF5 opaque type
-* ``log_data_index`` sub-group (optional): if present, must be a group with one dataset per log entry type, where each dataset contains the array of integers indicating the location of each log entry in the ``log_data``. This group-of-datasets encodes the dictionary-of-arrays normally used to represent the raw_log_index.
+* ``raw_log_index`` sub-group (optional): if present, must be a group with one dataset per log entry type, where each dataset contains the array of integers indicating the location of each log entry in the ``log_data``. This group-of-datasets encodes the dictionary-of-arrays normally used to represent the raw_log_index.
 * User provided attributes: additional attributes provided at the time of file creation. The `log_util_hdf` methods store these attributes when supplied by the user code. These can be useful to store additional experiment-specific details about the log data (i.e. date/time of the experiment, physical location of the nodes, etc.).
 
 
@@ -139,7 +139,7 @@ Reading Log Data Files
 
 The `hdf5_to_log_data(filename)` method will read a ``log_data`` array from the HDF5 file named ``filename``. The format of the returned array is identical to the bytearray retrieved from an 802.11 Reference Design node and can be used wherever the original ``log_data`` array would have been used.
 
-The `hdf5_to_log_data_index(filename)` method will read a raw log index from the HDF5 file named ``filename``. The dictionary returned will be identical to re-generating the index from scratch (i.e. by calling `log_util.gen_log_data_index(hdf5_to_log_data(filename))`). Retrieving the raw index from an HDF5 file is typically must faster than re-generating the index from the log data.
+The `hdf5_to_raw_log_index(filename)` method will read a raw log index from the HDF5 file named ``filename``. The dictionary returned will be identical to re-generating the index from scratch (i.e. by calling `log_util.gen_raw_log_index(hdf5_to_log_data(filename))`). Retrieving the raw index from an HDF5 file is typically must faster than re-generating the index from the log data.
 
 Examples
 --------

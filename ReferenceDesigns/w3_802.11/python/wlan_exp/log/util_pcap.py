@@ -277,7 +277,7 @@ def _serialize_header(header, fmt):
 
 
 def _process_pcap_log_data_inputs(log_data, event_types=None):
-    """Process the log_data and gen_index inputs to create numpy data and a log_data_index."""
+    """Process the log_data and gen_index inputs to create numpy data and a raw_log_index."""
     
     # Try generating the pcap index first
     #     This will catch any errors in the user-supplied log data before opening any files

@@ -8,15 +8,15 @@ Naming convention:
 
   log_data       -- The binary data from a WLAN Exp node's log.
   
-  log_data_index -- This is an index that has not been interpreted / filtered
+  raw_log_index  -- This is an index that has not been interpreted / filtered
                     and corresponds 1-to-1 with what is in given log_data.
-                    The defining characteristic of a log_data_index is that
+                    The defining characteristic of a raw_log_index is that
                     the dictionary keys are all integers:
                       { <int> : [<offsets>] }
 
-  log_index      -- A log_index is any index that is not a log_data_index.  In
+  log_index      -- A log_index is any index that is not a raw_log_index.  In
                     general, this will be a interpreted / filtered version of
-                    a log_data_index.
+                    a raw_log_index.
 
   numpy          -- A python package that allows easy and fast manipulation of 
                     large data sets.  You can find more documentaiton on numpy at:
@@ -24,7 +24,7 @@ Naming convention:
 ----
 """
 
-__all__ = ['gen_log_data_index', 
+__all__ = ['gen_raw_log_index', 
            'filter_log_index',
            'log_data_to_np_arrays']
 
@@ -32,7 +32,7 @@ __all__ = ['gen_log_data_index',
 #-----------------------------------------------------------------------------
 # WLAN Exp Log Utilities
 #-----------------------------------------------------------------------------
-def gen_log_data_index(log_data):
+def gen_raw_log_index(log_data):
     """Parses binary WLAN Exp log data by recording the byte index of each
     entry. The byte indexes are returned in a dictionary with the entry
     type IDs as keys. This method does not unpack or interpret each log

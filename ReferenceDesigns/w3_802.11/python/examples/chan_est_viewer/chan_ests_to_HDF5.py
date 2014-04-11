@@ -28,7 +28,7 @@ else:
     print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE_IN, (os.path.getsize(LOGFILE_IN)/1E6)))
 
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE_IN)
-raw_log_index = hdf_util.hdf5_to_log_data_index(filename=LOGFILE_IN)
+raw_log_index = hdf_util.hdf5_to_raw_log_index(filename=LOGFILE_IN)
 
 #Generate indexes with just Rx_OFDM events
 log_index_rx = log_util.filter_log_index(raw_log_index, include_only=['RX_OFDM'])

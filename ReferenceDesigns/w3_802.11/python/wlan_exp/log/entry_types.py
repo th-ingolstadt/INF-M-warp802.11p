@@ -407,7 +407,7 @@ def extend_np_dt(dt_orig, new_fields=None):
 #   By replacing the current entry type with the NULL entry type and zeroing
 #   out all data following the header, we can effectively remove an entry
 #   without changing the memory footprint of the log.  NULL entries will 
-#   be filtered and never show up in the log_data_index.
+#   be filtered and never show up in the raw_log_index.
 
 entry_null = WlanExpLogEntryType(name='NULL', entry_type_id=ENTRY_TYPE_NULL)
 
