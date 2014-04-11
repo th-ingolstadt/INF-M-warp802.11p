@@ -61,8 +61,15 @@ u8                      green_led_index;
 
 int main(){
 	wlan_mac_hw_info* hw_info;
-	xil_printf("\f----- wlan_mac_dcf -----\n");
-	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
+	xil_printf("\f");
+	xil_printf("----- Mango 802.11 Reference Design -----\n");
+	xil_printf("----- v0.9 Beta -------------------------\n");
+	xil_printf("----- wlan_mac_dcf ----------------------\n");
+	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
+
+	xil_printf("Note: this UART is currently printing from CPU_LOW. To view prints from\n");
+	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
+	xil_printf("This switch can be toggled live while the design is running.\n\n");
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
