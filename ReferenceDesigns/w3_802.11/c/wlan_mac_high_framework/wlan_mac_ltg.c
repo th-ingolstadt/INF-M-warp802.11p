@@ -92,6 +92,7 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 
 			if(curr_tg->params != NULL && curr_tg->state != NULL){
 				memcpy(curr_tg->params, params, sizeof(ltg_sched_periodic_params));
+
 				curr_tg->callback_arg = callback_arg;
 			} else {
 				xil_printf("Failed to initialize LTG structs\n");
@@ -175,6 +176,7 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 
 	switch(curr_tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
+
 			curr_tg->target = num_ltg_checks + (((ltg_sched_periodic_params*)(curr_tg->params))->interval_count);
 
 			if(((ltg_sched_periodic_params*)(curr_tg->params))->duration_count != LTG_DURATION_FOREVER){
@@ -219,6 +221,7 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 void ltg_sched_check(){
 	tg_schedule* curr_tg;
 	dl_entry*	 curr_tg_dl_entry;
+	u64 		 random_timestamp;
 
 	u32 i;
 
@@ -232,6 +235,19 @@ void ltg_sched_check(){
 			if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled){
 
 				if( num_ltg_checks >= ( curr_tg->target ) ){
+					switch(curr_tg->type){
+						case LTG_SCHED_TYPE_PERIODIC:
+							curr_tg->target = num_ltg_checks + (((ltg_sched_periodic_params*)(curr_tg->params))->interval_count);
+						break;
+						case LTG_SCHED_TYPE_UNIFORM_RAND:
+							random_timestamp = (rand()%(((ltg_sched_uniform_rand_params*)(curr_tg->params))->max_interval_count - ((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count))+((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count;
+							curr_tg->target = num_ltg_checks + (random_timestamp/FAST_TIMER_DUR_US);
+						break;
+						default:
+							ltg_sched_stop_l(curr_tg_dl_entry);
+							return;
+						break;
+					}
 					ltg_callback(curr_tg->id, curr_tg->callback_arg);
 				}
 
@@ -486,11 +502,11 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 
         	    	temp     = Xil_Ntohl(src[2]);
         	    	temp2    = Xil_Ntohl(src[3]);
-        	    	((ltg_sched_periodic_params *)ret_val)->duration_count = ((((u64)temp2)<<32) + ((u64)temp))/LTG_POLL_INTERVAL;
+        	    	((ltg_sched_periodic_params *)ret_val)->duration_count = ((((u64)temp)<<32) + ((u64)temp2))/LTG_POLL_INTERVAL;
 
         	    	xil_printf("LTG Sched Periodic: %d usec for %d usec\n",
         	    			       LTG_POLL_INTERVAL * ((ltg_sched_periodic_params *)ret_val)->interval_count,
-        	    			       (u32)(LTG_POLL_INTERVAL * (((ltg_sched_periodic_params *)ret_val)->duration_count >> 32)));
+        	    			       (u32)(LTG_POLL_INTERVAL * (((ltg_sched_periodic_params *)ret_val)->duration_count)));
         	    }
         	}
     	break;
@@ -504,12 +520,12 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 
         	    	temp     = Xil_Ntohl(src[3]);
         	    	temp2    = Xil_Ntohl(src[4]);
-        	    	((ltg_sched_uniform_rand_params *)ret_val)->duration_count = ((((u64)temp2)<<32) + ((u64)temp))/LTG_POLL_INTERVAL;
+        	    	((ltg_sched_uniform_rand_params *)ret_val)->duration_count = ((((u64)temp)<<32) + ((u64)temp2))/LTG_POLL_INTERVAL;
 
         	    	xil_printf("LTG Sched Uniform Rand: [%d %d] usec for %d usec\n",
         	    			       LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->min_interval_count,
         	    			       LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->max_interval_count,
- 			                       (u32)(LTG_POLL_INTERVAL * (((ltg_sched_uniform_rand_params *)ret_val)->duration_count >> 32)));
+ 			                       (u32)(LTG_POLL_INTERVAL * (((ltg_sched_uniform_rand_params *)ret_val)->duration_count)));
         	    }
         	}
         break;
