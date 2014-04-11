@@ -5,12 +5,13 @@ import numpy as np
 import wlan_exp.util as wlan_exp_util
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
+import wlan_exp.log.sample_data as sample_data_util
 
 #Use log file given as command line argument, if present
 if(len(sys.argv) == 1):
     #No filename on command line
-    LOGFILE_IN = os.path.abspath('../../sample_data/raw_log_one_flow.hdf5')
-    HDF5_FILE_OUT = os.path.abspath('../../sample_data/np_rx_ofdm_entries.hdf5')
+    LOGFILE_IN = sample_data_util.get_sample_data_file('raw_log_one_flow.hdf5')
+    HDF5_FILE_OUT = 'np_rx_ofdm_entries.hdf5'
 elif(len(sys.argv) == 2):
     LOGFILE_IN = str(sys.argv[1])
     HDF5_FILE_OUT = 'np_rx_ofdm_entries.hdf5'
@@ -25,7 +26,9 @@ if(not os.path.isfile(LOGFILE_IN)):
     print("ERROR: Logfile {0} not found".format(LOGFILE_IN))
     sys.exit()
 else:
-    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE_IN, (os.path.getsize(LOGFILE_IN)/1E6)))
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(
+        os.path.split(LOGFILE_IN)[1],
+        os.path.getsize(LOGFILE_IN)/1E6))
 
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE_IN)
 raw_log_index = hdf_util.hdf5_to_raw_log_index(filename=LOGFILE_IN)

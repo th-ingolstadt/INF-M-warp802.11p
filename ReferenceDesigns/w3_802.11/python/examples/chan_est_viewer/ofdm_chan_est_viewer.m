@@ -20,6 +20,12 @@ function varargout = ofdm_chan_est_viewer(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Mango 802.11 Reference Design - Channel Estimate Viewer Example
+%  Copyright 2014 Mango Communications, Inc. - All Rights Reserved
+%  Distributed under the WARP License: http://warpproject.org/license
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Edit the above text to modify the response to help ofdm_chan_est_viewer
 
 % Last Modified by GUIDE v2.5 18-Mar-2014 11:01:04
@@ -86,7 +92,7 @@ grid(ax, 'On');
 if(~isempty(varargin))
     log_filename = varargin{1};
 else
-    log_filename = '../../sample_data/np_rx_ofdm_entries.hdf5';
+    log_filename = 'np_rx_ofdm_entries.hdf5';
 end
 
 rx_entries = rx_data_from_hdf5(log_filename);
