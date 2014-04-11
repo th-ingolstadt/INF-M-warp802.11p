@@ -57,7 +57,8 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
                         given WARPNet type
         output -- Print output about the WARPNet nodes
     """
-    nodes = []
+    nodes       = []
+    error_nodes = []
 
     # Create a Host Configuration if there is none provided
     if host_config is None:
@@ -68,11 +69,7 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
     jumbo_frame_support = host_config.get_param('network', 'jumbo_frame_support')
     
     # Process the config to create nodes
-    try:
-        nodes_dict = nodes_config.get_nodes_dict()
-    except wn_ex.ConfigError as err:
-        print(err)
-        return nodes
+    nodes_dict = nodes_config.get_nodes_dict()
 
     # If node_factory is not defined, create a default WnNodeFactory
     if node_factory is None:
@@ -99,6 +96,16 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
         if not node is None:
             node.configure_node(jumbo_frame_support)
             nodes.append(node)
+        else:
+            error_nodes.append(node_dict)
+
+    if (len(nodes) != len(nodes_dict)):
+        msg  = "\n\nERROR:  Was not able to initialize all nodes.  The following \n"
+        msg += "nodes were not able to be initialized:\n"
+        for node_dict in error_nodes:
+            (sn, sn_str) = wn_get_serial_number(node_dict['serial_number'], output=False)
+            msg += "    {0}\n".format(sn_str)
+        raise wn_ex.ConfigError(msg)
 
     if output:
         print("-" * 50)
