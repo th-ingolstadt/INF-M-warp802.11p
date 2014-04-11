@@ -12,16 +12,16 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %% Define an input signal for simulation
 %For PHY debugging with ChipScope captures of I/Q
-xlLoadChipScopeData('cs_capt/no_ofdm_det_v00.prn'); cs_interp = 8; cs_start = 6000; cs_end = 14000;
-samps2 = complex(ADC_I([cs_start-8:cs_interp:cs_end-8]), ADC_Q(cs_start:cs_interp:cs_end));
-payload_vec = [samps2; zeros(1000,1);];
-paylod_vec_samp_time = 8;
+%xlLoadChipScopeData('cs_capt/no_ofdm_det_v00.prn'); cs_interp = 8; cs_start = 6000; cs_end = 14000;
+%samps2 = complex(ADC_I([cs_start-8:cs_interp:cs_end-8]), ADC_Q(cs_start:cs_interp:cs_end));
+%payload_vec = [samps2; zeros(1000,1);];
+%paylod_vec_samp_time = 8;
 
 %wlan_tx output - good for simulating Rx model
-%load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
+load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
 
-%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
-%paylod_vec_samp_time = 8;
+payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+paylod_vec_samp_time = 8;
 
 %%
 simtime = 8*length(payload_vec) + 500;
