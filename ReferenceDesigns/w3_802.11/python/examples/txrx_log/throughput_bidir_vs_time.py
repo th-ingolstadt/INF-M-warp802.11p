@@ -1,11 +1,12 @@
-import os
+import numpy as np
 import pandas as pd
 
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
+import wlan_exp.log.util_sample_data as sample_data_util
 
-AP_LOGFILE  = os.path.abspath('../sample_data/raw_log_one_flow.hdf5')
-STA_LOGFILE = os.path.abspath('../sample_data/raw_log_one_flow.hdf5')
+AP_LOGFILE  = sample_data_util.get_sample_data_file('raw_log_dual_flow_ap.hdf5')
+STA_LOGFILE = sample_data_util.get_sample_data_file('raw_log_dual_flow_sta.hdf5')
 
 #Extract the log data and index from the log files
 log_data_ap       = hdf_util.hdf5_to_log_data(filename=AP_LOGFILE)
@@ -40,54 +41,65 @@ print('STA Rx: {0}, STA Tx: {1}'.format(len(rx_sta), len(tx_sta)))
 
 #Resample docs: http://stackoverflow.com/questions/17001389/pandas-resample-documentation
 rs_interval = 1 #msec
-rolling_winow = 10000 #samples
+rolling_winow = 1000 #samples
 
 #Select non-duplicate packets from partner node
-rx_ap_idx = (rx_ap['addr2'] == addr_sta) & ((rx_ap['flags'] & 0x1) == 0) #needs valid flags field
+rx_ap_idx = (rx_ap['addr2'] == addr_sta) & ((rx_ap['flags'] & 0x1) == 0)
 rx_ap_from_sta = rx_ap[rx_ap_idx]
 
 rx_ap_t = rx_ap_from_sta['timestamp']
 rx_ap_len = rx_ap_from_sta['length']
 
-#Select successful packets to partner node
-tx_ap_idx = (tx_ap['addr1'] == addr_sta) & (tx_ap['result'] == 0)
-tx_ap_to_sta = tx_ap[tx_ap_idx]
+#Select non-duplicate packets from partner node
+rx_sta_idx = (rx_sta['addr2'] == addr_ap) & ((rx_sta['flags'] & 0x1) == 0)
+rx_sta_from_ap = rx_sta[rx_sta_idx]
 
-tx_ap_t = tx_ap_to_sta['timestamp'] + tx_ap_to_sta['time_to_accept']
-tx_ap_len = tx_ap_to_sta['length']
+rx_sta_t = rx_sta_from_ap['timestamp']
+rx_sta_len = rx_sta_from_ap['length']
 
 
 #Convert to Pandas series
 rx_ap_t_pd = pd.to_datetime(rx_ap_t, unit='us')
 rx_ap_len_pd = pd.Series(rx_ap_len, index=rx_ap_t_pd)
 
-tx_ap_t_pd = pd.to_datetime(tx_ap_t, unit='us')
-tx_ap_len_pd = pd.Series(tx_ap_len, index=tx_ap_t_pd)
+rx_sta_t_pd = pd.to_datetime(rx_sta_t, unit='us')
+rx_sta_len_pd = pd.Series(rx_sta_len, index=rx_sta_t_pd)
 
+#Resample
 rx_ap_len_rs = rx_ap_len_pd.resample(('%dL' % rs_interval), how='sum').fillna(value=0)
-tx_ap_len_rs = tx_ap_len_pd.resample(('%dL' % rs_interval), how='sum').fillna(value=0)
+rx_sta_len_rs = rx_sta_len_pd.resample(('%dL' % rs_interval), how='sum').fillna(value=0)
 
 #Merge the indexes
-t_idx = rx_ap_len_rs.index.union(tx_ap_len_rs.index)
+t_idx = rx_ap_len_rs.index.union(rx_sta_len_rs.index)
 
 #Reindex both Series to the common index, filling 0 in empty slots
 rx_ap_len_rs = rx_ap_len_rs.reindex(t_idx, fill_value=0)
-tx_ap_len_rs = tx_ap_len_rs.reindex(t_idx, fill_value=0)
+rx_sta_len_rs = rx_sta_len_rs.reindex(t_idx, fill_value=0)
 
 #Compute rolling means
 rx_xput_ap_r = pd.rolling_mean(rx_ap_len_rs, window=rolling_winow, min_periods=1)
-tx_xput_ap_r = pd.rolling_mean(tx_ap_len_rs, window=rolling_winow, min_periods=1)
+rx_xput_sta_r = pd.rolling_mean(rx_sta_len_rs, window=rolling_winow, min_periods=1)
 
 #Set NaN values to 0 (no packets == zero throughput)
 rx_xput_ap_r = rx_xput_ap_r.fillna(value=0)
-tx_xput_ap_r = tx_xput_ap_r.fillna(value=0)
+rx_xput_sta_r = rx_xput_sta_r.fillna(value=0)
+
+#Create x axis values
+t_sec = t_idx.astype('int64') / 1.0E9
+plt_t = np.linspace(0, (max(t_sec) - min(t_sec)), len(t_sec))
+
+#Rescale xputs to bits/sec
+plt_xput_ap = rx_xput_ap_r  * (1.0e-6 * 8.0 * (1.0/(rs_interval * 1e-3)))
+plt_xput_sta = rx_xput_sta_r  * (1.0e-6 * 8.0 * (1.0/(rs_interval * 1e-3)))
 
 figure(1)
 clf()
-plot(rx_xput_ap_r)
-plot(tx_xput_ap_r)
-plot(tx_xput_ap_r + rx_xput_ap_r)
-
-
+plot(plt_t, plt_xput_ap, 'r', label='STA -> AP Flow')
+plot(plt_t, plt_xput_sta, 'b', label='AP -> STA Flow')
+plot(plt_t, plt_xput_ap + plt_xput_sta, 'g', label='Sum of Flows')
+grid('on')
+legend(loc='lower center')
+xlabel('Time (usec)')
+ylabel('Throughput (Mb/sec)')
 #plot(tx_fin, rx_fin, '.')
 #axis([0,700,0,700])
