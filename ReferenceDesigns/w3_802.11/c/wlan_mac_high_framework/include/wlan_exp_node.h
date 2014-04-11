@@ -130,7 +130,8 @@
 #define NODE_WLAN_EVENT_LOG_SIZE       8
 #define NODE_WLAN_MAC_ADDR             9
 #define NODE_WLAN_MAX_STATS           10
-#define NODE_MAX_PARAMETER            11
+#define NODE_WLAN_LTG_RESOLUTION      11
+#define NODE_MAX_PARAMETER            12
 
 
 
@@ -154,6 +155,7 @@ typedef struct {
 	u32   wlan_event_log_size;              // WLAN Exp - Event Log Size
     u32   wlan_hw_addr[2];                  // WLAN Exp - Wireless MAC address
 	u32   wlan_max_stats;                   // WLAN Exp - Max number of promiscuous statistic entries
+	u32   wlan_ltg_resolution;              // WLAN Exp - Minimum LTG resolution
 
     u32   eth_device;
     u8    hw_addr[ETH_ADDR_LEN];

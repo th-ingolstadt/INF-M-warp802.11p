@@ -490,7 +490,7 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 
         	    	xil_printf("LTG Sched Periodic: %d usec for %d usec\n",
         	    			       LTG_POLL_INTERVAL * ((ltg_sched_periodic_params *)ret_val)->interval_count,
-        	    			       (u32)(LTG_POLL_INTERVAL * ((ltg_sched_periodic_params *)ret_val)->duration_count));
+        	    			       (u32)(LTG_POLL_INTERVAL * (((ltg_sched_periodic_params *)ret_val)->duration_count >> 32)));
         	    }
         	}
     	break;
@@ -509,7 +509,7 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
         	    	xil_printf("LTG Sched Uniform Rand: [%d %d] usec for %d usec\n",
         	    			       LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->min_interval_count,
         	    			       LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->max_interval_count,
- 			                       (u32)(LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->duration_count));
+ 			                       (u32)(LTG_POLL_INTERVAL * (((ltg_sched_uniform_rand_params *)ret_val)->duration_count >> 32)));
         	    }
         	}
         break;
