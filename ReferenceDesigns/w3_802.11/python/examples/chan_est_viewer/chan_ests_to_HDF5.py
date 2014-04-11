@@ -5,7 +5,7 @@ import numpy as np
 import wlan_exp.util as wlan_exp_util
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
-import wlan_exp.log.sample_data as sample_data_util
+import wlan_exp.log.util_sample_data as sample_data_util
 
 #Use log file given as command line argument, if present
 if(len(sys.argv) == 1):
