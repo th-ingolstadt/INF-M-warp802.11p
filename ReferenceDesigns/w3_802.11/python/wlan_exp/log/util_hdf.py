@@ -528,8 +528,9 @@ def _process_hdf5_log_data_inputs(log_data, gen_index):
     if gen_index:
         try:
             raw_log_index = log_util.gen_raw_log_index(log_data)
-        except:
+        except Exception as err:
             msg  = "Unable to generate raw_log_index\n"
+            msg += "    {0}".format(err)
             raise AttributeError(msg)
     else:
         raw_log_index = None

@@ -30,7 +30,7 @@ import sys
 import os
 import time
 
-import wlan_exp.log.util     as log_util
+import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
 
 
@@ -39,9 +39,9 @@ import wlan_exp.log.util_hdf as hdf_util
 #-----------------------------------------------------------------------------
 
 # Global flag to print performance data
-print_time = False
+print_time   = False
 
-all_addrs = list()
+all_addrs    = list()
 addr_idx_map = dict()
 
 
@@ -204,6 +204,7 @@ def log_anonymize(filename):
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
+
     #####################
     # Step 2: Enumerate actual MAC addresses and their anonymous replacements
 
@@ -218,6 +219,7 @@ def log_anonymize(filename):
 
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
+
 
     #####################
     # Step 3: Replace all MAC addresses in the log 
@@ -234,6 +236,7 @@ def log_anonymize(filename):
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
+
     #####################
     # Step 4: Other annonymization steps
 
@@ -245,14 +248,15 @@ def log_anonymize(filename):
     #   Replace these with a string version of the new anonymous MAC addr
     try:
         for idx in log_index['STATION_INFO']:
-            #6-byte MAC addr (already anonymized) at offset 8
-            #15 character ASCII string at offset 14
+            # 6-byte MAC addr (already anonymized) at offset 8
+            # 20 character ASCII string at offset 16
             addr_o = 8
-            name_o = 14
-            addr = log_bytes[idx+addr_o : idx+addr_o+16]
+            name_o = 16
+            addr = log_bytes[idx+addr_o : idx+addr_o+6]
     
-            new_name = "AnonNode %2x_%2x" % (addr[4], addr[5])
-            log_bytes[idx+name_o : idx+name_o+15] = bytearray(new_name.encode("UTF-8"))
+            new_name   = "AnonNode {0:02x}_{1:02x}".format(addr[4], addr[5])
+            new_name   = new_name + '\x00' * (20 - len(new_name))
+            log_bytes[idx+name_o : idx+name_o+20] = bytearray(new_name.encode("UTF-8"))
     except KeyError:
         pass
 
@@ -276,6 +280,7 @@ def log_anonymize(filename):
 
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
+
 
     #####################
     # Write output files
