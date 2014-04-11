@@ -1,4 +1,9 @@
 
+# Mango 802.11 Reference Design
+# XPS Hardware Specification (system.mhs)
+# Copyright 2014 Mango Communications
+# Distributed under the Mango Research License:
+# http://mangocomm.com/802.11/license
  PARAMETER VERSION = 2.1.0
 
 
@@ -142,7 +147,7 @@
 
 BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 2.00.p
+ PARAMETER HW_VER = 2.00.r
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -165,18 +170,22 @@ BEGIN wlan_phy_tx_pmd_axiw
 # PHY -> RC state ctrl
  PORT rc_usr_rxen = rc_usr_rxen
  PORT rc_usr_txen = rc_usr_txen
+ PORT rc_tx_gain = phy_rc_tx_gain
 # MAC <-> Tx PHY ports
+ PORT phy_tx_gain = mac_phy_tx_gain
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
  PORT phy_tx_start = mac_phy_tx_start
  PORT phy_tx_done = mac_phy_tx_done
  PORT phy_tx_started = mac_phy_tx_started
+ PORT mac_timestamp_lsb = wlan_mac_hw_timestamp_lsb
+ PORT mac_timestamp_msb = wlan_mac_hw_timestamp_msb
 # Debug ports
  PORT dbg_tx_running = dbg_tx_running
 END
 
 BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 2.03.t
+ PARAMETER HW_VER = 2.03.u
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -243,7 +252,7 @@ END
 
 BEGIN wlan_mac_dcf_hw_axiw
  PARAMETER INSTANCE = wlan_mac_dcf_hw
- PARAMETER HW_VER = 1.00.w
+ PARAMETER HW_VER = 1.00.y
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -268,6 +277,7 @@ BEGIN wlan_mac_dcf_hw_axiw
  PORT phy_tx_started = mac_phy_tx_started
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
  PORT phy_tx_start = mac_phy_tx_start
+ PORT phy_tx_gain = mac_phy_tx_gain
  PORT phy_rx_start_sig_rate = phy_rx_start_sig_rate
  PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
  PORT phy_rx_block_pktdet = phy_rx_block_pktdet
@@ -370,7 +380,7 @@ END
 
 BEGIN w3_ad_controller_axi
  PARAMETER INSTANCE = w3_ad_controller_0
- PARAMETER HW_VER = 3.01.a
+ PARAMETER HW_VER = 3.02.a
  PARAMETER C_BASEADDR = 0x76000000
  PARAMETER C_HIGHADDR = 0x7600ffff
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
@@ -378,6 +388,7 @@ BEGIN w3_ad_controller_axi
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_R_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 7
+ PARAMETER INCLUDE_RFC_RFD_IO = 0
  BUS_INTERFACE S_AXI = mb_low_axi_periph
  PORT S_AXI_ACLK = clk_160MHz
  PORT RFA_AD_spi_cs_n = RFA_AD_spi_cs_n
@@ -388,16 +399,17 @@ BEGIN w3_ad_controller_axi
  PORT RFA_AD_reset_n = RFA_AD_reset_n
  PORT RFB_AD_spi_sclk = RFB_AD_spi_sclk
  PORT RFB_AD_spi_cs_n = RFB_AD_spi_cs_n
+ PORT RF_AD_TXCLK_out_en = RF_AD_TXCLK_out_en
 END
 
 BEGIN w3_ad_bridge
  PARAMETER INSTANCE = ad_bridge_onBoard
-# exclude IDELAYCTRL, since TEMACs include them
- PARAMETER HW_VER = 3.01.d
+ PARAMETER HW_VER = 3.01.e
 # Clock ports (inputs to w3_ad_bridge)
  PORT sys_samp_clk_Tx = clk_20MHz
  PORT sys_samp_clk_Tx_90 = clk_20MHz_90degphase
  PORT sys_samp_clk_Rx = clk_20MHz
+ PORT ad_TXCLK_out_en = RF_AD_TXCLK_out_en
 # Top-level AD9963 ports
  PORT ad_RFA_TXD = rfa_txd
  PORT ad_RFA_TXCLK = rfa_txclk
@@ -449,7 +461,7 @@ END
 
 BEGIN radio_controller_axi
  PARAMETER INSTANCE = radio_controller_0
- PARAMETER HW_VER = 3.00.d
+ PARAMETER HW_VER = 3.01.a
  PARAMETER C_BASEADDR = 0x7ac00000
  PARAMETER C_HIGHADDR = 0x7ac0ffff
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
@@ -494,21 +506,25 @@ BEGIN radio_controller_axi
  PORT usr_RFA_RxHP = agc_rfa_rxhp
  PORT usr_RFA_RxGainBB = agc_rfa_g_bb
  PORT usr_RFA_RxGainRF = agc_rfa_g_rf
+ PORT usr_RFA_TxGain = phy_rc_tx_gain
  PORT usr_RFB_TxEn = rc_usr_txen
  PORT usr_RFB_RxEn = rc_usr_rxen
  PORT usr_RFB_RxHP = agc_rfb_rxhp
  PORT usr_RFB_RxGainBB = agc_rfb_g_bb
  PORT usr_RFB_RxGainRF = agc_rfb_g_rf
+ PORT usr_RFB_TxGain = phy_rc_tx_gain
  PORT usr_RFC_TxEn = net_gnd
  PORT usr_RFC_RxEn = net_gnd
  PORT usr_RFC_RxHP = net_gnd
  PORT usr_RFC_RxGainBB = net_gnd
  PORT usr_RFC_RxGainRF = net_gnd
+ PORT usr_RFC_TxGain = phy_rc_tx_gain
  PORT usr_RFD_TxEn = net_gnd
  PORT usr_RFD_RxEn = net_gnd
  PORT usr_RFD_RxHP = net_gnd
  PORT usr_RFD_RxGainBB = net_gnd
  PORT usr_RFD_RxGainRF = net_gnd
+ PORT usr_RFD_TxGain = phy_rc_tx_gain
 END
 
 BEGIN mutex
@@ -757,6 +773,7 @@ BEGIN microblaze
  PARAMETER C_DCACHE_BASEADDR = 0x80000000
  PARAMETER C_DCACHE_HIGHADDR = 0xffffffff
  PARAMETER C_DCACHE_ALWAYS_USED = 1
+ PARAMETER C_USE_STACK_PROTECTION = 1
  BUS_INTERFACE M_AXI_DC = mb_shared_axi
  BUS_INTERFACE M_AXI_DP = mb_low_axi_periph
  BUS_INTERFACE DEBUG = mb_low_debug
@@ -1021,6 +1038,7 @@ BEGIN microblaze
  PARAMETER C_INTERCONNECT_M_AXI_DP_R_REGISTER = 8
  PARAMETER C_INTERCONNECT_M_AXI_DP_B_REGISTER = 8
  PARAMETER C_DCACHE_ALWAYS_USED = 1
+ PARAMETER C_USE_STACK_PROTECTION = 1
  BUS_INTERFACE M_AXI_DC = mb_shared_axi
  BUS_INTERFACE M_AXI_DP = mb_high_axi_periph
  BUS_INTERFACE DEBUG = mb_high_debug
@@ -1142,7 +1160,7 @@ END
 
 BEGIN w3_userio_axi
  PARAMETER INSTANCE = W3_USERIO
- PARAMETER HW_VER = 1.00.a
+ PARAMETER HW_VER = 1.01.a
  PARAMETER INCLUDE_DNA_READ_LOGIC = 0
  PARAMETER C_BASEADDR = 0x80000000
  PARAMETER C_HIGHADDR = 0x80000FFF
@@ -1241,8 +1259,8 @@ BEGIN axi_ethernet
  PARAMETER C_HALFDUP = 0
  PARAMETER C_TXMEM = 4096
  PARAMETER C_RXMEM = 4096
- PARAMETER C_TXCSUM = 2
- PARAMETER C_RXCSUM = 2
+ PARAMETER C_TXCSUM = 0
+ PARAMETER C_RXCSUM = 0
  PARAMETER C_TXVLAN_TRAN = 0
  PARAMETER C_RXVLAN_TRAN = 0
  PARAMETER C_TXVLAN_TAG = 0
