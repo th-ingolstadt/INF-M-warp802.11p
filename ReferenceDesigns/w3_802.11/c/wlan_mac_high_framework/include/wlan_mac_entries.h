@@ -113,6 +113,7 @@ typedef struct{
 	u32                 wlan_event_log_size;     // Max size of the event log
 	u32                 wlan_mac_addr[2];        // WLAN MAC Address
 	u32                 wlan_max_stats;          // Max number of promiscuous statistics
+	u32                 wlan_ltg_resolution;     // Minimum LTG resolution
 } node_info_entry;
 
 
