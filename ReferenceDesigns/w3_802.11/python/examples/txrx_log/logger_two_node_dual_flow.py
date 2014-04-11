@@ -143,21 +143,21 @@ sta_ltg_id = n_sta.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_ap.wlan_mac_addres
 time.sleep(TRIAL_TIME)
 
 
-print("\nStop  LTG - STA -> AP")
-
-# Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
-n_sta.ltg_stop(sta_ltg_id)
-n_sta.queue_tx_data_purge_all()
-
-# Let the LTG flows run at the new rate
-time.sleep(TRIAL_TIME)
-
-
 print("\nStop  LTG - AP -> STA")
 
 # Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
 n_ap.ltg_stop(ap_ltg_id)
 n_ap.queue_tx_data_purge_all()
+
+# Let the LTG flows run at the new rate
+time.sleep(TRIAL_TIME)
+
+
+print("\nStop  LTG - STA -> AP")
+
+# Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
+n_sta.ltg_stop(sta_ltg_id)
+n_sta.queue_tx_data_purge_all()
 
 
 # Look at the final log sizes for reference
