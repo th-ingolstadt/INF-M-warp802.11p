@@ -239,7 +239,7 @@ void transport_receiveCallback(unsigned char* buff, unsigned int len, void* pktS
 			wn_eth_devices[eth_dev_num].wn_header_tx->srcID   = node_info.node;
 			wn_eth_devices[eth_dev_num].wn_header_tx->pktType = PKTTYPE_NTOH_MSG;
 
-			usr_receiveCallback(&toNode, &fromNode, pktSrc, wn_header_rx->srcID, eth_dev_num);
+			usr_receiveCallback(&toNode, &fromNode, pktSrc, wn_header_rx->srcID, wn_header_rx->destID, eth_dev_num);
 
 			if( ((wn_header_rx->flags) & TRANSPORT_ROBUST_MASK) && fromNode.length > PAYLOAD_PAD_NBYTES) {
 				transport_send(sock_unicast, &fromNode, pktSrc, eth_dev_num);

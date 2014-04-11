@@ -98,7 +98,7 @@ u32                   wlan_exp_enable_logging = 0;
 
 void node_init_system_monitor(void);
 int  node_init_parameters( u32 *info );
-int  node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, unsigned int eth_dev_num);
+int  node_processCmd(const wn_cmdHdr* cmdHdr, const void* cmdArgs, wn_respHdr* respHdr, void* respArgs, void* pktSrc, u16 dest_id, u32 eth_dev_num);
 
 void node_ltg_cleanup(u32 id, void* callback_arg);
 
@@ -168,7 +168,7 @@ int wlan_exp_null_process_callback(unsigned int cmdID, void* param){
 *
 ******************************************************************************/
 void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode,
-		                  void* pktSrc, u16 src_id, unsigned int eth_dev_num){
+		                  void* pktSrc, u16 src_id, u16 dest_id, u32 eth_dev_num){
 	unsigned char cmd_grp;
 
 	unsigned int respSent = RESP_SENT;
@@ -206,10 +206,10 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode,
 	switch(cmd_grp){
 		case WARPNET_GRP:
 		case NODE_GRP:
-			respSent = node_processCmd(cmdHdr,cmdArgs,respHdr,respArgs, pktSrc, eth_dev_num);
+			respSent = node_processCmd(cmdHdr,cmdArgs,respHdr,respArgs,pktSrc,dest_id,eth_dev_num);
 		break;
 		case TRANS_GRP:
-			respSent = transport_processCmd(cmdHdr,cmdArgs,respHdr,respArgs, pktSrc, eth_dev_num);
+			respSent = transport_processCmd(cmdHdr,cmdArgs,respHdr,respArgs,pktSrc,eth_dev_num);
 		break;
 		default:
 			xil_printf("Unknown command group\n");
@@ -308,7 +308,7 @@ void node_sendEarlyResp(wn_respHdr* respHdr, void* pktSrc, unsigned int eth_dev_
 *           packet structure for WARPNet:  www.warpproject.org
 *
 ******************************************************************************/
-int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, unsigned int eth_dev_num){
+int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, u16 dest_id, u32 eth_dev_num){
 	//IMPORTANT ENDIAN NOTES:
 	// -cmdHdr is safe to access directly (pre-swapped if needed)
 	// -cmdArgs is *not* pre-swapped, since the framework doesn't know what it is
@@ -543,9 +543,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
             //   - cmdArgs32[0] - Serial Number
             // 
             
-            // Send the response early so that M-Code does not hang when IP address changes
-			node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
-			respSent = RESP_SENT;
+			if (dest_id != BROADCAST_ID) {
+				// Send the response early so that M-Code does not hang when IP address changes
+				node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+				respSent = RESP_SENT;
+			}
             
 			serial_number = Xil_Ntohl(cmdArgs32[0]);
 
