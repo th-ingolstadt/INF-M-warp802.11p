@@ -23,12 +23,13 @@ import wlan_exp.util as wlan_exp_util
 
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
+import wlan_exp.log.util_sample_data as sample_data_util
 
 
 # Use log file given as command line argument, if present
 if(len(sys.argv) == 1):
     #No filename on command line
-    LOGFILE = 'log_files/sta_log_stats.hdf5'
+    LOGFILE = sample_data_util.get_sample_data_file('raw_log_dual_flow_ap.hdf5')
 else:
     LOGFILE = str(sys.argv[1])
 
@@ -37,7 +38,7 @@ if(not os.path.isfile(LOGFILE)):
     print("ERROR: Logfile {0} not found".format(LOGFILE))
     sys.exit()
 else:
-    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/1E6)))
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(LOGFILE)[1], (os.path.getsize(LOGFILE)/1E6)))
 
 
 # Get the log_data from the file
