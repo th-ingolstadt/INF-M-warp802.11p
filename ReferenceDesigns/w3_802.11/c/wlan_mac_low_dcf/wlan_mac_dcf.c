@@ -381,7 +381,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		//TODO: tx ant_mode will eventually be a part of wlan_mac_MPDU_tx_params_g()
 		wlan_tx_config_ant_mode(mpdu_info->params.phy.antenna_mode);
-//		wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
 
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
