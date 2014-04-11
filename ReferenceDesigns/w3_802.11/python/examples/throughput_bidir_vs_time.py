@@ -1,11 +1,10 @@
 import wlan_exp.log.util               as log_util
 import wlan_exp.log.util_hdf           as hdf_util
-import numpy                           as np
 import pandas                          as pd
-from matplotlib.pylab import *
+import os
 
-AP_LOGFILE  = 'sample_data/ap_log_30s_per_rate_bidir.hdf5'
-STA_LOGFILE = 'sample_data/sta_log_30s_per_rate_bidir.hdf5'
+AP_LOGFILE  = os.path.abspath('../sample_data/raw_log_one_flow.hdf5')
+STA_LOGFILE = os.path.abspath('../sample_data/raw_log_one_flow.hdf5')
 
 #Extract the log data and index from the log files
 log_data_ap       = hdf_util.hdf5_to_log_data(filename=AP_LOGFILE)
@@ -82,8 +81,6 @@ tx_xput_ap_r = pd.rolling_mean(tx_ap_len_rs, window=rolling_winow, min_periods=1
 rx_xput_ap_r = rx_xput_ap_r.fillna(value=0)
 tx_xput_ap_r = tx_xput_ap_r.fillna(value=0)
 
-
-sys.exit()
 figure(1)
 clf()
 plot(rx_xput_ap_r)
