@@ -64,7 +64,7 @@ __all__ = ['np_arrays_to_hdf5',
 #-----------------------------------------------------------------------------
 # WLAN Exp Log HDF5 file Utilities
 #-----------------------------------------------------------------------------
-def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwrite=False):
+def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwrite=False, compression=None):
     """Create an HDF5 file that contains the log_data, a raw_log_index, and any
     user attributes.
 
@@ -128,7 +128,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
     log_grp = hf
 
     # Create a wlan_exp_log_data_container in the root group
-    _create_hdf5_log_data_container(log_grp, np_data, raw_log_index)
+    _create_hdf5_log_data_container(log_grp, np_data, raw_log_index, compression=compression)
 
     # Add the attribute dictionary to the group
     if(attr_dict is not None):
@@ -502,7 +502,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
 
         for arr_k in np_log_dict.keys():
             # Create one dataset per numpy array of log data
-            ds = hf.create_dataset(arr_k, data=np_log_dict[arr_k])
+            ds = hf.create_dataset(arr_k, data=np_log_dict[arr_k], compression=compression)
             
             try:
                 ds.attrs[arr_k + '_INFO'] = attr_dict[arr_k]
@@ -555,7 +555,7 @@ def _process_hdf5_log_data_inputs(log_data, gen_index):
 
 
 
-def _create_hdf5_log_data_container(group, np_data, raw_log_index):
+def _create_hdf5_log_data_container(group, np_data, raw_log_index, compression=None):
     """Create a wlan_exp_log_data_container in the given group."""
     import h5py
     import numpy as np
@@ -569,7 +569,7 @@ def _create_hdf5_log_data_container(group, np_data, raw_log_index):
         raise AttributeError("Dataset 'log_data' already exists in group {0}\n".format(group))
     
     # Create a data set for the numpy-formatted log_data (created above)
-    group.create_dataset("log_data", data=np_data)
+    group.create_dataset("log_data", data=np_data, compression=compression)
 
     # Add the index to the HDF5 file if necessary
     if not raw_log_index is None:
@@ -583,7 +583,7 @@ def _create_hdf5_log_data_container(group, np_data, raw_log_index):
                 dtype = np.uint64
 
             # Group names must be strings - keys here are known to be integers (entry_type_id values)
-            index_grp.create_dataset(str(k), data=np.array(v, dtype=dtype))
+            index_grp.create_dataset(str(k), data=np.array(v, dtype=dtype), compression=compression)
 
 # End _create_log_data_container()
 
