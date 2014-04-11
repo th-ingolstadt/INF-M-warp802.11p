@@ -148,8 +148,12 @@ int main() {
 	//Unpause the queue
 	pause_queue = 0;
 
-	xil_printf("\f----- wlan_mac_sta -----\n");
-	xil_printf("Compiled %s %s\n", __DATE__, __TIME__);
+	xil_printf("----- Mango 802.11 Reference Design -----\n");
+	xil_printf("----- v0.9 Beta -------------------------\n");
+	xil_printf("----- wlan_mac_sta ----------------------\n");
+
+
+	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
 	//xil_printf("_heap_start = 0x%x, %x\n", *(char*)(_heap_start),_heap_start);
 	//xil_printf("_heap_end = 0x%x, %x\n", *(char*)(_heap_end),_heap_end);
