@@ -94,7 +94,7 @@ if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
     n_sta = n_sta_l[0]
 else:
     print("ERROR: Node configurations did not match requirements of script.\n")
-    print(" Ensure two nodes are ready, one using the AP design, one using the STA design\n")
+    print("    Ensure two nodes are ready, one using the AP design, one using the STA design\n")
     sys.exit(0)
 
 # Check that the nodes are associated.  Otherwise, the LTGs below will fail.
