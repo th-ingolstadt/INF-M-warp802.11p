@@ -1,8 +1,10 @@
 """
 
 """
+import os
 import sys
 import time
+import threading
 
 import wlan_exp.util as wlan_exp_util
 import wlan_exp.config as wlan_exp_config
@@ -10,16 +12,25 @@ import wlan_exp.config as wlan_exp_config
 import wlan_exp.log.util_hdf as hdf_util
 
 
+try:
+    from Queue import Queue, Empty
+except ImportError:
+    from queue import Queue, Empty     # Python 3.x
+
+# Fix to support Python 2.x and 3.x
+if sys.version[0]=="3": raw_input=input
+
+
 #-----------------------------------------------------------------------------
 # Experiment Variables
 #-----------------------------------------------------------------------------
 HOST_INTERFACES    = ['10.0.0.250']
-NODE_SERIAL_LIST   = ['W3-a-00001']
+NODE_SERIAL_LIST   = ['W3-a-00006']
 
 AP_HDF5_FILENAME   = 'log_files/ap_traffic_capture.hdf5'
 
 # Interval for printing
-TRIAL_TIME         = 5
+PRINT_TIME         = 1
 
 
 #-----------------------------------------------------------------------------
@@ -29,6 +40,9 @@ host_config        = None
 nodes              = []
 n_ap               = None
 n_sta              = None
+exp_done           = False
+input_done         = False
+timeout            = 0.1
 
 #-----------------------------------------------------------------------------
 # Local Helper Utilities
@@ -42,21 +56,34 @@ def write_hdf5_file(file_name, data):
         print("Error writing log file: {0}".format(err))
 
 
-def print_log_size(nodes):
-    """Prints the log size for each node."""
+def get_log_size_str(nodes):
+    """Gets the log size str for each node."""
 
-    msg  = "Log Size:\n"
+    msg  = "Log Size:"
 
     for node in nodes:    
         log_size  = node.log_get_size()
-        msg += "    {0:20s}  = {1:10d} bytes\n".format(node.name, log_size)
+        msg += "    {0:10s}  = {1:10d} bytes".format(node.name, log_size)
 
-    print(msg)
+    return msg
 
 
-def print_exp_duration(start_time):
-    """Prints the duration of the experiment since start_time."""
-    print("Duration:  {0:.0f} sec".format(time.time() - start_time))
+def get_exp_duration_str(start_time):
+    """Gets the duration str of the experiment since start_time."""
+    return "Duration:  {0:8.0f} sec".format(time.time() - start_time)
+
+
+def print_node_state(start_time):
+    """Print the current state of the node."""
+    
+    msg  = "\r"
+    msg += get_exp_duration_str(start_time)
+    msg += " " * 5
+    msg += get_log_size_str(nodes)
+    msg += " " * 5
+
+    sys.stdout.write(msg)
+    sys.stdout.flush()
 
 
 
@@ -123,8 +150,8 @@ def run_experiment():
     global n_ap
     
     print("\nRun Experiment:\n")
-    print("Use Ctrl-C to end the experiment.\n")
-    print("    NOTE: May take up to {0} seconds to end experiment.".format(TRIAL_TIME))
+    print("Use 'q' or Ctrl-C to end the experiment.\n")
+    print("  NOTE:  In IPython, press return to see status update.\n")
 
     for node in nodes:
         # Reset the log and statistics now that we are ready to start 
@@ -132,28 +159,26 @@ def run_experiment():
 
     # Write Statistics to log
     n_ap.stats_write_txrx_to_log()
-    
-    # Look at the initial log sizes for reference
-    print_log_size(nodes)
 
     # Get the start time
     start_time = time.time()
+    last_print = time.time()
     
-    # Commands to run during the experiment
-    #     This experiment will end when the user kills the experiment with Ctrl-C
-    while(True):
+    # Print the current state of the node
+    print_node_state(start_time)
 
-        # Wait a while
-        time.sleep(TRIAL_TIME)
-
-        # Print the duration of the experiment
-        print_exp_duration(start_time)
-
-        # Write Statistics to log
-        n_ap.stats_write_txrx_to_log()
+    while not exp_done:
+        loop_time = time.time()
         
-        # Look at the initial log sizes for reference
-        print_log_size(nodes)
+        if ((loop_time - last_print) > PRINT_TIME):
+            # Print the current state of the node    
+            print_node_state(start_time)
+
+            # Write Statistics to log
+            n_ap.stats_write_txrx_to_log()
+            
+            # Set the last_print time
+            last_print = time.time()
 
 
 
@@ -168,13 +193,37 @@ def end_experiment():
     # Write Log Files for processing by other scripts
     print("Writing {0} bytes of data to log file...".format(len(data)))
     
-    print("    {0}".format(AP_HDF5_FILENAME))
-    write_hdf5_file(AP_HDF5_FILENAME, data)
+    print("    {0}".format(LOGFILE))
+    write_hdf5_file(LOGFILE, data)
     print("Done.")
+    return
 
 
 
 if __name__ == '__main__':
+
+    # Use log file given as command line argument, if present
+    if(len(sys.argv) == 1):
+        #No filename on command line
+        LOGFILE = AP_HDF5_FILENAME
+    else:
+        LOGFILE = str(sys.argv[1])
+    
+    # Ensure the log file actually exists - quit immediately if not
+    try:
+        if not os.access(LOGFILE, os.W_OK):
+            f = open(LOGFILE, 'w')
+            f.close()
+            os.remove(LOGFILE)
+    except IOError as err:
+        print("ERROR: Logfile {0} not able to be created".format(LOGFILE))
+        sys.exit()
+
+
+    # Create thread for experiment
+    exp_thread = threading.Thread(target=run_experiment)
+    exp_thread.daemon = True
+    
     try:
         # Initialize the experiment
         init_experiment()
@@ -182,13 +231,33 @@ if __name__ == '__main__':
         # Setup the experiment
         setup_experiment()
 
-        # Run the experiment
-        run_experiment()
+        # Start the experiment loop thread
+        exp_thread.start()
 
+        # See if there is any input from the user
+        while not input_done:
+            sys.stdout.flush()
+            temp = raw_input("")
+
+            if temp is not '':
+                user_input = temp.strip()
+                user_input = user_input.upper()
+                
+                if ((user_input == 'Q') or (user_input == 'QUIT') or (user_input == 'EXIT')):
+                    input_done = True
+                    exp_done   = True
+
+        # Wait for all threads
+        exp_thread.join()
+        sys.stdout.flush()
+        
         # End the experiment
         end_experiment()
 
     except KeyboardInterrupt:
+        exp_done   = True
+        input_done = True
+
         # If there is a keyboard interrupt, then end the experiment
         end_experiment()
 
