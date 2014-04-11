@@ -123,6 +123,8 @@ wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
 
 print("\nRun Experiment:")
 
+time.sleep(2)
+
 print("\nStart LTG - AP -> STA")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
@@ -142,7 +144,6 @@ sta_ltg_id = n_sta.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_ap.wlan_mac_addres
 # Let the LTG flows run at the new rate
 time.sleep(TRIAL_TIME)
 
-
 print("\nStop  LTG - STA -> AP")
 
 # Stop the LTG flow and purge the transmit queue so that nodes are in a known, good state
@@ -159,6 +160,7 @@ print("\nStop  LTG - AP -> STA")
 n_ap.ltg_stop(ap_ltg_id)
 n_ap.queue_tx_data_purge_all()
 
+time.sleep(2)
 
 # Look at the final log sizes for reference
 ap_log_size  = n_ap.log_get_size()
