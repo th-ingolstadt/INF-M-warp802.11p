@@ -263,7 +263,6 @@ void wlan_phy_init() {
 
 	//LTS correlation thresholds (low NSR, high SNR)
 	wlan_phy_rx_lts_corr_thresholds(12500, 12500); //FIXME
-	//wlan_phy_rx_lts_corr_thresholds(0xFFFFFFFF, 0xFFFFFFFF); //FIXME
 
 	//Configure RSSI pkt det
  	// RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
