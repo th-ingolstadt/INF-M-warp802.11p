@@ -52,6 +52,7 @@ NODE_WLAN_MAX_ASSN           = 7
 NODE_WLAN_EVENT_LOG_SIZE     = 8
 NODE_WLAN_MAC_ADDR           = 9
 NODE_WLAN_MAX_STATS          = 10
+NODE_LTG_RESOLUTION          = 11
 
 
 class WlanExpNode(wn_node.WnNode):
@@ -65,21 +66,25 @@ class WlanExpNode(wn_node.WnNode):
     the attributes of the WARPNet node.
     
     Attributes (inherited from WnNode):
-        node_type       -- Unique type of the WARPNet node
-        node_id         -- Unique identification for this node
-        name            -- User specified name for this node (supplied by user scripts)
-        description     -- String description of this node (auto-generated)
-        serial_number   -- Node's serial number, read from EEPROM on hardware
-        fpga_dna        -- Node's FPGA'a unique identification (on select hardware)
-        hw_ver          -- WARP hardware version of this node
-        wn_ver_major    -- WARPNet version running on this node
+        node_type            -- Unique type of the WARPNet node
+        node_id              -- Unique identification for this node
+        name                 -- User specified name for this node (supplied by user scripts)
+        description          -- String description of this node (auto-generated)
+        serial_number        -- Node's serial number, read from EEPROM on hardware
+        fpga_dna             -- Node's FPGA'a unique identification (on select hardware)
+        hw_ver               -- WARP hardware version of this node
+        wn_ver_major         -- WARPNet version running on this node
         wn_ver_minor
         wn_ver_revision
-        transport       -- Node's transport object
-        transport_bcast -- Node's broadcast transport object
+        transport            -- Node's transport object
+        transport_bcast      -- Node's broadcast transport object
 
     New Attributes:
+        wlan_mac_address     -- Wireless MAC address of the node
         max_associations     -- Maximum associations of the node
+        max_statisitics      -- Maximum number of statistic structures on the node
+        ltg_resolution       -- Minimum resolution (in us) of the LTG
+
         log_max_size         -- Maximum size of event log (in bytes)
         log_total_bytes_read -- Number of bytes read from the event log
         log_num_wraps        -- Number of times the event log has wrapped
@@ -92,6 +97,8 @@ class WlanExpNode(wn_node.WnNode):
     wlan_mac_address      = None
     max_associations      = None
     max_statistics        = None
+    ltg_resolution        = None
+    
     log_max_size          = None
     log_total_bytes_read  = None
     log_num_wraps         = None
@@ -111,6 +118,7 @@ class WlanExpNode(wn_node.WnNode):
         self.node_type            = defaults.WLAN_EXP_BASE
         self.max_associations     = 0
         self.max_statistics       = 0
+        self.ltg_resolution       = 1
 
         self.log_max_size         = 0
         self.log_total_bytes_read = 0
@@ -389,6 +397,7 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     def ltg_configure(self, traffic_flow, auto_start=False):
         """Configure the node for the given traffic flow."""
+        traffic_flow.enforce_min_resolution(self.ltg_resolution)
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
 
 
@@ -884,6 +893,12 @@ class WlanExpNode(wn_node.WnNode):
                 self.wlan_mac_address = ((2**32) * (values[1] & 0xFFFF) + values[0])
             else:
                 raise wn_ex.ParameterError("NODE_WLAN_MAC_ADDR", "Incorrect length")
+
+        elif   (identifier == NODE_LTG_RESOLUTION):
+            if (length == 1):
+                self.ltg_resolution = values[0]
+            else:
+                raise wn_ex.ParameterError("NODE_LTG_RESOLUTION", "Incorrect length")
 
         else:
             super(WlanExpNode, self).process_parameter(identifier, length, values)

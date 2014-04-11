@@ -110,6 +110,10 @@ class Schedule(object):
             args.append(int(param))
         return args
 
+    def enforce_min_resolution(self, resolution):
+        """Enforce the minimum resolution on the Schedule."""
+        raise NotImplementedError
+
 # End Class WlanExpLTGSchedule
 
 
@@ -128,12 +132,21 @@ class SchedulePeriodic(Schedule):
         self.ltg_type = LTG_SCHED_TYPE_PERIODIC
         self.interval = int(round(float(interval), self.time_factor) * (10**self.time_factor))
         self.duration = int(round(float(duration), self.time_factor) * (10**self.time_factor))
-        
-        
+    
     def get_params(self):
         duration0 = ((self.duration >> 32) & 0xFFFFFFFF)
         duration1 = (self.duration & 0xFFFFFFFF)
         return [self.interval, duration0, duration1]
+
+    def enforce_min_resolution(self, resolution):
+        """Enforce the minimum resolution on periodic interval."""
+        temp_interval = (self.interval // resolution) * resolution
+        if (temp_interval != self.interval):
+            msg  = "WARNING:  Cannot schedule LTG with interval: {0} us\n".format(self.interval)
+            msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
+            msg += "    Adjusting interval to {0} us".format(temp_interval)
+            print(msg)
+            self.interval = temp_interval
 
 # End Class WlanExpLTGSchedPeriodic
     
@@ -162,6 +175,24 @@ class ScheduleUniformRandom(Schedule):
         duration0 = ((self.duration >> 32) & 0xFFFFFFFF)
         duration1 = (self.duration & 0xFFFFFFFF)
         return [self.min_interval, self.max_interval, duration0, duration1]
+
+    def enforce_min_resolution(self, resolution):
+        """Enforce the minimum resolution on periodic interval."""
+        temp_interval = (self.min_interval // resolution) * resolution
+        if (temp_interval != self.min_interval):
+            msg  = "WARNING:  Cannot schedule LTG with min interval: {0} us\n".format(self.min_interval)
+            msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
+            msg += "    Adjusting interval to {0} us".format(temp_interval)
+            print(msg)
+            self.min_interval = temp_interval
+
+        temp_interval = (self.max_interval // resolution) * resolution
+        if (temp_interval != self.max_interval):
+            msg  = "WARNING:  Cannot schedule LTG with interval: {0} us\n".format(self.max_interval)
+            msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
+            msg += "    Adjusting interval to {0} us".format(temp_interval)
+            print(msg)
+            self.max_interval = temp_interval
 
 # End Class WlanExpLTGSchedUniformRand
 
@@ -290,6 +321,10 @@ class FlowConfig(object):
             args.append(arg)
 
         return args
+    
+    def enforce_min_resolution(self, resolution):
+        """Enforce the minimum resolution on the LTG schedule."""
+        self.ltg_schedule.enforce_min_resolution(resolution)
 
 # End Class FlowConfig
 
