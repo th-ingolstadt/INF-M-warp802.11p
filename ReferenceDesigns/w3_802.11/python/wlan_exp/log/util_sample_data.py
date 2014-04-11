@@ -18,6 +18,7 @@ def get_sample_data_dir():
     
     #Construct the full path to the sample_data directory
     sd_path = os.path.join(sd_parent, _SAMPLE_DATA_DIR)
+#    print("{0} {1}".format(sd_parent, sd_path))
     
     #Only return successfully if the directory already exists
     if(os.path.isdir(sd_path)):
