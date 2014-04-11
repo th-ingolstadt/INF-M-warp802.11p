@@ -24,8 +24,8 @@ Functions (see below for more information):
 
 """
 
-import wlan_exp.defaults   as defaults
-import wlan_exp.node       as node
+import wlan_exp.defaults as defaults
+import wlan_exp.node as node
 
 
 __all__ = ['WlanExpNodeSta']

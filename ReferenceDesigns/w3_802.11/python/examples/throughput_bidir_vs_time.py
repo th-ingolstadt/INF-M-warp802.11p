@@ -1,7 +1,8 @@
-import wlan_exp.log.util               as log_util
-import wlan_exp.log.util_hdf           as hdf_util
-import pandas                          as pd
 import os
+import pandas as pd
+
+import wlan_exp.log.util as log_util
+import wlan_exp.log.util_hdf as hdf_util
 
 AP_LOGFILE  = os.path.abspath('../sample_data/raw_log_one_flow.hdf5')
 STA_LOGFILE = os.path.abspath('../sample_data/raw_log_one_flow.hdf5')

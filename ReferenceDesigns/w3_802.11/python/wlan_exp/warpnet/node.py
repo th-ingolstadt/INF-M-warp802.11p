@@ -33,15 +33,15 @@ make sure that the values of these hardware parameters are not reused.
 """
 
 from . import version
-from . import defaults                      as wn_defaults
-from . import util                          as wn_util
-from . import config                        as wn_config
-from . import message                       as wn_message
-from . import cmds                          as wn_cmds
-from . import exception                     as wn_ex
-from . import transport                     as wn_transport
-from . import transport_eth_udp_py          as unicast_tp
-from . import transport_eth_udp_py_bcast    as bcast_tp
+from . import defaults as wn_defaults
+from . import util as wn_util
+from . import config as wn_config
+from . import message as wn_message
+from . import cmds as wn_cmds
+from . import exception as wn_ex
+from . import transport as wn_transport
+from . import transport_eth_udp_py as unicast_tp
+from . import transport_eth_udp_py_bcast as bcast_tp
 
 
 __all__ = ['WnNode', 'WnNodeFactory']

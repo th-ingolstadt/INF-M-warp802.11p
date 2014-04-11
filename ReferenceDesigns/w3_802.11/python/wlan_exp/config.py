@@ -25,7 +25,7 @@ Functions (see below for more information):
 
 """
 
-import wlan_exp.warpnet.config  as wn_config
+import wlan_exp.warpnet.config as wn_config
 
 
 __all__ = ['WlanExpHostConfiguration', 'WlanExpNodesConfiguration']

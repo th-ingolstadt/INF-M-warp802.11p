@@ -383,7 +383,7 @@ def node_type_to_str(node_type, node_factory=None):
         
         # Build a default node_factory if it is not present
         if node_factory is None:
-            import wlan_exp.node           as node
+            import wlan_exp.node as node
             import wlan_exp.warpnet.config as wn_config
     
             host_config  = wn_config.HostConfiguration()
@@ -509,9 +509,9 @@ def _broadcast_time_to_nodes(time_cmd, host_config, time=0.0, time_id=None):
                         point number in seconds
         time_id      -- Optional value to identify broadcast time commands across nodes
     """
+    import wlan_exp.cmds as cmds
+    import wlan_exp.warpnet.util as util
     import wlan_exp.warpnet.transport_eth_udp_py_bcast as bcast
-    import wlan_exp.warpnet.util                       as util
-    import wlan_exp.cmds                               as cmds
 
     time_factor = 6               # Time can be in # of microseconds (ie 10^(-6) seconds)
 

@@ -34,8 +34,8 @@ import re
 import time
 import socket
 
-from . import transport_eth_udp        as tp
-from . import exception                as wn_ex
+from . import transport_eth_udp as tp
+from . import exception as wn_ex
 
 
 __all__ = ['TransportEthUdpPy']

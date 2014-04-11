@@ -32,7 +32,7 @@ Integer constants:
 
 import re
 
-from . import config            as wn_config
+from . import config as wn_config
 from . import transport_eth_udp as tp
 
 

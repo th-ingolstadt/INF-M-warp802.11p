@@ -31,12 +31,12 @@ import re
 import time
 import errno
 import socket
-from socket import error     as socket_error
+from socket import error as socket_error
 
-from . import cmds           as wn_cmds
-from . import message        as wn_message
-from . import exception      as wn_ex
-from . import transport      as tp
+from . import cmds as wn_cmds
+from . import message as wn_message
+from . import exception as wn_ex
+from . import transport as tp
 
 
 __all__ = ['TransportEthUdp']

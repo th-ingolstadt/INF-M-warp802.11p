@@ -38,10 +38,10 @@ statistics and display them.
 import time
 
 # Import WARPNet Framework
-import wlan_exp.config       as config
+import wlan_exp.config as config
 
 # Import WLAN Exp Framework
-import wlan_exp.util         as wlan_exp_util
+import wlan_exp.util as wlan_exp_util
 
 
 

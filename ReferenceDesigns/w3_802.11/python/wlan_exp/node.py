@@ -33,12 +33,12 @@ pleasemake sure that the values of these hardware parameters are not reused.
 """
 
 
-import wlan_exp.warpnet.node           as wn_node
-import wlan_exp.warpnet.exception      as wn_ex
+import wlan_exp.warpnet.node as wn_node
+import wlan_exp.warpnet.exception as wn_ex
 
-import wlan_exp.version                as version
-import wlan_exp.defaults               as defaults
-import wlan_exp.cmds                   as cmds
+import wlan_exp.version as version
+import wlan_exp.defaults as defaults
+import wlan_exp.cmds as cmds
 
 
 __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
@@ -946,8 +946,8 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         overall structure but a different import.  Please call the super
         class so that the calls will propagate to catch all node types.
         """
-        import wlan_exp.node_ap   as node_ap
-        import wlan_exp.node_sta  as node_sta
+        import wlan_exp.node_ap as node_ap
+        import wlan_exp.node_sta as node_sta
         
         node = None
 

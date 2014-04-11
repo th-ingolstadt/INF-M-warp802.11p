@@ -53,9 +53,9 @@ defining other sub-classes of WARPNet Cmd and BufferCmd.
 
 """
 
-import wlan_exp.warpnet.cmds                as wn_cmds
-import wlan_exp.warpnet.message             as wn_message
-import wlan_exp.warpnet.transport_eth_udp   as wn_transport
+import wlan_exp.warpnet.cmds as wn_cmds
+import wlan_exp.warpnet.message as wn_message
+import wlan_exp.warpnet.transport_eth_udp as wn_transport
 
 
 

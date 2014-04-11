@@ -1,10 +1,13 @@
 import os
 import sys
-import wlan_exp.log.util     as log_util
+
+import numpy as np
+import matplotlib.mlab as mlab
+
+import wlan_exp.util as wlan_exp_util
+
+import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
-import wlan_exp.util         as wlan_exp_util
-import numpy                 as np
-import matplotlib.mlab       as mlab
 
 
 #Use log file given as command line argument, if present

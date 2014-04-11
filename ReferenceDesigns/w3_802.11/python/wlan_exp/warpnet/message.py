@@ -35,7 +35,7 @@ Integer constants:
 
 import struct
 
-from . import transport      as wn_transport
+from . import transport as wn_transport
 
 __all__ = ['TransportHeader', 'Cmd', 'BufferCmd', 'Resp', 'Buffer']
 

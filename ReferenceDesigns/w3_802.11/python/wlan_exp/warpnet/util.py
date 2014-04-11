@@ -127,8 +127,8 @@ def wn_identify_all_nodes(host_interfaces):
     All nodes should blink their Red LEDs for 10 seconds.    
     """
     import time
-    from . import cmds                       as wn_cmds
-    from . import config                     as wn_config
+    from . import cmds as wn_cmds
+    from . import config as wn_config
     from . import transport_eth_udp_py_bcast as tp_bcast
 
     if type(host_interfaces) is str:
@@ -182,8 +182,8 @@ def wn_reset_network_inf_all_nodes(host_config=None, host_interfaces=None):
     This will issue a broadcast network interface reset for all nodes on 
     each of the host_interfaces.
     """
-    from . import cmds                       as wn_cmds
-    from . import config                     as wn_config
+    from . import cmds as wn_cmds
+    from . import config as wn_config
     from . import transport_eth_udp_py_bcast as tp_bcast
 
     if not host_config is None:

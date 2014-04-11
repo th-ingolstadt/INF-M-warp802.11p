@@ -1,7 +1,9 @@
-import wlan_exp.log.util        as log_util
-import numpy                    as np
-import pandas                   as pd
+import numpy as np
+import pandas as pd
+
 from matplotlib.pyplot import *
+
+import wlan_exp.log.util as log_util
 
 with open('big_logs/sta_log_stats_2014_03_06.bin', 'rb') as fh:
     print("Reading log file...")
