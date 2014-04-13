@@ -87,5 +87,8 @@ def get_sample_data_file(filename):
     if(os.path.isfile(file_path)):
         return file_path
     else:
-        raise Exception("ERROR: sample data file {0} not found in local sample data directory!\n".format(filename))
+        msg  = "ERROR: sample data file {0} not found in local sample data directory!\n".format(filename)
+        msg += "  Please ensure that sample data has been downloaded.  Instructions at:\n"
+        msg += "      https://warpproject.org/trac/wiki/802.11/wlan_exp/sample_data"
+        raise Exception(msg)
 
