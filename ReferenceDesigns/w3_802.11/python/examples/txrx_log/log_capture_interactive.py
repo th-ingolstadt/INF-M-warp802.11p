@@ -1,5 +1,19 @@
 """
+This script uses the 802.11 ref design and WARPnet to create a log
+file that contains all data assocated with an interactive experiment.
 
+Hardware Setup:
+ - Requires one WARP v3 node configured as either an AP or STA
+ - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
+
+Required Script Changes:
+  - Set HOST_IP_ADDRESS to the IP address of your host PC NIC
+  - Set NODE_SERIAL_LIST to the serial number of your WARP node
+
+Description:
+  This script initializes one WARP v3 nodes.  The script then waits for 
+  the user to end it and will periodically log the Tx/Rx statistics and
+  update information on the screen about the log.
 """
 import os
 import sys
@@ -27,7 +41,7 @@ if sys.version[0]=="3": raw_input=input
 HOST_INTERFACES    = ['10.0.0.250']
 NODE_SERIAL_LIST   = ['W3-a-00006']
 
-AP_HDF5_FILENAME   = 'log_files/ap_interactive_capture.hdf5'
+HDF5_FILENAME      = 'interactive_capture.hdf5'
 
 # Interval for printing
 PRINT_TIME         = 1
@@ -38,8 +52,7 @@ PRINT_TIME         = 1
 #-----------------------------------------------------------------------------
 host_config        = None
 nodes              = []
-n_ap               = None
-n_sta              = None
+node               = None
 exp_done           = False
 input_done         = False
 timeout            = 0.1
@@ -109,12 +122,12 @@ def init_experiment():
     nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
     
     # Set each not into the default state
-    for node in nodes:        
+    for tmp_node in nodes:        
         # Issue a reset command to stop current operation / initialize components
-        node.reset_all()
+        tmp_node.reset_all()
         
         # Configure the log
-        node.log_configure(log_full_payloads=False)
+        tmp_node.log_configure(log_full_payloads=False)
 
     # Set the time of all the nodes to zero
     wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
@@ -123,18 +136,12 @@ def init_experiment():
 
 def setup_experiment():
     """Setup WLAN Experiment."""
-    global n_ap
-    
-    #---------------------------------------------------------------------
-    # Setup experinmental associations
-    
-    # Extract the AP and STA nodes from the list of initialized nodes
-    n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
-    
-    # Check that we have a valid AP and STA
-    if (len(n_ap_l) == 1):
-        # Extract the two nodes from the lists for easier referencing below
-        n_ap = n_ap_l[0]
+    global node
+
+    # Check that we have one node
+    if (len(nodes) == 1):
+        # Extract the node from the list for easier referencing below
+        node = nodes[0]
     else:
         print("ERROR: Node configurations did not match requirements of script.\n")
         return 
@@ -146,19 +153,17 @@ def setup_experiment():
 
 def run_experiment():
     """WLAN Experiment.""" 
-    global nodes
-    global n_ap
+    global node
     
     print("\nRun Experiment:\n")
     print("Use 'q' or Ctrl-C to end the experiment.\n")
     print("  NOTE:  In IPython, press return to see status update.\n")
 
-    for node in nodes:
-        # Reset the log and statistics now that we are ready to start 
-        node.reset(log=True, txrx_stats=True)
+    # Reset the log and statistics now that we are ready to start 
+    node.reset(log=True, txrx_stats=True)
 
     # Write Statistics to log
-    n_ap.stats_write_txrx_to_log()
+    node.stats_write_txrx_to_log()
 
     # Get the start time
     start_time = time.time()
@@ -175,7 +180,7 @@ def run_experiment():
             print_node_state(start_time)
 
             # Write Statistics to log
-            n_ap.stats_write_txrx_to_log()
+            node.stats_write_txrx_to_log()
             
             # Set the last_print time
             last_print = time.time()
@@ -184,10 +189,10 @@ def run_experiment():
 
 def end_experiment():
     """Experiment cleanup / post processing."""
-    global nodes
+    global node
     print("\nEnding experiment\n")
 
-    wn_buffer = n_ap.log_get_all_new(log_tail_pad=0, max_req_size=2**23)
+    wn_buffer = node.log_get_all_new(log_tail_pad=0, max_req_size=2**23)
     data      = wn_buffer.get_bytes()
 
     # Write Log Files for processing by other scripts
@@ -205,19 +210,9 @@ if __name__ == '__main__':
     # Use log file given as command line argument, if present
     if(len(sys.argv) == 1):
         #No filename on command line
-        LOGFILE = AP_HDF5_FILENAME
+        LOGFILE = HDF5_FILENAME
     else:
         LOGFILE = str(sys.argv[1])
-    
-    # Ensure the log file actually exists - quit immediately if not
-    try:
-        if not os.access(LOGFILE, os.W_OK):
-            f = open(LOGFILE, 'w')
-            f.close()
-            os.remove(LOGFILE)
-    except IOError as err:
-        print("ERROR: Logfile {0} not able to be created".format(LOGFILE))
-        sys.exit()
 
 
     # Create thread for experiment

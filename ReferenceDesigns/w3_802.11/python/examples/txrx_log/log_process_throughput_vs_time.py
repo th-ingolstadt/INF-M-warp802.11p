@@ -1,3 +1,18 @@
+"""
+This script uses the WLAN Exp Log utilities to parse raw log data and
+plot the throughput vs time using the pandas framework.
+
+Hardware Setup:
+    - None.  Parsing log data can be done completely off-line
+
+Required Script Changes:
+    - Set *_LOGFILE to the file name of your WLAN Exp log HDF5 file
+
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+"""
+import os
+import sys
 import numpy as np
 import pandas as pd
 
@@ -5,8 +20,51 @@ import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
 import wlan_exp.log.util_sample_data as sample_data_util
 
-AP_LOGFILE  = sample_data_util.get_sample_data_file('raw_log_dual_flow_ap.hdf5')
-STA_LOGFILE = sample_data_util.get_sample_data_file('raw_log_dual_flow_sta.hdf5')
+#-----------------------------------------------------------------------------
+# Top level script variables
+#-----------------------------------------------------------------------------
+
+AP_LOGFILE  = 'raw_log_dual_flow_ap.hdf5'
+STA_LOGFILE = 'raw_log_dual_flow_sta.hdf5'
+
+
+#-----------------------------------------------------------------------------
+# Process filenames
+#-----------------------------------------------------------------------------
+ap_logfile_error  = False
+sta_logfile_error = False
+
+# See if the log file name is for a sample data file
+try:
+    AP_LOGFILE  = sample_data_util.get_sample_data_file(AP_LOGFILE)
+except:
+    ap_logfile_error = True
+
+# Ensure the log file actually exists - quit immediately if not
+if ((not os.path.isfile(AP_LOGFILE)) and ap_logfile_error):
+    print("ERROR: Logfile {0} not found".format(AP_LOGFILE))
+    sys.exit()
+else:
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(AP_LOGFILE)[1], (os.path.getsize(AP_LOGFILE)/1E6)))
+
+
+# See if the log file name is for a sample data file
+try:
+    STA_LOGFILE = sample_data_util.get_sample_data_file(STA_LOGFILE)
+except:
+    sta_logfile_error = True
+
+# Ensure the log file actually exists - quit immediately if not
+if ((not os.path.isfile(STA_LOGFILE)) and sta_logfile_error):
+    print("ERROR: Logfile {0} not found".format(STA_LOGFILE))
+    sys.exit()
+else:
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(STA_LOGFILE)[1], (os.path.getsize(STA_LOGFILE)/1E6)))
+
+
+#-----------------------------------------------------------------------------
+# Main script 
+#-----------------------------------------------------------------------------
 
 #Extract the log data and index from the log files
 log_data_ap       = hdf_util.hdf5_to_log_data(filename=AP_LOGFILE)

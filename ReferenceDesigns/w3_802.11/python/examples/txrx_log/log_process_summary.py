@@ -33,19 +33,34 @@ import wlan_exp.log.util_sample_data as sample_data_util
 from wlan_exp.log.entry_types import log_entry_types
 
 
+#-----------------------------------------------------------------------------
+# Process command line arguments
+#-----------------------------------------------------------------------------
+
+LOGFILE       = 'raw_log_dual_flow_ap.hdf5'
+logfile_error = False
+
 # Use log file given as command line argument, if present
-if(len(sys.argv) == 1):
-    #No filename on command line
-    LOGFILE = sample_data_util.get_sample_data_file('raw_log_dual_flow_ap.hdf5')
-else:
+if(len(sys.argv) != 1):
     LOGFILE = str(sys.argv[1])
 
+# See if the command line argument was for a sample data file
+try:
+    LOGFILE = sample_data_util.get_sample_data_file(LOGFILE)
+except:
+    logfile_error = True
+
 # Ensure the log file actually exists - quit immediately if not
-if(not os.path.isfile(LOGFILE)):
+if ((not os.path.isfile(LOGFILE)) and logfile_error):
     print("ERROR: Logfile {0} not found".format(LOGFILE))
     sys.exit()
 else:
     print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(LOGFILE)[1], (os.path.getsize(LOGFILE)/1E6)))
+
+
+#-----------------------------------------------------------------------------
+# Main script 
+#-----------------------------------------------------------------------------
 
 # Get the log_data from the file
 log_data = hdf_util.hdf5_to_log_data(filename=LOGFILE)

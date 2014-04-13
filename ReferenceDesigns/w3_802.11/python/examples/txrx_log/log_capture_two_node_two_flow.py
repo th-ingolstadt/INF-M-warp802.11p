@@ -21,7 +21,6 @@ Description:
   the experiment to run and then captures all the log data after the
   TRIAL_TIME.
 """
-import os
 import sys
 import time
 
@@ -39,8 +38,8 @@ import wlan_exp.log.util_hdf as hdf_util
 HOST_INTERFACES   = ['10.0.0.250']
 NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
-AP_HDF5_FILENAME  = "log_files/ap_log_stats.hdf5"
-STA_HDF5_FILENAME = "log_files/sta_log_stats.hdf5"
+AP_HDF5_FILENAME  = "ap_two_node_two_flow_capture.hdf5"
+STA_HDF5_FILENAME = "sta_two_node_two_flow_capture.hdf5"
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME        = 30
@@ -62,31 +61,6 @@ def write_log_file(file_name, data_buffer):
         hdf_util.log_data_to_hdf5(data, file_name)
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
-
-
-#-----------------------------------------------------------------------------
-# Check file names
-#-----------------------------------------------------------------------------
-
-# Ensure the log file can be created - quit immediately if not
-try:
-    if not os.access(AP_HDF5_FILENAME, os.W_OK):
-        f = open(AP_HDF5_FILENAME, 'w')
-        f.close()
-        os.remove(AP_HDF5_FILENAME)
-except IOError as err:
-    print("ERROR: Logfile {0} not able to be created".format(AP_HDF5_FILENAME))
-    sys.exit()
-
-# Ensure the log file can be created - quit immediately if not
-try:
-    if not os.access(STA_HDF5_FILENAME, os.W_OK):
-        f = open(STA_HDF5_FILENAME, 'w')
-        f.close()
-        os.remove(STA_HDF5_FILENAME)
-except IOError as err:
-    print("ERROR: Logfile {0} not able to be created".format(STA_HDF5_FILENAME))
-    sys.exit()
 
 
 #-----------------------------------------------------------------------------
