@@ -27,7 +27,7 @@ if sys.version[0]=="3": raw_input=input
 HOST_INTERFACES    = ['10.0.0.250']
 NODE_SERIAL_LIST   = ['W3-a-00006']
 
-AP_HDF5_FILENAME   = 'log_files/ap_traffic_capture.hdf5'
+AP_HDF5_FILENAME   = 'log_files/ap_interactive_capture.hdf5'
 
 # Interval for printing
 PRINT_TIME         = 1

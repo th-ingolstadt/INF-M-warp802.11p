@@ -64,7 +64,7 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 
 ###############################################################################
-# Example 2: Gather some Tx information from the log
+# Example 1: Gather some Tx information from the log
 #   NOTE:  Since there are only loops, this example can deal with TX / TX_LOW 
 #          being an empty list and does not need a try / except.
 #
@@ -110,7 +110,7 @@ tx_low_rate_counts = tx_low_rate_counts[1:9] # only rate values 1:8 are valid
 
 total_retrans = 0
 
-print("\nExample 2: Tx Information per Rate:")
+print("\nExample 1: Tx Information per Rate:")
 print("{0:9} {1:^32} {2:^20}".format(
     "Rate", "# Tx Pkts", "Avg Tx time (us)"))
 print("{0:9} {1:>10} {2:>10} {3:>10} {4:>10}".format(
@@ -162,9 +162,9 @@ for tx in ['TX', 'TX_LOW']:
     
         # Print the results
         if (tx == 'TX'):
-            print("\nExample 3: Tx Counts (CPU High):");
+            print("\nExample 2: Tx Counts (CPU High):");
         else:
-            print("\nExample 3: Tx Counts (CPU Low - includes retransmissions):");
+            print("\nExample 2: Tx Counts (CPU Low - includes retransmissions):");
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
             "Dest Addr",
             "# Pkts",
@@ -213,7 +213,7 @@ if('RX_OFDM' in log_np.keys()):
         rx_counts[addr] = (rx_pkts_from_addr, rx_bytes_from_addr)
 
     # Print the results
-    print("\nExample 4: Rx Counts (including duplicates):");
+    print("\nExample 3: Rx Counts (including duplicates):");
     print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
         "Dest Addr",
         "# Pkts",
