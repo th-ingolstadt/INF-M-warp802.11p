@@ -121,7 +121,8 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None):
             if (revision != WN_REVISION):
                 # Since MAJOR & MINOR versions match, only print a warning
                 if (revision < WN_REVISION):
-                    print("WARNING: " + msg + " (newer)")
+                    # Do nothing; Python must be the same or newer than C code
+                    pass
                 else:
                     print("WARNING: " + msg + " (older)")
         else:

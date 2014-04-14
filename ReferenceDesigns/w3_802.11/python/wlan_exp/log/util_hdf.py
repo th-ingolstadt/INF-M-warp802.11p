@@ -400,6 +400,8 @@ def hdf5_to_attr_dict(filename=None, h5_file=None, group_name=None):
 
 # End hdf5_to_attr_dict()
 
+
+
 def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
     """Generate an HDF5 file from numpy arrays. The np_log_dict input must be either:
     (a) A dictionary with numpy record arrays as values; each array will

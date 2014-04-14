@@ -42,7 +42,7 @@ __all__ = ['wlan_exp_ver', 'wlan_exp_ver_check', 'wlan_exp_ver_str']
 # WLAN Exp Version defines
 WLAN_EXP_MAJOR          = 0
 WLAN_EXP_MINOR          = 9
-WLAN_EXP_REVISION       = 0
+WLAN_EXP_REVISION       = 1
 WLAN_EXP_XTRA           = str('')
 WLAN_EXP_RELEASE        = True
 
@@ -117,7 +117,8 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None):
             if (revision != WLAN_EXP_REVISION):
                 # Since MAJOR & MINOR versions match, only print a warning
                 if (revision < WLAN_EXP_REVISION):
-                    print("WARNING: " + msg + " (newer)")
+                    # Do nothing; Python must be the same or newer than C code
+                    pass
                 else:
                     print("WARNING: " + msg + " (older)")
         else:
