@@ -253,8 +253,42 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u32 low_tx_details_size;
 	u32 temp1;
 	u32 temp2;
+	u32* payload_to_write;
 
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
+			case IPC_MBOX_MEM_READ_WRITE:
+				switch(msg->arg0){
+					case IPC_REG_WRITE_MODE:
+						payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write));
+
+#if 0
+						//// DEBUG
+						xil_printf("BASEADDR = 0x%08x, NUM_WORDS = %d\n", ((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr, ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
+
+						for(temp1 = 0; temp1 < ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words; temp1++){
+							xil_printf("[%d] = 0x%08x\n", temp1, payload_to_write[temp1]);
+						}
+						//// DEBUG
+#endif
+
+						memcpy((u8*)(((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr), (u8*)payload_to_write, sizeof(u32)*((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words );
+
+					break;
+					case IPC_REG_READ_MODE:
+
+//						xil_printf("BASEADDR = 0x%08x, NUM_WORDS = %d\n", ((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr, ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
+
+						ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
+						ipc_msg_to_high.num_payload_words = ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words;
+						ipc_msg_to_high.payload_ptr = (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr;
+
+						ipc_mailbox_write_msg(&ipc_msg_to_high);
+
+					break;
+				}
+
+			break;
+
 			case IPC_MBOX_CONFIG_CHANNEL:
 				mac_param_chan = ipc_msg_from_high_payload[0];
 				//TODO: allow mac_param_chan to select 5GHz channels
