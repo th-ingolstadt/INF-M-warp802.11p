@@ -90,6 +90,13 @@ u8					dram_present;			///< Indication variable for whether DRAM SODIMM is prese
 static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
 static u32         cpu_high_status;			///< Tracking variable for upper-level CPU status
 
+// CPU Register Read Buffer
+static u32*		   cpu_low_reg_read_buffer;
+static u8		   cpu_low_reg_read_buffer_status;
+
+#define CPU_LOW_REG_READ_BUFFER_STATUS_READY 	 1
+#define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY 0
+
 // Debug GPIO State
 static u8		   debug_gpio_state;			///< Current state of debug GPIO pins
 
@@ -208,6 +215,8 @@ void wlan_mac_high_init(){
 	num_malloc = 0;
 	num_realloc = 0;
 	num_free = 0;
+
+	cpu_low_reg_read_buffer = NULL;
 
 	// Enable promiscuous statistics by default
 	promiscuous_stats_enabled = 1;
@@ -1417,6 +1426,17 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
 
+		case IPC_MBOX_MEM_READ_WRITE:
+
+			if(cpu_low_reg_read_buffer != NULL){
+				memcpy( (u8*)cpu_low_reg_read_buffer, (u8*)ipc_msg_from_low_payload, msg->num_payload_words * sizeof(u32));
+				cpu_low_reg_read_buffer_status = CPU_LOW_REG_READ_BUFFER_STATUS_READY;
+			} else {
+				warp_printf(PL_ERROR, "Error: received low-level register buffer from CPU_LOW and was not expecting it\n");
+			}
+
+		break;
+
 		case IPC_MBOX_RX_MPDU_READY:
 			//This message indicates CPU Low has received an MPDU addressed to this node or to the broadcast address
 
@@ -1655,6 +1675,61 @@ void wlan_mac_high_set_rx_filter_mode( u32 filter_mode ) {
 	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
+}
+
+int wlan_mac_high_write_low_mem( u32 num_words, u32* payload ){
+	wlan_ipc_msg	   ipc_msg_to_low;
+
+	if( num_words > IPC_BUFFER_MAX_NUM_WORDS ){
+		return -1;
+	}
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
+	ipc_msg_to_low.num_payload_words = num_words;
+	ipc_msg_to_low.arg0				 = IPC_REG_WRITE_MODE;
+	ipc_msg_to_low.payload_ptr       = payload;
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+	return 0;
+}
+
+int wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload ){
+
+	wlan_ipc_msg	   ipc_msg_to_low;
+	ipc_reg_read_write ipc_msg_to_low_payload;
+
+		if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
+
+			// Send message to CPU Low
+			ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
+			ipc_msg_to_low.num_payload_words = sizeof(ipc_reg_read_write) / sizeof(u32);
+			ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
+			ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload));
+
+			ipc_msg_to_low_payload.baseaddr = baseaddr;
+			ipc_msg_to_low_payload.num_words = num_words;
+
+
+			//TODO: Add a timeout and failure return?
+			//I'm leaning towards "no" on this capability as any failure to return indicates
+			//that something else is deeply wrong. -CRH
+
+			cpu_low_reg_read_buffer = payload;
+			cpu_low_reg_read_buffer_status = CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY;
+
+			ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+			while(cpu_low_reg_read_buffer_status != CPU_LOW_REG_READ_BUFFER_STATUS_READY){}
+
+			cpu_low_reg_read_buffer = NULL;
+
+			return 0;
+	} else {
+		xil_printf("Error: Reading CPU_LOW memory requires interrupts being enabled");
+		return -1;
+	}
 }
 
 

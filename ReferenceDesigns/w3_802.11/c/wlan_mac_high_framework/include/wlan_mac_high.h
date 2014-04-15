@@ -216,6 +216,8 @@ void wlan_mac_high_set_channel( unsigned int mac_channel );
 void wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
 void wlan_mac_high_set_tx_ctrl_pow( s8 pow );
 void wlan_mac_high_set_rx_filter_mode( u32 filter_mode );
+int  wlan_mac_high_write_low_mem( u32 num_words, u32* payload );
+int wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload );
 void wlan_mac_high_set_dsss( unsigned int dsss_value );
 void wlan_mac_high_set_timestamp( u64 timestamp );
 int  wlan_mac_high_is_cpu_low_initialized();
