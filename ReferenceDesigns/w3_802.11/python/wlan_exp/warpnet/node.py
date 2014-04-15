@@ -469,6 +469,14 @@ class WnNode(object):
                         cmd.update_start_byte(location[0])
                         cmd.update_size(location[2])
                         
+                        if (location[2] < 0):
+                            print("ERROR:  Issue with finding missing bytes in response:")
+                            print("Response Tracker:")
+                            print(resp.tracker)
+                            print("Missing Locations:")
+                            print(locations)
+                            raise Exception()
+                        
                         # Use the standard send so that you get a WARPNet buffer 
                         #   with missing data.  This avoids any race conditions
                         #   when requesting multiple missing locations.  Make sure
