@@ -85,6 +85,9 @@ CMD_NODE_TX_ANT_MODE                   = 35
 CMD_NODE_RX_ANT_MODE                   = 36
 CMD_NODE_LOW_TO_HIGH_FILTER            = 37
 
+CMD_NODE_MEM_HIGH                      = 38
+CMD_NODE_MEM_LOW                       = 39
+
 NODE_WRITE                             = 0x00000000
 NODE_READ                              = 0x00000001
 NODE_WRITE_DEFAULT                     = 0x00000002
@@ -680,6 +683,69 @@ class NodeProcChannel(wn_message.Cmd):
 
 # End Class
 
+class NodeMemAccess(wn_message.Cmd):
+    """Command to read/write memory in CPU High
+    
+    Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       NODE_READ
+                       NODE_WRITE
+        high      -- True for CPU_High access, False for CPU_Low
+        
+        address   -- u32 memory address to read/write
+
+        values    -- When cmd==NODE_WRITE, scalar or list of u32 values to write
+                     When cmd==NODE_READ, None
+
+        length    -- When cmd==NODE_WRITE, None
+                     When cmd==NODE_READ, number of u32 values to read starting at address
+
+    """
+    _read_len = None
+    
+    def __init__(self, cmd, high, address, values=None, length=None):
+        super(NodeMemAccess, self).__init__()
+        if(high):
+            self.command = _CMD_GRPID_NODE + CMD_NODE_MEM_HIGH
+        else:
+            self.command = _CMD_GRPID_NODE + CMD_NODE_MEM_LOW
+
+        if(cmd == NODE_READ):
+            self.add_args(cmd)
+            self.add_args(address)
+            self.add_args(length)
+
+            self._read_len = length
+
+        elif(cmd == NODE_WRITE):
+            self.add_args(cmd)
+            self.add_args(address)
+            self.add_args(length)
+
+            try:
+                for v in values:
+                    self.add_args(v)
+            except TypeError:
+                self.add_args(values)
+
+        else:
+            raise Exception('ERROR: NodeMemAccess constructor arguments invalid');
+    
+    def process_resp(self, resp):
+        if(self._read_len is not None): #was a read command
+            if resp.resp_is_valid(num_args=(1 + self._read_len), status_errors=None, name='CPU Mem command'):
+                args = resp.get_args()
+
+                if(len(args) == 2):
+                    return args[1]
+                elif(len(args) > 2):
+                    return args[1:]
+                else:
+                    raise Exception('ERROR: invalid response to read_mem - N_ARGS = {0}'.format(len(args)))
+            else:
+                return NODE_ERROR
+        else: #was a write command
+            pass
 
 class NodeProcTxPower(wn_message.Cmd):
     """Command to get / set the transmit power of the node.

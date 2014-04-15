@@ -632,7 +632,6 @@ class WlanExpNode(wn_node.WnNode):
     def set_channel(self, channel):
         """Sets the channel of the node and returns the channel that was set."""
         return self.send_cmd(cmds.NodeProcChannel(cmds.NODE_WRITE, channel))
-    
 
     def get_channel(self):
         """Gets the current channel of the node."""
@@ -842,6 +841,56 @@ class WlanExpNode(wn_node.WnNode):
                 ret_val.append(val)        
 
         return ret_val
+
+
+    #-------------------------
+    # Memory Access Commands
+    #-------------------------
+
+    def _check_mem_access_args(self, address, values=None, length=None):
+        if(int(address) != address) or (address >= 2**32):
+            raise Exception('ERROR: address must be integer value in [0,2^32-1]!')
+        
+        if(values is not None):
+            try:
+                v0 = values[0]
+            except TypeError:
+                v0 = values
+            
+            if((type(v0) is not int) and (type(v0) is not long)) or (v0 >= 2**32):
+                raise Exception('ERROR: values must be scalar or iterable of ints in [0,2^32-1]!')
+
+        return True
+
+    def _mem_write_high(self, address, values):
+        """Writes 'values' directly to CPU High memory starting at 'address'"""
+        if(self._check_mem_access_args(address, values)):
+            try:
+                vals = list(values)
+            except TypeError:
+                vals = [values]
+
+            return self.send_cmd(cmds.NodeMemAccess(cmds.NODE_WRITE, high=True, address=address, length=len(vals), values=vals))
+
+    def _mem_read_high(self, address, length):
+        """Reads 'length' values directly CPU High memory starting at 'address'"""
+        if(self._check_mem_access_args(address, values=None)):
+            return self.send_cmd(cmds.NodeMemAccess(cmds.NODE_READ, high=True, address=address, length=length))
+
+    def _mem_write_low(self, address, values):
+        """Writes 'values' directly to CPU High memory starting at 'address'"""
+        if(self._check_mem_access_args(address, values)):
+            try:
+                vals = list(values)
+            except TypeError:
+                vals = [values]
+
+            return self.send_cmd(cmds.NodeMemAccess(cmds.NODE_WRITE, high=False, address=address, length=len(vals), values=vals))
+
+    def _mem_read_low(self, address, length):
+        """Reads 'length' values directly CPU High memory starting at 'address'"""
+        if(self._check_mem_access_args(address, values=None)):
+            return self.send_cmd(cmds.NodeMemAccess(cmds.NODE_READ, high=False, address=address, length=length))
 
 
     #--------------------------------------------
