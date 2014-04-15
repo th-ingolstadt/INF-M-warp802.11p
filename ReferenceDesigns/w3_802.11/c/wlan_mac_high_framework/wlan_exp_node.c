@@ -98,7 +98,7 @@ u32                   wlan_exp_enable_logging = 0;
 
 void node_init_system_monitor(void);
 int  node_init_parameters( u32 *info );
-int  node_processCmd(const wn_cmdHdr* cmdHdr, const void* cmdArgs, wn_respHdr* respHdr, void* respArgs, void* pktSrc, u16 dest_id, u32 eth_dev_num);
+int  node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr, void* respArgs, void* pktSrc, u16 dest_id, u32 eth_dev_num);
 
 void node_ltg_cleanup(u32 id, void* callback_arg);
 
@@ -308,7 +308,7 @@ void node_sendEarlyResp(wn_respHdr* respHdr, void* pktSrc, unsigned int eth_dev_
 *           packet structure for WARPNet:  www.warpproject.org
 *
 ******************************************************************************/
-int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, u16 dest_id, u32 eth_dev_num){
+int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, u16 dest_id, u32 eth_dev_num){
 	//IMPORTANT ENDIAN NOTES:
 	// -cmdHdr is safe to access directly (pre-swapped if needed)
 	// -cmdArgs is *not* pre-swapped, since the framework doesn't know what it is
@@ -317,7 +317,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	//    Any data added to respArgs by the code below must be endian-safe (swapped on AXI hardware)
 
 	int           status     = 0;
-	const u32   * cmdArgs32  = cmdArgs;
+	u32         * cmdArgs32  = cmdArgs;
 	u32         * respArgs32 = respArgs;
 
 	unsigned int  respIndex  = 0;
@@ -1261,9 +1261,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				break;
 
 				case NODE_READ_VAL:
+					/*
 					xil_printf("Reading CPU High Mem:\n");
 					xil_printf(" Addr: 0x%08x\n", mem_addr);
 					xil_printf(" Len:  %d\n", mem_length);
+					 */
 
 					// Add length argument to response
 		            respArgs32[respIndex++] = Xil_Htonl( mem_length );
@@ -1319,16 +1321,18 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 
 			switch (msg_cmd) {
 				case NODE_WRITE_VAL:
+					/*
 					xil_printf("Writing CPU Low Mem:\n");
 					xil_printf(" Addr: 0x%08x\n", mem_addr);
 					xil_printf(" Len:  %d\n", mem_length);
+					*/
 
-					//TODO: Use IPC to implement:
-					/*
-					for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
-						xil_printf(" W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmdArgs32[3 + mem_idx]));
-						Xil_Out32((mem_addr + mem_idx*sizeof(u32)), Xil_Ntohl(cmdArgs32[3 + mem_idx]));
-					 */
+					//Endian swap payload here - CPU Low requires payload that is ready to use as-is
+					for(mem_idx=0; mem_idx<mem_length+2; mem_idx++) {
+						cmdArgs32[1 + mem_idx] = Xil_Ntohl(cmdArgs32[1 + mem_idx]);
+					}
+
+					wlan_mac_high_write_low_mem(mem_length + 2, &(cmdArgs32[1]));
 
 					// Send response
 					respHdr->length += (respIndex * sizeof(respArgs32));
@@ -1336,22 +1340,33 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 				break;
 
 				case NODE_READ_VAL:
+					/*
 					xil_printf("Reading CPU Low Mem:\n");
 					xil_printf(" Addr: 0x%08x\n", mem_addr);
 					xil_printf(" Len:  %d\n", mem_length);
-
-					// Create response payload
-		            respArgs32[respIndex++] = Xil_Htonl( mem_length );
-					respHdr->length += (respIndex * sizeof(respArgs32));
-					respHdr->length += (mem_length * sizeof(u32));
-					respHdr->numArgs += mem_length;
-
-					//TODO: Use IPC to implement:
-					/*
-					 for(i=0; i<mem_length; i++) {
-					 	 respArgs32[respArgs32 + i] = Xil_Ntohl(CPU_LOW_PAYLOAD_U32[i]);
-					}
 					 */
+
+					status = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(respArgs32[1]));
+
+					if(status == 0) { //Success
+						// Create response payload
+			            respArgs32[0] = Xil_Htonl( mem_length );
+						respHdr->length += sizeof(u32);
+						respHdr->numArgs += 1;
+
+						//Endian swap payload returned by CPU Low
+						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
+							respArgs32[1 + mem_idx] = Xil_Ntohl(respArgs32[1 + mem_idx]);
+						}
+
+						respHdr->length += (mem_length * sizeof(u32));
+						respHdr->numArgs += mem_length;
+
+					} else { //failed
+			            respArgs32[respIndex++] = 0; //No payload to return!
+						respHdr->length += (respIndex * sizeof(respArgs32));
+					}
+
 				break;
 
 				default:

@@ -261,22 +261,20 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					case IPC_REG_WRITE_MODE:
 						payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write));
 
-#if 0
-						//// DEBUG
-						xil_printf("BASEADDR = 0x%08x, NUM_WORDS = %d\n", ((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr, ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
-
-						for(temp1 = 0; temp1 < ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words; temp1++){
-							xil_printf("[%d] = 0x%08x\n", temp1, payload_to_write[temp1]);
-						}
-						//// DEBUG
-#endif
-
-						memcpy((u8*)(((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr), (u8*)payload_to_write, sizeof(u32)*((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words );
+						//IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
+						// Any byte swapping (i.e. for payloads that arrive over Ethernet) *must* be performed
+						//  before the payload is passed to this function
+						memcpy((u8*)(((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr),
+ 							  (u8*)payload_to_write,
+							  sizeof(u32)*((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words );
 
 					break;
 					case IPC_REG_READ_MODE:
-
-//						xil_printf("BASEADDR = 0x%08x, NUM_WORDS = %d\n", ((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr, ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
+						/*
+						xil_printf("CPU Low Read:\n");
+						xil_printf(" Addr: 0x%08x\n", (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr);
+						xil_printf(" N Wrds: %d\n", ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
+						*/
 
 						ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
 						ipc_msg_to_high.num_payload_words = ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words;

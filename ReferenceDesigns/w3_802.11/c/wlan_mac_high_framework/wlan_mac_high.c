@@ -87,12 +87,12 @@ wlan_mac_hw_info   	hw_info;				///< Information about hardware
 u8					dram_present;			///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 // Status information
-static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
-static u32         cpu_high_status;			///< Tracking variable for upper-level CPU status
+volatile static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
+volatile static u32         cpu_high_status;			///< Tracking variable for upper-level CPU status
 
 // CPU Register Read Buffer
-static u32*		   cpu_low_reg_read_buffer;
-static u8		   cpu_low_reg_read_buffer_status;
+volatile static u32*		   cpu_low_reg_read_buffer;
+volatile static u8		   cpu_low_reg_read_buffer_status;
 
 #define CPU_LOW_REG_READ_BUFFER_STATUS_READY 	 1
 #define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY 0
@@ -1429,8 +1429,11 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 		case IPC_MBOX_MEM_READ_WRITE:
 
 			if(cpu_low_reg_read_buffer != NULL){
+
 				memcpy( (u8*)cpu_low_reg_read_buffer, (u8*)ipc_msg_from_low_payload, msg->num_payload_words * sizeof(u32));
+
 				cpu_low_reg_read_buffer_status = CPU_LOW_REG_READ_BUFFER_STATUS_READY;
+
 			} else {
 				warp_printf(PL_ERROR, "Error: received low-level register buffer from CPU_LOW and was not expecting it\n");
 			}
