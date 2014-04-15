@@ -350,6 +350,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 	u32           ant_mode;
 	u32           type;
 
+	u32 mem_addr;
+	u32 mem_length;
+	u32 mem_idx;
+
 	u32           entry_size;
 	u32           entry_remaining;
 	u32           total_entries;
@@ -1212,6 +1216,150 @@ int node_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr* res
 			respHdr->numArgs = respIndex;
 		break;
 
+	    //---------------------------------------------------------------------
+		case NODE_MEM_HIGH:
+			// Read/write memory in CPU High
+			//
+			// Write Message format:
+			//     cmdArgs32[0]   Command==NODE_WRITE_VAL
+			//     cmdArgs32[1]   address
+			//     cmdArgs32[2]   length (number of u32 words to write)
+			//     cmdArgs32[3:]   values to write (integral number of u32 words)
+			// Response format:
+			//     No args
+
+			// Read Message format:
+			//     cmdArgs32[0]   Command==NODE_READ_VAL
+			//     cmdArgs32[1]   address
+			//     cmdArgs32[2]   length (number of u32 words to read)
+			// Response format:
+			//	   respArgs32[0]  Length (number of u32 values)
+			//     respArgs32[1:]  Memory values (length u32 values)
+			//
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+
+			mem_addr = Xil_Ntohl(cmdArgs32[1]);
+			mem_length = Xil_Ntohl(cmdArgs32[2]);
+
+			switch (msg_cmd) {
+				case NODE_WRITE_VAL:
+					xil_printf("Writing CPU High Mem:\n");
+					xil_printf(" Addr: 0x%08x\n", mem_addr);
+					xil_printf(" Len:  %d\n", mem_length);
+
+					//Don't bother if length is clearly bogus
+					if(mem_length < 1400) {
+						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
+							xil_printf(" W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmdArgs32[3 + mem_idx]));
+							Xil_Out32((mem_addr + mem_idx*sizeof(u32)), Xil_Ntohl(cmdArgs32[3 + mem_idx]));
+						}
+					}
+
+					// Send response
+					respHdr->length += (respIndex * sizeof(respArgs32));
+					respHdr->numArgs = respIndex;
+				break;
+
+				case NODE_READ_VAL:
+					xil_printf("Reading CPU High Mem:\n");
+					xil_printf(" Addr: 0x%08x\n", mem_addr);
+					xil_printf(" Len:  %d\n", mem_length);
+
+					// Add length argument to response
+		            respArgs32[respIndex++] = Xil_Htonl( mem_length );
+					respHdr->length += sizeof(u32);
+					respHdr->numArgs++;
+
+					// Add payload to response
+					if(mem_length < 1400) {
+						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
+							respArgs32[respIndex + mem_idx] = Xil_Ntohl(Xil_In32((void*)(mem_addr) + mem_idx*sizeof(u32)));
+						}
+
+						// Update response header with payload length
+						respHdr->length += (mem_length * sizeof(u32));
+						respHdr->numArgs += mem_length;
+					}
+
+				break;
+
+				default:
+					xil_printf("Unknown command: %d\n", msg_cmd);
+					status = NODE_ERROR;
+				break;
+			}
+		break;
+
+	    //---------------------------------------------------------------------
+		case NODE_MEM_LOW:
+			// Read/write memory in CPU Low via IPC message
+			//
+			// Write Message format:
+			//     cmdArgs32[0]   Command==NODE_WRITE_VAL
+			//     cmdArgs32[1]   address
+			//     cmdArgs32[2]   length (number of u32 words to write)
+			//     cmdArgs32[3:]   values to write (integral number of u32 words)
+			// Response format:
+			//     No args
+
+			// Read Message format:
+			//     cmdArgs32[0]   Command==NODE_READ_VAL
+			//     cmdArgs32[1]   address
+			//     cmdArgs32[2]   length (number of u32 words to read)
+			// Response format:
+			//	   respArgs32[0]  Length (number of u32 values)
+			//     respArgs32[1:]  Memory values (length u32 values)
+			//
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+
+
+
+			mem_addr = Xil_Ntohl(cmdArgs32[1]);
+			mem_length = Xil_Ntohl(cmdArgs32[2]);
+
+			switch (msg_cmd) {
+				case NODE_WRITE_VAL:
+					xil_printf("Writing CPU Low Mem:\n");
+					xil_printf(" Addr: 0x%08x\n", mem_addr);
+					xil_printf(" Len:  %d\n", mem_length);
+
+					//TODO: Use IPC to implement:
+					/*
+					for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
+						xil_printf(" W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmdArgs32[3 + mem_idx]));
+						Xil_Out32((mem_addr + mem_idx*sizeof(u32)), Xil_Ntohl(cmdArgs32[3 + mem_idx]));
+					 */
+
+					// Send response
+					respHdr->length += (respIndex * sizeof(respArgs32));
+					respHdr->numArgs = respIndex;
+				break;
+
+				case NODE_READ_VAL:
+					xil_printf("Reading CPU Low Mem:\n");
+					xil_printf(" Addr: 0x%08x\n", mem_addr);
+					xil_printf(" Len:  %d\n", mem_length);
+
+					// Create response payload
+		            respArgs32[respIndex++] = Xil_Htonl( mem_length );
+					respHdr->length += (respIndex * sizeof(respArgs32));
+					respHdr->length += (mem_length * sizeof(u32));
+					respHdr->numArgs += mem_length;
+
+					//TODO: Use IPC to implement:
+					/*
+					 for(i=0; i<mem_length; i++) {
+					 	 respArgs32[respArgs32 + i] = Xil_Ntohl(CPU_LOW_PAYLOAD_U32[i]);
+					}
+					 */
+				break;
+
+				default:
+					xil_printf("Unknown command: %d\n", msg_cmd);
+					status = NODE_ERROR;
+				break;
+			}
+		break;
 
 		//---------------------------------------------------------------------
 		case NODE_LTG_CONFIG:
