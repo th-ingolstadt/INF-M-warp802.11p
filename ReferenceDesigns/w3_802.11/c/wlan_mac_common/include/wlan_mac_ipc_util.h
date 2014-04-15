@@ -63,6 +63,15 @@
 #define IPC_MBOX_CONFIG_RX_ANT_MODE		13
 #define IPC_MBOX_CONFIG_TX_CTRL_POW		14
 #define IPC_MBOX_CONFIG_RX_FILTER		15
+#define IPC_MBOX_MEM_READ_WRITE     	16
+
+typedef struct{
+	u32  baseaddr;
+	u32  num_words;
+} ipc_reg_read_write;
+
+#define IPC_REG_READ_MODE 0
+#define IPC_REG_WRITE_MODE 1
 
 #define DEMO_CONFIG_FLAGS_EN 0x0001
 
