@@ -639,23 +639,26 @@ entry_tx_low.append_field_defs([
 
 # Tx / Rx Statistics
 entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
+entry_txrx_stats.description  = 'Copy of the Tx/Rx statistics struct maintained by CPU High. If promiscuous statistics mode is Tx/Rx stats structs will be maintained '
+entry_txrx_stats.description += 'for every unique source MAC address, up to the max_stats value. Otherwise statistics are maintaind only associated nodes.'
 entry_txrx_stats.append_field_defs([
-            ('timestamp',                      'Q',      'uint64'),
-            ('last_timestamp',                 'Q',      'uint64'),
-            ('mac_addr',                       '6s',     '6uint8'),
-            ('associated',                     'B',      'uint8'),
-            ('padding',                        'x',      'uint8'),
-            ('data_num_rx_bytes',              'Q',      'uint64'),
-            ('data_num_tx_bytes_success',      'Q',      'uint64'),
-            ('data_num_tx_bytes_total',        'Q',      'uint64'),
-            ('data_num_rx_packets',            'I',      'uint32'),
-            ('data_num_tx_packets_success',    'I',      'uint32'),
-            ('data_num_tx_packets_total',      'I',      'uint32'),
-            ('data_num_tx_packets_low',        'I',      'uint32'),
-            ('mgmt_num_rx_bytes',              'Q',      'uint64'),
-            ('mgmt_num_tx_bytes_success',      'Q',      'uint64'),
-            ('mgmt_num_tx_bytes_total',        'Q',      'uint64'),
-            ('mgmt_num_rx_packets',            'I',      'uint32'),
-            ('mgmt_num_tx_packets_success',    'I',      'uint32'),
-            ('mgmt_num_tx_packets_total',      'I',      'uint32'),
-            ('mgmt_num_tx_packets_low',        'I',      'uint32')])
+            ('timestamp',                      'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+            ('last_timestamp',                 'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
+            ('mac_addr',                       '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
+            ('associated',                     'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
+            ('padding',                        'x',      'uint8',   ''),
+            ('data_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in DATA packets from remote node'),
+            ('data_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in DATA packets to remote node'),
+            ('data_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in DATA packets to remote node'),
+            ('data_num_rx_packets',            'I',      'uint32',  'Total number of DATA packets received from remote node'),
+            ('data_num_tx_packets_success',    'I',      'uint32',  'Total number of DATA packets successfully transmitted to remote node'),
+            ('data_num_tx_packets_total',      'I',      'uint32',  'Total number of DATA packets transmitted (successfully or not) to remote node'),
+            ('data_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)'),
+            
+            ('mgmt_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),),
+            ('mgmt_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in management packets to remote node'),
+            ('mgmt_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in management packets to remote node'),
+            ('mgmt_num_rx_packets',            'I',      'uint32',  'Total number of management packets received from remote node'),
+            ('mgmt_num_tx_packets_success',    'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
+            ('mgmt_num_tx_packets_total',      'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
+            ('mgmt_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of management packets to remote node (includes re-transmissions)')])
