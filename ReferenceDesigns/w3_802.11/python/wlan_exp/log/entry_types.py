@@ -213,7 +213,14 @@ class WlanExpLogEntryType(object):
         doc_str += '||=  Field Name  =||=  DataType  =||=  Description  =||\n'
 
         for fd in field_descs:
-            fd_desc = fd[2].replace('\n', '[[BR]]')
+
+            #Wiki-ify some string formats:
+            # Line breaks in descriptions must be explicit "[[BR]]"
+            # Open braces need escape (![) to disable Trac interpretting as changeset number
+            fd_desc = fd[2]
+            fd_desc = fd_desc.replace('\n', '[[BR]]')
+            fd_desc = fd_desc.replace('[', '![')
+
             doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
 
         doc_str += '\n----\n\n'
@@ -606,7 +613,7 @@ entry_tx.append_field_defs([
             ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
             ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
             ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
-            ('ant_mode',               'B',      'uint8'    'PHY antenna mode of final Tx attempt'),
+            ('ant_mode',               'B',      'uint8',   'PHY antenna mode of final Tx attempt'),
             ('queue_id',               'B',      'uint8',   'Tx queue ID from which the packet was retrieved'),
             ('padding',                '2x',     '2uint8',  ''),
             ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
@@ -624,7 +631,7 @@ entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet transmission actually started (PHY TX_START time)'),
             ('uniq_seq',               'Q',      'uint64',  'Unique sequence number of original MPDU'),
             ('rate',                   'B',      'uint8',   'PHY rate index in [1:8]'),
-            ('ant_mode',               'B',      'uint8'    'PHY antenna mode in [1:4]'),
+            ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [1:4]'),
             ('tx_power',               'b',      'int8',    'Tx power in dBm'),
             ('flags',                  'B',      'uint8',   'Tx PHY flags'),
             ('tx_count',               'B',      'uint8',   'Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions'),
@@ -633,7 +640,7 @@ entry_tx_low.append_field_defs([
             ('num_slots',              'H',      'uint16',  'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0)'),
             ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
             ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
-            ('padding',                '3x',     '3uint8'), ''
+            ('padding',                '3x',     '3uint8',  ''),
             ('mac_payload_len',        'I',      'uint32',  'Length in bytes of MAC payload recorded in log for this packet'),
             ('mac_payload',            '24s',    '24uint8', 'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 
@@ -655,7 +662,7 @@ entry_txrx_stats.append_field_defs([
             ('data_num_tx_packets_total',      'I',      'uint32',  'Total number of DATA packets transmitted (successfully or not) to remote node'),
             ('data_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)'),
             
-            ('mgmt_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),),
+            ('mgmt_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),
             ('mgmt_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in management packets to remote node'),
             ('mgmt_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in management packets to remote node'),
             ('mgmt_num_rx_packets',            'I',      'uint32',  'Total number of management packets received from remote node'),
