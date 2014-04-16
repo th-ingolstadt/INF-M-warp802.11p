@@ -226,7 +226,7 @@ def broadcast_cmd_set_time(time, host_config, time_id=None):
         time_id      -- Optional value to identify broadcast time commands across nodes
     """
     import wlan_exp.cmds as cmds
-    _broadcast_time_to_nodes(time_cmd=cmds.NODE_WRITE, host_config=host_config, time=time, time_id=time_id)
+    _broadcast_time_to_nodes(time_cmd=cmds.CMD_PARAM_WRITE, host_config=host_config, time=time, time_id=time_id)
 
 # End def
 
@@ -242,7 +242,7 @@ def broadcast_cmd_write_time_to_logs(host_config, time_id=None):
         time_id      -- Optional value to identify broadcast time commands across nodes
     """
     import wlan_exp.cmds as cmds
-    _broadcast_time_to_nodes(time_cmd=cmds.TIME_ADD_TO_LOG, host_config=host_config, time_id=time_id)
+    _broadcast_time_to_nodes(time_cmd=cmds.CMD_PARAM_TIME_ADD_TO_LOG, host_config=host_config, time_id=time_id)
 
 # End def
 
@@ -546,10 +546,10 @@ def _broadcast_time_to_nodes(time_cmd, host_config, time=0.0, time_id=None):
         transport_bcast.send(cmd.serialize(), 'message')
 
         msg = ""
-        if (time_cmd == cmds.NODE_WRITE):
+        if (time_cmd == cmds.CMD_PARAM_WRITE):
             msg += "Initializing the time of all nodes on "
             msg += "{0} to: {1}".format(util._get_ip_address_subnet(interface), node_time)
-        elif (time_cmd == cmds.TIME_ADD_TO_LOG):
+        elif (time_cmd == cmds.CMD_PARAM_TIME_ADD_TO_LOG):
             msg += "Adding current time to log for nodes on {0}".format(util._get_ip_address_subnet(interface))            
         print(msg)
 

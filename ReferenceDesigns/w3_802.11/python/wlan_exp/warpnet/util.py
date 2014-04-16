@@ -157,13 +157,13 @@ def wn_identify_all_nodes(host_interfaces):
 
         transport.wn_open(tx_buf_size, rx_buf_size)
 
-        cmd = wn_cmds.NodeIdentify(wn_cmds.IDENTIFY_ALL_NODES)
+        cmd = wn_cmds.NodeIdentify(wn_cmds.CMD_PARAM_IDENTIFY_ALL_NODES)
         payload = cmd.serialize()
         transport.send(payload)
         
         # Wait IDENTIFY_WAIT_TIME seconds for blink to complete since 
         #   broadcast commands cannot wait for a response.
-        time.sleep(wn_cmds.IDENTIFY_WAIT_TIME)
+        time.sleep(wn_cmds.CMD_PARAM_IDENTIFY_NUM_BLINKS * wn_cmds.CMD_PARAM_IDENTIFY_BLINK_TIME)
         
         transport.wn_close()
 
@@ -221,7 +221,7 @@ def wn_reset_network_inf_all_nodes(host_config=None, host_interfaces=None):
 
         transport.wn_open(tx_buf_size, rx_buf_size)
 
-        cmd = wn_cmds.NodeResetNetwork(wn_cmds.NETWORK_RESET_ALL_NODES)
+        cmd = wn_cmds.NodeResetNetwork(wn_cmds.CMD_PARAM_NETWORK_RESET_ALL_NODES)
         payload = cmd.serialize()
         transport.send(payload)
         

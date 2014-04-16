@@ -19,38 +19,6 @@ Ver   Who  Date     Changes
 
 This module provides class definitions for all WLAN Exp commands.  
 
-Functions (see below for more information):
-    LogGetEvents()
-    LogConfigure()
-    LogGetStatus() 
-    LogGetCapacity()
-
-    StatsGetTxRx()
-    StatsGetAllTxRx()
-    StatsAddTxRxToLog()
-
-    LTGConfigure()
-    LTGStart()
-    LTGStop()
-    LTGRemove()
-
-    NodeResetState()
-    NodeProcTime()
-    NodeProcChannel()
-    NodeProcTxPower()
-    NodeProcTxRate()
-    NodeProcTxAntMode()
-    NodeProcRxAntMode()
-    
-    QueueTxDataPurgeAll()
-    
-
-Integer constants:
-    None
-
-Many other constants may be defined; please do not use these values when 
-defining other sub-classes of WARPNet Cmd and BufferCmd.
-
 """
 
 import wlan_exp.warpnet.cmds as wn_cmds
@@ -69,104 +37,104 @@ __all__ = ['LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
 
 # WLAN Exp Command IDs (Extension of WARPNet Command IDs)
 #   NOTE:  The C counterparts are found in wlan_exp_node.h
-CMD_GET_STATION_INFO                   = 10
-CMD_SET_STATION_INFO                   = 11
-
-CMD_DISASSOCIATE                       = 20
-
+#   NOTE:  All Command IDs (CMDID_*) must be unique 24-bit numbers
 
 # Node commands and defined values
-CMD_NODE_RESET_STATE                   = 30
-CMD_NODE_TIME                          = 31
-CMD_NODE_CHANNEL                       = 32
-CMD_NODE_TX_POWER                      = 33
-CMD_NODE_TX_RATE                       = 34
-CMD_NODE_TX_ANT_MODE                   = 35
-CMD_NODE_RX_ANT_MODE                   = 36
-CMD_NODE_LOW_TO_HIGH_FILTER            = 37
+CMDID_NODE_RESET_STATE                           = 0x001000
+CMDID_NODE_TIME                                  = 0x001001
+CMDID_NODE_CHANNEL                               = 0x001002
+CMDID_NODE_TX_POWER                              = 0x001003
+CMDID_NODE_TX_RATE                               = 0x001004
+CMDID_NODE_TX_ANT_MODE                           = 0x001005
+CMDID_NODE_RX_ANT_MODE                           = 0x001006
+CMDID_NODE_LOW_TO_HIGH_FILTER                    = 0x001007
 
-CMD_NODE_MEM_HIGH                      = 38
-CMD_NODE_MEM_LOW                       = 39
+CMD_PARAM_WRITE                                  = 0x00000000
+CMD_PARAM_READ                                   = 0x00000001
+CMD_PARAM_WRITE_DEFAULT                          = 0x00000002
+CMD_PARAM_READ_DEFAULT                           = 0x00000004
 
-NODE_WRITE                             = 0x00000000
-NODE_READ                              = 0x00000001
-NODE_WRITE_DEFAULT                     = 0x00000002
-NODE_READ_DEFAULT                      = 0x00000004
+CMD_PARAM_SUCCESS                                = 0x00000000
+CMD_PARAM_ERROR                                  = 0xFF000000
 
-NODE_RSVD                              = 0xFFFFFFFF 
+CMD_PARAM_UNICAST                                = 0x00000000
+CMD_PARAM_MULTICAST                              = 0x00000001
 
-NODE_SUCCESS                           = 0x00000000
-NODE_ERROR                             = 0xFF000000
+CMD_PARAM_NODE_CONFIG_ALL                        = 0xFFFFFFFF 
 
-NODE_RESET_LOG                         = 0x00000001
-NODE_RESET_TXRX_STATS                  = 0x00000002
-NODE_RESET_LTG                         = 0x00000004
-NODE_RESET_TX_DATA_QUEUE               = 0x00000008
+CMD_PARAM_NODE_RESET_FLAG_LOG                    = 0x00000001
+CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS             = 0x00000002
+CMD_PARAM_NODE_RESET_FLAG_LTG                    = 0x00000004
+CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE          = 0x00000008
 
-TIME_ADD_TO_LOG                        = 0x00000002
-RSVD_TIME                              = 0xFFFFFFFF
+CMD_PARAM_TIME_ADD_TO_LOG                        = 0x00000002
+CMD_PARAM_RSVD_TIME                              = 0xFFFFFFFF
 
-NODE_TX_POWER_MAX_DBM                  = 19
-NODE_TX_POWER_MIN_DBM                  = -12
+CMD_PARAM_NODE_TX_POWER_MAX_DBM                  = 19
+CMD_PARAM_NODE_TX_POWER_MIN_DBM                  = -12
 
-NODE_UNICAST                           = 0x00000000
-NODE_MULTICAST                         = 0x00000001
+CMD_PARAM_RX_FILTER_FCS_GOOD                     = 0x1000
+CMD_PARAM_RX_FILTER_FCS_ALL                      = 0x2000
+CMD_PARAM_RX_FILTER_FCS_NOCHANGE                 = 0xF000
 
-RX_FILTER_FCS_GOOD                     = 0x1000
-RX_FILTER_FCS_ALL                      = 0x2000
-RX_FILTER_FCS_NOCHANGE                 = 0xF000
+CMD_PARAM_RX_FILTER_HDR_ADDR_MATCH_MPDU          = 0x0001
+CMD_PARAM_RX_FILTER_HDR_ALL_MPDU                 = 0x0002
+CMD_PARAM_RX_FILTER_HDR_ALL                      = 0x0003
+CMD_PARAM_RX_FILTER_HDR_NOCHANGE                 = 0x0FFF
 
-RX_FILTER_HDR_ADDR_MATCH_MPDU          = 0x0001
-RX_FILTER_HDR_ALL_MPDU                 = 0x0002
-RX_FILTER_HDR_ALL                      = 0x0003
-RX_FILTER_HDR_NOCHANGE                 = 0x0FFF
+
+CMDID_GET_STATION_INFO                           = 0x001080
+CMDID_SET_STATION_INFO                           = 0x001081
+
+CMDID_DISASSOCIATE                               = 0x001090
 
 
 # LTG commands and defined values
-CMD_LTG_CONFIG                         = 40
-CMD_LTG_START                          = 41
-CMD_LTG_STOP                           = 42
-CMD_LTG_REMOVE                         = 43
+CMDID_LTG_CONFIG                                 = 0x002000
+CMDID_LTG_START                                  = 0x002001
+CMDID_LTG_STOP                                   = 0x002002
+CMDID_LTG_REMOVE                                 = 0x002003
 
-LTG_ERROR                              = 0xFFFFFFFF
+CMD_PARAM_LTG_ERROR                              = 0x000001
 
-LTG_ID_INVALID                         = 0xFFFFFFFF
+CMD_PARAM_LTG_ALL_LTGS                           = 0xFFFFFFFF
 
-LTG_CONFIG_FLAG_AUTOSTART              = 0x00000001
+CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART              = 0x00000001
 
 
 # Log commands and defined values
-CMD_LOG_CONFIG                         = 50
-CMD_LOG_GET_STATUS                     = 51
-CMD_LOG_GET_CAPACITY                   = 52
-CMD_LOG_GET_ENTRIES                    = 53
-CMD_LOG_ADD_ENTRY                      = 54
-CMD_LOG_ENABLE_ENTRY                   = 55
-CMD_LOG_STREAM_ENTRIES                 = 56
+CMDID_LOG_CONFIG                                 = 0x003000
+CMDID_LOG_GET_STATUS                             = 0x003001
+CMDID_LOG_GET_CAPACITY                           = 0x003002
+CMDID_LOG_GET_ENTRIES                            = 0x003003
+CMDID_LOG_ADD_ENTRY                              = 0x003004
+CMDID_LOG_ENABLE_ENTRY                           = 0x003005
+CMDID_LOG_STREAM_ENTRIES                         = 0x003006
 
-LOG_CONFIG_FLAG_LOGGING                = 0x00000001
-LOG_CONFIG_FLAG_WRAP                   = 0x00000002
-LOG_CONFIG_FLAG_LOG_PAYLOADS           = 0x00000004
-LOG_CONFIG_FLAG_LOG_WN_CMDS            = 0x00000008
+CMD_PARAM_LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
 
-LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
+CMD_PARAM_LOG_CONFIG_FLAG_LOGGING                = 0x00000001
+CMD_PARAM_LOG_CONFIG_FLAG_WRAP                   = 0x00000002
+CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS           = 0x00000004
+CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS            = 0x00000008
 
 
 # Statistics commands and defined values
-CMD_STATS_CONFIG_TXRX                  = 60
-CMD_STATS_ADD_TXRX_TO_LOG              = 61
-CMD_STATS_GET_TXRX                     = 62
+CMDID_STATS_CONFIG_TXRX                          = 0x004000
+CMDID_STATS_ADD_TXRX_TO_LOG                      = 0x004001
+CMDID_STATS_GET_TXRX                             = 0x004002
 
-STATS_CONFIG_FLAG_PROMISC              = 0x00000001
-
-STATS_RSVD_CONFIG                      = 0xFFFFFFFF
+CMD_PARAM_STATS_CONFIG_FLAG_PROMISC              = 0x00000001
 
 
 # Queue commands and defined values
-CMD_QUEUE_TX_DATA_PURGE_ALL            = 70
+CMDID_QUEUE_TX_DATA_PURGE_ALL                    = 0x005000
 
 
-# Be careful that new commands added to WlanExpNode do not collide with child commands
+# Developer commands and defined values
+CMDID_DEV_MEM_HIGH                              = 0xFFF000
+CMDID_DEV_MEM_LOW                               = 0xFFF001
+
 
 
 # Local Constants
@@ -183,18 +151,13 @@ _CMD_GRPID_NODE              = (wn_cmds.GRPID_NODE << 24)
 class LogGetEvents(wn_message.BufferCmd):
     """Command to get the WLAN Exp log events of the node"""
     def __init__(self, size, start_byte=0):
-        command = _CMD_GRPID_NODE + CMD_LOG_GET_ENTRIES
+        command = _CMD_GRPID_NODE + CMDID_LOG_GET_ENTRIES
         
-        if (size == LOG_GET_ALL_ENTRIES):
+        if (size == CMD_PARAM_LOG_GET_ALL_ENTRIES):
             size = wn_message.CMD_BUFFER_GET_SIZE_FROM_DATA
         
         super(LogGetEvents, self).__init__(
                 command=command, buffer_id=0, flags=0, start_byte=start_byte, size=size)
-
-        if (False):
-            print("LogGetEvents:")
-            print("    size       = {0}".format(size))
-            print("    start_byte = {0}".format(start_byte))
 
     def process_resp(self, resp):
         return resp
@@ -205,37 +168,39 @@ class LogGetEvents(wn_message.BufferCmd):
 class LogConfigure(wn_message.Cmd):
     """Command to configure the Event log.
     
-    Attributes:
-        flags - [0] Enable wrapping (1 - Enabled / 0 - Disabled (default))    
-                [1] Log events (1 - Enabled (default) / 0 - Disabled)
+    Attributes (default state on the node is in CAPS):
+        log_enable           -- Enable the event log (TRUE/False)
+        log_warp_enable      -- Enable event log wrapping (True/FALSE)
+        log_full_payloads    -- Record full Tx/Rx payloads in event log (True/FALSE)
+        log_warpnet_commands -- Record WARPNet commands in event log (True/FALSE)        
     """
     def __init__(self, log_enable=None, log_wrap_enable=None, 
                        log_full_payloads=None, log_warpnet_commands=None):
         super(LogConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LOG_CONFIG
+        self.command = _CMD_GRPID_NODE + CMDID_LOG_CONFIG
 
         flags = 0
         mask  = 0
 
         if log_enable is not None:
-            mask += LOG_CONFIG_FLAG_LOGGING
+            mask += CMD_PARAM_LOG_CONFIG_FLAG_LOGGING
             if log_enable:
-                flags += LOG_CONFIG_FLAG_LOGGING
+                flags += CMD_PARAM_LOG_CONFIG_FLAG_LOGGING
         
         if log_wrap_enable is not None:
-            mask += LOG_CONFIG_FLAG_WRAP
+            mask += CMD_PARAM_LOG_CONFIG_FLAG_WRAP
             if log_wrap_enable:
-                flags += LOG_CONFIG_FLAG_WRAP
+                flags += CMD_PARAM_LOG_CONFIG_FLAG_WRAP
 
         if log_full_payloads is not None:
-            mask += LOG_CONFIG_FLAG_LOG_PAYLOADS
+            mask += CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS
             if log_full_payloads:
-                flags += LOG_CONFIG_FLAG_LOG_PAYLOADS
+                flags += CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS
 
         if log_warpnet_commands is not None:
-            mask += LOG_CONFIG_FLAG_LOG_WN_CMDS
+            mask += CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS
             if log_warpnet_commands:
-                flags += LOG_CONFIG_FLAG_LOG_WN_CMDS
+                flags += CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS
         
         self.add_args(flags)
         self.add_args(mask)
@@ -250,7 +215,7 @@ class LogGetStatus(wn_message.Cmd):
     """Command to get the state information about the log."""
     def __init__(self):
         super(LogGetStatus, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LOG_GET_STATUS
+        self.command = _CMD_GRPID_NODE + CMDID_LOG_GET_STATUS
     
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=4):
@@ -266,7 +231,7 @@ class LogGetCapacity(wn_message.Cmd):
     """Command to get the log capacity and current use."""
     def __init__(self):
         super(LogGetCapacity, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LOG_GET_CAPACITY
+        self.command = _CMD_GRPID_NODE + CMDID_LOG_GET_CAPACITY
     
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=2):
@@ -282,7 +247,7 @@ class LogStreamEntries(wn_message.Cmd):
     """Command to configure the node log streaming."""
     def __init__(self, enable, host_id, ip_address, port):
         super(LogStreamEntries, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LOG_STREAM_ENTRIES
+        self.command = _CMD_GRPID_NODE + CMDID_LOG_STREAM_ENTRIES
         
         if (type(ip_address) is str):
             addr = wn_transport.ip_to_int(ip_address)
@@ -309,16 +274,23 @@ class LogStreamEntries(wn_message.Cmd):
 class StatsConfigure(wn_message.Cmd):
     """Command to configure the Statistics collection.
     
-    Attributes:
-        flags - [0] Enable promiscuous statisitics
-                    (1 - Enabled (default) / 0 - Disabled)
-    
-    A value of STATS_RSVD_CONFIG will return a read of the flags.
+    Attributes (default state on the node is in CAPS):
+        promisc_stats        -- Enable promiscuous statistics collection (TRUE/False)
     """
-    def __init__(self, flags):
+    def __init__(self, promisc_stats=None):
         super(LogConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_STATS_CONFIG_TXRX
+        self.command = _CMD_GRPID_NODE + CMDID_STATS_CONFIG_TXRX
+
+        flags = 0
+        mask  = 0
+
+        if promisc_stats is not None:
+            mask += CMD_PARAM_STATS_CONFIG_FLAG_PROMISC
+            if promisc_stats:
+                flags += CMD_PARAM_STATS_CONFIG_FLAG_PROMISC
+                
         self.add_args(flags)
+        self.add_args(mask)
     
     def process_resp(self, resp):
         pass
@@ -330,7 +302,7 @@ class StatsGetTxRx(wn_message.BufferCmd):
     """Command to get the statistics from the node for a given node."""
     def __init__(self, node=None):
         super(StatsGetTxRx, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_STATS_GET_TXRX
+        self.command = _CMD_GRPID_NODE + CMDID_STATS_GET_TXRX
 
         if node is not None:
             mac_address = node.wlan_mac_address
@@ -358,7 +330,7 @@ class StatsAddTxRxToLog(wn_message.Cmd):
     """Command to add the current statistics to the Event log"""
     def __init__(self):
         super(StatsAddTxRxToLog, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_STATS_ADD_TXRX_TO_LOG
+        self.command = _CMD_GRPID_NODE + CMDID_STATS_ADD_TXRX_TO_LOG
     
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=1):
@@ -385,16 +357,16 @@ class LTGCommon(wn_message.Cmd):
                 raise TypeError("LTG ID must be an integer.")
             self.add_args(ltg_id)
         else:
-            self.add_args(LTG_ID_INVALID)
+            self.add_args(CMD_PARAM_LTG_ALL_LTGS)
 
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=1, 
-                              status_errors=[LTG_ERROR], 
+                              status_errors=[CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR], 
                               name='LTG {0} command'.format(self.name)):
             args = resp.get_args()
             return args[0]
         else:
-            return LTG_ERROR
+            return CMD_PARAM_LTG_ERROR
         
 # End Class
 
@@ -407,12 +379,12 @@ class LTGConfigure(wn_message.Cmd):
 
     def __init__(self, traffic_flow, auto_start=False):
         super(LTGConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_LTG_CONFIG
+        self.command = _CMD_GRPID_NODE + CMDID_LTG_CONFIG
 
         flags = 0
         
         if auto_start:
-            flags += LTG_CONFIG_FLAG_AUTOSTART
+            flags += CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART
         
         self.add_args(flags)
         
@@ -421,12 +393,12 @@ class LTGConfigure(wn_message.Cmd):
 
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=2, 
-                              status_errors=[LTG_ERROR], 
+                              status_errors=[CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR], 
                               name='LTG {0} command'.format(self.name)):
             args = resp.get_args()
             return args[1]
         else:
-            return LTG_ERROR
+            return CMD_PARAM_LTG_ERROR
     
 # End Class
 
@@ -441,7 +413,7 @@ class LTGStart(LTGCommon):
 
     def __init__(self, ltg_id=None):
         super(LTGStart, self).__init__(ltg_id)
-        self.command = _CMD_GRPID_NODE + CMD_LTG_START
+        self.command = _CMD_GRPID_NODE + CMDID_LTG_START
 
 # End Class
 
@@ -456,7 +428,7 @@ class LTGStop(LTGCommon):
 
     def __init__(self, ltg_id=None):
         super(LTGStop, self).__init__(ltg_id)
-        self.command = _CMD_GRPID_NODE + CMD_LTG_STOP
+        self.command = _CMD_GRPID_NODE + CMDID_LTG_STOP
     
 # End Class
 
@@ -471,7 +443,7 @@ class LTGRemove(LTGCommon):
 
     def __init__(self, ltg_id=None):
         super(LTGRemove, self).__init__(ltg_id)
-        self.command = _CMD_GRPID_NODE + CMD_LTG_REMOVE
+        self.command = _CMD_GRPID_NODE + CMDID_LTG_REMOVE
     
 # End Class
 
@@ -488,7 +460,7 @@ class NodeResetState(wn_message.Cmd):
     """
     def __init__(self, flags):
         super(NodeResetState, self).__init__()
-        self.command = _CMD_GRPID_NODE +  CMD_NODE_RESET_STATE        
+        self.command = _CMD_GRPID_NODE +  CMDID_NODE_RESET_STATE        
         self.add_args(flags)
     
     def process_resp(self, resp):
@@ -508,8 +480,8 @@ class NodeProcTime(wn_message.Cmd):
     
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       NODE_READ
-                       NODE_WRITE
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
                        TIME_ADD_TO_LOG
         node_time -- Time as either an integer number of microseconds or 
                        a floating point number in seconds.
@@ -521,18 +493,18 @@ class NodeProcTime(wn_message.Cmd):
     
     def __init__(self, cmd, node_time, time_id=None):
         super(NodeProcTime, self).__init__()
-        self.command  = _CMD_GRPID_NODE + CMD_NODE_TIME
+        self.command  = _CMD_GRPID_NODE + CMDID_NODE_TIME
         self.time_cmd = cmd
 
         # Read the time as a float
-        if (cmd == NODE_READ):
+        if (cmd == CMD_PARAM_READ):
             self.time_type = 0
-            self.add_args(NODE_READ)
-            self.add_args(RSVD_TIME)             # Reads do not need a time_id
-            self.add_args(RSVD_TIME)
-            self.add_args(RSVD_TIME)
-            self.add_args(RSVD_TIME)
-            self.add_args(RSVD_TIME)
+            self.add_args(CMD_PARAM_READ)
+            self.add_args(CMD_PARAM_RSVD_TIME)             # Reads do not need a time_id
+            self.add_args(CMD_PARAM_RSVD_TIME)
+            self.add_args(CMD_PARAM_RSVD_TIME)
+            self.add_args(CMD_PARAM_RSVD_TIME)
+            self.add_args(CMD_PARAM_RSVD_TIME)
 
         # Write the time / Add time to log
         else:
@@ -543,8 +515,8 @@ class NodeProcTime(wn_message.Cmd):
                 import random
                 time_id = 2**32 * random.random()
 
-            if (cmd == NODE_WRITE):
-                self.add_args(NODE_WRITE)
+            if (cmd == CMD_PARAM_WRITE):
+                self.add_args(CMD_PARAM_WRITE)
 
                 # Format the node_time appropriately
                 if   (type(node_time) is float):
@@ -556,10 +528,10 @@ class NodeProcTime(wn_message.Cmd):
                 else:
                     raise TypeError("Time must be either a float or int")
             else:
-                self.add_args(TIME_ADD_TO_LOG)
+                self.add_args(CMD_PARAM_TIME_ADD_TO_LOG)
 
                 # Send the reserved value
-                time_to_send = (RSVD_TIME << 32) + RSVD_TIME
+                time_to_send = (CMD_PARAM_RSVD_TIME << 32) + CMD_PARAM_RSVD_TIME
 
             # Get the current time on the host
             now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
@@ -572,7 +544,7 @@ class NodeProcTime(wn_message.Cmd):
 
 
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=3, status_errors=[NODE_ERROR], name='Time command'):
+        if resp.resp_is_valid(num_args=3, status_errors=[CMD_PARAM_ERROR], name='Time command'):
             args = resp.get_args()
             time = (2**32 * args[2]) + args[1]
         else:
@@ -605,47 +577,47 @@ class NodeSetLowToHighFilter(wn_message.Cmd):
     """    
     def __init__(self, cmd, mac_header=None, fcs=None):
         super(NodeSetLowToHighFilter, self).__init__()
-        self.command  = _CMD_GRPID_NODE + CMD_NODE_LOW_TO_HIGH_FILTER
+        self.command  = _CMD_GRPID_NODE + CMDID_NODE_LOW_TO_HIGH_FILTER
 
-        self.add_args(NODE_WRITE)
+        self.add_args(CMD_PARAM_WRITE)
 
         rx_filter = 0
 
         if mac_header is None:
-            rx_filter += RX_FILTER_HDR_NOCHANGE
+            rx_filter += CMD_PARAM_RX_FILTER_HDR_NOCHANGE
         else:
             mac_header = str(mac_header)
             mac_header.upper()
             
             if   (mac_header == 'MPDU_TO_ME'):
-                rx_filter += RX_FILTER_HDR_ADDR_MATCH_MPDU
+                rx_filter += CMD_PARAM_RX_FILTER_HDR_ADDR_MATCH_MPDU
             elif (mac_header == 'ALL_MPDU'):
-                rx_filter += RX_FILTER_HDR_ALL_MPDU
+                rx_filter += CMD_PARAM_RX_FILTER_HDR_ALL_MPDU
             elif (mac_header == 'ALL'):
-                rx_filter += RX_FILTER_HDR_ALL
+                rx_filter += CMD_PARAM_RX_FILTER_HDR_ALL
             else:
                 msg  = "WARNING:  Not a valid mac_header value.\n"
                 msg += "    Provided:  {0}\n".format(mac_header)
                 msg += "    Requires:  ['MPDU_TO_ME', 'ALL_MPDU', 'ALL']"
                 print(msg)
-                rx_filter += RX_FILTER_HDR_NOCHANGE
+                rx_filter += CMD_PARAM_RX_FILTER_HDR_NOCHANGE
 
         if fcs is None:
-            rx_filter += RX_FILTER_FCS_NOCHANGE
+            rx_filter += CMD_PARAM_RX_FILTER_FCS_NOCHANGE
         else:
             fcs = str(fcs)
             fcs.upper()
 
             if   (fcs == 'GOOD'):
-                rx_filter += RX_FILTER_FCS_GOOD
+                rx_filter += CMD_PARAM_RX_FILTER_FCS_GOOD
             elif (fcs == 'ALL'):
-                rx_filter += RX_FILTER_FCS_NOCHANGE
+                rx_filter += CMD_PARAM_RX_FILTER_FCS_NOCHANGE
             else:
                 msg  = "WARNING: Not a valid fcs value.\n"
                 msg += "    Provided:  {0}\n".format(fcs)
                 msg += "    Requires:  ['GOOD', 'ALL']"
                 print(msg)
-                rx_filter += RX_FILTER_FCS_NOCHANGE
+                rx_filter += CMD_PARAM_RX_FILTER_FCS_NOCHANGE
 
         self.add_args(rx_filter)
 
@@ -661,25 +633,26 @@ class NodeProcChannel(wn_message.Cmd):
     
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       NODE_READ
-                       NODE_WRITE
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
         channel   -- 802.11 Channel for the node.  Should be a value between
                        0 and 11.  Checking is done on the node and the current
                        channel will always be returned by the node.  
     """
-    def __init__(self, cmd, channel):
+    def __init__(self, cmd, channel=None):
         super(NodeProcChannel, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_NODE_CHANNEL
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_CHANNEL
 
         self.add_args(cmd)
-        self.add_args(channel)
+        if channel is not None:
+            self.add_args(channel)
     
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Channel command'):
+        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Channel command'):
             args = resp.get_args()
             return args[1]
         else:
-            return NODE_ERROR
+            return CMD_PARAM_ERROR
 
 # End Class
 
@@ -688,17 +661,17 @@ class NodeMemAccess(wn_message.Cmd):
     
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       NODE_READ
-                       NODE_WRITE
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
         high      -- True for CPU_High access, False for CPU_Low
         
         address   -- u32 memory address to read/write
 
-        values    -- When cmd==NODE_WRITE, scalar or list of u32 values to write
-                     When cmd==NODE_READ, None
+        values    -- When cmd==CMD_PARAM_WRITE, scalar or list of u32 values to write
+                     When cmd==CMD_PARAM_READ, None
 
-        length    -- When cmd==NODE_WRITE, None
-                     When cmd==NODE_READ, number of u32 values to read starting at address
+        length    -- When cmd==CMD_PARAM_WRITE, None
+                     When cmd==CMD_PARAM_READ, number of u32 values to read starting at address
 
     """
     _read_len = None
@@ -706,18 +679,18 @@ class NodeMemAccess(wn_message.Cmd):
     def __init__(self, cmd, high, address, values=None, length=None):
         super(NodeMemAccess, self).__init__()
         if(high):
-            self.command = _CMD_GRPID_NODE + CMD_NODE_MEM_HIGH
+            self.command = _CMD_GRPID_NODE + CMDID_DEV_MEM_HIGH
         else:
-            self.command = _CMD_GRPID_NODE + CMD_NODE_MEM_LOW
+            self.command = _CMD_GRPID_NODE + CMDID_DEV_MEM_LOW
 
-        if(cmd == NODE_READ):
+        if(cmd == CMD_PARAM_READ):
             self.add_args(cmd)
             self.add_args(address)
             self.add_args(length)
 
             self._read_len = length
 
-        elif(cmd == NODE_WRITE):
+        elif(cmd == CMD_PARAM_WRITE):
             self.add_args(cmd)
             self.add_args(address)
             self.add_args(length)
@@ -732,19 +705,20 @@ class NodeMemAccess(wn_message.Cmd):
             raise Exception('ERROR: NodeMemAccess constructor arguments invalid');
     
     def process_resp(self, resp):
-        if(self._read_len is not None): #was a read command
-            if resp.resp_is_valid(num_args=(1 + self._read_len), status_errors=None, name='CPU Mem command'):
+        if (self._read_len is not None): # Was a read command
+            if resp.resp_is_valid(num_args=(2 + self._read_len), status_errors=[CMD_PARAM_ERROR], 
+                                  name='CPU Mem command'):
                 args = resp.get_args()
 
-                if(len(args) == 2):
-                    return args[1]
-                elif(len(args) > 2):
-                    return args[1:]
+                if(len(args) == 3):
+                    return args[2]
+                elif(len(args) > 3):
+                    return args[2:]
                 else:
                     raise Exception('ERROR: invalid response to read_mem - N_ARGS = {0}'.format(len(args)))
             else:
-                return NODE_ERROR
-        else: #was a write command
+                return CMD_PARAM_ERROR
+        else: # Was a write command
             pass
 
 class NodeProcTxPower(wn_message.Cmd):
@@ -752,40 +726,40 @@ class NodeProcTxPower(wn_message.Cmd):
     
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       NODE_READ
-                       NODE_WRITE
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
         power     -- Transmit power for the WARP node (in dBm).
     """
-    def __init__(self, cmd, power):
+    def __init__(self, cmd, power=None):
         super(NodeProcTxPower, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_NODE_TX_POWER
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_POWER
 
         self.add_args(cmd)
 
-        if (cmd == NODE_READ):
-            self.add_args(power)
-
-        if (cmd == NODE_WRITE):
-            if (power > NODE_TX_POWER_MAX_DBM):
+        if (cmd == CMD_PARAM_WRITE):
+            if power is None:
+                raise ValueError("Must supply value to set Tx power.")
+            
+            if (power > CMD_PARAM_NODE_TX_POWER_MAX_DBM):
                 msg  = "WARNING:  Requested power too high.\n"
-                msg += "    Adjusting transmit power from {0} to {1}".format(power, NODE_TX_POWER_MAX_DBM)
+                msg += "    Adjusting transmit power from {0} to {1}".format(power, CMD_PARAM_NODE_TX_POWER_MAX_DBM)
                 print(msg)
-                power = NODE_TX_POWER_MAX_DBM
+                power = CMD_PARAM_NODE_TX_POWER_MAX_DBM
 
-            if (power < NODE_TX_POWER_MIN_DBM):
+            if (power < CMD_PARAM_NODE_TX_POWER_MIN_DBM):
                 msg  = "WARNING:  Requested power too low. \n"
-                msg += "    Adjusting transmit power from {0} to {1}".format(power, NODE_TX_POWER_MIN_DBM)
+                msg += "    Adjusting transmit power from {0} to {1}".format(power, CMD_PARAM_NODE_TX_POWER_MIN_DBM)
                 print(msg)
-                power = NODE_TX_POWER_MIN_DBM
+                power = CMD_PARAM_NODE_TX_POWER_MIN_DBM
 
             # Shift the value so that there are only positive integers over the wire
-            self.add_args(power - NODE_TX_POWER_MIN_DBM)
+            self.add_args(power - CMD_PARAM_NODE_TX_POWER_MIN_DBM)
     
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=5, status_errors=[NODE_ERROR], name='Power command'):
+        if resp.resp_is_valid(num_args=5, status_errors=[CMD_PARAM_ERROR], name='Power command'):
             args = resp.get_args()
             # Shift values back to the original range
-            args = [x + NODE_TX_POWER_MIN_DBM for x in args]
+            args = [x + CMD_PARAM_NODE_TX_POWER_MIN_DBM for x in args]
             return args[1:]
         else:
             return []
@@ -798,10 +772,10 @@ class NodeProcTxRate(wn_message.Cmd):
     
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       NODE_READ
-                       NODE_WRITE
-                       NODE_WRITE_DEFAULT
-                       NODE_READ_DEFAULT 
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
+                       CMD_PARAM_WRITE_DEFAULT
+                       CMD_PARAM_READ_DEFAULT 
         node_type -- Is this for unicast transmit or multicast transmit.
         rate      -- 802.11 transmit rate for the node.  Should be an entry
                      from the rates table in wlan_exp.util.  Checking is
@@ -814,11 +788,11 @@ class NodeProcTxRate(wn_message.Cmd):
     
     def __init__(self, cmd, node_type, rate=None, device=None):
         super(NodeProcTxRate, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_NODE_TX_RATE
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_RATE
 
         self.add_args(cmd)
 
-        if ((node_type == NODE_UNICAST) or (node_type == NODE_MULTICAST)):
+        if ((node_type == CMD_PARAM_UNICAST) or (node_type == CMD_PARAM_MULTICAST)):
             self.add_args(node_type)
         else:
             msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
@@ -846,7 +820,7 @@ class NodeProcTxRate(wn_message.Cmd):
     def process_resp(self, resp):
         import wlan_exp.util as util
         
-        if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Tx rate command'):
+        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Tx rate command'):
             args = resp.get_args()
             if self.rate is not None:
                 if (args[1] != self.rate):
@@ -866,10 +840,10 @@ class NodeProcTxAntMode(wn_message.Cmd):
     
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       NODE_READ
-                       NODE_WRITE
-                       NODE_WRITE_DEFAULT
-                       NODE_READ_DEFAULT 
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
+                       CMD_PARAM_WRITE_DEFAULT
+                       CMD_PARAM_READ_DEFAULT 
         node_type -- Is this for unicast transmit or multicast transmit.
         ant_mode  -- Transmit antenna mode for the node.  Checking is
                      done both in the command and on the node.  The current
@@ -880,11 +854,11 @@ class NodeProcTxAntMode(wn_message.Cmd):
     
     def __init__(self, cmd, node_type, ant_mode=None, device=None):
         super(NodeProcTxAntMode, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_NODE_TX_ANT_MODE
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_ANT_MODE
 
         self.add_args(cmd)
         
-        if ((node_type == NODE_UNICAST) or (node_type == NODE_MULTICAST)):
+        if ((node_type == CMD_PARAM_UNICAST) or (node_type == CMD_PARAM_MULTICAST)):
             self.node_type = node_type
             self.add_args(node_type)
         else:
@@ -917,17 +891,17 @@ class NodeProcTxAntMode(wn_message.Cmd):
     def process_resp(self, resp):
         import wlan_exp.util as util
         
-        if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Tx antenna mode command'):
+        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Tx antenna mode command'):
             args = resp.get_args()
-            if   (self.node_type == NODE_UNICAST):
+            if   (self.node_type == CMD_PARAM_UNICAST):
                 return util.find_tx_ant_mode_by_index(args[1])
-            elif (self.node_type == NODE_MULTICAST):
+            elif (self.node_type == CMD_PARAM_MULTICAST):
                 return [util.find_tx_ant_mode_by_index((args[1] >> 16) & 0xFFFF),
                         util.find_tx_ant_mode_by_index(args[1] & 0xFFFF)]
             else:
-                return NODE_ERROR
+                return CMD_PARAM_ERROR
         else:
-            return NODE_ERROR
+            return CMD_PARAM_ERROR
 
 # End Class
 
@@ -937,21 +911,21 @@ class NodeProcRxAntMode(wn_message.Cmd):
     
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       NODE_READ
-                       NODE_WRITE
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
         ant_mode  -- Receive antenna mode for the node.  Checking is
                      done both in the command and on the node.  The current
                      antenna mode will be returned by the node.  
     """
     def __init__(self, cmd, ant_mode=None):
         super(NodeProcRxAntMode, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_NODE_RX_ANT_MODE
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_RX_ANT_MODE
         
         self.add_args(cmd)
         if ant_mode is not None:
             self.add_args(self.check_ant_mode(ant_mode))
         else:
-            self.add_args(NODE_RSVD)
+            self.add_args(CMD_PARAM_NODE_CONFIG_ALL)
 
 
     def check_ant_mode(self, ant_mode):
@@ -966,11 +940,11 @@ class NodeProcRxAntMode(wn_message.Cmd):
     def process_resp(self, resp):
         import wlan_exp.util as util
         
-        if resp.resp_is_valid(num_args=2, status_errors=[NODE_ERROR], name='Rx antenna mode command'):
+        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Rx antenna mode command'):
             args = resp.get_args()
             return util.find_rx_ant_mode_by_index(args[1])
         else:
-            return NODE_ERROR
+            return CMD_PARAM_ERROR
 
 # End Class
 
@@ -979,7 +953,7 @@ class NodeGetStationInfo(wn_message.BufferCmd):
     """Command to get the station info for a given node."""
     def __init__(self, node=None):
         super(NodeGetStationInfo, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_GET_STATION_INFO
+        self.command = _CMD_GRPID_NODE + CMDID_GET_STATION_INFO
 
         if node is not None:
             mac_address = node.wlan_mac_address
@@ -1010,7 +984,7 @@ class QueueTxDataPurgeAll(wn_message.Cmd):
     """Command to purge all data transmit queues on the node."""
     def __init__(self):
         super(QueueTxDataPurgeAll, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMD_QUEUE_TX_DATA_PURGE_ALL
+        self.command = _CMD_GRPID_NODE + CMDID_QUEUE_TX_DATA_PURGE_ALL
         
     def process_resp(self, resp):
         pass

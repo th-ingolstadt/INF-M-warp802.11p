@@ -152,7 +152,6 @@ class WlanExpNode(wn_node.WnNode):
         not specified, then that attribute will retain the same value on
         the node.
 
-
         Attributes (default state on the node is in CAPS):
             log_enable           -- Enable the event log (TRUE/False)
             log_warp_enable      -- Enable event log wrapping (True/FALSE)
@@ -232,7 +231,7 @@ class WlanExpNode(wn_node.WnNode):
             if ((next_index != 0) or self.log_is_full()):
                 # Get Log data from the node
                 return_val = self.log_get(offset=self.log_next_read_index, 
-                                          size=cmds.LOG_GET_ALL_ENTRIES, 
+                                          size=cmds.CMD_PARAM_LOG_GET_ALL_ENTRIES, 
                                           max_req_size=max_req_size)
 
                 # Unfortunately, we do not know how much data should have
@@ -296,7 +295,7 @@ class WlanExpNode(wn_node.WnNode):
         """Return whether the log is full or not."""
         (next_index, oldest_index, num_wraps, flags) = self.send_cmd(cmds.LogGetStatus())
         
-        if (((flags & cmds.LOG_CONFIG_FLAG_WRAP) != cmds.LOG_CONFIG_FLAG_WRAP) and
+        if (((flags & cmds.CMD_PARAM_LOG_CONFIG_FLAG_WRAP) != cmds.CMD_PARAM_LOG_CONFIG_FLAG_WRAP) and
             ((next_index == 0) and (oldest_index == 0) and (num_wraps == (self.log_num_wraps + 1)))):
             return True
         else:
@@ -340,18 +339,18 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     # Statistics Commands
     #--------------------------------------------
-    def stats_configure_txrx(self, flags):
+    def stats_configure_txrx(self, promisc_stats=None):
         """Configure statistics collection on the node.
-        
-        Flags (32 bits):
-            [0] - Collect promiscuous statistics (1 - Enabled / 0 - Disabled )
+
+        By default all attributes are set to None.  Only attributes that 
+        are given values will be updated on the node.  If an attribute is
+        not specified, then that attribute will retain the same value on
+        the node.
+
+        Attributes (default state on the node is in CAPS):
+            promisc_stats        -- Enable promiscuous statistics collection (TRUE/False)
         """
-        self.send_cmd(cmds.StatsConfigure(flags))
-
-
-    def stats_get_flags(self):
-        """Get the configuration of the statistics collection on the node."""
-        return self.send_cmd(cmds.StatsConfigure(cmds.STATS_RSVD_CONFIG))
+        self.send_cmd(cmds.StatsConfigure(promisc_stats))
 
 
     def stats_get_txrx(self, device_list=None):
@@ -454,7 +453,7 @@ class WlanExpNode(wn_node.WnNode):
 
     def _print_ltg_error(self, status, msg):
         """Print an LTG error message."""
-        if (status == cmds.LTG_ERROR):
+        if (status == cmds.CMD_PARAM_LTG_ERROR):
             print("LTG ERROR: Could not {0} on {1}".format(msg, self.name))
 
 
@@ -469,7 +468,7 @@ class WlanExpNode(wn_node.WnNode):
                             queue_data=True, 
                             associations=True)
 
-        if (status == cmds.LTG_ERROR):
+        if (status == cmds.CMD_PARAM_LTG_ERROR):
             print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
     
 
@@ -486,14 +485,14 @@ class WlanExpNode(wn_node.WnNode):
         flags = 0;
         
         if log:
-            flags += cmds.NODE_RESET_LOG
+            flags += cmds.CMD_PARAM_NODE_RESET_FLAG_LOG
             self.log_total_bytes_read = 0
             self.log_num_wraps        = 0
             self.log_next_read_index  = 0
 
-        if txrx_stats:       flags += cmds.NODE_RESET_TXRX_STATS        
-        if ltg:              flags += cmds.NODE_RESET_LTG        
-        if queue_data:       flags += cmds.NODE_RESET_TX_DATA_QUEUE
+        if txrx_stats:       flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS        
+        if ltg:              flags += cmds.CMD_PARAM_NODE_RESET_FLAG_LTG        
+        if queue_data:       flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE
         if associations:     pass    # TODO:  Disassociate all nodes
         
         # Send the reset command
@@ -593,17 +592,17 @@ class WlanExpNode(wn_node.WnNode):
         Attributes:
             time -- Time to send to the board (either float in sec or int in us)
         """
-        self.send_cmd(cmds.NodeProcTime(cmds.NODE_WRITE, time, time_id))
+        self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_WRITE, time, time_id))
     
 
     def get_time(self):
         """Gets the time in microseconds from the node."""
-        return self.send_cmd(cmds.NodeProcTime(cmds.NODE_READ, cmds.RSVD_TIME))
+        return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_RSVD_TIME))
 
 
     def write_time_to_log(self, time_id=None):
         """Adds the current time in microseconds to the log."""
-        return self.send_cmd(cmds.NodeProcTime(cmds.TIME_ADD_TO_LOG, cmds.RSVD_TIME, time_id))
+        return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_TIME_ADD_TO_LOG, cmds.CMD_PARAM_RSVD_TIME, time_id))
 
 
     def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
@@ -631,11 +630,11 @@ class WlanExpNode(wn_node.WnNode):
 
     def set_channel(self, channel):
         """Sets the channel of the node and returns the channel that was set."""
-        return self.send_cmd(cmds.NodeProcChannel(cmds.NODE_WRITE, channel))
+        return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
 
     def get_channel(self):
         """Gets the current channel of the node."""
-        return self.send_cmd(cmds.NodeProcChannel(cmds.NODE_READ, cmds.NODE_RSVD))
+        return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_READ))
 
 
     def set_tx_rate_unicast(self, rate, device_list=None, curr_assoc=False, new_assoc=False):
@@ -676,7 +675,7 @@ class WlanExpNode(wn_node.WnNode):
         Attributes:
             rate      -- Entry from the wlan_rates list in wlan_exp.util 
         """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_WRITE, cmds.NODE_MULTICAST, rate))
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST, rate))
 
 
     def get_tx_rate_multicast_data(self):
@@ -685,7 +684,7 @@ class WlanExpNode(wn_node.WnNode):
         Returns:
             An entry from the wlan_rates list in wlan_exp.util
         """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.NODE_READ, cmds.NODE_MULTICAST))
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST))
 
 
     def set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
@@ -725,7 +724,7 @@ class WlanExpNode(wn_node.WnNode):
         """Sets the multicast transmit antenna mode for a node and returns the 
         antenna mode that was set.
         """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_WRITE, cmds.NODE_MULTICAST, ant_mode))
+        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST, ant_mode))
 
 
     def get_tx_ant_mode_multicast(self):
@@ -736,24 +735,24 @@ class WlanExpNode(wn_node.WnNode):
                                      <multicast data tx antenna mode>]
         
         """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.NODE_READ, cmds.NODE_MULTICAST))
+        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST))
 
 
     def set_rx_ant_mode(self, ant_mode):
         """Sets the receive antenna mode for a node and returns the 
         antenna mode that was set.
         """
-        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.NODE_WRITE, ant_mode))
+        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_WRITE, ant_mode))
 
 
     def get_rx_ant_mode(self):
         """Gets the current receive antenna mode for a node."""
-        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.NODE_READ))
+        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_READ))
 
 
     def set_tx_power(self, power):
         """Sets the transmit power of the node and returns the power that was set."""
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.NODE_WRITE, power))
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, power))
 
 
     def get_tx_power(self):
@@ -765,7 +764,7 @@ class WlanExpNode(wn_node.WnNode):
                                  <multicast management tx power>,
                                  <multicast data tx power>]
         """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.NODE_READ, cmds.NODE_RSVD))
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ))
 
 
     def _node_set_tx_param_unicast(self, cmd, param, param_name, 
@@ -791,17 +790,17 @@ class WlanExpNode(wn_node.WnNode):
             raise ValueError(msg)
         
         if new_assoc:
-            self.send_cmd(cmd(cmds.NODE_WRITE_DEFAULT, cmds.NODE_UNICAST, param))
+            self.send_cmd(cmd(cmds.CMD_PARAM_WRITE_DEFAULT, cmds.CMD_PARAM_UNICAST, param))
             
         if curr_assoc:
-            self.send_cmd(cmd(cmds.NODE_WRITE, cmds.NODE_UNICAST, param))
+            self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param))
         else:
             if (device_list is not None):
                 try:
                     for device in device_list:
-                        self.send_cmd(cmd(cmds.NODE_WRITE, cmds.NODE_UNICAST, param, device))
+                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device))
                 except TypeError:
-                    self.send_cmd(cmd(cmds.NODE_WRITE, cmds.NODE_UNICAST, param, device_list))
+                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device_list))
 
 
     def _node_get_tx_param_unicast(self, cmd, param_name, device_list=None, new_assoc=False):
@@ -828,16 +827,16 @@ class WlanExpNode(wn_node.WnNode):
             raise ValueError(msg)
         
         if new_assoc:
-            val = self.send_cmd(cmd(cmds.NODE_READ_DEFAULT, cmds.NODE_UNICAST))
+            val = self.send_cmd(cmd(cmds.CMD_PARAM_READ_DEFAULT, cmds.CMD_PARAM_UNICAST))
             ret_val.append(val)
             
         if (device_list is not None):
             try:
                 for device in device_list:
-                    val = self.send_cmd(cmd(cmds.NODE_READ, cmds.NODE_UNICAST, device=device))
+                    val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, device=device))
                     ret_val.append(val)
             except TypeError:
-                val = self.send_cmd(cmd(cmds.NODE_READ, cmds.NODE_UNICAST, device=device_list))
+                val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, device=device_list))
                 ret_val.append(val)        
 
         return ret_val
@@ -870,12 +869,12 @@ class WlanExpNode(wn_node.WnNode):
             except TypeError:
                 vals = [values]
 
-            return self.send_cmd(cmds.NodeMemAccess(cmds.NODE_WRITE, high=True, address=address, length=len(vals), values=vals))
+            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_WRITE, high=True, address=address, length=len(vals), values=vals))
 
     def _mem_read_high(self, address, length):
         """Reads 'length' values directly CPU High memory starting at 'address'"""
         if(self._check_mem_access_args(address, values=None)):
-            return self.send_cmd(cmds.NodeMemAccess(cmds.NODE_READ, high=True, address=address, length=length))
+            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_READ, high=True, address=address, length=length))
 
     def _mem_write_low(self, address, values):
         """Writes 'values' directly to CPU High memory starting at 'address'"""
@@ -885,12 +884,12 @@ class WlanExpNode(wn_node.WnNode):
             except TypeError:
                 vals = [values]
 
-            return self.send_cmd(cmds.NodeMemAccess(cmds.NODE_WRITE, high=False, address=address, length=len(vals), values=vals))
+            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_WRITE, high=False, address=address, length=len(vals), values=vals))
 
     def _mem_read_low(self, address, length):
         """Reads 'length' values directly CPU High memory starting at 'address'"""
         if(self._check_mem_access_args(address, values=None)):
-            return self.send_cmd(cmds.NodeMemAccess(cmds.NODE_READ, high=False, address=address, length=length))
+            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_READ, high=False, address=address, length=length))
 
 
     #--------------------------------------------
