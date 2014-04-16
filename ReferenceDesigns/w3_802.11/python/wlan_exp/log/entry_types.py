@@ -213,13 +213,13 @@ class WlanExpLogEntryType(object):
         doc_str += '||=  Field Name  =||=  DataType  =||=  Description  =||\n'
 
         for fd in field_descs:
-
+            import re
             #Wiki-ify some string formats:
             # Line breaks in descriptions must be explicit "[[BR]]"
-            # Open braces need escape (![) to disable Trac interpretting as changeset number
+            # Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
             fd_desc = fd[2]
+            fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) #do this first, so other wiki tags inserted below aren't escaped
             fd_desc = fd_desc.replace('\n', '[[BR]]')
-            fd_desc = fd_desc.replace('[', '![')
 
             doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
 
