@@ -129,13 +129,13 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_SET_STATION_INFO:
+		case CMDID_NODE_SET_STATION_INFO:
 			xil_printf("STA - Set association table not supported\n");
 		break;
 
         
 		//---------------------------------------------------------------------
-		case NODE_DISASSOCIATE:
+		case CMDID_NODE_DISASSOCIATE:
             // NODE_DISASSOCIATE Packet Format:
             //   Since a station is only associated to one AP, this command will
 			//     disassociate from that AP.
@@ -153,15 +153,15 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 
 		//---------------------------------------------------------------------
-		case NODE_CHANNEL:
+		case CMDID_NODE_CHANNEL:
 			//   - cmdArgs32[0]      - Command
 			//   - cmdArgs32[1]      - Channel
 
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
 			temp    = Xil_Ntohl(cmdArgs32[1]);
-			status  = NODE_SUCCESS;
+			status  = CMD_PARAM_SUCCESS;
 
-			if ( msg_cmd == NODE_WRITE_VAL ) {
+			if ( msg_cmd == CMD_PARAM_WRITE_VAL ) {
 				// Set the Channel
 				//   NOTE:  We modulate temp so that we always have a valid channel
 				temp = temp % 12;          // Get a channel number between 0 - 11
@@ -275,7 +275,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 		//---------------------------------------------------------------------
 		default:
-			xil_printf("Unknown node command: %d\n", cmdID);
+			xil_printf("Unknown node command: 0x%x\n", cmdID);
 		break;
 	}
 
