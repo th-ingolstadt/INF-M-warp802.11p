@@ -15,11 +15,11 @@ def get_sample_data_dir():
 
     #Find wlan_exp.log directory using this module's location as a reference
     sd_parent = os.path.split(os.path.abspath(__file__))[0]
-    
+
     #Construct the full path to the sample_data directory
     sd_path = os.path.join(sd_parent, _SAMPLE_DATA_DIR)
 #    print("{0} {1}".format(sd_parent, sd_path))
-    
+
     #Only return successfully if the directory already exists
     if(os.path.isdir(sd_path)):
         return sd_path
@@ -40,25 +40,25 @@ def download_sample_data():
         print(" Sample data files should be saved in local folder:")
         print("   {0}".format(os.path.normpath(sample_data_dir)))
         return
-    
+
 
 
     print("Downloading 802.11 Reference Design sample data to local directory:")
-    print(" {0}\r".format(os.path.normpath(sample_data_dir)))
-    
-    
+    print(" {0}\n".format(os.path.normpath(sample_data_dir)))
+
+
     #Progress indicator based on great StackOverflow posts:
-    #http://stackoverflow.com/questions/15644964/python-progress-bar-and-downloads    
-    
+    #http://stackoverflow.com/questions/15644964/python-progress-bar-and-downloads
+
     for ii,fn in enumerate(_FILES_TO_DL):
-        fn_full = os.path.join(sample_data_dir, fn)        
-        
+        fn_full = os.path.join(sample_data_dir, fn)
+
         if(os.path.isfile(fn_full)):
             print("\rERROR: Local file {0} already exists".format(fn_full))
         else:
             r = requests.get(_URL_ROOT + fn, stream=True)
             len_total = r.headers.get('content-length')
-        
+
             if(r.status_code != 200):
                 print("\rERROR: Failed to download {0}; HTTP status {1}".format(_URL_ROOT + fn, r.status_code))
             else:
@@ -73,7 +73,7 @@ def download_sample_data():
                             len_done += len(data_chunk)
                             f.write(data_chunk)
                             done = int(70 * len_done / len_total)
-                            sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (70-done)) )    
+                            sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (70-done)) )
                             sys.stdout.flush()
                         print('\r')
 

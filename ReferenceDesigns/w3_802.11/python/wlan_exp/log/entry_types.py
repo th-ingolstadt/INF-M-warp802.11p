@@ -1,5 +1,5 @@
 """
-log_entries.py
+entry_types.py
 ==============
 
 This module defines each type of log entry that may exist
@@ -86,6 +86,7 @@ class WlanExpLogEntryType(object):
 
     entry_type_id       = None #:Unique integer ID for entry type
     name                = None #:Unique string name for entry type
+    description         = '' #:Description of log entry type, used for generating documentation
 
     fields_np_dt        = None #:numpy dtype object describing format
     fields_fmt_struct   = None #:List of field formats, in struct module format
@@ -136,10 +137,12 @@ class WlanExpLogEntryType(object):
     # Accessor methods for the WlanExpLogEntryType
     #-------------------------------------------------------------------------
     def get_field_names(self):
-        return [field_name for (field_name, field_fmt_struct, field_fmt_np) in self._fields]
+        return [f[0] for f in self._fields]
+#        return [field_name for (field_name, field_fmt_struct, field_fmt_np, desc or _) in self._fields]
 
     def get_field_struct_formats(self):
-        return [field_fmt_struct for (field_name, field_fmt_struct, field_fmt_np) in self._fields]
+        return [f[1] for f in self._fields]
+#        return [field_fmt_struct for (field_name, field_fmt_struct, field_fmt_np, desc or None) in self._fields]
 
     def get_field_defs(self):          return self._fields
 
@@ -156,6 +159,7 @@ class WlanExpLogEntryType(object):
         * ``field_name``: Name of field as string
         * ``field_type_struct``: Field type as string, using formats specified by ``struct`` module
         * ``field_type_numpy``: Field type as string, using formats specified by numpy ``dtype``
+        * ``field_desc``: String describing the field's meaning, used to generate wiki docs
         """
         if type(field_info) is list:
             self._fields.extend(field_info)
@@ -173,7 +177,7 @@ class WlanExpLogEntryType(object):
 
 
     #-------------------------------------------------------------------------
-    # Generator methods for the WlanExpLogEntryType
+    # Utility methods for the WlanExpLogEntryType
     #-------------------------------------------------------------------------
     def generate_numpy_array(self, log_bytes, byte_offsets):
         """Generate a NumPy array from the log_bytes of the given
@@ -188,6 +192,32 @@ class WlanExpLogEntryType(object):
 
         return np_arr
 
+    def generate_entry_wiki_doc(self):
+        field_descs = list()
+        for f in self._fields:
+            #Field tuple is (name, struct_type, np_type, (optional)desc)
+            # Construct new tuple of (name, np_type, desc ('' if not defined))
+            try:
+                field_descs.append( (f[0], f[2], f[3]))
+            except IndexError:
+                #Field missing description; use empty string
+                field_descs.append( (f[0], f[2], ''))
+
+        #Construct the Trac-wiki-style documentation string for this entry type
+        doc_str = '=== {0} ===\n'.format(self.name)
+
+        doc_str += self.description + '\n\n'
+
+        doc_str += 'Fields:\n'
+        doc_str += '||=  Field Name  =||=  DataType  =||=  Description  =||\n'
+
+        for fd in field_descs:
+            fd_desc = fd[2].replace('\n', '[[BR]]')
+            doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
+
+        doc_str += '\n----\n\n'
+
+        return doc_str
 
     def _entry_as_string(self, buf):
         """Generate a string representation of the entry from a buffer. This method sould only
@@ -272,7 +302,7 @@ class WlanExpLogEntryType(object):
 
         # Compute the offset of each real field, inferred by the sizes of all previous fields
         #   This loop must look at all real fields, even ignored/padding fields
-        sizes   = list(map(get_np_size, [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in self._fields]))
+        sizes   = list(map(get_np_size, [f[2] for f in self._fields]))
         offsets = [sum(sizes[0:i]) for i in range(len(sizes))]
 
         np_fields = self._fields
@@ -282,8 +312,8 @@ class WlanExpLogEntryType(object):
         # offsets = [o for (o,f) in zip(offsets_all, self._fields) if 'x' not in f[1]]
         # np_fields = [f for f in self._fields if 'x' not in f[1]]
 
-        names   =  [field_name   for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
-        formats =  [field_fmt_np for (field_name, field_fmt_struct, field_fmt_np) in np_fields]
+        names   =  [f[0] for f in np_fields]
+        formats =  [f[2] for f in np_fields]
 
         self.fields_np_dt = np.dtype({'names':names, 'formats':formats, 'offsets':offsets})
 
@@ -418,90 +448,107 @@ entry_null = WlanExpLogEntryType(name='NULL', entry_type_id=ENTRY_TYPE_NULL)
 
 entry_rx_common = WlanExpLogEntryType(name='RX_ALL', entry_type_id=None)
 entry_rx_common.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('length',                 'H',      'uint16'),
-            ('rate',                   'B',      'uint8'),
-            ('power',                  'b',      'int8'),
-            ('fcs_result',             'B',      'uint8'),
-            ('pkt_type',               'B',      'uint8'),
-            ('chan_num',               'B',      'uint8'),
-            ('ant_mode',               'B',      'uint8'),
-            ('rf_gain',                'B',      'uint8'),
-            ('bb_gain',                'B',      'uint8'),
-            ('flags',                  'H',      'uint16')])
+            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
+            ('length',                 'H',      'uint16',  'Length of payload in bytes'),
+            ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
+            ('power',                  'b',      'int8',    'Rx power in dBm'),
+            ('fcs_result',             'B',      'uint8',   'Checksum status, 0 = no errors'),
+            ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+            ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
+            ('ant_mode',               'B',      'uint8',   'Antenna mode: [1,2,3,4] for SISO Rx on RF [A,B,C,D]'),
+            ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
+            ('bb_gain',                'B',      'uint8',   'AGC BB gain setting: [0:31] for approx [0:63]dB gain'),
+            ('flags',                  'H',      'uint16',  'Bit OR\'d flags: 0x1 = Rx was duplicate of previous Rx')])
 
 #-----------------------------------------------------------------------------
 # Log Entry Type Instances
 #-----------------------------------------------------------------------------
 # Node Info
-entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
-entry_node_info.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('node_type',              'I',      'uint32'),
-            ('node_id',                'I',      'uint32'),
-            ('hw_generation',          'I',      'uint32'),
-            ('wn_ver',                 'I',      'uint32'),
-            ('fpga_dna',               'Q',      'uint64'),
-            ('serial_num',             'I',      'uint32'),
-            ('wlan_exp_ver',           'I',      'uint32'),
-            ('wlan_max_associations',  'I',      'uint32'),
-            ('wlan_log_max_size',      'I',      'uint32'),
-            ('wlan_mac_addr',          'Q',      'uint64'),
-            ('wlan_max_stats',         'I',      'uint32'),
-            ('ltg_resolution',         'I',      'uint32')])
 
+entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
+entry_node_info.description = 'Details about the node hardware and its configuration. Node info values are static after boot.'
+_node_info_node_types =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
+_node_info_node_types += ' b0: Always 0x00\n'
+_node_info_node_types += ' b1: Always 0x01 for 802.11 ref design nodes\n'
+_node_info_node_types += ' b2: CPU High application: 0x1 = AP, 0x2 = STA\n'
+_node_info_node_types += ' b3: CPU Low application: 0x1 = DCF'
+
+entry_node_info.append_field_defs([
+            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+            ('node_type',              'I',      'uint32',  _node_info_node_types),
+            ('node_id',                'I',      'uint32',  'Node ID, as set during wlan_exp init'),
+            ('hw_generation',          'I',      'uint32',  'WARP hardware generation: 3 for WARP v3'),
+            ('wn_ver',                 'I',      'uint32',  'WARPnet version, as packed bytes [0 major minor rev]'),
+            ('fpga_dna',               'Q',      'uint64',  'DNA value of node FPGA'),
+            ('serial_num',             'I',      'uint32',  'Serial number of WARP board'),
+            ('wlan_exp_ver',           'I',      'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
+            ('wlan_max_associations',  'I',      'uint32',  'Maximum number of wireless associations allowed by node'),
+            ('wlan_log_max_size',      'I',      'uint32',  'Maximum size in bytes of node\'s event log'),
+            ('wlan_mac_addr',          'Q',      'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
+            ('wlan_max_stats',         'I',      'uint32',  'Maximum number of statistics structs maintained by node'),
+            ('ltg_resolution',         'I',      'uint32',  'Minimum interval in microseconds of LTG schedules')])
 
 # Experiment Info header - actual exp_info contains a "message" field that
 #  follows this header. Since the message is variable length it is not described
 #  in the fields list below. Full exp_info entries (header + message) must be extracted
 #  directly by a user script.
 entry_exp_info_hdr = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
+entry_exp_info_hdr.description = 'Header for generic experiment info entries created by the user application. '
+entry_exp_info_hdr.description += 'The payload of the EXP_INFO entry is not described by the Python entry type. User '
+entry_exp_info_hdr.description += 'code must access the payload in the binary log data directly.'
 entry_exp_info_hdr.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('info_type',              'H',      'uint16'),
-            ('length',                 'H',      'uint16')])
+            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+            ('info_type',              'H',      'uint16',  'Exp info type (arbitrary value supplied by application'),
+            ('length',                 'H',      'uint16',  'Exp info length (describes arbitrary payload supplied by application')])
 
 
 # Station Info
 entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
-entry_station_info.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('mac_addr',               '6s',     '6uint8'),
-            ('aid',                    'H',      'uint16'),
-            ('host_name',              '20s',    '20uint8'),
-            ('flags',                  'I',      'uint32'),
-            ('rx_last_timestamp',      'Q',      'uint64'),
-            ('rx_last_seq',            'H',      'uint16'),
-            ('rx_last_power',          'b',      'int8'),
-            ('rx_last_rate',           'B',      'uint8'),
-            ('tx_phy_rate',            'B',      'uint8'),
-            ('tx_phy_antenna_mode',    'B',      'uint8'),
-            ('tx_phy_power',           'b',      'int8'),
-            ('tx_phy_flags',           'B',      'uint8'),
-            ('tx_mac_num_tx_max',      'B',      'uint8'),
-            ('tx_mac_flags',           'B',      'uint8'),
-            ('padding',                '2x',     'uint16')])
+entry_station_info.description  = 'Information about an 802.11 association. At the AP one STATION_INFO is created '
+entry_station_info.description += 'for each associated STA and is logged whenever the STA association state changes. '
+entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
 
+entry_station_info.append_field_defs([
+            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+            ('mac_addr',               '6s',     '6uint8',  'MAC address of associated device'),
+            ('aid',                    'H',      'uint16',  'Association ID (AID) of device'),
+            ('host_name',              '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
+            ('flags',                  'I',      'uint32',  'Association state flags: ???'),
+            ('rx_last_timestamp',      'Q',      'uint64',  'Microsecond timer value at time of last successful Rx from device'),
+            ('rx_last_seq',            'H',      'uint16',  'Sequence number of last packet received from device'),
+            ('rx_last_power',          'b',      'int8',    'Rx power in dBm of last packet received from device'),
+            ('rx_last_rate',           'B',      'uint8',   'PHY rate index in [1:8] of last packet received from device'),
+            ('tx_phy_rate',            'B',      'uint8',   'Current PHY rate index in [1:8] for new transmissions to device'),
+            ('tx_phy_antenna_mode',    'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
+            ('tx_phy_power',           'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
+            ('tx_phy_flags',           'B',      'uint8',   'Flags for Tx PHY config for new transmissions to deivce'),
+            ('tx_mac_num_tx_max',      'B',      'uint8',   'Maximum number of transmissions (original Tx + re-Tx) per MPDU to device'),
+            ('tx_mac_flags',           'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
+            ('padding',                '2x',     'uint16',  '')])
 
 # WARPNet Command Info
 entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
+entry_wn_cmd_info.description  = 'Record of a WARPnet / wlan_exp command received by the node. The full command payload '
+entry_wn_cmd_info.description += 'is logged, including any (possibly personal-info-carrying) parameters like MAC addresses.'
 entry_wn_cmd_info.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('command',                'I',      'uint32'),
-            ('src_id',                 'H',      'uint16'),
-            ('num_args',               'H',      'uint16'),
-            ('args',                   '10I',    '10uint32')])
-
+            ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
+            ('command',                'I',      'uint32', 'WARPnet / wlan_exp command ID'),
+            ('src_id',                 'H',      'uint16',  'Node ID of device sending command'),
+            ('num_args',               'H',      'uint16',  'Number of arguments supplied in command'),
+            ('args',                   '10I',    '10uint32','Command arguments')])
 
 # Time Info
 entry_time_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
+entry_time_info.description  = 'Record of a time base event at the node. This log entry is used to enable parsing of log data '
+entry_time_info.description +='recored before and after changes to the node\'s microsecond timer. This entry also allows a wlan_exp controler to write the current '
+entry_time_info.description +='absolute time to the node log without affecting the node\'s timer value. This enables adjustment of log entry timestamps to '
+entry_time_info.description +='real timestamps in post-proessing.'
 entry_time_info.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('time_id',                'I',      'uint32'), 
-            ('reason',                 'I',      'uint32'), 
-            ('new_time',               'Q',      'uint64'),
-            ('abs_time',               'Q',      'uint64')])
-
+            ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
+            ('time_id',                'I',      'uint32', 'Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes'), 
+            ('reason',                 'I',      'uint32', 'Reason code for TIME_INFO log entry creation'), 
+            ('new_time',               'Q',      'uint64',  'New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed'),
+            ('abs_time',               'Q',      'uint64',  'Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
 
 # Temperature
 entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
@@ -519,7 +566,7 @@ entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_ofdm.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_rx_ofdm.append_field_defs([
-            ('chan_est',               '256B',   '(64,2)i2'),
+            ('chan_est',               '256B',   '(64,2)i2'), #!!!
             ('mac_payload_len',        'I',      'uint32'),
             ('mac_payload',            '24s',    '24uint8')])
 entry_rx_ofdm.consts['FCS_GOOD'] = 0
