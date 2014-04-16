@@ -332,6 +332,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
     u32           id;
     u32           flags;
     u32           serial_number;
+    u32           num_blinks;
+    u32           time_per_blink;
 	u32           start_index;
 	u32           curr_index;
 	u32           next_index;
@@ -350,9 +352,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 	u32           ant_mode;
 	u32           type;
 
-	u32 mem_addr;
-	u32 mem_length;
-	u32 mem_idx;
+	u32           mem_addr;
+	u32           mem_length;
+	u32           mem_idx;
 
 	u32           entry_size;
 	u32           entry_remaining;
@@ -386,7 +388,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 	switch(cmdID){
 
 	    //---------------------------------------------------------------------
-        case WARPNET_TYPE:
+        case CMDID_WARPNET_TYPE:
         	// Return the WARPNet Type
             respArgs32[respIndex++] = Xil_Htonl( node_info.type );    
 
@@ -400,7 +402,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
         
     
 	    //---------------------------------------------------------------------
-		case NODE_INFO:
+		case CMDID_NODE_INFO:
 			// Return the info about the WLAN_EXP_NODE
             
             // Send node parameters
@@ -434,27 +436,30 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
         
 
 	    //---------------------------------------------------------------------
-		case NODE_IDENTIFY:
+		case CMDID_NODE_IDENTIFY:
 			// Blink the HEX display LEDs
-			//     The current blink time is 10 seconds (25 times at 0.4 sec per blink)
-			//     Returns Null Response
+            //   - cmdArgs32[0] - Serial Number
+            //   - cmdArgs32[1] - Number of blinks
+            //   - cmdArgs32[2] - Microseconds per blink (must be an even number)
+            //
 
-            #define NODE_IDENTIFY_NUM_BLINKS         25
-            #define NODE_IDENTIFY_BLINK_USEC_HALF    200000
-
-			// Get the serial number to identify
-			temp = Xil_Ntohl(cmdArgs32[0]);
+			// Get command parameters
+			serial_number  = Xil_Ntohl(cmdArgs32[0]);
+			num_blinks     = Xil_Ntohl(cmdArgs32[1]);
+			time_per_blink = (Xil_Ntohl(cmdArgs32[2]) >> 1);
 
 			u32  left_hex;
 			u32  right_hex;
 
-			if ( (temp == NODE_IDENTIFY_ALL) || (temp == node_info.serial_number) ) {
-	            xil_printf("WARPNET Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
+			xil_printf("NODE IDENTIFY:  Num blinks = %8d   Time = %8d usec\n", num_blinks, time_per_blink);
+
+			if ( (serial_number == CMD_PARAM_NODE_IDENTIFY_ALL) || (serial_number == node_info.serial_number) ) {
+	            xil_printf("    WARPNET Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node, node_info.ip_addr[0], node_info.ip_addr[1],node_info.ip_addr[2],node_info.ip_addr[3]);
 
 				// Send the response early so that code does not time out while waiting for blinks
 				//   The host is responsible for waiting until the LED blinking is done before issuing the
 				//   node another command.
-	            respArgs32[respIndex++] = Xil_Htonl( NODE_SUCCESS );
+	            respArgs32[respIndex++] = Xil_Htonl( CMD_PARAM_SUCCESS );
 	            respHdr->length        += (respIndex * sizeof(respArgs32));
 				respHdr->numArgs        = respIndex;
 				node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
@@ -465,19 +470,19 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             	right_hex = userio_read_hexdisp_right(USERIO_BASEADDR);
 
             	// Blink for 10 seconds
-				for (i = 0; i < NODE_IDENTIFY_NUM_BLINKS; i++){
+				for (i = 0; i < num_blinks; i++){
 	                userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
 			        userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
 			        userio_write_hexdisp_right(USERIO_BASEADDR, 0x00);
-					usleep(NODE_IDENTIFY_BLINK_USEC_HALF);
+					usleep(time_per_blink);
 
 					userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
 	                userio_write_hexdisp_left( USERIO_BASEADDR, left_hex );
 		            userio_write_hexdisp_right(USERIO_BASEADDR, right_hex );
-					usleep(NODE_IDENTIFY_BLINK_USEC_HALF);
+					usleep(time_per_blink);
 				}
 			} else {
-	            respArgs32[respIndex++] = Xil_Htonl( NODE_ERROR );
+	            respArgs32[respIndex++] = Xil_Htonl( CMD_PARAM_ERROR );
 	            respHdr->length        += (respIndex * sizeof(respArgs32));
 				respHdr->numArgs        = respIndex;
 			}
@@ -485,7 +490,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_CONFIG_SETUP:
+		case CMDID_NODE_CONFIG_SETUP:
             // NODE_CONFIG_SETUP Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
@@ -540,14 +545,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
         
 	    //---------------------------------------------------------------------
-		case NODE_CONFIG_RESET:
+		case CMDID_NODE_CONFIG_RESET:
             // NODE_CONFIG_RESET Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
             //   - cmdArgs32[0] - Serial Number
             // 
             
-			if (dest_id != BROADCAST_ID) {
+			if (dest_id != BROADCAST_DEST_ID) {
 				// Send the response early so that M-Code does not hang when IP address changes
 				node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
 				respSent = RESP_SENT;
@@ -556,7 +561,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			serial_number = Xil_Ntohl(cmdArgs32[0]);
 
             // Only update the parameters if the serial numbers match or this it is "all serial numbers"
-            if ( (node_info.serial_number ==  serial_number) || (NODE_CONFIG_RESET_ALL == serial_number) ) {
+            if ( (node_info.serial_number ==  serial_number) || (CMD_PARAM_NODE_CONFIG_RESET_ALL == serial_number) ) {
 
             	if (node_info.node != 0xFFFF){
 
@@ -591,7 +596,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_TEMPERATURE:
+		case CMDID_NODE_TEMPERATURE:
             // NODE_TEMPERATURE
             //   - If the system monitor exists, return the current, min and max temperature of the node
             //
@@ -605,7 +610,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 		//---------------------------------------------------------------------
-		case NODE_GET_STATION_INFO:
+		case CMDID_NODE_GET_STATION_INFO:
             // NODE_GET_STATION_INFO Packet Format:
 			//   - cmdArgs32[0]   - buffer id
 			//   - cmdArgs32[1]   - flags
@@ -648,7 +653,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
             } else {
 				// If parameter is not the magic number to return all Station Info structures
-				if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+				if ( id != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
 					// Find the station_info entry
 					curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
 
@@ -774,39 +779,39 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_RESET_STATE:
+		case CMDID_NODE_RESET_STATE:
             // NODE_RESET_STATE Packet Format:
 			//   - cmdArgs32[0]  - Flags
 			//                     [0] - NODE_RESET_LOG
 			//                     [1] - NODE_RESET_TXRX_STATS
 			temp   = Xil_Ntohl(cmdArgs32[0]);
-			status = 0;
+			status = CMD_PARAM_SUCCESS;
 
 			// Disable interrupts so no packets interrupt the reset
 			wlan_mac_high_interrupt_stop();
 			// Configure the LOG based on the flag bits
-			if ( ( temp & NODE_RESET_LOG ) == NODE_RESET_LOG ) {
+			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_LOG ) == CMD_PARAM_NODE_RESET_FLAG_LOG ) {
 				xil_printf("EVENT LOG:  Reset log\n");
 				event_log_reset();
 			}
 
-			if ( ( temp & NODE_RESET_TXRX_STATS ) == NODE_RESET_TXRX_STATS ) {
+			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS ) == CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS ) {
 				xil_printf("Reseting Statistics\n");
 				reset_station_statistics();
 			}
 
-			if ( ( temp & NODE_RESET_LTG ) == NODE_RESET_LTG ) {
+			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_LTG ) == CMD_PARAM_NODE_RESET_FLAG_LTG ) {
 				status = ltg_sched_remove( LTG_REMOVE_ALL );
 
 				if ( status != 0 ) {
 					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
-					status = NODE_LTG_ERROR;
+					status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 				} else {
 					xil_printf("Removing All LTGs.\n");
 				}
 			}
 
-			if ( ( temp & NODE_RESET_TX_DATA_QUEUE ) == NODE_RESET_TX_DATA_QUEUE ) {
+			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE ) == CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE ) {
 				xil_printf("Purging All Data Transmit Queues\n");
 				purge_all_data_tx_queue();
 			}
@@ -823,19 +828,19 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_TX_POWER:
+		case CMDID_NODE_TX_POWER:
             // NODE_TX_POWER Packet Format:
 			//   - cmdArgs32[0]  - Command
 			//   - cmdArgs32[1]  - Power (shifted by TX_POWER_MIN_DBM)
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
 			temp    = Xil_Ntohl(cmdArgs32[1]);
-			status  = NODE_SUCCESS;
+			status  = CMD_PARAM_SUCCESS;
 
 			// Shift temp to get power
 			power = temp + TX_POWER_MIN_DBM;
 
 			// Operate on the msg_cmd
-			if ( msg_cmd == NODE_WRITE_VAL ) {
+			if ( msg_cmd == CMD_PARAM_WRITE_VAL ) {
 
 				// Check that the power is within the specified bounds
 		        if ((power >= TX_POWER_MIN_DBM) && (power <= TX_POWER_MAX_DBM)){
@@ -864,7 +869,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				    wlan_mac_high_set_tx_ctrl_pow(power);
 
 		        } else {
-		        	status = NODE_ERROR;
+		        	status = CMD_PARAM_ERROR;
 		        }
 			}
 
@@ -882,7 +887,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_TX_RATE:
+		case CMDID_NODE_TX_RATE:
             // NODE_TX_RATE Packet Format:
 			//   - cmdArgs32[0]      - Command
 			//   - cmdArgs32[1]      - Type
@@ -892,66 +897,66 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
 			type    = Xil_Ntohl(cmdArgs32[1]);
 			rate    = Xil_Ntohl(cmdArgs32[2]);
-			status  = NODE_SUCCESS;
+			status  = CMD_PARAM_SUCCESS;
 
 			// Adjust the rate so that it falls in an acceptable range
 			if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
 			if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
 
-			if (type == NODE_UNICAST_VAL) {
+			if (type == CMD_PARAM_UNICAST_VAL) {
 				switch (msg_cmd) {
-                    case NODE_WRITE_VAL:
-                    case NODE_READ_VAL:
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_READ_VAL:
         				// Get MAC Address
         				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
         				id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
         				rate = node_process_tx_rate( msg_cmd, id, (rate & 0xFF));
 
-        				if ( (rate << 24) == NODE_ERROR ) {
-        					status = NODE_ERROR;
+        				if ( (rate << 24) == CMD_PARAM_ERROR ) {
+        					status = CMD_PARAM_ERROR;
         				}
                     break;
 
-                    case NODE_WRITE_DEFAULT_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
     					// Set the default unicast rate
     					default_unicast_data_tx_params.phy.rate = rate;
     					xil_printf("Setting Default Unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
 					break;
 
-                    case NODE_READ_DEFAULT_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
     					// Get the default rate
     					rate = default_unicast_data_tx_params.phy.rate;
 					break;
 
                     default:
     					xil_printf("Unknown command: %d\n", msg_cmd);
-    					status = NODE_ERROR;
+    					status = CMD_PARAM_ERROR;
                     break;
 				}
-			} else if (type == NODE_MULTICAST_VAL) {
+			} else if (type == CMD_PARAM_MULTICAST_VAL) {
 				switch (msg_cmd) {
-                    case NODE_WRITE_VAL:
-                    case NODE_WRITE_DEFAULT_VAL:
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
     					// Set the default multicast rate
     					default_multicast_data_tx_params.phy.rate = rate;
     					xil_printf("Setting Default Multicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
 					break;
 
-                    case NODE_READ_VAL:
-                    case NODE_READ_DEFAULT_VAL:
+                    case CMD_PARAM_READ_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
     					// Get the default rate
     					rate = default_multicast_data_tx_params.phy.rate;
 					break;
 
                     default:
     					xil_printf("Unknown command: %d\n", msg_cmd);
-    					status = NODE_ERROR;
+    					status = CMD_PARAM_ERROR;
                     break;
 				}
 			} else {
 				xil_printf("WARNING:  Unknown type for NODE_TX_RATE: %d \n", type);
-				status = NODE_ERROR;
+				status = CMD_PARAM_ERROR;
 			}
 
 			// Send response
@@ -964,7 +969,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_TX_ANT_MODE:
+		case CMDID_NODE_TX_ANT_MODE:
             // NODE_TX_ANT_MODE Packet Format:
 			//   - cmdArgs32[0]      - Command
 			//   - cmdArgs32[1]      - Type
@@ -974,46 +979,46 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			msg_cmd  = Xil_Ntohl(cmdArgs32[0]);
 			type     = Xil_Ntohl(cmdArgs32[1]);
 			ant_mode = Xil_Ntohl(cmdArgs32[2]);
-			status  = NODE_SUCCESS;
+			status  = CMD_PARAM_SUCCESS;
 
 			// NOTE:  This method assumes that the Antenna mode received is valid.
 			// The checking will be done on either the host, in CPU Low or both.
 
-			if (type == NODE_UNICAST_VAL) {
+			if (type == CMD_PARAM_UNICAST_VAL) {
 				switch (msg_cmd) {
-                    case NODE_WRITE_VAL:
-                    case NODE_READ_VAL:
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_READ_VAL:
         				// Get MAC Address
         				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
         				id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
         				ant_mode = node_process_tx_ant_mode( msg_cmd, id, (ant_mode & 0xFF));
 
-        				if ( (ant_mode << 24) == NODE_ERROR ) {
-        					status = NODE_ERROR;
+        				if ( (ant_mode << 24) == CMD_PARAM_ERROR ) {
+        					status = CMD_PARAM_ERROR;
         				}
                     break;
 
-                    case NODE_WRITE_DEFAULT_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
 						// Set the default unicast rate
 						default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
 						xil_printf("Setting Default Unicast TX antenna mode to %d \n", ant_mode);
 					break;
 
-                    case NODE_READ_DEFAULT_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
 						// Get the default rate
 						ant_mode = default_unicast_data_tx_params.phy.antenna_mode;
 					break;
 
                     default:
     					xil_printf("Unknown command: %d\n", msg_cmd);
-    					status = NODE_ERROR;
+    					status = CMD_PARAM_ERROR;
                     break;
 				}
-			} else if (type == NODE_MULTICAST_VAL) {
+			} else if (type == CMD_PARAM_MULTICAST_VAL) {
 				switch (msg_cmd) {
-                    case NODE_WRITE_VAL:
-                    case NODE_WRITE_DEFAULT_VAL:
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
     					// Set the default multicast rate
     					default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
     					default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
@@ -1022,20 +1027,20 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
     					xil_printf("Setting Default Multicast TX antenna mode to %d\n", ant_mode);
 					break;
 
-                    case NODE_READ_VAL:
-                    case NODE_READ_DEFAULT_VAL:
+                    case CMD_PARAM_READ_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
     					// Get the default rate
     					ant_mode = (default_multicast_mgmt_tx_params.phy.antenna_mode << 16) + default_multicast_data_tx_params.phy.antenna_mode;
 					break;
 
                     default:
     					xil_printf("Unknown command: %d\n", msg_cmd);
-    					status = NODE_ERROR;
+    					status = CMD_PARAM_ERROR;
                     break;
 				}
 			} else {
 				xil_printf("WARNING:  Unknown type for NODE_TX_RATE: %d \n", type);
-				status = NODE_ERROR;
+				status = CMD_PARAM_ERROR;
 			}
 
 			// Send response
@@ -1048,7 +1053,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_RX_ANT_MODE:
+		case CMDID_NODE_RX_ANT_MODE:
             // NODE_RX_ANT_MODE Packet Format:
 			//   - cmdArgs32[0]      - Command
 			//   - cmdArgs32[1]      - Antenna Mode
@@ -1058,23 +1063,23 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			msg_cmd  = Xil_Ntohl(cmdArgs32[0]);
 			ant_mode = Xil_Ntohl(cmdArgs32[1]);
-			status  = NODE_SUCCESS;
+			status  = CMD_PARAM_SUCCESS;
 
 			switch (msg_cmd) {
-				case NODE_WRITE_VAL:
-				case NODE_WRITE_DEFAULT_VAL:
+				case CMD_PARAM_WRITE_VAL:
+				case CMD_PARAM_WRITE_DEFAULT_VAL:
 					xil_printf("Setting RX antenna mode to %d \n", ant_mode);
 	            	wlan_mac_high_set_rx_ant_mode(ant_mode);
 				break;
 
-				case NODE_READ_VAL:
-				case NODE_READ_DEFAULT_VAL:
+				case CMD_PARAM_READ_VAL:
+				case CMD_PARAM_READ_DEFAULT_VAL:
 	            	ant_mode = rx_ant_mode_tracker;
 				break;
 
 				default:
 					xil_printf("Unknown command: %d\n", msg_cmd);
-					status = NODE_ERROR;
+					status = CMD_PARAM_ERROR;
 				break;
 			}
 
@@ -1091,7 +1096,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_TIME:
+		case CMDID_NODE_TIME:
 			// Set / Get node time
 			//
 			// Message format:
@@ -1113,20 +1118,20 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
 			id      = Xil_Ntohl(cmdArgs32[1]);
 			time    = get_usec_timestamp();
-			status  = NODE_SUCCESS;
+			status  = CMD_PARAM_SUCCESS;
 
 			time_info_entry * time_entry;
 
 			switch (msg_cmd) {
-				case NODE_WRITE_VAL:
-				case NODE_TIME_ADD_TO_LOG_VAL:
+				case CMD_PARAM_WRITE_VAL:
+				case CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL:
 					// Get the new time
 					temp     = Xil_Ntohl(cmdArgs32[2]);
 					temp2    = Xil_Ntohl(cmdArgs32[3]);
 					new_time = (((u64)temp2)<<32) + ((u64)temp);
 
 					// If this is a write, then update the time on the node
-					if (msg_cmd == NODE_WRITE_VAL){
+					if (msg_cmd == CMD_PARAM_WRITE_VAL){
 						wlan_mac_high_set_timestamp( new_time );
 						xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
 					}
@@ -1144,7 +1149,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					if (time_entry != NULL) {
 					    time_entry->timestamp  = time;
 					    time_entry->time_id    = id;
-					    if ( msg_cmd == NODE_WRITE_VAL) {
+					    if ( msg_cmd == CMD_PARAM_WRITE_VAL) {
 							time_entry->reason = TIME_INFO_ENTRY_WN_SET_TIME;
 					    } else {
 							time_entry->reason = TIME_INFO_ENTRY_WN_ADD_LOG;
@@ -1155,17 +1160,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 					// If this was a write, then update the time value so we can return it to the host
 					//   This is done after the log entry to the fields are correct in the entry.
-					if (msg_cmd == NODE_WRITE_VAL){
+					if (msg_cmd == CMD_PARAM_WRITE_VAL){
 						time = new_time;
 					}
 			    break;
 
-				case NODE_READ_VAL:
+				case CMD_PARAM_READ_VAL:
 				break;
 
 				default:
 					xil_printf("Unknown command: %d\n", msg_cmd);
-					status = NODE_ERROR;
+					status = CMD_PARAM_ERROR;
 				break;
 			}
 
@@ -1183,7 +1188,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LOW_TO_HIGH_FILTER:
+		case CMDID_NODE_LOW_TO_HIGH_FILTER:
 			// Set node MAC low to high filter
 			//
 			// Message format:
@@ -1195,17 +1200,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
 			temp    = Xil_Ntohl(cmdArgs32[1]);
-			status  = NODE_SUCCESS;
+			status  = CMD_PARAM_SUCCESS;
 
 			switch (msg_cmd) {
-				case NODE_WRITE_VAL:
+				case CMD_PARAM_WRITE_VAL:
 					xil_printf("Setting RX filter = 0x%08x\n", temp);
 					wlan_mac_high_set_rx_filter_mode(temp);
 			    break;
 
 				default:
 					xil_printf("Unknown command: %d\n", msg_cmd);
-					status = NODE_ERROR;
+					status = CMD_PARAM_ERROR;
 				break;
 			}
 
@@ -1217,63 +1222,67 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 		break;
 
 	    //---------------------------------------------------------------------
-		case NODE_MEM_HIGH:
+		case CMDID_DEV_MEM_HIGH:
 			// Read/write memory in CPU High
 			//
 			// Write Message format:
-			//     cmdArgs32[0]   Command==NODE_WRITE_VAL
+			//     cmdArgs32[0]   Command==CMD_PARAM_WRITE_VAL
 			//     cmdArgs32[1]   address
 			//     cmdArgs32[2]   length (number of u32 words to write)
 			//     cmdArgs32[3:]   values to write (integral number of u32 words)
 			// Response format:
-			//     No args
-
+			//	   respArgs32[0]  Status
+            //
 			// Read Message format:
 			//     cmdArgs32[0]   Command==NODE_READ_VAL
 			//     cmdArgs32[1]   address
 			//     cmdArgs32[2]   length (number of u32 words to read)
 			// Response format:
-			//	   respArgs32[0]  Length (number of u32 values)
-			//     respArgs32[1:]  Memory values (length u32 values)
+			//	   respArgs32[0]  Status
+			//	   respArgs32[1]  Length (number of u32 values)
+			//     respArgs32[2:]  Memory values (length u32 values)
 			//
-			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
-
-			mem_addr = Xil_Ntohl(cmdArgs32[1]);
+			msg_cmd    = Xil_Ntohl(cmdArgs32[0]);
+			mem_addr   = Xil_Ntohl(cmdArgs32[1]);
 			mem_length = Xil_Ntohl(cmdArgs32[2]);
+			status     = CMD_PARAM_SUCCESS;
+			temp       = 0;
 
 			switch (msg_cmd) {
-				case NODE_WRITE_VAL:
+				case CMD_PARAM_WRITE_VAL:
 					xil_printf("Writing CPU High Mem:\n");
 					xil_printf(" Addr: 0x%08x\n", mem_addr);
 					xil_printf(" Len:  %d\n", mem_length);
 
-					//Don't bother if length is clearly bogus
+					// Don't bother if length is clearly bogus
 					if(mem_length < 1400) {
 						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
 							xil_printf(" W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmdArgs32[3 + mem_idx]));
 							Xil_Out32((mem_addr + mem_idx*sizeof(u32)), Xil_Ntohl(cmdArgs32[3 + mem_idx]));
 						}
+					} else {
+						xil_printf("    ERROR: Write too long.  Must be 1400 bytes or less.\n");
+						status = CMD_PARAM_ERROR;
 					}
-
-					// Send response
-					respHdr->length += (respIndex * sizeof(respArgs32));
-					respHdr->numArgs = respIndex;
 				break;
 
-				case NODE_READ_VAL:
-					/*
+				case CMD_PARAM_READ_VAL:
 					xil_printf("Reading CPU High Mem:\n");
 					xil_printf(" Addr: 0x%08x\n", mem_addr);
 					xil_printf(" Len:  %d\n", mem_length);
-					 */
-
-					// Add length argument to response
-		            respArgs32[respIndex++] = Xil_Htonl( mem_length );
-					respHdr->length += sizeof(u32);
-					respHdr->numArgs++;
 
 					// Add payload to response
 					if(mem_length < 1400) {
+
+						// Don't set the default response
+						temp = 1;
+
+						// Add length argument to response
+			            respArgs32[respIndex++] = Xil_Htonl( status );
+			            respArgs32[respIndex++] = Xil_Htonl( mem_length );
+						respHdr->length += (respIndex * sizeof(respArgs32));
+						respHdr->numArgs = respIndex;
+
 						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
 							respArgs32[respIndex + mem_idx] = Xil_Ntohl(Xil_In32((void*)(mem_addr) + mem_idx*sizeof(u32)));
 						}
@@ -1281,19 +1290,28 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 						// Update response header with payload length
 						respHdr->length += (mem_length * sizeof(u32));
 						respHdr->numArgs += mem_length;
+					} else {
+						xil_printf("    ERROR: Read too long.  Must be 1400 bytes or less.\n");
+					    status = CMD_PARAM_ERROR;
 					}
-
 				break;
 
 				default:
 					xil_printf("Unknown command: %d\n", msg_cmd);
-					status = NODE_ERROR;
+					status = CMD_PARAM_ERROR;
 				break;
+			}
+
+			if (temp == 0) {
+				// Send default response
+	            respArgs32[respIndex++] = Xil_Htonl( status );
+				respHdr->length += (respIndex * sizeof(respArgs32));
+				respHdr->numArgs = respIndex;
 			}
 		break;
 
 	    //---------------------------------------------------------------------
-		case NODE_MEM_LOW:
+		case CMDID_DEV_MEM_LOW:
 			// Read/write memory in CPU Low via IPC message
 			//
 			// Write Message format:
@@ -1302,59 +1320,60 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//     cmdArgs32[2]   length (number of u32 words to write)
 			//     cmdArgs32[3:]   values to write (integral number of u32 words)
 			// Response format:
-			//     No args
-
+			//	   respArgs32[0]  Status
+            //
 			// Read Message format:
 			//     cmdArgs32[0]   Command==NODE_READ_VAL
 			//     cmdArgs32[1]   address
 			//     cmdArgs32[2]   length (number of u32 words to read)
 			// Response format:
-			//	   respArgs32[0]  Length (number of u32 values)
-			//     respArgs32[1:]  Memory values (length u32 values)
+			//	   respArgs32[0]  Status
+			//	   respArgs32[1]  Length (number of u32 values)
+			//     respArgs32[2:]  Memory values (length u32 values)
 			//
-			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
-
-
-
-			mem_addr = Xil_Ntohl(cmdArgs32[1]);
+			msg_cmd    = Xil_Ntohl(cmdArgs32[0]);
+			mem_addr   = Xil_Ntohl(cmdArgs32[1]);
 			mem_length = Xil_Ntohl(cmdArgs32[2]);
+			status     = CMD_PARAM_SUCCESS;
+			temp       = 0;
 
 			switch (msg_cmd) {
-				case NODE_WRITE_VAL:
-					/*
+				case CMD_PARAM_WRITE_VAL:
 					xil_printf("Writing CPU Low Mem:\n");
 					xil_printf(" Addr: 0x%08x\n", mem_addr);
 					xil_printf(" Len:  %d\n", mem_length);
-					*/
 
 					//Endian swap payload here - CPU Low requires payload that is ready to use as-is
 					for(mem_idx=0; mem_idx<mem_length+2; mem_idx++) {
 						cmdArgs32[1 + mem_idx] = Xil_Ntohl(cmdArgs32[1 + mem_idx]);
 					}
 
-					wlan_mac_high_write_low_mem(mem_length + 2, &(cmdArgs32[1]));
+					temp2 = wlan_mac_high_write_low_mem(mem_length + 2, &(cmdArgs32[1]));
 
-					// Send response
-					respHdr->length += (respIndex * sizeof(respArgs32));
-					respHdr->numArgs = respIndex;
+					if (temp2 == -1) {
+						xil_printf("    ERROR: Write failed in CPU low.\n");
+						status = CMD_PARAM_ERROR;
+					}
 				break;
 
-				case NODE_READ_VAL:
-					/*
+				case CMD_PARAM_READ_VAL:
 					xil_printf("Reading CPU Low Mem:\n");
 					xil_printf(" Addr: 0x%08x\n", mem_addr);
 					xil_printf(" Len:  %d\n", mem_length);
-					 */
 
-					status = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(respArgs32[1]));
+					temp2 = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(respArgs32[1]));
 
-					if(status == 0) { //Success
-						// Create response payload
-			            respArgs32[0] = Xil_Htonl( mem_length );
-						respHdr->length += sizeof(u32);
-						respHdr->numArgs += 1;
+					if(temp2 == 0) { //Success
+						// Don't set the default response
+						temp = 1;
 
-						//Endian swap payload returned by CPU Low
+						// Add length argument to response
+			            respArgs32[respIndex++] = Xil_Htonl( status );
+			            respArgs32[respIndex++] = Xil_Htonl( mem_length );
+						respHdr->length += (respIndex * sizeof(respArgs32));
+						respHdr->numArgs = respIndex;
+
+						// Endian swap payload returned by CPU Low
 						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
 							respArgs32[1 + mem_idx] = Xil_Ntohl(respArgs32[1 + mem_idx]);
 						}
@@ -1363,33 +1382,39 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 						respHdr->numArgs += mem_length;
 
 					} else { //failed
-			            respArgs32[respIndex++] = 0; //No payload to return!
-						respHdr->length += (respIndex * sizeof(respArgs32));
+						xil_printf("    ERROR: Read failed in CPU low.\n");
+						status = CMD_PARAM_ERROR;
 					}
-
 				break;
 
 				default:
 					xil_printf("Unknown command: %d\n", msg_cmd);
-					status = NODE_ERROR;
+					status = CMD_PARAM_ERROR;
 				break;
+			}
+
+			if (temp == 0) {
+				// Send default response
+	            respArgs32[respIndex++] = Xil_Htonl( status );
+				respHdr->length += (respIndex * sizeof(respArgs32));
+				respHdr->numArgs = respIndex;
 			}
 		break;
 
 		//---------------------------------------------------------------------
-		case NODE_LTG_CONFIG:
+		case CMDID_LTG_CONFIG:
             // NODE_LTG_START Packet Format:
 			//   - cmdArgs32[0]      - Flags
-			//                         [0] - Restart the LTG flow if running
+			//                         [0] - Auto-start the LTG flow
 			//   - cmdArgs32[1 - N]  - LTG Schedule (packed)
 			//                         [0] - [31:16] Type    [15:0] Length
 			//   - cmdArgs32[N+1 - M]- LTG Payload (packed)
 			//                         [0] - [31:16] Type    [15:0] Length
 			//
-            //   - respArgs32[0]     - NODE_SUCCESS
-			//                       - NODE_LTG_ERROR
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 
-        	status = NODE_LTG_ERROR;
+			status = CMD_PARAM_SUCCESS;
         	id     = LTG_ID_INVALID;
 			flags  = Xil_Ntohl(cmdArgs32[0]);
 
@@ -1407,18 +1432,19 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				// Configure the LTG
 				id = ltg_sched_create(t1, params, ltg_callback_arg, &node_ltg_cleanup);
 
-				if(id == LTG_ID_INVALID){
-					xil_printf("ERROR:  Could not create LTG.\n");
-				} else {
-					status = NODE_SUCCESS;
+				if(id != LTG_ID_INVALID){
 					xil_printf("LTG %d configured\n", id);
 
-					if ((flags & NODE_LTG_CONFIG_FLAG_AUTOSTART) == NODE_LTG_CONFIG_FLAG_AUTOSTART) {
-						xil_printf("Starting LTG %d\n", id);
+					if ((flags & CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) == CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) {
+						xil_printf("    Starting LTG %d\n", id);
 						ltg_sched_start( id );
 					}
+				} else {
+		        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+					xil_printf("ERROR:  Could not create LTG.\n");
 				}
 			} else {
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 				xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg or params\n");
 			}
 
@@ -1432,36 +1458,32 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LTG_START:
+		case CMDID_LTG_START:
             // NODE_LTG_START Packet Format:
 			//   - cmdArgs32[0]      - LTG ID
 			//
-            //   - respArgs32[0]     - NODE_SUCCESS
-			//                       - NODE_LTG_ERROR
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 
-			status = NODE_LTG_ERROR;
+			status = CMD_PARAM_SUCCESS;
 			id     = Xil_Ntohl(cmdArgs32[0]);
 
-			if ( id != LTG_ID_INVALID ) {
-				// Try to start the ID
-				status = ltg_sched_start( id );
+			// Try to start the ID
+			temp2 = ltg_sched_start( id );
 
-				if ( status != 0 ) {
-					xil_printf("WARNING:  LTG - LTG %d failed to start.\n", id);
-					status = NODE_LTG_ERROR;
-				} else {
+			if ( temp2 == 0 ) {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
 					xil_printf("Starting LTG %d.\n", id);
-				}
-			} else {
-				// Start all LTGs
-				status = ltg_sched_start_all();
-
-				if ( status != 0 ) {
-					xil_printf("WARNING:  LTG - Some LTGs failed to start.\n");
-					status = NODE_LTG_ERROR;
 				} else {
 					xil_printf("Starting all LTGs.\n");
 				}
+			} else {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("WARNING:  LTG - LTG %d failed to start.\n", id);
+				} else {
+					xil_printf("WARNING:  LTG - Some LTGs failed to start.\n");
+				}
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 			}
 
 			// Send response of current rate
@@ -1473,36 +1495,32 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LTG_STOP:
+		case CMDID_LTG_STOP:
             // NODE_LTG_STOP Packet Format:
 			//   - cmdArgs32[0]      - LTG ID
 			//
-            //   - respArgs32[0]     - NODE_SUCCESS
-			//                       - NODE_LTG_ERROR
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 
-			status = NODE_LTG_ERROR;
+			status = CMD_PARAM_SUCCESS;
 			id     = Xil_Ntohl(cmdArgs32[0]);
 
-			if ( id != LTG_ID_INVALID ) {
-				// Try to start the ID
-				status = ltg_sched_stop( id );
+			// Try to start the ID
+			temp2 = ltg_sched_stop( id );
 
-				if ( status != 0 ) {
-					xil_printf("WARNING:  LTG - LTG %d failed to stop.\n", id);
-					status = NODE_LTG_ERROR;
-				} else {
+			if ( temp2 == 0 ) {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
 					xil_printf("Stopping LTG %d.\n", id);
-				}
-			} else {
-				// Start all LTGs
-				status = ltg_sched_stop_all();
-
-				if ( status != 0 ) {
-					xil_printf("WARNING:  LTG - Some LTGs failed to stop.\n");
-					status = NODE_LTG_ERROR;
 				} else {
 					xil_printf("Stopping all LTGs.\n");
 				}
+			} else {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("WARNING:  LTG - LTG %d failed to stop.\n", id);
+				} else {
+					xil_printf("WARNING:  LTG - Some LTGs failed to stop.\n");
+				}
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 			}
 
 			// Send response of current rate
@@ -1514,36 +1532,32 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LTG_REMOVE:
+		case CMDID_LTG_REMOVE:
             // NODE_LTG_REMOVE Packet Format:
 			//   - cmdArgs32[0]      - LTG ID
 			//
-            //   - respArgs32[0]     - NODE_SUCCESS
-			//                       - NODE_LTG_ERROR
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 
-			status = NODE_LTG_ERROR;
+			status = CMD_PARAM_SUCCESS;
 			id     = Xil_Ntohl(cmdArgs32[0]);
 
-			if ( id != LTG_ID_INVALID ) {
-				// Try to remove the ID
-				status = ltg_sched_remove( id );
+			// Try to remove the ID
+			temp2 = ltg_sched_remove( id );
 
-				if ( status != 0 ) {
-					xil_printf("WARNING:  LTG - LTG %d failed to remove.\n", id);
-					status = NODE_LTG_ERROR;
-				} else {
+			if ( temp2 == 0 ) {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
 					xil_printf("Removing LTG %d.\n", id);
-				}
-			} else {
-				// Remove all LTGs
-				status = ltg_sched_remove( id );
-
-				if ( status != 0 ) {
-					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
-					status = NODE_LTG_ERROR;
 				} else {
 					xil_printf("Removing All LTGs.\n");
 				}
+			} else {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("WARNING:  LTG - LTG %d failed to remove.\n", id);
+				} else {
+					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
+				}
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 			}
 
 			// Send response of status
@@ -1555,20 +1569,20 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LOG_CONFIG:
+		case CMDID_LOG_CONFIG:
             // NODE_LOG_CONFIG Packet Format:
 			//   - cmdArgs32[0]  - flags
 			//                     [ 0] - Logging Enabled = 1; Logging Disabled = 0;
 			//                     [ 1] - Wrap = 1; No Wrap = 0;
 			//                     [ 2] - Full Payloads Enabled = 1; Full Payloads Disabled = 0;
 			//                     [ 3] - Log WN Cmds Enabled = 1; Log WN Cmds Disabled = 0;
-			//   - cmdArgs32[0]  - mask for flags
+			//   - cmdArgs32[1]  - mask for flags
 			//
-            //   - respArgs32[0] - 0           - Success
-			//                     0xFFFF_FFFF - Failure
+            //   - respArgs32[0] - CMD_PARAM_SUCCESS
+			//                   - CMD_PARAM_ERROR
 
 			// Set the return value
-			status = 0;
+			status = CMD_PARAM_SUCCESS;
 
 			// Get flags
 			temp  = Xil_Ntohl(cmdArgs32[0]);
@@ -1577,32 +1591,32 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			xil_printf("EVENT LOG:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
 
 			// Configure the LOG based on the flag bit / mask
-			if ( ( temp2 & NODE_LOG_CONFIG_FLAG_LOGGING ) == NODE_LOG_CONFIG_FLAG_LOGGING ) {
-				if ( ( temp & NODE_LOG_CONFIG_FLAG_LOGGING ) == NODE_LOG_CONFIG_FLAG_LOGGING ) {
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) {
 					event_log_config_logging( EVENT_LOG_LOGGING_ENABLE );
 				} else {
 					event_log_config_logging( EVENT_LOG_LOGGING_DISABLE );
 				}
 			}
 
-			if ( ( temp2 & NODE_LOG_CONFIG_FLAG_WRAP ) == NODE_LOG_CONFIG_FLAG_WRAP ) {
-				if ( ( temp & NODE_LOG_CONFIG_FLAG_WRAP ) == NODE_LOG_CONFIG_FLAG_WRAP ) {
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) {
 					event_log_config_wrap( EVENT_LOG_WRAP_ENABLE );
 				} else {
 					event_log_config_wrap( EVENT_LOG_WRAP_DISABLE );
 				}
 			}
 
-			if ( ( temp2 & NODE_LOG_CONFIG_FLAG_PAYLOADS ) == NODE_LOG_CONFIG_FLAG_PAYLOADS ) {
-				if ( ( temp & NODE_LOG_CONFIG_FLAG_PAYLOADS ) == NODE_LOG_CONFIG_FLAG_PAYLOADS ) {
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) {
 					set_mac_payload_log_len( MAX_MAC_PAYLOAD_LOG_LEN );
 				} else {
 					set_mac_payload_log_len( MIN_MAC_PAYLOAD_LOG_LEN );
 				}
 			}
 
-			if ( ( temp2 & NODE_LOG_CONFIG_FLAG_WN_CMDS ) == NODE_LOG_CONFIG_FLAG_WN_CMDS ) {
-				if ( ( temp & NODE_LOG_CONFIG_FLAG_WN_CMDS ) == NODE_LOG_CONFIG_FLAG_WN_CMDS ) {
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) == CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) == CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) {
 					wlan_exp_enable_logging = 1;
 				} else {
 					wlan_exp_enable_logging = 0;
@@ -1618,7 +1632,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LOG_GET_INFO:
+		case CMDID_LOG_GET_INFO:
             // NODE_LOG_GET_INFO Packet Format:
             //   - respArgs32[0] - Next empty entry index
             //   - respArgs32[1] - Oldest empty entry index
@@ -1650,7 +1664,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LOG_GET_CAPACITY:
+		case CMDID_LOG_GET_CAPACITY:
             // NODE_LOG_GET_CAPACITY Packet Format:
             //   - respArgs32[0] - Max log size
             //   - respArgs32[1] - Current log size
@@ -1672,7 +1686,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LOG_GET_ENTRIES:
+		case CMDID_LOG_GET_ENTRIES:
             // NODE_LOG_GET_ENTRIES Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
@@ -1712,7 +1726,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             evt_log_size      = event_log_get_size(start_index);
 
             // Check if we should transfer everything or if the request was larger than the current log
-            if ( ( size == NODE_LOG_GET_ALL_ENTRIES ) || ( size > evt_log_size ) ) {
+            if ( ( size == CMD_PARAM_LOG_GET_ALL_ENTRIES ) || ( size > evt_log_size ) ) {
                 size = evt_log_size;
             }
 
@@ -1782,20 +1796,20 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_LOG_ADD_ENTRY:
+		case CMDID_LOG_ADD_ENTRY:
 			xil_printf("EVENT LOG:  Add Event not supported\n");
 	    break;
 
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_LOG_ENABLE_ENTRY:
+		case CMDID_LOG_ENABLE_ENTRY:
 			xil_printf("EVENT LOG:  Enable Event not supported\n");
 	    break;
 
 
 	    //---------------------------------------------------------------------
-		case NODE_LOG_STREAM_ENTRIES:
+		case CMDID_LOG_STREAM_ENTRIES:
 			// Stream entries from the log
 			//
 			// Message format:
@@ -1843,31 +1857,33 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_STATS_CONFIG_TXRX:
+		case CMDID_STATS_CONFIG_TXRX:
             // NODE_STATS_CONFIG_TXRX Packet Format:
 			//   - cmdArgs32[0]  - flags
 			//                     [ 0] - Promiscuous stats collected = 1
 			//                            Promiscuous stats not collected = 0
+			//   - cmdArgs32[1]  - mask for flags
 			//
-			//   If the value is NODE_STATS_CONFIG_RSVD_VAL, then the flags will
-			//   not be modified.
-			//
-            //   - respArgs32[0] - Value of flags
-			//
+            //   - respArgs32[0] - CMD_PARAM_SUCCESS
+			//                   - CMD_PARAM_ERROR
+
+			// Set the return value
+			status = CMD_PARAM_SUCCESS;
 
 			// Get flags
-			temp = Xil_Ntohl(cmdArgs32[0]);
+			temp  = Xil_Ntohl(cmdArgs32[0]);
+			temp2 = Xil_Ntohl(cmdArgs32[1]);
 
-			if (temp != NODE_STATS_CONFIG_RSVD_VAL){
-				// Configure the LOG based on the flag bits
-				if ( ( temp & NODE_STATS_CONFIG_FLAG_PROMISC ) == NODE_STATS_CONFIG_FLAG_PROMISC ) {
+			xil_printf("STATS:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+
+			// Configure the LOG based on the flag bit / mask
+			if ( ( temp2 & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) {
+				if ( ( temp & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) {
 					promiscuous_stats_enabled = 1;
 				} else {
 					promiscuous_stats_enabled = 0;
 				}
 			}
-			// Set the return value
-			status = 0;
 
 			// Send response of status
             respArgs32[respIndex++] = Xil_Htonl( status );
@@ -1878,7 +1894,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case NODE_STATS_ADD_TXRX_TO_LOG:
+		case CMDID_STATS_ADD_TXRX_TO_LOG:
 			// Add the current statistics to the log
 			// TODO:  Add parameter to command to transmit stats
 			temp = add_all_txrx_statistics_to_log(WN_NO_TRANSMIT);
@@ -1894,7 +1910,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 		//---------------------------------------------------------------------
-		case NODE_STATS_GET_TXRX:
+		case CMDID_STATS_GET_TXRX:
             // NODE_GET_STATS Packet Format:
 			//   - cmdArgs32[0]   - buffer id
 			//   - cmdArgs32[1]   - flags
@@ -1937,7 +1953,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
             } else {
 				// If parameter is not the magic number to return all statistics structures
-    			if ( id != NODE_CONFIG_ALL_ASSOCIATED ) {
+    			if ( id != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
     				// Find the statistics entry
     				curr_entry = wlan_mac_high_find_statistics_ADDR( get_statistics(), &mac_addr[0]);
 
@@ -2058,7 +2074,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 		//---------------------------------------------------------------------
-		case NODE_QUEUE_TX_DATA_PURGE_ALL:
+		case CMDID_QUEUE_TX_DATA_PURGE_ALL:
 			xil_printf("Purging All Data Transmit Queues\n");
 
 			purge_all_data_tx_queue();
@@ -2644,10 +2660,10 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 	dl_entry	* curr_entry;
 	station_info* curr_station_info;
 
-	rate = NODE_ERROR >> 24;
+	rate = CMD_PARAM_ERROR >> 24;
 
 	// For Writes
-	if ( cmd == NODE_WRITE_VAL ) {
+	if ( cmd == CMD_PARAM_WRITE_VAL ) {
 
 		curr_list  = get_station_info_list();
 		curr_entry = curr_list->first;
@@ -2659,7 +2675,7 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 		for(i=0; i < curr_list->length; i++){
 			curr_station_info = (station_info*)(curr_entry->data);
 
-			if ( aid == NODE_CONFIG_ALL_ASSOCIATED ) {
+			if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
 				xil_printf("Setting TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
 				curr_station_info->tx.phy.rate = tx_rate;
 				rate                           = tx_rate;
@@ -2674,7 +2690,7 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 		}
 	} else {
 
-		if ( aid != NODE_CONFIG_ALL_ASSOCIATED ) {
+		if ( aid != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
 			curr_list  = get_station_info_list();
 			curr_entry = curr_list->first;
 
@@ -2713,10 +2729,10 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 	dl_entry	* curr_entry;
 	station_info* curr_station_info;
 
-	mode = NODE_ERROR >> 24;
+	mode = CMD_PARAM_ERROR >> 24;
 
 	// For Writes
-	if ( cmd == NODE_WRITE_VAL ) {
+	if ( cmd == CMD_PARAM_WRITE_VAL ) {
 
 		curr_list  = get_station_info_list();
 		curr_entry = curr_list->first;
@@ -2728,7 +2744,7 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 		for(i=0; i < curr_list->length; i++){
 			curr_station_info = (station_info*)(curr_entry->data);
 
-			if ( aid == NODE_CONFIG_ALL_ASSOCIATED ) {
+			if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
 				xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
 				curr_station_info->tx.phy.antenna_mode = ant_mode;
 				mode                                   = ant_mode;
@@ -2743,7 +2759,7 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 		}
 	} else {
 
-		if ( aid != NODE_CONFIG_ALL_ASSOCIATED ) {
+		if ( aid != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
 			curr_list  = get_station_info_list();
 			curr_entry = curr_list->first;
 

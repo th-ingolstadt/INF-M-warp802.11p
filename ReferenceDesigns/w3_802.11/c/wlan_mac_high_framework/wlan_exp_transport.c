@@ -228,8 +228,8 @@ void transport_receiveCallback(unsigned char* buff, unsigned int len, void* pktS
 	switch(wn_header_rx->pktType){
 		case PKTTYPE_HTON_MSG:
 
-			if( ( (wn_header_rx->destID) != node_info.node ) &&
-				( (wn_header_rx->destID) != BROADCAST_ID   ) &&
+			if( ( (wn_header_rx->destID) != node_info.node    ) &&
+				( (wn_header_rx->destID) != BROADCAST_DEST_ID ) &&
 				( ((wn_header_rx->destID) & (0xFF00 | node_group_ID_membership))==0 ) ) return;
 
 			// Form outgoing WARPNet header in case robust mode is on

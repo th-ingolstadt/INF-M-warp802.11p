@@ -29,95 +29,127 @@
 
 
 // ****************************************************************************
-// Define WLAN Exp Node Commands
+// Define Node Commands
 //
-#define NODE_INFO                       1
-#define NODE_IDENTIFY                   2
+// NOTE:  All Command IDs (CMDID_*) must be a 24 bit unique number
+//
 
-#define NODE_IDENTIFY_ALL              0xFFFFFFFF
+//-----------------------------------------------
+// WARPNet Node Commands
+//
+#define CMDID_NODE_INFO                                    0x000001
+#define CMDID_NODE_IDENTIFY                                0x000002
 
-#define NODE_CONFIG_SETUP               3
-#define NODE_CONFIG_RESET               4
+#define CMD_PARAM_NODE_IDENTIFY_ALL                        0xFFFFFFFF
 
-#define NODE_CONFIG_RESET_ALL          0xFFFFFFFF
+#define CMDID_NODE_CONFIG_SETUP                            0x000003
+#define CMDID_NODE_CONFIG_RESET                            0x000004
 
-#define NODE_TEMPERATURE                5
+#define CMD_PARAM_NODE_CONFIG_RESET_ALL                    0xFFFFFFFF
 
-#define NODE_GET_STATION_INFO          10
-#define NODE_SET_STATION_INFO          11
-
-#define NODE_DISASSOCIATE              20
-
-#define NODE_RESET_STATE               30
-#define NODE_TIME                      31
-#define NODE_CHANNEL                   32
-#define NODE_TX_POWER                  33
-#define NODE_TX_RATE                   34
-#define NODE_TX_ANT_MODE               35
-#define NODE_RX_ANT_MODE               36
-#define NODE_LOW_TO_HIGH_FILTER        37
-#define NODE_MEM_HIGH                  38
-#define NODE_MEM_LOW                   39
+#define CMDID_NODE_TEMPERATURE                             0x000005
 
 
-#define NODE_WRITE_VAL                 0x00000000
-#define NODE_READ_VAL                  0x00000001
-#define NODE_WRITE_DEFAULT_VAL         0x00000002
-#define NODE_READ_DEFAULT_VAL          0x00000004
+//-----------------------------------------------
+// WLAN Exp Node Commands
+//
+#define CMDID_NODE_RESET_STATE                             0x001000
+#define CMDID_NODE_TIME                                    0x001001
+#define CMDID_NODE_CHANNEL                                 0x001002
+#define CMDID_NODE_TX_POWER                                0x001003
+#define CMDID_NODE_TX_RATE                                 0x001004
+#define CMDID_NODE_TX_ANT_MODE                             0x001005
+#define CMDID_NODE_RX_ANT_MODE                             0x001006
+#define CMDID_NODE_LOW_TO_HIGH_FILTER                      0x001007
 
-#define NODE_CONFIG_ALL_ASSOCIATED     0xFFFFFFFF
+#define CMD_PARAM_WRITE_VAL                                0x00000000
+#define CMD_PARAM_READ_VAL                                 0x00000001
+#define CMD_PARAM_WRITE_DEFAULT_VAL                        0x00000002
+#define CMD_PARAM_READ_DEFAULT_VAL                         0x00000004
 
-#define NODE_SUCCESS                   0x00000000
-#define NODE_ERROR                     0xFF000000
+#define CMD_PARAM_SUCCESS                                  0x00000000
+#define CMD_PARAM_ERROR                                    0xFF000000
 
-#define NODE_RESET_LOG                 0x00000001
-#define NODE_RESET_TXRX_STATS          0x00000002
-#define NODE_RESET_LTG                 0x00000004
-#define NODE_RESET_TX_DATA_QUEUE       0x00000008
+#define CMD_PARAM_UNICAST_VAL                              0x00000000
+#define CMD_PARAM_MULTICAST_VAL                            0x00000001
 
-#define NODE_TIME_ADD_TO_LOG_VAL       0x00000002
-#define NODE_TIME_RSVD_VAL             0xFFFFFFFF
+#define CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED               0xFFFFFFFF
 
-#define NODE_UNICAST_VAL               0x00000000
-#define NODE_MULTICAST_VAL             0x00000001
+#define CMD_PARAM_NODE_RESET_FLAG_LOG                      0x00000001
+#define CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS               0x00000002
+#define CMD_PARAM_NODE_RESET_FLAG_LTG                      0x00000004
+#define CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE            0x00000008
 
-#define NODE_LTG_CONFIG                40
-#define NODE_LTG_START                 41
-#define NODE_LTG_STOP                  42
-#define NODE_LTG_REMOVE                43
+#define CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL                 0x00000002
+#define CMD_PARAM_NODE_TIME_RSVD_VAL                       0xFFFFFFFF
 
-#define NODE_LTG_ERROR                 0x000001
 
-#define NODE_LTG_CONFIG_FLAG_AUTOSTART 0x00000001
+#define CMDID_NODE_GET_STATION_INFO                        0x001080
+#define CMDID_NODE_SET_STATION_INFO                        0x001081
 
-#define NODE_LOG_CONFIG                50
-#define NODE_LOG_GET_INFO              51
-#define NODE_LOG_GET_CAPACITY          52
-#define NODE_LOG_GET_ENTRIES           53
-#define NODE_LOG_ADD_ENTRY             54
-#define NODE_LOG_ENABLE_ENTRY          55
-#define NODE_LOG_STREAM_ENTRIES        56
+#define CMDID_NODE_DISASSOCIATE                            0x001090
 
-#define NODE_LOG_GET_ALL_ENTRIES       0xFFFFFFFF
 
-#define NODE_LOG_CONFIG_FLAG_LOGGING   0x00000001
-#define NODE_LOG_CONFIG_FLAG_WRAP      0x00000002
-#define NODE_LOG_CONFIG_FLAG_PAYLOADS  0x00000004
-#define NODE_LOG_CONFIG_FLAG_WN_CMDS   0x00000008
+//-----------------------------------------------
+// LTG Commands
+//
+#define CMDID_LTG_CONFIG                                   0x002000
+#define CMDID_LTG_START                                    0x002001
+#define CMDID_LTG_STOP                                     0x002002
+#define CMDID_LTG_REMOVE                                   0x002003
 
-#define NODE_STATS_CONFIG_TXRX         60
-#define NODE_STATS_ADD_TXRX_TO_LOG     61
-#define NODE_STATS_GET_TXRX            62
+#define CMD_PARAM_LTG_ERROR                                0x000001
 
-#define NODE_STATS_CONFIG_FLAG_PROMISC 0x00000001
+#define CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART                0x00000001
 
-#define NODE_STATS_CONFIG_RSVD_VAL     0xFFFFFFFF
+#define CMD_PARAM_LTG_ALL_LTGS                             LTG_ID_INVALID
 
-#define NODE_QUEUE_TX_DATA_PURGE_ALL   70
+//-----------------------------------------------
+// Log Commands
+//
+#define CMDID_LOG_CONFIG                                   0x003000
+#define CMDID_LOG_GET_INFO                                 0x003001
+#define CMDID_LOG_GET_CAPACITY                             0x003002
+#define CMDID_LOG_GET_ENTRIES                              0x003003
+#define CMDID_LOG_ADD_ENTRY                                0x003004
+#define CMDID_LOG_ENABLE_ENTRY                             0x003005
+#define CMDID_LOG_STREAM_ENTRIES                           0x003006
+
+#define CMD_PARAM_LOG_GET_ALL_ENTRIES                      0xFFFFFFFF
+
+#define CMD_PARAM_LOG_CONFIG_FLAG_LOGGING                  0x00000001
+#define CMD_PARAM_LOG_CONFIG_FLAG_WRAP                     0x00000002
+#define CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS                 0x00000004
+#define CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS                  0x00000008
+
+
+//-----------------------------------------------
+// Statistics Commands
+//
+#define CMDID_STATS_CONFIG_TXRX                            0x004000
+#define CMDID_STATS_ADD_TXRX_TO_LOG                        0x004001
+#define CMDID_STATS_GET_TXRX                               0x004002
+
+#define CMD_PARAM_STATS_CONFIG_FLAG_PROMISC                0x00000001
+
+
+//-----------------------------------------------
+// Queue Commands
+//
+#define CMDID_QUEUE_TX_DATA_PURGE_ALL                      0x005000
+
+
+//-----------------------------------------------
+// Development Commands
+//
+#define CMDID_DEV_MEM_HIGH                                 0xFFF000
+#define CMDID_DEV_MEM_LOW                                  0xFFF001
+
+
 
 
 // ****************************************************************************
-// Define Node Parameters
+// Define Node Hardware Parameters
 //   - NOTE:  To add another parameter, add the define before "NODE_MAX_PARAMETER"
 //     and then change the value of "NODE_MAX_PARAMETER" to be the largest value
 //     in the list so it is easy to iterate over all parameters

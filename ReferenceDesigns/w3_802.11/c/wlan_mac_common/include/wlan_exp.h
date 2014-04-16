@@ -102,13 +102,14 @@
 // **********************************************************************
 // WARPNet Tag Parameter group defines
 //
-#define WARPNET_GRP             0xFF
-#define NODE_GRP                0x00
-#define TRANS_GRP               0x10
+#define WARPNET_GRP                    0xFF
+#define NODE_GRP                       0x00
+#define TRANS_GRP                      0x10
 
 
 // Global WARPNet commands
-#define WARPNET_TYPE            0xFFFFFF
+//
+#define CMDID_WARPNET_TYPE             0xFFFFFF
 
 
 /*********************** Global Structure Definitions ************************/

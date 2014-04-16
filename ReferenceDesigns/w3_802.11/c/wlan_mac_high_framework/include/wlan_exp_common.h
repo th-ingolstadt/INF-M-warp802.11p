@@ -34,7 +34,7 @@
 // Default network info
 //   The base IP address should be a u32 with (at least) the last octet 0x00
 #define NODE_IP_ADDR_BASE           0x0a000000 //10.0.0.0
-#define BROADCAST_ID                0xFFFF
+#define BROADCAST_DEST_ID           0xFFFF
 
 // Default ports- unicast ports are used for host-to-node, multicast for triggers and host-to-multinode
 #define NODE_UDP_UNICAST_PORT_BASE	9500

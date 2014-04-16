@@ -180,7 +180,7 @@ void event_log_init( char * start_address, u32 size ) {
 
 	// Initialize WLAN Exp variables
 #ifdef USE_WARPNET_WLAN_EXP
-	log_entry_cmd.cmd     = NODE_LOG_STREAM_ENTRIES;
+	log_entry_cmd.cmd     = CMDID_LOG_STREAM_ENTRIES;
 	log_entry_cmd.numArgs = 0;
 #endif
 
