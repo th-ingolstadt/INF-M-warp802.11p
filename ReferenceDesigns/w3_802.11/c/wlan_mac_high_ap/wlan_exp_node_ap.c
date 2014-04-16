@@ -122,13 +122,13 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 		//---------------------------------------------------------------------
 		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case NODE_SET_STATION_INFO:
+		case CMDID_NODE_GET_STATION_INFO:
 			xil_printf("AP - Set association table not supported\n");
 		break;
 
 
 		//---------------------------------------------------------------------
-		case NODE_DISASSOCIATE:
+		case CMDID_NODE_DISASSOCIATE:
             // NODE_DISASSOCIATE Packet Format:
             //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
             //
@@ -163,15 +163,15 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
         
 		//---------------------------------------------------------------------
-		case NODE_CHANNEL:
+		case CMDID_NODE_CHANNEL:
 			//   - cmdArgs32[0]      - Command
 			//   - cmdArgs32[1]      - Channel
 
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
 			temp    = Xil_Ntohl(cmdArgs32[1]);
-			status  = NODE_SUCCESS;
+			status  = CMD_PARAM_SUCCESS;
 
-			if ( msg_cmd == NODE_WRITE_VAL ) {
+			if ( msg_cmd == CMD_PARAM_WRITE_VAL ) {
 				// Set the Channel
 				//   NOTE:  We modulate temp so that we always have a valid channel
 				temp = temp % 12;          // Get a channel number between 0 - 11
@@ -299,7 +299,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
         //---------------------------------------------------------------------
 		default:
-			xil_printf("Unknown node command: %d\n", cmdID);
+			xil_printf("Unknown node command: 0x%x\n", cmdID);
 		break;
 	}
 
