@@ -204,11 +204,12 @@ class WlanExpLogEntryType(object):
                 field_descs.append( (f[0], f[2], ''))
 
         #Construct the Trac-wiki-style documentation string for this entry type
-        doc_str = '=== {0} ===\n'.format(self.name)
+        doc_str = '=== Entry Type {0} ===\n'.format(self.name)
 
         doc_str += self.description + '\n\n'
 
-        doc_str += 'Fields:\n'
+        doc_str += 'Entry type ID: {0}\n\n'.format(self.entry_type_id)
+
         doc_str += '||=  Field Name  =||=  DataType  =||=  Description  =||\n'
 
         for fd in field_descs:
@@ -552,23 +553,24 @@ entry_time_info.append_field_defs([
 
 # Temperature
 entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
+entry_node_temperature.description  = 'Record of the FPGA system monitor die temperature. This entry is only created when directed by a wlan_exp command. Temperature '
+entry_node_temperature.description +='values are stored as 32-bit unsigned integers. To convert to degrees Celcius, apply (((float)temp_u32)/(65536.0*0.00198421639)) - 273.15'
 entry_node_temperature.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('node_id',                'I',      'uint32'),
-            ('serial_num',             'I',      'uint32'),
-            ('temp_current',           'I',      'uint32'),
-            ('temp_min',               'I',      'uint32'),
-            ('temp_max',               'I',      'uint32')])
-
+            ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
+            ('node_id',                'I',      'uint32', 'wlan_exp node ID'),
+            ('serial_num',             'I',      'uint32', 'Node serial number'),
+            ('temp_current',           'I',      'uint32', 'Current FPGA die temperature'),
+            ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature since FPGA configuration or sysmon reset'),
+            ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature since FPGA configuration or sysmon reset')])
 
 # Receive OFDM
 entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
 entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_ofdm.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_rx_ofdm.append_field_defs([
-            ('chan_est',               '256B',   '(64,2)i2'), #!!!
-            ('mac_payload_len',        'I',      'uint32'),
-            ('mac_payload',            '24s',    '24uint8')])
+            ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'), 
+            ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+            ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 entry_rx_ofdm.consts['FCS_GOOD'] = 0
 entry_rx_ofdm.consts['FCS_BAD'] = 1
 entry_rx_ofdm.consts['FLAG_DUP'] = 0x4
@@ -579,53 +581,61 @@ entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_
 entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_dsss.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_rx_dsss.append_field_defs([          
-            ('mac_payload_len',        'I',      'uint32'),
-            ('mac_payload',            '24s',    '24uint8')])
+            ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+            ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 entry_rx_dsss.consts['FCS_GOOD'] = 0
-
 
 # Transmit
 entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
+entry_tx.description  = 'Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of '
+entry_tx.description += 'actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue '
+entry_tx.description += '(time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion '
+entry_tx.description += '(time_to_accept+time_to_done).'
+
 entry_tx.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
+
 entry_tx.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('time_to_accept',         'I',      'uint32'),
-            ('time_to_done',           'I',      'uint32'),
-            ('uniq_seq',               'Q',      'uint64'),
-            ('num_tx',                 'B',      'uint8'),
-            ('tx_power',               'b',      'int8'),
-            ('chan_num',               'B',      'uint8'),
-            ('rate',                   'B',      'uint8'),
-            ('length',                 'H',      'uint16'),
-            ('result',                 'B',      'uint8'),
-            ('pkt_type',               'B',      'uint8'),
-            ('ant_mode',               'B',      'uint8'),
-            ('queue_id',               'B',      'uint8'),
-            ('padding',                '2x',     '2uint8'),
-            ('mac_payload_len',        'I',      'uint32'),
-            ('mac_payload',            '24s',    '24uint8')])
+            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet was created, immediately before it was enqueued'),
+            ('time_to_accept',         'I',      'uint32',  'Time duration in microseconds between packet creation and packet acceptance by CPU Low'),
+            ('time_to_done',           'I',      'uint32',  'Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low'),
+            ('uniq_seq',               'Q',      'uint64',  'Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number'),
+            ('num_tx',                 'B',      'uint8',   'Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)'),
+            ('tx_power',               'b',      'int8',    'Tx power in dBm of final Tx attempt'),
+            ('chan_num',               'B',      'uint8',   'Channel (center frequency) index of transmission'),
+            ('rate',                   'B',      'uint8',   'PHY rate index in [1:8] of final Tx attempt'),
+            ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
+            ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
+            ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+            ('ant_mode',               'B',      'uint8'    'PHY antenna mode of final Tx attempt'),
+            ('queue_id',               'B',      'uint8',   'Tx queue ID from which the packet was retrieved'),
+            ('padding',                '2x',     '2uint8',  ''),
+            ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+            ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 entry_tx.consts['SUCCESS'] = 0
 
 # Transmit from CPU Low
 entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
+entry_tx_low.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries may be created '
+entry_tx_low.description += 'for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match between TX and TX_LOW entries '
+entry_tx_low.description += 'to find records common to the same MPUD.'
+
 entry_tx_low.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_tx_low.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('uniq_seq',               'Q',      'uint64'),
-            ('rate',                   'B',      'uint8'),
-            ('ant_mode',               'B',      'uint8'),
-            ('tx_power',               'b',      'int8'),
-            ('flags',                  'B',      'uint8'),
-            ('tx_count',               'B',      'uint8'),
-            ('chan_num',               'B',      'uint8'),
-            ('length',                 'H',      'uint16'),
-            ('num_slots',              'H',      'uint16'),
-            ('cw',                     'H',      'uint16'),
-            ('pkt_type',               'B',      'uint8'),
-            ('padding',                '3x',     '3uint8'),
-            ('mac_payload_len',        'I',      'uint32'),
-            ('mac_payload',            '24s',    '24uint8')])
-
+            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet transmission actually started (PHY TX_START time)'),
+            ('uniq_seq',               'Q',      'uint64',  'Unique sequence number of original MPDU'),
+            ('rate',                   'B',      'uint8',   'PHY rate index in [1:8]'),
+            ('ant_mode',               'B',      'uint8'    'PHY antenna mode in [1:4]'),
+            ('tx_power',               'b',      'int8',    'Tx power in dBm'),
+            ('flags',                  'B',      'uint8',   'Tx PHY flags'),
+            ('tx_count',               'B',      'uint8',   'Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions'),
+            ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
+            ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
+            ('num_slots',              'H',      'uint16',  'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0)'),
+            ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
+            ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+            ('padding',                '3x',     '3uint8'), ''
+            ('mac_payload_len',        'I',      'uint32',  'Length in bytes of MAC payload recorded in log for this packet'),
+            ('mac_payload',            '24s',    '24uint8', 'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 
 # Tx / Rx Statistics
 entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
