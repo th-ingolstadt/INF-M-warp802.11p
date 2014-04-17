@@ -192,7 +192,7 @@ class WlanExpLogEntryType(object):
 
         return np_arr
 
-    def generate_entry_wiki_doc(self):
+    def generate_entry_doc(self, fmt='wiki'):
         field_descs = list()
         for f in self._fields:
             #Field tuple is (name, struct_type, np_type, (optional)desc)
@@ -203,27 +203,44 @@ class WlanExpLogEntryType(object):
                 #Field missing description; use empty string
                 field_descs.append( (f[0], f[2], ''))
 
-        #Construct the Trac-wiki-style documentation string for this entry type
-        doc_str = '=== Entry Type {0} ===\n'.format(self.name)
+        if fmt == 'wiki':
+            #Construct the Trac-wiki-style documentation string for this entry type
+            doc_str = '=== Entry Type {0} ===\n'.format(self.name)
 
-        doc_str += self.description + '\n\n'
+            doc_str += self.description + '\n\n'
 
-        doc_str += 'Entry type ID: {0}\n\n'.format(self.entry_type_id)
+            doc_str += 'Entry type ID: {0}\n\n'.format(self.entry_type_id)
 
-        doc_str += '||=  Field Name  =||=  DataType  =||=  Description  =||\n'
+            doc_str += '||=  Field Name  =||=  Data Type  =||=  Description  =||\n'
 
-        for fd in field_descs:
-            import re
-            #Wiki-ify some string formats:
-            # Line breaks in descriptions must be explicit "[[BR]]"
-            # Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
-            fd_desc = fd[2]
-            fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) #do this first, so other wiki tags inserted below aren't escaped
-            fd_desc = fd_desc.replace('\n', '[[BR]]')
+            for fd in field_descs:
+                import re
+                #Wiki-ify some string formats:
+                # Line breaks in descriptions must be explicit "[[BR]]"
+                # Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
+                fd_desc = fd[2]
+                fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) #do this first, so other wiki tags inserted below aren't escaped
+                fd_desc = fd_desc.replace('\n', '[[BR]]')
 
-            doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
+                doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
 
-        doc_str += '\n----\n\n'
+            doc_str += '\n----\n\n'
+
+        elif fmt == 'txt':
+            import textwrap
+            #Construct plain text version of documentation string for this entry type
+            doc_str = '---------------------------------------------------------------------------------------------------------------------\n'
+            doc_str += 'Entry Type {0}\n'.format(self.name)
+            doc_str += 'Entry type ID: {0}\n\n'.format(self.entry_type_id)
+            doc_str += textwrap.fill(self.description) + '\n\n'
+
+            doc_str += 'Field Name\t\t\t| Data Type\t| Description\n'
+            doc_str += '---------------------------------------------------------------------------------------------------------------------\n'
+
+            for fd in field_descs:
+                doc_str += '{0:30}\t| {1:10}\t| {2}\n'.format(fd[0], fd[1], fd[2])
+
+            doc_str += '---------------------------------------------------------------------------------------------------------------------\n'
 
         return doc_str
 
@@ -454,6 +471,8 @@ entry_null = WlanExpLogEntryType(name='NULL', entry_type_id=ENTRY_TYPE_NULL)
 # Virtual Log Entry Instances
 #-----------------------------------------------------------------------------
 
+###########################################################################
+# Rx Common
 entry_rx_common = WlanExpLogEntryType(name='RX_ALL', entry_type_id=None)
 entry_rx_common.append_field_defs([
             ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
@@ -471,8 +490,9 @@ entry_rx_common.append_field_defs([
 #-----------------------------------------------------------------------------
 # Log Entry Type Instances
 #-----------------------------------------------------------------------------
-# Node Info
 
+###########################################################################
+# Node Info
 entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
 entry_node_info.description = 'Details about the node hardware and its configuration. Node info values are static after boot.'
 _node_info_node_types =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
@@ -496,6 +516,7 @@ entry_node_info.append_field_defs([
             ('wlan_max_stats',         'I',      'uint32',  'Maximum number of statistics structs maintained by node'),
             ('ltg_resolution',         'I',      'uint32',  'Minimum interval in microseconds of LTG schedules')])
 
+###########################################################################
 # Experiment Info header - actual exp_info contains a "message" field that
 #  follows this header. Since the message is variable length it is not described
 #  in the fields list below. Full exp_info entries (header + message) must be extracted
@@ -510,6 +531,7 @@ entry_exp_info_hdr.append_field_defs([
             ('length',                 'H',      'uint16',  'Exp info length (describes arbitrary payload supplied by application')])
 
 
+###########################################################################
 # Station Info
 entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
 entry_station_info.description  = 'Information about an 802.11 association. At the AP one STATION_INFO is created '
@@ -534,6 +556,7 @@ entry_station_info.append_field_defs([
             ('tx_mac_flags',           'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
             ('padding',                '2x',     'uint16',  '')])
 
+###########################################################################
 # WARPNet Command Info
 entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
 entry_wn_cmd_info.description  = 'Record of a WARPnet / wlan_exp command received by the node. The full command payload '
@@ -545,6 +568,7 @@ entry_wn_cmd_info.append_field_defs([
             ('num_args',               'H',      'uint16',  'Number of arguments supplied in command'),
             ('args',                   '10I',    '10uint32','Command arguments')])
 
+###########################################################################
 # Time Info
 entry_time_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
 entry_time_info.description  = 'Record of a time base event at the node. This log entry is used to enable parsing of log data '
@@ -558,6 +582,7 @@ entry_time_info.append_field_defs([
             ('new_time',               'Q',      'uint64',  'New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed'),
             ('abs_time',               'Q',      'uint64',  'Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
 
+###########################################################################
 # Temperature
 entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
 entry_node_temperature.description  = 'Record of the FPGA system monitor die temperature. This entry is only created when directed by a wlan_exp command. Temperature '
@@ -570,10 +595,16 @@ entry_node_temperature.append_field_defs([
             ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature since FPGA configuration or sysmon reset'),
             ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature since FPGA configuration or sysmon reset')])
 
+###########################################################################
 # Receive OFDM
 entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
-entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
+entry_rx_ofdm.description  = 'Rx events from OFDM PHY. These log entries will only be created for packets that are passed to the high-level MAC code '
+entry_rx_ofdm.description += 'in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-leve MAC '
+entry_rx_ofdm.description += 'filter is configured to pass all receptions up to CPU High.'
+
 entry_rx_ofdm.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
+
+entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_ofdm.append_field_defs([
             ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'), 
             ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
@@ -582,9 +613,13 @@ entry_rx_ofdm.consts['FCS_GOOD'] = 0
 entry_rx_ofdm.consts['FCS_BAD'] = 1
 entry_rx_ofdm.consts['FLAG_DUP'] = 0x4
 
-
+###########################################################################
 # Receive DSSS
 entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
+entry_rx_dsss.description  = 'Rx events from DSSS PHY. These log entries will only be created for packets that are passed to the high-level MAC code '
+entry_rx_dsss.description += 'in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-leve MAC '
+entry_rx_dsss.description += 'filter is configured to pass all receptions up to CPU High.'
+
 entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_dsss.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
 entry_rx_dsss.append_field_defs([          
@@ -592,6 +627,7 @@ entry_rx_dsss.append_field_defs([
             ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 entry_rx_dsss.consts['FCS_GOOD'] = 0
 
+###########################################################################
 # Transmit
 entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
 entry_tx.description  = 'Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of '
@@ -620,6 +656,7 @@ entry_tx.append_field_defs([
             ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 entry_tx.consts['SUCCESS'] = 0
 
+###########################################################################
 # Transmit from CPU Low
 entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
 entry_tx_low.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries may be created '
@@ -644,6 +681,7 @@ entry_tx_low.append_field_defs([
             ('mac_payload_len',        'I',      'uint32',  'Length in bytes of MAC payload recorded in log for this packet'),
             ('mac_payload',            '24s',    '24uint8', 'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 
+###########################################################################
 # Tx / Rx Statistics
 entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
 entry_txrx_stats.description  = 'Copy of the Tx/Rx statistics struct maintained by CPU High. If promiscuous statistics mode is Tx/Rx stats structs will be maintained '
