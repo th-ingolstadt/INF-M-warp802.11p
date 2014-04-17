@@ -764,6 +764,13 @@ class Buffer(Message):
     def _update_tracker(self, start_byte, end_byte, size):
         """Internal method to update the tracker."""
         done = False
+        
+        # Don't add duplicate entries
+        for item in self.tracker:
+            if (start_byte == item[0]) and (end_byte == item[1]) and (size == item[2]):
+                return        
+ 
+        # See if we can add this update to one of the current tracker entries       
         for item in self.tracker:
             if (start_byte == item[1]):
                 item[1] += size
@@ -798,6 +805,7 @@ class Buffer(Message):
         start         = self.start_byte
         end           = self.start_byte + self.size
         tmp_tracker   = list(self.tracker)
+        tracker_count = list(self.tracker)
 
         if (missing_bytes != 0):
             # Find the first item
@@ -805,18 +813,32 @@ class Buffer(Message):
                 if (start == item[0]):
                     start = item[1]
                     tmp_tracker.remove(item)
+                    tracker_count.remove(item)
                     break
             
             # Iterate through all the items in the list and remove
             # them as we build up the holes
-            while tmp_tracker:
-                for item in tmp_tracker:
-                    if ((start + missing_bytes) >= item[0]):                
-                        tmp_size       = item[0] - start
+            for item in tmp_tracker:
+                if ((start + missing_bytes) >= item[0]):                
+                    tmp_size       = item[0] - start
+
+                    # Detect error condition if the size is less than zero
+                    if tmp_size < 0:
+                        print("WARNING:  Issue with finding missing bytes.")
+                        print("    item    = ({0}, {1}, {2})".format(item[0], item[1], item[2]))
+                        print("    start   = {0}".format(start))
+                        print("    tracker = {0}".format(tmp_tracker))
+                    else:
                         missing_bytes -= tmp_size
                         ret_val.append((start, item[0], tmp_size))
                         start          = item[1]
-                        tmp_tracker.remove(item)
+                        tracker_count.remove(item)
+
+            # If we still have items in the tracker_count, then there is a problem
+            if tracker_count:
+                print("WARNING:  Issue with finding missing bytes.")
+                print("    Missing Bytes: {0}".format(missing_bytes))
+                print("    Tracker      : {0}".format(tracker_count))
         
             # Find any holes at the end of the buffer
             if (missing_bytes != 0):
