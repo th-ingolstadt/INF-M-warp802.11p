@@ -372,7 +372,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 	for(i = 0; i < num_tx_low_details; i++){
 
-		tx_low_event_log_entry = (tx_low_entry *)get_next_empty_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
+		tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
 		if(tx_low_event_log_entry != NULL){
 			tx_low_event_log_entry->mac_payload_log_len = sizeof(mac_header_80211);
 			wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_payload), tx_80211_header, sizeof(mac_header_80211));
@@ -403,7 +403,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	payload_log_len = min( (1 + ( ( ( total_payload_len ) - 1) / 4) )*4 , mac_payload_log_len );
 	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 
-	tx_high_event_log_entry = (tx_high_entry *)get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
+	tx_high_event_log_entry = (tx_high_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
 
 	if(tx_high_event_log_entry != NULL){
 
@@ -738,9 +738,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 
 	if(rate != WLAN_MAC_RATE_1M){
-		rx_event_log_entry = (rx_common_entry*)get_next_empty_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload );
+		rx_event_log_entry = (rx_common_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload );
 	} else {
-		rx_event_log_entry = (rx_common_entry*)get_next_empty_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
+		rx_event_log_entry = (rx_common_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
 	}
 
 		if(rx_event_log_entry != NULL){
@@ -893,7 +893,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 						if(association_table.length > 0){
 
-							associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+							associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 							if(associated_station_log_entry != NULL){
 								associated_station_log_entry->timestamp = get_usec_timestamp();
 								memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
@@ -905,7 +905,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 						associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
 
-						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+						associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 						if(associated_station_log_entry != NULL){
 							associated_station_log_entry->timestamp = get_usec_timestamp();
 							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
@@ -948,7 +948,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
 					if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_2) != NULL)){
 
-						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+						associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 						if(associated_station_log_entry != NULL){
 							associated_station_log_entry->timestamp = get_usec_timestamp();
 							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
