@@ -579,8 +579,8 @@ entry_time_info.append_field_defs([
             ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
             ('time_id',                'I',      'uint32', 'Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes'), 
             ('reason',                 'I',      'uint32', 'Reason code for TIME_INFO log entry creation'), 
-            ('new_time',               'Q',      'uint64',  'New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed'),
-            ('abs_time',               'Q',      'uint64',  'Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
+            ('new_time',               'Q',      'uint64', 'New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed'),
+            ('abs_time',               'Q',      'uint64', 'Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
 
 ###########################################################################
 # Temperature
