@@ -2112,7 +2112,8 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
     int i;
 	int status = SUCCESS;
 
-	xil_printf("WARPNet WLAN EXP v%d.%d.%d (compiled %s %s)\n", WARPNET_VER_MAJOR, WARPNET_VER_MINOR, WARPNET_VER_REV, __DATE__, __TIME__);
+	xil_printf("WARPNet v%d.%d.%d WLAN EXP v%d.%d.%d (compiled %s %s)\n", WARPNET_VER_MAJOR, WARPNET_VER_MINOR, WARPNET_VER_REV,
+			   WLAN_EXP_VER_MAJOR, WLAN_EXP_VER_MINOR, WLAN_EXP_VER_REV, __DATE__, __TIME__);
 
 	// Initialize Global variables
 	//   Node must be configured using the WARPNet nodesConfig
