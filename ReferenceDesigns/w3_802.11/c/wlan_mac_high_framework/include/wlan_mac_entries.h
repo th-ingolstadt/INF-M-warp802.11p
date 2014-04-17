@@ -99,21 +99,18 @@
 //       the methods to add this entry type to the log are in wlan_mac_event_log.*
 //
 typedef struct{
-	u64                 timestamp;               // Timestamp of the node info
-	                                             //   - This will reflect the oldest time of an
-	                                             //     entry for a given log wrap
-	u32                 type;                    // WARPNet Node type
-	u32                 id;                      // Node ID
-	u32                 hw_gen;                  // WARP Hardware Generation
-	u32                 wn_ver;                  // WARPNet version
-	u64                 fpga_dna;                // Node FPGA DNA
-	u32                 serial_number;           // Node serial number
-	u32                 wlan_exp_ver;            // WLAN Exp version
-	u32                 wlan_max_assn;           // Max associations of the node
-	u32                 wlan_event_log_size;     // Max size of the event log
-	u32                 wlan_mac_addr[2];        // WLAN MAC Address
-	u32                 wlan_max_stats;          // Max number of promiscuous statistics
-	u32                 wlan_ltg_resolution;     // Minimum LTG resolution
+	u64                 timestamp;                         // Timestamp of the node info
+	                                                       //   - This will reflect the oldest time of an
+	                                                       //     entry for a given log wrap
+	u32                 type;                              // WARPNet Node type
+	u32                 id;                                // Node ID
+	u32                 hw_gen;                            // WARP Hardware Generation
+	u32                 wn_ver;                            // WARPNet version
+	u64                 fpga_dna;                          // Node FPGA DNA
+	u32                 serial_number;                     // Node serial number
+	u32                 wlan_exp_ver;                      // WLAN Exp version
+	u32                 wlan_mac_addr[2];                  // WLAN MAC Address
+	u32                 wlan_scheduler_resolution;         // Minimum Scheduler resolution (microseconds)
 } node_info_entry;
 
 

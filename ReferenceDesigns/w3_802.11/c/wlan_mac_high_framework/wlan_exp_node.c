@@ -2121,23 +2121,23 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
 	//   IP Address should be NODE_IP_ADDR_BASE
     node_info.type                = type;
     node_info.node                = 0xFFFF;
+    node_info.serial_number       = serial_number;
     node_info.hw_generation       = WARP_HW_VERSION;
     node_info.warpnet_design_ver  = REQ_WARPNET_HW_VER;
-    node_info.wlan_ltg_resolution = LTG_POLL_INTERVAL;
     
     for( i = 0; i < FPGA_DNA_LEN; i++ ) {
         node_info.fpga_dna[i]     = fpga_dna[i];
     }
 
-    node_info.serial_number       = serial_number;
-    node_info.wlan_exp_design_ver = REQ_WLAN_EXP_HW_VER;
-    
+
     // WLAN Exp Parameters are assumed to be initialize already
     //    node_info.wlan_hw_addr
-    //    node_info.wlan_max_assn
-    //    node_info.wlan_event_log_size
-    //    node_info.wlan_max_stats
 
+    node_info.wlan_exp_design_ver       = REQ_WLAN_EXP_HW_VER;
+    node_info.wlan_scheduler_resolution = FAST_TIMER_DUR_US;
+    
+
+    // Initialize other HW parameters not part of the node_info log entry
     node_info.eth_device      = eth_dev_num;
     
 	node_info.ip_addr[0]      = (NODE_IP_ADDR_BASE >> 24) & 0xFF;
@@ -2511,11 +2511,6 @@ void node_info_set_wlan_hw_addr  ( u8 * hw_addr  ) {
     node_info.wlan_hw_addr[0] = (hw_addr[2]<<24) | (hw_addr[3]<<16) | (hw_addr[4]<<8) | hw_addr[5];
     node_info.wlan_hw_addr[1] = (hw_addr[0]<<8)  |  hw_addr[1];
 }
-
-void node_info_set_max_assn      ( u32 max_assn  ) { node_info.wlan_max_assn       = max_assn;  }
-void node_info_set_event_log_size( u32 log_size  ) { node_info.wlan_event_log_size = log_size;  }
-void node_info_set_max_stats     ( u32 max_stats ) { node_info.wlan_max_stats      = max_stats; }
-
 
 
 /*****************************************************************************/

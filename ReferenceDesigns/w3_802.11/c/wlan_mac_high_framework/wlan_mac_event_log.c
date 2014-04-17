@@ -1147,10 +1147,10 @@ void add_node_info_entry(u8 transmit){
 		//       before normal operation
 		if ( (temp0 != (max_words - 2)) && (temp0 != 0) ) {
 			xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
-#ifdef _DEBUG_
-			print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
-#endif
 		}
+#ifdef _DEBUG_
+		print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
+#endif
 
 		// Transmit the entry if requested
 		if (transmit == WN_TRANSMIT) {

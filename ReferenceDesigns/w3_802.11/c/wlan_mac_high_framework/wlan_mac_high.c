@@ -327,7 +327,6 @@ void wlan_mac_high_init(){
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Communicate the log size to WARPNet
-	node_info_set_event_log_size( log_size );
 	warpnet_initialized = 0;
 #endif
 

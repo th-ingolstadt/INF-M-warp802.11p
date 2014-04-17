@@ -184,9 +184,8 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
 			xil_printf("   FPGA DNA    :   0x%08x  0x%08x\n", (u32)(node_info_entry_log_item->fpga_dna >>32), (u32)(node_info_entry_log_item->fpga_dna) );
 			xil_printf("   Serial Num  :   %d\n",       node_info_entry_log_item->serial_number);
 			xil_printf("   WLAN Exp Ver:   0x%08x\n",   node_info_entry_log_item->wlan_exp_ver);
-			xil_printf("   Max assn    :   %d\n",       node_info_entry_log_item->wlan_max_assn);
-			xil_printf("   Log size    :   %d\n",       node_info_entry_log_item->wlan_event_log_size);
-			xil_printf("   Max stats   :   %d\n",       node_info_entry_log_item->wlan_max_stats);
+			xil_printf("   MAC Addr    :   0x%08x  0x%08x\n", (u32)(node_info_entry_log_item->wlan_mac_addr[1]), (u32)(node_info_entry_log_item->wlan_mac_addr[0]) );
+			xil_printf("   Sched Res   :   %d\n",       node_info_entry_log_item->wlan_scheduler_resolution);
 		break;
 
         case ENTRY_TYPE_EXP_INFO:
