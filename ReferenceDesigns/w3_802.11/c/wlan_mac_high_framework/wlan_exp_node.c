@@ -1144,7 +1144,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					xil_printf("WARPNET:  Absolute time = 0x%08x 0x%08x\n", temp2, temp);
 
 					// Create a time info log entry
-					time_entry = (time_info_entry *)get_next_empty_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
+					time_entry = (time_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
 
 					if (time_entry != NULL) {
 					    time_entry->timestamp  = time;
@@ -1609,9 +1609,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) {
 				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) {
-					set_mac_payload_log_len( MAX_MAC_PAYLOAD_LOG_LEN );
+					wlan_exp_log_set_mac_payload_len( MAX_MAC_PAYLOAD_LOG_LEN );
 				} else {
-					set_mac_payload_log_len( MIN_MAC_PAYLOAD_LOG_LEN );
+					wlan_exp_log_set_mac_payload_len( MIN_MAC_PAYLOAD_LOG_LEN );
 				}
 			}
 
@@ -2614,7 +2614,7 @@ void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id) {
     // Create a new log entry for each WARPNet command and copy up to the first 10 args
 	//
 	u32 i;
-	wn_cmd_entry* entry      = (wn_cmd_entry *)get_next_empty_entry( ENTRY_TYPE_WN_CMD, sizeof(wn_cmd_entry) );
+	wn_cmd_entry* entry      = (wn_cmd_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_WN_CMD, sizeof(wn_cmd_entry) );
 	u32         * cmdArgs32  = cmdArgs;
 	u32           num_args   = (cmdHdr->numArgs > 10) ? 10 : cmdHdr->numArgs;
 

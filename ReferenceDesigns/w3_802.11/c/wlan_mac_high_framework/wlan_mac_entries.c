@@ -51,8 +51,8 @@
 // for each transmission / reception.  This value must be between:
 //     MIN_MAC_PAYLOAD_LOG_LEN
 //     MAX_MAC_PAYLOAD_LOG_LEN
-// and be 4-byte aligned.  Use the set_mac_payload_log_len() method to change
-// the value of this variable.  By default, this is set to the minimum
+// and be 4-byte aligned.  Use the wlan_exp_log_set_mac_payload_len() method
+// to change the value of this variable.  By default, this is set to the minimum
 // payload length to save space in the log and can be altered by C code or
 // through WARPNet.
 //
@@ -83,7 +83,7 @@ u32 mac_payload_log_len = MIN_MAC_PAYLOAD_LOG_LEN;
 * @note		None.
 *
 ******************************************************************************/
-void set_mac_payload_log_len(u32 payload_len){
+void wlan_exp_log_set_mac_payload_len(u32 payload_len){
 	u32 value;
 	u32 offset;
 
@@ -128,7 +128,7 @@ void set_mac_payload_log_len(u32 payload_len){
 * @note		None.
 *
 ******************************************************************************/
-void * get_next_empty_entry(u16 entry_type_id, u16 entry_size){
+void * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size){
 
 	void *    ret_val   = NULL;
 

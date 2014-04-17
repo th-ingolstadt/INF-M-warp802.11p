@@ -123,7 +123,7 @@ typedef struct{
 // NOTE:  When creating this entry, you need to allocate the size of the entry
 //   plus the (info_length - 4).  For example:
 //
-//    (exp_info_entry *)get_next_empty_entry( ENTRY_TYPE_EXP_INFO, sizeof(exp_info_entry) + size - 4 )
+//    (exp_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_EXP_INFO, sizeof(exp_info_entry) + size - 4 )
 //
 // NOTE:  The longest Experiment Info is:  ((2^16 - 1) - (sizeof(exp_info_entry) - 4)) bytes
 //
@@ -143,7 +143,7 @@ typedef struct{
 //
 // Example request for a new station info entry:
 //
-//     (station_info_entry *)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry) )
+//     (station_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry) )
 //
 typedef struct{
 	u64                 timestamp;               // Timestamp of the log entry
@@ -161,7 +161,7 @@ CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
 //
 // Example request for a new temperature entry:
 //
-//     (temperature_entry *)get_next_empty_entry( ENTRY_TYPE_TEMPERATURE, sizeof(temperature_entry) )
+//     (temperature_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TEMPERATURE, sizeof(temperature_entry) )
 //
 typedef struct{
 	u64                 timestamp;               // Timestamp of the log entry
@@ -178,7 +178,7 @@ typedef struct{
 //
 // Example request for a new WARPNet command info entry:
 //
-//     (wn_cmd_entry *)get_next_empty_entry( ENTRY_TYPE_WN_CMD, sizeof(wn_cmd_entry) )
+//     (wn_cmd_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_WN_CMD, sizeof(wn_cmd_entry) )
 //
 typedef struct{
 	u64                 timestamp;               // Timestamp of the log entry
@@ -194,7 +194,7 @@ typedef struct{
 //
 // Example request for a new Time info entry:
 //
-//     (time_info_entry *)get_next_empty_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) )
+//     (time_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) )
 //
 typedef struct{
 	u64                 timestamp;               // Timestamp of the log entry (old timebase)
@@ -257,7 +257,7 @@ typedef struct{
 //
 // Example request for a new receive OFDM entry:
 //
-//     (rx_ofdm_entry *)get_next_empty_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload  )
+//     (rx_ofdm_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload  )
 //
 typedef struct{
 	rx_common_entry     rx_entry;
@@ -278,7 +278,7 @@ typedef struct{
 //
 // Example request for a new receive DSSS entry:
 //
-//     (rx_dsss_entry *)get_next_empty_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload )
+//     (rx_dsss_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload )
 //
 typedef struct{
 	rx_common_entry     rx_entry;
@@ -296,7 +296,7 @@ typedef struct{
 //
 // Example request for a new high-level transmit entry:
 //
-//     (tx_high_entry *)get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload )
+//     (tx_high_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload )
 //
 typedef struct{
 	u64                 timestamp_create;        // Timestamp of the log entry creation
@@ -327,7 +327,7 @@ typedef struct{
 //
 // Example request for a new low-level transmit entry:
 //
-//     (tx_low_entry *)get_next_empty_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) )
+//     (tx_low_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) )
 //
 typedef struct{
 	u64                 timestamp_send;          // Timestamp of when packet was sent
@@ -357,14 +357,13 @@ extern u32 mac_payload_log_len;
 //-----------------------------------------------
 // Method to set the global variable mac_payload_log_len
 //
-void set_mac_payload_log_len(u32 payload_len);
+void     wlan_exp_log_set_mac_payload_len(u32 payload_len);
 
 
 //-----------------------------------------------
 // Wrapper method to get an entry
 //
-void *   get_next_empty_entry(u16 entry_type_id, u16 entry_size);
-int      allow_entry_creation(u16 entry_type_id);
+void *   wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
 
 
 //-----------------------------------------------
