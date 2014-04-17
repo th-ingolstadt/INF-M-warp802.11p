@@ -47,12 +47,9 @@ __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
 
 # WLAN Exp Node Parameter Identifiers (Extension of WARPNet Parameter Identifiers)
 #   NOTE:  The C counterparts are found in *_node.h
-NODE_WLAN_EXP_DESIGN_VER     = 6
-NODE_WLAN_MAX_ASSN           = 7
-NODE_WLAN_EVENT_LOG_SIZE     = 8
-NODE_WLAN_MAC_ADDR           = 9
-NODE_WLAN_MAX_STATS          = 10
-NODE_LTG_RESOLUTION          = 11
+NODE_WLAN_EXP_DESIGN_VER               = 6
+NODE_WLAN_MAC_ADDR                     = 7
+NODE_WLAN_SCHEDULER_RESOLUTION         = 8
 
 
 class WlanExpNode(wn_node.WnNode):
@@ -66,47 +63,43 @@ class WlanExpNode(wn_node.WnNode):
     the attributes of the WARPNet node.
     
     Attributes (inherited from WnNode):
-        node_type            -- Unique type of the WARPNet node
-        node_id              -- Unique identification for this node
-        name                 -- User specified name for this node (supplied by user scripts)
-        description          -- String description of this node (auto-generated)
-        serial_number        -- Node's serial number, read from EEPROM on hardware
-        fpga_dna             -- Node's FPGA'a unique identification (on select hardware)
-        hw_ver               -- WARP hardware version of this node
-        wn_ver_major         -- WARPNet version running on this node
+        node_type                      -- Unique type of the WARPNet node
+        node_id                        -- Unique identification for this node
+        name                           -- User specified name for this node (supplied by user scripts)
+        description                    -- String description of this node (auto-generated)
+        serial_number                  -- Node's serial number, read from EEPROM on hardware
+        fpga_dna                       -- Node's FPGA'a unique identification (on select hardware)
+        hw_ver                         -- WARP hardware version of this node
+        wn_ver_major                   -- WARPNet version running on this node
         wn_ver_minor
         wn_ver_revision
-        transport            -- Node's transport object
-        transport_bcast      -- Node's broadcast transport object
+        transport                      -- Node's transport object
+        transport_bcast                -- Node's broadcast transport object
 
     New Attributes:
-        wlan_mac_address     -- Wireless MAC address of the node
-        max_associations     -- Maximum associations of the node
-        max_statisitics      -- Maximum number of statistic structures on the node
-        ltg_resolution       -- Minimum resolution (in us) of the LTG
+        wlan_mac_address               -- Wireless MAC address of the node
+        wlan_scheduler_resolution      -- Minimum resolution (in us) of the LTG
 
-        log_max_size         -- Maximum size of event log (in bytes)
-        log_total_bytes_read -- Number of bytes read from the event log
-        log_num_wraps        -- Number of times the event log has wrapped
-        log_next_read_index  -- Index in to event log of next read
+        log_max_size                   -- Maximum size of event log (in bytes)
+        log_total_bytes_read           -- Number of bytes read from the event log
+        log_num_wraps                  -- Number of times the event log has wrapped
+        log_next_read_index            -- Index in to event log of next read
 
-        wlan_exp_ver_major   -- WLAN Exp version running on this node
+        wlan_exp_ver_major             -- WLAN Exp version running on this node
         wlan_exp_ver_minor
         wlan_exp_ver_revision        
     """
-    wlan_mac_address      = None
-    max_associations      = None
-    max_statistics        = None
-    ltg_resolution        = None
+    wlan_mac_address                   = None
+    wlan_scheduler_resolution          = None
     
-    log_max_size          = None
-    log_total_bytes_read  = None
-    log_num_wraps         = None
-    log_next_read_index   = None
+    log_max_size                       = None
+    log_total_bytes_read               = None
+    log_num_wraps                      = None
+    log_next_read_index                = None
 
-    wlan_exp_ver_major    = None
-    wlan_exp_ver_minor    = None
-    wlan_exp_ver_revision = None
+    wlan_exp_ver_major                 = None
+    wlan_exp_ver_minor                 = None
+    wlan_exp_ver_revision              = None
 
     
     def __init__(self, host_config=None):
@@ -115,15 +108,12 @@ class WlanExpNode(wn_node.WnNode):
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor, 
                 self.wlan_exp_ver_revision) = version.wlan_exp_ver()
         
-        self.node_type            = defaults.WLAN_EXP_BASE
-        self.max_associations     = 0
-        self.max_statistics       = 0
-        self.ltg_resolution       = 1
+        self.node_type                      = defaults.WLAN_EXP_BASE
+        self.wlan_scheduler_resolution      = 1
 
-        self.log_max_size         = 0
-        self.log_total_bytes_read = 0
-        self.log_num_wraps        = 0
-        self.log_next_read_index  = 0
+        self.log_total_bytes_read           = 0
+        self.log_num_wraps                  = 0
+        self.log_next_read_index            = 0
 
 
     def configure_node(self, jumbo_frame_support=False):
@@ -251,12 +241,15 @@ class WlanExpNode(wn_node.WnNode):
         (capacity, size)  = self.send_cmd(cmds.LogGetCapacity())
 
         # Check the maximum size of the log and update the node state
-        if (self.log_max_size != capacity):
-            msg  = "EVENT LOG WARNING:  Log capacity changed.\n"
-            msg += "    Went from {0} bytes to ".format(self.log_max_size)
-            msg += "{0} bytes.\n".format(capacity)
-            print(msg)
+        if self.log_max_size is None:
             self.log_max_size = capacity
+        else:
+            if (self.log_max_size != capacity):
+                msg  = "EVENT LOG WARNING:  Log capacity changed.\n"
+                msg += "    Went from {0} bytes to ".format(self.log_max_size)
+                msg += "{0} bytes.\n".format(capacity)
+                print(msg)
+                self.log_max_size = capacity
 
         return size
 
@@ -396,7 +389,7 @@ class WlanExpNode(wn_node.WnNode):
     #--------------------------------------------
     def ltg_configure(self, traffic_flow, auto_start=False):
         """Configure the node for the given traffic flow."""
-        traffic_flow.enforce_min_resolution(self.ltg_resolution)
+        traffic_flow.enforce_min_resolution(self.wlan_scheduler_resolution)
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
 
 
@@ -918,33 +911,15 @@ class WlanExpNode(wn_node.WnNode):
             else:
                 raise wn_ex.ParameterError("NODE_DESIGN_VER", "Incorrect length")
 
-        elif (identifier == NODE_WLAN_MAX_ASSN):
-            if (length == 1):
-                self.max_associations = values[0]
-            else:
-                raise wn_ex.ParameterError("NODE_WLAN_MAX_ASSN", "Incorrect length")
-
-        elif (identifier == NODE_WLAN_EVENT_LOG_SIZE):
-            if (length == 1):
-                self.log_max_size = values[0]
-            else:
-                raise wn_ex.ParameterError("NODE_WLAN_EVENT_LOG_SIZE", "Incorrect length")
-
-        elif (identifier == NODE_WLAN_MAX_STATS):
-            if (length == 1):
-                self.max_statistics = values[0]
-            else:
-                raise wn_ex.ParameterError("NODE_WLAN_MAX_STATS", "Incorrect length")
-
         elif   (identifier == NODE_WLAN_MAC_ADDR):
             if (length == 2):
                 self.wlan_mac_address = ((2**32) * (values[1] & 0xFFFF) + values[0])
             else:
                 raise wn_ex.ParameterError("NODE_WLAN_MAC_ADDR", "Incorrect length")
 
-        elif   (identifier == NODE_LTG_RESOLUTION):
+        elif   (identifier == NODE_WLAN_SCHEDULER_RESOLUTION):
             if (length == 1):
-                self.ltg_resolution = values[0]
+                self.wlan_scheduler_resolution = values[0]
             else:
                 raise wn_ex.ParameterError("NODE_LTG_RESOLUTION", "Incorrect length")
 

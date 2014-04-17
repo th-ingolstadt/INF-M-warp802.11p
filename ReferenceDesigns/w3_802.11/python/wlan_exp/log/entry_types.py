@@ -510,11 +510,8 @@ entry_node_info.append_field_defs([
             ('fpga_dna',               'Q',      'uint64',  'DNA value of node FPGA'),
             ('serial_num',             'I',      'uint32',  'Serial number of WARP board'),
             ('wlan_exp_ver',           'I',      'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
-            ('wlan_max_associations',  'I',      'uint32',  'Maximum number of wireless associations allowed by node'),
-            ('wlan_log_max_size',      'I',      'uint32',  'Maximum size in bytes of node\'s event log'),
             ('wlan_mac_addr',          'Q',      'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
-            ('wlan_max_stats',         'I',      'uint32',  'Maximum number of statistics structs maintained by node'),
-            ('ltg_resolution',         'I',      'uint32',  'Minimum interval in microseconds of LTG schedules')])
+            ('wlan_scheduler_resolution', 'I',   'uint32',  'Minimum interval in microseconds of the WLAN scheduler')])
 
 ###########################################################################
 # Experiment Info header - actual exp_info contains a "message" field that
