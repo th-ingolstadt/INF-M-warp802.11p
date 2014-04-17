@@ -65,9 +65,6 @@
 
 // Define the WARPNet Type to communicate the type of wn_node.  Current values are:
 //   Type                              Values
-//   WARPLab                           0x00000000 - 0x0000FFFF
-//     WARPLab Node                    0x00000001
-//
 //   802.11                            0x00010000 - 0x0001FFFF
 //       - Of the lower four digits, the lowest two describe CPU Low, while the upper two
 //         describe CPU High.  For example:  in CPU High AP = 0x01; STA = 0x02, while in
@@ -76,9 +73,6 @@
 //     802.11 AP DCF                   0x00010101
 //     802.11 Station DCF              0x00010201
 //
-#define WARPNET_TYPE_WARPLAB_BASE      0x00000000
-#define WARPNET_TYPE_WARPLAB_NODE      0x00000001
-
 #define WARPNET_TYPE_80211_BASE        0x00010000
 #define WARPNET_TYPE_80211_HIGH_AP     0x00000100
 #define WARPNET_TYPE_80211_HIGH_STA    0x00000200
