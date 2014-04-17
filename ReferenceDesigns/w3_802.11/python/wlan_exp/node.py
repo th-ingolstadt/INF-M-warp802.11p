@@ -909,9 +909,9 @@ class WlanExpNode(wn_node.WnNode):
         """Extract values from the parameters"""
         if (identifier == NODE_WLAN_EXP_DESIGN_VER):
             if (length == 1):                
-                self.wlan_exp_ver_major = (values[0] & 0x00FF0000) >> 16
-                self.wlan_exp_ver_minor = (values[0] & 0x0000FF00) >> 8
-                self.wlan_exp_ver_revision = (values[0] & 0x000000FF)                
+                self.wlan_exp_ver_major = (values[0] & 0xFF000000) >> 24
+                self.wlan_exp_ver_minor = (values[0] & 0x00FF0000) >> 16
+                self.wlan_exp_ver_revision = (values[0] & 0x0000FFFF)                
                 
                 # Check to see if there is a version mismatch
                 self.check_wlan_exp_ver()
