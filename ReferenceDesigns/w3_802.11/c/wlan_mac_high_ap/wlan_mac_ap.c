@@ -429,7 +429,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	for(i = 0; i < num_tx_low_details; i++) {
 
 		//Request space for a TX_LOW log entry
-		tx_low_event_log_entry = (tx_low_entry *)get_next_empty_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
+		tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
 		if(tx_low_event_log_entry != NULL){
 			//TX_LOW entries only store the MAC header - the full payload may be included in the associated TX entry
 			tx_low_event_log_entry->mac_payload_log_len = sizeof(mac_header_80211);
@@ -470,7 +470,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 
 	//Request space for a TX entry
-	tx_high_event_log_entry = (tx_high_entry *)get_next_empty_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
+	tx_high_event_log_entry = (tx_high_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
 
 	if(tx_high_event_log_entry != NULL){
 		//Fill in the TX log entry
@@ -892,7 +892,7 @@ void association_timestamp_check() {
 		 		purge_queue(AID_TO_QID(curr_station_info->AID));
 
 				//Remove this STA from association list
-				associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+				associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 				if(associated_station_log_entry != NULL){
 					associated_station_log_entry->timestamp = get_usec_timestamp();
 					memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(curr_station_info), sizeof(station_info_base) );
@@ -950,9 +950,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 
 	if(rate != WLAN_MAC_RATE_1M){
-		rx_event_log_entry = (rx_common_entry*)get_next_empty_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload );
+		rx_event_log_entry = (rx_common_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload );
 	} else {
-		rx_event_log_entry = (rx_common_entry*)get_next_empty_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
+		rx_event_log_entry = (rx_common_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
 	}
 
 	if(rx_event_log_entry != NULL){
@@ -1304,7 +1304,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(associated_station != NULL) {
 
-						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+						associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 						if(associated_station_log_entry != NULL){
 							associated_station_log_entry->timestamp = get_usec_timestamp();
 							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
@@ -1360,7 +1360,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_DISASSOC): //Disassociation
 
 					if(associated_station != NULL){
-						associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+						associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 						if(associated_station_log_entry != NULL){
 							associated_station_log_entry->timestamp = get_usec_timestamp();
 							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
@@ -1506,7 +1506,7 @@ u32  deauthenticate_station( station_info* station ) {
 
 
 		// Remove this STA from association list
-		associated_station_log_entry = (station_info_entry*)get_next_empty_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+		associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 		if(associated_station_log_entry != NULL){
 			associated_station_log_entry->timestamp = get_usec_timestamp();
 			memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(station), sizeof(station_info_base) );
