@@ -178,8 +178,6 @@ int main() {
 	// Initialize the utility library
     wlan_mac_high_init();
 #ifdef USE_WARPNET_WLAN_EXP
-	node_info_set_max_assn( MAX_NUM_ASSOC );
-	node_info_set_max_stats( MAX_NUM_PROMISC_STATS );
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_ETH);
 #endif
 
