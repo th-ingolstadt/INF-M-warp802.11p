@@ -462,6 +462,11 @@ class WnNode(object):
     
                     # Get the missing locations
                     locations = resp.get_missing_byte_locations()
+
+                    if print_warnings:
+                        print(resp)
+                        print("Missing Locations in Buffer:")
+                        print(locations)
     
                     # Send commands to fill in the buffer
                     for location in locations:
@@ -491,6 +496,10 @@ class WnNode(object):
                             # the response and get out of the loop.
                             if print_warnings:
                                 print("WARNING:  Transport timeout.  Returning truncated buffer.")
+                                print("  Requesting missing piece: {0}".format(location))
+                                print(tmp_resp)
+                                print(cmd)
+                                
                             resp.trim()
                             break
                         else:
