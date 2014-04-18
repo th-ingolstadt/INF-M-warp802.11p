@@ -465,6 +465,7 @@ class WnNode(object):
 
                     if print_warnings:
                         print(resp)
+                        print(resp.tracker)
                         print("Missing Locations in Buffer:")
                         print(locations)
     
@@ -499,6 +500,7 @@ class WnNode(object):
                                 print("  Requesting missing piece: {0}".format(location))
                                 print(tmp_resp)
                                 print(cmd)
+                                print(tmp_resp.tracker)
                                 
                             resp.trim()
                             break
