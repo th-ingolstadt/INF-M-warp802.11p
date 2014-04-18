@@ -788,15 +788,23 @@ class Buffer(Message):
         """Internal method to compress the tracker."""
         # See if we can compress if there is more than one item
         if (len(self.tracker) > 1):
-            start_item = self.tracker[0]
+            tracker     = []
+            tmp_tracker = sorted(self.tracker, key=lambda k: k[0])
+            
+            tmp_item = tmp_tracker[0]
+            tracker.append(tmp_item)
             
             # For each remaining item if the start_byte equals the end_byte
             # of the start_item, then we can merge the items
-            for item in self.tracker[1:]:
-                if (item[0] == start_item[1]):
-                    start_item[1]  = item[1]
-                    start_item[2] += item[2]
-                    self.tracker.remove(item)
+            for item in tmp_tracker[1:]:
+                if (item[0] == tmp_item[1]):
+                    tmp_item[1]  = item[1]
+                    tmp_item[2] += item[2]
+                else:
+                    tmp_item = item
+                    tracker.append(tmp_item)
+            
+            self.tracker = tracker
 
     
     def _find_missing_bytes(self):
