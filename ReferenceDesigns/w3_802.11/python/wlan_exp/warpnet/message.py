@@ -804,8 +804,8 @@ class Buffer(Message):
         missing_bytes = self.size - self.num_bytes
         start         = self.start_byte
         end           = self.start_byte + self.size
-        tmp_tracker   = list(self.tracker)
-        tracker_count = list(self.tracker)
+        tmp_tracker   = sorted(self.tracker, key=lambda k: k[0]) 
+        tracker_count = list(tmp_tracker)
 
         if (missing_bytes != 0):
             # Find the first item
@@ -837,8 +837,10 @@ class Buffer(Message):
             # If we still have items in the tracker_count, then there is a problem
             if tracker_count:
                 print("WARNING:  Issue with finding missing bytes.")
-                print("    Missing Bytes: {0}".format(missing_bytes))
-                print("    Tracker      : {0}".format(tracker_count))
+                print("    Missing Bytes   : {0}".format(missing_bytes))
+                print("    Tracker         : {0}".format(self.tracker))
+                print("    Tmp Tracker     : {0}".format(tmp_tracker))
+                print("    Remaining Items : {0}".format(tracker_count))
         
             # Find any holes at the end of the buffer
             if (missing_bytes != 0):
