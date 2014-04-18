@@ -710,7 +710,7 @@ class Buffer(Message):
                 self.buffer = self.buffer[:size]
 
 
-    def _add_buffer_data(self, offset, buffer):
+    def _add_buffer_data(self, buffer_offset, buffer):
         """Internal method to add data to the buffer
         
         Only self.size bytes were allocated for the buffer.  Therefore, we 
@@ -720,35 +720,27 @@ class Buffer(Message):
         NOTE:  If the provided buffer data is greater than specified buffer
             size, then the data will be truncated.
         """
-        buffer_size = len(buffer)
-        num_bytes = self._num_bytes_to_add(buffer_size)        
-        end_byte = num_bytes + offset
+        data_to_add_size = len(buffer)
+        buffer_end_byte  = buffer_offset + data_to_add_size
 
-        if (num_bytes > 0):
-            self.buffer[offset:end_byte] = buffer[:num_bytes]
-            # Need to convert back to absolute addresses for tracker
-            self._update_tracker((offset + self.start_byte), (end_byte + self.start_byte), num_bytes)
-            
+        # If we are going to run off the end of the buffer, then truncate the add
+        if (buffer_end_byte > self.size):
+            buffer_end_byte  = self.size
+            data_to_add_size = buffer_end_byte - buffer_offset
+
+        # Update the tracker with the information
+        #   NOTE:  Need to convert back to absolute addresses for tracker
+        self._update_tracker((buffer_offset + self.start_byte), (buffer_end_byte + self.start_byte), data_to_add_size)
+        
+        # Add the data to the buffer
+        if (data_to_add_size > 0):
+            self.buffer[buffer_offset:buffer_end_byte] = buffer[:data_to_add_size]
+
+        # Update the ocupancy of the buffer
+        self.num_bytes = self._tracker_size()
+
+        # Set the buffer complete flag            
         self._set_buffer_complete()
-
-
-    def _num_bytes_to_add(self, buffer_size):
-        """Internal function to determine how many bytes we can add to the 
-        buffer.
-        
-        NOTE:  If the provided buffer data is greater than specified buffer
-            size, then the data will be truncated.
-        """
-        num_bytes = buffer_size
-        end_byte = self.num_bytes + buffer_size
-        
-        if (end_byte <= self.size):
-            self.num_bytes = end_byte
-        else:
-            num_bytes = self.size - self.num_bytes
-            self.num_bytes = self.size
-
-        return num_bytes
 
 
     def _set_buffer_complete(self):
@@ -759,6 +751,15 @@ class Buffer(Message):
             self.complete = False
         else:
             print("WARNING: WnBuffer out of sync.  Should never reach here.")
+
+
+    def _tracker_size(self):
+        """Internal method to get the buffer size via the tracker."""
+        size = 0
+        for item in self.tracker:
+            size += item[2]
+        
+        return size
 
 
     def _update_tracker(self, start_byte, end_byte, size):
@@ -840,18 +841,24 @@ class Buffer(Message):
                     print("WARNING:  Issue with tracking missing bytes.")
                     print("    Number of missing bytes does not cover hole between tracker items.")
                     print("    Missing Bytes   : {0}".format(missing_bytes))
+
+                    tmp_size       = item[0] - start
+                    missing_bytes  = 0
+                    ret_val.append((start, item[0], tmp_size))
+                    start          = item[1]
+                    tracker_count.remove(item)
                     error = True
             
             if tracker_count:
                 print("WARNING:  Issue with finding missing bytes.")
                 print("    Not all tracker items processed.")
-                print("    Missing Bytes   : {0}".format(missing_bytes))
                 error = True
     
             if error:
                 print("    Tracker         : {0}".format(self.tracker))
                 print("    Tmp Tracker     : {0}".format(tmp_tracker))
                 print("    Remaining Items : {0}".format(tracker_count))
+                print("    Locations       : {0}".format(ret_val))
         
             # Find any holes at the end of the buffer
             if (missing_bytes != 0):
