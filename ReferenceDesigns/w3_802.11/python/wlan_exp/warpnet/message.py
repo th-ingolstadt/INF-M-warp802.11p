@@ -780,8 +780,9 @@ class Buffer(Message):
         
         if not done:
             self.tracker.append({0:start_byte, 1:end_byte, 2:size})
-        else:
-            self._compress_tracker()
+        
+        # Try to compress the tracker
+        self._compress_tracker()
 
 
     def _compress_tracker(self):

@@ -498,15 +498,18 @@ class WnNode(object):
                             if print_warnings:
                                 print("WARNING:  Transport timeout.  Returning truncated buffer.")
                                 print("  Requesting missing piece: {0}".format(location))
-                                print(tmp_resp)
                                 print(cmd)
-                                print(tmp_resp.tracker)
                                 
                             resp.trim()
-                            break
-                        else:
-                            # Add the response to the buffer
-                            resp.merge(tmp_resp)
+                            return resp
+                        
+                        # Add the response to the buffer
+                        resp.merge(tmp_resp)
+                        
+                        if print_warnings:
+                            print("Adding Response:")
+                            print(tmp_resp)
+                            print(resp)
                     
                     curr_tx += 1                    
                 else:
