@@ -806,38 +806,49 @@ class Buffer(Message):
         end           = self.start_byte + self.size
         tmp_tracker   = sorted(self.tracker, key=lambda k: k[0]) 
         tracker_count = list(tmp_tracker)
+        error         = False
 
         if (missing_bytes != 0):
-            # Find the first item
-            for item in tmp_tracker:
-                if (start == item[0]):
-                    start = item[1]
-                    tmp_tracker.remove(item)
-                    tracker_count.remove(item)
-                    break
-            
             # Iterate through all the items in the list and remove
             # them as we build up the holes
             for item in tmp_tracker:
-                if ((start + missing_bytes) >= item[0]):                
-                    tmp_size       = item[0] - start
 
-                    # Detect error condition if the size is less than zero
+                # Process item but don't add a hole
+                if   (start == item[0]):
+                    start = item[1]
+                    tracker_count.remove(item)
+                    
+                # There is a missing piece of the buffer to request
+                elif ((start + missing_bytes) >= item[0]):
+                    tmp_size       = item[0] - start
+                    
                     if tmp_size < 0:
                         print("WARNING:  Issue with finding missing bytes.")
-                        print("    item    = ({0}, {1}, {2})".format(item[0], item[1], item[2]))
-                        print("    start   = {0}".format(start))
-                        print("    tracker = {0}".format(tmp_tracker))
+                        print("    Size between items is negative.")
+                        print("    item            : ({0}, {1}, {2})".format(item[0], item[1], item[2]))
+                        print("    start           : {0}".format(start))
+                        error = True
                     else:
                         missing_bytes -= tmp_size
                         ret_val.append((start, item[0], tmp_size))
                         start          = item[1]
-                        tracker_count.remove(item)
+                        
+                    tracker_count.remove(item)
 
-            # If we still have items in the tracker_count, then there is a problem
+                # There was an error in the tracker
+                else:
+                    print("WARNING:  Issue with tracking missing bytes.")
+                    print("    Number of missing bytes does not cover hole between tracker items.")
+                    print("    Missing Bytes   : {0}".format(missing_bytes))
+                    error = True
+            
             if tracker_count:
                 print("WARNING:  Issue with finding missing bytes.")
+                print("    Not all tracker items processed.")
                 print("    Missing Bytes   : {0}".format(missing_bytes))
+                error = True
+    
+            if error:
                 print("    Tracker         : {0}".format(self.tracker))
                 print("    Tmp Tracker     : {0}".format(tmp_tracker))
                 print("    Remaining Items : {0}".format(tracker_count))
