@@ -55,15 +55,6 @@ class WlanDevice(object):
     # WLAN Commands for the Device
     #-------------------------------------------------------------------------
 
-    def get_wlan_mac_address(self):
-        """Get the wireless mac address of the 802.11 device."""
-        return self.wlan_mac_address
-
-
-    def get_name(self):
-        """Get the name of the 802.11 device."""
-        return self.host_name
-    
 
 # End Class WlanDevice
 

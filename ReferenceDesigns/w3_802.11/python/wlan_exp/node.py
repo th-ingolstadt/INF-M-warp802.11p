@@ -39,6 +39,7 @@ import wlan_exp.warpnet.exception as wn_ex
 import wlan_exp.version as version
 import wlan_exp.defaults as defaults
 import wlan_exp.cmds as cmds
+import wlan_exp.device as device
 
 
 __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
@@ -52,7 +53,7 @@ NODE_WLAN_MAC_ADDR                     = 7
 NODE_WLAN_SCHEDULER_RESOLUTION         = 8
 
 
-class WlanExpNode(wn_node.WnNode):
+class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     """Base Class for WLAN Experiment node.
     
     The WLAN experiment node represents one node in a WLAN experiment network.  
@@ -76,8 +77,11 @@ class WlanExpNode(wn_node.WnNode):
         transport                      -- Node's transport object
         transport_bcast                -- Node's broadcast transport object
 
-    New Attributes:
+    Attributes (inherited from WlanDevice):
+        device_type                    -- Unique type of the Wlan Device
         wlan_mac_address               -- Wireless MAC address of the node
+
+    New Attributes:
         wlan_scheduler_resolution      -- Minimum resolution (in us) of the LTG
 
         log_max_size                   -- Maximum size of event log (in bytes)
@@ -89,7 +93,6 @@ class WlanExpNode(wn_node.WnNode):
         wlan_exp_ver_minor
         wlan_exp_ver_revision        
     """
-    wlan_mac_address                   = None
     wlan_scheduler_resolution          = None
     
     log_max_size                       = None
@@ -109,6 +112,7 @@ class WlanExpNode(wn_node.WnNode):
                 self.wlan_exp_ver_revision) = version.wlan_exp_ver()
         
         self.node_type                      = defaults.WLAN_EXP_BASE
+        self.device_type                    = self.node_type
         self.wlan_scheduler_resolution      = 1
 
         self.log_total_bytes_read           = 0

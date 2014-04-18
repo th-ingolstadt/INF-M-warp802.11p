@@ -41,6 +41,8 @@ class WlanExpNodeAp(node.WlanExpNode):
         self.node_type = self.node_type + defaults.WLAN_EXP_HIGH_AP
         self.node_type = self.node_type + defaults.WLAN_EXP_LOW_DCF
 
+        self.device_type = self.node_type
+
 
     def configure_node(self, jumbo_frame_support=False):
         """Get remaining information from the node and set remaining parameters."""
