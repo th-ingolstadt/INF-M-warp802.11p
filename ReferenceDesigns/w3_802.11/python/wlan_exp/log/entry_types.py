@@ -362,6 +362,20 @@ class WlanExpLogEntryType(object):
         else:
             return (isinstance(other, self.__class__) and (self.name == other.name))
 
+    def __lt__(self, other):
+        """WlanExpLogEntryType are less than if their names are less than."""
+        if type(other) is str:
+            return self.name < other
+        else:
+            return (isinstance(other, self.__class__) and (self.name < other.name))
+
+    def __gt__(self, other):
+        """WlanExpLogEntryType are greater than if their names are greater than."""
+        if type(other) is str:
+            return self.name > other
+        else:
+            return (isinstance(other, self.__class__) and (self.name > other.name))
+
     def __ne__(self, other):
         return not self.__eq__(other)
 
