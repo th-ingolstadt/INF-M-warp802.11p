@@ -83,22 +83,23 @@ class WnNode(object):
         transport -- Node's transport object
         transport_bcast -- Node's broadcast transport object
     """
-    host_config     = None
+    host_config              = None
 
-    node_type       = None
-    node_id         = None
-    name            = None
-    description     = None
-    serial_number   = None
-    sn_str          = None
-    fpga_dna        = None
-    hw_ver          = None
-    wn_ver_major    = None
-    wn_ver_minor    = None
-    wn_ver_revision = None
+    node_type                = None
+    node_id                  = None
+    name                     = None
+    description              = None
+    serial_number            = None
+    sn_str                   = None
+    fpga_dna                 = None
+    hw_ver                   = None
+    wn_ver_major             = None
+    wn_ver_minor             = None
+    wn_ver_revision          = None
 
-    transport       = None
-    transport_bcast = None
+    transport                = None
+    transport_bcast          = None
+    transport_tracker        = None
     
     def __init__(self, host_config=None):
         (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = version.wn_ver()
@@ -107,6 +108,8 @@ class WnNode(object):
             self.host_config = host_config
         else:
             self.host_config = wn_config.HostConfiguration()
+
+        self.transport_tracker = 0
 
 
     def __del__(self):
@@ -349,7 +352,6 @@ class WnNode(object):
     def _receive_resp(self, cmd, max_attempts):
         """Internal method to receive a response for a given command payload"""
         reply = b''
-        curr_tx = 1
         done = False
         resp = wn_message.Resp()
 
@@ -359,13 +361,15 @@ class WnNode(object):
         while not done:
             try:
                 reply = self.transport.receive()
+                self._receive_success()
             except wn_ex.TransportError:
-                if curr_tx == max_attempts:
+                self._receive_failure()
+
+                if self._receive_failure_exceeded(max_attempts):
                     raise wn_ex.TransportError(self.transport, 
                               "Max retransmissions without reply from node")
 
                 self.transport.send(payload)
-                curr_tx += 1
             else:
                 resp.deserialize(reply)
                 done = True
@@ -390,7 +394,6 @@ class WnNode(object):
         print_debug_msg = False
         
         reply           = b''
-        curr_tx         = 1
 
         buffer_id       = cmd.get_buffer_id()
         flags           = cmd.get_buffer_flags()
@@ -436,25 +439,22 @@ class WnNode(object):
                 tmp_resp = self.send_cmd(cmd)
                 tmp_size = tmp_resp.get_buffer_size()
                 
-                if ((tmp_size != size) and print_warnings):
-                    msg  = "WARNING:  Command did not return a complete fragment.\n"
-                    msg += "    Requested : {0:10d}\n".format(size)
-                    msg += "    Received  : {0:10d}\n".format(tmp_size)
-                    print(msg)
-
-                if (tmp_size > 0):
+                if (tmp_size == size):
                     # Add the response to the buffer and increment loop variables
                     resp.merge(tmp_resp)
                     num_bytes += size
                     start_idx += size
                 else:
-                    # Exit the loop because communication has totally failed and
-                    # there is not point to request the next fragment.
-                    if print_warnings:
-                        msg  = "WARNING:  Fragment starting at {0} ".format(start_idx)
-                        msg += "contained no data.\n"
-                        msg += "          Returning truncated buffer."
+                    # Exit the loop because communication has totally failed for 
+                    # the fragment and there is no point to request the next 
+                    # fragment since we only return the truncated buffer.
+                    if (print_warnings):
+                        msg  = "WARNING:  Command did not return a complete fragment.\n"
+                        msg += "  Requested : {0:10d}\n".format(size)
+                        msg += "  Received  : {0:10d}\n".format(tmp_size)
+                        msg += "Returning truncated buffer."
                         print(msg)
+
                     break
         else:
             # Normal buffer receive flow
@@ -464,12 +464,14 @@ class WnNode(object):
             while not resp.is_buffer_complete():
                 try:
                     reply = self.transport.receive()
+                    self._receive_success()
                 except wn_ex.TransportError:
+                    self._receive_failure()
                     if print_warnings:
                         print("WARNING:  Transport timeout.  Requesting missing data.")
                     
                     # If there is a timeout, then request missing part of the buffer
-                    if curr_tx == max_attempts:
+                    if self._receive_failure_exceeded(max_attempts):
                         if print_warnings:
                             print("ERROR:  Max re-transmissions without reply from node.")
                         raise wn_ex.TransportError(self.transport, 
@@ -507,17 +509,17 @@ class WnNode(object):
                         #   that max_attempts are set to 1 for the re-request so
                         #   that we do not get in to an infinite loop
                         try:
-                            location_resp = self.send_cmd(cmd, max_attempts=2)
-                            curr_tx = 0
+                            location_resp = self.send_cmd(cmd, max_attempts=max_attempts)
+                            self._receive_success()
                         except wn_ex.TransportError:
                             # If we have timed out on a re-request, then there 
                             # is something wrong and we should just clean up
                             # the response and get out of the loop.
                             if print_warnings:
                                 print("WARNING:  Transport timeout.  Returning truncated buffer.")
-                                print("  Requesting missing piece: {0}".format(location))
-                                print(cmd)
+                                print("  Timeout requesting missing location: {1} bytes @ {0}".format(location[0], location[2]))
                                 
+                            self._receive_failure()
                             resp.trim()
                             return resp
                         
@@ -534,7 +536,6 @@ class WnNode(object):
                             print(resp)
                             print(resp.tracker)
                         
-                    curr_tx += 1                    
                 else:
                     resp.add_data_to_buffer(reply)
 
@@ -585,6 +586,33 @@ class WnNode(object):
                 output.append(wn_resp)
         
         return output
+
+
+
+    #-------------------------------------------------------------------------
+    # Transport Tracker
+    #-------------------------------------------------------------------------
+    def _receive_success(self):
+        """Internal method to indicate to the tracker that we successfully 
+        received a packet.
+        """
+        self.transport_tracker = 0
+    
+    def _receive_failure(self):
+        """Internal method to indicate to the tracker that we had a 
+        receive failure.
+        """
+        self.transport_tracker += 1
+
+    def _receive_failure_exceeded(self, max_attempts):
+        """Internal method to indicate if we have had more recieve 
+        failures than max_attempts.
+        """
+        if (self.transport_tracker < max_attempts):
+            return False
+        else:
+            return True
+
 
 
     #-------------------------------------------------------------------------
