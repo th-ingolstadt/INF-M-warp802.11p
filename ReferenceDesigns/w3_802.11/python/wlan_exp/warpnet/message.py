@@ -574,14 +574,15 @@ class Buffer(Message):
     def merge(self, wn_buffer):
         """Merge the contents of the provided WnBuffer to the current WnBuffer."""
         start_byte = wn_buffer.get_start_byte()
+        offset     = (start_byte - self.start_byte)
         size       = wn_buffer.get_buffer_size()
-        end_byte   = start_byte + size
+        end_byte   = offset + size
         
         if (end_byte > self.size):
             # Need to update the buffer to allocate more memory first
             self._update_buffer_size(end_byte, force=1)
 
-        self._add_buffer_data(start_byte, wn_buffer.get_bytes())
+        self._add_buffer_data(offset, wn_buffer.get_bytes())
         self._set_buffer_complete()
             
 
@@ -659,7 +660,6 @@ class Buffer(Message):
             msg += "({0:d} bytes): \n".format(self.size)
             msg += "    Flags    : 0x{0:08x} \n".format(self.flags)
             msg += "    Start    : {0:d}\n".format(self.start_byte)
-            msg += "    Size     : {0:d}\n".format(self.size)
             msg += "    Num bytes: {0:d}\n".format(self.num_bytes)
             msg += "    Complete : {0}\n".format(self.complete)
 

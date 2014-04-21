@@ -387,6 +387,7 @@ class WnNode(object):
         """
         display_perf    = False
         print_warnings  = True
+        print_debug_msg = False
         
         reply           = b''
         curr_tx         = 1
@@ -395,6 +396,9 @@ class WnNode(object):
         flags           = cmd.get_buffer_flags()
         start_byte      = cmd.get_buffer_start_byte()
         total_size      = cmd.get_buffer_size()
+
+        tmp_resp        = None
+        resp            = None
 
         if max_req_size is not None:
             fragment_size = max_req_size
@@ -417,6 +421,8 @@ class WnNode(object):
 
             while (num_bytes < total_size):
                 # Create fragmented command
+                if (print_debug_msg):
+                    print("\nFRAGMENT:  {0:10d}/{1:10d}\n".format(num_bytes, total_size))    
     
                 # Handle the case of the last fragment
                 if ((num_bytes + size) > total_size):
@@ -428,8 +434,15 @@ class WnNode(object):
                 
                 # Send the updated command
                 tmp_resp = self.send_cmd(cmd)
+                tmp_size = tmp_resp.get_buffer_size()
+                
+                if ((tmp_size != size) and print_warnings):
+                    msg  = "WARNING:  Command did not return a complete fragment.\n"
+                    msg += "    Requested : {0:10d}\n".format(size)
+                    msg += "    Received  : {0:10d}\n".format(tmp_size)
+                    print(msg)
 
-                if (tmp_resp.get_buffer_size() > 0):
+                if (tmp_size > 0):
                     # Add the response to the buffer and increment loop variables
                     resp.merge(tmp_resp)
                     num_bytes += size
@@ -457,20 +470,25 @@ class WnNode(object):
                     
                     # If there is a timeout, then request missing part of the buffer
                     if curr_tx == max_attempts:
+                        if print_warnings:
+                            print("ERROR:  Max re-transmissions without reply from node.")
                         raise wn_ex.TransportError(self.transport, 
                                   "Max retransmissions without reply from node")
     
                     # Get the missing locations
                     locations = resp.get_missing_byte_locations()
 
-                    if print_warnings:
+                    if print_debug_msg:
                         print(resp)
                         print(resp.tracker)
                         print("Missing Locations in Buffer:")
                         print(locations)
-    
+
                     # Send commands to fill in the buffer
                     for location in locations:
+                        if (print_debug_msg):
+                            print("\nLOCATION: {0:10d}    {1:10d}\n".format(location[0], location[2]))
+
                         # Update the command with the new location
                         cmd.update_start_byte(location[0])
                         cmd.update_size(location[2])
@@ -479,7 +497,7 @@ class WnNode(object):
                             print("ERROR:  Issue with finding missing bytes in response:")
                             print("Response Tracker:")
                             print(resp.tracker)
-                            print("Missing Locations:")
+                            print("\nMissing Locations:")
                             print(locations)
                             raise Exception()
                         
@@ -489,7 +507,7 @@ class WnNode(object):
                         #   that max_attempts are set to 1 for the re-request so
                         #   that we do not get in to an infinite loop
                         try:
-                            tmp_resp = self.send_cmd(cmd, max_attempts=1)
+                            location_resp = self.send_cmd(cmd, max_attempts=2)
                             curr_tx = 0
                         except wn_ex.TransportError:
                             # If we have timed out on a re-request, then there 
@@ -503,14 +521,19 @@ class WnNode(object):
                             resp.trim()
                             return resp
                         
-                        # Add the response to the buffer
-                        resp.merge(tmp_resp)
-                        
-                        if print_warnings:
+                        if print_debug_msg:
                             print("Adding Response:")
-                            print(tmp_resp)
+                            print(location_resp)
+                            print(resp)                            
+                        
+                        # Add the response to the buffer
+                        resp.merge(location_resp)
+
+                        if print_debug_msg:
+                            print("Buffer after merge:")
                             print(resp)
-                    
+                            print(resp.tracker)
+                        
                     curr_tx += 1                    
                 else:
                     resp.add_data_to_buffer(reply)
