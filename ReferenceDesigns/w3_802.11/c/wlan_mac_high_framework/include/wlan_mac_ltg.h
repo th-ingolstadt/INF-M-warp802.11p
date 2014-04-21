@@ -123,6 +123,7 @@ int wlan_mac_ltg_sched_init();
 void wlan_mac_ltg_sched_set_callback(void(*callback)());
 u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*callback)());
 int ltg_sched_remove(u32 id);
+int ltg_sched_remove_all();
 int ltg_sched_start(u32 id);
 int ltg_sched_start_all();
 int ltg_sched_stop(u32 id);

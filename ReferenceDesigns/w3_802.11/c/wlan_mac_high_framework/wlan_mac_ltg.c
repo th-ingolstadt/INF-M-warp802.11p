@@ -131,15 +131,19 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 int ltg_sched_start(u32 id){
 	dl_entry*	curr_tg_dl_entry;
 
-	curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
-	if(curr_tg_dl_entry != NULL){
-		return ltg_sched_start_l(curr_tg_dl_entry);
-	}
-	else {
-		xil_printf("Failed to start LTG ID: %d. Please ensure LTG is configured before starting\n", id);
-		return -1;
-	}
+	if (id == LTG_START_ALL) {
+		return ltg_sched_start_all();
+	} else {
+        // Single ID case
+		curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
 
+		if(curr_tg_dl_entry != NULL){
+			return ltg_sched_start_l(curr_tg_dl_entry);
+		} else {
+			xil_printf("Failed to start LTG ID: %d. Please ensure LTG is configured before starting\n", id);
+			return -1;
+		}
+	}
 }
 
 
@@ -267,11 +271,19 @@ void ltg_sched_check(){
 int ltg_sched_stop(u32 id){
 	dl_entry*	 curr_tg_dl_entry;
 
-	curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
-	if(curr_tg_dl_entry != NULL){
-		return ltg_sched_stop_l(curr_tg_dl_entry);
+	if (id == LTG_STOP_ALL) {
+		return ltg_sched_stop_all();
+	} else {
+        // Single ID case
+		curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
+
+		if(curr_tg_dl_entry != NULL){
+			return ltg_sched_stop_l(curr_tg_dl_entry);
+		} else {
+			xil_printf("Failed to stop LTG ID: %d. Please ensure LTG is configured before stopping\n", id);
+			return -1;
+		}
 	}
-	return -1;
 }
 
 
@@ -383,41 +395,61 @@ int ltg_sched_get_callback_arg(u32 id, void** callback_arg){
 }
 
 
-
 int ltg_sched_remove(u32 id){
-//	u32 i;
-//	u32 list_len;
+	tg_schedule* curr_tg;
+	dl_entry*	 curr_tg_dl_entry;
+
+	if (id == LTG_REMOVE_ALL) {
+		return ltg_sched_remove_all();
+	} else {
+        // Single ID case
+		curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
+
+		if(curr_tg_dl_entry != NULL){
+			curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
+
+			ltg_sched_stop_l(curr_tg_dl_entry);
+			dl_entry_remove(&tg_list, curr_tg_dl_entry);
+			if(curr_tg->cleanup_callback != NULL){
+				curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
+			}
+			ltg_sched_destroy_l(curr_tg_dl_entry);
+
+			return 0;
+		} else {
+			xil_printf("Failed to remove LTG ID: %d. Please ensure LTG is configured before removing\n", id);
+			return -1;
+		}
+	}
+}
+
+
+int ltg_sched_remove_all(){
 	tg_schedule* curr_tg;
 	dl_entry* 	 next_tg_dl_entry;
 	dl_entry* 	 curr_tg_dl_entry;
 
-//	list_len = tg_list.length;
-
 	next_tg_dl_entry = tg_list.first;
-	//for(i = 0; i < list_len; i++ ){
+
+	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
+	//   elements from the list.
 	while(next_tg_dl_entry != NULL){
 		curr_tg_dl_entry = next_tg_dl_entry;
 		next_tg_dl_entry = dl_entry_next(curr_tg_dl_entry);
 
 		curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
-		if( (curr_tg->id)==id || id == LTG_REMOVE_ALL){
-			dl_entry_remove(&tg_list, curr_tg_dl_entry);
-			ltg_sched_stop_l(curr_tg_dl_entry);
-			if(curr_tg->cleanup_callback != NULL){
-				curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
-			}
-			ltg_sched_destroy_l(curr_tg_dl_entry);
-			if(id != LTG_REMOVE_ALL) return 0;
+		ltg_sched_stop_l(curr_tg_dl_entry);
+		dl_entry_remove(&tg_list, curr_tg_dl_entry);
+		if(curr_tg->cleanup_callback != NULL){
+			curr_tg->cleanup_callback(curr_tg->id, curr_tg->callback_arg);
 		}
+		ltg_sched_destroy_l(curr_tg_dl_entry);
 	}
 
-	if(id != LTG_REMOVE_ALL){
-		return -1;
-	} else {
-		return 0;
-	}
+	return 0;
 }
+
 
 dl_entry* ltg_sched_create_l(){
 	dl_entry* curr_tg_dl_entry;

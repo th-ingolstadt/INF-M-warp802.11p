@@ -1506,7 +1506,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			status = CMD_PARAM_SUCCESS;
 			id     = Xil_Ntohl(cmdArgs32[0]);
 
-			// Try to start the ID
+			// Try to stop the ID
 			temp2 = ltg_sched_stop( id );
 
 			if ( temp2 == 0 ) {
