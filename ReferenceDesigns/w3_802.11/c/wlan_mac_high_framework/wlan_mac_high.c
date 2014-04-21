@@ -1428,9 +1428,9 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 		case IPC_MBOX_MEM_READ_WRITE:
 
 			if(cpu_low_reg_read_buffer != NULL){
-
-				memcpy( (u8*)cpu_low_reg_read_buffer, (u8*)ipc_msg_from_low_payload, msg->num_payload_words * sizeof(u32));
-
+				memcpy( (u8*)cpu_low_reg_read_buffer, (u8*)ipc_msg_from_low_payload, (msg->num_payload_words) * sizeof(u32));
+				//xil_printf("CPU Low Read returned %d words\n", (msg->num_payload_words));
+				//xil_printf("Mem read from low d[0] = 0x%08x\n", ipc_msg_from_low_payload[0]);
 				cpu_low_reg_read_buffer_status = CPU_LOW_REG_READ_BUFFER_STATUS_READY;
 
 			} else {

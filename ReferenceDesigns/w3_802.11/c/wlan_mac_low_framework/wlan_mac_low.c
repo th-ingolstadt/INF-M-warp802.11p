@@ -271,11 +271,14 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					break;
 					case IPC_REG_READ_MODE:
 						/*
-						xil_printf("CPU Low Read:\n");
+						xil_printf("\nCPU Low Read:\n");
 						xil_printf(" Addr: 0x%08x\n", (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr);
 						xil_printf(" N Wrds: %d\n", ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
-						*/
 
+						xil_printf("Mem[0x%08x] = 0x%08x\n",
+								(u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr,
+								Xil_In32((u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr));
+ 	 	 	 	 	 	 */
 						ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
 						ipc_msg_to_high.num_payload_words = ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words;
 						ipc_msg_to_high.payload_ptr = (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr;

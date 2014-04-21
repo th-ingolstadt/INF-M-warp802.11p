@@ -1357,11 +1357,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				case CMD_PARAM_READ_VAL:
+					/*
 					xil_printf("Reading CPU Low Mem:\n");
 					xil_printf(" Addr: 0x%08x\n", mem_addr);
 					xil_printf(" Len:  %d\n", mem_length);
-
-					temp2 = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(respArgs32[1]));
+					 */
+					temp2 = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(respArgs32[2]));
 
 					if(temp2 == 0) { //Success
 						// Don't set the default response
@@ -1375,7 +1376,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 						// Endian swap payload returned by CPU Low
 						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
-							respArgs32[1 + mem_idx] = Xil_Ntohl(respArgs32[1 + mem_idx]);
+							respArgs32[2 + mem_idx] = Xil_Ntohl(respArgs32[2 + mem_idx]);
 						}
 
 						respHdr->length += (mem_length * sizeof(u32));
