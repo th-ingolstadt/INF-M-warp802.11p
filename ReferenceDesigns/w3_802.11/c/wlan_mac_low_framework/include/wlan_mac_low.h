@@ -169,6 +169,11 @@
 #define POLL_MAC_TYPE_ACK				(1<<8)
 #define POLL_MAC_TYPE_OTHER				(255<<8)
 
+
+//WN Low Params
+#define LOW_PARAM_PHYSICAL_CS_THRESH	1
+
+
 int wlan_mac_low_init(u32 type);
 void wlan_mac_low_finish_init();
 void wlan_mac_low_dcf_init();

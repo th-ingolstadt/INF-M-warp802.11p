@@ -230,8 +230,8 @@ void wlan_phy_init() {
 /************ PHY Rx ************/
 
 	//Enable DSSS Rx by default
-	wlan_phy_DSSS_rx_enable();
-	//wlan_phy_DSSS_rx_disable();
+	//wlan_phy_DSSS_rx_enable();
+	wlan_phy_DSSS_rx_disable(); //FIXME
 
 	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
 	wlan_phy_DSSS_rx_config(0x600, 200, 5, 5);
@@ -275,7 +275,8 @@ void wlan_phy_init() {
 	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
 	//Set physical carrier sensing threshold
-	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
+	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 480); //-62dBm from 802.11-2012
+	//wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
 	//wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 1023);
 
 	//Set post Rx extension (number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for decoding latency at 64QAM 3/4)
@@ -500,7 +501,8 @@ void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx){
 	if(config_phy_rx->enable_dsss != 0xFF){
 		if(config_phy_rx->enable_dsss == 1){
 			//xil_printf("Enabling DSSS\n");
-			wlan_phy_DSSS_rx_enable();
+			//wlan_phy_DSSS_rx_enable();
+			wlan_phy_DSSS_rx_disable(); //FIXME
 		} else {
 			//xil_printf("Disabling DSSS\n");
 			wlan_phy_DSSS_rx_disable();
