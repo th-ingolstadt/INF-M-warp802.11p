@@ -64,6 +64,7 @@
 #define IPC_MBOX_CONFIG_TX_CTRL_POW		14
 #define IPC_MBOX_CONFIG_RX_FILTER		15
 #define IPC_MBOX_MEM_READ_WRITE     	16
+#define IPC_MBOX_LOW_PARAM				17
 
 typedef struct{
 	u32  baseaddr;
