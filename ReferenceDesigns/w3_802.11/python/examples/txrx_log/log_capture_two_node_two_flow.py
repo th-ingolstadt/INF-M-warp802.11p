@@ -36,7 +36,7 @@ import wlan_exp.log.util_hdf as hdf_util
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
 HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
+NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 
 AP_HDF5_FILENAME  = "ap_two_node_two_flow_capture.hdf5"
 STA_HDF5_FILENAME = "sta_two_node_two_flow_capture.hdf5"

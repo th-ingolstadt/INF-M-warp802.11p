@@ -42,6 +42,38 @@ if (sys.maxsize <= 2**32):
 
 
 #-----------------------------------------------------------------------------
+# Log Container base class
+#-----------------------------------------------------------------------------
+class LogContainer(object):
+    """Base class to define a log container."""
+    file_handle = None
+
+    def __init__(self, file_handle=None):
+        self.file_handle = file_handle
+
+    def set_file_handle(self, file_handle):
+        self.file_handle = file_handle
+
+    def is_valid(self):                               raise NotImplementedError
+
+    def write_log_data(self, log_data, append=True):  raise NotImplementedError
+    def write_log_index(self, log_index=None):        raise NotImplementedError
+    def write_attr_dict(self, attr_dict):             raise NotImplementedError
+
+    def replace_log_data(self, log_data):             raise NotImplementedError
+
+    def get_log_data_size(self):                      raise NotImplementedError
+    def get_log_data(self):                           raise NotImplementedError    
+    def get_log_index(self, gen_index=True):          raise NotImplementedError
+    def get_attr_dict(self):                          raise NotImplementedError
+
+    def trim_log_data(self):                          raise NotImplementedError
+
+# End class()
+
+
+
+#-----------------------------------------------------------------------------
 # WLAN Exp Log Utilities
 #-----------------------------------------------------------------------------
 def gen_raw_log_index(log_data):
@@ -316,6 +348,78 @@ def log_data_to_np_arrays(log_data, log_index):
 #-----------------------------------------------------------------------------
 # WLAN Exp Log Misc Utilities
 #-----------------------------------------------------------------------------
+def merge_log_indexes(dest_index, src_index, offset):
+    """Merge log indexes.
+    
+    Attributes:
+        dest_index      -- Destination index to merge src_index into
+        src_index       -- Source index to merge into destination index
+        offset          -- Offset of src_index into dest_index
+    
+    NOTE:  Both the dest_index and src_index have log entry offsets that are 
+    relative to the beginning of the log data from which they were generated.
+    If the log data used to generate the log indexes are being merged, then
+    we need to move the log entry offsets in the src_index to their absolute
+    offset in the merged log index.  For each of the log entry offsets in
+    the src_index, the following translation will occur:
+    
+      <Offset in merged log index> = <Offset in src_index> + offset
+    
+    """
+    return_val = dest_index
+    
+    for key in src_index.keys():
+        new_offsets = [x + offset for x in src_index[key]]
+
+        try:
+            return_val[key].append(new_offsets)
+        except KeyError:
+            return_val[key] = new_offsets
+    
+    return return_val
+
+# End merge_raw_log_indexes()
+
+
+
+def calc_next_entry_offset(log_data, raw_log_index):
+    """Calculates the offset of the next log entry given the log data and 
+    the raw log index.
+    
+    Attributes:
+        log_data        -- Binary WLAN Exp log data to append
+        raw_log_index   -- Raw log index of the log data
+    
+    Returns:
+        offset of next log entry
+
+    NOTE:  The log data does not necessarily end on a log entry boundary.
+    Therefore, it is necessary to be able to calculate the offset of the 
+    next log entry so that it is possible to continue index generation
+    when reading the log in multiple pieces.
+    """
+    # See documentation above on header format
+    hdr_size             = 8
+
+    max_entry_offset_key = max(raw_log_index, key=raw_log_index.get)
+    max_entry_offset     = raw_log_index[max_entry_offset_key][-1]
+    
+    hdr_b = log_data[max_entry_offset - hdr_size : max_entry_offset]
+    
+    if( (bytearray(hdr_b[2:4]) != b'\xed\xac') ):
+        raise Exception("ERROR: Offset not a valid entry header (offset {0})!".format(max_entry_offset))
+
+    entry_size = (hdr_b[6] + (hdr_b[7] * 256))
+    
+    next_entry_header_offset = max_entry_offset + entry_size
+    next_entry_offset        = next_entry_header_offset + hdr_size
+    
+    return next_entry_offset
+
+# End calc_next_entry_offset()
+
+
+
 def overwrite_entries_with_null_entry(log_data, byte_offsets):
     """Overwrite the entries in byte_offsets with NULL entries."""
     # See documentation above on header format
@@ -457,7 +561,7 @@ def _print_log_entries(log_bytes, log_index, entries_slice=None):
 # End print_log_entries()
 
 
-def _get_safe_filename(filename):
+def _get_safe_filename(filename, print_warnings=True):
     """Create a 'safe' file name based on the current file name.
     
     Given the filename <path>/<name>.<ext>, this method first checks if the
@@ -498,9 +602,10 @@ def _get_safe_filename(filename):
 
             # Break the loop if we found a unique file name
             if not os.path.isfile(safe_filename):
-                msg  = 'WARNING: File "{0}" already exists.\n'.format(filename)
-                msg += '    Using replacement file name "{0}"'.format(safe_filename)
-                print(msg)
+                if print_warnings:
+                    msg  = 'WARNING: File "{0}" already exists.\n'.format(filename)
+                    msg += '    Using replacement file name "{0}"'.format(safe_filename)
+                    print(msg)
                 break
     else:
         # File didn't exist - use name as provided

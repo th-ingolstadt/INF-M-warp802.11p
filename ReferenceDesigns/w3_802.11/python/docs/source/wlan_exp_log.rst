@@ -81,7 +81,7 @@ The `log_util.gen_raw_log_index(log_data)` method will read a raw log data array
 
 The `log_util_hdf.log_data_to_hdf5` method will optionally create and save the raw log index when saving log data to an HDF5 file.
 
-The `log_util_hdf.hdf5_to_raw_log_index` method will read a raw log index previously saved to an HDF5 file.
+The `log_util_hdf.hdf5_to_log_index` method will read a raw log index previously saved to an HDF5 file.
 
 Archiving Log Data
 ==================
@@ -139,7 +139,7 @@ Reading Log Data Files
 
 The `hdf5_to_log_data(filename)` method will read a ``log_data`` array from the HDF5 file named ``filename``. The format of the returned array is identical to the bytearray retrieved from an 802.11 Reference Design node and can be used wherever the original ``log_data`` array would have been used.
 
-The `hdf5_to_raw_log_index(filename)` method will read a raw log index from the HDF5 file named ``filename``. The dictionary returned will be identical to re-generating the index from scratch (i.e. by calling `log_util.gen_raw_log_index(hdf5_to_log_data(filename))`). Retrieving the raw index from an HDF5 file is typically must faster than re-generating the index from the log data.
+The `hdf5_to_log_index(filename)` method will read a raw log index from the HDF5 file named ``filename``. The dictionary returned will be identical to re-generating the index from scratch (i.e. by calling `log_util.gen_raw_log_index(hdf5_to_log_data(filename))`). Retrieving the raw index from an HDF5 file is typically must faster than re-generating the index from the log data.
 
 Examples
 --------

@@ -68,10 +68,10 @@ else:
 
 #Extract the log data and index from the log files
 log_data_ap       = hdf_util.hdf5_to_log_data(filename=AP_LOGFILE)
-raw_log_index_ap  = hdf_util.hdf5_to_raw_log_index(filename=AP_LOGFILE)
+raw_log_index_ap  = hdf_util.hdf5_to_log_index(filename=AP_LOGFILE)
 
 log_data_sta      = hdf_util.hdf5_to_log_data(filename=STA_LOGFILE)
-raw_log_index_sta = hdf_util.hdf5_to_raw_log_index(filename=STA_LOGFILE)
+raw_log_index_sta = hdf_util.hdf5_to_log_index(filename=STA_LOGFILE)
 
 #Generate indexes with just Tx and Rx events
 entries_filt = ['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW']

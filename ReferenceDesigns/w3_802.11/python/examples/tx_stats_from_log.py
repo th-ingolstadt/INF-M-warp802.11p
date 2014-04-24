@@ -29,7 +29,7 @@ else:
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 
 # Get the raw_log_index from the file
-raw_log_index = hdf_util.hdf5_to_raw_log_index(filename=LOGFILE)
+raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 
 # Extract just OFDM Tx events
 tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX'])

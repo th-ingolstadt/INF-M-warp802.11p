@@ -99,7 +99,7 @@ def log_anonymize(filename):
     log_bytes = bytearray(hdf_util.hdf5_to_log_data(filename=filename))
 
     # Get the raw_log_index from the file
-    raw_log_index = hdf_util.hdf5_to_raw_log_index(filename=filename)
+    raw_log_index = hdf_util.hdf5_to_log_index(filename=filename)
 
     # Get the user attributes from the file
     log_attr_dict  = hdf_util.hdf5_to_attr_dict(filename=filename)
