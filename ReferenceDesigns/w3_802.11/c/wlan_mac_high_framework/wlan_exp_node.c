@@ -326,6 +326,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
     unsigned int  temp, temp2, i, j;
+    wlan_ipc_msg       ipc_msg_to_low;
 
     // Variables for functions
     u32           msg_cmd;
@@ -1216,6 +1217,53 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			// Send response
             respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+		//---------------------------------------------------------------------
+		case CMDID_NODE_LOW_PARAM:
+			// Set node MAC low to high filter
+			//
+			// Message format:
+			//     cmdArgs32[0]   Command
+			//     cmdArgs32[1]   PARAM_ID
+			//	   cmdArgs32[2]   ARG
+			//
+			// TODO: This should be generalized to >1 ARG
+			//
+			// Response format:
+			//     respArgs32[0]  Status
+			//
+
+			msg_cmd 		= Xil_Ntohl(cmdArgs32[0]);
+			cmdArgs32[1]    = Xil_Ntohl(cmdArgs32[1]);
+			cmdArgs32[2]   	= Xil_Ntohl(cmdArgs32[2]);
+
+			status  = CMD_PARAM_SUCCESS;
+
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+
+					// Send message to CPU Low
+					ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
+					ipc_msg_to_low.num_payload_words = 2;
+					ipc_msg_to_low.payload_ptr       = &(cmdArgs32[1]);
+
+					wlan_mac_high_interrupt_stop();
+					ipc_mailbox_write_msg(&ipc_msg_to_low);
+					wlan_mac_high_interrupt_start();
+				break;
+
+				default:
+					xil_printf("Unknown command: %d\n", msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
+			}
+
+			// Send response
+			respArgs32[respIndex++] = Xil_Htonl( status );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;

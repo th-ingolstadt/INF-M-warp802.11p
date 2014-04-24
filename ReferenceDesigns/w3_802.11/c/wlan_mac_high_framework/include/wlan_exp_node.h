@@ -61,6 +61,7 @@
 #define CMDID_NODE_TX_ANT_MODE                             0x001005
 #define CMDID_NODE_RX_ANT_MODE                             0x001006
 #define CMDID_NODE_LOW_TO_HIGH_FILTER                      0x001007
+#define CMDID_NODE_LOW_PARAM				               0x001008
 
 #define CMD_PARAM_WRITE_VAL                                0x00000000
 #define CMD_PARAM_READ_VAL                                 0x00000001
