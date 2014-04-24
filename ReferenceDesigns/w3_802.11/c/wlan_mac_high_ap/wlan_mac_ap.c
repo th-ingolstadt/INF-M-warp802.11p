@@ -219,6 +219,37 @@ int main(){
 	// Reset the event log
 	event_log_reset();
 
+
+#if 0
+	/////// TODO DEBUG  WRITE EXAMPLE ///////
+	u32 	idx_write;
+	u32*	payload_write;
+	#define NUM_WORDS_TO_WRITE 5
+
+	ipc_reg_read_write* write_example = wlan_mac_high_malloc(sizeof(ipc_reg_read_write)+(NUM_WORDS_TO_WRITE*sizeof(u32)));
+
+	//Base address in CPU_LOW's memory to write to
+	write_example->baseaddr = 0x12345678;
+
+	//Number of words to write to CPU_LOW's memory
+	write_example->num_words = NUM_WORDS_TO_WRITE;
+
+	//Payload to be written immediately follows the ipc_reg_read_write
+	payload_write = (u32*)((u8*)write_example + sizeof(ipc_reg_read_write));
+
+	//Construct payload to be written
+	for(idx_write = 0; idx_write < NUM_WORDS_TO_WRITE; idx_write++){
+		payload_write[idx_write] = idx_write;
+	}
+
+	//Tell the framework to send write_example. Note: the first argument of this function is the number of words
+	//to write over IPC, which is NUM_WORDS_TO_WRITE plus the number of words needed for the ipc_reg_read_write header
+	wlan_mac_high_write_low_mem(NUM_WORDS_TO_WRITE + (sizeof(ipc_reg_read_write)/sizeof(u32)) , (u32*)write_example);
+
+	wlan_mac_high_free(write_example);
+	/////// TODO DEBUG  WRITE EXAMPLE ///////
+#endif
+
 	// Print AP information to the terminal
     xil_printf("WLAN MAC AP boot complete: \n");
     xil_printf("  SSID    : %s \n", access_point_ssid);
@@ -236,6 +267,28 @@ int main(){
 
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_start();
+
+#if 0
+	/////// TODO DEBUG  READ EXAMPLE ///////
+	//wlan_mac_high_interrupt_stop();
+	u32 	idx_read;
+	u32*	payload_read;
+	#define NUM_WORDS_TO_READ 5
+
+	payload_read = wlan_mac_high_malloc(NUM_WORDS_TO_READ * sizeof(u32));
+
+	//Read NUM_WORDS_TO_READ words from 0x12345678 in CPU_LOW's memory space
+	wlan_mac_high_read_low_mem(NUM_WORDS_TO_READ, 0x12345678, payload_read);
+
+	for(idx_read = 0; idx_read < NUM_WORDS_TO_READ; idx_read++){
+		xil_printf("[%d] = 0x%08x\n",idx_read, payload_read[idx_read]);
+	}
+
+	wlan_mac_high_free(payload_read);
+
+	//wlan_mac_high_interrupt_start();
+	/////// TODO DEBUG  READ EXAMPLE ///////
+#endif
 
 	while(1) {
 #ifdef USE_WARPNET_WLAN_EXP
