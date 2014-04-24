@@ -268,12 +268,6 @@ void uart_rx(u8 rxByte){
 
 }
 
-void print_ltg_interval_menu(){
-
-	xil_printf("\nEnter packet Tx interval (in microseconds): ");
-
-}
-
 
 void print_menu(){
 	xil_printf("\f");
@@ -330,10 +324,6 @@ void print_station_status(u8 manual_call){
 		schedule_ID = wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
 
 	}
-}
-
-void ltg_cleanup(u32 id, void* callback_arg){
-	wlan_mac_high_free(callback_arg);
 }
 
 void print_all_observed_statistics(){

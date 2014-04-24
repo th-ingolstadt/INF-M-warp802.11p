@@ -104,7 +104,6 @@ int  get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words );
 void print_menu();
 void print_ap_list();
 void print_station_status(u8 manual_call);
-void ltg_cleanup(u32 id, void* callback_arg);
 void uart_rx(u8 rxByte);
 void print_all_observed_statistics();
 
