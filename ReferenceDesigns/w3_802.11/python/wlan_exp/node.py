@@ -52,6 +52,9 @@ NODE_WLAN_EXP_DESIGN_VER               = 6
 NODE_WLAN_MAC_ADDR                     = 7
 NODE_WLAN_SCHEDULER_RESOLUTION         = 8
 
+# Low Param IDs -- in sync with wlan_mac_low.h
+LOW_PARAM_PHYSICAL_CS_THRESH           = 1
+
 
 class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     """Base Class for WLAN Experiment node.
@@ -622,9 +625,8 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         to decide on the response.  Default behavior like this can only be modified in the 
         low MAC.
         """
-        self.send_cmd(cmds.NodeSetLowToHighFilter(mac_header, fcs))
+        self.send_cmd(cmds.NodeSetLowToHighFilter(mac_header, fcs))        
         
-
     def set_channel(self, channel):
         """Sets the channel of the node and returns the channel that was set."""
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
@@ -838,6 +840,29 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
         return ret_val
 
+    def _set_low_param(self, param, values):
+        """Sets any number of CPU Low parameters"""
+        
+        if(values is not None):
+            try:
+                v0 = values[0]
+            except TypeError:
+                v0 = values
+            
+            if((type(v0) is not int) and (type(v0) is not long)) or (v0 >= 2**32):
+                raise Exception('ERROR: values must be scalar or iterable of ints in [0,2^32-1]!')  
+                
+        try:
+            vals = list(values)
+        except TypeError:
+            vals = [values]
+
+        return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_WRITE, param=param, values=vals))
+            
+    def set_phy_cs_thresh(self, val):
+        """Sets the physical carrier sense threshold of the node."""
+        self._set_low_param(LOW_PARAM_PHYSICAL_CS_THRESH, val)        
+        
 
     #-------------------------
     # Memory Access Commands

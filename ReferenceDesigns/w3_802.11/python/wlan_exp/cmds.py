@@ -48,6 +48,7 @@ CMDID_NODE_TX_RATE                               = 0x001004
 CMDID_NODE_TX_ANT_MODE                           = 0x001005
 CMDID_NODE_RX_ANT_MODE                           = 0x001006
 CMDID_NODE_LOW_TO_HIGH_FILTER                    = 0x001007
+CMDID_NODE_LOW_PARAM                             = 0x001008
 
 CMD_PARAM_WRITE                                  = 0x00000000
 CMD_PARAM_READ                                   = 0x00000001
@@ -655,6 +656,35 @@ class NodeProcChannel(wn_message.Cmd):
             return CMD_PARAM_ERROR
 
 # End Class
+
+class NodeLowParam(wn_message.Cmd):
+    """Command to set parameter in CPU Low
+    
+    Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       CMD_PARAM_WRITE
+        
+        param     -- ID of parameter to modify
+
+        values    -- When cmd==CMD_PARAM_WRITE, scalar or list of u32 values to write
+                     When cmd==CMD_PARAM_READ, None
+
+    """    
+    def __init__(self, cmd, param, values):
+        super(NodeLowParam, self).__init__()        
+        
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_LOW_PARAM
+        self.add_args(cmd)
+        self.add_args(param)
+        try:
+            for v in values:
+                self.add_args(v)
+        except TypeError:
+            self.add_args(values)
+            
+    def process_resp(self, resp):
+        pass
+        
 
 class NodeMemAccess(wn_message.Cmd):
     """Command to read/write memory in CPU High
