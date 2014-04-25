@@ -19,6 +19,7 @@ Description:
 """
 import sys
 import time
+import datetime
 import threading
 
 import wlan_exp.util as wlan_exp_util
@@ -124,7 +125,7 @@ def init_experiment():
     print("\nInitializing experiment\n")
 
     # Log attributes about the experiment
-    attr_dict['exp_start_time'] = time.time()
+    attr_dict['exp_start_time'] = str(datetime.datetime.now())
     
     # Create an object that describes the configuration of the host PC
     host_config  = wlan_exp_config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
@@ -226,7 +227,7 @@ def end_experiment():
     log_container.write_log_index()
 
     # Get the end time as an attribute
-    attr_dict['exp_end_time'] = time.time()
+    attr_dict['exp_end_time'] = str(datetime.datetime.now())
 
     # Add the attribute dictionary to the log file
     log_container.write_attr_dict(attr_dict)
@@ -258,7 +259,7 @@ if __name__ == '__main__':
     log_container = hdf_util.HDF5LogContainer(h5_file)
 
     # Log attributes about the experiment
-    attr_dict['exp_name'] = 'Continuous Log Read'
+    attr_dict['exp_name'] = 'Interactive Capture, Continuous Log Read'
 
     # Create thread for experiment
     exp_thread = threading.Thread(target=run_experiment)
