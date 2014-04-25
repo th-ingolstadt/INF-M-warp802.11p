@@ -484,7 +484,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	void* mpdu = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8* mpdu_ptr_u8 = (u8*)mpdu;
 
-	//Get a poitner to the MAC header in the MPDU
+	//Get a pointer to the MAC header in the MPDU
 	mac_header_80211* tx_80211_header;
 	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
 
@@ -500,6 +500,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 		//Request space for a TX_LOW log entry
 		tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
+
 		if(tx_low_event_log_entry != NULL){
 			//TX_LOW entries only store the MAC header - the full payload may be included in the associated TX entry
 			transfer_len = sizeof(mac_header_80211);
