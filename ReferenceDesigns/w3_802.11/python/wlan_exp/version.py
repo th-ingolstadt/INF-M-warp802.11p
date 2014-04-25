@@ -42,7 +42,7 @@ __all__ = ['wlan_exp_ver', 'wlan_exp_ver_check', 'wlan_exp_ver_str']
 # WLAN Exp Version defines
 WLAN_EXP_MAJOR          = 0
 WLAN_EXP_MINOR          = 9
-WLAN_EXP_REVISION       = 1
+WLAN_EXP_REVISION       = 2
 WLAN_EXP_XTRA           = str('')
 WLAN_EXP_RELEASE        = True
 
@@ -109,8 +109,8 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None):
     
     # Check the provided version vs the current version
     msg  = "WLAN Exp Version Mismatch: \n"
-    msg += "    Specified version {0}\n".format(wlan_exp_ver_str(major, minor, revision))
-    msg += "    Current   version {0}".format(wlan_exp_ver_str())
+    msg += "    Required version {0}\n".format(wlan_exp_ver_str(major, minor, revision))
+    msg += "    Current  version {0}".format(wlan_exp_ver_str())
     
     if (major == WLAN_EXP_MAJOR):
         if (minor == WLAN_EXP_MINOR):
@@ -178,7 +178,7 @@ def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
 def wlan_exp_ver_code_to_str(ver_code):
     """Convert four byte version code with format [x major minor rev] to a string."""
     ver = int(ver_code)
-    return wlan_exp_ver_str(((ver >> 16) & 0xFF), ((ver >> 8) & 0xFF), ((ver >> 0) & 0xFF))
+    return wlan_exp_ver_str(((ver >> 24) & 0xFF), ((ver >> 16) & 0xFF), ((ver >> 0) & 0xFF))
 
 # End of wlan_exp_ver_code_to_str()
 

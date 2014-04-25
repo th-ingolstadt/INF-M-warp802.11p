@@ -64,7 +64,7 @@ timeout            = 0.1
 h5_file            = None
 log_container      = None
 
-attr_dict          = None
+attr_dict          = {}
 
 
 #-----------------------------------------------------------------------------
@@ -124,7 +124,7 @@ def init_experiment():
     print("\nInitializing experiment\n")
 
     # Log attributes about the experiment
-    attr_dict = {'exp_start_time' : time.time()}
+    attr_dict['exp_start_time'] = time.time()
     
     # Create an object that describes the configuration of the host PC
     host_config  = wlan_exp_config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
@@ -258,6 +258,9 @@ if __name__ == '__main__':
     # Create Log Container
     h5_file       = hdf_util.hdf5_open_file(LOGFILE)
     log_container = hdf_util.HDF5LogContainer(h5_file)
+
+    # Log attributes about the experiment
+    attr_dict['exp_name'] = 'Continuous Log Read'
 
     # Create thread for experiment
     exp_thread = threading.Thread(target=run_experiment)

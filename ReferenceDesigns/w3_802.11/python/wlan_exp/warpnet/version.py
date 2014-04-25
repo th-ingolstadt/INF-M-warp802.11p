@@ -113,8 +113,8 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None):
     
     # Check the provided version vs the current version
     msg  = "WARPNet Version Mismatch: \n"
-    msg += "    Specified version {0}\n".format(wn_ver_str(major, minor, revision))
-    msg += "    Current   version {0}".format(wn_ver_str())
+    msg += "    Required version {0}\n".format(wn_ver_str(major, minor, revision))
+    msg += "    Current  version {0}".format(wn_ver_str())
     
     if (major == WN_MAJOR):
         if (minor == WN_MINOR):

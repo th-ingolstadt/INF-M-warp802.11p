@@ -133,6 +133,9 @@ class HDF5LogContainer(log_util.LogContainer):
         group_handle = self._get_group_handle()
 
         if group_handle is None:
+            msg  = "WARNING: Log container is not valid.\n"
+            msg += "    Could not find {0} in file.".format(self.hdf5_group_name) 
+            print(msg)
             return False
     
         try:
@@ -145,8 +148,14 @@ class HDF5LogContainer(log_util.LogContainer):
                 # Require a dataset named 'log_data'
                 if(group_handle['log_data'].dtype.kind != np.dtype(np.void).kind):
                     # Require the 'log_data' dataset to be HDF5 opaque type (numpy void type)
+                    msg  = "WARNING: Log container is not valid.\n"
+                    msg += "    Log Data is not valid type.  Must be an HDF5 opaque type."
+                    print(msg)
                     return False
-        except:
+        except Exception as err:
+            msg  = "WARNING: Log container is not valid.  The following error occurred:\n"
+            msg += "    {0}".format(err) 
+            print(msg)
             return False
         
         return True
@@ -250,6 +259,8 @@ class HDF5LogContainer(log_util.LogContainer):
         Attributes:
             attr_dict        -- An array of user provided attributes that will be added to the group.
         """
+        import numpy as np
+        
         if not self._file_writeable():
             raise AttributeError("File {0} is not writeable.".format(self.file_handle))
 
@@ -265,8 +276,11 @@ class HDF5LogContainer(log_util.LogContainer):
         for k, v in attr_dict.items():
             try:
                 if k not in default_attrs:
-                    if (type(k) is str):                    
-                        group_handle.attrs[k] = v
+                    if (type(k) is str):
+                        if ((type(v) is str) or (type(v) is unicode)):
+                            group_handle.attrs[k] = np.string_(v)
+                        else:
+                            group_handle.attrs[k] = v
                     else:
                         print("WARNING: Converting '{0}' to string to add attribute.".format(k))
                         group_handle.attrs[str(k)] = v
@@ -354,12 +368,17 @@ class HDF5LogContainer(log_util.LogContainer):
    
     def get_attr_dict(self):
         """Get the attribute dictionary from the log container."""
+        import numpy as np
+        
         attr_dict    = {}
         group_handle = self._get_valid_group_handle()
     
         for k, v in group_handle.attrs.items():
             try:
-                attr_dict[k] = v
+                if (type(v) == np.bytes_):
+                    attr_dict[k] = str(v)
+                else:
+                    attr_dict[k] = v
             except:
                 print("WARNING: Could not retreive attribute '{0}' from group {1}".format(k, group_handle))
         
