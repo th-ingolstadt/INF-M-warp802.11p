@@ -211,6 +211,16 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         return_val = wn_message.Buffer()
         (next_index, oldest_index, num_wraps) = self.log_get_indexes()
 
+        if ((self.log_next_read_index == 0) and (self.log_num_wraps == 0)):
+            # This is the first read of the log by this python object
+            if (num_wraps != 0):
+                # Need to advance the num_wraps to the current num_wraps so 
+                # that we don't get into a bad state with log reading.
+                msg  = "\nWARNING:  On first read, the log on the node has already wrapped.\n"
+                msg += "    Skipping the first {0} wraps of log data.\n".format(num_wraps)
+                print(msg)
+                self.log_num_wraps = num_wraps
+
         if (num_wraps == self.log_num_wraps):
             if (next_index > (self.log_next_read_index + log_tail_pad)):
                 # Get Log data from the node
