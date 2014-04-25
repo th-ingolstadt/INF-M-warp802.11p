@@ -624,25 +624,26 @@ def calc_tx_time(rate, payload_length):
     """
     import math    
     from wlan_exp.util import wlan_rates
-
+    
+    #Times in microseconds
+    T_PREAMBLE = 16
+    T_SIG = 4
+    T_SYM = 4
+    T_EXT = 6
+ 
     try:
         r = wlan_rates[rate-1]
-
-        #Times in microseconds
-        T_PREAMBLE = 16
-        T_SIG = 4
-        T_SYM = 4
-        T_EXT = 6
+        
         
         #Rate entry encodes data bits per symbol
         bytes_per_sym = (r['NDBPS']/8.0)
-
+        
         #6 = LEN_SERVICE (2) + LEN_FCS (4)
         num_syms = int(math.ceil((6.0 + payload_length) / bytes_per_sym))
-        print('num_syms: %d'%num_syms)
+        
         T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
-
+        
         return T_TOT
-
+    
     except IndexError:
         print('Rate input {0} not valid - must be index in 1:{1}'.format(rate, len(wlan_rates)))
