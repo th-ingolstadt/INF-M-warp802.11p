@@ -212,7 +212,7 @@ def wn_reset_network_inf_all_nodes(host_config=None, host_interfaces=None):
 
         host_ip_subnet = _get_ip_address_subnet(ip_address)
 
-        msg  = "Reseting the network config for all nodes on subnet "
+        msg  = "Resetting the network config for all nodes on subnet "
         msg += "{0}.".format(host_ip_subnet)
         print(msg)
     
