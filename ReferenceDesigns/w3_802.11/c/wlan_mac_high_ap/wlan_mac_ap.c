@@ -303,6 +303,24 @@ int main(){
 	return 0;
 }
 
+
+#ifdef _DEBUG_
+
+void print_buf(unsigned char *buf, int size)
+{
+	int i;
+	for (i=0; i<size; i++) {
+        xil_printf("%2x ", buf[i]);
+        if ( (((i + 1) % 16) == 0) && ((i + 1) != size) ) {
+            xil_printf("\n");
+        }
+	}
+	xil_printf("\n\n");
+}
+
+#endif
+
+
 /**
  * @brief Poll Tx queues to select next available packet to transmit
  *
@@ -491,7 +509,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 			// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN)
 			if(transfer_len < MIN_MAC_PAYLOAD_LOG_LEN){
-				bzero((u8*)(((tx_low_entry*)tx_low_event_log_entry)->mac_payload + transfer_len), (MIN_MAC_PAYLOAD_LOG_LEN - transfer_len));
+				bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + transfer_len), (MIN_MAC_PAYLOAD_LOG_LEN - transfer_len));
 			}
 
 			//Compute the timestamp of the actual Tx event
@@ -518,6 +536,10 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 				((mac_header_80211*)(tx_low_event_log_entry->mac_payload))->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_RETRY;
 			}
 
+#ifdef _DEBUG_
+			xil_printf("TX LOW  : %8d    %8d    \n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN);
+	        print_buf((u8 *)((u32)tx_low_event_log_entry - 8), sizeof(tx_low_entry) + 12);
+#endif
 		}
 
 		//Accumulate the time-between-transmissions, used to calculate absolute time of each TX_LOW event above
@@ -548,7 +570,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 		// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
 		if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-			bzero((u8*)(((tx_high_entry*)tx_high_event_log_entry)->mac_payload + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len) );
+			bzero((u8*)(((u32)((tx_high_entry*)tx_high_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len) );
 		}
 
 		bzero(tx_high_event_log_entry->padding , sizeof(tx_high_event_log_entry->padding));
@@ -565,6 +587,11 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		tx_high_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
 		tx_high_event_log_entry->delay_done               = tx_mpdu->delay_done;
 		tx_high_event_log_entry->ant_mode				  = tx_mpdu->params.phy.antenna_mode;
+
+#ifdef _DEBUG_
+		xil_printf("TX HIGH : %8d    %8d    %8d    %8d    %8d\n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN, total_payload_len, extra_payload, payload_log_len);
+        print_buf((u8 *)((u32)tx_high_event_log_entry - 8), sizeof(tx_high_entry) + extra_payload + 12);
+#endif
 	}
 
 	//Update the statistics for the node to which the packet was just transmitted
@@ -1069,7 +1096,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
 					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-						bzero((u8*)(((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len, ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
+						bzero((u8*)(((u32)((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				} else {
 					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = length;
@@ -1077,7 +1104,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
 					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-						bzero((u8*)(((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len, ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
+						bzero((u8*)(((u32)((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				}
 			break;
@@ -1109,7 +1136,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
 					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-						bzero((u8*)(((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len, ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
+						bzero((u8*)(((u32)((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				} else {
 					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = length;
@@ -1117,7 +1144,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
 					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-						bzero((u8*)(((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len, ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
+						bzero((u8*)(((u32)((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				}
 			break;
@@ -1129,6 +1156,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			break;
 		}
 
+#ifdef _DEBUG_
+		xil_printf("RX      : %8d    %8d    %8d    %8d    %8d\n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN, length, extra_payload, payload_log_len);
+        print_buf((u8 *)((u32)rx_event_log_entry - 8), sizeof(rx_ofdm_entry) + extra_payload + 12);
+#endif
 	}
 
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
