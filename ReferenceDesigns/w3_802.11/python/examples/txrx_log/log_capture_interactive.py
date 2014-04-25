@@ -11,11 +11,12 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial number of your WARP node
 
 Description:
-  This script initializes one WARP v3 nodes.  The script then waits for 
-  the user to end it and will periodically log the Tx/Rx statistics and
-  update information on the screen about the log.
+  This script initializes one WARP v3 nodes.  It will periodically log the 
+  Tx/Rx statistics and update information on the screen about the log.
+  The script will also read the log data every LOG_READ_TIME seconds, write it 
+  to the hdf5 file and continue until MAX_LOG_SIZE is reached or the use ends 
+  the experiment.
 """
-import os
 import sys
 import time
 import threading
@@ -46,6 +47,9 @@ HDF5_FILENAME      = 'interactive_capture.hdf5'
 # Interval for printing
 PRINT_TIME         = 1
 
+# Logging variables
+LOG_READ_TIME      = 30
+MAX_LOG_SIZE       = 2**30             # Max size is 1GB
 
 #-----------------------------------------------------------------------------
 # Global Variables
@@ -57,16 +61,26 @@ exp_done           = False
 input_done         = False
 timeout            = 0.1
 
+h5_file            = None
+log_container      = None
+
+attr_dict          = {}
+
+
 #-----------------------------------------------------------------------------
 # Local Helper Utilities
 #-----------------------------------------------------------------------------
-def write_hdf5_file(file_name, data):
-    """Writes log data to a HDF5 file."""
-    try:
-        # Write the byte Log_data to the file 
-        hdf_util.log_data_to_hdf5(data, file_name)
-    except AttributeError as err:
-        print("Error writing log file: {0}".format(err))
+def add_data_to_log(log_tail_pad=500):
+    """Adds data to the log."""
+    global node
+    global log_container
+
+    wn_buffer = node.log_get_all_new(log_tail_pad=log_tail_pad)
+    data      = wn_buffer.get_bytes()
+
+    # Write Log Files for processing by other scripts
+    print("\nWriting {0:15,d} bytes of data to log file {1}...".format(len(data), LOGFILE))
+    log_container.write_log_data(data)
 
 
 def get_log_size_str(nodes):
@@ -105,10 +119,12 @@ def print_node_state(start_time):
 #-----------------------------------------------------------------------------
 def init_experiment():
     """Initialize WLAN Experiment."""
-    global host_config
-    global nodes
+    global host_config, nodes, attr_dict
     
     print("\nInitializing experiment\n")
+
+    # Log attributes about the experiment
+    attr_dict['exp_start_time'] = time.time()
     
     # Create an object that describes the configuration of the host PC
     host_config  = wlan_exp_config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
@@ -121,16 +137,16 @@ def init_experiment():
     #  This command will fail if either WARP v3 node does not respond
     nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
     
+    # Do not set the node into a known state.  This example will just read
+    # what the node currently has in the log.
+    #
     # Set each not into the default state
-    for tmp_node in nodes:        
-        # Issue a reset command to stop current operation / initialize components
-        tmp_node.reset_all()
-        
-        # Configure the log
-        tmp_node.log_configure(log_full_payloads=False)
-
-    # Set the time of all the nodes to zero
-    wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
+    # for tmp_node in nodes:        
+    #     # Issue a reset command to stop current operation / initialize components
+    #     tmp_node.reset_all()
+    #     
+    #     # Configure the log
+    #     tmp_node.log_configure(log_full_payloads=True)
 
 
 
@@ -146,21 +162,18 @@ def setup_experiment():
         print("ERROR: Node configurations did not match requirements of script.\n")
         return 
 
-    # Add the current time to all the nodes
-    wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
-
 
 
 def run_experiment():
     """WLAN Experiment.""" 
-    global node
+    global node, log_container, exp_done, input_done
     
     print("\nRun Experiment:\n")
     print("Use 'q' or Ctrl-C to end the experiment.\n")
     print("  NOTE:  In IPython, press return to see status update.\n")
-
-    # Reset the log and statistics now that we are ready to start 
-    node.reset(log=True, txrx_stats=True)
+    
+    # Add the current time to all the nodes
+    wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
 
     # Write Statistics to log
     node.stats_write_txrx_to_log()
@@ -168,6 +181,7 @@ def run_experiment():
     # Get the start time
     start_time = time.time()
     last_print = time.time()
+    last_read  = time.time()
     
     # Print the current state of the node
     print_node_state(start_time)
@@ -184,22 +198,47 @@ def run_experiment():
             
             # Set the last_print time
             last_print = time.time()
+        
+        if ((loop_time - last_read) > LOG_READ_TIME):
+            # Write the data to the log
+            add_data_to_log()
+
+            # Set the last_read time
+            last_read  = time.time()
+            
+            # Log size stop condition
+            if (log_container.get_log_data_size() > MAX_LOG_SIZE):
+                print("\n!!! Reached Max Log Size.  Ending experiment. !!!\n")
+                input_done = True
+                exp_done   = True
 
 
 
 def end_experiment():
     """Experiment cleanup / post processing."""
-    global node
+    global node, log_container
     print("\nEnding experiment\n")
 
-    wn_buffer = node.log_get_all_new(log_tail_pad=0, max_req_size=2**23)
-    data      = wn_buffer.get_bytes()
+    # Get the last of the data
+    add_data_to_log(log_tail_pad=0)
 
-    # Write Log Files for processing by other scripts
-    print("Writing {0} bytes of data to log file...".format(len(data)))
+    # Create the log index
+    log_container.write_log_index()
+
+    # Get the end time as an attribute
+    attr_dict['exp_end_time'] = time.time()
+
+    # Add the attribute dictionary to the log file
+    log_container.write_attr_dict(attr_dict)
     
-    print("    {0}".format(LOGFILE))
-    write_hdf5_file(LOGFILE, data)
+    # Print final log size
+    log_size = log_container.get_log_data_size()
+
+    print("Final log size:  {0:15,d} bytes".format(log_size))    
+    
+    # Clost the Log file for processing by other scripts
+    hdf_util.hdf5_close_file(h5_file)
+
     print("Done.")
     return
 
@@ -214,6 +253,12 @@ if __name__ == '__main__':
     else:
         LOGFILE = str(sys.argv[1])
 
+    # Create Log Container
+    h5_file       = hdf_util.hdf5_open_file(LOGFILE)
+    log_container = hdf_util.HDF5LogContainer(h5_file)
+
+    # Log attributes about the experiment
+    attr_dict['exp_name'] = 'Continuous Log Read'
 
     # Create thread for experiment
     exp_thread = threading.Thread(target=run_experiment)
