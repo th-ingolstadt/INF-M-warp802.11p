@@ -137,16 +137,16 @@ def init_experiment():
     #  This command will fail if either WARP v3 node does not respond
     nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
     
+    # Do not set the node into a known state.  This example will just read
+    # what the node currently has in the log.
+    #
     # Set each not into the default state
-    for tmp_node in nodes:        
-        # Issue a reset command to stop current operation / initialize components
-        tmp_node.reset_all()
-        
-        # Configure the log
-        tmp_node.log_configure(log_full_payloads=True)
-
-    # Set the time of all the nodes to zero
-    wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
+    # for tmp_node in nodes:        
+    #     # Issue a reset command to stop current operation / initialize components
+    #     tmp_node.reset_all()
+    #     
+    #     # Configure the log
+    #     tmp_node.log_configure(log_full_payloads=True)
 
 
 
@@ -171,10 +171,7 @@ def run_experiment():
     print("\nRun Experiment:\n")
     print("Use 'q' or Ctrl-C to end the experiment.\n")
     print("  NOTE:  In IPython, press return to see status update.\n")
-
-    # Reset the log and statistics now that we are ready to start 
-    node.reset(log=True, txrx_stats=True)
-
+    
     # Add the current time to all the nodes
     wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
 
@@ -211,6 +208,7 @@ def run_experiment():
             
             # Log size stop condition
             if (log_container.get_log_data_size() > MAX_LOG_SIZE):
+                print("\n!!! Reached Max Log Size.  Ending experiment. !!!\n")
                 input_done = True
                 exp_done   = True
 
@@ -236,7 +234,7 @@ def end_experiment():
     # Print final log size
     log_size = log_container.get_log_data_size()
 
-    print("Final log size:  {0:15,d}".format(log_size))    
+    print("Final log size:  {0:15,d} bytes".format(log_size))    
     
     # Clost the Log file for processing by other scripts
     hdf_util.hdf5_close_file(h5_file)
