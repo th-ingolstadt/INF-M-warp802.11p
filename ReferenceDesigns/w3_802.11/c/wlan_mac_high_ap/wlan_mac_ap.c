@@ -488,7 +488,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 			tx_low_event_log_entry->mac_payload_log_len = transfer_len;
 			wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_payload), tx_80211_header, transfer_len);
-			// Zero pad log entry if length was less than MIN_MAC_PAYLOAD_LOG_LEN
+
+			// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN)
 			if(transfer_len < MIN_MAC_PAYLOAD_LOG_LEN){
 				bzero((u8*)(((tx_low_entry*)tx_low_event_log_entry)->mac_payload + transfer_len), (MIN_MAC_PAYLOAD_LOG_LEN - transfer_len));
 			}
@@ -544,7 +545,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
         }
 
 		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_high_event_log_entry)->mac_payload), tx_80211_header, transfer_len);
-		// Zero pad log entry if length was less than MIN_MAC_PAYLOAD_LOG_LEN
+
+		// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
 		if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
 			bzero((u8*)(((tx_high_entry*)tx_high_event_log_entry)->mac_payload + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len) );
 		}
@@ -1061,20 +1063,21 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		switch(copy_order){
 			case PAYLOAD_FIRST:
-				//wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
 				if( rate != WLAN_MAC_RATE_1M ){
 					((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = length;
 					wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
-					// Zero pad log entry if length was less than MIN_MAC_PAYLOAD_LOG_LEN
-					if(length < MIN_MAC_PAYLOAD_LOG_LEN){
-						bzero((u8*)(((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + length ,  MIN_MAC_PAYLOAD_LOG_LEN - length );
+
+					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
+					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
+						bzero((u8*)(((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len, ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				} else {
 					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = length;
 					wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
-					// Zero pad log entry if length was less than MIN_MAC_PAYLOAD_LOG_LEN
-					if(length < MIN_MAC_PAYLOAD_LOG_LEN){
-						bzero((u8*)(((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + length ,  MIN_MAC_PAYLOAD_LOG_LEN - length );
+
+					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
+					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
+						bzero((u8*)(((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len, ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				}
 			break;
@@ -1100,20 +1103,21 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		switch(copy_order){
 			case CHAN_EST_FIRST:
-				//wlan_mac_high_cdma_start_transfer(&(rx_event_log_entry->mac_hdr), rx_80211_header, sizeof(mac_header_80211));
 				if( rate != WLAN_MAC_RATE_1M ){
 					((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = length;
 					wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
-					// Zero pad log entry if length was less than MIN_MAC_PAYLOAD_LOG_LEN
-					if(length < MIN_MAC_PAYLOAD_LOG_LEN){
-						bzero((u8*)(((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + length ,  MIN_MAC_PAYLOAD_LOG_LEN - length );
+
+					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
+					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
+						bzero((u8*)(((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len, ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				} else {
 					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = length;
 					wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
-					// Zero pad log entry if length was less than MIN_MAC_PAYLOAD_LOG_LEN
-					if(length < MIN_MAC_PAYLOAD_LOG_LEN){
-						bzero((u8*)(((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + length ,  MIN_MAC_PAYLOAD_LOG_LEN - length );
+
+					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
+					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
+						bzero((u8*)(((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len, ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				}
 			break;
