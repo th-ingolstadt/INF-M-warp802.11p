@@ -143,6 +143,11 @@ class HDF5LogContainer(log_util.LogContainer):
                 # Require two attributes named 'wlan_exp_log' and 'wlan_exp_ver'
                 ver = group_handle.attrs['wlan_exp_ver']
                 version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2])
+            else:
+                msg  = "WARNING: Log container is not valid.\n"
+                msg += "    'wlan_exp_log' attribute indicates log container is not valid."
+                print(msg)
+                return False
             
             if group_handle['log_data']:
                 # Require a dataset named 'log_data'
@@ -440,7 +445,7 @@ class HDF5LogContainer(log_util.LogContainer):
         import wlan_exp.version as version
 
         # Add default attributes to the group
-        group.attrs['wlan_exp_log'] = True
+        group.attrs['wlan_exp_log'] = np.array([1], dtype=np.uint8)
         group.attrs['wlan_exp_ver'] = np.array(version.wlan_exp_ver(), dtype=np.uint32)
 
         # Create an empty numpy array of type 'V1' (ie one byte void)
