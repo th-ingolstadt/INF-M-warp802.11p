@@ -587,7 +587,7 @@ void event_log_move_oldest_address( u32 end_address ) {
 	entry = (entry_header *) log_oldest_address;
 
     // Move the address in increments of an entry
-	while ( log_oldest_address < end_address ) {
+	while ( log_oldest_address <= end_address ) {
 
 		// Check that the entry is still valid.  Otherwise, print a warning and
 		//   issue a log reset.
@@ -595,6 +595,7 @@ void event_log_move_oldest_address( u32 end_address ) {
 			xil_printf("EVENT LOG ERROR:  Oldest entry corrupted. \n");
 			xil_printf("    Please verify that no other code / data is using \n");
 			xil_printf("    the event log memory space.  Resetting event log.\n");
+
 			event_log_reset();
 			return;
 		}

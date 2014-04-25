@@ -176,7 +176,7 @@ void print_entry( u32 entry_number, u32 entry_type, void * entry ){
         case ENTRY_TYPE_NODE_INFO:
         	node_info_entry_log_item = (node_info_entry*) entry;
 			xil_printf("%d: - Log Info entry\n", entry_number );
-			xil_printf("   Timestamp   :   %d\n", (u32)(node_info_entry_log_item->timestamp));
+			xil_printf("   Timestamp   :   0x%08x  0x%08x\n", (u32)(node_info_entry_log_item->timestamp >>32), (u32)(node_info_entry_log_item->timestamp) );
 			xil_printf("   Type        :   %d\n",       node_info_entry_log_item->type);
 			xil_printf("   ID          :   0x%4x\n",    node_info_entry_log_item->id);
 			xil_printf("   HW Gen      :   %d\n",       node_info_entry_log_item->hw_gen);
