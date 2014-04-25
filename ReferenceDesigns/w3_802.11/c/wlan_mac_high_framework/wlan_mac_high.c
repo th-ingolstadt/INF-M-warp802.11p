@@ -294,15 +294,16 @@ void wlan_mac_high_init(){
 	}
 
 	// At boot init
-	userio_set_ctrlSrc_hw(USERIO_BASEADDR, (W3_USERIO_CTRLSRC_HEXDISP_DP_L | W3_USERIO_CTRLSRC_HEXDISP_DP_R));
-	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, ((W3_USERIO_CTRLSRC_HEXDISP_DP_L | W3_USERIO_CTRLSRC_HEXDISP_DP_R)));
+    //   - Right decimal point is used to indicate associations are allowed
+	userio_set_ctrlSrc_hw(USERIO_BASEADDR, W3_USERIO_CTRLSRC_HEXDISP_DP_R);
+	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, W3_USERIO_CTRLSRC_HEXDISP_DP_R);
 
 	userio_set_pwm_period(USERIO_BASEADDR, 500);
 
 	//Ramp must be disabled when changing ramp params
 	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
 	userio_set_pwm_ramp_min(USERIO_BASEADDR, 2);
-	userio_set_pwm_ramp_max(USERIO_BASEADDR, 450);
+	userio_set_pwm_ramp_max(USERIO_BASEADDR, 400);
 
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
@@ -1002,9 +1003,14 @@ void wlan_mac_high_disable_hex_dot_blink(){
  *
  */
 void wlan_mac_high_write_hex_display(u8 val){
-   userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
-   userio_write_hexdisp_left(USERIO_BASEADDR, val/10);
-   userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
+    u32 left_dp;
+
+	// Need to retain the value of the left decimal point
+	left_dp = userio_read_hexdisp_left( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+
+	userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
+    userio_write_hexdisp_left(USERIO_BASEADDR, ((val/10) | left_dp));
+    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
 }
 
 /**

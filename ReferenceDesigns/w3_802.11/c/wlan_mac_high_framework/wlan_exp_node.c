@@ -534,6 +534,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     xil_printf("\n");
                     if(status != 0) {
         				xil_printf("Error binding transport...\n");
+        			} else {
+        				userio_write_hexdisp_left(USERIO_BASEADDR, (userio_read_hexdisp_left( USERIO_BASEADDR ) | W3_USERIO_HEXDISP_DP ) );
         			}
                 } else {
                     xil_printf("NODE_CONFIG_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node);
@@ -586,6 +588,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 					// Update User IO
 					xil_printf("\n!!! Waiting for Network Configuration !!! \n\n");
+
+    				userio_write_hexdisp_left(USERIO_BASEADDR, (userio_read_hexdisp_left( USERIO_BASEADDR ) & ~W3_USERIO_HEXDISP_DP ) );
             	} else {
                     xil_printf("NODE_CONFIG_RESET Packet ignored.  Network configuration already reset on node.\n");
                     xil_printf("    Use NODE_CONFIG_SETUP command to set the network configuration.\n\n");
