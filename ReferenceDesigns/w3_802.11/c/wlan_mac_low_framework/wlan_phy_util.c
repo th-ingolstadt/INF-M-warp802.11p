@@ -83,8 +83,8 @@ int w3_node_init() {
 
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
-		//FIXME: Allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
-		//ret = XST_FAILURE;
+		//Comment out allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
+		ret = XST_FAILURE;
 	}
 
 	//Initialize the EEPROM read/write core
@@ -230,8 +230,8 @@ void wlan_phy_init() {
 /************ PHY Rx ************/
 
 	//Enable DSSS Rx by default
-	//wlan_phy_DSSS_rx_enable();
-	wlan_phy_DSSS_rx_disable(); //FIXME
+	wlan_phy_DSSS_rx_enable();
+	//wlan_phy_DSSS_rx_disable();
 
 	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
 	wlan_phy_DSSS_rx_config(0x600, 200, 5, 5);
@@ -501,8 +501,7 @@ void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx){
 	if(config_phy_rx->enable_dsss != 0xFF){
 		if(config_phy_rx->enable_dsss == 1){
 			//xil_printf("Enabling DSSS\n");
-			//wlan_phy_DSSS_rx_enable();
-			wlan_phy_DSSS_rx_disable(); //FIXME
+			wlan_phy_DSSS_rx_enable();
 		} else {
 			//xil_printf("Disabling DSSS\n");
 			wlan_phy_DSSS_rx_disable();
