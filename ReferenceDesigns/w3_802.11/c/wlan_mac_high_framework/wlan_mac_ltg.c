@@ -155,9 +155,11 @@ int ltg_sched_start_all(){
 	dl_entry* next_tg_dl_entry;
 	dl_entry* curr_tg_dl_entry;
 
-	list_len = tg_list.length;
-
+	list_len         = tg_list.length;
 	next_tg_dl_entry = tg_list.first;
+
+	wlan_mac_high_interrupt_stop();
+
 	for(i = 0; i < list_len; i++ ){
 		curr_tg_dl_entry = next_tg_dl_entry;
 		next_tg_dl_entry = dl_entry_next(next_tg_dl_entry);
@@ -169,6 +171,8 @@ int ltg_sched_start_all(){
 			ret_val = -1;
 		}
 	}
+
+	wlan_mac_high_interrupt_start();
 
 	return ret_val;
 }
@@ -293,14 +297,18 @@ int ltg_sched_stop_all(){
 	dl_entry*    next_tg_dl_entry;
 	dl_entry*    curr_tg_dl_entry;
 
-	list_len = tg_list.length;
-
+	list_len         = tg_list.length;
 	next_tg_dl_entry = tg_list.first;
+
+	wlan_mac_high_interrupt_stop();
+
 	for(i = 0; i < list_len; i++ ){
 		curr_tg_dl_entry = next_tg_dl_entry;
 		next_tg_dl_entry = dl_entry_next(curr_tg_dl_entry);
 		ltg_sched_stop_l(curr_tg_dl_entry);
 	}
+
+	wlan_mac_high_interrupt_start();
 
 	return 0;
 }
@@ -431,6 +439,8 @@ int ltg_sched_remove_all(){
 
 	next_tg_dl_entry = tg_list.first;
 
+	wlan_mac_high_interrupt_stop();
+
 	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
 	//   elements from the list.
 	while(next_tg_dl_entry != NULL){
@@ -446,6 +456,8 @@ int ltg_sched_remove_all(){
 		}
 		ltg_sched_destroy_l(curr_tg_dl_entry);
 	}
+
+	wlan_mac_high_interrupt_start();
 
 	return 0;
 }
