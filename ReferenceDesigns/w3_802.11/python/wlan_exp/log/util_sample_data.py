@@ -1,7 +1,7 @@
 
 _SAMPLE_DATA_DIR = 'sample_data'
 
-_URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/0.9/'
+_URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/0.92/'
 
 _FILES_TO_DL = [
     'raw_log_dual_flow_ap.hdf5',
