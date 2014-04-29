@@ -430,7 +430,11 @@ int wlan_mac_high_interrupt_init(){
  *      - nonzero if error
  */
 inline int wlan_mac_high_interrupt_start(){
-	return XIntc_Start(&InterruptController, XIN_REAL_MODE);
+	if(InterruptController.IsReady && InterruptController.IsStarted == 0){
+		return XIntc_Start(&InterruptController, XIN_REAL_MODE);
+	} else {
+		return -1;
+	}
 }
 
 /**
@@ -447,7 +451,7 @@ inline int wlan_mac_high_interrupt_start(){
  * high.
  */
 inline void wlan_mac_high_interrupt_stop(){
-	XIntc_Stop(&InterruptController);
+	if(InterruptController.IsReady && InterruptController.IsStarted) XIntc_Stop(&InterruptController);
 }
 
 /**
