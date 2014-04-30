@@ -162,8 +162,8 @@ void wlan_mac_low_dcf_init(){
 
 	//MAC timing parameters are in terms of units of 100 nanoseconds
 	wlan_mac_set_slot(T_SLOT*10);
-	wlan_mac_set_DIFS((T_DIFS-PHY_RX_SIG_EXT_USEC)*10);
-	wlan_mac_set_TxDIFS(((T_DIFS-PHY_RX_SIG_EXT_USEC)*10) - (TX_PHY_DLY_100NSEC));
+	wlan_mac_set_DIFS((T_DIFS)*10);
+	wlan_mac_set_TxDIFS(((T_DIFS)*10) - (TX_PHY_DLY_100NSEC));
 	wlan_mac_set_timeout(T_TIMEOUT*10);
 
 	//TODO: NAV adjust needs verification
