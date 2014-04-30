@@ -301,7 +301,7 @@ void wlan_phy_init() {
 	wlan_phy_tx_set_txen_extension(50);
 
 	//Set extension from RF Rx -> Tx to un-blocking Rx samples
-	wlan_phy_tx_set_rx_invalid_extension(100);
+	wlan_phy_tx_set_rx_invalid_extension(150); //100
 
 	//Set digital scaling of preamble/payload signals before DACs (UFix12_0)
 	wlan_phy_tx_set_scaling(0x2000, 0x2000);
