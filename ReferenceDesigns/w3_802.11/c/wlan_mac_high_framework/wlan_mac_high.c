@@ -1461,9 +1461,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
 				//xil_printf("MB-HIGH: processing buffer %d, mpdu state = %d, length = %d, rate = %d\n",rx_pkt_buf,rx_mpdu->state, rx_mpdu->length,rx_mpdu->rate);
-				wlan_mac_high_set_debug_gpio(0x08);
 				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
-				wlan_mac_high_clear_debug_gpio(0x08);
 				//Free up the rx_pkt_buf
 				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 
@@ -2292,7 +2290,6 @@ void wlan_mac_high_copy_comparison(){
 
 		memset(destAddr,0,MAXLEN);
 
-		wlan_mac_high_set_debug_gpio(0x04);
 		t_start = get_usec_timestamp();
 		wlan_mac_high_cdma_start_transfer((void*)destAddr,(void*)srcAddr,i+1);
 		//wlan_mac_high_cdma_finish_transfer();
