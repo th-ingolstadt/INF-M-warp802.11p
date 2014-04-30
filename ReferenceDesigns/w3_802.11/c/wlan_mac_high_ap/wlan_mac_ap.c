@@ -297,6 +297,7 @@ int main(){
 		//  scheduled events, user interaction, etc) are handled via interrupt service routines
 		transport_poll( WLAN_EXP_ETH );
 #endif
+
 	}
 
 	//Unreachable, but non-void return keeps the compiler happy
