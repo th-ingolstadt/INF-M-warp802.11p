@@ -137,6 +137,8 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
 
+	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x40);
+
 	void* pkt_buf_addr = (void *)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
 	return_value = 0;
@@ -151,6 +153,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
 		wlan_mac_dcf_hw_unblock_rx_phy();
+		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 		return return_value;
 	}
 
@@ -355,6 +358,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//If auto-tx ACK is currently transmitting, wait for it to finish
 	while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_AUTO_TX_PENDING){}
 
+	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 	return return_value;
 }
 
@@ -386,9 +390,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
 
-		//TODO: tx ant_mode will eventually be a part of wlan_mac_MPDU_tx_params_g()
-		wlan_tx_config_ant_mode(mpdu_info->params.phy.antenna_mode);
-
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
 
@@ -400,8 +401,16 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			n_slots = rand_num_slots();
 			wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
 		} else {
+			REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x20);
 			wlan_mac_MPDU_tx_params_g(pkt_buf, 0, 		req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
+			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x20);
 		}
+
+		//Before we mess with any PHY state, we need to make sure it isn't actively
+		//transmitting. For example, it may be sending an ACK when we get to this part of the code
+		while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_PHY_TX_ACTIVE){}
+		//TODO: tx ant_mode will eventually be a part of wlan_mac_MPDU_tx_params_g()
+		wlan_tx_config_ant_mode(mpdu_info->params.phy.antenna_mode);
 
 		//Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
 		wlan_mac_MPDU_tx_start(1);
