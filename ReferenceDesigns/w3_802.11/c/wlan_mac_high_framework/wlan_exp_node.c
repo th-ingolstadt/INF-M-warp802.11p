@@ -935,7 +935,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					break;
 
                     default:
-    					xil_printf("Unknown command: %d\n", msg_cmd);
+    					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
     					status = CMD_PARAM_ERROR;
                     break;
 				}
@@ -955,7 +955,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					break;
 
                     default:
-    					xil_printf("Unknown command: %d\n", msg_cmd);
+    					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
     					status = CMD_PARAM_ERROR;
                     break;
 				}
@@ -1016,7 +1016,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					break;
 
                     default:
-    					xil_printf("Unknown command: %d\n", msg_cmd);
+    					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
     					status = CMD_PARAM_ERROR;
                     break;
 				}
@@ -1039,7 +1039,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					break;
 
                     default:
-    					xil_printf("Unknown command: %d\n", msg_cmd);
+    					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
     					status = CMD_PARAM_ERROR;
                     break;
 				}
@@ -1083,7 +1083,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				default:
-					xil_printf("Unknown command: %d\n", msg_cmd);
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1174,7 +1174,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				default:
-					xil_printf("Unknown command: %d\n", msg_cmd);
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1214,7 +1214,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			    break;
 
 				default:
-					xil_printf("Unknown command: %d\n", msg_cmd);
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1225,6 +1225,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
+
 
 		//---------------------------------------------------------------------
 		case CMDID_NODE_LOW_PARAM:
@@ -1261,7 +1262,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				default:
-					xil_printf("Unknown command: %d\n", msg_cmd);
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1272,6 +1273,57 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_NODE_RANDOM_SEED:
+			// Set the random seed for the random number generator for cpu high / low
+			//
+			// Message format:
+			//     cmdArgs32[0]   Command (only writes are supported
+			//     cmdArgs32[1]   CPU High Seed Valid
+			//     cmdArgs32[2]   CPU High Seed
+			//     cmdArgs32[3]   CPU Low  Seed Valid
+			//     cmdArgs32[4]   CPU Low  Seed
+			//
+			// Response format:
+			//     respArgs32[0]  Status
+			//
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			status  = CMD_PARAM_SUCCESS;
+
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+					// Process the seed for CPU high
+					temp    = Xil_Ntohl(cmdArgs32[1]);
+					temp2   = Xil_Ntohl(cmdArgs32[2]);
+					if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
+						xil_printf("Setting CPU High random seed = 0x%08x\n", temp2);
+						srand(temp2);
+					}
+
+					// Process the seed for CPU low
+					temp    = Xil_Ntohl(cmdArgs32[3]);
+					temp2   = Xil_Ntohl(cmdArgs32[4]);
+					if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
+						xil_printf("Setting CPU Low  random seed = 0x%08x\n", temp2);
+						wlan_mac_high_set_srand(temp2);
+					}
+			    break;
+
+				default:
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
+			}
+
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
 
 	    //---------------------------------------------------------------------
 		case CMDID_DEV_MEM_HIGH:
@@ -1349,7 +1401,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				default:
-					xil_printf("Unknown command: %d\n", msg_cmd);
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1441,7 +1493,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				default:
-					xil_printf("Unknown command: %d\n", msg_cmd);
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1476,7 +1528,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			void *         ltg_callback_arg;
         	void *         params;
 
-			// Get Schedule
+			// Get Schedule & Payload
+        	// NOTE:  This allocates memory for both the schedule and payload containers.
+        	//   The payload is freed as part of the node_ltg_cleanup() callback
+        	//   The schedule is freed as part of this method
 			params           = ltg_sched_deserialize( &(((u32 *)cmdArgs)[1]), &t1, &s1 );
 			ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[2 + s1]), &t2, &s2);
 
@@ -1492,12 +1547,24 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 						xil_printf("    Starting LTG %d\n", id);
 						ltg_sched_start( id );
 					}
+
+		        	// Free the memory allocated for the params (ltg_callback_arg will be freed later)
+					wlan_mac_high_free(params);
 				} else {
 		        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 					xil_printf("ERROR:  Could not create LTG.\n");
+
+		        	// Free the memory allocated in the deserialize
+					wlan_mac_high_free(params);
+					wlan_mac_high_free(ltg_callback_arg);
 				}
 			} else {
 	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+
+	        	// Free the memory allocated in the deserialize
+	        	if (ltg_callback_arg != NULL) { wlan_mac_high_free(ltg_callback_arg); }
+	        	if (params           != NULL) { wlan_mac_high_free(params); }
+
 				xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg or params\n");
 			}
 
@@ -1691,24 +1758,37 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             //   - respArgs32[1] - Oldest empty entry index
             //   - respArgs32[2] - Number of wraps
             //   - respArgs32[3] - Flags
+			//
+			// NOTE: The print statements are commented out b/c this command is used
+			//   a lot in the inner loop of an experiment
 
+#ifdef _DEBUG_
 			xil_printf("EVENT LOG:  Get Info\n");
+#endif
 
 			temp = event_log_get_next_entry_index();
             respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
 			xil_printf("    Next Index   = %10d\n", temp);
+#endif
 
 			temp = event_log_get_oldest_entry_index();
             respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
 			xil_printf("    Oldest Index = %10d\n", temp);
+#endif
 
 			temp = event_log_get_num_wraps();
             respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
 			xil_printf("    Num Wraps    = %10d\n", temp);
+#endif
 
 			temp = event_log_get_flags();
             respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
 			xil_printf("    Flags        = 0x%08x\n", temp);
+#endif
 
 			// Send response of current info
 			respHdr->length += (respIndex * sizeof(respArgs32));
@@ -1721,16 +1801,25 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             // NODE_LOG_GET_CAPACITY Packet Format:
             //   - respArgs32[0] - Max log size
             //   - respArgs32[1] - Current log size
+            //
+			// NOTE: The print statements are commented out b/c this command is used
+			//   a lot in the inner loop of an experiment
 
+#ifdef _DEBUG_
 			xil_printf("EVENT LOG:  Get Capacity\n");
+#endif
 
 			temp = event_log_get_capacity();
             respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
 			xil_printf("    Capacity = %10d\n", temp);
+#endif
 
 			temp = event_log_get_total_size();
             respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
 			xil_printf("    Size     = %10d\n", temp);
+#endif
 
 			// Send response of current info
 			respHdr->length += (respIndex * sizeof(respArgs32));
@@ -1789,10 +1878,15 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             curr_index        = start_index;
             bytes_remaining   = size;
 
+#ifdef _DEBUG_
+			// NOTE: The print statements are commented out b/c this command is used
+			//   a lot in the inner loop of an experiment
+            //
 			xil_printf("EVENT LOG: Get Entries \n");
 			xil_printf("    curr_index       = 0x%8x\n", curr_index);
 			xil_printf("    size             = %10d\n", size);
 			xil_printf("    num_pkts         = %10d\n", num_pkts);
+#endif
 
             // Initialize constant parameters
             respArgs32[0] = Xil_Htonl( id );

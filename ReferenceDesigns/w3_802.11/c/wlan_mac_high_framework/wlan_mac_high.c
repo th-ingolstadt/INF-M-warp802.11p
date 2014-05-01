@@ -882,6 +882,9 @@ void* wlan_mac_high_malloc(u32 size){
 		xil_printf("malloc error. Try increasing heap size in linker script.\n");
 		wlan_mac_high_display_mallinfo();
 	} else {
+#ifdef _DEBUG_
+		xil_printf("MALLOC - 0x%08x    %d\n", return_value, size);
+#endif
 		num_malloc++;
 	}
 	return return_value;
@@ -942,6 +945,9 @@ void* wlan_mac_high_realloc(void* addr, u32 size){
 		xil_printf("realloc error. Try increasing heap size in linker script.\n");
 		wlan_mac_high_display_mallinfo();
 	} else {
+#ifdef _DEBUG_
+		xil_printf("REALLOC - 0x%08x    %d\n", return_value, size);
+#endif
 		num_realloc++;
 	}
 
@@ -963,6 +969,9 @@ void* wlan_mac_high_realloc(void* addr, u32 size){
  *
  */
 void wlan_mac_high_free(void* addr){
+#ifdef _DEBUG_
+	xil_printf("FREE - 0x%08x\n", addr);
+#endif
 	free(addr);
 	num_free++;
 }
@@ -1556,6 +1565,31 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 
 
+
+/*****************************************************************************/
+/**
+* Set Random Seed
+*
+* Send an IPC message to CPU Low to set the Random Seed
+*
+* @param    seed   -- Seed for random number generator
+*
+* @return	None.
+*
+* @note		None.
+*
+******************************************************************************/
+void wlan_mac_high_set_srand( unsigned int seed ) {
+
+	wlan_ipc_msg       ipc_msg_to_low;
+	u32                ipc_msg_to_low_payload = seed;
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_RANDOM_SEED);
+	ipc_msg_to_low.num_payload_words = 1;
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+}
 
 /*****************************************************************************/
 /**

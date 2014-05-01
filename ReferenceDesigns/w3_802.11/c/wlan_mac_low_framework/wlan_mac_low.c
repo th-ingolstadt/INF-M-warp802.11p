@@ -21,6 +21,7 @@
 #include "radio_controller.h"
 #include "malloc.h"
 #include "string.h"
+#include "stdlib.h"
 
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -310,6 +311,10 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				//TODO: allow mac_param_chan to select 5GHz channels
 				//TODO: clear any NAV state
 				radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, mac_param_chan);
+			break;
+
+			case IPC_MBOX_LOW_RANDOM_SEED:
+				srand(ipc_msg_from_high_payload[0]);
 			break;
 
 			case IPC_MBOX_CONFIG_TX_CTRL_POW:

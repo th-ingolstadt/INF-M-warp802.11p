@@ -62,6 +62,7 @@
 #define CMDID_NODE_RX_ANT_MODE                             0x001006
 #define CMDID_NODE_LOW_TO_HIGH_FILTER                      0x001007
 #define CMDID_NODE_LOW_PARAM				               0x001008
+#define CMDID_NODE_RANDOM_SEED                             0x001009
 
 #define CMD_PARAM_WRITE_VAL                                0x00000000
 #define CMD_PARAM_READ_VAL                                 0x00000001
@@ -83,6 +84,8 @@
 
 #define CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL                 0x00000002
 #define CMD_PARAM_NODE_TIME_RSVD_VAL                       0xFFFFFFFF
+
+#define CMD_PARAM_RANDOM_SEED_VALID                        0x00000001
 
 
 #define CMDID_NODE_GET_STATION_INFO                        0x001080
