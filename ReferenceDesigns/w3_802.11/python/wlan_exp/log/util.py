@@ -235,7 +235,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
     'merge' behavior:
 
         x = filter_log_index(log_index, merge={'D': ['A', 'B']}
-        x == {'A': [A0, A1, A2]},
+        x == {'A': [A0, A1, A2],
               'B': [B0, B1],
               'C': [],
               'D': [A0, A1, A2, B0, B1]}
@@ -276,9 +276,8 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
     if (merge is not None) and (type(merge) is not dict):
         raise TypeError("Parameter 'merge' must be a dictionary.\n")
 
-    # Start by creating a new dictionary with the same values as the log_index input
-    #  but using the WlanExpLogEntryType instances as keys
-    ret_log_index = {log_entry_types[k] : log_index[k] for k in log_index.keys()}
+    # Copy the log_index to initially populate the return log index
+    ret_log_index = dict(log_index)
 
     # Filter the log_index
     try:
@@ -288,12 +287,21 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
             for k in merge.keys():
                 new_index = []
                 for v in merge[k]:
+                    # Try to merge indexes.  ret_log_index could have keys of either
+                    # type <int> or type <WlanExpLogEntryType>.  Also, the value of 
+                    # v in the merge list could be either a <str> or <int>.  Therefore, 
+                    # we need to try both cases before we ignore the item in the list
+                    # since <str> hashes to the appropriate <WlanExpLogEntryType> but 
+                    # <int> does not.
                     try:
                         new_index += ret_log_index[v]
                     except KeyError:
-                        msg  = "WARNING:  {0} does ".format(v)
-                        msg += "not exist in log index.  Ignoring for merge.\n"
-                        print(msg)
+                        try: 
+                            new_index += ret_log_index[log_entry_types[v].entry_type_id]
+                        except KeyError:
+                            msg  = "WARNING:  {0} does ".format(v)
+                            msg += "not exist in log index.  Ignoring for merge.\n"
+                            print(msg)
 
                 # Add the new merged index lists to the output dictionary
                 # Use the type instance corresponding to the user-supplied string as the key
@@ -306,8 +314,13 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
             for entry_name in include_only:
                 new_log_index[log_entry_types[entry_name]] = []
                 for k in ret_log_index.keys():
-                    if k == entry_name:
-                        new_log_index[k] = ret_log_index[k]
+                    # Need to handle the case when the keys are <int> vs <WlanExpLogEntryType>
+                    if (type(k) is int) or (type(k) is long):
+                        if k == log_entry_types[entry_name].entry_type_id:
+                            new_log_index[log_entry_types[entry_name]] = ret_log_index[k]
+                    else:
+                        if k == entry_name:
+                            new_log_index[k] = ret_log_index[k]
 
             ret_log_index = new_log_index
         else:
@@ -324,6 +337,19 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
         msg  = "Issue generating log_index:\n"
         msg += "    Could not find entry type with name:  {0}".format(err)
         print(msg)
+
+    # Translate the keys in the return log index to WlanExpLogEntryType
+    new_log_index = {}
+
+    for k in ret_log_index.keys():
+        try:
+            new_log_index[log_entry_types[k]] = ret_log_index[k]
+        except KeyError:
+            msg  = "Issue generating log_index:\n"
+            msg += "    Could not find entry type with name:  {0}".format(err)
+            raise AttributeError(msg)
+
+    ret_log_index = new_log_index
 
     return ret_log_index
 
