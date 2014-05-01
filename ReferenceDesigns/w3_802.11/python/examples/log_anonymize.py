@@ -214,7 +214,14 @@ def log_anonymize(filename):
 
     addr_map = dict()
     for ii,addr in enumerate(all_addrs):
-        anon_addr = (0xFF, 0xFF, 0xFF, 0xFF, (ii//256), (ii%256))
+        # NOTE:  Address should not have a first octet that is odd, as this 
+        #  indicates the address is multicast.  Hence we use 0xFE as the first octet.
+        #
+        # NOTE:  Due to FCS errors, the number of addresses in a log file is 
+        #  potentially large.  Therefore, we support 2^24 unique addresses with 
+        #  the anonymizer.
+        #
+        anon_addr = (0xFE, 0xFF, 0xFF, (ii//(256**2)), ((ii//256)%256), (ii%256))
         addr_map[addr] = anon_addr
 
     if print_time:
@@ -327,7 +334,7 @@ if __name__ == '__main__':
     
     print("\nMAC Address Mapping:")
     for ii,addr in enumerate(all_addrs):
-        anon_addr = (0xFF, 0xFF, 0xFF, 0xFF, (ii//256), (ii%256))
+        anon_addr = (0xFE, 0xFF, 0xFF, (ii//(256**2)), ((ii//256)%256), (ii%256))
         print("%2d: %02x:%02x:%02x:%02x:%02x:%02x -> %02x:%02x:%02x:%02x:%02x:%02x" %
             (ii, addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], 
              anon_addr[0], anon_addr[1], anon_addr[2], anon_addr[3], anon_addr[4], anon_addr[5]))
