@@ -52,9 +52,6 @@ NODE_WLAN_EXP_DESIGN_VER               = 6
 NODE_WLAN_MAC_ADDR                     = 7
 NODE_WLAN_SCHEDULER_RESOLUTION         = 8
 
-# Low Param IDs -- in sync with wlan_mac_low.h
-LOW_PARAM_PHYSICAL_CS_THRESH           = 1
-
 
 class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     """Base Class for WLAN Experiment node.
@@ -637,9 +634,11 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         """
         self.send_cmd(cmds.NodeSetLowToHighFilter(mac_header, fcs))        
         
+
     def set_channel(self, channel):
         """Sets the channel of the node and returns the channel that was set."""
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
+
 
     def get_channel(self):
         """Gets the current channel of the node."""
@@ -776,6 +775,47 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ))
 
 
+    def set_phy_cs_thresh(self, val):
+        """Sets the physical carrier sense threshold of the node."""
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH, val)        
+
+
+    def set_random_seed(self, high_seed=None, low_seed=None, gen_random=False):
+        """Sets the random number generator seed on the node.
+        
+        Attributes:
+            high_seed  -- Set the random number generator seed on CPU high
+            low_seed   -- Set the random number generator seed on CPU low
+            gen_random -- If high_seed or low_seed is not provided, then generate
+                          a random seed for the generator.
+        """
+        import random
+        max_seed = 2**32 - 1 
+        min_seed = 0        
+        
+        if (high_seed is None):
+            if gen_random:
+                high_seed = random.randint(min_seed, max_seed)
+        else:
+            if (high_seed > max_seed) or (high_seed < min_seed):
+                msg  = "Seed must be an integer between [{0}, {1}]".format(min_seed, max_seed)
+                raise AttributeError(msg)
+        
+        if (low_seed is None):
+            if gen_random:
+                low_seed  = random.randint(min_seed, max_seed)
+        else:
+            if (low_seed > max_seed) or (low_seed < min_seed):
+                msg  = "Seed must be an integer between [{0}, {1}]".format(min_seed, max_seed)
+                raise AttributeError(msg)
+        
+        self.send_cmd(cmds.NodeProcRandomSeed(cmds.CMD_PARAM_WRITE, high_seed, low_seed))
+
+
+
+    #--------------------------------------------
+    # Internal helper methods to configure node attributes
+    #--------------------------------------------
     def _node_set_tx_param_unicast(self, cmd, param, param_name, 
                                          device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast transmit param of the node.
@@ -868,15 +908,45 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
             vals = [values]
 
         return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_WRITE, param=param, values=vals))
-            
-    def set_phy_cs_thresh(self, val):
-        """Sets the physical carrier sense threshold of the node."""
-        self._set_low_param(LOW_PARAM_PHYSICAL_CS_THRESH, val)        
-        
+
+
 
     #-------------------------
-    # Memory Access Commands
+    # Memory Access Commands - For developer use only
     #-------------------------
+    def _mem_write_high(self, address, values):
+        """Writes 'values' directly to CPU High memory starting at 'address'"""
+        if(self._check_mem_access_args(address, values)):
+            try:
+                vals = list(values)
+            except TypeError:
+                vals = [values]
+
+            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_WRITE, high=True, address=address, length=len(vals), values=vals))
+
+
+    def _mem_read_high(self, address, length):
+        """Reads 'length' values directly CPU High memory starting at 'address'"""
+        if(self._check_mem_access_args(address, values=None)):
+            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_READ, high=True, address=address, length=length))
+
+
+    def _mem_write_low(self, address, values):
+        """Writes 'values' directly to CPU High memory starting at 'address'"""
+        if(self._check_mem_access_args(address, values)):
+            try:
+                vals = list(values)
+            except TypeError:
+                vals = [values]
+
+            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_WRITE, high=False, address=address, length=len(vals), values=vals))
+
+
+    def _mem_read_low(self, address, length):
+        """Reads 'length' values directly CPU High memory starting at 'address'"""
+        if(self._check_mem_access_args(address, values=None)):
+            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_READ, high=False, address=address, length=length))
+
 
     def _check_mem_access_args(self, address, values=None, length=None):
         if(int(address) != address) or (address >= 2**32):
@@ -893,35 +963,6 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
         return True
 
-    def _mem_write_high(self, address, values):
-        """Writes 'values' directly to CPU High memory starting at 'address'"""
-        if(self._check_mem_access_args(address, values)):
-            try:
-                vals = list(values)
-            except TypeError:
-                vals = [values]
-
-            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_WRITE, high=True, address=address, length=len(vals), values=vals))
-
-    def _mem_read_high(self, address, length):
-        """Reads 'length' values directly CPU High memory starting at 'address'"""
-        if(self._check_mem_access_args(address, values=None)):
-            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_READ, high=True, address=address, length=length))
-
-    def _mem_write_low(self, address, values):
-        """Writes 'values' directly to CPU High memory starting at 'address'"""
-        if(self._check_mem_access_args(address, values)):
-            try:
-                vals = list(values)
-            except TypeError:
-                vals = [values]
-
-            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_WRITE, high=False, address=address, length=len(vals), values=vals))
-
-    def _mem_read_low(self, address, length):
-        """Reads 'length' values directly CPU High memory starting at 'address'"""
-        if(self._check_mem_access_args(address, values=None)):
-            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_READ, high=False, address=address, length=length))
 
 
     #--------------------------------------------

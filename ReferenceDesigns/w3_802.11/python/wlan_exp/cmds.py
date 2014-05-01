@@ -49,6 +49,7 @@ CMDID_NODE_TX_ANT_MODE                           = 0x001005
 CMDID_NODE_RX_ANT_MODE                           = 0x001006
 CMDID_NODE_LOW_TO_HIGH_FILTER                    = 0x001007
 CMDID_NODE_LOW_PARAM                             = 0x001008
+CMDID_NODE_RANDOM_SEED                           = 0x001009
 
 CMD_PARAM_WRITE                                  = 0x00000000
 CMD_PARAM_READ                                   = 0x00000001
@@ -83,7 +84,14 @@ CMD_PARAM_RX_FILTER_HDR_ALL_MPDU                 = 0x0002
 CMD_PARAM_RX_FILTER_HDR_ALL                      = 0x0003
 CMD_PARAM_RX_FILTER_HDR_NOCHANGE                 = 0x0FFF
 
+CMD_PARAM_RANDOM_SEED_VALID                      = 0x00000001
+CMD_PARAM_RANDOM_SEED_RSVD                       = 0xFFFFFFFF
 
+# Low Param IDs -- in sync with wlan_mac_low.h
+CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH           = 1
+
+
+# Association commands and defined values
 CMDID_GET_STATION_INFO                           = 0x001080
 CMDID_SET_STATION_INFO                           = 0x001081
 
@@ -657,6 +665,50 @@ class NodeProcChannel(wn_message.Cmd):
 
 # End Class
 
+
+class NodeProcRandomSeed(wn_message.Cmd):
+    """Command to set the random seed of the node.
+    
+    Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       CMD_PARAM_READ   (Not supported)
+                       CMD_PARAM_WRITE
+        high_seed -- Random number generator seed for CPU high
+        low_seed  -- Random number generator seed for CPU low
+    
+    import random
+    high_seed = random.randint(0, 0xFFFFFFFF)
+    NOTE:  If a seed is not provided, then the seed is not updated.
+    """
+    def __init__(self, cmd, high_seed=None, low_seed=None):
+        super(NodeProcRandomSeed, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_RANDOM_SEED
+
+        if (cmd == CMD_PARAM_READ):
+            raise AttributeError("Read not supported for NodeProcRandomSeed.")
+
+        self.add_args(CMD_PARAM_WRITE)
+
+        if high_seed is not None:
+            self.add_args(CMD_PARAM_RANDOM_SEED_VALID)
+            self.add_args(high_seed)
+        else:
+            self.add_args(CMD_PARAM_RANDOM_SEED_RSVD)
+            self.add_args(CMD_PARAM_RANDOM_SEED_RSVD)
+    
+        if low_seed is not None:
+            self.add_args(CMD_PARAM_RANDOM_SEED_VALID)
+            self.add_args(high_seed)
+        else:
+            self.add_args(CMD_PARAM_RANDOM_SEED_RSVD)
+            self.add_args(CMD_PARAM_RANDOM_SEED_RSVD)
+    
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
+
 class NodeLowParam(wn_message.Cmd):
     """Command to set parameter in CPU Low
     
@@ -702,7 +754,6 @@ class NodeMemAccess(wn_message.Cmd):
 
         length    -- When cmd==CMD_PARAM_WRITE, None
                      When cmd==CMD_PARAM_READ, number of u32 values to read starting at address
-
     """
     _read_len = None
     
