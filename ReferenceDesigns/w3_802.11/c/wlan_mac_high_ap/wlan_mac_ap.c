@@ -514,6 +514,17 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 				bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + transfer_len), (MIN_MAC_PAYLOAD_LOG_LEN - transfer_len));
 			}
 
+
+			if((i+1 == (tx_mpdu->num_tx)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){
+				tx_low_event_log_entry->flags = tx_low_event_log_entry->flags | TX_LOW_FLAGS_WAS_ACKED;
+			} else {
+				tx_low_event_log_entry->flags = tx_low_event_log_entry->flags & ~TX_LOW_FLAGS_WAS_ACKED;
+			}
+
+
+
+
+
 			//Compute the timestamp of the actual Tx event
 			// CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
 			tx_low_event_log_entry->timestamp_send            = (u64)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + (u64)ts_old);
