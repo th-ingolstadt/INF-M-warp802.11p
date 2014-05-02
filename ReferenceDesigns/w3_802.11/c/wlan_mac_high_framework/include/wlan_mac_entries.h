@@ -336,12 +336,13 @@ typedef struct{
 	u16                 num_slots;               // Number of backoff slots
 	u16                 cw;                      // Contention Window
 	u8 	                pkt_type;                // Type of packet
-	u8	                reserved[3];             //
+	u8					flags;					 // Misc. flags from CPU_HIGH
+	u8	                reserved[2];             //
 	u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
 	u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_low_entry;
 
-
+#define TX_LOW_FLAGS_WAS_ACKED 0x01
 
 
 /*************************** Function Prototypes *****************************/
