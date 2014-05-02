@@ -190,29 +190,25 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		break;
 	}
 
-	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
-
-
-
-	//TODO: tx ant_mode will eventually be a part of wlan_mac_auto_tx_params_g()
-	//TOOD: Ticket 155
-#if 0
+	unsigned char ack_tx_ant_mask = 0;
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	switch(active_rx_ant){
 		case RX_ANTMODE_SISO_ANTA:
-			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+			ack_tx_ant_mask |= 0x1;
 		break;
 		case RX_ANTMODE_SISO_ANTB:
-			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTB);
+			ack_tx_ant_mask |= 0x2;
 		break;
 		case RX_ANTMODE_SISO_ANTC:
-			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTC);
+			ack_tx_ant_mask |= 0x4;
 		break;
 		case RX_ANTMODE_SISO_ANTD:
-			wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTD);
+			ack_tx_ant_mask |= 0x8;
+		break;
+		default:
+			ack_tx_ant_mask = 0x1;
 		break;
 	}
-#endif
 
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){};
@@ -228,7 +224,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		//the subsystem.
 
 		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceeding reception.
-		wlan_mac_auto_tx_params_g(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC))),wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow()));
+		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC))),wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow()), ack_tx_ant_mask);
 
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
@@ -393,24 +389,41 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
 
+		unsigned char mpdu_tx_ant_mask = 0;
+		switch(mpdu_info->params.phy.antenna_mode) {
+			case TX_ANTMODE_SISO_ANTA:
+				mpdu_tx_ant_mask |= 0x1;
+			break;
+			case TX_ANTMODE_SISO_ANTB:
+				mpdu_tx_ant_mask |= 0x2;
+			break;
+			case TX_ANTMODE_SISO_ANTC:
+				mpdu_tx_ant_mask |= 0x4;
+			break;
+			case TX_ANTMODE_SISO_ANTD:
+				mpdu_tx_ant_mask |= 0x8;
+			break;
+			default:
+				mpdu_tx_ant_mask = 0x1;
+			break;
+		}
+
 		if(i == 0){
 			//This is the first transmission, so we speculatively draw a backoff in case
 			//the backoff counter is currently 0 but the medium is busy. Prior to all other
 			//(re)transmissions, an explicit backoff will have been started at the end of
 			//the previous iteration of this loop.
 			n_slots = rand_num_slots();
-			wlan_mac_MPDU_tx_params_g(pkt_buf, n_slots, req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
+			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power), mpdu_tx_ant_mask);
 		} else {
 			REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x20);
-			wlan_mac_MPDU_tx_params_g(pkt_buf, 0, 		req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power));
+			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power), mpdu_tx_ant_mask);
 			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x20);
 		}
 
 		//Before we mess with any PHY state, we need to make sure it isn't actively
 		//transmitting. For example, it may be sending an ACK when we get to this part of the code
 		while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_PHY_TX_ACTIVE){}
-		//TODO: tx ant_mode will eventually be a part of wlan_mac_MPDU_tx_params_g()
-		wlan_tx_config_ant_mode(mpdu_info->params.phy.antenna_mode);
 
 		//Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
 		wlan_mac_MPDU_tx_start(1);
