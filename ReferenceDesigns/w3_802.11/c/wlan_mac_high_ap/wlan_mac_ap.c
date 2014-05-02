@@ -51,8 +51,8 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_NODE_TYPE            (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 
-#define  WLAN_DEFAULT_CHANNEL          6
-#define  WLAN_DEFAULT_TX_PWR		   5
+#define  WLAN_DEFAULT_CHANNEL          1
+#define  WLAN_DEFAULT_TX_PWR		   10
 
 
 /*************************** Variable Definitions ****************************/
