@@ -8,22 +8,37 @@ import wlan_exp.util as wlan_exp_util
 
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
+import wlan_exp.log.util_sample_data as sample_data_util
 
 
-#Use log file given as command line argument, if present
-if(len(sys.argv) == 1):
-    #No filename on command line
-    LOGFILE = 'sample_data/ap_log_stats.hdf5'
-else:
+#-----------------------------------------------------------------------------
+# Process command line arguments
+#-----------------------------------------------------------------------------
+
+LOGFILE       = 'raw_log_dual_flow_ap.hdf5'
+logfile_error = False
+
+# Use log file given as command line argument, if present
+if(len(sys.argv) != 1):
     LOGFILE = str(sys.argv[1])
 
+# See if the command line argument was for a sample data file
+try:
+    LOGFILE = sample_data_util.get_sample_data_file(LOGFILE)
+except:
+    logfile_error = True
+
 # Ensure the log file actually exists - quit immediately if not
-if(not os.path.isfile(LOGFILE)):
+if ((not os.path.isfile(LOGFILE)) and logfile_error):
     print("ERROR: Logfile {0} not found".format(LOGFILE))
     sys.exit()
 else:
-    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/1E6)))
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(LOGFILE)[1], (os.path.getsize(LOGFILE)/1E6)))
 
+
+#-----------------------------------------------------------------------------
+# Main script 
+#-----------------------------------------------------------------------------
 
 # Get the log_data from the file
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
@@ -35,26 +50,27 @@ raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX'])
 
 # Generate numpy array
-tx_recs       = log_np = log_util.log_data_to_np_arrays(log_data, tx_log_index)
+log_np = log_util.log_data_to_np_arrays(log_data, tx_log_index)
+log_tx = log_np['TX']
 
 # Define the fields to group by
 group_fields = ('addr1',)
 
 # Define the aggregation functions
 stat_calc = (
-    ('retry_count',  np.mean, 'avg_num_tx'),
+    ('num_tx',       np.mean, 'avg_num_tx'),
     ('length',       len,     'num_pkts'),
     ('length',       np.mean, 'avg_len'),
     ('length',       sum,     'tot_len'),
     ('time_to_done', np.mean, 'avg_time'))
 
 # Calculate the aggregate statistics
-tx_stats = mlab.rec_groupby(tx_recs, group_fields, stat_calc)
+tx_stats = mlab.rec_groupby(log_tx, group_fields, stat_calc)
 
 # Display the results
 print('\nTx Statistics for {0}:\n'.format(LOGFILE))
 
-print('{0:^18} | {1:^8} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
+print('{0:^18} | {1:^9} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
     'Dest Addr',
     'Num MPDUs',
     'Avg Length',
@@ -63,7 +79,7 @@ print('{0:^18} | {1:^8} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
     'Avg Num Tx'))
 
 for ii in range(len(tx_stats)):
-    print('{0:<18} | {1:8d} | {2:10.1f} | {3:14} | {4:11.3f} | {5:5.1f}'.format(
+    print('{0:<18} | {1:9d} | {2:10.1f} | {3:14} | {4:11.3f} | {5:5.2f}'.format(
         wlan_exp_util.mac_addr_to_str(tx_stats['addr1'][ii]),
         tx_stats['num_pkts'][ii],
         tx_stats['avg_len'][ii],
@@ -72,5 +88,7 @@ for ii in range(len(tx_stats)):
         tx_stats['avg_num_tx'][ii]))
 
 print('')
-log_util.debug_here()
 
+# Uncomment this line to open an interactive console after the script runs
+#   This console will have access to all variables defined above
+# wlan_exp_util.debug_here()

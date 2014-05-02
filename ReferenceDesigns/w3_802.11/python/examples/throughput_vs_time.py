@@ -4,20 +4,50 @@ import pandas as pd
 from matplotlib.pyplot import *
 
 import wlan_exp.log.util as log_util
+import wlan_exp.log.util_hdf as hdf_util
+import wlan_exp.log.util_sample_data as sample_data_util
 
-with open('big_logs/sta_log_stats_2014_03_06.bin', 'rb') as fh:
-    print("Reading log file...")
-    log_b = fh.read()
+#-----------------------------------------------------------------------------
+# Process command line arguments
+#-----------------------------------------------------------------------------
 
-print("Generating log index...")
-log_index_raw = log_util.gen_log_index_raw(log_b)
+LOGFILE       = 'raw_log_dual_flow_ap.hdf5'
+logfile_error = False
 
-#Extract just OFDM Rx events
-log_idx_rx_ofdm = log_util.filter_log_index(log_index_raw, include_only=['RX_OFDM'])
+# Use log file given as command line argument, if present
+if(len(sys.argv) != 1):
+    LOGFILE = str(sys.argv[1])
 
-#Generate numpy array
+# See if the command line argument was for a sample data file
+try:
+    LOGFILE = sample_data_util.get_sample_data_file(LOGFILE)
+except:
+    logfile_error = True
+
+# Ensure the log file actually exists - quit immediately if not
+if ((not os.path.isfile(LOGFILE)) and logfile_error):
+    print("ERROR: Logfile {0} not found".format(LOGFILE))
+    sys.exit()
+else:
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(LOGFILE)[1], (os.path.getsize(LOGFILE)/1E6)))
+
+
+#-----------------------------------------------------------------------------
+# Main script 
+#-----------------------------------------------------------------------------
+
+# Get the log_data from the file
+log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
+
+# Get the raw_log_index from the file
+raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
+
+# Extract just OFDM Rx events
+rx_ofdm_log_index = log_util.filter_log_index(raw_log_index, include_only=['RX_OFDM'])
+
+# Generate numpy array
 print("Generating numpy arrays...")
-log_nd = log_util.gen_log_np_arrays(log_b, log_idx_rx_ofdm)
+log_nd = log_util.log_data_to_np_arrays(log_data, rx_ofdm_log_index)
 rx = log_nd['RX_OFDM']
 
 #Extract length and timestamp fields
