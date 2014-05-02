@@ -619,11 +619,16 @@ class WnNode(object):
     # Misc methods for the Node
     #-------------------------------------------------------------------------
     def check_wn_ver(self):
-        """Check the WARPNet version of the node against the current WARPNet
-        version."""
+        """Check the WARPNet version of the node against the current WARPNet version."""
+        ver_str     = version.wn_ver_str(self.wn_ver_major, self.wn_ver_minor, 
+                                         self.wn_ver_revision)
+
+        caller_desc = "During node initialization {0} returned version {1}".format(self.name, ver_str)
+
         version.wn_ver_check(major=self.wn_ver_major,
                              minor=self.wn_ver_minor,
-                             revision=self.wn_ver_revision)
+                             revision=self.wn_ver_revision,
+                             caller_desc=caller_desc)
 
 
     def __str__(self):

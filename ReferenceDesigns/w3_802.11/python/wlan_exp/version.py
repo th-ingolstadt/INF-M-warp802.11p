@@ -73,7 +73,8 @@ def wlan_exp_ver():
 # End of wlan_exp_ver()
 
 
-def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None):
+def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
+                       caller_desc=None):
     """Checks the version of WLAN Exp for this package.
     
     This function will print a warning message if the version specified 
@@ -108,17 +109,25 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None):
         raise AttributeError(msg)
     
     # Check the provided version vs the current version
-    msg  = "WLAN Exp Version Mismatch: \n"
-    msg += "    Required version {0}\n".format(wlan_exp_ver_str(major, minor, revision))
-    msg += "    Current  version {0}".format(wlan_exp_ver_str())
-    
+    if (caller_desc is None):
+        msg  = "WLAN Exp Version Mismatch: \n"
+    else:
+        msg  = str(caller_desc)
+        msg += "\nWLAN Exp Version Mismatch: \n"
+        
+    msg += "    Caller is using wlan_exp package version: {0}\n".format(wlan_exp_ver_str(major, minor, revision))
+    msg += "    However, trying to use wlan_exp package version: {0} ({1})".format(wlan_exp_ver_str(), __file__)
+
+
     if (major == WLAN_EXP_MAJOR):
         if (minor == WLAN_EXP_MINOR):
             if (revision != WLAN_EXP_REVISION):
                 # Since MAJOR & MINOR versions match, only print a warning
                 if (revision < WLAN_EXP_REVISION):
-                    # Do nothing; Python must be the same or newer than C code
-                    pass
+                    # Do nothing; Python must be the same or newer than C code                    
+                    # pass
+                    # TODO:  Need to move back to this after 1.0 release
+                    print("WARNING: " + msg + " (newer)")                
                 else:
                     print("WARNING: " + msg + " (older)")
         else:

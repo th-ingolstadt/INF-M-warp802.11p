@@ -890,6 +890,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
         return ret_val
 
+
     def _set_low_param(self, param, values):
         """Sets any number of CPU Low parameters"""
         
@@ -911,9 +912,37 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
 
 
-    #-------------------------
+    #--------------------------------------------
+    # Association Commands
+    #   NOTE:  Some commands are implemented in sub-classes
+    #--------------------------------------------
+    def disassociate(self, device_list, force=True):
+        """Remove associations of devices within the device_list from the association table
+        
+        Attributes:
+            device_list -- List of 802.11 devices to remove from the association table
+            force       -- Force removal of association
+                               True  => deauthenticate and remove association table entry
+                               False => deauthenticate but do not remove entry if marked 'don't remove'        
+        """
+        raise NotImplementedError
+        
+
+    def disassociate_all(self, force=True):
+        """Remove all associations from the association table
+
+        Attributes:
+            force       -- Force removal of association
+                               True  => deauthenticate and remove association table entry
+                               False => deauthenticate but do not remove entry if marked 'don't remove'        
+        """
+        raise NotImplementedError
+
+
+
+    #--------------------------------------------
     # Memory Access Commands - For developer use only
-    #-------------------------
+    #--------------------------------------------
     def _mem_write_high(self, address, values):
         """Writes 'values' directly to CPU High memory starting at 'address'"""
         if(self._check_mem_access_args(address, values)):
@@ -1011,11 +1040,17 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     # Misc methods for the Node
     #-------------------------------------------------------------------------
     def check_wlan_exp_ver(self):
-        """Check the WLAN Exp version of the node against the current WLAN Exp
-        version."""
+        """Check the WLAN Exp version of the node against the current WLAN Exp version."""        
+        ver_str     = version.wlan_exp_ver_str(self.wlan_exp_ver_major, 
+                                               self.wlan_exp_ver_minor, 
+                                               self.wlan_exp_ver_revision)
+
+        caller_desc = "During node initialization {0} returned version {1}".format(self.name, ver_str)
+        
         version.wlan_exp_ver_check(major=self.wlan_exp_ver_major,
                                    minor=self.wlan_exp_ver_minor,
-                                   revision=self.wlan_exp_ver_revision)
+                                   revision=self.wlan_exp_ver_revision,
+                                   caller_desc=caller_desc)
 
 # End Class WlanExpNode
 

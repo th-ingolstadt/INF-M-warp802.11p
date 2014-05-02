@@ -77,7 +77,8 @@ def wn_ver():
 # End of wn_ver()
 
 
-def wn_ver_check(ver_str=None, major=None, minor=None, revision=None):
+def wn_ver_check(ver_str=None, major=None, minor=None, revision=None,
+                 caller_desc=None):
     """Checks the version of WARPNet for this package.
     
     This function will print a warning message if the version specified 
@@ -112,10 +113,16 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None):
         raise AttributeError(msg)
     
     # Check the provided version vs the current version
-    msg  = "WARPNet Version Mismatch: \n"
-    msg += "    Required version {0}\n".format(wn_ver_str(major, minor, revision))
-    msg += "    Current  version {0}".format(wn_ver_str())
-    
+    if (caller_desc is None):
+        msg  = "WARPNet Version Mismatch: \n"
+    else:
+        msg  = str(caller_desc)
+        msg += "\nWARPNet Version Mismatch: \n"
+        
+    msg += "    Caller is using warpnet package version: {0}\n".format(wn_ver_str(major, minor, revision))
+    msg += "    However, trying to use warpnet package version: {0} ({1})".format(wn_ver_str(), __file__)
+
+
     if (major == WN_MAJOR):
         if (minor == WN_MINOR):
             if (revision != WN_REVISION):

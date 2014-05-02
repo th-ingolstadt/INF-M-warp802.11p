@@ -113,8 +113,8 @@ class HDF5LogContainer(log_util.LogContainer):
     compression              = None
 
 
-    def __init__(self, filename, name=None, compression=None):
-        super(HDF5LogContainer, self).__init__(filename)
+    def __init__(self, file_handle, name=None, compression=None):
+        super(HDF5LogContainer, self).__init__(file_handle)
 
         self.compression = compression
 
@@ -142,7 +142,12 @@ class HDF5LogContainer(log_util.LogContainer):
             if group_handle.attrs['wlan_exp_log']:
                 # Require two attributes named 'wlan_exp_log' and 'wlan_exp_ver'
                 ver = group_handle.attrs['wlan_exp_ver']
-                version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2])
+                
+                ver_str     = version.wlan_exp_ver_str(ver[0], ver[1], ver[2])
+                caller_desc = "HDF5 file '{0}' was written using version {1}".format(self.file_handle.filename, ver_str)
+                
+                version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2],
+                                           caller_desc=caller_desc)
             else:
                 msg  = "WARNING: Log container is not valid.\n"
                 msg += "    'wlan_exp_log' attribute indicates log container is not valid."
