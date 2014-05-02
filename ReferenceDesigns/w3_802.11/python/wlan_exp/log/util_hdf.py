@@ -241,7 +241,14 @@ class HDF5LogContainer(log_util.LogContainer):
 
         # Delete any existing 'log_index' in the group
         try:
-            del group_handle[index_name]
+            # Normally the try-catch would handle this error but in HDF5 1.8.9
+            # exceptions are not properly thrown when using h5py, so the check
+            # needs to be coded this way so that we don't get a lot of garbage 
+            # output.
+            #
+            for group in group_handle.keys():                
+                if (group == index_name):
+                    del group_handle[index_name]
         except:
             pass
 
