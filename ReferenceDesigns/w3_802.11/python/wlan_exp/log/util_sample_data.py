@@ -36,7 +36,7 @@ def download_sample_data():
     except ImportError:
         print("\nERROR: auto download requires the Python requests package!\n")
         print(" Please download sample data files manually from:")
-        print("   http://warpproject.org/w/802.11/wlan_exp/\n")
+        print("   http://warpproject.org/w/802.11/wlan_exp/sample_data\n")
         print(" Sample data files should be saved in local folder:")
         print("   {0}".format(os.path.normpath(sample_data_dir)))
         return
