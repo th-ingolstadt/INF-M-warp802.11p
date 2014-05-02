@@ -309,8 +309,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			case IPC_MBOX_CONFIG_CHANNEL:
 				mac_param_chan = ipc_msg_from_high_payload[0];
 				//TODO: allow mac_param_chan to select 5GHz channels
-				//TODO: clear any NAV state
 				radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, mac_param_chan);
+				wlan_mac_reset_NAV_counter();
 			break;
 
 			case IPC_MBOX_LOW_RANDOM_SEED:
@@ -1003,7 +1003,7 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
 /**
  * @brief Force reset backoff counter in MAC hardware
  */
-inline void wlan_mac_reset_backoff_coutner() {
+inline void wlan_mac_reset_backoff_counter() {
 	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_RESET_BACKOFF);
 	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_BACKOFF);
 	return;
@@ -1012,7 +1012,7 @@ inline void wlan_mac_reset_backoff_coutner() {
 /**
  * @brief Force reset NAV counter in MAC hardware
  */
-inline void wlan_mac_reset_NAV_coutner() {
+inline void wlan_mac_reset_NAV_counter() {
 	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_RESET_NAV);
 	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_NAV);
 	return;

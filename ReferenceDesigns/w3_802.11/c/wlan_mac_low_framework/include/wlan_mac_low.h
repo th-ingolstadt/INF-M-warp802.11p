@@ -208,5 +208,7 @@ inline u64 get_tx_start_timestamp();
 void wlan_mac_dcf_hw_unblock_rx_phy();
 inline u32 wlan_mac_dcf_hw_rx_finish();
 inline u8 wlan_mac_low_dbm_to_gain_target(s8 power);
+inline void wlan_mac_reset_backoff_counter();
+inline void wlan_mac_reset_NAV_counter();
 
 #endif /* WLAN_MAC_LOW_H_ */
