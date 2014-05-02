@@ -681,14 +681,15 @@ entry_tx_low.append_field_defs([
             ('rate',                   'B',      'uint8',   'PHY rate index in [1:8]'),
             ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [1:4]'),
             ('tx_power',               'b',      'int8',    'Tx power in dBm'),
-            ('flags',                  'B',      'uint8',   'Tx PHY flags'),
+            ('phy_flags',              'B',      'uint8',   'Tx PHY flags'),
             ('tx_count',               'B',      'uint8',   'Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions'),
             ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
             ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
             ('num_slots',              'H',      'uint16',  'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0)'),
             ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
             ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
-            ('padding',                '3x',     '3uint8',  ''),
+            ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
+            ('padding',                '2x',     '2uint8',  ''),
             ('mac_payload_len',        'I',      'uint32',  'Length in bytes of MAC payload recorded in log for this packet'),
             ('mac_payload',            '24s',    '24uint8', 'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 
