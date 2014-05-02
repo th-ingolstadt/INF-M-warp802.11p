@@ -51,8 +51,8 @@
 #define  WLAN_EXP_ETH                  WN_ETH_B
 #define  WLAN_EXP_NODE_TYPE            (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 
-#define  WLAN_DEFAULT_CHANNEL          1
-#define  WLAN_DEFAULT_TX_PWR		   10
+#define  WLAN_DEFAULT_CHANNEL          6
+#define  WLAN_DEFAULT_TX_PWR		   5
 
 
 /*************************** Variable Definitions ****************************/
@@ -930,7 +930,16 @@ void beacon_transmit() {
  		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
  		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
-        tx_length = wlan_create_beacon_frame((void*)(curr_tx_queue_buffer->frame),&tx_header_common, BEACON_INTERVAL_MS, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan,1,tim_control,tim_bitmap);
+
+        tx_length = wlan_create_beacon_frame(
+			(void*)(curr_tx_queue_buffer->frame),
+			&tx_header_common,
+			BEACON_INTERVAL_MS,
+			strlen(access_point_ssid),
+			(u8*)access_point_ssid,
+			mac_param_chan,
+			1,
+			tim_control,tim_bitmap);
 
  		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
 
