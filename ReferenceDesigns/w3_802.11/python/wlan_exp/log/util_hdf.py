@@ -519,9 +519,16 @@ def hdf5_open_file(filename, readonly=False, append=False, print_warnings=True):
             h5_filename = filename
         else:
             h5_filename = log_util._get_safe_filename(filename, print_warnings)
-    
-        # Open an HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
-        file_handle = h5py.File(h5_filename, mode='a')
+
+        if os.path.isfile(h5_filename):    
+            # Open an HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
+            file_handle = h5py.File(h5_filename, mode='a')
+        else:
+            # Open an HDF5 File Object in 'w' (Create file, truncate if exists) mode
+            #
+            # NOTE:  This is due to a bug in Anaconda where it does not throu the appropriate
+            #    IOError to be caught to create a file with the 'a' mode
+            file_handle = h5py.File(h5_filename, mode='w')            
 
     return file_handle
 
