@@ -407,9 +407,9 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 			}
 
 			if((i+1 == (tx_mpdu->num_tx)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){
-				tx_low_event_log_entry->flags = tx_low_event_log_entry->flags | TX_LOW_FLAGS_WAS_ACKED;
+				tx_low_event_log_entry->flags = TX_LOW_FLAGS_WAS_ACKED;
 			} else {
-				tx_low_event_log_entry->flags = tx_low_event_log_entry->flags & ~TX_LOW_FLAGS_WAS_ACKED;
+				tx_low_event_log_entry->flags = 0;
 			}
 
 			tx_low_event_log_entry->unique_seq				  = tx_mpdu->unique_seq;
