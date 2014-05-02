@@ -132,6 +132,7 @@ ap_rx_stats_end  = n_sta.stats_get_txrx(n_ap)
 # Stop the LTG flow and purge any remaining transmissions in the queue 
 #  so that nodes are in a known, good state
 n_ap.ltg_stop(ap_ltg_id)
+n_ap.ltg_remove(ap_ltg_id)
 n_ap.queue_tx_data_purge_all()
 
 # Compute the throughput
@@ -175,6 +176,7 @@ ap_rx_stats_end  = n_sta.stats_get_txrx(n_ap)
 # Stop the LTG flow and purge any remaining transmissions in the queue 
 #  so that nodes are in a known, good state
 n_sta.ltg_stop(sta_ltg_id)
+n_sta.ltg_remove(sta_ltg_id)
 n_sta.queue_tx_data_purge_all()
 
 # Compute the throughput
@@ -216,9 +218,11 @@ ap_rx_stats_end  = n_sta.stats_get_txrx(n_ap)
 # Stop the LTG flows and purge any remaining transmissions in the queue 
 #  so that nodes are in a known, good state
 n_sta.ltg_stop(sta_ltg_id)
+n_sta.ltg_remove(sta_ltg_id)
 n_sta.queue_tx_data_purge_all()
 
 n_ap.ltg_stop(ap_ltg_id)
+n_ap.ltg_remove(ap_ltg_id)
 n_ap.queue_tx_data_purge_all()
 
 # Compute the throughput
