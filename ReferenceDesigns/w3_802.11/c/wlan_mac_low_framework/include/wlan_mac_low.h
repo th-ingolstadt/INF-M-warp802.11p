@@ -72,13 +72,18 @@
 #define WLAN_MAC_STATUS_MPDU_TX_STATE_DONE		 	(6<<17)
 
 //Bit masks for CONTROL register
-#define WLAN_MAC_CTRL_MASK_RESET				0x01
-#define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN		0x02
-#define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET	0x04
-#define WLAN_MAC_CTRL_MASK_DISABLE_NAV			0x08
-#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX		0x10
-#define WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP		0x20
-#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND	0x40 //blocks Rx on bad FCS pkts, only for logging/analysis
+#define WLAN_MAC_CTRL_MASK_RESET					0x001
+#define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN			0x002
+#define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET		0x004
+#define WLAN_MAC_CTRL_MASK_DISABLE_NAV				0x008
+#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX			0x010
+#define WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP			0x020
+#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND	0x040 //blocks Rx on bad FCS pkts, only for logging/analysis
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_PHY_CS		0x080
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_TX_BUSY		0x100
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_NAV			0x200
+#define WLAN_MAC_CTRL_MASK_RESET_NAV				0x400
+#define WLAN_MAC_CTRL_MASK_RESET_BACKOFF			0x800
 
 //Macros for reading/writing registers
 #define wlan_mac_timestamp_lsb() Xil_In32(WLAN_MAC_REG_TIMESTAMP_LSB)
@@ -111,25 +116,29 @@
 //WLAN_MAC_REG_AUTO_TX_PARAMS:
 // b[3:0]: Pkt buf
 // b[13:4]: Pre-auto-Tx delay (MAC_SIFS)
+// b[23:20]: Tx ant mask
 // b[31]: Auto-Tx en
-//#define wlan_mac_auto_tx_params(pktBuf, preTx_delay) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS, ((pktBuf) & 0xF) | (((preTx_delay) & 0x3FF) << 4))
-#define wlan_mac_auto_tx_params_g(pktBuf, preTx_delay, txGain) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS, ((pktBuf) & 0xF) | (((preTx_delay) & 0x3FF) << 4) | (((txGain&0x3F)<<25)))
-//#define wlan_mac_auto_tx_params(pktBuf, preTx_delay) wlan_mac_auto_tx_params_g(pktBuf, preTx_delay, 45);
+#define wlan_mac_auto_tx_params(pktBuf, preTx_delay, txGain, antMask) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS, ( \
+																				 (pktBuf) & 0xF) | \
+																				 (((antMask) & 0xF)<<20) | \
+																				 (((preTx_delay) & 0x3FF) << 4) | \
+																				 (((txGain&0x3F)<<25)))
+
 #define wlan_mac_auto_tx_en(x) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS,((Xil_In32(WLAN_MAC_REG_AUTO_TX_PARAMS) & 0x7FFFFFFF)) | (((x) & 0x1) << 31))
 
 //WLAN_MAC_MPDU_TX_PARAMS:
 // b[3:0]: Pkt buf
+// b[7:4]: Ant mask (0x1=RFA, 0x2=RFB)
 // b[23:8]: Num pre-Tx backoff slots
 // b[24]: Start post-Tx timeout
 // b[30:25]: Tx gain
-#define wlan_mac_MPDU_tx_params_g(pktBuf, preTx_backoff_slots, postTx_timeout_req, txGain) \
+#define wlan_mac_MPDU_tx_params(pktBuf, preTx_backoff_slots, postTx_timeout_req, txGain, antMask) \
 	Xil_Out32(WLAN_MAC_REG_MPDU_TX_PARAMS, \
 			(pktBuf & 0xF) | \
+			((antMask & 0xF) << 4) | \
 			((preTx_backoff_slots & 0xFFFF) << 8) | \
 			((postTx_timeout_req & 0x1) << 24) | \
 			((txGain & 0x3F) << 25))
-
-//#define wlan_mac_MPDU_tx_params(pktBuf, preTx_backoff_slots, postTx_timeout_req) wlan_mac_MPDU_tx_params_g(pktBuf, preTx_backoff_slots, postTx_timeout_req, 45)
 
 #define wlan_mac_MPDU_tx_start(x) Xil_Out32(WLAN_MAC_REG_MPDU_TX_START, (x&0x1))
 

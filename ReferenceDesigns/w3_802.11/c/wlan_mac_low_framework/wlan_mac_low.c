@@ -1000,8 +1000,20 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
 	return return_value;
 }
 
+/**
+ * @brief Force reset backoff counter in MAC hardware
+ */
+inline void wlan_mac_reset_backoff_coutner() {
+	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_RESET_BACKOFF);
+	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_BACKOFF);
+	return;
+}
 
-
-
-
-
+/**
+ * @brief Force reset NAV counter in MAC hardware
+ */
+inline void wlan_mac_reset_NAV_coutner() {
+	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_RESET_NAV);
+	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_NAV);
+	return;
+}

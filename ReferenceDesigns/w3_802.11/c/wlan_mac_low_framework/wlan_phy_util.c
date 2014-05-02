@@ -185,6 +185,8 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 }
 
 void wlan_tx_config_ant_mode(u32 ant_mode) {
+	return;
+	/*OLD - DELETE WHEN v40 HW WORKS!*/
 	REG_CLEAR_BITS(WLAN_TX_REG_CFG, (WLAN_TX_REG_CFG_ANT_A_TXEN | WLAN_TX_REG_CFG_ANT_B_TXEN | WLAN_TX_REG_CFG_ANT_C_TXEN | WLAN_TX_REG_CFG_ANT_D_TXEN));
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_TXEN_CTRLSRC, RC_CTRLSRC_REG);
 
@@ -306,6 +308,9 @@ void wlan_phy_init() {
 	//Set digital scaling of preamble/payload signals before DACs (UFix12_0)
 	wlan_phy_tx_set_scaling(0x2000, 0x2000);
 
+	//Enable the Tx PHY 4-bit TxEn port that captures the MAC's selection of active antennas per Tx
+	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_USE_MAC_ANT_MASKS);
+
 /*********** AGC ***************/
 	wlan_agc_config(0);
 
@@ -420,12 +425,25 @@ void wlan_radio_init() {
 	//Set Tx state machine timing             (dly_GainRamp, dly_PA, dly_TX, dly_PHY)
 	radio_controller_setTxDelays(RC_BASEADDR, 40, 20, 0, TX_RC_PHYSTART_DLY); //240 PA time after 180 PHY time is critical point
 
-	//Give the TX PHY control of RXEN and TXEN (defaults to SISO on A)
-	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_HW);
+	//Configure the radio_controller Tx/Rx enable control sources
+	// The Tx PHY drives a 4-bit TxEn, one bit per RF interface
+	// The Tx PHY drives a 1-bit RxEn, common to all RF interfaces
+	//  MAC software should select active Rx interface by changing RFA/RFB RxEn ctrl src between _HW and _REG
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, (RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_HW);
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, (RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_REG);
+
+	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), (RC_REG0_TXEN_CTRLSRC), RC_CTRLSRC_HW);
+
+	//Disable any hardware control of RFC/RFD
+	radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFC | RC_RFD), (RC_REG0_RXEN_CTRLSRC | RC_REG0_TXEN_CTRLSRC), RC_CTRLSRC_REG);
+
+/*
+   OLD - DELTE WHEN v40 HW WORKS
+ 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_HW);
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_REG);
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_REG);
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_RFD, (RC_REG0_TXEN_CTRLSRC | RC_REG0_RXEN_CTRLSRC), RC_CTRLSRC_REG);
-
+*/
 	return;
 }
 
