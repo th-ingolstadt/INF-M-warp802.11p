@@ -77,7 +77,7 @@ def do_replace_addr(addr):
 
 
 def addr_to_replace(addr, byte_index, addr_idx_map):
-    """Build map of all indexes for a particular address so they can all be 
+    """Build map of all indexes for a particular address so they can all be
     replaced by the same value.
     """
     global all_addrs
@@ -229,7 +229,7 @@ def log_anonymize(filename):
 
 
     #####################
-    # Step 3: Replace all MAC addresses in the log 
+    # Step 3: Replace all MAC addresses in the log
 
     print("Anonmyizing file step 3 ...")
 
@@ -260,7 +260,7 @@ def log_anonymize(filename):
             addr_o = 8
             name_o = 16
             addr = log_bytes[idx+addr_o : idx+addr_o+6]
-    
+
             new_name   = "AnonNode {0:02x}_{1:02x}".format(addr[4], addr[5])
             new_name   = new_name + '\x00' * (20 - len(new_name))
             log_bytes[idx+name_o : idx+name_o+20] = bytearray(new_name.encode("UTF-8"))
@@ -269,7 +269,7 @@ def log_anonymize(filename):
 
     print("    Remove all WN_CMD_INFO entries")
 
-    # WARPNet Command info entries contain command arguments that could possibly 
+    # WARPNet Command info entries contain command arguments that could possibly
     #   contain sensitive information.  Replace with NULL entries.
     try:
         log_util.overwrite_entries_with_null_entry(log_bytes, log_index['WN_CMD_INFO'])
@@ -331,10 +331,10 @@ if __name__ == '__main__':
             else:
                 print("\nAnonymizing file '{0}' ({1:5.1f} MB)\n".format(filename, (os.path.getsize(filename)/1E6)))
                 log_anonymize(filename)
-    
+
     print("\nMAC Address Mapping:")
     for ii,addr in enumerate(all_addrs):
         anon_addr = (0xFE, 0xFF, 0xFF, (ii//(256**2)), ((ii//256)%256), (ii%256))
         print("%2d: %02x:%02x:%02x:%02x:%02x:%02x -> %02x:%02x:%02x:%02x:%02x:%02x" %
-            (ii, addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], 
+            (ii, addr[0], addr[1], addr[2], addr[3], addr[4], addr[5],
              anon_addr[0], anon_addr[1], anon_addr[2], anon_addr[3], anon_addr[4], anon_addr[5]))
