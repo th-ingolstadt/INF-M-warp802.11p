@@ -675,3 +675,22 @@ def calc_tx_time(rate, payload_length):
     T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
 
     return T_TOT
+
+def find_overlapping_tx_low(src_tx_low, int_tx_low):
+    import numpy as np    
+    import pyximport; #pyximport.install()
+    pyximport.install(setup_args={'include_dirs':[np.get_include()]})
+    import wlan_exp.log.coll_util as collision_utility    
+    
+    src_ts = src_tx_low['timestamp']
+    int_ts = int_tx_low['timestamp']
+    
+    src_dur = np.uint64(calc_tx_time(src_tx_low['rate'], src_tx_low['length']))
+    int_dur = np.uint64(calc_tx_time(int_tx_low['rate'], int_tx_low['length']))
+
+    src_idx = []
+    int_idx = []
+    
+    src_idx, int_idx = collision_utility._collision_idx_finder_l(src_ts, src_dur, int_ts, int_dur)   
+    
+    return (src_idx,int_idx)
