@@ -33,6 +33,7 @@ __all__ = ['gen_raw_log_index',
 # Top level check for memory configuration
 #-----------------------------------------------------------------------------
 import sys
+import numpy as np
 
 if (sys.maxsize <= 2**32):
     print("\n" + ("-" * 75))
@@ -647,8 +648,11 @@ def calc_tx_time(rate, payload_length):
     This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not* 
     account for MAC overhead. The payload_length argument must include any MAC fields
     (typically a 24-byte MAC header plus 4 byte FCS).
+
+    # TODO: The vector case needs safety checkts (i.e., both rate and payload_length need to 
+    be the same length)    
+    
     """
-    import math    
     from wlan_exp.util import wlan_rates
     
     #Times in microseconds
@@ -657,19 +661,17 @@ def calc_tx_time(rate, payload_length):
     T_SYM = 4
     T_EXT = 6
  
-    try:
-        r = wlan_rates[rate-1]
-        
-        
-        #Rate entry encodes data bits per symbol
-        bytes_per_sym = (r['NDBPS']/8.0)
-        
-        #6 = LEN_SERVICE (2) + LEN_FCS (4)
-        num_syms = int(math.ceil((6.0 + payload_length) / bytes_per_sym))
-        
-        T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
-        
-        return T_TOT
+    try:      
+        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate-1).tolist()])  
+    except AttributeErrorrate :
+        r = wlan_rates[rate-1]['NDBPS']        
+ 
+    #Rate entry encodes data bits per symbol
+    bytes_per_sym = (r/8.0)
     
-    except IndexError:
-        print('Rate input {0} not valid - must be index in 1:{1}'.format(rate, len(wlan_rates)))
+    #6 = LEN_SERVICE (2) + LEN_FCS (4)
+    num_syms = np.ceil((6.0 + payload_length) / bytes_per_sym)
+    
+    T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
+    
+    return T_TOT
