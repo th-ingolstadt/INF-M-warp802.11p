@@ -7,7 +7,7 @@ This module provides utility functions for handling WLAN Exp log data.
 Naming convention:
 
   log_data       -- The binary data from a WLAN Exp node's log.
-  
+
   raw_log_index  -- This is an index that has not been interpreted / filtered
                     and corresponds 1-to-1 with what is in given log_data.
                     The defining characteristic of a raw_log_index is that
@@ -18,13 +18,13 @@ Naming convention:
                     general, this will be a interpreted / filtered version of
                     a raw_log_index.
 
-  numpy          -- A python package that allows easy and fast manipulation of 
+  numpy          -- A python package that allows easy and fast manipulation of
                     large data sets.  You can find more documentaiton on numpy at:
                         http://www.numpy.org/
 ----
 """
 
-__all__ = ['gen_raw_log_index', 
+__all__ = ['gen_raw_log_index',
            'filter_log_index',
            'log_data_to_np_arrays']
 
@@ -64,7 +64,7 @@ class LogContainer(object):
     def replace_log_data(self, log_data):             raise NotImplementedError
 
     def get_log_data_size(self):                      raise NotImplementedError
-    def get_log_data(self):                           raise NotImplementedError    
+    def get_log_data(self):                           raise NotImplementedError
     def get_log_index(self, gen_index=True):          raise NotImplementedError
     def get_attr_dict(self):                          raise NotImplementedError
 
@@ -289,15 +289,15 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                 new_index = []
                 for v in merge[k]:
                     # Try to merge indexes.  ret_log_index could have keys of either
-                    # type <int> or type <WlanExpLogEntryType>.  Also, the value of 
-                    # v in the merge list could be either a <str> or <int>.  Therefore, 
+                    # type <int> or type <WlanExpLogEntryType>.  Also, the value of
+                    # v in the merge list could be either a <str> or <int>.  Therefore,
                     # we need to try both cases before we ignore the item in the list
-                    # since <str> hashes to the appropriate <WlanExpLogEntryType> but 
+                    # since <str> hashes to the appropriate <WlanExpLogEntryType> but
                     # <int> does not.
                     try:
                         new_index += ret_log_index[v]
                     except KeyError:
-                        try: 
+                        try:
                             new_index += ret_log_index[log_entry_types[v].entry_type_id]
                         except KeyError:
                             msg  = "WARNING:  {0} does ".format(v)
@@ -377,24 +377,24 @@ def log_data_to_np_arrays(log_data, log_index):
 #-----------------------------------------------------------------------------
 def merge_log_indexes(dest_index, src_index, offset):
     """Merge log indexes.
-    
+
     Attributes:
         dest_index      -- Destination index to merge src_index into
         src_index       -- Source index to merge into destination index
         offset          -- Offset of src_index into dest_index
-    
-    NOTE:  Both the dest_index and src_index have log entry offsets that are 
+
+    NOTE:  Both the dest_index and src_index have log entry offsets that are
     relative to the beginning of the log data from which they were generated.
     If the log data used to generate the log indexes are being merged, then
     we need to move the log entry offsets in the src_index to their absolute
     offset in the merged log index.  For each of the log entry offsets in
     the src_index, the following translation will occur:
-    
+
       <Offset in merged log index> = <Offset in src_index> + offset
-    
+
     """
     return_val = dest_index
-    
+
     for key in src_index.keys():
         new_offsets = [x + offset for x in src_index[key]]
 
@@ -402,7 +402,7 @@ def merge_log_indexes(dest_index, src_index, offset):
             return_val[key].append(new_offsets)
         except KeyError:
             return_val[key] = new_offsets
-    
+
     return return_val
 
 # End merge_raw_log_indexes()
@@ -410,18 +410,18 @@ def merge_log_indexes(dest_index, src_index, offset):
 
 
 def calc_next_entry_offset(log_data, raw_log_index):
-    """Calculates the offset of the next log entry given the log data and 
+    """Calculates the offset of the next log entry given the log data and
     the raw log index.
-    
+
     Attributes:
         log_data        -- Binary WLAN Exp log data to append
         raw_log_index   -- Raw log index of the log data
-    
+
     Returns:
         offset of next log entry
 
     NOTE:  The log data does not necessarily end on a log entry boundary.
-    Therefore, it is necessary to be able to calculate the offset of the 
+    Therefore, it is necessary to be able to calculate the offset of the
     next log entry so that it is possible to continue index generation
     when reading the log in multiple pieces.
     """
@@ -430,17 +430,17 @@ def calc_next_entry_offset(log_data, raw_log_index):
 
     max_entry_offset_key = max(raw_log_index, key=raw_log_index.get)
     max_entry_offset     = raw_log_index[max_entry_offset_key][-1]
-    
+
     hdr_b = log_data[max_entry_offset - hdr_size : max_entry_offset]
-    
+
     if( (bytearray(hdr_b[2:4]) != b'\xed\xac') ):
         raise Exception("ERROR: Offset not a valid entry header (offset {0})!".format(max_entry_offset))
 
     entry_size = (hdr_b[6] + (hdr_b[7] * 256))
-    
+
     next_entry_header_offset = max_entry_offset + entry_size
     next_entry_offset        = next_entry_header_offset + hdr_size
-    
+
     return next_entry_offset
 
 # End calc_next_entry_offset()
@@ -454,7 +454,7 @@ def overwrite_entries_with_null_entry(log_data, byte_offsets):
 
     for offset in byte_offsets:
         hdr_b = log_data[offset - hdr_size : offset]
-        
+
         if( (bytearray(hdr_b[2:4]) != b'\xed\xac') ):
             raise Exception("ERROR: Offset not a valid entry header (offset {0})!".format(offset))
 
@@ -463,7 +463,7 @@ def overwrite_entries_with_null_entry(log_data, byte_offsets):
 
         # Write over the log entry with zeros
         log_data[offset : offset + entry_size] = bytearray([0] * entry_size)
-        
+
 # End overwrite_entries_with_null_entry()
 
 
@@ -479,19 +479,19 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
     By default, if payload_offsets is not specified, the method will iterate through all
     the entry types and calculate the defined size of the entry (ie it will use calcsize
     on the struct format of the entry).  Sometimes, this is not the desired behavior
-    and calling code woudl want to specify a different amount of the payload to keep.  
-    For example, for data transmissions / receptions, it might be desired to also keep 
-    the SNAP headers and potentially the IP headers.  In this case, the calling code 
-    would get the appropriate set of byte_offsets and then create a payload_offsets 
-    dictionary with the desired "size" of the entry for those byte_offsets.  This will 
-    result in the calling code potentially calling this function multiple times with 
-    different payload_offsets for a given entry_type_id.  
-    
-    NOTE:  This method relies on the fact that for variable length log entries, the 
-    variable length data, ie the payload, is always at the end of the entry.  We also 
-    know, based on the entry type, the size of the entry without the payload.  Therefore, 
-    from the entry header, we can determine how many payload bytes are after the defined 
-    fields and zero them out.    
+    and calling code woudl want to specify a different amount of the payload to keep.
+    For example, for data transmissions / receptions, it might be desired to also keep
+    the SNAP headers and potentially the IP headers.  In this case, the calling code
+    would get the appropriate set of byte_offsets and then create a payload_offsets
+    dictionary with the desired "size" of the entry for those byte_offsets.  This will
+    result in the calling code potentially calling this function multiple times with
+    different payload_offsets for a given entry_type_id.
+
+    NOTE:  This method relies on the fact that for variable length log entries, the
+    variable length data, ie the payload, is always at the end of the entry.  We also
+    know, based on the entry type, the size of the entry without the payload.  Therefore,
+    from the entry header, we can determine how many payload bytes are after the defined
+    fields and zero them out.
     """
     import struct
     from entry_types import log_entry_types
@@ -502,7 +502,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 
     if payload_offsets is None:
         payload_offsets  = {}
-    
+
         # Create temp data structure:  { entry_type_id : <payload offset>}
         for entry_type_id, entry_type in log_entry_types.items():
             payload_offsets[entry_type_id] = struct.calcsize(entry_type.fields_fmt_struct)
@@ -510,7 +510,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 
     for offset in byte_offsets:
         hdr_b = log_data[offset - hdr_size : offset]
-        
+
         if( (bytearray(hdr_b[2:4]) != b'\xed\xac') ):
             raise Exception("ERROR: Offset not a valid entry header (offset {0})!".format(offset))
 
@@ -590,11 +590,11 @@ def _print_log_entries(log_bytes, log_index, entries_slice=None):
 
 def _get_safe_filename(filename, print_warnings=True):
     """Create a 'safe' file name based on the current file name.
-    
+
     Given the filename <path>/<name>.<ext>, this method first checks if the
     file already exists. If so, a new name is calculated with the form:
     <path>/<name>_<date>_<id>.<ext>, where <date> is a formatted
-    string from time and <id> is a unique ID starting at zero if more 
+    string from time and <id> is a unique ID starting at zero if more
     than one file is created in a given second. If the requested filename
     did not already exist, the name is returned unchanged.
 
@@ -608,7 +608,7 @@ def _get_safe_filename(filename, print_warnings=True):
     if os.path.isfile(filename):
         # Already know it's a file, so fn_file is not ''
         (fn_fldr, fn_file) = os.path.split(filename)
-        
+
         # Find the last '.' in the file name and classify everything after that as the <ext>
         ext_i = fn_file.rfind('.')
         if (ext_i != -1):
@@ -645,33 +645,33 @@ def _get_safe_filename(filename, print_warnings=True):
 
 def calc_tx_time(rate, payload_length):
     """Calculates the duration of an 802.11 transmission given its rate and payload length.
-    This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not* 
+    This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not*
     account for MAC overhead. The payload_length argument must include any MAC fields
     (typically a 24-byte MAC header plus 4 byte FCS).
 
-    # TODO: The vector case needs safety checkts (i.e., both rate and payload_length need to 
-    be the same length)    
-    
+    # TODO: The vector case needs safety checkts (i.e., both rate and payload_length need to
+    be the same length)
+
     """
     from wlan_exp.util import wlan_rates
-    
+
     #Times in microseconds
     T_PREAMBLE = 16
     T_SIG = 4
     T_SYM = 4
     T_EXT = 6
- 
-    try:      
-        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate-1).tolist()])  
-    except AttributeErrorrate :
-        r = wlan_rates[rate-1]['NDBPS']        
- 
+
+    try:
+        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate-1).tolist()])
+    except TypeError :
+        r = wlan_rates[rate-1]['NDBPS']
+
     #Rate entry encodes data bits per symbol
     bytes_per_sym = (r/8.0)
-    
+
     #6 = LEN_SERVICE (2) + LEN_FCS (4)
     num_syms = np.ceil((6.0 + payload_length) / bytes_per_sym)
-    
+
     T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
-    
+
     return T_TOT
