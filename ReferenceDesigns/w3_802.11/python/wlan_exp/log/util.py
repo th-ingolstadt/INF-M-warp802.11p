@@ -677,10 +677,70 @@ def calc_tx_time(rate, payload_length):
     return T_TOT
 
 def find_overlapping_tx_low(src_tx_low, int_tx_low):
-    import numpy as np    
-    import pyximport; #pyximport.install()
-    pyximport.install(setup_args={'include_dirs':[np.get_include()]})
-    import wlan_exp.log.coll_util as collision_utility    
+    #cython on windows: https://github.com/cython/cython/wiki/InstallingOnWindows
+
+#    import pyximport #pyximport.install()
+#    pyximport.install(setup_args={'include_dirs':[np.get_include()]})
+#    pyximport.install(setup_args={"script_args":["-fopenmp"],
+#                                  "include_dirs":np.get_include()},
+#                                   reload_support=True)    
+    #pyximport.install(reload_support=True)
+    import wlan_exp.log.coll_util as collision_utility        
+    
+######
+#    import os 
+#    import sys 
+#    
+#    try: 
+#        import numpy as np 
+#        np_includes = [np.get_include()] 
+#    except ImportError: 
+#        np_includes = [] 
+#    
+#    from distutils.extension import Extension 
+#    
+#    #pyxmodule = sys.argv[1] 
+#    #file_name = os.path.abspath(pyxmodule + '.pyx') 
+#    
+#    #TODO: How do I de-absolutify this path?
+#    pyxmodule = 'coll_util'    
+#    file_name = '/Users/chunter/Documents/SVN/WARP/ReferenceDesigns/w3_802.11/python/wlan_exp/log/'+pyxmodule+'.pyx'
+#    
+#    #sys.path.append(os.path.abspath(os.path.dirname(file_name))) 
+#    
+#    include_dirs = [] 
+#    
+#    msvc_compile_args = ['/openmp'] 
+#    gcc_compile_args = ['-fopenmp'] 
+#    gcc_link_args=['-fopenmp'] 
+#    
+#    if sys.platform == 'win32': 
+#        # use msvc 
+#        compile_args = msvc_compile_args 
+#        link_args = [] 
+#    else: 
+#        # use gcc 
+#        compile_args = gcc_compile_args 
+#        link_args = gcc_link_args 
+#    
+#    ext_modules = [ Extension(pyxmodule, 
+#                    [file_name], 
+#                    extra_compile_args=compile_args, 
+#                    extra_link_args=link_args) 
+#                  ] 
+#    import pyximport; 
+#    pyximport.install(setup_args={ 
+#                        'include_dirs': include_dirs + np_includes, 
+#                        'ext_modules': ext_modules} 
+#                    ) 
+#    
+#    #__import__(pyxmodule)
+#    import wlan_exp.log.coll_util as collision_utility
+
+######    
+    
+    
+ 
     
     src_ts = src_tx_low['timestamp']
     int_ts = int_tx_low['timestamp']
@@ -691,6 +751,11 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
     src_idx = []
     int_idx = []
     
+    
     src_idx, int_idx = collision_utility._collision_idx_finder_l(src_ts, src_dur, int_ts, int_dur)   
+    
+    src_idx = src_idx[src_idx>0]
+    int_idx = int_idx[int_idx>0]    
+    
     
     return (src_idx,int_idx)

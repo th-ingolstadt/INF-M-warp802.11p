@@ -1,7 +1,8 @@
 #cython: boundscheck=False
 #cython: wraparound=False
+
+from cython.parallel cimport prange
 cimport cython
-@cython.boundscheck(False) # turn of bounds-checking for entire function
 
 import numpy as np
 cimport numpy as np
@@ -18,7 +19,6 @@ def _collision_idx_finder_l(np.ndarray[DTYPE_t, ndim=1] src_ts, np.ndarray[DTYPE
   
     cdef int num_src = src_ts.shape[0]
     cdef int num_int = src_ts.shape[0]
-    cdef DTYPE_t num_coll = 0
     
     #Unfortunately, at this stage we don't know how many collisions there are, so we have to assume
     #the worst for sizing these arrays -- every single tx_low collided.
@@ -33,6 +33,9 @@ def _collision_idx_finder_l(np.ndarray[DTYPE_t, ndim=1] src_ts, np.ndarray[DTYPE
     
     int_ts_end = int_ts + int_dur
     
+    cdef int src_idx, int_idx
+
+#    cdef DTYPE_t num_coll = 0   
 #    for src_idx in range(num_src):
 #        if src_idx % 10 == 0:
 #            print("{0}/{1}".format(src_idx,len(src_ts)))
@@ -43,10 +46,32 @@ def _collision_idx_finder_l(np.ndarray[DTYPE_t, ndim=1] src_ts, np.ndarray[DTYPE
 #            int_coll_idx[num_coll] = 0                
 #            num_coll = num_coll + 1
 #            continue
-            
-    for src_idx in range(num_src):
-        if src_idx % 1000 == 0:    
-            print("{0}/{1}".format(src_idx,num_src))
+
+#    with nogil:            
+#    for src_idx in range(num_src):   
+#        if src_idx % 1000 == 0:    
+#            print("{0}/{1}".format(src_idx,num_src))
+#        
+#        curr_src_ts = src_ts[src_idx]
+#        curr_src_dur = src_dur[src_idx]        
+#        
+#        for int_idx in range(num_int):
+#            curr_int_ts = int_ts[int_idx]
+#            curr_int_dur = int_dur[int_idx]
+#            
+#            if ( curr_int_ts < (curr_src_ts + curr_src_dur) ) and ( curr_src_ts < (curr_int_ts + curr_int_dur) ):
+#                src_coll_idx[num_coll] = src_idx
+#                int_coll_idx[num_coll] = int_idx                
+#                num_coll = num_coll + 1
+#                continue
+#    print("{0} detected overlapping transmissions".format(num_coll))
+#
+#    src_coll_idx = src_coll_idx[0:num_coll]
+#    int_coll_idx = int_coll_idx[0:num_coll]    
+#        
+#    return (src_coll_idx,int_coll_idx)
+
+    for src_idx in prange(num_src, nogil=True):
         
         curr_src_ts = src_ts[src_idx]
         curr_src_dur = src_dur[src_idx]        
@@ -56,17 +81,10 @@ def _collision_idx_finder_l(np.ndarray[DTYPE_t, ndim=1] src_ts, np.ndarray[DTYPE
             curr_int_dur = int_dur[int_idx]
             
             if ( curr_int_ts < (curr_src_ts + curr_src_dur) ) and ( curr_src_ts < (curr_int_ts + curr_int_dur) ):
-                src_coll_idx[num_coll] = src_idx
-                int_coll_idx[num_coll] = int_idx                
-                num_coll = num_coll + 1
+                src_coll_idx[src_idx] = src_idx
+                int_coll_idx[src_idx] = int_idx                
                 continue
-                                
-        
-        
-    print("{0} detected overlapping transmissions".format(num_coll))
-
-    src_coll_idx = src_coll_idx[0:num_coll]
-    int_coll_idx = int_coll_idx[0:num_coll]    
+                                                                
         
     return (src_coll_idx,int_coll_idx)
 
