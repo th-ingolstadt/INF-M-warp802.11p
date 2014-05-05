@@ -73,6 +73,10 @@ def _collision_idx_finder_l(np.ndarray[DTYPE_t, ndim=1] src_ts, np.ndarray[DTYPE
 
     for src_idx in prange(num_src, nogil=True):
         
+        if src_idx % 1000 == 0:
+            with gil:
+                print("{0}/{1}".format(src_idx,num_src))
+        
         curr_src_ts = src_ts[src_idx]
         curr_src_dur = src_dur[src_idx]        
         
