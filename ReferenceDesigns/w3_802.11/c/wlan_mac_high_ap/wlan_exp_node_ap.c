@@ -44,6 +44,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_dl_list.h"
+#include "wlan_mac_addr_filter.h"
 #include "wlan_mac_ap.h"
 
 
@@ -107,8 +108,15 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
                                                    //   If we need more, then we will need to rework this to send multiple response packets
     int           status;
 
-    u32           temp;
+    u32           temp, i;
     u32           msg_cmd;
+    u32           id;
+
+	u8            mac_addr[6];
+    u8            mask[6];
+
+	dl_entry	* curr_entry;
+	station_info* curr_station_info;
 
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
@@ -121,41 +129,59 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 	switch(cmdID){
 
 		//---------------------------------------------------------------------
-		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case CMDID_NODE_GET_STATION_INFO:
-			xil_printf("AP - Set association table not supported\n");
-		break;
-
-
-		//---------------------------------------------------------------------
 		case CMDID_NODE_DISASSOCIATE:
-            // NODE_DISASSOCIATE Packet Format:
-            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
+            // Disassociate device from node
             //
-            //   - cmdArgs32[0] - AID
-			//                  - 0xFFFF - Disassociate all
-			//
-			//   - Returns      0      - AID not found
-            //                  AID    - AID that was disassociated
-			//                  0xFFFF - All AIDs)
+			// Message format:
+			//     cmdArgs32[0:1]      MAC Address (All 0xFF means all station info)
             //
-			temp = Xil_Ntohl(cmdArgs32[0]);
+			// Response format:
+			//     respArgs32[0]       Status
+            //
+			xil_printf("Disassociate\n");
 
-			dl_entry * entry;
+			// Get MAC Address
+        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
-			// Check argument to see if we are diassociating one or all AIDs
-			if ( temp == 0xFFFF ) {
-				deauthenticate_stations();                     // Deauthenticate all stations
-			} else {
-				entry = wlan_mac_high_find_station_info_AID( &association_table, temp );
-                temp = deauthenticate_station( (station_info*)(entry->data) );
-			}
+			status  = CMD_PARAM_SUCCESS;
 
-			// Print message to the UART to show which node was disassociated
-			xil_printf("Node Disassociate - AP  - 0x%x\n", temp);
+            if ( id == 0 ) {
+				// If we cannot find the MAC address, print a warning and return status error
+				xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
+				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
 
-			// Send response of current channel
-            respArgs32[respIndex++] = Xil_Htonl( temp );
+				status = CMD_PARAM_ERROR;
+
+            } else {
+				// If parameter is not the magic number to disassociate all stations
+				if ( id != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
+					// Find the station_info entry
+					curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
+
+					if (curr_entry != NULL) {
+						curr_station_info = (station_info*)(curr_entry->data);
+
+						deauthenticate_station(curr_station_info);
+
+						xil_printf("Disassociated node: %02x", mac_addr[0]);
+						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+
+					} else {
+						// If we cannot find the MAC address, print a warning and return status error
+						xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
+						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+
+						status = CMD_PARAM_ERROR;
+					}
+				} else {
+					// Deauthenticate all stations
+					deauthenticate_stations();
+				}
+            }
+
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -196,28 +222,57 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 
 		//---------------------------------------------------------------------
-        case NODE_AP_ALLOW_ASSOCIATIONS:
-            // NODE_AP_ALLOW_ASSOCIATIONS Packet Format:
-            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
+        case CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER:
+            // Allow / Disallow wireless associations
             //
-            //   - cmdArgs32[0] - 0xFFFF - Permanently turn on associations
-			//                  - Others - Temporarily turn on associations
-			//
-			//   - Returns the status of the associations
+			// Message format:
+			//     cmdArgs32[0]   Command:
+			//                      - Write       (CMD_PARAM_WRITE_VAL)
+			//     cmdArgs32[1]   Number of address filters
+        	//     cmdArgs32[2:N] [ (Mask (u64), Compare address (u64)) ]
+        	//
+			// Response format:
+			//     respArgs32[0]  Status
             //
-			xil_printf("Associations     Allowed - AP - ");
+        	msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			temp    = Xil_Ntohl(cmdArgs32[1]);
+			status  = CMD_PARAM_SUCCESS;
 
-			temp = Xil_Ntohl(cmdArgs32[0]);
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+                    // Need to disable interrupts during this operation so the filter does not have any holes
+					wlan_mac_high_interrupt_stop();
 
-			if ( temp == 0xFFFF ) {
-	    		enable_associations( ASSOCIATION_ALLOW_PERMANENT );
-				xil_printf("Permanent \n");
-			} else {
-	    		enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
-				xil_printf("Temporary \n");
+					// Reset the current address filter
+					wlan_mac_addr_filter_reset();
+
+					// Add all the address ranges to the filter
+                    for( i = 0; i < temp; i++ ) {
+                        // Extract the address and the mask
+                    	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2 + (4*i)], &mask[0]);
+                    	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4 + (4*i)], &mac_addr[0]);
+
+        				xil_printf("Adding Address filter: (%02x", mask[0]);
+        				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mask[i] ); }
+        				xil_printf(", %02x", mac_addr[0]);
+        				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf(")\n");
+
+                    	if ( wlan_mac_addr_filter_add(mask, mac_addr) == -1 ) {
+                    		status = CMD_PARAM_ERROR;
+                    	}
+                    }
+
+					wlan_mac_high_interrupt_start();
+			    break;
+
+				default:
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
 			}
 
-            respArgs32[respIndex++] = Xil_Htonl( get_associations_status() );
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -225,75 +280,77 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 
 		//---------------------------------------------------------------------
-		case NODE_AP_DISALLOW_ASSOCIATIONS:
-            // NODE_AP_DISALLOW_ASSOCIATIONS Packet Format:
-			//
-			//   - Returns the status of the associations
+		case CMDID_NODE_AP_SSID:
+            // Get / Set AP SSID
             //
-			disable_associations();
+			// Message format:
+			//     cmdArgs32[0]        Command:
+			//                           - Write       (CMD_PARAM_WRITE_VAL)
+			//                           - Read        (CMD_PARAM_READ_VAL)
+			//     cmdArgs32[1]        SSID Length (write-only)
+			//     cmdArgs32[2:N]      SSID        (write-only)
+            //
+			// Response format:
+			//     respArgs32[0]       Status
+        	//     respArgs32[1]       SSID Length
+			//     respArgs32[2:N]     SSID (packed array of ascii character values)
+			//                             NOTE: The characters are copied with a straight strcpy
+			//                               and must be correctly processed on the host side
+            //
+        	msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			temp    = Xil_Ntohl(cmdArgs32[1]);
+			status  = CMD_PARAM_SUCCESS;
 
-			temp = get_associations_status();
+			char * ssid;
 
-			if ( temp == ASSOCIATION_ALLOW_NONE ) {
-				xil_printf("Associations NOT Allowed - AP\n");
-			} else {
-				xil_printf("Associations     Allowed - AP - Failed to Disable Associations\n");
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+					ssid = (char *)&cmdArgs32[2];
+
+					// Deauthenticate all stations since we are changing the SSID
+					deauthenticate_stations(0);
+
+					// Re-allocate memory for the new SSID and copy the characters of the new SSID
+					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, (temp + 1));
+
+					if (access_point_ssid == NULL) {
+						strcpy(access_point_ssid, ssid);
+						xil_printf("Set SSID - AP:  %s\n", access_point_ssid);
+					} else {
+						xil_printf("Failed to reallocate memory for SSID.  Please reset the AP.\n");
+						status = CMD_PARAM_ERROR;
+					}
+			    break;
+
+				case CMD_PARAM_READ_VAL:
+					xil_printf("Get SSID - AP - %s\n", access_point_ssid);
+				break;
+
+				default:
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
 			}
 
-            respArgs32[respIndex++] = Xil_Htonl( temp );
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+            // Return the size and current SSID
+			if (access_point_ssid != NULL) {
+				temp = strlen(access_point_ssid);
+
+				respArgs32[respIndex++] = Xil_Htonl( temp );
+
+				strcpy( (char *)&respArgs32[respIndex], access_point_ssid );
+
+				respIndex       += ( temp / sizeof(respArgs32) ) + 1;
+			} else {
+				// Return a zero length string
+				respArgs32[respIndex++] = 0;
+			}
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
-		break;
-
-
-		//---------------------------------------------------------------------
-		case NODE_AP_GET_SSID:
-            // NODE_AP_GET_SSID Packet Format:
-			//
-            //   - respArgs32[0] - Number of characters the new SSID
-            //   - respArgs32[1] - Packed array of ascii character values
-			//                       NOTE: The characters are copied with a straight strcpy and must
-			//                         be correctly processed on the host side
-            //
-			xil_printf("Get SSID - AP - %s\n", access_point_ssid);
-
-			// Get the number of characters in the SSID
-			temp = strlen(access_point_ssid);
-
-			// Send response of current channel
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-
-			strcpy( (char *)&respArgs32[respIndex], access_point_ssid );
-
-			respIndex       += ( temp / sizeof(respArgs32) ) + 1;
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-		//---------------------------------------------------------------------
-		case NODE_AP_SET_SSID:
-            // NODE_AP_SET_SSID Packet Format:
-			//
-            //   - cmdArgs32[0] - Number of characters in the new SSID
-            //   - cmdArgs32[1] - Packed array of ascii character values
-			//                      NOTE: The characters are assumed to be in the correct order
-			//
-			//   - Returns nothing
-            //
-			temp        = Xil_Ntohl(cmdArgs32[0]);
-			char * ssid = (char *)&cmdArgs32[1];
-
-			// Deauthenticate all stations since we are changing the SSID
-			deauthenticate_stations();
-
-			// Re-allocate memory for the new SSID and copy the characters of the new SSID
-			access_point_ssid = wlan_mac_high_realloc(access_point_ssid, (temp + 1));
-			strcpy(access_point_ssid, ssid);
-
-			xil_printf("Set SSID - AP:  %s\n", access_point_ssid);
 		break;
 
 

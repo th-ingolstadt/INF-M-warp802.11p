@@ -64,12 +64,6 @@
 // Blinking period for hex displays, when used to show association mode
 #define ANIMATION_RATE_US              (100000)
 
-// Association modes
-#define ASSOCIATION_ALLOW_NONE          0x0
-#define ASSOCIATION_ALLOW_TEMPORARY     0x1
-#define ASSOCIATION_ALLOW_PERMANENT     0x3
-
-
 // LTG helper macros and defines
 #define LTG_ID_TO_AID(ltg_id) (ltg_id)
 #define AID_TO_LTG_ID(aid)	  (aid)
@@ -97,7 +91,6 @@ void purge_all_data_tx_queue();
 
 void beacon_transmit();
 
-u32  get_associations_status();
 void enable_associations();
 void disable_associations();
 void association_timestamp_check();

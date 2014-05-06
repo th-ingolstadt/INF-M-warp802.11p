@@ -64,10 +64,6 @@ char*       access_point_ssid;
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
 
-// Control variables
-u8 allow_assoc;
-u8 perma_assoc_mode;
-
 // Default Transmission Parameters
 tx_params default_unicast_mgmt_tx_params;
 tx_params default_unicast_data_tx_params;
@@ -107,10 +103,6 @@ int main(){
 
 	//Initialize the MAC framework
 	wlan_mac_high_init();
-
-    // Set Global variables
-	perma_assoc_mode     = 0;
-
 
 	//Define the default PHY and MAC params for all transmissions
 
@@ -212,9 +204,6 @@ int main(){
 
 	//  Periodic blinking of hex display leds (to indicate new associations are allowed)
 	wlan_mac_high_enable_hex_dot_blink();
-
-	// By default accept new associations forever
-	enable_associations( ASSOCIATION_ALLOW_PERMANENT );
 
 	// Reset the event log
 	event_log_reset();
@@ -653,43 +642,17 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	return;
 }
 
+
 /**
  * @brief Callback to handle push of up button
  *
- * Reference implementation uses up button to set current association mode, cycling through:
- *  - ASSOCIATION_ALLOW_NONE: allow no associations
- *  - ASSOCIATION_ALLOW_TEMPORARY: accept new associations for fixed interval
- *  - ASSOCIATION_ALLOW_PERMANENT: accept new associations forever
+ * Reference implementation does nothing.
 */
 void up_button(){
 
-	u32 curr_assoc_mode = get_associations_status();
-
-	switch ( curr_assoc_mode ) {
-
-        case ASSOCIATION_ALLOW_NONE:
-        	// Update state to allow associations temporarily
-        	wlan_mac_high_enable_hex_dot_blink();
-    		enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
-    		wlan_mac_schedule_event(SCHEDULE_COARSE,ASSOCIATION_ALLOW_INTERVAL_US, (void*)disable_associations);
-        break;
-
-        case ASSOCIATION_ALLOW_TEMPORARY:
-        	// Update state to allow associations forever
-    		enable_associations( ASSOCIATION_ALLOW_PERMANENT );
-    		xil_printf("Allowing associations indefinitely\n");
-        break;
-
-        case ASSOCIATION_ALLOW_PERMANENT:
-        	// Update state to disallow associations
-    		enable_associations( ASSOCIATION_ALLOW_TEMPORARY );
-    		disable_associations();
-        break;
-	}
-
-
 	return;
 }
+
 
 /**
  * @brief Callback to handle new Local Traffic Generator event
@@ -1347,7 +1310,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					//xil_printf("Probe Req Rx %d %d\n", send_response, allow_assoc);
 
-					if(send_response && allow_assoc) {
+					if(send_response) {
 
 						//Checkout 1 element from the queue;
 						curr_tx_queue_element = queue_checkout();
@@ -1530,63 +1493,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	}
 }
 
-u32  get_associations_status() {
-	// Get the status of associations for the AP
-	//   - 00 -> Associations not allowed
-	//   - 01 -> Associations allowed for a window
-	//   - 11 -> Associations allowed permanently
-
-	return ( perma_assoc_mode * 2 ) + allow_assoc;
-}
-
-void enable_associations( u32 permanent_association ){
-	// Send a message to other processor to tell it to enable associations
-#ifdef _DEBUG_
-	xil_printf("Allowing new associations\n");
-#endif
-
-	// Set the DSSS value in CPU Low
-	wlan_mac_high_set_dsss( 1 );
-
-    // Set the global variable
-	allow_assoc = 1;
-
-	// Set the global variable for permanently allowing associations
-	switch ( permanent_association ) {
-
-        case ASSOCIATION_ALLOW_PERMANENT:
-        	perma_assoc_mode = 1;
-        break;
-
-        case ASSOCIATION_ALLOW_TEMPORARY:
-        	perma_assoc_mode = 0;
-        break;
-	}
-}
-
-
-
-void disable_associations(){
-	// Send a message to other processor to tell it to disable associations
-	if(perma_assoc_mode == 0){
-
-#ifdef _DEBUG_
-		xil_printf("Not allowing new associations\n");
-#endif
-
-		// Set the DSSS value in CPU Low
-		wlan_mac_high_set_dsss( 0 );
-
-        // Set the global variables
-		allow_assoc      = 0;
-
-		// Stop the animation on the hex displays from continuing
-		wlan_mac_high_disable_hex_dot_blink();
-
-		// Set the hex display
-		wlan_mac_high_write_hex_display(association_table.length);
-	}
-}
 
 
 /*****************************************************************************/
@@ -1644,15 +1550,16 @@ u32  deauthenticate_station( station_info* station ) {
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 		poll_tx_queues();
 
-
-
-		// Remove this STA from association list
+        // Create log entry that association table is changing
 		associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+
 		if(associated_station_log_entry != NULL){
 			associated_station_log_entry->timestamp = get_usec_timestamp();
 			memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(station), sizeof(station_info_base) );
 			associated_station_log_entry->info.AID = 0;
 		}
+
+		// Remove this STA from association list
 		wlan_mac_high_remove_association( &association_table, &statistics_table, station->addr );
 	}
 

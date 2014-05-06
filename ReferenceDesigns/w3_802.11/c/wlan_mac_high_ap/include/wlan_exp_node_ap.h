@@ -27,12 +27,16 @@
 
 
 // ****************************************************************************
-// Define WLAN Exp Node AP Commands
+// Define Node Commands
 //
-#define NODE_AP_ALLOW_ASSOCIATIONS     100
-#define NODE_AP_DISALLOW_ASSOCIATIONS  101
-#define NODE_AP_GET_SSID               102
-#define NODE_AP_SET_SSID               103
+// NOTE:  All Command IDs (CMDID_*) must be a 24 bit unique number
+//
+
+//-----------------------------------------------
+// WLAN Exp Node AP Commands
+//
+#define CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER          0x010000
+#define CMDID_NODE_AP_SSID                                 0x010001
 
 
 // ****************************************************************************
