@@ -765,7 +765,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
     """
     import h5py
 
-    dk = np_log_dict.keys()
+    dk = list(np_log_dict.keys())
 
     h5_filename = log_util._get_safe_filename(filename)
     hf = h5py.File(h5_filename, mode='w')
