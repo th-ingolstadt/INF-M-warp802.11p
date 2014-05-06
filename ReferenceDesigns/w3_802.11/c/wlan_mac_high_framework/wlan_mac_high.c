@@ -335,6 +335,7 @@ void wlan_mac_high_init(){
 	wlan_eth_init();
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
+	wlan_mac_addr_filter_init();
 
 	//Create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
@@ -1956,6 +1957,11 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 
 		return station;
 	} else {
+        // Check if the address is allowed to associate with the node
+		if (wlan_mac_addr_filter_is_allowed(addr) == 0){
+			return NULL;
+		}
+
 		//This addr is new, so we'll have to add an entry into the association table
 		entry = wlan_mac_high_malloc(sizeof(dl_entry));
 		if(entry == NULL){
@@ -1970,35 +1976,6 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		}
 
 		entry->data = (void*)station;
-
-#if 0
-		station_stats_entry = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
-
-		if(station_stats_entry == NULL){
-			station_stats_entry = wlan_mac_high_malloc(sizeof(dl_entry));
-
-			if(station_stats_entry == NULL){
-				//malloc failed. Passing that failure on to calling function
-				wlan_mac_high_free(entry);
-				wlan_mac_high_free(station);
-				return NULL;
-			}
-
-
-			station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
-			if(station_stats == NULL){
-				//malloc failed. Passing that failure on to calling function
-				wlan_mac_high_free(station_stats_entry);
-				wlan_mac_high_free(entry);
-				wlan_mac_high_free(station);
-				return NULL;
-			}
-
-			station_stats_entry->data = (void*)station_stats;
-			memcpy(station_stats->addr, addr, 6);
-			dl_entry_insertEnd(stat_tbl, station_stats_entry);
-		}
-#endif
 
 		station_stats = wlan_mac_high_add_statistics(stat_tbl, station, addr);
 
@@ -2110,9 +2087,6 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 		return -1;
 	} else {
 		station = (station_info*)(entry->data);
-		if((station->flags)&STATION_INFO_FLAG_NEVER_REMOVE){
-			return -1;
-		}
 
 		//Remove station from the association table;
 		dl_entry_remove(assoc_tbl, entry);

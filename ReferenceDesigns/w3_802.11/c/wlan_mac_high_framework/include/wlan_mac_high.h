@@ -125,8 +125,9 @@ typedef struct{
 } statistics_txrx;
 CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 
-#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK 0x0001 ///< Mask for flag in station_info -- disable association check
-#define STATION_INFO_FLAG_NEVER_REMOVE 0x0002 ///< Mask for flag in station_info -- never remove
+#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK    0x0001         ///< Mask for flag in station_info -- disable association check
+
+
 
 #define STATION_INFO_HOSTNAME_MAXLEN 19
 
