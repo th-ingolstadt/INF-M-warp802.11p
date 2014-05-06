@@ -1,7 +1,6 @@
 #cython: boundscheck=False
 #cython: wraparound=False
 
-from cython.parallel cimport prange
 cimport cython
 
 import numpy as np
@@ -30,24 +29,29 @@ def _collision_idx_finder_l(np.ndarray[DTYPE_t, ndim=1] src_ts, np.ndarray[DTYPE
     
     int_ts_end = int_ts + int_dur
     
-    cdef int src_idx, int_idx
+    cdef int src_idx, int_idx, int_idx_start
+    
+    int_idx_start = 0
 
-    for src_idx in prange(num_src, nogil=True):
+    for src_idx in range(num_src):
         
         if src_idx % 1000 == 0:
-            with gil:
-                print("{0}/{1}".format(src_idx,num_src))
+            print("{0}/{1}".format(src_idx,num_src))
         
         curr_src_ts = src_ts[src_idx]
-        curr_src_dur = src_dur[src_idx]        
+        curr_src_dur = src_dur[src_idx]    
         
-        for int_idx in range(num_int):
+        for int_idx in range(int_idx_start,num_int):
             curr_int_ts = int_ts[int_idx]
             curr_int_dur = int_dur[int_idx]
             
             if ( curr_int_ts < (curr_src_ts + curr_src_dur) ) and ( curr_src_ts < (curr_int_ts + curr_int_dur) ):
+                int_idx_start = int_idx
                 src_coll_idx[src_idx] = src_idx
                 int_coll_idx[src_idx] = int_idx                
+                continue
+            elif (curr_int_ts > (curr_src_ts + curr_src_dur)):
+                print("{0} {1} {2}".format(int_idx, int_idx_start, num_int))
                 continue
                                                                 
         
