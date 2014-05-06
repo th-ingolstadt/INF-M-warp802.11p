@@ -689,10 +689,6 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
     try:
          import wlan_exp.log.coll_util_ser as collision_utility        
     except ImportError:
-         print("Could not find compiled coll_util module, attempting automatic")
-         print("compilation. Note: if this compilation succeeds, it will not  ")
-         print("use OpenMP, so its execution will be slower than the manually ")
-         print("compile module.")
          import pyximport
          pyximport.install(setup_args={'include_dirs':[np.get_include()]})
          import wlan_exp.log.coll_util_ser as collision_utility

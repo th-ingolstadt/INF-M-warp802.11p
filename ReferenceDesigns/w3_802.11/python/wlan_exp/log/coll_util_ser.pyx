@@ -32,27 +32,41 @@ def _collision_idx_finder_l(np.ndarray[DTYPE_t, ndim=1] src_ts, np.ndarray[DTYPE
     cdef int src_idx, int_idx, int_idx_start
     
     int_idx_start = 0
+    
+    cdef int int_idx_high, int_idx_low
 
     for src_idx in range(num_src):
         
-        if src_idx % 1000 == 0:
-            print("{0}/{1}".format(src_idx,num_src))
-        
         curr_src_ts = src_ts[src_idx]
         curr_src_dur = src_dur[src_idx]    
-        
-        for int_idx in range(int_idx_start,num_int):
+
+        int_idx = num_int/2
+        int_idx_high = num_int-1
+        int_idx_low = 0
+
+        #start in middle and branch out   
+        while 1:
+            if (int_idx == int_idx_low or int_idx == int_idx_high):
+                #We're done. No overlap
+                break            
+            
             curr_int_ts = int_ts[int_idx]
             curr_int_dur = int_dur[int_idx]
             
             if ( curr_int_ts < (curr_src_ts + curr_src_dur) ) and ( curr_src_ts < (curr_int_ts + curr_int_dur) ):
-                int_idx_start = int_idx
+                #We found an overlap
                 src_coll_idx[src_idx] = src_idx
-                int_coll_idx[src_idx] = int_idx                
-                continue
-            elif (curr_int_ts > (curr_src_ts + curr_src_dur)):
-                print("{0} {1} {2}".format(int_idx, int_idx_start, num_int))
-                continue
+                int_coll_idx[src_idx] = int_idx 
+                break
+            elif ( curr_int_ts < curr_src_ts ):
+                #Overlap may be later -- move index forward
+                int_idx_low = int_idx                
+            else:
+                #Overlap may be earlier -- move index back
+                int_idx_high = int_idx
+
+            int_idx = (int_idx_high - int_idx_low)/2 + int_idx_low
+        
                                                                 
         
     return (src_coll_idx,int_coll_idx)
