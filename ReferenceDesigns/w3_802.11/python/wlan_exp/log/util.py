@@ -676,24 +676,9 @@ def calc_tx_time(rate, payload_length):
 
     return T_TOT
 
-def find_overlapping_tx_low(src_tx_low, int_tx_low):
-    #cython on windows: https://github.com/cython/cython/wiki/InstallingOnWindows
+def find_overlapping_tx_low(src_tx_low, int_tx_low): 
 
-#    import pyximport #pyximport.install()
-#    pyximport.install(setup_args={'include_dirs':[np.get_include()]})
-#    pyximport.install(setup_args={"script_args":["-fopenmp"],
-#                                  "include_dirs":np.get_include()},
-#                                   reload_support=True)    
-    #pyximport.install(reload_support=True)
- 
-    try:
-         import wlan_exp.log.coll_util_ser as collision_utility        
-    except ImportError:
-         import pyximport
-         pyximport.install(setup_args={'include_dirs':[np.get_include()]})
-         import wlan_exp.log.coll_util_ser as collision_utility
-
-#    import coll_util_np as collision_utility
+    import wlan_exp.log.coll_util as collision_utility        
 
     src_ts = src_tx_low['timestamp']
     int_ts = int_tx_low['timestamp']

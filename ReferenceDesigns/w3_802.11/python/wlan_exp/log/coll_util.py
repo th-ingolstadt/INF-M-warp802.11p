@@ -1,41 +1,16 @@
-#cython: boundscheck=False
-#cython: wraparound=False
-
-cimport cython
-
 import numpy as np
-cimport numpy as np
+import wlan_exp.log.util as log_util
+import wlan_exp.util as wlan_exp_util    
 
-DTYPE = np.uint64
-ctypedef np.uint64_t DTYPE_t
-
-def _collision_idx_finder_l(np.ndarray[DTYPE_t, ndim=1] src_ts, np.ndarray[DTYPE_t, ndim=1] src_dur, np.ndarray[DTYPE_t, ndim=1] int_ts, np.ndarray[DTYPE_t, ndim=1] int_dur):
+def _collision_idx_finder_l(src_ts, src_dur, int_ts, int_dur):
+     
+    num_src = src_ts.shape[0]
+    num_int = src_ts.shape[0]
     
-    import wlan_exp.log.util as log_util
-    import wlan_exp.util as wlan_exp_util    
+    src_coll_idx = np.zeros([num_src],dtype=np.int)
+    int_coll_idx = np.zeros([num_int],dtype=np.int)
     
-    assert src_ts.dtype == DTYPE and src_dur.dtype == DTYPE and int_ts.dtype == DTYPE and int_dur.dtype == DTYPE
-  
-    cdef int num_src = src_ts.shape[0]
-    cdef int num_int = src_ts.shape[0]
-    
-    cdef np.ndarray[DTYPE_t, ndim=1] src_coll_idx = np.zeros([num_src], dtype=DTYPE)
-    cdef np.ndarray[DTYPE_t, ndim=1] int_coll_idx = np.zeros([num_int], dtype=DTYPE)
-
-    cdef DTYPE_t curr_src_ts
-    cdef DTYPE_t curr_src_dur
-    cdef DTYPE_t curr_int_ts
-    cdef DTYPE_t curr_int_dur
-    
-    int_ts_end = int_ts + int_dur
-    
-    cdef int src_idx, int_idx, int_idx_start
-    
-    int_idx_start = 0
-    
-    cdef int int_idx_high, int_idx_low
-
-    for src_idx in range(num_src):
+    for src_idx in range(num_src):        
         
         curr_src_ts = src_ts[src_idx]
         curr_src_dur = src_dur[src_idx]    
