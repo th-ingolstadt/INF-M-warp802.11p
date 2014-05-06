@@ -140,9 +140,14 @@ CMD_PARAM_STATS_CONFIG_FLAG_PROMISC              = 0x00000001
 CMDID_QUEUE_TX_DATA_PURGE_ALL                    = 0x005000
 
 
+# AP commands and defined values
+CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER        = 0x010000
+CMDID_NODE_AP_SSID                               = 0x010001
+
+
 # Developer commands and defined values
-CMDID_DEV_MEM_HIGH                              = 0xFFF000
-CMDID_DEV_MEM_LOW                               = 0xFFF001
+CMDID_DEV_MEM_HIGH                               = 0xFFF000
+CMDID_DEV_MEM_LOW                                = 0xFFF001
 
 
 
@@ -736,71 +741,9 @@ class NodeLowParam(wn_message.Cmd):
             
     def process_resp(self, resp):
         pass
+
+# End Class
         
-
-class NodeMemAccess(wn_message.Cmd):
-    """Command to read/write memory in CPU High
-    
-    Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       CMD_PARAM_READ
-                       CMD_PARAM_WRITE
-        high      -- True for CPU_High access, False for CPU_Low
-        
-        address   -- u32 memory address to read/write
-
-        values    -- When cmd==CMD_PARAM_WRITE, scalar or list of u32 values to write
-                     When cmd==CMD_PARAM_READ, None
-
-        length    -- When cmd==CMD_PARAM_WRITE, None
-                     When cmd==CMD_PARAM_READ, number of u32 values to read starting at address
-    """
-    _read_len = None
-    
-    def __init__(self, cmd, high, address, values=None, length=None):
-        super(NodeMemAccess, self).__init__()
-        if(high):
-            self.command = _CMD_GRPID_NODE + CMDID_DEV_MEM_HIGH
-        else:
-            self.command = _CMD_GRPID_NODE + CMDID_DEV_MEM_LOW
-
-        if(cmd == CMD_PARAM_READ):
-            self.add_args(cmd)
-            self.add_args(address)
-            self.add_args(length)
-
-            self._read_len = length
-
-        elif(cmd == CMD_PARAM_WRITE):
-            self.add_args(cmd)
-            self.add_args(address)
-            self.add_args(length)
-
-            try:
-                for v in values:
-                    self.add_args(v)
-            except TypeError:
-                self.add_args(values)
-
-        else:
-            raise Exception('ERROR: NodeMemAccess constructor arguments invalid');
-    
-    def process_resp(self, resp):
-        if (self._read_len is not None): # Was a read command
-            if resp.resp_is_valid(num_args=(2 + self._read_len), status_errors=[CMD_PARAM_ERROR], 
-                                  name='CPU Mem command'):
-                args = resp.get_args()
-
-                if(len(args) == 3):
-                    return args[2]
-                elif(len(args) > 3):
-                    return args[2:]
-                else:
-                    raise Exception('ERROR: invalid response to read_mem - N_ARGS = {0}'.format(len(args)))
-            else:
-                return CMD_PARAM_ERROR
-        else: # Was a write command
-            pass
 
 class NodeProcTxPower(wn_message.Cmd):
     """Command to get / set the transmit power of the node.
@@ -1058,6 +1001,119 @@ class NodeGetStationInfo(wn_message.BufferCmd):
 # End Class
 
 
+
+#--------------------------------------------
+# Association Commands
+#--------------------------------------------
+class NodeDisassociate(wn_message.Cmd):
+    """Command to remove associations from the association table."""
+    name = None
+
+    def __init__(self, device=None):
+        super(NodeDisassociate, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_DISASSOCIATE
+
+        if device is not None:
+            self.name   = device.name
+            mac_address = device.wlan_mac_address
+        else:
+            self.name   = "All nodes"
+            mac_address = 0xFFFFFFFFFFFFFFFF            
+
+        self.add_args(((mac_address >> 32) & 0xFFFF))
+        self.add_args((mac_address & 0xFFFFFFFF))
+
+    def process_resp(self, resp):
+        # TODO: Check status and print warning if disassociate failed
+        pass
+
+# End Class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#--------------------------------------------
+# Memory Access Commands - For developer use only
+#--------------------------------------------
+class NodeMemAccess(wn_message.Cmd):
+    """Command to read/write memory in CPU High / CPU Low
+    
+    Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
+        high      -- True for CPU_High access, False for CPU_Low
+        
+        address   -- u32 memory address to read/write
+
+        values    -- When cmd==CMD_PARAM_WRITE, scalar or list of u32 values to write
+                     When cmd==CMD_PARAM_READ, None
+
+        length    -- When cmd==CMD_PARAM_WRITE, None
+                     When cmd==CMD_PARAM_READ, number of u32 values to read starting at address
+    """
+    _read_len = None
+    
+    def __init__(self, cmd, high, address, values=None, length=None):
+        super(NodeMemAccess, self).__init__()
+        if(high):
+            self.command = _CMD_GRPID_NODE + CMDID_DEV_MEM_HIGH
+        else:
+            self.command = _CMD_GRPID_NODE + CMDID_DEV_MEM_LOW
+
+        if(cmd == CMD_PARAM_READ):
+            self.add_args(cmd)
+            self.add_args(address)
+            self.add_args(length)
+
+            self._read_len = length
+
+        elif(cmd == CMD_PARAM_WRITE):
+            self.add_args(cmd)
+            self.add_args(address)
+            self.add_args(length)
+
+            try:
+                for v in values:
+                    self.add_args(v)
+            except TypeError:
+                self.add_args(values)
+
+        else:
+            raise Exception('ERROR: NodeMemAccess constructor arguments invalid');
+    
+    def process_resp(self, resp):
+        if (self._read_len is not None): # Was a read command
+            if resp.resp_is_valid(num_args=(2 + self._read_len), status_errors=[CMD_PARAM_ERROR], 
+                                  name='CPU Mem command'):
+                args = resp.get_args()
+
+                if(len(args) == 3):
+                    return args[2]
+                elif(len(args) > 3):
+                    return args[2:]
+                else:
+                    raise Exception('ERROR: invalid response to read_mem - N_ARGS = {0}'.format(len(args)))
+            else:
+                return CMD_PARAM_ERROR
+        else: # Was a write command
+            pass
+
+# End Class
+
+
+
 #--------------------------------------------
 # Queue Commands
 #--------------------------------------------
@@ -1071,3 +1127,131 @@ class QueueTxDataPurgeAll(wn_message.Cmd):
         pass
 
 # End Class
+
+
+
+#--------------------------------------------
+# AP Specific Commands
+#--------------------------------------------
+class NodeAPAssociate(wn_message.Cmd):
+    """Command to add the association to the association table on the AP.
+    
+    Attributes:
+        device        -- Device to add to the association table
+        allow_removal -- Allow the association to be removed when a timeout or 
+                         other type of disassociation occurs (can be overriden
+                         with the force option in the disassociate command)
+        allow_timeout -- Allow the association to timeout if inactive
+    
+    NOTE:  This adds an association with the default tx/rx params
+    """
+    def __init__(self, device, allow_removal=False, allow_timeout=False):
+        super(NodeAPAssociate, self).__init__()
+        self.command = _CMD_GRPID_NODE 
+
+
+    def process_resp(self, resp):
+        # TODO: Returns STATUS and AID
+        pass
+
+# End Class
+
+
+class NodeAPProcSSID(wn_message.Cmd):
+    """Command to get / set the SSID of the AP."""
+    ssid = None
+
+    def __init__(self, ssid=None):
+        super(NodeAPProcSSID, self).__init__()
+        self.command = _CMD_GRPID_NODE 
+
+
+    def process_resp(self, resp):
+        # TODO: Check status and print warning if setting SSID failed
+        pass
+
+# End Class
+
+
+class NodeAPSetAssocAddrFilter(wn_message.Cmd):
+    """Command to set the association address filter on the node.
+    
+    Attributes:
+        allow  -- List of (mask, address) tuples that will be used to filter addresses
+                  on the node.
+
+    NOTE:  For the mask, bits that are 1 are treated as "any" and bits that are 0 are 
+    treated as "must equal".  For the address, locations of zeroed bits in the mask 
+    must match the incoming addresses to pass the filter.
+    """
+    def __init__(self, allow):
+        super(NodeAPSetAssocAddrFilter, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER
+
+        length = len(allow)
+
+        if (length > 50):
+            msg  = "Currently, the WLAN Exp framework does not support more than "
+            msg += "50 address ranges in the association address filter."
+            raise AttributeError(msg)
+
+        self.add_args(CMD_PARAM_WRITE)
+        self.add_args(length)
+        
+        for addr_range in allow:
+            self.add_args(((addr_range[0] >> 32) & 0xFFFF))
+            self.add_args((addr_range[0] & 0xFFFFFFFF))
+            self.add_args(((addr_range[1] >> 32) & 0xFFFF))
+            self.add_args((addr_range[1] & 0xFFFFFFFF))
+
+
+    def process_resp(self, resp):
+        # TODO: Check status and print warning if setting failed
+        pass
+
+# End Class
+
+
+
+#--------------------------------------------
+# STA Specific Commands
+#--------------------------------------------
+class NodeSTAAssociate(wn_message.Cmd):
+    """Command to add the association to the association table on the STA.
+    
+    Attributes:
+        device        -- Device to add to the association table
+        aid           -- Association ID returned by the AP from the associate command
+        ssid          -- SSID of the AP
+        allow_removal -- Allow the association to be removed when a timeout or 
+                         other type of disassociation occurs (can be overriden
+                         with the force option in the disassociate command)
+        allow_timeout -- Allow the association to timeout if inactive
+    
+    NOTE:  This adds an association with the default tx/rx params
+    """
+    def __init__(self, device, aid, ssid, allow_removal=False, allow_timeout=False):
+        super(NodeSTAAssociate, self).__init__()
+        self.command = _CMD_GRPID_NODE 
+
+
+    def process_resp(self, resp):
+        # TODO: Returns STATUS
+        pass
+
+# End Class
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
