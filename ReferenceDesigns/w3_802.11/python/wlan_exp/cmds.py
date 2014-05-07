@@ -144,6 +144,8 @@ CMDID_QUEUE_TX_DATA_PURGE_ALL                    = 0x005000
 CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER        = 0x010000
 CMDID_NODE_AP_SSID                               = 0x010001
 
+CMD_PARAM_MAX_SSID_LEN                           = 32
+
 
 # Developer commands and defined values
 CMDID_DEV_MEM_HIGH                               = 0xFFF000
@@ -1031,18 +1033,6 @@ class NodeDisassociate(wn_message.Cmd):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 #--------------------------------------------
 # Memory Access Commands - For developer use only
 #--------------------------------------------
@@ -1163,12 +1153,68 @@ class NodeAPProcSSID(wn_message.Cmd):
 
     def __init__(self, ssid=None):
         super(NodeAPProcSSID, self).__init__()
-        self.command = _CMD_GRPID_NODE 
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SSID
+        
+        if ssid is None:
+            self.add_args(CMD_PARAM_READ)
+        else:
+            import struct
+            
+            self.ssid = ssid            
+            self.add_args(CMD_PARAM_WRITE)
+            
+            ssid_len = len(ssid)
+            
+            if (ssid_len > CMD_PARAM_MAX_SSID_LEN):
+                msg  = "WARNING:  Maximum SSID length is {0} ".format(CMD_PARAM_MAX_SSID_LEN)
+                msg += "provided {0} characters.".format(ssid_len)
+                print(msg)
+            
+            self.add_args(ssid_len)
 
+            # Null-teriminate the string for C
+            ssid    += "\0"
+            ssid_buf = bytearray(ssid, 'UTF-8')
+
+            # Zero pad so that the ssid buffer is 32-bit aligned
+            if ((len(ssid_buf) % 4) != 0):
+                ssid_buf += bytearray(4 - (len(ssid_buf) % 4))
+                    
+            idx = 0
+            while (idx < len(ssid_buf)):
+                arg = struct.unpack_from('!I', ssid_buf[idx:idx+4])
+                self.add_args(arg[0])
+                idx += 4
+        
 
     def process_resp(self, resp):
-        # TODO: Check status and print warning if setting SSID failed
-        pass
+        args       = resp.get_args()
+        arg_length = len(args)
+
+        resp.resp_is_valid(num_args=arg_length, status_errors=[CMD_PARAM_ERROR], 
+                                  name='Process SSID')
+
+        # Actually check the number of arguments
+        if(arg_length >= 2):
+            length = args[1]
+        else:
+            raise Exception('ERROR: invalid response to process SSID - N_ARGS = {0}'.format(len(args)))
+
+        # Get the SSID from the response
+        if (length > 0):
+            import struct
+            ssid_buffer = struct.pack('!%dI' % (arg_length - 2), *args[2:] )
+            ssid_tuple  = struct.unpack_from('!%ds' % length, ssid_buffer)
+            ssid        = ssid_tuple[0]
+        else:
+            ssid        = ""
+ 
+        if self.ssid is not None:
+            if (self.ssid != ssid):
+                print("WARNING:")
+
+       
+        return ssid
 
 # End Class
 

@@ -26,6 +26,7 @@ Functions (see below for more information):
 
 import wlan_exp.defaults as defaults
 import wlan_exp.node as node
+import wlan_exp.cmds as cmds
 
 
 __all__ = ['WlanExpNodeAp']
@@ -56,6 +57,31 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # WLAN Exp Commands for the AP
     #-------------------------------------------------------------------------
+    def set_association_address_filter(self, allow):
+        """Command to set the association address filter on the node.
+        
+        Attributes:
+            allow  -- List of (mask, address) tuples that will be used to filter addresses
+                      on the node.
+    
+        NOTE:  For the mask, bits that are 1 are treated as "any" and bits that are 0 are 
+        treated as "must equal".  For the address, locations of zeroed bits in the mask 
+        must match the incoming addresses to pass the filter.
+        """
+        if (type(allow) is list):
+            self.send_cmd(cmds.NodeAPSetAssocAddrFilter(allow))
+        else:
+            self.send_cmd(cmds.NodeAPSetAssocAddrFilter([allow]))
+
+
+    def get_ssid(self):
+        """Command to get the SSID of the AP."""
+        return self.send_cmd(cmds.NodeAPProcSSID())
+
+
+    def set_ssid(self, ssid):
+        """Command to set the SSID of the AP."""
+        return self.send_cmd(cmds.NodeAPProcSSID(ssid))
 
 
     #-------------------------------------------------------------------------
