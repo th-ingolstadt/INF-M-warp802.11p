@@ -31,6 +31,7 @@
 int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan, u8 tim_len, u8 tim_control, u8* tim_bitmap) {
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
+	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
 
 	txBufferPtr_u8 = (u8*)pkt_buf;
 
@@ -60,10 +61,10 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame));
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
-	txBufferPtr_u8[1] = ssid_len;
-	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),ssid_len);
+	txBufferPtr_u8[1] = real_ssid_len;
+	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),real_ssid_len);
 
-	txBufferPtr_u8+=(ssid_len+2); //Move up to next tag
+	txBufferPtr_u8+=(real_ssid_len+2); //Move up to next tag
 
 	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
@@ -119,6 +120,7 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan) {
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
+	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
 
 	txBufferPtr_u8 = (u8*)pkt_buf;
 
@@ -148,10 +150,10 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame));
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
-	txBufferPtr_u8[1] = ssid_len;
-	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),ssid_len);
+	txBufferPtr_u8[1] = real_ssid_len;
+	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),real_ssid_len);
 
-	txBufferPtr_u8+=(ssid_len+2); //Move up to next tag
+	txBufferPtr_u8+=(real_ssid_len+2); //Move up to next tag
 
 	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
@@ -243,6 +245,7 @@ int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* co
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan){
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
+	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
 
 	txBufferPtr_u8 = (u8*)pkt_buf;
 
@@ -263,10 +266,10 @@ int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, 
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211));
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
-	txBufferPtr_u8[1] = ssid_len;
-	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),ssid_len);
+	txBufferPtr_u8[1] = real_ssid_len;
+	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),real_ssid_len);
 
-	txBufferPtr_u8+=(ssid_len+2); //Move up to next tag
+	txBufferPtr_u8+=(real_ssid_len+2); //Move up to next tag
 
 	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
@@ -376,6 +379,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
 	u8 num_rates;
+	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
 
 	#define NUM_STA_SUPPORTED_RATES 8
 	u8 sta_supported_rates[NUM_STA_SUPPORTED_RATES] = {0x0c, 0x12, 0x18, 0x24, 0x30, 0x48, 0x60, 0x6c};
@@ -405,10 +409,10 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(association_request_frame));
 
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
-	txBufferPtr_u8[1] = ssid_len;
-	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),ssid_len);
+	txBufferPtr_u8[1] = real_ssid_len;
+	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),real_ssid_len);
 
-	txBufferPtr_u8+=(ssid_len+2); //Move up to next tag
+	txBufferPtr_u8+=(real_ssid_len+2); //Move up to next tag
 
 
 

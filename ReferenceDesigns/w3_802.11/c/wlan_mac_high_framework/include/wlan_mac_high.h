@@ -63,19 +63,22 @@
 #define GPIO_MASK_PB_M			 0x00000020		///< Mask for GPIO -- "Middle" Pushbutton
 #define GPIO_MASK_PB_D			 0x00000010		///< Mask for GPIO -- "Down" Pushbutton
 
-#define UART_BUFFER_SIZE 1						///< UART is configured to read 1 byte at a time
+#define UART_BUFFER_SIZE               1	    ///< UART is configured to read 1 byte at a time
 
-#define NUM_VALID_RATES 12 						///< Number of supported rates
+#define NUM_VALID_RATES                12 		///< Number of supported rates
 
-#define PKT_TYPE_DATA_OTHER		1				///< Other Data
-#define PKT_TYPE_DATA_ENCAP_ETH	2				///< Encapsulated Ethernet Type
-#define PKT_TYPE_DATA_ENCAP_LTG	3				///< Encapsulated LTG Type
-#define PKT_TYPE_MGMT			11				///< Management Type
-#define PKT_TYPE_CONTROL		21				///< Control Type
+#define PKT_TYPE_DATA_OTHER		       1		///< Other Data
+#define PKT_TYPE_DATA_ENCAP_ETH	       2		///< Encapsulated Ethernet Type
+#define PKT_TYPE_DATA_ENCAP_LTG	       3		///< Encapsulated LTG Type
+#define PKT_TYPE_MGMT			       11		///< Management Type
+#define PKT_TYPE_CONTROL		       21		///< Control Type
 
-#define ADD_ASSOCIATION_ANY_AID 0				///< Special argument to function that adds associations
+#define ADD_ASSOCIATION_ANY_AID        0	    ///< Special argument to function that adds associations
 
-#define MAX_NUM_PROMISC_STATS 50				///< Maximum number of promiscuous statistics
+#define MAX_NUM_PROMISC_STATS          50		///< Maximum number of promiscuous statistics
+
+#define SSID_LEN_MAX                   32       ///< Maximum SSID length
+
 
 /**
  * @brief Reception Information Structure
