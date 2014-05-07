@@ -13,6 +13,7 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
+#include "stdlib.h"
 #include "xaxiethernet.h"
 #include "xaxidma.h"
 #include "xparameters.h"
@@ -415,13 +416,17 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 													if(frame_info->additional_info != NULL) {
 														//rx_frame_info has pointer to STA entry in association table - fill in that entry's hostname field
 
+														// Zero out the hostname field of the station_info
+														//   NOTE: This will effectively Null-terminate the string
+														bzero(((station_info*)(frame_info->additional_info))->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
+
 														//Copy the string from the DHCP payload into the hostname field
 														memcpy(((station_info*)(frame_info->additional_info))->hostname,
 																&(eth_mid_ptr[2]),
 																min(STATION_INFO_HOSTNAME_MAXLEN, eth_mid_ptr[1]));
 
 														//Null-terminate the string in the association table entry
-														((station_info*)(frame_info->additional_info))->hostname[ min(STATION_INFO_HOSTNAME_MAXLEN, eth_mid_ptr[1]) ] = NULL;
+														// ((station_info*)(frame_info->additional_info))->hostname[ min(STATION_INFO_HOSTNAME_MAXLEN, eth_mid_ptr[1]) ] = NULL;
 													}
 										   	}
 											break;
