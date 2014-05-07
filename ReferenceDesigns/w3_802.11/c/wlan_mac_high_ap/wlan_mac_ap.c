@@ -986,6 +986,7 @@ void association_timestamp_check() {
 				}
 				xil_printf("\n\nDisassociation due to inactivity:\n");
 				wlan_mac_high_remove_association( &association_table, &statistics_table, curr_station_info->addr );
+				wlan_mac_high_write_hex_display(association_table.length);
 			}
 		}
 	}
@@ -1404,7 +1405,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr)) {
 
 
-					if(association_table.length < MAX_NUM_ASSOC) associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+					if(association_table.length < MAX_NUM_ASSOC) {
+						associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+						wlan_mac_high_write_hex_display(association_table.length);
+					}
 
 					if(associated_station != NULL) {
 
@@ -1472,7 +1476,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						}
 					}
 					wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
-
+					wlan_mac_high_write_hex_display(association_table.length);
 			break;
 
 			default:
