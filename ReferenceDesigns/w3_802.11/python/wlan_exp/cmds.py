@@ -292,7 +292,7 @@ class StatsConfigure(wn_message.Cmd):
         promisc_stats        -- Enable promiscuous statistics collection (TRUE/False)
     """
     def __init__(self, promisc_stats=None):
-        super(LogConfigure, self).__init__()
+        super(StatsConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_STATS_CONFIG_TXRX
 
         flags = 0
