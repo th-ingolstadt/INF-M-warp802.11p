@@ -451,6 +451,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			u32  left_hex;
 			u32  right_hex;
+			u32  hw_control;
+			u32  temp_control;
 
 			xil_printf("NODE IDENTIFY:  Num blinks = %8d   Time = %8d usec\n", num_blinks, time_per_blink);
 
@@ -466,22 +468,32 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
 				respSent                = RESP_SENT;
 
-	            // Store the original value
-            	left_hex  = userio_read_hexdisp_left(USERIO_BASEADDR);
-            	right_hex = userio_read_hexdisp_right(USERIO_BASEADDR);
+			    // Store the original value of what is under HW control
+
+	            // Store the original values
+				hw_control   = userio_read_control(USERIO_BASEADDR);
+            	left_hex     = userio_read_hexdisp_left(USERIO_BASEADDR);
+            	right_hex    = userio_read_hexdisp_right(USERIO_BASEADDR);
+
+            	// Need to zero out all of the HW control of the hex displays
+            	temp_control = (hw_control & ( ~(W3_USERIO_CTRLSRC_HEXDISP_R | W3_USERIO_CTRLSRC_HEXDISP_L)));
 
             	// Blink for 10 seconds
 				for (i = 0; i < num_blinks; i++){
-	                userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
+	                userio_write_control( USERIO_BASEADDR, ( temp_control & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
 			        userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
 			        userio_write_hexdisp_right(USERIO_BASEADDR, 0x00);
 					usleep(time_per_blink);
 
-					userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
+					userio_write_control(USERIO_BASEADDR, (temp_control));
 	                userio_write_hexdisp_left( USERIO_BASEADDR, left_hex );
 		            userio_write_hexdisp_right(USERIO_BASEADDR, right_hex );
 					usleep(time_per_blink);
 				}
+
+            	// Return original pins to HW control
+				userio_write_control(USERIO_BASEADDR, (hw_control));
+
 			} else {
 	            respArgs32[respIndex++] = Xil_Htonl( CMD_PARAM_ERROR );
 	            respHdr->length        += (respIndex * sizeof(respArgs32));
@@ -535,7 +547,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     if(status != 0) {
         				xil_printf("Error binding transport...\n");
         			} else {
-        				userio_write_hexdisp_left(USERIO_BASEADDR, (userio_read_hexdisp_left( USERIO_BASEADDR ) | W3_USERIO_HEXDISP_DP ) );
+        				userio_write_hexdisp_right(USERIO_BASEADDR, (userio_read_hexdisp_right( USERIO_BASEADDR ) | W3_USERIO_HEXDISP_DP ) );
         			}
                 } else {
                     xil_printf("NODE_CONFIG_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node);
@@ -589,7 +601,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					// Update User IO
 					xil_printf("\n!!! Waiting for Network Configuration !!! \n\n");
 
-    				userio_write_hexdisp_left(USERIO_BASEADDR, (userio_read_hexdisp_left( USERIO_BASEADDR ) & ~W3_USERIO_HEXDISP_DP ) );
+    				userio_write_hexdisp_right(USERIO_BASEADDR, (userio_read_hexdisp_right( USERIO_BASEADDR ) & ~W3_USERIO_HEXDISP_DP ) );
             	} else {
                     xil_printf("NODE_CONFIG_RESET Packet ignored.  Network configuration already reset on node.\n");
                     xil_printf("    Use NODE_CONFIG_SETUP command to set the network configuration.\n\n");

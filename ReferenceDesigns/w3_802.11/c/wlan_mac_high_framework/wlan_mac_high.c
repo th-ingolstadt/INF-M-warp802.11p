@@ -293,18 +293,6 @@ void wlan_mac_high_init(){
 		}
 	}
 
-	// At boot init
-    //   - Right decimal point is used to indicate associations are allowed
-	userio_set_ctrlSrc_hw(USERIO_BASEADDR, W3_USERIO_CTRLSRC_HEXDISP_DP_R);
-	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, W3_USERIO_CTRLSRC_HEXDISP_DP_R);
-
-	userio_set_pwm_period(USERIO_BASEADDR, 500);
-
-	//Ramp must be disabled when changing ramp params
-	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
-	userio_set_pwm_ramp_min(USERIO_BASEADDR, 2);
-	userio_set_pwm_ramp_max(USERIO_BASEADDR, 400);
-
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
 	// ***************************************************
@@ -991,7 +979,7 @@ void wlan_mac_high_free(void* addr){
  * @return None
  *
  */
-void wlan_mac_high_enable_hex_dot_blink(){
+void wlan_mac_high_enable_hex_blink(){
 	userio_set_pwm_ramp_en(USERIO_BASEADDR, 1);
 }
 
@@ -1005,7 +993,7 @@ void wlan_mac_high_enable_hex_dot_blink(){
  * @return None
  *
  */
-void wlan_mac_high_disable_hex_dot_blink(){
+void wlan_mac_high_disable_hex_blink(){
 	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
 }
 
