@@ -689,7 +689,7 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
     src_idx = []
     int_idx = []
     
-    src_idx, int_idx = collision_utility._collision_idx_finder_l(src_ts, src_dur, int_ts, int_dur)   
+    src_idx, int_idx = collision_utility._collision_idx_finder(src_ts, src_dur, int_ts, int_dur)   
     
     src_idx = src_idx[src_idx>0]
     int_idx = int_idx[int_idx>0]    
