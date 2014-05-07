@@ -779,6 +779,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	statistics_txrx* station_stats = NULL;
 	ap_info* curr_ap_info = NULL;
 	char* ssid;
+	u8    ssid_length;
 
 	mac_header_80211* rx_80211_header;
 	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
@@ -1104,12 +1105,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= length){ //Loop through tagged parameters
 						switch(mpdu_ptr_u8[0]){ //What kind of tag is this?
 							case TAG_SSID_PARAMS: //SSID parameter set
-								ssid = (char*)(&(mpdu_ptr_u8[2]));
+								ssid        = (char*)(&(mpdu_ptr_u8[2]));
+								ssid_length = min(mpdu_ptr_u8[1],SSID_LEN_MAX);
 
+								memcpy(curr_ap_info->ssid, ssid, ssid_length);
 
-								memcpy(curr_ap_info->ssid, ssid ,min(mpdu_ptr_u8[1],SSID_LEN_MAX-1));
-								//Terminate the string
-								(curr_ap_info->ssid)[min(mpdu_ptr_u8[1],SSID_LEN_MAX-1)] = 0;
+								// Terminate the string
+								(curr_ap_info->ssid)[ssid_length] = 0;
 
 							break;
 							case TAG_SUPPORTED_RATES: //Supported rates

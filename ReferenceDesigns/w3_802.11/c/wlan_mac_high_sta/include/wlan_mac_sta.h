@@ -14,13 +14,14 @@
  */
 
 /***************************** Include Files *********************************/
+#include "wlan_mac_high.h"
+#include "wlan_mac_dl_list.h"
+
 
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_STA_H_
 #define WLAN_MAC_STA_H_
-
-#include "wlan_mac_dl_list.h"
 
 // Enable the WLAN UART Menu
 #define WLAN_USE_UART_MENU
@@ -31,7 +32,6 @@
 #define UNICAST_QID 	2
 
 // Common Defines
-#define SSID_LEN_MAX                   32
 #define NUM_BASIC_RATES_MAX            10
 
 #define MAX_NUM_TX            7   ///max number of wireless Tx for any MPDU (= max_num_retransmissions + 1)
@@ -71,10 +71,11 @@ typedef struct{
 	u8   bssid[6];
 	u8   chan;
 	u8   private;
-	char ssid[SSID_LEN_MAX];
+	char ssid[SSID_LEN_MAX + 1];
+	u8   padding[3];
 	u8   num_basic_rates;
-	u8   basic_rates[NUM_BASIC_RATES_MAX];
 	char rx_power;
+	u8   basic_rates[NUM_BASIC_RATES_MAX];
 } ap_info;
 
 
