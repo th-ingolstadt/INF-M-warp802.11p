@@ -455,6 +455,8 @@ inline void wlan_mac_high_interrupt_stop(){
 	if(InterruptController.IsReady && InterruptController.IsStarted) XIntc_Stop(&InterruptController);
 }
 
+
+#ifdef _DEBUG_
 /**
  * @brief Print Hardware Information
  *
@@ -489,6 +491,8 @@ void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info ) {
 
 	xil_printf("END \n");
 }
+#endif
+
 
 /**
  * @brief UART Receive Interrupt Handler
@@ -2031,14 +2035,9 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 					station->AID = (curr_station_info->AID)+1;
 				}
 
-
 				//Add this station into the association table at the end
 				dl_entry_insertEnd(assoc_tbl, entry);
 			}
-
-			wlan_mac_high_print_associations(assoc_tbl);
-			wlan_mac_high_write_hex_display(assoc_tbl->length);
-			return station;
 		} else {
 			//Find the right place in the dl_list to insert this station_info with
 			//the requested AID
@@ -2063,13 +2062,10 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 				//Add this station into the association table at the end
 				dl_entry_insertEnd(assoc_tbl, entry);
 			}
-
-			wlan_mac_high_print_associations(assoc_tbl);
-			wlan_mac_high_write_hex_display(assoc_tbl->length);
-			return station;
 		}
 
-
+		wlan_mac_high_print_associations(assoc_tbl);
+		return station;
 	}
 }
 
@@ -2103,7 +2099,6 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 
 		wlan_mac_high_free(station);
 		wlan_mac_high_print_associations(assoc_tbl);
-		wlan_mac_high_write_hex_display(assoc_tbl->length);
 		return 0;
 	}
 }
@@ -2222,10 +2217,9 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 }
 
 void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
-	u32 i;
-	statistics_txrx* curr_statistics = NULL;
-	dl_entry* next_statistics_entry = NULL;
-	dl_entry* curr_statistics_entry = NULL;
+	statistics_txrx* curr_statistics       = NULL;
+	dl_entry*        next_statistics_entry = NULL;
+	dl_entry*        curr_statistics_entry = NULL;
 
 	next_statistics_entry = stat_tbl->first;
 
