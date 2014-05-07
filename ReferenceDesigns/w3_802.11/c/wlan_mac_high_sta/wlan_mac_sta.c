@@ -26,6 +26,7 @@
 #include "xintc.h"
 
 //WARP includes
+#include "w3_userio.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -128,6 +129,10 @@ void uart_rx(u8 rxByte){ };
 void add_temp();
 
 
+/*************************** Functions Prototypes ****************************/
+
+void sta_write_hex_display(u8 val);
+
 
 /******************************** Functions **********************************/
 
@@ -219,7 +224,7 @@ int main() {
 
 
     // Initialize hex display
-	wlan_mac_high_write_hex_display(0);
+	sta_write_hex_display(0);
 
 
 	// Set up channel
@@ -996,7 +1001,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						}
 
 
-						wlan_mac_high_write_hex_display(associated_station->AID);
+						sta_write_hex_display(associated_station->AID);
 
 						memcpy(&(associated_station->tx),&default_unicast_data_tx_params, sizeof(tx_params));
 
@@ -1041,7 +1046,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 						wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
 						purge_queue(UNICAST_QID);
-						wlan_mac_high_write_hex_display(0);
+						sta_write_hex_display(0);
 						if( strlen(access_point_ssid) > 0 && association_state == 4){
 							start_active_scan();
 						}
@@ -1385,6 +1390,41 @@ int get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words ) {
 #endif
 
 	return index;
+}
+
+
+
+/**
+ * @brief Write a Decimal Value to the Hex Display
+ *
+ * This function will write a decimal value to the board's two-digit hex displays.
+ * For the STA, the display is right justified; WARPNet will indicate its connection
+ * state using the right decimal point.
+ *
+ * @param u8 val
+ *  - Value to be displayed (between 0 and 99)
+ * @return None
+ *
+ */
+void sta_write_hex_display(u8 val){
+    u32 right_dp;
+
+	// Need to retain the value of the right decimal point
+	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+
+	if ( val < 10 ) {
+		// Turn off hex mapping; turn off left hex display
+		userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE ) ) ) );
+		userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
+
+		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_R_MAPMODE));
+		userio_write_hexdisp_right(USERIO_BASEADDR, (val | right_dp));
+	} else {
+		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
+
+	    userio_write_hexdisp_left(USERIO_BASEADDR, ((val/10)%10));
+		userio_write_hexdisp_right(USERIO_BASEADDR, ((val%10) | right_dp));
+	}
 }
 
 
