@@ -1584,13 +1584,17 @@ u32  deauthenticate_station( station_info* station ) {
 *
 ******************************************************************************/
 void deauthenticate_stations(){
-	u32 i;
 	station_info* curr_station_info;
 	dl_entry* next_station_info_entry;
 	dl_entry* curr_station_info_entry;
 
 	next_station_info_entry = association_table.first;
-	for (i = 0; i < association_table.length ; i++){
+
+	// Deauthenticate all stations and remove from the association table
+	//
+	// NOTE:  Cannot use a for loop for this iteration b/c we could remove
+	//   elements from the list.
+	while(next_station_info_entry != NULL){
 		curr_station_info_entry = next_station_info_entry;
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
