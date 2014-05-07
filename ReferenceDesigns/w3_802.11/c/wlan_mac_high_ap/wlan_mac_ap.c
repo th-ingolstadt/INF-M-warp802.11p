@@ -23,6 +23,7 @@
 #include "xparameters.h"
 
 //802.11 ref design includes
+#include "w3_userio.h"
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
@@ -85,6 +86,12 @@ static u8 wlan_mac_addr[6];
 
 u8 tim_bitmap[1] = {0x0};
 u8 tim_control = 1;
+
+
+/*************************** Functions Prototypes ****************************/
+
+void ap_write_hex_display(u8 val);
+u8   sevenSegmentMap(u8 x);
 
 /******************************** Functions **********************************/
 
@@ -171,7 +178,7 @@ int main(){
 	tx_header_common.seq_num   = 0;
 
     // Initialize hex display
-	wlan_mac_high_write_hex_display(0);
+	ap_write_hex_display(0);
 
 	// Configure default radio and PHY params via messages to CPU Low
 	mac_param_chan = WLAN_DEFAULT_CHANNEL;
@@ -202,8 +209,15 @@ int main(){
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
 
-	//  Periodic blinking of hex display leds (to indicate new associations are allowed)
-	wlan_mac_high_enable_hex_dot_blink();
+	//  Set Periodic blinking of hex display
+	userio_set_pwm_period(USERIO_BASEADDR, 500);
+
+	// Ramp must be disabled when changing ramp params
+	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
+	userio_set_pwm_ramp_min(USERIO_BASEADDR, 2);
+	userio_set_pwm_ramp_max(USERIO_BASEADDR, 400);
+
+	wlan_mac_high_enable_hex_blink();
 
 	// Reset the event log
 	event_log_reset();
@@ -986,7 +1000,7 @@ void association_timestamp_check() {
 				}
 				xil_printf("\n\nDisassociation due to inactivity:\n");
 				wlan_mac_high_remove_association( &association_table, &statistics_table, curr_station_info->addr );
-				wlan_mac_high_write_hex_display(association_table.length);
+				ap_write_hex_display(association_table.length);
 			}
 		}
 	}
@@ -1407,7 +1421,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(association_table.length < MAX_NUM_ASSOC) {
 						associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
-						wlan_mac_high_write_hex_display(association_table.length);
+						ap_write_hex_display(association_table.length);
 					}
 
 					if(associated_station != NULL) {
@@ -1476,7 +1490,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						}
 					}
 					wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
-					wlan_mac_high_write_hex_display(association_table.length);
+					ap_write_hex_display(association_table.length);
 			break;
 
 			default:
@@ -1567,7 +1581,7 @@ u32  deauthenticate_station( station_info* station ) {
 		wlan_mac_high_remove_association( &association_table, &statistics_table, station->addr );
 	}
 
-	wlan_mac_high_write_hex_display(association_table.length);
+	ap_write_hex_display(association_table.length);
 
 	return aid;
 }
@@ -1613,3 +1627,77 @@ dl_list * get_statistics(){
 dl_list * get_station_info_list(){
 	return &association_table;
 }
+
+
+
+
+/**
+ * @brief Write a Decimal Value to the Hex Display
+ *
+ * This function will write a decimal value to the board's two-digit hex displays.
+ * For the AP, the display is right justified and will blink; WARPNet will indicate
+ * its connection state using the right decimal point.
+ *
+ * @param u8 val
+ *  - Value to be displayed (between 0 and 99)
+ * @return None
+ *
+ */
+void ap_write_hex_display(u8 val){
+    u32 right_dp;
+    u8  left_val;
+    u8  right_val;
+    u32 pwm_val;
+
+	// Need to retain the value of the right decimal point
+	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+
+	if ( val < 10 ) {
+		left_val  = 0;
+		right_val = sevenSegmentMap(val);
+	} else {
+		left_val  = sevenSegmentMap(((val/10)%10));
+		right_val = sevenSegmentMap((val%10));
+	}
+
+    // Change the LEDs back to SW control
+	userio_set_ctrlSrc_sw(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR));
+
+	// Set the display
+	userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
+
+	userio_write_hexdisp_left(USERIO_BASEADDR, left_val);
+	userio_write_hexdisp_right(USERIO_BASEADDR, (right_val | right_dp));
+
+	pwm_val   = (right_val << 8) + left_val;
+
+	userio_set_ctrlSrc_hw(USERIO_BASEADDR, pwm_val);
+	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, pwm_val);
+}
+
+
+u8   sevenSegmentMap(u8 x) {
+    switch(x) {
+        case(0x0) : return 0x3F;
+        case(0x1) : return 0x06;
+        case(0x2) : return 0x5B;
+        case(0x3) : return 0x4F;
+        case(0x4) : return 0x66;
+        case(0x5) : return 0x6D;
+        case(0x6) : return 0x7D;
+        case(0x7) : return 0x07;
+        case(0x8) : return 0x7F;
+        case(0x9) : return 0x6F;
+
+        case(0xA) : return 0x77;
+        case(0xB) : return 0x7C;
+        case(0xC) : return 0x39;
+        case(0xD) : return 0x5E;
+        case(0xE) : return 0x79;
+        case(0xF) : return 0x71;
+        default   : return 0x00;
+    }
+}
+
+
+
