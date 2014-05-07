@@ -46,8 +46,9 @@ import wlan_exp.util as wlan_exp_util
 
 
 # TOP Level script variables
-HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00001']
+HOST_INTERFACES        = ['10.0.0.250']
+NODE_SERIAL_LIST       = ['W3-a-00006']
+PROMISCUOUS_STATISTICS = True
 
 
 nodes = []
@@ -78,7 +79,7 @@ def initialize_experiment():
 
     # Set the promiscuous statistics mode
     for node in nodes:
-        node.stats_configure_txrx(promisc_stats=True)
+        node.stats_configure_txrx(promisc_stats=PROMISCUOUS_STATISTICS)
         node.reset(txrx_stats=True)
 
 
