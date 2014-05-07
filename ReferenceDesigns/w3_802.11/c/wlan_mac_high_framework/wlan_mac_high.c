@@ -2228,8 +2228,12 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 	dl_entry* curr_statistics_entry = NULL;
 
 	next_statistics_entry = stat_tbl->first;
-	for(i=0; i<stat_tbl->length; i++){
 
+	// Remove all statistics entries from the statistics table
+	//
+	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
+	//   elements from the list.
+	while(next_statistics_entry != NULL){
 		curr_statistics_entry = next_statistics_entry;
 		next_statistics_entry = dl_entry_next(curr_statistics_entry);
 
