@@ -203,8 +203,8 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 				temp = temp % 12;          // Get a channel number between 0 - 11
 				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
 
-				// NOTE:  This function must be implemented in all child classes
-				// deauthenticate_stations(); // First deauthenticate all stations //TODO: not sure this should be here for WARPnet
+				// Send Channel Switch Announcement
+				// deauthenticate_stations();
 
 				mac_param_chan = temp;
 				wlan_mac_high_set_channel( mac_param_chan );
@@ -283,6 +283,10 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		case CMDID_NODE_AP_SSID:
             // Get / Set AP SSID
             //
+			// NOTE:  This method does not force any maximum length on the SSID.  However,
+			//   the rest of the framework enforces the convention that the maximum length
+			//   of the SSID is SSID_LEN_MAX.
+			//
 			// Message format:
 			//     cmdArgs32[0]        Command:
 			//                           - Write       (CMD_PARAM_WRITE_VAL)
@@ -308,16 +312,16 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 					ssid = (char *)&cmdArgs32[2];
 
 					// Deauthenticate all stations since we are changing the SSID
-					deauthenticate_stations(0);
+					deauthenticate_stations();
 
 					// Re-allocate memory for the new SSID and copy the characters of the new SSID
 					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, (temp + 1));
 
-					if (access_point_ssid == NULL) {
+					if (access_point_ssid != NULL) {
 						strcpy(access_point_ssid, ssid);
 						xil_printf("Set SSID - AP:  %s\n", access_point_ssid);
 					} else {
-						xil_printf("Failed to reallocate memory for SSID.  Please reset the AP.\n");
+						xil_printf("Failed to reallocate memory for SSID: %d bytes.  Please reset the AP.\n", (temp + 1));
 						status = CMD_PARAM_ERROR;
 					}
 			    break;
