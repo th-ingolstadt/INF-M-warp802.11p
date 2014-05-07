@@ -76,6 +76,10 @@ def initialize_experiment():
     # Initialize the time on all nodes to zero
     wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
 
+    # Set the promiscuous statistics mode
+    for node in nodes:
+        node.stats_configure_txrx(promisc_stats=True)
+        node.reset(txrx_stats=True)
 
 
 def run_experiment():
