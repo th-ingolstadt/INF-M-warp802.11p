@@ -806,6 +806,14 @@ u64 get_usec_timestamp(){
 
 	timestamp_high_u32 = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_MSB_CHAN);
 	timestamp_low_u32  = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_LSB_CHAN);
+
+	//Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
+	if( (timestamp_high_u32 & 0x1) != (XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_MSB_CHAN) & 0x1) ) {
+		//32-LSB wrapped - start over
+		timestamp_high_u32 = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_MSB_CHAN);
+		timestamp_low_u32  = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_LSB_CHAN);
+	}
+
 	timestamp_u64      = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
 
 	return timestamp_u64;
@@ -1810,6 +1818,21 @@ void wlan_mac_high_set_timestamp( u64 timestamp ){
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
 	ipc_msg_to_low.num_payload_words = sizeof(u64)/sizeof(u32);
+	ipc_msg_to_low.arg0				 = 0; //This means the u64 should replace the old timestamp
+	ipc_msg_to_low.payload_ptr       = (u32*)(&(timestamp));
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+}
+
+void wlan_mac_high_set_timestamp_delta( s64 timestamp ){
+
+	wlan_ipc_msg       ipc_msg_to_low;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
+	ipc_msg_to_low.num_payload_words = sizeof(u64)/sizeof(u32);
+	ipc_msg_to_low.arg0				 = 1; //This means the s64 should augment the old timestamp
 	ipc_msg_to_low.payload_ptr       = (u32*)(&(timestamp));
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);

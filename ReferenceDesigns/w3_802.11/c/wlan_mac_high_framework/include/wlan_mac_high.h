@@ -225,6 +225,7 @@ int  wlan_mac_high_write_low_mem( u32 num_words, u32* payload );
 int wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload );
 void wlan_mac_high_set_dsss( unsigned int dsss_value );
 void wlan_mac_high_set_timestamp( u64 timestamp );
+void wlan_mac_high_set_timestamp_delta( s64 timestamp );
 int  wlan_mac_high_is_cpu_low_initialized();
 int  wlan_mac_high_is_ready_for_tx();
 inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length);
