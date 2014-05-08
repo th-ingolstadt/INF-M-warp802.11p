@@ -347,7 +347,19 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			break;
 
 			case IPC_MBOX_SET_TIME:
-				new_timestamp = *(u64*)ipc_msg_from_high_payload;
+				switch(msg->arg0){
+					default:
+					case 0:
+						//This message contains a new timestamp that should completely replace
+						//the existing usec count
+						new_timestamp = *(u64*)ipc_msg_from_high_payload;
+					break;
+
+					case 1:
+						//This message contains a timestamp correction factor.
+						new_timestamp = get_usec_timestamp() + (*(s64*)ipc_msg_from_high_payload);
+					break;
+				}
 				wlan_mac_low_set_time(new_timestamp);
 			break;
 
