@@ -799,6 +799,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8 unicast_to_me, to_multicast;
 	station_info_entry* associated_station_log_entry;
 
+	s64 timestamp_diff;
+
 	//*************
 	// Event logging
 	//*************
@@ -1056,6 +1058,18 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON): //Beacon Packet
 			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP): //Probe Response Packet
+
+					if(association_table.length == 1){
+						if( wlan_addr_eq( ((station_info*)((association_table.first)->data))->addr  , rx_80211_header->address_3)){
+							mpdu_ptr_u8 += sizeof(mac_header_80211);
+#define PHY_T_OFFSET -21
+							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+
+							//FIXME: TX beacons need to be fixed before we enable this
+							//wlan_mac_high_set_timestamp_delta(timestamp_diff);
+							//xil_printf("%ld\n", timestamp_diff);
+						}
+					}
 
 					if(active_scan){
 
