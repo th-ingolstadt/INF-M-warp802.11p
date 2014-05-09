@@ -18,6 +18,8 @@
 
 #include "wlan_exp_common.h"
 #include "wlan_exp.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_entries.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
 
@@ -55,6 +57,8 @@
 /*********************** Global Variable Definitions *************************/
 
 extern dl_list		association_table;
+extern dl_list      statistics_table;
+extern tx_params    default_unicast_data_tx_params;
 
 extern char       * access_point_ssid;
 
@@ -108,15 +112,18 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
                                                    //   If we need more, then we will need to rework this to send multiple response packets
     int           status;
 
-    u32           temp, i;
+    u32           temp, temp2, i;
     u32           msg_cmd;
     u32           id;
+    u32           flags;
 
 	u8            mac_addr[6];
     u8            mask[6];
 
 	dl_entry	* curr_entry;
 	station_info* curr_station_info;
+
+	station_info_entry* station_log_entry;
 
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
@@ -162,8 +169,16 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 					if (curr_entry != NULL) {
 						curr_station_info = (station_info*)(curr_entry->data);
 
+						// Disable interrupts so no packets interrupt the disassociate
+						wlan_mac_high_interrupt_stop();
+
+						// Deauthenticate station
 						deauthenticate_station(curr_station_info);
 
+						// Re-enable interrupts
+						wlan_mac_high_interrupt_start();
+
+						// Set return parameters and print info to console
 						xil_printf("Disassociated node: %02x", mac_addr[0]);
 						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
 
@@ -175,8 +190,18 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 						status = CMD_PARAM_ERROR;
 					}
 				} else {
+					// Disable interrupts so no packets interrupt the disassociate
+					wlan_mac_high_interrupt_stop();
+
 					// Deauthenticate all stations
 					deauthenticate_stations();
+
+					// Re-enable interrupts
+					wlan_mac_high_interrupt_start();
+
+					// Set return parameters and print info to console
+					xil_printf("Disassociated node: %02x", mac_addr[0]);
+					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
 				}
             }
 
@@ -188,6 +213,100 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 		break;
 
         
+		//---------------------------------------------------------------------
+		case CMDID_NODE_ASSOCIATE:
+			// Associate with the device
+			//
+			// Message format:
+			//     cmdArgs32[0]        Association flags
+			//                             CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT
+			//     cmdArgs32[1]        Association flags mask
+			//     cmdArgs32[2:3]      Association MAC Address
+			//
+			// Response format:
+			//     respArgs32[0]       Status
+			//
+			xil_printf("Associate\n");
+
+			status            = CMD_PARAM_SUCCESS;
+            curr_station_info = NULL;
+
+            // Set default value for the flags
+            flags             = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+
+			if( association_table.length < MAX_NUM_ASSOC ) {
+
+				// Get MAC Address
+				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2], &mac_addr[0]);
+
+				// Get flags
+				temp  = Xil_Ntohl(cmdArgs32[0]);
+				temp2 = Xil_Ntohl(cmdArgs32[1]);
+
+				xil_printf("FLAGS = 0x%08x  mask = 0x%08x\n", temp, temp2);
+
+				// Configure the LOG based on the flag bit / mask
+				if ( ( temp2 & CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT ) == CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT ) {
+					if ( ( temp & CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT ) == CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT ) {
+						flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+					} else {
+						flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+					}
+				}
+
+				// Disable interrupts so no packets interrupt the disassociate
+				wlan_mac_high_interrupt_stop();
+
+				// Add association
+				curr_station_info = wlan_mac_high_add_association(&association_table, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
+
+				// Set the flags
+				curr_station_info->flags = flags;
+
+				// Re-enable interrupts
+				wlan_mac_high_interrupt_start();
+
+				// Set return parameters and print info to console
+				if (curr_station_info != NULL) {
+					// Log association state change
+					station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+
+					if(station_log_entry != NULL){
+						station_log_entry->timestamp = get_usec_timestamp();
+						memcpy((u8*)(&(station_log_entry->info)),(u8*)(curr_station_info), sizeof(station_info_base) );
+					}
+
+					memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params));
+
+					// Update the hex display
+					ap_write_hex_display(association_table.length);
+
+					xil_printf("Associated with node");
+				} else {
+					xil_printf("Could not associate with node");
+					status = CMD_PARAM_ERROR;
+				}
+			} else {
+				xil_printf("Could not associate with node");
+				status = CMD_PARAM_ERROR;
+			}
+
+			xil_printf(": %02x", mac_addr[0]);
+			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+
+			// Send response
+			respArgs32[respIndex++] = Xil_Htonl( status );
+			if (curr_station_info != NULL ) {
+			    respArgs32[respIndex++] = Xil_Htonl( curr_station_info->AID );
+			} else {
+			    respArgs32[respIndex++] = Xil_Htonl( 0 );
+			}
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
 		//---------------------------------------------------------------------
 		case CMDID_NODE_CHANNEL:
 			//   - cmdArgs32[0]      - Command

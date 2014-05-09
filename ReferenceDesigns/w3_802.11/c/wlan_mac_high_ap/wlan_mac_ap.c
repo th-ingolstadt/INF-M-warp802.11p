@@ -90,7 +90,6 @@ u8 tim_control = 1;
 
 /*************************** Functions Prototypes ****************************/
 
-void ap_write_hex_display(u8 val);
 u8   sevenSegmentMap(u8 x);
 
 /******************************** Functions **********************************/
@@ -1418,10 +1417,12 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 				if(wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr)) {
 
-
+			        // Check if we can allow the requester to associate with us
 					if(association_table.length < MAX_NUM_ASSOC) {
-						associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
-						ap_write_hex_display(association_table.length);
+						if (wlan_mac_addr_filter_is_allowed(rx_80211_header->address_2) != 0){
+							associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+							ap_write_hex_display(association_table.length);
+						}
 					}
 
 					if(associated_station != NULL) {

@@ -119,5 +119,6 @@ void stop_periodic_print();
 int is_qwerty_row(u8 rxByte);
 int qwerty_row_to_number(u8 rxByte);
 
+void ap_write_hex_display(u8 val);
 
 #endif /* WLAN_MAC_AP_H_ */
