@@ -93,9 +93,11 @@ CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH           = 1
 
 # Association commands and defined values
 CMDID_GET_STATION_INFO                           = 0x001080
-CMDID_SET_STATION_INFO                           = 0x001081
 
-CMDID_DISASSOCIATE                               = 0x001090
+CMDID_NODE_DISASSOCIATE                          = 0x001090
+CMDID_NODE_ASSOCIATE                             = 0x001091
+
+CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT                = 0x00000001
 
 
 # LTG commands and defined values
@@ -1013,7 +1015,7 @@ class NodeDisassociate(wn_message.Cmd):
 
     def __init__(self, device=None):
         super(NodeDisassociate, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_DISASSOCIATE
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_DISASSOCIATE
 
         if device is not None:
             self.name   = device.name
@@ -1026,8 +1028,210 @@ class NodeDisassociate(wn_message.Cmd):
         self.add_args((mac_address & 0xFFFFFFFF))
 
     def process_resp(self, resp):
-        # TODO: Check status and print warning if disassociate failed
+        resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], 
+                           name='Node {0} Disassociate'.format(self.name))
+
+# End Class
+
+
+
+#--------------------------------------------
+# Queue Commands
+#--------------------------------------------
+class QueueTxDataPurgeAll(wn_message.Cmd):
+    """Command to purge all data transmit queues on the node."""
+    def __init__(self):
+        super(QueueTxDataPurgeAll, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_QUEUE_TX_DATA_PURGE_ALL
+        
+    def process_resp(self, resp):
         pass
+
+# End Class
+
+
+
+#--------------------------------------------
+# AP Specific Commands
+#--------------------------------------------
+class NodeAPAssociate(wn_message.Cmd):
+    """Command to add the association to the association table on the AP.
+    
+    Attributes:
+        device        -- Device to add to the association table
+        allow_timeout -- Allow the association to timeout if inactive
+    
+    NOTE:  This adds an association with the default tx/rx params.  If
+        allow_timeout is not specified, the default on the node is to 
+        not allow timeout of the association.
+    """
+    name = None
+
+    def __init__(self, device, allow_timeout=None):
+        super(NodeAPAssociate, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_ASSOCIATE
+
+        flags = 0
+        mask  = 0
+
+        if allow_timeout is not None:
+            mask += CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT
+            if allow_timeout:
+                flags += CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT
+        
+        self.add_args(flags)
+        self.add_args(mask)
+
+        self.name   = device.name
+        mac_address = device.wlan_mac_address
+
+        self.add_args(((mac_address >> 32) & 0xFFFF))
+        self.add_args((mac_address & 0xFFFFFFFF))
+
+
+    def process_resp(self, resp):
+        args       = resp.get_args()
+
+        if (resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], 
+                               name='AP associate with {0}'.format(self.name))):
+            return args[1]
+        else:
+            return CMD_PARAM_ERROR
+    
+# End Class
+
+
+class NodeAPProcSSID(wn_message.Cmd):
+    """Command to get / set the SSID of the AP."""
+    ssid = None
+
+    def __init__(self, ssid=None):
+        super(NodeAPProcSSID, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SSID
+        
+        if ssid is None:
+            self.add_args(CMD_PARAM_READ)
+        else:
+            self.ssid = ssid            
+            self.add_args(CMD_PARAM_WRITE)
+
+            _add_ssid_to_cmd(self, ssid)
+            
+
+    def process_resp(self, resp):
+        args       = resp.get_args()
+        arg_length = len(args)
+
+        resp.resp_is_valid(num_args=arg_length, status_errors=[CMD_PARAM_ERROR], 
+                                  name='Process SSID')
+
+        # Actually check the number of arguments
+        if(arg_length >= 2):
+            length = args[1]
+        else:
+            raise Exception('ERROR: invalid response to process SSID - N_ARGS = {0}'.format(len(args)))
+
+        # Get the SSID from the response
+        if (length > 0):
+            import struct
+            ssid_buffer = struct.pack('!%dI' % (arg_length - 2), *args[2:] )
+            ssid_tuple  = struct.unpack_from('!%ds' % length, ssid_buffer)
+            ssid        = ssid_tuple[0]
+        else:
+            ssid        = ""
+ 
+        if self.ssid is not None:
+            if (self.ssid != ssid):
+                msg  = "WARNING:  SSID requested:  {0} \n".format(self.ssid)
+                msg += "    Does not equal SSID returned:  {0}".format(ssid)
+                print(msg)
+        
+        return ssid
+
+# End Class
+
+
+class NodeAPSetAssocAddrFilter(wn_message.Cmd):
+    """Command to set the association address filter on the node.
+    
+    Attributes:
+        allow  -- List of (mask, address) tuples that will be used to filter addresses
+                  on the node.
+
+    NOTE:  For the mask, bits that are 1 are treated as "any" and bits that are 0 are 
+    treated as "must equal".  For the address, locations of zeroed bits in the mask 
+    must match the incoming addresses to pass the filter.
+    """
+    def __init__(self, allow):
+        super(NodeAPSetAssocAddrFilter, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER
+
+        length = len(allow)
+
+        if (length > 50):
+            msg  = "Currently, the WLAN Exp framework does not support more than "
+            msg += "50 address ranges in the association address filter."
+            raise AttributeError(msg)
+
+        self.add_args(CMD_PARAM_WRITE)
+        self.add_args(length)
+        
+        for addr_range in allow:
+            self.add_args(((addr_range[0] >> 32) & 0xFFFF))
+            self.add_args((addr_range[0] & 0xFFFFFFFF))
+            self.add_args(((addr_range[1] >> 32) & 0xFFFF))
+            self.add_args((addr_range[1] & 0xFFFFFFFF))
+
+
+    def process_resp(self, resp):
+        resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], 
+                           name='AP set association address filter')
+
+# End Class
+
+
+
+#--------------------------------------------
+# STA Specific Commands
+#--------------------------------------------
+class NodeSTAAssociate(wn_message.Cmd):
+    """Command to add the association to the association table on the STA.
+    
+    Attributes:
+        device        -- Device to add to the association table
+        aid           -- Association ID returned by the AP from the associate command
+    
+    NOTE:  This adds an association with the default tx/rx params
+    """
+    name = None
+    def __init__(self, device, aid):
+        super(NodeSTAAssociate, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_ASSOCIATE
+
+        flags = 0
+        mask  = 0
+
+        # Currently, there are no association flags, but adding this into the 
+        # message structure for future use.
+
+        self.add_args(flags)
+        self.add_args(mask)
+
+        self.name   = device.name
+        mac_address = device.wlan_mac_address
+
+        self.add_args(((mac_address >> 32) & 0xFFFF))
+        self.add_args((mac_address & 0xFFFFFFFF))
+
+        self.add_args(aid)
+
+
+    def process_resp(self, resp):
+        if (resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], 
+                               name='STA associate with {0}'.format(self.name))):
+            return True
+        else:
+            return False
 
 # End Class
 
@@ -1104,198 +1308,41 @@ class NodeMemAccess(wn_message.Cmd):
 
 
 
-#--------------------------------------------
-# Queue Commands
-#--------------------------------------------
-class QueueTxDataPurgeAll(wn_message.Cmd):
-    """Command to purge all data transmit queues on the node."""
-    def __init__(self):
-        super(QueueTxDataPurgeAll, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_QUEUE_TX_DATA_PURGE_ALL
-        
-    def process_resp(self, resp):
-        pass
-
-# End Class
-
-
 
 #--------------------------------------------
-# AP Specific Commands
+# Misc Helper methods
 #--------------------------------------------
-class NodeAPAssociate(wn_message.Cmd):
-    """Command to add the association to the association table on the AP.
-    
-    Attributes:
-        device        -- Device to add to the association table
-        allow_removal -- Allow the association to be removed when a timeout or 
-                         other type of disassociation occurs (can be overriden
-                         with the force option in the disassociate command)
-        allow_timeout -- Allow the association to timeout if inactive
-    
-    NOTE:  This adds an association with the default tx/rx params
-    """
-    def __init__(self, device, allow_removal=False, allow_timeout=False):
-        super(NodeAPAssociate, self).__init__()
-        self.command = _CMD_GRPID_NODE 
-
-
-    def process_resp(self, resp):
-        # TODO: Returns STATUS and AID
-        pass
-
-# End Class
-
-
-class NodeAPProcSSID(wn_message.Cmd):
-    """Command to get / set the SSID of the AP."""
-    ssid = None
-
-    def __init__(self, ssid=None):
-        super(NodeAPProcSSID, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SSID
-        
-        if ssid is None:
-            self.add_args(CMD_PARAM_READ)
-        else:
-            import struct
-            
-            self.ssid = ssid            
-            self.add_args(CMD_PARAM_WRITE)
-            
-            ssid_len = len(ssid)
-            
-            if (ssid_len > CMD_PARAM_MAX_SSID_LEN):
-                msg  = "WARNING:  Maximum SSID length is {0} ".format(CMD_PARAM_MAX_SSID_LEN)
-                msg += "provided {0} characters.".format(ssid_len)
-                print(msg)
-            
-            self.add_args(ssid_len)
-
-            # Null-teriminate the string for C
-            ssid    += "\0"
-            ssid_buf = bytearray(ssid, 'UTF-8')
-
-            # Zero pad so that the ssid buffer is 32-bit aligned
-            if ((len(ssid_buf) % 4) != 0):
-                ssid_buf += bytearray(4 - (len(ssid_buf) % 4))
-                    
-            idx = 0
-            while (idx < len(ssid_buf)):
-                arg = struct.unpack_from('!I', ssid_buf[idx:idx+4])
-                self.add_args(arg[0])
-                idx += 4
-        
-
-    def process_resp(self, resp):
-        args       = resp.get_args()
-        arg_length = len(args)
-
-        resp.resp_is_valid(num_args=arg_length, status_errors=[CMD_PARAM_ERROR], 
-                                  name='Process SSID')
-
-        # Actually check the number of arguments
-        if(arg_length >= 2):
-            length = args[1]
-        else:
-            raise Exception('ERROR: invalid response to process SSID - N_ARGS = {0}'.format(len(args)))
-
-        # Get the SSID from the response
-        if (length > 0):
-            import struct
-            ssid_buffer = struct.pack('!%dI' % (arg_length - 2), *args[2:] )
-            ssid_tuple  = struct.unpack_from('!%ds' % length, ssid_buffer)
-            ssid        = ssid_tuple[0]
-        else:
-            ssid        = ""
+def _add_ssid_to_cmd(cmd, ssid):
+    """Internal method to add an ssid to the given command"""
+    import struct
  
-        if self.ssid is not None:
-            if (self.ssid != ssid):
-                print("WARNING:")
-
-       
-        return ssid
-
-# End Class
-
-
-class NodeAPSetAssocAddrFilter(wn_message.Cmd):
-    """Command to set the association address filter on the node.
+    ssid_len = len(ssid)
     
-    Attributes:
-        allow  -- List of (mask, address) tuples that will be used to filter addresses
-                  on the node.
+    if (ssid_len > CMD_PARAM_MAX_SSID_LEN):
+        ssid_len = CMD_PARAM_MAX_SSID_LEN
+        ssid     = ssid[:CMD_PARAM_MAX_SSID_LEN]        
 
-    NOTE:  For the mask, bits that are 1 are treated as "any" and bits that are 0 are 
-    treated as "must equal".  For the address, locations of zeroed bits in the mask 
-    must match the incoming addresses to pass the filter.
-    """
-    def __init__(self, allow):
-        super(NodeAPSetAssocAddrFilter, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER
-
-        length = len(allow)
-
-        if (length > 50):
-            msg  = "Currently, the WLAN Exp framework does not support more than "
-            msg += "50 address ranges in the association address filter."
-            raise AttributeError(msg)
-
-        self.add_args(CMD_PARAM_WRITE)
-        self.add_args(length)
-        
-        for addr_range in allow:
-            self.add_args(((addr_range[0] >> 32) & 0xFFFF))
-            self.add_args((addr_range[0] & 0xFFFFFFFF))
-            self.add_args(((addr_range[1] >> 32) & 0xFFFF))
-            self.add_args((addr_range[1] & 0xFFFFFFFF))
-
-
-    def process_resp(self, resp):
-        # TODO: Check status and print warning if setting failed
-        pass
-
-# End Class
-
-
-
-#--------------------------------------------
-# STA Specific Commands
-#--------------------------------------------
-class NodeSTAAssociate(wn_message.Cmd):
-    """Command to add the association to the association table on the STA.
+        msg  = "WARNING:  Maximum SSID length is {0} ".format(CMD_PARAM_MAX_SSID_LEN)
+        msg += "truncating to {0}.".format(ssid)
+        print(msg)        
     
-    Attributes:
-        device        -- Device to add to the association table
-        aid           -- Association ID returned by the AP from the associate command
-        ssid          -- SSID of the AP
-        allow_removal -- Allow the association to be removed when a timeout or 
-                         other type of disassociation occurs (can be overriden
-                         with the force option in the disassociate command)
-        allow_timeout -- Allow the association to timeout if inactive
+    cmd.add_args(ssid_len)
+
+    # Null-teriminate the string for C
+    ssid    += "\0"
+    ssid_buf = bytearray(ssid, 'UTF-8')
     
-    NOTE:  This adds an association with the default tx/rx params
-    """
-    def __init__(self, device, aid, ssid, allow_removal=False, allow_timeout=False):
-        super(NodeSTAAssociate, self).__init__()
-        self.command = _CMD_GRPID_NODE 
+    # Zero pad so that the ssid buffer is 32-bit aligned
+    if ((len(ssid_buf) % 4) != 0):
+        ssid_buf += bytearray(4 - (len(ssid_buf) % 4))
+    
+    idx = 0
+    while (idx < len(ssid_buf)):
+        arg = struct.unpack_from('!I', ssid_buf[idx:idx+4])
+        cmd.add_args(arg[0])
+        idx += 4
 
-
-    def process_resp(self, resp):
-        # TODO: Returns STATUS
-        pass
-
-# End Class
-
-
-
-
-
-
-
-
-
-
+# End def
 
 
 

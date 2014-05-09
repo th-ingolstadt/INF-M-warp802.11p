@@ -84,6 +84,50 @@ class WlanExpNodeAp(node.WlanExpNode):
         return self.send_cmd(cmds.NodeAPProcSSID(ssid))
 
 
+    def add_association(self, device_list, allow_timeout=None):
+        """Command to add an association to each device in the device list.
+        
+        Attributes:
+            device_list   -- Device(s) to add to the association table
+            allow_timeout -- Allow the association to timeout if inactive
+        
+        NOTE:  This adds an association with the default tx/rx params.  If
+            allow_timeout is not specified, the default on the node is to 
+            not allow timeout of the association.
+
+        NOTE:  If the device is a WlanExpNodeSta, then this method will also
+            add the association to that device.        
+        """
+        ret_val = []
+        
+        try:
+            for device in device_list:
+                ret_val.append(self._add_association(device, allow_timeout))
+        except TypeError:
+            ret_val.append(self._add_association(device_list, allow_timeout))
+        
+        return ret_val
+        
+
+    def _add_association(self, device, allow_timeout):
+        """Internal command to add an association."""
+        ret_val = False
+
+        aid = self.send_cmd(cmds.NodeAPAssociate(device))
+        
+        if (aid != cmds.CMD_PARAM_ERROR):
+            import wlan_exp.node_sta as node_sta
+
+            if (type(device) is node_sta.WlanExpNodeSta):
+                if device.send_cmd(cmds.NodeSTAAssociate(self, aid)):
+                    ret_val = True
+            else:
+                ret_val = True
+            
+        return ret_val
+
+
+
     #-------------------------------------------------------------------------
     # Misc methods for the Node
     #-------------------------------------------------------------------------

@@ -921,22 +921,17 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         
         Attributes:
             device_list -- List of 802.11 devices to remove from the association table
-            force       -- Force removal of association
-                               True  => deauthenticate and remove association table entry
-                               False => deauthenticate but do not remove entry if marked 'don't remove'        
         """
-        raise NotImplementedError
-        
+        try:
+            for device in device_list:
+                self.send_cmd(cmds.NodeDisassociate(device))
+        except TypeError:
+            self.send_cmd(cmds.NodeDisassociate(device_list))
 
-    def disassociate_all(self, force=True):
-        """Remove all associations from the association table
 
-        Attributes:
-            force       -- Force removal of association
-                               True  => deauthenticate and remove association table entry
-                               False => deauthenticate but do not remove entry if marked 'don't remove'        
-        """
-        raise NotImplementedError
+    def disassociate_all(self):
+        """Remove all associations from the association table"""
+        self.send_cmd(cmds.NodeDisassociate())
 
 
 
