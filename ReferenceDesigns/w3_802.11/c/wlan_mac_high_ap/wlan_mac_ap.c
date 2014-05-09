@@ -1644,6 +1644,8 @@ dl_list * get_station_info_list(){
  *
  */
 void ap_write_hex_display(u8 val){
+	u32 hw_control;
+	u32 temp_control;
     u32 right_dp;
     u8  left_val;
     u8  right_val;
@@ -1660,18 +1662,25 @@ void ap_write_hex_display(u8 val){
 		right_val = sevenSegmentMap((val%10));
 	}
 
-    // Change the LEDs back to SW control
-	userio_set_ctrlSrc_sw(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR));
+    // Store the original value of what is under HW control
+	hw_control   = userio_read_control(USERIO_BASEADDR);
 
-	// Set the display
-	userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
+	// Need to zero out all of the HW control of the hex displays; Change to raw hex mode
+	temp_control = (hw_control & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE | W3_USERIO_CTRLSRC_HEXDISP_R | W3_USERIO_CTRLSRC_HEXDISP_L )));
 
+	// Set the hex display mode to raw bits
+    userio_write_control( USERIO_BASEADDR, temp_control );
+
+    // Write the display
 	userio_write_hexdisp_left(USERIO_BASEADDR, left_val);
 	userio_write_hexdisp_right(USERIO_BASEADDR, (right_val | right_dp));
 
 	pwm_val   = (right_val << 8) + left_val;
 
-	userio_set_ctrlSrc_hw(USERIO_BASEADDR, pwm_val);
+	// Set the HW / SW control of the user io (raw mode w/ the new display value)
+    userio_write_control( USERIO_BASEADDR, ( temp_control | pwm_val ) );
+
+    // Set the pins that are using PWM mode
 	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, pwm_val);
 }
 
