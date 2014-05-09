@@ -469,8 +469,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				respSent                = RESP_SENT;
 
 			    // Store the original value of what is under HW control
-
-	            // Store the original values
 				hw_control   = userio_read_control(USERIO_BASEADDR);
             	left_hex     = userio_read_hexdisp_left(USERIO_BASEADDR);
             	right_hex    = userio_read_hexdisp_right(USERIO_BASEADDR);

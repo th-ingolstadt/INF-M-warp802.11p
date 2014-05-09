@@ -1932,6 +1932,12 @@ void usleep(u64 delay){
 	return;
 }
 
+
+
+
+
+// NOTE:  This function will not perform any filtering on the addr field
+//
 station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID){
 	dl_entry*	  entry;
 	station_info* station;
@@ -1972,11 +1978,6 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 
 		return station;
 	} else {
-        // Check if the address is allowed to associate with the node
-		if (wlan_mac_addr_filter_is_allowed(addr) == 0){
-			return NULL;
-		}
-
 		//This addr is new, so we'll have to add an entry into the association table
 		entry = wlan_mac_high_malloc(sizeof(dl_entry));
 		if(entry == NULL){

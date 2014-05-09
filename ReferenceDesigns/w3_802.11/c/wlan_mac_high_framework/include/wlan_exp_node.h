@@ -87,11 +87,12 @@
 
 #define CMD_PARAM_RANDOM_SEED_VALID                        0x00000001
 
-
 #define CMDID_NODE_GET_STATION_INFO                        0x001080
-#define CMDID_NODE_SET_STATION_INFO                        0x001081
 
 #define CMDID_NODE_DISASSOCIATE                            0x001090
+#define CMDID_NODE_ASSOCIATE                               0x001091
+
+#define CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT                  0x00000001
 
 
 //-----------------------------------------------

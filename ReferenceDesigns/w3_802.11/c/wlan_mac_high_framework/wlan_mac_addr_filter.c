@@ -45,6 +45,8 @@ static u8 whitelist_compare[NUM_WHITELIST_NODES][WHITELIST_ADDR_LEN] = {  \
 
 /*********************** Global Variable Definitions *************************/
 
+extern dl_list		       association_table;
+
 
 /*************************** Variable Definitions ****************************/
 
@@ -186,6 +188,12 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
 	//     NOTE: By default, we allow all addresses
 	//
 	if (list_len == 0) { return 1; }
+
+
+	// TODO:  This needs to be changed to reflect the new BSS_INFO change
+	// Check if you are currently in the association table
+	//    If you are 're-joining' you should be allowed
+	if ( wlan_mac_high_find_station_info_ADDR(&association_table, addr) != NULL) { return 1; }
 
 
 	// Check if the incoming address is one of the individual white-listed addresses
