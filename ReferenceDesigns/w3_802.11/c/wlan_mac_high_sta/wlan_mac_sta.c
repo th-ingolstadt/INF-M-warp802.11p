@@ -67,8 +67,8 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char default_AP_SSID[] = "WARP-AP";
-char*  access_point_ssid;
+char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
+
 
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
@@ -85,6 +85,10 @@ u8  active_scan;
 
 u8  repeated_active_scan_scheduled;
 u32 active_scan_schedule_id;
+
+u8  current_active_scan_scheduled;
+u32 current_active_scan_schedule_id;
+
 u8  pause_queue;
 
 
@@ -131,7 +135,7 @@ void add_temp();
 
 /*************************** Functions Prototypes ****************************/
 
-void sta_write_hex_display(u8 val);
+
 
 
 /******************************** Functions **********************************/
@@ -194,15 +198,12 @@ int main() {
 	wlan_mac_high_set_mpdu_accept_callback(  (void*)poll_tx_queues);
 	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
+	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
 
+	// Initialize the association and statistics tables
 	dl_list_init(&association_table);
 	dl_list_init(&statistics_table);
-
-	// Set default SSID for AP
-	access_point_ssid = wlan_mac_high_malloc(strlen(default_AP_SSID)+1);
-	strcpy(access_point_ssid,default_AP_SSID);
-
 
 	// Set Association state for station to AP
 	association_state = 1;
@@ -212,20 +213,16 @@ int main() {
 		xil_printf("waiting on CPU_LOW to boot\n");
 	};
 
-
 	// CPU Low will pass HW information to CPU High as part of the boot process
 	//   - Get necessary HW information
 	memcpy((void*) &(wlan_mac_addr[0]), (void*) wlan_mac_high_get_eeprom_mac_addr(), 6);
-
 
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
 	tx_header_common.seq_num = 0;
 
-
     // Initialize hex display
 	sta_write_hex_display(0);
-
 
 	// Set up channel
 	mac_param_chan = WLAN_DEFAULT_CHANNEL;
@@ -243,8 +240,7 @@ int main() {
 	wlan_mac_high_interrupt_init();
 
     // Schedule all events
-//	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temperature once every 10 seconds //TODO add back in
-
+    // wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temperature once every 10 seconds //TODO add back in
 
 	// Reset the event log
 	event_log_reset();
@@ -261,7 +257,6 @@ int main() {
 
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
 #endif
-
 
 	// If there is a default SSID, initiate a probe request
 	if( strlen(access_point_ssid) > 0 ) start_active_scan();
@@ -675,9 +670,11 @@ void start_active_scan(){
 
 void stop_active_scan(){
 	xil_printf("Stopping active scan\n");
+	if(current_active_scan_scheduled) wlan_mac_remove_schedule(SCHEDULE_COARSE, current_active_scan_schedule_id);
 	if(repeated_active_scan_scheduled) wlan_mac_remove_schedule(SCHEDULE_COARSE, active_scan_schedule_id);
 	active_scan = 0;
 	repeated_active_scan_scheduled = 0;
+	current_active_scan_scheduled  = 0;
 }
 
 void testtest(){
@@ -725,8 +722,10 @@ void probe_req_transmit(){
 	curr_channel_index = (curr_channel_index+1)%11;
 
 	if(curr_channel_index > 0){
-	    wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)probe_req_transmit);
+		current_active_scan_scheduled   = 1;
+		current_active_scan_schedule_id = wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)probe_req_transmit);
 	} else {
+		current_active_scan_scheduled   = 0;
 		wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)print_ap_list);
 	}
 
@@ -981,32 +980,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 
 					if(((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
-						association_state = 4;
 
-						if(association_table.length > 0){
-
-							associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-							if(associated_station_log_entry != NULL){
-								associated_station_log_entry->timestamp = get_usec_timestamp();
-								memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
-								associated_station_log_entry->info.AID = 0;
-							}
-
-							wlan_mac_high_remove_association(&association_table, &statistics_table, associated_station->addr);
-						}
-
-						associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, rx_80211_header->address_2, (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
-
-						associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-						if(associated_station_log_entry != NULL){
-							associated_station_log_entry->timestamp = get_usec_timestamp();
-							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
-						}
-
-
-						sta_write_hex_display(associated_station->AID);
-
-						memcpy(&(associated_station->tx),&default_unicast_data_tx_params, sizeof(tx_params));
+						sta_associate( (rx_80211_header->address_2), (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000 );
 
 						xil_printf("Association succeeded\n");
 					} else {
@@ -1316,7 +1291,7 @@ void print_ap_list(){
 		xil_printf("AP Selection: ");
 	} else {
 		for(i=0; i<num_ap_list; i++){
-			if(strcmp(access_point_ssid,ap_list[i].ssid) == 0){
+			if(strcmp(access_point_ssid, ap_list[i].ssid) == 0){
 				ap_sel = i;
 				if( ap_list[ap_sel].private == 0) {
 					mac_param_chan = ap_list[ap_sel].chan;
@@ -1327,11 +1302,13 @@ void print_ap_list(){
 					xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
 					memcpy(ap_addr, ap_list[ap_sel].bssid, 6);
 
-					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
-					strcpy(access_point_ssid,ap_list[ap_sel].ssid);
+					// Copy the SSID of the BSS_INFO
+					//   NOTE: Zeroing out the access_point_ssid first will effectively Null-terminate the string
+					bzero(access_point_ssid, SSID_LEN_MAX);
+					memcpy(access_point_ssid, ap_list[ap_sel].ssid, SSID_LEN_MAX);
 
 					access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
-					memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates,access_point_num_basic_rates);
+					memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates, access_point_num_basic_rates);
 
 					stop_active_scan();
 					association_state = 1;
@@ -1360,6 +1337,134 @@ dl_list * get_statistics(){
 dl_list * get_station_info_list(){
 	return &association_table;
 }
+
+
+
+/**
+ * @brief Disassociate the STA from the associated AP
+ *
+ * This function will disassociate the STA from the AP if it is associated.  Otherwise,
+ * it will do nothing.  It also logs any association state change
+ *
+ * @param  None
+ * @return int
+ *  -  0 if successful
+ *  - -1 if unsuccessful
+ *
+ *  @note This function uses global variables:  association_state, association_table
+ *      and statistics_table
+ */
+int  sta_disassociate( void ) {
+	int                 status = 0;
+	station_info*       associated_station = NULL;
+	dl_entry*	        associated_station_entry;
+	station_info_entry* associated_station_log_entry;
+
+	// If the STA is currently associated, remove the association; otherwise do nothing
+	if(association_table.length > 0){
+
+		// Get the currently associated station
+		//   NOTE:  This assumes that there is only one associated station
+		associated_station_entry = association_table.first;
+		associated_station       = (station_info*)associated_station_entry->data;
+
+#if _DEBUG_
+		// Print message to console
+		u32 i;
+		xil_printf("Disassociating node: %02x", (associated_station->addr)[0]);
+		for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", (associated_station->addr)[i] ); } xil_printf("\n");
+#endif
+
+		// Log association change
+		associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+
+		if(associated_station_log_entry != NULL){
+			associated_station_log_entry->timestamp = get_usec_timestamp();
+			memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
+			associated_station_log_entry->info.AID = 0;
+		}
+
+		//
+		// TODO:  Send Disassociation Message
+		//
+
+		// Remove current association
+		status = wlan_mac_high_remove_association(&association_table, &statistics_table, associated_station->addr);
+
+	    // Set the association state
+		association_state = 1;
+	}
+
+	return status;
+}
+
+
+
+/**
+ * @brief Associate the STA with the given address using the provided AID
+ *
+ * This function will disassociate the STA from the AP if it is associated.  It will then add
+ * an entry in the association table for the given address using the provided AID.  It also
+ * logs any association state change
+ *
+ * @param  u8 * address      - Address to which the STA will now associate
+ * @param  u16 requested_AID - AID to use for the association
+ * @return int
+ *  -  0 if successful
+ *  - -1 if unsuccessful
+ *
+ *  @note This function uses global variables:  association_state, association_table
+ *      and statistics_table
+ */
+
+//  u8 * address       = (rx_80211_header->address_2)
+//  u16  requested_AID = (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000
+
+int  sta_associate( u8 * address, u16 requested_AID ) {
+    int                 status;
+	station_info*       associated_station = NULL;
+	station_info_entry* associated_station_log_entry;
+
+	// Disassociate from any currently associated APs
+	status = sta_disassociate();
+
+	if ( status == 0 ) {
+		// Add the new association
+		associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, address, requested_AID);
+
+		if ( associated_station != NULL ) {
+			// Log association change
+			associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+
+			if(associated_station_log_entry != NULL){
+				associated_station_log_entry->timestamp = get_usec_timestamp();
+				memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
+			}
+
+#if _DEBUG_
+			// Print message to console
+			u32 i;
+			xil_printf("Associating node: %02x", (associated_station->addr)[0]);
+			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", (associated_station->addr)[i] ); } xil_printf("\n");
+#endif
+
+			// Update the HEX display
+			sta_write_hex_display(associated_station->AID);
+
+			// Set the TX params
+			memcpy(&(associated_station->tx),&default_unicast_data_tx_params, sizeof(tx_params));
+
+			// Set the association state
+			association_state = 4;
+
+		} else {
+		    status = -1;
+		}
+	}
+
+	return status;
+}
+
 
 
 /*****************************************************************************/

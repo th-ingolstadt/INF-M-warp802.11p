@@ -102,12 +102,16 @@ dl_list * get_statistics();
 
 int  get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words );
 
+int  sta_associate( u8 * address, u16 requested_AID );
+int  sta_disassociate();
+
 void print_menu();
 void print_ap_list();
 void print_station_status(u8 manual_call);
 void uart_rx(u8 rxByte);
 void print_all_observed_statistics();
 
+void sta_write_hex_display(u8 val);
 
 
 #endif /* WLAN_MAC_STA_H_ */

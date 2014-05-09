@@ -114,8 +114,11 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
                                                    //   If we need more, then we will need to rework this to send multiple response packets
     int           status;
 
-    u32           temp;
+    u32           temp, i;
     u32           msg_cmd;
+    u32           aid;
+
+    u8            mac_addr[6];
 
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
@@ -128,24 +131,116 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 	switch(cmdID){
 
 		//---------------------------------------------------------------------
-		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case CMDID_NODE_SET_STATION_INFO:
-			xil_printf("STA - Set association table not supported\n");
+		case CMDID_NODE_DISASSOCIATE:
+			// Disassociate from the AP
+			//
+			// Message format:
+			//     cmdArgs32[0:1]      MAC Address (All 0xFF means all station info)
+			//
+			// Response format:
+			//     respArgs32[0]       Status
+			//
+			xil_printf("Disassociate\n");
+
+			// Get MAC Address
+			wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
+			aid = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+			status  = CMD_PARAM_SUCCESS;
+
+			if ( aid == 0 ) {
+				// If we cannot find the MAC address, print a warning and return status error
+				xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
+				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+
+				status = CMD_PARAM_ERROR;
+
+			} else {
+				// Disable interrupts so no packets interrupt the disassociate
+				wlan_mac_high_interrupt_stop();
+
+                // STA disassociate command is the same for an individual AP or ALL
+				status = sta_disassociate();
+
+				// Re-enable interrupts
+				wlan_mac_high_interrupt_start();
+
+				// Set return parameters and print info to console
+				if ( status == 0 ) {
+					xil_printf("Disassociated node");
+
+					// Update the HEX display
+					sta_write_hex_display(0);
+
+					status = CMD_PARAM_SUCCESS;
+				} else {
+					xil_printf("Could not disassociate node");
+					status = CMD_PARAM_ERROR;
+				}
+
+				xil_printf(": %02x", mac_addr[0]);
+				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+			}
+
+			// Send response
+			respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
 		break;
 
-        
+
 		//---------------------------------------------------------------------
-		case CMDID_NODE_DISASSOCIATE:
-            // NODE_DISASSOCIATE Packet Format:
-            //   Since a station is only associated to one AP, this command will
-			//     disassociate from that AP.
-            //
-			//   - Returns AID of AP that was disassociated
+		case CMDID_NODE_ASSOCIATE:
+			// Associate with the AP
+			//
+			// Message format:
+			//     cmdArgs32[0]        Association flags         (for future use)
+			//     cmdArgs32[1]        Association flags mask    (for future use)
+			//     cmdArgs32[2:3]      Association MAC Address
+			//     cmdArgs32[4]        Association AID
+			//
+			// Response format:
+			//     respArgs32[0]       Status
+			//
+			xil_printf("Associate\n");
 
-			xil_printf("Node Disassociate - STA - Not Supported \n");
+			// Get MAC Address
+			wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2], &mac_addr[0]);
 
-			// Send response of zero
-            respArgs32[respIndex++] = Xil_Htonl( 0 );
+			// Get AID
+			aid = Xil_Ntohl(cmdArgs32[4]);
+
+			// Disable interrupts so no packets interrupt the associate
+			wlan_mac_high_interrupt_stop();
+
+			// Stop any active scans
+			stop_active_scan();
+
+			// Set the access_point_ssid to "" so that we won't try to re-join the default
+			// network if we are disassociated.
+			bzero(access_point_ssid, SSID_LEN_MAX);
+
+			// Add the new association
+			status = sta_associate( mac_addr, aid );
+
+			// Re-enable interrupts
+			wlan_mac_high_interrupt_start();
+
+			// Set return parameters and print info to console
+			if ( status == 0 ) {
+				xil_printf("Associated with node");
+				status = CMD_PARAM_SUCCESS;
+			} else {
+				xil_printf("Could not associate with node");
+				status = CMD_PARAM_ERROR;
+			}
+
+			xil_printf(": %02x", mac_addr[0]);
+			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
+
+			// Send response
+			respArgs32[respIndex++] = Xil_Htonl( status );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -183,7 +278,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			respHdr->numArgs = respIndex;
 		break;
 
-
+#if 0
 		//---------------------------------------------------------------------
 		case NODE_STA_GET_AP_LIST:
             // NODE_STA_GET_AP_LIST Response Packet Format:
@@ -221,57 +316,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
-
-
-		//---------------------------------------------------------------------
-		case NODE_STA_ASSOCIATE:
-            // NODE_STA_ASSOCIATE Packet Format:
-			//
-            //   - cmdArgs32[0] - AP list index
-            //
-            //   - respArgs32[0] - 0           - Success
-			//                     0xFFFF_FFFF - Failure
-			//
-
-			status      = 0;
-			temp        = Xil_Ntohl(cmdArgs32[0]);
-
-			if( ( temp >= 0 ) && ( temp <= (num_ap_list-1) ) ) {
-
-				if( ap_list[temp].private == 0) {
-
-					mac_param_chan = ap_list[temp].chan;
-					wlan_mac_high_set_channel( mac_param_chan );
-
-					xil_printf("Attempting to join %s\n", ap_list[temp].ssid);
-					memcpy(ap_addr, ap_list[temp].bssid, 6);
-
-					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[temp].ssid)+1);
-					strcpy(access_point_ssid,ap_list[temp].ssid);
-
-					access_point_num_basic_rates = ap_list[temp].num_basic_rates;
-					memcpy(access_point_basic_rates, ap_list[temp].basic_rates, access_point_num_basic_rates);
-
-					association_state = 1;
-					attempt_authentication();
-
-				} else {
-					xil_printf("WARNING:  STA - Invalid AP selection %d.  Please choose an AP that is not private.\n", temp);
-					status = 0xFFFFFFFF;
-				}
-
-			} else {
-				xil_printf("WARNING:  STA - Invalid AP selection.  Please choose a number between [0,%d].\n", (num_ap_list-1));
-				status = 0xFFFFFFFF;
-			}
-
-			// Send response of current status
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
+#endif
 
 		//---------------------------------------------------------------------
 		default:
