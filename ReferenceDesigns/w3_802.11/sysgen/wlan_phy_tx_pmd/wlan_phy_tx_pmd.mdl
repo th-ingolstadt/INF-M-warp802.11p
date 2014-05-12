@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.583"
+    ComputedModelVersion    "1.589"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -30,9 +30,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "murphpo"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Fri May 02 14:24:59 2014"
-  RTWModifiedTimeStamp	  320941484
-  ModelVersionFormat	  "1.%<AutoIncrement:583>"
+  LastModifiedDate	  "Fri May 09 21:00:39 2014"
+  RTWModifiedTimeStamp	  321570038
+  ModelVersionFormat	  "1.%<AutoIncrement:589>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -798,8 +798,8 @@ Model {
   }
   System {
     Name		    "wlan_phy_tx_pmd"
-    Location		    [2, 70, 1611, 973]
-    Open		    off
+    Location		    [2, 74, 1611, 977]
+    Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
     ScreenColor		    "white"
@@ -812,7 +812,7 @@ Model {
     ShowPageBoundaries	    off
     ZoomFactor		    "126"
     ReportName		    "simulink-default.rpt"
-    SIDHighWatermark	    "4025"
+    SIDHighWatermark	    "4032"
     Block {
       BlockType		      Reference
       Name		      " System Generator"
@@ -834,7 +834,7 @@ Model {
       package		      "ff1156"
       synthesis_tool	      "XST"
       clock_wrapper	      "Clock Enables"
-      directory		      "./pcore_tx_v220"
+      directory		      "./pcore_tx_v221"
       proj_type		      "Project Navigator"
       Synth_file	      "XST Defaults"
       Impl_file		      "ISE Defaults"
@@ -16108,6 +16108,73 @@ Model {
 		}
 		Block {
 		  BlockType		  Reference
+		  Name			  "Concat"
+		  SID			  "4032"
+		  Ports			  [2, 1]
+		  Position		  [375, 440, 415, 480]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Concat"
+		  SourceType		  "Xilinx Bus Concatenator Block"
+		  infoedit		  "Concatenates two or more inputs.  Output will be cast to an unsigned value with the binary point at z"
+		  "ero."
+		  num_inputs		  "2"
+		  dbl_ovrd		  off
+		  has_advanced_control	  "0"
+		  sggui_pos		  "-1,-1,-1,-1"
+		  block_type		  "concat"
+		  sg_icon_stat		  "40,40,2,1,white,blue,0,16398980,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 40 40 0 0 ],[0 0 40 40 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 40 40 0 0 ],[0 0 40 40 0 ]);\npatch([8.875 16.1 21.1 26.1 31.1 21.1 13.875 8.875 ],[25.55 25.55 30."
+		  "55 25.55 30.55 30.55 30.55 25.55 ],[1 1 1 ]);\npatch([13.875 21.1 16.1 8.875 13.875 ],[20.55 20.55 25.55 25.55 20."
+		  "55 ],[0.931 0.946 0.973 ]);\npatch([8.875 16.1 21.1 13.875 8.875 ],[15.55 15.55 20.55 20.55 15.55 ],[1 1 1 ]);\npa"
+		  "tch([13.875 31.1 26.1 21.1 16.1 8.875 13.875 ],[10.55 10.55 15.55 10.55 15.55 15.55 10.55 ],[0.931 0.946 0.973 ]);"
+		  "\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('i"
+		  "nput',1,'hi');\ncolor('black');port_label('input',2,'lo');\n\ncolor('black');disp('\\fontsize{20}\\}','texmode','o"
+		  "n');\nfprintf('','COMMENT: end icon text');"
+		}
+		Block {
+		  BlockType		  Reference
+		  Name			  "Constant"
+		  SID			  "4031"
+		  Ports			  [0, 1]
+		  Position		  [325, 460, 355, 480]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Constant"
+		  SourceType		  "Xilinx Constant Block Block"
+		  const			  "0"
+		  gui_display_data_type	  "Fixed-point"
+		  arith_type		  "Unsigned"
+		  n_bits		  "10"
+		  bin_pt		  "0"
+		  preci_type		  "Single"
+		  exp_width		  "8"
+		  frac_width		  "24"
+		  explicit_period	  off
+		  period		  "1"
+		  dsp48_infoedit	  "The use of this block for DSP48 instructions is deprecated.  Please use the Opmode block."
+		  equ			  "P=C"
+		  opselect		  "C"
+		  inp2			  "PCIN>>17"
+		  opr			  "+"
+		  inp1			  "P"
+		  carry			  "CIN"
+		  dbl_ovrd		  off
+		  has_advanced_control	  "0"
+		  sggui_pos		  "-1,-1,-1,-1"
+		  block_type		  "constant"
+		  sg_icon_stat		  "30,20,0,1,white,blue,0,bf4ddd8b,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 30 30 0 0 ],[0 0 20 20 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 30 30 0 0 ],[0 0 20 20 0 ]);\npatch([10.55 13.44 15.44 17.44 19.44 15.44 12.55 10.55 ],[12.22 12.22"
+		  " 14.22 12.22 14.22 14.22 14.22 12.22 ],[1 1 1 ]);\npatch([12.55 15.44 13.44 10.55 12.55 ],[10.22 10.22 12.22 12.22"
+		  " 10.22 ],[0.931 0.946 0.973 ]);\npatch([10.55 13.44 15.44 12.55 10.55 ],[8.22 8.22 10.22 10.22 8.22 ],[1 1 1 ]);\n"
+		  "patch([12.55 19.44 17.44 15.44 13.44 10.55 12.55 ],[6.22 6.22 8.22 6.22 8.22 8.22 6.22 ],[0.931 0.946 0.973 ]);\nf"
+		  "printf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('outp"
+		  "ut',1,'0');\nfprintf('','COMMENT: end icon text');"
+		}
+		Block {
+		  BlockType		  Reference
 		  Name			  "Constant1"
 		  SID			  "694"
 		  Ports			  [0, 1]
@@ -16145,46 +16212,6 @@ Model {
 		  "ch([8.325 18.66 15.66 12.66 9.66 5.325 8.325 ],[5.33 5.33 8.33 5.33 8.33 8.33 5.33 ],[0.931 0.946 0.973 ]);\nfprin"
 		  "tf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('output',"
 		  "1,'0');\nfprintf('','COMMENT: end icon text');"
-		}
-		Block {
-		  BlockType		  Reference
-		  Name			  "Constant2"
-		  SID			  "695"
-		  Ports			  [0, 1]
-		  Position		  [405, 450, 440, 470]
-		  ShowName		  off
-		  LibraryVersion	  "1.2"
-		  SourceBlock		  "xbsIndex_r4/Constant"
-		  SourceType		  "Xilinx Constant Block Block"
-		  const			  "1600"
-		  gui_display_data_type	  "Fixed-point"
-		  arith_type		  "Unsigned"
-		  n_bits		  "12"
-		  bin_pt		  "0"
-		  preci_type		  "Single"
-		  exp_width		  "8"
-		  frac_width		  "24"
-		  explicit_period	  off
-		  period		  "1"
-		  dsp48_infoedit	  "The use of this block for DSP48 instructions is deprecated.  Please use the Opmode block."
-		  equ			  "P=C"
-		  opselect		  "C"
-		  inp2			  "PCIN>>17"
-		  opr			  "+"
-		  inp1			  "P"
-		  carry			  "CIN"
-		  dbl_ovrd		  off
-		  has_advanced_control	  "0"
-		  sggui_pos		  "-1,-1,-1,-1"
-		  block_type		  "constant"
-		  sg_icon_stat		  "35,20,0,1,white,blue,0,f275c02a,right,,[ ],[ ]"
-		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 20 20 0 ],[0.77 0.82 0.9"
-		  "1 ]);\nplot([0 35 35 0 0 ],[0 0 20 20 0 ]);\npatch([12.55 15.44 17.44 19.44 21.44 17.44 14.55 12.55 ],[12.22 12.22"
-		  " 14.22 12.22 14.22 14.22 14.22 12.22 ],[1 1 1 ]);\npatch([14.55 17.44 15.44 12.55 14.55 ],[10.22 10.22 12.22 12.22"
-		  " 10.22 ],[0.931 0.946 0.973 ]);\npatch([12.55 15.44 17.44 14.55 12.55 ],[8.22 8.22 10.22 10.22 8.22 ],[1 1 1 ]);\n"
-		  "patch([14.55 21.44 19.44 17.44 15.44 12.55 14.55 ],[6.22 6.22 8.22 6.22 8.22 8.22 6.22 ],[0.931 0.946 0.973 ]);\nf"
-		  "printf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('outp"
-		  "ut',1,'1600');\nfprintf('','COMMENT: end icon text');"
 		}
 		Block {
 		  BlockType		  SubSystem
@@ -16441,6 +16468,16 @@ Model {
 		    }
 		    }
 		  }
+		}
+		Block {
+		  BlockType		  From
+		  Name			  "From"
+		  SID			  "4030"
+		  Position		  [125, 440, 295, 460]
+		  ZOrder		  -9
+		  ShowName		  off
+		  GotoTag		  "regTx_SIGNAL_MAX_LENGTH_KB"
+		  TagVisibility		  "global"
 		}
 		Block {
 		  BlockType		  Reference
@@ -16891,7 +16928,7 @@ Model {
 		  DstPort		  1
 		}
 		Line {
-		  SrcBlock		  "Constant2"
+		  SrcBlock		  "Concat"
 		  SrcPort		  1
 		  DstBlock		  "Relational2"
 		  DstPort		  2
@@ -16966,6 +17003,18 @@ Model {
 		  SrcPort		  1
 		  DstBlock		  "SIGNAL Decode"
 		  DstPort		  4
+		}
+		Line {
+		  SrcBlock		  "From"
+		  SrcPort		  1
+		  DstBlock		  "Concat"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "Constant"
+		  SrcPort		  1
+		  DstBlock		  "Concat"
+		  DstPort		  2
 		}
 		Annotation {
 		  Name			  "6-bit TAIL - always 0"
@@ -20220,7 +20269,8 @@ Model {
 	  "hrough for Tx gain setting. Now MAC provides TxGain with each Tx (same as pkt buf sel). PHY\n  passes this through "
 	  "to the radio controller user TxGain port.\n\n2.00.s:\n-Added Tx Ant Mask passthrough for MAC selection of active Tx"
 	  " antennas\n-Added ctrl bits for:\n  -En/disable use of MAC ant mask\n  -Endian swap MAC ant mask before output to R"
-	  "C (will be removed when correct endianess is determined in hw)"
+	  "C (will be removed when correct endianess is determined in hw)\n\n2.00.t:\n-Made SIGNAL.LENGTH max value programmab"
+	  "le, in units of kB"
 	  Position		  [27, 345]
 	  HorizontalAlignment	  "left"
 	}
@@ -44627,8 +44677,8 @@ Model {
 	      MaskHideContents	      off
 	      System {
 		Name			"Ant Enables"
-		Location		[283, 324, 538, 989]
-		Open			on
+		Location		[283, 306, 538, 989]
+		Open			off
 		ModelBrowserVisibility	off
 		ModelBrowserWidth	200
 		ScreenColor		"white"
@@ -50480,7 +50530,7 @@ Model {
       System {
 	Name			"Registers"
 	Location		[397, 869, 920, 1011]
-	Open			off
+	Open			on
 	ModelBrowserVisibility	off
 	ModelBrowserWidth	200
 	ScreenColor		"white"
@@ -50537,7 +50587,7 @@ Model {
 	  Name			  "From Register1"
 	  SID			  "1526"
 	  Ports			  [0, 1]
-	  Position		  [40, 395, 80, 425]
+	  Position		  [800, 150, 840, 180]
 	  AttributesFormatString  "<< %<shared_memory_name> >>"
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/From Register"
@@ -50746,7 +50796,7 @@ Model {
 	  BlockType		  Goto
 	  Name			  "Goto1"
 	  SID			  "1527"
-	  Position		  [410, 400, 610, 420]
+	  Position		  [1170, 155, 1370, 175]
 	  ShowName		  off
 	  GotoTag		  "regTx_NUM_SC"
 	  TagVisibility		  "global"
@@ -50845,7 +50895,7 @@ Model {
 	  BlockType		  Goto
 	  Name			  "Goto2"
 	  SID			  "1528"
-	  Position		  [410, 440, 610, 460]
+	  Position		  [1170, 195, 1370, 215]
 	  ShowName		  off
 	  GotoTag		  "regTx_CP_LEN"
 	  TagVisibility		  "global"
@@ -50879,11 +50929,11 @@ Model {
 	}
 	Block {
 	  BlockType		  Goto
-	  Name			  "Goto23"
-	  SID			  "3994"
-	  Position		  [440, 270, 640, 290]
+	  Name			  "Goto24"
+	  SID			  "4026"
+	  Position		  [440, 320, 640, 340]
 	  ShowName		  off
-	  GotoTag		  "regTx_TxEn_EndianSwap"
+	  GotoTag		  "regTx_SIGNAL_MAX_LENGTH_KB"
 	  TagVisibility		  "global"
 	}
 	Block {
@@ -50917,7 +50967,7 @@ Model {
 	  BlockType		  Goto
 	  Name			  "Goto6"
 	  SID			  "1530"
-	  Position		  [410, 550, 610, 570]
+	  Position		  [1170, 305, 1370, 325]
 	  ShowName		  off
 	  GotoTag		  "regTx_FFT_SCALING"
 	  TagVisibility		  "global"
@@ -50944,7 +50994,7 @@ Model {
 	  BlockType		  Goto
 	  Name			  "Goto9"
 	  SID			  "2876"
-	  Position		  [370, 335, 570, 355]
+	  Position		  [380, 460, 580, 480]
 	  ShowName		  off
 	  GotoTag		  "regTx_RESET"
 	  TagVisibility		  "global"
@@ -51017,7 +51067,7 @@ Model {
 	  Name			  "Register10"
 	  SID			  "3882"
 	  Ports			  [1, 1]
-	  Position		  [265, 545, 300, 575]
+	  Position		  [1025, 300, 1060, 330]
 	  NamePlacement		  "alternate"
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
@@ -51464,10 +51514,10 @@ Model {
 	}
 	Block {
 	  BlockType		  Reference
-	  Name			  "Register24"
-	  SID			  "3995"
+	  Name			  "Register25"
+	  SID			  "4027"
 	  Ports			  [1, 1]
-	  Position		  [265, 265, 300, 295]
+	  Position		  [265, 315, 300, 345]
 	  NamePlacement		  "alternate"
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
@@ -51617,7 +51667,7 @@ Model {
 	  Name			  "Register7"
 	  SID			  "3879"
 	  Ports			  [1, 1]
-	  Position		  [265, 330, 300, 360]
+	  Position		  [275, 455, 310, 485]
 	  NamePlacement		  "alternate"
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
@@ -51647,7 +51697,7 @@ Model {
 	  Name			  "Register8"
 	  SID			  "3880"
 	  Ports			  [1, 1]
-	  Position		  [265, 395, 300, 425]
+	  Position		  [1025, 150, 1060, 180]
 	  NamePlacement		  "alternate"
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
@@ -51677,7 +51727,7 @@ Model {
 	  Name			  "Register9"
 	  SID			  "3881"
 	  Ports			  [1, 1]
-	  Position		  [265, 435, 300, 465]
+	  Position		  [1025, 190, 1060, 220]
 	  NamePlacement		  "alternate"
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
@@ -51973,6 +52023,39 @@ Model {
 	}
 	Block {
 	  BlockType		  Reference
+	  Name			  "b[11:8]"
+	  SID			  "4028"
+	  Ports			  [1, 1]
+	  Position		  [160, 323, 200, 337]
+	  LibraryVersion	  "1.2"
+	  SourceBlock		  "xbsIndex_r4/Slice"
+	  SourceType		  "Xilinx Bit Slice Extractor Block"
+	  infoedit		  "Extracts a given range of bits from each input sample and presents it at the output.  The output type "
+	  "is ordinarily unsigned with binary point at zero, but can be Boolean when the slice is one bit wide.<br><br>Hardwar"
+	  "e notes: In hardware this block costs nothing."
+	  nbits			  "4"
+	  boolean_output	  off
+	  mode			  "Lower Bit Location + Width"
+	  bit1			  "0"
+	  base1			  "MSB of Input"
+	  bit0			  "8"
+	  base0			  "LSB of Input"
+	  dbl_ovrd		  off
+	  has_advanced_control	  "0"
+	  sggui_pos		  "20,20,449,398"
+	  block_type		  "slice"
+	  block_version		  "VER_STRING_GOES_HERE"
+	  sg_icon_stat		  "40,14,1,1,white,blue,0,1fd851a7,right,,[ ],[ ]"
+	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 40 40 0 0 ],[0 0 14 14 0 ],[0.77 0.82 0.91"
+	  " ]);\nplot([0 40 40 0 0 ],[0 0 14 14 0 ]);\npatch([15.55 18.44 20.44 22.44 24.44 20.44 17.55 15.55 ],[9.22 9.22 11."
+	  "22 9.22 11.22 11.22 11.22 9.22 ],[1 1 1 ]);\npatch([17.55 20.44 18.44 15.55 17.55 ],[7.22 7.22 9.22 9.22 7.22 ],[0."
+	  "931 0.946 0.973 ]);\npatch([15.55 18.44 20.44 17.55 15.55 ],[5.22 5.22 7.22 7.22 5.22 ],[1 1 1 ]);\npatch([17.55 24"
+	  ".44 22.44 20.44 18.44 15.55 17.55 ],[3.22 3.22 5.22 3.22 5.22 5.22 3.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMME"
+	  "NT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black');port_label('output',1,'[a:b]');"
+	  "\nfprintf('','COMMENT: end icon text');"
+	}
+	Block {
+	  BlockType		  Reference
 	  Name			  "b[15:0]"
 	  SID			  "2821"
 	  Ports			  [1, 1]
@@ -52042,7 +52125,7 @@ Model {
 	  Name			  "b[15:8]"
 	  SID			  "1531"
 	  Ports			  [1, 1]
-	  Position		  [150, 443, 190, 457]
+	  Position		  [910, 198, 950, 212]
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Slice"
 	  SourceType		  "Xilinx Bit Slice Extractor Block"
@@ -52240,7 +52323,7 @@ Model {
 	  Name			  "b[29:24]"
 	  SID			  "1533"
 	  Ports			  [1, 1]
-	  Position		  [150, 553, 190, 567]
+	  Position		  [910, 308, 950, 322]
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Slice"
 	  SourceType		  "Xilinx Bit Slice Extractor Block"
@@ -52339,7 +52422,7 @@ Model {
 	  Name			  "b[31]"
 	  SID			  "2875"
 	  Ports			  [1, 1]
-	  Position		  [160, 338, 200, 352]
+	  Position		  [170, 463, 210, 477]
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Slice"
 	  SourceType		  "Xilinx Bit Slice Extractor Block"
@@ -52537,7 +52620,7 @@ Model {
 	  Name			  "b[7:0]"
 	  SID			  "1534"
 	  Ports			  [1, 1]
-	  Position		  [150, 403, 190, 417]
+	  Position		  [910, 158, 950, 172]
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Slice"
 	  SourceType		  "Xilinx Bit Slice Extractor Block"
@@ -52711,13 +52794,20 @@ Model {
 		    Branch {
 		    Points		    [0, 40]
 		    Branch {
-		    Points		    [0, 65]
+		    DstBlock		    "b[7]"
+		    DstPort		    1
+		    }
+		    Branch {
+		    Points		    [0, 50]
+		    Branch {
+		    Points		    [0, 140]
 		    DstBlock		    "b[31]"
 		    DstPort		    1
 		    }
 		    Branch {
-		    DstBlock		    "b[7]"
+		    DstBlock		    "b[11:8]"
 		    DstPort		    1
+		    }
 		    }
 		    }
 		    }
@@ -53126,15 +53216,15 @@ Model {
 	  DstPort		  1
 	}
 	Line {
-	  SrcBlock		  "b[7]"
+	  SrcBlock		  "b[11:8]"
 	  SrcPort		  1
-	  DstBlock		  "Register24"
+	  DstBlock		  "Register25"
 	  DstPort		  1
 	}
 	Line {
-	  SrcBlock		  "Register24"
+	  SrcBlock		  "Register25"
 	  SrcPort		  1
-	  DstBlock		  "Goto23"
+	  DstBlock		  "Goto24"
 	  DstPort		  1
 	}
       }
@@ -63927,32 +64017,6 @@ Model {
 	    }
 	    Block {
 	      BlockType		      Reference
-	      Name		      "Concat"
-	      SID		      "3984"
-	      Ports		      [4, 1]
-	      Position		      [770, 437, 825, 578]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Concat"
-	      SourceType	      "Xilinx Bus Concatenator Block"
-	      infoedit		      "Concatenates two or more inputs.  Output will be cast to an unsigned value with the binary poi"
-	      "nt at zero."
-	      num_inputs	      "4"
-	      dbl_ovrd		      off
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "concat"
-	      sg_icon_stat	      "55,141,4,1,white,blue,0,47d3d416,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 55 55 0 0 ],[0 0 141 141 0 ],[0.77"
-	      " 0.82 0.91 ]);\nplot([0 55 55 0 0 ],[0 0 141 141 0 ]);\npatch([11.425 21.54 28.54 35.54 42.54 28.54 18.425 11.4"
-	      "25 ],[77.77 77.77 84.77 77.77 84.77 84.77 84.77 77.77 ],[1 1 1 ]);\npatch([18.425 28.54 21.54 11.425 18.425 ],["
-	      "70.77 70.77 77.77 77.77 70.77 ],[0.931 0.946 0.973 ]);\npatch([11.425 21.54 28.54 18.425 11.425 ],[63.77 63.77 "
-	      "70.77 70.77 63.77 ],[1 1 1 ]);\npatch([18.425 42.54 35.54 28.54 21.54 11.425 18.425 ],[56.77 56.77 63.77 56.77 "
-	      "63.77 63.77 56.77 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: beg"
-	      "in icon text');\ncolor('black');port_label('input',1,'hi');\n\n\ncolor('black');port_label('input',4,'lo');\n\n"
-	      "color('black');disp('\\fontsize{20}\\}','texmode','on');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
 	      Name		      "Convert"
 	      SID		      "3952"
 	      Ports		      [1, 1]
@@ -64030,16 +64094,6 @@ Model {
 	      "('output',1,'cast');\nfprintf('','COMMENT: end icon text');"
 	    }
 	    Block {
-	      BlockType		      From
-	      Name		      "From1"
-	      SID		      "3993"
-	      Position		      [675, 304, 830, 326]
-	      ZOrder		      -9
-	      ShowName		      off
-	      GotoTag		      "regTx_TxEn_EndianSwap"
-	      TagVisibility	      "global"
-	    }
-	    Block {
 	      BlockType		      Goto
 	      Name		      "Goto3"
 	      SID		      "3964"
@@ -64081,41 +64135,6 @@ Model {
 	      "12.33 9.33 ],[1 1 1 ]);\npatch([16.325 26.66 23.66 20.66 17.66 13.325 16.325 ],[6.33 6.33 9.33 6.33 9.33 9.33 6"
 	      ".33 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text')"
 	      ";\n\n\n\ncolor('black');disp('or');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Mux"
-	      SID		      "3983"
-	      Ports		      [3, 1]
-	      Position		      [900, 298, 945, 402]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Mux"
-	      SourceType	      "Xilinx Bus Multiplexer Block"
-	      inputs		      "2"
-	      en		      off
-	      latency		      "0"
-	      precision		      "Full"
-	      arith_type	      "Unsigned"
-	      n_bits		      "16"
-	      bin_pt		      "14"
-	      quantization	      "Truncate"
-	      overflow		      "Wrap"
-	      dbl_ovrd		      off
-	      xl_use_area	      off
-	      xl_area		      "[0,0,0,0,0,0,0]"
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "mux"
-	      sg_icon_stat	      "45,104,3,1,white,blue,3,eb98d690,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 14.8571 89.1429 104"
-	      " 0 ],[0.77 0.82 0.91 ]);\nplot([0 45 45 0 0 ],[0 14.8571 89.1429 104 0 ]);\npatch([8.65 17.32 23.32 29.32 35.32"
-	      " 23.32 14.65 8.65 ],[58.66 58.66 64.66 58.66 64.66 64.66 64.66 58.66 ],[1 1 1 ]);\npatch([14.65 23.32 17.32 8.6"
-	      "5 14.65 ],[52.66 52.66 58.66 58.66 52.66 ],[0.931 0.946 0.973 ]);\npatch([8.65 17.32 23.32 14.65 8.65 ],[46.66 "
-	      "46.66 52.66 52.66 46.66 ],[1 1 1 ]);\npatch([14.65 35.32 29.32 23.32 17.32 8.65 14.65 ],[40.66 40.66 46.66 40.6"
-	      "6 46.66 46.66 40.66 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: b"
-	      "egin icon text');\ncolor('black');port_label('input',1,'sel');\ncolor('black');port_label('input',2,'d0');\ncol"
-	      "or('black');port_label('input',3,'d1');\n\ncolor('black');disp('\\bf{}','texmode','on');\nfprintf('','COMMENT: "
-	      "end icon text');"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -64222,134 +64241,6 @@ Model {
 	      "put',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprintf('','COMMENT: end icon text');"
 	    }
 	    Block {
-	      BlockType		      Reference
-	      Name		      "b0"
-	      SID		      "3985"
-	      Ports		      [1, 1]
-	      Position		      [675, 447, 720, 463]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Slice"
-	      SourceType	      "Xilinx Bit Slice Extractor Block"
-	      infoedit		      "Extracts a given range of bits from each input sample and presents it at the output.  The outp"
-	      "ut type is ordinarily unsigned with binary point at zero, but can be Boolean when the slice is one bit wide.<br"
-	      "><br>Hardware notes: In hardware this block costs nothing."
-	      nbits		      "1"
-	      boolean_output	      off
-	      mode		      "Lower Bit Location + Width"
-	      bit1		      "0"
-	      base1		      "MSB of Input"
-	      bit0		      "0"
-	      base0		      "LSB of Input"
-	      dbl_ovrd		      off
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "slice"
-	      sg_icon_stat	      "45,16,1,1,white,blue,0,1fd851a7,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 16 16 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 45 45 0 0 ],[0 0 16 16 0 ]);\npatch([17.55 20.44 22.44 24.44 26.44 22.44 19.55 17.55 ],[1"
-	      "0.22 10.22 12.22 10.22 12.22 12.22 12.22 10.22 ],[1 1 1 ]);\npatch([19.55 22.44 20.44 17.55 19.55 ],[8.22 8.22 "
-	      "10.22 10.22 8.22 ],[0.931 0.946 0.973 ]);\npatch([17.55 20.44 22.44 19.55 17.55 ],[6.22 6.22 8.22 8.22 6.22 ],["
-	      "1 1 1 ]);\npatch([19.55 26.44 24.44 22.44 20.44 17.55 19.55 ],[4.22 4.22 6.22 4.22 6.22 6.22 4.22 ],[0.931 0.94"
-	      "6 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black"
-	      "');port_label('output',1,'[a:b]');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "b1"
-	      SID		      "3986"
-	      Ports		      [1, 1]
-	      Position		      [675, 482, 720, 498]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Slice"
-	      SourceType	      "Xilinx Bit Slice Extractor Block"
-	      infoedit		      "Extracts a given range of bits from each input sample and presents it at the output.  The outp"
-	      "ut type is ordinarily unsigned with binary point at zero, but can be Boolean when the slice is one bit wide.<br"
-	      "><br>Hardware notes: In hardware this block costs nothing."
-	      nbits		      "1"
-	      boolean_output	      off
-	      mode		      "Lower Bit Location + Width"
-	      bit1		      "0"
-	      base1		      "MSB of Input"
-	      bit0		      "1"
-	      base0		      "LSB of Input"
-	      dbl_ovrd		      off
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "slice"
-	      sg_icon_stat	      "45,16,1,1,white,blue,0,1fd851a7,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 16 16 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 45 45 0 0 ],[0 0 16 16 0 ]);\npatch([17.55 20.44 22.44 24.44 26.44 22.44 19.55 17.55 ],[1"
-	      "0.22 10.22 12.22 10.22 12.22 12.22 12.22 10.22 ],[1 1 1 ]);\npatch([19.55 22.44 20.44 17.55 19.55 ],[8.22 8.22 "
-	      "10.22 10.22 8.22 ],[0.931 0.946 0.973 ]);\npatch([17.55 20.44 22.44 19.55 17.55 ],[6.22 6.22 8.22 8.22 6.22 ],["
-	      "1 1 1 ]);\npatch([19.55 26.44 24.44 22.44 20.44 17.55 19.55 ],[4.22 4.22 6.22 4.22 6.22 6.22 4.22 ],[0.931 0.94"
-	      "6 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black"
-	      "');port_label('output',1,'[a:b]');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "b2"
-	      SID		      "3987"
-	      Ports		      [1, 1]
-	      Position		      [675, 517, 720, 533]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Slice"
-	      SourceType	      "Xilinx Bit Slice Extractor Block"
-	      infoedit		      "Extracts a given range of bits from each input sample and presents it at the output.  The outp"
-	      "ut type is ordinarily unsigned with binary point at zero, but can be Boolean when the slice is one bit wide.<br"
-	      "><br>Hardware notes: In hardware this block costs nothing."
-	      nbits		      "1"
-	      boolean_output	      off
-	      mode		      "Lower Bit Location + Width"
-	      bit1		      "0"
-	      base1		      "MSB of Input"
-	      bit0		      "2"
-	      base0		      "LSB of Input"
-	      dbl_ovrd		      off
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "slice"
-	      sg_icon_stat	      "45,16,1,1,white,blue,0,1fd851a7,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 16 16 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 45 45 0 0 ],[0 0 16 16 0 ]);\npatch([17.55 20.44 22.44 24.44 26.44 22.44 19.55 17.55 ],[1"
-	      "0.22 10.22 12.22 10.22 12.22 12.22 12.22 10.22 ],[1 1 1 ]);\npatch([19.55 22.44 20.44 17.55 19.55 ],[8.22 8.22 "
-	      "10.22 10.22 8.22 ],[0.931 0.946 0.973 ]);\npatch([17.55 20.44 22.44 19.55 17.55 ],[6.22 6.22 8.22 8.22 6.22 ],["
-	      "1 1 1 ]);\npatch([19.55 26.44 24.44 22.44 20.44 17.55 19.55 ],[4.22 4.22 6.22 4.22 6.22 6.22 4.22 ],[0.931 0.94"
-	      "6 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black"
-	      "');port_label('output',1,'[a:b]');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "b3"
-	      SID		      "3988"
-	      Ports		      [1, 1]
-	      Position		      [675, 552, 720, 568]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Slice"
-	      SourceType	      "Xilinx Bit Slice Extractor Block"
-	      infoedit		      "Extracts a given range of bits from each input sample and presents it at the output.  The outp"
-	      "ut type is ordinarily unsigned with binary point at zero, but can be Boolean when the slice is one bit wide.<br"
-	      "><br>Hardware notes: In hardware this block costs nothing."
-	      nbits		      "1"
-	      boolean_output	      off
-	      mode		      "Lower Bit Location + Width"
-	      bit1		      "0"
-	      base1		      "MSB of Input"
-	      bit0		      "3"
-	      base0		      "LSB of Input"
-	      dbl_ovrd		      off
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "slice"
-	      sg_icon_stat	      "45,16,1,1,white,blue,0,1fd851a7,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 16 16 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 45 45 0 0 ],[0 0 16 16 0 ]);\npatch([17.55 20.44 22.44 24.44 26.44 22.44 19.55 17.55 ],[1"
-	      "0.22 10.22 12.22 10.22 12.22 12.22 12.22 10.22 ],[1 1 1 ]);\npatch([19.55 22.44 20.44 17.55 19.55 ],[8.22 8.22 "
-	      "10.22 10.22 8.22 ],[0.931 0.946 0.973 ]);\npatch([17.55 20.44 22.44 19.55 17.55 ],[6.22 6.22 8.22 8.22 6.22 ],["
-	      "1 1 1 ]);\npatch([19.55 26.44 24.44 22.44 20.44 17.55 19.55 ],[4.22 4.22 6.22 4.22 6.22 6.22 4.22 ],[0.931 0.94"
-	      "6 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black"
-	      "');port_label('output',1,'[a:b]');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
 	      BlockType		      Outport
 	      Name		      "Tx Ant Mask"
 	      SID		      "3958"
@@ -64366,34 +64257,8 @@ Model {
 		DstPort			1
 	      }
 	      Branch {
-		DstBlock		"Mux"
-		DstPort			2
-	      }
-	      Branch {
-		Points			[0, 105]
-		Branch {
-		  DstBlock		  "b0"
-		  DstPort		  1
-		}
-		Branch {
-		  Points		  [0, 35]
-		  Branch {
-		    DstBlock		    "b1"
-		    DstPort		    1
-		  }
-		  Branch {
-		    Points		    [0, 35]
-		    Branch {
-		    DstBlock		    "b2"
-		    DstPort		    1
-		    }
-		    Branch {
-		    Points		    [0, 35]
-		    DstBlock		    "b3"
-		    DstPort		    1
-		    }
-		  }
-		}
+		DstBlock		"Tx Ant Mask"
+		DstPort			1
 	      }
 	    }
 	    Line {
@@ -64439,58 +64304,9 @@ Model {
 	      DstBlock		      "Logical1"
 	      DstPort		      2
 	    }
-	    Line {
-	      SrcBlock		      "b0"
-	      SrcPort		      1
-	      DstBlock		      "Concat"
-	      DstPort		      1
-	    }
-	    Line {
-	      SrcBlock		      "b1"
-	      SrcPort		      1
-	      DstBlock		      "Concat"
-	      DstPort		      2
-	    }
-	    Line {
-	      SrcBlock		      "b2"
-	      SrcPort		      1
-	      DstBlock		      "Concat"
-	      DstPort		      3
-	    }
-	    Line {
-	      SrcBlock		      "b3"
-	      SrcPort		      1
-	      DstBlock		      "Concat"
-	      DstPort		      4
-	    }
-	    Line {
-	      Labels		      [2, 0]
-	      SrcBlock		      "Concat"
-	      SrcPort		      1
-	      Points		      [35, 0; 0, -125]
-	      DstBlock		      "Mux"
-	      DstPort		      3
-	    }
-	    Line {
-	      SrcBlock		      "From1"
-	      SrcPort		      1
-	      DstBlock		      "Mux"
-	      DstPort		      1
-	    }
-	    Line {
-	      SrcBlock		      "Mux"
-	      SrcPort		      1
-	      DstBlock		      "Tx Ant Mask"
-	      DstPort		      1
-	    }
 	    Annotation {
 	      Name		      "Pass through MAC Tx ant selection to radio controller"
 	      Position		      [522, 205]
-	    }
-	    Annotation {
-	      Name		      "HACK: Remove this endian swap once correct endianess is\nconfirmed for the MAC->PHY->radio_control"
-	      "ler TxEn port"
-	      Position		      [733, 611]
 	    }
 	  }
 	}
@@ -67073,7 +66889,7 @@ MatData {
     "0         !0    @               $         $          .    ,     8    (    !          %    \"     $    #     0     "
     "    0  , 6%-4  X    P    !@    @    $          4    (               !         !          #@   $     &    \"     0 "
     "        !0    @    !    #0    $         $     T   !#;&]C:R!%;F%B;&5S    #@   $     &    \"     0         !0    @  "
-    "  !    #P    $         $     \\    N+W!C;W)E7W1X7W8R,C  #@   #     &    \"     0         !0    @               $  "
+    "  !    #P    $         $     \\    N+W!C;W)E7W1X7W8R,C$ #@   #     &    \"     0         !0    @               $  "
     "       $          .    2     8    (    !          %    \"     $    1     0         0    $0   %!R;VIE8W0@3F%V:6=A=&"
     "]R          X    P    !@    @    $          4    (               !         !          #@   $     &    \"     0    "
     "     !0    @    !    #     $         $     P   !84U0@1&5F875L=',     #@   #     &    \"     0         !0    @     "
@@ -67119,10 +66935,10 @@ MatData {
     "    $         $          .    0     8    (    !          %    \"     $    0     0         0    $    '1A<F=E=%]D:7)"
     "E8W1O<GD.    ,     8    (    !          %    \"                0         0          X    X    !@    @    &        "
     "  4    (     0    $    !          D    (             $ .    .     8    (    !@         %    \"     $    !     0   "
-    "      )    \"               #@   #     &    \"     0         !0    @    !     0    $         $  ! ',    .    .    "
+    "      )    \"               #@   #     &    \"     0         !0    @    !     0    $         $  ! '0    .    .    "
     " 8    (    !@         %    \"     $    !     0         )    \"    )9#BVSG^_\\_#@   #@    &    \"     8         !0 "
     "   @    !     0    $         \"0    @               X    X    !@    @    &          4    (     0    $    !        "
-    "  D    (          # 7$ .    .     8    (    !@         %    \"     $    !     0         )    \"            / _#@  "
+    "  D    (            74 .    .     8    (    !@         %    \"     $    !     0         )    \"            / _#@  "
     " #@    &    \"     8         !0    @    !     0    $         \"0    @           #P/PX   !X!P  !@    @    \"       "
     "   4    (     0    $    !          4 !  %     0    H   !B:0   '!O<G0         #@   * !   &    \"     (         !0  "
     "  @    !     0    $         !0 $  4    !    #P   &-O;#$ 8V]L,@!C;VPS   .    :     8    (     0         %    \"    "
@@ -67311,7 +67127,7 @@ MatData {
     "      !     &    9F8Q,34V   .    ,     8    (    !          %    \"                0         0          X    P    "
     "!@    @    $          4    (     0    ,    !         !   P!84U0 #@   #     &    \"     0         !0    @          "
     "     $         $          .    0     8    (    !          %    \"     $    -     0         0    #0   $-L;V-K($5N86"
-    ")L97,    .    0     8    (    !          %    \"     $    /     0         0    #P   \"XO<&-O<F5?='A?=C(R,  .    , "
+    ")L97,    .    0     8    (    !          %    \"     $    /     0         0    #P   \"XO<&-O<F5?='A?=C(R,0 .    , "
     "    8    (    !          %    \"                0         0          X   !(    !@    @    $          4    (     0 "
     "  !$    !         !     1    4')O:F5C=\"!.879I9V%T;W(         #@   #     &    \"     0         !0    @            "
     "   $         $          .    0     8    (    !          %    \"     $    ,     0         0    #    %A35\"!$969A=6Q"
@@ -67358,9 +67174,9 @@ MatData {
     " 0   !     !         !     0    =&%R9V5T7V1I<F5C=&]R>0X    P    !@    @    $          4    (               !      "
     "   !          #@   #@    &    \"     8         !0    @    !     0    $         \"0    @             0 X    X    !@"
     "    @    &          4    (     0    $    !          D    (               .    ,     8    (    !          %    \"  "
-    "   $    !     0         0  $ <P    X    X    !@    @    &          4    (     0    $    !          D    (    ED.+;"
+    "   $    !     0         0  $ =     X    X    !@    @    &          4    (     0    $    !          D    (    ED.+;"
     ".?[_S\\.    .     8    (    !@         %    \"     $    !     0         )    \"               #@   #@    &    \"  "
-    "   8         !0    @    !     0    $         \"0    @          ,!<0 X    X    !@    @    &          4    (     0  "
+    "   8         !0    @    !     0    $         \"0    @           !=0 X    X    !@    @    &          4    (     0  "
     "  $    !          D    (            \\#\\.    .     8    (    !@         %    \"     $    !     0         )    \" "
     "           / _#@   '@'   &    \"     (         !0    @    !     0    $         !0 $  4    !    \"@   &)I    <&]R= "
     "         .    H $   8    (     @         %    \"     $    !     0         %  0 !0    $    /    8V]L,0!C;VPR &-O;#,"

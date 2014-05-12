@@ -89,6 +89,8 @@ REG_TX_Config = ...
     2^3  * 0 + ... %Enable Tx on RF B
     2^4  * 0 + ... %Enable Tx on RF C
     2^5  * 0 + ... %Enable Tx on RF D
+    2^6  * 1 + ... %Use ant mask from MAC hw port
+    2^8  * 2 + ... %Max pkt length (SIGNAL.LENGTH max) in kB (UFix4_0)
     0;
 
 REG_TX_PKT_BUF_SEL = ...

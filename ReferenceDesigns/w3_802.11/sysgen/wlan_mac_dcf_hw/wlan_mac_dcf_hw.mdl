@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.361"
+    ComputedModelVersion    "1.365"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -30,9 +30,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "murphpo"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Thu May 01 22:15:17 2014"
-  RTWModifiedTimeStamp	  320882654
-  ModelVersionFormat	  "1.%<AutoIncrement:361>"
+  LastModifiedDate	  "Fri May 09 20:36:09 2014"
+  RTWModifiedTimeStamp	  321568329
+  ModelVersionFormat	  "1.%<AutoIncrement:365>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -70,7 +70,6 @@ Model {
     $ObjectID		    1
     $ClassName		    "Simulink.SimulationData.ModelLoggingInfo"
     model_		    "wlan_mac_hw"
-    signals_		    []
     overrideMode_	    [0.0]
     Array {
       Type		      "Cell"
@@ -823,7 +822,7 @@ Model {
     ShowPageBoundaries	    off
     ZoomFactor		    "173"
     ReportName		    "simulink-default.rpt"
-    SIDHighWatermark	    "2060"
+    SIDHighWatermark	    "2068"
     Block {
       BlockType		      Reference
       Name		      " System Generator"
@@ -845,7 +844,7 @@ Model {
       package		      "ff1156"
       synthesis_tool	      "XST"
       clock_wrapper	      "Clock Enables"
-      directory		      "./pcore_v26"
+      directory		      "./pcore_v27"
       proj_type		      "Project Navigator"
       Synth_file	      "XST Defaults"
       Impl_file		      "ISE Defaults"
@@ -885,11 +884,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"64-bit usec \nCounter"
 	Location		[1518, 1169, 2072, 1442]
@@ -1008,11 +1002,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Set_Timestamp_MSB"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -1023,11 +1012,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Set_Timestamp_LSB"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -1038,11 +1022,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Update_Timestamp"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -1053,11 +1032,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MICROSECOND_TIMESTAMP"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -1149,11 +1123,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge2"
 	    Location		    [88, 301, 2330, 1301]
@@ -1175,11 +1144,6 @@ Model {
 	      SID		      "1755"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -1284,11 +1248,6 @@ Model {
 	      SID		      "1759"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "D"
@@ -1525,11 +1484,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "usec Pulse"
 	    Location		    [2, 70, 2464, 1580]
@@ -1551,11 +1505,6 @@ Model {
 	      SID		      "1743"
 	      Position		      [130, 218, 160, 232]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -1711,11 +1660,6 @@ Model {
 	      SID		      "1748"
 	      Position		      [530, 228, 560, 242]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Clk->usec"
@@ -1887,11 +1831,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Auto Tx\nControl"
 	Location		[352, 168, 1991, 1473]
@@ -1996,11 +1935,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_END_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2011,11 +1945,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_FCS_GOOD_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2028,11 +1957,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2043,11 +1967,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_END_RXERROR"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2058,11 +1977,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Dly"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2073,11 +1987,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Dly"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2088,6 +1997,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Param_TxGain"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2098,11 +2012,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Param_PktBuf"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2113,11 +2022,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Param_En"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -2128,11 +2032,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Param_TxAntMask"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -2143,11 +2042,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_PktBuf"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -2158,11 +2052,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_AutoTx_Pending"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -2173,6 +2062,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_Gain"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -2183,11 +2077,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_AntMask"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -2198,11 +2087,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_PHY_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -2456,11 +2340,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge1"
 	    Location		    [88, 301, 2330, 1301]
@@ -2482,11 +2361,6 @@ Model {
 	      SID		      "1113"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -2591,11 +2465,6 @@ Model {
 	      SID		      "1117"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Delay"
@@ -2649,11 +2518,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge2"
 	    Location		    [88, 301, 2330, 1301]
@@ -2675,11 +2539,6 @@ Model {
 	      SID		      "1534"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -2784,11 +2643,6 @@ Model {
 	      SID		      "1538"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "D"
@@ -3048,11 +2902,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "S-R Latch1"
 	    Location		    [379, 291, 1877, 1167]
@@ -3074,11 +2923,6 @@ Model {
 	      SID		      "1146"
 	      Position		      [140, 103, 170, 117]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -3088,11 +2932,6 @@ Model {
 	      NamePlacement	      "alternate"
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -3172,11 +3011,6 @@ Model {
 	      SID		      "1150"
 	      Position		      [325, 88, 355, 102]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "S"
@@ -3217,11 +3051,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "S-R Latch2"
 	    Location		    [379, 291, 1877, 1167]
@@ -3243,11 +3072,6 @@ Model {
 	      SID		      "1528"
 	      Position		      [140, 103, 170, 117]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -3257,11 +3081,6 @@ Model {
 	      NamePlacement	      "alternate"
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -3341,11 +3160,6 @@ Model {
 	      SID		      "1532"
 	      Position		      [325, 88, 355, 102]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Constant1"
@@ -3429,11 +3243,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "negedge"
 	    Location		    [88, 301, 2330, 1301]
@@ -3455,11 +3264,6 @@ Model {
 	      SID		      "1545"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -3564,11 +3368,6 @@ Model {
 	      SID		      "1549"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Delay"
@@ -3884,11 +3683,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Backoff"
 	Location		[413, 70, 2195, 1531]
@@ -3939,11 +3733,6 @@ Model {
 	  DataFormat		  "StructureWithTime"
 	  LimitDataPoints	  off
 	  SampleTime		  "0"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -4036,11 +3825,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Ctrl"
 	    Location		    [-1678, 70, -2, 1030]
@@ -4062,11 +3846,6 @@ Model {
 	      SID		      "1862"
 	      Position		      [285, 583, 315, 597]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -4075,11 +3854,6 @@ Model {
 	      Position		      [285, 478, 315, 492]
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -4088,11 +3862,6 @@ Model {
 	      Position		      [285, 373, 315, 387]
 	      Port		      "3"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -4101,11 +3870,6 @@ Model {
 	      Position		      [295, 768, 325, 782]
 	      Port		      "4"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -4188,11 +3952,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "GLOBAL_RESET"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -4203,11 +3962,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "GLOBAL_RESET"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -4459,11 +4213,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Posedge1"
 		Location		[352, 168, 2136, 1512]
@@ -4485,11 +4234,6 @@ Model {
 		  SID			  "1878"
 		  Position		  [200, 253, 230, 267]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -4594,11 +4338,6 @@ Model {
 		  SID			  "1882"
 		  Position		  [610, 173, 640, 187]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "D"
@@ -4652,11 +4391,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Posedge2"
 		Location		[352, 168, 2136, 1512]
@@ -4678,11 +4412,6 @@ Model {
 		  SID			  "1884"
 		  Position		  [200, 253, 230, 267]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -4787,11 +4516,6 @@ Model {
 		  SID			  "1888"
 		  Position		  [610, 173, 640, 187]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Delay"
@@ -4845,11 +4569,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Posedge3"
 		Location		[352, 168, 2136, 1512]
@@ -4871,11 +4590,6 @@ Model {
 		  SID			  "1890"
 		  Position		  [200, 253, 230, 267]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -4980,11 +4694,6 @@ Model {
 		  SID			  "1894"
 		  Position		  [610, 173, 640, 187]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "D"
@@ -5066,11 +4775,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"S-R Latch1"
 		Location		[379, 291, 1877, 1167]
@@ -5092,11 +4796,6 @@ Model {
 		  SID			  "1897"
 		  Position		  [140, 103, 170, 117]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Inport
@@ -5106,11 +4805,6 @@ Model {
 		  NamePlacement		  "alternate"
 		  Port			  "2"
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -5190,11 +4884,6 @@ Model {
 		  SID			  "1901"
 		  Position		  [325, 88, 355, 102]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Constant1"
@@ -5235,11 +4924,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"S-R Latch2"
 		Location		[379, 291, 1877, 1167]
@@ -5261,11 +4945,6 @@ Model {
 		  SID			  "1903"
 		  Position		  [140, 103, 170, 117]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Inport
@@ -5275,11 +4954,6 @@ Model {
 		  NamePlacement		  "alternate"
 		  Port			  "2"
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -5359,11 +5033,6 @@ Model {
 		  SID			  "1907"
 		  Position		  [325, 88, 355, 102]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "S"
@@ -5397,11 +5066,6 @@ Model {
 	      SID		      "1908"
 	      Position		      [1070, 763, 1100, 777]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Outport
@@ -5410,11 +5074,6 @@ Model {
 	      Position		      [955, 493, 985, 507]
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Outport
@@ -5423,11 +5082,6 @@ Model {
 	      Position		      [860, 623, 890, 637]
 	      Port		      "3"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Logical7"
@@ -5623,11 +5277,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PRE_TX_NUM_BO_SLOTS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -5638,11 +5287,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -5653,11 +5297,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Backoff_Sw_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -5668,11 +5307,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Backoff_Sw_NumSlots"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -5683,11 +5317,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Force_Reset_Backoff"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -5698,11 +5327,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_Backoff_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -5713,11 +5337,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "IDLE_FOR_TXDIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -5933,11 +5552,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Backoff_Counter_Load"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -5948,11 +5562,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Backoff_Counter_Dec"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -5963,11 +5572,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Current_Backoff_Count"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -6378,11 +5982,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Slot Time"
 	    Location		    [837, 600, 1252, 803]
@@ -6404,11 +6003,6 @@ Model {
 	      SID		      "1061"
 	      Position		      [200, 363, 230, 377]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -6419,11 +6013,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Interval_Slot"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -6607,11 +6196,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Posedge2"
 		Location		[352, 168, 2136, 1512]
@@ -6633,11 +6217,6 @@ Model {
 		  SID			  "1360"
 		  Position		  [200, 253, 230, 267]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -6742,11 +6321,6 @@ Model {
 		  SID			  "1364"
 		  Position		  [610, 173, 640, 187]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Delay"
@@ -6896,11 +6470,6 @@ Model {
 	      DataFormat	      "StructureWithTime"
 	      LimitDataPoints	      off
 	      SampleTime	      "0"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Outport
@@ -6908,11 +6477,6 @@ Model {
 	      SID		      "1070"
 	      Position		      [855, 353, 885, 367]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "En"
@@ -7058,11 +6622,6 @@ Model {
 	  SID			  "1071"
 	  Position		  [755, 328, 785, 342]
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "Convert"
@@ -7401,11 +6960,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"CCA"
 	Location		[1389, 1143, 2045, 1355]
@@ -7430,6 +6984,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MAC_NAV_BUSY"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -7440,6 +6999,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_CCA_Ignore_NAV"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -7450,6 +7014,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_CCA_IND_BUSY"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -7460,6 +7029,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_CCA_Ignore_PHY_CS"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -7470,6 +7044,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Tx_PHY_Active"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -7480,6 +7059,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_CCA_Ignore_TxBusy"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -7739,11 +7323,6 @@ Model {
 	  SID			  "615"
 	  Position		  [860, 393, 890, 407]
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Outport
@@ -7752,11 +7331,6 @@ Model {
 	  Position		  [860, 453, 890, 467]
 	  Port			  "2"
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "Logical3"
@@ -7869,11 +7443,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Changelog"
 	Location		[32, 338, 1632, 1557]
@@ -7919,8 +7488,9 @@ Model {
 	  Name			  "1.00.x:\nAdded TxGain params to MPDU Tx and Auto Tx paths, captured and output to PHY for per-pkt Tx pwr "
 	  "control\nAdded TX_START_TIMESTAMP registers\n\n1.00.y:\nAdded posedge's to timestamp capture register enables\n  (1"
 	  ".00.x TX_START was \"enbaled\" for whole pkt, instead of once at TX_START)\n\n1.00.z:\nAdded software resets for NA"
-	  "V and backoff counters (not required by standard, but useful for research)"
-	  Position		  [483, 117]
+	  "V and backoff counters (not required by standard, but useful for research)\n\n1.01.a:\nAdded TX_START time output f"
+	  "or PHY Tx timestamp insertion (better than inserting raw timestamp)"
+	  Position		  [483, 137]
 	  HorizontalAlignment	  "left"
 	  BackgroundColor	  "[0.898039, 0.898039, 0.898039]"
 	}
@@ -7939,11 +7509,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"ChipScope"
 	Location		[1209, 389, 1726, 892]
@@ -8118,11 +7683,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_END_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8133,11 +7693,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_PHY_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8148,11 +7703,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_status"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8163,11 +7713,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MAC_NAV_BUSY"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8178,11 +7723,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_Timeout_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8193,11 +7733,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_Backoff_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8208,11 +7743,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Tx_PHY_Active"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8223,11 +7753,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTE_VALID"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8238,11 +7763,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_PHY_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8253,11 +7773,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTE"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8268,11 +7783,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTENUM"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8283,11 +7793,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_FCS_GOOD_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8298,11 +7803,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_END_RXERROR"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8313,11 +7813,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -8328,11 +7823,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_CCA_IND_BUSY"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -9230,11 +8720,6 @@ Model {
 	  SID			  "2015:216"
 	  Position		  [20, 50, 40, 70]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9242,11 +8727,6 @@ Model {
 	  SID			  "2015:218"
 	  Position		  [20, 120, 40, 140]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9254,11 +8734,6 @@ Model {
 	  SID			  "2015:236"
 	  Position		  [20, 730, 40, 750]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9266,11 +8741,6 @@ Model {
 	  SID			  "2015:238"
 	  Position		  [20, 800, 40, 820]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9278,11 +8748,6 @@ Model {
 	  SID			  "2015:240"
 	  Position		  [20, 865, 40, 885]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9290,11 +8755,6 @@ Model {
 	  SID			  "2015:242"
 	  Position		  [20, 935, 40, 955]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9302,11 +8762,6 @@ Model {
 	  SID			  "2015:244"
 	  Position		  [20, 1000, 40, 1020]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9314,11 +8769,6 @@ Model {
 	  SID			  "2015:246"
 	  Position		  [20, 1070, 40, 1090]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9326,11 +8776,6 @@ Model {
 	  SID			  "2015:248"
 	  Position		  [20, 1140, 40, 1160]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9338,11 +8783,6 @@ Model {
 	  SID			  "2015:250"
 	  Position		  [20, 1205, 40, 1225]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9350,11 +8790,6 @@ Model {
 	  SID			  "2015:252"
 	  Position		  [20, 1275, 40, 1295]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9362,11 +8797,6 @@ Model {
 	  SID			  "2015:254"
 	  Position		  [20, 1340, 40, 1360]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9374,11 +8804,6 @@ Model {
 	  SID			  "2015:220"
 	  Position		  [20, 185, 40, 205]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9386,11 +8811,6 @@ Model {
 	  SID			  "2015:256"
 	  Position		  [20, 1410, 40, 1430]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9398,11 +8818,6 @@ Model {
 	  SID			  "2015:258"
 	  Position		  [20, 1480, 40, 1500]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9410,11 +8825,6 @@ Model {
 	  SID			  "2015:260"
 	  Position		  [20, 1545, 40, 1565]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9422,11 +8832,6 @@ Model {
 	  SID			  "2015:262"
 	  Position		  [20, 1615, 40, 1635]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9434,11 +8839,6 @@ Model {
 	  SID			  "2015:264"
 	  Position		  [20, 1680, 40, 1700]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9446,11 +8846,6 @@ Model {
 	  SID			  "2015:222"
 	  Position		  [20, 255, 40, 275]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9458,11 +8853,6 @@ Model {
 	  SID			  "2015:224"
 	  Position		  [20, 320, 40, 340]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9470,11 +8860,6 @@ Model {
 	  SID			  "2015:226"
 	  Position		  [20, 390, 40, 410]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9482,11 +8867,6 @@ Model {
 	  SID			  "2015:228"
 	  Position		  [20, 460, 40, 480]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9494,11 +8874,6 @@ Model {
 	  SID			  "2015:230"
 	  Position		  [20, 525, 40, 545]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9506,11 +8881,6 @@ Model {
 	  SID			  "2015:232"
 	  Position		  [20, 595, 40, 615]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -9518,11 +8888,6 @@ Model {
 	  SID			  "2015:234"
 	  Position		  [20, 660, 40, 680]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -11334,11 +10699,6 @@ Model {
 	  SID			  "2015:266"
 	  Position		  [820, 430, 840, 450]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11346,11 +10706,6 @@ Model {
 	  SID			  "2015:268"
 	  Position		  [820, 495, 840, 515]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11358,11 +10713,6 @@ Model {
 	  SID			  "2015:286"
 	  Position		  [820, 1110, 840, 1130]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11370,11 +10720,6 @@ Model {
 	  SID			  "2015:270"
 	  Position		  [820, 565, 840, 585]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11382,11 +10727,6 @@ Model {
 	  SID			  "2015:272"
 	  Position		  [820, 635, 840, 655]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11394,11 +10734,6 @@ Model {
 	  SID			  "2015:274"
 	  Position		  [820, 700, 840, 720]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11406,11 +10741,6 @@ Model {
 	  SID			  "2015:276"
 	  Position		  [820, 770, 840, 790]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11418,11 +10748,6 @@ Model {
 	  SID			  "2015:278"
 	  Position		  [820, 835, 840, 855]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11430,11 +10755,6 @@ Model {
 	  SID			  "2015:280"
 	  Position		  [820, 905, 840, 925]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11442,11 +10762,6 @@ Model {
 	  SID			  "2015:282"
 	  Position		  [820, 975, 840, 995]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -11454,11 +10769,6 @@ Model {
 	  SID			  "2015:284"
 	  Position		  [820, 1040, 840, 1060]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -12960,11 +12270,6 @@ Model {
       ShowName		      off
       GotoTag		      "IDLE_FOR_TXDIFS"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Goto
@@ -12975,11 +12280,6 @@ Model {
       ShowName		      off
       GotoTag		      "MAC_NAV_BUSY"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Goto
@@ -12990,11 +12290,6 @@ Model {
       ShowName		      off
       GotoTag		      "IDLE_FOR_DIFS"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Goto
@@ -13005,11 +12300,6 @@ Model {
       ShowName		      off
       GotoTag		      "Backoff_Done"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Goto
@@ -13020,11 +12310,6 @@ Model {
       ShowName		      off
       GotoTag		      "MEDIUM_IDLE"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Goto
@@ -13035,11 +12320,6 @@ Model {
       ShowName		      off
       GotoTag		      "MEDIUM_BUSY"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Goto
@@ -13050,11 +12330,6 @@ Model {
       ShowName		      off
       GotoTag		      "Timeout_Done"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      SubSystem
@@ -13069,11 +12344,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Idle for DIFS-EIFS"
 	Location		[352, 168, 2136, 1512]
@@ -13103,11 +12373,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Bad Rx"
 	    Location		    [402, 757, 917, 971]
@@ -13172,11 +12437,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_END_IND"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -13187,11 +12447,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_FCS_GOOD_IND"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -13202,11 +12457,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_END_RXERROR"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -13319,11 +12569,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Posedge1"
 		Location		[352, 168, 2136, 1512]
@@ -13345,11 +12590,6 @@ Model {
 		  SID			  "609"
 		  Position		  [200, 253, 230, 267]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -13454,11 +12694,6 @@ Model {
 		  SID			  "613"
 		  Position		  [610, 173, 640, 187]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Delay"
@@ -13533,11 +12768,6 @@ Model {
 	      SID		      "605"
 	      Position		      [565, 78, 595, 92]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "From7"
@@ -13652,11 +12882,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MEDIUM_BUSY"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -13667,11 +12892,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -13682,11 +12902,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Interval_EIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -13697,11 +12912,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MEDIUM_IDLE"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -13712,11 +12922,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Interval_DIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -13727,11 +12932,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MEDIUM_BUSY"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -13742,11 +12942,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Interval_EIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -13757,11 +12952,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_CalibTime_TxDIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -13772,11 +12962,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -13956,11 +13141,6 @@ Model {
 	  DataFormat		  "StructureWithTime"
 	  LimitDataPoints	  off
 	  SampleTime		  "0"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -14351,11 +13531,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "S-R Latch1"
 	    Location		    [379, 291, 1877, 1167]
@@ -14377,11 +13552,6 @@ Model {
 	      SID		      "589"
 	      Position		      [140, 103, 170, 117]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -14391,11 +13561,6 @@ Model {
 	      NamePlacement	      "alternate"
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -14475,11 +13640,6 @@ Model {
 	      SID		      "593"
 	      Position		      [325, 88, 355, 102]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "S"
@@ -14581,11 +13741,6 @@ Model {
 	  SID			  "509"
 	  Position		  [1050, 223, 1080, 237]
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Outport
@@ -14594,11 +13749,6 @@ Model {
 	  Position		  [1050, 548, 1080, 562]
 	  Port			  "2"
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "Relational3"
@@ -14871,11 +14021,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"MPDU Tx\nControl"
 	Location		[858, 708, 2193, 1043]
@@ -15083,11 +14228,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "IDLE_FOR_DIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15100,11 +14240,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15115,11 +14250,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15130,11 +14260,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15145,6 +14270,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_TxGain"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15155,11 +14285,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_TxAntMask"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15170,11 +14295,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15185,11 +14305,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_TX_END_CONFIRM"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15200,11 +14315,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15215,11 +14325,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Backoff_Done"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15230,11 +14335,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Timeout_Done"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15245,11 +14345,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_BO_Slots"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15260,11 +14355,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_Start_Timeout"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -15275,11 +14365,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_PktBuf"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -15700,11 +14785,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_MPDU_TxPending"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15715,6 +14795,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MPDU_Tx_Param_TxGain"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15725,11 +14810,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MPDU_Tx_Param_TxAntMask"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15740,11 +14820,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_MPDU_TxResult"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15755,11 +14830,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_MPDU_TxState"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15770,11 +14840,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_PHY_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15785,11 +14850,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_Timeout_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15800,11 +14860,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_Backoff_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15815,11 +14870,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_MPDU_TxDone"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15830,11 +14880,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MPDU_Tx_PktBuf"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -15845,11 +14890,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PRE_TX_NUM_BO_SLOTS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -16007,11 +15047,6 @@ Model {
 	  DataFormat		  "StructureWithTime"
 	  LimitDataPoints	  off
 	  SampleTime		  "0"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  SubSystem
@@ -16027,11 +15062,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge1"
 	    Location		    [352, 168, 2136, 1512]
@@ -16053,11 +15083,6 @@ Model {
 	      SID		      "635"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -16162,11 +15187,6 @@ Model {
 	      SID		      "639"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Delay"
@@ -16219,11 +15239,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge2"
 	    Location		    [352, 168, 2136, 1512]
@@ -16245,11 +15260,6 @@ Model {
 	      SID		      "649"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -16354,11 +15364,6 @@ Model {
 	      SID		      "653"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "D"
@@ -16643,11 +15648,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "S-R Latch1"
 	    Location		    [379, 291, 1877, 1167]
@@ -16669,11 +15669,6 @@ Model {
 	      SID		      "643"
 	      Position		      [140, 103, 170, 117]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -16683,11 +15678,6 @@ Model {
 	      NamePlacement	      "alternate"
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -16767,11 +15757,6 @@ Model {
 	      SID		      "647"
 	      Position		      [325, 88, 355, 102]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "S"
@@ -16812,11 +15797,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "S-R Latch2"
 	    Location		    [379, 291, 1877, 1167]
@@ -16838,11 +15818,6 @@ Model {
 	      SID		      "706"
 	      Position		      [140, 103, 170, 117]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -16852,11 +15827,6 @@ Model {
 	      NamePlacement	      "alternate"
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -16936,11 +15906,6 @@ Model {
 	      SID		      "710"
 	      Position		      [325, 88, 355, 102]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Constant1"
@@ -17489,11 +16454,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"NAV"
 	Location		[1132, 646, 1764, 942]
@@ -17629,11 +16589,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -17644,11 +16599,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Disable_NAV"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -17659,11 +16609,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Force_Reset_NAV"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -17814,11 +16759,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "NAV_VALUE_100NSEC"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -18023,11 +16963,6 @@ Model {
 	  DataFormat		  "StructureWithTime"
 	  LimitDataPoints	  off
 	  SampleTime		  "0"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -18086,11 +17021,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "New Duration"
 	    Location		    [696, 388, 1729, 667]
@@ -18160,11 +17090,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Capture Rx Pkt\nDuration Field"
 		Location		[707, 602, 1707, 879]
@@ -18336,11 +17261,6 @@ Model {
 		  ShowName		  off
 		  GotoTag		  "PHY_RX_BYTE_VALID"
 		  TagVisibility		  "global"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  From
@@ -18351,11 +17271,6 @@ Model {
 		  ShowName		  off
 		  GotoTag		  "PHY_RX_BYTE"
 		  TagVisibility		  "global"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  From
@@ -18366,11 +17281,6 @@ Model {
 		  ShowName		  off
 		  GotoTag		  "PHY_RX_BYTENUM"
 		  TagVisibility		  "global"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  From
@@ -18381,11 +17291,6 @@ Model {
 		  ShowName		  off
 		  GotoTag		  "PHY_RX_START_IND"
 		  TagVisibility		  "global"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -18645,11 +17550,6 @@ Model {
 		  SID			  "543"
 		  Position		  [945, 143, 975, 157]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Constant"
@@ -18948,11 +17848,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_END_IND"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -18963,11 +17858,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_NAV_TIME_ADJ"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -18978,11 +17868,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "Status_Rx_FCS_Good"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -18993,11 +17878,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_FCS_GOOD_IND"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -19008,11 +17888,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_END_RXERROR"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -19023,11 +17898,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_START_IND"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -19122,11 +17992,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Posedge1"
 		Location		[352, 168, 2136, 1512]
@@ -19148,11 +18013,6 @@ Model {
 		  SID			  "558"
 		  Position		  [200, 253, 230, 267]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -19257,11 +18117,6 @@ Model {
 		  SID			  "562"
 		  Position		  [610, 173, 640, 187]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Delay"
@@ -19374,11 +18229,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"x16"
 		Location		[866, 294, 2434, 1574]
@@ -19401,11 +18251,6 @@ Model {
 		  Position		  [230, 218, 260, 232]
 		  NamePlacement		  "alternate"
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -19480,11 +18325,6 @@ Model {
 		  SID			  "553"
 		  Position		  [355, 233, 385, 247]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Constant9"
@@ -19512,11 +18352,6 @@ Model {
 	      SID		      "532"
 	      Position		      [1165, 423, 1195, 437]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Outport
@@ -19525,11 +18360,6 @@ Model {
 	      Position		      [1165, 523, 1195, 537]
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Capture Rx Pkt\nDuration Field"
@@ -19817,11 +18647,6 @@ Model {
 	  SID			  "541"
 	  Position		  [1000, 253, 1030, 267]
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "Logical1"
@@ -20058,11 +18883,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"PHY I/O"
 	Location		[352, 168, 1543, 1306]
@@ -20118,11 +18938,6 @@ Model {
 	  InputPortMap		  "u0"
 	  DelayLength		  "2500"
 	  ExternalReset		  "None"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Delay
@@ -20133,11 +18948,6 @@ Model {
 	  InputPortMap		  "u0"
 	  DelayLength		  "5"
 	  ExternalReset		  "None"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20148,11 +18958,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_PHY_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20163,6 +18968,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MPDU_Tx_Param_TxGain"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20173,11 +18983,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_END_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20188,6 +18993,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_Gain"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20198,11 +19008,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MPDU_Tx_Param_TxAntMask"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20213,11 +19018,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_AntMask"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20228,11 +19028,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_DATA_DONE_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20243,11 +19038,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_FCS_GOOD_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20258,11 +19048,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20273,11 +19058,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MPDU_Tx_PktBuf"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20288,11 +19068,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_PHY_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20303,11 +19078,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Auto_Tx_PktBuf"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20318,11 +19088,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20333,11 +19098,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_TX_START_CONFIRM"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20348,11 +19108,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_TX_END_CONFIRM"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20363,11 +19118,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -20378,11 +19128,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20393,11 +19138,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_DATA_DONE_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20408,11 +19148,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_END_RXERROR"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20423,11 +19158,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_CCA_IND_BUSY"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20438,11 +19168,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTE_VALID"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20453,11 +19178,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTE"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20468,11 +19188,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTENUM"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20483,11 +19198,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_TX_START_CONFIRM"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20498,11 +19208,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_TX_END_CONFIRM"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20513,11 +19218,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Tx_PHY_Active"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20528,11 +19228,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Rx_FCS_Good"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20543,11 +19238,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_FCS_GOOD_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20558,11 +19248,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20573,11 +19258,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_SIG_LENGTH"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20588,11 +19268,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_END_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20603,11 +19278,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Rx_PHY_Active"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20618,11 +19288,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_SIG_RATE"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -20633,11 +19298,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_PHY_SEL"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -20864,11 +19524,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "PHY Rx Blocking"
 	    Location		    [829, 513, 1786, 897]
@@ -20933,11 +19588,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Block_Rx_On_Valid_RxEnd"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -20948,11 +19598,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "Status_Tx_PHY_Active"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -20963,11 +19608,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_END_IND"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -20978,11 +19618,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_FCS_GOOD_IND"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -20993,11 +19628,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Block_Rx_On_FCS_Good"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -21008,11 +19638,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Block_Rx_Clear"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -21023,11 +19648,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Block_Rx_On_Tx"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -21038,11 +19658,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "GLOBAL_RESET"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -21053,11 +19668,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_END_IND"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      From
@@ -21068,11 +19678,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "PHY_RX_END_RXERROR"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -21083,11 +19688,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "Status_Blocked_on_RxEnd"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -21098,11 +19698,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "Status_Blocked_on_Good_FCS"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -21385,11 +19980,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"S-R Latch1"
 		Location		[379, 291, 1877, 1167]
@@ -21411,11 +20001,6 @@ Model {
 		  SID			  "1439"
 		  Position		  [140, 103, 170, 117]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Inport
@@ -21425,11 +20010,6 @@ Model {
 		  NamePlacement		  "alternate"
 		  Port			  "2"
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -21509,11 +20089,6 @@ Model {
 		  SID			  "1443"
 		  Position		  [325, 88, 355, 102]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "S"
@@ -21555,11 +20130,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"S-R Latch4"
 		Location		[379, 291, 1877, 1167]
@@ -21581,11 +20151,6 @@ Model {
 		  SID			  "1784"
 		  Position		  [140, 103, 170, 117]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Inport
@@ -21595,11 +20160,6 @@ Model {
 		  NamePlacement		  "alternate"
 		  Port			  "2"
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -21679,11 +20239,6 @@ Model {
 		  SID			  "1788"
 		  Position		  [325, 88, 355, 102]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Constant1"
@@ -22788,11 +21343,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "S-R Latch2"
 	    Location		    [379, 291, 1877, 1167]
@@ -22814,11 +21364,6 @@ Model {
 	      SID		      "446"
 	      Position		      [140, 103, 170, 117]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -22828,11 +21373,6 @@ Model {
 	      NamePlacement	      "alternate"
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -22912,11 +21452,6 @@ Model {
 	      SID		      "450"
 	      Position		      [325, 88, 355, 102]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Constant1"
@@ -22958,11 +21493,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "S-R Latch3"
 	    Location		    [379, 291, 1877, 1167]
@@ -22984,11 +21514,6 @@ Model {
 	      SID		      "1427"
 	      Position		      [140, 103, 170, 117]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -22998,11 +21523,6 @@ Model {
 	      NamePlacement	      "alternate"
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -23082,11 +21602,6 @@ Model {
 	      SID		      "1431"
 	      Position		      [325, 88, 355, 102]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "S"
@@ -23124,11 +21639,6 @@ Model {
 	  Before		  "1"
 	  After			  "0"
 	  SampleTime		  "1"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "PHY_RX_DATA_DONE.IND"
@@ -23481,11 +21991,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Registers"
 	Location		[37, 160, 1877, 1163]
@@ -24199,6 +22704,40 @@ Model {
 	}
 	Block {
 	  BlockType		  Reference
+	  Name			  "32LSB3"
+	  SID			  "2067"
+	  Ports			  [1, 1]
+	  Position		  [1260, 1498, 1300, 1512]
+	  NamePlacement		  "alternate"
+	  LibraryVersion	  "1.2"
+	  SourceBlock		  "xbsIndex_r4/Slice"
+	  SourceType		  "Xilinx Bit Slice Extractor Block"
+	  infoedit		  "Extracts a given range of bits from each input sample and presents it at the output.  The output type "
+	  "is ordinarily unsigned with binary point at zero, but can be Boolean when the slice is one bit wide.<br><br>Hardwar"
+	  "e notes: In hardware this block costs nothing."
+	  nbits			  "32"
+	  boolean_output	  off
+	  mode			  "Lower Bit Location + Width"
+	  bit1			  "0"
+	  base1			  "MSB of Input"
+	  bit0			  "0"
+	  base0			  "LSB of Input"
+	  dbl_ovrd		  off
+	  has_advanced_control	  "0"
+	  sggui_pos		  "20,20,449,398"
+	  block_type		  "slice"
+	  block_version		  "VER_STRING_GOES_HERE"
+	  sg_icon_stat		  "40,14,1,1,white,blue,0,1fd851a7,right,,[ ],[ ]"
+	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 40 40 0 0 ],[0 0 14 14 0 ],[0.77 0.82 0.91"
+	  " ]);\nplot([0 40 40 0 0 ],[0 0 14 14 0 ]);\npatch([15.55 18.44 20.44 22.44 24.44 20.44 17.55 15.55 ],[9.22 9.22 11."
+	  "22 9.22 11.22 11.22 11.22 9.22 ],[1 1 1 ]);\npatch([17.55 20.44 18.44 15.55 17.55 ],[7.22 7.22 9.22 9.22 7.22 ],[0."
+	  "931 0.946 0.973 ]);\npatch([15.55 18.44 20.44 17.55 15.55 ],[5.22 5.22 7.22 7.22 5.22 ],[1 1 1 ]);\npatch([17.55 24"
+	  ".44 22.44 20.44 18.44 15.55 17.55 ],[3.22 3.22 5.22 3.22 5.22 5.22 3.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMME"
+	  "NT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black');port_label('output',1,'[a:b]');"
+	  "\nfprintf('','COMMENT: end icon text');"
+	}
+	Block {
+	  BlockType		  Reference
 	  Name			  "32MSB"
 	  SID			  "68"
 	  Ports			  [1, 1]
@@ -24269,6 +22808,39 @@ Model {
 	  SID			  "1923"
 	  Ports			  [1, 1]
 	  Position		  [1160, 1388, 1200, 1402]
+	  LibraryVersion	  "1.2"
+	  SourceBlock		  "xbsIndex_r4/Slice"
+	  SourceType		  "Xilinx Bit Slice Extractor Block"
+	  infoedit		  "Extracts a given range of bits from each input sample and presents it at the output.  The output type "
+	  "is ordinarily unsigned with binary point at zero, but can be Boolean when the slice is one bit wide.<br><br>Hardwar"
+	  "e notes: In hardware this block costs nothing."
+	  nbits			  "32"
+	  boolean_output	  off
+	  mode			  "Upper Bit Location + Width"
+	  bit1			  "0"
+	  base1			  "MSB of Input"
+	  bit0			  "0"
+	  base0			  "LSB of Input"
+	  dbl_ovrd		  off
+	  has_advanced_control	  "0"
+	  sggui_pos		  "20,20,449,398"
+	  block_type		  "slice"
+	  block_version		  "VER_STRING_GOES_HERE"
+	  sg_icon_stat		  "40,14,1,1,white,blue,0,1fd851a7,right,,[ ],[ ]"
+	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 40 40 0 0 ],[0 0 14 14 0 ],[0.77 0.82 0.91"
+	  " ]);\nplot([0 40 40 0 0 ],[0 0 14 14 0 ]);\npatch([15.55 18.44 20.44 22.44 24.44 20.44 17.55 15.55 ],[9.22 9.22 11."
+	  "22 9.22 11.22 11.22 11.22 9.22 ],[1 1 1 ]);\npatch([17.55 20.44 18.44 15.55 17.55 ],[7.22 7.22 9.22 9.22 7.22 ],[0."
+	  "931 0.946 0.973 ]);\npatch([15.55 18.44 20.44 17.55 15.55 ],[5.22 5.22 7.22 7.22 5.22 ],[1 1 1 ]);\npatch([17.55 24"
+	  ".44 22.44 20.44 18.44 15.55 17.55 ],[3.22 3.22 5.22 3.22 5.22 5.22 3.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMME"
+	  "NT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black');port_label('output',1,'[a:b]');"
+	  "\nfprintf('','COMMENT: end icon text');"
+	}
+	Block {
+	  BlockType		  Reference
+	  Name			  "32MSB3"
+	  SID			  "2068"
+	  Ports			  [1, 1]
+	  Position		  [1260, 1558, 1300, 1572]
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Slice"
 	  SourceType		  "Xilinx Bit Slice Extractor Block"
@@ -24851,7 +23423,7 @@ Model {
 	  Name			  "Convert7"
 	  SID			  "1924"
 	  Ports			  [1, 1]
-	  Position		  [1065, 1320, 1105, 1340]
+	  Position		  [815, 1320, 855, 1340]
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Convert"
@@ -24897,11 +23469,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Ctrl Bits"
 	    Location		    [950, 345, 1480, 478]
@@ -24923,11 +23490,6 @@ Model {
 	      SID		      "1454"
 	      Position		      [25, 83, 55, 97]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -24937,11 +23499,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Block_Rx_On_FCS_Good"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -24951,6 +23508,11 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_CCA_Ignore_NAV"
 	      TagVisibility	      "global"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -24960,11 +23522,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Force_Reset_NAV"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -24974,11 +23531,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Force_Reset_Backoff"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -24988,11 +23540,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Block_Rx_Clear"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -25002,11 +23549,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Disable_NAV"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -25016,11 +23558,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Global_Reset"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -25030,11 +23567,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Block_Rx_On_Tx"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -25044,11 +23576,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Update_Timestamp"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -25058,11 +23585,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Block_Rx_On_Valid_RxEnd"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -25072,6 +23594,11 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_CCA_Ignore_PHY_CS"
 	      TagVisibility	      "global"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -25081,6 +23608,11 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_CCA_Ignore_TxBusy"
 	      TagVisibility	      "global"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      SubSystem
@@ -25096,11 +23628,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Posedge1"
 		Location		[88, 301, 2330, 1301]
@@ -25122,11 +23649,6 @@ Model {
 		  SID			  "1462"
 		  Position		  [200, 253, 230, 267]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -25231,11 +23753,6 @@ Model {
 		  SID			  "1466"
 		  Position		  [610, 173, 640, 187]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Delay"
@@ -25288,11 +23805,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Sim Reset"
 		Location		[347, 173, 617, 257]
@@ -25318,11 +23830,6 @@ Model {
 		  InputSameDT		  off
 		  OutDataTypeStr	  "Inherit: Inherit via internal rule"
 		  SaturateOnIntegerOverflow off
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -25361,11 +23868,6 @@ Model {
 		  Period		  "1e6"
 		  PulseWidth		  "2"
 		  PhaseDelay		  "1.25e4"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  DiscretePulseGenerator
@@ -25377,11 +23879,6 @@ Model {
 		  Period		  "1e6"
 		  PulseWidth		  "2"
 		  PhaseDelay		  "2.5e4"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -25434,11 +23931,6 @@ Model {
 		  SID			  "151"
 		  Position		  [255, 63, 285, 77]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "sim_only_reset"
@@ -26038,11 +24530,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MICROSECOND_TIMESTAMP"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -26403,11 +24890,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_MPDU_TxResult"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26418,11 +24900,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTE"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26433,11 +24910,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_CCA_IND_BUSY"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26448,11 +24920,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MAC_NAV_BUSY"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26463,11 +24930,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_AutoTx_Pending"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26478,11 +24940,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Rx_FCS_Good"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26493,11 +24950,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_SIG_RATE"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26508,11 +24960,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26523,11 +24970,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_SIG_LENGTH"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26538,11 +24980,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Blocked_on_Good_FCS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26553,11 +24990,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26568,11 +25000,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_MPDU_TxDone"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26583,11 +25010,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_PHY_SEL"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26598,11 +25020,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MICROSECOND_TIMESTAMP"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26613,11 +25030,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26628,11 +25040,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Blocked_on_RxEnd"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26643,11 +25050,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "NAV_VALUE_100NSEC"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26658,16 +25060,26 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MICROSECOND_TIMESTAMP"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
 	  Name			  "From27"
 	  SID			  "1933"
-	  Position		  [690, 1321, 835, 1339]
+	  Position		  [630, 1321, 775, 1339]
 	  ZOrder		  -9
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_PHY_Start"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26678,11 +25090,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_MPDU_TxState"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26693,11 +25100,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_MPDU_TxPending"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26708,11 +25110,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Current_Backoff_Count"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26723,11 +25120,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTE_VALID"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26738,11 +25130,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_BYTENUM"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26753,11 +25140,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Rx_PHY_Active"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -26768,11 +25150,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Status_Tx_PHY_Active"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26783,11 +25160,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Backoff_Sw_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26798,11 +25170,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_CalibTime_TxDIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26813,11 +25180,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_NAV_TIME_ADJ"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26828,11 +25190,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_PktBuf"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26843,11 +25200,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Interval_EIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26858,6 +25210,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_TxGain"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26868,11 +25225,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Dly"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26883,11 +25235,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_status"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26898,11 +25245,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Set_Timestamp_LSB"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26913,11 +25255,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Param_TxAntMask"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26928,11 +25265,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26943,11 +25275,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Backoff_Sw_NumSlots"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26958,11 +25285,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Param_En"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26973,11 +25295,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_Start_Timeout"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -26988,11 +25305,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_BO_Slots"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -27003,11 +25315,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Tx_Param_TxAntMask"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -27018,11 +25325,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Set_Timestamp_MSB"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -27033,11 +25335,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Param_PktBuf"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -27048,6 +25345,11 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_AutoTx_Param_TxGain"
 	  TagVisibility		  "global"
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -27058,11 +25360,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Interval_DIFS"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -27073,11 +25370,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Interval_Slot"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -27088,11 +25380,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Interval_ACK_Timeout"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  SubSystem
@@ -27108,6 +25395,11 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge1"
 	    Location		    [88, 301, 2330, 1301]
@@ -27129,6 +25421,11 @@ Model {
 	      SID		      "2017"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -27233,6 +25530,11 @@ Model {
 	      SID		      "2021"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Delay"
@@ -27286,6 +25588,11 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge2"
 	    Location		    [88, 301, 2330, 1301]
@@ -27307,6 +25614,11 @@ Model {
 	      SID		      "2023"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -27411,6 +25723,11 @@ Model {
 	      SID		      "2027"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "D"
@@ -27463,6 +25780,11 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge3"
 	    Location		    [88, 301, 2330, 1301]
@@ -27484,6 +25806,11 @@ Model {
 	      SID		      "2029"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -27588,6 +25915,11 @@ Model {
 	      SID		      "2033"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
+	      MaskIconFrame	      on
+	      MaskIconOpaque	      on
+	      MaskIconRotate	      "none"
+	      MaskPortRotate	      "default"
+	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Delay"
@@ -28155,6 +26487,35 @@ Model {
 	  SID			  "2050"
 	  Ports			  [1, 1]
 	  Position		  [355, 596, 385, 624]
+	  ShowName		  off
+	  LibraryVersion	  "1.2"
+	  SourceBlock		  "xbsIndex_r4/Register"
+	  SourceType		  "Xilinx Register Block"
+	  init			  "0"
+	  rst			  off
+	  en			  off
+	  dbl_ovrd		  off
+	  xl_use_area		  off
+	  xl_area		  "[0,0,0,0,0,0,0]"
+	  has_advanced_control	  "0"
+	  sggui_pos		  "-1,-1,-1,-1"
+	  block_type		  "register"
+	  sg_icon_stat		  "30,28,1,1,white,blue,0,c80657c5,right,,[ ],[ ]"
+	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 30 30 0 0 ],[0 0 28 28 0 ],[0.77 0.82 0.91"
+	  " ]);\nplot([0 30 30 0 0 ],[0 0 28 28 0 ]);\npatch([6.1 11.88 15.88 19.88 23.88 15.88 10.1 6.1 ],[18.44 18.44 22.44 "
+	  "18.44 22.44 22.44 22.44 18.44 ],[1 1 1 ]);\npatch([10.1 15.88 11.88 6.1 10.1 ],[14.44 14.44 18.44 18.44 14.44 ],[0."
+	  "931 0.946 0.973 ]);\npatch([6.1 11.88 15.88 10.1 6.1 ],[10.44 10.44 14.44 14.44 10.44 ],[1 1 1 ]);\npatch([10.1 23."
+	  "88 19.88 15.88 11.88 6.1 10.1 ],[6.44 6.44 10.44 6.44 10.44 10.44 6.44 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
+	  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('input',1,'d');\ncolor("
+	  "'black');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprintf('','COMMENT: end icon "
+	  "text');"
+	}
+	Block {
+	  BlockType		  Reference
+	  Name			  "Register26"
+	  SID			  "2061"
+	  Ports			  [1, 1]
+	  Position		  [1335, 1551, 1365, 1579]
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Register"
@@ -28995,7 +27356,65 @@ Model {
 	  Name			  "Register52"
 	  SID			  "1978"
 	  Ports			  [1, 1]
-	  Position		  [1015, 1286, 1045, 1314]
+	  Position		  [995, 1286, 1025, 1314]
+	  ShowName		  off
+	  LibraryVersion	  "1.2"
+	  SourceBlock		  "xbsIndex_r4/Register"
+	  SourceType		  "Xilinx Register Block"
+	  init			  "0"
+	  rst			  off
+	  en			  off
+	  dbl_ovrd		  off
+	  xl_use_area		  off
+	  xl_area		  "[0,0,0,0,0,0,0]"
+	  has_advanced_control	  "0"
+	  sggui_pos		  "-1,-1,-1,-1"
+	  block_type		  "register"
+	  sg_icon_stat		  "30,28,1,1,white,blue,0,c80657c5,right,,[ ],[ ]"
+	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 30 30 0 0 ],[0 0 28 28 0 ],[0.77 0.82 0.91"
+	  " ]);\nplot([0 30 30 0 0 ],[0 0 28 28 0 ]);\npatch([6.1 11.88 15.88 19.88 23.88 15.88 10.1 6.1 ],[18.44 18.44 22.44 "
+	  "18.44 22.44 22.44 22.44 18.44 ],[1 1 1 ]);\npatch([10.1 15.88 11.88 6.1 10.1 ],[14.44 14.44 18.44 18.44 14.44 ],[0."
+	  "931 0.946 0.973 ]);\npatch([6.1 11.88 15.88 10.1 6.1 ],[10.44 10.44 14.44 14.44 10.44 ],[1 1 1 ]);\npatch([10.1 23."
+	  "88 19.88 15.88 11.88 6.1 10.1 ],[6.44 6.44 10.44 6.44 10.44 10.44 6.44 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
+	  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('input',1,'d');\ncolor("
+	  "'black');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprintf('','COMMENT: end icon "
+	  "text');"
+	}
+	Block {
+	  BlockType		  Reference
+	  Name			  "Register54"
+	  SID			  "2063"
+	  Ports			  [2, 1]
+	  Position		  [1180, 1488, 1210, 1517]
+	  ShowName		  off
+	  LibraryVersion	  "1.2"
+	  SourceBlock		  "xbsIndex_r4/Register"
+	  SourceType		  "Xilinx Register Block"
+	  init			  "0"
+	  rst			  off
+	  en			  on
+	  dbl_ovrd		  off
+	  xl_use_area		  off
+	  xl_area		  "[0,0,0,0,0,0,0]"
+	  has_advanced_control	  "0"
+	  sggui_pos		  "-1,-1,-1,-1"
+	  block_type		  "register"
+	  sg_icon_stat		  "30,29,2,1,white,blue,0,6bd0930c,right,,[ ],[ ]"
+	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 30 30 0 0 ],[0 0 29 29 0 ],[0.77 0.82 0.91"
+	  " ]);\nplot([0 30 30 0 0 ],[0 0 29 29 0 ]);\npatch([6.1 11.88 15.88 19.88 23.88 15.88 10.1 6.1 ],[18.44 18.44 22.44 "
+	  "18.44 22.44 22.44 22.44 18.44 ],[1 1 1 ]);\npatch([10.1 15.88 11.88 6.1 10.1 ],[14.44 14.44 18.44 18.44 14.44 ],[0."
+	  "931 0.946 0.973 ]);\npatch([6.1 11.88 15.88 10.1 6.1 ],[10.44 10.44 14.44 14.44 10.44 ],[1 1 1 ]);\npatch([10.1 23."
+	  "88 19.88 15.88 11.88 6.1 10.1 ],[6.44 6.44 10.44 6.44 10.44 10.44 6.44 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
+	  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('input',1,'d');\ncolor("
+	  "'black');port_label('input',2,'en');\ncolor('black');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','tex"
+	  "mode','on');\nfprintf('','COMMENT: end icon text');"
+	}
+	Block {
+	  BlockType		  Reference
+	  Name			  "Register55"
+	  SID			  "2064"
+	  Ports			  [1, 1]
+	  Position		  [1335, 1491, 1365, 1519]
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Register"
@@ -29179,11 +27598,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Sim Start1"
 	    Location		    [347, 173, 617, 257]
@@ -29236,11 +27650,6 @@ Model {
 	      Period		      "1e6"
 	      PulseWidth	      "25"
 	      PhaseDelay	      "2e3"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      DiscretePulseGenerator
@@ -29252,11 +27661,6 @@ Model {
 	      Period		      "1e6"
 	      PulseWidth	      "2"
 	      PhaseDelay	      "2.5e4"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -29309,11 +27713,6 @@ Model {
 	      SID		      "1559"
 	      Position		      [255, 38, 285, 52]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "sim_only_start"
@@ -29347,11 +27746,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Sim Start2"
 	    Location		    [76, 133, 2287, 1523]
@@ -29404,11 +27798,6 @@ Model {
 	      Period		      "1e6"
 	      PulseWidth	      "25"
 	      PhaseDelay	      "4e3"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      DiscretePulseGenerator
@@ -29420,11 +27809,6 @@ Model {
 	      Period		      "1e6"
 	      PulseWidth	      "2"
 	      PhaseDelay	      "2.5e4"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -29477,11 +27861,6 @@ Model {
 	      SID		      "1839"
 	      Position		      [255, 38, 285, 52]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Pulse\nGenerator1"
@@ -29503,16 +27882,79 @@ Model {
 	  }
 	}
 	Block {
+	  BlockType		  Reference
+	  Name			  "TX_START_TIMESTAMP_LSB"
+	  SID			  "2065"
+	  Ports			  [1, 1]
+	  Position		  [1420, 1495, 1480, 1515]
+	  LibraryVersion	  "1.2"
+	  SourceBlock		  "xbsIndex_r4/Gateway Out"
+	  SourceType		  "Xilinx Gateway Out Block"
+	  infoedit		  "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of type Simu"
+	  "link integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become top level out"
+	  "put ports or are discarded, depending on how they are configured."
+	  inherit_from_input	  off
+	  hdl_port		  on
+	  timing_constraint	  "None"
+	  locs_specified	  off
+	  LOCs			  "{}"
+	  UseAsDAC		  off
+	  DACChannel		  "'1'"
+	  xl_use_area		  off
+	  xl_area		  "[0,0,0,0,0,0,0]"
+	  has_advanced_control	  "0"
+	  sggui_pos		  "-1,-1,-1,-1"
+	  block_type		  "gatewayout"
+	  sg_icon_stat		  "60,20,1,1,white,yellow,1,cc31b7ac,right,,[ ],[ ]"
+	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 60 60 0 0 ],[0 0 20 20 0 ],[0.95 0.93 0.65"
+	  " ]);\nplot([0 60 60 0 0 ],[0 0 20 20 0 ]);\npatch([25.55 28.44 30.44 32.44 34.44 30.44 27.55 25.55 ],[12.22 12.22 1"
+	  "4.22 12.22 14.22 14.22 14.22 12.22 ],[1 1 1 ]);\npatch([27.55 30.44 28.44 25.55 27.55 ],[10.22 10.22 12.22 12.22 10"
+	  ".22 ],[0.985 0.979 0.895 ]);\npatch([25.55 28.44 30.44 27.55 25.55 ],[8.22 8.22 10.22 10.22 8.22 ],[1 1 1 ]);\npatc"
+	  "h([27.55 34.44 32.44 30.44 28.44 25.55 27.55 ],[6.22 6.22 8.22 6.22 8.22 8.22 6.22 ],[0.985 0.979 0.895 ]);\nfprint"
+	  "f('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('input',1,'"
+	  " ');\ncolor('black');port_label('output',1,'\\fontsize{11pt}\\bf Out ','texmode','on');\nfprintf('','COMMENT: end i"
+	  "con text');"
+	}
+	Block {
+	  BlockType		  Reference
+	  Name			  "TX_START_TIMESTAMP_MSB"
+	  SID			  "2066"
+	  Ports			  [1, 1]
+	  Position		  [1420, 1555, 1480, 1575]
+	  LibraryVersion	  "1.2"
+	  SourceBlock		  "xbsIndex_r4/Gateway Out"
+	  SourceType		  "Xilinx Gateway Out Block"
+	  infoedit		  "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of type Simu"
+	  "link integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become top level out"
+	  "put ports or are discarded, depending on how they are configured."
+	  inherit_from_input	  off
+	  hdl_port		  on
+	  timing_constraint	  "None"
+	  locs_specified	  off
+	  LOCs			  "{}"
+	  UseAsDAC		  off
+	  DACChannel		  "'1'"
+	  xl_use_area		  off
+	  xl_area		  "[0,0,0,0,0,0,0]"
+	  has_advanced_control	  "0"
+	  sggui_pos		  "-1,-1,-1,-1"
+	  block_type		  "gatewayout"
+	  sg_icon_stat		  "60,20,1,1,white,yellow,1,cc31b7ac,right,,[ ],[ ]"
+	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 60 60 0 0 ],[0 0 20 20 0 ],[0.95 0.93 0.65"
+	  " ]);\nplot([0 60 60 0 0 ],[0 0 20 20 0 ]);\npatch([25.55 28.44 30.44 32.44 34.44 30.44 27.55 25.55 ],[12.22 12.22 1"
+	  "4.22 12.22 14.22 14.22 14.22 12.22 ],[1 1 1 ]);\npatch([27.55 30.44 28.44 25.55 27.55 ],[10.22 10.22 12.22 12.22 10"
+	  ".22 ],[0.985 0.979 0.895 ]);\npatch([25.55 28.44 30.44 27.55 25.55 ],[8.22 8.22 10.22 10.22 8.22 ],[1 1 1 ]);\npatc"
+	  "h([27.55 34.44 32.44 30.44 28.44 25.55 27.55 ],[6.22 6.22 8.22 6.22 8.22 8.22 6.22 ],[0.985 0.979 0.895 ]);\nfprint"
+	  "f('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('input',1,'"
+	  " ');\ncolor('black');port_label('output',1,'\\fontsize{11pt}\\bf Out ','texmode','on');\nfprintf('','COMMENT: end i"
+	  "con text');"
+	}
+	Block {
 	  BlockType		  Terminator
 	  Name			  "Terminator"
 	  SID			  "152"
 	  Position		  [1425, 215, 1435, 225]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -29520,11 +27962,6 @@ Model {
 	  SID			  "1130"
 	  Position		  [1455, 635, 1465, 645]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -29532,11 +27969,6 @@ Model {
 	  SID			  "1252"
 	  Position		  [1395, 895, 1405, 905]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -29544,11 +27976,6 @@ Model {
 	  SID			  "1253"
 	  Position		  [1395, 990, 1405, 1000]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -29556,11 +27983,6 @@ Model {
 	  SID			  "1479"
 	  Position		  [1395, 780, 1405, 790]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -29568,11 +27990,6 @@ Model {
 	  SID			  "1623"
 	  Position		  [1395, 1115, 1405, 1125]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -29580,11 +27997,6 @@ Model {
 	  SID			  "1624"
 	  Position		  [1395, 1210, 1405, 1220]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -29592,6 +28004,13 @@ Model {
 	  SID			  "1913"
 	  Position		  [1455, 455, 1465, 465]
 	  ShowName		  off
+	}
+	Block {
+	  BlockType		  Terminator
+	  Name			  "Terminator8"
+	  SID			  "1928"
+	  Position		  [1395, 1310, 1405, 1320]
+	  ShowName		  off
 	  MaskIconFrame		  on
 	  MaskIconOpaque	  on
 	  MaskIconRotate	  "none"
@@ -29600,17 +28019,15 @@ Model {
 	}
 	Block {
 	  BlockType		  Terminator
-	  Name			  "Terminator8"
-	  SID			  "1928"
-	  Position		  [1395, 1310, 1405, 1320]
-	  ShowName		  off
-	}
-	Block {
-	  BlockType		  Terminator
 	  Name			  "Terminator9"
 	  SID			  "1929"
 	  Position		  [1395, 1405, 1405, 1415]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -30019,11 +28436,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "x1"
 	    Location		    [866, 294, 2434, 1574]
@@ -30046,11 +28458,6 @@ Model {
 	      Position		      [230, 218, 260, 232]
 	      NamePlacement	      "alternate"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -30125,11 +28532,6 @@ Model {
 	      SID		      "433"
 	      Position		      [355, 233, 385, 247]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Concat1"
@@ -30165,11 +28567,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "x16"
 	    Location		    [1342, 1109, 1556, 1227]
@@ -30192,11 +28589,6 @@ Model {
 	      Position		      [230, 218, 260, 232]
 	      NamePlacement	      "alternate"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -30271,11 +28663,6 @@ Model {
 	      SID		      "423"
 	      Position		      [355, 233, 385, 247]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Constant9"
@@ -30311,11 +28698,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "x3"
 	    Location		    [866, 294, 2434, 1574]
@@ -30338,11 +28720,6 @@ Model {
 	      Position		      [230, 218, 260, 232]
 	      NamePlacement	      "alternate"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -30417,11 +28794,6 @@ Model {
 	      SID		      "443"
 	      Position		      [355, 233, 385, 247]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Concat1"
@@ -30457,11 +28829,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "x4"
 	    Location		    [866, 294, 2434, 1574]
@@ -30484,11 +28851,6 @@ Model {
 	      Position		      [230, 218, 260, 232]
 	      NamePlacement	      "alternate"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -30563,11 +28925,6 @@ Model {
 	      SID		      "1165"
 	      Position		      [355, 233, 385, 247]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Constant9"
@@ -30603,11 +28960,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "x5"
 	    Location		    [866, 294, 2434, 1574]
@@ -30630,11 +28982,6 @@ Model {
 	      Position		      [230, 218, 260, 232]
 	      NamePlacement	      "alternate"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -30709,11 +29056,6 @@ Model {
 	      SID		      "575"
 	      Position		      [355, 233, 385, 247]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Constant9"
@@ -30749,11 +29091,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "x8"
 	    Location		    [866, 294, 2434, 1574]
@@ -30776,11 +29113,6 @@ Model {
 	      Position		      [230, 218, 260, 232]
 	      NamePlacement	      "alternate"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -30855,11 +29187,6 @@ Model {
 	      SID		      "804"
 	      Position		      [355, 233, 385, 247]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Concat1"
@@ -31601,7 +29928,7 @@ Model {
 	Line {
 	  SrcBlock		  "From27"
 	  SrcPort		  1
-	  DstBlock		  "Posedge1"
+	  DstBlock		  "Convert7"
 	  DstPort		  1
 	}
 	Line {
@@ -31643,24 +29970,26 @@ Model {
 	  DstPort		  1
 	}
 	Line {
-	  SrcBlock		  "Convert7"
-	  SrcPort		  1
-	  Points		  [145, 0]
-	  Branch {
-	    Points		    [0, 95]
-	    DstBlock		    "To Register9"
-	    DstPort		    2
-	  }
-	  Branch {
-	    DstBlock		    "To Register8"
-	    DstPort		    2
-	  }
-	}
-	Line {
 	  SrcBlock		  "Register15"
 	  SrcPort		  1
-	  DstBlock		  "Convert7"
-	  DstPort		  1
+	  Points		  [5, 0]
+	  Branch {
+	    Points		    [0, 180]
+	    DstBlock		    "Register54"
+	    DstPort		    2
+	  }
+	  Branch {
+	    Points		    [220, 0]
+	    Branch {
+	      Points		      [0, 95]
+	      DstBlock		      "To Register9"
+	      DstPort		      2
+	    }
+	    Branch {
+	      DstBlock		      "To Register8"
+	      DstPort		      2
+	    }
+	  }
 	}
 	Line {
 	  SrcBlock		  " b[30:25]"
@@ -31875,8 +30204,16 @@ Model {
 	Line {
 	  SrcBlock		  "Register52"
 	  SrcPort		  1
-	  DstBlock		  "Register14"
-	  DstPort		  1
+	  Points		  [10, 0]
+	  Branch {
+	    DstBlock		    "Register14"
+	    DstPort		    1
+	  }
+	  Branch {
+	    Points		    [0, 195]
+	    DstBlock		    "Register54"
+	    DstPort		    1
+	  }
 	}
 	Line {
 	  SrcBlock		  " b[30:25]1"
@@ -31920,6 +30257,50 @@ Model {
 	  DstBlock		  "Goto18"
 	  DstPort		  1
 	}
+	Line {
+	  SrcBlock		  "Register26"
+	  SrcPort		  1
+	  DstBlock		  "TX_START_TIMESTAMP_MSB"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "Register54"
+	  SrcPort		  1
+	  Points		  [10, 0]
+	  Branch {
+	    DstBlock		    "32LSB3"
+	    DstPort		    1
+	  }
+	  Branch {
+	    Points		    [0, 60]
+	    DstBlock		    "32MSB3"
+	    DstPort		    1
+	  }
+	}
+	Line {
+	  SrcBlock		  "Register55"
+	  SrcPort		  1
+	  DstBlock		  "TX_START_TIMESTAMP_LSB"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "32LSB3"
+	  SrcPort		  1
+	  DstBlock		  "Register55"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "Convert7"
+	  SrcPort		  1
+	  DstBlock		  "Posedge1"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "32MSB3"
+	  SrcPort		  1
+	  DstBlock		  "Register26"
+	  DstPort		  1
+	}
 	Annotation {
 	  Name			  "Ensure latest byte index is zero\nat start of each Rx"
 	  Position		  [1243, 556]
@@ -31939,11 +30320,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Resets"
 	Location		[88, 301, 2330, 1301]
@@ -32006,11 +30382,6 @@ Model {
 	  CloseFcn		  "tagdialog Close"
 	  GotoTag		  "reg_Global_Reset"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -32021,11 +30392,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "From2"
@@ -32055,11 +30421,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Timeout"
 	Location		[352, 168, 2136, 1512]
@@ -32084,11 +30445,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "GLOBAL_RESET"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -32099,11 +30455,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "PHY_RX_START_IND"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -32114,11 +30465,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_Interval_ACK_Timeout"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  From
@@ -32129,11 +30475,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "Tx_Ctrl_Timeout_Start"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -32250,11 +30591,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge1"
 	    Location		    [352, 168, 2136, 1512]
@@ -32276,11 +30612,6 @@ Model {
 	      SID		      "828"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -32385,11 +30716,6 @@ Model {
 	      SID		      "832"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "D"
@@ -32443,11 +30769,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Posedge2"
 	    Location		    [352, 168, 2136, 1512]
@@ -32469,11 +30790,6 @@ Model {
 	      SID		      "834"
 	      Position		      [200, 253, 230, 267]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -32578,11 +30894,6 @@ Model {
 	      SID		      "838"
 	      Position		      [610, 173, 640, 187]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Delay"
@@ -32664,11 +30975,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "S-R Latch1"
 	    Location		    [352, 168, 2136, 1512]
@@ -32690,11 +30996,6 @@ Model {
 	      SID		      "842"
 	      Position		      [140, 103, 170, 117]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Inport
@@ -32704,11 +31005,6 @@ Model {
 	      NamePlacement	      "alternate"
 	      Port		      "2"
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Reference
@@ -32788,11 +31084,6 @@ Model {
 	      SID		      "845"
 	      Position		      [325, 88, 355, 102]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Line {
 	      SrcBlock		      "Constant1"
@@ -32868,11 +31159,6 @@ Model {
 	  SID			  "857"
 	  Position		  [1340, 508, 1370, 522]
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "Posedge1"
@@ -33119,7 +31405,7 @@ MatData {
     "     0         !0    @               $         $          .    ,     8    (    !          %    \"     $    #     0"
     "         0  , 6%-4  X    P    !@    @    $          4    (               !         !          #@   $     &    \"  "
     "   0         !0    @    !    #0    $         $     T   !#;&]C:R!%;F%B;&5S    #@   $     &    \"     0         !0  "
-    "  @    !    \"P    $         $     L    N+W!C;W)E7W8R-@      #@   #     &    \"     0         !0    @             "
+    "  @    !    \"P    $         $     L    N+W!C;W)E7W8R-P      #@   #     &    \"     0         !0    @             "
     "  $         $          .    2     8    (    !          %    \"     $    1     0         0    $0   %!R;VIE8W0@3F%V:"
     "6=A=&]R          X    P    !@    @    $          4    (               !         !          #@   $     &    \"     "
     "0         !0    @    !    #     $         $     P   !84U0@1&5F875L=',     #@   #     &    \"     0         !0    @"
@@ -33165,10 +31451,10 @@ MatData {
     "          $         $          .    0     8    (    !          %    \"     $    0     0         0    $    '1A<F=E="
     "%]D:7)E8W1O<GD.    ,     8    (    !          %    \"                0         0          X    X    !@    @    &  "
     "        4    (     0    $    !          D    (            \\#\\.    .     8    (    !@         %    \"     $    ! "
-    "    0         )    \"               #@   #     &    \"     0         !0    @    !     0    $         $  ! 'H    . "
+    "    0         )    \"            / _#@   #     &    \"     0         !0    @    !     0    $         $  ! &$    . "
     "   .     8    (    !@         %    \"     $    !     0         )    \"            / _#@   #@    &    \"     8     "
-    "    !0    @    !     0    $         \"0    @               X    X    !@    @    &          4    (     0    $    ! "
-    "         D    (          \" 7D .    .     8    (    !@         %    \"     $    !     0         )    \"           "
+    "    !0    @    !     0    $         \"0    @   \"N1^%Z%*[_/PX    X    !@    @    &          4    (     0    $    !"
+    "          D    (          ! 6$ .    .     8    (    !@         %    \"     $    !     0         )    \"           "
     " / _#@   #@    &    \"     8         !0    @    !     0    $         \"0    @           #P/PX   !X!P  !@    @    \""
     "          4    (     0    $    !          4 !  %     0    H   !B:0   '!O<G0         #@   * !   &    \"     (      "
     "   !0    @    !     0    $         !0 $  4    !    #P   &-O;#$ 8V]L,@!C;VPS   .    :     8    (     0         %   "
@@ -33290,7 +31576,7 @@ MatData {
     "      0    !@   &9F,3$U-@  #@   #     &    \"     0         !0    @               $         $          .    ,     "
     "8    (    !          %    \"     $    #     0         0  , 6%-4  X    P    !@    @    $          4    (           "
     "    !         !          #@   $     &    \"     0         !0    @    !    #0    $         $     T   !#;&]C:R!%;F%B"
-    ";&5S    #@   $     &    \"     0         !0    @    !    \"P    $         $     L    N+W!C;W)E7W8R-@      #@   #  "
+    ";&5S    #@   $     &    \"     0         !0    @    !    \"P    $         $     L    N+W!C;W)E7W8R-P      #@   #  "
     "   &    \"     0         !0    @               $         $          .    2     8    (    !          %    \"     $ "
     "   1     0         0    $0   %!R;VIE8W0@3F%V:6=A=&]R          X    P    !@    @    $          4    (              "
     " !         !          #@   $     &    \"     0         !0    @    !    #     $         $     P   !84U0@1&5F875L=',"
@@ -33336,10 +31622,10 @@ MatData {
     "   #     &    \"     0         !0    @               $         $          .    0     8    (    !          %    \" "
     "    $    0     0         0    $    '1A<F=E=%]D:7)E8W1O<GD.    ,     8    (    !          %    \"                0 "
     "        0          X    X    !@    @    &          4    (     0    $    !          D    (            \\#\\.    .  "
-    "   8    (    !@         %    \"     $    !     0         )    \"               #@   #     &    \"     0         !0"
-    "    @    !     0    $         $  ! 'H    .    .     8    (    !@         %    \"     $    !     0         )    \" "
-    "           / _#@   #@    &    \"     8         !0    @    !     0    $         \"0    @               X    X    !@"
-    "    @    &          4    (     0    $    !          D    (          \" 7D .    .     8    (    !@         %    \" "
+    "   8    (    !@         %    \"     $    !     0         )    \"            / _#@   #     &    \"     0         !0"
+    "    @    !     0    $         $  ! &$    .    .     8    (    !@         %    \"     $    !     0         )    \" "
+    "           / _#@   #@    &    \"     8         !0    @    !     0    $         \"0    @   \"N1^%Z%*[_/PX    X    !"
+    "@    @    &          4    (     0    $    !          D    (          ! 6$ .    .     8    (    !@         %    \" "
     "    $    !     0         )    \"            / _#@   #@    &    \"     8         !0    @    !     0    $         \""
     "0    @           #P/PX   !X!P  !@    @    \"          4    (     0    $    !          4 !  %     0    H   !B:0   '"
     "!O<G0         #@   * !   &    \"     (         !0    @    !     0    $         !0 $  4    !    #P   &-O;#$ 8V]L,@!"

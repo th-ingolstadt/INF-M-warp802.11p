@@ -12,16 +12,37 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %% Define an input signal for simulation
 %For PHY debugging with ChipScope captures of I/Q
-%xlLoadChipScopeData('cs_capt/no_ofdm_det_v00.prn'); cs_interp = 8; cs_start = 6000; cs_end = 14000;
-%samps2 = complex(ADC_I([cs_start-8:cs_interp:cs_end-8]), ADC_Q(cs_start:cs_interp:cs_end));
-%payload_vec = [samps2; zeros(1000,1);];
-%paylod_vec_samp_time = 8;
+xlLoadChipScopeData('cs_capt/dsss_5.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
+%xlLoadChipScopeData('cs_capt/ofdm_bpsk_beacon_FCS_good_v0.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
+samps2 = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
+
+payload_vec = [zeros(100,1); samps2; zeros(1000,1);];
+paylod_vec_samp_time = 8;
+agc_done =    [zeros(500,1); ones(1e5,1); zeros(500,1); ];
 
 %wlan_tx output - good for simulating Rx model
-load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
+%load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
 
-payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
-paylod_vec_samp_time = 8;
+%1 copy - works well
+%payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+
+%Emulate AGC
+%payload_vec = [zeros(50,1); 12*wlan_tx_out(tx_sig_t(1:80)); wlan_tx_out(81:1200); zeros(500,1); ];
+%agc_done =    [zeros(40,1); zeros(80,1); ones(12000,1); zeros(500,1); ];
+
+raw_agc_done.signals.values = agc_done;
+raw_agc_done.time = [];
+
+%2 copies 
+% cfo: .*exp(1i*1e-4*2*pi.*(tx_sig_t-1)).'
+%x = 10.*wlan_tx_out(tx_sig_t);
+%x0 = x + 1e-2*complex(randn(length(tx_sig_t),1), randn(length(tx_sig_t),1));
+%x1 = circshift(x,10) + 1e-2*complex(randn(length(tx_sig_t),1), randn(length(tx_sig_t),1));
+%payload_vec = [zeros(50,1); x0+x1; zeros(1500,1); wlan_tx_out(tx_sig_t); zeros(1e4,1)];
+
+%load('rx_sigs/dsss_capt_v0.mat'); sig_t = [13350:2:32768];
+%payload_vec = [zeros(50,1); 4*rx_IQ(sig_t); zeros(500,1); ];
+%paylod_vec_samp_time = 8;
 
 %%
 simtime = 8*length(payload_vec) + 500;
@@ -54,6 +75,17 @@ PHY_CONFIG_FFT_SCALING = bin2dec('000101');
 %Fix3_0 version of longSym
 longCorr_coef_nbits = 3;
 longCorr_coef_bp = 0;
+
+%plts = 0.5 * PLCP_Preamble.LTS_t./max(abs(PLCP_Preamble.LTS_t));
+%LTS_corr = fliplr(conj(plts + [plts(end-3:end) plts(1:end-4)]));
+%LTS_corr = fliplr(conj(plts + [plts(end-3:end) plts(1:end-4)]));
+
+%%
+%LTS_corr2x = fliplr(conj(plts + 0.25*circshift(plts, [0 -4])));
+%plot(abs(conv(sign(y), LTS_corr2x)),'-x')
+%%
+
+%ORIG
 LTS_corr = fliplr(conj(PLCP_Preamble.LTS_t./max(abs(PLCP_Preamble.LTS_t))));
 
 longCorr_coef_i = [3*real(LTS_corr)];
@@ -84,13 +116,19 @@ PHY_CONFIG_RSSI_SUM_LEN = 8;
 
 PHY_MIN_PKT_LEN = 14;
 
-PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 7000;
-PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 7000;
+PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 10e3; %FIXME back to 10e3!
+PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 10e3; %FIXME back to 10e3!
 PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 
 PHY_CONFIG_LTS_CORR_TIMEOUT = 250;%150;%*2 in hardware
 
 PHY_CONFIG_PKT_DET_CORR_THRESH = (0.75) * 2^8; %UFix8_8 threshold
+
+PHY_CONFIG_PKT_DET_DSSS_MIN_ONES = 30;
+PHY_CONFIG_PKT_DET_DSSS_MIN_ONES_TOT = 40;
+PHY_CONFIG_PKT_DET_CORR_THRESH_DSSS = 1.5 * 2^6;%hex2dec('FF');%(1) * 2^7;
+PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 400;%hex2dec('3FF');%(20) * 2^4; %UFix10_0
+
 PHY_CONFIG_PKT_DET_ENERGY_THRESH = 1; %UFix14_8 thresh; set to low non-zero value
 PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
@@ -140,6 +178,7 @@ REG_RX_Config = ...
     2^5  * 0 + ... %Bypass CFO est/correction
     2^6  * 1 + ... %Enable chan est recording to pkt buf
     2^7  * 0 + ... %Enable switching diversity
+    2^8  * 1 + ... %Block DSSS Rx until AGC is settled
     2^9  * 1 + ... %Enable pkt det on Ant A
     2^10 * 0 + ... %Enable pkt det on Ant B
     2^11 * 0 + ... %Enable pkt det on Ant C
@@ -147,13 +186,21 @@ REG_RX_Config = ...
     2^13 * 0 + ... %Enable ext pkt det
     2^14 * 0 + ... %PHY CCA mode (0=any, 1=all)
     2^15 * 0 + ... %Manual ant sel when sel div disabled (2-bits, 00=RFA)
+    2^17 * 2 + ... %Max SIGNAL.LENGTH value, in kB (UFix4_0)
     0;
 
 REG_RX_DSSS_RX_CONFIG = ...
-    2^0 * (hex2dec('600')) + ... %b[15:0]: Code Thresh UFix16_8
-    2^16 * 200 + ... %b[23:16]: Bit count timeout
-    2^24 * 5 + ... %b[29:24]: Depsread delay (UFix5_0)
-    2^29 * 5; %b[31:29]: Length pad (in bytes)
+    2^0  * (hex2dec('20')) + ... %b[11:0]: Code Thresh UFix12_4
+    2^12 * (7) + ... %b[16:12]: Depsread delay (UFix5_0)
+    2^24 * 140 + ... %b[31:24]: Bits to SFD timeout
+    0;
+
+REG_RX_PktDet_DSSS_Config = ...
+    2^0  *  (PHY_CONFIG_PKT_DET_CORR_THRESH_DSSS) +...  %b[7:0] UFix8_7
+    2^8  *  (PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS) +...%b[17:8] UFix10_4
+    2^18 *  (PHY_CONFIG_PKT_DET_DSSS_MIN_ONES) + ...    %b[24:18] UFix7_0
+    2^25 *  (PHY_CONFIG_PKT_DET_DSSS_MIN_ONES_TOT) + ...%b[31:25] UFix7_0
+    0;
 
 REG_RX_PKTDET_RSSI_CONFIG = ...
     2^0 * (PHY_CONFIG_RSSI_SUM_LEN) + ... %b[4:0]: RSSI sum len
