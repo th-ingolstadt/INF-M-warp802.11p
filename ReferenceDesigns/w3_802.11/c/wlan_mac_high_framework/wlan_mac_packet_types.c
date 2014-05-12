@@ -242,6 +242,50 @@ int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* co
 }
 
 
+int wlan_create_channel_switch_announcement_frame(void* pkt_buf, mac_header_80211_common* common, u8 channel){
+	u32 packetLen_bytes;
+	u8* txBufferPtr_u8;
+
+	channel_switch_announcement_frame* chan_req;
+
+	txBufferPtr_u8 = (u8*)pkt_buf;
+
+	mac_header_80211* hdr_80211;
+	hdr_80211 = (mac_header_80211*)(txBufferPtr_u8);
+
+	hdr_80211->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_ACTION;
+	hdr_80211->frame_control_2 = 0;
+
+	// This field may be overwritten by CPU_LOW
+	hdr_80211->duration_id = 0;
+
+	memcpy(hdr_80211->address_1,common->address_1,6);
+	memcpy(hdr_80211->address_2,common->address_2,6);
+	memcpy(hdr_80211->address_3,common->address_3,6);
+
+	hdr_80211->sequence_control = (((common->seq_num)&0xFFF)<<4);
+
+	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211));
+	chan_req = (channel_switch_announcement_frame*)txBufferPtr_u8;
+
+	chan_req->category          = 0;             // Spectrum management action frame
+	chan_req->action            = 4;             // Channel switch announcement
+
+	chan_req->element_id        = 37;            // Channel switch announcement
+	chan_req->length            = 3;             // Length
+	chan_req->chan_switch_mode  = 0;             // No restrictions on transmission until a channel switch
+	chan_req->new_chan_num      = channel;       // New Channel
+	chan_req->chan_switch_count = 0;             // Switch occurs any time after the frame is transmitted
+
+	txBufferPtr_u8  = (u8 *)((u8 *)(txBufferPtr_u8) + sizeof(channel_switch_announcement_frame));
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+
+	(common->seq_num)++;
+
+	return packetLen_bytes;
+}
+
+
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan){
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
