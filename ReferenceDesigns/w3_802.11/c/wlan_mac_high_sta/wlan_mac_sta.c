@@ -208,6 +208,10 @@ int main() {
 	// Set Association state for station to AP
 	association_state = 1;
 
+	// Ask CPU Low for its status
+	// The response to this request will be handled asynchronously
+	wlan_mac_high_request_low_state();
+
     // Wait for CPU Low to initialize
 	while( wlan_mac_high_is_cpu_low_initialized() == 0){
 		xil_printf("waiting on CPU_LOW to boot\n");
