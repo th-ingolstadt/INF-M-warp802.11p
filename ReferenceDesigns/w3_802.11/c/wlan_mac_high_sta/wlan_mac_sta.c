@@ -91,6 +91,8 @@ u32 current_active_scan_schedule_id;
 
 u8  pause_queue;
 
+u8	allow_beacon_ts_update;
+
 
 // Access point information
 ap_info* ap_list;
@@ -156,6 +158,8 @@ int main() {
 
 	//Unpause the queue
 	pause_queue = 0;
+
+	allow_beacon_ts_update = 1;
 
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v0.9 Beta -------------------------\n");
@@ -1038,15 +1042,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON): //Beacon Packet
 			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP): //Probe Response Packet
 
-					if(association_table.length == 1){
+					if(association_table.length == 1 && allow_beacon_ts_update == 1){
 						if( wlan_addr_eq( ((station_info*)((association_table.first)->data))->addr  , rx_80211_header->address_3)){
 							mpdu_ptr_u8 += sizeof(mac_header_80211);
-#define PHY_T_OFFSET -21
+#define PHY_T_OFFSET 25
 							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
 
-							//FIXME: TX beacons need to be fixed before we enable this
-							//wlan_mac_high_set_timestamp_delta(timestamp_diff);
-							//xil_printf("%ld\n", timestamp_diff);
+							wlan_mac_high_set_timestamp_delta(timestamp_diff);
 						}
 					}
 
