@@ -235,11 +235,22 @@ void wlan_phy_init() {
 	wlan_phy_DSSS_rx_enable();
 	//wlan_phy_DSSS_rx_disable();
 
-	//Sane defaults for DSSS Rx (code_corr, timeout, despread_dly, length_pad)
-	wlan_phy_DSSS_rx_config(0x600, 200, 5, 5);
+	//Set the max Tx/Rx packet sizes to 2KB (sane default for standard 802.11a/g links)
+	wlan_phy_rx_set_max_pkt_len_kB(2);
+	wlan_phy_tx_set_max_pkt_len_kB(2);
 
-	//Allow the DSSS receiver to keep the AGC locked (otherwise AGC resets when OFDM LTS corr times out)
-	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD);
+	//Configure the DSSS Rx pipeline
+	// DSSS_rx_config(code_corr, despread_dly, sfd_timeout)
+//	wlan_phy_DSSS_rx_config(0x20, 5, 140);
+	wlan_phy_DSSS_rx_config(0x40, 5, 140);
+
+	//Configure the DSSS auto-correlation packet detector
+	// autoCorr_dsss_cfg(corr_thresh, energy_thresh, timeout_ones, timeout_count)
+	wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0x60, 400, 30, 40);
+//	wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0xFF, 0x3FF, 30, 40); //Effectively disable DSSS with high det thresholds
+
+	//Configure DSSS Rx to wait for AGC lock, then hold AGC lock until Rx completes or times out
+	REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD | WLAN_RX_REG_CFG_DSSS_RX_REQ_AGC));
 
 	//Enable LTS-based CFO correction
 	REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS);
@@ -270,8 +281,8 @@ void wlan_phy_init() {
  	// RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
  	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 1023), 4);
 
-	//Configure auto-corr pkt det (corr, energy, min-duration, post-reset-wait)
-	wlan_phy_rx_pktDet_autoCorr_cfg(200, 50, 4, 0x3F);
+	//Configure auto-corr pkt det autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
+	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 50, 4, 0x3F);
 
 	//Configure the default antenna selections as SISO Tx/Rx on RF A
 	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
