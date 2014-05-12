@@ -73,6 +73,7 @@ int queue_init(){
 
 	dl_list_init(&queue_free);
 
+
 	bzero((void*)QUEUE_BUFFER_SPACE, QUEUE_NUM_DL_ENTRY*QUEUE_BUFFER_SIZE);
 
 	//At boot, every dl_entry buffer descriptor is free

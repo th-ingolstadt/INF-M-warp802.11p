@@ -1839,6 +1839,19 @@ void wlan_mac_high_set_timestamp_delta( s64 timestamp ){
 
 }
 
+
+void wlan_mac_high_request_low_state(){
+	wlan_ipc_msg       ipc_msg_to_low;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
+	ipc_msg_to_low.num_payload_words = 0;
+	ipc_msg_to_low.arg0				 = 1; //This means a request for a status update
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+}
+
 /*****************************************************************************/
 /**
 * Check variables on CPU low's state

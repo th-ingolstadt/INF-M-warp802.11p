@@ -60,12 +60,14 @@ int wlan_mac_schedule_init(){
 	dl_list_init(&wlan_sched_coarse);
 	dl_list_init(&wlan_sched_fine);
 
+
 	//Set up the timer
 	Status = XTmrCtr_Initialize(&TimerCounterInst, TMRCTR_DEVICE_ID);
 	if (Status != XST_SUCCESS) {
 		xil_printf("XTmrCtr failed to initialize\n");
 		return -1;
 	}
+
 
 	//Set the handler for Timer
 	XTmrCtr_SetHandler(&TimerCounterInst, timer_handler, &TimerCounterInst);
