@@ -90,6 +90,7 @@ void poll_tx_queues();
 void purge_all_data_tx_queue();
 
 void beacon_transmit();
+void send_channel_switch_announcement( u8 channel );
 
 void enable_associations();
 void disable_associations();

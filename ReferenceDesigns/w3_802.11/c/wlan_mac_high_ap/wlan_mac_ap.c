@@ -1625,6 +1625,47 @@ void deauthenticate_stations(){
 	}
 }
 
+
+
+
+
+void send_channel_switch_announcement( u8 channel ) {
+ 	u16                 tx_length;
+	tx_queue_element*   curr_tx_queue_element;
+	tx_queue_buffer* 	curr_tx_queue_buffer;
+
+	// Checkout 1 element from the queue
+	curr_tx_queue_element = queue_checkout();
+
+	// There was at least 1 free queue element
+	if(curr_tx_queue_element != NULL){
+
+		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+		// Create Channel Switch Announcement packet
+ 		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
+
+		tx_length = wlan_create_channel_switch_announcement_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, channel);
+
+ 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
+
+		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+
+		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+		poll_tx_queues();
+
+	}
+
+}
+
+
+
+
+
+
+
 dl_list * get_statistics(){
 	return &statistics_table;
 }

@@ -323,7 +323,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
 
 				// Send Channel Switch Announcement
-				// deauthenticate_stations();
+				send_channel_switch_announcement( temp );
 
 				mac_param_chan = temp;
 				wlan_mac_high_set_channel( mac_param_chan );
