@@ -38,6 +38,8 @@
 #include "wlan_mac_dcf.h"
 
 #include "wlan_exp.h"
+#include "math.h"
+
 
 /*************************** Constant Definitions ****************************/
 
@@ -369,6 +371,10 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 	u64 last_tx_timestamp;
+	int curr_tx_pow;
+
+	int x;
+	float a;
 
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
@@ -408,16 +414,45 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			break;
 		}
 
+
+		//curr_tx_pow =
+
+		//DEBUG POWER
+		//xil_printf("%d \n", (int)( -1*wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power)*(float)log((float)(rand())/RAND_MAX) ));
+#if 0
+		a = (float)( -1*(float)log((float)(rand())/RAND_MAX) ); //Exp with mean 1
+		x = mpdu_info->params.phy.power;
+
+		curr_tx_pow = wlan_mac_low_dbm_to_gain_target( (int)((float)x + 10.0*log(a)/log(10.0)) );
+
+		//Test of div 2
+		a = (float)( -1*(float)log((float)(rand())/RAND_MAX) ); //Exp with mean 1
+		x = mpdu_info->params.phy.power;
+
+		curr_tx_pow = max(curr_tx_pow, wlan_mac_low_dbm_to_gain_target( (int)((float)x + 10.0*log(a)/log(10.0)) ));
+
+#define TX_GAIN_MAX 45
+		if(curr_tx_pow > TX_GAIN_MAX){
+			curr_tx_pow = TX_GAIN_MAX;
+		} else if(curr_tx_pow<0){
+			curr_tx_pow = 0;
+		}
+#endif
+		curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
+
+		//xil_printf("Pow = %d\n", curr_tx_pow);
+		//DEBUG POWER
+
 		if(i == 0){
 			//This is the first transmission, so we speculatively draw a backoff in case
 			//the backoff counter is currently 0 but the medium is busy. Prior to all other
 			//(re)transmissions, an explicit backoff will have been started at the end of
 			//the previous iteration of this loop.
 			n_slots = rand_num_slots();
-			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power), mpdu_tx_ant_mask);
+			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, curr_tx_pow, mpdu_tx_ant_mask);
 		} else {
 			REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x20);
-			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power), mpdu_tx_ant_mask);
+			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, curr_tx_pow, mpdu_tx_ant_mask);
 			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x20);
 		}
 
