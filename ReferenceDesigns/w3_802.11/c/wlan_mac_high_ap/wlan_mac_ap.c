@@ -53,7 +53,7 @@
 #define  WLAN_EXP_NODE_TYPE            (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 
 #define  WLAN_DEFAULT_CHANNEL          1
-#define  WLAN_DEFAULT_TX_PWR		   10
+#define  WLAN_DEFAULT_TX_PWR		   5
 
 
 /*************************** Variable Definitions ****************************/
@@ -127,7 +127,7 @@ int main(){
 	//All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.mac.num_tx_max = 1;
 	default_multicast_data_tx_params.phy.power = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.rate = WLAN_MAC_RATE_18M;
+	default_multicast_data_tx_params.phy.rate = WLAN_MAC_RATE_6M;
 	default_multicast_data_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
 	default_multicast_mgmt_tx_params.mac.num_tx_max = 1;
