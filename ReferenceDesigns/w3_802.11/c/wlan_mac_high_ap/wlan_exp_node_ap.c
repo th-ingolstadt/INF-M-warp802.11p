@@ -323,7 +323,10 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
 
 				// Send Channel Switch Announcement
-				send_channel_switch_announcement( temp );
+				//   NOTE:  We are not sending this at this time b/c it does not look like commercial
+				//       devices honor this message; The WARP nodes do not currently honor this message
+				//       and there are some timing issues that need to be sorted out.
+				// send_channel_switch_announcement( temp );
 
 				mac_param_chan = temp;
 				wlan_mac_high_set_channel( mac_param_chan );

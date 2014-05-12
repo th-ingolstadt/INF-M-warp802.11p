@@ -528,9 +528,6 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 			}
 
 
-
-
-
 			//Compute the timestamp of the actual Tx event
 			// CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
 			tx_low_event_log_entry->timestamp_send            = (u64)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + (u64)ts_old);
@@ -1647,7 +1644,7 @@ void send_channel_switch_announcement( u8 channel ) {
 
 		tx_length = wlan_create_channel_switch_announcement_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, channel);
 
- 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
+ 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID );
 
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
@@ -1655,7 +1652,6 @@ void send_channel_switch_announcement( u8 channel ) {
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
 		poll_tx_queues();
-
 	}
 
 }
