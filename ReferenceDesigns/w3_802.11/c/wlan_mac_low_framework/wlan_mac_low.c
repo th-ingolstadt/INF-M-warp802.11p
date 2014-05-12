@@ -257,6 +257,14 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u32* payload_to_write;
 
 		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
+
+			case IPC_MBOX_CPU_STATUS:
+				ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
+				ipc_msg_to_high.num_payload_words = 1;
+				ipc_msg_to_high.payload_ptr = &cpu_low_status;
+				ipc_mailbox_write_msg(&ipc_msg_to_high);
+				break;
+
 			case IPC_MBOX_MEM_READ_WRITE:
 				switch(msg->arg0){
 					case IPC_REG_WRITE_MODE:
