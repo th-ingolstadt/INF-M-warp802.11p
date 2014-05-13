@@ -159,7 +159,7 @@ int main() {
 	//Unpause the queue
 	pause_queue = 0;
 
-	allow_beacon_ts_update = 1;
+	allow_beacon_ts_update = 0;
 
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v0.9 Beta -------------------------\n");
