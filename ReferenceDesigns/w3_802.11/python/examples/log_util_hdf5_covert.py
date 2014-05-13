@@ -190,10 +190,11 @@ def is_valid_log_data_container(group):
             else:
                 msg  = "WARNING:  Trying to covert a file with version number "
                 msg += version.wlan_exp_ver_str(major=ver[0], minor=ver[1], revision=ver[2])
-                msg += "\n    Version should be older than "
+                msg += "\n    Version should be "
                 msg += version.wlan_exp_ver_str(major=hdf5_format_change_ver[0], 
                                                 minor=hdf5_format_change_ver[1], 
                                                 revision=hdf5_format_change_ver[2])
+                msg += "or older."
                 print(msg)
                     
         
