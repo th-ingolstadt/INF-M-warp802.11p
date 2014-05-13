@@ -1522,15 +1522,35 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 * Reset all statistics being kept for all stations
 *
 * @param    None.
-*
 * @return	None.
-*
 * @note		None.
 *
 ******************************************************************************/
 void reset_station_statistics(){
 	wlan_mac_high_reset_statistics(&statistics_table);
 }
+
+
+
+/*****************************************************************************/
+/**
+* Reset All Associations
+*
+* Wrapper to provide consistent name and potentially wrap additional functionality
+* in the future.
+*
+* @param    None.
+* @return	None.
+* @note		None.
+*
+******************************************************************************/
+void reset_all_associations(){
+
+	// Deauthenticate all stations
+	deauthenticate_stations();
+
+}
+
 
 
 u32  deauthenticate_station( station_info* station ) {
