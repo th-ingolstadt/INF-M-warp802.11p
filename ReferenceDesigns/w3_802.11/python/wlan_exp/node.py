@@ -468,12 +468,18 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     # Configure Node Attribute Commands
     #--------------------------------------------
     def reset_all(self):
-        """Resets all portions of a node."""
+        """Resets all portions of a node.
+        
+        NOTE:  reset_all will not alter assocation state.  This is to maintain 
+            backward compatibility with older code where it was not possible to 
+            set association state.  To clear association state, you can explictly
+            use the "associations" flag of the reset command.        
+        """
         status = self.reset(log=True, 
                             txrx_stats=True, 
                             ltg=True, 
                             queue_data=True, 
-                            associations=True)
+                            associations=False)
 
         if (status == cmds.CMD_PARAM_LTG_ERROR):
             print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
@@ -500,7 +506,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         if txrx_stats:       flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS        
         if ltg:              flags += cmds.CMD_PARAM_NODE_RESET_FLAG_LTG        
         if queue_data:       flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE
-        if associations:     pass    # TODO:  Disassociate all nodes
+        if associations:     flags += cmds.CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS
         
         # Send the reset command
         self.send_cmd(cmds.NodeResetState(flags))
