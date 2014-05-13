@@ -170,10 +170,6 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 				// Set return parameters and print info to console
 				if ( status == 0 ) {
 					xil_printf("Disassociated node");
-
-					// Update the HEX display
-					sta_write_hex_display(0);
-
 					status = CMD_PARAM_SUCCESS;
 				} else {
 					xil_printf("Could not disassociate node");

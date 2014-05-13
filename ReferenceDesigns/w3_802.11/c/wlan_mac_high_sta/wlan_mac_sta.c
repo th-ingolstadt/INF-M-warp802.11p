@@ -1331,9 +1331,44 @@ void print_ap_list(){
 
 }
 
+
+
+/*****************************************************************************/
+/**
+* Reset Station Statistics
+*
+* Reset all statistics being kept for all stations
+*
+* @param    None.
+* @return	None.
+* @note		None.
+*
+******************************************************************************/
 void reset_station_statistics(){
 	wlan_mac_high_reset_statistics(&statistics_table);
 }
+
+
+
+/*****************************************************************************/
+/**
+* Reset All Associations
+*
+* Wrapper to provide consistent name and potentially wrap additional functionality
+* in the future.
+*
+* @param    None.
+* @return	None.
+* @note		None.
+*
+******************************************************************************/
+void reset_all_associations(){
+
+    // STA disassociate command is the same for an individual AP or ALL
+	sta_disassociate();
+
+}
+
 
 
 dl_list * get_statistics(){
@@ -1400,6 +1435,9 @@ int  sta_disassociate( void ) {
 	    // Set the association state
 		association_state = 1;
 	}
+
+	// Update the HEX display
+	sta_write_hex_display(association_table.length);
 
 	return status;
 }
