@@ -117,7 +117,7 @@ void print_wn_parameters( wn_tag_parameter *param, int num_params );
 // Functions implemented in AP / STA
 void reset_station_statistics();
 void purge_all_data_tx_queue();
-
+void reset_all_associations();
 
 
 
@@ -829,6 +829,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE ) == CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE ) {
 				xil_printf("Purging All Data Transmit Queues\n");
 				purge_all_data_tx_queue();
+			}
+
+			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS ) == CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS ) {
+				xil_printf("Resetting Associations\n");
+				reset_all_associations();
 			}
 
 			// Re-enable interrupts
