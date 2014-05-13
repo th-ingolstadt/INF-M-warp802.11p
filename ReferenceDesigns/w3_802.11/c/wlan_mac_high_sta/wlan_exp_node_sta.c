@@ -68,6 +68,8 @@ extern u32            mac_param_chan_save;
 extern u8             access_point_num_basic_rates;
 extern u8             access_point_basic_rates[NUM_BASIC_RATES_MAX];
 
+extern u8	          allow_beacon_ts_update;
+
 /*************************** Variable Definitions ****************************/
 
 
@@ -114,7 +116,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
                                                    //   If we need more, then we will need to rework this to send multiple response packets
     int           status;
 
-    u32           temp, i;
+    u32           temp, temp2, i;
     u32           msg_cmd;
     u32           aid;
 
@@ -277,6 +279,45 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
+
+
+		//---------------------------------------------------------------------
+		case CMDID_NODE_STA_CONFIG:
+            // CMDID_NODE_STA_CONFIG Packet Format:
+			//   - cmdArgs32[0]  - flags
+			//                     [ 0] - Timestamps are updated from beacons = 1
+			//                            Timestamps are not updated from beacons = 0
+			//   - cmdArgs32[1]  - mask for flags
+			//
+            //   - respArgs32[0] - CMD_PARAM_SUCCESS
+			//                   - CMD_PARAM_ERROR
+
+			// Set the return value
+			status = CMD_PARAM_SUCCESS;
+
+			// Get flags
+			temp  = Xil_Ntohl(cmdArgs32[0]);
+			temp2 = Xil_Ntohl(cmdArgs32[1]);
+
+			xil_printf("STA:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+
+			// Configure the LOG based on the flag bit / mask
+			if ( ( temp2 & CMD_PARAM_NODE_STA_BEACON_TS_UPDATE ) == CMD_PARAM_NODE_STA_BEACON_TS_UPDATE ) {
+				if ( ( temp & CMD_PARAM_NODE_STA_BEACON_TS_UPDATE ) == CMD_PARAM_NODE_STA_BEACON_TS_UPDATE ) {
+					allow_beacon_ts_update = 1;
+				} else {
+					allow_beacon_ts_update = 0;
+				}
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
 
 #if 0
 		//---------------------------------------------------------------------
