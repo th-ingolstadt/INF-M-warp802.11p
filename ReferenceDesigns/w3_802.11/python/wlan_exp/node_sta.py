@@ -26,6 +26,7 @@ Functions (see below for more information):
 
 import wlan_exp.defaults as defaults
 import wlan_exp.node as node
+import wlan_exp.cmds as cmds
 
 
 __all__ = ['WlanExpNodeSta']
@@ -56,6 +57,19 @@ class WlanExpNodeSta(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # WLAN Exp Commands for the Node
     #-------------------------------------------------------------------------
+    def sta_configure(self, beacon_ts_update=None):
+        """Configure the STA behavior.
+
+        By default all attributes are set to None.  Only attributes that 
+        are given values will be updated on the node.  If an attribute is
+        not specified, then that attribute will retain the same value on
+        the node.
+
+        Attributes (default state on the node is in CAPS):
+            beacon_ts_update    -- Enable timestamp updates from beacons (TRUE/False)
+        """
+        self.send_cmd(cmds.NodeSTAConfigure(beacon_ts_update))
+
 
 
     #-------------------------------------------------------------------------

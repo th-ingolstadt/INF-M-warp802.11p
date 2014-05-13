@@ -149,6 +149,12 @@ CMDID_NODE_AP_SSID                               = 0x010001
 CMD_PARAM_MAX_SSID_LEN                           = 32
 
 
+# STA commands and defined values
+CMDID_NODE_STA_CONFIG                            = 0x010000
+
+CMD_PARAM_NODE_STA_BEACON_TS_UPDATE              = 0x00000001
+
+
 # Developer commands and defined values
 CMDID_DEV_MEM_HIGH                               = 0xFFF000
 CMDID_DEV_MEM_LOW                                = 0xFFF001
@@ -1194,6 +1200,33 @@ class NodeAPSetAssocAddrFilter(wn_message.Cmd):
 #--------------------------------------------
 # STA Specific Commands
 #--------------------------------------------
+class NodeSTAConfigure(wn_message.Cmd):
+    """Command to configure the STA.
+    
+    Attributes (default state on the node is in CAPS):
+        beacon_ts_update    -- Enable timestamp updates from beacons (TRUE/False)
+    """
+    def __init__(self, beacon_ts_update=None):
+        super(NodeSTAConfigure, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_STA_CONFIG
+
+        flags = 0
+        mask  = 0
+
+        if beacon_ts_update is not None:
+            mask += CMD_PARAM_NODE_STA_BEACON_TS_UPDATE
+            if beacon_ts_update:
+                flags += CMD_PARAM_NODE_STA_BEACON_TS_UPDATE
+                
+        self.add_args(flags)
+        self.add_args(mask)
+    
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
+
 class NodeSTAAssociate(wn_message.Cmd):
     """Command to add the association to the association table on the STA.
     

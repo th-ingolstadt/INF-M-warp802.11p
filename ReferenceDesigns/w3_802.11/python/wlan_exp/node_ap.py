@@ -96,7 +96,15 @@ class WlanExpNodeAp(node.WlanExpNode):
             not allow timeout of the association.
 
         NOTE:  If the device is a WlanExpNodeSta, then this method will also
-            add the association to that device.        
+            add the association to that device.
+        
+        NOTE:  The add_association method will bypass any association address filtering
+            on the node.  One caveat is that if a device sends a de-authentication packet
+            to the AP, the AP will honor it and completely remove the device from the 
+            association table.  If the association address filtering is such that the
+            device is not allowed to associate, then the device will not be allowed back
+            on the AP even though at the start of the experiment the association was 
+            explicitly added.
         """
         ret_val = []
         
