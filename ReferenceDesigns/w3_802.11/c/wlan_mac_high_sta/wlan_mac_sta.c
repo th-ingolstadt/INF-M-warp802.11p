@@ -448,7 +448,23 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		ts_old += tx_low_details[i].tx_start_delta;
 	}
 
-	// Payloads in log must be at least MIN_MAC_PAYLOAD_LOG_LEN bytes and always multiple of 4 bytes (integral number of u32 words)
+	// Determine length required for log entry:
+	//
+	//   - mac_payload_log_len is a global variable that determines the maximum number of payload bytes to log.  This
+	//         can be changed during runtime by WLAN Exp or other C code.
+	//   - MIN_MAC_PAYLOAD_LOG_LEN is the define that enforces the minimum payload that can be logged.  This define
+	//         is guaranteed to be 32-bit aligned (ie a multiple of 4 bytes).
+	//
+	// First, we need to determine if the packet we received (which has been 32-bit aligned) is longer than the
+	// MIN_MAC_PAYLOAD_LOG_LEN so that we always log the minimum number of payload bytes (ie the max() comparison).
+	// Then we need to determine whether the length of bytes to log for the packet (which we determined above) is
+	// shorter than the maximum number of payload bytes to log (ie the min() comparison).  From this calculation,
+	// we now have the number of payload bytes to log.
+	//
+	// If we look at the definition of the TX log entry, we can see that by default, MIN_MAC_PAYLOAD_LOG_LEN bytes
+	// of the payload will be logged and is part of the log entry structure.  Therefore, we need to determine how
+	// many "extra" bytes (ie bytes beyond what is defined in the log entry) need to be allocated from the log.
+	//
 	payload_log_len = min( max((1 + ( ( ( total_payload_len ) - 1) / 4) )*4 , MIN_MAC_PAYLOAD_LOG_LEN) , mac_payload_log_len );
 	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 
@@ -458,10 +474,21 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	if(tx_high_event_log_entry != NULL){
 		//Fill in the TX log entry
 		// This is done one field at a time, as the TX log entry format is not a byte-for-byte copy of the tx_frame_info
-		tx_high_event_log_entry->mac_payload_log_len = total_payload_len;
+		tx_high_event_log_entry->mac_payload_log_len = payload_log_len;
 
-		// Have to compute the correct number of bytes to transfer so that we don't walk off the end of either
-		// the log entry allocation or the packet buffer.
+		// Compute the length of the DMA transfer to log the packet:
+		//
+		// We have two arrays in memory that we have to be aware of:
+		//     1) The packet payload that has "total_payload_len" bytes;
+		//     2) The TX log entry that has (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) bytes;
+		//
+		// Because the packet payload does not have to be 32-bit aligned and we could be logging an arbitrary number of
+		// bytes of the packet, we have to be careful about not walking off the end of either array. Therefore, if the
+		// packet is short enough (ie less than MIN_MAC_PAYLOAD_LOG_LEN), then we need to transfer the number of bytes
+		// in the packet (we will fill in the extra bytes in the log entry with zeros).  If the packet is longer than
+		// MIN_MAC_PAYLOAD_LOG_LEN, then we need to transfer either the number of bytes in the packet or the number of
+		// bytes allocated in the log entry, whichever is shorter.
+		//
         if (total_payload_len < MIN_MAC_PAYLOAD_LOG_LEN) {
     		transfer_len = total_payload_len;
         } else {
@@ -812,8 +839,24 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	// Event logging
 	//*************
 
-	// Determine length required for log entry
-	payload_log_len = min( max((1 + ( ( ( length ) - 1) / 4) )*4 , sizeof(mac_header_80211)) , mac_payload_log_len );
+	// Determine length required for log entry:
+	//
+	//   - mac_payload_log_len is a global variable that determines the maximum number of payload bytes to log.  This
+	//         can be changed during runtime by WLAN Exp or other C code.
+	//   - MIN_MAC_PAYLOAD_LOG_LEN is the define that enforces the minimum payload that can be logged.  This define
+	//         is guaranteed to be 32-bit aligned (ie a multiple of 4 bytes).
+	//
+	// First, we need to determine if the packet we received (which has been 32-bit aligned) is longer than the
+	// MIN_MAC_PAYLOAD_LOG_LEN so that we always log the minimum number of payload bytes (ie the max() comparison).
+	// Then we need to determine whether the length of bytes to log for the packet (which we determined above) is
+	// shorter than the maximum number of payload bytes to log (ie the min() comparison).  From this calculation,
+	// we now have the number of payload bytes to log.
+	//
+	// If we look at the definition of the RX log entry, we can see that by default, MIN_MAC_PAYLOAD_LOG_LEN bytes
+	// of the payload will be logged and is part of the log entry structure.  Therefore, we need to determine how
+	// many "extra" bytes (ie bytes beyond what is defined in the log entry) need to be allocated from the log.
+	//
+	payload_log_len = min( max((1 + ( ( ( length ) - 1) / 4) )*4 , MIN_MAC_PAYLOAD_LOG_LEN) , mac_payload_log_len );
 	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
 
 	if(rate != WLAN_MAC_RATE_1M){
@@ -845,8 +888,19 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 #endif
 		}
 
-		// Have to compute the correct number of bytes to transfer to the log so that we don't walk off the end of either
-		// the log entry allocation or the packet buffer
+		// Compute the length of the DMA transfer to log the packet:
+		//
+		// We have two arrays in memory that we have to be aware of:
+		//     1) The packet payload that has "length" bytes;
+		//     2) The RX log entry that has (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) bytes;
+		//
+		// Because the packet payload does not have to be 32-bit aligned and we could be logging an arbitrary number of
+		// bytes of the packet, we have to be careful about not walking off the end of either array. Therefore, if the
+		// packet is short enough (ie less than MIN_MAC_PAYLOAD_LOG_LEN), then we need to transfer the number of bytes
+		// in the packet (we will fill in the extra bytes in the log entry with zeros).  If the packet is longer than
+		// MIN_MAC_PAYLOAD_LOG_LEN, then we need to transfer either the number of bytes in the packet or the number of
+		// bytes allocated in the log entry, whichever is shorter.
+		//
         if (length < MIN_MAC_PAYLOAD_LOG_LEN) {
     		transfer_len = length;
         } else {
@@ -857,7 +911,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		switch(copy_order){
 			case PAYLOAD_FIRST:
 				if( rate != WLAN_MAC_RATE_1M ){
-					((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = length;
+					((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = payload_log_len;
 					wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
 					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
@@ -865,7 +919,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						bzero((u8*)(((u32)((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				} else {
-					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = length;
+					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = payload_log_len;
 					wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
 					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
@@ -897,7 +951,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		switch(copy_order){
 			case CHAN_EST_FIRST:
 				if( rate != WLAN_MAC_RATE_1M ){
-					((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = length;
+					((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = payload_log_len;
 					wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
 					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
@@ -905,7 +959,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						bzero((u8*)(((u32)((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
 					}
 				} else {
-					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = length;
+					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = payload_log_len;
 					wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
 					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
