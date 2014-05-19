@@ -12,13 +12,14 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %% Define an input signal for simulation
 %For PHY debugging with ChipScope captures of I/Q
-xlLoadChipScopeData('cs_capt/dsss_5.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
+xlLoadChipScopeData('cs_capt/dsss_short_length_0.prn'); cs_interp = 1; cs_start = 13e3; cs_end = length(ADC_I);
 %xlLoadChipScopeData('cs_capt/ofdm_bpsk_beacon_FCS_good_v0.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
 samps2 = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
+samps2(5000:6000) = 0;
 
-payload_vec = [zeros(100,1); samps2; zeros(1000,1);];
+payload_vec = [zeros(50,1); samps2; zeros(1000,1);];
 paylod_vec_samp_time = 8;
-agc_done =    [zeros(500,1); ones(1e5,1); zeros(500,1); ];
+agc_done =    [zeros(320,1); ones(1e5,1); zeros(500,1); ];
 
 %wlan_tx output - good for simulating Rx model
 %load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
@@ -126,8 +127,15 @@ PHY_CONFIG_PKT_DET_CORR_THRESH = (0.75) * 2^8; %UFix8_8 threshold
 
 PHY_CONFIG_PKT_DET_DSSS_MIN_ONES = 30;
 PHY_CONFIG_PKT_DET_DSSS_MIN_ONES_TOT = 40;
+
+%Good defaults for hw
 PHY_CONFIG_PKT_DET_CORR_THRESH_DSSS = 1.5 * 2^6;%hex2dec('FF');%(1) * 2^7;
 PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 400;%hex2dec('3FF');%(20) * 2^4; %UFix10_0
+
+%For sim testing with signal captured post-AGC
+%PHY_CONFIG_PKT_DET_CORR_THRESH_DSSS = 1.0 * 2^6;%hex2dec('FF');%(1) * 2^7;
+%PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 0;%hex2dec('3FF');%(20) * 2^4; %UFix10_0
+
 
 PHY_CONFIG_PKT_DET_ENERGY_THRESH = 1; %UFix14_8 thresh; set to low non-zero value
 PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
