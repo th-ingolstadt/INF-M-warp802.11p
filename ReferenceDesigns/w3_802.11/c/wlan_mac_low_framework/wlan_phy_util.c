@@ -241,8 +241,7 @@ void wlan_phy_init() {
 
 	//Configure the DSSS Rx pipeline
 	// DSSS_rx_config(code_corr, despread_dly, sfd_timeout)
-//	wlan_phy_DSSS_rx_config(0x20, 5, 140);
-	wlan_phy_DSSS_rx_config(0x40, 5, 140);
+	wlan_phy_DSSS_rx_config(0x30, 5, 140);
 
 	//Configure the DSSS auto-correlation packet detector
 	// autoCorr_dsss_cfg(corr_thresh, energy_thresh, timeout_ones, timeout_count)

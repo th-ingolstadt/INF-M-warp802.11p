@@ -32,12 +32,13 @@
 #include "wlan_mac_low.h"
 
 
-static u32					mac_param_chan; 										///< Current channel of the lower-level MAC
-static u8           		mac_param_band;											///< Current band of the lower-level MAC
-static s8					mac_param_ctrl_tx_pow;									///< Current transmit power (dBm) for control packets
-static u32					mac_param_rx_filter;									///< Current filter applied to packet receptions
-static u8   				rx_pkt_buf;												///< Current receive buffer of the lower-level MAC
+volatile static u32					mac_param_chan; 										///< Current channel of the lower-level MAC
+volatile static u8           		mac_param_band;											///< Current band of the lower-level MAC
+volatile static s8					mac_param_ctrl_tx_pow;									///< Current transmit power (dBm) for control packets
+volatile static u32					mac_param_rx_filter;									///< Current filter applied to packet receptions
+volatile static u8   				rx_pkt_buf;												///< Current receive buffer of the lower-level MAC
 static u32  				cpu_low_status;											///< Status flags that are reported to upper-level MAC
+
 static wlan_mac_hw_info    	hw_info;												///< Information about the hardware reported to upper-level MAC
 static wlan_ipc_msg        	ipc_msg_from_high;										///< Buffer for incoming IPC messages
 static u32                 	ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS];	///< Buffer for payload of incoming IPC messages
@@ -157,9 +158,13 @@ void wlan_mac_low_dcf_init(){
 	u16 i;
 	rx_frame_info* rx_mpdu;
 
-	//Enable blocking of the Rx PHY following good-FCS reception
-	REG_SET_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN | WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX ));
-	REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_DISABLE_NAV | WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND));
+	//Enable blocking of the Rx PHY following good-FCS receptions and bad-FCS receptions
+	// BLOCK_RX_ON_VALID_RXEND will block the Rx PHY on all RX_END events following valid RX_START events
+	//  This allows the wlan_exp framework to count and log bad FCS receptions
+	REG_SET_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN | WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX | WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND));
+
+	//Enable the NAV counter
+	REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_DISABLE_NAV ));
 
 	//MAC timing parameters are in terms of units of 100 nanoseconds
 	wlan_mac_set_slot(T_SLOT*10);
@@ -705,7 +710,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 	u32 mac_hw_status = wlan_mac_get_status();
 
 	//Check if PHY is currently receiving or has finished receiving
-	if(mac_hw_status & (WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
+	if(mac_hw_status & (WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
 
 		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
 
@@ -864,8 +869,7 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
 				return;
 			}
 		}
-		xil_printf("Searching for empty packet buff %d\n", i);
-		i++;
+		xil_printf("Searching for empty packet buff %d\n", i++);
 	}
 }
 
@@ -963,6 +967,17 @@ void wlan_mac_dcf_hw_unblock_rx_phy() {
 	REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
 	REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
 
+/*
+	//Debugging PHY unblock -> still blocked bug
+	while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE) {
+		xil_printf("ERROR: PHY still active at unblock!\n");
+	}
+	while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) {
+		xil_printf("ERROR: PHY still blocked after unblocking!\n");
+		REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
+		REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
+	}
+*/
 	return;
 }
 
@@ -977,6 +992,7 @@ void wlan_mac_dcf_hw_unblock_rx_phy() {
  */
 inline u32 wlan_mac_dcf_hw_rx_finish(){
 	u32 mac_status;
+
 	//Wait for the packet to finish
 	do{
 		mac_status = wlan_mac_get_status();
@@ -986,6 +1002,7 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
 
 	if(mac_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) {
 		return RX_MPDU_STATE_FCS_GOOD;
+
 	} else {
 		//Ensure auto-Tx logic is disabled if FCS was bad
 		// Actual MAC code above should do the same thing - no harm disabling twice
