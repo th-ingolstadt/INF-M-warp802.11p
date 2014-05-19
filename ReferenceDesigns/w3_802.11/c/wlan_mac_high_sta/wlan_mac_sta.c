@@ -57,7 +57,7 @@
 #define  WLAN_EXP_NODE_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA
 
 #define  WLAN_DEFAULT_CHANNEL               1
-#define  WLAN_DEFAULT_TX_PWR				10
+#define  WLAN_DEFAULT_TX_PWR				5
 
 
 /*********************** Global Variable Definitions *************************/
@@ -68,6 +68,7 @@
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
 char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
+//char access_point_ssid[SSID_LEN_MAX + 1] = "";
 
 
 // Common TX header for 802.11 packets
@@ -985,7 +986,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
 	to_multicast = wlan_addr_mcast(rx_80211_header->address_1);
 
-	if( mpdu_info->state == RX_MPDU_STATE_FCS_GOOD && (unicast_to_me || to_multicast)){
+	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (unicast_to_me || to_multicast)){
 
 		associated_station_entry = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
 
