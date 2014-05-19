@@ -373,9 +373,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	u64 last_tx_timestamp;
 	int curr_tx_pow;
 
-	int x;
-	float a;
-
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
 	for(i=0; i<mpdu_info->params.mac.num_tx_max ; i++){
@@ -420,6 +417,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//DEBUG POWER
 		//xil_printf("%d \n", (int)( -1*wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power)*(float)log((float)(rand())/RAND_MAX) ));
 #if 0
+		//Emulated fading using random Tx powers
+		// Only useful for 2-node point-to-point link!
+		int x;
+		float a;
+
 		a = (float)( -1*(float)log((float)(rand())/RAND_MAX) ); //Exp with mean 1
 		x = mpdu_info->params.phy.power;
 
