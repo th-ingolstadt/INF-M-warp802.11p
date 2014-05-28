@@ -53,11 +53,13 @@
 
 /*************************** Constant Definitions ****************************/
 
-#define  WLAN_EXP_ETH                  		WN_ETH_B
-#define  WLAN_EXP_NODE_TYPE                 WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA
+#define  WLAN_EXP_ETH                  WN_ETH_B
+#define  WLAN_EXP_NODE_TYPE            WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA
 
-#define  WLAN_DEFAULT_CHANNEL               1
-#define  WLAN_DEFAULT_TX_PWR				5
+#define  WLAN_DEFAULT_CHANNEL          1
+#define  WLAN_DEFAULT_TX_PWR           5
+
+const u8 max_num_associations          = 1;
 
 
 /*********************** Global Variable Definitions *************************/
@@ -72,72 +74,52 @@ char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
 
 
 // Common TX header for 802.11 packets
-mac_header_80211_common tx_header_common;
+mac_header_80211_common           tx_header_common;
 
-// Default Transmission Parameters;
-tx_params default_unicast_mgmt_tx_params;
-tx_params default_unicast_data_tx_params;
-tx_params default_multicast_mgmt_tx_params;
-tx_params default_multicast_data_tx_params;
+// Default transmission parameters
+tx_params                         default_unicast_mgmt_tx_params;
+tx_params                         default_unicast_data_tx_params;
+tx_params                         default_multicast_mgmt_tx_params;
+tx_params                         default_multicast_data_tx_params;
 
-int association_state;                      // Section 10.3 of 802.11-2012
-u8  uart_mode;
-u8  active_scan;
+// Top level STA state
+static u8                         wlan_mac_addr[6];
+int                               association_state;                 // Section 10.3 of 802.11-2012
+u8                                uart_mode;                         // Control variable for UART MENU
+u32	                              max_queue_size;                    // Maximum transmit queue size
+u8	                              allow_beacon_ts_update;            // Allow timebase to be updated from beacons
 
-u8  repeated_active_scan_scheduled;
-u32 active_scan_schedule_id;
+u8                                pause_queue;                       // TODO:  Is this variable needed anymore???
 
-u8  current_active_scan_scheduled;
-u32 current_active_scan_schedule_id;
-
-u8  pause_queue;
-
-u8	allow_beacon_ts_update;
-
+// Active scan control variables
+u8                                active_scan;
+u8                                repeated_active_scan_scheduled;
+u32                               repeated_active_scan_schedule_id;
+u8                                current_active_scan_scheduled;
+u32                               current_active_scan_schedule_id;
 
 // Access point information
-ap_info* ap_list;
-u8       num_ap_list;
+u8                                ap_addr[6];
+ap_info*                          ap_list;
+u8                                num_ap_list;
+u8                                access_point_num_basic_rates;
+u8                                access_point_basic_rates[NUM_BASIC_RATES_MAX];
+u32                               mac_param_chan;
+u32                               mac_param_chan_save;
 
-u8       access_point_num_basic_rates;
-u8       access_point_basic_rates[NUM_BASIC_RATES_MAX];
+// Lists to hold association table and Tx/Rx statistics
+dl_list		                      association_table;
+dl_list		                      statistics_table;
 
-
-// Association Table variables
-dl_list		 association_table;
-dl_list		 statistics_table;
-u8			 ap_addr[6];
-
-u32			 max_queue_size;
-
-
-// AP channel
-u32 mac_param_chan;
-u32 mac_param_chan_save;
-
-
-// MAC address
-static u8 wlan_mac_addr[6];
 
 
 /*************************** Functions Prototypes ****************************/
-
 
 #ifdef WLAN_USE_UART_MENU
-
-void uart_rx(u8 rxByte);
-
+void uart_rx(u8 rxByte);                         // Implemented in wlan_mac_sta_uart_menu.c
 #else
-
 void uart_rx(u8 rxByte){ };
-
 #endif
-
-void add_temp();
-
-
-/*************************** Functions Prototypes ****************************/
-
 
 
 
@@ -145,53 +127,64 @@ void add_temp();
 
 int main() {
 
-	//This function should be executed first. It will zero out memory, and if that
-	//memory is used before calling this function, unexpected results may happen.
+	// This function should be executed first. It will zero out memory, and if that
+	//     memory is used before calling this function, unexpected results may happen.
 	wlan_mac_high_heap_init();
 
     // Initialize AP list
 	num_ap_list = 0;
-	//free(ap_list);
-	ap_list = NULL;
-	repeated_active_scan_scheduled = 0;
+	ap_list     = NULL;
 
+	// Initialize active scan control variables
+	active_scan                        = 0;
+	repeated_active_scan_scheduled     = 0;
+	repeated_active_scan_schedule_id   = 0;
+	current_active_scan_scheduled      = 0;
+	current_active_scan_schedule_id    = 0;
+
+	// Initialize the maximum TX queue size
 	max_queue_size = MAX_TX_QUEUE_LEN;
 
-	//Unpause the queue
-	pause_queue = 0;
-
+    // Do not allow timebase updates from beacons
 	allow_beacon_ts_update = 0;
 
+	// Unpause the queue
+	pause_queue = 0;
+
+	// Print initial message to UART
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v0.9 Beta -------------------------\n");
 	xil_printf("----- wlan_mac_sta ----------------------\n");
-
-
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
-	//xil_printf("_heap_start = 0x%x, %x\n", *(char*)(_heap_start),_heap_start);
-	//xil_printf("_heap_end = 0x%x, %x\n", *(char*)(_heap_end),_heap_end);
+    // Set default transmission parameters
+	default_unicast_data_tx_params.mac.num_tx_max     = MAX_NUM_TX;
+	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
+	default_unicast_data_tx_params.phy.rate           = WLAN_MAC_RATE_18M;
+	default_unicast_data_tx_params.phy.antenna_mode   = TX_ANTMODE_SISO_ANTA;
 
-    // Set Global variables
-	default_unicast_data_tx_params.mac.num_tx_max = MAX_NUM_TX;
-	default_unicast_data_tx_params.phy.power = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate = WLAN_MAC_RATE_18M;
-	default_unicast_data_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
+	default_unicast_mgmt_tx_params.mac.num_tx_max     = MAX_NUM_TX;
+	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
+	default_unicast_mgmt_tx_params.phy.rate           = WLAN_MAC_RATE_6M;
+	default_unicast_mgmt_tx_params.phy.antenna_mode   = TX_ANTMODE_SISO_ANTA;
 
-	default_unicast_mgmt_tx_params.mac.num_tx_max = MAX_NUM_TX;
-	default_unicast_mgmt_tx_params.phy.power = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate = WLAN_MAC_RATE_6M;
-	default_unicast_mgmt_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
+	//All multicast traffic (incl. broadcast) uses these default Tx params
+	default_multicast_data_tx_params.mac.num_tx_max   = 1;
+	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
+	default_multicast_data_tx_params.phy.rate         = WLAN_MAC_RATE_6M;
+	default_multicast_data_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
-	default_multicast_mgmt_tx_params.mac.num_tx_max = 1;
-	default_multicast_mgmt_tx_params.phy.power = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.rate = WLAN_MAC_RATE_6M;
+	default_multicast_mgmt_tx_params.mac.num_tx_max   = 1;
+	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
+	default_multicast_mgmt_tx_params.phy.rate         = WLAN_MAC_RATE_6M;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
 
 
 	// Initialize the utility library
     wlan_mac_high_init();
+
 #ifdef USE_WARPNET_WLAN_EXP
+    // Configure WLAN Exp framework
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_ETH);
 #endif
 
@@ -214,7 +207,7 @@ int main() {
 	association_state = 1;
 
 	// Ask CPU Low for its status
-	// The response to this request will be handled asynchronously
+	//     The response to this request will be handled asynchronously
 	wlan_mac_high_request_low_state();
 
     // Wait for CPU Low to initialize
@@ -228,28 +221,30 @@ int main() {
 
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
-	tx_header_common.seq_num = 0;
+	tx_header_common.seq_num   = 0;
 
     // Initialize hex display
 	sta_write_hex_display(0);
 
 	// Set up channel
-	mac_param_chan = WLAN_DEFAULT_CHANNEL;
+	mac_param_chan      = WLAN_DEFAULT_CHANNEL;
 	mac_param_chan_save = mac_param_chan;
 	wlan_mac_high_set_channel( mac_param_chan );
+
+	// Set the other CPU low parameters
 	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_ANTA);
 	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
 
 	// Configure CPU Low's filter for passing Rx packets up to CPU High
-	//  Default is "promiscuous" mode - pass all data and management packets with good or bad checksums
-	//   This allows logging of all data/management receptions, even if they're not intended for this node
+	//     Default is "promiscuous" mode - pass all data and management packets with good or bad checksums
+	//     This allows logging of all data/management receptions, even if they're not intended for this node
 	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL_MPDU);
 
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
 
     // Schedule all events
-    // wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)add_temp);  // Collect temperature once every 10 seconds //TODO add back in
+    //     None at this time
 
 	// Reset the event log
 	event_log_reset();
@@ -260,10 +255,8 @@ int main() {
     xil_printf("  Channel      : %d \n", mac_param_chan);
 	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",wlan_mac_addr[0],wlan_mac_addr[1],wlan_mac_addr[2],wlan_mac_addr[3],wlan_mac_addr[4],wlan_mac_addr[5]);
 
-
 #ifdef WLAN_USE_UART_MENU
 	uart_mode = UART_MODE_MAIN;
-
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
 #endif
 
@@ -275,83 +268,92 @@ int main() {
 	node_set_process_callback( (void *)wlan_exp_node_sta_processCmd );
 #endif
 
-
+	// Start the interrupts
 	wlan_mac_high_interrupt_start();
 
-
 	while(1){
-		//The design is entirely interrupt based. When no events need to be processed, the processor
-		//will spin in this loop until an interrupt happens
-
 #ifdef USE_WARPNET_WLAN_EXP
-//		wlan_mac_high_interrupt_stop();
+		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
+		//     transport are required to service new commands. All other node activity (wired/wireless Tx/Rx,
+		//     scheduled events, user interaction, etc) are handled via interrupt service routines
 		transport_poll( WLAN_EXP_ETH );
-//		wlan_mac_high_interrupt_start();
 #endif
 	}
+
+	// Unreachable, but non-void return keeps the compiler happy
 	return -1;
 }
 
 
-#ifdef _DEBUG_
 
-void print_buf(unsigned char *buf, int size)
-{
-	int i;
-	for (i=0; i<size; i++) {
-        xil_printf("%2x ", buf[i]);
-        if ( (((i + 1) % 16) == 0) && ((i + 1) != size) ) {
-            xil_printf("\n");
-        }
-	}
-	xil_printf("\n\n");
-}
-
-#endif
-
-
-void add_temp() {
-	add_temperature_to_log(WN_TRANSMIT);
-}
-
-
+/**
+ * @brief Poll Tx queues to select next available packet to transmit
+ *
+ * This function is called whenever the upper MAC is ready to send a new packet
+ * to the lower MAC for transmission. The next packet to transmit is selected
+ * from one of the currently-enabled Tx queues.
+ *
+ * The reference implementation uses a simple queue prioritization scheme:
+ *   - Two queues are defined: Management (MANAGEMENT_QID) and Data (UNICAST_QID)
+ *     - The Management queue is for all management traffic
+ *     - The Data queue is for all data to the associated AP
+ *   - The code alternates its polling between queues
+ *
+ * This function uses the framework function dequeue_transmit_checkin() to check individual queues
+ * If dequeue_transmit_checkin() is passed a not-empty queue, it will dequeue and transmit a packet, then
+ * return a non-zero status. Thus the calls below terminate polling as soon as any call to dequeue_transmit_checkin()
+ * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
+ *
+ * @param None
+ * @return None
+ */
 void poll_tx_queues(){
 	u8 i;
+
 	#define MAX_NUM_QUEUE 2
+
+	// Are we pausing transmissions?
 	if(pause_queue == 0){
+
 		static u32 queue_index = 0;
-		if( wlan_mac_high_is_ready_for_tx() ){
-			for(i=0;i<MAX_NUM_QUEUE;i++){
-				//Alternate between checking the unassociated queue and the associated queue
-				queue_index = (queue_index+1)%MAX_NUM_QUEUE;
+
+		// Is CPU low ready for a transmission?
+		if( wlan_mac_high_is_ready_for_tx() ) {
+
+			// Alternate between checking the management queue and the data queue
+			for(i = 0; i < MAX_NUM_QUEUE; i++) {
+				queue_index = (queue_index + 1) % MAX_NUM_QUEUE;
 
 				switch(queue_index){
-					case 0:
-						if(dequeue_transmit_checkin(MANAGEMENT_QID)){
-							return;
-						}
-					break;
-
-					case 1:
-						if(dequeue_transmit_checkin(UNICAST_QID)){
-							return;
-						}
-					break;
+					case 0:  if(dequeue_transmit_checkin(MANAGEMENT_QID)) { return; }  break;
+					case 1:  if(dequeue_transmit_checkin(UNICAST_QID))    { return; }  break;
 				}
-
-
 			}
 		}
 	}
-
 }
 
-void purge_all_data_tx_queue(){
 
+
+/**
+ * @brief Purges all packets from all Tx queues
+ *
+ * This function discards all currently en-queued packets awaiting transmission and returns all
+ * queue entries to the free pool.
+ *
+ * This function does not discard packets already submitted to the lower-level MAC for transmission
+ *
+ * @param None
+ * @return None
+ */
+void purge_all_data_tx_queue(){
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);           // Broadcast Queue
 	purge_queue(UNICAST_QID);         // Unicast Queue
 }
+
+
+
 
 /**
  * @brief Callback to handle a packet after it was transmitted by the lower-level MAC
@@ -371,264 +373,53 @@ void purge_all_data_tx_queue(){
  *  - number of elements in array pointed to by previous argument
  * @return None
 */
-void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details){
-	u32 i;
-	tx_high_entry* tx_high_event_log_entry;
-	tx_low_entry*  tx_low_event_log_entry;
-	station_info* station;
-	dl_entry*	  station_info_entry;
+void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details) {
+	u32                    i;
+	u64                    ts_old                  = 0;
 
-	u8 			  pkt_type;
+	// Additional variables (Future Use)
+	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
+	// u8*                    mpdu_ptr_u8             = (u8*)mpdu;
+	// mac_header_80211*      tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
 
-	frame_statistics_txrx* frame_stats = NULL;
+	// Log all of the TX Low transmissions
+	for(i = 0; i < num_tx_low_details; i++) {
 
-	//Get a pointer to the MPDU payload in the packet buffer
-	void * mpdu = (void*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
-	u8* mpdu_ptr_u8 = (u8*)mpdu;
+		// Log the TX low
+		wlan_exp_log_create_tx_low_entry(tx_mpdu, &tx_low_details[i], ts_old, i);
 
-	//Get a pointer to the MAC header in the MPDU
-	mac_header_80211* tx_80211_header;
-	tx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
-
-	u64 ts_old = 0;
-	u32 payload_log_len;
-	u32 extra_payload;
-	u32 transfer_len;
-	u32 total_payload_len = tx_mpdu->length;
-
-	pkt_type = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
-
-	for(i = 0; i < num_tx_low_details; i++){
-
-		//Request space for a TX_LOW log entry
-		tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry) );
-
-		if(tx_low_event_log_entry != NULL){
-			//TX_LOW entries only store the MAC header - the full payload may be included in the associated TX entry
-			transfer_len = sizeof(mac_header_80211);
-
-			tx_low_event_log_entry->mac_payload_log_len = transfer_len;
-			wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_payload), tx_80211_header, transfer_len);
-
-			// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN)
-			if(transfer_len < MIN_MAC_PAYLOAD_LOG_LEN){
-				bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + transfer_len), (MIN_MAC_PAYLOAD_LOG_LEN - transfer_len));
-			}
-
-			if((i+1 == (tx_mpdu->num_tx)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){
-				tx_low_event_log_entry->flags = TX_LOW_FLAGS_WAS_ACKED;
-			} else {
-				tx_low_event_log_entry->flags = 0;
-			}
-
-			tx_low_event_log_entry->unique_seq				  = tx_mpdu->unique_seq;
-			tx_low_event_log_entry->transmission_count        = i+1;
-			tx_low_event_log_entry->timestamp_send            = (u64)(  tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details[i].tx_start_delta) + (u64)ts_old);
-			tx_low_event_log_entry->chan_num                  = tx_low_details[i].chan_num;
-			tx_low_event_log_entry->num_slots				  = tx_low_details[i].num_slots;
-			tx_low_event_log_entry->cw						  = tx_low_details[i].cw;
-			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details[i].phy_params), sizeof(phy_tx_params));
-			tx_low_event_log_entry->length                    = tx_mpdu->length;
-			tx_low_event_log_entry->pkt_type				  = pkt_type;
-			wlan_mac_high_cdma_finish_transfer();
-
-			if(i==0){
-				//This is the first transmission
-				((mac_header_80211*)(tx_low_event_log_entry->mac_payload))->frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_RETRY;
-			} else {
-				//This is all subsequent transmissions
-				((mac_header_80211*)(tx_low_event_log_entry->mac_payload))->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_RETRY;
-			}
-
-#ifdef _DEBUG_
-			xil_printf("TX LOW  : %8d    %8d    \n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN);
-	        print_buf((u8 *)((u32)tx_low_event_log_entry - 8), sizeof(tx_low_entry) + 12);
-#endif
-		}
-
+		// Accumulate the time-between-transmissions, used to calculate absolute time of each TX_LOW event above
 		ts_old += tx_low_details[i].tx_start_delta;
 	}
 
-	// Determine length required for log entry:
-	//
-	//   - mac_payload_log_len is a global variable that determines the maximum number of payload bytes to log.  This
-	//         can be changed during runtime by WLAN Exp or other C code.
-	//   - MIN_MAC_PAYLOAD_LOG_LEN is the define that enforces the minimum payload that can be logged.  This define
-	//         is guaranteed to be 32-bit aligned (ie a multiple of 4 bytes).
-	//
-	// First, we need to determine if the packet we received (which has been 32-bit aligned) is longer than the
-	// MIN_MAC_PAYLOAD_LOG_LEN so that we always log the minimum number of payload bytes (ie the max() comparison).
-	// Then we need to determine whether the length of bytes to log for the packet (which we determined above) is
-	// shorter than the maximum number of payload bytes to log (ie the min() comparison).  From this calculation,
-	// we now have the number of payload bytes to log.
-	//
-	// If we look at the definition of the TX log entry, we can see that by default, MIN_MAC_PAYLOAD_LOG_LEN bytes
-	// of the payload will be logged and is part of the log entry structure.  Therefore, we need to determine how
-	// many "extra" bytes (ie bytes beyond what is defined in the log entry) need to be allocated from the log.
-	//
-	payload_log_len = min( max((1 + ( ( ( total_payload_len ) - 1) / 4) )*4 , MIN_MAC_PAYLOAD_LOG_LEN) , mac_payload_log_len );
-	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
+	// Log the TX MPDU
+	wlan_exp_log_create_tx_entry(tx_mpdu, mac_param_chan);
 
-	//Request space for a TX entry
-	tx_high_event_log_entry = (tx_high_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload );
-
-	if(tx_high_event_log_entry != NULL){
-		//Fill in the TX log entry
-		// This is done one field at a time, as the TX log entry format is not a byte-for-byte copy of the tx_frame_info
-		tx_high_event_log_entry->mac_payload_log_len = payload_log_len;
-
-		// Compute the length of the DMA transfer to log the packet:
-		//
-		// We have two arrays in memory that we have to be aware of:
-		//     1) The packet payload that has "total_payload_len" bytes;
-		//     2) The TX log entry that has (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) bytes;
-		//
-		// Because the packet payload does not have to be 32-bit aligned and we could be logging an arbitrary number of
-		// bytes of the packet, we have to be careful about not walking off the end of either array. Therefore, if the
-		// packet is short enough (ie less than MIN_MAC_PAYLOAD_LOG_LEN), then we need to transfer the number of bytes
-		// in the packet (we will fill in the extra bytes in the log entry with zeros).  If the packet is longer than
-		// MIN_MAC_PAYLOAD_LOG_LEN, then we need to transfer either the number of bytes in the packet or the number of
-		// bytes allocated in the log entry, whichever is shorter.
-		//
-        if (total_payload_len < MIN_MAC_PAYLOAD_LOG_LEN) {
-    		transfer_len = total_payload_len;
-        } else {
-    		transfer_len = MIN_MAC_PAYLOAD_LOG_LEN + min(extra_payload, (total_payload_len - MIN_MAC_PAYLOAD_LOG_LEN));
-        }
-
-		wlan_mac_high_cdma_start_transfer((&((tx_high_entry*)tx_high_event_log_entry)->mac_payload), tx_80211_header, transfer_len);
-
-		// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
-		if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-			bzero((u8*)(((u32)((tx_high_entry*)tx_high_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len) );
-		}
-
-		bzero(tx_high_event_log_entry->padding , sizeof(tx_high_event_log_entry->padding));
-		tx_high_event_log_entry->unique_seq				  = tx_mpdu->unique_seq;
-		tx_high_event_log_entry->queue_id				  = tx_mpdu->QID;
-		tx_high_event_log_entry->result                   = tx_mpdu->tx_result;
-		tx_high_event_log_entry->power                    = tx_mpdu->params.phy.power;
-		tx_high_event_log_entry->length                   = tx_mpdu->length;
-		tx_high_event_log_entry->rate                     = tx_mpdu->params.phy.rate;
-		tx_high_event_log_entry->chan_num				 = mac_param_chan;
-		tx_high_event_log_entry->pkt_type				 = wlan_mac_high_pkt_type(mpdu,tx_mpdu->length);
-		tx_high_event_log_entry->num_tx                   = tx_mpdu->num_tx;
-		tx_high_event_log_entry->timestamp_create         = tx_mpdu->timestamp_create;
-		tx_high_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
-		tx_high_event_log_entry->delay_done               = tx_mpdu->delay_done;
-		tx_high_event_log_entry->ant_mode				 = tx_mpdu->params.phy.antenna_mode;
-
-#ifdef _DEBUG_
-		xil_printf("TX HIGH : %8d    %8d    %8d    %8d    %8d\n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN, total_payload_len, extra_payload, payload_log_len);
-        print_buf((u8 *)((u32)tx_high_event_log_entry - 8), sizeof(tx_high_entry) + extra_payload + 12);
-#endif
+	// Update the statistics for the node to which the packet was just transmitted
+	if(tx_mpdu->AID != 0) {
+		wlan_mac_high_update_tx_statistics(tx_mpdu);
 	}
 
-	if(tx_mpdu->AID != 0){
-		station_info_entry = wlan_mac_high_find_station_info_AID(&association_table, tx_mpdu->AID);
-		if(station_info_entry != NULL){
-			station = (station_info*)(station_info_entry->data);
-			switch(pkt_type){
-				case PKT_TYPE_DATA_ENCAP_ETH:
-				case PKT_TYPE_DATA_ENCAP_LTG:
-					frame_stats = &(station->stats->data);
-				break;
-
-				case PKT_TYPE_MGMT:
-					frame_stats = &(station->stats->mgmt);
-				break;
-			}
-
-
-			//Update Transmission Stats
-			if(frame_stats != NULL){
-				(frame_stats->tx_num_packets_total)++;
-				(frame_stats->tx_num_bytes_total) += tx_mpdu->length;
-
-				(frame_stats->tx_num_packets_low) += (tx_mpdu->num_tx);
-
-				if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
-					(frame_stats->tx_num_packets_success)++;
-					(frame_stats->tx_num_bytes_success) += tx_mpdu->length;
-				}
-
-			}
-		}
-	}
+	// Send log entry to wlan_exp controller immediately (not currently supported)
+	//
+	// if (tx_high_event_log_entry != NULL) {
+    //     wn_transmit_log_entry((void *)tx_high_event_log_entry);
+	// }
 }
 
 
 
-
-void attempt_association(){
-	//It is assumed that the global "access_point" has a valid BSSID (MAC Address).
-	//This function should only be called after selecting an access point through active scan
-
-	static u8      curr_try = 0;
-	u16            tx_length;
-	tx_queue_element*	curr_tx_queue_element;
-	tx_queue_buffer* 	curr_tx_queue_buffer;
-
-	switch(association_state){
-
-		case 1:
-			//Initial start state, unauthenticated, unassociated
-			//Checkout 1 element from the queue;
-			curr_try = 0;
-		break;
-
-		case 2:
-			//Authenticated, not associated
-			curr_try = 0;
-			//Checkout 1 element from the queue;
-			curr_tx_queue_element = queue_checkout();
-			if(curr_tx_queue_element != NULL){ //There was at least 1 free queue element
-				curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr);
-
-				tx_length = wlan_create_association_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
-
-		 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-		 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		 		curr_tx_queue_buffer->metadata.metadata_ptr = (u32)(&default_unicast_mgmt_tx_params);
-
-				enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-				poll_tx_queues();
-			}
-			if( curr_try < (ASSOCIATION_NUM_TRYS - 1) ){
-				wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_TIMEOUT_US, (void*)attempt_association);
-				curr_try++;
-			} else {
-				curr_try = 0;
-				if( strlen(access_point_ssid) > 0 ) start_active_scan();
-			}
-
-		break;
-
-		case 3:
-			//Authenticated and associated (Pending RSN Authentication)
-			//Not-applicable for current 802.11 Reference Design
-			curr_try = 0;
-		break;
-
-		case 4:
-			//Authenticated and associated
-			curr_try = 0;
-
-		break;
-	}
-
-	return;
-}
-
-
-
-
+/**
+ * @brief Attempt authentication
+ *
+ * Function will attempt to authenticate itself with the access point defined by 'access_point_ssid' and 'ap_addr'
+ *     It is assumed that the global Access Point has a valid BSSID (MAC Address) defined in 'ap_addr'
+ *     This function should only be called after selecting an access point through active scan
+ *
+ * @param  None
+ * @return None
+ */
 void attempt_authentication(){
-	//It is assumed that the global "access_point" has a valid BSSID (MAC Address).
-	//This function should only be called after selecting an access point through active scan
 
 	static u8      			curr_try = 0;
 	u16            			tx_length;
@@ -638,24 +429,36 @@ void attempt_authentication(){
 	switch(association_state){
 
 		case 1:
-			//Initial start state, unauthenticated, unassociated
-			//Checkout 1 element from the queue;
+			// Initial start state, not authenticated, not associated
+
+			// Create an authentication request
 			curr_tx_queue_element = queue_checkout();
-			if(curr_tx_queue_element != NULL){ //There was at least 1 free queue element
+
+			if(curr_tx_queue_element != NULL){
 				curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
+				// Setup the TX header
 				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr );
 
+				// Fill in the data
 				tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
 
+				// Setup the TX frame info
 		 		wlan_mac_high_setup_tx_frame_info (&tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
 
+				// Set the information in the TX queue buffer
 		 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		 		curr_tx_queue_buffer->metadata.metadata_ptr = (u32)(&default_unicast_mgmt_tx_params);
+		 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+				curr_tx_queue_buffer->frame_info.AID         = 0;
 
+				// Put the packet in the queue
 				enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+			    // Poll the TX queues to possibly send the packet
 				poll_tx_queues();
 			}
+
+			// Schedule the next authentication attempt or start the active scan again
 			if( curr_try < (AUTHENTICATION_NUM_TRYS - 1) ){
 				wlan_mac_schedule_event(SCHEDULE_COARSE, AUTHENTICATION_TIMEOUT_US, (void*)attempt_authentication);
 				curr_try++;
@@ -663,353 +466,381 @@ void attempt_authentication(){
 				curr_try = 0;
 				if( strlen(access_point_ssid) > 0 ) start_active_scan();
 			}
-
-
 		break;
 
 		case 2:
-			//Authenticated, not associated
+			// Authenticated, not associated
 			curr_try = 0;
 		break;
 
 		case 3:
-			//Authenticated and associated (Pending RSN Authentication)
-			//Not-applicable for current 802.11 Reference Design
+			// Authenticated and associated (Pending RSN Authentication)
+			//     Not-applicable for current 802.11 Reference Design
 			curr_try = 0;
 		break;
 
 		case 4:
-			//Authenticated and associated
+			// Authenticated and associated
 			curr_try = 0;
-
 		break;
-
 	}
-
-	return;
 }
 
 
-void start_active_scan(){
-	//Purge any knowledge of existing APs
-	stop_active_scan();
-	xil_printf("Starting active scan\n");
-	num_ap_list = 0;
-	wlan_mac_high_free(ap_list);
-	ap_list = NULL;
-	association_state = 1;
-	active_scan = 1;
-	repeated_active_scan_scheduled = 1;
-	active_scan_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ACTIVE_SCAN_UPDATE_RATE, SCHEDULE_REPEAT_FOREVER, (void*)probe_req_transmit);
-	probe_req_transmit();
-}
 
-void stop_active_scan(){
-	xil_printf("Stopping active scan\n");
-	if(current_active_scan_scheduled) wlan_mac_remove_schedule(SCHEDULE_COARSE, current_active_scan_schedule_id);
-	if(repeated_active_scan_scheduled) wlan_mac_remove_schedule(SCHEDULE_COARSE, active_scan_schedule_id);
-	active_scan = 0;
-	repeated_active_scan_scheduled = 0;
-	current_active_scan_scheduled  = 0;
-}
+/**
+ * @brief Attempt association
+ *
+ * Function will attempt to associate with the access point defined by 'access_point_ssid' and 'ap_addr'
+ *     It is assumed that the global Access Point has a valid BSSID (MAC Address) defined in 'ap_addr'
+ *     This function should only be called after selecting an access point through active scan
+ *
+ * @param  None
+ * @return None
+ */
+void attempt_association(){
 
-void testtest(){
-	xil_printf("testtest\n");
-
-}
-
-void probe_req_transmit(){
-	u32 i;
-
-	static u8 curr_channel_index = 0;
-	u16 tx_length;
+	static u8           curr_try = 0;
+	u16                 tx_length;
 	tx_queue_element*	curr_tx_queue_element;
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 
-	mac_param_chan = curr_channel_index + 1; //+1 is to shift [0,10] index to [1,11] channel number
+	switch(association_state){
 
-	//Send a message to other processor to tell it to switch channels
+		case 1:
+			// Initial start state, not authenticated, not associated
+			curr_try = 0;
+		break;
+
+		case 2:
+			// Authenticated, not associated
+			curr_try = 0;
+
+			// Create an association request
+			curr_tx_queue_element = queue_checkout();
+
+			if(curr_tx_queue_element != NULL){
+				curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+				// Setup the TX header
+				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr);
+
+				// Fill in the data
+				tx_length = wlan_create_association_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
+
+				// Setup the TX frame info
+		 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+
+				// Set the information in the TX queue buffer
+		 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+		 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+				curr_tx_queue_buffer->frame_info.AID         = 0;
+
+				// Put the packet in the queue
+				enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+			    // Poll the TX queues to possibly send the packet
+				poll_tx_queues();
+			}
+
+			// Schedule the next association attempt or start the active scan again
+			if(curr_try < (ASSOCIATION_NUM_TRYS - 1)){
+				wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_TIMEOUT_US, (void*)attempt_association);
+				curr_try++;
+			} else {
+				curr_try = 0;
+				if( strlen(access_point_ssid) > 0 ) start_active_scan();
+			}
+		break;
+
+		case 3:
+			// Authenticated and associated (Pending RSN Authentication)
+			//     Not-applicable for current 802.11 Reference Design
+			curr_try = 0;
+		break;
+
+		case 4:
+			// Authenticated and associated
+			curr_try = 0;
+		break;
+	}
+}
+
+
+
+/**
+ * @brief Start active scan
+ *
+ * Function will start an active scan to find the access point defined by 'access_point_ssid' and remove any
+ * state about the current access point.
+ *
+ * @param  None
+ * @return None
+ */
+void start_active_scan(){
+	// Stop any current active scans
+	stop_active_scan();
+
+	xil_printf("Starting active scan\n");
+
+	// Purge AP information
+	num_ap_list = 0;
+	wlan_mac_high_free(ap_list);
+	ap_list     = NULL;
+
+	// Set global STA state information
+	association_state = 1;
+	active_scan       = 1;
+
+	// Schedule the active scan to repeat forever
+	repeated_active_scan_scheduled   = 1;
+	repeated_active_scan_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ACTIVE_SCAN_UPDATE_RATE, SCHEDULE_REPEAT_FOREVER, (void*)probe_req_transmit);
+
+	// Transmit first probe request of the active scan
+	probe_req_transmit();
+}
+
+
+
+/**
+ * @brief Stop active scan
+ *
+ * Function will stop any active scan in progress.
+ *
+ * @param  None
+ * @return None
+ */
+void stop_active_scan(){
+	xil_printf("Stopping active scan\n");
+
+	// Remove any scheduled probe requests for the current active scan or any future active scans
+	if(current_active_scan_scheduled)  wlan_mac_remove_schedule(SCHEDULE_COARSE, current_active_scan_schedule_id);
+	if(repeated_active_scan_scheduled) wlan_mac_remove_schedule(SCHEDULE_COARSE, repeated_active_scan_schedule_id);
+
+	// Set global active scan state information
+	active_scan                      = 0;
+	repeated_active_scan_scheduled   = 0;
+	repeated_active_scan_schedule_id = 0;
+	current_active_scan_scheduled    = 0;
+	current_active_scan_schedule_id  = 0;
+}
+
+
+
+/**
+ * @brief Transmit probe request
+ *
+ * Function will transmit a probe request on the current channel and schedule future probe requests on all
+ * channels (ie channels 1 - 11) as part of an active scan.
+ *
+ * @param  None
+ * @return None
+ */
+void probe_req_transmit(){
+	u16                 tx_length;
+	tx_queue_element*	curr_tx_queue_element;
+	tx_queue_buffer* 	curr_tx_queue_buffer;
+
+	// Static variable to keep track of current probe request channel
+	static u8           curr_channel_index = 0;
+
+	// Shift curr_channel_index [0,10] to the appropriate channel number [1,11]
+	mac_param_chan = curr_channel_index + 1;
+
+	// Switch channels to the current probe request channel
 	wlan_mac_high_set_channel( mac_param_chan );
 
-	//Send probe request
 
-	//xil_printf("Probe Req SSID: %s, Len: %d\n",access_point_ssid, strlen(access_point_ssid));
+	// Send probe request
+	curr_tx_queue_element = queue_checkout();
 
-	for(i = 0; i<0; i++){ //NUM_PROBE_REQ
-		//Checkout 1 element from the queue;
-		curr_tx_queue_element = queue_checkout();
-		if(curr_tx_queue_element != NULL){ //There was at least 1 free queue element
-			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+	if(curr_tx_queue_element != NULL){
+		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
-			wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr );
+		// Setup the TX header
+		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr );
 
-			tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame),&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
+		// Fill in the data
+		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame),&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
 
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID );
+		// Setup the TX frame info
+		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID );
 
-			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-			curr_tx_queue_buffer->metadata.metadata_ptr = (u32)(&default_multicast_mgmt_tx_params);
+		// Set the information in the TX queue buffer
+		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
+		curr_tx_queue_buffer->frame_info.AID         = 0;
 
-			enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-			poll_tx_queues();
-		}
+		// Put the packet in the queue
+		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+	    // Poll the TX queues to possibly send the packet
+		poll_tx_queues();
 	}
 
-	curr_channel_index = (curr_channel_index+1)%11;
+	// Get the next channel on which STA will send a probe request
+	curr_channel_index = (curr_channel_index+1) % 11;
 
+	// Schedule the probe request for the next channel
 	if(curr_channel_index > 0){
 		current_active_scan_scheduled   = 1;
 		current_active_scan_schedule_id = wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)probe_req_transmit);
 	} else {
+		// We have gone through all the channels so just print the current AP list
 		current_active_scan_scheduled   = 0;
 		wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)print_ap_list);
 	}
-
 }
 
 
 
+/**
+ * @brief Callback to handle insertion of an Ethernet reception into the corresponding wireless Tx queue
+ *
+ * This function is called when a new Ethernet packet is received that must be transmitted via the wireless interface.
+ * The packet must be encapsulated before it is passed to this function. Ethernet encapsulation is implemented in the mac_high framework.
+ *
+ * The tx_queue_list argument is a DL list, but must contain exactly one queue entry which contains the encapsulated packet
+ * A list container is used here to ease merging of the list with the target queue.
+ *
+ * @param tx_queue_element* curr_tx_queue_element
+ *  - A single queue element containing the packet to transmit
+ * @param u8* eth_dest
+ *  - 6-byte destination address from original Ethernet packet
+ * @param u8* eth_src
+ *  - 6-byte source address from original Ethernet packet
+ * @param u16 tx_length
+ *  - Length (in bytes) of the packet payload
+ * @return 1 for successful enqueuing of the packet, 0 otherwise
+ */
 int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 	station_info* 		ap_station_info;
 
+	// Check associations
+	//     Is there an AP to send the packet to?
 	if(association_table.length == 1){
 		ap_station_info = (station_info*)((association_table.first)->data);
-		//Receives the pre-encapsulated Ethernet frames
-		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
-		wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr,(u8*)(&(eth_dest[0])));
-
-		wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
-
+		// Send the packet to the AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
+
+			// Send the pre-encapsulated Ethernet frame over the wireless interface
+			//     NOTE:  The queue element has already been provided, so we do not need to check if it is NULL
+			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+			// Setup the TX header
+			wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr,(u8*)(&(eth_dest[0])));
+
+			// Fill in the data
+			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
+
+			// Setup the TX frame info
 			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
 
+			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-			curr_tx_queue_buffer->metadata.metadata_ptr = (u32)ap_station_info;
-			curr_tx_queue_buffer->frame_info.AID = ap_station_info->AID;
+			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)ap_station_info;
+			curr_tx_queue_buffer->frame_info.AID         = ap_station_info->AID;
 
+			// Put the packet in the queue
 			enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
+
+		    // Poll the TX queues to possibly send the packet
 			poll_tx_queues();
+
 		} else {
+			// Packet was not successfully enqueued
 			return 0;
 		}
+
+		// Packet was successfully enqueued
 		return 1;
 	} else {
-		//STA is not currently associated, so we won't send any eth frames
+
+		// STA is not currently associated, so we won't send any eth frames
 		return 0;
 	}
 }
 
 
 
-
+/**
+ * @brief Process received MPDUs
+ *
+ * This callback function will process all the received MPDUs.
+ *
+ * This function must implement the state machine that will allow a station to join the AP.
+ *
+ * @param  void * pkt_buf_addr
+ *     - Packet buffer address;  Contains the contents of the MPDU as well as other packet information from CPU low
+ * @param  u8 rate
+ *     - Rate that the packet was transmitted
+ * @param  u16 length
+ *     - Length of the MPDU
+ * @return None
+ */
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
-	u32 i;
-	void * mpdu = pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8* mpdu_ptr_u8 = (u8*)mpdu;
-	station_info* associated_station = NULL;
-	dl_entry*	  associated_station_entry;
 
-	statistics_txrx* station_stats = NULL;
-	ap_info* curr_ap_info = NULL;
-	char* ssid;
-	u8    ssid_length;
+	u32                 i;
+	int                 status;
 
-	mac_header_80211* rx_80211_header;
-	rx_80211_header = (mac_header_80211*)((void *)mpdu_ptr_u8);
-	u16 rx_seq;
+	rx_frame_info*      mpdu_info                = (rx_frame_info*)pkt_buf_addr;
+	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8*                 mpdu_ptr_u8              = (u8*)mpdu;
+	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mpdu_ptr_u8);
 
-	rx_common_entry* rx_event_log_entry;
+	u16                 rx_seq;
+	rx_common_entry*    rx_event_log_entry       = NULL;
 
-	rx_frame_info* mpdu_info = (rx_frame_info*)pkt_buf_addr;
-
-	u8 is_associated = 0;
-
-	typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
-	copy_order_t copy_order;
-	u32 payload_log_len;
-	u32 extra_payload;
-	u32 transfer_len;
-	u8 unicast_to_me, to_multicast;
 	station_info_entry* associated_station_log_entry;
+	dl_entry*	        associated_station_entry;
+	station_info*       associated_station       = NULL;
+	statistics_txrx*    station_stats            = NULL;
 
-	s64 timestamp_diff;
+	ap_info*            curr_ap_info             = NULL;
+	char*               ssid;
+	u8                  ssid_length;
 
-	//*************
-	// Event logging
-	//*************
+	u8                  unicast_to_me;
+	u8                  to_multicast;
+	s64                 timestamp_diff;
+	u8                  is_associated            = 0;
 
-	// Determine length required for log entry:
-	//
-	//   - mac_payload_log_len is a global variable that determines the maximum number of payload bytes to log.  This
-	//         can be changed during runtime by WLAN Exp or other C code.
-	//   - MIN_MAC_PAYLOAD_LOG_LEN is the define that enforces the minimum payload that can be logged.  This define
-	//         is guaranteed to be 32-bit aligned (ie a multiple of 4 bytes).
-	//
-	// First, we need to determine if the packet we received (which has been 32-bit aligned) is longer than the
-	// MIN_MAC_PAYLOAD_LOG_LEN so that we always log the minimum number of payload bytes (ie the max() comparison).
-	// Then we need to determine whether the length of bytes to log for the packet (which we determined above) is
-	// shorter than the maximum number of payload bytes to log (ie the min() comparison).  From this calculation,
-	// we now have the number of payload bytes to log.
-	//
-	// If we look at the definition of the RX log entry, we can see that by default, MIN_MAC_PAYLOAD_LOG_LEN bytes
-	// of the payload will be logged and is part of the log entry structure.  Therefore, we need to determine how
-	// many "extra" bytes (ie bytes beyond what is defined in the log entry) need to be allocated from the log.
-	//
-	payload_log_len = min( max((1 + ( ( ( length ) - 1) / 4) )*4 , MIN_MAC_PAYLOAD_LOG_LEN) , mac_payload_log_len );
-	extra_payload   = (payload_log_len > MIN_MAC_PAYLOAD_LOG_LEN) ? (payload_log_len - MIN_MAC_PAYLOAD_LOG_LEN) : 0;
+	// Log the reception
+	wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
 
-	if(rate != WLAN_MAC_RATE_1M){
-		rx_event_log_entry = (rx_common_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload );
-	} else {
-		rx_event_log_entry = (rx_common_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload );
-	}
-
-	if(rx_event_log_entry != NULL){
-
-		//For maximum pipelining, we'll break up the two major log copy operations (packet payload + [optional] channel estimates)
-		//We will start the CDMA operation for whichever of those copies is shorter, then fill in the rest of the log entry
-		//while that copy is under way, and then start the CDMA operation for the larger (which will first block on the shorter if
-		//it is still going).
-
-		if(rate == WLAN_MAC_RATE_1M){
-			//This is a DSSS packet that has no channel estimates
-			copy_order = PAYLOAD_FIRST;
-		} else {
-			//This is an OFDM packet that contains channel estimates
-#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-			if( sizeof(mpdu_info->channel_est) < ( length ) ){
-				copy_order = CHAN_EST_FIRST;
-			} else {
-				copy_order = PAYLOAD_FIRST;
-			}
-#else
-			copy_order = PAYLOAD_FIRST;
-#endif
-		}
-
-		// Compute the length of the DMA transfer to log the packet:
-		//
-		// We have two arrays in memory that we have to be aware of:
-		//     1) The packet payload that has "length" bytes;
-		//     2) The RX log entry that has (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) bytes;
-		//
-		// Because the packet payload does not have to be 32-bit aligned and we could be logging an arbitrary number of
-		// bytes of the packet, we have to be careful about not walking off the end of either array. Therefore, if the
-		// packet is short enough (ie less than MIN_MAC_PAYLOAD_LOG_LEN), then we need to transfer the number of bytes
-		// in the packet (we will fill in the extra bytes in the log entry with zeros).  If the packet is longer than
-		// MIN_MAC_PAYLOAD_LOG_LEN, then we need to transfer either the number of bytes in the packet or the number of
-		// bytes allocated in the log entry, whichever is shorter.
-		//
-        if (length < MIN_MAC_PAYLOAD_LOG_LEN) {
-    		transfer_len = length;
-        } else {
-    		transfer_len = MIN_MAC_PAYLOAD_LOG_LEN + min(extra_payload, (length - MIN_MAC_PAYLOAD_LOG_LEN));
-        }
-
-
-		switch(copy_order){
-			case PAYLOAD_FIRST:
-				if( rate != WLAN_MAC_RATE_1M ){
-					((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = payload_log_len;
-					wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
-
-					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
-					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-						bzero((u8*)(((u32)((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
-					}
-				} else {
-					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = payload_log_len;
-					wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
-
-					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
-					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-						bzero((u8*)(((u32)((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
-					}
-				}
-			break;
-
-			case CHAN_EST_FIRST:
-#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-				if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
-#endif
-			break;
-		}
-
-		rx_event_log_entry->fcs_status = (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
-		rx_event_log_entry->timestamp  =  mpdu_info->timestamp;
-		rx_event_log_entry->power      = mpdu_info->rx_power;
-		rx_event_log_entry->rf_gain    = mpdu_info->rf_gain;
-		rx_event_log_entry->bb_gain    = mpdu_info->bb_gain;
-		rx_event_log_entry->length     = mpdu_info->length;
-		rx_event_log_entry->rate       = mpdu_info->rate;
-		rx_event_log_entry->pkt_type   = wlan_mac_high_pkt_type(mpdu,length);
-		rx_event_log_entry->chan_num   = mac_param_chan;
-		rx_event_log_entry->ant_mode   = mpdu_info->ant_mode;
-		rx_event_log_entry->flags      = 0;
-
-		switch(copy_order){
-			case CHAN_EST_FIRST:
-				if( rate != WLAN_MAC_RATE_1M ){
-					((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = payload_log_len;
-					wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
-
-					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
-					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-						bzero((u8*)(((u32)((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
-					}
-				} else {
-					((rx_dsss_entry*)rx_event_log_entry)->mac_payload_log_len = payload_log_len;
-					wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
-
-					// Zero pad log entry if transfer_len was less than the allocated space in the log (ie MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)
-					if(transfer_len < (MIN_MAC_PAYLOAD_LOG_LEN + extra_payload)){
-						bzero((u8*)(((u32)((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len), ((MIN_MAC_PAYLOAD_LOG_LEN + extra_payload) - transfer_len));
-					}
-				}
-			break;
-
-			case PAYLOAD_FIRST:
-#ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-				if(rate != WLAN_MAC_RATE_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, mpdu_info->channel_est, sizeof(mpdu_info->channel_est));
-#endif
-			break;
-		}
-
-#ifdef _DEBUG_
-		xil_printf("RX      : %8d    %8d    %8d    %8d    %8d\n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN, length, extra_payload, payload_log_len);
-        print_buf((u8 *)((u32)rx_event_log_entry - 8), sizeof(rx_ofdm_entry) + extra_payload + 12);
-#endif
-	}
-
+	// Determine destination of packet
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
-	to_multicast = wlan_addr_mcast(rx_80211_header->address_1);
+	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
+    // If the packet is good (ie good FCS) and it is destined for me, then process it
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (unicast_to_me || to_multicast)){
 
+		// Update the association information
 		associated_station_entry = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
 
 		if(associated_station_entry != NULL) {
 			associated_station = (station_info*)(associated_station_entry->data);
-			is_associated = 1;
-			station_stats = associated_station->stats;
-			rx_seq = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-			//Check if duplicate
+
+			// Update station information
 			associated_station->rx.last_timestamp = get_usec_timestamp();
-			associated_station->rx.last_power = mpdu_info->rx_power;
-			associated_station->rx.last_rate = mpdu_info->rate;
+			associated_station->rx.last_power     = mpdu_info->rx_power;
+			associated_station->rx.last_rate      = mpdu_info->rate;
 
-			//xil_printf("%d ? %d\n", access_point.rx.last_seq, rx_seq);
+			is_associated = 1;
+			rx_seq        = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+			station_stats = associated_station->stats;
 
+			// Check if this was a duplicate reception
+			//   - Received seq num matched previously received seq num for this STA
 			if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
-				//Received seq num matched previously received seq num for this STA; ignore the MPDU and finish function
 				if(rx_event_log_entry != NULL){
 					rx_event_log_entry->flags |= RX_ENTRY_FLAGS_IS_DUPLICATE;
 				}
 
+				// Finish the function
 				goto mpdu_rx_process_end;
-
 			} else {
 				associated_station->rx.last_seq = rx_seq;
 			}
@@ -1017,6 +848,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			station_stats = wlan_mac_high_add_statistics(&statistics_table, NULL, rx_80211_header->address_2);
 		}
 
+        // Update receive statistics
 		if(station_stats != NULL){
 			station_stats->last_rx_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
@@ -1028,133 +860,222 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			}
 		}
 
+		// Process the packet
 		switch(rx_80211_header->frame_control_1) {
-		case (MAC_FRAME_CTRL1_SUBTYPE_DATA): //Data Packet
-			if(is_associated){
-				if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
-					//MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
-					wlan_mpdu_eth_send(mpdu,length);
+
+			//---------------------------------------------------------------------
+			case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
+				// Data packet
+				//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
+				//
+				if(is_associated){
+					if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
+						// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
+						wlan_mpdu_eth_send(mpdu,length);
+					}
 				}
-			}
 			break;
 
-			case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP): //Association response
+
+            //---------------------------------------------------------------------
+			case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP):
+				// Association response
+				//   - If we are in the correct association state and the response was success, then associate with the AP
+				//
 				if(association_state == 2){
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 
 					if(((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
 
-						sta_associate( (rx_80211_header->address_2), (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000 );
+						status = sta_associate( (rx_80211_header->address_2), (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000 );
 
-						xil_printf("Association succeeded\n");
+						if (status == 0) {
+							xil_printf("Association succeeded\n");
+						} else {
+							association_state = -1;
+							xil_printf("Association failed within the station.\n");
+						}
 					} else {
 						association_state = -1;
 						xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mpdu_ptr_u8)->status_code);
 					}
 				}
-
 			break;
 
-			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH): //Authentication
-					if(association_state == 1 && wlan_addr_eq(rx_80211_header->address_3, ap_addr) && wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
-						mpdu_ptr_u8 += sizeof(mac_header_80211);
-						switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
-							case AUTH_ALGO_OPEN_SYSTEM:
-								if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_RESP){//This is an auth response
-									if(((authentication_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
-										//AP is letting us authenticate
-										association_state = 2;
-										attempt_association();
-									}
-									// Finish function
-									goto mpdu_rx_process_end;
+
+            //---------------------------------------------------------------------
+			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH):
+				// Authentication Reponse
+				//   - If we are in the correct association state and we had a successful authentication from the AP,
+				//     then we should attempt association with the AP
+                //
+				if( (association_state == 1) && wlan_addr_eq(rx_80211_header->address_3, ap_addr) && wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
+
+					// Move the packet pointer to after the header
+					mpdu_ptr_u8 += sizeof(mac_header_80211);
+
+					// Check the authentication algorithm
+					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
+
+					    case AUTH_ALGO_OPEN_SYSTEM:
+					    	// Check that this was a successful authentication response
+							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_RESP){
+
+								if(((authentication_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
+									// AP is letting us authenticate, attempt association
+									association_state = 2;
+									attempt_association();
 								}
-							break;
-						}
-					}
 
+								// Finish the function
+								goto mpdu_rx_process_end;
+							}
+						break;
+
+						default:
+							association_state = -1;
+							xil_printf("Authentication failed.  AP uses authentication algorithm %d which is not support by the 802.11 reference design.\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
+						break;
+					}
+				}
 			break;
 
-			case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH): //Deauthentication
-					if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_2) != NULL)){
 
-						associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-						if(associated_station_log_entry != NULL){
-							associated_station_log_entry->timestamp = get_usec_timestamp();
-							memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
-							associated_station_log_entry->info.AID = 0;
-						}
+            //---------------------------------------------------------------------
+			case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH):
+				// De-authentication
+				//   - If we are being de-authenticated, then log and update the association state
+				//   - Start and active scan to find the AP if an SSID is defined
+				//
+				if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_2) != NULL)){
 
-						wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
-						purge_queue(UNICAST_QID);
-						sta_write_hex_display(0);
-						if( strlen(access_point_ssid) > 0 && association_state == 4){
-							start_active_scan();
-						}
+					// Log the association state change
+					associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
+
+					if(associated_station_log_entry != NULL){
+						associated_station_log_entry->timestamp = get_usec_timestamp();
+						memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
+						associated_station_log_entry->info.AID = 0;
 					}
+
+					// Remove the association
+					wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
+
+					// Purge all packets for the AP
+					purge_queue(UNICAST_QID);
+
+					// Update the hex display to show that we are no longer associated
+					sta_write_hex_display(0);
+
+                    // Start an active scan if the SSID is not ""
+					if( strlen(access_point_ssid) > 0 && association_state == 4){
+						start_active_scan();
+					}
+				}
 			break;
 
-			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON): //Beacon Packet
-			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP): //Probe Response Packet
 
-					if(association_table.length == 1 && allow_beacon_ts_update == 1){
-						if( wlan_addr_eq( ((station_info*)((association_table.first)->data))->addr  , rx_80211_header->address_3)){
-							mpdu_ptr_u8 += sizeof(mac_header_80211);
-#define PHY_T_OFFSET 25
-							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+            //---------------------------------------------------------------------
+			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
+			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
+			    // Beacon Packet / Probe Response Packet
+			    //   -
+			    //
 
-							wlan_mac_high_set_timestamp_delta(timestamp_diff);
-						}
+			    // Define the PHY timestamp offset
+				#define PHY_T_OFFSET 25
+
+			    // Update the timestamp from the beacon / probe response if allowed
+				if(association_table.length == 1 && allow_beacon_ts_update == 1){
+
+					// If this packet was from our AP
+					if( wlan_addr_eq( ((station_info*)((association_table.first)->data))->addr  , rx_80211_header->address_3)){
+
+						// Move the packet pointer to after the header
+						mpdu_ptr_u8 += sizeof(mac_header_80211);
+
+						// Calculate the difference between the beacon timestamp and the packet timestamp
+						//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
+						timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+
+						// Set the timestamp
+						wlan_mac_high_set_timestamp_delta(timestamp_diff);
+
+						// Move the packet pointer back to the start for the rest of the function
+						mpdu_ptr_u8 -= sizeof(mac_header_80211);
 					}
+				}
 
-					if(active_scan){
+			    // If we are currently performing an active scan, then build the AP list
+				if(active_scan){
 
-					for (i=0;i<num_ap_list;i++){
-
+					// Find if this response is from a known AP in our AP list
+					for( i = 0; i < num_ap_list; i++){
 						if(wlan_addr_eq(ap_list[i].bssid, rx_80211_header->address_3)){
 							curr_ap_info = &(ap_list[i]);
-							//xil_printf("     Matched at 0x%08x\n", curr_ap_info);
 							break;
 						}
 					}
 
+					// If this is the first time we have seen this AP, then we need to allocate memory to
+					//     store it in our AP list
 					if(curr_ap_info == NULL){
 
+						// We only allocate memory for APs in the AP list as we need them
 						if(ap_list == NULL){
 							ap_list = wlan_mac_high_malloc(sizeof(ap_info)*(num_ap_list+1));
 						} else {
 							ap_list = wlan_mac_high_realloc(ap_list, sizeof(ap_info)*(num_ap_list+1));
 						}
 
+						// Check that we were able to get enough memory
 						if(ap_list != NULL){
 							num_ap_list++;
 							curr_ap_info = &(ap_list[num_ap_list-1]);
 						} else {
 							xil_printf("Reallocation of ap_list failed\n");
-							// Finish function
+
+							// !!! FIXME !!!
+							// Do we need to clean up after the re-allocation failed?
+							// num_ap_list = 0;
+							// etc ...
+							// !!! FIXME !!!
+
+							// Finish the function
 							goto mpdu_rx_process_end;
 						}
-
 					}
 
-					curr_ap_info->rx_power = mpdu_info->rx_power;
+					// Update the AP information
+					curr_ap_info->rx_power        = mpdu_info->rx_power;
 					curr_ap_info->num_basic_rates = 0;
 
-					//Copy BSSID into ap_info struct
-					memcpy(curr_ap_info->bssid, rx_80211_header->address_3,6);
+					// Copy BSSID into ap_info struct
+					memcpy(curr_ap_info->bssid, rx_80211_header->address_3, 6);
 
+					// Move the packet pointer to after the header
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
-					if((((beacon_probe_frame*)mpdu_ptr_u8)->capabilities)&CAPABILITIES_PRIVACY){
+
+                    // Check if the AP is private
+					if((((beacon_probe_frame*)mpdu_ptr_u8)->capabilities) & CAPABILITIES_PRIVACY){
 						curr_ap_info->private = 1;
 					} else {
 						curr_ap_info->private = 0;
 					}
 
+					// Move the packet pointer to after the beacon/probe frame
 					mpdu_ptr_u8 += sizeof(beacon_probe_frame);
-					//xil_printf("\n");
-					while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= length){ //Loop through tagged parameters
-						switch(mpdu_ptr_u8[0]){ //What kind of tag is this?
-							case TAG_SSID_PARAMS: //SSID parameter set
+
+					// Parse the tagged parameters
+					while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) <= length ) {
+
+						// Parse each of the tags
+						switch(mpdu_ptr_u8[0]){
+
+							//-------------------------------------------------
+						    case TAG_SSID_PARAMS:
+						    	// SSID parameter set
+						    	//
 								ssid        = (char*)(&(mpdu_ptr_u8[2]));
 								ssid_length = min(mpdu_ptr_u8[1],SSID_LEN_MAX);
 
@@ -1162,92 +1083,99 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 								// Terminate the string
 								(curr_ap_info->ssid)[ssid_length] = 0;
-
 							break;
-							case TAG_SUPPORTED_RATES: //Supported rates
-								for(i=0;i < mpdu_ptr_u8[1]; i++){
-									if(mpdu_ptr_u8[2+i]&RATE_BASIC){
-										//This is a basic rate. It is required by the AP in order to associate.
+
+							//-------------------------------------------------
+							case TAG_SUPPORTED_RATES:
+							case TAG_EXT_SUPPORTED_RATES:
+								// Supported rates / Extended supported rates
+								//
+								for( i = 0; i < mpdu_ptr_u8[1]; i++){
+									if( (mpdu_ptr_u8[2+i] & RATE_BASIC) == RATE_BASIC ) {
+
+										// This is a basic rate. It is required by the AP in order to associate.
 										if((curr_ap_info->num_basic_rates) < NUM_BASIC_RATES_MAX){
-
-											if(wlan_mac_high_valid_tagged_rate(mpdu_ptr_u8[2+i])){
-
+											if( wlan_mac_high_valid_tagged_rate(mpdu_ptr_u8[2+i]) ){
 												(curr_ap_info->basic_rates)[(curr_ap_info->num_basic_rates)] = mpdu_ptr_u8[2+i];
 												(curr_ap_info->num_basic_rates)++;
 											} else {
-
+                                                // xil_printf("Invalid Tag Parameter rate: %d\n", mpdu_ptr_u8[2+i]);
 											}
 										} else {
+											// xil_printf("Number of basic rates exceeded.\n");
 										}
 									}
 								}
 							break;
-							case TAG_EXT_SUPPORTED_RATES: //Extended supported rates
-								for(i=0;i < mpdu_ptr_u8[1]; i++){
-										if(mpdu_ptr_u8[2+i]&RATE_BASIC){
-											//This is a basic rate. It is required by the AP in order to associate.
-											if((curr_ap_info->num_basic_rates) < NUM_BASIC_RATES_MAX){
 
-												if(wlan_mac_high_valid_tagged_rate(mpdu_ptr_u8[2+i])){
-												//	xil_printf("Basic rate #%d: 0x%x\n", (curr_ap_info->num_basic_rates), mpdu_ptr_u8[2+i]);
-
-													(curr_ap_info->basic_rates)[(curr_ap_info->num_basic_rates)] = mpdu_ptr_u8[2+i];
-													(curr_ap_info->num_basic_rates)++;
-												} else {
-													//xil_printf("Invalid tagged rate. ignoring.");
-												}
-											} else {
-												//xil_printf("Error: too many rates were flagged as basic. ignoring.");
-											}
-										}
-									}
-
-							break;
-							case TAG_DS_PARAMS: //DS Parameter set (e.g. channel)
+							//-------------------------------------------------
+							case TAG_DS_PARAMS:
+								// DS Parameter set (e.g. channel)
+								//
 								curr_ap_info->chan = mpdu_ptr_u8[2];
 							break;
 						}
-						mpdu_ptr_u8 += mpdu_ptr_u8[1]+2; //Move up to the next tag
+
+						// Increment packet pointer to the next tag
+						mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
 					}
-
 				}
-
 			break;
 
+
+            //---------------------------------------------------------------------
 			default:
 				//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
 				//null data frames (type: DATA, subtype: 0x4) for power management reasons.
 				warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 			break;
 		}
+
+		// Finish the function
 		goto mpdu_rx_process_end;
 	} else {
-		//Bad FCS
+		// Process any Bad FCS packets
 		goto mpdu_rx_process_end;
 	}
 
 
+	// Finish any processing for the RX MPDU process
 	mpdu_rx_process_end:
 
-	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_RATE_1M)) {
-		wn_transmit_log_entry((void *)rx_event_log_entry);
-	}
+	// Currently, asynchronous transmission of log entries is not supported
+	//
+	// 	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_RATE_1M)) {
+	//     wn_transmit_log_entry((void *)rx_event_log_entry);
+	// }
+
+    return;
 }
 
 
 
-
+/**
+ * @brief Callback to handle new Local Traffic Generator event
+ *
+ * This function is called when the LTG scheduler determines a traffic generator should create a new packet. The
+ * behavior of this function depends entirely on the LTG payload parameters.
+ *
+ * The reference implementation defines 3 LTG payload types:
+ *  - LTG_PYLD_TYPE_FIXED: generate 1 fixed-length packet to single destination; callback_arg is pointer to ltg_pyld_fixed struct
+ *  - LTG_PYLD_TYPE_UNIFORM_RAND: generate 1 random-length packet to signle destimation; callback_arg is pointer to ltg_pyld_uniform_rand struct
+ *  - LTG_PYLD_TYPE_ALL_ASSOC_FIXED: generate 1 fixed-length packet to each associated station; callback_arg is poitner to ltg_pyld_all_assoc_fixed struct
+ *
+ * @param u32 id
+ *  - Unique ID of the previously created LTG
+ * @param void* callback_arg
+ *  - Callback argument provided at LTG creation time; interpretation depends on LTG type
+ * @return None
+ */
 void ltg_event(u32 id, void* callback_arg){
 
-	tx_queue_element* 	curr_tx_queue_element;
-	tx_queue_buffer* 	curr_tx_queue_buffer;
-
-	u32 tx_length;
-	u8* mpdu_ptr_u8;
-	llc_header* llc_hdr;
-	u32 payload_length = 0;
-	u8* addr_da;
-	station_info* ap_station_info;
+	u32                 payload_length = 0;
+	u8*                 addr_da;
+	station_info*       ap_station_info;
+	int                 status;
 
 	switch(((ltg_pyld_hdr*)callback_arg)->type){
 		case LTG_PYLD_TYPE_FIXED:
@@ -1266,66 +1194,53 @@ void ltg_event(u32 id, void* callback_arg){
 
 		ap_station_info = (station_info*)((association_table.first)->data);
 
-		//Send a Data packet to AP
-		//Checkout 1 element from the queue;
-
+		// Send a Data packet to AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
 
-			curr_tx_queue_element = queue_checkout();
+			// Create and enqueue an LTG packet
+			status = ltg_enqueue_packet( id, ap_station_info->addr, addr_da, MAC_FRAME_CTRL2_FLAG_TO_DS, payload_length, ap_station_info->AID, UNICAST_QID, (u32)ap_station_info );
 
-			if(curr_tx_queue_element != NULL){ //There was at least 1 free queue element
-				curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-				wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr, addr_da );
-
-				mpdu_ptr_u8 = (u8*)(curr_tx_queue_buffer->frame);
-				tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
-
-				mpdu_ptr_u8 += sizeof(mac_header_80211);
-				llc_hdr = (llc_header*)(mpdu_ptr_u8);
-
-				//Prepare the MPDU LLC header
-				llc_hdr->dsap = LLC_SNAP;
-				llc_hdr->ssap = LLC_SNAP;
-				llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
-				bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
-				llc_hdr->type = LLC_TYPE_WLAN_LTG;
-
-				tx_length += max(payload_length, sizeof(llc_header));
-
-				wlan_mac_high_setup_tx_frame_info (&tx_header_common, curr_tx_queue_element, tx_length,(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
-
-				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-				curr_tx_queue_buffer->metadata.metadata_ptr = (u32)ap_station_info;
-				curr_tx_queue_buffer->frame_info.AID = ap_station_info->AID;
-
-				enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
+            if (status == 0) {
+				//Poll all Tx queues, in case the just-submitted packet can be de-queueued and transmitted immediately
 				poll_tx_queues();
 			}
 		}
 	}
-
 }
 
+
+
+/**
+ * @brief Print the AP list
+ *
+ * Function will print the AP list to the UART.  It will allow the user to select an AP to join
+ * if one is not specified by default.  Otherwise, it will attempt to join its default AP if
+ * it was found.
+ *
+ * @param  None
+ * @return None
+ */
 void print_ap_list(){
 	u32 i,j;
 	char str[4];
 	u16 ap_sel;
 
-	uart_mode = UART_MODE_AP_LIST;
-	//active_scan = 0;
+	uart_mode   = UART_MODE_AP_LIST;
+
+	// Pause the queue so we don't have any issues with the UART interfering with transmissions
 	pause_queue = 0;
 
-	//Revert to the previous channel that we were on prior to the active scan
+	// Revert to the previous channel that we were on prior to the active scan
 	mac_param_chan = mac_param_chan_save;
 	wlan_mac_high_set_channel( mac_param_chan );
 
-//	xil_printf("\f");
-
+	// Print the header
 	xil_printf("************************ AP List *************************\n");
 
-	for(i=0; i<num_ap_list; i++){
+	// Print the information about each AP
+	for( i = 0; i < num_ap_list; i++){
 		xil_printf("[%d] SSID:     %s ", i, ap_list[i].ssid);
+
 		if(ap_list[i].private == 1){
 			xil_printf("(*)\n");
 		} else {
@@ -1336,31 +1251,39 @@ void print_ap_list(){
 		xil_printf("    Channel:       %d\n",ap_list[i].chan);
 		xil_printf("    Rx Power:      %d dBm\n",ap_list[i].rx_power);
 		xil_printf("    Basic Rates:   ");
+
 		for(j = 0; j < (ap_list[i].num_basic_rates); j++ ){
 			wlan_mac_high_tagged_rate_to_readable_rate(ap_list[i].basic_rates[j], str);
 			xil_printf("%s, ",str);
 		}
-		xil_printf("\b\b \n");
 
+		xil_printf("\b\b \n");
 	}
 
-
+	// Allow user to select AP from the list of APs
 	if(strlen(access_point_ssid) == 0){
 		xil_printf("\n(*) Private Network (not supported)\n");
 		xil_printf("\n To join a network, type the number next to the SSID that\n");
 		xil_printf("you want to join and press enter. Otherwise, press Esc to return\n");
 		xil_printf("AP Selection: ");
 	} else {
-		for(i=0; i<num_ap_list; i++){
+
+		// Attempt to join the AP that
+		for( i = 0; i < num_ap_list; i++){
 			if(strcmp(access_point_ssid, ap_list[i].ssid) == 0){
 				ap_sel = i;
-				if( ap_list[ap_sel].private == 0) {
-					mac_param_chan = ap_list[ap_sel].chan;
 
-					//Send a message to other processor to tell it to switch channels
+				if( ap_list[ap_sel].private == 0) {
+					xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
+
+					// Stop the active scan
+					stop_active_scan();
+
+					// Switch to the AP's channel
+					mac_param_chan = ap_list[ap_sel].chan;
 					wlan_mac_high_set_channel( mac_param_chan );
 
-					xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
+					// Copy the SSID
 					memcpy(ap_addr, ap_list[ap_sel].bssid, 6);
 
 					// Copy the SSID of the BSS_INFO
@@ -1368,12 +1291,14 @@ void print_ap_list(){
 					bzero(access_point_ssid, SSID_LEN_MAX);
 					memcpy(access_point_ssid, ap_list[ap_sel].ssid, SSID_LEN_MAX);
 
+					// Copy the basic rates
 					access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
 					memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates, access_point_num_basic_rates);
 
-					stop_active_scan();
+					// Set the global association state and attempt to authenticate against the AP
 					association_state = 1;
 					attempt_authentication();
+
 					return;
 				} else {
 					xil_printf("AP with SSID %s is private\n", access_point_ssid);
@@ -1383,40 +1308,33 @@ void print_ap_list(){
 		}
 		xil_printf("Failed to find AP with SSID of %s\n", access_point_ssid);
 	}
-
 }
 
 
 
-/*****************************************************************************/
 /**
-* Reset Station Statistics
-*
-* Reset all statistics being kept for all stations
-*
-* @param    None.
-* @return	None.
-* @note		None.
-*
-******************************************************************************/
+ * @brief Reset Station Statistics
+ *
+ * Reset all statistics being kept for all stations
+ *
+ * @param  None
+ * @return None
+ */
 void reset_station_statistics(){
 	wlan_mac_high_reset_statistics(&statistics_table);
 }
 
 
 
-/*****************************************************************************/
 /**
-* Reset All Associations
-*
-* Wrapper to provide consistent name and potentially wrap additional functionality
-* in the future.
-*
-* @param    None.
-* @return	None.
-* @note		None.
-*
-******************************************************************************/
+ * @brief Reset All Associations
+ *
+ * Wrapper to provide consistent name and potentially wrap additional functionality
+ * in the future.
+ *
+ * @param  None
+ * @return None
+ */
 void reset_all_associations(){
 
     // STA disassociate command is the same for an individual AP or ALL
@@ -1426,13 +1344,16 @@ void reset_all_associations(){
 
 
 
-dl_list * get_statistics(){
-	return &statistics_table;
-}
-
-dl_list * get_station_info_list(){
-	return &association_table;
-}
+/**
+ * @brief Accessor methods for global variables
+ *
+ * These functions will return pointers to global variables
+ *
+ * @param  None
+ * @return None
+ */
+dl_list * get_station_info_list(){ return &association_table;  }
+dl_list * get_statistics()       { return &statistics_table;   }
 
 
 
@@ -1465,7 +1386,6 @@ int  sta_disassociate( void ) {
 		associated_station       = (station_info*)associated_station_entry->data;
 
 #if _DEBUG_
-		// Print message to console
 		u32 i;
 		xil_printf("Disassociating node: %02x", (associated_station->addr)[0]);
 		for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", (associated_station->addr)[i] ); } xil_printf("\n");
@@ -1515,10 +1435,6 @@ int  sta_disassociate( void ) {
  *  @note This function uses global variables:  association_state, association_table
  *      and statistics_table
  */
-
-//  u8 * address       = (rx_80211_header->address_2)
-//  u16  requested_AID = (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000
-
 int  sta_associate( u8 * address, u16 requested_AID ) {
     int                 status;
 	station_info*       associated_station = NULL;
@@ -1532,6 +1448,7 @@ int  sta_associate( u8 * address, u16 requested_AID ) {
 		associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, address, requested_AID);
 
 		if ( associated_station != NULL ) {
+
 			// Log association change
 			associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
 
@@ -1541,7 +1458,6 @@ int  sta_associate( u8 * address, u16 requested_AID ) {
 			}
 
 #if _DEBUG_
-			// Print message to console
 			u32 i;
 			xil_printf("Associating node: %02x", (associated_station->addr)[0]);
 			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", (associated_station->addr)[i] ); } xil_printf("\n");
@@ -1549,9 +1465,6 @@ int  sta_associate( u8 * address, u16 requested_AID ) {
 
 			// Update the HEX display
 			sta_write_hex_display(associated_station->AID);
-
-			// Set the TX params
-			memcpy(&(associated_station->tx),&default_unicast_data_tx_params, sizeof(tx_params));
 
 			// Set the association state
 			association_state = 4;
@@ -1565,6 +1478,45 @@ int  sta_associate( u8 * address, u16 requested_AID ) {
 }
 
 
+
+/**
+ * @brief Write a Decimal Value to the Hex Display
+ *
+ * This function will write a decimal value to the board's two-digit hex displays.
+ * For the STA, the display is right justified; WARPNet will indicate its connection
+ * state using the right decimal point.
+ *
+ * @param u8 val
+ *  - Value to be displayed (between 0 and 99)
+ * @return None
+ *
+ */
+void sta_write_hex_display(u8 val){
+    u32 right_dp;
+
+	// Need to retain the value of the right decimal point
+	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+
+	if ( val < 10 ) {
+		// Turn off hex mapping; turn off left hex display
+		userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE ) ) ) );
+		userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
+
+		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_R_MAPMODE));
+		userio_write_hexdisp_right(USERIO_BASEADDR, (val | right_dp));
+	} else {
+		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
+
+	    userio_write_hexdisp_left(USERIO_BASEADDR, ((val/10)%10));
+		userio_write_hexdisp_right(USERIO_BASEADDR, ((val%10) | right_dp));
+	}
+}
+
+
+
+
+
+#if 0
 
 /*****************************************************************************/
 /**
@@ -1612,39 +1564,6 @@ int get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words ) {
 	return index;
 }
 
-
-
-/**
- * @brief Write a Decimal Value to the Hex Display
- *
- * This function will write a decimal value to the board's two-digit hex displays.
- * For the STA, the display is right justified; WARPNet will indicate its connection
- * state using the right decimal point.
- *
- * @param u8 val
- *  - Value to be displayed (between 0 and 99)
- * @return None
- *
- */
-void sta_write_hex_display(u8 val){
-    u32 right_dp;
-
-	// Need to retain the value of the right decimal point
-	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
-
-	if ( val < 10 ) {
-		// Turn off hex mapping; turn off left hex display
-		userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE ) ) ) );
-		userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
-
-		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_R_MAPMODE));
-		userio_write_hexdisp_right(USERIO_BASEADDR, (val | right_dp));
-	} else {
-		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
-
-	    userio_write_hexdisp_left(USERIO_BASEADDR, ((val/10)%10));
-		userio_write_hexdisp_right(USERIO_BASEADDR, ((val%10) | right_dp));
-	}
-}
+#endif
 
 
