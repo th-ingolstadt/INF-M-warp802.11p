@@ -15,6 +15,7 @@
  *  @bug No known bugs.
  */
 
+/***************************** Include Files *********************************/
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -25,10 +26,24 @@
 
 #include "wlan_exp_common.h"
 
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_mac_eth_util.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
+
+/*************************** Constant Definitions ****************************/
+
+
+
+/*********************** Global Variable Definitions *************************/
+
+extern mac_header_80211_common         tx_header_common;
+
+
+
+/*************************** Variable Definitions ****************************/
 
 static dl_list tg_list;
 
@@ -38,7 +53,15 @@ static u64 num_ltg_checks;
 static u32 schedule_id;
 static u8  schedule_running;
 
-int wlan_mac_ltg_sched_init(){
+
+/*************************** Functions Prototypes ****************************/
+
+
+
+
+/******************************** Functions **********************************/
+
+int  wlan_mac_ltg_sched_init(){
 
 	int return_value = 0;
 	schedule_running = 0;
@@ -50,9 +73,11 @@ int wlan_mac_ltg_sched_init(){
 	return return_value;
 }
 
+
 void wlan_mac_ltg_sched_set_callback(void(*callback)()){
 	ltg_callback = (function_ptr_t)callback;
 }
+
 
 u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_callback)()){
 
@@ -74,25 +99,26 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 
 	curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
-	curr_tg->id = id;
-
+	curr_tg->id  = id;
 	return_value = id;
 
+	// Increment LTG ID so that it is unique per LTG
 	id++;
-	if(id == LTG_ID_INVALID){
-		id++;
-	}
+	if(id == LTG_ID_INVALID){ id++; }
 
 	curr_tg->type = type;
 	curr_tg->cleanup_callback = (function_ptr_t)cleanup_callback;
+
+	xil_printf("LTG size = %d    %d\n", sizeof(ltg_sched_periodic_state), sizeof(ltg_sched_uniform_rand_state));
+
 	switch(type){
 		case LTG_SCHED_TYPE_PERIODIC:
 			curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_params));
-			curr_tg->state = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_state));
+			curr_tg->state  = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_state));
 
 			if(curr_tg->params != NULL && curr_tg->state != NULL){
+                bzero(curr_tg->state, sizeof(ltg_sched_periodic_state));
 				memcpy(curr_tg->params, params, sizeof(ltg_sched_periodic_params));
-
 				curr_tg->callback_arg = callback_arg;
 			} else {
 				xil_printf("Failed to initialize LTG structs\n");
@@ -101,11 +127,13 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 				return -1;
 			}
 		break;
+
 		case LTG_SCHED_TYPE_UNIFORM_RAND:
 			curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
-			curr_tg->state = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_params));
+			curr_tg->state  = wlan_mac_high_malloc(sizeof(ltg_sched_uniform_rand_state));
 
 			if(curr_tg->params != NULL && curr_tg->state != NULL){
+                bzero(curr_tg->state, sizeof(ltg_sched_uniform_rand_state));
 				memcpy(curr_tg->params, params, sizeof(ltg_sched_uniform_rand_params));
 				curr_tg->callback_arg = callback_arg;
 			} else {
@@ -116,6 +144,7 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 				return return_value;
 			}
 		break;
+
 		default:
 			xil_printf("Unknown type %d, destroying tg_schedule struct\n");
 			dl_entry_remove(&tg_list,curr_tg_dl_entry);
@@ -124,9 +153,36 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 			return return_value;
 		break;
 	}
-	((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+
+	// NOTE:  By zeroing out the state, enabled is set to zero automatically
+	//     ((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+
 	return return_value;
 }
+
+
+dl_entry* ltg_sched_create_l(){
+	dl_entry* curr_tg_dl_entry;
+	tg_schedule* curr_tg;
+
+	curr_tg_dl_entry = (dl_entry*)wlan_mac_high_malloc(sizeof(dl_entry));
+
+	if(curr_tg_dl_entry == NULL){
+		return NULL;
+	}
+
+	curr_tg = (tg_schedule*)wlan_mac_high_malloc(sizeof(tg_schedule));
+
+	if(curr_tg == NULL){
+		wlan_mac_high_free(curr_tg_dl_entry);
+		return NULL;
+	}
+
+	curr_tg_dl_entry->data = (void*)curr_tg;
+
+	return curr_tg_dl_entry;
+}
+
 
 int ltg_sched_start(u32 id){
 	dl_entry*	curr_tg_dl_entry;
@@ -180,6 +236,7 @@ int ltg_sched_start_all(){
 
 int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 	tg_schedule* curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
+	u64 timestamp        = get_usec_timestamp();
 	u64 random_timestamp;
 
 	switch(curr_tg->type){
@@ -193,8 +250,10 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 				curr_tg->stop_target = LTG_DURATION_FOREVER;
 			}
 
+			((ltg_sched_state_hdr*)(curr_tg->state))->start_timestamp = timestamp;
 			((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 1;
 		break;
+
 		case LTG_SCHED_TYPE_UNIFORM_RAND:
 			random_timestamp = (rand()%(((ltg_sched_uniform_rand_params*)(curr_tg->params))->max_interval_count - ((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count))+((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count;
 			curr_tg->target = num_ltg_checks + (random_timestamp/FAST_TIMER_DUR_US);
@@ -205,6 +264,7 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 				curr_tg->stop_target = LTG_DURATION_FOREVER;
 			}
 
+			((ltg_sched_state_hdr*)(curr_tg->state))->start_timestamp = timestamp;
 			((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 1;
 		break;
 
@@ -221,6 +281,9 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 
 		schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, 0, SCHEDULE_REPEAT_FOREVER, (void*)ltg_sched_check);
 	}
+
+	u64 start_time = ((ltg_sched_state_hdr*)(curr_tg->state))->start_timestamp;
+	xil_printf("LTG Start @ 0x%08x 0x%08x\n", (u32)(start_time >> 32), (u32)start_time );
 
 	return 0;
 }
@@ -268,9 +331,8 @@ void ltg_sched_check(){
 			curr_tg_dl_entry = dl_entry_next(curr_tg_dl_entry);
 		}
 	}
-
-	return;
 }
+
 
 int ltg_sched_stop(u32 id){
 	dl_entry*	 curr_tg_dl_entry;
@@ -317,13 +379,22 @@ int ltg_sched_stop_all(){
 int ltg_sched_stop_l(dl_entry* curr_tg_dl_entry){
 	tg_schedule* curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
-	((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+	u64 timestamp = get_usec_timestamp();
+
+	if ( ((ltg_sched_state_hdr*)(curr_tg->state))->enabled == 1 ) {
+		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+		((ltg_sched_state_hdr*)(curr_tg->state))->stop_timestamp = timestamp;
+		xil_printf("LTG Stop  @ 0x%08x 0x%08x\n", (u32)(timestamp >> 32), (u32)timestamp );
+	}
+
 	if(tg_list.length == 0 && schedule_running == 1){
 		wlan_mac_remove_schedule(SCHEDULE_FINE, schedule_id);
 		schedule_running = 0;
 	}
+
 	return 0;
 }
+
 
 int ltg_sched_get_state(u32 id, u32* type, void** state){
 	//This function returns the type of schedule corresponding to the id argument
@@ -358,16 +429,17 @@ int ltg_sched_get_state(u32 id, u32* type, void** state){
 				((ltg_sched_uniform_rand_state*)(curr_tg->state))->time_to_next_count = 0;
 			}
 		break;
+
 		default:
 			xil_printf("Unknown type %d\n", curr_tg->type);
 			return -1;
 		break;
 	}
 
-
 	return 0;
-
 }
+
+
 int ltg_sched_get_params(u32 id, void** params){
 	//This function returns the type of the schedule corresponding to the id argument
 	//It fills in the current parameters of the schedule into the params argument
@@ -385,6 +457,7 @@ int ltg_sched_get_params(u32 id, void** params){
 
 	return 0;
 }
+
 
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg){
 	tg_schedule* curr_tg;
@@ -463,28 +536,6 @@ int ltg_sched_remove_all(){
 }
 
 
-dl_entry* ltg_sched_create_l(){
-	dl_entry* curr_tg_dl_entry;
-	tg_schedule* curr_tg;
-
-	curr_tg_dl_entry = (dl_entry*)wlan_mac_high_malloc(sizeof(dl_entry));
-
-	if(curr_tg_dl_entry == NULL){
-		return NULL;
-	}
-
-	curr_tg = (tg_schedule*)wlan_mac_high_malloc(sizeof(tg_schedule));
-
-	if(curr_tg == NULL){
-		wlan_mac_high_free(curr_tg_dl_entry);
-		return NULL;
-	}
-
-	curr_tg_dl_entry->data = (void*)curr_tg;
-
-	return curr_tg_dl_entry;
-}
-
 void ltg_sched_destroy_params(tg_schedule *tg){
 	switch(tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
@@ -494,6 +545,7 @@ void ltg_sched_destroy_params(tg_schedule *tg){
 		break;
 	}
 }
+
 
 void ltg_sched_destroy_l(dl_entry* tg_dl_entry){
 	tg_schedule* curr_tg;
@@ -505,6 +557,7 @@ void ltg_sched_destroy_l(dl_entry* tg_dl_entry){
 	wlan_mac_high_free(curr_tg);
 	return;
 }
+
 
 dl_entry* ltg_sched_find_tg_schedule(u32 id){
 	u32 i;
@@ -645,6 +698,67 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 
 
 
+int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 payload_length, u16 aid, u16 queue_id, u32 metadata_ptr ) {
+	tx_queue_element* curr_tx_queue_element;
+	tx_queue_buffer*  curr_tx_queue_buffer;
+
+	u32               tx_length;
+	u8*               mpdu_ptr_u8;
+	llc_header*       llc_hdr;
+	ltg_pyld_id*      ltg_payload_id;
+
+	int               status = 0;
+
+	// Checkout 1 element from the queue;
+	curr_tx_queue_element = queue_checkout();
+
+	if(curr_tx_queue_element != NULL){
+		// Create LTG packet
+		curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
+
+		// Setup the MAC header
+		wlan_mac_high_setup_tx_header( &tx_header_common, addr_1, addr_3 );
+
+		// Create the Payload data frame
+		mpdu_ptr_u8 = (u8*)(curr_tx_queue_buffer->frame);
+		tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, tx_flags);
+
+		// Prepare the MPDU LLC header
+		mpdu_ptr_u8 += sizeof(mac_header_80211);
+		llc_hdr = (llc_header*)(mpdu_ptr_u8);
+
+		llc_hdr->dsap = LLC_SNAP;
+		llc_hdr->ssap = LLC_SNAP;
+		llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
+		bzero((void *)(llc_hdr->org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
+		llc_hdr->type = LLC_TYPE_WLAN_LTG;
+
+		// Insert LTG packet id
+		mpdu_ptr_u8 += sizeof(llc_header);
+		ltg_payload_id = (ltg_pyld_id *)(mpdu_ptr_u8);
+
+		ltg_payload_id->packet_id = tx_header_common.seq_num;
+		ltg_payload_id->ltg_id    = ltg_id;
+
+		// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
+		tx_length += max(payload_length, (sizeof(llc_header) + sizeof(ltg_pyld_id)));
+
+		// Finally prepare the 802.11 header
+		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_id);
+
+		// Update the queue entry metadata to reflect the new new queue entry contents
+		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+		curr_tx_queue_buffer->metadata.metadata_ptr  = metadata_ptr;
+		curr_tx_queue_buffer->frame_info.AID         = aid;
+
+		// Submit the new packet to the appropriate queue
+		enqueue_after_tail(queue_id, curr_tx_queue_element);
+	} else {
+		status = -1;
+	}
+
+	return status;
+}
 
 
 

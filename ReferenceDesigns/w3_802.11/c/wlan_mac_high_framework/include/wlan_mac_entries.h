@@ -77,6 +77,7 @@
 // MAC payload length
 
 #define MIN_MAC_PAYLOAD_LOG_LEN                  24
+#define MIN_MAC_PAYLOAD_LTG_LOG_LEN              44
 #define MAX_MAC_PAYLOAD_LOG_LEN                  1500
 
 // To never record payloads, you can set the min / max defines as follows:
@@ -362,6 +363,16 @@ void     wlan_exp_log_set_mac_payload_len(u32 payload_len);
 // Wrapper method to get an entry
 //
 void *   wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
+
+
+//-----------------------------------------------
+// Methods to create an entry
+//
+tx_high_entry   * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_num);
+tx_low_entry    * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u64 timestamp_offset, u32 tx_low_count);
+
+rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channel_num, u8 rate);
+
 
 
 //-----------------------------------------------

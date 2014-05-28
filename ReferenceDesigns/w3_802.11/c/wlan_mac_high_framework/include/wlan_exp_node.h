@@ -103,12 +103,17 @@
 #define CMDID_LTG_START                                    0x002001
 #define CMDID_LTG_STOP                                     0x002002
 #define CMDID_LTG_REMOVE                                   0x002003
+#define CMDID_LTG_STATUS                                   0x002004
 
 #define CMD_PARAM_LTG_ERROR                                0x000001
 
 #define CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART                0x00000001
 
 #define CMD_PARAM_LTG_ALL_LTGS                             LTG_ID_INVALID
+
+#define CMD_PARAM_LTG_STOPPED                              0x00000000
+#define CMD_PARAM_LTG_RUNNING                              0x00000001
+
 
 //-----------------------------------------------
 // Log Commands

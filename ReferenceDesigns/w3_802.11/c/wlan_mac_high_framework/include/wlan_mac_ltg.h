@@ -60,8 +60,10 @@ struct tg_schedule{
 #define LTG_DURATION_FOREVER 0
 
 typedef struct {
-	u8 enabled;
-	u8 reserved[3];
+	u8  enabled;
+	u8  reserved[3];
+	u64 start_timestamp;
+	u64 stop_timestamp;
 } ltg_sched_state_hdr;
 
 typedef struct {
@@ -112,6 +114,14 @@ typedef struct {
 } ltg_pyld_uniform_rand;
 
 
+//LTG Payload Contents
+
+typedef struct {
+	u64 packet_id;
+	u32 ltg_id;
+} ltg_pyld_id;
+
+
 //Note: This definition simply reflects the use of the fast timer for LTG polling. To increase LTG
 //polling rate at the cost of more overhead in checking LTGs, increase the speed of the fast timer.
 #define LTG_POLL_INTERVAL              FAST_TIMER_DUR_US
@@ -133,6 +143,8 @@ int ltg_sched_stop_l(dl_entry* curr_tg_dl_entry);
 int ltg_sched_get_state(u32 id, u32* type, void** state);
 int ltg_sched_get_params(u32 id, void** params);
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
+
+int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 payload_length, u16 aid, u16 queue_id, u32 metadata_ptr );
 
 // WLAN Exp function to LTG -- users may call these directly or modify if needed
 void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);

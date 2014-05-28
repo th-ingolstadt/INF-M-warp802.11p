@@ -1704,6 +1704,51 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
+		case CMDID_LTG_STATUS:
+            // NODE_LTG_STATUS Packet Format:
+			//   - cmdArgs32[0]      - LTG ID
+			//
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+			//   - respArgs32[1]     - CMD_PARAM_LTG_RUNNING
+			//                       - CMD_PARAM_LTG_STOPPED
+			//   - respArgs32[3:2]   - Last start timestamp
+			//   - respArgs32[5:4]   - Last stop timestamp
+			//
+			status = CMD_PARAM_SUCCESS;
+			id     = Xil_Ntohl(cmdArgs32[0]);
+			temp   = sizeof(ltg_sched_state_hdr) / 4;      // Number of return args for the header
+
+			u32      * state;
+			dl_entry * curr_tg_dl_entry;
+
+			curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
+
+			if(curr_tg_dl_entry != NULL){
+				state  = (u32 *)((tg_schedule*)(curr_tg_dl_entry->data))->state;
+			} else {
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			if(curr_tg_dl_entry != NULL){
+            	for (i = 0; i < temp; i++) {
+                    respArgs32[respIndex++] = Xil_Htonl( state[i] );
+            	}
+            } else {
+            	for (i = 0; i < temp; i++) {
+                    respArgs32[respIndex++] = 0xFFFFFFFF;
+            	}
+            }
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
 		case CMDID_LOG_CONFIG:
             // NODE_LOG_CONFIG Packet Format:
 			//   - cmdArgs32[0]  - flags

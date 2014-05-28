@@ -222,26 +222,28 @@ void wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
 void wlan_mac_high_set_tx_ctrl_pow( s8 pow );
 void wlan_mac_high_set_rx_filter_mode( u32 filter_mode );
 int  wlan_mac_high_write_low_mem( u32 num_words, u32* payload );
-int wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload );
+int  wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload );
 void wlan_mac_high_set_dsss( unsigned int dsss_value );
 void wlan_mac_high_set_timestamp( u64 timestamp );
 void wlan_mac_high_set_timestamp_delta( s64 timestamp );
 void wlan_mac_high_request_low_state();
 int  wlan_mac_high_is_cpu_low_initialized();
 int  wlan_mac_high_is_ready_for_tx();
-inline u8 wlan_mac_high_pkt_type(void* mpdu, u16 length);
+u8   wlan_mac_high_pkt_type(void* mpdu, u16 length);
 inline void wlan_mac_high_set_debug_gpio(u8 val);
 inline void wlan_mac_high_clear_debug_gpio(u8 val);
 int str2num(char* str);
 void usleep(u64 delay);
 
 station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID);
-int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
-void wlan_mac_high_print_associations(dl_list* assoc_tbl);
+int           wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
+u8            wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
+void          wlan_mac_high_print_associations(dl_list* assoc_tbl);
+
 statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
-void wlan_mac_high_reset_statistics(dl_list* stat_tbl);
-u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
-void wlan_mac_high_copy_comparison();
+void             wlan_mac_high_reset_statistics(dl_list* stat_tbl);
+void             wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu);
+
 
 // Common functions that must be implemented by users of the framework
 dl_list * get_statistics();
