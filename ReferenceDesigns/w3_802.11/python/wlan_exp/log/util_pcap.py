@@ -228,6 +228,10 @@ def _covert_log_data_to_pcap(file, log_data, log_pcap_index):
     # Write the Global header to the file
     file.write(_serialize_header(pcap_global_header, pcap_global_header_fmt))
     
+    
+    # TODO:  Need to re-order the index by timestamp so the events are in time order
+    
+    
     # Iterate through the index and create a pcap entry for each item
     for item in log_pcap_index:
         # Get the timestamp (# of microseconds)

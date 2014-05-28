@@ -168,6 +168,33 @@ class WlanExpLogEntryType(object):
         self._update_field_defs()
 
 
+    def modify_field_def(self, name, struct_type, numpy_type, doc_str=None):
+        """Modifies fields of the definition of the log entry type.
+
+        Attributes:
+            name         -- Name of field to modify
+            struct_type  -- New struct type for the field
+            numpy_type   -- New numpy type for the field
+            doc_str      -- New documentation string (optional)
+        """
+        index = None
+        
+        for idx, f in enumerate(self._fields):
+            if (f[0] == name):
+                index = idx
+        
+        if index is None:
+            print("WARNING:  Field {0} not found in {1}.".format(name, self.name))
+            return
+        
+        if doc_str is None:
+            field = (name, struct_type, numpy_type, self._fields[index][3])
+        else:
+            field = (name, struct_type, numpy_type, doc_str)
+        
+        self._fields[index] = field
+
+
     def add_gen_numpy_array_callback(self, callback):
         """Add callback that is run after the numpy array is generated from the entry type."""
         if callable(callback):
@@ -244,11 +271,15 @@ class WlanExpLogEntryType(object):
 
         return doc_str
 
+
     def _entry_as_string(self, buf):
-        """Generate a string representation of the entry from a buffer. This method sould only
+        """Generate a string representation of the entry from a buffer. This method should only
         be used for debugging log data parsing and log index generation, not for general creation
-        of text log files."""
+        of text log files.
         
+        NOTE:  This method does not work correctly on RX_OFDM entries due to the way the channel
+        estimates are defined.  The channel_est, mac_payload_len, and mac_payload will all be zeros.
+        """        
         entry_size = calcsize(self.fields_fmt_struct)
         entry      = self.deserialize(buf[0:entry_size])[0]
                 
@@ -266,6 +297,31 @@ class WlanExpLogEntryType(object):
                 str_out += "\b\b]"
 
         str_out += "\n"
+
+        return str_out
+
+
+    def _entry_as_byte_array_string(self, buf):
+        """Generate a string representation of the entry from a buffer as an array of bytes. This 
+        method should only be used for debugging log data parsing and log index generation, not 
+        for general creation of text log files.
+        """
+        entry_size = calcsize(self.fields_fmt_struct)
+        entry      = self.deserialize(buf[0:entry_size])[0]
+
+        str_out = self.name + ': '
+
+        line_num = 0
+
+        for byte in range(entry_size):
+            if (byte % 16) == 0:
+                str_out  += "\n{0:>8d}: ".format(line_num)
+                line_num += 16
+            str_out += "0x{0:02x} ".format(ord(buf[byte]))
+        
+        str_out += "\n"
+
+        print(entry)
 
         return str_out
 
@@ -388,6 +444,93 @@ class WlanExpLogEntryType(object):
 # End class
 
 
+def np_array_add_txrx_ltg_fields(np_arr_orig):
+    """Add 'virtual' fields to TX/RX LTG packets."""
+    np_array_add_fields(np_arr_orig, mac_addr=True, ltg=True)
+    
+    # Needs to check the values of the snap header and the length of the 
+    # mac payload to make sure that there is no bogus data.
+    
+
+
+def np_array_add_txrx_fields(np_arr_orig):
+    """Add 'virtual' fields to TX/RX packets."""
+    np_array_add_fields(np_arr_orig, mac_addr=True, ltg=False)
+
+
+
+def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False):
+    """Add 'virtual' fields to the numpy array.
+    
+    Extend the default np_arr with convenience fields for:
+        - MAC header addresses
+        - LTG packet information
+
+    IMPORTANT: np_arr uses the original bytearray as its underlying data
+    We must operate on a copy to avoid clobbering log entries adjacent to the
+    Tx or Rx entries being extended
+    """
+    names   = ()
+    formats = ()
+    
+    # Add the MAC address fields
+    if mac_addr:
+        names   += ('addr1', 'addr2', 'addr3', 'mac_seq')
+        formats += ('uint64', 'uint64', 'uint64', 'uint16')
+
+    # Add the LTG fields
+    if ltg:
+        names   += ('packet_id', 'ltg_id')
+        formats += ('uint64', 'uint32')
+
+    # If there are no fields to add, just return the original array
+    if not names:
+        return np_arr_orig
+
+    # Create a new numpy dtype with additional fields
+    dt_new = extend_np_dt(np_arr_orig.dtype, {'names': names, 'formats': formats})
+
+    # Initialize the output array (same shape, new dtype)
+    np_arr_out = np.zeros(np_arr_orig.shape, dtype=dt_new)
+
+    # Copy data from the base numpy array into the output array
+    for f in np_arr_orig.dtype.names:
+        #TODO: maybe don't copy fields that are ignored in the struct format?
+        # problem is non-TxRx entries would still have these fields in their numpy versions
+        np_arr_out[f] = np_arr_orig[f]
+
+    # Extract the MAC payload (the payload is at a minimum a 24-entry uint8 array)
+    mac_hdrs = np_arr_orig['mac_payload']
+    
+    # Populate the MAC Address fields
+    if mac_addr:
+        # Helper array of powers of 2
+        #   this array arranges bytes such that they match other u64 representations of MAC addresses
+        #   elsewhere in the framework
+        addr_conv_arr = np.uint64(2)**np.array(range(40,-1,-8), dtype='uint64')
+    
+        #Compute values for address-as-int fields using numpy's dot-product routine
+        # MAC header offsets here select the 3 6-byte address fields
+        np_arr_out['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 4:10]))
+        np_arr_out['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,10:16]))
+        np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,16:22]))
+    
+        np_arr_out['mac_seq'] = np.dot(mac_hdrs[:,22:24], [1, 256]) // 16
+
+    # Populate the LTG fields
+    if ltg:
+        # Use from_iter / np dtype conversion to extract all the fields
+        np_arr_out['packet_id'] = 0
+        np_arr_out['ltg_id']    = 0
+        pass
+
+    return np_arr_out
+
+# End def
+
+
+
+
 def np_array_add_MAC_addr_fields(np_arr_orig):
         # Extend the default np_arr with convenience fields for MAC header addresses
         # IMPORTANT: np_arr uses the original bytearray as its underlying data
@@ -427,6 +570,7 @@ def np_array_add_MAC_addr_fields(np_arr_orig):
         return np_arr_out
 
 # End def
+
 
 
 def extend_np_dt(dt_orig, new_fields=None):
@@ -527,6 +671,7 @@ entry_node_info.append_field_defs([
             ('wlan_mac_addr',          'Q',      'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
             ('wlan_scheduler_resolution', 'I',   'uint32',  'Minimum interval in microseconds of the WLAN scheduler')])
 
+
 ###########################################################################
 # Experiment Info header - actual exp_info contains a "message" field that
 #  follows this header. Since the message is variable length it is not described
@@ -567,6 +712,7 @@ entry_station_info.append_field_defs([
             ('tx_mac_flags',           'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
             ('padding',                '2x',     'uint16',  '')])
 
+
 ###########################################################################
 # WARPNet Command Info
 entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
@@ -578,6 +724,7 @@ entry_wn_cmd_info.append_field_defs([
             ('src_id',                 'H',      'uint16',  'Node ID of device sending command'),
             ('num_args',               'H',      'uint16',  'Number of arguments supplied in command'),
             ('args',                   '10I',    '10uint32','Command arguments')])
+
 
 ###########################################################################
 # Time Info
@@ -593,6 +740,7 @@ entry_time_info.append_field_defs([
             ('new_time',               'Q',      'uint64', 'New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed'),
             ('abs_time',               'Q',      'uint64', 'Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
 
+
 ###########################################################################
 # Temperature
 entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
@@ -605,6 +753,7 @@ entry_node_temperature.append_field_defs([
             ('temp_current',           'I',      'uint32', 'Current FPGA die temperature'),
             ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature since FPGA configuration or sysmon reset'),
             ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature since FPGA configuration or sysmon reset')])
+
 
 ###########################################################################
 # Receive OFDM
@@ -631,8 +780,9 @@ entry_rx_dsss.description  = 'Rx events from DSSS PHY. These log entries will on
 entry_rx_dsss.description += 'in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-leve MAC '
 entry_rx_dsss.description += 'filter is configured to pass all receptions up to CPU High.'
 
-entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_dsss.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
+
+entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
 entry_rx_dsss.append_field_defs([          
             ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
             ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
@@ -675,6 +825,7 @@ entry_tx_low.description += 'for the same TX entry if the low-level MAC re-trans
 entry_tx_low.description += 'to find records common to the same MPUD.'
 
 entry_tx_low.add_gen_numpy_array_callback(np_array_add_MAC_addr_fields)
+
 entry_tx_low.append_field_defs([
             ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet transmission actually started (PHY TX_START time)'),
             ('uniq_seq',               'Q',      'uint64',  'Unique sequence number of original MPDU'),

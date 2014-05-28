@@ -106,12 +106,16 @@ CMDID_LTG_CONFIG                                 = 0x002000
 CMDID_LTG_START                                  = 0x002001
 CMDID_LTG_STOP                                   = 0x002002
 CMDID_LTG_REMOVE                                 = 0x002003
+CMDID_LTG_STATUS                                 = 0x002004
 
 CMD_PARAM_LTG_ERROR                              = 0x000001
 
 CMD_PARAM_LTG_ALL_LTGS                           = 0xFFFFFFFF
 
 CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART              = 0x00000001
+
+CMD_PARAM_LTG_RUNNING                            = 0x00000001
+CMD_PARAM_LTG_STOPPED                            = 0x00000000
 
 
 # Log commands and defined values
@@ -469,6 +473,38 @@ class LTGRemove(LTGCommon):
     def __init__(self, ltg_id=None):
         super(LTGRemove, self).__init__(ltg_id)
         self.command = _CMD_GRPID_NODE + CMDID_LTG_REMOVE
+    
+# End Class
+
+
+class LTGStatus(wn_message.Cmd):
+    """Command to get the status of the LTG."""
+    time_factor = 6
+    name        = 'status'
+
+    def __init__(self, ltg_id):
+        super(LTGStatus, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_LTG_STATUS
+
+        if type(ltg_id) is not int:
+            raise TypeError("LTG ID must be an integer.")
+        self.add_args(ltg_id)
+
+    def process_resp(self, resp):
+        if resp.resp_is_valid(num_args=6, 
+                              status_errors=[CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR], 
+                              name='LTG {0} command'.format(self.name)):
+            args = resp.get_args()
+
+            start_timestamp = (2**32 * args[3]) + args[2]
+            stop_timestamp  = (2**32 * args[5]) + args[4]
+            
+            start_time = float(start_timestamp / (10**self.time_factor))
+            stop_time  = float(stop_timestamp  / (10**self.time_factor))
+
+            return (True, (args[1] == CMD_PARAM_LTG_RUNNING), start_time, stop_time)
+        else:
+            return (False, False, 0.0, 0.0)
     
 # End Class
 

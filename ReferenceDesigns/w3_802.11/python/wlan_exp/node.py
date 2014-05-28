@@ -407,6 +407,24 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
 
 
+    def ltg_get_status(self, ltg_id_list):
+        """Get the status of the LTG flows."""
+        ret_val = []
+        if (type(ltg_id_list) is list):
+            for ltg_id in ltg_id_list:
+                result = self.send_cmd(cmds.LTGStatus(ltg_id))
+                if not result[0]:
+                    self._print_ltg_error(cmds.CMD_PARAM_LTG_ERROR, "get status for LTG {0}".format(ltg_id))
+                ret_val.append(result)
+        else:
+            result = self.send_cmd(cmds.LTGStatus(ltg_id_list))
+            if not result[0]:
+                self._print_ltg_error(cmds.CMD_PARAM_LTG_ERROR, "get status for LTG {0}".format(ltg_id_list))
+            ret_val.append(result)
+        
+        return ret_val
+
+
     def ltg_remove(self, ltg_id_list):
         """Remove the LTG flows."""
         if (type(ltg_id_list) is list):
@@ -816,6 +834,16 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
                 raise AttributeError(msg)
         
         self.send_cmd(cmds.NodeProcRandomSeed(cmds.CMD_PARAM_WRITE, high_seed, low_seed))
+
+
+    def enable_dsss(self):
+        """Enables DSSS receptions on the node."""
+        raise NotImplementedError
+    
+    
+    def disable_dsss(self):
+        """Disable DSSS receptions on the node."""
+        raise NotImplementedError
 
 
 

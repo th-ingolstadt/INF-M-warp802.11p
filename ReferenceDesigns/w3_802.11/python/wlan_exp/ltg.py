@@ -128,10 +128,13 @@ class SchedulePeriodic(Schedule):
     interval    = None
     duration    = None
 
-    def __init__(self, interval, duration):
+    def __init__(self, interval, duration=None):
         self.ltg_type = LTG_SCHED_TYPE_PERIODIC
         self.interval = int(round(float(interval), self.time_factor) * (10**self.time_factor))
-        self.duration = int(round(float(duration), self.time_factor) * (10**self.time_factor))
+        if duration is None:
+            self.duration = 0
+        else:
+            self.duration = int(round(float(duration), self.time_factor) * (10**self.time_factor))
     
     def get_params(self):
         duration0 = ((self.duration >> 32) & 0xFFFFFFFF)
@@ -165,11 +168,14 @@ class ScheduleUniformRandom(Schedule):
     max_interval = None
     duration     = None
 
-    def __init__(self, min_interval, max_interval, duration):
+    def __init__(self, min_interval, max_interval, duration=None):
         self.ltg_type     = LTG_PYLD_TYPE_UNIFORM_RAND
         self.min_interval = int(round(float(min_interval), self.time_factor) * (10**self.time_factor))
         self.max_interval = int(round(float(max_interval), self.time_factor) * (10**self.time_factor))
-        self.duration     = int(round(float(duration), self.time_factor) * (10**self.time_factor))
+        if duration is None:
+            self.duration = 0
+        else:
+            self.duration = int(round(float(duration), self.time_factor) * (10**self.time_factor))
         
     def get_params(self):
         duration0 = ((self.duration >> 32) & 0xFFFFFFFF)
@@ -338,7 +344,7 @@ class FlowConfigCBR(FlowConfig):
         interval     -- Interval between packets (in float seconds)
         duration     -- Duration of the traffic flow (in float seconds)
     """
-    def __init__(self, dest_addr, size, interval, duration):
+    def __init__(self, dest_addr, size, interval, duration=None):
         self.ltg_schedule = SchedulePeriodic(interval, duration)
         self.ltg_payload  = PayloadFixed(dest_addr, size)
 
@@ -354,7 +360,7 @@ class FlowConfigAllAssocCBR(FlowConfig):
         interval     -- Interval between packets (in float seconds)
         duration     -- Duration of the traffic flow (in float seconds)
     """
-    def __init__(self, size, interval, duration):
+    def __init__(self, size, interval, duration=None):
         self.ltg_schedule = SchedulePeriodic(interval, duration)
         self.ltg_payload  = PayloadAllAssocFixed(size)
 
@@ -373,7 +379,7 @@ class FlowConfigRandomRandom(FlowConfig):
         max_interval -- Maximum interval between packets (in float seconds)
         duration     -- Duration of the traffic flow (in float seconds)
     """
-    def __init__(self, dest_addr, min_length, max_length, min_interval, max_interval, duration):
+    def __init__(self, dest_addr, min_length, max_length, min_interval, max_interval, duration=None):
         self.ltg_schedule = ScheduleUniformRandom(min_interval, max_interval, duration)
         self.ltg_payload  = PayloadUniformRandom(dest_addr, min_length, max_length)
 
