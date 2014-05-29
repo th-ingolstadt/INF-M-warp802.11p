@@ -135,6 +135,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	u8 active_rx_ant;
 	u32 rx_filter;
 	u8 pass_up;
+	u8 ack_tx_gain;
 
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
@@ -226,7 +227,10 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		//the subsystem.
 
 		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceeding reception.
-		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC))),wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow()), ack_tx_ant_mask);
+		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC))), ack_tx_ant_mask);
+		
+		ack_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
+		wlan_mac_auto_tx_gains(ack_tx_gain,ack_tx_gain,ack_tx_gain,ack_tx_gain);
 
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
@@ -451,12 +455,15 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			//(re)transmissions, an explicit backoff will have been started at the end of
 			//the previous iteration of this loop.
 			n_slots = rand_num_slots();
-			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, curr_tx_pow, mpdu_tx_ant_mask);
+			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
 		} else {
 			REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x20);
-			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, curr_tx_pow, mpdu_tx_ant_mask);
+			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
 			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x20);
 		}
+		
+		//Set Tx Gains
+		wlan_mac_MPDU_tx_gains(curr_tx_pow,curr_tx_pow,curr_tx_pow,curr_tx_pow);
 
 		//Before we mess with any PHY state, we need to make sure it isn't actively
 		//transmitting. For example, it may be sending an ACK when we get to this part of the code
