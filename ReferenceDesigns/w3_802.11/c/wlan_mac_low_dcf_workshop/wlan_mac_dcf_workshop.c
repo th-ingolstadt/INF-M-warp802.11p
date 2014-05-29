@@ -415,7 +415,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		//DEBUG POWER
 		//xil_printf("%d \n", (int)( -1*wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power)*(float)log((float)(rand())/RAND_MAX) ));
-#if 1
+#if 0
 		s8 curr_tx_pow;
 
 		//mpdu_info->params.phy.power
