@@ -147,7 +147,7 @@
 
 BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 2.00.t
+ PARAMETER HW_VER = 2.00.u
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -171,9 +171,15 @@ BEGIN wlan_phy_tx_pmd_axiw
  PORT rc_usr_rxen = rc_usr_rxen
  PORT rc_usr_txen_a = phy_rc_txen_a
  PORT rc_usr_txen_b = phy_rc_txen_b
- PORT rc_tx_gain = phy_rc_tx_gain
+ PORT rc_tx_gain_a = phy_rc_tx_gain_a
+ PORT rc_tx_gain_b = phy_rc_tx_gain_b
+ PORT rc_tx_gain_c = phy_rc_tx_gain_c
+ PORT rc_tx_gain_d = phy_rc_tx_gain_d
 # MAC <-> Tx PHY ports
- PORT phy_tx_gain = mac_phy_tx_gain
+ PORT phy_tx_gain_a = mac_phy_tx_gain_a
+ PORT phy_tx_gain_b = mac_phy_tx_gain_b
+ PORT phy_tx_gain_c = mac_phy_tx_gain_c
+ PORT phy_tx_gain_d = mac_phy_tx_gain_d
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
  PORT phy_tx_start = mac_phy_tx_start
  PORT phy_tx_done = mac_phy_tx_done
@@ -252,7 +258,7 @@ END
 
 BEGIN wlan_mac_dcf_hw_axiw
  PARAMETER INSTANCE = wlan_mac_dcf_hw
- PARAMETER HW_VER = 1.01.b
+ PARAMETER HW_VER = 1.01.c
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -277,7 +283,10 @@ BEGIN wlan_mac_dcf_hw_axiw
  PORT phy_tx_started = mac_phy_tx_started
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
  PORT phy_tx_start = mac_phy_tx_start
- PORT phy_tx_gain = mac_phy_tx_gain
+ PORT phy_tx_gain_a = mac_phy_tx_gain_a
+ PORT phy_tx_gain_b = mac_phy_tx_gain_b
+ PORT phy_tx_gain_c = mac_phy_tx_gain_c
+ PORT phy_tx_gain_d = mac_phy_tx_gain_d
  PORT phy_tx_ant_mask = mac_phy_tx_ant_mask
  PORT phy_rx_start_sig_rate = phy_rx_start_sig_rate
  PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
@@ -508,25 +517,25 @@ BEGIN radio_controller_axi
  PORT usr_RFA_RxHP = agc_rfa_rxhp
  PORT usr_RFA_RxGainBB = agc_rfa_g_bb
  PORT usr_RFA_RxGainRF = agc_rfa_g_rf
- PORT usr_RFA_TxGain = phy_rc_tx_gain
+ PORT usr_RFA_TxGain = phy_rc_tx_gain_a
  PORT usr_RFB_TxEn = phy_rc_txen_b
  PORT usr_RFB_RxEn = rc_usr_rxen
  PORT usr_RFB_RxHP = agc_rfb_rxhp
  PORT usr_RFB_RxGainBB = agc_rfb_g_bb
  PORT usr_RFB_RxGainRF = agc_rfb_g_rf
- PORT usr_RFB_TxGain = phy_rc_tx_gain
+ PORT usr_RFB_TxGain = phy_rc_tx_gain_b
  PORT usr_RFC_TxEn = net_gnd
  PORT usr_RFC_RxEn = net_gnd
  PORT usr_RFC_RxHP = net_gnd
  PORT usr_RFC_RxGainBB = net_gnd
  PORT usr_RFC_RxGainRF = net_gnd
- PORT usr_RFC_TxGain = phy_rc_tx_gain
+ PORT usr_RFC_TxGain = phy_rc_tx_gain_c
  PORT usr_RFD_TxEn = net_gnd
  PORT usr_RFD_RxEn = net_gnd
  PORT usr_RFD_RxHP = net_gnd
  PORT usr_RFD_RxGainBB = net_gnd
  PORT usr_RFD_RxGainRF = net_gnd
- PORT usr_RFD_TxGain = phy_rc_tx_gain
+ PORT usr_RFD_TxGain = phy_rc_tx_gain_d
 END
 
 BEGIN mutex
