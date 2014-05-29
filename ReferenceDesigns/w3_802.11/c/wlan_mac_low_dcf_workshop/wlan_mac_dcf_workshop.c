@@ -35,10 +35,9 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_phy_util.h"
-#include "wlan_mac_dcf.h"
+#include "wlan_mac_dcf_workshop.h"
 
 #include "wlan_exp.h"
-#include "math.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -66,7 +65,7 @@ int main(){
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v0.9 Beta -------------------------\n");
-	xil_printf("----- wlan_mac_dcf ----------------------\n");
+	xil_printf("----- wlan_mac_dcf_workshop -------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
 	xil_printf("Note: this UART is currently printing from CPU_LOW. To view prints from\n");
@@ -371,7 +370,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 	u64 last_tx_timestamp;
-	int curr_tx_pow;
+	int curr_tx_gain;
 
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
@@ -412,37 +411,31 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		}
 
 
-		//curr_tx_pow =
+		//curr_tx_gain =
 
 		//DEBUG POWER
 		//xil_printf("%d \n", (int)( -1*wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power)*(float)log((float)(rand())/RAND_MAX) ));
-#if 0
-		//Emulated fading using random Tx powers
-		// Only useful for 2-node point-to-point link!
-		int x;
-		float a;
+#if 1
+		s8 curr_tx_pow;
 
-		a = (float)( -1*(float)log((float)(rand())/RAND_MAX) ); //Exp with mean 1
-		x = mpdu_info->params.phy.power;
+		//mpdu_info->params.phy.power
 
-		curr_tx_pow = wlan_mac_low_dbm_to_gain_target( (int)((float)x + 10.0*log(a)/log(10.0)) );
+		curr_tx_pow = (s8)(mpdu_info->params.phy.power) + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
 
-		//Test of div 2
-		a = (float)( -1*(float)log((float)(rand())/RAND_MAX) ); //Exp with mean 1
-		x = mpdu_info->params.phy.power;
+		curr_tx_gain = wlan_mac_low_dbm_to_gain_target(curr_tx_pow);
 
-		curr_tx_pow = max(curr_tx_pow, wlan_mac_low_dbm_to_gain_target( (int)((float)x + 10.0*log(a)/log(10.0)) ));
 
 #define TX_GAIN_MAX 45
-		if(curr_tx_pow > TX_GAIN_MAX){
-			curr_tx_pow = TX_GAIN_MAX;
-		} else if(curr_tx_pow<0){
-			curr_tx_pow = 0;
+		if(curr_tx_gain > TX_GAIN_MAX){
+			curr_tx_gain = TX_GAIN_MAX;
+		} else if(curr_tx_gain<0){
+			curr_tx_gain = 0;
 		}
+#else
+		curr_tx_gain = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
 #endif
-		curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
 
-		//xil_printf("Pow = %d\n", curr_tx_pow);
+		//xil_printf("Pow = %d\n", curr_tx_gain);
 		//DEBUG POWER
 
 		if(i == 0){
@@ -451,10 +444,10 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			//(re)transmissions, an explicit backoff will have been started at the end of
 			//the previous iteration of this loop.
 			n_slots = rand_num_slots();
-			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, curr_tx_pow, mpdu_tx_ant_mask);
+			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, curr_tx_gain, mpdu_tx_ant_mask);
 		} else {
 			REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x20);
-			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, curr_tx_pow, mpdu_tx_ant_mask);
+			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, curr_tx_gain, mpdu_tx_ant_mask);
 			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x20);
 		}
 
