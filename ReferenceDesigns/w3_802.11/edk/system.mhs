@@ -142,12 +142,12 @@
  PORT ddr3_sodimm_reset_n = ddr3_sodimm_reset_n, DIR = O
  PORT ddr3_sodimm_dqs_p = ddr3_sodimm_dqs_p, DIR = IO, VEC = [7:0]
  PORT ddr3_sodimm_dqs_n = ddr3_sodimm_dqs_n, DIR = IO, VEC = [7:0]
- PORT debughdr = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3 & mac_backoff_active & mac_eifs_sel & mac_idle_for_difs & mac_nav_active & dbg_dsss_rx_active & dbg_tx_running & mac_phy_rx_fcs_good_ind & dbg_rssi_det & dbg_mpdu_tx_pending & dbg_lts_timeout & dbg_pkt_det & dbg_payload, DIR = O, VEC = [15:0]
+ PORT debughdr = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3 & mac_backoff_active & mac_idle_for_difs & mac_nav_active & dbg_dsss_rx_active & dbg_tx_running & mac_phy_rx_fcs_good_ind & dbg_rssi_det & dbg_mpdu_tx_pending & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_payload, DIR = O, VEC = [15:0]
 
 
 BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 2.00.r
+ PARAMETER HW_VER = 2.00.t
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -169,7 +169,8 @@ BEGIN wlan_phy_tx_pmd_axiw
  PORT RC_PHY_START = tx_phy_start
 # PHY -> RC state ctrl
  PORT rc_usr_rxen = rc_usr_rxen
- PORT rc_usr_txen = rc_usr_txen
+ PORT rc_usr_txen_a = phy_rc_txen_a
+ PORT rc_usr_txen_b = phy_rc_txen_b
  PORT rc_tx_gain = phy_rc_tx_gain
 # MAC <-> Tx PHY ports
  PORT phy_tx_gain = mac_phy_tx_gain
@@ -177,15 +178,16 @@ BEGIN wlan_phy_tx_pmd_axiw
  PORT phy_tx_start = mac_phy_tx_start
  PORT phy_tx_done = mac_phy_tx_done
  PORT phy_tx_started = mac_phy_tx_started
- PORT mac_timestamp_lsb = wlan_mac_hw_timestamp_lsb
- PORT mac_timestamp_msb = wlan_mac_hw_timestamp_msb
+ PORT phy_tx_ant_mask = mac_phy_tx_ant_mask
+ PORT mac_timestamp_lsb = mac_tx_start_timestamp_lsb
+ PORT mac_timestamp_msb = mac_tx_start_timestamp_msb
 # Debug ports
  PORT dbg_tx_running = dbg_tx_running
 END
 
 BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 2.03.u
+ PARAMETER HW_VER = 2.04.a
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -223,6 +225,7 @@ BEGIN wlan_phy_rx_pmd_axiw
  PORT rfd_g_rf = net_gnd
  PORT rfd_g_bb = net_gnd
  PORT agc_done = agc_done
+ PORT phy_rx_block_pktdet = phy_rx_block_pktdet
 # MAC <-> PHY ports
  PORT phy_cca_ind_busy = mac_phy_cca_ind_busy
  PORT phy_rx_data_byte = mac_phy_rx_data_byte
@@ -237,22 +240,19 @@ BEGIN wlan_phy_rx_pmd_axiw
  PORT phy_rx_start_sig_rate = phy_rx_start_sig_rate
  PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
 # Debug ports
-# PORT lts_sync = dbg_lts_sync
  PORT dbg_dsss_rx_active = dbg_dsss_rx_active
  PORT dbg_lts_timeout = dbg_lts_timeout
- PORT dbg_pkt_det = dbg_pkt_det
+ PORT dbg_pkt_det_dsss = dbg_pkt_det_dsss
+ PORT dbg_pkt_det_ofdm = dbg_pkt_det_ofdm
  PORT dbg_payload = dbg_payload
  PORT dbg_rssi_det = dbg_rssi_det
  PORT dbg_gpio = phy_dbg_gpio_b0 & phy_dbg_gpio_b1 & phy_dbg_gpio_b2 & phy_dbg_gpio_b3
- PORT phy_rx_block_pktdet = phy_rx_block_pktdet
  PORT dbg_signal_err_disp = dbg_signal_err_disp
- PORT dbg_eq_i = rx_dbg_EQ_I
- PORT dbg_eq_q = rx_dbg_EQ_Q
 END
 
 BEGIN wlan_mac_dcf_hw_axiw
  PARAMETER INSTANCE = wlan_mac_dcf_hw
- PARAMETER HW_VER = 1.00.y
+ PARAMETER HW_VER = 1.01.b
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -278,13 +278,15 @@ BEGIN wlan_mac_dcf_hw_axiw
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
  PORT phy_tx_start = mac_phy_tx_start
  PORT phy_tx_gain = mac_phy_tx_gain
+ PORT phy_tx_ant_mask = mac_phy_tx_ant_mask
  PORT phy_rx_start_sig_rate = phy_rx_start_sig_rate
  PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
  PORT phy_rx_block_pktdet = phy_rx_block_pktdet
- PORT timestamp_lsb = wlan_mac_hw_timestamp_lsb
- PORT timestamp_msb = wlan_mac_hw_timestamp_msb
+ PORT timestamp_lsb = mac_hw_timestamp_lsb
+ PORT timestamp_msb = mac_hw_timestamp_msb
+ PORT tx_start_timestamp_lsb = mac_tx_start_timestamp_lsb
+ PORT tx_start_timestamp_msb = mac_tx_start_timestamp_msb
  PORT dbg_backoff_active = mac_backoff_active
- PORT dbg_eifs_sel = mac_eifs_sel
  PORT dbg_idle_for_difs = mac_idle_for_difs
  PORT dbg_nav_active = mac_nav_active
  PORT dbg_mpdu_tx_pending = dbg_mpdu_tx_pending
@@ -501,13 +503,13 @@ BEGIN radio_controller_axi
  PORT usr_RFB_statLED_Rx = RFB_statLED_Rx
 # Inter-core ports for hardware radio control
  PORT usr_any_PHYStart = tx_phy_start
- PORT usr_RFA_TxEn = rc_usr_txen
+ PORT usr_RFA_TxEn = phy_rc_txen_a
  PORT usr_RFA_RxEn = rc_usr_rxen
  PORT usr_RFA_RxHP = agc_rfa_rxhp
  PORT usr_RFA_RxGainBB = agc_rfa_g_bb
  PORT usr_RFA_RxGainRF = agc_rfa_g_rf
  PORT usr_RFA_TxGain = phy_rc_tx_gain
- PORT usr_RFB_TxEn = rc_usr_txen
+ PORT usr_RFB_TxEn = phy_rc_txen_b
  PORT usr_RFB_RxEn = rc_usr_rxen
  PORT usr_RFB_RxHP = agc_rfb_rxhp
  PORT usr_RFB_RxGainBB = agc_rfb_g_bb
@@ -818,8 +820,8 @@ BEGIN axi_gpio
  PARAMETER C_INTERCONNECT_S_AXI_R_REGISTER = 8
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 8
  BUS_INTERFACE S_AXI = mb_high_axi_periph
- PORT GPIO_IO_I = wlan_mac_hw_timestamp_lsb
- PORT GPIO2_IO_I = wlan_mac_hw_timestamp_msb
+ PORT GPIO_IO_I = mac_hw_timestamp_lsb
+ PORT GPIO2_IO_I = mac_hw_timestamp_msb
  PORT S_AXI_ACLK = clk_160MHz
 END
 
