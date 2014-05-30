@@ -75,6 +75,9 @@ int main(){
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled live while the design is running.\n\n");
 
+	//Default workshop antenna configuration
+	wksp_ant_cfg.enable = 0;
+
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
 	cw_exp = DCF_CW_EXP_MIN;
@@ -381,7 +384,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 	u64 last_tx_timestamp;
-	int curr_tx_gain;
+	int curr_tx_gain[2] = {0,0};
 
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
@@ -422,32 +425,81 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		}
 
 
-		//curr_tx_gain =
 
-		//DEBUG POWER
-		//xil_printf("%d \n", (int)( -1*wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power)*(float)log((float)(rand())/RAND_MAX) ));
-#if 0
+		u8 ant_idx, div_idx;
+		s8 curr_tx_pow, curr_tx_pow_temp;
+
+		//TODO: Currently assuming only first mode is valid
+		#define currWorkshopMode 0
+
+		if(wksp_ant_cfg.enable){
+
+			//Overwrite tx antenna mask
+			mpdu_tx_ant_mask = 0;
+
+			for (ant_idx = 0; ant_idx<2; ant_idx++){
+				if(wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].enable){
+					mpdu_tx_ant_mask |= (ant_idx+1);
+					if(wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].fading){
+						curr_tx_pow = wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].tx_power + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+						for(div_idx = 0; div_idx < ((wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].diversity_order) - 1); div_idx++){
+							curr_tx_pow_temp = wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].tx_power + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+							curr_tx_pow = max(curr_tx_pow,curr_tx_pow_temp);
+						}
+
+						curr_tx_gain[ant_idx] = wlan_mac_low_dbm_to_gain_target(curr_tx_pow);
+
+						#define TX_GAIN_MAX 45
+						if(curr_tx_gain[ant_idx] > TX_GAIN_MAX){
+							curr_tx_gain[ant_idx] = TX_GAIN_MAX;
+						} else if(curr_tx_gain[ant_idx]<0){
+							curr_tx_gain[ant_idx] = 0;
+						}
+
+
+					} else {
+						curr_tx_gain[ant_idx] = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
+					}
+				}
+			}
+			wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[1], 0, 0);
+		} else {
+			curr_tx_gain[0] = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
+			wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[0],curr_tx_gain[0],curr_tx_gain[0]);
+		}
+
+		/*
+#if 1
 		s8 curr_tx_pow;
+		u8 idx;
+
+		//Temp: try RFA + RFB
+		mpdu_tx_ant_mask = 3;
 
 		//mpdu_info->params.phy.power
 
-		curr_tx_pow = (s8)(mpdu_info->params.phy.power) + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+		for(idx = 0; idx < 2 ; idx++){
+			curr_tx_pow = (s8)(mpdu_info->params.phy.power) + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
 
-		curr_tx_gain = wlan_mac_low_dbm_to_gain_target(curr_tx_pow);
+			curr_tx_gain[idx] = wlan_mac_low_dbm_to_gain_target(curr_tx_pow);
 
+			#define TX_GAIN_MAX 45
+			if(curr_tx_gain[idx] > TX_GAIN_MAX){
+				curr_tx_gain[idx] = TX_GAIN_MAX;
+			} else if(curr_tx_gain[idx]<0){
+				curr_tx_gain[idx] = 0;
+			}
 
-#define TX_GAIN_MAX 45
-		if(curr_tx_gain > TX_GAIN_MAX){
-			curr_tx_gain = TX_GAIN_MAX;
-		} else if(curr_tx_gain<0){
-			curr_tx_gain = 0;
 		}
-#else
-		curr_tx_gain = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
-#endif
+		//Set Tx Gains
+		wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[1],0,0);
 
-		//xil_printf("Pow = %d\n", curr_tx_gain);
-		//DEBUG POWER
+#else
+		curr_tx_gain[0] = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
+		//Set Tx Gains
+		wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[0],curr_tx_gain[0],curr_tx_gain[0]);
+#endif
+*/
 
 		if(i == 0){
 			//This is the first transmission, so we speculatively draw a backoff in case
@@ -461,9 +513,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
 			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x20);
 		}
-		
-		//Set Tx Gains
-		wlan_mac_MPDU_tx_gains(curr_tx_gain,curr_tx_gain,curr_tx_gain,curr_tx_gain);
 
 		//Before we mess with any PHY state, we need to make sure it isn't actively
 		//transmitting. For example, it may be sending an ACK when we get to this part of the code
