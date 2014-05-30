@@ -1248,18 +1248,22 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//
 			// Message format:
 			//     cmdArgs32[0]   Command
-			//     cmdArgs32[1]   PARAM_ID
-			//	   cmdArgs32[2]   ARG
-			//
-			// TODO: This should be generalized to >1 ARG
+			//     cmdArgs32[1]   Size in words of LOW_PARAM_MESSAGE
+			//     cmdArgs32[2]   LOW_PARAM_MESSAGE
+			//                    [0]   PARAM_ID
+			//	                  [1:N] ARGS
 			//
 			// Response format:
 			//     respArgs32[0]  Status
 			//
 
-			msg_cmd 		= Xil_Ntohl(cmdArgs32[0]);
-			cmdArgs32[1]    = Xil_Ntohl(cmdArgs32[1]);
-			cmdArgs32[2]   	= Xil_Ntohl(cmdArgs32[2]);
+			msg_cmd 		 = Xil_Ntohl(cmdArgs32[0]);
+			size             = Xil_Ntohl(cmdArgs32[1]);
+
+			// Fix the order of all the payload words for the LOW_PARAM_MESSAGE
+			for(i = 2; i < (size + 2); i++) {
+				cmdArgs32[i] = Xil_Ntohl(cmdArgs32[i]);
+			}
 
 			status  = CMD_PARAM_SUCCESS;
 
@@ -1268,8 +1272,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 					// Send message to CPU Low
 					ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
-					ipc_msg_to_low.num_payload_words = 2;
-					ipc_msg_to_low.payload_ptr       = &(cmdArgs32[1]);
+					ipc_msg_to_low.num_payload_words = size;
+					ipc_msg_to_low.payload_ptr       = &(cmdArgs32[2]);
 
 					wlan_mac_high_interrupt_stop();
 					ipc_mailbox_write_msg(&ipc_msg_to_low);
