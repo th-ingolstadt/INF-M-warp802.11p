@@ -499,12 +499,9 @@ class LTGStatus(wn_message.Cmd):
             start_timestamp = (2**32 * args[3]) + args[2]
             stop_timestamp  = (2**32 * args[5]) + args[4]
             
-            start_time = float(start_timestamp / (10**self.time_factor))
-            stop_time  = float(stop_timestamp  / (10**self.time_factor))
-
-            return (True, (args[1] == CMD_PARAM_LTG_RUNNING), start_time, stop_time)
+            return (True, (args[1] == CMD_PARAM_LTG_RUNNING), start_timestamp, stop_timestamp)
         else:
-            return (False, False, 0.0, 0.0)
+            return (False, False, 0, 0)
     
 # End Class
 
@@ -767,7 +764,7 @@ class NodeLowParam(wn_message.Cmd):
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
                        CMD_PARAM_WRITE
-        
+
         param     -- ID of parameter to modify
 
         values    -- When cmd==CMD_PARAM_WRITE, scalar or list of u32 values to write
@@ -778,7 +775,12 @@ class NodeLowParam(wn_message.Cmd):
         super(NodeLowParam, self).__init__()        
         
         self.command = _CMD_GRPID_NODE + CMDID_NODE_LOW_PARAM
+
+        # Caluculate the size of the entire message to CPU Low [PARAM_ID, ARGS[]]
+        size = len(values) + 1
+
         self.add_args(cmd)
+        self.add_args(size)
         self.add_args(param)
         try:
             for v in values:
