@@ -42,21 +42,24 @@
 
 /*************************** Constant Definitions ****************************/
 
-#define WARPNET_TYPE_80211_LOW         WARPNET_TYPE_80211_LOW_DCF
-#define NUM_LEDS                       4
+#define WARPNET_TYPE_80211_LOW_DCF_WORKSHOP      0x00000002
+#define WARPNET_TYPE_80211_LOW                   WARPNET_TYPE_80211_LOW_DCF_WORKSHOP
+#define NUM_LEDS                                 4
 
 /*********************** Global Variable Definitions *************************/
 
 
 /*************************** Variable Definitions ****************************/
-static u32              stationShortRetryCount;
-static u32              stationLongRetryCount;
-static u32              cw_exp;
+static u32                   stationShortRetryCount;
+static u32                   stationLongRetryCount;
+static u32                   cw_exp;
 
-static u8               eeprom_addr[6];
+static u8                    eeprom_addr[6];
 
-u8                      red_led_index;
-u8                      green_led_index;
+u8                           red_led_index;
+u8                           green_led_index;
+
+static workshop_ant_config   wksp_ant_cfg;
 
 /******************************** Functions **********************************/
 
@@ -90,6 +93,8 @@ int main(){
 
 	wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
 	wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
+
+    wlan_mac_low_set_ipc_low_param_callback((void *)process_low_param_ipc);
 
 	if(lock_pkt_buf_tx(TX_PKT_BUF_ACK) != PKT_BUF_MUTEX_SUCCESS){
 		warp_printf(PL_ERROR, "Error: unable to lock ack packet buf %d\n", TX_PKT_BUF_ACK);
@@ -559,6 +564,63 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	return -1;
 
 }
+
+
+
+void process_low_param_ipc( u32 * message ) {
+
+	xil_printf("Process Low Param IPC");
+
+	switch(message[0]){
+		case LOW_PARAM_WORKSHOP_CONFIG:
+			wksp_ant_cfg.enable                       = (message[1] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.switch_thresh                = (message[1] >> CMD_PARAM_RETRANS_SWITCH_THRESHOLD_POS) & 0xFF;
+
+			wksp_ant_cfg.mode[0].ant[0].enable          = (message[2] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.mode[0].ant[0].fading          = (message[2] >> CMD_PARAM_FADING_POS) & 0xFF;
+			wksp_ant_cfg.mode[0].ant[0].diversity_order = (message[2] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
+			wksp_ant_cfg.mode[0].ant[0].tx_power        = ((message[2] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+
+			wksp_ant_cfg.mode[0].ant[1].enable          = (message[3] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.mode[0].ant[1].fading          = (message[3] >> CMD_PARAM_FADING_POS) & 0xFF;
+			wksp_ant_cfg.mode[0].ant[1].diversity_order = (message[3] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
+			wksp_ant_cfg.mode[0].ant[1].tx_power        = ((message[3] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+
+			wksp_ant_cfg.mode[1].ant[0].enable          = (message[4] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.mode[1].ant[0].fading          = (message[4] >> CMD_PARAM_FADING_POS) & 0xFF;
+			wksp_ant_cfg.mode[1].ant[0].diversity_order = (message[4] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
+			wksp_ant_cfg.mode[1].ant[0].tx_power        = ((message[4] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+
+			wksp_ant_cfg.mode[1].ant[1].enable          = (message[5] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.mode[1].ant[1].fading          = (message[5] >> CMD_PARAM_FADING_POS) & 0xFF;
+			wksp_ant_cfg.mode[1].ant[1].diversity_order = (message[5] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
+			wksp_ant_cfg.mode[1].ant[1].tx_power        = ((message[5] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+
+#if 0
+			u8 i, j;
+
+			xil_printf("Message:\n");
+			for (i = 1; i < 6; i++ ) {
+				xil_printf("    0x%08x \n", message[i]);
+			}
+
+			xil_printf("wksp_ant_cfg:\n");
+			xil_printf("    Enable = %d    Switch Thresh = %d\n", wksp_ant_cfg.enable, wksp_ant_cfg.switch_thresh);
+			for (i = 0; i < 2; i++ ) {
+				for (j = 0; j < 2; j++ ) {
+					xil_printf("    Mode %d Ant %d:  %d    %d    %d    %d\n", i, j, wksp_ant_cfg.mode[i].ant[j].enable, wksp_ant_cfg.mode[i].ant[j].fading,
+							                                                        wksp_ant_cfg.mode[i].ant[j].diversity_order, wksp_ant_cfg.mode[i].ant[j].tx_power);
+				}
+			}
+#endif
+		break;
+
+		default:
+			xil_printf("Unsupported Command:  %d \n", message[0]);
+		break;
+	}
+}
+
 
 
 inline int update_cw(u8 reason, u8 pkt_buf){
