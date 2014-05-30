@@ -47,6 +47,8 @@ static u32                 	ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS];
 function_ptr_t     frame_rx_callback;			///< User callback frame receptions
 function_ptr_t     frame_tx_callback;			///< User callback frame transmissions
 
+function_ptr_t     ipc_low_param_callback;      ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
+
 
 /**
  * @brief Initialize MAC Low Framework
@@ -68,10 +70,11 @@ int wlan_mac_low_init(u32 type){
 	mac_param_ctrl_tx_pow = 10;
 	cpu_low_status = 0;
 
-	mac_param_rx_filter = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
+	mac_param_rx_filter    = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
 
-	frame_rx_callback	= (function_ptr_t)nullCallback;
-	frame_tx_callback	= (function_ptr_t)nullCallback;
+	frame_rx_callback	   = (function_ptr_t)nullCallback;
+	frame_tx_callback	   = (function_ptr_t)nullCallback;
+	ipc_low_param_callback = (function_ptr_t)nullCallback;
 
 	status = w3_node_init();
 
@@ -313,8 +316,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						} else {
 							wlan_phy_rx_set_cca_thresh(1023 * PHY_RX_RSSI_SUM_LEN);
 						}
-
-
+					break;
+					default:
+						ipc_low_param_callback(ipc_msg_from_high_payload);
 					break;
 				}
 			break;
@@ -812,6 +816,21 @@ inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
  */
 inline void wlan_mac_low_set_frame_tx_callback(function_ptr_t callback){
 	frame_tx_callback = callback;
+}
+
+/**
+ * @brief Set IPC_MBOX_LOW_PARAM Callback
+ *
+ * Tells the framework which function should be called when
+ * an ipc message is received for the IPC_MBOX_LOW_PARAM command.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
+void wlan_mac_low_set_ipc_low_param_callback(function_ptr_t callback){
+	ipc_low_param_callback = callback;
 }
 
 /**
