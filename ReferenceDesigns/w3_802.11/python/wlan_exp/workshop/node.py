@@ -66,7 +66,7 @@ class WlanExpWorkshopNode(node.WlanExpNode):
     #--------------------------------------------
     # Configure Node Attribute Commands
     #--------------------------------------------
-    def set_workshop_params(self, enable, retrans_switch_thresh, mode_1, mode_2):
+    def set_workshop_params(self, enable, ext_pkt_detect_en, retrans_switch_thresh, mode_1, mode_2):
         """Sets the physical carrier sense threshold of the node."""
         values = []
 
@@ -75,6 +75,9 @@ class WlanExpWorkshopNode(node.WlanExpNode):
         
         if (enable):
             temp += (cmds.CMD_PARAM_ENABLE << cmds.CMD_PARAM_ENABLE_POS)
+        
+        if (ext_pkt_detect_en):
+            temp += (cmds.CMD_PARAM_ENABLE << cmds.CMD_PARAM_EXT_PKT_DETECT_EN_POS)
 
         # Check the retransmission switch threshold argument
         if (retrans_switch_thresh > cmds.CMD_PARAM_TX_RETRANS_MAX):
@@ -94,10 +97,6 @@ class WlanExpWorkshopNode(node.WlanExpNode):
         values.append(temp)
         values = values + mode_1.serialize()
         values = values + mode_2.serialize()
-        
-        print("Values:")
-        for value in values:
-            print("    {0:08x}".format(value))
         
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_WORKSHOP_CONFIG, values)
 

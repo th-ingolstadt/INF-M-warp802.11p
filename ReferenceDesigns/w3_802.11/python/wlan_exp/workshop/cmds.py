@@ -38,6 +38,7 @@ CMD_PARAM_FADING_POS                             =  8
 CMD_PARAM_DIVERSITY_ORDER_POS                    = 16
 CMD_PARAM_TX_POWER_POS                           = 24
 
+CMD_PARAM_EXT_PKT_DETECT_EN_POS                  =  8
 CMD_PARAM_RETRANS_SWITCH_THRESHOLD_POS           = 16
 
 CMD_PARAM_ANT_DIVSRITY_ORDER_MIN                 =  1
