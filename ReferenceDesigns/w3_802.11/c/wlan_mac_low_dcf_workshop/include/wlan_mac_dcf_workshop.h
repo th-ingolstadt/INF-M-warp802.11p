@@ -42,6 +42,8 @@
 #define CMD_PARAM_FADING_POS                        8
 #define CMD_PARAM_DIVERSITY_ORDER_POS              16
 #define CMD_PARAM_TX_POWER_POS                     24
+
+#define CMD_PARAM_EXT_PKT_DETECT_EN_POS             8
 #define CMD_PARAM_RETRANS_SWITCH_THRESHOLD_POS     16
 
 #define CMD_PARAM_NODE_TX_POWER_MIN_DBM           -12
@@ -61,6 +63,7 @@ typedef struct{
 
 typedef struct{
 	u8                  enable;                            // Enable workshop mode
+	u8                  ext_pkt_detect_en;                 // External packet detect enable
 	u8                  switch_thresh;                     // Number of re-transmissions before switching to Mode 2
 	                                                       //   NOTE:  Value of 0 indicates, always use Mode 1
 	antenna_mode_cfg    mode[2];                           // Mode antenna configuration [0, 1]

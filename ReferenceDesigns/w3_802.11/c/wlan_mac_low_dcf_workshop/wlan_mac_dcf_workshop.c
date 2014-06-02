@@ -618,12 +618,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 void process_low_param_ipc( u32 * message ) {
 
-	xil_printf("Process Low Param IPC");
-
 	switch(message[0]){
 		case LOW_PARAM_WORKSHOP_CONFIG:
-			wksp_ant_cfg.enable                       = (message[1] >> CMD_PARAM_ENABLE_POS) & 0xFF;
-			wksp_ant_cfg.switch_thresh                = (message[1] >> CMD_PARAM_RETRANS_SWITCH_THRESHOLD_POS) & 0xFF;
+			wksp_ant_cfg.enable                         = (message[1] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.ext_pkt_detect_en              = (message[1] >> CMD_PARAM_EXT_PKT_DETECT_EN_POS) & 0xFF;
+			wksp_ant_cfg.switch_thresh                  = (message[1] >> CMD_PARAM_RETRANS_SWITCH_THRESHOLD_POS) & 0xFF;
 
 			wksp_ant_cfg.mode[0].ant[0].enable          = (message[2] >> CMD_PARAM_ENABLE_POS) & 0xFF;
 			wksp_ant_cfg.mode[0].ant[0].fading          = (message[2] >> CMD_PARAM_FADING_POS) & 0xFF;
@@ -647,6 +646,8 @@ void process_low_param_ipc( u32 * message ) {
 
 #if 0
 			u8 i, j;
+
+			xil_printf("Process Low Param IPC");
 
 			xil_printf("Message:\n");
 			for (i = 1; i < 6; i++ ) {
