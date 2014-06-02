@@ -232,7 +232,7 @@ int main() {
 	wlan_mac_high_set_channel( mac_param_chan );
 
 	// Set the other CPU low parameters
-	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_SELDIV_2ANT);
+	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_ANTA);
 	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
 
 	// Configure CPU Low's filter for passing Rx packets up to CPU High
