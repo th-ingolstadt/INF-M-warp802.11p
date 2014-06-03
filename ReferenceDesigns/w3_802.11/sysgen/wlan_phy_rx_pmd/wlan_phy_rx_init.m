@@ -12,13 +12,20 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %% Define an input signal for simulation
 %For PHY debugging with ChipScope captures of I/Q
-xlLoadChipScopeData('cs_capt/dsss_short_length_0.prn'); cs_interp = 1; cs_start = 13e3; cs_end = length(ADC_I);
+%xlLoadChipScopeData('cs_capt/dsss_short_length_0.prn'); cs_interp = 1; cs_start = 13e3; cs_end = length(ADC_I);
 %xlLoadChipScopeData('cs_capt/ofdm_bpsk_beacon_FCS_good_v0.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
-samps2 = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
-samps2(5000:6000) = 0;
+%samps2 = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
+%samps2(5000:6000) = 0;
 
-payload_vec = [zeros(50,1); samps2; zeros(1000,1);];
+%payload_vec = [zeros(50,1); samps2; zeros(1000,1);];
+%paylod_vec_samp_time = 8;
+
+%wlan_tx output - good for simulating Rx model
+load('rx_sigs/wlan_tx_out_54PB_Q34.mat'); tx_sig_t = [1:1200];
+
+payload_vec = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
 paylod_vec_samp_time = 8;
+
 agc_done =    [zeros(320,1); ones(1e5,1); zeros(500,1); ];
 
 %wlan_tx output - good for simulating Rx model
