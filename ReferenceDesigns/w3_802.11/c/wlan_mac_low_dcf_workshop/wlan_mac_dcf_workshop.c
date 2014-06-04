@@ -661,10 +661,7 @@ void process_low_param_ipc( u32 * message ) {
 				}
 			}
 
-
-
-
-#if 0
+#ifdef _DEBUG_
 			u8 i, j;
 
 			xil_printf("Process Low Param IPC");
@@ -675,7 +672,7 @@ void process_low_param_ipc( u32 * message ) {
 			}
 
 			xil_printf("wksp_ant_cfg:\n");
-			xil_printf("    Enable = %d    Switch Thresh = %d\n", wksp_ant_cfg.enable, wksp_ant_cfg.switch_thresh);
+			xil_printf("    Enable = %d    Ext pkt detect = %d    Switch Thresh = %d\n", wksp_ant_cfg.enable, wksp_ant_cfg.ext_pkt_detect_en, wksp_ant_cfg.switch_thresh);
 			for (i = 0; i < 2; i++ ) {
 				for (j = 0; j < 2; j++ ) {
 					xil_printf("    Mode %d Ant %d:  %d    %d    %d    %d\n", i, j, wksp_ant_cfg.mode[i].ant[j].enable, wksp_ant_cfg.mode[i].ant[j].fading,

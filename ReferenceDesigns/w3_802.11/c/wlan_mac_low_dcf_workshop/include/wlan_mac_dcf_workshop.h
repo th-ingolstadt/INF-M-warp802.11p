@@ -32,7 +32,7 @@
 
 
 // IPC_MBOX_LOW_PARAM Commands
-#define LOW_PARAM_WORKSHOP_CONFIG                0x02
+#define LOW_PARAM_WORKSHOP_CONFIG                0x01000000
 
 #define CMD_PARAM_ENABLE_POS                        0
 #define CMD_PARAM_FADING_POS                        8
