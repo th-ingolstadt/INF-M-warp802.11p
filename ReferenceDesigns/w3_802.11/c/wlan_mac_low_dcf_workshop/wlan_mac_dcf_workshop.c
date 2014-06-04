@@ -644,6 +644,24 @@ void process_low_param_ipc( u32 * message ) {
 			wksp_ant_cfg.mode[1].ant[1].diversity_order = (message[5] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
 			wksp_ant_cfg.mode[1].ant[1].tx_power        = ((message[5] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
 
+
+			if(wksp_ant_cfg.enable){
+				if(wksp_ant_cfg.ext_pkt_detect_en){
+					REG_CLEAR_BITS(WLAN_RX_REG_CFG, (
+					WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A |
+					WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B |
+					WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C |
+					WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D));
+
+					REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_EXT);
+				} else {
+					REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_EXT);
+				}
+			}
+
+
+
+
 #if 0
 			u8 i, j;
 
