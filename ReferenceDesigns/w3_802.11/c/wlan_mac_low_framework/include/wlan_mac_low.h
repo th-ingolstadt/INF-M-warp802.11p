@@ -209,9 +209,13 @@
 
 //WN Low Params
 #define LOW_PARAM_PHYSICAL_CS_THRESH	1
+#define	LOW_PARAM_CW_EXP_MIN			2
+#define LOW_PARAM_CW_EXP_MAX			3
 
 
 int wlan_mac_low_init(u32 type);
+u8 wlan_mac_low_get_cw_exp_min();
+u8 wlan_mac_low_get_cw_exp_max();
 void wlan_mac_low_finish_init();
 void wlan_mac_low_dcf_init();
 inline void wlan_mac_low_send_exception(u32 reason);

@@ -37,6 +37,9 @@ volatile static u8           		mac_param_band;											///< Current band of th
 volatile static s8					mac_param_ctrl_tx_pow;									///< Current transmit power (dBm) for control packets
 volatile static u32					mac_param_rx_filter;									///< Current filter applied to packet receptions
 volatile static u8   				rx_pkt_buf;												///< Current receive buffer of the lower-level MAC
+volatile static u8			 		cw_exp_min;
+volatile static u8					cw_exp_max;
+
 static u32  				cpu_low_status;											///< Status flags that are reported to upper-level MAC
 
 static wlan_mac_hw_info    	hw_info;												///< Information about the hardware reported to upper-level MAC
@@ -69,6 +72,9 @@ int wlan_mac_low_init(u32 type){
 	mac_param_band = RC_24GHZ;
 	mac_param_ctrl_tx_pow = 10;
 	cpu_low_status = 0;
+
+	cw_exp_min = 4;
+	cw_exp_max = 10;
 
 	mac_param_rx_filter    = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
 
@@ -126,6 +132,13 @@ int wlan_mac_low_init(u32 type){
 	ipc_mailbox_write_msg(&ipc_msg_to_high);
 
 	return 0;
+}
+
+u8 wlan_mac_low_get_cw_exp_min(){
+	return cw_exp_min;
+}
+u8 wlan_mac_low_get_cw_exp_max(){
+	return cw_exp_max;
 }
 
 /**
@@ -316,6 +329,14 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						} else {
 							wlan_phy_rx_set_cca_thresh(1023 * PHY_RX_RSSI_SUM_LEN);
 						}
+					break;
+					case LOW_PARAM_CW_EXP_MIN:
+						xil_printf("cw_exp_min = %d\n", cw_exp_min);
+						cw_exp_min = ipc_msg_from_high_payload[1];
+					break;
+					case LOW_PARAM_CW_EXP_MAX:
+						xil_printf("cw_exp_max = %d\n", cw_exp_max);
+						cw_exp_max = ipc_msg_from_high_payload[1];
 					break;
 					default:
 						ipc_low_param_callback(ipc_msg_from_high_payload);
