@@ -706,8 +706,12 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 	u8*               mpdu_ptr_u8;
 	llc_header*       llc_hdr;
 	ltg_pyld_id*      ltg_payload_id;
+	u8                is_multicast;
 
 	int               status = 0;
+
+	// Check if the address is multicast
+	is_multicast = wlan_addr_mcast(addr_1);
 
 	// Checkout 1 element from the queue;
 	curr_tx_queue_element = queue_checkout();
@@ -744,10 +748,18 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 		tx_length += max(payload_length, (sizeof(llc_header) + sizeof(ltg_pyld_id)));
 
 		// Finally prepare the 802.11 header
-		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_id);
+		if (is_multicast) {
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION), queue_id);
+		} else {
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_id);
+		}
 
 		// Update the queue entry metadata to reflect the new new queue entry contents
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+		if (is_multicast) {
+			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+		} else {
+		    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+		}
 		curr_tx_queue_buffer->metadata.metadata_ptr  = metadata_ptr;
 		curr_tx_queue_buffer->frame_info.AID         = aid;
 
