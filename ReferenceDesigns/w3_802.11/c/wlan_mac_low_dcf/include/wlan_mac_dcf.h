@@ -23,10 +23,6 @@
 //RTS/CTS is not currently supported. This threshold must remain larger than any outgoing MPDU
 #define RTS_THRESHOLD 2000
 
-//TODO: In a future release, control of these parameters will be made available to CPU_HIGH through IPC commands
-#define DCF_CW_EXP_MIN 4
-#define DCF_CW_EXP_MAX 10
-
 //CW Update Reasons
 #define DCF_CW_UPDATE_MPDU_TX_ERR 0
 #define DCF_CW_UPDATE_MPDU_RX_ACK 1

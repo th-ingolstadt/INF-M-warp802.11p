@@ -75,7 +75,7 @@ int main(){
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
-	cw_exp = DCF_CW_EXP_MIN;
+	cw_exp = wlan_mac_low_get_cw_exp_min();
 
 	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
 
@@ -593,9 +593,9 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 			(*station_rc_ptr)++;
 			if(*rc_ptr == retry_limit) return -1;
 			if(*station_rc_ptr == retry_limit){
-				cw_exp = DCF_CW_EXP_MIN;
+				cw_exp = wlan_mac_low_get_cw_exp_min();
 			} else {
-				cw_exp = min(cw_exp+1, DCF_CW_EXP_MAX);
+				cw_exp = min(cw_exp+1, wlan_mac_low_get_cw_exp_max());
 			}
 
 			//Raise retry flag in mpdu
@@ -606,7 +606,7 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 			//Update counts and contention windows
 			(*rc_ptr)++;
 			(*station_rc_ptr) = 0;
-			cw_exp = DCF_CW_EXP_MIN;
+			cw_exp = wlan_mac_low_get_cw_exp_min();
 		break;
 	}
 
