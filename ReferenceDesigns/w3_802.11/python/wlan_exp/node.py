@@ -802,6 +802,30 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     def set_phy_cs_thresh(self, val):
         """Sets the physical carrier sense threshold of the node."""
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH, val)        
+        
+    def set_cw_exp_min(self, val):
+        """Sets the the minimum contention window:
+                1  -- [0,1]
+                2  -- [0,3]
+                3  -- [0,7]
+                4  -- [0,15]
+                5  -- [0,31]
+                ...
+                10 -- [0,1023]
+        """
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN, val)       
+        
+    def set_cw_exp_max(self, val):
+        """Sets the the maximum contention window:
+                1  -- [0,1]
+                2  -- [0,3]
+                3  -- [0,7]
+                4  -- [0,15]
+                5  -- [0,31]
+                ...
+                10 -- [0,1023]
+        """
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, val)               
 
 
     def set_random_seed(self, high_seed=None, low_seed=None, gen_random=False):
