@@ -126,7 +126,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         if (aid != cmds.CMD_PARAM_ERROR):
             import wlan_exp.node_sta as node_sta
 
-            if (type(device) is node_sta.WlanExpNodeSta):
+            if isinstance(device, node_sta.WlanExpNodeSta):
                 if device.send_cmd(cmds.NodeSTAAssociate(self, aid)):
                     ret_val = True
             else:

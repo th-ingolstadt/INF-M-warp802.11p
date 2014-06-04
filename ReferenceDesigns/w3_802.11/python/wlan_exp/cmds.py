@@ -1181,7 +1181,12 @@ class NodeAPProcSSID(wn_message.Cmd):
             import struct
             ssid_buffer = struct.pack('!%dI' % (arg_length - 2), *args[2:] )
             ssid_tuple  = struct.unpack_from('!%ds' % length, ssid_buffer)
-            ssid        = ssid_tuple[0]
+
+            # Python 3 vs 2 issue
+            try:
+                ssid    = str(ssid_tuple[0], encoding='UTF-8')
+            except:
+                ssid    = str(ssid_tuple[0])
         else:
             ssid        = ""
  
