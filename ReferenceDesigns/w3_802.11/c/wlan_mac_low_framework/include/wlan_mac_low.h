@@ -207,10 +207,12 @@
 #define POLL_MAC_TYPE_ACK				(1<<8)
 #define POLL_MAC_TYPE_OTHER				(255<<8)
 
-//WN Low Params
-#define LOW_PARAM_PHYSICAL_CS_THRESH	1
-#define	LOW_PARAM_CW_EXP_MIN			2
-#define LOW_PARAM_CW_EXP_MAX			3
+// WN Low Params
+//     NOTE:  Need to make sure that these values do not conflict with any of the LOW PARAM
+//     callback defines
+#define LOW_PARAM_PHYSICAL_CS_THRESH	0x00000001
+#define	LOW_PARAM_CW_EXP_MIN			0x00000002
+#define LOW_PARAM_CW_EXP_MAX			0x00000003
 
 
 int wlan_mac_low_init(u32 type);
