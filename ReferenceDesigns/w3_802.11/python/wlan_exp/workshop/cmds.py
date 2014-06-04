@@ -26,7 +26,7 @@ __all__ = []
 
 
 # Low Param IDs -- in sync with wlan_mac_dcf_workshop.h
-CMD_PARAM_LOW_PARAM_WORKSHOP_CONFIG              = 0x00000002
+CMD_PARAM_LOW_PARAM_WORKSHOP_CONFIG              = 0x01000000
 
 
 # Workshop Param defines

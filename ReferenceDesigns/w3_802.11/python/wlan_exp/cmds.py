@@ -89,9 +89,9 @@ CMD_PARAM_RANDOM_SEED_VALID                      = 0x00000001
 CMD_PARAM_RANDOM_SEED_RSVD                       = 0xFFFFFFFF
 
 # Low Param IDs -- in sync with wlan_mac_low.h
-CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH           = 1
-CMD_PARAM_LOW_PARAM_CW_EXP_MIN                   = 2
-CMD_PARAM_LOW_PARAM_CW_EXP_MAX                   = 3
+CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH           = 0x00000001
+CMD_PARAM_LOW_PARAM_CW_EXP_MIN                   = 0x00000002
+CMD_PARAM_LOW_PARAM_CW_EXP_MAX                   = 0x00000003
 
 
 # Association commands and defined values
