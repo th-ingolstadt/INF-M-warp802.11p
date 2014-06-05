@@ -89,6 +89,8 @@ def tx_rate_index_to_str(index):
 #-----------------------------------------------------------------------------
 wlan_rx_ant_mode = [{'index' :  0x01, 'ant_mode_str' : 'Rx SISO Antenna A'},
                     {'index' :  0x02, 'ant_mode_str' : 'Rx SISO Antenna B'},
+                    {'index' :  0x03, 'ant_mode_str' : 'Rx SISO Antenna C'},
+                    {'index' :  0x04, 'ant_mode_str' : 'Rx SISO Antenna D'},
                     {'index' :  0x05, 'ant_mode_str' : 'Rx SISO Selection Diversity 2 Antennas'}]
                     
 wlan_tx_ant_mode = [{'index' :  0x10, 'ant_mode_str' : 'Tx SISO Antenna A'},
