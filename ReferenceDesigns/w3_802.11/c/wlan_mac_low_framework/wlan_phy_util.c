@@ -127,6 +127,7 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C |
 			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D |
 			WLAN_RX_REG_CFG_SWITCHING_DIV_EN |
+			WLAN_RX_REG_CFG_PKT_DET_EN_EXT |
 			WLAN_RX_REG_CFG_ANT_SEL_MASK));
 
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_REG);
@@ -137,6 +138,18 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			wlan_phy_select_rx_antenna(0);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			wlan_agc_config(0);
+
+
+			#if 0
+			REG_CLEAR_BITS(WLAN_RX_REG_CFG, (
+			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A |
+			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B |
+			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C |
+			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D));
+
+			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_EXT);
+			#endif
+
 			break;
 
 		case RX_ANTMODE_SISO_ANTB:
