@@ -657,7 +657,7 @@ void process_low_param_ipc( u32 * message ) {
 
 					REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_EXT);
 				} else {
-					REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_EXT);
+					//REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_EXT);
 				}
 			}
 
