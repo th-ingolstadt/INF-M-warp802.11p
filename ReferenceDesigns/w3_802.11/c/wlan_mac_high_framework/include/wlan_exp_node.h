@@ -122,7 +122,7 @@
 #define CMDID_LOG_GET_INFO                                 0x003001
 #define CMDID_LOG_GET_CAPACITY                             0x003002
 #define CMDID_LOG_GET_ENTRIES                              0x003003
-#define CMDID_LOG_ADD_ENTRY                                0x003004
+#define CMDID_LOG_ADD_EXP_INFO_ENTRY                       0x003004
 #define CMDID_LOG_ENABLE_ENTRY                             0x003005
 #define CMDID_LOG_STREAM_ENTRIES                           0x003006
 

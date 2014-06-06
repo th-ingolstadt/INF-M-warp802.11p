@@ -2006,9 +2006,39 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 		//---------------------------------------------------------------------
-		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case CMDID_LOG_ADD_ENTRY:
-			xil_printf("EVENT LOG:  Add Event not supported\n");
+		case CMDID_LOG_ADD_EXP_INFO_ENTRY:
+			// Add EXP_INFO entry to the log
+			//
+			// Message format:
+			//     cmdArgs32[0]   info_type (lower 16 bits)
+			//     cmdArgs32[1]   info_length (lower 16 bits)
+			//     cmdArgs32[2:N] info_payload
+			//
+			// NOTE:  Entry data will be copied in to the log "as is" (ie it will not
+			//     have any network to host order translation performed on it)
+			//
+			type       = (Xil_Ntohl(cmdArgs32[0]) & 0xFFFF);
+			size       = (Xil_Ntohl(cmdArgs32[1]) & 0xFFFF);
+			entry_size = sizeof(exp_info_entry) + size;
+
+			exp_info_entry * exp_info;
+
+			exp_info = (exp_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_EXP_INFO, entry_size);
+
+			if ( exp_info != NULL ) {
+				xil_printf("EVENT LOG:  Adding EXP INFO entry with type %d to log (%d bytes)\n", type, size);
+
+				exp_info->timestamp   = get_usec_timestamp();
+				exp_info->info_type   = type;
+				exp_info->info_length = size;
+
+				// Copy the data to the log entry
+				if (size == 0){
+					bzero((void *)(&exp_info->info_payload[0]), 4);
+				} else {
+					memcpy( (void *)(&cmdArgs32[2]), (void *)(&exp_info->info_payload[0]), size );
+				}
+			}
 	    break;
 
 
