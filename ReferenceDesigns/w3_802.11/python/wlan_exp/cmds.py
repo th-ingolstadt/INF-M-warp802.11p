@@ -125,9 +125,10 @@ CMDID_LOG_CONFIG                                 = 0x003000
 CMDID_LOG_GET_STATUS                             = 0x003001
 CMDID_LOG_GET_CAPACITY                           = 0x003002
 CMDID_LOG_GET_ENTRIES                            = 0x003003
-CMDID_LOG_ADD_ENTRY                              = 0x003004
+CMDID_LOG_ADD_EXP_INFO_ENTRY                     = 0x003004
 CMDID_LOG_ENABLE_ENTRY                           = 0x003005
 CMDID_LOG_STREAM_ENTRIES                         = 0x003006
+
 
 CMD_PARAM_LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
 
@@ -297,6 +298,42 @@ class LogStreamEntries(wn_message.Cmd):
         pass
 
 # End Class
+
+
+class LogAddExpInfoEntry(wn_message.Cmd):
+    """Command to write a EXP_INFO Log Entry to the node."""
+    def __init__(self, info_type, message):
+        super(LogAddExpInfoEntry, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_LOG_ADD_EXP_INFO_ENTRY
+
+        self.add_args(info_type)
+
+        if message is None:
+            self.add_args(0)
+        else:            
+            import struct     
+            data_len = len(message)
+            data_buf = bytearray(message, 'UTF-8')
+            
+            # Add initial agruments
+            self.add_args(data_len)
+                
+            # Zero pad so that the data buffer is 32-bit aligned
+            if ((len(data_buf) % 4) != 0):
+                data_buf += bytearray(4 - (len(data_buf) % 4))
+            
+            idx = 0
+            while (idx < len(data_buf)):
+                arg = struct.unpack_from('!I', data_buf[idx:idx+4])
+                self.add_args(arg[0])
+                idx += 4
+
+
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
 
 
 #--------------------------------------------

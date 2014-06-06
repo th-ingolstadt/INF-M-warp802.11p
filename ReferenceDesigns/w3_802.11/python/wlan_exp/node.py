@@ -332,15 +332,15 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         print(msg)
 
 
-    def log_write_exp_info_to_log(self, reason, message=None):
+    def log_write_exp_info_to_log(self, info_type, message=None):
         """Write the experiment information provided to the log.
         
         Attributes:
-            reason -- Reason code for the experiment info.  This is an 
-                      arbitrary 16 bit number chosen by the experimentor
-            message -- Information to be placed in the event log
+            info_type -- Type of the experiment info.  This is an 
+                         arbitrary 16 bit number chosen by the experimentor
+            message   -- Information to be placed in the event log
         """
-        raise NotImplementedError
+        self.send_cmd(cmds.LogAddExpInfoEntry(info_type, message))
 
 
     #--------------------------------------------

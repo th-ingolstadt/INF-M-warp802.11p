@@ -250,6 +250,24 @@ def broadcast_cmd_write_time_to_logs(host_config, time_id=None):
 # End def
 
 
+def broadcast_cmd_write_exp_info_to_logs(host_config, info_type, message=None):
+    """Add the EXP INFO log entry to the log on each node.
+
+    This method will iterate through all host interfaces and issue a broadcast
+    packet on each interface that will add the EXP INFO log entry to the log
+    
+    Attributes:
+        host_config  -- A WnConfiguration object describing the host configuration
+        info_type    -- Type of the experiment info.  This is an arbitrary 16 bit 
+                        number chosen by the experimentor
+        message      -- Information to be placed in the event log
+    """
+    import wlan_exp.cmds as cmds        
+    _broadcast_cmd_to_nodes_helper(cmds.LogAddExpInfoEntry(info_type, message), host_config)
+
+# End def
+
+
 #-----------------------------------------------------------------------------
 # WLAN Exp Misc Utilities
 #-----------------------------------------------------------------------------
