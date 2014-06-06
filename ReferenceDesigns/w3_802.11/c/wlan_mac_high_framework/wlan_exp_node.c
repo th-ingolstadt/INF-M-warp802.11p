@@ -2019,7 +2019,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//
 			type       = (Xil_Ntohl(cmdArgs32[0]) & 0xFFFF);
 			size       = (Xil_Ntohl(cmdArgs32[1]) & 0xFFFF);
-			entry_size = sizeof(exp_info_entry) + size;
+
+			// Get the entry size
+			if (size == 0) {
+				entry_size = sizeof(exp_info_entry);
+			} else {
+				// 32-bit align size; EXP INFO structure already contains 4 bytes of the payload
+				entry_size = sizeof(exp_info_entry) + (((size - 1) / 4)*4);
+			}
 
 			exp_info_entry * exp_info;
 
@@ -2036,8 +2043,21 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				if (size == 0){
 					bzero((void *)(&exp_info->info_payload[0]), 4);
 				} else {
-					memcpy( (void *)(&cmdArgs32[2]), (void *)(&exp_info->info_payload[0]), size );
+					memcpy( (void *)(&exp_info->info_payload[0]), (void *)(&cmdArgs32[2]), size );
 				}
+
+#ifdef _DEBUG_
+				xil_printf("   Timestamp:  %d\n", (u32)(exp_info->timestamp));
+				xil_printf("   Info Type:  %d\n",       exp_info->info_type);
+				xil_printf("   Message  :  \n        ");
+				for( i = 0; i < exp_info->info_length; i++) {
+					xil_printf("0x%02x ", (exp_info->info_payload)[i]);
+					if ( (((i + 1) % 16) == 0) && ((i + 1) != size) ) {
+						xil_printf("\n        ");
+					}
+				}
+				xil_printf("\n");
+#endif
 			}
 	    break;
 
