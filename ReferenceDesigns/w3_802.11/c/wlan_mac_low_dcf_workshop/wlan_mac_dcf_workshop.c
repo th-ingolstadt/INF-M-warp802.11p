@@ -78,7 +78,7 @@ int main(){
 
 
 	//Default workshop antenna configuration
-	wksp_ant_cfg.enable = 0;
+	wksp_ant_cfg.wkshp_mode = WKSHP_MODE_DISABLE;
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
@@ -388,6 +388,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	u64 last_tx_timestamp;
 	int curr_tx_gain[2] = {0,0};
 
+	s8 SD_POW = 0;
+	s8 SR_POW = 0;
+	s8 RD_POW = 0;
+	u8 allow_coop = 0;
+
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
 	for(i=0; i<mpdu_info->params.mac.num_tx_max ; i++){
@@ -431,21 +436,18 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		u8 ant_idx, div_idx;
 		s8 curr_tx_pow, curr_tx_pow_temp;
 
-		//TODO: Currently assuming only first mode is valid
-		#define currWorkshopMode 0
-
-		if(wksp_ant_cfg.enable){
+		if(wksp_ant_cfg.wkshp_mode == WKSHP_MODE_MIMO){
 
 			//Overwrite tx antenna mask
 			mpdu_tx_ant_mask = 0;
 
 			for (ant_idx = 0; ant_idx<2; ant_idx++){
-				if(wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].enable){
+				if(wksp_ant_cfg.ant[ant_idx].enable){
 					mpdu_tx_ant_mask |= (ant_idx+1);
-					if(wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].fading){
-						curr_tx_pow = wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].tx_power + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
-						for(div_idx = 0; div_idx < ((wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].diversity_order) - 1); div_idx++){
-							curr_tx_pow_temp = wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].tx_power + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+					if(wksp_ant_cfg.ant[ant_idx].fading){
+						curr_tx_pow = wksp_ant_cfg.ant[ant_idx].tx_power + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+						for(div_idx = 0; div_idx < ((wksp_ant_cfg.ant[ant_idx].diversity_order) - 1); div_idx++){
+							curr_tx_pow_temp = wksp_ant_cfg.ant[ant_idx].tx_power + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
 							curr_tx_pow = max(curr_tx_pow,curr_tx_pow_temp);
 						}
 
@@ -460,48 +462,28 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 
 					} else {
-						curr_tx_gain[ant_idx] = wlan_mac_low_dbm_to_gain_target(wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].tx_power);
+						curr_tx_gain[ant_idx] = wlan_mac_low_dbm_to_gain_target(wksp_ant_cfg.ant[ant_idx].tx_power);
 					}
 				}
 			}
 			wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[1], 0, 0);
+		} else if(wksp_ant_cfg.wkshp_mode == WKSHP_MODE_COOP){
+			//xil_printf("Coop Mode -- %d, %d, %d\n", wksp_ant_cfg.coop.POW_SD, wksp_ant_cfg.coop.POW_SR, wksp_ant_cfg.coop.POW_RD);
+			SD_POW = wksp_ant_cfg.coop.POW_SD + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+			if(i==0){
+				SR_POW = wksp_ant_cfg.coop.POW_SR + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+				if(SR_POW > per_thresh[3]){ //FIXME: needs to be in terms of rate, but unfortunately 'rate' is already PHY-speak
+					allow_coop = 1;
+				}
+			} else if ((i>0) && allow_coop){
+				RD_POW = wksp_ant_cfg.coop.POW_RD + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+			}
+			curr_tx_gain[0] = wlan_mac_low_dbm_to_gain_target(SD_POW+RD_POW);
+			wlan_mac_MPDU_tx_gains(curr_tx_gain[0],0,0,0);
 		} else {
 			curr_tx_gain[0] = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
 			wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[0],curr_tx_gain[0],curr_tx_gain[0]);
 		}
-
-		/*
-#if 1
-		s8 curr_tx_pow;
-		u8 idx;
-
-		//Temp: try RFA + RFB
-		mpdu_tx_ant_mask = 3;
-
-		//mpdu_info->params.phy.power
-
-		for(idx = 0; idx < 2 ; idx++){
-			curr_tx_pow = (s8)(mpdu_info->params.phy.power) + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
-
-			curr_tx_gain[idx] = wlan_mac_low_dbm_to_gain_target(curr_tx_pow);
-
-			#define TX_GAIN_MAX 45
-			if(curr_tx_gain[idx] > TX_GAIN_MAX){
-				curr_tx_gain[idx] = TX_GAIN_MAX;
-			} else if(curr_tx_gain[idx]<0){
-				curr_tx_gain[idx] = 0;
-			}
-
-		}
-		//Set Tx Gains
-		wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[1],0,0);
-
-#else
-		curr_tx_gain[0] = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
-		//Set Tx Gains
-		wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[0],curr_tx_gain[0],curr_tx_gain[0]);
-#endif
-*/
 
 		if(i == 0){
 			//This is the first transmission, so we speculatively draw a backoff in case
@@ -622,32 +604,24 @@ void process_low_param_ipc( u32 * message ) {
 
 	switch(message[0]){
 		case LOW_PARAM_WORKSHOP_CONFIG:
-			wksp_ant_cfg.enable                         = (message[1] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.wkshp_mode                     = (message[1] >> CMD_PARAM_ENABLE_POS) & 0xFF;
 			wksp_ant_cfg.ext_pkt_detect_en              = (message[1] >> CMD_PARAM_EXT_PKT_DETECT_EN_POS) & 0xFF;
-			wksp_ant_cfg.switch_thresh                  = (message[1] >> CMD_PARAM_RETRANS_SWITCH_THRESHOLD_POS) & 0xFF;
 
-			wksp_ant_cfg.mode[0].ant[0].enable          = (message[2] >> CMD_PARAM_ENABLE_POS) & 0xFF;
-			wksp_ant_cfg.mode[0].ant[0].fading          = (message[2] >> CMD_PARAM_FADING_POS) & 0xFF;
-			wksp_ant_cfg.mode[0].ant[0].diversity_order = (message[2] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
-			wksp_ant_cfg.mode[0].ant[0].tx_power        = ((message[2] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+			wksp_ant_cfg.ant[0].enable          = (message[2] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.ant[0].fading          = (message[2] >> CMD_PARAM_FADING_POS) & 0xFF;
+			wksp_ant_cfg.ant[0].diversity_order = (message[2] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
+			wksp_ant_cfg.ant[0].tx_power        = ((message[2] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
 
-			wksp_ant_cfg.mode[0].ant[1].enable          = (message[3] >> CMD_PARAM_ENABLE_POS) & 0xFF;
-			wksp_ant_cfg.mode[0].ant[1].fading          = (message[3] >> CMD_PARAM_FADING_POS) & 0xFF;
-			wksp_ant_cfg.mode[0].ant[1].diversity_order = (message[3] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
-			wksp_ant_cfg.mode[0].ant[1].tx_power        = ((message[3] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+			wksp_ant_cfg.ant[1].enable          = (message[3] >> CMD_PARAM_ENABLE_POS) & 0xFF;
+			wksp_ant_cfg.ant[1].fading          = (message[3] >> CMD_PARAM_FADING_POS) & 0xFF;
+			wksp_ant_cfg.ant[1].diversity_order = (message[3] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
+			wksp_ant_cfg.ant[1].tx_power        = ((message[3] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
 
-			wksp_ant_cfg.mode[1].ant[0].enable          = (message[4] >> CMD_PARAM_ENABLE_POS) & 0xFF;
-			wksp_ant_cfg.mode[1].ant[0].fading          = (message[4] >> CMD_PARAM_FADING_POS) & 0xFF;
-			wksp_ant_cfg.mode[1].ant[0].diversity_order = (message[4] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
-			wksp_ant_cfg.mode[1].ant[0].tx_power        = ((message[4] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+			wksp_ant_cfg.coop.POW_SD			= ((message[4] >> CMD_PARAM_POW_SD_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+			wksp_ant_cfg.coop.POW_SR			= ((message[4] >> CMD_PARAM_POW_SR_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
+			wksp_ant_cfg.coop.POW_RD			= ((message[4] >> CMD_PARAM_POW_RD_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
 
-			wksp_ant_cfg.mode[1].ant[1].enable          = (message[5] >> CMD_PARAM_ENABLE_POS) & 0xFF;
-			wksp_ant_cfg.mode[1].ant[1].fading          = (message[5] >> CMD_PARAM_FADING_POS) & 0xFF;
-			wksp_ant_cfg.mode[1].ant[1].diversity_order = (message[5] >> CMD_PARAM_DIVERSITY_ORDER_POS) & 0xFF;
-			wksp_ant_cfg.mode[1].ant[1].tx_power        = ((message[5] >> CMD_PARAM_TX_POWER_POS) & 0xFF) + CMD_PARAM_NODE_TX_POWER_MIN_DBM;
-
-
-			if(wksp_ant_cfg.enable){
+			if(wksp_ant_cfg.wkshp_mode != 0){
 				if(wksp_ant_cfg.ext_pkt_detect_en){
 					REG_CLEAR_BITS(WLAN_RX_REG_CFG, (
 					WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A |
