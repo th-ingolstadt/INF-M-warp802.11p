@@ -460,7 +460,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 
 					} else {
-						curr_tx_gain[ant_idx] = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
+						curr_tx_gain[ant_idx] = wlan_mac_low_dbm_to_gain_target(wksp_ant_cfg.mode[currWorkshopMode].ant[ant_idx].tx_power);
 					}
 				}
 			}
