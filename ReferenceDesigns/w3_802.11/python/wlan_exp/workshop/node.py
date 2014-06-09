@@ -65,6 +65,7 @@ class WlanExpWorkshopNode(node.WlanExpNode):
 
     #--------------------------------------------
     # Configure Node Attribute Commands
+    # Deprecated - I'm leaving this in for code compatibility with what is already written
     #--------------------------------------------
     def set_workshop_params(self, enable, ext_pkt_detect_en, retrans_switch_thresh, mode_1, mode_2):
         """Sets the physical carrier sense threshold of the node."""
@@ -97,6 +98,31 @@ class WlanExpWorkshopNode(node.WlanExpNode):
         values.append(temp)
         values = values + mode_1.serialize()
         values = values + mode_2.serialize()
+        
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_WORKSHOP_CONFIG, values)
+        
+    #--------------------------------------------
+    # Configure Node Attribute Commands
+    #--------------------------------------------
+    def set_workshop_params_v2(self, wkshpmode, ext_pkt_detect_en, ant, coop):
+        """."""
+        values = []
+
+        # Create top level config word
+        temp   = 0
+        
+        if (wkshpmode == cmds.CMD_PARAM_MIMO):
+            temp += (cmds.CMD_PARAM_MIMO << cmds.CMD_PARAM_ENABLE_POS)
+
+        if (wkshpmode == cmds.CMD_PARAM_COOP):
+            temp += (cmds.CMD_PARAM_COOP << cmds.CMD_PARAM_ENABLE_POS)            
+        
+        if (ext_pkt_detect_en):
+            temp += (cmds.CMD_PARAM_MIMO << cmds.CMD_PARAM_EXT_PKT_DETECT_EN_POS)
+            
+        values.append(temp)
+        values = values + ant.serialize()
+        values = values + coop.serialize()
         
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_WORKSHOP_CONFIG, values)
 

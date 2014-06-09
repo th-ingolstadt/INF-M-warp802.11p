@@ -31,7 +31,8 @@ CMD_PARAM_LOW_PARAM_WORKSHOP_CONFIG              = 0x01000000
 
 # Workshop Param defines
 CMD_PARAM_DISABLE                                = 0x00
-CMD_PARAM_ENABLE                                 = 0x01
+CMD_PARAM_MIMO                                   = 0x01
+CMD_PARAM_COOP                                   = 0x02
 
 CMD_PARAM_ENABLE_POS                             =  0
 CMD_PARAM_FADING_POS                             =  8
@@ -40,6 +41,10 @@ CMD_PARAM_TX_POWER_POS                           = 24
 
 CMD_PARAM_EXT_PKT_DETECT_EN_POS                  =  8
 CMD_PARAM_RETRANS_SWITCH_THRESHOLD_POS           = 16
+
+CMD_PARAM_POW_SD_POS                             = 0
+CMD_PARAM_POW_SR_POS                             = 8
+CMD_PARAM_POW_RD_POS                             = 16
 
 CMD_PARAM_ANT_DIVSRITY_ORDER_MIN                 =  1
 CMD_PARAM_ANT_DIVSRITY_ORDER_MAX                 =  2
@@ -133,10 +138,10 @@ class WorkshopModeAntennaConfig(object):
         ret_val = 0
         
         if (self.enable):
-            ret_val += (CMD_PARAM_ENABLE << CMD_PARAM_ENABLE_POS)
+            ret_val += (CMD_PARAM_MIMO << CMD_PARAM_ENABLE_POS)
         
         if (self.fading):
-            ret_val += (CMD_PARAM_ENABLE << CMD_PARAM_FADING_POS)
+            ret_val += (CMD_PARAM_MIMO << CMD_PARAM_FADING_POS)
 
         ret_val += (self.diversity_order << CMD_PARAM_DIVERSITY_ORDER_POS)
 
@@ -149,6 +154,89 @@ class WorkshopModeAntennaConfig(object):
 
 # End Class
 
+class WorkshopModeCoopConfig(object):
+    """Class that contains an cooperation configuration for WLAN Exp Workshop modes
+    
+    Attributes:
+        POW_SD          -- Source-Destination Avg. Tx Power
+        POW_SR          -- Source-Relay Avg. Tx Power
+        POW_RD          -- Relay-Destination Avg. Tx Power
+    """
+    POW_SD           = None
+    POW_SR           = None
+    POW_RD           = None
+
+    def __init__(self, POW_SD, POW_SR, POW_RD):
+        self.POW_SD = POW_SD
+        self.POW_SR = POW_SR
+        self.POW_RD = POW_RD
+
+        # Check the tx power argument
+        if (POW_SD > cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM):
+            msg  = "WARNING:  Max Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM)
+            msg += "provided {1}.  Setting to max.".format(POW_SD)
+            print(msg)
+            POW_SD = cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM
+
+        if (POW_SD < cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM):
+            msg  = "WARNING:  Min Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            msg += "provided {1}.  Setting to min.".format(POW_SD)
+            print(msg)
+            POW_SD = cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM
+
+        self.POW_SD = POW_SD
+        
+        # Check the tx power argument
+        if (POW_SR > cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM):
+            msg  = "WARNING:  Max Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM)
+            msg += "provided {1}.  Setting to max.".format(POW_SR)
+            print(msg)
+            POW_SR = cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM
+
+        if (POW_SR < cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM):
+            msg  = "WARNING:  Min Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            msg += "provided {1}.  Setting to min.".format(POW_SR)
+            print(msg)
+            POW_SR = cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM
+
+        self.POW_SR = POW_SR
+        
+        # Check the tx power argument
+        if (POW_RD > cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM):
+            msg  = "WARNING:  Max Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM)
+            msg += "provided {1}.  Setting to max.".format(POW_RD)
+            print(msg)
+            POW_RD = cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM
+
+        if (POW_RD < cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM):
+            msg  = "WARNING:  Min Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            msg += "provided {1}.  Setting to min.".format(POW_RD)
+            print(msg)
+            POW_RD = cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM
+
+        self.POW_RD = POW_RD
+    
+
+    def serialize(self): 
+
+        ret_list = []        
+        
+        ret_val = 0        
+        # Adjust the TX power so that it is [0, 31] instead of [-12, 19]
+        adj_tx_power = self.POW_SD - cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM
+        ret_val += (adj_tx_power << CMD_PARAM_POW_SD_POS)
+        
+        adj_tx_power = self.POW_SR - cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM
+        ret_val += (adj_tx_power << CMD_PARAM_POW_SR_POS)
+        
+        adj_tx_power = self.POW_RD - cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM
+        ret_val += (adj_tx_power << CMD_PARAM_POW_RD_POS)
+        
+        ret_list.append(ret_val)
+
+        return ret_list
+
+# End Class
 
 
         
