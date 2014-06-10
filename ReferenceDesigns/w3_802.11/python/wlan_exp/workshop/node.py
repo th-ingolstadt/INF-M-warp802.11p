@@ -75,10 +75,10 @@ class WlanExpWorkshopNode(node.WlanExpNode):
         temp   = 0
         
         if (enable):
-            temp += (cmds.CMD_PARAM_ENABLE << cmds.CMD_PARAM_ENABLE_POS)
+            temp += (cmds.CMD_PARAM_MIMO << cmds.CMD_PARAM_ENABLE_POS)
         
         if (ext_pkt_detect_en):
-            temp += (cmds.CMD_PARAM_ENABLE << cmds.CMD_PARAM_EXT_PKT_DETECT_EN_POS)
+            temp += (cmds.CMD_PARAM_MIMO << cmds.CMD_PARAM_EXT_PKT_DETECT_EN_POS)
 
         # Check the retransmission switch threshold argument
         if (retrans_switch_thresh > cmds.CMD_PARAM_TX_RETRANS_MAX):
