@@ -840,7 +840,8 @@ entry_tx_low.append_field_defs([
             ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
             ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
             ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
-            ('padding',                '2x',     '2uint8',  ''),
+            ('padding0',               'B',     'uint8',    ''),
+            ('padding1',               'B',     'uint8',    ''),
             ('mac_payload_len',        'I',      'uint32',  'Length in bytes of MAC payload recorded in log for this packet'),
             ('mac_payload',            '24s',    '24uint8', 'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 
