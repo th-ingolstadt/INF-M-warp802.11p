@@ -470,15 +470,24 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		} else if(wksp_ant_cfg.wkshp_mode == WKSHP_MODE_COOP){
 			//xil_printf("Coop Mode -- %d, %d, %d\n", wksp_ant_cfg.coop.POW_SD, wksp_ant_cfg.coop.POW_SR, wksp_ant_cfg.coop.POW_RD);
 			SD_POW = wksp_ant_cfg.coop.POW_SD + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+			curr_tx_pow = SD_POW;
+			if(low_tx_details != NULL){
+				low_tx_details[i].reserved0 = 0;
+			}
 			if(i==0){
 				SR_POW = wksp_ant_cfg.coop.POW_SR + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
-				if(SR_POW > per_thresh[3]){ //FIXME: needs to be in terms of rate, but unfortunately 'rate' is already PHY-speak
+				if(SR_POW >= per_thresh[3]){ //FIXME: needs to be in terms of rate, but unfortunately 'rate' is already PHY-speak
 					allow_coop = 1;
 				}
 			} else if ((i>0) && allow_coop){
 				RD_POW = wksp_ant_cfg.coop.POW_RD + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
+				curr_tx_pow = max(SD_POW, RD_POW);
+				if(low_tx_details != NULL){
+					//I'm hijacking a reserved byte to communicate up to the log that the relay was a part of this transmission
+					low_tx_details[i].reserved0 = 0x01;
+				}
 			}
-			curr_tx_gain[0] = wlan_mac_low_dbm_to_gain_target(SD_POW+RD_POW);
+			curr_tx_gain[0] = wlan_mac_low_dbm_to_gain_target(curr_tx_pow);
 			wlan_mac_MPDU_tx_gains(curr_tx_gain[0],0,0,0);
 		} else {
 			curr_tx_gain[0] = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
