@@ -219,6 +219,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 		tx_low_event_log_entry->chan_num                  = tx_low_details->chan_num;
 		tx_low_event_log_entry->num_slots				  = tx_low_details->num_slots;
 		tx_low_event_log_entry->cw						  = tx_low_details->cw;
+		tx_low_event_log_entry->reserved[0]				  = tx_low_details->reserved0; //FIXME: Temporary addition for workshop code. Remove later.
 		memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params), sizeof(phy_tx_params));
 		tx_low_event_log_entry->length                    = tx_mpdu->length;
 		tx_low_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu, tx_mpdu->length);
