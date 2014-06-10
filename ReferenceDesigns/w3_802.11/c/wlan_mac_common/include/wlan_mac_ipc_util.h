@@ -137,7 +137,8 @@ typedef struct {
 	u16   num_slots;
 	u16	  cw;
 	u8 	  chan_num;
-	u8 	  padding[3];
+	u8 	  reserved0;
+	u8 	  reserved1[2];
 } wlan_mac_low_tx_details;
 
 
