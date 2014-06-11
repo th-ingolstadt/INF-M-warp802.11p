@@ -323,19 +323,16 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			case IPC_MBOX_LOW_PARAM:
 				switch(ipc_msg_from_high_payload[0]){
 					case LOW_PARAM_PHYSICAL_CS_THRESH:
-
 						if(ipc_msg_from_high_payload[1] < 1023){
 							wlan_phy_rx_set_cca_thresh(ipc_msg_from_high_payload[1] * PHY_RX_RSSI_SUM_LEN);
 						} else {
-							wlan_phy_rx_set_cca_thresh(1023 * PHY_RX_RSSI_SUM_LEN);
+							wlan_phy_rx_set_cca_thresh(0xFFFF);
 						}
 					break;
 					case LOW_PARAM_CW_EXP_MIN:
-						xil_printf("cw_exp_min = %d\n", cw_exp_min);
 						cw_exp_min = ipc_msg_from_high_payload[1];
 					break;
 					case LOW_PARAM_CW_EXP_MAX:
-						xil_printf("cw_exp_max = %d\n", cw_exp_max);
 						cw_exp_max = ipc_msg_from_high_payload[1];
 					break;
 					default:
