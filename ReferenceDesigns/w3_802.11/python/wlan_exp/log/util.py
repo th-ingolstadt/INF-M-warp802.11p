@@ -530,6 +530,65 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 # End overwrite_payloads()
 
 
+def calc_tx_time(rate, payload_length):
+    """Calculates the duration of an 802.11 transmission given its rate and payload length.
+    This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not*
+    account for MAC overhead. The payload_length argument must include any MAC fields
+    (typically a 24-byte MAC header plus 4 byte FCS).
+
+    # TODO: The vector case needs safety checkts (i.e., both rate and payload_length need to
+    be the same length)
+    """
+    from wlan_exp.util import wlan_rates
+
+    #Times in microseconds
+    T_PREAMBLE = 16
+    T_SIG = 4
+    T_SYM = 4
+    T_EXT = 6
+
+    try:
+        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate-1).tolist()])
+    except TypeError :
+        r = wlan_rates[rate-1]['NDBPS']
+
+    #Rate entry encodes data bits per symbol
+    bytes_per_sym = (r/8.0)
+
+    #6 = LEN_SERVICE (2) + LEN_FCS (4)
+    num_syms = np.ceil((6.0 + payload_length) / bytes_per_sym)
+
+    T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
+
+    return T_TOT
+
+# End def
+
+
+def find_overlapping_tx_low(src_tx_low, int_tx_low):
+    """Finds TX_LOW entries in the source that are overlapped by the TX_LOW entries in other flow."""
+
+    import wlan_exp.log.coll_util as collision_utility        
+
+    src_ts = src_tx_low['timestamp']
+    int_ts = int_tx_low['timestamp']
+    
+    src_dur = np.uint64(calc_tx_time(src_tx_low['rate'], src_tx_low['length']))
+    int_dur = np.uint64(calc_tx_time(int_tx_low['rate'], int_tx_low['length']))
+
+    src_idx = []
+    int_idx = []
+    
+    src_idx, int_idx = collision_utility._collision_idx_finder(src_ts, src_dur, int_ts, int_dur)   
+    
+    src_idx = src_idx[src_idx>0]
+    int_idx = int_idx[int_idx>0]    
+        
+    return (src_idx,int_idx)
+
+# End def
+
+
 
 #-----------------------------------------------------------------------------
 # WLAN Exp Log Printing Utilities
@@ -643,56 +702,3 @@ def _get_safe_filename(filename, print_warnings=True):
 # End _get_safe_filename()
 
 
-def calc_tx_time(rate, payload_length):
-    """Calculates the duration of an 802.11 transmission given its rate and payload length.
-    This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not*
-    account for MAC overhead. The payload_length argument must include any MAC fields
-    (typically a 24-byte MAC header plus 4 byte FCS).
-
-    # TODO: The vector case needs safety checkts (i.e., both rate and payload_length need to
-    be the same length)
-
-    """
-    from wlan_exp.util import wlan_rates
-
-    #Times in microseconds
-    T_PREAMBLE = 16
-    T_SIG = 4
-    T_SYM = 4
-    T_EXT = 6
-
-    try:
-        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate-1).tolist()])
-    except TypeError :
-        r = wlan_rates[rate-1]['NDBPS']
-
-    #Rate entry encodes data bits per symbol
-    bytes_per_sym = (r/8.0)
-
-    #6 = LEN_SERVICE (2) + LEN_FCS (4)
-    num_syms = np.ceil((6.0 + payload_length) / bytes_per_sym)
-
-    T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
-
-    return T_TOT
-
-def find_overlapping_tx_low(src_tx_low, int_tx_low): 
-
-    import wlan_exp.log.coll_util as collision_utility        
-
-    src_ts = src_tx_low['timestamp']
-    int_ts = int_tx_low['timestamp']
-    
-    src_dur = np.uint64(calc_tx_time(src_tx_low['rate'], src_tx_low['length']))
-    int_dur = np.uint64(calc_tx_time(int_tx_low['rate'], int_tx_low['length']))
-
-    src_idx = []
-    int_idx = []
-    
-    src_idx, int_idx = collision_utility._collision_idx_finder(src_ts, src_dur, int_ts, int_dur)   
-    
-    src_idx = src_idx[src_idx>0]
-    int_idx = int_idx[int_idx>0]    
-    
-    
-    return (src_idx,int_idx)
