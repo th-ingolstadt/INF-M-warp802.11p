@@ -64,8 +64,8 @@
 // through WARPNet.
 //
 
-// u32 mac_payload_log_len = MIN_MAC_PAYLOAD_LOG_LEN;
-u32 mac_payload_log_len = MAX_MAC_PAYLOAD_LOG_LEN;
+u32 mac_payload_log_len = MIN_MAC_PAYLOAD_LOG_LEN;
+// u32 mac_payload_log_len = MAX_MAC_PAYLOAD_LOG_LEN;
 
 
 /*************************** Variable Definitions ****************************/
