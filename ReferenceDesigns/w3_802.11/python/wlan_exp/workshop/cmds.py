@@ -170,8 +170,7 @@ class WorkshopModeCoopConfig(object):
         self.POW_SD = POW_SD
         self.POW_SR = POW_SR
         self.POW_RD = POW_RD
-
-        # Check the tx power argument
+        
         if (POW_SD > cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM):
             msg  = "WARNING:  Max Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM)
             msg += "provided {1}.  Setting to max.".format(POW_SD)
@@ -186,7 +185,6 @@ class WorkshopModeCoopConfig(object):
 
         self.POW_SD = POW_SD
         
-        # Check the tx power argument
         if (POW_SR > cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM):
             msg  = "WARNING:  Max Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM)
             msg += "provided {1}.  Setting to max.".format(POW_SR)
@@ -201,7 +199,6 @@ class WorkshopModeCoopConfig(object):
 
         self.POW_SR = POW_SR
         
-        # Check the tx power argument
         if (POW_RD > cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM):
             msg  = "WARNING:  Max Tx power is {0}, ".format(cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM)
             msg += "provided {1}.  Setting to max.".format(POW_RD)
