@@ -434,6 +434,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 
 		u8 ant_idx, div_idx;
+		u8 mac_rate;
 		s8 curr_tx_pow, curr_tx_pow_temp;
 
 		if(wksp_ant_cfg.wkshp_mode == WKSHP_MODE_MIMO){
@@ -468,6 +469,38 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			}
 			wlan_mac_MPDU_tx_gains(curr_tx_gain[0],curr_tx_gain[1], 0, 0);
 		} else if(wksp_ant_cfg.wkshp_mode == WKSHP_MODE_COOP){
+
+
+			switch(rate){
+				default:
+				case WLAN_PHY_RATE_BPSK12:
+					mac_rate = WLAN_MAC_RATE_6M;
+				break;
+				case WLAN_PHY_RATE_BPSK34:
+					mac_rate = WLAN_MAC_RATE_9M;
+				break;
+				case WLAN_PHY_RATE_QPSK12:
+					mac_rate = WLAN_MAC_RATE_12M;
+				break;
+				case WLAN_PHY_RATE_QPSK34:
+					mac_rate = WLAN_MAC_RATE_18M;
+				break;
+				case WLAN_PHY_RATE_16QAM12:
+					mac_rate = WLAN_MAC_RATE_24M;
+				break;
+				case WLAN_PHY_RATE_16QAM34:
+					mac_rate = WLAN_MAC_RATE_36M;
+				break;
+				case WLAN_PHY_RATE_64QAM23:
+					mac_rate = WLAN_MAC_RATE_48M;
+				break;
+				case WLAN_PHY_RATE_64QAM34:
+					mac_rate = WLAN_MAC_RATE_54M;
+				break;
+			}
+
+
+
 			//xil_printf("Coop Mode -- %d, %d, %d\n", wksp_ant_cfg.coop.POW_SD, wksp_ant_cfg.coop.POW_SR, wksp_ant_cfg.coop.POW_RD);
 			SD_POW = wksp_ant_cfg.coop.POW_SD + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
 			curr_tx_pow = SD_POW;
@@ -476,7 +509,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			}
 			if(i==0){
 				SR_POW = wksp_ant_cfg.coop.POW_SR + tx_fade_lookup[rand()&(NUM_FADE_LOOKUP-1)];
-				if(SR_POW >= per_thresh[3]){ //FIXME: needs to be in terms of rate, but unfortunately 'rate' is already PHY-speak
+				if(SR_POW >= per_thresh[mac_rate]){
 					allow_coop = 1;
 				}
 			} else if ((i>0) && allow_coop){
