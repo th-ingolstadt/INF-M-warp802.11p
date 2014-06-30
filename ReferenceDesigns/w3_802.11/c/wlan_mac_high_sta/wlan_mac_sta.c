@@ -53,13 +53,13 @@
 
 /*************************** Constant Definitions ****************************/
 
-#define  WLAN_EXP_ETH                  WN_ETH_B
-#define  WLAN_EXP_NODE_TYPE            WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA
+#define  WLAN_EXP_ETH                            WN_ETH_B
+#define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
 
-#define  WLAN_DEFAULT_CHANNEL          1
-#define  WLAN_DEFAULT_TX_PWR           5
+#define  WLAN_DEFAULT_CHANNEL                    1
+#define  WLAN_DEFAULT_TX_PWR                     5
 
-const u8 max_num_associations          = 1;
+const u8 max_num_associations                    = 1;
 
 
 /*********************** Global Variable Definitions *************************/
@@ -793,7 +793,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u16                 rx_seq;
 	rx_common_entry*    rx_event_log_entry       = NULL;
 
-	station_info_entry* associated_station_log_entry;
 	dl_entry*	        associated_station_entry;
 	station_info*       associated_station       = NULL;
 	statistics_txrx*    station_stats            = NULL;
@@ -950,13 +949,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_2) != NULL)){
 
 					// Log the association state change
-					associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-
-					if(associated_station_log_entry != NULL){
-						associated_station_log_entry->timestamp = get_usec_timestamp();
-						memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
-						associated_station_log_entry->info.AID = 0;
-					}
+					add_station_info_to_log((station_info*)((association_table.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
 					// Remove the association
 					wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
@@ -1375,7 +1368,6 @@ int  sta_disassociate( void ) {
 	int                 status = 0;
 	station_info*       associated_station = NULL;
 	dl_entry*	        associated_station_entry;
-	station_info_entry* associated_station_log_entry;
 
 	// If the STA is currently associated, remove the association; otherwise do nothing
 	if(association_table.length > 0){
@@ -1392,13 +1384,7 @@ int  sta_disassociate( void ) {
 #endif
 
 		// Log association change
-		associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-
-		if(associated_station_log_entry != NULL){
-			associated_station_log_entry->timestamp = get_usec_timestamp();
-			memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)((association_table.first)->data), sizeof(station_info_base) );
-			associated_station_log_entry->info.AID = 0;
-		}
+		add_station_info_to_log((station_info*)((association_table.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
 		//
 		// TODO:  Send Disassociation Message
@@ -1438,7 +1424,6 @@ int  sta_disassociate( void ) {
 int  sta_associate( u8 * address, u16 requested_AID ) {
     int                 status;
 	station_info*       associated_station = NULL;
-	station_info_entry* associated_station_log_entry;
 
 	// Disassociate from any currently associated APs
 	status = sta_disassociate();
@@ -1450,12 +1435,7 @@ int  sta_associate( u8 * address, u16 requested_AID ) {
 		if ( associated_station != NULL ) {
 
 			// Log association change
-			associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-
-			if(associated_station_log_entry != NULL){
-				associated_station_log_entry->timestamp = get_usec_timestamp();
-				memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
-			}
+			add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
 #if _DEBUG_
 			u32 i;

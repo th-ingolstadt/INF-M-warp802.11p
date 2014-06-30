@@ -66,6 +66,9 @@
 //than 11*ACTIVE_SCAN_DWELL.
 #define ACTIVE_SCAN_UPDATE_RATE		  5000000
 
+// WLAN Exp defines
+#define  WLAN_EXP_STREAM_ASSOC_CHANGE            WN_NO_TRANSMIT
+
 // Information about APs
 typedef struct{
 	u8   bssid[6];
