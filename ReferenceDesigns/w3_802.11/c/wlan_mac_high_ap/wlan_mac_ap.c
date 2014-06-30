@@ -855,7 +855,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	mpdu_info->additional_info = (u32)NULL;
 
 	// Log the reception
-	wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
+	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
 
 	// Determine destination of packet
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
