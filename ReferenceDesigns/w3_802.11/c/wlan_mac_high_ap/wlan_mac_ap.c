@@ -219,6 +219,10 @@ int main(){
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
 
+	// DEMO
+    wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 1000000, SCHEDULE_REPEAT_FOREVER, (void*)_demo_send_wnet_association_table);
+	// DEMO
+
 	//  Set Periodic blinking of hex display
 	userio_set_pwm_period(USERIO_BASEADDR, 500);
 
@@ -315,6 +319,22 @@ int main(){
 	// Unreachable, but non-void return keeps the compiler happy
 	return -1;
 }
+
+
+
+
+
+// DEMO
+
+void _demo_send_wnet_association_table(){
+	add_all_station_info_to_log(EVENT_LOG_NO_STATS, STATION_INFO_ENTRY_NO_CHANGE, WN_TRANSMIT);
+}
+
+// DEMO
+
+
+
+
 
 
 
@@ -1317,6 +1337,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			    wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
 
 			    ap_write_hex_display(association_table.length);
+			break;
+
+
+            //---------------------------------------------------------------------
+			case (0x80):
+			case (0x48):
+				// DEMO PACKETS
+				//
 			break;
 
 
