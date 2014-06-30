@@ -807,7 +807,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8                  is_associated            = 0;
 
 	// Log the reception
-	wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
+	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
 
 	// Determine destination of packet
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
@@ -1137,9 +1137,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	// Currently, asynchronous transmission of log entries is not supported
 	//
-	// 	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_RATE_1M)) {
-	//     wn_transmit_log_entry((void *)rx_event_log_entry);
-	// }
+	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_RATE_1M)) {
+        wn_transmit_log_entry((void *)rx_event_log_entry);
+	}
 
     return;
 }
