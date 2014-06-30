@@ -77,6 +77,8 @@ int main(){
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled live while the design is running.\n\n");
 
+	_demo_en = 0;
+
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
 	cw_exp = wlan_mac_low_get_cw_exp_min();
