@@ -34,7 +34,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_misc_util.h"
 
-//#define WLAN_MAC_ENTRIES_LOG_CHAN_EST
+#define WLAN_MAC_ENTRIES_LOG_CHAN_EST
 
 // ****************************************************************************
 // Define Entry Constants
