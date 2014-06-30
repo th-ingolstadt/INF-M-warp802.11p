@@ -74,6 +74,9 @@
 #define LTG_ID_GRP_PYLD_FIXED	  1
 #define LTG_ID_GRP_PYLD_RANDOM	  2
 
+// WLAN Exp defines
+#define  WLAN_EXP_STREAM_ASSOC_CHANGE            WN_TRANSMIT
+
 
 /*************************** Function Prototypes *****************************/
 int  main();

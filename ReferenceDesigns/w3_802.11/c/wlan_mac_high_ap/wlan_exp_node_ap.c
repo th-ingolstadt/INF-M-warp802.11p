@@ -47,6 +47,7 @@
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_addr_filter.h"
+#include "wlan_mac_event_log.h"
 #include "wlan_mac_ap.h"
 
 
@@ -122,8 +123,6 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 	dl_entry	* curr_entry;
 	station_info* curr_station_info;
-
-	station_info_entry* station_log_entry;
 
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
@@ -269,12 +268,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 				// Set return parameters and print info to console
 				if (curr_station_info != NULL) {
 					// Log association state change
-					station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-
-					if(station_log_entry != NULL){
-						station_log_entry->timestamp = get_usec_timestamp();
-						memcpy((u8*)(&(station_log_entry->info)),(u8*)(curr_station_info), sizeof(station_info_base) );
-					}
+					add_station_info_to_log(curr_station_info, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
 					memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params));
 
