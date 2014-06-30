@@ -1283,7 +1283,7 @@ u32 add_all_txrx_statistics_to_log(u8 transmit){
 * @note		None.
 *
 ******************************************************************************/
-u32 add_station_info_to_log(station_info * info, u8 transmit){
+u32 add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit){
 
 	station_info_entry * entry;
 	u32                  entry_size        = sizeof(station_info_entry);
@@ -1302,6 +1302,12 @@ u32 add_station_info_to_log(station_info * info, u8 transmit){
 		//          similar to the station info and tx params structures in wlan_mac_high.h
 		memcpy( (void *)(&entry->info), (void *)(info), station_info_size );
 
+		// Zero the AID
+		//   - Used when a station disassociates
+		if (zero_aid == STATION_INFO_ENTRY_ZERO_AID) {
+		    entry->info.AID = 0;
+		}
+
 #ifdef USE_WARPNET_WLAN_EXP
 		// Transmit the entry if requested
 		if (transmit == WN_TRANSMIT) {
@@ -1316,13 +1322,13 @@ u32 add_station_info_to_log(station_info * info, u8 transmit){
 }
 
 
-u32 add_station_info_w_stats_to_log(station_info * info, u8 transmit){
+u32 add_station_info_w_stats_to_log(station_info * info, u8 zero_aid, u8 transmit){
 
 	u32 status;
 
 	if (info == NULL){ return FAILURE; }
 
-	status = add_station_info_to_log(info, transmit);
+	status = add_station_info_to_log(info, zero_aid, transmit);
 
 	if (status == SUCCESS) {
 		status = add_txrx_statistics_to_log(info->stats, transmit);
@@ -1344,7 +1350,7 @@ u32 add_station_info_w_stats_to_log(station_info * info, u8 transmit){
 * @note		None.
 *
 ******************************************************************************/
-u32 add_all_station_info_to_log(u8 stats, u8 transmit){
+u32 add_all_station_info_to_log(u8 stats, u8 zero_aid, u8 transmit){
 
 	u32                i, status;
 	u32                num_stats;
@@ -1367,9 +1373,9 @@ u32 add_all_station_info_to_log(u8 stats, u8 transmit){
 		curr_info = (station_info*)(curr_station_info_entry->data);
 
 		if (stats == EVENT_LOG_STATS) {
-			status = add_station_info_w_stats_to_log(curr_info, transmit);
+			status = add_station_info_w_stats_to_log(curr_info, zero_aid, transmit);
 		} else {
-			status = add_station_info_to_log(curr_info, transmit);
+			status = add_station_info_to_log(curr_info, zero_aid, transmit);
 		}
 
 		if (status == SUCCESS) {

@@ -122,9 +122,9 @@ void      add_node_info_entry(u8 transmit);
 u32       add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit);
 u32       add_all_txrx_statistics_to_log(u8 transmit);
 
-u32       add_station_info_to_log(station_info * info, u8 transmit);
-u32       add_station_info_w_stats_to_log(station_info * info, u8 transmit);
-u32       add_all_station_info_to_log(u8 stats, u8 transmit);
+u32       add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit);
+u32       add_station_info_w_stats_to_log(station_info * info, u8 zero_aid, u8 transmit);
+u32       add_all_station_info_to_log(u8 stats, u8 zero_aid, u8 transmit);
 
 u32       add_temperature_to_log(u8 transmit);
 

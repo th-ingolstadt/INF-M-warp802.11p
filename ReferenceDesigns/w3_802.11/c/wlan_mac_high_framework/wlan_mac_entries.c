@@ -624,49 +624,6 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, void* mpdu, u16 packet_p
 
 
 
-#if 0
-/*****************************************************************************/
-/**
-* Log Association state change
-*
-* @param    rx_frame_info * rx_mpdu
-*               - RX MPDU of the associated RX entry
-* 			u8 channel_number
-* 			    - Indicates the channel on which the reception occurred
-* 			u8 rate
-* 			    - Indicates the rate at which the reception occurred
-*
-* @return	rx_common_entry *
-*               - Pointer to the rx_common_entry log entry
-*               @note This can be NULL if an entry was not allocated
-*
-* @note		None.
-*
-******************************************************************************/
-
-// Log the association state change
-associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-
-if(associated_station_log_entry != NULL){
-	associated_station_log_entry->timestamp = get_usec_timestamp();
-	memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base));
-
-
-}
-
-associated_station_log_entry = (station_info_entry*)wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry));
-
-if(associated_station_log_entry != NULL){
-	associated_station_log_entry->timestamp = get_usec_timestamp();
-	memcpy((u8*)(&(associated_station_log_entry->info)),(u8*)(associated_station), sizeof(station_info_base) );
-	associated_station_log_entry->info.AID = 0;
-}
-
-
-#endif
-
-
-
 
 #ifdef _DEBUG_
 

@@ -151,6 +151,10 @@ typedef struct{
 CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
 
 
+#define STATION_INFO_ENTRY_NO_CHANGE             0
+#define STATION_INFO_ENTRY_ZERO_AID              1
+
+
 //-----------------------------------------------
 // Temperature Entry
 //   NOTE: The temperature values are copied directly from the system monitor and need
