@@ -142,12 +142,13 @@
  PORT ddr3_sodimm_reset_n = ddr3_sodimm_reset_n, DIR = O
  PORT ddr3_sodimm_dqs_p = ddr3_sodimm_dqs_p, DIR = IO, VEC = [7:0]
  PORT ddr3_sodimm_dqs_n = ddr3_sodimm_dqs_n, DIR = IO, VEC = [7:0]
- PORT debughdr = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3 & mac_backoff_active & mac_idle_for_difs & mac_nav_active & dbg_dsss_rx_active & dbg_tx_running & mac_phy_rx_fcs_good_ind & dbg_rssi_det & dbg_mpdu_tx_pending & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_payload, DIR = O, VEC = [15:0]
+ PORT debughdr = dbg_tx_running & dbg_gpio_b2 & dbg_gpio_b3 & mac_backoff_active & mac_idle_for_difs & mac_nav_active & dbg_dsss_rx_active & dbg_tx_running_del & mac_phy_rx_fcs_good_ind & dbg_rssi_det & dbg_mpdu_tx_pending & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_payload, DIR = O, VEC = [14:0]
+ PORT wlan_phy_rx_pkt_det_in_pin = net_wlan_phy_rx_pkt_det_in_pin, DIR = I
 
 
 BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 2.00.u
+ PARAMETER HW_VER = 2.00.w
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -189,11 +190,12 @@ BEGIN wlan_phy_tx_pmd_axiw
  PORT mac_timestamp_msb = mac_tx_start_timestamp_msb
 # Debug ports
  PORT dbg_tx_running = dbg_tx_running
+ PORT dbg_tx_running_del = dbg_tx_running_del
 END
 
 BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 2.04.a
+ PARAMETER HW_VER = 2.04.b
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -205,7 +207,7 @@ BEGIN wlan_phy_rx_pmd_axiw
  BUS_INTERFACE S_AXI = mb_low_axi_periph
  PORT axi_aclk = clk_160MHz
  PORT sysgen_clk = clk_160MHz
- PORT pkt_det_in = net_gnd
+ PORT pkt_det_in = net_wlan_phy_rx_pkt_det_in_pin
  PORT rx_sigs_invalid = rx_sigs_invalid
  PORT adc_rx_clk = agc_iq_valid_out
  PORT rfa_rx_i = agc_rfa_i
@@ -1446,7 +1448,7 @@ BEGIN util_vector_logic
  PARAMETER C_OPERATION = or
  PORT OP1 = phy_dbg_gpio_b0 & phy_dbg_gpio_b1 & phy_dbg_gpio_b2 & phy_dbg_gpio_b3
  PORT OP2 = cpuh_gpio_b0 & cpuh_gpio_b1 & cpuh_gpio_b2 & cpuh_gpio_b3
- PORT RES = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3
+ PORT RES = 0b0 & 0b0 & dbg_gpio_b2 & dbg_gpio_b3
 END
 
 BEGIN axi_sysmon_adc
