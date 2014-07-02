@@ -118,9 +118,10 @@ int main(){
 		wlan_mac_low_poll_frame_rx();
 
 		if(_demo_num_iter>=200000){
-			_demo_set_antenna();
+		//	_demo_set_antenna();
 			_demo_num_iter = 0;
 		}
+
 
 		//Poll IPC rx
 		wlan_mac_low_poll_ipc_rx();
