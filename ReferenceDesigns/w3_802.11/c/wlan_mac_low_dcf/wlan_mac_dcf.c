@@ -59,10 +59,6 @@ static u8               eeprom_addr[6];
 u8                      red_led_index;
 u8                      green_led_index;
 
-u8						_demo_en;
-u32						_demo_num_iter;
-static u8 				curr_ant = 0;
-
 /******************************** Functions **********************************/
 
 int main(){
@@ -76,8 +72,6 @@ int main(){
 	xil_printf("Note: this UART is currently printing from CPU_LOW. To view prints from\n");
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled live while the design is running.\n\n");
-
-	_demo_en = 0;
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
@@ -98,8 +92,6 @@ int main(){
 	wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
 	wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
 
-	wlan_mac_low_set_ipc_low_param_callback((void *)_demo_process_low_param_ipc);
-
 	if(lock_pkt_buf_tx(TX_PKT_BUF_ACK) != PKT_BUF_MUTEX_SUCCESS){
 		warp_printf(PL_ERROR, "Error: unable to lock ack packet buf %d\n", TX_PKT_BUF_ACK);
 		wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
@@ -112,16 +104,8 @@ int main(){
 
 	while(1){
 
-		_demo_num_iter++;
-
 		//Poll PHY RX start
 		wlan_mac_low_poll_frame_rx();
-
-		if(_demo_num_iter>=200000){
-		//	_demo_set_antenna();
-			_demo_num_iter = 0;
-		}
-
 
 		//Poll IPC rx
 		wlan_mac_low_poll_ipc_rx();
@@ -172,7 +156,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	if(length<sizeof(mac_header_80211_ACK)){
 		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
-		_demo_set_antenna(); //DEMO FIXME
 		wlan_mac_dcf_hw_unblock_rx_phy();
 		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 		return return_value;
@@ -273,7 +256,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	mpdu_info->timestamp = get_rx_start_timestamp();
 
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
-	_demo_set_antenna(); //DEMO FIXME
 
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	mpdu_info->ant_mode = active_rx_ant;
@@ -680,57 +662,3 @@ int wlan_create_ack_frame(void* pkt_buf, u8* address_ra) {
 }
 
 
-///// DEMO: Remove
-#define LOW_PARAM_DEMO_CONFIG                0x02000000
-void _demo_process_low_param_ipc( u32 * message ) {
-
-	switch(message[0]){
-		case LOW_PARAM_DEMO_CONFIG:
-			_demo_en = (message[1])&1;
-
-			xil_printf("_demo_en = %d\n", _demo_en);
-
-		break;
-
-		default:
-			xil_printf("Unsupported Command:  %d \n", message[0]);
-		break;
-	}
-}
-
-inline void _demo_set_antenna(){
-	//TODO: Demo code
-		//TODO: Only switch on Beacons or ACKs
-		if(_demo_en){
-			curr_ant = (curr_ant+1)%4;
-
-			switch(curr_ant){
-				case 0:
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTA);
-				break;
-				case 1:
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTB);
-				break;
-
-				case 2:
-	#ifdef WLAN_4RF_EN
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTC);
-	#else
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTA);
-	#endif
-				break;
-				case 3:
-	#ifdef WLAN_4RF_EN
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTD);
-	#else
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTB);
-	#endif
-				break;
-				default:
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTA);
-					break;
-			}
-
-			//usleep(_DEMO_inter_pkt_sleep_usec);
-		}
-}
