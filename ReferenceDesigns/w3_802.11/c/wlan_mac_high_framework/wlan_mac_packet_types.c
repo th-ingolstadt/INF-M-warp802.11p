@@ -112,7 +112,7 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	return packetLen_bytes;
 }
@@ -186,7 +186,7 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	return packetLen_bytes;
 }
@@ -236,7 +236,7 @@ int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* co
 	txBufferPtr_u8 = (u8 *)((u8 *)(txBufferPtr_u8) + sizeof(measurement_common_frame));
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	return packetLen_bytes;
 }
@@ -280,7 +280,7 @@ int wlan_create_channel_switch_announcement_frame(void* pkt_buf, mac_header_8021
 	txBufferPtr_u8  = (u8 *)((u8 *)(txBufferPtr_u8) + sizeof(channel_switch_announcement_frame));
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	return packetLen_bytes;
 }
@@ -336,7 +336,7 @@ int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, 
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	//DEBUG
 	//xil_printf("\n packetLen_bytes = %d\n", packetLen_bytes);
@@ -379,7 +379,7 @@ int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 a
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	return packetLen_bytes;
 
@@ -413,7 +413,7 @@ int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	return packetLen_bytes;
 
@@ -506,7 +506,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	return packetLen_bytes;
 }
@@ -558,7 +558,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
-	(common->seq_num)++;
+
 
 	return packetLen_bytes;
 }
@@ -582,7 +582,7 @@ int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 fl
 
 	data_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
 
-	(common->seq_num)++;
+
 
 	return sizeof(mac_header_80211);
 }

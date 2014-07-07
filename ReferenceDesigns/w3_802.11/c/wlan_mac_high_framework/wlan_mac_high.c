@@ -1416,13 +1416,6 @@ void wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_que
 	curr_tx_queue_buffer->frame_info.length          			 = tx_length;
 	curr_tx_queue_buffer->frame_info.flags                       = flags;
 	curr_tx_queue_buffer->frame_info.QID                         = QID;
-
-    // !!! FIXME !!! This is very counterintuitive and needs to be fixed. Basically,
-	// the seq_num field gets incremented just after it is inserted into the
-	// the MAC header. If this function is called after that (dangerous assumption),
-	// then we should decrement the value recognizing it had previously been incremented.
-	curr_tx_queue_buffer->frame_info.unique_seq					 = (header->seq_num)-1;
-
 }
 
 
