@@ -38,9 +38,6 @@ inline unsigned int rand_num_slots();
 void wlan_mac_dcf_hw_start_backoff(u16 num_slots);
 int wlan_create_ack_frame(void* pkt_buf, u8* address_ra);
 
-void _demo_process_low_param_ipc( u32 * message );
-inline void _demo_set_antenna();
-
 
 
 #endif /* WLAN_MAC_DCF_H_ */
