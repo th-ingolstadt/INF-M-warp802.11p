@@ -238,19 +238,7 @@ int main() {
 	// Configure CPU Low's filter for passing Rx packets up to CPU High
 	//     Default is "promiscuous" mode - pass all data and management packets with good or bad checksums
 	//     This allows logging of all data/management receptions, even if they're not intended for this node
-	//wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL_MPDU);
-	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL); //DEMO FIXME
-
-	/////DEMO FIXME
-	#define LOW_PARAM_DEMO_CONFIG                0x02000000
-	wlan_ipc_msg       ipc_msg_to_low;
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
-	ipc_msg_to_low.num_payload_words = 2;
-	u32 msg_payload[2] = {LOW_PARAM_DEMO_CONFIG,1}; //Enable the Demo
-	ipc_msg_to_low.payload_ptr       = &(msg_payload[0]);
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-	/////
+	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL_MPDU);
 
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
