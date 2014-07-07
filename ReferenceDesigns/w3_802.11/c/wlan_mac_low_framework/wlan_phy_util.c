@@ -185,38 +185,6 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			break;
 
-		case _DEMO_RX_ANTMODE_SISO_ANTA:
-			//REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B));
-			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A));
-			wlan_phy_select_rx_antenna(0);
-			//radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			break;
-
-		case _DEMO_RX_ANTMODE_SISO_ANTB:
-			//REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B));
-			REG_SET_BITS(WLAN_RX_REG_CFG, ( WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B));
-			wlan_phy_select_rx_antenna(1);
-			//radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			break;
-
-		case _DEMO_RX_ANTMODE_SISO_ANTC:
-			//REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B));
-			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A ));
-			wlan_phy_select_rx_antenna(2);
-			//radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFC), RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			break;
-
-		case _DEMO_RX_ANTMODE_SISO_ANTD:
-			//REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B));
-			REG_SET_BITS(WLAN_RX_REG_CFG, ( WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B));
-			wlan_phy_select_rx_antenna(3);
-			//radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFB | RC_RFD), RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			break;
-
 		default:
 			//Default to SISO on A if user provides invalid mode
 			xil_printf("wlan_rx_config_ant_mode ERROR: Invalid Mode - Defaulting to SISO on A\n");
