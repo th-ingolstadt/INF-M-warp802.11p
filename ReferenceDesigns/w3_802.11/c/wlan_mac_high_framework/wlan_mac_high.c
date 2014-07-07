@@ -1640,12 +1640,19 @@ void wlan_mac_high_set_channel( unsigned int mac_channel ) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = mac_channel;
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_CHANNEL);
-	ipc_msg_to_low.num_payload_words = 1;
-	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+	if(wlan_lib_channel_verify(mac_channel) == 0){
+
+		// Send message to CPU Low
+		ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_CHANNEL);
+		ipc_msg_to_low.num_payload_words = 1;
+		ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
+
+		ipc_mailbox_write_msg(&ipc_msg_to_low);
+	} else {
+		xil_printf("Channel %d not allowed\n", mac_channel);
+	}
 }
 
 
