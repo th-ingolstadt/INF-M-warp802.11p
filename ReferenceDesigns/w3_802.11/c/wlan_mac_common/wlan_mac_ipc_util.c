@@ -171,6 +171,48 @@ inline int wlan_lib_mac_rate_to_mbps (u8 rate) {
 	return -1;
 }
 
+inline int wlan_lib_channel_verify (u32 mac_channel){
+	int return_value;
+
+	//We adopt the North American channel regulations
+	//http://en.wikipedia.org/wiki/List_of_WLAN_channels
+	switch(mac_channel){
+		//2.4GHz channels
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9:
+		case 10:
+		case 11:
+		//5GHz channels
+		case 36:
+		case 40:
+		case 44:
+		case 48:
+		case 52:
+		case 56:
+		case 60:
+		case 64:
+		case 149:
+		case 153:
+		case 157:
+		case 161:
+			return_value = 0;
+		break;
+		default:
+		case 165:
+			//FIXME: This channel is allowed in NA regs, but RC doesn't look like it currently supports it.
+			return_value = -1;
+		break;
+	}
+	return return_value;
+}
+
 /************** Pkt Buffer Mutex Management ************/
 int lock_pkt_buf_tx(u8 pkt_buf_ind) {
 	int status;
