@@ -105,9 +105,6 @@ u32  deauthenticate_station( station_info* station );
 void deauthenticate_stations();
 
 dl_list * get_statistics();
-void _demo_send_wnet_association_table();
-void _demo_send_packet_req();
-void _demo_ltg_event(u32 id, void* callback_arg);
 void eth_packet_inspection(u32 type, u32 length, void* ptr);
 void up_button();
 

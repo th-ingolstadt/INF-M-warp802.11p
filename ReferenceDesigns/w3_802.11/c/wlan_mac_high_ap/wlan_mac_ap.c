@@ -1320,15 +1320,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			    ap_write_hex_display(association_table.length);
 			break;
 
-
-            //---------------------------------------------------------------------
-			case (0x80):
-			case (0x48):
-				// DEMO PACKETS
-				//
-			break;
-
-
             //---------------------------------------------------------------------
 			default:
 				//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
