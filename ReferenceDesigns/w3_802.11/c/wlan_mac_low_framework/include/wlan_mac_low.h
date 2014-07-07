@@ -245,5 +245,6 @@ inline u32 wlan_mac_dcf_hw_rx_finish();
 inline u8 wlan_mac_low_dbm_to_gain_target(s8 power);
 inline void wlan_mac_reset_backoff_counter();
 inline void wlan_mac_reset_NAV_counter();
+inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
 
 #endif /* WLAN_MAC_LOW_H_ */

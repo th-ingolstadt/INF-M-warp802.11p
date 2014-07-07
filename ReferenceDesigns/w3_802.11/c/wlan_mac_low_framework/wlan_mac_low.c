@@ -1,4 +1,4 @@
-/** @file wlan_mac_high.h
+/** @file wlan_mac_low.c
  *  @brief Low-level WLAN MAC High Framework
  *
  *  This contains the low-level code for accessing the WLAN MAC Low Framework.
@@ -343,9 +343,24 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 			case IPC_MBOX_CONFIG_CHANNEL:
 				mac_param_chan = ipc_msg_from_high_payload[0];
-				//TODO: allow mac_param_chan to select 5GHz channels
-				radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, mac_param_chan);
-				wlan_mac_reset_NAV_counter();
+				if(wlan_lib_channel_verify(mac_param_chan) == 0){
+					//wlan_mac_low_wlan_chan_to_rc_chan
+
+					if(mac_param_chan <= 14){
+						mac_param_band = RC_24GHZ;
+
+					} else {
+						mac_param_band = RC_5GHZ;
+					}
+
+					radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
+					wlan_mac_reset_NAV_counter();
+
+				} else {
+					xil_printf("Invalid channel selection %d\n", mac_param_chan);
+				}
+
+
 			break;
 
 			case IPC_MBOX_LOW_RANDOM_SEED:
@@ -711,6 +726,8 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 			break;
 
 		}
+	} else if(band == RC_5GHZ){
+		//TODO
 	}
 	return power;
 }
@@ -1090,4 +1107,71 @@ inline void wlan_mac_reset_NAV_counter() {
 	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_RESET_NAV);
 	Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_NAV);
 	return;
+}
+
+/**
+ * @brief Map the WLAN channel frequencies onto the convention used by the radio controller
+ */
+inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
+	int return_value = 0;
+
+	switch(mac_channel){
+		//2.4GHz channels
+		case 1:
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+		case 6:
+		case 7:
+		case 8:
+		case 9:
+		case 10:
+		case 11:
+			return_value = mac_channel;
+		break;
+		//5GHz channels
+		case 36: //5180MHz
+			return_value = 1;
+		break;
+		case 40: //5200MHz
+			return_value = 2;
+		break;
+		case 44: //5220MHz
+			return_value = 3;
+		break;
+		case 48: //5240MHz
+			return_value = 4;
+		break;
+		case 52: //5260MHz
+			return_value = 5;
+		break;
+		case 56: //5280MHz
+			return_value = 6;
+		break;
+		case 60: //5300MHz
+			return_value = 7;
+		break;
+		case 64: //5320MHz
+			return_value = 8;
+		break;
+		case 149: //5745MHz
+			return_value = 20;
+		break;
+		case 153: //5765MHz
+			return_value = 21;
+		break;
+		case 157: //5785MHz
+			return_value = 22;
+		break;
+		case 161: //5805MHz
+			return_value = 23;
+		break;
+		case 165: //5809MHz
+			//TODO: Unsupported in radio_controller?
+			return_value = 0;
+		break;
+	}
+
+	return return_value;
 }
