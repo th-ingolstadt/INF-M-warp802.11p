@@ -40,6 +40,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_addr_filter.h"
+#include "wlan_mac_bss_info.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 
@@ -95,7 +96,7 @@ function_ptr_t     mpdu_tx_accept_callback; ///< User callback for lower-level m
 
 // Node information
 wlan_mac_hw_info   	hw_info;				///< Information about hardware
-u8					dram_present;			///< Indication variable for whether DRAM SODIMM is present on this hardware
+volatile u8			dram_present;			///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 // Status information
 volatile static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
@@ -330,9 +331,9 @@ void wlan_mac_high_init(){
 	if( dram_present ) {
 		// The event_list lives in DRAM immediately following the queue payloads.
 		if(MAX_EVENT_LOG == -1){
-			log_size = (DDR3_SIZE - (queue_len+DDR3_USER_DATA_MEM_SIZE));
+			log_size = (DDR3_SIZE - (queue_len+DDR3_USER_DATA_MEM_SIZE+DDR3_BSS_INFO_MEM_SIZE));
 		} else {
-			log_size = min( (DDR3_SIZE - (queue_len+DDR3_USER_DATA_MEM_SIZE)), MAX_EVENT_LOG );
+			log_size = min( (DDR3_SIZE - (queue_len+DDR3_USER_DATA_MEM_SIZE+DDR3_BSS_INFO_MEM_SIZE)), MAX_EVENT_LOG );
 		}
 
 		event_log_init( (void*)(DDR3_USER_DATA_MEM_BASEADDR + DDR3_USER_DATA_MEM_SIZE), log_size );
@@ -341,6 +342,8 @@ void wlan_mac_high_init(){
 		// No DRAM, so the log has nowhere to be stored.
 		log_size = 0;
 	}
+
+	bss_info_init();
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Communicate the log size to WARPNet
@@ -434,6 +437,11 @@ int wlan_mac_high_interrupt_init(){
 	Xil_ExceptionInit();
 	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,(Xil_ExceptionHandler)XIntc_InterruptHandler, &InterruptController);
 	Xil_ExceptionEnable();
+
+
+	// Finish setting up any subsystems that were waiting on interrupts to be configured
+	bss_info_init_finish();
+
 
 	return 0;
 }
@@ -1481,6 +1489,9 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
 			} else {
 				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+
+				//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for
+				bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);
 
 				// Call the RX callback function to process the received packet
 				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->rate, rx_mpdu->length);

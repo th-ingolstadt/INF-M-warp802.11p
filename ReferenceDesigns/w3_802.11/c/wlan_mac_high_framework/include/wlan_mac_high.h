@@ -40,12 +40,27 @@
 #define TIMESTAMP_GPIO_LSB_CHAN 1   ///< GPIO channel used for lower 32 bits of 64-bit timestamp
 #define TIMESTAMP_GPIO_MSB_CHAN 2   ///< GPIO channel used for upper 32 bits of 64-bit timestamp
 
+
+/*
+ * DDR3 Hardcoded Memory Map:
+ *
+ * 0xC0000000 - 0xC0F9FFFF		16384000 bytes		Transmit Queue
+ * 0xC0FA0000 - 0xC119FFFF		2097152 bytes		BSS Information
+ * 0xC11A0000 - 0xC1F9FFFF		8388608 bytes		User Memory
+ * 0xC1FA0000 - 0xFFFFFFFF		1040580608 bytes	WN Log
+ */
+
 #define DDR3_BASEADDR XPAR_DDR3_SODIMM_S_AXI_BASEADDR               ///< XParameters rename for base address of DDR3 SODIMM
 #define DDR3_SIZE 1073741824                                        ///< Available space in DDR3 SODIMM
 
-#define DDR3_USER_DATA_MEM_BASEADDR		0xC0FA0000													///< Space set aside in DDR3 for user extension
-#define DDR3_USER_DATA_MEM_SIZE			0x01000000													///< 16MB for scratch work
+#define DDR3_BSS_INFO_MEM_BASEADDR		0xC0FA0000													///< Space set aside in DDR3 for BSS info
+#define DDR3_BSS_INFO_MEM_SIZE			0x00200000													///< 2MB for BSS info
+#define DDR3_BSS_INFO_MEM_HIGHADDR		(DDR3_BSS_INFO_MEM_BASEADDR+DDR3_BSS_INFO_MEM_SIZE-1)		///< Ending address for BSS info
+
+#define DDR3_USER_DATA_MEM_BASEADDR		0xC11A0000													///< Space set aside in DDR3 for user extension
+#define DDR3_USER_DATA_MEM_SIZE			0x00E00000													///< 14MB for scratch work
 #define DDR3_USER_DATA_MEM_HIGHADDR		(DDR3_USER_DATA_MEM_BASEADDR+DDR3_USER_DATA_MEM_SIZE-1)		///< Ending address for user extension memory
+
 
 #define USERIO_BASEADDR XPAR_W3_USERIO_BASEADDR                     ///< XParameters rename of base address of User I/O
 
