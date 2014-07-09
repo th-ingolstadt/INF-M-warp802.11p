@@ -326,7 +326,7 @@ inline u16 wlan_ofdm_txtime(u16 length,u16 n_DBPS);
 void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length);
 void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx);
 void process_config_phy_tx(ipc_config_phy_tx* config_phy_tx);
-void wlan_agc_config(u8 ant_id);
+void wlan_agc_config(u32 ant_mode);
 void wlan_tx_config_ant_mode(u32 ant_mode);
 void wlan_rx_config_ant_mode(u32 ant_mode);
 

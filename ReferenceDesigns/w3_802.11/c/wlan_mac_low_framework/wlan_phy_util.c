@@ -120,6 +120,9 @@ inline void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length) {
 
 void wlan_rx_config_ant_mode(u32 ant_mode) {
 
+	//Hold the Rx PHY in reset before changing any pkt det or radio enables
+	REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
+
 	//Disable all Rx modes first; selectively re-enabled in switch below
 	REG_CLEAR_BITS(WLAN_RX_REG_CFG, (
 			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A |
@@ -130,25 +133,23 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			WLAN_RX_REG_CFG_PKT_DET_EN_EXT |
 			WLAN_RX_REG_CFG_ANT_SEL_MASK));
 
+	//Disable PHY control of all RF interfaces - selected interfaces to re-enabled below
 	radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_REG);
 
 	switch(ant_mode) {
 		case RX_ANTMODE_SISO_ANTA:
+
+			//Enable packet detection on RF A
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A);
+
+			//Select RF A I/Q stream for Rx PHY
 			wlan_phy_select_rx_antenna(0);
+
+			//Give PHY control of RF A Tx/Rx status
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			wlan_agc_config(0);
 
-
-			#if 0
-			REG_CLEAR_BITS(WLAN_RX_REG_CFG, (
-			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A |
-			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B |
-			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C |
-			WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D));
-
-			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_EXT);
-			#endif
+			//Configure AGC for RF A
+			wlan_agc_config(RX_ANTMODE_SISO_ANTA);
 
 			break;
 
@@ -156,15 +157,15 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B);
 			wlan_phy_select_rx_antenna(1);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			wlan_agc_config(1);
+			wlan_agc_config(RX_ANTMODE_SISO_ANTB);
+
 			break;
 
 		case RX_ANTMODE_SISO_ANTC:
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C);
 			wlan_phy_select_rx_antenna(2);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-
-			wlan_agc_config(2);
+			wlan_agc_config(RX_ANTMODE_SISO_ANTC);
 
 			break;
 
@@ -172,27 +173,39 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D);
 			wlan_phy_select_rx_antenna(3);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFD, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-			wlan_agc_config(3);
+			wlan_agc_config(RX_ANTMODE_SISO_ANTD);
+
 			break;
 
 		case RX_ANTMODE_SISO_SELDIV_2ANT:
 			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B | WLAN_RX_REG_CFG_SWITCHING_DIV_EN));
 			radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
+
+			wlan_agc_config(RX_ANTMODE_SISO_SELDIV_2ANT);
+
 			break;
 
 		case RX_ANTMODE_SISO_SELDIV_4ANT:
 			REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C | WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D | WLAN_RX_REG_CFG_SWITCHING_DIV_EN));
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
+
+			wlan_agc_config(RX_ANTMODE_SISO_SELDIV_4ANT);
+
 			break;
 
 		default:
 			//Default to SISO on A if user provides invalid mode
 			xil_printf("wlan_rx_config_ant_mode ERROR: Invalid Mode - Defaulting to SISO on A\n");
+
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A);
 			wlan_phy_select_rx_antenna(0);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
+			wlan_agc_config(RX_ANTMODE_SISO_ANTA);
 			break;
 	}
+
+	//Release the PHY Rx reset
+	REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
 
 	return;
 }
@@ -335,7 +348,7 @@ void wlan_phy_init() {
 	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_USE_MAC_ANT_MASKS);
 
 /*********** AGC ***************/
-	wlan_agc_config(0);
+	wlan_agc_config(RX_ANTMODE_SISO_ANTA);
 
 /************ Wrap Up ************/
 
@@ -353,8 +366,8 @@ void wlan_phy_init() {
 	return;
 }
 
-void wlan_agc_config(u8 ant_id) {
-	//ant_id argument allows per-antenna AGC settings, in case FMC module has different
+void wlan_agc_config(u32 ant_mode) {
+	//ant_mode argument allows per-antenna AGC settings, in case FMC module has different
 	// response than on-board RF interfaces. Testing so far indicates the settings below
 	// work fine for all RF interfaces
 
