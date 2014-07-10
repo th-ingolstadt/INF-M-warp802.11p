@@ -52,10 +52,10 @@
 #define  WLAN_EXP_ETH                           WN_ETH_B
 #define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 
-#define  WLAN_DEFAULT_CHANNEL                   36
-#define  WLAN_DEFAULT_TX_PWR		             5
+#define  WLAN_DEFAULT_CHANNEL                   1
+#define  WLAN_DEFAULT_TX_PWR		            5
 
-const u8 max_num_associations                    = 11;
+const u8 max_num_associations                   = 11;
 
 
 
@@ -65,7 +65,7 @@ const u8 max_num_associations                    = 11;
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 char*       access_point_ssid;
 
 // Common TX header for 802.11 packets
@@ -1342,12 +1342,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			    ap_write_hex_display(association_table.length);
 			break;
 
+			case (MAC_FRAME_CTRL1_SUBTYPE_NULLDATA):
+			break;
+
             //---------------------------------------------------------------------
 			default:
 				//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
 				//null data frames (type: DATA, subtype: 0x4) for power management reasons.
 				warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
-				xil_printf("Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 
 			break;
 		}
