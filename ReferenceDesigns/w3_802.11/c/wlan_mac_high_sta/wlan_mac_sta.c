@@ -37,10 +37,13 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_sta.h"
+#include "wlan_mac_sta_scan_fsm.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
+#include "wlan_mac_bss_info.h"
+#include "wlan_mac_sta_join_fsm.h"
+#include "wlan_mac_sta.h"
 
 
 // WLAN Exp includes
@@ -84,28 +87,17 @@ tx_params                         default_multicast_data_tx_params;
 
 // Top level STA state
 static u8                         wlan_mac_addr[6];
-int                               association_state;                 // Section 10.3 of 802.11-2012
 u8                                uart_mode;                         // Control variable for UART MENU
 u32	                              max_queue_size;                    // Maximum transmit queue size
 u8	                              allow_beacon_ts_update;            // Allow timebase to be updated from beacons
 
-u8                                pause_queue;                       // TODO:  Is this variable needed anymore???
-
-// Active scan control variables
-u8                                active_scan;
-u8                                repeated_active_scan_scheduled;
-u32                               repeated_active_scan_schedule_id;
-u8                                current_active_scan_scheduled;
-u32                               current_active_scan_schedule_id;
+u8                                pause_data_queue;
 
 // Access point information
-u8                                ap_addr[6];
-ap_info*                          ap_list;
-u8                                num_ap_list;
-u8                                access_point_num_basic_rates;
-u8                                access_point_basic_rates[NUM_BASIC_RATES_MAX];
+
 u32                               mac_param_chan;
-u32                               mac_param_chan_save;
+bss_info*						  ap_bss_info;
+
 
 // Lists to hold association table and Tx/Rx statistics
 dl_list		                      association_table;
@@ -131,17 +123,6 @@ int main() {
 	//     memory is used before calling this function, unexpected results may happen.
 	wlan_mac_high_heap_init();
 
-    // Initialize AP list
-	num_ap_list = 0;
-	ap_list     = NULL;
-
-	// Initialize active scan control variables
-	active_scan                        = 0;
-	repeated_active_scan_scheduled     = 0;
-	repeated_active_scan_schedule_id   = 0;
-	current_active_scan_scheduled      = 0;
-	current_active_scan_schedule_id    = 0;
-
 	// Initialize the maximum TX queue size
 	max_queue_size = MAX_TX_QUEUE_LEN;
 
@@ -149,7 +130,7 @@ int main() {
 	allow_beacon_ts_update = 0;
 
 	// Unpause the queue
-	pause_queue = 0;
+	pause_data_queue = 0;
 
 	// Print initial message to UART
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
@@ -203,9 +184,6 @@ int main() {
 	dl_list_init(&association_table);
 	dl_list_init(&statistics_table);
 
-	// Set Association state for station to AP
-	association_state = 1;
-
 	// Ask CPU Low for its status
 	//     The response to this request will be handled asynchronously
 	wlan_mac_high_request_low_state();
@@ -228,7 +206,6 @@ int main() {
 
 	// Set up channel
 	mac_param_chan      = WLAN_DEFAULT_CHANNEL;
-	mac_param_chan_save = mac_param_chan;
 	wlan_mac_high_set_channel( mac_param_chan );
 
 	// Set the other CPU low parameters
@@ -260,8 +237,7 @@ int main() {
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
 #endif
 
-	// If there is a default SSID, initiate a probe request
-	if( strlen(access_point_ssid) > 0 ) start_active_scan();
+
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Set AP processing callbacks
@@ -270,6 +246,9 @@ int main() {
 
 	// Start the interrupts
 	wlan_mac_high_interrupt_start();
+
+	// If there is a default SSID, initiate a probe request
+	if( strlen(access_point_ssid) > 0 ) wlan_mac_sta_scan_and_join(access_point_ssid, 0);
 
 	while(1){
 #ifdef USE_WARPNET_WLAN_EXP
@@ -313,7 +292,7 @@ void poll_tx_queues(){
 	#define MAX_NUM_QUEUE 2
 
 	// Are we pausing transmissions?
-	if(pause_queue == 0){
+	if(pause_data_queue == 0){
 
 		static u32 queue_index = 0;
 
@@ -329,6 +308,12 @@ void poll_tx_queues(){
 					case 1:  if(dequeue_transmit_checkin(UNICAST_QID))    { return; }  break;
 				}
 			}
+		}
+	} else {
+		// We are only currently allowed to send management frames. Typically this is caused by an ongoing
+		// active scan
+		if( wlan_mac_high_is_ready_for_tx() ) {
+			dequeue_transmit_checkin(MANAGEMENT_QID);
 		}
 	}
 }
@@ -410,297 +395,6 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 
 /**
- * @brief Attempt authentication
- *
- * Function will attempt to authenticate itself with the access point defined by 'access_point_ssid' and 'ap_addr'
- *     It is assumed that the global Access Point has a valid BSSID (MAC Address) defined in 'ap_addr'
- *     This function should only be called after selecting an access point through active scan
- *
- * @param  None
- * @return None
- */
-void attempt_authentication(){
-
-	static u8      			curr_try = 0;
-	u16            			tx_length;
-	tx_queue_element*	   	curr_tx_queue_element;
-	tx_queue_buffer* 		curr_tx_queue_buffer;
-
-	switch(association_state){
-
-		case 1:
-			// Initial start state, not authenticated, not associated
-
-			// Create an authentication request
-			curr_tx_queue_element = queue_checkout();
-
-			if(curr_tx_queue_element != NULL){
-				curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-				// Setup the TX header
-				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr );
-
-				// Fill in the data
-				tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
-
-				// Setup the TX frame info
-		 		wlan_mac_high_setup_tx_frame_info (&tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-		 		(tx_header_common.seq_num)++; //increment the sequence number
-
-				// Set the information in the TX queue buffer
-		 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-				curr_tx_queue_buffer->frame_info.AID         = 0;
-
-				// Put the packet in the queue
-				enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-			    // Poll the TX queues to possibly send the packet
-				poll_tx_queues();
-			}
-
-			// Schedule the next authentication attempt or start the active scan again
-			if( curr_try < (AUTHENTICATION_NUM_TRYS - 1) ){
-				wlan_mac_schedule_event(SCHEDULE_COARSE, AUTHENTICATION_TIMEOUT_US, (void*)attempt_authentication);
-				curr_try++;
-			} else {
-				curr_try = 0;
-				if( strlen(access_point_ssid) > 0 ) start_active_scan();
-			}
-		break;
-
-		case 2:
-			// Authenticated, not associated
-			curr_try = 0;
-		break;
-
-		case 3:
-			// Authenticated and associated (Pending RSN Authentication)
-			//     Not-applicable for current 802.11 Reference Design
-			curr_try = 0;
-		break;
-
-		case 4:
-			// Authenticated and associated
-			curr_try = 0;
-		break;
-	}
-}
-
-
-
-/**
- * @brief Attempt association
- *
- * Function will attempt to associate with the access point defined by 'access_point_ssid' and 'ap_addr'
- *     It is assumed that the global Access Point has a valid BSSID (MAC Address) defined in 'ap_addr'
- *     This function should only be called after selecting an access point through active scan
- *
- * @param  None
- * @return None
- */
-void attempt_association(){
-
-	static u8           curr_try = 0;
-	u16                 tx_length;
-	tx_queue_element*	curr_tx_queue_element;
-	tx_queue_buffer* 	curr_tx_queue_buffer;
-
-	switch(association_state){
-
-		case 1:
-			// Initial start state, not authenticated, not associated
-			curr_try = 0;
-		break;
-
-		case 2:
-			// Authenticated, not associated
-			curr_try = 0;
-
-			// Create an association request
-			curr_tx_queue_element = queue_checkout();
-
-			if(curr_tx_queue_element != NULL){
-				curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-				// Setup the TX header
-				wlan_mac_high_setup_tx_header( &tx_header_common, ap_addr, ap_addr);
-
-				// Fill in the data
-				tx_length = wlan_create_association_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, (u8)strlen(access_point_ssid), (u8*)access_point_ssid, access_point_num_basic_rates, access_point_basic_rates);
-
-				// Setup the TX frame info
-		 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-		 		(tx_header_common.seq_num)++; //increment the sequence number
-
-				// Set the information in the TX queue buffer
-		 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-				curr_tx_queue_buffer->frame_info.AID         = 0;
-
-				// Put the packet in the queue
-				enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-			    // Poll the TX queues to possibly send the packet
-				poll_tx_queues();
-			}
-
-			// Schedule the next association attempt or start the active scan again
-			if(curr_try < (ASSOCIATION_NUM_TRYS - 1)){
-				wlan_mac_schedule_event(SCHEDULE_COARSE, ASSOCIATION_TIMEOUT_US, (void*)attempt_association);
-				curr_try++;
-			} else {
-				curr_try = 0;
-				if( strlen(access_point_ssid) > 0 ) start_active_scan();
-			}
-		break;
-
-		case 3:
-			// Authenticated and associated (Pending RSN Authentication)
-			//     Not-applicable for current 802.11 Reference Design
-			curr_try = 0;
-		break;
-
-		case 4:
-			// Authenticated and associated
-			curr_try = 0;
-		break;
-	}
-}
-
-
-
-/**
- * @brief Start active scan
- *
- * Function will start an active scan to find the access point defined by 'access_point_ssid' and remove any
- * state about the current access point.
- *
- * @param  None
- * @return None
- */
-void start_active_scan(){
-	// Stop any current active scans
-	stop_active_scan();
-
-	xil_printf("Starting active scan\n");
-
-	// Purge AP information
-	num_ap_list = 0;
-	wlan_mac_high_free(ap_list);
-	ap_list     = NULL;
-
-	// Set global STA state information
-	association_state = 1;
-	active_scan       = 1;
-
-	// Schedule the active scan to repeat forever
-	repeated_active_scan_scheduled   = 1;
-	repeated_active_scan_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ACTIVE_SCAN_UPDATE_RATE, SCHEDULE_REPEAT_FOREVER, (void*)probe_req_transmit);
-
-	// Transmit first probe request of the active scan
-	probe_req_transmit();
-}
-
-
-
-/**
- * @brief Stop active scan
- *
- * Function will stop any active scan in progress.
- *
- * @param  None
- * @return None
- */
-void stop_active_scan(){
-	xil_printf("Stopping active scan\n");
-
-	// Remove any scheduled probe requests for the current active scan or any future active scans
-	if(current_active_scan_scheduled)  wlan_mac_remove_schedule(SCHEDULE_COARSE, current_active_scan_schedule_id);
-	if(repeated_active_scan_scheduled) wlan_mac_remove_schedule(SCHEDULE_COARSE, repeated_active_scan_schedule_id);
-
-	// Set global active scan state information
-	active_scan                      = 0;
-	repeated_active_scan_scheduled   = 0;
-	repeated_active_scan_schedule_id = 0;
-	current_active_scan_scheduled    = 0;
-	current_active_scan_schedule_id  = 0;
-}
-
-
-
-/**
- * @brief Transmit probe request
- *
- * Function will transmit a probe request on the current channel and schedule future probe requests on all
- * channels (ie channels 1 - 11) as part of an active scan.
- *
- * @param  None
- * @return None
- */
-void probe_req_transmit(){
-	u16                 tx_length;
-	tx_queue_element*	curr_tx_queue_element;
-	tx_queue_buffer* 	curr_tx_queue_buffer;
-
-	// Static variable to keep track of current probe request channel
-	static u8           curr_channel_index = 0;
-
-	// Shift curr_channel_index [0,10] to the appropriate channel number [1,11]
-	mac_param_chan = curr_channel_index + 1;
-
-	// Switch channels to the current probe request channel
-	wlan_mac_high_set_channel( mac_param_chan );
-
-
-	// Send probe request
-	curr_tx_queue_element = queue_checkout();
-
-	if(curr_tx_queue_element != NULL){
-		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-		// Setup the TX header
-		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr );
-
-		// Fill in the data
-		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame),&tx_header_common, strlen(access_point_ssid), (u8*)access_point_ssid, mac_param_chan);
-
-		// Setup the TX frame info
-		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID );
-
-		(tx_header_common.seq_num)++; //increment the sequence number
-
-		// Set the information in the TX queue buffer
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->frame_info.AID         = 0;
-
-		// Put the packet in the queue
-		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-	    // Poll the TX queues to possibly send the packet
-		poll_tx_queues();
-	}
-
-	// Get the next channel on which STA will send a probe request
-	curr_channel_index = (curr_channel_index+1) % 11;
-
-	// Schedule the probe request for the next channel
-	if(curr_channel_index > 0){
-		current_active_scan_scheduled   = 1;
-		current_active_scan_schedule_id = wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)probe_req_transmit);
-	} else {
-		// We have gone through all the channels so just print the current AP list
-		current_active_scan_scheduled   = 0;
-		wlan_mac_schedule_event(SCHEDULE_COARSE, ACTIVE_SCAN_DWELL, (void*)print_ap_list);
-	}
-}
-
-
-
-/**
  * @brief Callback to handle insertion of an Ethernet reception into the corresponding wireless Tx queue
  *
  * This function is called when a new Ethernet packet is received that must be transmitted via the wireless interface.
@@ -722,6 +416,7 @@ void probe_req_transmit(){
 int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 	station_info* 		ap_station_info;
+
 
 	// Check associations
 	//     Is there an AP to send the packet to?
@@ -757,6 +452,8 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 		    // Poll the TX queues to possibly send the packet
 			poll_tx_queues();
 
+
+
 		} else {
 			// Packet was not successfully enqueued
 			return 0;
@@ -790,9 +487,6 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  */
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
-	u32                 i;
-	int                 status;
-
 	rx_frame_info*      mpdu_info                = (rx_frame_info*)pkt_buf_addr;
 	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8*                 mpdu_ptr_u8              = (u8*)mpdu;
@@ -805,14 +499,12 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	station_info*       associated_station       = NULL;
 	statistics_txrx*    station_stats            = NULL;
 
-	ap_info*            curr_ap_info             = NULL;
-	char*               ssid;
-	u8                  ssid_length;
-
 	u8                  unicast_to_me;
 	u8                  to_multicast;
 	s64                 timestamp_diff;
 	u8                  is_associated            = 0;
+	dl_entry*			bss_info_entry;
+	bss_info*			curr_bss_info;
 
 	// Log the reception
 	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
@@ -889,34 +581,33 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				// Association response
 				//   - If we are in the correct association state and the response was success, then associate with the AP
 				//
-				if(association_state == 2){
-					mpdu_ptr_u8 += sizeof(mac_header_80211);
 
-					if(((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
 
-						status = sta_associate( (rx_80211_header->address_2), (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000 );
+				mpdu_ptr_u8 += sizeof(mac_header_80211);
 
-						if (status == 0) {
-							xil_printf("Association succeeded\n");
-						} else {
-							association_state = -1;
-							xil_printf("Association failed within the station.\n");
+				if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && ((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
+					// AP is authenticating us. Update BSS_info.
+					bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
+
+					if(bss_info_entry != NULL){
+						curr_bss_info = (bss_info*)(bss_info_entry->data);
+						if(curr_bss_info->state == BSS_STATE_AUTHENTICATED){
+							curr_bss_info->state = BSS_STATE_ASSOCIATED;
+							curr_bss_info->aid = (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000;
 						}
-					} else {
-						association_state = -1;
-						xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mpdu_ptr_u8)->status_code);
 					}
+				} else {
+					xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mpdu_ptr_u8)->status_code);
 				}
+
 			break;
 
 
             //---------------------------------------------------------------------
 			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH):
 				// Authentication Reponse
-				//   - If we are in the correct association state and we had a successful authentication from the AP,
-				//     then we should attempt association with the AP
-                //
-				if( (association_state == 1) && wlan_addr_eq(rx_80211_header->address_3, ap_addr) && wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
+
+				if( wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
 
 					// Move the packet pointer to after the header
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
@@ -929,9 +620,15 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_RESP){
 
 								if(((authentication_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
-									// AP is letting us authenticate, attempt association
-									association_state = 2;
-									attempt_association();
+									// AP is authenticating us. Update BSS_info.
+									bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
+
+									if(bss_info_entry != NULL){
+										curr_bss_info = (bss_info*)(bss_info_entry->data);
+										if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
+											curr_bss_info->state = BSS_STATE_AUTHENTICATED;
+										}
+									}
 								}
 
 								// Finish the function
@@ -940,7 +637,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						break;
 
 						default:
-							association_state = -1;
 							xil_printf("Authentication failed.  AP uses authentication algorithm %d which is not support by the 802.11 reference design.\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
 						break;
 					}
@@ -968,10 +664,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					// Update the hex display to show that we are no longer associated
 					sta_write_hex_display(0);
 
-                    // Start an active scan if the SSID is not ""
-					if( strlen(access_point_ssid) > 0 && association_state == 4){
-						start_active_scan();
-					}
+					ap_bss_info->state = BSS_STATE_UNAUTHENTICATED;
+					wlan_mac_sta_join(ap_bss_info,0); //Attempt to rejoin the AP
+
 				}
 			break;
 
@@ -1007,120 +702,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					}
 				}
 
-			    // If we are currently performing an active scan, then build the AP list
-				if(active_scan){
-
-					// Find if this response is from a known AP in our AP list
-					for( i = 0; i < num_ap_list; i++){
-						if(wlan_addr_eq(ap_list[i].bssid, rx_80211_header->address_3)){
-							curr_ap_info = &(ap_list[i]);
-							break;
-						}
-					}
-
-					// If this is the first time we have seen this AP, then we need to allocate memory to
-					//     store it in our AP list
-					if(curr_ap_info == NULL){
-
-						// We only allocate memory for APs in the AP list as we need them
-						if(ap_list == NULL){
-							ap_list = wlan_mac_high_malloc(sizeof(ap_info)*(num_ap_list+1));
-						} else {
-							ap_list = wlan_mac_high_realloc(ap_list, sizeof(ap_info)*(num_ap_list+1));
-						}
-
-						// Check that we were able to get enough memory
-						if(ap_list != NULL){
-							num_ap_list++;
-							curr_ap_info = &(ap_list[num_ap_list-1]);
-						} else {
-							xil_printf("Reallocation of ap_list failed\n");
-
-							// !!! FIXME !!!
-							// Do we need to clean up after the re-allocation failed?
-							// num_ap_list = 0;
-							// etc ...
-							// !!! FIXME !!!
-
-							// Finish the function
-							goto mpdu_rx_process_end;
-						}
-					}
-
-					// Update the AP information
-					curr_ap_info->rx_power        = mpdu_info->rx_power;
-					curr_ap_info->num_basic_rates = 0;
-
-					// Copy BSSID into ap_info struct
-					memcpy(curr_ap_info->bssid, rx_80211_header->address_3, 6);
-
-					// Move the packet pointer to after the header
-					mpdu_ptr_u8 += sizeof(mac_header_80211);
-
-                    // Check if the AP is private
-					if((((beacon_probe_frame*)mpdu_ptr_u8)->capabilities) & CAPABILITIES_PRIVACY){
-						curr_ap_info->private = 1;
-					} else {
-						curr_ap_info->private = 0;
-					}
-
-					// Move the packet pointer to after the beacon/probe frame
-					mpdu_ptr_u8 += sizeof(beacon_probe_frame);
-
-					// Parse the tagged parameters
-					while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) <= length ) {
-
-						// Parse each of the tags
-						switch(mpdu_ptr_u8[0]){
-
-							//-------------------------------------------------
-						    case TAG_SSID_PARAMS:
-						    	// SSID parameter set
-						    	//
-								ssid        = (char*)(&(mpdu_ptr_u8[2]));
-								ssid_length = min(mpdu_ptr_u8[1],SSID_LEN_MAX);
-
-								memcpy(curr_ap_info->ssid, ssid, ssid_length);
-
-								// Terminate the string
-								(curr_ap_info->ssid)[ssid_length] = 0;
-							break;
-
-							//-------------------------------------------------
-							case TAG_SUPPORTED_RATES:
-							case TAG_EXT_SUPPORTED_RATES:
-								// Supported rates / Extended supported rates
-								//
-								for( i = 0; i < mpdu_ptr_u8[1]; i++){
-									if( (mpdu_ptr_u8[2+i] & RATE_BASIC) == RATE_BASIC ) {
-
-										// This is a basic rate. It is required by the AP in order to associate.
-										if((curr_ap_info->num_basic_rates) < NUM_BASIC_RATES_MAX){
-											if( wlan_mac_high_valid_tagged_rate(mpdu_ptr_u8[2+i]) ){
-												(curr_ap_info->basic_rates)[(curr_ap_info->num_basic_rates)] = mpdu_ptr_u8[2+i];
-												(curr_ap_info->num_basic_rates)++;
-											} else {
-                                                // xil_printf("Invalid Tag Parameter rate: %d\n", mpdu_ptr_u8[2+i]);
-											}
-										} else {
-											// xil_printf("Number of basic rates exceeded.\n");
-										}
-									}
-								}
-							break;
-
-							//-------------------------------------------------
-							case TAG_DS_PARAMS:
-								// DS Parameter set (e.g. channel)
-								//
-								curr_ap_info->chan = mpdu_ptr_u8[2];
-							break;
-						}
-
-						// Increment packet pointer to the next tag
-						mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
-					}
-				}
 			break;
 
 
@@ -1210,109 +791,6 @@ void ltg_event(u32 id, void* callback_arg){
 }
 
 
-
-/**
- * @brief Print the AP list
- *
- * Function will print the AP list to the UART.  It will allow the user to select an AP to join
- * if one is not specified by default.  Otherwise, it will attempt to join its default AP if
- * it was found.
- *
- * @param  None
- * @return None
- */
-void print_ap_list(){
-	u32 i,j;
-	char str[4];
-	u16 ap_sel;
-
-	uart_mode   = UART_MODE_AP_LIST;
-
-	// Pause the queue so we don't have any issues with the UART interfering with transmissions
-	pause_queue = 0;
-
-	// Revert to the previous channel that we were on prior to the active scan
-	mac_param_chan = mac_param_chan_save;
-	wlan_mac_high_set_channel( mac_param_chan );
-
-	// Print the header
-	xil_printf("************************ AP List *************************\n");
-
-	// Print the information about each AP
-	for( i = 0; i < num_ap_list; i++){
-		xil_printf("[%d] SSID:     %s ", i, ap_list[i].ssid);
-
-		if(ap_list[i].private == 1){
-			xil_printf("(*)\n");
-		} else {
-			xil_printf("\n");
-		}
-
-		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", ap_list[i].bssid[0],ap_list[i].bssid[1],ap_list[i].bssid[2],ap_list[i].bssid[3],ap_list[i].bssid[4],ap_list[i].bssid[5]);
-		xil_printf("    Channel:       %d\n",ap_list[i].chan);
-		xil_printf("    Rx Power:      %d dBm\n",ap_list[i].rx_power);
-		xil_printf("    Basic Rates:   ");
-
-		for(j = 0; j < (ap_list[i].num_basic_rates); j++ ){
-			wlan_mac_high_tagged_rate_to_readable_rate(ap_list[i].basic_rates[j], str);
-			xil_printf("%s, ",str);
-		}
-
-		xil_printf("\b\b \n");
-	}
-
-	// Allow user to select AP from the list of APs
-	if(strlen(access_point_ssid) == 0){
-		xil_printf("\n(*) Private Network (not supported)\n");
-		xil_printf("\n To join a network, type the number next to the SSID that\n");
-		xil_printf("you want to join and press enter. Otherwise, press Esc to return\n");
-		xil_printf("AP Selection: ");
-	} else {
-
-		// Attempt to join the AP that
-		for( i = 0; i < num_ap_list; i++){
-			if(strcmp(access_point_ssid, ap_list[i].ssid) == 0){
-				ap_sel = i;
-
-				if( ap_list[ap_sel].private == 0) {
-					xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
-
-					// Stop the active scan
-					stop_active_scan();
-
-					// Switch to the AP's channel
-					mac_param_chan = ap_list[ap_sel].chan;
-					wlan_mac_high_set_channel( mac_param_chan );
-
-					// Copy the SSID
-					memcpy(ap_addr, ap_list[ap_sel].bssid, 6);
-
-					// Copy the SSID of the BSS_INFO
-					//   NOTE: Zeroing out the access_point_ssid first will effectively Null-terminate the string
-					bzero(access_point_ssid, SSID_LEN_MAX);
-					memcpy(access_point_ssid, ap_list[ap_sel].ssid, SSID_LEN_MAX);
-
-					// Copy the basic rates
-					access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
-					memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates, access_point_num_basic_rates);
-
-					// Set the global association state and attempt to authenticate against the AP
-					association_state = 1;
-					attempt_authentication();
-
-					return;
-				} else {
-					xil_printf("AP with SSID %s is private\n", access_point_ssid);
-					return;
-				}
-			}
-		}
-		xil_printf("Failed to find AP with SSID of %s\n", access_point_ssid);
-	}
-}
-
-
-
 /**
  * @brief Reset Station Statistics
  *
@@ -1342,7 +820,6 @@ void reset_all_associations(){
 	sta_disassociate();
 
 }
-
 
 
 /**
@@ -1380,6 +857,8 @@ int  sta_disassociate( void ) {
 	// If the STA is currently associated, remove the association; otherwise do nothing
 	if(association_table.length > 0){
 
+		ap_bss_info->state = BSS_STATE_UNAUTHENTICATED; //Drop all the way back in unauthenticated
+
 		// Get the currently associated station
 		//   NOTE:  This assumes that there is only one associated station
 		associated_station_entry = association_table.first;
@@ -1396,13 +875,12 @@ int  sta_disassociate( void ) {
 
 		//
 		// TODO:  Send Disassociation Message
+		// NOTE: Jump to old channel before doing so. The channel is present in the ap_bss_info in this context. No need to change back after.
 		//
 
 		// Remove current association
 		status = wlan_mac_high_remove_association(&association_table, &statistics_table, associated_station->addr);
 
-	    // Set the association state
-		association_state = 1;
 	}
 
 	// Update the HEX display
@@ -1412,33 +890,27 @@ int  sta_disassociate( void ) {
 }
 
 
-
-/**
- * @brief Associate the STA with the given address using the provided AID
- *
- * This function will disassociate the STA from the AP if it is associated.  It will then add
- * an entry in the association table for the given address using the provided AID.  It also
- * logs any association state change
- *
- * @param  u8 * address      - Address to which the STA will now associate
- * @param  u16 requested_AID - AID to use for the association
- * @return int
- *  -  0 if successful
- *  - -1 if unsuccessful
- *
- *  @note This function uses global variables:  association_state, association_table
- *      and statistics_table
- */
-int  sta_associate( u8 * address, u16 requested_AID ) {
-    int                 status;
+int  sta_set_association_state( bss_info* new_bss_info ) {
+    int                 status = -1;
 	station_info*       associated_station = NULL;
+
+	xil_printf("Setting New Association State:\n");
+	xil_printf("SSID:  %s\n", new_bss_info->ssid);
+	xil_printf("BSSID: %02x-%02x-%02x-%02x-%02x-%02x\n", new_bss_info->bssid[0],new_bss_info->bssid[1],new_bss_info->bssid[2],new_bss_info->bssid[3],new_bss_info->bssid[4],new_bss_info->bssid[5]);
+	xil_printf("State: %d\n", new_bss_info->state);
 
 	// Disassociate from any currently associated APs
 	status = sta_disassociate();
 
-	if ( status == 0 ) {
+	// The disassociate step may have changed channels to send a message to the old AP.
+	mac_param_chan = new_bss_info->chan;
+	wlan_mac_high_set_channel(mac_param_chan);
+
+	ap_bss_info = new_bss_info;
+
+	if ( new_bss_info->state == BSS_STATE_ASSOCIATED ) {
 		// Add the new association
-		associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, address, requested_AID);
+		associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, ap_bss_info->bssid, ap_bss_info->aid);
 
 		if ( associated_station != NULL ) {
 
@@ -1454,8 +926,7 @@ int  sta_associate( u8 * address, u16 requested_AID ) {
 			// Update the HEX display
 			sta_write_hex_display(associated_station->AID);
 
-			// Set the association state
-			association_state = 4;
+			pause_data_queue = 0;
 
 		} else {
 		    status = -1;

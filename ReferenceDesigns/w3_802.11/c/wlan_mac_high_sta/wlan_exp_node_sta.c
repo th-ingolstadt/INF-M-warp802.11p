@@ -43,8 +43,10 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_bss_info.h"
+#include "wlan_mac_sta_scan_fsm.h"
+#include "wlan_mac_sta_join_fsm.h"
 #include "wlan_mac_sta.h"
-
 
 
 /*************************** Constant Definitions ****************************/
@@ -52,21 +54,9 @@
 
 /*********************** Global Variable Definitions *************************/
 extern dl_list		  association_table;
-extern u8			  ap_addr[6];
-extern char*          access_point_ssid;
 
-extern ap_info      * ap_list;
-extern u8             num_ap_list;
-extern u8             active_scan;
-extern u8             pause_queue;
-
-extern int            association_state;
-
+extern u8             pause_data_queue;
 extern u32            mac_param_chan;
-extern u32            mac_param_chan_save;
-
-extern u8             access_point_num_basic_rates;
-extern u8             access_point_basic_rates[NUM_BASIC_RATES_MAX];
 
 extern u8	          allow_beacon_ts_update;
 
@@ -213,14 +203,17 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			wlan_mac_high_interrupt_stop();
 
 			// Stop any active scans
-			stop_active_scan();
+			wlan_mac_sta_scan_disable();
 
-			// Set the access_point_ssid to "" so that we won't try to re-join the default
-			// network if we are disassociated.
-			bzero(access_point_ssid, SSID_LEN_MAX);
 
 			// Add the new association
-			status = sta_associate( mac_addr, aid );
+			//TODO: The associate command needs to specify a channel
+			bss_info* bss_temp = wlan_mac_high_create_bss_info(mac_addr, "Manual WARPnet Association", 6, aid);
+			if(bss_temp != NULL){
+				status = sta_set_association_state(bss_temp);
+			} else {
+				status = -1;
+			}
 
 			// Re-enable interrupts
 			wlan_mac_high_interrupt_start();

@@ -36,6 +36,7 @@
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_event_log.h"
+#include "wlan_mac_bss_info.h"
 
 
 #ifdef WLAN_USE_UART_MENU
@@ -51,10 +52,6 @@ extern u8  uart_mode;
 extern u8  active_scan;
 static u32 schedule_ID;
 static u8 print_scheduled = 0;
-
-// Access point information
-extern ap_info* ap_list;
-extern u8       num_ap_list;
 
 extern u8       access_point_num_basic_rates;
 extern u8       access_point_basic_rates[NUM_BASIC_RATES_MAX];
@@ -77,18 +74,12 @@ void uart_rx(u8 rxByte){
 
 	station_info* access_point = ((station_info*)(association_table.first));
 
-	#define MAX_NUM_AP_CHARS 4
-	static char numerical_entry[MAX_NUM_AP_CHARS+1];
-	static u8 curr_decade = 0;
-
 	#define MAX_NUM_CHARS 31
 
-	u16 ap_sel;
+
 
 	if(rxByte == ASCII_ESC){
 		uart_mode = UART_MODE_MAIN;
-
-		stop_active_scan();
 
 		if(print_scheduled){
 			wlan_mac_remove_schedule(SCHEDULE_COARSE, schedule_ID);
@@ -123,20 +114,7 @@ void uart_rx(u8 rxByte){
 				break;
 
 				case ASCII_a:
-					//Send bcast probe requests across all channels
-					if(active_scan == 0){
-						num_ap_list = 0;
-						//xil_printf("- Free 0x%08x\n",ap_list);
-						wlan_mac_high_free(ap_list);
-						ap_list = NULL;
-						active_scan = 1;
-						access_point_ssid = wlan_mac_high_realloc(access_point_ssid, 1);
-						*access_point_ssid = 0;
-						//xil_printf("+++ starting active scan\n");
-						pause_queue = 1;
-						mac_param_chan_save = mac_param_chan;
-						probe_req_transmit();
-					}
+					print_bss_info();
 				break;
 
 				case ASCII_r:
@@ -190,76 +168,6 @@ void uart_rx(u8 rxByte){
 					//Reset statistics
 					reset_station_statistics();
 				break;
-			}
-		break;
-		case UART_MODE_AP_LIST:
-			switch(rxByte){
-				case ASCII_CR:
-
-					numerical_entry[curr_decade] = 0;
-					curr_decade = 0;
-
-					ap_sel = str2num(numerical_entry);
-
-					if( (ap_sel >= 0) && (ap_sel <= (num_ap_list-1))){
-
-						if( ap_list[ap_sel].private == 0) {
-							uart_mode = UART_MODE_MAIN;
-							mac_param_chan = ap_list[ap_sel].chan;
-
-							wlan_mac_high_set_channel(mac_param_chan);
-
-
-							xil_printf("\nAttempting to join %s\n", ap_list[ap_sel].ssid);
-							memcpy(ap_addr, ap_list[ap_sel].bssid, 6);
-
-							access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(ap_list[ap_sel].ssid)+1);
-							//xil_printf("allocated %d bytes in 0x%08x\n", strlen(ap_list[ap_sel].ssid), access_point_ssid);
-							strcpy(access_point_ssid,ap_list[ap_sel].ssid);
-
-							access_point_num_basic_rates = ap_list[ap_sel].num_basic_rates;
-							memcpy(access_point_basic_rates, ap_list[ap_sel].basic_rates,access_point_num_basic_rates);
-
-							association_state = 1;
-							attempt_authentication();
-
-						} else {
-							xil_printf("\nInvalid selection, please choose an AP that is not private: ");
-						}
-
-
-					} else {
-
-						xil_printf("\nInvalid selection, please choose a number between [0,%d]: ", num_ap_list-1);
-
-					}
-
-
-
-				break;
-				case ASCII_DEL:
-					if(curr_decade > 0){
-						curr_decade--;
-						xil_printf("\b \b");
-					}
-
-				break;
-				default:
-					if( (rxByte <= ASCII_9) && (rxByte >= ASCII_0) ){
-						//the user entered a character
-
-						if(curr_decade < MAX_NUM_AP_CHARS){
-							xil_printf("%c", rxByte);
-							numerical_entry[curr_decade] = rxByte;
-							curr_decade++;
-						}
-
-
-
-					}
-
-				break;
-
 			}
 		break;
 

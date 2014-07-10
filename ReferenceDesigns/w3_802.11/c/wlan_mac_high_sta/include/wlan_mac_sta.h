@@ -16,6 +16,7 @@
 /***************************** Include Files *********************************/
 #include "wlan_mac_high.h"
 #include "wlan_mac_dl_list.h"
+#include "wlan_mac_bss_info.h"
 
 
 
@@ -41,7 +42,6 @@
 // UART Menu Modes
 #define UART_MODE_MAIN                 0
 #define UART_MODE_INTERACTIVE          1
-#define UART_MODE_AP_LIST              2
 
 // Timing Parameters
 
@@ -69,19 +69,6 @@
 // WLAN Exp defines
 #define  WLAN_EXP_STREAM_ASSOC_CHANGE            WN_NO_TRANSMIT
 
-// Information about APs
-typedef struct{
-	u8   bssid[6];
-	u8   chan;
-	u8   private;
-	char ssid[SSID_LEN_MAX + 1];
-	u8   padding[3];
-	u8   num_basic_rates;
-	char rx_power;
-	u8   basic_rates[NUM_BASIC_RATES_MAX];
-} ap_info;
-
-
 /*************************** Function Prototypes *****************************/
 int main();
 
@@ -94,18 +81,11 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 
-void start_active_scan();
-void stop_active_scan();
-void probe_req_transmit();
-
-void attempt_authentication();
 
 void reset_station_statistics();
 dl_list * get_statistics();
 
-int  get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words );
-
-int  sta_associate( u8 * address, u16 requested_AID );
+int  sta_set_association_state( bss_info* new_bss_info );
 int  sta_disassociate();
 
 void print_menu();
@@ -115,6 +95,7 @@ void uart_rx(u8 rxByte);
 void print_all_observed_statistics();
 
 void sta_write_hex_display(u8 val);
+
 
 
 #endif /* WLAN_MAC_STA_H_ */
