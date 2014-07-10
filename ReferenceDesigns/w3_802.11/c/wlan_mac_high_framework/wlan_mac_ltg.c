@@ -754,6 +754,8 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_id);
 		}
 
+		(tx_header_common.seq_num)++; //increment the sequence number
+
 		// Update the queue entry metadata to reflect the new new queue entry contents
 		if (is_multicast) {
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
