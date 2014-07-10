@@ -15,7 +15,10 @@
  *  @bug No known bugs.
  */
 
-#define MAX_NUM_BSS_INFO 100 ///< Maximum number of BSS information structs. -1 will fill the allotted memory for BSS info.
+#ifndef WLAN_MAC_BSS_INFO_H_
+#define WLAN_MAC_BSS_INFO_H_
+
+#define MAX_NUM_BSS_INFO 1000 ///< Maximum number of BSS information structs. -1 will fill the allotted memory for BSS info.
 
 #define NUM_BASIC_RATES_MAX	10
 typedef struct{
@@ -24,14 +27,18 @@ typedef struct{
 	u8   flags;
 	u64  timestamp;
 	char ssid[SSID_LEN_MAX + 1];
-	u8   padding[3];
+	u8 	 state;
+	u16  aid;
 	u8   num_basic_rates;
 	char rx_power;
 	u8   basic_rates[NUM_BASIC_RATES_MAX];
 } bss_info;
 
-#define BSS_FLAGS_IS_ASSOCIATED 0x01 //FIXME: I don't have a good way of cleanly handling this. Why do we need it?
-#define BSS_FLAGS_IS_PRIVATE    0x02
+#define BSS_STATE_UNAUTHENTICATED	1
+#define BSS_STATE_AUTHENTICATED		2
+#define BSS_STATE_ASSOCIATED		4
+
+#define BSS_FLAGS_IS_PRIVATE    	0x01
 
 void bss_info_init();
 void bss_info_init_finish();
@@ -40,4 +47,9 @@ void bss_info_checkin(dl_entry* bsi);
 inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 void print_bss_info();
 void bss_info_timestamp_check();
-dl_entry* wlan_mac_high_find_bss_info_SSID(dl_list* list, char* ssid);
+dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid);
+dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid);
+bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan, u8 aid);
+inline dl_list* wlan_mac_high_get_bss_info_list();
+
+#endif
