@@ -1143,34 +1143,6 @@ inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
 		case 48: //5240MHz
 			return_value = 4;
 		break;
-		case 52: //5260MHz
-			return_value = 5;
-		break;
-		case 56: //5280MHz
-			return_value = 6;
-		break;
-		case 60: //5300MHz
-			return_value = 7;
-		break;
-		case 64: //5320MHz
-			return_value = 8;
-		break;
-		case 149: //5745MHz
-			return_value = 20;
-		break;
-		case 153: //5765MHz
-			return_value = 21;
-		break;
-		case 157: //5785MHz
-			return_value = 22;
-		break;
-		case 161: //5805MHz
-			return_value = 23;
-		break;
-		case 165: //5809MHz
-			//TODO: Unsupported in radio_controller?
-			return_value = 0;
-		break;
 	}
 
 	return return_value;
