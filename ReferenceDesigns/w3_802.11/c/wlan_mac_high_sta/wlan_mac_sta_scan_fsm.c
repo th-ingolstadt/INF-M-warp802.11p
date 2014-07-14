@@ -64,6 +64,11 @@ int wlan_mac_sta_set_scan_channels(u8* channel_vec, u32 len){
 
 }
 
+void wlan_mac_sta_set_scan_timings(u32 dwell_usec, u32 idle_usec){
+	idle_timeout_usec = idle_usec;
+	dwell_timeout_usec = dwell_usec;
+}
+
 void wlan_mac_sta_scan_enable(u8* bssid, char* ssid_str){
 	memcpy(scan_bssid, bssid, 6);
 	strcpy(scan_ssid, ssid_str);
