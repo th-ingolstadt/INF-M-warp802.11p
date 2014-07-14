@@ -18,6 +18,8 @@
 #define WLAN_MAC_LTG_H_
 
 #include "wlan_mac_dl_list.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_eth_util.h"
 
 //LTG Schedules define the times when LTG event callbacks are called.
 #define LTG_SCHED_TYPE_PERIODIC			1
@@ -117,8 +119,9 @@ typedef struct {
 //LTG Payload Contents
 
 typedef struct {
-	u64 packet_id;
-	u32 ltg_id;
+	llc_header	llc_hdr;
+	u64 		packet_id;
+	u32 		ltg_id;
 } ltg_pyld_id;
 
 

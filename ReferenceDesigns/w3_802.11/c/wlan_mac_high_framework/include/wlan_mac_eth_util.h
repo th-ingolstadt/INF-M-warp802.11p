@@ -16,6 +16,8 @@
 #ifndef WLAN_MAC_ETH_UTIL_H_
 #define WLAN_MAC_ETH_UTIL_H_
 
+#include "xintc.h"
+
 //The struct definitions below are used to interpret packet payloads
 // The code never creates instances of these structs
 

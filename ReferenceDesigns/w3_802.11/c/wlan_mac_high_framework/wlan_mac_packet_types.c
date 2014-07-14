@@ -48,8 +48,6 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	memcpy(beacon_80211_header->address_2,common->address_2,6);
 	memcpy(beacon_80211_header->address_3,common->address_3,6);
 
-	beacon_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
-
 	beacon_probe_frame* beacon_probe_mgmt_header;
 	beacon_probe_mgmt_header = (beacon_probe_frame*)(pkt_buf + sizeof(mac_header_80211));
 
@@ -137,8 +135,6 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 	memcpy(beacon_80211_header->address_2,common->address_2,6);
 	memcpy(beacon_80211_header->address_3,common->address_3,6);
 
-	beacon_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
-
 	beacon_probe_frame* beacon_probe_mgmt_header;
 	beacon_probe_mgmt_header = (beacon_probe_frame*)(pkt_buf + sizeof(mac_header_80211));
 
@@ -213,14 +209,12 @@ int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* co
 	memcpy(hdr_80211->address_2,common->address_2,6);
 	memcpy(hdr_80211->address_3,common->address_3,6);
 
-	hdr_80211->sequence_control = (((common->seq_num)&0xFFF)<<4);
-
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211));
 	measurement_req = (measurement_common_frame*)txBufferPtr_u8;
 
 	measurement_req->category = 0; //Spectrum management action frame
 	measurement_req->action = 0; //Request
-	measurement_req->dialog_token = (common->seq_num)&0xFF; //Just a field for matching reqs and resps. We'll just use seq
+	//measurement_req->dialog_token = (common->seq_num)&0xFF; //Just a field for matching reqs and resps. We'll just use seq
 	measurement_req->element_id = 38; //Measurement Req
 	measurement_req->length = sizeof(measurement_common_frame) - 5; //Length of field after this element;
 	measurement_req->measurement_token = 0;
@@ -263,7 +257,7 @@ int wlan_create_channel_switch_announcement_frame(void* pkt_buf, mac_header_8021
 	memcpy(hdr_80211->address_2,common->address_2,6);
 	memcpy(hdr_80211->address_3,common->address_3,6);
 
-	hdr_80211->sequence_control = (((common->seq_num)&0xFFF)<<4);
+	hdr_80211->sequence_control = 0; //Will be filled in at dequeue
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211));
 	chan_req = (channel_switch_announcement_frame*)txBufferPtr_u8;
@@ -306,7 +300,7 @@ int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, 
 	memcpy(probe_req_80211_header->address_2,common->address_2,6);
 	memcpy(probe_req_80211_header->address_3,common->address_3,6);
 
-	probe_req_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
+	probe_req_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211));
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
@@ -367,7 +361,7 @@ int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 a
 	memcpy(auth_80211_header->address_2,common->address_2,6);
 	memcpy(auth_80211_header->address_3,common->address_3,6);
 
-	auth_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
+	auth_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
 	authentication_frame* auth_mgmt_header;
 	auth_mgmt_header = (authentication_frame*)(pkt_buf + sizeof(mac_header_80211));
@@ -403,7 +397,7 @@ int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16
 	memcpy(deauth_80211_header->address_2,common->address_2,6);
 	memcpy(deauth_80211_header->address_3,common->address_3,6);
 
-	deauth_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
+	deauth_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
 	deauthentication_frame* deauth_mgmt_header;
 	deauth_mgmt_header = (deauthentication_frame*)(pkt_buf + sizeof(mac_header_80211));
@@ -442,7 +436,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	memcpy(assoc_80211_header->address_2,common->address_2,6);
 	memcpy(assoc_80211_header->address_3,common->address_3,6);
 
-	assoc_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
+	assoc_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
 	association_request_frame* association_req_mgmt_header;
 	association_req_mgmt_header = (association_request_frame*)(pkt_buf + sizeof(mac_header_80211));
@@ -529,7 +523,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	memcpy(assoc_80211_header->address_2,common->address_2,6);
 	memcpy(assoc_80211_header->address_3,common->address_3,6);
 
-	assoc_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
+	assoc_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
 	association_response_frame* association_resp_mgmt_header;
 	association_resp_mgmt_header = (association_response_frame*)(pkt_buf + sizeof(mac_header_80211));
@@ -580,7 +574,7 @@ int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 fl
 	memcpy(data_80211_header->address_2,common->address_2,6);
 	memcpy(data_80211_header->address_3,common->address_3,6);
 
-	data_80211_header->sequence_control = (((common->seq_num)&0xFFF)<<4);
+	data_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
 
 

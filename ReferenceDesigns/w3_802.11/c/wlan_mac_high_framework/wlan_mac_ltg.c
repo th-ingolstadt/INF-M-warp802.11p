@@ -704,7 +704,6 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 
 	u32               tx_length;
 	u8*               mpdu_ptr_u8;
-	llc_header*       llc_hdr;
 	ltg_pyld_id*      ltg_payload_id;
 	u8                is_multicast;
 
@@ -729,23 +728,19 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 
 		// Prepare the MPDU LLC header
 		mpdu_ptr_u8 += sizeof(mac_header_80211);
-		llc_hdr = (llc_header*)(mpdu_ptr_u8);
+		ltg_payload_id = (ltg_pyld_id*)(mpdu_ptr_u8);
 
-		llc_hdr->dsap = LLC_SNAP;
-		llc_hdr->ssap = LLC_SNAP;
-		llc_hdr->control_field = LLC_CNTRL_UNNUMBERED;
-		bzero((void *)(llc_hdr->org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
-		llc_hdr->type = LLC_TYPE_WLAN_LTG;
+		(ltg_payload_id->llc_hdr).dsap = LLC_SNAP;
+		(ltg_payload_id->llc_hdr).ssap = LLC_SNAP;
+		(ltg_payload_id->llc_hdr).control_field = LLC_CNTRL_UNNUMBERED;
+		bzero((void *)((ltg_payload_id->llc_hdr).org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
+		(ltg_payload_id->llc_hdr).type = LLC_TYPE_WLAN_LTG;
 
-		// Insert LTG packet id
-		mpdu_ptr_u8 += sizeof(llc_header);
-		ltg_payload_id = (ltg_pyld_id *)(mpdu_ptr_u8);
-
-		ltg_payload_id->packet_id = tx_header_common.seq_num;
+		ltg_payload_id->packet_id = 0; //make sure this is filled in via the dequeue callback
 		ltg_payload_id->ltg_id    = ltg_id;
 
 		// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
-		tx_length += max(payload_length, (sizeof(llc_header) + sizeof(ltg_pyld_id)));
+		tx_length += max(payload_length, (sizeof(ltg_pyld_id)));
 
 		// Finally prepare the 802.11 header
 		if (is_multicast) {
@@ -753,8 +748,6 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 		} else {
 			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_id);
 		}
-
-		(tx_header_common.seq_num)++; //increment the sequence number
 
 		// Update the queue entry metadata to reflect the new new queue entry contents
 		if (is_multicast) {
@@ -772,6 +765,7 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 	}
 
 	return status;
+	return 0;
 }
 
 

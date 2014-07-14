@@ -86,13 +86,14 @@ u8                 uart_rx_buffer[UART_BUFFER_SIZE];	///< Buffer for received by
 u8                 tx_pkt_buf;				///< @brief Current transmit buffer (ping/pong)
 											///< @see TX_BUFFER_NUM
 // Callback function pointers
-function_ptr_t     pb_u_callback;			///< User callback for "up" pushbutton
-function_ptr_t     pb_m_callback;			///< User callback for "middle" pushbutton
-function_ptr_t     pb_d_callback;			///< User callback for "down" pushbutton
-function_ptr_t     uart_callback;			///< User callback for UART reception
-function_ptr_t     mpdu_tx_done_callback;	///< User callback for lower-level message that MPDU transmission is complete
-function_ptr_t     mpdu_rx_callback;		///< User callback for lower-level message that MPDU reception is ready for processing
-function_ptr_t     mpdu_tx_accept_callback; ///< User callback for lower-level message that MPDU has been accepted for transmission
+function_ptr_t     pb_u_callback;			 ///< User callback for "up" pushbutton
+function_ptr_t     pb_m_callback;			 ///< User callback for "middle" pushbutton
+function_ptr_t     pb_d_callback;			 ///< User callback for "down" pushbutton
+function_ptr_t     uart_callback;			 ///< User callback for UART reception
+function_ptr_t     mpdu_tx_done_callback;	 ///< User callback for lower-level message that MPDU transmission is complete
+function_ptr_t     mpdu_rx_callback;		 ///< User callback for lower-level message that MPDU reception is ready for processing
+function_ptr_t     mpdu_tx_accept_callback;  ///< User callback for lower-level message that MPDU has been accepted for transmission
+function_ptr_t	   mpdu_tx_dequeue_callback; ///< User callback for higher-level framework dequeuing a packet
 
 // Node information
 wlan_mac_hw_info   	hw_info;				///< Information about hardware
@@ -131,6 +132,9 @@ u8                  promiscuous_stats_enabled;   ///< Are promiscuous statistics
 
 // Receive Antenna mode tracker
 u8                  rx_ant_mode_tracker = 0;     ///< Tracking variable for RX Antenna mode for CPU Low
+
+// Unique transmit sequence number
+volatile static u64	unique_seq;
 
 
 
@@ -229,13 +233,14 @@ void wlan_mac_high_init(){
 	// ***************************************************
     // Initialize callbacks and global state variables
 	// ***************************************************
-	pb_u_callback           = (function_ptr_t)nullCallback;
-	pb_m_callback           = (function_ptr_t)nullCallback;
-	pb_d_callback           = (function_ptr_t)nullCallback;
-	uart_callback           = (function_ptr_t)nullCallback;
-	mpdu_rx_callback        = (function_ptr_t)nullCallback;
-	mpdu_tx_done_callback   = (function_ptr_t)nullCallback;
-	mpdu_tx_accept_callback = (function_ptr_t)nullCallback;
+	pb_u_callback            = (function_ptr_t)nullCallback;
+	pb_m_callback            = (function_ptr_t)nullCallback;
+	pb_d_callback            = (function_ptr_t)nullCallback;
+	uart_callback            = (function_ptr_t)nullCallback;
+	mpdu_rx_callback         = (function_ptr_t)nullCallback;
+	mpdu_tx_done_callback    = (function_ptr_t)nullCallback;
+	mpdu_tx_accept_callback  = (function_ptr_t)nullCallback;
+	mpdu_tx_dequeue_callback = (function_ptr_t)nullCallback;
 
 	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
@@ -247,6 +252,8 @@ void wlan_mac_high_init(){
 
 	// Enable promiscuous statistics by default
 	promiscuous_stats_enabled = 1;
+
+	unique_seq = 0;
 
 
 	// ***************************************************
@@ -814,6 +821,23 @@ void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback){
 }
 
 
+/**
+ * @brief Set MPDU Dequeue Callback
+ *
+ * Tells the framework which function should be called when
+ * a packet is dequeued and about to be passed to the
+ * lower-level CPU.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
+void wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback){
+	mpdu_tx_dequeue_callback = callback;
+}
+
+
 
 /**
  * @brief Get Microsecond Counter Timestamp
@@ -1222,6 +1246,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu;
 	station_info* station;
+	mac_header_80211* header;
 	void* dest_addr;
 	void* src_addr;
 	u32 xfer_len;
@@ -1230,9 +1255,21 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 
 	// Copy the packet into the transmit packet buffer
 	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_ready_for_tx() )){
+
+
 		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 		src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
 		xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
+		header 	  = (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
+
+		//Insert sequence number here
+		header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
+
+
+		//Call user code to notify it of dequeue
+		if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
+
+		unique_seq++;
 
 		wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
 
@@ -1275,7 +1312,9 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 	}
 }
 
-
+inline u64 wlan_mac_high_get_unique_seq(){
+	return unique_seq;
+}
 
 /**
  * @brief Retrieve Hardware Information
