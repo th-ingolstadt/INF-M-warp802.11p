@@ -15,8 +15,10 @@
 #include "wlan_mac_sta_scan_fsm.h"
 #include "wlan_mac_sta.h"
 
-#define NUM_SCAN_CHANNELS 23
-static u8 channels[NUM_SCAN_CHANNELS] = {1,2,3,4,5,6,7,8,9,10,11,36,40,44,48,52,56,60,64,149,153,157,161}; //NA allowed channels
+static u32 num_scan_channels = 0;
+
+#define MAX_NUM_CHAN 41
+static u8 channels[MAX_NUM_CHAN];
 static u32 idle_timeout_usec = 1000000;
 static u32 dwell_timeout_usec = 200000;
 static s8 curr_scan_chan_idx;
@@ -32,6 +34,35 @@ extern tx_params default_multicast_mgmt_tx_params;
 
 typedef enum {SCAN_DISABLED, SCAN_ENABLED} scan_state_t;
 static scan_state_t scan_state = SCAN_DISABLED;
+
+int wlan_mac_sta_set_scan_channels(u8* channel_vec, u32 len){
+	u32 i;
+	int return_value = -1;
+
+	if(len > MAX_NUM_CHAN){
+		xil_printf("Error: too many channels requested\n");
+		return return_value;
+	}
+
+	for(i=0;i<len;i++){
+		if( wlan_lib_channel_verify(channel_vec[i]) == -1){
+			xil_printf("Error: invalid channel selection %d\n", channel_vec[i]);
+			return return_value;
+		}
+	}
+
+	if(scan_state == SCAN_ENABLED){
+		wlan_mac_sta_scan_disable();
+		wlan_mac_sta_scan_enable(scan_bssid, scan_ssid);
+	}
+
+	return_value = 0;
+	num_scan_channels = len;
+	memcpy(channels,channel_vec,len);
+
+	return return_value;
+
+}
 
 void wlan_mac_sta_scan_enable(u8* bssid, char* ssid_str){
 	memcpy(scan_bssid, bssid, 6);
@@ -70,9 +101,8 @@ void wlan_mac_sta_scan_state_transition(){
 		break;
 		case SCAN_ENABLED:
 			curr_scan_chan_idx++;
-			if(curr_scan_chan_idx < NUM_SCAN_CHANNELS){
+			if(curr_scan_chan_idx < num_scan_channels){
 				mac_param_chan = channels[(u8)curr_scan_chan_idx];
-				//xil_printf("%d: Chan %d\n", curr_scan_chan_idx, mac_param_chan);
 				wlan_mac_high_set_channel(mac_param_chan);
 				wlan_mac_sta_scan_probe_req_transmit();
 				scan_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, dwell_timeout_usec, 1, (void*)wlan_mac_sta_scan_state_transition);
