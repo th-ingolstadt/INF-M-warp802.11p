@@ -103,6 +103,7 @@ void reset_station_statistics();
 
 u32  deauthenticate_station( station_info* station );
 void deauthenticate_stations();
+void mpdu_dequeue(tx_queue_element* packet);
 
 dl_list * get_statistics();
 void eth_packet_inspection(u32 type, u32 length, void* ptr);
