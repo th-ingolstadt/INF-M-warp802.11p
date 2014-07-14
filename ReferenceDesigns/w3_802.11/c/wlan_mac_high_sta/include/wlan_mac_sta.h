@@ -95,6 +95,7 @@ void uart_rx(u8 rxByte);
 void print_all_observed_statistics();
 
 void sta_write_hex_display(u8 val);
+void mpdu_dequeue(tx_queue_element* packet);
 
 
 

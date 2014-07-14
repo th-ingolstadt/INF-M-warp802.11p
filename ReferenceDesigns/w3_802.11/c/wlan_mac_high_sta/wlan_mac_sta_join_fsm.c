@@ -237,8 +237,6 @@ void wlan_mac_sta_scan_auth_transmit(){
 			// Setup the TX frame info
 			wlan_mac_high_setup_tx_frame_info (&tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
 
-			(tx_header_common.seq_num)++; //increment the sequence number
-
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
@@ -275,8 +273,6 @@ void wlan_mac_sta_scan_assoc_req_transmit(){
 
 			// Setup the TX frame info
 			wlan_mac_high_setup_tx_frame_info (&tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-			(tx_header_common.seq_num)++; //increment the sequence number
 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;

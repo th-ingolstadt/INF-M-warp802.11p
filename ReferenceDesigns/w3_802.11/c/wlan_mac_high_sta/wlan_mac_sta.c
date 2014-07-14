@@ -72,7 +72,7 @@ const u8 max_num_associations                    = 1;
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
+char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP-CRH";
 //char access_point_ssid[SSID_LEN_MAX + 1] = "";
 
 
@@ -172,6 +172,7 @@ int main() {
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
+	wlan_mac_high_set_mpdu_dequeue_callback( (void*)mpdu_dequeue);
 	wlan_mac_high_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(      (void*)uart_rx);
 	wlan_mac_high_set_mpdu_accept_callback(  (void*)poll_tx_queues);
@@ -199,7 +200,6 @@ int main() {
 
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
-	tx_header_common.seq_num   = 0;
 
     // Initialize hex display
 	sta_write_hex_display(0);
@@ -438,8 +438,6 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 			// Setup the TX frame info
 			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
-
-			(tx_header_common.seq_num)++; //increment the sequence number
 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
@@ -821,6 +819,33 @@ void reset_all_associations(){
 
 }
 
+
+void mpdu_dequeue(tx_queue_element* packet){
+	mac_header_80211* 	header;
+	tx_frame_info*		frame_info;
+	ltg_pyld_id*      	ltg_payload_id;
+	u32 				packet_payload_size;
+
+	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
+	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
+	ltg_payload_id		= (ltg_pyld_id*)((u8*)header + sizeof(mac_header_80211));
+	packet_payload_size	= frame_info->length;
+
+	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
+		case PKT_TYPE_DATA_ENCAP_LTG:
+			ltg_payload_id->packet_id = wlan_mac_high_get_unique_seq();
+			//do not break here
+		case PKT_TYPE_DATA_ENCAP_ETH:
+			// Overwrite addr1 of this packet with the currently associated AP. This will allow previously
+			// enqueued packets to seemlessly hand off if this STA joins a new AP
+			if(association_table.length == 1){
+				memcpy(header->address_1, ap_bss_info->bssid, 6);
+			} else {
+				xil_printf("Dequeue error: no associated AP\n");
+			}
+		break;
+	}
+}
 
 /**
  * @brief Accessor methods for global variables
