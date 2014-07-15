@@ -38,6 +38,7 @@
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_bss_info.h"
 
 
 
@@ -69,8 +70,7 @@ extern u8                  rx_ant_mode_tracker;
 // Declared in each of the AP / STA
 extern tx_params           default_unicast_data_tx_params;
 
-extern dl_list		       association_table;
-
+extern bss_info*		   ap_bss_info;
 extern tx_params           default_unicast_mgmt_tx_params;
 extern tx_params           default_unicast_data_tx_params;
 extern tx_params           default_multicast_mgmt_tx_params;
@@ -670,7 +670,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				// If parameter is not the magic number to return all Station Info structures
 				if ( id != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
 					// Find the station_info entry
-					curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
+					if( get_station_info_list() != NULL){
+						curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
+					} else {
+						curr_entry = NULL;
+					}
 
 					if (curr_entry != NULL) {
 						curr_station_info = (station_info*)(curr_entry->data);
@@ -701,7 +705,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 					// Get the list of TXRX Statistics
 					curr_list      = get_station_info_list();
-					total_entries  = curr_list->length;
+					if(curr_list != NULL){
+						total_entries  = curr_list->length;
+					} else {
+						total_entries  = 0;
+					}
 					size           = entry_size * total_entries;
 
 					if ( size != 0 ) {
@@ -873,14 +881,16 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 				    // Update the Tx power in each current association
 					curr_list  = get_station_info_list();
-					curr_entry = curr_list->first;
 
-					for(i=0; i < curr_list->length; i++){
-						curr_station_info = (station_info*)(curr_entry->data);
-						curr_station_info->tx.phy.power = power;
-						curr_entry = dl_entry_next(curr_entry);
+					if(curr_list != NULL){
+						curr_entry = curr_list->first;
+
+						for(i=0; i < curr_list->length; i++){
+							curr_station_info = (station_info*)(curr_entry->data);
+							curr_station_info->tx.phy.power = power;
+							curr_entry = dl_entry_next(curr_entry);
+						}
 					}
-
 		        	// Set the multicast power
 				    default_multicast_mgmt_tx_params.phy.power = power;
 				    default_multicast_data_tx_params.phy.power = power;
@@ -2837,7 +2847,12 @@ u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
 	if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
 		id = 0xFFFFFFFF;
 	} else {
-		entry = wlan_mac_high_find_station_info_ADDR(&association_table, mac_addr);
+
+		if(ap_bss_info != NULL){
+			entry = wlan_mac_high_find_station_info_ADDR(&(ap_bss_info->associated_stations), mac_addr);
+		} else {
+			entry = NULL;
+		}
 
 		if (entry != NULL) {
 			info = (station_info*)(entry->data);
@@ -2923,41 +2938,47 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 	if ( cmd == CMD_PARAM_WRITE_VAL ) {
 
 		curr_list  = get_station_info_list();
-		curr_entry = curr_list->first;
 
-		if (curr_list->length == 0) {
-			return tx_rate;
-		}
+		if(curr_list != NULL){
+			curr_entry = curr_list->first;
 
-		for(i=0; i < curr_list->length; i++){
-			curr_station_info = (station_info*)(curr_entry->data);
-
-			if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
-				xil_printf("Setting TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
-				curr_station_info->tx.phy.rate = tx_rate;
-				rate                           = tx_rate;
-
-			} else if ( aid == curr_station_info->AID ) {
-				xil_printf("Setting TX rate on AID %d = %d Mbps\n", aid, wlan_lib_mac_rate_to_mbps(tx_rate));
-				curr_station_info->tx.phy.rate = tx_rate;
-				rate                           = tx_rate;
-				break;
+			if (curr_list->length == 0) {
+				return tx_rate;
 			}
-			curr_entry = dl_entry_next(curr_entry);
+
+			for(i=0; i < curr_list->length; i++){
+				curr_station_info = (station_info*)(curr_entry->data);
+
+				if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
+					xil_printf("Setting TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
+					curr_station_info->tx.phy.rate = tx_rate;
+					rate                           = tx_rate;
+
+				} else if ( aid == curr_station_info->AID ) {
+					xil_printf("Setting TX rate on AID %d = %d Mbps\n", aid, wlan_lib_mac_rate_to_mbps(tx_rate));
+					curr_station_info->tx.phy.rate = tx_rate;
+					rate                           = tx_rate;
+					break;
+				}
+				curr_entry = dl_entry_next(curr_entry);
+			}
 		}
 	} else {
 
 		if ( aid != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
 			curr_list  = get_station_info_list();
-			curr_entry = curr_list->first;
 
-			for(i=0; i < curr_list->length; i++){
-				curr_station_info = (station_info*)(curr_entry->data);
-				if ( aid == curr_station_info->AID ) {
-					rate = curr_station_info->tx.phy.rate;
-					break;
+			if (curr_list != NULL){
+				curr_entry = curr_list->first;
+
+				for(i=0; i < curr_list->length; i++){
+					curr_station_info = (station_info*)(curr_entry->data);
+					if ( aid == curr_station_info->AID ) {
+						rate = curr_station_info->tx.phy.rate;
+						break;
+					}
+					curr_entry = dl_entry_next(curr_entry);
 				}
-				curr_entry = dl_entry_next(curr_entry);
 			}
 		}
 	}
@@ -2992,41 +3013,47 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 	if ( cmd == CMD_PARAM_WRITE_VAL ) {
 
 		curr_list  = get_station_info_list();
-		curr_entry = curr_list->first;
 
-		if (curr_list->length == 0) {
-			return ant_mode;
-		}
+		if(curr_list != NULL){
+			curr_entry = curr_list->first;
 
-		for(i=0; i < curr_list->length; i++){
-			curr_station_info = (station_info*)(curr_entry->data);
-
-			if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
-				xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
-				curr_station_info->tx.phy.antenna_mode = ant_mode;
-				mode                                   = ant_mode;
-
-			} else if ( aid == curr_station_info->AID ) {
-				xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
-				curr_station_info->tx.phy.antenna_mode = ant_mode;
-				mode                                   = ant_mode;
-				break;
+			if (curr_list->length == 0) {
+				return ant_mode;
 			}
-			curr_entry = dl_entry_next(curr_entry);
+
+			for(i=0; i < curr_list->length; i++){
+				curr_station_info = (station_info*)(curr_entry->data);
+
+				if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
+					xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
+					curr_station_info->tx.phy.antenna_mode = ant_mode;
+					mode                                   = ant_mode;
+
+				} else if ( aid == curr_station_info->AID ) {
+					xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
+					curr_station_info->tx.phy.antenna_mode = ant_mode;
+					mode                                   = ant_mode;
+					break;
+				}
+				curr_entry = dl_entry_next(curr_entry);
+			}
 		}
 	} else {
 
 		if ( aid != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
 			curr_list  = get_station_info_list();
-			curr_entry = curr_list->first;
 
-			for(i=0; i < curr_list->length; i++){
-				curr_station_info = (station_info*)(curr_entry->data);
-				if ( aid == curr_station_info->AID ) {
-					mode = curr_station_info->tx.phy.antenna_mode;
-					break;
+			if(curr_list != NULL){
+				curr_entry = curr_list->first;
+
+				for(i=0; i < curr_list->length; i++){
+					curr_station_info = (station_info*)(curr_entry->data);
+					if ( aid == curr_station_info->AID ) {
+						mode = curr_station_info->tx.phy.antenna_mode;
+						break;
+					}
+					curr_entry = dl_entry_next(curr_entry);
 				}
-				curr_entry = dl_entry_next(curr_entry);
 			}
 		}
 	}

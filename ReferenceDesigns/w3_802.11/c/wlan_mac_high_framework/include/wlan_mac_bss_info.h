@@ -22,21 +22,22 @@
 
 #define NUM_BASIC_RATES_MAX	10
 typedef struct{
-	u8   bssid[6];
-	u8   chan;
-	u8   flags;
-	u64  timestamp;
-	char ssid[SSID_LEN_MAX + 1];
-	u8 	 state;
-	u16  aid;
-	u8   num_basic_rates;
-	char rx_power;
-	u8   basic_rates[NUM_BASIC_RATES_MAX];
+	u8   	bssid[6];
+	u8   	chan;
+	u8   	flags;
+	u64  	timestamp;
+	char 	ssid[SSID_LEN_MAX + 1];
+	u8   	basic_rates[NUM_BASIC_RATES_MAX];
+	u8 	 	state;
+	u8   	num_basic_rates;
+	u8 	 	padding[3];
+	dl_list associated_stations;
 } bss_info;
 
 #define BSS_STATE_UNAUTHENTICATED	1
 #define BSS_STATE_AUTHENTICATED		2
 #define BSS_STATE_ASSOCIATED		4
+#define BSS_STATE_OWNED				5
 
 #define BSS_FLAGS_IS_PRIVATE    	0x01
 
@@ -49,7 +50,7 @@ void print_bss_info();
 void bss_info_timestamp_check();
 dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid);
 dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid);
-bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan, u8 aid);
+bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
 inline dl_list* wlan_mac_high_get_bss_info_list();
 
 #endif

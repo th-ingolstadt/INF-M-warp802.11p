@@ -2022,6 +2022,9 @@ u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 	mac_header_80211* hdr_80211;
 	llc_header* llc_hdr;
 
+	// TODO: Check the beginning of the LLC header to make sure that we should
+	// actually be treating this as an LTG
+
 	hdr_80211 = (mac_header_80211*)((void*)mpdu);
 
 	if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT){
@@ -2587,7 +2590,11 @@ void wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu) {
 	dl_entry*	           entry;
 	u8 			           pkt_type;
 
-	entry = wlan_mac_high_find_station_info_AID(get_station_info_list(), tx_mpdu->AID);
+	if(get_station_info_list() != NULL){
+		entry = wlan_mac_high_find_station_info_AID(get_station_info_list(), tx_mpdu->AID);
+	} else {
+		entry = NULL;
+	}
 
 	if(entry != NULL){
 		station = (station_info*)(entry->data);

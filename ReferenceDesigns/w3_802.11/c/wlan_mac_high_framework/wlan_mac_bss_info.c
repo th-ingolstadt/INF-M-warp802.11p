@@ -111,12 +111,12 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					//By here, curr_dl_entry should not be NULL. If it is, there is a problem.
 					if(curr_dl_entry == NULL) xil_printf("PROBLEM: curr_dl_entry is NULL\n");
 					curr_bss_info = (bss_info*)(curr_dl_entry->data);
+					dl_list_init(&(curr_bss_info->associated_stations));
 					curr_bss_info->ssid[0] = 0;
 				}
 
 				// Update the AP information
 				curr_bss_info->state		   = bss_state;
-				curr_bss_info->rx_power        = mpdu_info->rx_power;
 				curr_bss_info->num_basic_rates = 0;
 
 				// Copy BSSID into ap_info struct
@@ -223,7 +223,6 @@ void print_bss_info(){
 
 		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", curr_bss_info->bssid[0],curr_bss_info->bssid[1],curr_bss_info->bssid[2],curr_bss_info->bssid[3],curr_bss_info->bssid[4],curr_bss_info->bssid[5]);
 		xil_printf("    Channel:       %d\n",curr_bss_info->chan);
-		xil_printf("    Rx Power:      %d dBm\n",curr_bss_info->rx_power);
 		xil_printf("    Last update:   %d msec ago\n", (u32)((get_usec_timestamp()-curr_bss_info->timestamp)/1000));
 		xil_printf("    Basic Rates:   ");
 
@@ -250,6 +249,12 @@ void bss_info_timestamp_check(){
 		if((get_usec_timestamp() - curr_bss_info->timestamp) > BSS_INFO_TIMEOUT_USEC){
 			if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
 				//We won't remove this BSS info if we are associated with it or if we are trying to associate with it.
+
+				// TODO: There is the possibility of a leak here, if user code doesn't clear the associated_stations
+				// dl_list of station_info structs. Should we loop through each and free using the remove_association
+				// high framework function? That would assume that every entry there was in the heap (from the
+				// add_association function). Maybe bss_info should have a cleanup callback?
+
 				dl_entry_remove(&bss_info_list, curr_dl_entry);
 				bss_info_checkin(curr_dl_entry);
 			}
@@ -313,7 +318,7 @@ dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 	return NULL;
 }
 
-bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan, u8 aid){
+bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 	bss_info* return_value = NULL;
 	dl_entry*			curr_dl_entry;
 	bss_info*			curr_bss_info;
@@ -341,7 +346,6 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan, u8 aid){
 	memcpy(curr_bss_info->bssid,bssid,6);
 	strcpy(curr_bss_info->ssid,ssid);
 	curr_bss_info->chan = chan;
-	curr_bss_info->state = BSS_STATE_ASSOCIATED;
 
 	return_value = curr_bss_info;
 

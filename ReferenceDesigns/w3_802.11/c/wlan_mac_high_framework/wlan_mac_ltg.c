@@ -283,7 +283,7 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 	}
 
 	u64 start_time = ((ltg_sched_state_hdr*)(curr_tg->state))->start_timestamp;
-	xil_printf("LTG Start @ 0x%08x 0x%08x\n", (u32)(start_time >> 32), (u32)start_time );
+	//xil_printf("LTG Start @ 0x%08x 0x%08x\n", (u32)(start_time >> 32), (u32)start_time );
 
 	return 0;
 }
@@ -384,7 +384,7 @@ int ltg_sched_stop_l(dl_entry* curr_tg_dl_entry){
 	if ( ((ltg_sched_state_hdr*)(curr_tg->state))->enabled == 1 ) {
 		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
 		((ltg_sched_state_hdr*)(curr_tg->state))->stop_timestamp = timestamp;
-		xil_printf("LTG Stop  @ 0x%08x 0x%08x\n", (u32)(timestamp >> 32), (u32)timestamp );
+		//xil_printf("LTG Stop  @ 0x%08x 0x%08x\n", (u32)(timestamp >> 32), (u32)timestamp );
 	}
 
 	if(tg_list.length == 0 && schedule_running == 1){
