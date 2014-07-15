@@ -60,19 +60,21 @@ extern u8 pause_queue;
 
 
 // Association Table variables
-extern dl_list		  association_table;
+extern bss_info*	  ap_bss_info;
 extern dl_list 		  statistics_table;
-extern u8			  ap_addr[6];
 
 // AP channel
 extern u32 mac_param_chan;
-extern u32 mac_param_chan_save;
 
 u32 num_slots = SLOT_CONFIG_RAND;
 
 void uart_rx(u8 rxByte){
 
-	station_info* access_point = ((station_info*)(association_table.first));
+	station_info* access_point = NULL;
+
+	if(ap_bss_info != NULL){
+		access_point = ((station_info*)(ap_bss_info->associated_stations.first->data));
+	}
 
 	#define MAX_NUM_CHARS 31
 
@@ -124,7 +126,7 @@ void uart_rx(u8 rxByte){
 						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_6M;
 					}
 
-					if(association_table.length > 0) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
+					if(access_point != NULL) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
 
 
 					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
@@ -136,7 +138,7 @@ void uart_rx(u8 rxByte){
 						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_54M;
 					}
 
-					if(association_table.length > 0) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
+					if(access_point != NULL) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
 
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
 				break;
@@ -190,8 +192,17 @@ void print_menu(){
 void print_station_status(u8 manual_call){
 
 	u64 timestamp;
-	dl_entry* access_point_entry = association_table.first;
-	station_info* access_point = ((station_info*)(access_point_entry->data));
+	dl_entry* access_point_entry = NULL;
+
+	if(ap_bss_info != NULL){
+		access_point_entry = ap_bss_info->associated_stations.first;
+	}
+
+	station_info* access_point = NULL;
+
+	if(ap_bss_info != NULL){
+		access_point = ((station_info*)(access_point_entry->data));
+	}
 	statistics_txrx* curr_statistics;
 
 
@@ -200,7 +211,7 @@ void print_station_status(u8 manual_call){
 		xil_printf("\f");
 		xil_printf("---------------------------------------------------\n");
 
-			if(association_table.length > 0){
+			if(ap_bss_info != NULL){
 				xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", access_point->AID,
 							access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
 

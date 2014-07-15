@@ -185,7 +185,15 @@ void wlan_mac_sta_bss_search_poll(u32 schedule_id){
 	}
 }
 
-void wlan_mac_sta_bss_attempt_poll(u32 schedule_id){
+void wlan_mac_sta_bss_attempt_poll(u32 arg){
+	// Depending on who is calling this function, the argument means different things
+	// When called by the framework, the argument is automatically filled in with the schedule ID
+	// There are two other contexts in which this function is called:
+	//	(1) STA will call this when it receives an authentication packet that elevates the state
+	//		to BSS_AUTHENTICATED. In this context, the argument is meaningless (explicitly 0 valued)
+	//	(2) STA will call this when it receives an association response that elevates the state to
+	//		BSS_ASSOCIATED. In this context, the argument will be the AID provided by the AP sending
+	//		the association response.
 
 	switch(join_state){
 		case JOIN_IDLE:
@@ -203,7 +211,7 @@ void wlan_mac_sta_bss_attempt_poll(u32 schedule_id){
 					wlan_mac_sta_scan_assoc_req_transmit();
 				break;
 				case BSS_STATE_ASSOCIATED:
-					sta_set_association_state(attempt_bss_info);;
+					sta_set_association_state(attempt_bss_info, arg);
 					//Important: return_to_idle will NULL out attempt_bss_info,
 					//so it should not be called before actually setting the
 					//association state

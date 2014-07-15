@@ -72,7 +72,7 @@ const u8 max_num_associations                    = 1;
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP-CRH";
+char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
 //char access_point_ssid[SSID_LEN_MAX + 1] = "";
 
 
@@ -99,8 +99,7 @@ u32                               mac_param_chan;
 bss_info*						  ap_bss_info;
 
 
-// Lists to hold association table and Tx/Rx statistics
-dl_list		                      association_table;
+// List to hold Tx/Rx statistics
 dl_list		                      statistics_table;
 
 
@@ -131,6 +130,8 @@ int main() {
 
 	// Unpause the queue
 	pause_data_queue = 0;
+
+	ap_bss_info = NULL;
 
 	// Print initial message to UART
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
@@ -182,7 +183,6 @@ int main() {
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
 
 	// Initialize the association and statistics tables
-	dl_list_init(&association_table);
 	dl_list_init(&statistics_table);
 
 	// Ask CPU Low for its status
@@ -424,8 +424,8 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 	// Check associations
 	//     Is there an AP to send the packet to?
-	if(association_table.length == 1){
-		ap_station_info = (station_info*)((association_table.first)->data);
+	if(ap_bss_info != NULL){
+		ap_station_info = (station_info*)((ap_bss_info->associated_stations.first)->data);
 
 		// Send the packet to the AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
@@ -508,6 +508,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	dl_entry*			bss_info_entry;
 	bss_info*			curr_bss_info;
 
+
 	// Log the reception
 	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
 
@@ -519,7 +520,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (unicast_to_me || to_multicast)){
 
 		// Update the association information
-		associated_station_entry = wlan_mac_high_find_station_info_ADDR(&association_table, (rx_80211_header->address_2));
+		if(ap_bss_info != NULL){
+			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&(ap_bss_info->associated_stations), (rx_80211_header->address_2));
+		} else {
+			associated_station_entry = NULL;
+		}
 
 		if(associated_station_entry != NULL) {
 			associated_station = (station_info*)(associated_station_entry->data);
@@ -595,7 +600,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						curr_bss_info = (bss_info*)(bss_info_entry->data);
 						if(curr_bss_info->state == BSS_STATE_AUTHENTICATED){
 							curr_bss_info->state = BSS_STATE_ASSOCIATED;
-							curr_bss_info->aid = (((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000;
+							wlan_mac_sta_bss_attempt_poll((((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
 						}
 					}
 				} else {
@@ -629,6 +634,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 										curr_bss_info = (bss_info*)(bss_info_entry->data);
 										if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
 											curr_bss_info->state = BSS_STATE_AUTHENTICATED;
+											wlan_mac_sta_bss_attempt_poll(0);
 										}
 									}
 								}
@@ -652,23 +658,29 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				//   - If we are being de-authenticated, then log and update the association state
 				//   - Start and active scan to find the AP if an SSID is defined
 				//
-				if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&association_table, rx_80211_header->address_2) != NULL)){
+				if(ap_bss_info != NULL){
+					if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&(ap_bss_info->associated_stations), rx_80211_header->address_2) != NULL)){
 
-					// Log the association state change
-					add_station_info_to_log((station_info*)((association_table.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+						// Log the association state change
+						add_station_info_to_log((station_info*)((ap_bss_info->associated_stations.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
-					// Remove the association
-					wlan_mac_high_remove_association(&association_table, &statistics_table, rx_80211_header->address_2);
+						// Remove the association
+						wlan_mac_high_remove_association(&(ap_bss_info->associated_stations), &statistics_table, rx_80211_header->address_2);
 
-					// Purge all packets for the AP
-					purge_queue(UNICAST_QID);
+						// Purge all packets for the AP
+						purge_queue(UNICAST_QID);
 
-					// Update the hex display to show that we are no longer associated
-					sta_write_hex_display(0);
+						// Update the hex display to show that we are no longer associated
+						sta_write_hex_display(0);
 
-					ap_bss_info->state = BSS_STATE_UNAUTHENTICATED;
-					wlan_mac_sta_join(ap_bss_info,0); //Attempt to rejoin the AP
+						ap_bss_info->state = BSS_STATE_UNAUTHENTICATED;
 
+						curr_bss_info = ap_bss_info;
+						ap_bss_info = NULL;
+
+						wlan_mac_sta_join(curr_bss_info,0); //Attempt to rejoin the AP
+
+					}
 				}
 			break;
 
@@ -684,10 +696,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				#define PHY_T_OFFSET 25
 
 			    // Update the timestamp from the beacon / probe response if allowed
-				if(association_table.length == 1 && allow_beacon_ts_update == 1){
+				if(ap_bss_info != NULL && allow_beacon_ts_update == 1){
 
 					// If this packet was from our AP
-					if( wlan_addr_eq( ((station_info*)((association_table.first)->data))->addr  , rx_80211_header->address_3)){
+					if( wlan_addr_eq( ((station_info*)(((ap_bss_info->associated_stations).first)->data))->addr, rx_80211_header->address_3)){
 
 						// Move the packet pointer to after the header
 						mpdu_ptr_u8 += sizeof(mac_header_80211);
@@ -774,9 +786,9 @@ void ltg_event(u32 id, void* callback_arg){
 			addr_da = 0;
 		break;
 	}
-	if((association_table.length > 0)){
 
-		ap_station_info = (station_info*)((association_table.first)->data);
+	if((ap_bss_info != NULL)){
+		ap_station_info = (station_info*)((ap_bss_info->associated_stations.first)->data);
 
 		// Send a Data packet to AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
@@ -842,7 +854,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 		case PKT_TYPE_DATA_ENCAP_ETH:
 			// Overwrite addr1 of this packet with the currently associated AP. This will allow previously
 			// enqueued packets to seemlessly hand off if this STA joins a new AP
-			if(association_table.length == 1){
+			if(ap_bss_info != NULL){
 				memcpy(header->address_1, ap_bss_info->bssid, 6);
 			} else {
 				xil_printf("Dequeue error: no associated AP\n");
@@ -859,7 +871,13 @@ void mpdu_dequeue(tx_queue_element* packet){
  * @param  None
  * @return None
  */
-dl_list * get_station_info_list(){ return &association_table;  }
+dl_list * get_station_info_list(){
+	if(ap_bss_info != NULL){
+		return &(ap_bss_info->associated_stations);
+	} else {
+		return NULL;
+	}
+}
 dl_list * get_statistics()       { return &statistics_table;   }
 
 
@@ -884,13 +902,13 @@ int  sta_disassociate( void ) {
 	dl_entry*	        associated_station_entry;
 
 	// If the STA is currently associated, remove the association; otherwise do nothing
-	if(association_table.length > 0){
+	if(ap_bss_info != NULL){
 
 		ap_bss_info->state = BSS_STATE_UNAUTHENTICATED; //Drop all the way back in unauthenticated
 
 		// Get the currently associated station
 		//   NOTE:  This assumes that there is only one associated station
-		associated_station_entry = association_table.first;
+		associated_station_entry = ap_bss_info->associated_stations.first;
 		associated_station       = (station_info*)associated_station_entry->data;
 
 #if _DEBUG_
@@ -900,7 +918,7 @@ int  sta_disassociate( void ) {
 #endif
 
 		// Log association change
-		add_station_info_to_log((station_info*)((association_table.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+		add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
 		//
 		// TODO:  Send Disassociation Message
@@ -908,23 +926,26 @@ int  sta_disassociate( void ) {
 		//
 
 		// Remove current association
-		status = wlan_mac_high_remove_association(&association_table, &statistics_table, associated_station->addr);
+		status = wlan_mac_high_remove_association(&(ap_bss_info->associated_stations), &statistics_table, associated_station->addr);
+
+		ap_bss_info = NULL;
 
 	}
 
 	// Update the HEX display
-	sta_write_hex_display(association_table.length);
+	sta_write_hex_display(0);
 
 	return status;
 }
 
 
-int  sta_set_association_state( bss_info* new_bss_info ) {
+int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
     int                 status = -1;
 	station_info*       associated_station = NULL;
 
 	xil_printf("Setting New Association State:\n");
 	xil_printf("SSID:  %s\n", new_bss_info->ssid);
+	xil_printf("AID:   %d\n", aid);
 	xil_printf("BSSID: %02x-%02x-%02x-%02x-%02x-%02x\n", new_bss_info->bssid[0],new_bss_info->bssid[1],new_bss_info->bssid[2],new_bss_info->bssid[3],new_bss_info->bssid[4],new_bss_info->bssid[5]);
 	xil_printf("State: %d\n", new_bss_info->state);
 
@@ -939,7 +960,7 @@ int  sta_set_association_state( bss_info* new_bss_info ) {
 
 	if ( new_bss_info->state == BSS_STATE_ASSOCIATED ) {
 		// Add the new association
-		associated_station = wlan_mac_high_add_association(&association_table, &statistics_table, ap_bss_info->bssid, ap_bss_info->aid);
+		associated_station = wlan_mac_high_add_association(&(ap_bss_info->associated_stations), &statistics_table, ap_bss_info->bssid, aid);
 
 		if ( associated_station != NULL ) {
 
@@ -999,7 +1020,6 @@ void sta_write_hex_display(u8 val){
 		userio_write_hexdisp_right(USERIO_BASEADDR, ((val%10) | right_dp));
 	}
 }
-
 
 
 

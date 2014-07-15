@@ -208,9 +208,10 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 			// Add the new association
 			//TODO: The associate command needs to specify a channel
-			bss_info* bss_temp = wlan_mac_high_create_bss_info(mac_addr, "Manual WARPnet Association", 6, aid);
+			bss_info* bss_temp = wlan_mac_high_create_bss_info(mac_addr, "Manual WARPnet Association", 6);
+			bss_temp->state = BSS_STATE_ASSOCIATED;
 			if(bss_temp != NULL){
-				status = sta_set_association_state(bss_temp);
+				status = sta_set_association_state(bss_temp, aid);
 			} else {
 				status = -1;
 			}
