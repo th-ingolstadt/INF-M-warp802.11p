@@ -206,9 +206,9 @@ void print_station_status(u8 manual_call){
 
 				curr_statistics = access_point->stats;
 
-				xil_printf("     - Last heard from    %d ms ago\n",((u32)(timestamp - (access_point->rx.last_timestamp)))/1000);
-				xil_printf("     - Last Rx Power:     %d dBm\n",access_point->rx.last_power);
-				xil_printf("     - # of queued MPDUs: %d\n", queue_num_queued(UNICAST_QID));
+				xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (access_point->rx.last_timestamp)))/1000);
+				xil_printf("     - Last Rx Power:          %d dBm\n",access_point->rx.last_power);
+				xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(UNICAST_QID));
 				xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_statistics->data.tx_num_packets_total, curr_statistics->data.tx_num_packets_success);
 				xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_statistics->data.tx_num_bytes_total), (u32)(curr_statistics->data.tx_num_bytes_success));
 				xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_statistics->data.tx_num_packets_low);
@@ -246,8 +246,8 @@ void print_all_observed_statistics(){
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
-		xil_printf("     - Last timestamp: %d usec\n", (u32)curr_statistics->last_rx_timestamp);
-		xil_printf("     - Associated?       %d\n", curr_statistics->is_associated);
+		xil_printf("     - Last timestamp:         %d usec\n", (u32)curr_statistics->last_rx_timestamp);
+		xil_printf("     - Associated?             %d\n", curr_statistics->is_associated);
 		xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_statistics->data.tx_num_packets_total, curr_statistics->data.tx_num_packets_success);
 		xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_statistics->data.tx_num_bytes_total), (u32)(curr_statistics->data.tx_num_bytes_success));
 		xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_statistics->data.tx_num_packets_low);
