@@ -37,6 +37,7 @@
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_bss_info.h"
 
 
 #ifndef WLAN_USE_UART_MENU
@@ -51,10 +52,10 @@ extern tx_params default_unicast_data_tx_params;
 
 extern u32 mac_param_chan;
 
-extern dl_list association_table;
+extern bss_info* ap_bss_info;
 extern dl_list statistics_table;
 
-extern char* access_point_ssid;
+
 static u32 cpu_high_status;
 static u32 schedule_ID;
 static u8 print_scheduled = 0;
@@ -166,8 +167,8 @@ void uart_rx(u8 rxByte){
 						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_6M;
 					}
 
-					curr_station_info_entry = association_table.first;
-					for(i=0; i < association_table.length; i++){
+					curr_station_info_entry = ap_bss_info->associated_stations.first;
+					for(i=0; i < ap_bss_info->associated_stations.length; i++){
 						curr_station_info = (station_info*)(curr_station_info_entry->data);
 						curr_station_info->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
 						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -182,8 +183,8 @@ void uart_rx(u8 rxByte){
 						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_54M;
 					}
 
-					curr_station_info_entry = association_table.first;
-					for(i=0; i < association_table.length; i++){
+					curr_station_info_entry = ap_bss_info->associated_stations.first;
+					for(i=0; i < ap_bss_info->associated_stations.length; i++){
 						curr_station_info = (station_info*)(curr_station_info_entry->data);
 						curr_station_info->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
 						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -271,9 +272,8 @@ void uart_rx(u8 rxByte){
 					curr_char = 0;
 					uart_mode = UART_MODE_MAIN;
 
-					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, strlen(text_entry)+1);
-					strcpy(access_point_ssid,text_entry);
-					xil_printf("\nSetting new SSID: %s\n", access_point_ssid);
+					strcpy(ap_bss_info->ssid,text_entry);
+					xil_printf("\nSetting new SSID: %s\n", ap_bss_info->ssid);
 
 				break;
 				case ASCII_DEL:
@@ -301,7 +301,7 @@ void uart_rx(u8 rxByte){
 
 void print_ssid_menu(){
 	xil_printf("\f");
-	xil_printf("Current SSID: %s\n", access_point_ssid);
+	xil_printf("Current SSID: %s\n", ap_bss_info->ssid);
 	xil_printf("To change the current SSID, please type a new string and press enter\n");
 	xil_printf(": ");
 }
@@ -314,8 +314,8 @@ void print_queue_status(){
 	xil_printf("\nQueue Status:\n");
 	xil_printf(" FREE || MCAST|");
 
-	curr_entry = association_table.first;
-	for(i=0; i < association_table.length; i++){
+	curr_entry = ap_bss_info->associated_stations.first;
+	for(i=0; i < ap_bss_info->associated_stations.length; i++){
 		curr_station_info = (station_info*)(curr_entry->data);
 		xil_printf("%6d|", curr_station_info->AID);
 		curr_entry = dl_entry_next(curr_entry);
@@ -324,8 +324,8 @@ void print_queue_status(){
 
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
 
-	curr_entry = association_table.first;
-	for(i=0; i < association_table.length; i++){
+	curr_entry = ap_bss_info->associated_stations.first;
+	for(i=0; i < ap_bss_info->associated_stations.length; i++){
 		curr_station_info = (station_info*)(curr_entry->data);
 		xil_printf("%6d|", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
 		curr_entry = dl_entry_next(curr_entry);
@@ -370,10 +370,10 @@ void print_station_status(){
 		xil_printf("\f");
 		//xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
 
-		curr_entry = association_table.first;
+		curr_entry = ap_bss_info->associated_stations.first;
 
 
-		for(i=0; i < association_table.length; i++){
+		for(i=0; i < ap_bss_info->associated_stations.length; i++){
 			curr_station_info = (station_info*)(curr_entry->data);
 			xil_printf("---------------------------------------------------\n");
 			if(curr_station_info->hostname[0] != 0){

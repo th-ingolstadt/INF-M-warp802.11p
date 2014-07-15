@@ -49,6 +49,7 @@
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_ap.h"
+#include "wlan_mac_bss_info.h"
 
 
 
@@ -57,13 +58,11 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern dl_list		association_table;
+
 extern dl_list      statistics_table;
 extern tx_params    default_unicast_data_tx_params;
-
-extern char       * access_point_ssid;
-
 extern u32          mac_param_chan;
+extern bss_info*	ap_bss_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -233,7 +232,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
             // Set default value for the flags
             flags             = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 
-			if( association_table.length < MAX_NUM_ASSOC ) {
+			if( ap_bss_info->associated_stations.length < MAX_NUM_ASSOC ) {
 
 				// Get MAC Address
 				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2], &mac_addr[0]);
@@ -257,7 +256,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 				wlan_mac_high_interrupt_stop();
 
 				// Add association
-				curr_station_info = wlan_mac_high_add_association(&association_table, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
+				curr_station_info = wlan_mac_high_add_association(&ap_bss_info->associated_stations, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
 
 				// Set the flags
 				curr_station_info->flags = flags;
@@ -273,7 +272,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 					memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params));
 
 					// Update the hex display
-					ap_write_hex_display(association_table.length);
+					ap_write_hex_display(ap_bss_info->associated_stations.length);
 
 					xil_printf("Associated with node");
 				} else {
@@ -429,21 +428,11 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 					// Deauthenticate all stations since we are changing the SSID
 					deauthenticate_stations();
-
-					// Re-allocate memory for the new SSID and copy the characters of the new SSID
-					access_point_ssid = wlan_mac_high_realloc(access_point_ssid, (temp + 1));
-
-					if (access_point_ssid != NULL) {
-						strcpy(access_point_ssid, ssid);
-						xil_printf("Set SSID - AP:  %s\n", access_point_ssid);
-					} else {
-						xil_printf("Failed to reallocate memory for SSID: %d bytes.  Please reset the AP.\n", (temp + 1));
-						status = CMD_PARAM_ERROR;
-					}
+					strcpy(ap_bss_info->ssid, ssid);
 			    break;
 
 				case CMD_PARAM_READ_VAL:
-					xil_printf("Get SSID - AP - %s\n", access_point_ssid);
+					xil_printf("Get SSID - AP - %s\n", ap_bss_info->ssid);
 				break;
 
 				default:
@@ -456,12 +445,12 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
             respArgs32[respIndex++] = Xil_Htonl( status );
 
             // Return the size and current SSID
-			if (access_point_ssid != NULL) {
-				temp = strlen(access_point_ssid);
+			if (ap_bss_info->ssid != NULL) {
+				temp = strlen(ap_bss_info->ssid);
 
 				respArgs32[respIndex++] = Xil_Htonl( temp );
 
-				strcpy( (char *)&respArgs32[respIndex], access_point_ssid );
+				strcpy( (char *)&respArgs32[respIndex], ap_bss_info->ssid );
 
 				respIndex       += ( temp / sizeof(respArgs32) ) + 1;
 			} else {
