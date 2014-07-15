@@ -45,17 +45,47 @@ XTmrCtr TimerCounter; /* The instance of the Tmrctr Device */
 int w3_node_init() {
 
 	int status;
+	u8 CMswitch;
+
 	XTmrCtr *TmrCtrInstancePtr = &TimerCounter;
 	int ret = XST_SUCCESS;
 
 	microblaze_enable_exceptions();
 
 	//Initialize the AD9512 clock buffers (RF reference and sampling clocks)
+	CMswitch = clk_config_read_clkmod_status(CLK_BASEADDR);
 	status = clk_init(CLK_BASEADDR, 2);
 
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in clk_init (%d)\n", status);
 		ret = XST_FAILURE;
+	}
+
+	//Configure this node's clock inputs and outputs, based on the state of the CM-MMCX switch
+	// If no CM-MMCX is present, CMswitch will read as 0x3 (on-board clock sources, off-board outputs disabled)
+	switch(CMswitch){
+				  // RF 		|	 Sample			|	Outputs
+		case 0x0: // Off-Board	| 	 Off-Board		|	Off
+			clk_config_outputs(CLK_BASEADDR, CLK_OUTPUT_OFF, (CLK_SAMP_OUTSEL_CLKMODHDR | CLK_RFREF_OUTSEL_CLKMODHDR));
+			clk_config_input_rf_ref(CLK_BASEADDR, CLK_INSEL_CLKMOD);
+			xil_printf("\nClock config %d:\n  RF: Off-board\n  Samp: Off-board\n  Off-board Outputs: Disabled\n\n", CMswitch);
+		break;
+		case 0x1: // Off-Board	| 	 On-Board		|	Off
+			clk_config_outputs(CLK_BASEADDR, CLK_OUTPUT_OFF, (CLK_SAMP_OUTSEL_CLKMODHDR | CLK_RFREF_OUTSEL_CLKMODHDR));
+			clk_config_input_rf_ref(CLK_BASEADDR, CLK_INSEL_CLKMOD);
+			xil_printf("\nClock config %d:\n  RF: Off-board\n  Samp: On-board\n  Off-board Outputs: Disabled\n\n", CMswitch);
+		break;
+		case 0x2: // On-Board	| 	 On-Board		|	On
+			clk_config_outputs(CLK_BASEADDR, CLK_OUTPUT_ON, (CLK_SAMP_OUTSEL_CLKMODHDR | CLK_RFREF_OUTSEL_CLKMODHDR));
+			clk_config_dividers(CLK_BASEADDR, 1, CLK_SAMP_OUTSEL_CLKMODHDR | CLK_RFREF_OUTSEL_CLKMODHDR);
+			clk_config_input_rf_ref(CLK_BASEADDR, CLK_INSEL_ONBOARD);
+			xil_printf("\nClock config %d:\n  RF: On-board\n  Samp: On-board\n  Off-board Outputs: Enabled\n\n", CMswitch);
+		break;
+		case 0x3: // On-Board	| 	 On-Board		|	Off
+			clk_config_outputs(CLK_BASEADDR, CLK_OUTPUT_OFF, (CLK_SAMP_OUTSEL_CLKMODHDR | CLK_RFREF_OUTSEL_CLKMODHDR));
+			clk_config_input_rf_ref(CLK_BASEADDR, CLK_INSEL_ONBOARD);
+			//xil_printf("\nClock config %d:\n  RF: On-board\n  Samp: On-board\n  Off-board Outputs: Disabled\n\n", CMswitch);
+		break;
 	}
 
 #ifdef WLAN_4RF_EN
