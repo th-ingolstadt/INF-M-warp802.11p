@@ -20,7 +20,7 @@ Ver   Who  Date     Changes
 This module provides class definitions to manage the WARPNet configuration.
 
 Functions (see below for more information):
-    WlanExpHostConfiguration()  -- Specifies Host information for setup
+    WlanExpNetworkConfiguration()  -- Specifies Network information for setup
     WlanExpNodesConfiguration() -- Specifies Node information for setup
 
 """
@@ -28,22 +28,22 @@ Functions (see below for more information):
 import wlan_exp.warpnet.config as wn_config
 
 
-__all__ = ['WlanExpHostConfiguration', 'WlanExpNodesConfiguration']
+__all__ = ['WlanExpNetworkConfiguration', 'WlanExpNodesConfiguration']
 
 
 
-class WlanExpHostConfiguration(wn_config.HostConfiguration):
+class WlanExpNetworkConfiguration(wn_config.NetworkConfiguration):
     """Class for WLAN Exp Host configuration.
 
     This class is a child of the WARPNet host configuration.
     """
-    def __init__(self, host_interfaces=None, host_id=None, unicast_port=None,
+    def __init__(self, network=None, host_id=None, unicast_port=None,
                  bcast_port=None, tx_buffer_size=None, rx_buffer_size=None,
                  transport_type=None, jumbo_frame_support=None):
         """Initialize a WlanExpHostConfiguration
         
         Attributes:
-            host_interfaces     -- List of host interfaces
+            network             -- Network interface
             host_id             -- Host ID
             unicast_port        -- Host port for unicast traffic
             bcast_port          -- Host port for broadcast traffic
@@ -53,14 +53,14 @@ class WlanExpHostConfiguration(wn_config.HostConfiguration):
             jumbo_frame_support -- Host support for Jumbo Ethernet frames
         
         """
-        super(WlanExpHostConfiguration, self).__init__(host_interfaces=host_interfaces, 
-                                                       host_id=host_id, 
-                                                       unicast_port=unicast_port,
-                                                       bcast_port=bcast_port, 
-                                                       tx_buffer_size=tx_buffer_size, 
-                                                       rx_buffer_size=rx_buffer_size,
-                                                       transport_type=transport_type, 
-                                                       jumbo_frame_support=jumbo_frame_support)
+        super(WlanExpNetworkConfiguration, self).__init__(network=network, 
+                                                          host_id=host_id, 
+                                                          unicast_port=unicast_port,
+                                                          bcast_port=bcast_port, 
+                                                          tx_buffer_size=tx_buffer_size, 
+                                                          rx_buffer_size=rx_buffer_size,
+                                                          transport_type=transport_type, 
+                                                          jumbo_frame_support=jumbo_frame_support)
 
 # End Class
 
@@ -71,17 +71,17 @@ class WlanExpNodesConfiguration(wn_config.NodesConfiguration):
     
     This class is a child of the WARPNet Node configuration.
     """
-    def __init__(self, ini_file=None, serial_numbers=None, host_config=None):
+    def __init__(self, ini_file=None, serial_numbers=None, network_config=None):
         """Initialize a WlanExpNodesConfiguration
         
         Attributes:
             ini_file       -- An INI file name that specified a nodes configuration
             serial_numbers -- A list of serial numbers of WARPv3 nodes
-            host_config    -- A WnHostConfiguration
+            network_config -- A NetworkConfiguration
         """
         super(WlanExpNodesConfiguration, self).__init__(ini_file=ini_file,
                                                         serial_numbers=serial_numbers,
-                                                        host_config=host_config)
+                                                        network_config=network_config)
 
 
 # End Class

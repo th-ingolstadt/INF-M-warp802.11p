@@ -35,8 +35,8 @@ __all__ = ['WlanExpNodeAp']
 class WlanExpNodeAp(node.WlanExpNode):
     """802.11 Access Point (AP) for WLAN Experiment node."""
     
-    def __init__(self, host_config=None):
-        super(WlanExpNodeAp, self).__init__(host_config)        
+    def __init__(self, network_config=None):
+        super(WlanExpNodeAp, self).__init__(network_config)
 
         # Set the correct WARPNet node type
         self.node_type = self.node_type + defaults.WLAN_EXP_HIGH_AP

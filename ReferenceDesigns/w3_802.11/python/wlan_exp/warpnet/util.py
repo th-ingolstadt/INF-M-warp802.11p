@@ -31,8 +31,6 @@ import sys
 import re
 
 from . import exception as wn_ex
-from . import version
-
 
 __all__ = ['wn_init_nodes', 'wn_identify_all_nodes', 'wn_reset_network_inf_all_nodes', 
            'wn_get_serial_number']
@@ -46,27 +44,26 @@ if sys.version[0]=="3": raw_input=input
 # WARPNet Node Utilities
 #-----------------------------------------------------------------------------
 
-def wn_init_nodes(nodes_config, host_config=None, node_factory=None, 
+def wn_init_nodes(nodes_config, network_config=None, node_factory=None, 
                   output=False):
     """Initalize WARPNet nodes.
 
     Attributes:    
-        nodes_config -- A WnNodesConfiguration object describing the nodes
-        host_config  -- A WnConfiguration object describing the host configuration
-        node_factory -- A WnNodeFactory or subclass to create nodes of a 
-                        given WARPNet type
-        output -- Print output about the WARPNet nodes
+        nodes_config   -- A NodesConfiguration object describing the nodes
+        network_config -- A NetworkConfiguration object describing the network configuration
+        node_factory   -- A NodeFactory or subclass to create nodes of a given WARPNet type
+        output         -- Print output about the WARPNet nodes
     """
     nodes       = []
     error_nodes = []
 
-    # Create a Host Configuration if there is none provided
-    if host_config is None:
+    # Create a Network Configuration if there is none provided
+    if network_config is None:
         from . import config as wn_config
-        host_config = wn_config.HostConfiguration()
+        network_config = wn_config.NetworkConfiguration()
 
-    host_id = host_config.get_param('network', 'host_id')
-    jumbo_frame_support = host_config.get_param('network', 'jumbo_frame_support')
+    host_id             = network_config.get_param('host_id')
+    jumbo_frame_support = network_config.get_param('jumbo_frame_support')
     
     # Process the config to create nodes
     nodes_dict = nodes_config.get_nodes_dict()
@@ -74,11 +71,11 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
     # If node_factory is not defined, create a default WnNodeFactory
     if node_factory is None:
         from . import node as wn_node
-        node_factory = wn_node.WnNodeFactory(host_config)
+        node_factory = wn_node.WnNodeFactory(network_config)
 
     # Send a broadcast network reset command to make sure all nodes are
     # in their default state.
-    wn_reset_network_inf_all_nodes(host_config=host_config)
+    wn_reset_network_inf_all_nodes(network_config=network_config)
 
     # Create the nodes in the dictionary
     for node_dict in nodes_dict:
@@ -91,7 +88,7 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
 
         # Create the correct type of node; will return None and print a 
         #   warning if the node is not recognized
-        node = node_factory.create_node(host_config)
+        node = node_factory.create_node(network_config)
 
         if not node is None:
             node.configure_node(jumbo_frame_support)
@@ -121,39 +118,34 @@ def wn_init_nodes(nodes_config, host_config=None, node_factory=None,
 # End of wn_init_nodes()
 
 
-def wn_identify_all_nodes(host_interfaces):
+def wn_identify_all_nodes(network_config):
     """Issues a broadcast WARPNet command: Identify.
+
+    Attributes:
+      network_config  - One or more Network configurations
 
     All nodes should blink their Red LEDs for 10 seconds.    
     """
     import time
     from . import cmds as wn_cmds
-    from . import config as wn_config
     from . import transport_eth_udp_py_bcast as tp_bcast
 
-    if type(host_interfaces) is str:
-        my_host_interfaces = [host_interfaces]
-    elif type(host_interfaces) is list:
-        my_host_interfaces = host_interfaces
+    if type(network_config) is list:
+        my_network_config = network_config
     else:
-        msg  = "Unknown host interface type: {0}\n".format(type(host_interfaces))
-        msg += "    Should be either a list or a string.\n"
-        raise TypeError(msg)
+        my_network_config = [network_config]
+
+    for network in my_network_config:
+
+        network_addr = network.get_param('network')
+        tx_buf_size  = network.get_param('tx_buffer_size')
+        rx_buf_size  = network.get_param('rx_buffer_size')
     
-    host_config = wn_config.HostConfiguration(host_interfaces=my_host_interfaces)
-    tx_buf_size = host_config.get_param('network', 'tx_buffer_size')
-    rx_buf_size = host_config.get_param('network', 'rx_buffer_size')
-
-    for ip_address in my_host_interfaces:
-
-        host_ip_subnet = _get_ip_address_subnet(ip_address)
-
-        msg  = "Identifying all nodes on subnet {0}.  ".format(host_ip_subnet)
+        msg  = "Identifying all nodes on network {0}.  ".format(network_addr)
         msg += "Please check the LEDs."
         print(msg)
 
-        transport = tp_bcast.TransportEthUdpPyBcast(host_config=host_config,
-                                                    host_ip=ip_address)
+        transport = tp_bcast.TransportEthUdpPyBcast(network_config=network)
 
         transport.wn_open(tx_buf_size, rx_buf_size)
 
@@ -170,54 +162,33 @@ def wn_identify_all_nodes(host_interfaces):
 # End of wn_identify_all_nodes()
 
 
-def wn_reset_network_inf_all_nodes(host_config=None, host_interfaces=None):
+def wn_reset_network_inf_all_nodes(network_config):
     """Issues a broadcast WARPNet command: NodeResetNetwork.
 
     Attributes:
-      host_config     - Host configuration (optional but takes precedence)
-                        If host_config is present, host_interfaces is ignored.
-      host_interfaces - Host interfaces (optional list of IP addresses)
-                        Will use the default host_config.
+      network_config  - One or more Network configurations
 
     This will issue a broadcast network interface reset for all nodes on 
-    each of the host_interfaces.
+    each of the networks.
     """
     from . import cmds as wn_cmds
-    from . import config as wn_config
     from . import transport_eth_udp_py_bcast as tp_bcast
 
-    if not host_config is None:
-        my_host_interfaces = host_config.get_param('network', 'host_interfaces')
+    if type(network_config) is list:
+        my_network_config = network_config
     else:
-        if not host_interfaces is None:
-            if type(host_interfaces) is str:
-                my_host_interfaces = [host_interfaces]
-            elif type(host_interfaces) is list:
-                my_host_interfaces = host_interfaces
-            else:
-                msg  = "Unknown host interface type: {0}\n".format(type(host_interfaces))
-                msg += "    Should be either a list or a string.\n"
-                raise TypeError(msg)
-            
-            host_config = wn_config.HostConfiguration(host_interfaces=my_host_interfaces)
-        else:
-            msg  = "Need to provide either host configuration or a list of "
-            msg += "host interfaces.\n"
-            raise AttributeError(msg)
+        my_network_config = [network_config]
 
-    tx_buf_size  = host_config.get_param('network', 'tx_buffer_size')
-    rx_buf_size  = host_config.get_param('network', 'rx_buffer_size')
+    for network in my_network_config:
+
+        network_addr = network.get_param('network')
+        tx_buf_size  = network.get_param('tx_buffer_size')
+        rx_buf_size  = network.get_param('rx_buffer_size')
     
-    for ip_address in my_host_interfaces:
-
-        host_ip_subnet = _get_ip_address_subnet(ip_address)
-
-        msg  = "Resetting the network config for all nodes on subnet "
-        msg += "{0}.".format(host_ip_subnet)
+        msg  = "Resetting the network config for all nodes on network {0}.".format(network_addr)
         print(msg)
     
-        transport = tp_bcast.TransportEthUdpPyBcast(host_config=host_config,
-                                                    host_ip=ip_address)
+        transport = tp_bcast.TransportEthUdpPyBcast(network_config=network)
 
         transport.wn_open(tx_buf_size, rx_buf_size)
 
@@ -301,195 +272,6 @@ def wn_get_serial_number(serial_number, output=True):
 #-----------------------------------------------------------------------------
 # WARPNet Setup Utilities
 #-----------------------------------------------------------------------------
-def wn_setup():
-    """Setup the WARPNet Host Configuration from user input.
-    
-    NOTE:      
-    """
-    from . import config as wn_config
-    config = wn_config.HostConfiguration()
-
-    print("-" * 70)
-    print("WARPNet Host Configuration Setup:")
-    print("-" * 70)
-
-    #-------------------------------------------------------------------------
-    # Configure Host Interfaces
-
-    my_interfaces = config.get_param('network', 'host_interfaces')
-    print("-" * 50)
-    print("Please enter a list of WARPNet host interface addresses.")
-    print("    Pressing Enter without typing an input will use the default: ")
-    for idx, interface in enumerate(my_interfaces):
-        print("        Interface {0} = {1} \n".format(idx, interface))
-
-    temp_interfaces = []
-    my_interfaces_valid = False
-
-    while not my_interfaces_valid:
-        temp = raw_input("WARPNet Ethernet Inteface Addresses (Enter to end): ")
-        if not temp is '':
-            if (_check_ip_address_format(temp)):                
-                print("    Adding IP address: {0}".format(temp))
-                temp_interfaces.append(temp)
-            else:
-                print("    Please enter a valid IP address.")
-        else:
-            my_interfaces_valid = True
-
-    if (len(temp_interfaces) > 0):
-        config.set_param('network', 'host_interfaces', temp_interfaces)
-        my_interfaces = temp_interfaces
-        
-    print("    Setting host interfaces to: ")
-    for idx, interface in enumerate(my_interfaces):
-        print("        Interface {0} = {1} \n".format(idx, interface))
-
-    for interface in my_interfaces:
-        _check_host_interface(interface)
-
-    #-------------------------------------------------------------------------
-    # Configure Host ID
-
-    my_id = config.get_param('network', 'host_id')
-    print("-" * 50)
-    print("Please enter a WARPNet Host ID.")
-    print("    Valid Host IDs are integers in the range of [200,254].")
-    print("    Pressing Enter without typing an input will use a default")
-    print("      Host ID of {0}\n".format(my_id))
-
-    my_id_valid = False
-
-    while not my_id_valid:
-        temp = raw_input("WARPNet Host ID: ")
-        if not temp is '':
-            temp = int(temp)
-            if (_check_host_id(temp)):
-                print("    Setting Host ID to {0}".format(temp))
-                config.set_param('network', 'host_id', temp)
-                my_id_valid = True
-        else:
-            print("    Setting Host ID to {0}".format(my_id))
-            my_id_valid = True
-
-    #-------------------------------------------------------------------------
-    # Configure Unicast Port
-
-    my_port = config.get_param('network', 'unicast_port')
-    print("-" * 50)
-    print("Please enter a unicast port.")
-    print("    Pressing Enter without typing an input will use a default")
-    print("      unicast port of {0}\n".format(my_port))
-
-    temp = raw_input("WARPNet unicast port: ")
-    if not temp is '':
-        print("    Setting unicast port to {0}".format(temp))
-        config.set_param('network', 'unicast_port', temp)
-    else:
-        print("    Setting unicast port to {0}".format(my_port))
-
-    #-------------------------------------------------------------------------
-    # Configure Broadcast Port
-
-    my_port = config.get_param('network', 'bcast_port')
-    print("-" * 50)
-    print("Please enter a broadcast port.")
-    print("    Pressing Enter without typing an input will use a default")
-    print("      broadcast port of {0}\n".format(my_port))
-
-    temp = raw_input("WARPNet broadcast port: ")
-    if not temp is '':
-        print("    Setting broadcast port to {0}".format(temp))
-        config.set_param('network', 'bcast_port', temp)
-    else:
-        print("    Setting broadcast port to {0}".format(my_port))
-
-    #-------------------------------------------------------------------------
-    # Configure Buffer Sizes
-
-    my_tx_buf_size = config.get_param('network', 'tx_buffer_size')
-    my_rx_buf_size = config.get_param('network', 'rx_buffer_size')
-
-    # Check value in the config to make sure that is a valid size
-    (tx_buf_size, rx_buf_size) = _get_os_socket_buffer_size(my_tx_buf_size, my_rx_buf_size)
-
-    print("-" * 50)
-    print("Set Default Transport buffer sizes:")
-    print("    Send    = {0} bytes".format(tx_buf_size))
-    print("    Receive = {0} bytes".format(rx_buf_size))
-    print("Pressing enter will use defaults.\n")
-    
-    temp = raw_input("WARPNet send buffer size: ")
-    if temp is '':
-        temp = tx_buf_size
-        
-    print("    Setting send buffer size to {0}".format(temp))
-    config.set_param('network', 'tx_buffer_size', temp)
-    
-    temp = raw_input("WARPNet receive buffer size: ")
-    if temp is '':
-        temp = rx_buf_size
-        
-    print("    Setting receive buffer size to {0}".format(temp))
-    config.set_param('network', 'rx_buffer_size', temp)
-
-    #-------------------------------------------------------------------------
-    # Configure Transport 
-
-    my_transport_type = config.get_param('network', 'transport_type')
-    print("-" * 50)
-    print("Currently the only transport supported by the Python WARPNet")
-    print("    framework is '{0}'\n".format(my_transport_type))
-
-    #-------------------------------------------------------------------------
-    # Configure Transport Jumbo Frame Support
-
-    my_jumbo_frame_support = config.get_param('network', 'jumbo_frame_support')
-    print("-" * 50)
-    print("Enable jumbo frame support? (experimental)")
-    if my_jumbo_frame_support:
-        print("    [1] false ")
-        print("    [2] true  (default)\n")
-    else:
-        print("    [1] false (default)")
-        print("    [2] true \n")
-    
-    my_jumbo_frame_support_valid = False
-
-    while not my_jumbo_frame_support_valid:
-        temp = raw_input("Selection: ")
-        if not temp is '':
-            if (int(temp) != 1) or (int(temp) != 2):
-                if (int(temp) == 1):
-                    print("    Setting jumbo frame support to false")
-                    config.set_param('network', 'jumbo_frame_support', False)
-                else:
-                    print("    Setting jumbo frame support to true")
-                    config.set_param('network', 'jumbo_frame_support', True)
-                my_jumbo_frame_support_valid = True
-            else:
-                print("    '{0}' is not a valid selection.".format(temp))
-                print("    Please select [1] or [2].")
-        else:
-            if my_jumbo_frame_support:
-                print("    Setting jumbo frame support to true.")
-            else:
-                print("    Setting jumbo frame support to false.")
-            my_jumbo_frame_support_valid = True
-
-    #-------------------------------------------------------------------------
-    # Finish WARPNet INI file
-
-    print("-" * 70)
-    print("WARPNet v {0} Configuration Complete.".format(version.wn_ver_str()))
-    print("-" * 70)
-    print("\n")
-    
-    return config
-
-# End of wn_setup()
-
-
 def wn_nodes_setup(ini_file=None):
     """Create / Modify WARPNet Nodes ini file from user input."""    
     nodes_config = None
@@ -713,41 +495,83 @@ def _get_confirmation_from_user(message):
 # End of _get_confirmation_from_user()
 
 
-def _check_host_interface(host_interface, bcast_port):
-    """Check that this is a valid IP address."""
+def _get_all_host_ip_addrs():
+    """Get all host interface IP addresses."""
     import socket
 
-    # Get the first three octets of the host_interface address
-    host_ip_subnet = _get_ip_address_subnet(host_interface)
-    test_ip_addr   = host_ip_subnet + ".255"
+    addrs = []
+
+    # Get all the host address information
+    addr_info = socket.getaddrinfo(socket.gethostname(), None)
+
+    # For addresses that are IPv6 and support SOCK_DGRAM or everything
+    #   we need to add them to the list of host IP addresses
+    for info in addr_info:
+        if (info[0] == socket.AF_INET) and (info[1] in [0, socket.SOCK_DGRAM]):
+            addrs.append(info[4][0])
+
+    if (len(addrs) == 0):
+        msg  = "WARNING: Could not find any valid interface IP addresses for host {0}\n".format(socket.gethostname())
+        msg += "    Please check your network settings."
+        print(msg)
+
+    return addrs
+
+# End of _get_all_host_ip_addrs()
+
+
+def _get_host_ip_addr_for_network(network):
+    """Get the host IP address for the given network."""
+    import socket
+
+    # Get the broadcast address of the network
+    bcast_addr = network.get_param('bcast_address')
+    
+    # Create a temporary UDP socket to get the hostname
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect((bcast_addr, 0))
+    socket_name = s.getsockname()[0]
+    s.close()
+
+    return socket_name
+
+# End of _get_host_ip_addr_for_network()
+
+
+def _check_network_interface(network, quiet=False):
+    """Check that this is a network has a valid interface IP address."""
+    import socket
+
+    # Get the first three octets of the network address
+    network_ip_subnet = _get_ip_address_subnet(network)
+    test_ip_addr      = network_ip_subnet + ".255"
+    network_addr      = network_ip_subnet + ".0"
 
     # Create a temporary UDP socket to get the hostname
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect((test_ip_addr, bcast_port))
+    s.connect((test_ip_addr, 0))
     socket_name = s.getsockname()[0]
+    s.close()
 
     # Get the subnet of the socket
     sock_ip_subnet = _get_ip_address_subnet(socket_name)
-    
-    # Check that the socket_name is equal to the host_interface    
-    if (host_interface == socket_name):
-        return host_interface
-    else:
-        import warnings
-        msg  = "\n    For {0} subnet, ".format(host_ip_subnet)
-        msg += "the OS provided host interface is {0}\n".format(socket_name)
-        msg += "        not {0}.\n".format(host_interface)
-        msg += "    Please check your IP configuration.  "
-        
-        if (host_ip_subnet == sock_ip_subnet):
-            msg += "Using host interface {0}.\n".format(socket_name)
-            warnings.warn(msg)
-            return socket_name
-        else:
-            warnings.warn(msg)
-            return None
 
-# End of _check_host_interface()
+    # Check that the socket_ip_subnet is equal to the host_ip_subnet
+    if ((network != network_addr) and not quiet):
+        msg  = "WARNING: Network address must be of the form 'X.Y.Z.0'.\n"
+        msg += "  Provided {0}.  Using {1} instead.".format(network, network_addr)
+        print(msg)
+    
+    # Check that the socket_ip_subnet is equal to the host_ip_subnet
+    if ((network_ip_subnet != sock_ip_subnet) and not quiet):
+        msg  = "WARNING: Interface IP address {0} and ".format(socket_name)
+        msg += "network {0} appear to be on different subnets.\n".format(network)
+        msg += "    Please check your network settings if this in not intentional."
+        print(msg)
+
+    return network_addr
+
+# End of _check_network_interface()
 
 
 def _get_ip_address_subnet(ip_address):
@@ -757,6 +581,15 @@ def _get_ip_address_subnet(ip_address):
     return "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
     
 # End of _get_ip_address_subnet()
+
+
+def _get_bcast_address(ip_address):
+    """Get the broadcast address X.Y.Z.255 for ip_address X.Y.Z.W"""
+    ip_subnet  = _get_ip_address_subnet(ip_address)
+    bcast_addr = ip_subnet + ".255"
+    return bcast_addr
+    
+# End of _get_bcast_address()
     
 
 def _check_ip_address_format(ip_address):

@@ -38,7 +38,7 @@ WN_NODE_DESCRIPTION               = 'WARPNet Node'
 # WARPNet Default values
 #   NOTE:  All defaults are strings; Numerical values will be evaluated and
 #          converted to integers before being used
-HOST_INTERFACE_LIST               = ['10.0.0.250']
+NETWORK                           = '10.0.0.0'
 HOST_ID                           = 250
 UNICAST_PORT                      = 9500
 BCAST_PORT                        = 9750

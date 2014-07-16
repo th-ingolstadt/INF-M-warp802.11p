@@ -83,7 +83,7 @@ class WnNode(object):
         transport -- Node's transport object
         transport_bcast -- Node's broadcast transport object
     """
-    host_config              = None
+    network_config           = None
 
     node_type                = None
     node_id                  = None
@@ -101,13 +101,13 @@ class WnNode(object):
     transport_bcast          = None
     transport_tracker        = None
     
-    def __init__(self, host_config=None):
+    def __init__(self, network_config=None):
         (self.wn_ver_major, self.wn_ver_minor, self.wn_ver_revision) = version.wn_ver()
         
-        if not host_config is None:
-            self.host_config = host_config
+        if network_config is not None:
+            self.network_config = network_config
         else:
-            self.host_config = wn_config.HostConfiguration()
+            self.network_config = wn_config.NetworkConfiguration()
 
         self.transport_tracker = 0
 
@@ -128,10 +128,10 @@ class WnNode(object):
                                ip_address, unicast_port, bcast_port):
         """Set the initial configuration of the node."""
 
-        host_id      = self.host_config.get_param('network', 'host_id')
-        tx_buf_size  = self.host_config.get_param('network', 'tx_buffer_size')
-        rx_buf_size  = self.host_config.get_param('network', 'rx_buffer_size')
-        tport_type   = self.host_config.get_param('network', 'transport_type')
+        host_id      = self.network_config.get_param('host_id')
+        tx_buf_size  = self.network_config.get_param('tx_buffer_size')
+        rx_buf_size  = self.network_config.get_param('rx_buffer_size')
+        tport_type   = self.network_config.get_param('transport_type')
 
         (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
         
@@ -139,7 +139,7 @@ class WnNode(object):
             if self.transport is None:
                 self.transport = unicast_tp.TransportEthUdpPy()
             if self.transport_bcast is None:
-                self.transport_bcast = bcast_tp.TransportEthUdpPyBcast(self.host_config)
+                self.transport_bcast = bcast_tp.TransportEthUdpPyBcast(self.network_config)
         else:
             print("Transport not defined\n")
         
@@ -677,8 +677,8 @@ class WnNodeFactory(WnNode):
     wn_dict             = None
 
 
-    def __init__(self, host_config=None):
-        super(WnNodeFactory, self).__init__(host_config)
+    def __init__(self, network_config=None):
+        super(WnNodeFactory, self).__init__(network_config)
  
         self.wn_dict = {}
 
@@ -697,7 +697,7 @@ class WnNodeFactory(WnNode):
                                     bcast_port=node_dict['bcast_port'])
 
 
-    def create_node(self, host_config=None):
+    def create_node(self, network_config=None):
         """Based on the WARPNet Node Type, dynamically create and return 
         the correct WARPNet node."""        
         node = None
@@ -716,7 +716,7 @@ class WnNodeFactory(WnNode):
             node_class = self.node_get_class(wn_node_type)
         
             if not node_class is None:
-                node = self.node_eval_class(node_class, host_config)
+                node = self.node_eval_class(node_class, network_config)
                 node.set_init_configuration(serial_number=self.serial_number,
                                             node_id=self.node_id,
                                             node_name=self.name,
@@ -743,7 +743,7 @@ class WnNodeFactory(WnNode):
         return node
 
 
-    def node_eval_class(self, node_class, host_config):
+    def node_eval_class(self, node_class, network_config):
         """Evaluate the node_class string to create a node.  
         
         NOTE:  This should be overridden in each sub-class with the same
@@ -756,7 +756,7 @@ class WnNodeFactory(WnNode):
         tmp_node = None
 
         try:
-            full_node_class = node_class + "(host_config)"
+            full_node_class = node_class + "(network_config)"
             tmp_node = eval(full_node_class, globals(), locals())
         except:
             pass

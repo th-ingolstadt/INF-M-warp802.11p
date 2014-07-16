@@ -20,7 +20,7 @@ Ver   Who  Date     Changes
 This module provides class definitions to manage the WARPNet configuration.
 
 Functions (see below for more information):
-    HostConfiguration() -- Specifies Host information for setup
+    NetworkConfiguration() -- Specifies Network information for setup
     NodesConfiguration() -- Specifies Node information for setup
 
 """
@@ -39,60 +39,50 @@ from . import util as wn_util
 from . import exception as wn_ex
 
 
-__all__ = ['HostConfiguration', 'NodesConfiguration']
+__all__ = ['NetworkConfiguration', 'NodesConfiguration']
 
 
 
-class HostConfiguration(object):
-    """Class for WARPNet Host configuration.
+class NetworkConfiguration(object):
+    """Class for WARPNet Network configuration.
     
-    This class contains a WARPNet host configuration using default values 
+    This class contains a WARPNet network configuration using default values 
     in wn_defaults combined with parameters that are passed in.
     
     Config Structure:
-        {'network'  
-            { 'host_interfaces'      [list of str],
-              'host_id'              int,
-              'unicast_port'         int,
-              'bcast_port'           int,
-              'tx_buf_size'          int,
-              'rx_buf_size'          int,
-              'transport_type'       str,
-              'jumbo_frame_support'  bool } }
+        { 'network'              str,
+          'host_id'              int,
+          'unicast_port'         int,
+          'bcast_port'           int,
+          'tx_buf_size'          int,
+          'rx_buf_size'          int,
+          'transport_type'       str,
+          'jumbo_frame_support'  bool }
     
     """
     config              = None
     
-    def __init__(self, host_interfaces=None, host_id=None, unicast_port=None,
+    def __init__(self, network=None, host_id=None, unicast_port=None,
                  bcast_port=None, tx_buffer_size=None, rx_buffer_size=None,
-                 transport_type=None, jumbo_frame_support=None):
-        """Initialize a WnHostConfiguration
+                 transport_type=None, jumbo_frame_support=None, quiet=False):
+        """Initialize a NetworkConfiguration
         
         Attributes:
-            host_interfaces -- List of host interfaces
-            host_id -- Host ID
-            unicast_port -- Host port for unicast traffic
-            bcast_port -- Host port for broadcast traffic
-            tx_buf_size -- Host TX buffer size
-            rx_buf_size -- Host RX buffer size
-            transport_type -- Host transport type
-            jumbo_frame_support -- Host support for Jumbo Ethernet frames
-        
-        There are multiple ways to initialize a WnNodesConfiguration:
-          1) INI file name
-          2) Set of parameters
-          
-        If an INI file is present, it will be loaded and all other parameters
-        will be ignored.  If the INI file is not present, then if any
-        parameters are specified those will be loaded in to the configuration.
-        Otherwise, default values for the parameters that can be found in 
-        wn_defaults will used.
+            network             -- Network interface
+            host_id             -- Host ID
+            unicast_port        -- Port for unicast traffic
+            bcast_port          -- Port for broadcast traffic
+            tx_buf_size         -- TX buffer size
+            rx_buf_size         -- RX buffer size
+            transport_type      -- Transport type
+            jumbo_frame_support -- Support for Jumbo Ethernet frames
+            
+        The network configuration assumes a netmask of 255.255.255.0 for 
+        all networks.
         
         """
-        from . import util as wn_util
-        
         # Set initial values
-        my_host_interfaces     = []
+        my_network             = wn_defaults.NETWORK
         my_host_id             = wn_defaults.HOST_ID
         my_unicast_port        = wn_defaults.UNICAST_PORT
         my_bcast_port          = wn_defaults.BCAST_PORT
@@ -109,100 +99,72 @@ class HostConfiguration(object):
             if (wn_util._check_host_id(host_id)):
                 my_host_id = host_id            
                 
-        if not unicast_port is None:    my_unicast_port = unicast_port            
-        if not bcast_port is None:      my_bcast_port = bcast_port
-        if not tx_buffer_size is None:  my_tx_buffer_size = tx_buffer_size
-        if not rx_buffer_size is None:  my_rx_buffer_size = rx_buffer_size
-        if not transport_type is None:  my_transport_type = transport_type
+        if unicast_port   is not None:  my_unicast_port   = unicast_port
+        if bcast_port     is not None:  my_bcast_port     = bcast_port
+        if tx_buffer_size is not None:  my_tx_buffer_size = tx_buffer_size
+        if rx_buffer_size is not None:  my_rx_buffer_size = rx_buffer_size
+        if transport_type is not None:  my_transport_type = transport_type
 
-        if not jumbo_frame_support is None:
+        if jumbo_frame_support is not None:
             if (type(jumbo_frame_support) is bool):
                 my_jumbo_frame_support = jumbo_frame_support
+            else:
+                msg  = "Jumbo Frame Support must be a boolean.  Using {0}.".format(my_jumbo_frame_support) 
+                print(msg)
 
         # Check host_interfaces last b/c you need the resolved bcast_port
-        if not host_interfaces is None:
-            for interface in host_interfaces:
-                inf = wn_util._check_host_interface(interface, my_bcast_port)
-                if not inf is None:
-                    my_host_interfaces.append(inf)
-            
-            if (len(my_host_interfaces) == 0):
-                my_host_interfaces = wn_defaults.HOST_INTERFACE_LIST
-                msg  = "Could not find any valid host interfaces.\n" 
-                msg += "    Using default Host Interface = {0}".format(my_host_interfaces)
-                print(msg)
-        else:
-            my_host_interfaces = wn_defaults.HOST_INTERFACE_LIST
-           
+        if network is not None:
+            my_network = wn_util._check_network_interface(network, quiet)
 
-        self.set_config(my_host_interfaces, my_host_id, my_unicast_port, 
+        self.set_config(my_network, my_host_id, my_unicast_port, 
                         my_bcast_port, my_tx_buffer_size, my_rx_buffer_size, 
                         my_transport_type, my_jumbo_frame_support)
 
 
-    def set_config(self, host_interfaces, host_id, unicast_port, bcast_port,
+    def set_config(self, network, host_id, unicast_port, bcast_port,
                    tx_buffer_size, rx_buffer_size, transport_type, 
                    jumbo_frame_support):
         """Sets the config based on the parameters."""
         self.config = {}
         
-        self.config['network'] = {}
-        
-        self.config['network']['host_interfaces']     = host_interfaces
-        self.config['network']['host_id']             = host_id
-        self.config['network']['unicast_port']        = unicast_port
-        self.config['network']['bcast_port']          = bcast_port
-        self.config['network']['tx_buffer_size']      = tx_buffer_size
-        self.config['network']['rx_buffer_size']      = rx_buffer_size
-        self.config['network']['transport_type']      = transport_type
-        self.config['network']['jumbo_frame_support'] = jumbo_frame_support
+        self.config['network']             = network
+        self.config['bcast_address']       = wn_util._get_bcast_address(network)
+        self.config['host_id']             = host_id
+        self.config['unicast_port']        = unicast_port
+        self.config['bcast_port']          = bcast_port
+        self.config['tx_buffer_size']      = tx_buffer_size
+        self.config['rx_buffer_size']      = rx_buffer_size
+        self.config['transport_type']      = transport_type
+        self.config['jumbo_frame_support'] = jumbo_frame_support
 
 
-    def get_param(self, section, parameter):
+    def get_param(self, parameter):
         """Returns the value of the parameter within the section."""
-        if (section in self.config.keys()):
-            if (parameter in self.config[section].keys()):
-                return self.config[section][parameter]
-            else:
-                print("Parameter {0} does not exist in section {1}.".format(parameter, section))
+        if (parameter in self.config.keys()):
+            return self.config[parameter]
         else:
-            print("Section {0} does not exist.".format(section))
+            print("Parameter {0} does not exist.".format(parameter))
         
         return None
 
 
-    def get_section(self, section):
-        """Returns the dictionary of the section within the config."""
-        if (section in self.config.keys()):
-            return self.config[section]
-        else:
-            print("Section {0} does not exist.".format(section))
-        
-        return None
-
-
-    def set_param(self, section, parameter, value):
+    def set_param(self, parameter, value):
         """Sets the parameter to the given value."""
-        if (section in self.config.keys()):
-            if (parameter in self.config[section].keys()):
-                self.config[section][parameter] = value
-            else:
-                print("Parameter {0} does not exist in section {1}.".format(parameter, section))
+        if (parameter in self.keys()):
+            self.config[parameter] = value
         else:
-            print("Section {0} does not exist.".format(section))
+            print("Parameter {0} does not exist.".format(parameter))
  
 
     def __str__(self):
         msg = ""
         if not self.config is None:
-            msg += "Host Configuration contains: \n"
-            for section in self.config.keys():
-                msg += "    Section '{0}'\n".format(section)
-                for parameter in self.config[section].keys():
-                    msg += "        {0:20s} = ".format(parameter)
-                    msg += "{0}\n".format(self.config[section][parameter])
+            msg += "Network Configuration contains: \n"
+            for parameter in self.config.keys():
+                msg += "        {0:20s} = ".format(parameter)
+                msg += "{0}\n".format(self.config[parameter])
         else:
-            msg += "Host Configuration not intialized.\n"            
+            msg += "Network Configuration not intialized.\n"
 
         return msg            
 
@@ -246,7 +208,7 @@ class NodesConfiguration(object):
     initialized in the order they appear in the config but are not guarenteed.
 
     """
-    host_config         = None
+    network_config      = None
     config              = None
     config_file         = None
     node_id_counter     = None
@@ -254,15 +216,15 @@ class NodesConfiguration(object):
     used_node_ips       = None
     shadow_config       = None
 
-    def __init__(self, ini_file=None, serial_numbers=None, host_config=None):
+    def __init__(self, ini_file=None, serial_numbers=None, network_config=None):
         """Initialize a WnNodesConfiguration
         
         Attributes:
             ini_file -- An INI file name that specified a nodes configuration
             serial_numbers -- A list of serial numbers of WARPv3 nodes
-            host_config -- A WnHostConfiguration
+            network_config -- A NetworkConfiguration
         
-        There are multiple ways to initialize a WnNodesConfiguration:
+        There are multiple ways to initialize a NodesConfiguration:
           1) List of serial_numbers
           2) INI file name
         
@@ -296,20 +258,18 @@ class NodesConfiguration(object):
         self.used_node_ips   = []
 
         # Initialize the Shadow Config from Host data
-        if host_config is None:
-            host_config = HostConfiguration()
+        if network_config is None:
+            network_config = NetworkConfiguration()
         
-        temp_u_port     = host_config.get_param('network', 'unicast_port')
-        temp_b_port     = host_config.get_param('network', 'bcast_port')
-        temp_interfaces = host_config.get_param('network', 'host_interfaces')
-        temp_ip_address = temp_interfaces[0]
+        network_addr = network_config.get_param('network')
+        u_port       = network_config.get_param('unicast_port')
+        b_port       = network_config.get_param('bcast_port')
 
-        # Convert host_interface[0] to string:  "x.y.z.{0}"
-        expr = re.compile('\.')
-        data = expr.split(temp_ip_address)
-        temp_ip_address = str(data[0] + "." + data[1] + "." + data[2] + ".{0}")
+        # Compute the base IP address to auto-assign IP addresses 
+        base_ip_address = wn_util._get_ip_address_subnet(network_addr) + ".{0}"
 
-        self.init_shadow_config(temp_ip_address, temp_u_port, temp_b_port)
+        # Initialize the shadow config
+        self.init_shadow_config(base_ip_address, u_port, b_port)
 
         # Initialize the config based on rules documented above.
         #   NOTE:  This can raise exceptions if there are issues.
@@ -329,12 +289,14 @@ class NodesConfiguration(object):
                     print(err)
 
 
+
     #-------------------------------------------------------------------------
     # Methods for Config
     #-------------------------------------------------------------------------
     def set_default_config(self):
         """Set the default config."""
         self.config = configparser.ConfigParser()
+        self.init_used_node_lists()
 
 
     def add_node(self, serial_number, ip_address=None, 
@@ -514,14 +476,15 @@ class NodesConfiguration(object):
         be unique.
         """
         self.used_node_ids = []
-        self.used_node_ips = []
-        
-        for section in self.config.sections():
-            if ('node_id' in self.config.options(section)):
-                self.used_node_ids.append(self._get_param_hack(section, 'node_id'))
+        self.used_node_ips = wn_util._get_all_host_ip_addrs()
 
-            if ('ip_address' in self.config.options(section)):
-                self.used_node_ips.append(self._get_param_hack(section, 'ip_address'))        
+        if self.config is not None:
+            for section in self.config.sections():
+                if ('node_id' in self.config.options(section)):
+                    self.used_node_ids.append(self._get_param_hack(section, 'node_id'))
+    
+                if ('ip_address' in self.config.options(section)):
+                    self.used_node_ips.append(self._get_param_hack(section, 'ip_address'))        
 
 
     def clear_shadow_config(self):
@@ -530,8 +493,7 @@ class NodesConfiguration(object):
             if (section != 'default'):
                 del self.shadow_config[section]
         
-        self.used_node_ids = []
-        self.used_node_ips = []
+        self.init_used_node_lists()
 
 
     def load_shadow_config(self):
@@ -607,27 +569,34 @@ class NodesConfiguration(object):
     #-------------------------------------------------------------------------
     def _get_next_node_id(self):
         next_node_id = self.node_id_counter
-        self.node_id_counter += 1
         
         while (next_node_id in self.used_node_ids):
-            next_node_id = self.node_id_counter
             self.node_id_counter += 1
+            next_node_id = self.node_id_counter
 
         return next_node_id
     
     
     def _get_next_node_ip(self, node_id):
         ip_addr_base = self.shadow_config['default']['ip_address']
-        node_id_base = node_id + 1
+ 
+        last_octet   = self._inc_node_ip(node_id)
+        next_ip_addr = ip_addr_base.format(last_octet)
 
-        next_ip_addr = ip_addr_base.format(node_id_base)
-        node_id_base += 1
-        
         while (next_ip_addr in self.used_node_ips):
-            next_ip_addr = ip_addr_base.format(node_id_base)
-            node_id_base += 1
+            last_octet   = self._inc_node_ip(last_octet)
+            next_ip_addr = ip_addr_base.format(last_octet)
 
         return next_ip_addr
+
+
+    def _inc_node_ip(self, node_ip):
+        my_node_ip = node_ip + 1
+
+        if (my_node_ip > 254):
+            my_node_ip = 1
+        
+        return my_node_ip
 
 
     def _get_node_id(self, section):

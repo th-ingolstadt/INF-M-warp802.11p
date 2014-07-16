@@ -105,8 +105,8 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     wlan_exp_ver_revision              = None
 
     
-    def __init__(self, host_config=None):
-        super(WlanExpNode, self).__init__(host_config)
+    def __init__(self, network_config=None):
+        super(WlanExpNode, self).__init__(network_config)
         
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor, 
                 self.wlan_exp_ver_revision) = version.wlan_exp_ver()
@@ -313,14 +313,15 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         """Configure the node to stream log entries to the given port."""
 
         if (ip_address is None):
-            ip_address = self.host_config.get_param('network', 'host_interfaces')[0]
+            import wlan_exp.warpnet.util as wn_util
+            ip_address = wn_util._get_host_ip_addr_for_network(self.network_config)
             
         if (host_id is None):
-            host_id = self.host_config.get_param('network', 'host_id')
+            host_id = self.network_config.get_param('host_id')
         
         self.send_cmd(cmds.LogStreamEntries(1, host_id, ip_address, port))
         msg  = "{0}:".format(self.name) 
-        msg += "Streaming Log Entries to {0} ({1})".format(ip_address, port)
+        msg += "Streaming Log Entries to {0} ({1}) with host ID {2}".format(ip_address, port, host_id)
         print(msg)
 
 
@@ -1117,8 +1118,8 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
     Attributes (inherited):
         wn_dict -- Dictionary of WARPNet Node Types to class names
     """
-    def __init__(self, host_config=None):
-        super(WlanExpNodeFactory, self).__init__(host_config)
+    def __init__(self, network_config=None):
+        super(WlanExpNodeFactory, self).__init__(network_config)
         
         # Add default classes to the factory
         self.node_add_class(defaults.WLAN_EXP_AP_TYPE, 
@@ -1130,7 +1131,7 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
                             defaults.WLAN_EXP_STA_DESCRIPTION)
 
     
-    def node_eval_class(self, node_class, host_config):
+    def node_eval_class(self, node_class, network_config):
         """Evaluate the node_class string to create a node.  
         
         NOTE:  This should be overridden in each sub-class with the same
@@ -1143,14 +1144,14 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         node = None
 
         try:
-            full_node_class = node_class + "(host_config)"
+            full_node_class = node_class + "(network_config)"
             node = eval(full_node_class, globals(), locals())
         except:
             pass
         
         if node is None:
             return super(WlanExpNodeFactory, self).node_eval_class(node_class, 
-                                                                   host_config)
+                                                                   network_config)
         else:
             return node
 

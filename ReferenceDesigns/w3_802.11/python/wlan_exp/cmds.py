@@ -732,24 +732,51 @@ class NodeProcChannel(wn_message.Cmd):
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
-        channel   -- 802.11 Channel for the node.  Should be a value between
-                       0 and 11.  Checking is done on the node and the current
-                       channel will always be returned by the node.  
+        channel   -- 802.11 Channel for the node.  Should be a valid channel defined
+                       in wlan_exp.util wlan_channel table.
     """
+    channel  = None
+
     def __init__(self, cmd, channel=None):
         super(NodeProcChannel, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_CHANNEL
 
         self.add_args(cmd)
+        
         if channel is not None:
-            self.add_args(channel)
+            try:
+                self.channel = channel['index']
+            except (KeyError, TypeError):
+                import wlan_exp.util as util
+                
+                tmp_chan = util.find_channel_by_channel_number(channel)
+                
+                if tmp_chan is not None:
+                    self.channel = tmp_chan['index']
+                else:
+                    msg  = "Unknown channel:  {0}".format(channel)
+                    raise ValueError(msg)                    
+
+        if self.channel is not None:
+            self.add_args(self.channel)
+        else:
+            self.add_args(0)
+
     
     def process_resp(self, resp):
+        import wlan_exp.util as util
+        
         if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Channel command'):
             args = resp.get_args()
-            return args[1]
+            if self.channel is not None:
+                if (args[1] != self.channel):
+                    msg  = "WARNING: Channel mismatch.\n"
+                    msg += "    Tried to set channel to {0}\n".format(util.channel_to_str(self.channel))
+                    msg += "    Actually set channel to {0}\n".format(util.channel_to_str(args[1]))
+                    print(msg)
+            return util.find_channel_by_index(args[1])
         else:
-            return CMD_PARAM_ERROR
+            return None
 
 # End Class
 

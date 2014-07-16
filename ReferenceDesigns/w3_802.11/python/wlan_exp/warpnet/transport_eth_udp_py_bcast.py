@@ -44,41 +44,33 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
        
     Attributes:
         See TransportEthUdp for attributes
-        host_config -- A HostConfiguration that describes the default 
-           transport configuration.
-        host_ip -- IP address of the host interface
-        
-    If host_ip is not specified, then the transport will chose the IP address
-    of the first host interface, ie host interface zero.
-    """
-    host_config = None
-    host_ip     = None
+        network_config -- A NetworkConfiguration that describes the transport configuration.
     
-    def __init__(self, host_config=None, host_ip=None):
+    The transport will send packets to 
+    of the first host interface as the subnet for the broadcast address.
+    """
+    network_config = None
+    
+    def __init__(self, network_config=None):
         super(TransportEthUdpPyBcast, self).__init__()
 
-        if not host_config is None:
-            self.host_config = host_config
+        if not network_config is None:
+            self.network_config = network_config
         else:
-            self.host_config = wn_config.HostConfiguration()
-        
-        if host_ip is None:
-            host_infs = self.host_config.get_param('network', 'host_interfaces')
-            self.host_ip = host_infs[0]
-        else:
-            self.host_ip = host_ip
+            self.network_config = wn_config.NetworkConfiguration()
         
         self.set_default_config()
 
         
     def set_default_config(self):
         """Set the default configuration of a Broadcast transport."""
-        unicast_port = self.host_config.get_param('network', 'unicast_port')
-        bcast_port   = self.host_config.get_param('network', 'bcast_port')
-        host_id      = self.host_config.get_param('network', 'host_id')
+        unicast_port = self.network_config.get_param('unicast_port')
+        bcast_port   = self.network_config.get_param('bcast_port')
+        host_id      = self.network_config.get_param('host_id')
+        bcast_addr   = self.network_config.get_param('bcast_address')
         
         # Set default values of the Transport
-        self.set_ip_address(self.host_ip)
+        self.set_ip_address(bcast_addr)
         self.set_unicast_port(unicast_port)
         self.set_bcast_port(bcast_port)
         self.set_src_id(host_id)
