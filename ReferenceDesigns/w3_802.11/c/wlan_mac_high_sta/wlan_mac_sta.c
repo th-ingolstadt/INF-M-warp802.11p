@@ -237,8 +237,6 @@ int main() {
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
 #endif
 
-
-
 #ifdef USE_WARPNET_WLAN_EXP
 	// Set AP processing callbacks
 	node_set_process_callback( (void *)wlan_exp_node_sta_processCmd );
@@ -839,17 +837,17 @@ void reset_all_associations(){
 void mpdu_dequeue(tx_queue_element* packet){
 	mac_header_80211* 	header;
 	tx_frame_info*		frame_info;
-	ltg_pyld_id*      	ltg_payload_id;
+	ltg_packet_id*      pkt_id;
 	u32 				packet_payload_size;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
-	ltg_payload_id		= (ltg_pyld_id*)((u8*)header + sizeof(mac_header_80211));
 	packet_payload_size	= frame_info->length;
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
 		case PKT_TYPE_DATA_ENCAP_LTG:
-			ltg_payload_id->packet_id = wlan_mac_high_get_unique_seq();
+			pkt_id		       = (ltg_packet_id*)((u8*)header + sizeof(mac_header_80211));
+			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
 			//do not break here
 		case PKT_TYPE_DATA_ENCAP_ETH:
 			// Overwrite addr1 of this packet with the currently associated AP. This will allow previously
