@@ -1264,6 +1264,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 
 		//Insert sequence number here
 		header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
+		tx_mpdu->unique_seq = unique_seq;
 
 
 		//Call user code to notify it of dequeue
