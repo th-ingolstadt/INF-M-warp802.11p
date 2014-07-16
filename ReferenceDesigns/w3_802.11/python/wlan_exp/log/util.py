@@ -168,7 +168,7 @@ def gen_raw_log_index(log_data):
 # End gen_log_index_raw()
 
 
-def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
+def filter_log_index(log_index, include_only=None, exclude=None, merge=None, quiet=False):
     """Parses a log index to generate a filtered log index.
 
     Consumers, in general, cannot operate on a raw log index since that has
@@ -302,7 +302,17 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                         except KeyError:
                             msg  = "WARNING:  {0} does ".format(v)
                             msg += "not exist in log index.  Ignoring for merge.\n"
-                            print(msg)
+                            if not quiet:
+                                print(msg)
+
+                # If this merge is going to replace one of the entry types in the current
+                # index, then we need to delete the previous entry.  This is necessary
+                # because at this point, we have a mixture of keys, some are entry type 
+                # ids and some are log entry types.
+                try:
+                    del ret_log_index[log_entry_types[k].entry_type_id]
+                except KeyError:
+                    pass
 
                 # Add the new merged index lists to the output dictionary
                 # Use the type instance corresponding to the user-supplied string as the key
@@ -332,12 +342,14 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None):
                     except:
                         msg  = "WARNING:  {0} does ".format(unwanted_key)
                         msg += "not exist in log index.  Ignoring for exclude.\n"
-                        print(msg)
+                        if not quiet:
+                            print(msg)
 
     except KeyError as err:
-        msg  = "Issue generating log_index:\n"
+        msg  = "WARNING: Issue generating log_index:\n"
         msg += "    Could not find entry type with name:  {0}".format(err)
-        print(msg)
+        if not quiet:
+            print(msg)
 
     # Translate the keys in the return log index to WlanExpLogEntryType
     new_log_index = {}

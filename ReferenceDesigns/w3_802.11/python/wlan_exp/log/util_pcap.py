@@ -160,7 +160,7 @@ def _gen_pcap_log_index(log_index):
     from . import entry_types
     entry_type_offsets = {}
 
-    supported_entry_types = ['RX_DSSS', 'RX_OFDM', 'TX', 'TX_LOW' ]
+    supported_entry_types = ['RX_DSSS', 'RX_OFDM', 'RX_OFDM_LTG', 'TX', 'TX_LTG', 'TX_LOW', 'TX_LOW_LTG']
     
     for entry_type in supported_entry_types:
         try:
@@ -217,7 +217,11 @@ def _serialize_header(header, fmt):
 
 def _covert_log_data_to_pcap(file, log_data, log_pcap_index):
     """ 
-    
+
+
+    NOTE:  Currently, this does not adjust timestamps for TX / TX_LTG packets. 
+    In order to compare these to TX_LOW / TX_LOW_LTG packets, you need to adjust
+    the TX / TX_LTG packets by the 'time_to_accept' field.    
     """
     global pcap_global_header_fmt
     global pcap_global_header
