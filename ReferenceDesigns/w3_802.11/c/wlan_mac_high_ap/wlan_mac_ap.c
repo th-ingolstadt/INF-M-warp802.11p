@@ -214,8 +214,6 @@ int main(){
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
 
-
-
 	//  Set Periodic blinking of hex display
 	userio_set_pwm_period(USERIO_BASEADDR, 500);
 
@@ -1448,17 +1446,17 @@ void deauthenticate_stations(){
 void mpdu_dequeue(tx_queue_element* packet){
 	mac_header_80211* 	header;
 	tx_frame_info*		frame_info;
-	ltg_pyld_id*      	ltg_payload_id;
+	ltg_packet_id*      pkt_id;
 	u32 				packet_payload_size;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
-	ltg_payload_id		= (ltg_pyld_id*)((u8*)header + sizeof(mac_header_80211));
 	packet_payload_size	= frame_info->length;
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
 		case PKT_TYPE_DATA_ENCAP_LTG:
-			ltg_payload_id->packet_id = wlan_mac_high_get_unique_seq();
+			pkt_id		       = (ltg_packet_id*)((u8*)header + sizeof(mac_header_80211));
+			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
 		break;
 	}
 }
