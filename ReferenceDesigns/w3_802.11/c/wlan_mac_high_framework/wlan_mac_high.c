@@ -1256,25 +1256,27 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 	// Copy the packet into the transmit packet buffer
 	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_ready_for_tx() )){
 
-
 		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 		src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
 		xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
 		header 	  = (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 
-		//Insert sequence number here
+		// Insert sequence number here
 		header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
-		tx_mpdu->unique_seq = unique_seq;
 
-
-		//Call user code to notify it of dequeue
+		// Call user code to notify it of dequeue
 		if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
 
-		unique_seq++;
-
+        // Transfer the frame info
 		wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
 
+		// Wait for transfer to finish
 		wlan_mac_high_cdma_finish_transfer();
+
+		// Place the unique sequence number in the packet and increment
+		//   NOTE:  Adding to tx_mpdu must be done here due to the CDMA transfer
+		tx_mpdu->unique_seq = unique_seq;
+		unique_seq++;
 
 		switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
 		    case QUEUE_METADATA_TYPE_IGNORE:

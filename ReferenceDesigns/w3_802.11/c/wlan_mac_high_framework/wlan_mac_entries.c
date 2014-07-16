@@ -74,7 +74,7 @@ u32 mac_payload_log_len = MIN_MAC_PAYLOAD_LOG_LEN;
 
 /*************************** Functions Prototypes ****************************/
 
-void wlan_exp_log_get_txrx_entry_sizes( u32 type, void* mpdu, u16 length, u32 * min_log_len, u32 * entry_size, u32 * payload_size );
+void wlan_exp_log_get_txrx_entry_sizes( u32 type, u16 packet_payload_size, u32 * min_log_len, u32 * entry_size, u32 * payload_size );
 
 
 
@@ -180,15 +180,28 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 	void*             mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	u8*               mpdu_ptr_u8             = (u8*)mpdu;
 	mac_header_80211* tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
+	u32               packet_payload_size     = tx_mpdu->length;
+	u8                pkt_type;
+	u16               entry_type;
 	u32               entry_size;
 	u32               entry_payload_size;
 	u32               min_entry_payload_size;
 
+	// Determine the type of the packet
+	pkt_type = wlan_mac_high_pkt_type(mpdu, packet_payload_size);
+
+	// Determine the entry type
+	if (pkt_type == PKT_TYPE_DATA_ENCAP_LTG) {
+		entry_type = ENTRY_TYPE_TX_LOW_LTG;
+	} else {
+		entry_type = ENTRY_TYPE_TX_LOW;
+	}
+
 	// Get all the necessary sizes to log the packet
-	wlan_exp_log_get_txrx_entry_sizes( ENTRY_TYPE_TX_LOW, mpdu, tx_mpdu->length, &entry_size, &entry_payload_size, &min_entry_payload_size );
+	wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
 
 	// Request space for a TX_LOW log entry
-	tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_LOW, entry_size );
+	tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( entry_type, entry_size );
 
 	if(tx_low_event_log_entry != NULL){
 
@@ -222,7 +235,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 		tx_low_event_log_entry->reserved[0]				  = tx_low_details->reserved0; //FIXME: Temporary addition for workshop code. Remove later.
 		memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params), sizeof(phy_tx_params));
 		tx_low_event_log_entry->length                    = tx_mpdu->length;
-		tx_low_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu, tx_mpdu->length);
+		tx_low_event_log_entry->pkt_type				  = pkt_type;
 		wlan_mac_high_cdma_finish_transfer();
 
 		//CPU Low updates the retry flag in the header for any re-transmissions
@@ -269,16 +282,28 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
 	u8*               mpdu_ptr_u8             = (u8*)mpdu;
 	mac_header_80211* tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u32               packet_payload_size     = tx_mpdu->length;
+	u8                pkt_type;
+	u16               entry_type;
 	u32               entry_size;
 	u32               entry_payload_size;
 	u32               min_entry_payload_size;
 	u32               transfer_len;
 
+	// Determine the type of the packet
+	pkt_type = wlan_mac_high_pkt_type(mpdu, packet_payload_size);
+
+	// Determine the entry type
+	if (pkt_type == PKT_TYPE_DATA_ENCAP_LTG) {
+		entry_type = ENTRY_TYPE_TX_HIGH_LTG;
+	} else {
+		entry_type = ENTRY_TYPE_TX_HIGH;
+	}
+
 	// Get all the necessary sizes to log the packet
-	wlan_exp_log_get_txrx_entry_sizes( ENTRY_TYPE_TX_HIGH, mpdu, tx_mpdu->length, &entry_size, &entry_payload_size, &min_entry_payload_size );
+	wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
 
 	// Request space for a TX entry
-	tx_high_event_log_entry = (tx_high_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TX_HIGH, entry_size );
+	tx_high_event_log_entry = (tx_high_entry *)wlan_exp_log_create_entry( entry_type, entry_size );
 
 	if(tx_high_event_log_entry != NULL){
 
@@ -315,12 +340,13 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
 		tx_high_event_log_entry->length                   = tx_mpdu->length;
 		tx_high_event_log_entry->rate                     = tx_mpdu->params.phy.rate;
 		tx_high_event_log_entry->chan_num				  = channel_num;
-		tx_high_event_log_entry->pkt_type				  = wlan_mac_high_pkt_type(mpdu, tx_mpdu->length);
+		tx_high_event_log_entry->pkt_type				  = pkt_type;
 		tx_high_event_log_entry->num_tx                   = tx_mpdu->num_tx;
 		tx_high_event_log_entry->timestamp_create         = tx_mpdu->timestamp_create;
 		tx_high_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
 		tx_high_event_log_entry->delay_done               = tx_mpdu->delay_done;
 		tx_high_event_log_entry->ant_mode				  = tx_mpdu->params.phy.antenna_mode;
+
 
 #ifdef _DEBUG_
 		xil_printf("TX HIGH : %8d    %8d    %8d    %8d    %8d\n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN, total_payload_len, extra_payload, payload_log_len);
@@ -358,6 +384,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 	u8*               mpdu_ptr_u8             = (u8*)mpdu;
 	mac_header_80211* rx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	u32               packet_payload_size     = rx_mpdu->length;
+	u8                pkt_type;
     u32               entry_type;
 	u32               entry_size;
 	u32               entry_payload_size;
@@ -367,15 +394,22 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 	typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
 	copy_order_t      copy_order;
 
-	// Set the entry type based on the packet rate
+	// Determine the type of the packet
+	pkt_type = wlan_mac_high_pkt_type(mpdu, packet_payload_size);
+
+	// Determine the entry type
 	if(rate != WLAN_MAC_RATE_1M){
-		entry_type = ENTRY_TYPE_RX_OFDM;
+		if (pkt_type == PKT_TYPE_DATA_ENCAP_LTG) {
+			entry_type = ENTRY_TYPE_RX_OFDM_LTG;
+		} else {
+			entry_type = ENTRY_TYPE_RX_OFDM;
+		}
 	} else {
 		entry_type = ENTRY_TYPE_RX_DSSS;
 	}
 
 	// Get all the necessary sizes to log the packet
-	wlan_exp_log_get_txrx_entry_sizes( entry_type, mpdu, rx_mpdu->length, &entry_size, &entry_payload_size, &min_entry_payload_size );
+	wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
 
 	// Create the log entry
 	rx_event_log_entry = (rx_common_entry*)wlan_exp_log_create_entry( entry_type, entry_size );
@@ -454,7 +488,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 		rx_event_log_entry->bb_gain    = rx_mpdu->bb_gain;
 		rx_event_log_entry->length     = rx_mpdu->length;
 		rx_event_log_entry->rate       = rx_mpdu->rate;
-		rx_event_log_entry->pkt_type   = wlan_mac_high_pkt_type(mpdu, packet_payload_size);
+		rx_event_log_entry->pkt_type   = pkt_type;
 		rx_event_log_entry->chan_num   = channel_num;
 		rx_event_log_entry->ant_mode   = rx_mpdu->ant_mode;
 		rx_event_log_entry->flags      = 0;
@@ -518,10 +552,8 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 * @note		None.
 *
 ******************************************************************************/
-void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, void* mpdu, u16 packet_payload_size,
+void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
 		                                u32 * entry_size, u32 * entry_payload_size, u32 * min_entry_payload_size ) {
-	u8   pkt_type;
-
 	u32  base_entry_size;
     u32  pkt_bytes_to_log;
     u32  log_bytes_to_log;
@@ -531,16 +563,42 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, void* mpdu, u16 packet_p
 	u32  tmp_entry_payload_size;
 	u32  tmp_min_entry_payload_size;
 
-	// Determine the type of the packet
-	pkt_type = wlan_mac_high_pkt_type(mpdu, packet_payload_size);
-
 	// Set the base entry size based on the entry type
 	switch( entry_type ) {
-	    case ENTRY_TYPE_RX_OFDM:  base_entry_size = sizeof(rx_ofdm_entry);  break;
-	    case ENTRY_TYPE_RX_DSSS:  base_entry_size = sizeof(rx_dsss_entry);  break;
-	    case ENTRY_TYPE_TX_HIGH:  base_entry_size = sizeof(tx_high_entry);  break;
-	    case ENTRY_TYPE_TX_LOW:   base_entry_size = sizeof(tx_low_entry);   break;
-	    default:                  base_entry_size = 0;                      break;
+	    case ENTRY_TYPE_RX_OFDM:
+	    case ENTRY_TYPE_RX_OFDM_LTG:   base_entry_size = sizeof(rx_ofdm_entry);  break;
+
+	    case ENTRY_TYPE_RX_DSSS:       base_entry_size = sizeof(rx_dsss_entry);  break;
+
+	    case ENTRY_TYPE_TX_HIGH:
+	    case ENTRY_TYPE_TX_HIGH_LTG:   base_entry_size = sizeof(tx_high_entry);  break;
+
+	    case ENTRY_TYPE_TX_LOW:
+	    case ENTRY_TYPE_TX_LOW_LTG:    base_entry_size = sizeof(tx_low_entry);   break;
+
+	    default:                       base_entry_size = 0;                      break;
+	}
+
+	// Determine the minimum entry payload size based on entry type
+	switch( entry_type ) {
+	    // Non-LTG TX/RX Entry types
+		case ENTRY_TYPE_RX_DSSS:
+		case ENTRY_TYPE_RX_OFDM:
+		case ENTRY_TYPE_TX_HIGH:
+	    case ENTRY_TYPE_TX_LOW:
+			tmp_min_entry_payload_size = MIN_MAC_PAYLOAD_LOG_LEN;
+		break;
+
+	    // LTG TX/RX Entry types
+		case ENTRY_TYPE_RX_OFDM_LTG:
+	    case ENTRY_TYPE_TX_HIGH_LTG:
+	    case ENTRY_TYPE_TX_LOW_LTG:
+			tmp_min_entry_payload_size = MIN_MAC_PAYLOAD_LTG_LOG_LEN;
+	    break;
+
+		default:
+			tmp_min_entry_payload_size = MIN_MAC_PAYLOAD_LOG_LEN;
+		break;
 	}
 
 	// Determine the entry size and payload size based on the entry type
@@ -555,24 +613,18 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, void* mpdu, u16 packet_p
 		//         of 4 bytes).
 	    //
 	    // Procedure:
-	    //   1) Determine the minimum number of bytes to log based on the packet type.
-	    //   2) Determine the number of bytes we would log from the packet, enforcing the minimum number of bytes from 1).
-	    //   3) Determine the number of bytes the infrastructure is asking us to log, enforcing the minimum number of bytes from 1).
-	    //   4) Determine the number of bytes we will actually log by taking the minimum bytes from 2) and 3) so we don't
+	    //   1) Determine the number of bytes we would log from the packet, enforcing the minimum number of bytes from 1).
+	    //   2) Determine the number of bytes the infrastructure is asking us to log, enforcing the minimum number of bytes from 1).
+	    //   3) Determine the number of bytes we will actually log by taking the minimum bytes from 2) and 3) so we don't
 	    //          add extra bytes to the log for no reason.
-	    //   5) Determine the number of bytes needed to be allocated for the log entry beyond the MIN_MAC_PAYLOAD_LOG_LEN which
+	    //   4) Determine the number of bytes needed to be allocated for the log entry beyond the MIN_MAC_PAYLOAD_LOG_LEN which
 	    //          is part of the log entry definition.
 		//
+		case ENTRY_TYPE_RX_DSSS:
 	    case ENTRY_TYPE_RX_OFDM:
-	    case ENTRY_TYPE_RX_DSSS:
+	    case ENTRY_TYPE_RX_OFDM_LTG:
 	    case ENTRY_TYPE_TX_HIGH:
-	    	// Set the minimum number of bytes to log based on the packet type
-	    	if (pkt_type != PKT_TYPE_DATA_ENCAP_LTG) {
-	    		tmp_min_entry_payload_size = MIN_MAC_PAYLOAD_LOG_LEN;
-	    	} else {
-	    		tmp_min_entry_payload_size = MIN_MAC_PAYLOAD_LTG_LOG_LEN;
-	    	}
-
+	    case ENTRY_TYPE_TX_HIGH_LTG:
 	    	// Determine if we need to log the minimum entry payload size or the 32-bit aligned packet payload, whichever is larger
 	    	pkt_bytes_to_log       = max(tmp_min_entry_payload_size, ((1 + ((packet_payload_size - 1) / 4))*4));
 
@@ -591,26 +643,27 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, void* mpdu, u16 packet_p
 
 
 		// Determine length required for TX low log entry:
-		//     - For non-LTG packets, we only log the MAC header.
-	    //     - For LTG packets, we log the MAC header, LLC header, and LTG payload ID
+		//     - Log the MAC header.
         //
 	    case ENTRY_TYPE_TX_LOW:
-	    	if (pkt_type != PKT_TYPE_DATA_ENCAP_LTG) {
-				tmp_entry_size             = base_entry_size;
-				tmp_entry_payload_size     = sizeof(mac_header_80211);
-	    		tmp_min_entry_payload_size = MIN_MAC_PAYLOAD_LOG_LEN;
-	    	} else {
-				tmp_entry_size             = base_entry_size + sizeof(llc_header) + sizeof(ltg_pyld_id);
-				tmp_entry_payload_size     = sizeof(mac_header_80211) + sizeof(llc_header) + sizeof(ltg_pyld_id);
-	    		tmp_min_entry_payload_size = MIN_MAC_PAYLOAD_LTG_LOG_LEN;
-	    	}
+			tmp_entry_size             = base_entry_size;
+			tmp_entry_payload_size     = sizeof(mac_header_80211);
+		break;
+
+
+		// Determine length required for TX low LTG log entry:
+	    //     - Log the MAC header, LLC header, and LTG payload ID
+        //
+	    case ENTRY_TYPE_TX_LOW_LTG:
+			tmp_entry_size             = base_entry_size + sizeof(ltg_packet_id);
+			tmp_entry_payload_size     = sizeof(mac_header_80211) + sizeof(ltg_packet_id);
 	    break;
+
 
 	    default:
 	    	xil_printf("WARNING: Unknown log entry type:  %d", entry_type);
 	    	tmp_entry_size             = 0;
 	    	tmp_entry_payload_size     = 0;
-    		tmp_min_entry_payload_size = MIN_MAC_PAYLOAD_LOG_LEN;
 	    break;
 	}
 

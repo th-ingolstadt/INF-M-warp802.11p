@@ -57,13 +57,18 @@
 // Receive Entries
 
 #define ENTRY_TYPE_RX_OFDM             10
-#define ENTRY_TYPE_RX_DSSS             11
+#define ENTRY_TYPE_RX_OFDM_LTG         11
+
+#define ENTRY_TYPE_RX_DSSS             15
 
 //-----------------------------------------------
 // Transmit Entries
 
 #define ENTRY_TYPE_TX_HIGH             20
-#define ENTRY_TYPE_TX_LOW              21
+#define ENTRY_TYPE_TX_HIGH_LTG         21
+
+#define ENTRY_TYPE_TX_LOW              25
+#define ENTRY_TYPE_TX_LOW_LTG          26
 
 //-----------------------------------------------
 // Statistics Entries

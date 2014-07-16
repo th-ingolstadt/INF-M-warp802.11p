@@ -704,7 +704,7 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 
 	u32               tx_length;
 	u8*               mpdu_ptr_u8;
-	ltg_pyld_id*      ltg_payload_id;
+	ltg_packet_id*    pkt_id;
 	u8                is_multicast;
 
 	int               status = 0;
@@ -728,19 +728,19 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 
 		// Prepare the MPDU LLC header
 		mpdu_ptr_u8 += sizeof(mac_header_80211);
-		ltg_payload_id = (ltg_pyld_id*)(mpdu_ptr_u8);
+		pkt_id = (ltg_packet_id*)(mpdu_ptr_u8);
 
-		(ltg_payload_id->llc_hdr).dsap = LLC_SNAP;
-		(ltg_payload_id->llc_hdr).ssap = LLC_SNAP;
-		(ltg_payload_id->llc_hdr).control_field = LLC_CNTRL_UNNUMBERED;
-		bzero((void *)((ltg_payload_id->llc_hdr).org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
-		(ltg_payload_id->llc_hdr).type = LLC_TYPE_WLAN_LTG;
+		(pkt_id->llc_hdr).dsap = LLC_SNAP;
+		(pkt_id->llc_hdr).ssap = LLC_SNAP;
+		(pkt_id->llc_hdr).control_field = LLC_CNTRL_UNNUMBERED;
+		bzero((void *)((pkt_id->llc_hdr).org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
+		(pkt_id->llc_hdr).type = LLC_TYPE_WLAN_LTG;
 
-		ltg_payload_id->packet_id = 0; //make sure this is filled in via the dequeue callback
-		ltg_payload_id->ltg_id    = ltg_id;
+		pkt_id->unique_seq     = 0; //make sure this is filled in via the dequeue callback
+		pkt_id->ltg_id         = ltg_id;
 
 		// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
-		tx_length += max(payload_length, (sizeof(ltg_pyld_id)));
+		tx_length += max(payload_length, (sizeof(ltg_packet_id)));
 
 		// Finally prepare the 802.11 header
 		if (is_multicast) {
@@ -765,7 +765,6 @@ int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 p
 	}
 
 	return status;
-	return 0;
 }
 
 

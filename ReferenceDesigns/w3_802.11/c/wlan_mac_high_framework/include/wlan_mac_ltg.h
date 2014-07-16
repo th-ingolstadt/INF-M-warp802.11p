@@ -119,10 +119,10 @@ typedef struct {
 //LTG Payload Contents
 
 typedef struct {
-	llc_header	llc_hdr;
-	u64 		packet_id;
-	u32 		ltg_id;
-} ltg_pyld_id;
+	llc_header  llc_hdr;
+	u64         unique_seq;
+	u32         ltg_id;
+} ltg_packet_id;
 
 
 //Note: This definition simply reflects the use of the fast timer for LTG polling. To increase LTG
