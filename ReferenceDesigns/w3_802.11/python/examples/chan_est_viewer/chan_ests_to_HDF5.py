@@ -45,7 +45,8 @@ log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 
 #Generate indexes with only Rx_OFDM events
-log_index_rx = log_util.filter_log_index(raw_log_index, include_only=['RX_OFDM'])
+log_index_rx = log_util.filter_log_index(raw_log_index, include_only=['RX_OFDM'],
+                                         merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG']})
 
 # Generate numpy array of all OFDM Rx entries
 log_np = log_util.log_data_to_np_arrays(log_data, log_index_rx)

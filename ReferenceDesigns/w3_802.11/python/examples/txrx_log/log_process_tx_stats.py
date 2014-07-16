@@ -1,3 +1,21 @@
+"""
+------------------------------------------------------------------------------
+WARPNet Example
+------------------------------------------------------------------------------
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
+This example will process the TX statistics for a given log file.
+
+Hardware Setup:
+    - None.  Parsing log data can be done completely off-line
+
+Required Script Changes:
+    - Set LOGFILE to the file name of your WLAN Exp log HDF5 file (or pass in 
+        via command line argument)
+
+------------------------------------------------------------------------------
+"""
 import os
 import sys
 
@@ -47,7 +65,8 @@ log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 
 # Extract just OFDM Tx events
-tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX'])
+tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX'], 
+                                          merge={'TX' : ['TX', 'TX_LTG']})
 
 # Generate numpy array
 log_np = log_util.log_data_to_np_arrays(log_data, tx_log_index)

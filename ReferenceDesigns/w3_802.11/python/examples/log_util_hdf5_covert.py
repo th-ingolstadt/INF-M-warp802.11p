@@ -1,4 +1,10 @@
 """
+------------------------------------------------------------------------------
+WARPNet Example
+------------------------------------------------------------------------------
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 This script uses the WLAN Exp Log framework to covert an older WLAN Exp hdf5
 log file (prior to 0.93) to the newer file format.
 
@@ -11,9 +17,7 @@ Required Script Changes:
 Description:
     This script parses the log file using the older WLAN Exp file format
     and then writes the file using the newer WLAN Exp file format.
-
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 """
 import sys
 import os

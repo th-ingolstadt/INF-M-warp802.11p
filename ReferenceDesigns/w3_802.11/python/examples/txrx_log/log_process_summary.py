@@ -1,4 +1,10 @@
 """
+------------------------------------------------------------------------------
+WARPNet Example
+------------------------------------------------------------------------------
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 This script uses the WLAN Exp Log utilities to prase raw log data and print
 a few interesting summary statistics about the log entries.
 
@@ -14,9 +20,7 @@ of log entry.  It then uses these arrays to count the number of receptions
 per PHY rate and the total number of packets transmitted to each distinct
 MAC address.  Finally, it optionally opens an interactive python shell to allow
 you to play with the data.
-
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 """
 import os
 import sys
@@ -71,9 +75,11 @@ raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 # Describe the raw_log_index
 log_util.print_log_index_summary(raw_log_index, "Raw Log Index Contents:")
 
-# Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
-log_index = log_util.filter_log_index(raw_log_index,
-                                      include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX'])
+# Filter log index to include all Rx entries and all Tx entries
+log_index = log_util.filter_log_index(raw_log_index, 
+                                      include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX', 'EXP_INFO'],
+                                      merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'], 
+                                             'TX'     : ['TX', 'TX_LTG']})
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 
@@ -83,6 +89,16 @@ log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 #    as the output dictionary keys. Each output dictionary value is a numpy record array
 #    Refer to wlan_exp_log.log_entries.py for the definition of each record array datatype
 log_np = log_util.log_data_to_np_arrays(log_data, log_index)
+
+
+exp_info = log_np['EXP_INFO']
+
+for info in exp_info:
+    print("Timestamp = {0}".format(info['timestamp']))
+    print("Info Type = {0}".format(info['info_type']))
+    print("Length    = {0}".format(info['length']))
+
+
 
 ###############################################################################
 # Example 0: Print node info / Time info

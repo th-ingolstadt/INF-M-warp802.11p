@@ -1,4 +1,10 @@
 """
+------------------------------------------------------------------------------
+WARPNet Example
+------------------------------------------------------------------------------
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 This script uses the WLAN Exp Log utilities to prase raw log data and print
 details about the Tx and Rx events at the two nodes.
 
@@ -11,9 +17,7 @@ Required Script Changes:
 Description:
     This script parses the log file and generates numpy arrays of for all Tx
     and Rx events in the logs.
-
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 """
 import os
 import sys
@@ -64,8 +68,12 @@ raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 # Describe the raw_log_index
 log_util.print_log_index_summary(raw_log_index, "Log Index Contents:")
 
-# Filter log index to include all Rx entries, merged into RX_ALL, and all Tx entries
-log_index = log_util.filter_log_index(raw_log_index, include_only=['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW'])
+# Filter log index to include all Rx entries and all Tx entries
+log_index = log_util.filter_log_index(raw_log_index, 
+                                      include_only=['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW'],
+                                      merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'], 
+                                             'TX'     : ['TX', 'TX_LTG'],
+                                             'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']})
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 

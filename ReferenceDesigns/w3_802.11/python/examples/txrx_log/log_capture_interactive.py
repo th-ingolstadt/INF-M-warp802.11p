@@ -1,21 +1,28 @@
 """
+------------------------------------------------------------------------------
+WARPNet Example
+------------------------------------------------------------------------------
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 This script uses the 802.11 ref design and WARPnet to create a log
 file that contains all data assocated with an interactive experiment.
 
 Hardware Setup:
- - Requires one WARP v3 node configured as either an AP or STA
- - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
+  - Requires one WARP v3 node configured as either an AP or STA
+  - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
-  - Set HOST_IP_ADDRESS to the IP address of your host PC NIC
+  - Set NETWORK to the IP address of your host PC NIC network (eg X.Y.Z.0 for IP X.Y.Z.W)
   - Set NODE_SERIAL_LIST to the serial number of your WARP node
 
 Description:
-  This script initializes one WARP v3 nodes.  It will periodically log the 
-  Tx/Rx statistics and update information on the screen about the log.
-  The script will also read the log data every LOG_READ_TIME seconds, write it 
-  to the hdf5 file and continue until MAX_LOG_SIZE is reached or the use ends 
-  the experiment.
+  This script initializes one WARP v3 node.  It will periodically log the 
+Tx/Rx statistics and update information on the screen about the log.  The 
+script will also read the log data every LOG_READ_TIME seconds, write it 
+to the hdf5 file, HDF5_FILENAME, and continue until MAX_LOG_SIZE is reached 
+or the user ends the experiment.
+------------------------------------------------------------------------------
 """
 import sys
 import time
@@ -27,12 +34,6 @@ import wlan_exp.config as wlan_exp_config
 
 import wlan_exp.log.util_hdf as hdf_util
 
-
-try:
-    from Queue import Queue, Empty
-except ImportError:
-    from queue import Queue, Empty     # Python 3.x
-
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": raw_input=input
 
@@ -40,9 +41,11 @@ if sys.version[0]=="3": raw_input=input
 #-----------------------------------------------------------------------------
 # Experiment Variables
 #-----------------------------------------------------------------------------
-HOST_INTERFACES    = ['10.0.0.250']
-NODE_SERIAL_LIST   = ['W3-a-00001']
+# Network / Node information
+NETWORK            = '10.0.0.0'
+NODE_SERIAL_LIST   = ['W3-a-00183']
 
+# HDF5 File to log information
 HDF5_FILENAME      = 'interactive_capture.hdf5'
 
 # Interval for printing
@@ -52,10 +55,11 @@ PRINT_TIME         = 1
 LOG_READ_TIME      = 30
 MAX_LOG_SIZE       = 2**30             # Max size is 1GB
 
+
 #-----------------------------------------------------------------------------
 # Global Variables
 #-----------------------------------------------------------------------------
-host_config        = None
+network_config     = None
 nodes              = []
 node               = None
 exp_done           = False
@@ -83,6 +87,8 @@ def add_data_to_log(log_tail_pad=500):
     print("\nWriting {0:15,d} bytes of data to log file {1}...".format(len(data), LOGFILE))
     log_container.write_log_data(data)
 
+# End def
+
 
 def get_log_size_str(nodes):
     """Gets the log size str for each node."""
@@ -95,10 +101,14 @@ def get_log_size_str(nodes):
 
     return msg
 
+# End def
+
 
 def get_exp_duration_str(start_time):
     """Gets the duration str of the experiment since start_time."""
     return "Duration:  {0:8.0f} sec".format(time.time() - start_time)
+
+# End def
 
 
 def print_node_state(start_time):
@@ -113,6 +123,7 @@ def print_node_state(start_time):
     sys.stdout.write(msg)
     sys.stdout.flush()
 
+# End def
 
 
 #-----------------------------------------------------------------------------
@@ -120,26 +131,27 @@ def print_node_state(start_time):
 #-----------------------------------------------------------------------------
 def init_experiment():
     """Initialize WLAN Experiment."""
-    global host_config, nodes, attr_dict
+    global network_config, nodes, attr_dict
     
     print("\nInitializing experiment\n")
 
     # Log attributes about the experiment
     attr_dict['exp_start_time'] = str(datetime.datetime.now())
     
-    # Create an object that describes the configuration of the host PC
-    host_config  = wlan_exp_config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
+    # Create an object that describes the network configuration of the host PC
+    network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK)
     
     # Create an object that describes the WARP v3 nodes that will be used in this experiment
-    nodes_config = wlan_exp_config.WlanExpNodesConfiguration(host_config=host_config,
-                                                             serial_numbers=NODE_SERIAL_LIST)
+    nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
+                                                               serial_numbers=NODE_SERIAL_LIST)
     
     # Initialize the Nodes
-    #  This command will fail if either WARP v3 node does not respond
-    nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
+    #   This command will fail if either WARP v3 node does not respond
+    nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
     
     # Do not set the node into a known state.  This example will just read
-    # what the node currently has in the log.
+    # what the node currently has in the log.  However, the below code could
+    # be used to initialize all nodes into a default state:
     #
     # Set each not into the default state
     # for tmp_node in nodes:        
@@ -149,6 +161,7 @@ def init_experiment():
     #     # Configure the log
     #     tmp_node.log_configure(log_full_payloads=True)
 
+# End def
 
 
 def setup_experiment():
@@ -163,18 +176,19 @@ def setup_experiment():
         print("ERROR: Node configurations did not match requirements of script.\n")
         return 
 
+# End def
 
 
 def run_experiment():
     """WLAN Experiment.""" 
-    global node, log_container, exp_done, input_done
+    global network_config, node, log_container, exp_done, input_done
     
     print("\nRun Experiment:\n")
     print("Use 'q' or Ctrl-C to end the experiment.\n")
     print("  NOTE:  In IPython, press return to see status update.\n")
     
     # Add the current time to all the nodes
-    wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
+    wlan_exp_util.broadcast_cmd_write_time_to_logs(network_config)
 
     # Write Statistics to log
     node.stats_write_txrx_to_log()
@@ -213,6 +227,7 @@ def run_experiment():
                 input_done = True
                 exp_done   = True
 
+# End def
 
 
 def end_experiment():
@@ -243,8 +258,12 @@ def end_experiment():
     print("Done.")
     return
 
+# End def
 
 
+#-----------------------------------------------------------------------------
+# Main Function
+#-----------------------------------------------------------------------------
 if __name__ == '__main__':
 
     # Use log file given as command line argument, if present

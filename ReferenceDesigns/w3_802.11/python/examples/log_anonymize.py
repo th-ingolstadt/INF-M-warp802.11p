@@ -1,4 +1,10 @@
 """
+------------------------------------------------------------------------------
+WARPNet Example
+------------------------------------------------------------------------------
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 This script uses the WLAN Exp Log framework to anonymize a given hdf5
 log file that contains data assocated with an experiment utilizing the
 802.11 reference design and WARPNet.
@@ -22,9 +28,7 @@ Description:
         - Any payloads from transmissions / receptions
         - Any WARPNet commands
         - Hostnames in the station info
-
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 """
 import sys
 import os
@@ -106,7 +110,11 @@ def log_anonymize(filename):
 
 
     # Generate the index of log entry locations sorted by log entry type
-    log_index     = log_util.filter_log_index(raw_log_index)
+    #    Merge the Rx / Tx subtypes that can be processed together
+    log_index      = log_util.filter_log_index(raw_log_index, 
+                                               merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'], 
+                                                      'TX'     : ['TX', 'TX_LTG'],
+                                                      'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']})
 
     # Re-initialize the address-byteindex map per file using the running
     #   list of known MAC addresses
@@ -114,21 +122,24 @@ def log_anonymize(filename):
     for addr in all_addrs:
         addr_idx_map[addr] = list()
 
-    log_util.print_log_index_summary(log_index)
+    log_util.print_log_index_summary(log_index, "Log Index Summary (merged):")
 
 
-    #####################
+    #---------------------------------------------------------------------
     # Step 1: Build a dictionary of all MAC addresses in the log, then
     #   map each addresses to a unique anonymous address
     #   Uses tuple(bytearray slice) since bytearray isn't hashable as-is
-
+    # 
     print("Anonmyizing file step 1 ...")
 
     start_time = time.time()
 
+    #----------------------------------
     # Station Info entries
-    print("    Anonmyizing STATION_INFO entries")
+    # 
     try:
+        print("    Anonmyizing {0} STATION_INFO entries".format(len(log_index['STATION_INFO'])))
+
         for idx in log_index['STATION_INFO']:
             # 6-byte address at offsets 8
                 o = 8
@@ -139,9 +150,12 @@ def log_anonymize(filename):
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
+    #----------------------------------
     # Tx/Rx Statistics entries
-    print("    Anonmyizing TXRX_STATS entries")
+    #
     try:
+        print("    Anonmyizing {0} TXRX_STATS entries".format(len(log_index['TXRX_STATS'])))
+
         for idx in log_index['TXRX_STATS']:
             # 6-byte addresses at offsets 16
                 o = 16
@@ -152,9 +166,12 @@ def log_anonymize(filename):
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
+    #----------------------------------
     # Rx DSSS entries
-    print("    Anonmyizing RX_DSSS entries")
+    #
     try:
+        print("    Anonmyizing {0} RX_DSSS entries".format(len(log_index['RX_DSSS'])))
+
         for idx in log_index['RX_DSSS']:
             # 6-byte addresses at offsets 28, 34, 40
             for o in (28, 34, 40):
@@ -165,9 +182,12 @@ def log_anonymize(filename):
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
+    #----------------------------------
     # Rx OFDM entries
-    print("    Anonmyizing RX_OFDM entries")
+    #
     try:
+        print("    Anonmyizing {0} RX_OFDM entries".format(len(log_index['RX_OFDM'])))
+
         for idx in log_index['RX_OFDM']:
             # 6-byte addresses at offsets 284, 290, 296
             for o in (284, 290, 296):
@@ -178,9 +198,12 @@ def log_anonymize(filename):
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
+    #----------------------------------
     # Tx entries
-    print("    Anonmyizing TX entries")
+    #
     try:
+        print("    Anonmyizing {0} TX entries".format(len(log_index['TX'])))
+
         for idx in log_index['TX']:
             # 6-byte addresses at offsets 44, 50, 56
             for o in (44, 50, 56):
@@ -191,9 +214,12 @@ def log_anonymize(filename):
     if print_time:
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
+    #----------------------------------
     # Tx Low entries
-    print("    Anonmyizing TX_LOW entries")
+    #
     try:
+        print("    Anonmyizing {0} TX_LOW entries".format(len(log_index['TX_LOW'])))
+
         for idx in log_index['TX_LOW']:
             # 6-byte addresses at offsets 40, 46, 52
             for o in (40, 46, 52):
@@ -205,9 +231,9 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
 
-    #####################
+    #---------------------------------------------------------------------
     # Step 2: Enumerate actual MAC addresses and their anonymous replacements
-
+    #
     print("Anonmyizing file step 2 ...")
 
     print("    Enumerate MAC addresses and their anonymous replacements")
@@ -228,9 +254,9 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
 
-    #####################
+    #---------------------------------------------------------------------
     # Step 3: Replace all MAC addresses in the log
-
+    #
     print("Anonmyizing file step 3 ...")
 
     print("    Replace all MAC addresses in the log")
@@ -244,9 +270,9 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
 
-    #####################
+    #---------------------------------------------------------------------
     # Step 4: Other annonymization steps
-
+    #
     print("Anonmyizing file step 4 ...")
 
     print("    Replace STATION_INFO hostnames")
@@ -289,10 +315,11 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
 
-    #####################
+    #---------------------------------------------------------------------
     # Write output files
+    #
 
-    #Write the modified log to a new HDF5 file
+    # Write the modified log to a new HDF5 file
     (fn_fldr, fn_file) = os.path.split(filename)
 
     # Find the last '.' in the file name and classify everything after that as the <ext>

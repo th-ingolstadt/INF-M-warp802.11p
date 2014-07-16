@@ -1,38 +1,24 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
 WARPNet Example
 ------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  2/11/14  Initial release
-
-------------------------------------------------------------------------------
-
 This module provides a simple WARPNet example.
 
-Setup:
-  - Set HOST_IP_ADDRESS to the IP address of your host PC NIC
-  - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
-  - Download the 802.11 reference AP to the nodes
+Hardware Setup:
+  - Requires one WARP v3 node configured as AP using 802.11 Reference Design v0.8 or later
+  - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
-Run Command:
-  python wlan_exp_example_01.py
+Required Script Changes:
+  - Set NETWORK to the IP address of your host PC NIC network (eg X.Y.Z.0 for IP X.Y.Z.W)
+  - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This script will initialize the given nodes; extract any APs from the 
-initialized nodes; then for each AP, it will get the associations and 
-statistics and display them.
-
+  This script will initialize the given nodes; extract any APs from the initialized nodes; 
+then for each AP, it will get the associations and statistics and display them.
+------------------------------------------------------------------------------
 """
 # Import Python modules
 import time
@@ -43,11 +29,9 @@ import wlan_exp.config as config
 # Import WLAN Exp Framework
 import wlan_exp.util as wlan_exp_util
 
-
-
 # TOP Level script variables
-HOST_INTERFACES        = ['10.0.0.250']
-NODE_SERIAL_LIST       = ['W3-a-00006']
+NETWORK                = '10.0.0.0'
+NODE_SERIAL_LIST       = ['W3-a-00001']
 PROMISCUOUS_STATISTICS = True
 
 
@@ -60,22 +44,22 @@ def initialize_experiment():
     # Print initial message
     print("\nInitializing experiment\n")
 
-    # Create a WnConfiguration
-    #   This describes the Host configuration.
-    host_config  = config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
+    # Create a NetworkConfiguration
+    #   This describes the netwokr configuration.
+    network_config = config.WlanExpNetworkConfiguration(network=NETWORK)
     
     # Create a WnNodesConfiguration
     #   This describes each node to be initialized
-    nodes_config = config.WlanExpNodesConfiguration(host_config=host_config,
-                                                    serial_numbers=NODE_SERIAL_LIST)
+    nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
+                                                      serial_numbers=NODE_SERIAL_LIST)
 
     # Initialize the Nodes
     #   This will initialize all of the networking and gather the necessary
     #   information to control and communicate with the nodes
-    nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
+    nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
 
     # Initialize the time on all nodes to zero
-    wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
+    wlan_exp_util.broadcast_cmd_set_time(0.0, network_config)
 
     # Set the promiscuous statistics mode
     for node in nodes:

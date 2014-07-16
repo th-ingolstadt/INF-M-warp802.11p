@@ -1,25 +1,31 @@
 """
+------------------------------------------------------------------------------
+WARPNet Example
+------------------------------------------------------------------------------
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 This script uses the 802.11 ref design and WARPnet to create a log
 file that contains all data assocated with an experiment of head-to-head 
 backlogged data transfer using the local traffic generators.
 
 Hardware Setup:
- - Requires two WARP v3 nodes
-  - One node configured as AP using 802.11 Reference Design v0.82 or later
-  - One node configured as STA using 802.11 Reference Design v0.82 or later
- - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
+  - Requires two WARP v3 nodes
+    - One node configured as AP using 802.11 Reference Design v0.95 or later
+    - One node configured as STA using 802.11 Reference Design v0.95 or later
+   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
-  - Set HOST_IP_ADDRESS to the IP address of your host PC NIC
+  - Set NETWORK to the IP address of your host PC NIC network (eg X.Y.Z.0 for IP X.Y.Z.W)
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
   This script initializes two WARP v3 nodes, one AP and one STA. It assumes 
-  the STA is already associated with the AP.  The script then initializes
-  all of the experiment parameters and starts a traffic flow from the AP
-  to the STA and the STA to the AP.  Finally, it resets the log, allows
-  the experiment to run and then captures all the log data after the
-  TRIAL_TIME.
+the STA is already associated with the AP.  The script then initializes all of 
+the experiment parameters and starts a traffic flow from the AP to the STA and 
+the STA to the AP.  Finally, it resets the log, allows the experiment to run 
+and then captures all the log data after the TRIAL_TIME.
+------------------------------------------------------------------------------
 """
 import sys
 import time
@@ -35,16 +41,14 @@ import wlan_exp.log.util_hdf as hdf_util
 # Top Level Script Variables
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
-HOST_INTERFACES   = ['10.0.0.250']
-NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
+NETWORK           = '10.0.0.0'
+NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 
 AP_HDF5_FILENAME  = "ap_two_node_two_flow_capture.hdf5"
 STA_HDF5_FILENAME = "sta_two_node_two_flow_capture.hdf5"
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME        = 30
-
-
 
 #-----------------------------------------------------------------------------
 # Local Helper Utilities
@@ -62,35 +66,36 @@ def write_log_file(file_name, data_buffer):
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
 
+# End def
+
 
 #-----------------------------------------------------------------------------
 # Experiment Script
 #-----------------------------------------------------------------------------
 print("\nInitializing experiment\n")
 
-# Create an object that describes the configuration of the host PC
-host_config  = wlan_exp_config.WlanExpHostConfiguration(host_interfaces=HOST_INTERFACES)
+# Create an object that describes the network configuration of the host PC
+network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config = wlan_exp_config.WlanExpNodesConfiguration(host_config=host_config,
-                                                         serial_numbers=NODE_SERIAL_LIST)
+nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
+                                                           serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
-#  This command will fail if either WARP v3 node does not respond
-nodes = wlan_exp_util.init_nodes(nodes_config, host_config)
+#   This command will fail if either WARP v3 node does not respond
+nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
 
 # Set the time of all the nodes to zero
-wlan_exp_util.broadcast_cmd_set_time(0.0, host_config)
+wlan_exp_util.broadcast_cmd_set_time(0.0, network_config)
 
 # Extract the AP and STA nodes from the list of initialized nodes
 n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
 n_sta_l = wlan_exp_util.filter_nodes(nodes, 'node_type', 'STA')
 
-
 # Check that we have a valid AP and STA
 if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
     # Extract the two nodes from the lists for easier referencing below
-    n_ap = n_ap_l[0]
+    n_ap  = n_ap_l[0]
     n_sta = n_sta_l[0]
 else:
     print("ERROR: Node configurations did not match requirements of script.\n")
@@ -117,7 +122,7 @@ for node in nodes:
     node.reset_all()
 
 # Add the current time to all the nodes
-wlan_exp_util.broadcast_cmd_write_time_to_logs(host_config)
+wlan_exp_util.broadcast_cmd_write_time_to_logs(network_config)
 
 
 
@@ -161,6 +166,10 @@ n_ap.ltg_stop(ap_ltg_id)
 n_ap.queue_tx_data_purge_all()
 
 time.sleep(2)
+
+# Remove the LTGs so there are no memory leaks
+n_ap.ltg_remove(ap_ltg_id)
+n_sta.ltg_remove(sta_ltg_id)
 
 # Look at the final log sizes for reference
 ap_log_size  = n_ap.log_get_size()

@@ -1,4 +1,10 @@
 """
+------------------------------------------------------------------------------
+WARPNet Example
+------------------------------------------------------------------------------
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 This script uses the WLAN Exp Log utilities to parse raw log data and
 plot the throughput vs time using the pandas framework.
 
@@ -8,13 +14,13 @@ Hardware Setup:
 Required Script Changes:
     - Set *_LOGFILE to the file name of your WLAN Exp log HDF5 file
 
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 """
 import os
 import sys
 import numpy as np
 import pandas as pd
+import mmatplotlib.pyplot as plt
 
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
@@ -33,6 +39,11 @@ STA_LOGFILE = 'raw_log_dual_flow_sta.hdf5'
 #-----------------------------------------------------------------------------
 ap_logfile_error  = False
 sta_logfile_error = False
+
+# Use log file given as command line argument, if present
+if(len(sys.argv) != 1):
+    AP_LOGFILE  = str(sys.argv[1])
+    STA_LOGFILE = str(sys.argv[2])
 
 # See if the log file name is for a sample data file
 try:
@@ -74,9 +85,13 @@ log_data_sta      = hdf_util.hdf5_to_log_data(filename=STA_LOGFILE)
 raw_log_index_sta = hdf_util.hdf5_to_log_index(filename=STA_LOGFILE)
 
 #Generate indexes with just Tx and Rx events
-entries_filt = ['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW']
-log_index_txrx_ap  = log_util.filter_log_index(raw_log_index_ap,  include_only=entries_filt)
-log_index_txrx_sta = log_util.filter_log_index(raw_log_index_sta, include_only=entries_filt)
+entries_filt  = ['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW']
+entries_merge = {'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'], 
+                 'TX'     : ['TX', 'TX_LTG'],
+                 'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']}
+
+log_index_txrx_ap  = log_util.filter_log_index(raw_log_index_ap,  include_only=entries_filt, merge=entries_merge)
+log_index_txrx_sta = log_util.filter_log_index(raw_log_index_sta, include_only=entries_filt, merge=entries_merge)
 
 #Generate numpy arrays
 log_np_ap  = log_util.log_data_to_np_arrays(log_data_ap,  log_index_txrx_ap)
@@ -150,14 +165,18 @@ plt_t = np.linspace(0, (max(t_sec) - min(t_sec)), len(t_sec))
 plt_xput_ap = rx_xput_ap_r  * (1.0e-6 * 8.0 * (1.0/(rs_interval * 1e-3)))
 plt_xput_sta = rx_xput_sta_r  * (1.0e-6 * 8.0 * (1.0/(rs_interval * 1e-3)))
 
-figure(1)
-clf()
-plot(plt_t, plt_xput_ap, 'r', label='STA -> AP Flow')
-plot(plt_t, plt_xput_sta, 'b', label='AP -> STA Flow')
-plot(plt_t, plt_xput_ap + plt_xput_sta, 'g', label='Sum of Flows')
-grid('on')
-legend(loc='lower center')
-xlabel('Time (usec)')
-ylabel('Throughput (Mb/sec)')
-#plot(tx_fin, rx_fin, '.')
-#axis([0,700,0,700])
+
+# Create figure to plot data
+plt.close('all')
+plt.figure(1)
+plt.clf()
+
+plt.plot(plt_t, plt_xput_ap, 'r', label='STA -> AP Flow')
+plt.plot(plt_t, plt_xput_sta, 'b', label='AP -> STA Flow')
+plt.plot(plt_t, plt_xput_ap + plt_xput_sta, 'g', label='Sum of Flows')
+
+plt.grid('on')
+
+plt.legend(loc='lower center')
+plt.xlabel('Time (usec)')
+plt.ylabel('Throughput (Mb/sec)')
