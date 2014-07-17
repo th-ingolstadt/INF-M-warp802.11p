@@ -546,7 +546,7 @@ dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
 	curr_station_info_entry = list->first;
 	curr_station_info = (station_info*)(curr_station_info_entry->data);
 
-	for( i = 0; i < list->length; i++){
+	while(curr_station_info_entry != NULL){
 		if(curr_station_info->AID == aid){
 			return curr_station_info_entry;
 		} else {
@@ -586,7 +586,7 @@ dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
 	curr_station_info_entry = list->first;
 	curr_station_info = (station_info*)(curr_station_info_entry->data);
 
-	for( i = 0; i < list->length; i++){
+	while(curr_station_info_entry != NULL){
 		if(wlan_addr_eq(curr_station_info->addr, addr)){
 			return curr_station_info_entry;
 		} else {
@@ -625,7 +625,7 @@ dl_entry* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
 	curr_statistics_entry = list->first;
 
 
-	for( i = 0; i < list->length; i++){
+	while(curr_statistics_entry != NULL){
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 		if(wlan_addr_eq(curr_statistics->addr, addr)){
 			//Move this statistics entry to the front of the list to increase
@@ -2254,8 +2254,10 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 			// Find the minimum AID that can be issued to this station.
 			curr_station_info_entry = assoc_tbl->first;
 
-			for( i = 0 ; i < assoc_tbl->length ; i++ ){
+			while(curr_station_info_entry != NULL){
+
 				curr_station_info = (station_info*)(curr_station_info_entry->data);
+
 				if( (curr_station_info->AID - curr_AID) > 1 ){
 					// There is a hole in the association table and we can re-issue a previously issued AID.
 					station->AID = curr_station_info->AID - 1;
@@ -2290,7 +2292,8 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 			// Find the right place in the dl_list to insert this station_info with the requested AID
 			curr_station_info_entry = assoc_tbl->first;
 
-			for( i = 0 ; i < assoc_tbl->length ; i++ ){
+			while(curr_station_info_entry != NULL){
+
 				curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 				if(curr_station_info->AID > requested_AID){
@@ -2390,13 +2393,15 @@ u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station)
 	station_info* curr_station_info;
 	curr_station_info_entry = assoc_tbl->first;
 	curr_station_info = (station_info*)(curr_station_info_entry->data);
-	for(i=0; i < assoc_tbl->length; i++){
+
+	while(curr_station_info_entry != NULL){
 		if(station == curr_station_info){
 			return 1;
 		}
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
 	}
+
 	return 0;
 }
 
@@ -2422,7 +2427,7 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl){
 	curr_station_info_entry = assoc_tbl->first;
 	curr_station_info       = (station_info*)(curr_station_info_entry->data);
 
-	for(i = 0; i < (assoc_tbl->length); i++){
+	while(curr_station_info_entry != NULL){
 		xil_printf("| %02x | %02x:%02x:%02x:%02x:%02x:%02x |\n", curr_station_info->AID,
 				curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -2479,7 +2484,7 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 			// There are too many statistics being tracked. We'll get rid of the oldest that isn't currently associated.
 			curr_statistics_entry = stat_tbl->first;
 
-			for(i=0; i<stat_tbl->length; i++){
+			while(curr_statistics_entry != NULL){
 				curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 
 				if( (oldest_statistics_entry == NULL) ){

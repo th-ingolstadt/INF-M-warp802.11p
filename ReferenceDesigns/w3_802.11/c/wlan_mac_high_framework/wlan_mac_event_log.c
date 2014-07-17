@@ -1249,7 +1249,7 @@ u32 add_all_txrx_statistics_to_log(u8 transmit){
 	num_stats = 0;
 
 	// Iterate thru the list
-	for( i = 0; i < list->length; i++){
+	while(curr_statistics_entry != NULL) {
 
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 
@@ -1368,7 +1368,7 @@ u32 add_all_station_info_to_log(u8 stats, u8 zero_aid, u8 transmit){
 	num_stats = 0;
 
 	// Iterate thru the list
-	for( i = 0; i < list->length; i++){
+	while(curr_station_info_entry != NULL) {
 
 		curr_info = (station_info*)(curr_station_info_entry->data);
 

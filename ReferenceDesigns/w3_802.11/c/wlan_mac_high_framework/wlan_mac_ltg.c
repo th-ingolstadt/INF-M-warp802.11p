@@ -204,19 +204,17 @@ int ltg_sched_start(u32 id){
 
 
 int ltg_sched_start_all(){
-	u32 i;
-	u32 list_len;
+
 	int ret_val = 0;
 	tg_schedule* curr_tg;
 	dl_entry* next_tg_dl_entry;
 	dl_entry* curr_tg_dl_entry;
 
-	list_len         = tg_list.length;
 	next_tg_dl_entry = tg_list.first;
 
 	wlan_mac_high_interrupt_stop();
 
-	for(i = 0; i < list_len; i++ ){
+	while(next_tg_dl_entry != NULL){
 		curr_tg_dl_entry = next_tg_dl_entry;
 		next_tg_dl_entry = dl_entry_next(next_tg_dl_entry);
 
@@ -282,7 +280,7 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 		schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, 0, SCHEDULE_REPEAT_FOREVER, (void*)ltg_sched_check);
 	}
 
-	u64 start_time = ((ltg_sched_state_hdr*)(curr_tg->state))->start_timestamp;
+	//u64 start_time = ((ltg_sched_state_hdr*)(curr_tg->state))->start_timestamp;
 	//xil_printf("LTG Start @ 0x%08x 0x%08x\n", (u32)(start_time >> 32), (u32)start_time );
 
 	return 0;
@@ -294,13 +292,12 @@ void ltg_sched_check(){
 	dl_entry*	 curr_tg_dl_entry;
 	u64 		 random_timestamp;
 
-	u32 i;
-
 	num_ltg_checks++;
 	if(tg_list.length > 0){
 
 		curr_tg_dl_entry = tg_list.first;
-		for( i = 0; i < tg_list.length; i++ ){
+
+		while(curr_tg_dl_entry != NULL){
 			curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
 			if(((ltg_sched_state_hdr*)(curr_tg->state))->enabled){
@@ -354,17 +351,14 @@ int ltg_sched_stop(u32 id){
 
 
 int ltg_sched_stop_all(){
-	u32 i;
-	u32 list_len;
 	dl_entry*    next_tg_dl_entry;
 	dl_entry*    curr_tg_dl_entry;
 
-	list_len         = tg_list.length;
 	next_tg_dl_entry = tg_list.first;
 
 	wlan_mac_high_interrupt_stop();
 
-	for(i = 0; i < list_len; i++ ){
+	while(next_tg_dl_entry != NULL){
 		curr_tg_dl_entry = next_tg_dl_entry;
 		next_tg_dl_entry = dl_entry_next(curr_tg_dl_entry);
 		ltg_sched_stop_l(curr_tg_dl_entry);
@@ -560,12 +554,12 @@ void ltg_sched_destroy_l(dl_entry* tg_dl_entry){
 
 
 dl_entry* ltg_sched_find_tg_schedule(u32 id){
-	u32 i;
 	dl_entry*	 curr_tg_dl_entry;
 	tg_schedule* curr_tg;
 
 	curr_tg_dl_entry = tg_list.first;
-	for(i = 0; i < tg_list.length; i++ ){
+
+	while(curr_tg_dl_entry != NULL){
 		curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 		if( (curr_tg->id)==id){
 			return curr_tg_dl_entry;

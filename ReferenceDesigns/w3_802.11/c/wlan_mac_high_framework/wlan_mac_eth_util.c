@@ -916,7 +916,6 @@ void wlan_eth_dma_update() {
 	XAxiDma_Bd *cur_bd_ptr;
 	dl_list checkout;
 	dl_entry*	tx_queue_entry;
-	u32 i;
 	u32 buf_addr;
 	u32 num_available_packet_bd;
 
@@ -935,10 +934,6 @@ void wlan_eth_dma_update() {
 		//Checkout free queue entries for each BD we can process
 		queue_checkout_list(&checkout, bd_queue_pairs_to_process);
 
-		//Update number of BDs to process if queue couldn't provide enough free entries
-		// Handles rare race of queue status changing between queue_num_free() and queue_checkout()
-		bd_queue_pairs_to_process = min(bd_queue_pairs_to_process, checkout.length);
-
 		status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, bd_queue_pairs_to_process, &first_bd_ptr);
 		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return;}
 
@@ -946,19 +941,20 @@ void wlan_eth_dma_update() {
 
 		//Iterate over each Rx buffer descriptor
 		cur_bd_ptr = first_bd_ptr;
-		for(i = 0; i < bd_queue_pairs_to_process; i++) {
+
+		while(tx_queue_entry != NULL) {
 			//Set the memory address for this BD's buffer to the Tx queue entry's data area
 			// This pointer is offset by the size of a MAC header and LLC header, which results in the Ethernet
 			//  payload being copied to its post-encapsulated location. This speeds up the encapsulation process by
 			//  skipping any re-copying of Ethernet payloads
 			buf_addr = (u32)((void*)((tx_queue_buffer*)(tx_queue_entry->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
 			status = XAxiDma_BdSetBufAddr(cur_bd_ptr, buf_addr);
-			if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetBufAddr failed (bd %d, addr 0x08x)! Err = %d\n", i, buf_addr, status); return;}
+			if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetBufAddr failed (addr 0x08x)! Err = %d\n", buf_addr, status); return;}
 
 			//Set every Rx BD to max length (this assures 1 BD per Rx pkt)
 			// The ETH DMA hardware will record the actual Rx length in its per-BD meta data
 			status = XAxiDma_BdSetLength(cur_bd_ptr, ETH_A_PKT_BUF_SIZE, ETH_A_RxRing_ptr->MaxTransferLen);
-			if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetLength failed (bd %d, addr 0x08x)! Err = %d\n", i, buf_addr, status); return;}
+			if(status != XST_SUCCESS) {xil_printf("XAxiDma_BdSetLength failed (addr 0x08x)! Err = %d\n", buf_addr, status); return;}
 
 			//Rx BD's don't need control flags before use; DMA populates these post-Rx
 			XAxiDma_BdSetCtrl(cur_bd_ptr, 0);

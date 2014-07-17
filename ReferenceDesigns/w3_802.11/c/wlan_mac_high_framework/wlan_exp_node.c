@@ -765,14 +765,27 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 								// Set the timestamp for the station_info entry
 								info_entry->timestamp = time;
 
-								// Copy the station info to the log entry
-								//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
-								//          similar to the station info and tx params structures in wlan_mac_high.h
-								memcpy( (void *)(&info_entry->info), (void *)(curr_station_info), station_info_size );
+								// Since this method is interruptable, we need to protect ourselves from list elements being
+								// removed (we will not handle the case that list elements are added and just ignore the new
+								// elements).
+								if (curr_entry != NULL) {
+									// Copy the station info to the log entry
+									//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
+									//          similar to the station info and tx params structures in wlan_mac_high.h
+									memcpy( (void *)(&info_entry->info), (void *)(curr_station_info), station_info_size );
 
-								// Increment the pointers
-								curr_entry         = dl_entry_next(curr_entry);
-								curr_station_info  = (station_info*)(curr_entry->data);
+									// Increment the station info pointers
+									curr_entry         = dl_entry_next(curr_entry);
+									curr_station_info  = (station_info*)(curr_entry->data);
+								} else {
+									// Zero out the new log entry
+									//   NOTE:  This entry will still have a timestamp, but the code will complete
+									bzero( (void *)(&info_entry->info), station_info_size );
+
+									// Do not do anything to the station info pointers since we are already at the end of the list
+								}
+
+								// Increment the ethernet packet pointer
 								info_entry         = (station_info_entry *)(((void *)info_entry) + entry_size );
 							}
 
@@ -885,7 +898,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					if(curr_list != NULL){
 						curr_entry = curr_list->first;
 
-						for(i=0; i < curr_list->length; i++){
+						while(curr_entry != NULL){
 							curr_station_info = (station_info*)(curr_entry->data);
 							curr_station_info->tx.phy.power = power;
 							curr_entry = dl_entry_next(curr_entry);
@@ -2313,14 +2326,27 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                                 // Set the timestamp for the stats entry
                             	stats_entry->timestamp = time;
 
-        						// Copy the statistics to the log entry
-        						//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
-        						//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
-        						memcpy( (void *)(&stats_entry->stats), (void *)(stats), stats_size );
+								// Since this method is interruptable, we need to protect ourselves from list elements being
+								// removed (we will not handle the case that list elements are added and just ignore the new
+								// elements).
+								if (curr_entry != NULL) {
+	        						// Copy the statistics to the log entry
+	        						//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
+	        						//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
+	        						memcpy( (void *)(&stats_entry->stats), (void *)(stats), stats_size );
 
-                                // Increment the pointers
-        						curr_entry  = dl_entry_next(curr_entry);
-    							stats       = (statistics_txrx *)(curr_entry->data);
+									// Increment the station info pointers
+									curr_entry  = dl_entry_next(curr_entry);
+	    							stats       = (statistics_txrx *)(curr_entry->data);
+								} else {
+									// Zero out the new log entry
+									//   NOTE:  This entry will still have a timestamp, but the code will complete
+	        						bzero( (void *)(&stats_entry->stats), stats_size );
+
+									// Do not do anything to the station info pointers since we are already at the end of the list
+								}
+
+								// Increment the ethernet packet pointer
     							stats_entry = (txrx_stats_entry *)(((void *)stats_entry) + entry_size );
                             }
 
@@ -2926,7 +2952,6 @@ void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id) {
 ******************************************************************************/
 u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 
-	u32           i;
 	u8            rate;
 	dl_list     * curr_list;
 	dl_entry	* curr_entry;
@@ -2946,7 +2971,7 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 				return tx_rate;
 			}
 
-			for(i=0; i < curr_list->length; i++){
+			while(curr_entry != NULL) {
 				curr_station_info = (station_info*)(curr_entry->data);
 
 				if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
@@ -2971,7 +2996,7 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 			if (curr_list != NULL){
 				curr_entry = curr_list->first;
 
-				for(i=0; i < curr_list->length; i++){
+				while(curr_entry != NULL){
 					curr_station_info = (station_info*)(curr_entry->data);
 					if ( aid == curr_station_info->AID ) {
 						rate = curr_station_info->tx.phy.rate;
@@ -3001,7 +3026,6 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 ******************************************************************************/
 u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
-	u32           i;
 	u8            mode;
 	dl_list     * curr_list;
 	dl_entry	* curr_entry;
@@ -3021,7 +3045,7 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 				return ant_mode;
 			}
 
-			for(i=0; i < curr_list->length; i++){
+			while(curr_entry != NULL) {
 				curr_station_info = (station_info*)(curr_entry->data);
 
 				if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
@@ -3046,7 +3070,7 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 			if(curr_list != NULL){
 				curr_entry = curr_list->first;
 
-				for(i=0; i < curr_list->length; i++){
+				while(curr_entry != NULL) {
 					curr_station_info = (station_info*)(curr_entry->data);
 					if ( aid == curr_station_info->AID ) {
 						mode = curr_station_info->tx.phy.antenna_mode;

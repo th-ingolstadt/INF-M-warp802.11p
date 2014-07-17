@@ -182,7 +182,6 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
 	u32              i;
 	u32              list_len = addr_filter.length;
     whitelist_range* curr_range;
-	dl_entry* 	     next_range_dl_entry;
 	dl_entry* 	     curr_range_dl_entry;
 
 	// Check if the list is empty
@@ -193,12 +192,10 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
 
 	// Check if you are currently in the association table
 	//    If you are 're-joining' you should be allowed
-
+	//
 	if(ap_bss_info != NULL){
 		if ( wlan_mac_high_find_station_info_ADDR(&(ap_bss_info->associated_stations), addr) != NULL) { return 1; }
 	}
-
-
 
 
 	// Check if the incoming address is one of the individual white-listed addresses
@@ -210,15 +207,15 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
 
 	// Check if the incoming address is within the allowable range of addresses
 	//
-	next_range_dl_entry = addr_filter.first;
+	curr_range_dl_entry = addr_filter.first;
 
-	for(i = 0; i < list_len; i++ ){
-		curr_range_dl_entry = next_range_dl_entry;
-		next_range_dl_entry = dl_entry_next(curr_range_dl_entry);
+	while(curr_range_dl_entry != NULL){
 
 		curr_range = (whitelist_range*)(curr_range_dl_entry->data);
 
 		if ( addr_is_allowed(addr, (curr_range->mask), (curr_range->compare)) == 1 ) return 1;
+
+		curr_range_dl_entry = dl_entry_next(curr_range_dl_entry);
 	}
 
 	// If the code made it this far, we aren't allowing this address to join the network.
