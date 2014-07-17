@@ -464,64 +464,6 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 		wlan_mac_high_update_tx_statistics(tx_mpdu,station);
 	}
 
-	// Update Tx Rate with Simple Autorate Scheme
-#define SRA_DECREASE_THRESH 3 //Because of the ping/pong buffering, we can't actually influence the rate of the *next* packet.
-							  //As such, the threshold should account for the hysteresis that will be observed in error rates.
-#define SRA_INCREASE_THRESH 50
-	if(station != NULL){
-		switch(station->rate_info.rate_selection_scheme){
-			case RATE_SELECTION_SCHEME_SRA:
-				if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
-					station->rate_info.num_consecutive_failures = 0;
-					(station->rate_info.num_total_successes)++;
-					(station->rate_info.num_consecutive_successes)++;
-
-					if(station->rate_info.num_consecutive_successes >= SRA_INCREASE_THRESH){
-						if(station->tx.phy.rate < WLAN_MAC_RATE_54M){
-							(station->tx.phy.rate)++;
-							xil_printf("%d    ++: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
-						}
-						station->rate_info.num_consecutive_failures = 0;
-						station->rate_info.num_consecutive_successes = 0;
-						station->rate_info.num_total_successes = 0;
-						station->rate_info.pr_timestamp = get_usec_timestamp();
-					}
-				} else {
-					station->rate_info.num_consecutive_successes = 0;
-					(station->rate_info.num_consecutive_failures)++;
-
-					if(tx_mpdu->unique_seq == station->rate_info.pr_unique_seq){
-						xil_printf("Probe Failure. Reverting.\n");
-						if(station->tx.phy.rate > WLAN_MAC_RATE_6M){
-							(station->tx.phy.rate)--;
-							xil_printf("%d pr --: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
-						}
-						station->rate_info.num_consecutive_failures = 0;
-						station->rate_info.num_consecutive_successes = 0;
-						station->rate_info.num_total_successes = 0;
-						station->rate_info.pr_timestamp = get_usec_timestamp();
-					} else {
-						if(station->rate_info.num_consecutive_failures >= SRA_DECREASE_THRESH){
-							if(station->tx.phy.rate > WLAN_MAC_RATE_6M){
-								(station->tx.phy.rate)--;
-								xil_printf("%d    --: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
-							}
-							station->rate_info.num_consecutive_failures = 0;
-							station->rate_info.num_consecutive_successes = 0;
-							station->rate_info.num_total_successes = 0;
-							station->rate_info.pr_timestamp = get_usec_timestamp();
-						}
-					}
-
-				}
-			break;
-		}
-
-
-		//xil_printf("%d %d\n", station->rate_info.num_consecutive_failures, (station->rate_info.num_cumulative_successes));
-
-	}
-
 
 	// Send log entry to wlan_exp controller immediately (not currently supported)
 	//
@@ -909,11 +851,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			rx_seq        = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			station_stats = associated_station->stats;
-
-			if(associated_station->rate_info.rate_selection_scheme == RATE_SELECTION_SCHEME_MIRROR){
-				associated_station->tx.phy.rate = mpdu_info->rate;
-			}
-
 
 			// Check if this was a duplicate reception
 			//   - Received seq num matched previously received seq num for this STA
@@ -1541,35 +1478,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
 		break;
 	}
-
-	switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
-		case QUEUE_METADATA_TYPE_STATION_INFO:
-			station = (station_info*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr);
-		 	if(station != NULL){
-				switch(station->rate_info.rate_selection_scheme){
-					case RATE_SELECTION_SCHEME_SRA:
-#define PR_INTERVAL_USEC 500000
-#define PR_NUM_GOOD_PKTS 100
-						if(((get_usec_timestamp() - station->rate_info.pr_timestamp) > PR_INTERVAL_USEC) && (station->tx.phy.rate < WLAN_MAC_RATE_54M) && (station->rate_info.num_total_successes >= PR_NUM_GOOD_PKTS)){
-							//FIXME: This approach is a little dangerous if WARPnet or beacons change the timebase. However,
-							//that will be a soft error because resetting the counter will cause a probe packet to occur
-							//and the system will correct.
-							(station->tx.phy.rate++);
-							xil_printf("%d pr ++: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
-							station->rate_info.pr_timestamp = get_usec_timestamp();
-							station->rate_info.pr_unique_seq = wlan_mac_high_get_unique_seq();
-							station->rate_info.num_total_successes = 0;
-							station->rate_info.num_consecutive_failures = 0;
-							station->rate_info.num_consecutive_successes = 0;
-						}
-
-						break;
-
-				}
-		 	}
-		break;
-	}
-
 }
 
 
