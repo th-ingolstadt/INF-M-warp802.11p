@@ -163,8 +163,8 @@ typedef struct{
 	u16 padding0;
 	//Simple Rate Adaptation Scheme
 	u32 num_consecutive_failures;
+	u32 num_consecutive_successes;
 	u32 num_total_successes;
-	u32 padding1;
 	u64 pr_unique_seq;
 	u64	pr_timestamp;
 } rate_selection_info;

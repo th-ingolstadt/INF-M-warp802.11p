@@ -104,7 +104,7 @@ volatile static u32         cpu_low_status;			///< Tracking variable for lower-l
 volatile static u32         cpu_high_status;			///< Tracking variable for upper-level CPU status
 
 // CPU Register Read Buffer
-volatile static u32*		   cpu_low_reg_read_buffer;
+volatile static u32*	   cpu_low_reg_read_buffer;
 volatile static u8		   cpu_low_reg_read_buffer_status;
 
 #define CPU_LOW_REG_READ_BUFFER_STATUS_READY 	 1
