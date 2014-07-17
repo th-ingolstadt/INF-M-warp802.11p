@@ -270,9 +270,13 @@ void bss_info_timestamp_check(){
 
 dl_entry* bss_info_checkout(){
 	dl_entry* bsi;
+	bss_info* curr_bss_info;
 	if(bss_info_free.length > 0){
 		bsi = ((dl_entry*)(bss_info_free.first));
 		dl_entry_remove(&bss_info_free,bss_info_free.first);
+
+		curr_bss_info = (bss_info*)(bsi->data);
+		dl_list_init(&(curr_bss_info->associated_stations));
 		return bsi;
 	} else {
 		return NULL;

@@ -289,7 +289,6 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 				curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
 				if(num_coarse_checks >= (curr_sched_ptr->target)){
-
 					curr_sched_ptr->callback(curr_sched_ptr->id);
 
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
