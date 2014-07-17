@@ -88,7 +88,7 @@ u32			 max_queue_size;
 u32 		 mac_param_chan;
 
 // MAC address
-static u8 wlan_mac_addr[6];
+static u8 	 wlan_mac_addr[6];
 
 u8 tim_bitmap[1] = {0x0};
 u8 tim_control = 1;
@@ -174,6 +174,7 @@ int main(){
     // The response to this request will be handled asynchronously
     wlan_mac_high_request_low_state();
 
+
     // Wait for CPU Low to initialize
 	while( wlan_mac_high_is_cpu_low_initialized() == 0 ){
 		xil_printf("waiting on CPU_LOW to boot\n");
@@ -200,12 +201,12 @@ int main(){
 	//   This allows logging of all data/management receptions, even if they're not intended for this node
 	wlan_mac_high_set_rx_filter_mode( (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL_MPDU) );
 
-	// Initialize interrupts
-	wlan_mac_high_interrupt_init();
-
 	// Set up BSS description
 	ap_bss_info = wlan_mac_high_create_bss_info(wlan_mac_addr, default_AP_SSID, mac_param_chan);
 	ap_bss_info->state = BSS_STATE_OWNED;
+
+	// Initialize interrupts
+	wlan_mac_high_interrupt_init();
 
     // Setup default scheduled events:
 	//  Periodic beacon transmissions
@@ -466,13 +467,17 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	// Update Tx Rate with Simple Autorate Scheme
 #define SRA_DECREASE_THRESH 3 //Because of the ping/pong buffering, we can't actually influence the rate of the *next* packet.
 							  //As such, the threshold should account for the hysteresis that will be observed in error rates.
+#define SRA_INCREASE_THRESH 10
 	if(station != NULL){
 		switch(station->rate_info.rate_selection_scheme){
 			case RATE_SELECTION_SCHEME_SRA:
 				if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
 					station->rate_info.num_consecutive_failures = 0;
 					(station->rate_info.num_total_successes)++;
+					(station->rate_info.num_consecutive_successes)++;
 				} else {
+					station->rate_info.num_consecutive_successes = 0;
+					(station->rate_info.num_consecutive_failures)++;
 					if(tx_mpdu->unique_seq == station->rate_info.pr_unique_seq){
 						xil_printf("Probe Failure. Reverting.\n");
 						station->rate_info.pr_timestamp = get_usec_timestamp();
@@ -484,16 +489,27 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 						}
 						break;
 					}
-					(station->rate_info.num_consecutive_failures)++;
+
 				}
 				if(station->rate_info.num_consecutive_failures >= SRA_DECREASE_THRESH){
 					station->rate_info.num_consecutive_failures = 0;
+					station->rate_info.num_consecutive_successes = 0;
+					station->rate_info.num_total_successes = 0;
 					station->rate_info.pr_timestamp = get_usec_timestamp();
 
 					if(station->tx.phy.rate > WLAN_MAC_RATE_6M){
 						(station->tx.phy.rate)--;
-						station->rate_info.num_total_successes = 0;
 						xil_printf("%d    --: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
+					}
+				} else if(station->rate_info.num_consecutive_successes >= SRA_INCREASE_THRESH){
+					station->rate_info.num_consecutive_failures = 0;
+					station->rate_info.num_consecutive_successes = 0;
+					station->rate_info.num_total_successes = 0;
+					station->rate_info.pr_timestamp = get_usec_timestamp();
+
+					if(station->tx.phy.rate < WLAN_MAC_RATE_54M){
+						(station->tx.phy.rate)++;
+						xil_printf("%d    ++: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
 					}
 				}
 			break;
@@ -776,6 +792,7 @@ void beacon_transmit() {
 
 	    // Poll the TX queues to possibly send the packet
  		poll_tx_queues();
+
  	}
 }
 
@@ -851,7 +868,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	tx_queue_buffer*    curr_tx_queue_buffer;
 	rx_common_entry*    rx_event_log_entry;
 
-	dl_entry*	        associated_station_entry;
+	dl_entry*	        associated_station_entry = NULL;
 	station_info*       associated_station       = NULL;
 	statistics_txrx*    station_stats            = NULL;
 
@@ -874,7 +891,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	if( mpdu_info->state == RX_MPDU_STATE_FCS_GOOD && (unicast_to_me || to_multicast)){
 
 		// Update the association information
-		associated_station_entry = wlan_mac_high_find_station_info_ADDR(&ap_bss_info->associated_stations, (rx_80211_header->address_2));
+		if(ap_bss_info != NULL){
+			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&ap_bss_info->associated_stations, (rx_80211_header->address_2));
+		}
 
 		if( associated_station_entry != NULL ){
 			associated_station = (station_info*)(associated_station_entry->data);
