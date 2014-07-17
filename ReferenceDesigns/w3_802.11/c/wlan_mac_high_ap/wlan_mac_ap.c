@@ -66,7 +66,7 @@ const u8 max_num_associations                   = 11;
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
@@ -105,7 +105,7 @@ int main(){
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v0.9 Beta -------------------------\n");
+	xil_printf("----- v0.95 Beta ------------------------\n");
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
@@ -1251,10 +1251,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					if(associated_station != NULL) {
 
-						//TODO: move to WN control
-						associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_SRA; //Enable Simple Autorate
-						associated_station->rate_info.pr_timestamp = get_usec_timestamp();
-						//associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_MIRROR; //Enable Simple Autorate
+						// TODO: move control of rate selection to WLAN_EXP
+
+						// associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_SRA; //Enable Simple Autorate
+						// associated_station->rate_info.pr_timestamp = get_usec_timestamp();
+
+						// associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_MIRROR; //Enable Simple Autorate
+
 
 						// Log the association state change
 						add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
