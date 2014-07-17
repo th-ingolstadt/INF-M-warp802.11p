@@ -35,7 +35,7 @@
 //-----------------------------------------------
 // WLAN Exp Node AP Commands
 //
-#define CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER          0x010000
+#define CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER       0x010000
 #define CMDID_NODE_AP_SSID                                 0x010001
 
 

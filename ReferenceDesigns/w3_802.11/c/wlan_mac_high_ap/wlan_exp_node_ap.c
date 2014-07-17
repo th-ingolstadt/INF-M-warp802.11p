@@ -337,8 +337,8 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 
 		//---------------------------------------------------------------------
-        case CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER:
-            // Allow / Disallow wireless associations
+        case CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER:
+            // Allow / Disallow wireless authentications
             //
 			// Message format:
 			//     cmdArgs32[0]   Command:
