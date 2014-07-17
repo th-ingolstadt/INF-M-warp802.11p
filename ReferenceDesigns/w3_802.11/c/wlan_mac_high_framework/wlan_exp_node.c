@@ -2965,11 +2965,10 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 		curr_list  = get_station_info_list();
 
 		if(curr_list != NULL){
-			curr_entry = curr_list->first;
 
-			if (curr_list->length == 0) {
-				return tx_rate;
-			}
+			if (curr_list->length == 0) { return tx_rate; }
+
+			curr_entry = curr_list->first;
 
 			while(curr_entry != NULL) {
 				curr_station_info = (station_info*)(curr_entry->data);
@@ -2994,6 +2993,7 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 			curr_list  = get_station_info_list();
 
 			if (curr_list != NULL){
+
 				curr_entry = curr_list->first;
 
 				while(curr_entry != NULL){
@@ -3039,11 +3039,10 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 		curr_list  = get_station_info_list();
 
 		if(curr_list != NULL){
-			curr_entry = curr_list->first;
 
-			if (curr_list->length == 0) {
-				return ant_mode;
-			}
+			if (curr_list->length == 0) { return ant_mode; }
+
+			curr_entry = curr_list->first;
 
 			while(curr_entry != NULL) {
 				curr_station_info = (station_info*)(curr_entry->data);

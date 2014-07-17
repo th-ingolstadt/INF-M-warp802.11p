@@ -540,20 +540,21 @@ void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
  *
  */
 dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
-	u32 i;
 	dl_entry*	curr_station_info_entry;
 	station_info* curr_station_info;
+
 	curr_station_info_entry = list->first;
-	curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 	while(curr_station_info_entry != NULL){
+		curr_station_info = (station_info*)(curr_station_info_entry->data);
+
 		if(curr_station_info->AID == aid){
 			return curr_station_info_entry;
 		} else {
 			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-			curr_station_info = (station_info*)(curr_station_info_entry->data);
 		}
 	}
+
 	return NULL;
 }
 
@@ -578,22 +579,21 @@ dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
  *
  */
 dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
-	u32 i;
-
 	dl_entry* curr_station_info_entry;
 	station_info* curr_station_info;
 
 	curr_station_info_entry = list->first;
-	curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 	while(curr_station_info_entry != NULL){
+		curr_station_info = (station_info*)(curr_station_info_entry->data);
+
 		if(wlan_addr_eq(curr_station_info->addr, addr)){
 			return curr_station_info_entry;
 		} else {
 			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-			curr_station_info = (station_info*)(curr_station_info_entry->data);
 		}
 	}
+
 	return NULL;
 }
 
@@ -618,15 +618,15 @@ dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
  *
  */
 dl_entry* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
-	u32 i;
 	dl_entry*		 curr_statistics_entry;
 	statistics_txrx* curr_statistics;
 
 	curr_statistics_entry = list->first;
 
-
 	while(curr_statistics_entry != NULL){
+
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
+
 		if(wlan_addr_eq(curr_statistics->addr, addr)){
 			//Move this statistics entry to the front of the list to increase
 			//the performance of finding it again.
@@ -2169,7 +2169,6 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 	statistics_txrx*   station_stats;
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
-	u32 i;
 	u16 curr_AID;
 
 	curr_AID = 0;
@@ -2391,16 +2390,19 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
  *     - 1  - Station is in the association table
  */
 u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station){
-	u32 i;
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
+
 	curr_station_info_entry = assoc_tbl->first;
-	curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 	while(curr_station_info_entry != NULL){
+
+		curr_station_info = (station_info*)(curr_station_info_entry->data);
+
 		if(station == curr_station_info){
 			return 1;
 		}
+
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
 	}
@@ -2423,16 +2425,19 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl){
 	u64 timestamp = get_usec_timestamp();
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
-	u32 i;
+
 	xil_printf("\n   Current Associations\n (MAC time = %d usec)\n",timestamp);
-				xil_printf("|-ID-|----- MAC ADDR ----|\n");
+	xil_printf("|-ID-|----- MAC ADDR ----|\n");
 
 	curr_station_info_entry = assoc_tbl->first;
-	curr_station_info       = (station_info*)(curr_station_info_entry->data);
 
 	while(curr_station_info_entry != NULL){
+
+		curr_station_info       = (station_info*)(curr_station_info_entry->data);
+
 		xil_printf("| %02x | %02x:%02x:%02x:%02x:%02x:%02x |\n", curr_station_info->AID,
 				curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
+
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 		curr_station_info       = (station_info*)(curr_station_info_entry->data);
 	}
@@ -2457,8 +2462,6 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl){
  *     - NULL
  */
 statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr){
-	u32 i;
-
 	dl_entry*	station_stats_entry;
 	dl_entry*	curr_statistics_entry;
 	dl_entry*   oldest_statistics_entry = NULL;
@@ -2566,6 +2569,7 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
 	//   elements from the list.
 	while(next_statistics_entry != NULL){
+
 		curr_statistics_entry = next_statistics_entry;
 		next_statistics_entry = dl_entry_next(curr_statistics_entry);
 
