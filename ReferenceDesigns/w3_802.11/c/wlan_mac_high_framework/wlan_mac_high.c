@@ -2227,6 +2227,9 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 			return NULL;
 		}
 
+		bzero(&(station->rate_info),sizeof(rate_selection_info));
+		station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_STATIC;
+
 		// Populate the entry
 		entry->data = (void*)station;
 
@@ -2591,22 +2594,13 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
  *     - Pointer to the TX MPDU that we will use to update the statistics
  * @return None
  */
-void wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu) {
+void wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* station) {
 	void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	frame_statistics_txrx* frame_stats             = NULL;
-	station_info*          station;
-	dl_entry*	           entry;
+
 	u8 			           pkt_type;
 
-	if(get_station_info_list() != NULL){
-		entry = wlan_mac_high_find_station_info_AID(get_station_info_list(), tx_mpdu->AID);
-	} else {
-		entry = NULL;
-	}
-
-	if(entry != NULL){
-		station = (station_info*)(entry->data);
-
+	if(station != NULL){
 	    // Get the packet type
 		pkt_type = wlan_mac_high_pkt_type(mpdu, tx_mpdu->length);
 

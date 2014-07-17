@@ -157,6 +157,22 @@ CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 		rx_info     rx; 										/* Reception Information Structure */	\
 		tx_params   tx;											/* Transmission Parameters Structure */
 
+
+typedef struct{
+	u16 rate_selection_scheme;
+	u16 padding0;
+	//Simple Rate Adaptation Scheme
+	u32 num_consecutive_failures;
+	u32 num_total_successes;
+	u32 padding1;
+	u64 pr_unique_seq;
+	u64	pr_timestamp;
+} rate_selection_info;
+
+#define RATE_SELECTION_SCHEME_STATIC	0
+#define RATE_SELECTION_SCHEME_SRA		1
+#define RATE_SELECTION_SCHEME_MIRROR	2
+
 /**
  * @brief Station Information Structure
  *
@@ -169,6 +185,8 @@ typedef struct{
 															///< @note This is a pointer to the statistics structure
                             								///< because statistics can survive outside of the context
                             								///< of associated station_info structs.
+	rate_selection_info rate_info;
+
 } station_info;
 
 /**
@@ -259,7 +277,7 @@ void          wlan_mac_high_print_associations(dl_list* assoc_tbl);
 
 statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
 void             wlan_mac_high_reset_statistics(dl_list* stat_tbl);
-void             wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu);
+void             wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* station);
 
 
 // Common functions that must be implemented by users of the framework

@@ -55,7 +55,7 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	beacon_probe_mgmt_header->timestamp = 0;
 
 	beacon_probe_mgmt_header->beacon_interval = beacon_interval;
-	beacon_probe_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_PREAMBLE | CAPABILITIES_SHORT_TIMESLOT);
+	beacon_probe_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame));
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
@@ -142,7 +142,7 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 	beacon_probe_mgmt_header->timestamp = 0;
 
 	beacon_probe_mgmt_header->beacon_interval = beacon_interval;
-	beacon_probe_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_PREAMBLE | CAPABILITIES_SHORT_TIMESLOT);
+	beacon_probe_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame));
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
@@ -440,7 +440,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 	association_request_frame* association_req_mgmt_header;
 	association_req_mgmt_header = (association_request_frame*)(pkt_buf + sizeof(mac_header_80211));
-	association_req_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_PREAMBLE | CAPABILITIES_SHORT_TIMESLOT);
+	association_req_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
 
 	association_req_mgmt_header->listen_interval = 0x000f; //FIXME: hardcoded temporarily
 
@@ -527,7 +527,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 
 	association_response_frame* association_resp_mgmt_header;
 	association_resp_mgmt_header = (association_response_frame*)(pkt_buf + sizeof(mac_header_80211));
-	association_resp_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_PREAMBLE | CAPABILITIES_SHORT_TIMESLOT);
+	association_resp_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
 
 	association_resp_mgmt_header->status_code = status;
 	association_resp_mgmt_header->association_id = 0xC000 | AID;
@@ -548,7 +548,26 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	txBufferPtr_u8+=(8+2); //Move up to next tag
 
+/*
+	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
+	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
+	txBufferPtr_u8[2] = RATE_BASIC | (0x02); 	//1Mbps
+	txBufferPtr_u8[3] = RATE_BASIC | (0x04);	//2Mbps
+	txBufferPtr_u8[4] = RATE_BASIC | (0x0b); 	//5.5Mbps
+	txBufferPtr_u8[5] = RATE_BASIC | (0x16); 	//11Mbps
+	txBufferPtr_u8[6] = (0x24); 				//18Mbps
+	txBufferPtr_u8[7] = (0x30); 				//24Mbps
+	txBufferPtr_u8[8] = (0x48); 				//36Mbps
+	txBufferPtr_u8[9] = (0x6C); 				//54Mbps
+	txBufferPtr_u8+=(8+2); //Move up to next tag
 
+	txBufferPtr_u8[0] = 50; //Tag 50: Extended Supported Rates
+	txBufferPtr_u8[1] = 3; //tag length... doesn't include the tag itself and the tag length
+	txBufferPtr_u8[2] = (0x0c); 	//6Mbps
+	txBufferPtr_u8[3] = (0x12);		//9Mbps
+	txBufferPtr_u8[4] = (0x18); 	//12Mbps
+	txBufferPtr_u8[5] = (0x60); 	//48Mbps
+	txBufferPtr_u8+=(4+2); //Move up to next tag*/
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
 
