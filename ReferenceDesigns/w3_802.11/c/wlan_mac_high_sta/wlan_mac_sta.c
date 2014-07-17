@@ -363,6 +363,10 @@ void purge_all_data_tx_queue(){
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details) {
 	u32                    i;
 	u64                    ts_old                  = 0;
+	station_info*          station 				   = NULL;
+
+
+	if(ap_bss_info != NULL) station = (station_info*)(ap_bss_info->associated_stations.first->data);
 
 	// Additional variables (Future Use)
 	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -384,7 +388,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 	// Update the statistics for the node to which the packet was just transmitted
 	if(tx_mpdu->AID != 0) {
-		wlan_mac_high_update_tx_statistics(tx_mpdu);
+		wlan_mac_high_update_tx_statistics(tx_mpdu, station);
 	}
 
 	// Send log entry to wlan_exp controller immediately (not currently supported)
