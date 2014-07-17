@@ -1466,7 +1466,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 	tx_frame_info*		frame_info;
 	ltg_packet_id*      pkt_id;
 	u32 				packet_payload_size;
-	station_info*		station;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
