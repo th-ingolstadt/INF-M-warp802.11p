@@ -2884,8 +2884,13 @@ u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
 			info = (station_info*)(entry->data);
             id = info->AID;
 		} else {
+
+#ifdef _DEBUG_
+			// There are some situations where we want to search for a MAC address that may not exist
 			xil_printf("ERROR:  Could not find MAC address = %02x:%02x:%02x:%02x:%02x:%02x\n",
                        mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+#endif
+
 			id = 0;
 		}
 	}
