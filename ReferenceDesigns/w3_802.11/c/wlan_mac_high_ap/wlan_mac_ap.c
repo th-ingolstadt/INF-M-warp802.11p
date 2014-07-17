@@ -66,7 +66,7 @@ const u8 max_num_associations                   = 11;
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
@@ -433,6 +433,12 @@ void purge_all_data_tx_queue(){
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details) {
 	u32                    i;
 	u64                    ts_old                  = 0;
+	station_info*          station 				   = NULL;
+	dl_entry*	           entry				   = NULL;
+
+
+	entry = wlan_mac_high_find_station_info_AID(&(ap_bss_info->associated_stations), tx_mpdu->AID);
+	if(entry != NULL) station = (station_info*)(entry->data);
 
 	// Additional variables (Future Use)
 	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -454,8 +460,50 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 	// Update the statistics for the node to which the packet was just transmitted
 	if(tx_mpdu->AID != 0) {
-		wlan_mac_high_update_tx_statistics(tx_mpdu);
+		wlan_mac_high_update_tx_statistics(tx_mpdu,station);
 	}
+
+	// Update Tx Rate with Simple Autorate Scheme
+#define SRA_DECREASE_THRESH 3 //Because of the ping/pong buffering, we can't actually influence the rate of the *next* packet.
+							  //As such, the threshold should account for the hysteresis that will be observed in error rates.
+	if(station != NULL){
+		switch(station->rate_info.rate_selection_scheme){
+			case RATE_SELECTION_SCHEME_SRA:
+				if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
+					station->rate_info.num_consecutive_failures = 0;
+					(station->rate_info.num_total_successes)++;
+				} else {
+					if(tx_mpdu->unique_seq == station->rate_info.pr_unique_seq){
+						xil_printf("Probe Failure. Reverting.\n");
+						station->rate_info.pr_timestamp = get_usec_timestamp();
+						station->rate_info.num_consecutive_failures = 0;
+						if(station->tx.phy.rate > WLAN_MAC_RATE_6M){
+							(station->tx.phy.rate)--;
+							station->rate_info.num_total_successes = 0;
+							xil_printf("%d pr --: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
+						}
+						break;
+					}
+					(station->rate_info.num_consecutive_failures)++;
+				}
+				if(station->rate_info.num_consecutive_failures >= SRA_DECREASE_THRESH){
+					station->rate_info.num_consecutive_failures = 0;
+					station->rate_info.pr_timestamp = get_usec_timestamp();
+
+					if(station->tx.phy.rate > WLAN_MAC_RATE_6M){
+						(station->tx.phy.rate)--;
+						station->rate_info.num_total_successes = 0;
+						xil_printf("%d    --: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
+					}
+				}
+			break;
+		}
+
+
+		//xil_printf("%d %d\n", station->rate_info.num_consecutive_failures, (station->rate_info.num_cumulative_successes));
+
+	}
+
 
 	// Send log entry to wlan_exp controller immediately (not currently supported)
 	//
@@ -841,6 +889,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			rx_seq        = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			station_stats = associated_station->stats;
 
+			if(associated_station->rate_info.rate_selection_scheme == RATE_SELECTION_SCHEME_MIRROR){
+				associated_station->tx.phy.rate = mpdu_info->rate;
+			}
+
+
 			// Check if this was a duplicate reception
 			//   - Received seq num matched previously received seq num for this STA
 			if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
@@ -1192,10 +1245,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						//   table and the case that the association needs to be added to the association table
 						//
 						associated_station = wlan_mac_high_add_association(&ap_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+
 						ap_write_hex_display(ap_bss_info->associated_stations.length);
 					}
 
 					if(associated_station != NULL) {
+
+						//TODO: move to WN control
+						associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_SRA; //Enable Simple Autorate
+						associated_station->rate_info.pr_timestamp = get_usec_timestamp();
+						//associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_MIRROR; //Enable Simple Autorate
 
 						// Log the association state change
 						add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
@@ -1446,6 +1505,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 	tx_frame_info*		frame_info;
 	ltg_packet_id*      pkt_id;
 	u32 				packet_payload_size;
+	station_info*		station;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
@@ -1457,6 +1517,35 @@ void mpdu_dequeue(tx_queue_element* packet){
 			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
 		break;
 	}
+
+	switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
+		case QUEUE_METADATA_TYPE_STATION_INFO:
+			station = (station_info*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr);
+		 	if(station != NULL){
+				switch(station->rate_info.rate_selection_scheme){
+					case RATE_SELECTION_SCHEME_SRA:
+#define PR_INTERVAL_USEC 500000
+#define PR_NUM_GOOD_PKTS 100
+						if(((get_usec_timestamp() - station->rate_info.pr_timestamp) > PR_INTERVAL_USEC) && (station->tx.phy.rate < WLAN_MAC_RATE_54M) && (station->rate_info.num_total_successes >= PR_NUM_GOOD_PKTS)){
+							//FIXME: This approach is a little dangerous if WARPnet or beacons change the timebase. However,
+							//that will be a soft error because resetting the counter will cause a probe packet to occur
+							//and the system will correct.
+							station->rate_info.pr_timestamp = get_usec_timestamp();
+							station->rate_info.pr_unique_seq = wlan_mac_high_get_unique_seq();
+
+							(station->tx.phy.rate++);
+							xil_printf("%d pr ++: %d, seq: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate, (u32)(station->rate_info.pr_unique_seq));
+							station->rate_info.num_total_successes = 0;
+
+						}
+
+						break;
+
+				}
+		 	}
+		break;
+	}
+
 }
 
 
