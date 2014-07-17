@@ -68,7 +68,6 @@ u32							traffic_blast_ltg_id;
 
 void uart_rx(u8 rxByte){
 
-	u32 i;
 	dl_entry* 	  curr_station_info_entry;
 	station_info* curr_station_info;
 
@@ -308,7 +307,6 @@ void print_ssid_menu(){
 
 
 void print_queue_status(){
-	u32 i;
 	dl_entry* curr_entry;
 	station_info* curr_station_info;
 	xil_printf("\nQueue Status:\n");
@@ -359,7 +357,6 @@ void print_station_status(){
 //	xil_printf("print_station_status\n");
 
 //#if 0
-	u32 i;
 	station_info* curr_station_info;
 	dl_entry*	  curr_entry;
 
@@ -371,7 +368,6 @@ void print_station_status(){
 		//xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
 
 		curr_entry = ap_bss_info->associated_stations.first;
-
 
 		while(curr_entry != NULL){
 			curr_station_info = (station_info*)(curr_entry->data);
@@ -411,7 +407,6 @@ void print_station_status(){
 }
 
 void print_all_observed_statistics(){
-	u32 i;
 	statistics_txrx* curr_statistics;
 	dl_entry* curr_statistics_entry;
 
