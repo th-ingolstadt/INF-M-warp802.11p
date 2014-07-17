@@ -18,21 +18,14 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
   - Set CHANNEL to the channel you want the network to be on
   - Set NETWORK_NAME to the string for the SSID of the network
-  - Set ADDR_FILTER_LIST to the addresses of nodes that are allowed to associate wirelessly
   - Set WLAN_DEVICE_LIST to the list of devices you want on this network
 
 Description:
-  This script initializes two WARP v3 nodes, one AP and one STA.  It will then
-configure the network.  First, it will set the address filter on the AP such that
-no node can join wirelessly.  Then it will remove any associations from the AP and
-set it to the specified channel.  It will then configure the AP with a new SSID.  
-Finally, it will add all WLAN devices as associations to the AP so they can 
-communicate and open a debug prompt so that the user can explore this network.  
-
-  At this point a user can turn on his or her device and associate with the AP
-on the given SSID.  However, please note that if the device disassociates with
-the AP, then it will be removed from the association table and will not be able
-to re-associate due to the address filter.
+  This script initializes one WARP v3 AP node.  It will then configure the network.  
+First, it will set the address filter on the AP such that only the device in 
+WLAN_DEVICE_LIST can join wirelessly.  Then it will remove any associations from the 
+AP and set it to the specified channel.  It will then configure the AP with a new SSID.  
+Finally, it will wait until all the devices have associated.
 ------------------------------------------------------------------------------
 """
 import sys
@@ -51,11 +44,6 @@ NETWORK           = '10.0.0.0'
 NODE_SERIAL_LIST  = ['W3-a-00001']
 CHANNEL           = 1
 NETWORK_NAME      = "WARP Device Example"
-
-# Device filter
-#   Contains a list of tuples:  (Mask, MAC Address)
-#
-ADDR_FILTER_LIST  = [(0x000000000000, 0x000000000000)]               # Do not allow anyone
 
 # WLAN devices
 #   Contains a list of tuples: (MAC Address, 'String description of device')
@@ -106,8 +94,8 @@ else:
 #-----------------------------------------------------------------------------
 print("\nConfiguring Network\n")
 
-# Set the AP address filter
-n_ap.set_association_address_filter(ADDR_FILTER_LIST)
+# Set the AP address filter to not allow anyone to join while we configure the network
+n_ap.set_association_address_filter((0x000000000000, 0x000000000000))
 
 # Configure the network of nodes
 for node in nodes:
@@ -121,12 +109,24 @@ for node in nodes:
 ssid = n_ap.set_ssid(NETWORK_NAME)
 print("Network Name: '{0}'\n".format(ssid))
 
-# Associate the devices with the AP
-print("Adding Devices:")
+# Set the AP address filter for each device
+for device in WLAN_DEVICE_LIST:
+    n_ap.set_association_address_filter((device[0], device[0]))
 
-for idx, device in enumerate(devices):
-    n_ap.add_association(device)
-    print("    {0:3d}: {1}".format(idx, device.name))
+# Wait for devices to associate with the AP
+print("Waiting for devices to join:")
+
+total_devices = len(devices)
+tmp_devices   = list(devices)
+num_joined    = 0
+
+while (total_devices != num_joined):
+    
+    for device in tmp_devices:
+        if n_ap.is_associated(device):
+            print("    {0} joined".format(device.name))
+            num_joined += 1
+            tmp_devices.remove(device)
 
 print("")
 
