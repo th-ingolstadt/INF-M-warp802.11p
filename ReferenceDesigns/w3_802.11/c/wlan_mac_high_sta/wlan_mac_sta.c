@@ -251,7 +251,7 @@ int main() {
 	wlan_mac_sta_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
 	// If there is a default SSID, initiate a probe request
-	if( strlen(access_point_ssid) > 0 ) wlan_mac_sta_scan_and_join(access_point_ssid, 0);
+	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) wlan_mac_sta_scan_and_join(access_point_ssid, 0);
 
 	while(1){
 #ifdef USE_WARPNET_WLAN_EXP
