@@ -467,7 +467,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	// Update Tx Rate with Simple Autorate Scheme
 #define SRA_DECREASE_THRESH 3 //Because of the ping/pong buffering, we can't actually influence the rate of the *next* packet.
 							  //As such, the threshold should account for the hysteresis that will be observed in error rates.
-#define SRA_INCREASE_THRESH 10
+#define SRA_INCREASE_THRESH 50
 	if(station != NULL){
 		switch(station->rate_info.rate_selection_scheme){
 			case RATE_SELECTION_SCHEME_SRA:
@@ -475,42 +475,44 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 					station->rate_info.num_consecutive_failures = 0;
 					(station->rate_info.num_total_successes)++;
 					(station->rate_info.num_consecutive_successes)++;
+
+					if(station->rate_info.num_consecutive_successes >= SRA_INCREASE_THRESH){
+						if(station->tx.phy.rate < WLAN_MAC_RATE_54M){
+							(station->tx.phy.rate)++;
+							xil_printf("%d    ++: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
+						}
+						station->rate_info.num_consecutive_failures = 0;
+						station->rate_info.num_consecutive_successes = 0;
+						station->rate_info.num_total_successes = 0;
+						station->rate_info.pr_timestamp = get_usec_timestamp();
+					}
 				} else {
 					station->rate_info.num_consecutive_successes = 0;
 					(station->rate_info.num_consecutive_failures)++;
+
 					if(tx_mpdu->unique_seq == station->rate_info.pr_unique_seq){
 						xil_printf("Probe Failure. Reverting.\n");
-						station->rate_info.pr_timestamp = get_usec_timestamp();
-						station->rate_info.num_consecutive_failures = 0;
 						if(station->tx.phy.rate > WLAN_MAC_RATE_6M){
 							(station->tx.phy.rate)--;
-							station->rate_info.num_total_successes = 0;
 							xil_printf("%d pr --: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
 						}
-						break;
+						station->rate_info.num_consecutive_failures = 0;
+						station->rate_info.num_consecutive_successes = 0;
+						station->rate_info.num_total_successes = 0;
+						station->rate_info.pr_timestamp = get_usec_timestamp();
+					} else {
+						if(station->rate_info.num_consecutive_failures >= SRA_DECREASE_THRESH){
+							if(station->tx.phy.rate > WLAN_MAC_RATE_6M){
+								(station->tx.phy.rate)--;
+								xil_printf("%d    --: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
+							}
+							station->rate_info.num_consecutive_failures = 0;
+							station->rate_info.num_consecutive_successes = 0;
+							station->rate_info.num_total_successes = 0;
+							station->rate_info.pr_timestamp = get_usec_timestamp();
+						}
 					}
 
-				}
-				if(station->rate_info.num_consecutive_failures >= SRA_DECREASE_THRESH){
-					station->rate_info.num_consecutive_failures = 0;
-					station->rate_info.num_consecutive_successes = 0;
-					station->rate_info.num_total_successes = 0;
-					station->rate_info.pr_timestamp = get_usec_timestamp();
-
-					if(station->tx.phy.rate > WLAN_MAC_RATE_6M){
-						(station->tx.phy.rate)--;
-						xil_printf("%d    --: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
-					}
-				} else if(station->rate_info.num_consecutive_successes >= SRA_INCREASE_THRESH){
-					station->rate_info.num_consecutive_failures = 0;
-					station->rate_info.num_consecutive_successes = 0;
-					station->rate_info.num_total_successes = 0;
-					station->rate_info.pr_timestamp = get_usec_timestamp();
-
-					if(station->tx.phy.rate < WLAN_MAC_RATE_54M){
-						(station->tx.phy.rate)++;
-						xil_printf("%d    ++: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
-					}
 				}
 			break;
 		}
@@ -1272,8 +1274,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 						// TODO: move control of rate selection to WLAN_EXP
 
-						// associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_SRA; //Enable Simple Autorate
-						// associated_station->rate_info.pr_timestamp = get_usec_timestamp();
+						 //associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_SRA; //Enable Simple Autorate
+						 //associated_station->rate_info.pr_timestamp = get_usec_timestamp();
 
 						// associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_MIRROR; //Enable Simple Autorate
 
@@ -1552,13 +1554,13 @@ void mpdu_dequeue(tx_queue_element* packet){
 							//FIXME: This approach is a little dangerous if WARPnet or beacons change the timebase. However,
 							//that will be a soft error because resetting the counter will cause a probe packet to occur
 							//and the system will correct.
+							(station->tx.phy.rate++);
+							xil_printf("%d pr ++: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate);
 							station->rate_info.pr_timestamp = get_usec_timestamp();
 							station->rate_info.pr_unique_seq = wlan_mac_high_get_unique_seq();
-
-							(station->tx.phy.rate++);
-							xil_printf("%d pr ++: %d, seq: %d\n", station->rate_info.num_total_successes, station->tx.phy.rate, (u32)(station->rate_info.pr_unique_seq));
 							station->rate_info.num_total_successes = 0;
-
+							station->rate_info.num_consecutive_failures = 0;
+							station->rate_info.num_consecutive_successes = 0;
 						}
 
 						break;
