@@ -151,7 +151,7 @@ CMDID_QUEUE_TX_DATA_PURGE_ALL                    = 0x005000
 
 
 # AP commands and defined values
-CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER        = 0x010000
+CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER     = 0x010000
 CMDID_NODE_AP_SSID                               = 0x010001
 
 CMD_PARAM_MAX_SSID_LEN                           = 32
@@ -1267,8 +1267,8 @@ class NodeAPProcSSID(wn_message.Cmd):
 # End Class
 
 
-class NodeAPSetAssocAddrFilter(wn_message.Cmd):
-    """Command to set the association address filter on the node.
+class NodeAPSetAuthAddrFilter(wn_message.Cmd):
+    """Command to set the authentication address filter on the node.
     
     Attributes:
         allow  -- List of (mask, address) tuples that will be used to filter addresses
@@ -1279,8 +1279,8 @@ class NodeAPSetAssocAddrFilter(wn_message.Cmd):
     must match the incoming addresses to pass the filter.
     """
     def __init__(self, allow):
-        super(NodeAPSetAssocAddrFilter, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SET_ASSOCIATION_ADDR_FILTER
+        super(NodeAPSetAuthAddrFilter, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER
 
         length = len(allow)
 

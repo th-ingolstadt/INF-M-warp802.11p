@@ -57,8 +57,8 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # WLAN Exp Commands for the AP
     #-------------------------------------------------------------------------
-    def set_association_address_filter(self, allow):
-        """Command to set the association address filter on the node.
+    def set_authentication_address_filter(self, allow):
+        """Command to set the authentication address filter on the node.
         
         Attributes:
             allow  -- List of (mask, address) tuples that will be used to filter addresses
@@ -69,9 +69,9 @@ class WlanExpNodeAp(node.WlanExpNode):
         must match the incoming addresses to pass the filter.
         """
         if (type(allow) is list):
-            self.send_cmd(cmds.NodeAPSetAssocAddrFilter(allow))
+            self.send_cmd(cmds.NodeAPSetAuthAddrFilter(allow))
         else:
-            self.send_cmd(cmds.NodeAPSetAssocAddrFilter([allow]))
+            self.send_cmd(cmds.NodeAPSetAuthAddrFilter([allow]))
 
 
     def get_ssid(self):

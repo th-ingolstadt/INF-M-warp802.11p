@@ -41,7 +41,7 @@ import wlan_exp.util as wlan_exp_util
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
 NETWORK           = '10.0.0.0'
-NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
+NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
 CHANNEL           = 1
 NETWORK_NAME      = "WARP Assoc Example"
 
@@ -91,7 +91,7 @@ else:
 print("\nConfiguring Network\n")
 
 # Set the AP address filter 
-n_ap.set_association_address_filter(ADDR_FILTER_LIST)
+n_ap.set_authentication_address_filter(ADDR_FILTER_LIST)
 
 # Configure the network of nodes
 for node in nodes:
@@ -108,7 +108,7 @@ print("Network Name: '{0}'\n".format(ssid))
 # Add the association(s) we want
 n_ap.add_association(n_sta)
 
-# Check that the nodes are associated.  Otherwise, the LTGs below will fail.
+# Check that the nodes are associated.
 if not n_ap.is_associated(n_sta):
     print("\nERROR: Nodes are not associated.")
     print("    Ensure that the AP and the STA are associated.")

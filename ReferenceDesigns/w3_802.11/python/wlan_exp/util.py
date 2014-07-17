@@ -101,11 +101,7 @@ wlan_channel = [{'index' :   1, 'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz
                 {'index' :  36, 'channel' :  36, 'freq': 5180, 'desc' : '5 GHz Band'},
                 {'index' :  40, 'channel' :  40, 'freq': 5200, 'desc' : '5 GHz Band'},
                 {'index' :  44, 'channel' :  44, 'freq': 5220, 'desc' : '5 GHz Band'},
-                {'index' :  48, 'channel' :  48, 'freq': 5240, 'desc' : '5 GHz Band'},
-                {'index' : 149, 'channel' : 149, 'freq': 5745, 'desc' : '5 GHz Band'},
-                {'index' : 153, 'channel' : 153, 'freq': 5765, 'desc' : '5 GHz Band'},
-                {'index' : 157, 'channel' : 157, 'freq': 5785, 'desc' : '5 GHz Band'},
-                {'index' : 161, 'channel' : 161, 'freq': 5805, 'desc' : '5 GHz Band'}]
+                {'index' :  48, 'channel' :  48, 'freq': 5240, 'desc' : '5 GHz Band'}]
 
 def find_channel_by_index(index):
     """Return the wlan_channel entry for the given index."""
