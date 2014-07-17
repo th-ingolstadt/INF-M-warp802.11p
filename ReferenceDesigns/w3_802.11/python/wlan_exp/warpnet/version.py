@@ -41,7 +41,7 @@ __all__ = ['wn_ver', 'wn_ver_check', 'wn_ver_str']
 
 # WARPNet Version defines
 WN_MAJOR                = 2
-WN_MINOR                = 0
+WN_MINOR                = 1
 WN_REVISION             = 0
 WN_XTRA                 = str('')
 WN_RELEASE              = True

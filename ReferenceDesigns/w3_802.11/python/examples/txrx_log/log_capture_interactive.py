@@ -43,7 +43,7 @@ if sys.version[0]=="3": raw_input=input
 #-----------------------------------------------------------------------------
 # Network / Node information
 NETWORK            = '10.0.0.0'
-NODE_SERIAL_LIST   = ['W3-a-00183']
+NODE_SERIAL_LIST   = ['W3-a-00001']
 
 # HDF5 File to log information
 HDF5_FILENAME      = 'interactive_capture.hdf5'
