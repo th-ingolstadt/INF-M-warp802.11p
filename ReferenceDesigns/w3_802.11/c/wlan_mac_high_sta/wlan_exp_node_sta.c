@@ -102,7 +102,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 	unsigned int  respIndex  = 0;                  // This function is called w/ same state as node_processCmd
 	unsigned int  respSent   = NO_RESP_SENT;       // Initialize return value to NO_RESP_SENT
-    unsigned int  max_words  = 300;                // Max number of u32 words that can be sent in the packet (~1200 bytes)
+    // unsigned int  max_words  = 300;             // Max number of u32 words that can be sent in the packet (~1200 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
     int           status;
 

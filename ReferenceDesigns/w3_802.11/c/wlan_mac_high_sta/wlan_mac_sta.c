@@ -134,6 +134,7 @@ int main() {
 	ap_bss_info = NULL;
 
 	// Print initial message to UART
+	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v0.9 Beta -------------------------\n");
 	xil_printf("----- wlan_mac_sta ----------------------\n");

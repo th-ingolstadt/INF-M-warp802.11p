@@ -246,7 +246,6 @@ void print_station_status(u8 manual_call){
 }
 
 void print_all_observed_statistics(){
-	u32 i;
 	dl_entry*	curr_statistics_entry;
 	statistics_txrx* curr_statistics;
 
