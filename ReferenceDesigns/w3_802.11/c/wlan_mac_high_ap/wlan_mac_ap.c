@@ -340,42 +340,42 @@ void poll_tx_queues(){
 					next_queue_group = MGMT_QGRP;
 					curr_station_info_entry = next_station_info_entry;
 
-						for(i = 0; i < (ap_bss_info->associated_stations.length + 1); i++) {
-							// Loop through all associated stations' queues and the broadcast queue
-							if(curr_station_info_entry == NULL){
-								// Check the broadcast queue
-								next_station_info_entry = ap_bss_info->associated_stations.first;
-								if(dequeue_transmit_checkin(MCAST_QID)){
+					for(i = 0; i < (ap_bss_info->associated_stations.length + 1); i++) {
+						// Loop through all associated stations' queues and the broadcast queue
+						if(curr_station_info_entry == NULL){
+							// Check the broadcast queue
+							next_station_info_entry = ap_bss_info->associated_stations.first;
+							if(dequeue_transmit_checkin(MCAST_QID)){
+								// Found a not-empty queue, transmitted a packet
+								return;
+							} else {
+								curr_station_info_entry = next_station_info_entry;
+							}
+						} else {
+							curr_station_info = (station_info*)(curr_station_info_entry->data);
+							if( wlan_mac_high_is_valid_association(&ap_bss_info->associated_stations, curr_station_info) ){
+								if(curr_station_info_entry == ap_bss_info->associated_stations.last){
+									// We've reached the end of the table, so we wrap around to the beginning
+									next_station_info_entry = NULL;
+								} else {
+									next_station_info_entry = dl_entry_next(curr_station_info_entry);
+								}
+
+								if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
 									// Found a not-empty queue, transmitted a packet
 									return;
 								} else {
 									curr_station_info_entry = next_station_info_entry;
 								}
 							} else {
-								curr_station_info = (station_info*)(curr_station_info_entry->data);
-								if( wlan_mac_high_is_valid_association(&ap_bss_info->associated_stations, curr_station_info) ){
-									if(curr_station_info_entry == ap_bss_info->associated_stations.last){
-										// We've reached the end of the table, so we wrap around to the beginning
-										next_station_info_entry = NULL;
-									} else {
-										next_station_info_entry = dl_entry_next(curr_station_info_entry);
-									}
-
-									if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
-										// Found a not-empty queue, transmitted a packet
-										return;
-									} else {
-										curr_station_info_entry = next_station_info_entry;
-									}
-								} else {
-									// This curr_station_info is invalid. Perhaps it was removed from
-									// the association table before poll_tx_queues was called. We will
-									// start the round robin checking back at broadcast.
-									next_station_info_entry = NULL;
-									return;
-								} // END if(is_valid_association)
-							}
-						} // END for loop over association table
+								// This curr_station_info is invalid. Perhaps it was removed from
+								// the association table before poll_tx_queues was called. We will
+								// start the round robin checking back at broadcast.
+								next_station_info_entry = NULL;
+								return;
+							} // END if(is_valid_association)
+						}
+					} // END for loop over association table
 				break;
 			} // END switch(queue group)
 		} // END loop over queue groups
@@ -396,7 +396,6 @@ void poll_tx_queues(){
  * @return None
  */
 void purge_all_data_tx_queue(){
-	u32 i;
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
 
@@ -404,7 +403,7 @@ void purge_all_data_tx_queue(){
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
 	curr_station_info_entry = ap_bss_info->associated_stations.first;
 
-	for(i=0; i < ap_bss_info->associated_stations.length; i++){
+	while(curr_station_info_entry != NULL){
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
 		purge_queue(AID_TO_QID(curr_station_info->AID));       		// Each unicast queue
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -745,7 +744,6 @@ void beacon_transmit() {
  */
 void association_timestamp_check() {
 
-	u32 				i;
 	u32                 aid;
 	u64 				time_since_last_rx;
 	station_info*       curr_station_info;
@@ -755,7 +753,7 @@ void association_timestamp_check() {
 
 	next_station_info_entry = ap_bss_info->associated_stations.first;
 
-	for(i=0; i < ap_bss_info->associated_stations.length; i++) {
+	while(next_station_info_entry != NULL) {
 		curr_station_info_entry = next_station_info_entry;
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 

@@ -168,7 +168,7 @@ void uart_rx(u8 rxByte){
 					}
 
 					curr_station_info_entry = ap_bss_info->associated_stations.first;
-					for(i=0; i < ap_bss_info->associated_stations.length; i++){
+					while(curr_station_info_entry != NULL){
 						curr_station_info = (station_info*)(curr_station_info_entry->data);
 						curr_station_info->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
 						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -184,7 +184,7 @@ void uart_rx(u8 rxByte){
 					}
 
 					curr_station_info_entry = ap_bss_info->associated_stations.first;
-					for(i=0; i < ap_bss_info->associated_stations.length; i++){
+					while(curr_station_info_entry != NULL){
 						curr_station_info = (station_info*)(curr_station_info_entry->data);
 						curr_station_info->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
 						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -315,7 +315,7 @@ void print_queue_status(){
 	xil_printf(" FREE || MCAST|");
 
 	curr_entry = ap_bss_info->associated_stations.first;
-	for(i=0; i < ap_bss_info->associated_stations.length; i++){
+	while(curr_entry != NULL){
 		curr_station_info = (station_info*)(curr_entry->data);
 		xil_printf("%6d|", curr_station_info->AID);
 		curr_entry = dl_entry_next(curr_entry);
@@ -325,7 +325,7 @@ void print_queue_status(){
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
 
 	curr_entry = ap_bss_info->associated_stations.first;
-	for(i=0; i < ap_bss_info->associated_stations.length; i++){
+	while(curr_entry != NULL){
 		curr_station_info = (station_info*)(curr_entry->data);
 		xil_printf("%6d|", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
 		curr_entry = dl_entry_next(curr_entry);
@@ -373,7 +373,7 @@ void print_station_status(){
 		curr_entry = ap_bss_info->associated_stations.first;
 
 
-		for(i=0; i < ap_bss_info->associated_stations.length; i++){
+		while(curr_entry != NULL){
 			curr_station_info = (station_info*)(curr_entry->data);
 			xil_printf("---------------------------------------------------\n");
 			if(curr_station_info->hostname[0] != 0){
@@ -418,7 +418,7 @@ void print_all_observed_statistics(){
 	curr_statistics_entry = statistics_table.first;
 
 	xil_printf("\nAll Statistics:\n");
-	for(i=0; i<statistics_table.length; i++){
+	while(curr_statistics_entry != NULL){
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 
 		xil_printf("---------------------------------------------------\n");
