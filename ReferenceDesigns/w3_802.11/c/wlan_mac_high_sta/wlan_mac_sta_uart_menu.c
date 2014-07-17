@@ -253,7 +253,7 @@ void print_all_observed_statistics(){
 	curr_statistics_entry = statistics_table.first;
 
 	xil_printf("\nAll Statistics:\n");
-	for(i=0; i<statistics_table.length; i++){
+	while(curr_statistics_entry != NULL){
 		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
