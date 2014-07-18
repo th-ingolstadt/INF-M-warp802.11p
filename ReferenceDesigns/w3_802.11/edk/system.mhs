@@ -142,13 +142,14 @@
  PORT ddr3_sodimm_reset_n = ddr3_sodimm_reset_n, DIR = O
  PORT ddr3_sodimm_dqs_p = ddr3_sodimm_dqs_p, DIR = IO, VEC = [7:0]
  PORT ddr3_sodimm_dqs_n = ddr3_sodimm_dqs_n, DIR = IO, VEC = [7:0]
- PORT debughdr = dbg_tx_running & dbg_gpio_b2 & dbg_gpio_b3 & mac_backoff_active & mac_idle_for_difs & mac_nav_active & dbg_dsss_rx_active & dbg_tx_running_del & mac_phy_rx_fcs_good_ind & dbg_rssi_det & dbg_mpdu_tx_pending & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_payload, DIR = O, VEC = [14:0]
+# Debug pins
+ PORT debughdr = dbg_gpio_b2 & dbg_gpio_b1 & dbg_gpio_b0 & mac_nav_active & mac_backoff_active & mac_idle_for_difs & dbg_mpdu_tx_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running, DIR = O, VEC = [14:0]
  PORT wlan_phy_rx_pkt_det_in_pin = net_wlan_phy_rx_pkt_det_in_pin, DIR = I
 
 
 BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 2.00.w
+ PARAMETER HW_VER = 2.00.x
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -174,13 +175,9 @@ BEGIN wlan_phy_tx_pmd_axiw
  PORT rc_usr_txen_b = phy_rc_txen_b
  PORT rc_tx_gain_a = phy_rc_tx_gain_a
  PORT rc_tx_gain_b = phy_rc_tx_gain_b
- PORT rc_tx_gain_c = phy_rc_tx_gain_c
- PORT rc_tx_gain_d = phy_rc_tx_gain_d
 # MAC <-> Tx PHY ports
  PORT phy_tx_gain_a = mac_phy_tx_gain_a
  PORT phy_tx_gain_b = mac_phy_tx_gain_b
- PORT phy_tx_gain_c = mac_phy_tx_gain_c
- PORT phy_tx_gain_d = mac_phy_tx_gain_d
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
  PORT phy_tx_start = mac_phy_tx_start
  PORT phy_tx_done = mac_phy_tx_done
@@ -190,12 +187,11 @@ BEGIN wlan_phy_tx_pmd_axiw
  PORT mac_timestamp_msb = mac_tx_start_timestamp_msb
 # Debug ports
  PORT dbg_tx_running = dbg_tx_running
- PORT dbg_tx_running_del = dbg_tx_running_del
 END
 
 BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 2.04.b
+ PARAMETER HW_VER = 2.04.c
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -216,22 +212,12 @@ BEGIN wlan_phy_rx_pmd_axiw
  PORT rfb_rx_i = agc_rfb_i
  PORT rfb_rx_q = agc_rfb_q
  PORT rfb_rssi = RFB_RSSI_D
- PORT rfc_rx_i = net_gnd
- PORT rfc_rx_q = net_gnd
- PORT rfc_rssi = net_gnd
- PORT rfd_rx_i = net_gnd
- PORT rfd_rx_q = net_gnd
- PORT rfd_rssi = net_gnd
  PORT rssi_adc_clk = wlan_rssi_clk
  PORT pkt_det_o = phy_rx_pkt_det
  PORT rfa_g_rf = agc_rfa_g_rf
  PORT rfa_g_bb = agc_rfa_g_bb
  PORT rfb_g_rf = agc_rfb_g_rf
  PORT rfb_g_bb = agc_rfb_g_bb
- PORT rfc_g_rf = net_gnd
- PORT rfc_g_bb = net_gnd
- PORT rfd_g_rf = net_gnd
- PORT rfd_g_bb = net_gnd
  PORT agc_done = agc_done
  PORT phy_rx_block_pktdet = phy_rx_block_pktdet
 # MAC <-> PHY ports
@@ -252,7 +238,7 @@ BEGIN wlan_phy_rx_pmd_axiw
  PORT dbg_lts_timeout = dbg_lts_timeout
  PORT dbg_pkt_det_dsss = dbg_pkt_det_dsss
  PORT dbg_pkt_det_ofdm = dbg_pkt_det_ofdm
- PORT dbg_payload = dbg_payload
+ PORT dbg_payload = dbg_ofdm_rx_active
  PORT dbg_rssi_det = dbg_rssi_det
  PORT dbg_gpio = phy_dbg_gpio_b0 & phy_dbg_gpio_b1 & phy_dbg_gpio_b2 & phy_dbg_gpio_b3
  PORT dbg_signal_err_disp = dbg_signal_err_disp
@@ -287,8 +273,6 @@ BEGIN wlan_mac_dcf_hw_axiw
  PORT phy_tx_start = mac_phy_tx_start
  PORT phy_tx_gain_a = mac_phy_tx_gain_a
  PORT phy_tx_gain_b = mac_phy_tx_gain_b
- PORT phy_tx_gain_c = mac_phy_tx_gain_c
- PORT phy_tx_gain_d = mac_phy_tx_gain_d
  PORT phy_tx_ant_mask = mac_phy_tx_ant_mask
  PORT phy_rx_start_sig_rate = phy_rx_start_sig_rate
  PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
@@ -326,12 +310,6 @@ BEGIN wlan_agc_axiw
  PORT rfb_rssi = RFB_RSSI_D
  PORT rfb_rx_i_in = RFB_RX_I
  PORT rfb_rx_q_in = RFB_RX_Q
- PORT rfc_rssi = net_gnd
- PORT rfc_rx_i_in = net_gnd
- PORT rfc_rx_q_in = net_gnd
- PORT rfd_rssi = net_gnd
- PORT rfd_rx_i_in = net_gnd
- PORT rfd_rx_q_in = net_gnd
 # DCO-corrected IQ outputs
  PORT iq_valid_out = agc_iq_valid_out
  PORT rfa_rx_i_out = agc_rfa_i
@@ -404,15 +382,15 @@ BEGIN w3_ad_controller_axi
  PARAMETER INCLUDE_RFC_RFD_IO = 0
  BUS_INTERFACE S_AXI = mb_low_axi_periph
  PORT S_AXI_ACLK = clk_160MHz
+ PORT RF_AD_TXCLK_out_en = RF_AD_TXCLK_out_en
  PORT RFA_AD_spi_cs_n = RFA_AD_spi_cs_n
- PORT RFB_AD_reset_n = RFB_AD_reset_n
- PORT RFB_AD_spi_sdio = RFB_AD_spi_sdio
  PORT RFA_AD_spi_sdio = RFA_AD_spi_sdio
  PORT RFA_AD_spi_sclk = RFA_AD_spi_sclk
  PORT RFA_AD_reset_n = RFA_AD_reset_n
- PORT RFB_AD_spi_sclk = RFB_AD_spi_sclk
  PORT RFB_AD_spi_cs_n = RFB_AD_spi_cs_n
- PORT RF_AD_TXCLK_out_en = RF_AD_TXCLK_out_en
+ PORT RFB_AD_spi_sdio = RFB_AD_spi_sdio
+ PORT RFB_AD_spi_sclk = RFB_AD_spi_sclk
+ PORT RFB_AD_reset_n = RFB_AD_reset_n
 END
 
 BEGIN w3_ad_bridge
@@ -526,18 +504,6 @@ BEGIN radio_controller_axi
  PORT usr_RFB_RxGainBB = agc_rfb_g_bb
  PORT usr_RFB_RxGainRF = agc_rfb_g_rf
  PORT usr_RFB_TxGain = phy_rc_tx_gain_b
- PORT usr_RFC_TxEn = net_gnd
- PORT usr_RFC_RxEn = net_gnd
- PORT usr_RFC_RxHP = net_gnd
- PORT usr_RFC_RxGainBB = net_gnd
- PORT usr_RFC_RxGainRF = net_gnd
- PORT usr_RFC_TxGain = phy_rc_tx_gain_c
- PORT usr_RFD_TxEn = net_gnd
- PORT usr_RFD_RxEn = net_gnd
- PORT usr_RFD_RxHP = net_gnd
- PORT usr_RFD_RxGainBB = net_gnd
- PORT usr_RFD_RxGainRF = net_gnd
- PORT usr_RFD_TxGain = phy_rc_tx_gain_d
 END
 
 BEGIN mutex
@@ -1448,7 +1414,7 @@ BEGIN util_vector_logic
  PARAMETER C_OPERATION = or
  PORT OP1 = phy_dbg_gpio_b0 & phy_dbg_gpio_b1 & phy_dbg_gpio_b2 & phy_dbg_gpio_b3
  PORT OP2 = cpuh_gpio_b0 & cpuh_gpio_b1 & cpuh_gpio_b2 & cpuh_gpio_b3
- PORT RES = 0b0 & 0b0 & dbg_gpio_b2 & dbg_gpio_b3
+ PORT RES = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & 0b0
 END
 
 BEGIN axi_sysmon_adc

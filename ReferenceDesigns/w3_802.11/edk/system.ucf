@@ -21,7 +21,7 @@ NET "DEBUGHDR<13>" LOC = "AL30"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 13
 NET "DEBUGHDR<14>" LOC = "AM31"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 14
 #NET "DEBUGHDR<15>" LOC = "AP32"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 15
 
-# Externet packet detect
+# External packet detect
 NET "WLAN_PHY_RX_PKT_DET_IN_PIN" LOC = "AP32" | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 15
 
 #System clock (80MHz, from sampling clock buffer)
@@ -32,20 +32,6 @@ TIMESPEC TS_samp_clk_pin = PERIOD samp_clk_pin 80000 kHz;
 
 Net clk_160MHz TNM_NET = TNM_clk_160MHz;
 Net clk_20MHz  TNM_NET = TNM_clk_20MHz;
-Net RFA_AD_TRXCLK TNM_NET = TNM_RFA_AD_TRXCLK;
-Net RFB_AD_TRXCLK TNM_NET = TNM_RFB_AD_TRXCLK;
-
-#TRXCLK runs at 20MHz (using decimation in AD9963s)
-TIMESPEC TS_RFA_AD_TRXCLK = PERIOD TNM_RFA_AD_TRXCLK TS_samp_clk_pin*4;
-TIMESPEC TS_RFB_AD_TRXCLK = PERIOD TNM_RFB_AD_TRXCLK TS_samp_clk_pin*4;
-
-#TRXCLK -> clk20 is first stage of registers (IDDR -> 2xDFF)
-TIMESPEC TS_RFA_TRX_TO_20M = FROM "TNM_RFA_AD_TRXCLK" to "TNM_clk_20MHz" 40ns;
-TIMESPEC TS_RFB_TRX_TO_20M = FROM "TNM_RFB_AD_TRXCLK" to "TNM_clk_20MHz" 40ns;
-
-#clk20 -> clk160 is paths from ad_bridge to sample-consuming PHY cores
-TIMESPEC TS_RFA_20M_TO_160M = FROM "TNM_clk_20MHz" to "TNM_clk_160" 6.2ns;
-TIMESPEC TS_RFB_20M_TO_160M = FROM "TNM_clk_20MHz" to "TNM_clk_160" 6.2ns;
 
 #System clock (200MHz, from LVDS oscillator)
 Net osc200_p_pin LOC = A10  |  IOSTANDARD=LVDS_25  |  DIFF_TERM = TRUE;
@@ -393,6 +379,22 @@ NET RFB_B_pin<3> LOC=R26 | IOSTANDARD=LVCMOS25;
 NET RFB_B_pin<4> LOC=R32 | IOSTANDARD=LVCMOS25;
 NET RFB_B_pin<5> LOC=T26 | IOSTANDARD=LVCMOS25;
 NET RFB_B_pin<6> LOC=R31 | IOSTANDARD=LVCMOS25;
+
+#AD9963 data interface clock constraints
+Net RFA_AD_TRXCLK TNM_NET = TNM_RFA_AD_TRXCLK;
+Net RFB_AD_TRXCLK TNM_NET = TNM_RFB_AD_TRXCLK;
+
+#TRXCLK runs at 20MHz (using decimation in AD9963s)
+TIMESPEC TS_RFA_AD_TRXCLK = PERIOD TNM_RFA_AD_TRXCLK TS_samp_clk_pin*4;
+TIMESPEC TS_RFB_AD_TRXCLK = PERIOD TNM_RFB_AD_TRXCLK TS_samp_clk_pin*4;
+
+#TRXCLK -> clk20 is first stage of registers (IDDR -> 2xDFF)
+TIMESPEC TS_RFA_TRX_TO_20M = FROM "TNM_RFA_AD_TRXCLK" to "TNM_clk_20MHz" 40ns;
+TIMESPEC TS_RFB_TRX_TO_20M = FROM "TNM_RFB_AD_TRXCLK" to "TNM_clk_20MHz" 40ns;
+
+#clk20 -> clk160 is paths from ad_bridge to sample-consuming PHY cores
+TIMESPEC TS_RFA_20M_TO_160M = FROM "TNM_clk_20MHz" to "TNM_clk_160" 6.2ns;
+TIMESPEC TS_RFB_20M_TO_160M = FROM "TNM_clk_20MHz" to "TNM_clk_160" 6.2ns;
 
 #Define relationship of TRXD and TRXCLK, based on AD9963 specs
 # Using worst-case output delay from AD9963 datasheet table 23
