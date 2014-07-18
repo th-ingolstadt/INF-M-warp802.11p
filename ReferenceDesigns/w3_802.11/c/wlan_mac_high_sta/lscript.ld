@@ -36,19 +36,19 @@ ENTRY(_start)
 SECTIONS
 {
 .vectors.reset 0x00000000 : {
-   *(.vectors.reset)
+   KEEP (*(.vectors.reset))
 } 
 
 .vectors.sw_exception 0x00000008 : {
-   *(.vectors.sw_exception)
+   KEEP (*(.vectors.sw_exception))
 } 
 
 .vectors.interrupt 0x00000010 : {
-   *(.vectors.interrupt)
+   KEEP (*(.vectors.interrupt))
 } 
 
 .vectors.hw_exception 0x00000020 : {
-   *(.vectors.hw_exception)
+   KEEP (*(.vectors.hw_exception))
 } 
 
 /* NOTE:  Order matters in the linker file.  This section 
