@@ -168,7 +168,7 @@ def gen_raw_log_index(log_data):
 # End gen_log_index_raw()
 
 
-def filter_log_index(log_index, include_only=None, exclude=None, merge=None, quiet=False):
+def filter_log_index(log_index, include_only=None, exclude=None, merge=None, verbose=False):
     """Parses a log index to generate a filtered log index.
 
     Consumers, in general, cannot operate on a raw log index since that has
@@ -302,7 +302,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, qui
                         except KeyError:
                             msg  = "WARNING:  {0} does ".format(v)
                             msg += "not exist in log index.  Ignoring for merge.\n"
-                            if not quiet:
+                            if verbose:
                                 print(msg)
 
                 # If this merge is going to replace one of the entry types in the current
@@ -342,14 +342,13 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, qui
                     except:
                         msg  = "WARNING:  {0} does ".format(unwanted_key)
                         msg += "not exist in log index.  Ignoring for exclude.\n"
-                        if not quiet:
+                        if verbose:
                             print(msg)
 
     except KeyError as err:
         msg  = "WARNING: Issue generating log_index:\n"
         msg += "    Could not find entry type with name:  {0}".format(err)
-        if not quiet:
-            print(msg)
+        print(msg)
 
     # Translate the keys in the return log index to WlanExpLogEntryType
     new_log_index = {}
