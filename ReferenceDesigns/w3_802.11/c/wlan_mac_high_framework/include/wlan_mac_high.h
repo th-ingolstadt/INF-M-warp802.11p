@@ -77,6 +77,7 @@
 #define GPIO_MASK_PB_U			 0x00000040		///< Mask for GPIO -- "Up" Pushbutton
 #define GPIO_MASK_PB_M			 0x00000020		///< Mask for GPIO -- "Middle" Pushbutton
 #define GPIO_MASK_PB_D			 0x00000010		///< Mask for GPIO -- "Down" Pushbutton
+#define GPIO_MASK_DS_3			 0x00000008		///< Mask for GPIO -- MSB of Dip Switch
 
 #define UART_BUFFER_SIZE               1	    ///< UART is configured to read 1 byte at a time
 
@@ -160,18 +161,10 @@ CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 
 typedef struct{
 	u16 rate_selection_scheme;
-	u16 padding0;
-	//Simple Rate Adaptation Scheme
-	u32 num_consecutive_failures;
-	u32 num_consecutive_successes;
-	u32 num_total_successes;
-	u64 pr_unique_seq;
-	u64	pr_timestamp;
 } rate_selection_info;
 
 #define RATE_SELECTION_SCHEME_STATIC	0
-#define RATE_SELECTION_SCHEME_SRA		1
-#define RATE_SELECTION_SCHEME_MIRROR	2
+
 
 /**
  * @brief Station Information Structure
@@ -220,6 +213,7 @@ dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
 dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
 dl_entry* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
 void wlan_mac_high_gpio_handler(void *InstancePtr);
+u32 wlan_mac_high_get_user_io_state();
 void wlan_mac_high_set_pb_u_callback(function_ptr_t callback);
 void wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
 void wlan_mac_high_set_pb_d_callback(function_ptr_t callback);

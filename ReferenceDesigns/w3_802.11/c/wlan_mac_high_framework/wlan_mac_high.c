@@ -690,6 +690,10 @@ void wlan_mac_high_gpio_handler(void *InstancePtr){
 	return;
 }
 
+u32 wlan_mac_high_get_user_io_state(){
+	return XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL);
+}
+
 
 
 /**
