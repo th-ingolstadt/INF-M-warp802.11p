@@ -26,7 +26,8 @@ Entry type ID: 2
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
 || info_type ||  uint16  || Exp info type (arbitrary value supplied by application ||
-|| length ||  uint16  || Exp info length (describes arbitrary payload supplied by application ||
+|| info_len ||  uint16  || Exp info length (describes arbitrary payload supplied by application ||
+|| info_payload ||  uint32  || Exp info payload ||
 
 ----
 
@@ -103,10 +104,34 @@ Entry type ID: 6
 ----
 
 
-=== Entry Type RX_DSSS ===
-Rx events from DSSS PHY. These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-leve MAC filter is configured to pass all receptions up to CPU High.
+=== Entry Type RX_OFDM_LTG ===
+LTG Rx events from OFDM PHY. These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-level MAC filter is configured to pass all receptions up to CPU High.
 
 Entry type ID: 11
+
+||=  Field Name  =||=  Data Type  =||=  Description  =||
+|| timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
+|| length ||  uint16  || Length of payload in bytes ||
+|| rate ||  uint8  || PHY rate index, in ![1:8] ||
+|| power ||  int8  || Rx power in dBm ||
+|| fcs_result ||  uint8  || Checksum status, 0 = no errors ||
+|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| chan_num ||  uint8  || Channel (center frequency) index ||
+|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
+|| rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
+|| bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
+|| flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
+|| chan_est ||  (64,2)i2  || OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier ||
+|| mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
+|| mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
+
+----
+
+
+=== Entry Type RX_DSSS ===
+Rx events from DSSS PHY. These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-level MAC filter is configured to pass all receptions up to CPU High.
+
+Entry type ID: 15
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
@@ -152,10 +177,36 @@ Entry type ID: 20
 ----
 
 
+=== Entry Type TX_LTG ===
+Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue (time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion (time_to_accept+time_to_done).
+
+Entry type ID: 21
+
+||=  Field Name  =||=  Data Type  =||=  Description  =||
+|| timestamp ||  uint64  || Microsecond timer value at time packet was created, immediately before it was enqueued ||
+|| time_to_accept ||  uint32  || Time duration in microseconds between packet creation and packet acceptance by CPU Low ||
+|| time_to_done ||  uint32  || Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low ||
+|| uniq_seq ||  uint64  || Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number ||
+|| num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
+|| tx_power ||  int8  || Tx power in dBm of final Tx attempt ||
+|| chan_num ||  uint8  || Channel (center frequency) index of transmission ||
+|| rate ||  uint8  || PHY rate index in ![1:8] of final Tx attempt ||
+|| length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
+|| result ||  uint8  || Tx result; 0 = ACK received or not required ||
+|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| ant_mode ||  uint8  || PHY antenna mode of final Tx attempt ||
+|| queue_id ||  uint8  || Tx queue ID from which the packet was retrieved ||
+|| padding ||  2uint8  ||  ||
+|| mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
+|| mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
+
+----
+
+
 === Entry Type TX_LOW ===
 Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match between TX and TX_LOW entries to find records common to the same MPUD.
 
-Entry type ID: 21
+Entry type ID: 25
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at time packet transmission actually started (PHY TX_START time) ||
@@ -163,16 +214,45 @@ Entry type ID: 21
 || rate ||  uint8  || PHY rate index in ![1:8] ||
 || ant_mode ||  uint8  || PHY antenna mode in ![1:4] ||
 || tx_power ||  int8  || Tx power in dBm ||
-|| flags ||  uint8  || Tx PHY flags ||
+|| phy_flags ||  uint8  || Tx PHY flags ||
 || tx_count ||  uint8  || Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions ||
 || chan_num ||  uint8  || Channel (center frequency) index ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  uint16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0) ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
 || pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
-|| padding ||  3uint8  ||  ||
+|| flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed ||
+|| padding0 ||  uint8  ||  ||
+|| padding1 ||  uint8  ||  ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
+
+----
+
+
+=== Entry Type TX_LOW_LTG ===
+Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match between TX and TX_LOW entries to find records common to the same MPUD.
+
+Entry type ID: 26
+
+||=  Field Name  =||=  Data Type  =||=  Description  =||
+|| timestamp ||  uint64  || Microsecond timer value at time packet transmission actually started (PHY TX_START time) ||
+|| uniq_seq ||  uint64  || Unique sequence number of original MPDU ||
+|| rate ||  uint8  || PHY rate index in ![1:8] ||
+|| ant_mode ||  uint8  || PHY antenna mode in ![1:4] ||
+|| tx_power ||  int8  || Tx power in dBm ||
+|| phy_flags ||  uint8  || Tx PHY flags ||
+|| tx_count ||  uint8  || Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions ||
+|| chan_num ||  uint8  || Channel (center frequency) index ||
+|| length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
+|| num_slots ||  uint16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0) ||
+|| cw ||  uint16  || Contention window value at time of this Tx ||
+|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed ||
+|| padding0 ||  uint8  ||  ||
+|| padding1 ||  uint8  ||  ||
+|| mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
+|| mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
 
 ----
 
@@ -207,7 +287,7 @@ Entry type ID: 30
 
 
 === Entry Type RX_OFDM ===
-Rx events from OFDM PHY. These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-leve MAC filter is configured to pass all receptions up to CPU High.
+Rx events from OFDM PHY. These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-level MAC filter is configured to pass all receptions up to CPU High.
 
 Entry type ID: 10
 
