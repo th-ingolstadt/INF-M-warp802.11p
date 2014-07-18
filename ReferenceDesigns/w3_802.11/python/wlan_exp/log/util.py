@@ -41,6 +41,9 @@ if (sys.maxsize <= 2**32):
     print(("-" * 75) + "\n")
 
 
+# Fix to support Python 2.x and 3.x
+if sys.version[0]=="3": long=None
+
 
 #-----------------------------------------------------------------------------
 # Log Container base class
