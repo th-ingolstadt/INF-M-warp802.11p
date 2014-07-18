@@ -142,26 +142,6 @@ void uart_rx(u8 rxByte){
 
 					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
 				break;
-				case ASCII_g:
-					if((default_unicast_data_tx_params.phy.power) > TX_POWER_MIN_DBM){
-						(default_unicast_data_tx_params.phy.power)--;
-					} else {
-						(default_unicast_data_tx_params.phy.power) = TX_POWER_MIN_DBM;
-					}
-
-					xil_printf("(-) Default Tx Power: %d dBm\n", (default_unicast_data_tx_params.phy.power));
-
-				break;
-				case ASCII_G:
-					if((default_unicast_data_tx_params.phy.power) < TX_POWER_MAX_DBM){
-						(default_unicast_data_tx_params.phy.power)++;
-					} else {
-						(default_unicast_data_tx_params.phy.power) = TX_POWER_MAX_DBM;
-					}
-
-					xil_printf("(+) Default Tx Power: %d dBm\n", (default_unicast_data_tx_params.phy.power));
-
-				break;
 			}
 		break;
 		case UART_MODE_INTERACTIVE:
@@ -185,8 +165,8 @@ void print_menu(){
 	xil_printf("[1] - Interactive Station Status\n");
 	xil_printf("[2] - Print all Observed Statistics\n");
 	xil_printf("\n");
-	xil_printf("[a] - 	active scan and display nearby APs\n");
-	xil_printf("[r/R] - change default unicast rate\n");
+	xil_printf("[a] - 	display BSS information\n");
+	xil_printf("[r/R] - change unicast rate\n");
 }
 
 void print_station_status(u8 manual_call){
@@ -234,10 +214,6 @@ void print_station_status(u8 manual_call){
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("\n");
 		xil_printf("[r] - reset statistics\n\n");
-		xil_printf(" The interactive STA menu supports sending arbitrary traffic\n");
-		xil_printf(" to an associated AP. To use this feature, press the number 1\n");
-		xil_printf(" Pressing Esc at any time will halt all local traffic\n");
-		xil_printf(" generation and return you to the main menu.");
 
 		//Update display
 		schedule_ID = wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
