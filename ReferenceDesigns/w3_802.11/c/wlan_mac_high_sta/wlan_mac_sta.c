@@ -247,7 +247,7 @@ int main() {
 	wlan_mac_high_interrupt_start();
 
 	// Set the default active scan channels
-	u8 channel_selections[15] = {1,2,3,4,5,6,7,8,9,10,11,36,40,44,48};
+	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 	wlan_mac_sta_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
 	// If there is a default SSID, initiate a probe request
