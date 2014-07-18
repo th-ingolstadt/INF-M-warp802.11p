@@ -20,7 +20,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-import mmatplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
