@@ -344,7 +344,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 			//     cmdArgs32[0]   Command:
 			//                      - Write       (CMD_PARAM_WRITE_VAL)
 			//     cmdArgs32[1]   Number of address filters
-        	//     cmdArgs32[2:N] [ (Mask (u64), Compare address (u64)) ]
+        	//     cmdArgs32[2:N] [ Compare address (u64)), (Mask (u64) ]
         	//
 			// Response format:
 			//     respArgs32[0]  Status
@@ -364,13 +364,13 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 					// Add all the address ranges to the filter
                     for( i = 0; i < temp; i++ ) {
                         // Extract the address and the mask
-                    	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2 + (4*i)], &mask[0]);
-                    	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4 + (4*i)], &mac_addr[0]);
+                    	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2 + (4*i)], &mac_addr[0]);
+                    	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4 + (4*i)], &mask[0]);
 
-        				xil_printf("Adding Address filter: (%02x", mask[0]);
-        				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mask[i] ); }
-        				xil_printf(", %02x", mac_addr[0]);
-        				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf(")\n");
+        				xil_printf("Adding Address filter: (%02x", mac_addr[0]);
+        				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); }
+        				xil_printf(", %02x", mask[0]);
+        				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mask[i] ); } xil_printf(")\n");
 
                     	if ( wlan_mac_addr_filter_add(mask, mac_addr) == -1 ) {
                     		status = CMD_PARAM_ERROR;
