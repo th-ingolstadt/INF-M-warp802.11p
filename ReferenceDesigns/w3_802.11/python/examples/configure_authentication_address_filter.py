@@ -17,24 +17,22 @@ Required Script Changes:
   - Set NETWORK to the IP address of your host PC NIC network (eg X.Y.Z.0 for IP X.Y.Z.W)
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
   - Set CHANNEL to the channel you want the network to be on
-  - Set NETWORK_NAME to the string for the SSID of the network
+  - Set AP_SSID to the string for the SSID of the network
   - Set WLAN_DEVICE_LIST to the list of devices you want on this network
 
 Description:
-  This script initializes one WARP v3 AP node.  It will then configure the network.  
-First, it will set the address filter on the AP such that only the device in 
-WLAN_DEVICE_LIST can join wirelessly.  Then it will remove any associations from the 
-AP and set it to the specified channel.  It will then configure the AP with a new SSID.  
-Finally, it will wait until all the devices have associated.
+  This script initializes one WARP v3 AP node via the wlan_exp framework and
+  configures the AP's authentication address filter to accept only the MAC addresses
+  listed in WLAN_DEVICE_LIST. It then removes all associations at the AP, tunes the AP
+  to channel CHANNEL, sets the SSID to AP_SSID. Finally the script waits for all devices
+  listed in WLAN_DEVICE_LIST to associate via the normal wireless handshake.
 ------------------------------------------------------------------------------
 """
 import sys
 
 import wlan_exp.config as wlan_exp_config
 import wlan_exp.util as wlan_exp_util
-
 import wlan_exp.device as wlan_device
-
 
 #-----------------------------------------------------------------------------
 # Top Level Script Variables
@@ -43,13 +41,13 @@ import wlan_exp.device as wlan_device
 NETWORK           = '10.0.0.0'
 NODE_SERIAL_LIST  = ['W3-a-00001']
 CHANNEL           = 1
-NETWORK_NAME      = "WARP Device Example"
+AP_SSID           = "WARP Device Example"
 
 # WLAN devices
-#   Contains a list of tuples: (MAC Address, 'String description of device')
-#
+# Contains a list of tuples: (MAC Address, 'String description of device')
+#  MAC addresses must be expressed as uint64 values
+#  For example, use 0x0123456789AB for MAC address 01:23:45:67:89:AB
 WLAN_DEVICE_LIST  = [(0x000000000000, 'My Device')]
-
 
 #-----------------------------------------------------------------------------
 # Initialize the experiment
@@ -66,9 +64,6 @@ nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=networ
 # Initialize the Nodes
 #  This command will fail if either WARP v3 node does not respond
 nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
-
-# Set the time of all the nodes to zero
-wlan_exp_util.broadcast_cmd_set_time(0.0, network_config)
 
 # Extract the AP and STA nodes from the list of initialized nodes
 n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
@@ -88,7 +83,6 @@ else:
     print("    Ensure the AP is ready and there is one valid WLAN device\n")
     sys.exit(0)
 
-
 #-----------------------------------------------------------------------------
 # Configure the Network
 #-----------------------------------------------------------------------------
@@ -106,10 +100,10 @@ for node in nodes:
     node.disassociate_all()
 
 # Set the network SSID
-ssid = n_ap.set_ssid(NETWORK_NAME)
-print("Network Name: '{0}'\n".format(ssid))
+ssid = n_ap.set_ssid(AP_SSID)
+print("AP SSID: '{0}'\n".format(ssid))
 
-# Set the AP address filter for each device
+# Add each whitelisted device to the AP authenticaiton address filter
 for device in WLAN_DEVICE_LIST:
     n_ap.set_authentication_address_filter((device[0], device[0]))
 
