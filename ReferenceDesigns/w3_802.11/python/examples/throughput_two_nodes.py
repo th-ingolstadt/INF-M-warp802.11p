@@ -10,8 +10,8 @@ an AP and an associated STA using the AP's local traffic generator (LTG).
 
 Hardware Setup:
   - Requires two WARP v3 nodes
-    - One node configured as AP using 802.11 Reference Design v0.8 or later
-    - One node configured as STA using 802.11 Reference Design v0.8 or later
+    - One node configured as AP using 802.11 Reference Design v0.95 or later
+    - One node configured as STA using 802.11 Reference Design v0.95 or later
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
