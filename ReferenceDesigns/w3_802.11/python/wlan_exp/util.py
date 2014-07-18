@@ -99,7 +99,6 @@ wlan_channel = [{'index' :   1, 'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz
                 {'index' :  10, 'channel' :  10, 'freq': 2457, 'desc' : '2.4 GHz Band'},
                 {'index' :  11, 'channel' :  11, 'freq': 2462, 'desc' : '2.4 GHz Band'},
                 {'index' :  36, 'channel' :  36, 'freq': 5180, 'desc' : '5 GHz Band'},
-                {'index' :  40, 'channel' :  40, 'freq': 5200, 'desc' : '5 GHz Band'},
                 {'index' :  44, 'channel' :  44, 'freq': 5220, 'desc' : '5 GHz Band'},
                 {'index' :  48, 'channel' :  48, 'freq': 5240, 'desc' : '5 GHz Band'}]
 
