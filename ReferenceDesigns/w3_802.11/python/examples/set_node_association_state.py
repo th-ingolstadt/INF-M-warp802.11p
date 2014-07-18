@@ -19,16 +19,15 @@ Required Script Changes:
   - Set NETWORK to the IP address of your host PC NIC network (eg X.Y.Z.0 for IP X.Y.Z.W)
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
   - Set CHANNEL to the channel you want the network to be on
-  - Set NETWORK_NAME to the string for the SSID of the network
+  - Set AP_SSID to the string for the SSID of the network
   - Set ADDR_FILTER_LIST to the addresses of nodes that are allowed to associate wirelessly
 
 Description:
-  This script initializes two WARP v3 nodes, one AP and one STA.  It will then
-configure the network.  First, it will set the address filter on the AP such that
-no node can join wirelessly.  Then it will remove any associations from the AP and
-STA and set all nodes on the same channel.  It will then configure the AP with a 
-new SSID.  Finally, it will add the STA as an association to the AP so they can 
-communicate and open a debug prompt so that the user can explore this network.
+  This script initializes two WARP v3 nodes, one AP and one STA. It sets the 
+  AP's authentication address address filter to block all wireless associations.
+  The script then updates the associaiton state of the AP and STA to establish
+  their association without any wireless handshake. Finally the script drops to an
+  interactive prompt.
 ------------------------------------------------------------------------------
 """
 import sys
@@ -41,15 +40,14 @@ import wlan_exp.util as wlan_exp_util
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
 NETWORK           = '10.0.0.0'
-NODE_SERIAL_LIST  = ['W3-a-00006', 'W3-a-00183']
+NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 CHANNEL           = 1
-NETWORK_NAME      = "WARP Assoc Example"
+AP_SSID           = "WARP Assoc Example"
 
 # Device filter
 #   Contains a list of tuples:  (Mask, MAC Address)
 #
-ADDR_FILTER_LIST  = [(0x000000000000, 0x000000000000)]               # Do not allow anyone
-
+ADDR_FILTER_LIST  = [(0x000000000000, 0x000000000000)] # Do not allow anyone
 
 #-----------------------------------------------------------------------------
 # Initialize the experiment
@@ -102,10 +100,12 @@ for node in nodes:
     node.disassociate_all()
 
 # Set the network SSID
-ssid = n_ap.set_ssid(NETWORK_NAME)
-print("Network Name: '{0}'\n".format(ssid))
+ssid = n_ap.set_ssid(AP_SSID)
+print("AP SSID: '{0}'\n".format(ssid))
 
-# Add the association(s) we want
+# Force the association state between the AP and STA
+#  This call inserts the STA into the AP's association table
+#   and sets the active BSS at the STA to the AP
 n_ap.add_association(n_sta)
 
 # Check that the nodes are associated.

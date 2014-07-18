@@ -8,7 +8,7 @@ License:   Copyright 2014, Mango Communications. All rights reserved.
 This module provides a simple WARPNet example.
 
 Hardware Setup:
-  - Requires one WARP v3 node configured as AP using 802.11 Reference Design v0.8 or later
+  - Requires one WARP v3 node configured as AP using 802.11 Reference Design v0.895 or later
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:

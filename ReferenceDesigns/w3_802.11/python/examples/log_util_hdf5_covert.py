@@ -9,7 +9,7 @@ This script uses the WLAN Exp Log framework to covert an older WLAN Exp hdf5
 log file (prior to 0.93) to the newer file format.
 
 Hardware Setup:
-    - None.  Anonymizing log data can be done completely off-line
+    - No hardware required.
 
 Required Script Changes:
     - None.  Script requires filename of file to be converted
