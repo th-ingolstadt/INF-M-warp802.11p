@@ -223,7 +223,7 @@ def tx_ant_mode_index_to_str(index):
 #-----------------------------------------------------------------------------
 
 # MAC Description Map
-#   List of tuples:  (mask, MAC value, description) describe various MAC addresses
+#   List of tuples:  (MAC value, mask, description) describe various MAC addresses
 #
 # IP -> MAC multicast references: 
 #     http://technet.microsoft.com/en-us/library/cc957928.aspx
@@ -231,11 +231,11 @@ def tx_ant_mode_index_to_str(index):
 #     http://www.cavebear.com/archive/cavebear/Ethernet/multicast.html
 
 mac_addr_desc_map = [(0xFFFFFFFFFFFF, 0xFFFFFFFFFFFF, 'Broadcast'),
-                     (0xFFFFFF800000, 0x01005E000000, 'IP v4 Multicast'),
-                     (0xFFFF00000000, 0x333300000000, 'IP v6 Multicast'),
-                     (0xFFFFFF000000, 0xFEFFFF000000, 'Anonymized Device'),
+                     (0x01005E000000, 0xFFFFFF800000, 'IP v4 Multicast'),
+                     (0x333300000000, 0xFFFF00000000, 'IP v6 Multicast'),
+                     (0xFEFFFF000000, 0xFFFFFF000000, 'Anonymized Device'),
                      (0xFFFFFFFF0000, 0xFFFFFFFF0000, 'Anonymized Device'),
-                     (0xFFFFFFFFF000, 0x40D855042000, 'Mango WARP Hardware')]
+                     (0x40D855042000, 0xFFFFFFFFF000, 'Mango WARP Hardware')]
 
 
 #-----------------------------------------------------------------------------
@@ -510,8 +510,8 @@ def mac_addr_desc(mac_addr, desc_map=None):
     addr_value. If the result is non-zero the corresponding descprition will be returned.
     
     Example:
-    desc_map = [ (0xFFFFFFFFFFFF, 0x000102030405, 'My Custom MAC Addr'), 
-                 (0xFFFFFFFFFFFF, 0x000203040506, 'My Other MAC Addr') ]
+    desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'), 
+                 (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]
     """
     global mac_addr_desc_map
 

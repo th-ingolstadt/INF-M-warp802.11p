@@ -1271,11 +1271,11 @@ class NodeAPSetAuthAddrFilter(wn_message.Cmd):
     """Command to set the authentication address filter on the node.
     
     Attributes:
-        allow  -- List of (mask, address) tuples that will be used to filter addresses
+        allow  -- List of (address, mask) tuples that will be used to filter addresses
                   on the node.
 
-    NOTE:  For the mask, bits that are 1 are treated as "any" and bits that are 0 are 
-    treated as "must equal".  For the address, locations of zeroed bits in the mask 
+    NOTE:  For the mask, bits that are 0 are treated as "any" and bits that are 1 are 
+    treated as "must equal".  For the address, locations of one bits in the mask 
     must match the incoming addresses to pass the filter.
     """
     def __init__(self, allow):

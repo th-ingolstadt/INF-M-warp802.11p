@@ -47,7 +47,7 @@ AP_SSID           = "WARP Assoc Example"
 # Device filter
 #   Contains a list of tuples:  (Mask, MAC Address)
 #
-ADDR_FILTER_LIST  = [(0x000000000000, 0x000000000000)] # Do not allow anyone
+ADDR_FILTER_LIST  = [(0x000000000000, 0xFFFFFFFFFFFF)] # Do not allow anyone
 
 #-----------------------------------------------------------------------------
 # Initialize the experiment
