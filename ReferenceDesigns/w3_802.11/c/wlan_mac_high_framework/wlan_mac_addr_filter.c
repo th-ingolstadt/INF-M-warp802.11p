@@ -55,15 +55,15 @@ extern bss_info*		       ap_bss_info;
 // **********************************************************************
 // White-list for address ranges
 //
-// For the mask, bits that are 1 are treated as "any" and bits that are 0 are treated as "must equal"
-// For the compare, locations of zeroed bits in the mask must match whitelist_range_compare for incoming addresses
+// For the mask, bits that are 0 are treated as "any" and bits that are 1 are treated as "must equal"
+// For the compare, locations of one bits in the mask must match whitelist_range_compare for incoming addresses
 //
 
 dl_list   addr_filter;
 
-static u8 none_range_mask[WHITELIST_ADDR_LEN]    = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static u8 none_range_mask[WHITELIST_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
-static u8 warp_range_mask[WHITELIST_ADDR_LEN]    = { 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF };
+static u8 warp_range_mask[WHITELIST_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x00 };
 static u8 warp_range_compare[WHITELIST_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
 
 
@@ -258,7 +258,7 @@ u8    addr_is_allowed(u8* addr, u8* mask, u8* compare){
 	sum = 0;
 
 	for(i = 0; i < WHITELIST_ADDR_LEN; i++){
-		sum += (mask[i] | compare[i]) == (mask[i] | addr[i]);
+		sum += (mask[i] & compare[i]) == (mask[i] & addr[i]);
 	}
 
 	if(sum == WHITELIST_ADDR_LEN) {
