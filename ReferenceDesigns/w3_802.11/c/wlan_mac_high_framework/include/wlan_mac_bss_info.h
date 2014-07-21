@@ -30,7 +30,8 @@ typedef struct{
 	u8   	basic_rates[NUM_BASIC_RATES_MAX];
 	u8 	 	state;
 	u8   	num_basic_rates;
-	u8 	 	padding[3];
+	u8 	 	padding;
+	u16		capabilities;
 	dl_list associated_stations;
 } bss_info;
 
