@@ -40,8 +40,6 @@ typedef struct{
 #define BSS_STATE_ASSOCIATED		4
 #define BSS_STATE_OWNED				5
 
-#define BSS_FLAGS_IS_PRIVATE    	0x01
-
 void bss_info_init();
 void bss_info_init_finish();
 dl_entry* bss_info_checkout();

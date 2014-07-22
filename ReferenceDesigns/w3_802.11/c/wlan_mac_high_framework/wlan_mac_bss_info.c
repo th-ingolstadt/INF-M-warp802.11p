@@ -119,18 +119,14 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				curr_bss_info->state		   = bss_state;
 				curr_bss_info->num_basic_rates = 0;
 
-				// Copy BSSID into ap_info struct
+				// Copy BSSID into bss_info struct
 				memcpy(curr_bss_info->bssid, rx_80211_header->address_3, 6);
 
 				// Move the packet pointer to after the header
 				mpdu_ptr_u8 += sizeof(mac_header_80211);
 
-				// Check if the AP is private
-				if((((beacon_probe_frame*)mpdu_ptr_u8)->capabilities) & CAPABILITIES_PRIVACY){
-					curr_bss_info->flags = BSS_FLAGS_IS_PRIVATE;
-				} else {
-					curr_bss_info->flags = 0;
-				}
+				// Copy capabilities into bss_info struct
+				curr_bss_info->capabilities = ((beacon_probe_frame*)mpdu_ptr_u8)->capabilities;
 
 				// Move the packet pointer to after the beacon/probe frame
 				mpdu_ptr_u8 += sizeof(beacon_probe_frame);
@@ -215,11 +211,13 @@ void print_bss_info(){
 
 		xil_printf("[%d] SSID:     %s ", i, curr_bss_info->ssid);
 
-		if(curr_bss_info->flags & BSS_FLAGS_IS_PRIVATE){
-			xil_printf("(*)\n");
-		} else {
-			xil_printf("\n");
+		if(curr_bss_info->capabilities & CAPABILITIES_PRIVACY){
+			xil_printf("(*)");
 		}
+		if(curr_bss_info->capabilities & CAPABILITIES_IBSS){
+			xil_printf("(I)");
+		}
+		xil_printf("\n");
 
 		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", curr_bss_info->bssid[0],curr_bss_info->bssid[1],curr_bss_info->bssid[2],curr_bss_info->bssid[3],curr_bss_info->bssid[4],curr_bss_info->bssid[5]);
 		xil_printf("    Channel:       %d\n",curr_bss_info->chan);
@@ -231,6 +229,7 @@ void print_bss_info(){
 			xil_printf("%s, ",str);
 		}
 		xil_printf("\b\b \n");
+		xil_printf("    Capabilities:  0x%04x\n", curr_bss_info->capabilities);
 		curr_dl_entry = dl_entry_prev(curr_dl_entry);
 		i++;
 	}
