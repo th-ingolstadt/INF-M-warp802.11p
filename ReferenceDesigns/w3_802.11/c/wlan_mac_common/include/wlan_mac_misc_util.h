@@ -40,6 +40,11 @@ typedef int (*function_ptr_t)();
 #define wlan_addr_eq(addr1, addr2) (memcmp((void*)(addr1), (void*)(addr2), 6)==0)
 #define wlan_addr_mcast(addr) ( (((u8*)(addr))[0] & 1) == 1 )
 
+
+//Reference: http://standards.ieee.org/develop/regauth/tut/macgrp.pdf
+#define MAC_ADDR_MSB_MASK_MCAST	0x01
+#define MAC_ADDR_MSB_MASK_LOCAL	0x02
+
 typedef struct{
 	u8      rate;			///< Rate of transmission
 	u8      antenna_mode;	///< Antenna mode (Placeholder)
