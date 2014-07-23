@@ -29,6 +29,7 @@
 
 #define ENCAP_MODE_AP	0   ///< Used as a flag for AP encapsulation and de-encapsulation
 #define ENCAP_MODE_STA	1   ///< Used as a flag for STA encapsulation and de-encapsulation
+#define ENCAP_MODE_IBSS	2   ///< Used as a flag for IBSS encapsulation and de-encapsulation
 
 #define TX_BUFFER_NUM        2  ///< Number of PHY transmit buffers to use. This should remain 2 (ping/pong buffering).
 

@@ -496,6 +496,45 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 				break;
 			}
 		break;
+
+		case ENCAP_MODE_IBSS:
+
+			//Make temp copy of the 802.11 header address 2 field
+			memcpy(addr_cache, rx80211_hdr->address_2, 6);
+
+			//If this packet is addressed to this STA, use the wired device's MAC address as the Eth dest address
+			if(wlan_addr_eq(rx80211_hdr->address_1, hw_info.hw_addr_wlan)) {
+				memcpy(eth_hdr->address_destination, eth_sta_mac_addr, 6);
+			} else {
+				memmove(eth_hdr->address_destination, rx80211_hdr->address_1, 6);
+			}
+
+			//Insert the Eth source, from the 802.11 header address 2 field
+			memcpy(eth_hdr->address_source, addr_cache, 6);
+
+			switch(llc_hdr->type){
+				case LLC_TYPE_ARP:
+					eth_hdr->type = ETH_TYPE_ARP;
+
+					//If the ARP packet is addressed to this STA wireless address, replace the ARP dest address
+					// with the connected wired device's MAC address
+					arp = (arp_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+					if(wlan_addr_eq(arp->eth_dst, hw_info.hw_addr_wlan)) {
+						memcpy(arp->eth_dst, eth_sta_mac_addr, 6);
+					}
+				break;
+
+				case ETH_TYPE_IP:
+					eth_hdr->type = ETH_TYPE_IP;
+					ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
+				break;
+
+				default:
+					//Invalid or unsupported Eth type; punt
+					return -1;
+				break;
+			}
+		break;
 	}
 
 #ifdef FMC_PKT_EN
@@ -798,6 +837,7 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 
 		break;
 
+		case ENCAP_MODE_IBSS:
 		case ENCAP_MODE_STA:
 
 			//Save this ethernet src address
