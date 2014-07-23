@@ -60,6 +60,7 @@ const u8 max_num_associations                    = 1;
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
 char default_ssid[SSID_LEN_MAX + 1] = "WARP-IBSS";
+//char default_ssid[SSID_LEN_MAX + 1] = "mangomini";
 //char default_ssid[SSID_LEN_MAX + 1] = "";
 
 
@@ -174,7 +175,7 @@ int main() {
 	wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
 
 	// Set the Ethernet ecapsulation mode
-	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
+	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_IBSS);
 
 	// Initialize the association and statistics tables
 	dl_list_init(&statistics_table);
@@ -277,7 +278,7 @@ int main() {
 
 	//FIXME: Beacon transmissions are temporarily disabled until we get the beacon-cancellation behavior specified in
 	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
-	//wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 
 
 	while(1){
@@ -496,11 +497,51 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
  * @return 1 for successful enqueuing of the packet, 0 otherwise
  */
 int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
-	tx_queue_buffer* 	curr_tx_queue_buffer;
-	station_info* 		ap_station_info;
+	// TODO: We need to create station_info structs for outgoing MAC addresses. Unlike the AP,
+	// the IBSS doesn't have the luxury of creating these structures at the time of association since
+	// there is no formal association for IBSS. At the moment, we do not employ station_info and cannot
+	// support different transmit parameters for different target addresses.
 
-	// TODO: This should be more AP-like than STA-like, so I've removed it.
-	return 0;
+	tx_queue_buffer* 	curr_tx_queue_buffer;
+
+	if(ibss_info != NULL){
+
+		if(queue_num_queued(UNICAST_QID) < max_queue_size){
+
+			// Send the pre-encapsulated Ethernet frame over the wireless interface
+			//     NOTE:  The queue element has already been provided, so we do not need to check if it is NULL
+			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+			// Setup the TX header
+			wlan_mac_high_setup_tx_header( &tx_header_common, eth_dest,ibss_info->bssid);
+
+			// Fill in the data
+			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, 0);
+
+			// Setup the TX frame info
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
+
+			// Set the information in the TX queue buffer
+			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+			curr_tx_queue_buffer->frame_info.AID         = 0;
+
+			// Put the packet in the queue
+			enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
+
+			// Poll the TX queues to possibly send the packet
+			poll_tx_queues();
+
+		} else {
+			// Packet was not successfully enqueued
+			return 0;
+		}
+
+		// Packet was successfully enqueued
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 
@@ -540,7 +581,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8                  unicast_to_me;
 	u8                  to_multicast;
 	s64                 timestamp_diff;
-	u8                  is_associated            = 0;
 	dl_entry*			bss_info_entry;
 	bss_info*			curr_bss_info;
 	u8					send_response			 = 0;
@@ -572,7 +612,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			associated_station->rx.last_power     = mpdu_info->rx_power;
 			associated_station->rx.last_rate      = mpdu_info->rate;
 
-			is_associated = 1;
 			rx_seq        = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			station_stats = associated_station->stats;
 
@@ -612,9 +651,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				// Data packet
 				//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
 				//
-				if(is_associated){
-					//FIXME
-					if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
+				if(ibss_info != NULL){
+					if(wlan_addr_eq(rx_80211_header->address_3, ibss_info->bssid)) {
 						// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
 						wlan_mpdu_eth_send(mpdu,length);
 					}
