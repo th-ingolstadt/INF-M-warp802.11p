@@ -12,8 +12,8 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
-#include "wlan_mac_sta_scan_fsm.h"
-#include "wlan_mac_sta.h"
+#include "wlan_mac_ibss_scan_fsm.h"
+#include "wlan_mac_ibss.h"
 
 static u32 num_scan_channels = 0;
 

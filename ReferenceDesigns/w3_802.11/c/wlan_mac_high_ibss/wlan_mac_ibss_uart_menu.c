@@ -32,7 +32,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_sta.h"
+#include "wlan_mac_ibss.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_event_log.h"
@@ -69,12 +69,6 @@ extern u32 mac_param_chan;
 u32 num_slots = SLOT_CONFIG_RAND;
 
 void uart_rx(u8 rxByte){
-
-	station_info* access_point = NULL;
-
-	if(ap_bss_info != NULL){
-		access_point = ((station_info*)(ap_bss_info->associated_stations.first->data));
-	}
 
 	#define MAX_NUM_CHARS 31
 
@@ -119,29 +113,6 @@ void uart_rx(u8 rxByte){
 					print_bss_info();
 				break;
 
-				case ASCII_r:
-					if((default_unicast_data_tx_params.phy.rate) > WLAN_MAC_RATE_6M){
-						(default_unicast_data_tx_params.phy.rate)--;
-					} else {
-						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_6M;
-					}
-
-					if(access_point != NULL) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
-
-
-					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
-				break;
-				case ASCII_R:
-					if((default_unicast_data_tx_params.phy.rate) < WLAN_MAC_RATE_54M){
-						(default_unicast_data_tx_params.phy.rate)++;
-					} else {
-						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_54M;
-					}
-
-					if(access_point != NULL) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
-
-					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
-				break;
 			}
 		break;
 		case UART_MODE_INTERACTIVE:
@@ -171,54 +142,8 @@ void print_menu(){
 
 void print_station_status(u8 manual_call){
 
-	u64 timestamp;
-	dl_entry* access_point_entry = NULL;
+	//TODO: This will be more like the AP equivalent
 
-	if(ap_bss_info != NULL){
-		access_point_entry = ap_bss_info->associated_stations.first;
-	}
-
-	station_info* access_point = NULL;
-
-	if(ap_bss_info != NULL){
-		access_point = ((station_info*)(access_point_entry->data));
-	}
-	statistics_txrx* curr_statistics;
-
-
-	if(uart_mode == UART_MODE_INTERACTIVE){
-		timestamp = get_usec_timestamp();
-		xil_printf("\f");
-		xil_printf("---------------------------------------------------\n");
-
-			if(ap_bss_info != NULL){
-				xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", access_point->AID,
-							access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
-
-				curr_statistics = access_point->stats;
-
-				xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (access_point->rx.last_timestamp)))/1000);
-				xil_printf("     - Last Rx Power:          %d dBm\n",access_point->rx.last_power);
-				xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(UNICAST_QID));
-				xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_statistics->data.tx_num_packets_total, curr_statistics->data.tx_num_packets_success);
-				xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_statistics->data.tx_num_bytes_total), (u32)(curr_statistics->data.tx_num_bytes_success));
-				xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_statistics->data.tx_num_packets_low);
-				xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", curr_statistics->mgmt.tx_num_packets_total, curr_statistics->mgmt.tx_num_packets_success);
-				xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(curr_statistics->mgmt.tx_num_bytes_total), (u32)(curr_statistics->mgmt.tx_num_bytes_success));
-				xil_printf("     - # Tx Low Mgmt MPDUs:    %d\n", curr_statistics->mgmt.tx_num_packets_low);
-				xil_printf("     - # Rx Data MPDUs:        %d\n", curr_statistics->data.rx_num_packets);
-				xil_printf("     - # Rx Data Bytes:        %d\n", curr_statistics->data.rx_num_bytes);
-				xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_statistics->mgmt.rx_num_packets);
-				xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_statistics->mgmt.rx_num_bytes);
-			}
-		xil_printf("---------------------------------------------------\n");
-		xil_printf("\n");
-		xil_printf("[r] - reset statistics\n\n");
-
-		//Update display
-		schedule_ID = wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
-
-	}
 }
 
 void print_all_observed_statistics(){

@@ -45,6 +45,10 @@
 
 // Timing Parameters
 
+// Time between beacon transmissions
+#define BEACON_INTERVAL_MS             (100)
+#define BEACON_INTERVAL_US             (BEACON_INTERVAL_MS*1000)
+
 //Timeout for association request-response handshake
 #define ASSOCIATION_TIMEOUT_US         100000
 #define ASSOCIATION_NUM_TRYS           5
@@ -78,6 +82,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details);
+void beacon_transmit();
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 
@@ -85,8 +90,8 @@ void purge_all_data_tx_queue();
 void reset_station_statistics();
 dl_list * get_statistics();
 
-int  sta_set_association_state( bss_info* new_bss_info, u16 aid );
-int  sta_disassociate();
+//int  sta_set_association_state( bss_info* new_bss_info, u16 aid );
+//int  sta_disassociate();
 
 void print_menu();
 void print_ap_list();
