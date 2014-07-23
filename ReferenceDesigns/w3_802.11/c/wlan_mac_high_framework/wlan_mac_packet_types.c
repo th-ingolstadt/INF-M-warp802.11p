@@ -28,7 +28,7 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_packet_types.h"
 
-int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan, u8 tim_len, u8 tim_control, u8* tim_bitmap) {
+int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan) {
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
 	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
@@ -55,7 +55,7 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	beacon_probe_mgmt_header->timestamp = 0;
 
 	beacon_probe_mgmt_header->beacon_interval = beacon_interval;
-	beacon_probe_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
+	beacon_probe_mgmt_header->capabilities = capabilities;
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame));
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
@@ -83,21 +83,6 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	txBufferPtr_u8[2] = chan;
 	txBufferPtr_u8+=(1+2);
 
-	txBufferPtr_u8[0] = 5; //Tag 5: Traffic Indication Map (TIM)
-	//txBufferPtr_u8[1] = 4; //tag length... doesn't include the tag itself and the tag length
-	//txBufferPtr_u8[2] = 0; //DTIM count
-	//txBufferPtr_u8[3] = 1; //DTIM period
-	//txBufferPtr_u8[4] = 1; //Bitmap control 1 //0 to disable direct multicast
-	//txBufferPtr_u8[5] = 0; //Bitmap control 1
-	//txBufferPtr_u8+=(4+2);
-	//u8 tim_len, u8 tim_offset, u8* tim_bitmap
-	txBufferPtr_u8[1] = 3+tim_len; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = 0; //DTIM count
-	txBufferPtr_u8[3] = 1; //DTIM period
-	txBufferPtr_u8[4] = tim_control; //Bitmap control
-	memcpy(&txBufferPtr_u8[5], tim_bitmap,tim_len);
-	txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
-
 	txBufferPtr_u8[0] = 42; //Tag 42: ERP Info
 	txBufferPtr_u8[1] = 1; //tag length... doesn't include the tag itself and the tag length
 	txBufferPtr_u8[2] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
@@ -109,13 +94,11 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	txBufferPtr_u8+=(1+2);
 
 	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
-
-
-
 	return packetLen_bytes;
 }
 
-int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan) {
+
+int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan) {
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
 	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
@@ -142,7 +125,7 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 	beacon_probe_mgmt_header->timestamp = 0;
 
 	beacon_probe_mgmt_header->beacon_interval = beacon_interval;
-	beacon_probe_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
+	beacon_probe_mgmt_header->capabilities = capabilities;
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame));
 	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
