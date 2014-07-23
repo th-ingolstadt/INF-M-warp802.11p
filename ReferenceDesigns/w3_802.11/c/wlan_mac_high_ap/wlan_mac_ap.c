@@ -92,6 +92,7 @@ static u8 	 wlan_mac_addr[6];
 
 u8 tim_bitmap[1] = {0x0};
 u8 tim_control = 1;
+u8 tim_len = 1;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -700,6 +701,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  */
 void beacon_transmit() {
  	u16 tx_length;
+ 	u8* txBufferPtr_u8;
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
 
@@ -717,11 +719,24 @@ void beacon_transmit() {
 			(void*)(curr_tx_queue_buffer->frame),
 			&tx_header_common,
 			BEACON_INTERVAL_MS,
+			(CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
 			strlen(ap_bss_info->ssid),
 			(u8*)ap_bss_info->ssid,
-			mac_param_chan,
-			1,
-			tim_control,tim_bitmap);
+			mac_param_chan);
+
+        // Append Traffic Indication Map
+
+        txBufferPtr_u8 = (u8*)(curr_tx_queue_buffer->frame) + tx_length;
+
+    	txBufferPtr_u8[0] = 5; //Tag 5: Traffic Indication Map (TIM)
+    	txBufferPtr_u8[1] = 3+tim_len; //tag length... doesn't include the tag itself and the tag length
+    	txBufferPtr_u8[2] = 0; //DTIM count
+    	txBufferPtr_u8[3] = 1; //DTIM period
+    	txBufferPtr_u8[4] = tim_control; //Bitmap control
+    	memcpy(&txBufferPtr_u8[5], tim_bitmap,tim_len);
+    	txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
+
+    	tx_length = txBufferPtr_u8 - (u8*)(curr_tx_queue_buffer->frame);
 
 		// Setup the TX frame info
  		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
@@ -1076,7 +1091,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
 
 							// Fill in the data
-							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, BEACON_INTERVAL_MS, strlen(ap_bss_info->ssid), (u8*)ap_bss_info->ssid, mac_param_chan);
+							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, BEACON_INTERVAL_MS, (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT), strlen(ap_bss_info->ssid), (u8*)ap_bss_info->ssid, mac_param_chan);
 
 							// Setup the TX frame info
 							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
