@@ -128,6 +128,9 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				// Copy capabilities into bss_info struct
 				curr_bss_info->capabilities = ((beacon_probe_frame*)mpdu_ptr_u8)->capabilities;
 
+				// Copy beacon interval into bss_info struct
+				curr_bss_info->beacon_interval = ((beacon_probe_frame*)mpdu_ptr_u8)->beacon_interval;
+
 				// Move the packet pointer to after the beacon/probe frame
 				mpdu_ptr_u8 += sizeof(beacon_probe_frame);
 

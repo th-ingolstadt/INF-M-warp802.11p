@@ -27,11 +27,13 @@ typedef struct{
 	u8   	flags;
 	u64  	timestamp;
 	char 	ssid[SSID_LEN_MAX + 1];
-	u8   	basic_rates[NUM_BASIC_RATES_MAX];
 	u8 	 	state;
-	u8   	num_basic_rates;
-	u8 	 	padding;
 	u16		capabilities;
+	u16		beacon_interval;
+	u8   	num_basic_rates;
+	u8 	 	padding0;
+	u8   	basic_rates[NUM_BASIC_RATES_MAX];
+	u16		padding1;
 	dl_list associated_stations;
 } bss_info;
 
