@@ -60,7 +60,6 @@ const u8 max_num_associations                    = 1;
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
 char default_ssid[SSID_LEN_MAX + 1] = "WARP-IBSS";
-//char default_ssid[SSID_LEN_MAX + 1] = "mangomini";
 //char default_ssid[SSID_LEN_MAX + 1] = "";
 
 
@@ -73,11 +72,11 @@ tx_params                         default_unicast_data_tx_params;
 tx_params                         default_multicast_mgmt_tx_params;
 tx_params                         default_multicast_data_tx_params;
 
-// Top level STA state
+// Top level IBSS state
 static u8                         wlan_mac_addr[6];
 u8                                uart_mode;                         // Control variable for UART MENU
 u32	                              max_queue_size;                    // Maximum transmit queue size
-u8	                              allow_beacon_ts_update;            // Allow timebase to be updated from beacons
+static u32 						  beacon_sched_id = SCHEDULE_FAILURE;
 
 u8                                pause_data_queue;
 
@@ -118,9 +117,6 @@ int main() {
 
 	// Initialize the maximum TX queue size
 	max_queue_size = MAX_TX_QUEUE_LEN;
-
-    // Do not allow timebase updates from beacons
-	allow_beacon_ts_update = 0;
 
 	// Unpause the queue
 	pause_data_queue = 0;
@@ -264,6 +260,7 @@ int main() {
 		memcpy(locally_administered_addr,wlan_mac_addr,6);
 		locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL; //Raise the bit identifying this address as locally administered
 		ibss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
+		ibss_info->beacon_interval = BEACON_INTERVAL_MS;
 		ibss_info->state = BSS_STATE_OWNED;
 	}
 
@@ -271,14 +268,15 @@ int main() {
 	wlan_mac_high_set_channel( mac_param_chan );
 
 	xil_printf("IBSS Details: \n");
-	xil_printf("  BSSID     : %02x-%02x-%02x-%02x-%02x-%02x\n",ibss_info->bssid[0],ibss_info->bssid[1],ibss_info->bssid[2],ibss_info->bssid[3],ibss_info->bssid[4],ibss_info->bssid[5]);
-	xil_printf("   SSID     : %s\n", ibss_info->ssid);
-	xil_printf("   Channel  : %d\n", ibss_info->chan);
+	xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",ibss_info->bssid[0],ibss_info->bssid[1],ibss_info->bssid[2],ibss_info->bssid[3],ibss_info->bssid[4],ibss_info->bssid[5]);
+	xil_printf("   SSID           : %s\n", ibss_info->ssid);
+	xil_printf("   Channel        : %d\n", ibss_info->chan);
+	xil_printf("   Beacon Interval: %d ms\n",ibss_info->beacon_interval);
 
 
-	//FIXME: Beacon transmissions are temporarily disabled until we get the beacon-cancellation behavior specified in
+	//FIXME:
 	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
-	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 
 
 	while(1){
@@ -320,14 +318,14 @@ void beacon_transmit() {
         tx_length = wlan_create_beacon_frame(
 			(void*)(curr_tx_queue_buffer->frame),
 			&tx_header_common,
-			BEACON_INTERVAL_MS,
+			ibss_info->beacon_interval,
 			(CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS),
 			strlen(ibss_info->ssid),
 			(u8*)ibss_info->ssid,
 			mac_param_chan);
 
 		// Setup the TX frame info
- 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
+ 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_AUTOCANCEL), MANAGEMENT_QID );
 
 		// Set the information in the TX queue buffer
  		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -367,7 +365,7 @@ void beacon_transmit() {
 void poll_tx_queues(){
 	u8 i;
 
-	#define MAX_NUM_QUEUE 2
+	#define MAX_NUM_QUEUE 3
 
 	// Are we pausing transmissions?
 	if(pause_data_queue == 0){
@@ -382,8 +380,9 @@ void poll_tx_queues(){
 				queue_index = (queue_index + 1) % MAX_NUM_QUEUE;
 
 				switch(queue_index){
-					case 0:  if(dequeue_transmit_checkin(MANAGEMENT_QID)) { return; }  break;
-					case 1:  if(dequeue_transmit_checkin(UNICAST_QID))    { return; }  break;
+					case 0:  if(dequeue_transmit_checkin(BEACON_QID)) { return; }  break;
+					case 1:  if(dequeue_transmit_checkin(MANAGEMENT_QID)) { return; }  break;
+					case 2:  if(dequeue_transmit_checkin(UNICAST_QID))    { return; }  break;
 				}
 			}
 		}
@@ -710,7 +709,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, ibss_info->bssid );
 
 								// Fill in the data
-								tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, BEACON_INTERVAL_MS, (CAPABILITIES_IBSS | CAPABILITIES_SHORT_TIMESLOT), strlen(ibss_info->ssid), (u8*)ibss_info->ssid, ibss_info->chan);
+								tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, ibss_info->beacon_interval, (CAPABILITIES_IBSS | CAPABILITIES_SHORT_TIMESLOT), strlen(ibss_info->ssid), (u8*)ibss_info->ssid, ibss_info->chan);
 
 								// Setup the TX frame info
 								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
@@ -736,20 +735,17 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
             //---------------------------------------------------------------------
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
-			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
-			    // Beacon Packet / Probe Response Packet
+			    // Beacon Packet
 			    //   -
 			    //
 
 			    // Define the PHY timestamp offset
 				#define PHY_T_OFFSET 25
 
-			    // Update the timestamp from the beacon / probe response if allowed
-				if(ibss_info != NULL && allow_beacon_ts_update == 1){
-
-					/*
-					// If this packet was from our AP
-					if( wlan_addr_eq( ((station_info*)(((ap_bss_info->associated_stations).first)->data))->addr, rx_80211_header->address_3)){
+			    // Update the timestamp from the beacon
+				if(ibss_info != NULL){
+					// If this packet was from our IBSS
+					if( wlan_addr_eq( ibss_info->bssid, rx_80211_header->address_3)){
 
 						// Move the packet pointer to after the header
 						mpdu_ptr_u8 += sizeof(mac_header_80211);
@@ -759,13 +755,30 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
 
 						// Set the timestamp
-						wlan_mac_high_set_timestamp_delta(timestamp_diff);
+						if(timestamp_diff > 0) wlan_mac_high_set_timestamp_delta(timestamp_diff);
+
+						// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
+						if(beacon_sched_id != SCHEDULE_FAILURE){
+							wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
+							beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+						}
+
+						if(queue_num_queued(BEACON_QID)){
+							//We should destroy the beacon that is currently enqueued if
+							//it exists. Note: these statements aren't typically executed.
+							//It's very likely the to-be-transmitted BEACON is already down
+							//in CPU_LOW's domain and needs to be cancelled there.
+							curr_tx_queue_element = dequeue_from_head(BEACON_QID);
+							if(curr_tx_queue_element != NULL){
+								queue_checkin(curr_tx_queue_element);
+								wlan_eth_dma_update();
+							}
+						}
 
 						// Move the packet pointer back to the start for the rest of the function
 						mpdu_ptr_u8 -= sizeof(mac_header_80211);
 					}
-					*/
-					//TODO: check if this is a beacon from someone else in our IBSS
+
 				}
 
 			break;

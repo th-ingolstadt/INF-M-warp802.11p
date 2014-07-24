@@ -29,8 +29,9 @@
 
 // Tx queue IDs
 #define MCAST_QID 		0
-#define MANAGEMENT_QID 	1
-#define UNICAST_QID 	2
+#define BEACON_QID		1
+#define MANAGEMENT_QID 	2
+#define UNICAST_QID 	3
 
 // Common Defines
 #define NUM_BASIC_RATES_MAX            10
