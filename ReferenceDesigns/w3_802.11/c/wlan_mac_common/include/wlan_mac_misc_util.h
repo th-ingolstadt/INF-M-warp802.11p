@@ -107,6 +107,8 @@ typedef struct{
 #define TX_MPDU_FLAGS_REQ_TO				0x01
 #define TX_MPDU_FLAGS_FILL_TIMESTAMP		0x02
 #define TX_MPDU_FLAGS_FILL_DURATION			0x04
+#define TX_MPDU_FLAGS_REQ_BO				0x08
+#define TX_MPDU_FLAGS_AUTOCANCEL			0x10
 
 
 //The rx_frame_info struct is padded to give space for the PHY to fill in channel estimates. The offset where
