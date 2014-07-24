@@ -523,7 +523,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						// region of the packet buffer (i.e. (start_ind % 8)==0 )
 						wlan_phy_tx_timestamp_ins_start((24+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
 						wlan_phy_tx_timestamp_ins_end((31+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
-
 					} else {
 						//When start>end, the Tx logic will not insert any timestamp
 						wlan_phy_tx_timestamp_ins_start(1);
