@@ -54,6 +54,10 @@ static u32              stationShortRetryCount;
 static u32              stationLongRetryCount;
 static u32              cw_exp;
 
+static u8				autocancel_en;
+static u8				autocancel_match_type;
+static u8				autocancel_match_addr3[6];
+
 static u8               eeprom_addr[6];
 
 u8                      red_led_index;
@@ -72,6 +76,8 @@ int main(){
 	xil_printf("Note: this UART is currently printing from CPU_LOW. To view prints from\n");
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled live while the design is running.\n\n");
+
+	autocancel_en = 0;
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
@@ -257,6 +263,14 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
+	if(autocancel_en){
+		if( (rx_header->frame_control_1 == autocancel_match_type) && ( wlan_addr_eq(rx_header->address_3, autocancel_match_addr3) ) ){
+			wlan_mac_reset(1);
+			wlan_mac_reset(0);
+			return_value |= POLL_MAC_CANCEL_TX;
+		}
+	}
+
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	mpdu_info->ant_mode = active_rx_ant;
 
@@ -371,12 +385,14 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 	u32 i;
 	u8 req_timeout;
+	u8 req_backoff;
 	u16 n_slots;
 	u32 tx_status, rx_status;
 	u8 expect_ack;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 	u64 last_tx_timestamp;
 	int curr_tx_pow;
+	mac_header_80211* header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
@@ -393,6 +409,15 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
+
+		req_backoff = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_BO) != 0;
+
+		autocancel_en = ((mpdu_info->flags) & TX_MPDU_FLAGS_AUTOCANCEL) != 0;
+
+		if(autocancel_en){
+			autocancel_match_type = header->frame_control_1;
+			memcpy(autocancel_match_addr3, header->address_3, 6);
+		}
 
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
@@ -417,45 +442,20 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		}
 
 
-		//curr_tx_pow =
 
-		//DEBUG POWER
-		//xil_printf("%d \n", (int)( -1*wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power)*(float)log((float)(rand())/RAND_MAX) ));
-#if 0
-		//Emulated fading using random Tx powers
-		// Only useful for 2-node point-to-point link!
-		int x;
-		float a;
-
-		a = (float)( -1*(float)log((float)(rand())/RAND_MAX) ); //Exp with mean 1
-		x = mpdu_info->params.phy.power;
-
-		curr_tx_pow = wlan_mac_low_dbm_to_gain_target( (int)((float)x + 10.0*log(a)/log(10.0)) );
-
-		//Test of div 2
-		a = (float)( -1*(float)log((float)(rand())/RAND_MAX) ); //Exp with mean 1
-		x = mpdu_info->params.phy.power;
-
-		curr_tx_pow = max(curr_tx_pow, wlan_mac_low_dbm_to_gain_target( (int)((float)x + 10.0*log(a)/log(10.0)) ));
-
-#define TX_GAIN_MAX 45
-		if(curr_tx_pow > TX_GAIN_MAX){
-			curr_tx_pow = TX_GAIN_MAX;
-		} else if(curr_tx_pow<0){
-			curr_tx_pow = 0;
-		}
-#endif
 		curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
-
-		//xil_printf("Pow = %d\n", curr_tx_pow);
-		//DEBUG POWER
 
 		if(i == 0){
 			//This is the first transmission, so we speculatively draw a backoff in case
 			//the backoff counter is currently 0 but the medium is busy. Prior to all other
 			//(re)transmissions, an explicit backoff will have been started at the end of
 			//the previous iteration of this loop.
-			n_slots = rand_num_slots();
+			if (req_backoff == 0){
+				n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+			} else {
+				n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
+				wlan_mac_dcf_hw_start_backoff(n_slots);
+			}
 			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
 		} else {
 			REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x20);
@@ -506,8 +506,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 						//Tx didn't require timeout, completed successfully
 						update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
-						n_slots = rand_num_slots();
+						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 						wlan_mac_dcf_hw_start_backoff(n_slots);
+						autocancel_en = 0;
 						return 0;
 					break;
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED:
@@ -515,16 +516,20 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 						rx_status = wlan_mac_low_poll_frame_rx();
 						if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
 							update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
-							n_slots = rand_num_slots();
+							n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 							wlan_mac_dcf_hw_start_backoff(n_slots);
+							autocancel_en = 0;
 							return 0;
+						} else if((autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)){
+							autocancel_en = 0;
+							return -1;
 						} else {
 							if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)){
-								n_slots = rand_num_slots();
+								n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 								wlan_mac_dcf_hw_start_backoff(n_slots);
 								break; //Transmission has failed. Halt loop
 							} else{
-								n_slots = rand_num_slots();
+								n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 								wlan_mac_dcf_hw_start_backoff(n_slots);
 								continue; //Begin retransmission.
 							}
@@ -535,13 +540,13 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 						//Update the contention window
 						if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
-							n_slots = rand_num_slots();
+							n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 							wlan_mac_dcf_hw_start_backoff(n_slots);
 							break; //Transmission has failed. Halt loop
 						}
 
 						//Start a random backoff interval using the updated CW
-						n_slots = rand_num_slots();
+						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 						wlan_mac_dcf_hw_start_backoff(n_slots);
 
 						//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
@@ -552,7 +557,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				}
 			} else {
 				if( (tx_status&WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE)){
-					wlan_mac_low_poll_frame_rx();
+					rx_status = wlan_mac_low_poll_frame_rx();
+					if((autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)){
+						autocancel_en = 0;
+						return -1;
+					}
 				}
 			}
 		} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
@@ -561,7 +570,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 	} //end retransmission loop
 
-
+	autocancel_en = 0;
 	return -1;
 
 }
@@ -615,7 +624,7 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 
 }
 
-inline unsigned int rand_num_slots(){
+inline unsigned int rand_num_slots(u8 reason){
 //Generates a uniform random value between [0, (2^(CW_EXP) - 1)], where CW_EXP is a positive integer
 //This function assumed RAND_MAX = 2^31.
 // |	CW_EXP	|	CW			|
@@ -628,7 +637,17 @@ inline unsigned int rand_num_slots(){
 // |	10		|	[0, 1023]	|
 	volatile u32 n_slots;
 
-	n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
+	switch(reason){
+		case RAND_SLOT_REASON_STANDARD_ACCESS:
+			n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
+		break;
+		case RAND_SLOT_REASON_IBSS_BEACON:
+			//Section 10.1.3.3 of 802.11-2012: Backoffs prior to IBSS beacons are drawn from [0, 2*CWmin]
+			n_slots = ((unsigned int)rand() >> (32-(wlan_mac_low_get_cw_exp_min()+1+1)));
+		break;
+	}
+
+
 
 	return n_slots;
 }
