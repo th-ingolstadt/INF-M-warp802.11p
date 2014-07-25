@@ -301,6 +301,7 @@ int main() {
  * @return None
  */
 void beacon_transmit() {
+
  	u16 tx_length;
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
@@ -335,9 +336,12 @@ void beacon_transmit() {
 		// Put the packet in the queue
  		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
+ 		xil_printf("\n %d BEACON ENQUEUE\n", (u32)wlan_mac_high_get_unique_seq());
+
 	    // Poll the TX queues to possibly send the packet
  		poll_tx_queues();
  	}
+
 }
 
 
@@ -448,6 +452,14 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	// u8*                    mpdu_ptr_u8             = (u8*)mpdu;
 	// mac_header_80211*      tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
+
+	xil_printf(" %d BEACON DONE", (u32)(tx_mpdu->unique_seq));
+
+	if(tx_mpdu->tx_result == TX_MPDU_RESULT_FAILURE){
+		xil_printf(" (CANCELED)\n");
+	} else {
+		xil_printf("\n");
+	}
 
 	// Log all of the TX Low transmissions
 	for(i = 0; i < num_tx_low_details; i++) {
@@ -747,6 +759,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					// If this packet was from our IBSS
 					if( wlan_addr_eq( ibss_info->bssid, rx_80211_header->address_3)){
 
+						xil_printf(" RX BEACON\n");
+
 						// Move the packet pointer to after the header
 						mpdu_ptr_u8 += sizeof(mac_header_80211);
 
@@ -755,7 +769,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
 
 						// Set the timestamp
-						if(timestamp_diff > 0) wlan_mac_high_set_timestamp_delta(timestamp_diff);
+						if(timestamp_diff > 0){
+							wlan_mac_high_set_timestamp_delta(timestamp_diff);
+							xil_printf(" --- tsf += %d\n", (s32)timestamp_diff);
+						}
 
 						// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
 						if(beacon_sched_id != SCHEDULE_FAILURE){
@@ -764,6 +781,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						}
 
 						if(queue_num_queued(BEACON_QID)){
+							xil_printf(" --- destroying enqueued beacon\n");
+
 							//We should destroy the beacon that is currently enqueued if
 							//it exists. Note: these statements aren't typically executed.
 							//It's very likely the to-be-transmitted BEACON is already down
@@ -874,6 +893,8 @@ void mpdu_dequeue(tx_queue_element* packet){
 			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
 		break;
 	}
+
+	xil_printf(" %d BEACON DEQUEUE\n", (u32)wlan_mac_high_get_unique_seq());
 }
 
 /**
