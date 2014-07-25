@@ -57,6 +57,7 @@ static u32              cw_exp;
 static u8				autocancel_en;
 static u8				autocancel_match_type;
 static u8				autocancel_match_addr3[6];
+static u64				autocancel_last_rx_ts;
 
 static u8               eeprom_addr[6];
 
@@ -78,6 +79,16 @@ int main(){
 	xil_printf("This switch can be toggled live while the design is running.\n\n");
 
 	autocancel_en = 0;
+
+	autocancel_match_addr3[0] = 0x00;
+	autocancel_match_addr3[1] = 0x00;
+	autocancel_match_addr3[2] = 0x00;
+	autocancel_match_addr3[3] = 0x00;
+	autocancel_match_addr3[4] = 0x00;
+	autocancel_match_addr3[5] = 0x00;
+	autocancel_match_type     = 0x00;
+	autocancel_last_rx_ts = 0;
+
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
@@ -263,12 +274,20 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
-	if(autocancel_en){
-		if( (rx_header->frame_control_1 == autocancel_match_type) && ( wlan_addr_eq(rx_header->address_3, autocancel_match_addr3) ) ){
+	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (rx_header->frame_control_1 == autocancel_match_type) && wlan_addr_eq(rx_header->address_3, autocancel_match_addr3) && (mpdu_info->length) >= sizeof(mac_header_80211)){
+		if(autocancel_en){
 			wlan_mac_reset(1);
 			wlan_mac_reset(0);
 			return_value |= POLL_MAC_CANCEL_TX;
 		}
+
+		//Note: the below timestamp assignment is part of the way we deal with the race condition of receiving a beacon
+		//too early to rely on the to-be-transmitted beacon to already be in the hardware, but too late for it to be
+		//dequeued in CPU_HIGH
+		autocancel_last_rx_ts = get_rx_start_timestamp();
+
+		xil_printf(" %d %d RX from IBSS\n", ((rx_header->sequence_control)>>4)&0xFFF, (u32)get_rx_start_timestamp());
+		xil_printf("    type: 0x%02x\n", rx_header->frame_control_1);
 	}
 
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
@@ -335,6 +354,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 				wlan_mac_low_frame_ipc_send();
 				//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
 				wlan_mac_low_lock_empty_rx_pkt_buf();
+
 			}
 		} //END if (to_me or to_multicast)
 	} else {
@@ -393,13 +413,15 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	u64 last_tx_timestamp;
 	int curr_tx_pow;
 	mac_header_80211* header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	u64 autocancel_curr_timestamp;
+	u64 autocancel_timestamp_diff;
 
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
 	for(i=0; i<mpdu_info->params.mac.num_tx_max ; i++){
 		//Loop over retransmissions
 		//Note: this loop will terminate early if retransmissions aren't needed
-		//(i.e. ACK is received)
+		//(e.g. ACK is received)
 
 		// TODO
 		//  * Make backoff slot selection on retransmissions less confusing
@@ -409,7 +431,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
-
 		req_backoff = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_BO) != 0;
 
 		autocancel_en = ((mpdu_info->flags) & TX_MPDU_FLAGS_AUTOCANCEL) != 0;
@@ -417,6 +438,23 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		if(autocancel_en){
 			autocancel_match_type = header->frame_control_1;
 			memcpy(autocancel_match_addr3, header->address_3, 6);
+
+			autocancel_curr_timestamp = get_usec_timestamp();
+
+			if(autocancel_curr_timestamp >= autocancel_last_rx_ts){
+				autocancel_timestamp_diff = autocancel_curr_timestamp - autocancel_last_rx_ts;
+			} else {
+				autocancel_timestamp_diff = autocancel_last_rx_ts - autocancel_curr_timestamp;
+			}
+
+			if(autocancel_timestamp_diff < 50000){
+				//TODO: this is currently hardcoded to 50ms. In the future, it should be a parameter that passes down from CPU_HIGH
+				//Conceptually, this value should be just less than a beacon interval. Any beacon transmission will be cancelled if it
+				//happens in this interval after the previous beacon reception.
+				autocancel_en = 0;
+				return -1;
+			}
+
 		}
 
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
@@ -454,6 +492,10 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 			} else {
 				n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
+				//n_slots = 0;
+				//xil_printf(" %d slot BO\n",n_slots);
+				wlan_mac_reset(1);
+				wlan_mac_reset(0);
 				wlan_mac_dcf_hw_start_backoff(n_slots);
 			}
 			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
@@ -502,6 +544,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 					low_tx_details[i].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
 					last_tx_timestamp = get_tx_start_timestamp();
 				}
+
+				xil_printf("   %d Tx Done\n", (u32)get_tx_start_timestamp());
+
 				switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 						//Tx didn't require timeout, completed successfully
@@ -556,7 +601,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 				}
 			} else {
-				if( (tx_status&WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE)){
+				if( tx_status & (WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)){
 					rx_status = wlan_mac_low_poll_frame_rx();
 					if((autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)){
 						autocancel_en = 0;
