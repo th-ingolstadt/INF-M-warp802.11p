@@ -579,7 +579,7 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	XAxiDma_Bd *cur_bd_ptr;
 
 
-	if( (length == 0) || (length > 1514) ){
+	if( (length == 0) || (length > 1518) ){
 		xil_printf("Error in wlan_eth_dma_send: length = %d\n", length);
 		return -1;
 	}
