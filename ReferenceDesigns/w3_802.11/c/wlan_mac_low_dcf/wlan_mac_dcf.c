@@ -285,9 +285,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		//too early to rely on the to-be-transmitted beacon to already be in the hardware, but too late for it to be
 		//dequeued in CPU_HIGH
 		autocancel_last_rx_ts = get_rx_start_timestamp();
-
-		xil_printf(" %d %d RX from IBSS\n", ((rx_header->sequence_control)>>4)&0xFFF, (u32)get_rx_start_timestamp());
-		xil_printf("    type: 0x%02x\n", rx_header->frame_control_1);
 	}
 
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
@@ -544,8 +541,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 					low_tx_details[i].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
 					last_tx_timestamp = get_tx_start_timestamp();
 				}
-
-				xil_printf("   %d Tx Done\n", (u32)get_tx_start_timestamp());
 
 				switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
