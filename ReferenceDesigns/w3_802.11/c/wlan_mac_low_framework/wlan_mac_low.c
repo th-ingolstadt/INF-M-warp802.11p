@@ -538,6 +538,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 					// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
+
 					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
 
 					//Record the total time this MPDU spent in the Tx state machine
