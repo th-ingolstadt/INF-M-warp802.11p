@@ -526,13 +526,24 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 			// Fill in the data
 			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, 0);
 
-			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
+			if( wlan_addr_mcast(eth_dest) ){
+				// Setup the TX frame info
+					wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, ( 0 ), UNICAST_QID );
 
-			// Set the information in the TX queue buffer
-			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
-			curr_tx_queue_buffer->frame_info.AID         = 0;
+					// Set the information in the TX queue buffer
+					curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
+					curr_tx_queue_buffer->frame_info.AID         = 0;
+			} else {
+				// Setup the TX frame info
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
+
+				// Set the information in the TX queue buffer
+				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
+				curr_tx_queue_buffer->frame_info.AID         = 0;
+			}
+
 
 			// Put the packet in the queue
 			enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
