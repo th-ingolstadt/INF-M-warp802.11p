@@ -45,7 +45,6 @@
 #include "wlan_mac_ibss.h"
 
 /*************************** Constant Definitions ****************************/
-
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     5
 
