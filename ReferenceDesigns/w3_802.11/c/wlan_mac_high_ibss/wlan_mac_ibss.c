@@ -274,9 +274,10 @@ int main() {
 	xil_printf("   Beacon Interval: %d ms\n",ibss_info->beacon_interval);
 
 
-	//FIXME:
+
 	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
-	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+	//Note: Unlike the AP implementation, we need to use the SCHEDULE_FINE scheduler sub-beacon-interval fidelity
+	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
 
 
 	while(1){
@@ -300,11 +301,18 @@ int main() {
  * @param  None
  * @return None
  */
-void beacon_transmit() {
+void beacon_transmit(u32 schedule_id) {
 
  	u16 tx_length;
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
+
+ 	//When an IBSS node receives a beacon, it schedules the call of this beacon_transmit function
+ 	//for some point in the future that is generally less than the beacon interval to account for
+ 	//the delay in reception and processing. As such, this function will update the period of this
+ 	//schedule with the actual beacon interval.
+
+ 	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
 
  	// Create a beacon
  	curr_tx_queue_element = queue_checkout();
@@ -335,8 +343,6 @@ void beacon_transmit() {
 
 		// Put the packet in the queue
  		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
- 		xil_printf("\n %d BEACON ENQUEUE\n", (u32)wlan_mac_high_get_unique_seq());
 
 	    // Poll the TX queues to possibly send the packet
  		poll_tx_queues();
@@ -453,14 +459,6 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	// u8*                    mpdu_ptr_u8             = (u8*)mpdu;
 	// mac_header_80211*      tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
 
-	xil_printf(" %d BEACON DONE", (u32)(tx_mpdu->unique_seq));
-
-	if(tx_mpdu->tx_result == TX_MPDU_RESULT_FAILURE){
-		xil_printf(" (CANCELED)\n");
-	} else {
-		xil_printf("\n");
-	}
-
 	// Log all of the TX Low transmissions
 	for(i = 0; i < num_tx_low_details; i++) {
 
@@ -534,7 +532,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
 			curr_tx_queue_buffer->frame_info.AID         = 0;
 
 			// Put the packet in the queue
@@ -759,7 +757,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					// If this packet was from our IBSS
 					if( wlan_addr_eq( ibss_info->bssid, rx_80211_header->address_3)){
 
-						xil_printf(" RX BEACON\n");
+
 
 						// Move the packet pointer to after the header
 						mpdu_ptr_u8 += sizeof(mac_header_80211);
@@ -771,17 +769,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						// Set the timestamp
 						if(timestamp_diff > 0){
 							wlan_mac_high_set_timestamp_delta(timestamp_diff);
-							xil_printf(" --- tsf += %d\n", (s32)timestamp_diff);
 						}
 
 						// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
 						if(beacon_sched_id != SCHEDULE_FAILURE){
 							wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
-							beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+							timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
+							beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000 - timestamp_diff, 1, (void*)beacon_transmit);
 						}
 
 						if(queue_num_queued(BEACON_QID)){
-							xil_printf(" --- destroying enqueued beacon\n");
 
 							//We should destroy the beacon that is currently enqueued if
 							//it exists. Note: these statements aren't typically executed.
@@ -894,7 +891,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 		break;
 	}
 
-	xil_printf(" %d BEACON DEQUEUE\n", (u32)wlan_mac_high_get_unique_seq());
 }
 
 /**
