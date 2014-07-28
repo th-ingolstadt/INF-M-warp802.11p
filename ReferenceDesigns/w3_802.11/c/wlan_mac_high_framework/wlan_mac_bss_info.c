@@ -88,6 +88,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u32 				i;
 	u8					bss_state 				 = BSS_STATE_UNAUTHENTICATED;
 
+
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)){
 		switch(rx_80211_header->frame_control_1) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
@@ -135,7 +136,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				mpdu_ptr_u8 += sizeof(beacon_probe_frame);
 
 				// Parse the tagged parameters
-				while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) <= length ) {
+				while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) < length ) {
 
 					// Parse each of the tags
 					switch(mpdu_ptr_u8[0]){
@@ -144,6 +145,8 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						case TAG_SSID_PARAMS:
 							// SSID parameter set
 							//
+
+
 							ssid        = (char*)(&(mpdu_ptr_u8[2]));
 							ssid_length = min(mpdu_ptr_u8[1],SSID_LEN_MAX);
 
@@ -151,6 +154,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							// Terminate the string
 							(curr_bss_info->ssid)[ssid_length] = 0;
+
 						break;
 
 						//-------------------------------------------------
