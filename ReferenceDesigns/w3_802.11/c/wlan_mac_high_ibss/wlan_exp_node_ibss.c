@@ -19,7 +19,7 @@
 
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
-#include "wlan_exp_node_sta.h"
+#include "wlan_exp_node_ibss.h"
 
 #ifdef USE_WARPNET_WLAN_EXP
 
@@ -44,9 +44,9 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_sta_scan_fsm.h"
-#include "wlan_mac_sta_join_fsm.h"
-#include "wlan_mac_sta.h"
+#include "wlan_mac_ibss_scan_fsm.h"
+#include "wlan_mac_ibss.h"
+#include "wlan_mac_schedule.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -59,6 +59,10 @@ extern u8             pause_data_queue;
 extern u32            mac_param_chan;
 
 extern u8	          allow_beacon_ts_update;
+
+extern bss_info*      my_bss_info;
+extern u32            beacon_sched_id;
+
 
 /*************************** Variable Definitions ****************************/
 
@@ -89,7 +93,7 @@ extern u8	          allow_beacon_ts_update;
 *           packet structure for WARPNet:  www.warpproject.org
 *
 ******************************************************************************/
-int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, const void* cmdArgs, wn_respHdr* respHdr, void* respArgs, void* pktSrc, unsigned int eth_dev_num){
+int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, const void* cmdArgs, wn_respHdr* respHdr, void* respArgs, void* pktSrc, unsigned int eth_dev_num){
 	//IMPORTANT ENDIAN NOTES:
 	// -cmdHdr is safe to access directly (pre-swapped if needed)
 	// -cmdArgs is *not* pre-swapped, since the framework doesn't know what it is
@@ -106,11 +110,8 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
                                                    //   If we need more, then we will need to rework this to send multiple response packets
     int           status;
 
-    u32           temp, temp2, i;
+    u32           temp;
     u32           msg_cmd;
-    u32           aid;
-
-    u8            mac_addr[6];
 
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
@@ -124,57 +125,13 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 
 		//---------------------------------------------------------------------
 		case CMDID_NODE_DISASSOCIATE:
-			// Disassociate from the AP
-			//
-			// Message format:
-			//     cmdArgs32[0:1]      MAC Address (All 0xFF means all station info)
-			//
-			// Response format:
-			//     respArgs32[0]       Status
-			//
-			xil_printf("Disassociate\n");
-
-			// Get MAC Address
-			wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
-			aid = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
-
-			status  = CMD_PARAM_SUCCESS;
-
-			if ( aid == 0 ) {
-				// If we cannot find the MAC address, print a warning and return status error
-				xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
-				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-				status = CMD_PARAM_ERROR;
-
-			} else {
-				// Disable interrupts so no packets interrupt the disassociate
-				wlan_mac_high_interrupt_stop();
-
-                // STA disassociate command is the same for an individual AP or ALL
-				status = sta_disassociate();
-
-				// Re-enable interrupts
-				wlan_mac_high_interrupt_start();
-
-				// Set return parameters and print info to console
-				if ( status == 0 ) {
-					xil_printf("Disassociated node");
-					status = CMD_PARAM_SUCCESS;
-				} else {
-					xil_printf("Could not disassociate node");
-					status = CMD_PARAM_ERROR;
+			//There isn't much to "disassociating" from an IBSS. We'll just stop sending beacons and probe responses
+			if(my_bss_info != NULL){
+				my_bss_info = NULL;
+				if(beacon_sched_id != SCHEDULE_FAILURE){
+					wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
 				}
-
-				xil_printf(": %02x", mac_addr[0]);
-				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
 			}
-
-			// Send response
-			respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
 		break;
 
 
@@ -191,51 +148,12 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			// Response format:
 			//     respArgs32[0]       Status
 			//
-			xil_printf("Associate\n");
 
-			// Get MAC Address
-			wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2], &mac_addr[0]);
+			// TODO. This command should first explicitly disconnect from any existing
+			// IBSS (already done, see CMDID_NODE_DISASSOCIATE). Next, it should create
+			// a BSS_INFO and start beaconing just like how main() of the IBSS code does it.
+			// Like the STA implementation, the associate command needs a channel as well.
 
-			// Get AID
-			aid = Xil_Ntohl(cmdArgs32[4]);
-
-			// Disable interrupts so no packets interrupt the associate
-			wlan_mac_high_interrupt_stop();
-
-			// Stop any active scans
-			wlan_mac_sta_scan_disable();
-
-
-			// Add the new association
-			//TODO: The associate command needs to specify a channel
-			bss_info* bss_temp = wlan_mac_high_create_bss_info(mac_addr, "Manual WARPnet Association", 6);
-			bss_temp->state = BSS_STATE_ASSOCIATED;
-			if(bss_temp != NULL){
-				status = sta_set_association_state(bss_temp, aid);
-			} else {
-				status = -1;
-			}
-
-			// Re-enable interrupts
-			wlan_mac_high_interrupt_start();
-
-			// Set return parameters and print info to console
-			if ( status == 0 ) {
-				xil_printf("Associated with node");
-				status = CMD_PARAM_SUCCESS;
-			} else {
-				xil_printf("Could not associate with node");
-				status = CMD_PARAM_ERROR;
-			}
-
-			xil_printf(": %02x", mac_addr[0]);
-			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-			// Send response
-			respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
 		break;
 
 
@@ -243,6 +161,11 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 		case CMDID_NODE_CHANNEL:
 			//   - cmdArgs32[0]      - Command
 			//   - cmdArgs32[1]      - Channel
+
+			// TODO: Discuss
+			// This command strikes me as a little dangerous. Should it really just arbitrarily leap
+			// to a new channel? That would mean it would start beaconing and advertise an existing IBSS
+			// on a different channel. If other nodes are on the IBSS, that could get super confusing.
 
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
 			temp    = Xil_Ntohl(cmdArgs32[1]);
@@ -253,8 +176,6 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 				//   NOTE:  We modulate temp so that we always have a valid channel
 				temp = temp % 12;          // Get a channel number between 0 - 11
 				if ( temp == 0 ) temp++;   // Change all values of 0 to 1
-
-				// TODO:  Disassociate from the current AP
 
 				mac_param_chan = temp;
 				wlan_mac_high_set_channel( mac_param_chan );
@@ -269,85 +190,6 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
-
-
-		//---------------------------------------------------------------------
-		case CMDID_NODE_STA_CONFIG:
-            // CMDID_NODE_STA_CONFIG Packet Format:
-			//   - cmdArgs32[0]  - flags
-			//                     [ 0] - Timestamps are updated from beacons = 1
-			//                            Timestamps are not updated from beacons = 0
-			//   - cmdArgs32[1]  - mask for flags
-			//
-            //   - respArgs32[0] - CMD_PARAM_SUCCESS
-			//                   - CMD_PARAM_ERROR
-
-			// Set the return value
-			status = CMD_PARAM_SUCCESS;
-
-			// Get flags
-			temp  = Xil_Ntohl(cmdArgs32[0]);
-			temp2 = Xil_Ntohl(cmdArgs32[1]);
-
-			xil_printf("STA:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
-
-			// Configure the LOG based on the flag bit / mask
-			if ( ( temp2 & CMD_PARAM_NODE_STA_BEACON_TS_UPDATE ) == CMD_PARAM_NODE_STA_BEACON_TS_UPDATE ) {
-				if ( ( temp & CMD_PARAM_NODE_STA_BEACON_TS_UPDATE ) == CMD_PARAM_NODE_STA_BEACON_TS_UPDATE ) {
-					allow_beacon_ts_update = 1;
-				} else {
-					allow_beacon_ts_update = 0;
-				}
-			}
-
-			// Send response of status
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-
-#if 0
-		//---------------------------------------------------------------------
-		case NODE_STA_GET_AP_LIST:
-            // NODE_STA_GET_AP_LIST Response Packet Format:
-			//
-            //   - respArgs32[0] - 31:0  - Number of APs
-        	//   - respArgs32[1 .. N]    - AP Info List
-			//
-
-			//Send broadcast probe requests across all channels
-			if(active_scan ==0){
-
-				wlan_mac_high_free( ap_list );
-
-				// Clean up current state
-				ap_list             = NULL;
-				num_ap_list         = 0;
-				access_point_ssid   = wlan_mac_high_realloc(access_point_ssid, 1);
-				*access_point_ssid  = 0;
-
-				// Start scan
-				active_scan         = 1;
-				pause_queue         = 1;
-				mac_param_chan_save = mac_param_chan;
-
-				probe_req_transmit();
-
-				respIndex += get_ap_list( ap_list, num_ap_list, &respArgs32[respIndex], max_words );
-			} else {
-				xil_printf("WARNING:  STA - Cannot get AP List.  Currently in active scan.\n");
-
-				respArgs32[respIndex++] = 0;
-			}
-
-			// Finalize response
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-#endif
 
 		//---------------------------------------------------------------------
 		default:

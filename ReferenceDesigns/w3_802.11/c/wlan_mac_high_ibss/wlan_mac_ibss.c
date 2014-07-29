@@ -44,11 +44,22 @@
 #include "wlan_mac_bss_info.h"
 #include "wlan_mac_ibss.h"
 
+// WLAN Exp includes
+#include "wlan_exp.h"
+#include "wlan_exp_common.h"
+#include "wlan_exp_node.h"
+#include "wlan_exp_node_ibss.h"
+#include "wlan_exp_transport.h"
+
 /*************************** Constant Definitions ****************************/
+
+#define  WLAN_EXP_ETH                            WN_ETH_B
+#define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_IBSS)
+
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     5
 
-const u8 max_num_associations                    = 1;
+const u8 max_num_associations                    = 10;
 
 
 /*********************** Global Variable Definitions *************************/
@@ -75,16 +86,14 @@ tx_params                         default_multicast_data_tx_params;
 static u8                         wlan_mac_addr[6];
 u8                                uart_mode;                         // Control variable for UART MENU
 u32	                              max_queue_size;                    // Maximum transmit queue size
-static u32 						  beacon_sched_id = SCHEDULE_FAILURE;
+u32      						  beacon_sched_id = SCHEDULE_FAILURE;
 
 u8                                pause_data_queue;
 
 
 u32                               mac_param_chan;
-bss_info*		   				  ap_bss_info;	//FIXME: This is messy. WN is looking for an ap_bss_info, but I don't plan on having one. WN should use getters.
-												//Furthermore, there won't be any notion of bss_info in the example bridge project, so WN can't rely on it being here
-												//in every top-level project.
-bss_info*						  ibss_info;
+
+bss_info*						  my_bss_info;
 
 
 // List to hold Tx/Rx statistics
@@ -108,7 +117,7 @@ u8 tim_control = 1;
 int main() {
 	u64 scan_start_timestamp;
 	u8 locally_administered_addr[6];
-	dl_entry* ibss_info_entry;
+	dl_entry* my_bss_info_entry;
 
 	// This function should be executed first. It will zero out memory, and if that
 	//     memory is used before calling this function, unexpected results may happen.
@@ -120,7 +129,7 @@ int main() {
 	// Unpause the queue
 	pause_data_queue = 0;
 
-	ibss_info = NULL;
+	my_bss_info = NULL;
 
 	// Print initial message to UART
 	xil_printf("\f");
@@ -226,7 +235,7 @@ int main() {
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Set AP processing callbacks
-	node_set_process_callback( (void *)wlan_exp_node_sta_processCmd );
+	node_set_process_callback( (void *)wlan_exp_node_ibss_processCmd );
 #endif
 
 	// Start the interrupts
@@ -243,40 +252,40 @@ int main() {
 	wlan_mac_sta_scan_enable((u8*)bcast_addr, default_ssid);
 
 	while((get_usec_timestamp() - scan_start_timestamp) < SCAN_TIMEOUT_USEC){
-		ibss_info_entry = wlan_mac_high_find_bss_info_SSID(default_ssid);
-		if(ibss_info_entry != NULL){
+		my_bss_info_entry = wlan_mac_high_find_bss_info_SSID(default_ssid);
+		if(my_bss_info_entry != NULL){
 			break;
 		}
 	}
 	wlan_mac_sta_scan_disable();
 
-	if(ibss_info_entry != NULL){
+	if(my_bss_info_entry != NULL){
 		xil_printf("Found existing IBSS\n");
-		ibss_info = (bss_info*)(ibss_info_entry->data);
-		ibss_info->state = BSS_STATE_OWNED;
+		my_bss_info = (bss_info*)(my_bss_info_entry->data);
+		my_bss_info->state = BSS_STATE_OWNED;
 	} else {
 		xil_printf("Creating new IBSS\n");
 		memcpy(locally_administered_addr,wlan_mac_addr,6);
 		locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL; //Raise the bit identifying this address as locally administered
-		ibss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
-		ibss_info->beacon_interval = BEACON_INTERVAL_MS;
-		ibss_info->state = BSS_STATE_OWNED;
+		my_bss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
+		my_bss_info->beacon_interval = BEACON_INTERVAL_MS;
+		my_bss_info->state = BSS_STATE_OWNED;
 	}
 
-	mac_param_chan      = ibss_info->chan;
+	mac_param_chan      = my_bss_info->chan;
 	wlan_mac_high_set_channel( mac_param_chan );
 
 	xil_printf("IBSS Details: \n");
-	xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",ibss_info->bssid[0],ibss_info->bssid[1],ibss_info->bssid[2],ibss_info->bssid[3],ibss_info->bssid[4],ibss_info->bssid[5]);
-	xil_printf("   SSID           : %s\n", ibss_info->ssid);
-	xil_printf("   Channel        : %d\n", ibss_info->chan);
-	xil_printf("   Beacon Interval: %d ms\n",ibss_info->beacon_interval);
+	xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
+	xil_printf("   SSID           : %s\n", my_bss_info->ssid);
+	xil_printf("   Channel        : %d\n", my_bss_info->chan);
+	xil_printf("   Beacon Interval: %d ms\n",my_bss_info->beacon_interval);
 
 
 
 	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
 	//Note: Unlike the AP implementation, we need to use the SCHEDULE_FINE scheduler sub-beacon-interval fidelity
-	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
+	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
 
 
 	while(1){
@@ -306,47 +315,49 @@ void beacon_transmit(u32 schedule_id) {
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
 
- 	//When an IBSS node receives a beacon, it schedules the call of this beacon_transmit function
- 	//for some point in the future that is generally less than the beacon interval to account for
- 	//the delay in reception and processing. As such, this function will update the period of this
- 	//schedule with the actual beacon interval.
+		if(my_bss_info != NULL){
 
- 	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
+		//When an IBSS node receives a beacon, it schedules the call of this beacon_transmit function
+		//for some point in the future that is generally less than the beacon interval to account for
+		//the delay in reception and processing. As such, this function will update the period of this
+		//schedule with the actual beacon interval.
 
- 	// Create a beacon
- 	curr_tx_queue_element = queue_checkout();
+		beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
 
- 	if((curr_tx_queue_element != NULL) && (ibss_info != NULL)){
- 		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+		// Create a beacon
+		curr_tx_queue_element = queue_checkout();
 
-		// Setup the TX header
- 		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, ibss_info->bssid );
+		if((curr_tx_queue_element != NULL) && (my_bss_info != NULL)){
+			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
-		// Fill in the data
-        tx_length = wlan_create_beacon_frame(
-			(void*)(curr_tx_queue_buffer->frame),
-			&tx_header_common,
-			ibss_info->beacon_interval,
-			(CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS),
-			strlen(default_ssid),
-			(u8*)default_ssid,
-			mac_param_chan);
+			// Setup the TX header
+			wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, my_bss_info->bssid );
 
-		// Setup the TX frame info
- 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_AUTOCANCEL), MANAGEMENT_QID );
+			// Fill in the data
+			tx_length = wlan_create_beacon_frame(
+				(void*)(curr_tx_queue_buffer->frame),
+				&tx_header_common,
+				my_bss_info->beacon_interval,
+				(CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS),
+				strlen(default_ssid),
+				(u8*)default_ssid,
+				mac_param_chan);
 
-		// Set the information in the TX queue buffer
- 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
- 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->frame_info.AID         = 0;
+			// Setup the TX frame info
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_AUTOCANCEL), MANAGEMENT_QID );
 
-		// Put the packet in the queue
- 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+			// Set the information in the TX queue buffer
+			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
+			curr_tx_queue_buffer->frame_info.AID         = 0;
 
-	    // Poll the TX queues to possibly send the packet
- 		poll_tx_queues();
- 	}
+			// Put the packet in the queue
+			enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
+			// Poll the TX queues to possibly send the packet
+			poll_tx_queues();
+		}
+	}
 }
 
 
@@ -451,7 +462,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 
 	//if(ap_bss_info != NULL) station = (station_info*)(ap_bss_info->associated_stations.first->data);
-	//TODO: Search for station info for this Tx in ibss_info->associated_stations
+	//TODO: Search for station info for this Tx in my_bss_info->associated_stations
 
 	// Additional variables (Future Use)
 	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -512,7 +523,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 
-	if(ibss_info != NULL){
+	if(my_bss_info != NULL){
 
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
 
@@ -521,7 +532,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
 			// Setup the TX header
-			wlan_mac_high_setup_tx_header( &tx_header_common, eth_dest,ibss_info->bssid);
+			wlan_mac_high_setup_tx_header( &tx_header_common, eth_dest,my_bss_info->bssid);
 
 			// Fill in the data
 			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, 0);
@@ -532,7 +543,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 					// Set the information in the TX queue buffer
 					curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
+					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
 					curr_tx_queue_buffer->frame_info.AID         = 0;
 			} else {
 				// Setup the TX frame info
@@ -540,10 +551,9 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 				// Set the information in the TX queue buffer
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
+				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
 				curr_tx_queue_buffer->frame_info.AID         = 0;
 			}
-
 
 			// Put the packet in the queue
 			enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
@@ -600,8 +610,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8                  unicast_to_me;
 	u8                  to_multicast;
 	s64                 timestamp_diff;
-	dl_entry*			bss_info_entry;
-	bss_info*			curr_bss_info;
 	u8					send_response			 = 0;
 	u32					tx_length;
 
@@ -617,8 +625,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (unicast_to_me || to_multicast)){
 
 		// Update the association information
-		if(ibss_info != NULL){
-			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&(ibss_info->associated_stations), (rx_80211_header->address_2));
+		if(my_bss_info != NULL){
+			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), (rx_80211_header->address_2));
 		} else {
 			associated_station_entry = NULL;
 		}
@@ -670,8 +678,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				// Data packet
 				//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
 				//
-				if(ibss_info != NULL){
-					if(wlan_addr_eq(rx_80211_header->address_3, ibss_info->bssid)) {
+				if(my_bss_info != NULL){
+					if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)) {
 						// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
 						wlan_mpdu_eth_send(mpdu,length);
 					}
@@ -680,7 +688,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 			//---------------------------------------------------------------------
 			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_REQ):
-				if(ibss_info != NULL){
+				if(my_bss_info != NULL){
 					if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr)) {
 						mpdu_ptr_u8 += sizeof(mac_header_80211);
 
@@ -726,10 +734,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
 								// Setup the TX header
-								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, ibss_info->bssid );
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, my_bss_info->bssid );
 
 								// Fill in the data
-								tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, ibss_info->beacon_interval, (CAPABILITIES_IBSS | CAPABILITIES_SHORT_TIMESLOT), strlen(default_ssid), (u8*)default_ssid, ibss_info->chan);
+								tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, my_bss_info->beacon_interval, (CAPABILITIES_IBSS | CAPABILITIES_SHORT_TIMESLOT), strlen(default_ssid), (u8*)default_ssid, my_bss_info->chan);
 
 								// Setup the TX frame info
 								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
@@ -763,9 +771,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				#define PHY_T_OFFSET 25
 
 			    // Update the timestamp from the beacon
-				if(ibss_info != NULL){
+				if(my_bss_info != NULL){
 					// If this packet was from our IBSS
-					if( wlan_addr_eq( ibss_info->bssid, rx_80211_header->address_3)){
+					if( wlan_addr_eq( my_bss_info->bssid, rx_80211_header->address_3)){
 
 
 
@@ -785,7 +793,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						if(beacon_sched_id != SCHEDULE_FAILURE){
 							wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
 							timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
-							beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (ibss_info->beacon_interval)*1000 - timestamp_diff, 1, (void*)beacon_transmit);
+							beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1000 - timestamp_diff, 1, (void*)beacon_transmit);
 						}
 
 						if(queue_num_queued(BEACON_QID)){
@@ -912,8 +920,8 @@ void mpdu_dequeue(tx_queue_element* packet){
  * @return None
  */
 dl_list * get_station_info_list(){
-	if(ibss_info != NULL){
-		return &(ibss_info->associated_stations);
+	if(my_bss_info != NULL){
+		return &(my_bss_info->associated_stations);
 	} else {
 		return NULL;
 	}
