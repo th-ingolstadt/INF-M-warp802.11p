@@ -70,7 +70,7 @@ extern u8                  rx_ant_mode_tracker;
 // Declared in each of the AP / STA
 extern tx_params           default_unicast_data_tx_params;
 
-extern bss_info*		   ap_bss_info;
+extern bss_info*		   my_bss_info;
 extern tx_params           default_unicast_mgmt_tx_params;
 extern tx_params           default_unicast_data_tx_params;
 extern tx_params           default_multicast_mgmt_tx_params;
@@ -2874,8 +2874,8 @@ u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
 		id = 0xFFFFFFFF;
 	} else {
 
-		if(ap_bss_info != NULL){
-			entry = wlan_mac_high_find_station_info_ADDR(&(ap_bss_info->associated_stations), mac_addr);
+		if(my_bss_info != NULL){
+			entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), mac_addr);
 		} else {
 			entry = NULL;
 		}
