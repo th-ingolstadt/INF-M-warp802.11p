@@ -78,7 +78,7 @@ tx_params default_multicast_mgmt_tx_params;
 tx_params default_multicast_data_tx_params;
 
 // Lists to hold association table and Tx/Rx statistics
-bss_info*	 ap_bss_info;
+bss_info*	 my_bss_info;
 dl_list		 statistics_table;
 
 // Tx queue variables;
@@ -203,8 +203,8 @@ int main(){
 	wlan_mac_high_set_rx_filter_mode( (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL_MPDU) );
 
 	// Set up BSS description
-	ap_bss_info = wlan_mac_high_create_bss_info(wlan_mac_addr, default_AP_SSID, mac_param_chan);
-	ap_bss_info->state = BSS_STATE_OWNED;
+	my_bss_info = wlan_mac_high_create_bss_info(wlan_mac_addr, default_AP_SSID, mac_param_chan);
+	my_bss_info->state = BSS_STATE_OWNED;
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -231,9 +231,9 @@ int main(){
 
 	// Print AP information to the terminal
     xil_printf("WLAN MAC AP boot complete: \n");
-    xil_printf("  SSID    : %s \n", ap_bss_info->ssid);
-    xil_printf("  Channel : %d \n", ap_bss_info->chan);
-	xil_printf("  MAC Addr: %02x-%02x-%02x-%02x-%02x-%02x\n\n",ap_bss_info->bssid[0],ap_bss_info->bssid[1],ap_bss_info->bssid[2],ap_bss_info->bssid[3],ap_bss_info->bssid[4],ap_bss_info->bssid[5]);
+    xil_printf("  SSID    : %s \n", my_bss_info->ssid);
+    xil_printf("  Channel : %d \n", my_bss_info->chan);
+	xil_printf("  MAC Addr: %02x-%02x-%02x-%02x-%02x-%02x\n\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
 
 #ifdef WLAN_USE_UART_MENU
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
@@ -342,11 +342,11 @@ void poll_tx_queues(){
 					next_queue_group = MGMT_QGRP;
 					curr_station_info_entry = next_station_info_entry;
 
-					for(i = 0; i < (ap_bss_info->associated_stations.length + 1); i++) {
+					for(i = 0; i < (my_bss_info->associated_stations.length + 1); i++) {
 						// Loop through all associated stations' queues and the broadcast queue
 						if(curr_station_info_entry == NULL){
 							// Check the broadcast queue
-							next_station_info_entry = ap_bss_info->associated_stations.first;
+							next_station_info_entry = my_bss_info->associated_stations.first;
 							if(dequeue_transmit_checkin(MCAST_QID)){
 								// Found a not-empty queue, transmitted a packet
 								return;
@@ -355,8 +355,8 @@ void poll_tx_queues(){
 							}
 						} else {
 							curr_station_info = (station_info*)(curr_station_info_entry->data);
-							if( wlan_mac_high_is_valid_association(&ap_bss_info->associated_stations, curr_station_info) ){
-								if(curr_station_info_entry == ap_bss_info->associated_stations.last){
+							if( wlan_mac_high_is_valid_association(&my_bss_info->associated_stations, curr_station_info) ){
+								if(curr_station_info_entry == my_bss_info->associated_stations.last){
 									// We've reached the end of the table, so we wrap around to the beginning
 									next_station_info_entry = NULL;
 								} else {
@@ -403,7 +403,7 @@ void purge_all_data_tx_queue(){
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
-	curr_station_info_entry = ap_bss_info->associated_stations.first;
+	curr_station_info_entry = my_bss_info->associated_stations.first;
 
 	while(curr_station_info_entry != NULL){
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
@@ -439,7 +439,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	dl_entry*	           entry				   = NULL;
 
 
-	entry = wlan_mac_high_find_station_info_AID(&(ap_bss_info->associated_stations), tx_mpdu->AID);
+	entry = wlan_mac_high_find_station_info_AID(&(my_bss_info->associated_stations), tx_mpdu->AID);
 	if(entry != NULL) station = (station_info*)(entry->data);
 
 	// Additional variables (Future Use)
@@ -520,20 +520,20 @@ void ltg_event(u32 id, void* callback_arg){
 			addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
 			is_multicast = wlan_addr_mcast(addr_da);
 			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
-			station_info_entry = wlan_mac_high_find_station_info_ADDR(&ap_bss_info->associated_stations, addr_da);
+			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
 		break;
 
 		case LTG_PYLD_TYPE_UNIFORM_RAND:
 			addr_da = ((ltg_pyld_uniform_rand*)callback_arg)->addr_da;
 			is_multicast = wlan_addr_mcast(addr_da);
 			payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
-			station_info_entry = wlan_mac_high_find_station_info_ADDR(&ap_bss_info->associated_stations, addr_da);
+			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
 		break;
 
 		case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
 			payload_length = ((ltg_pyld_all_assoc_fixed*)callback_arg)->length;
 			is_multicast = 0;
-			station_info_entry = ap_bss_info->associated_stations.first;
+			station_info_entry = my_bss_info->associated_stations.first;
 		break;
 
 		default:
@@ -643,7 +643,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 	} else {
 		// Check associations
 		//     Is this packet meant for a station we are associated with?
-		entry = wlan_mac_high_find_station_info_ADDR(&ap_bss_info->associated_stations, eth_dest);
+		entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, eth_dest);
 
 		if( entry != NULL ) {
 			station = (station_info*)(entry->data);
@@ -720,8 +720,8 @@ void beacon_transmit() {
 			&tx_header_common,
 			BEACON_INTERVAL_MS,
 			(CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
-			strlen(ap_bss_info->ssid),
-			(u8*)ap_bss_info->ssid,
+			strlen(my_bss_info->ssid),
+			(u8*)my_bss_info->ssid,
 			mac_param_chan);
 
         // Append Traffic Indication Map
@@ -775,7 +775,7 @@ void association_timestamp_check() {
 	dl_entry*           next_station_info_entry;
 
 
-	next_station_info_entry = ap_bss_info->associated_stations.first;
+	next_station_info_entry = my_bss_info->associated_stations.first;
 
 	while(next_station_info_entry != NULL) {
 		curr_station_info_entry = next_station_info_entry;
@@ -850,8 +850,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	if( mpdu_info->state == RX_MPDU_STATE_FCS_GOOD && (unicast_to_me || to_multicast)){
 
 		// Update the association information
-		if(ap_bss_info != NULL){
-			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&ap_bss_info->associated_stations, (rx_80211_header->address_2));
+		if(my_bss_info != NULL){
+			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, (rx_80211_header->address_2));
 		}
 
 		if( associated_station_entry != NULL ){
@@ -943,7 +943,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							}
 						} else {
 							// Packet is not a multi-cast packet.  Check if it is destined for one of our stations
-							associated_station_entry = wlan_mac_high_find_station_info_ADDR(&ap_bss_info->associated_stations, rx_80211_header->address_3);
+							associated_station_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, rx_80211_header->address_3);
 
 							if(associated_station_entry != NULL){
 								associated_station = (station_info*)(associated_station_entry->data);
@@ -1054,7 +1054,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							//-----------------------------------------------------
 							case TAG_SSID_PARAMS:
 								// SSID parameter set
-								if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)ap_bss_info->ssid, mpdu_ptr_u8[1])==0)) {
+								if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)my_bss_info->ssid, mpdu_ptr_u8[1])==0)) {
 									// Broadcast SSID or my SSID - send unicast probe response
 									send_response = 1;
 								}
@@ -1091,7 +1091,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
 
 							// Fill in the data
-							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, BEACON_INTERVAL_MS, (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT), strlen(ap_bss_info->ssid), (u8*)ap_bss_info->ssid, mac_param_chan);
+							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, BEACON_INTERVAL_MS, (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT), strlen(my_bss_info->ssid), (u8*)my_bss_info->ssid, mac_param_chan);
 
 							// Setup the TX frame info
 							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
@@ -1217,9 +1217,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						// NOTE:  This function handles both the case that the station is already in the association
 						//   table and the case that the association needs to be added to the association table
 						//
-						associated_station = wlan_mac_high_add_association(&ap_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+						associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
 
-						ap_write_hex_display(ap_bss_info->associated_stations.length);
+						ap_write_hex_display(my_bss_info->associated_stations.length);
 					}
 
 					if(associated_station != NULL) {
@@ -1311,9 +1311,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 				}
 
-			    wlan_mac_high_remove_association(&ap_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2);
+			    wlan_mac_high_remove_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2);
 
-			    ap_write_hex_display(ap_bss_info->associated_stations.length);
+			    ap_write_hex_display(my_bss_info->associated_stations.length);
 			break;
 
 			case (MAC_FRAME_CTRL1_SUBTYPE_NULLDATA):
@@ -1438,10 +1438,10 @@ u32  deauthenticate_station( station_info* station ) {
 		add_station_info_to_log(station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
 		// Remove this STA from association list
-		wlan_mac_high_remove_association( &ap_bss_info->associated_stations, &statistics_table, station->addr );
+		wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, station->addr );
 	}
 
-	ap_write_hex_display(ap_bss_info->associated_stations.length);
+	ap_write_hex_display(my_bss_info->associated_stations.length);
 
 	return aid;
 }
@@ -1461,7 +1461,7 @@ void deauthenticate_stations(){
 	dl_entry* next_station_info_entry;
 	dl_entry* curr_station_info_entry;
 
-	next_station_info_entry = ap_bss_info->associated_stations.first;
+	next_station_info_entry = my_bss_info->associated_stations.first;
 
 	// Deauthenticate all stations and remove from the association table
 	//
@@ -1549,7 +1549,7 @@ int  send_channel_switch_announcement( u8 channel ) {
  * @param  None
  * @return None
  */
-dl_list * get_station_info_list(){ return &(ap_bss_info->associated_stations);  }
+dl_list * get_station_info_list(){ return &(my_bss_info->associated_stations);  }
 dl_list * get_statistics()       { return &statistics_table;   }
 
 

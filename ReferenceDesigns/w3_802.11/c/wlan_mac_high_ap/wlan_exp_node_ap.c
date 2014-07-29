@@ -62,7 +62,7 @@
 extern dl_list      statistics_table;
 extern tx_params    default_unicast_data_tx_params;
 extern u32          mac_param_chan;
-extern bss_info*	ap_bss_info;
+extern bss_info*	my_bss_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -232,7 +232,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
             // Set default value for the flags
             flags             = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 
-			if( ap_bss_info->associated_stations.length < MAX_NUM_ASSOC ) {
+			if( my_bss_info->associated_stations.length < MAX_NUM_ASSOC ) {
 
 				// Get MAC Address
 				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2], &mac_addr[0]);
@@ -256,7 +256,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 				wlan_mac_high_interrupt_stop();
 
 				// Add association
-				curr_station_info = wlan_mac_high_add_association(&ap_bss_info->associated_stations, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
+				curr_station_info = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
 
 				// Set the flags
 				curr_station_info->flags = flags;
@@ -272,7 +272,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 					memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params));
 
 					// Update the hex display
-					ap_write_hex_display(ap_bss_info->associated_stations.length);
+					ap_write_hex_display(my_bss_info->associated_stations.length);
 
 					xil_printf("Associated with node");
 				} else {
@@ -428,11 +428,11 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 					// Deauthenticate all stations since we are changing the SSID
 					deauthenticate_stations();
-					strcpy(ap_bss_info->ssid, ssid);
+					strcpy(my_bss_info->ssid, ssid);
 			    break;
 
 				case CMD_PARAM_READ_VAL:
-					xil_printf("Get SSID - AP - %s\n", ap_bss_info->ssid);
+					xil_printf("Get SSID - AP - %s\n", my_bss_info->ssid);
 				break;
 
 				default:
@@ -445,12 +445,12 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
             respArgs32[respIndex++] = Xil_Htonl( status );
 
             // Return the size and current SSID
-			if (ap_bss_info->ssid != NULL) {
-				temp = strlen(ap_bss_info->ssid);
+			if (my_bss_info->ssid != NULL) {
+				temp = strlen(my_bss_info->ssid);
 
 				respArgs32[respIndex++] = Xil_Htonl( temp );
 
-				strcpy( (char *)&respArgs32[respIndex], ap_bss_info->ssid );
+				strcpy( (char *)&respArgs32[respIndex], my_bss_info->ssid );
 
 				respIndex       += ( temp / sizeof(respArgs32) ) + 1;
 			} else {
