@@ -522,6 +522,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 	// support different transmit parameters for different target addresses.
 
 	tx_queue_buffer* 	curr_tx_queue_buffer;
+	station_info*       associated_station;
 
 	if(my_bss_info != NULL){
 
@@ -546,13 +547,35 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
 					curr_tx_queue_buffer->frame_info.AID         = 0;
 			} else {
+				associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, eth_dest, ADD_ASSOCIATION_ANY_AID);
+				//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
+
+				if(associated_station == NULL){
+					//TODO
+					//We should remove the oldest station_info (or move it to DRAM) and make a new one in its place.
+					//This will be tricky to make robust. The pointer to existing station_info structs live in mpdu_info.
+					//A currently in-flight packet might point to a station_info that we could conceivably get rid of,
+					//which would be bad. Practically speaking, an in-flight frame like that
+				} else {
+					//TODO: we need to move the last_timestamp higher in the station_info struct. It isn't just an Rx timestamp.
+					//Here, I'm using it as a Tx timestamp. It should represent the last time there has been *any* OTA activity
+					//with this particular station.
+					associated_station->rx.last_timestamp = get_usec_timestamp();
+				}
+
 				// Setup the TX frame info
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
 
-				// Set the information in the TX queue buffer
-				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
-				curr_tx_queue_buffer->frame_info.AID         = 0;
+				if(associated_station != NULL){
+					curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)associated_station;
+					curr_tx_queue_buffer->frame_info.AID         = associated_station->AID; //TODO: What is this used for? Shouldn't mean anything in IBSS
+				} else {
+					// Set the information in the TX queue buffer
+					curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
+					curr_tx_queue_buffer->frame_info.AID         = 0;
+				}
 			}
 
 			// Put the packet in the queue
@@ -600,7 +623,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u16                 rx_seq;
 	rx_common_entry*    rx_event_log_entry       = NULL;
 
-	dl_entry*	        associated_station_entry;
 	station_info*       associated_station       = NULL;
 	statistics_txrx*    station_stats            = NULL;
 
@@ -626,13 +648,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		// Update the association information
 		if(my_bss_info != NULL){
-			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), (rx_80211_header->address_2));
+			if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)){
+				associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+			}
 		} else {
-			associated_station_entry = NULL;
+			associated_station = NULL;
 		}
 
-		if(associated_station_entry != NULL) {
-			associated_station = (station_info*)(associated_station_entry->data);
+		if(associated_station != NULL) {
 
 			// Update station information
 			associated_station->rx.last_timestamp = get_usec_timestamp();
