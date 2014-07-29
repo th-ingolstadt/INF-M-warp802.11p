@@ -60,7 +60,7 @@ extern u8 pause_queue;
 
 
 // Association Table variables
-extern bss_info*	  ap_bss_info;
+extern bss_info*	  my_bss_info;
 extern dl_list 		  statistics_table;
 
 // AP channel
@@ -72,8 +72,8 @@ void uart_rx(u8 rxByte){
 
 	station_info* access_point = NULL;
 
-	if(ap_bss_info != NULL){
-		access_point = ((station_info*)(ap_bss_info->associated_stations.first->data));
+	if(my_bss_info != NULL){
+		access_point = ((station_info*)(my_bss_info->associated_stations.first->data));
 	}
 
 	#define MAX_NUM_CHARS 31
@@ -174,13 +174,13 @@ void print_station_status(u8 manual_call){
 	u64 timestamp;
 	dl_entry* access_point_entry = NULL;
 
-	if(ap_bss_info != NULL){
-		access_point_entry = ap_bss_info->associated_stations.first;
+	if(my_bss_info != NULL){
+		access_point_entry = my_bss_info->associated_stations.first;
 	}
 
 	station_info* access_point = NULL;
 
-	if(ap_bss_info != NULL){
+	if(my_bss_info != NULL){
 		access_point = ((station_info*)(access_point_entry->data));
 	}
 	statistics_txrx* curr_statistics;
@@ -191,7 +191,7 @@ void print_station_status(u8 manual_call){
 		xil_printf("\f");
 		xil_printf("---------------------------------------------------\n");
 
-			if(ap_bss_info != NULL){
+			if(my_bss_info != NULL){
 				xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", access_point->AID,
 							access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
 
