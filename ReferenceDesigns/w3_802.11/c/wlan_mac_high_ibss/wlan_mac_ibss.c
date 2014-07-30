@@ -460,16 +460,13 @@ void purge_all_data_tx_queue(){
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details) {
 	u32                    i;
 	u64                    ts_old                  = 0;
+	dl_entry*              entry                   = NULL;
 	station_info*          station 				   = NULL;
 
-
-	//if(ap_bss_info != NULL) station = (station_info*)(ap_bss_info->associated_stations.first->data);
-	//TODO: Search for station info for this Tx in my_bss_info->associated_stations
-
-	// Additional variables (Future Use)
-	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
-	// u8*                    mpdu_ptr_u8             = (u8*)mpdu;
-	// mac_header_80211*      tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
+	if(my_bss_info != NULL){
+		entry = wlan_mac_high_find_station_info_AID(&(my_bss_info->associated_stations), tx_mpdu->AID);
+		if(entry != NULL) station = (station_info*)(entry->data);
+	}
 
 	// Log all of the TX Low transmissions
 	for(i = 0; i < num_tx_low_details; i++) {
