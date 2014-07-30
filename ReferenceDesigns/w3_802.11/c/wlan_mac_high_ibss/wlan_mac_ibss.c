@@ -287,6 +287,8 @@ int main() {
 	//Note: Unlike the AP implementation, we need to use the SCHEDULE_FINE scheduler sub-beacon-interval fidelity
 	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
 
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
+
 
 	while(1){
 #ifdef USE_WARPNET_WLAN_EXP
@@ -869,7 +871,37 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
     return;
 }
 
+/**
+ * @brief Check the time since the station has interacted with another station
+ *
+ *
+ * @param  None
+ * @return None
+ */
+void association_timestamp_check() {
 
+	u64 				time_since_last_rx;
+	station_info*       curr_station_info;
+	dl_entry*           curr_station_info_entry;
+	dl_entry*           next_station_info_entry;
+
+	if(my_bss_info != NULL){
+		next_station_info_entry = my_bss_info->associated_stations.first;
+
+		while(next_station_info_entry != NULL) {
+			curr_station_info_entry = next_station_info_entry;
+			next_station_info_entry = dl_entry_next(curr_station_info_entry);
+
+			curr_station_info  = (station_info*)(curr_station_info_entry->data);
+			time_since_last_rx = (get_usec_timestamp() - curr_station_info->rx.last_timestamp);
+
+			// De-authenticate the station if we have timed out and we have not disabled this check for the station
+			if((time_since_last_rx > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
+				wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, curr_station_info->addr );
+			}
+		}
+	}
+}
 
 /**
  * @brief Callback to handle new Local Traffic Generator event

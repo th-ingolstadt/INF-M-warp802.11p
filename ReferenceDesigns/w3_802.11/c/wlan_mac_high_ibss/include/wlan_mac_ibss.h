@@ -49,13 +49,11 @@
 // Time between beacon transmissions
 #define BEACON_INTERVAL_MS             (100)
 
-//Timeout for association request-response handshake
-#define ASSOCIATION_TIMEOUT_US         100000
-#define ASSOCIATION_NUM_TRYS           5
+#define ASSOCIATION_CHECK_INTERVAL_MS  (1000)
+#define ASSOCIATION_CHECK_INTERVAL_US  (ASSOCIATION_CHECK_INTERVAL_MS*1000)
 
-//Timeout for authentication handshake
-#define AUTHENTICATION_TIMEOUT_US      100000
-#define AUTHENTICATION_NUM_TRYS        5
+#define ASSOCIATION_TIMEOUT_S          (300)
+#define ASSOCIATION_TIMEOUT_US         (ASSOCIATION_TIMEOUT_S*1000000)
 
 //Number of probe requests to send per channel when active scanning
 #define NUM_PROBE_REQ                  5
@@ -75,7 +73,7 @@
 
 /*************************** Function Prototypes *****************************/
 int main();
-
+void association_timestamp_check();
 void ltg_event(u32 id, void* callback_arg);
 
 int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
