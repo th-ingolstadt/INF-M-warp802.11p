@@ -366,56 +366,99 @@ void beacon_transmit(u32 schedule_id) {
 /**
  * @brief Poll Tx queues to select next available packet to transmit
  *
- * This function is called whenever the upper MAC is ready to send a new packet
- * to the lower MAC for transmission. The next packet to transmit is selected
- * from one of the currently-enabled Tx queues.
- *
- * The reference implementation uses a simple queue prioritization scheme:
- *   - Two queues are defined: Management (MANAGEMENT_QID) and Data (UNICAST_QID)
- *     - The Management queue is for all management traffic
- *     - The Data queue is for all data to the associated AP
- *   - The code alternates its polling between queues
- *
- * This function uses the framework function dequeue_transmit_checkin() to check individual queues
- * If dequeue_transmit_checkin() is passed a not-empty queue, it will dequeue and transmit a packet, then
- * return a non-zero status. Thus the calls below terminate polling as soon as any call to dequeue_transmit_checkin()
- * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
- *
  * @param None
  * @return None
  */
 void poll_tx_queues(){
-	u8 i;
+	u32 i,k;
 
-	#define MAX_NUM_QUEUE 3
+	#define NUM_QUEUE_GROUPS 3
+	typedef enum {BEACON_QGRP, MGMT_QGRP, DATA_QGRP} queue_group_t;
 
-	// Are we pausing transmissions?
-	if(pause_data_queue == 0){
+	// Remember the next group to poll between calls to this function
+	//   This implements the ping-pong poll between the MGMT_QGRP and DATA_QGRP groups
+	static queue_group_t next_queue_group = MGMT_QGRP;
+	queue_group_t curr_queue_group;
 
-		static u32 queue_index = 0;
+	// Remember the last queue polled between calls to this function
+	//   This implements the round-robin poll of queues in the DATA_QGRP group
+	static dl_entry* next_station_info_entry = NULL;
+	dl_entry* curr_station_info_entry;
 
-		// Is CPU low ready for a transmission?
-		if( wlan_mac_high_is_ready_for_tx() ) {
+	station_info* curr_station_info;
 
-			// Alternate between checking the management queue and the data queue
-			for(i = 0; i < MAX_NUM_QUEUE; i++) {
-				queue_index = (queue_index + 1) % MAX_NUM_QUEUE;
+	if( wlan_mac_high_is_ready_for_tx() ){
+		for(k = 0; k < NUM_QUEUE_GROUPS; k++){
+			curr_queue_group = next_queue_group;
 
-				switch(queue_index){
-					case 0:  if(dequeue_transmit_checkin(BEACON_QID)) { return; }  break;
-					case 1:  if(dequeue_transmit_checkin(MANAGEMENT_QID)) { return; }  break;
-					case 2:  if(dequeue_transmit_checkin(UNICAST_QID))    { return; }  break;
-				}
-			}
-		}
-	} else {
-		// We are only currently allowed to send management frames. Typically this is caused by an ongoing
-		// active scan
-		if( wlan_mac_high_is_ready_for_tx() ) {
-			dequeue_transmit_checkin(MANAGEMENT_QID);
-		}
-	}
+			switch(curr_queue_group){
+				case BEACON_QGRP:
+					next_queue_group = MGMT_QGRP;
+					if(dequeue_transmit_checkin(BEACON_QID)){
+						return;
+					}
+				break;
+
+				case MGMT_QGRP:
+					next_queue_group = DATA_QGRP;
+					if(dequeue_transmit_checkin(MANAGEMENT_QID)){
+						return;
+					}
+				break;
+
+				case DATA_QGRP:
+					next_queue_group = BEACON_QGRP;
+					curr_station_info_entry = next_station_info_entry;
+
+					if(my_bss_info != NULL){
+						for(i = 0; i < (my_bss_info->associated_stations.length + 1); i++) {
+							// Loop through all associated stations' queues and the broadcast queue
+							if(curr_station_info_entry == NULL){
+								// Check the broadcast queue
+								next_station_info_entry = my_bss_info->associated_stations.first;
+								if(dequeue_transmit_checkin(MCAST_QID)){
+									// Found a not-empty queue, transmitted a packet
+									return;
+								} else {
+									curr_station_info_entry = next_station_info_entry;
+								}
+							} else {
+								curr_station_info = (station_info*)(curr_station_info_entry->data);
+								if( wlan_mac_high_is_valid_association(&my_bss_info->associated_stations, curr_station_info) ){
+									if(curr_station_info_entry == my_bss_info->associated_stations.last){
+										// We've reached the end of the table, so we wrap around to the beginning
+										next_station_info_entry = NULL;
+									} else {
+										next_station_info_entry = dl_entry_next(curr_station_info_entry);
+									}
+
+									if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
+										// Found a not-empty queue, transmitted a packet
+										return;
+									} else {
+										curr_station_info_entry = next_station_info_entry;
+									}
+								} else {
+									// This curr_station_info is invalid. Perhaps it was removed from
+									// the association table before poll_tx_queues was called. We will
+									// start the round robin checking back at broadcast.
+									next_station_info_entry = NULL;
+									return;
+								} // END if(is_valid_association)
+							}
+						} // END for loop over association table
+					} else {
+						if(dequeue_transmit_checkin(MCAST_QID)){
+							// Found a not-empty queue, transmitted a packet
+							return;
+						}
+					}
+				break;
+			} // END switch(queue group)
+		} // END loop over queue groups
+	} // END CPU low is ready
 }
+
 
 
 
@@ -431,9 +474,20 @@ void poll_tx_queues(){
  * @return None
  */
 void purge_all_data_tx_queue(){
+	dl_entry*	  curr_station_info_entry;
+	station_info* curr_station_info;
+
 	// Purge all data transmit queues
-	purge_queue(MCAST_QID);           // Broadcast Queue
-	purge_queue(UNICAST_QID);         // Unicast Queue
+	purge_queue(MCAST_QID);                                    		// Broadcast Queue
+
+	if(my_bss_info != NULL){
+		curr_station_info_entry = my_bss_info->associated_stations.first;
+		while(curr_station_info_entry != NULL){
+			curr_station_info = (station_info*)(curr_station_info_entry->data);
+			purge_queue(AID_TO_QID(curr_station_info->AID));       		// Each unicast queue
+			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
+		}
+	}
 }
 
 
@@ -522,63 +576,56 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 	station_info*       associated_station;
+	u32                 queue_sel;
 
 	if(my_bss_info != NULL){
 
-		if(queue_num_queued(UNICAST_QID) < max_queue_size){
+		// Send the pre-encapsulated Ethernet frame over the wireless interface
+		//     NOTE:  The queue element has already been provided, so we do not need to check if it is NULL
+		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
-			// Send the pre-encapsulated Ethernet frame over the wireless interface
-			//     NOTE:  The queue element has already been provided, so we do not need to check if it is NULL
-			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+		// Setup the TX header
+		wlan_mac_high_setup_tx_header( &tx_header_common, eth_dest,my_bss_info->bssid);
 
-			// Setup the TX header
-			wlan_mac_high_setup_tx_header( &tx_header_common, eth_dest,my_bss_info->bssid);
+		// Fill in the data
+		wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, 0);
 
-			// Fill in the data
-			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, 0);
+		if( wlan_addr_mcast(eth_dest) ){
+			// Setup the TX frame info
+				queue_sel = MCAST_QID;
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, ( 0 ), queue_sel );
 
-			if( wlan_addr_mcast(eth_dest) ){
-				// Setup the TX frame info
-					wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, ( 0 ), UNICAST_QID );
+				// Set the information in the TX queue buffer
+				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
+				curr_tx_queue_buffer->frame_info.AID         = 0;
+		} else {
+			associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, eth_dest, ADD_ASSOCIATION_ANY_AID);
+			//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
 
-					// Set the information in the TX queue buffer
-					curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
-					curr_tx_queue_buffer->frame_info.AID         = 0;
+			if(associated_station == NULL){
+				//If we don't have a station_info for this frame, we'll stick it in the multicast queue as a catch all
+				queue_sel = MCAST_QID;
+				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
+				curr_tx_queue_buffer->frame_info.AID         = 0;
 			} else {
-				associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, eth_dest, ADD_ASSOCIATION_ANY_AID);
-				//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
-
-				if(associated_station == NULL){
-					//TODO
-					//We should remove the oldest station_info (or move it to DRAM) and make a new one in its place.
-					//This will be tricky to make robust. The pointer to existing station_info structs live in mpdu_info.
-					//A currently in-flight packet might point to a station_info that we could conceivably get rid of,
-					//which would be bad. Practically speaking, an in-flight frame like that
-				} else {
-					//TODO: we need to move the last_timestamp higher in the station_info struct. It isn't just an Rx timestamp.
-					//Here, I'm using it as a Tx timestamp. It should represent the last time there has been *any* OTA activity
-					//with this particular station.
-					associated_station->rx.last_timestamp = get_usec_timestamp();
-				}
-
-				// Setup the TX frame info
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID );
-
-				if(associated_station != NULL){
-					curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)associated_station;
-					curr_tx_queue_buffer->frame_info.AID         = associated_station->AID; //TODO: What is this used for? Shouldn't mean anything in IBSS
-				} else {
-					// Set the information in the TX queue buffer
-					curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-					curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
-					curr_tx_queue_buffer->frame_info.AID         = 0;
-				}
+				queue_sel = AID_TO_QID(associated_station->AID);
+				associated_station->rx.last_timestamp = get_usec_timestamp();
+				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)associated_station;
+				curr_tx_queue_buffer->frame_info.AID         = associated_station->AID;
 			}
 
+			// Setup the TX frame info
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
+
+		}
+
+		if(queue_num_queued(queue_sel) < max_queue_size){
+
 			// Put the packet in the queue
-			enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
+			enqueue_after_tail(queue_sel, curr_tx_queue_element);
 
 			// Poll the TX queues to possibly send the packet
 			poll_tx_queues();

@@ -31,7 +31,7 @@
 #define MCAST_QID 		0
 #define BEACON_QID		1
 #define MANAGEMENT_QID 	2
-#define UNICAST_QID 	3
+#define AID_TO_QID(x)   ((x)+2) ///map association ID to Tx queue ID; min AID is 1
 
 // Common Defines
 #define NUM_BASIC_RATES_MAX            10
@@ -90,7 +90,7 @@ dl_list * get_statistics();
 
 //int  sta_set_association_state( bss_info* new_bss_info, u16 aid );
 //int  sta_disassociate();
-
+void print_queue_status();
 void print_menu();
 void print_ap_list();
 void print_station_status(u8 manual_call);

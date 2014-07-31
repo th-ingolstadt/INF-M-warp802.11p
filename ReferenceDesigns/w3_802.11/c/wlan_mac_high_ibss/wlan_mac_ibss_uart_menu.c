@@ -96,6 +96,10 @@ void uart_rx(u8 rxByte){
 				break;
 
 				case ASCII_2:
+					print_queue_status();
+				break;
+
+				case ASCII_3:
 					print_all_observed_statistics();
 				break;
 
@@ -126,6 +130,37 @@ void uart_rx(u8 rxByte){
 
 	}
 
+
+}
+
+void print_queue_status(){
+	dl_entry* curr_entry;
+	station_info* curr_station_info;
+	xil_printf("\nQueue Status:\n");
+	xil_printf(" FREE || MCAST|");
+
+	if(my_bss_info != NULL){
+		curr_entry = my_bss_info->associated_stations.first;
+		while(curr_entry != NULL){
+			curr_station_info = (station_info*)(curr_entry->data);
+			xil_printf("%6d|", curr_station_info->AID);
+			curr_entry = dl_entry_next(curr_entry);
+		}
+	}
+	xil_printf("\n");
+
+
+	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
+
+	if(my_bss_info != NULL){
+		curr_entry = my_bss_info->associated_stations.first;
+		while(curr_entry != NULL){
+			curr_station_info = (station_info*)(curr_entry->data);
+			xil_printf("%6d|", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
+			curr_entry = dl_entry_next(curr_entry);
+		}
+	}
+	xil_printf("\n");
 
 }
 
@@ -165,7 +200,7 @@ void print_station_status(u8 manual_call){
 
 			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx.last_timestamp)))/1000);
 			xil_printf("     - Last Rx Power:          %d dBm\n",curr_station_info->rx.last_power);
-			//xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
+			xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
 			xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_station_info->stats->data.tx_num_packets_total, curr_station_info->stats->data.tx_num_packets_success);
 			xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_station_info->stats->data.tx_num_bytes_total), (u32)(curr_station_info->stats->data.tx_num_bytes_success));
 			xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_station_info->stats->data.tx_num_packets_low);
