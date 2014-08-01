@@ -771,39 +771,60 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
  */
 void ltg_event(u32 id, void* callback_arg){
 
-	u32                 payload_length = 0;
+	u32                 payload_length;
+	u32					min_ltg_payload_length;
 	u8*                 addr_da;
 	station_info*       ap_station_info;
-	int                 status;
+	tx_queue_element* curr_tx_queue_element        = NULL;
+	tx_queue_buffer*  curr_tx_queue_buffer         = NULL;
 
-	switch(((ltg_pyld_hdr*)callback_arg)->type){
-		case LTG_PYLD_TYPE_FIXED:
-			addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
-			payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
-		break;
-		case LTG_PYLD_TYPE_UNIFORM_RAND:
-			addr_da = ((ltg_pyld_uniform_rand*)callback_arg)->addr_da;
-			payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
-		break;
-		default:
-			addr_da = 0;
-		break;
-	}
+	if(my_bss_info != NULL){
+		switch(((ltg_pyld_hdr*)callback_arg)->type){
+			case LTG_PYLD_TYPE_FIXED:
+				addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
+				payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
+			break;
+			case LTG_PYLD_TYPE_UNIFORM_RAND:
+				addr_da = ((ltg_pyld_uniform_rand*)callback_arg)->addr_da;
+				payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
+			break;
+			default:
+				xil_printf("ERROR ltg_event: Unknown LTG Payload Type! (%d)\n", ((ltg_pyld_hdr*)callback_arg)->type);
+				return;
+			break;
+		}
 
-	if((my_bss_info != NULL)){
 		ap_station_info = (station_info*)((my_bss_info->associated_stations.first)->data);
 
 		// Send a Data packet to AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
+			// Checkout 1 element from the queue;
+			curr_tx_queue_element = queue_checkout();
+			if(curr_tx_queue_element != NULL){
+				// Create LTG packet
+				curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
 
-			// Create and enqueue an LTG packet
-			status = ltg_enqueue_packet( id, ap_station_info->addr, addr_da, MAC_FRAME_CTRL2_FLAG_TO_DS, payload_length, ap_station_info->AID, UNICAST_QID, (u32)ap_station_info );
+				// Setup the MAC header
+				wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr, addr_da );
 
-            if (status == 0) {
-				//Poll all Tx queues, in case the just-submitted packet can be de-queueued and transmitted immediately
+				min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS, id);
+				payload_length = max(payload_length, min_ltg_payload_length);
+
+				// Finally prepare the 802.11 header
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID);
+
+				// Update the queue entry metadata to reflect the new new queue entry contents
+				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)ap_station_info;
+				curr_tx_queue_buffer->frame_info.AID         = ap_station_info->AID;
+
+				// Submit the new packet to the appropriate queue
+				enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
 				poll_tx_queues();
+
 			}
 		}
+
 	}
 }
 
