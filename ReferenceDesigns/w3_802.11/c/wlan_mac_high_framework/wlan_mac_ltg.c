@@ -35,13 +35,7 @@
 
 /*************************** Constant Definitions ****************************/
 
-
-
 /*********************** Global Variable Definitions *************************/
-
-extern mac_header_80211_common         tx_header_common;
-
-
 
 /*************************** Variable Definitions ****************************/
 
@@ -690,76 +684,31 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 	return ret_val;
 }
 
-
-
-int ltg_enqueue_packet( u32 ltg_id, u8 * addr_1, u8 * addr_3, u8 tx_flags, u32 payload_length, u16 aid, u16 queue_id, u32 metadata_ptr ) {
-	tx_queue_element* curr_tx_queue_element;
-	tx_queue_buffer*  curr_tx_queue_buffer;
-
+int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_flags, u32 ltg_id){
 	u32               tx_length;
 	u8*               mpdu_ptr_u8;
 	ltg_packet_id*    pkt_id;
-	u8                is_multicast;
 
-	int               status = 0;
+	mpdu_ptr_u8 = (u8*)pkt_buf;
 
-	// Check if the address is multicast
-	is_multicast = wlan_addr_mcast(addr_1);
+	tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, common, tx_flags);
 
-	// Checkout 1 element from the queue;
-	curr_tx_queue_element = queue_checkout();
+	// Prepare the MPDU LLC header
+	mpdu_ptr_u8 += sizeof(mac_header_80211);
+	pkt_id = (ltg_packet_id*)(mpdu_ptr_u8);
 
-	if(curr_tx_queue_element != NULL){
-		// Create LTG packet
-		curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
+	(pkt_id->llc_hdr).dsap = LLC_SNAP;
+	(pkt_id->llc_hdr).ssap = LLC_SNAP;
+	(pkt_id->llc_hdr).control_field = LLC_CNTRL_UNNUMBERED;
+	bzero((void *)((pkt_id->llc_hdr).org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
+	(pkt_id->llc_hdr).type = LLC_TYPE_WLAN_LTG;
 
-		// Setup the MAC header
-		wlan_mac_high_setup_tx_header( &tx_header_common, addr_1, addr_3 );
+	pkt_id->unique_seq     = 0; //make sure this is filled in via the dequeue callback
+	pkt_id->ltg_id         = ltg_id;
 
-		// Create the Payload data frame
-		mpdu_ptr_u8 = (u8*)(curr_tx_queue_buffer->frame);
-		tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, tx_flags);
+	// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
+	tx_length += (sizeof(ltg_packet_id));
 
-		// Prepare the MPDU LLC header
-		mpdu_ptr_u8 += sizeof(mac_header_80211);
-		pkt_id = (ltg_packet_id*)(mpdu_ptr_u8);
-
-		(pkt_id->llc_hdr).dsap = LLC_SNAP;
-		(pkt_id->llc_hdr).ssap = LLC_SNAP;
-		(pkt_id->llc_hdr).control_field = LLC_CNTRL_UNNUMBERED;
-		bzero((void *)((pkt_id->llc_hdr).org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
-		(pkt_id->llc_hdr).type = LLC_TYPE_WLAN_LTG;
-
-		pkt_id->unique_seq     = 0; //make sure this is filled in via the dequeue callback
-		pkt_id->ltg_id         = ltg_id;
-
-		// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
-		tx_length += max(payload_length, (sizeof(ltg_packet_id)));
-
-		// Finally prepare the 802.11 header
-		if (is_multicast) {
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION), queue_id);
-		} else {
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_id);
-		}
-
-		// Update the queue entry metadata to reflect the new new queue entry contents
-		if (is_multicast) {
-			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		} else {
-		    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-		}
-		curr_tx_queue_buffer->metadata.metadata_ptr  = metadata_ptr;
-		curr_tx_queue_buffer->frame_info.AID         = aid;
-
-		// Submit the new packet to the appropriate queue
-		enqueue_after_tail(queue_id, curr_tx_queue_element);
-	} else {
-		status = -1;
-	}
-
-	return status;
+	return tx_length;
 }
-
-
 
