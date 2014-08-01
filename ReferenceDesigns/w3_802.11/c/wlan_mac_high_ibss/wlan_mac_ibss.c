@@ -965,10 +965,9 @@ void association_timestamp_check() {
  * @return None
  */
 void ltg_event(u32 id, void* callback_arg){
-
-// TODO: Needs to be more like AP's LTG event
-
+//TODO
 }
+
 
 
 /**
