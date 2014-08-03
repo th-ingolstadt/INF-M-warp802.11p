@@ -627,6 +627,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(station_info_entry != NULL){
 					station = (station_info*)station_info_entry->data;
 					addr_da = station->addr;
+					queue_sel = AID_TO_QID(station->AID);
 					is_multicast = 0;
 					continue_loop = 1;
 				} else {
