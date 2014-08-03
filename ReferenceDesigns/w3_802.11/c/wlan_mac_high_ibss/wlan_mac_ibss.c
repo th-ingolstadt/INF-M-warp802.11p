@@ -260,6 +260,9 @@ int main() {
 	wlan_mac_sta_scan_disable();
 
 	if(my_bss_info_entry != NULL){
+		//TODO: We should check the capabilities of this bss_info and make
+		//sure it is an IBSS and not just an infrastructure network of the same
+		//SSID string
 		xil_printf("Found existing IBSS\n");
 		my_bss_info = (bss_info*)(my_bss_info_entry->data);
 		my_bss_info->state = BSS_STATE_OWNED;
@@ -965,7 +968,148 @@ void association_timestamp_check() {
  * @return None
  */
 void ltg_event(u32 id, void* callback_arg){
-//TODO
+
+	u32               payload_length;
+	u32               min_ltg_payload_length;
+	dl_entry*	      station_info_entry           = NULL;
+	station_info*     station                      = NULL;
+	u8*               addr_da;
+	u8                is_multicast;
+	u8                queue_sel;
+	tx_queue_element* curr_tx_queue_element        = NULL;
+	tx_queue_buffer*  curr_tx_queue_buffer         = NULL;
+	u8                continue_loop;
+
+	if(my_bss_info != NULL){
+		switch(((ltg_pyld_hdr*)callback_arg)->type){
+			case LTG_PYLD_TYPE_FIXED:
+				payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
+				addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
+
+				is_multicast = wlan_addr_mcast(addr_da);
+				if(is_multicast){
+					queue_sel = MCAST_QID;
+				} else {
+					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
+					if(station_info_entry != NULL){
+						station = (station_info*)(station_info_entry->data);
+						queue_sel = AID_TO_QID(station->AID);
+					} else {
+						//Unlike the AP, this isn't necessarily a criteria for giving up on this LTG event.
+						//In the IBSS, it's possible that there simply wasn't room in the heap for a station_info,
+						//but we should still send it a packet. We'll use the multi-cast queue as a catch-all queue for these frames.
+						queue_sel = MCAST_QID;
+					}
+				}
+			break;
+
+			case LTG_PYLD_TYPE_UNIFORM_RAND:
+				payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
+				addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
+
+				is_multicast = wlan_addr_mcast(addr_da);
+				if(is_multicast){
+					queue_sel = MCAST_QID;
+				} else {
+					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
+					if(station_info_entry != NULL){
+						station = (station_info*)(station_info_entry->data);
+						queue_sel = AID_TO_QID(station->AID);
+					} else {
+						//Unlike the AP, this isn't necessarily a criteria for giving up on this LTG event.
+						//In the IBSS, it's possible that there simply wasn't room in the heap for a station_info,
+						//but we should still send it a packet. We'll use the multi-cast queue as a catch-all queue for these frames.
+						queue_sel = MCAST_QID;
+					}
+				}
+			break;
+
+			case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
+				if(my_bss_info->associated_stations.length > 0){
+					station_info_entry = my_bss_info->associated_stations.first;
+					station = (station_info*)station_info_entry->data;
+					addr_da = station->addr;
+					queue_sel = AID_TO_QID(station->AID);
+					is_multicast = 0;
+					payload_length = ((ltg_pyld_all_assoc_fixed*)callback_arg)->length;
+				} else {
+					return;
+				}
+			break;
+
+			default:
+				xil_printf("ERROR ltg_event: Unknown LTG Payload Type! (%d)\n", ((ltg_pyld_hdr*)callback_arg)->type);
+				return;
+			break;
+		}
+
+		do{
+			continue_loop = 0;
+
+			if(queue_num_queued(queue_sel) < max_queue_size){
+				// Checkout 1 element from the queue;
+				curr_tx_queue_element = queue_checkout();
+				if(curr_tx_queue_element != NULL){
+					// Create LTG packet
+					curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
+
+					// Setup the MAC header
+					wlan_mac_high_setup_tx_header( &tx_header_common, addr_da, wlan_mac_addr );
+
+					min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS, id);
+					payload_length = max(payload_length, min_ltg_payload_length);
+
+					// Finally prepare the 802.11 header
+					if (is_multicast) {
+						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION), queue_sel);
+					} else {
+						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel);
+					}
+
+					// Update the queue entry metadata to reflect the new new queue entry contents
+					if (is_multicast) {
+						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_multicast_data_tx_params;
+						curr_tx_queue_buffer->frame_info.AID     = 0;
+					} else if(station == NULL){
+						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_unicast_data_tx_params;
+						curr_tx_queue_buffer->frame_info.AID     = 0;
+					} else {
+
+					    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+					    curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)station;
+						curr_tx_queue_buffer->frame_info.AID         = station->AID;
+					}
+
+					// Submit the new packet to the appropriate queue
+					enqueue_after_tail(queue_sel, curr_tx_queue_element);
+					poll_tx_queues();
+
+				} else {
+					// There aren't any free queue elements right now.
+					// As such, there probably isn't any point to continuing this callback.
+					// We'll return and try again once it is called the next time.
+					return;
+				}
+			}
+
+			if(((ltg_pyld_hdr*)callback_arg)->type == LTG_PYLD_TYPE_ALL_ASSOC_FIXED){
+				station_info_entry = dl_entry_next(station_info_entry);
+				if(station_info_entry != NULL){
+					station = (station_info*)station_info_entry->data;
+					addr_da = station->addr;
+					queue_sel = AID_TO_QID(station->AID);
+					is_multicast = 0;
+					continue_loop = 1;
+				} else {
+					continue_loop = 0;
+				}
+			} else {
+				continue_loop = 0;
+			}
+		} while(continue_loop == 1);
+	}
 }
 
 
