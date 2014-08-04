@@ -12,7 +12,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
-#include "wlan_mac_sta_scan_fsm.h"
+#include "wlan_mac_scan_fsm.h"
 #include "wlan_mac_sta.h"
 
 static u32 num_scan_channels = 0;
@@ -29,13 +29,14 @@ static u8 channel_save;
 
 extern u8 pause_data_queue;
 extern u32 mac_param_chan; ///< This is the "home" channel
+
 extern mac_header_80211_common tx_header_common;
 extern tx_params default_multicast_mgmt_tx_params;
 
 typedef enum {SCAN_DISABLED, SCAN_ENABLED} scan_state_t;
 static scan_state_t scan_state = SCAN_DISABLED;
 
-int wlan_mac_sta_set_scan_channels(u8* channel_vec, u32 len){
+int wlan_mac_set_scan_channels(u8* channel_vec, u32 len){
 	u32 i;
 	int return_value = -1;
 
@@ -52,8 +53,8 @@ int wlan_mac_sta_set_scan_channels(u8* channel_vec, u32 len){
 	}
 
 	if(scan_state == SCAN_ENABLED){
-		wlan_mac_sta_scan_disable();
-		wlan_mac_sta_scan_enable(scan_bssid, scan_ssid);
+		wlan_mac_scan_disable();
+		wlan_mac_scan_enable(scan_bssid, scan_ssid);
 	}
 
 	return_value = 0;
@@ -64,21 +65,21 @@ int wlan_mac_sta_set_scan_channels(u8* channel_vec, u32 len){
 
 }
 
-void wlan_mac_sta_set_scan_timings(u32 dwell_usec, u32 idle_usec){
+void wlan_mac_set_scan_timings(u32 dwell_usec, u32 idle_usec){
 	idle_timeout_usec = idle_usec;
 	dwell_timeout_usec = dwell_usec;
 }
 
-void wlan_mac_sta_scan_enable(u8* bssid, char* ssid_str){
+void wlan_mac_scan_enable(u8* bssid, char* ssid_str){
 	memcpy(scan_bssid, bssid, 6);
 	strcpy(scan_ssid, ssid_str);
 	if(scan_state == SCAN_DISABLED){
 		channel_save = mac_param_chan;
-		wlan_mac_sta_scan_state_transition();
+		wlan_mac_scan_state_transition();
 	}
 }
 
-void wlan_mac_sta_scan_disable(){
+void wlan_mac_scan_disable(){
 	wlan_mac_high_interrupt_stop();
 	if(scan_state == SCAN_ENABLED){
 		if(scan_sched_id != SCHEDULE_FAILURE){
@@ -96,34 +97,34 @@ void wlan_mac_sta_scan_disable(){
 	wlan_mac_high_interrupt_start();
 }
 
-void wlan_mac_sta_scan_state_transition(){
+void wlan_mac_scan_state_transition(){
 	switch(scan_state){
 		case SCAN_DISABLED:
 			pause_data_queue = 1;
 			scan_state = SCAN_ENABLED;
 			curr_scan_chan_idx = -1;
-			wlan_mac_sta_scan_state_transition();
+			wlan_mac_scan_state_transition();
 		break;
 		case SCAN_ENABLED:
 			curr_scan_chan_idx++;
 			if(curr_scan_chan_idx < num_scan_channels){
 				mac_param_chan = channels[(u8)curr_scan_chan_idx];
 				wlan_mac_high_set_channel(mac_param_chan);
-				wlan_mac_sta_scan_probe_req_transmit();
-				scan_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, dwell_timeout_usec, 1, (void*)wlan_mac_sta_scan_state_transition);
+				wlan_mac_scan_probe_req_transmit();
+				scan_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, dwell_timeout_usec, 1, (void*)wlan_mac_scan_state_transition);
 			} else {
 				mac_param_chan = channel_save;
 				//xil_printf("Returning to Chan: %d\n", mac_param_chan);
 				wlan_mac_high_set_channel(mac_param_chan);
 				pause_data_queue = 0;
 				curr_scan_chan_idx = -1;
-				scan_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, idle_timeout_usec, 1, (void*)wlan_mac_sta_scan_state_transition);
+				scan_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, idle_timeout_usec, 1, (void*)wlan_mac_scan_state_transition);
 			}
 		break;
 	}
 }
 
-void wlan_mac_sta_scan_probe_req_transmit(){
+void wlan_mac_scan_probe_req_transmit(){
 	u16                 tx_length;
 	tx_queue_element*	curr_tx_queue_element;
 	tx_queue_buffer* 	curr_tx_queue_buffer;

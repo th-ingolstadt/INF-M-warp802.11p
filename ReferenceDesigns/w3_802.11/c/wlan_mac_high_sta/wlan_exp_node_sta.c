@@ -44,7 +44,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_sta_scan_fsm.h"
+#include "wlan_mac_scan_fsm.h"
 #include "wlan_mac_sta_join_fsm.h"
 #include "wlan_mac_sta.h"
 
@@ -203,7 +203,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, c
 			wlan_mac_high_interrupt_stop();
 
 			// Stop any active scans
-			wlan_mac_sta_scan_disable();
+			wlan_mac_scan_disable();
 
 
 			// Add the new association

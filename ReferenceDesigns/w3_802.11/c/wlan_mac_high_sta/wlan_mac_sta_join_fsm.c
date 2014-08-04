@@ -11,7 +11,7 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
-#include "wlan_mac_sta_scan_fsm.h"
+#include "wlan_mac_scan_fsm.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_bss_info.h"
@@ -59,7 +59,7 @@ void wlan_mac_sta_scan_and_join(char* ssid_str, u32 to_sec){
 				join_state = JOIN_SEARCHING;
 				strcpy(search_ssid, ssid_str);
 				search_timeout = to_sec;
-				wlan_mac_sta_scan_enable((u8*)bcast_addr, ssid_str);
+				wlan_mac_scan_enable((u8*)bcast_addr, ssid_str);
 				if(to_sec != 0){
 					search_kill_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, (to_sec*1000000), 1, (void*)wlan_mac_sta_return_to_idle);
 				}
@@ -133,7 +133,7 @@ void wlan_mac_sta_return_to_idle(){
 			//Nothing to do, we are already idle.
 		break;
 		case JOIN_SEARCHING:
-			wlan_mac_sta_scan_disable();
+			wlan_mac_scan_disable();
 			//We should kill the search_sched_id and search_kill_sched_id schedules (if they are running)
 			wlan_mac_high_interrupt_stop();
 			join_state = JOIN_IDLE;

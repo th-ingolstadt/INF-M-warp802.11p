@@ -37,7 +37,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_sta_scan_fsm.h"
+#include "wlan_mac_scan_fsm.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
@@ -248,7 +248,7 @@ int main() {
 
 	// Set the default active scan channels
 	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
-	wlan_mac_sta_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
+	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
 	// If there is a default SSID, initiate a probe request
 	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) wlan_mac_sta_scan_and_join(access_point_ssid, 0);
