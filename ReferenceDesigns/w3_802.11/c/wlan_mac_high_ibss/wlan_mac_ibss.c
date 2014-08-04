@@ -59,7 +59,7 @@
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     5
 
-const u8 max_num_associations                    = 10;
+const u8 max_num_associations                    = 15;
 
 
 /*********************** Global Variable Definitions *************************/
@@ -278,6 +278,9 @@ int main() {
 	mac_param_chan      = my_bss_info->chan;
 	wlan_mac_high_set_channel( mac_param_chan );
 
+	//TODO:
+	//New High to Low IPC that sets forward-looking beacon cancellation time to .5+ of beacon interval
+
 	xil_printf("IBSS Details: \n");
 	xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
 	xil_printf("   SSID           : %s\n", my_bss_info->ssid);
@@ -349,7 +352,7 @@ void beacon_transmit(u32 schedule_id) {
 				mac_param_chan);
 
 			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_AUTOCANCEL), MANAGEMENT_QID );
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_AUTOCANCEL), BEACON_QID );
 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -357,7 +360,7 @@ void beacon_transmit(u32 schedule_id) {
 			curr_tx_queue_buffer->frame_info.AID         = 0;
 
 			// Put the packet in the queue
-			enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+			enqueue_after_tail(BEACON_QID, curr_tx_queue_element);
 
 			// Poll the TX queues to possibly send the packet
 			poll_tx_queues();
@@ -521,8 +524,12 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	station_info*          station 				   = NULL;
 
 	if(my_bss_info != NULL){
-		entry = wlan_mac_high_find_station_info_AID(&(my_bss_info->associated_stations), tx_mpdu->AID);
-		if(entry != NULL) station = (station_info*)(entry->data);
+		if(tx_mpdu->AID != 0){
+			entry = wlan_mac_high_find_station_info_AID(&(my_bss_info->associated_stations), tx_mpdu->AID);
+			if(entry != NULL){
+				station = (station_info*)(entry->data);
+			}
+		}
 	}
 
 	// Log all of the TX Low transmissions
@@ -572,10 +579,6 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
  * @return 1 for successful enqueuing of the packet, 0 otherwise
  */
 int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
-	// TODO: We need to create station_info structs for outgoing MAC addresses. Unlike the AP,
-	// the IBSS doesn't have the luxury of creating these structures at the time of association since
-	// there is no formal association for IBSS. At the moment, we do not employ station_info and cannot
-	// support different transmit parameters for different target addresses.
 
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 	station_info*       associated_station;
@@ -609,24 +612,24 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 			if(associated_station == NULL){
 				//If we don't have a station_info for this frame, we'll stick it in the multicast queue as a catch all
 				queue_sel = MCAST_QID;
+				// Setup the TX frame info
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
 				curr_tx_queue_buffer->frame_info.AID         = 0;
 			} else {
 				queue_sel = AID_TO_QID(associated_station->AID);
+				// Setup the TX frame info
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
 				associated_station->rx.last_timestamp = get_usec_timestamp();
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)associated_station;
 				curr_tx_queue_buffer->frame_info.AID         = associated_station->AID;
 			}
 
-			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
-
 		}
 
 		if(queue_num_queued(queue_sel) < max_queue_size){
-
 			// Put the packet in the queue
 			enqueue_after_tail(queue_sel, curr_tx_queue_element);
 
