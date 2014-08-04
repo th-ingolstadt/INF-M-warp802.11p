@@ -44,7 +44,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_ibss_scan_fsm.h"
+#include "wlan_mac_scan_fsm.h"
 #include "wlan_mac_ibss.h"
 #include "wlan_mac_schedule.h"
 

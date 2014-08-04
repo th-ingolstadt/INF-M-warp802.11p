@@ -37,7 +37,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_ibss_scan_fsm.h"
+#include "wlan_mac_scan_fsm.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
@@ -243,13 +243,13 @@ int main() {
 
 	// Set the default active scan channels
 	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
-	wlan_mac_sta_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
+	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
 	//Search for existing IBSS of default SSID string.
 
 	#define SCAN_TIMEOUT_USEC 5000000
 	scan_start_timestamp = get_usec_timestamp();
-	wlan_mac_sta_scan_enable((u8*)bcast_addr, default_ssid);
+	wlan_mac_scan_enable((u8*)bcast_addr, default_ssid);
 
 	while((get_usec_timestamp() - scan_start_timestamp) < SCAN_TIMEOUT_USEC){
 		my_bss_info_entry = wlan_mac_high_find_bss_info_SSID(default_ssid);
@@ -257,7 +257,7 @@ int main() {
 			break;
 		}
 	}
-	wlan_mac_sta_scan_disable();
+	wlan_mac_scan_disable();
 
 	if(my_bss_info_entry != NULL){
 		//TODO: We should check the capabilities of this bss_info and make
