@@ -113,7 +113,7 @@ def _log_data_to_pcap(log_data, log_index, filename, overwrite=False):
     from . import util as log_util
 
     # Process the inputs to generate any error
-    log_pcap_index = _gen_pcap_log_index(log_index)
+    log_pcap_index = _gen_pcap_log_index(log_index, log_data)
     
     # Determine a safe filename for the output PCAP file
     if overwrite:
@@ -141,60 +141,6 @@ def _log_data_to_pcap(log_data, log_index, filename, overwrite=False):
 #-----------------------------------------------------------------------------
 # Internal PCAP file Utilities
 #-----------------------------------------------------------------------------
-def _gen_pcap_log_index(log_index):
-    """Uses a log index to create a pcap log index.
-
-    For each supported entry in the log index, an entry is created in the
-    pcap_log_index that is a list of tuples: 
-    (entry_type_id, timestamp_offset, length_offset, payload_offset).
-
-    Currently supported entry_types are:    
-        RX_DSSS
-        RX_OFDM
-        TX
-        TX_LOW
-    """
-    pcap_log_index = []
-
-    # Create a list of entry type ids to filter the index
-    from . import entry_types
-    entry_type_offsets = {}
-
-    supported_entry_types = ['RX_DSSS', 'RX_OFDM', 'RX_OFDM_LTG', 'TX', 'TX_LTG', 'TX_LOW', 'TX_LOW_LTG']
-    
-    for entry_type in supported_entry_types:
-        try:
-            entry         = entry_types.log_entry_types[entry_type]
-            entry_offsets = entry.get_field_offsets()
-
-            entry_type_offsets[entry_type] = [entry_offsets['timestamp'],
-                                              entry_offsets['length'],
-                                              entry_offsets['mac_payload_len']]
-        except KeyError:
-            print("Could not filter log data with event type: {0}".format(entry_type))
-
-
-    # Create the raw pcap log index
-    for entry_type in log_index.keys():
-        try: 
-            offsets = entry_type_offsets[entry_type]
-            for offset in log_index[entry_type]:
-                pcap_log_index.append((entry_type, offset + offsets[0], offset + offsets[1], offset + offsets[2]))
-        except KeyError:
-            print("Can not use entry type: {0} in PCAP generation.".format(entry_type))
-
-    
-    # Sort the PCAP data
-    from operator import itemgetter
-    
-    sorted(pcap_log_index, key=itemgetter(1))
-
-    return pcap_log_index
-
-# End _gen_log_pcap_index()
-
-
-
 def _serialize_header(header, fmt):
     """Use the struct library to serialize the header dictionary using the given format."""
     import struct
@@ -215,39 +161,240 @@ def _serialize_header(header, fmt):
 
 
 
+def _gen_pcap_log_index(log_index, log_data):
+    """Uses a log index to create a pcap log index.
+
+    For each supported entry in the log index, an entry is created in the
+    pcap_log_index that is a list of tuples: 
+        (timestamp, orig_len, [(incl_len, payload_offset), ...])
+
+    Currently supported entry_types are:
+        RX_DSSS
+        RX_OFDM
+        RX_OFDM_LTG
+        TX
+        TX_LTG
+        TX_LOW
+        TX_LOW_LTG
+
+    """
+    import struct
+    from . import entry_types
+
+    supported_entry_types = ['RX_DSSS', 'RX_OFDM', 'RX_OFDM_LTG', 'TX', 'TX_LTG', 'TX_LOW', 'TX_LOW_LTG']
+    entry_type_offsets    = {}
+    pcap_log_index        = []
+
+
+    # Create a list of entry type ids to filter the index    
+    for entry_type in supported_entry_types:
+        try:
+            entry         = entry_types.log_entry_types[entry_type]
+            entry_offsets = entry.get_field_offsets()
+
+            entry_type_offsets[entry_type] = entry_offsets
+
+        except KeyError:
+            print("Could not filter log data with event type: {0}".format(entry_type))
+
+
+    # Create TX payload dictionary
+    pcap_tx_payload_dict = _gen_pcap_tx_payload_dict(log_index, log_data)     
+
+    # Create the raw pcap log index
+    for entry_type in log_index.keys():
+        try: 
+            entry_offsets = entry_type_offsets[entry_type]
+
+            timestamp_entry_offset = entry_offsets['timestamp']
+
+            # Process TX entries
+            if ( entry_type in ['TX', 'TX_LTG']):
+                accept_entry_offset   = entry_offsets['time_to_accept']
+                uniq_seq_entry_offset = entry_offsets['uniq_seq']
+                
+                for offset in log_index[entry_type]:
+                    timestamp_offset  = offset + timestamp_entry_offset
+                    accept_offset     = offset + accept_entry_offset
+                    uniq_seq_offset   = offset + uniq_seq_entry_offset
+                    
+                    timestamp         = struct.unpack("<Q", log_data[timestamp_offset:(timestamp_offset + 8)])[0]
+                    time_to_accept    = struct.unpack("<I", log_data[accept_offset:(accept_offset + 4)])[0]
+                    uniq_seq          = struct.unpack("<I", log_data[uniq_seq_offset:(uniq_seq_offset + 4)])[0]
+
+                    try:
+                        payload_info  = pcap_tx_payload_dict[uniq_seq]
+                        pcap_log_index.append(((timestamp + time_to_accept), payload_info[0], [(payload_info[1], payload_info[2])]))
+                    except KeyError:
+                        print("Could not find TX entry in payload dictionary.")
+
+
+            # Process TX_LOW entries
+            if ( entry_type in ['TX_LOW', 'TX_LOW_LTG']):
+                uniq_seq_entry_offset = entry_offsets['uniq_seq']
+                length_entry_offset   = entry_offsets['length']
+                incl_len_entry_offset = entry_offsets['mac_payload_len']
+                payload_entry_offset  = entry_offsets['mac_payload']
+                
+                for offset in log_index[entry_type]:
+                    timestamp_offset  = offset + timestamp_entry_offset
+                    uniq_seq_offset   = offset + uniq_seq_entry_offset
+                    incl_len_offset   = offset + incl_len_entry_offset
+                    payload_offset    = offset + payload_entry_offset
+                    
+                    timestamp         = struct.unpack("<Q", log_data[timestamp_offset:(timestamp_offset + 8)])[0]
+                    uniq_seq          = struct.unpack("<I", log_data[uniq_seq_offset:(uniq_seq_offset + 4)])[0]
+                    incl_len          = struct.unpack("<I", log_data[incl_len_offset:(incl_len_offset + 4)])[0]
+
+                    # If the TX entry associated with the TX_LOW entry does not exist, then just use the 
+                    # data in the TX_LOW entry.  
+                    # 
+                    # NOTE: For TX_LOW entries, we must copy the MAC header / LTG header from the log directly
+                    # then fill in the rest of the payload with the values from the TX entry.
+                    try:
+                        payload_info  = pcap_tx_payload_dict[uniq_seq]
+                        payload       = [(incl_len, payload_offset), (payload_info[1] - incl_len, payload_info[2] + incl_len)]
+
+                        pcap_log_index.append((timestamp, payload_info[0], payload))
+
+                    except KeyError:
+                        length_offset = offset + length_entry_offset                        
+                        orig_len      = struct.unpack("<H", log_data[length_offset:(length_offset + 2)])[0]
+                        
+                        pcap_log_index.append((timestamp, orig_len, [(incl_len, payload_offset)]))
+
+
+            # Process RX entries
+            if ( entry_type in ['RX_DSSS', 'RX_OFDM', 'RX_OFDM_LTG']):
+                length_entry_offset   = entry_offsets['length']
+                incl_len_entry_offset = entry_offsets['mac_payload_len']
+                payload_entry_offset  = entry_offsets['mac_payload']
+                
+                for offset in log_index[entry_type]:
+                    timestamp_offset  = offset + timestamp_entry_offset
+                    length_offset     = offset + length_entry_offset
+                    incl_len_offset   = offset + incl_len_entry_offset
+                    payload_offset    = offset + payload_entry_offset
+                    
+                    timestamp         = struct.unpack("<Q", log_data[timestamp_offset:(timestamp_offset + 8)])[0]
+                    orig_len          = struct.unpack("<H", log_data[length_offset:(length_offset + 2)])[0]
+                    incl_len          = struct.unpack("<I", log_data[incl_len_offset:(incl_len_offset + 4)])[0]
+                    
+                    pcap_log_index.append((timestamp, orig_len, [(incl_len, payload_offset)]))
+
+
+        except KeyError:
+            print("Can not use entry type: {0} in PCAP generation.".format(entry_type))
+
+    return pcap_log_index
+
+# End def
+
+
+
+def _gen_pcap_tx_payload_dict(log_index, log_data):
+    """Uses a log index and log data to create a dictionary of TX payload 
+    lengths and offsets.
+    
+    For each TX entry, there is a unique sequence number that is used by all
+    TX_LOW entries to uniquely identify all transmitted packets assocaiated with
+    the TX entry.  Using this unique sequence number, we will construct the
+    following dictionary:
+    
+    { 'unique_seq' : (orig_len, incl_len, payload_offset) }
+
+    where orig_len is the length of payload, the incl_len is the length of the 
+    recorded payload and payload_offset is the offset in the log data where to 
+    find the payload.
+    
+    This is currently supported for entry_types:
+        TX
+        TX_LTG
+
+    NOTE: This function assumes that for a given log_index / log_data that all 
+    uniq_seq entries are unique (ie this cannot be used for a log_index / log_data
+    that contains data from multiple nodes).
+    """
+    import struct
+    from . import entry_types
+
+    supported_entry_types = ['TX', 'TX_LTG']
+    pcap_tx_payload_dict  = {}
+    entry_type_offsets    = {}    
+
+    for entry_type in supported_entry_types:
+        try:
+            entry         = entry_types.log_entry_types[entry_type]
+            entry_offsets = entry.get_field_offsets()
+
+            entry_type_offsets[entry_type] = [entry_offsets['uniq_seq'],
+                                              entry_offsets['length'],
+                                              entry_offsets['mac_payload_len'],
+                                              entry_offsets['mac_payload']]
+        except KeyError:
+            print("Could not filter log data with event type: {0}".format(entry_type))
+
+    # Create the tx payload dictionary
+    for entry_type in log_index.keys():
+        try: 
+            offsets = entry_type_offsets[entry_type]
+
+            for offset in log_index[entry_type]:
+                uniq_seq_offset   = offset + offsets[0]
+                length_offset     = offset + offsets[1]
+                incl_len_offset   = offset + offsets[2]
+                payload_offset    = offset + offsets[3]
+
+                # Get the unique sequence number for the TX packet
+                uniq_seq     = struct.unpack("<Q", log_data[uniq_seq_offset:(uniq_seq_offset + 8)])[0]
+                
+                # Get the payload length
+                orig_len     = struct.unpack("<H", log_data[length_offset:(length_offset + 2)])[0]
+
+                # Get the recorded payload length
+                incl_len     = struct.unpack("<I", log_data[incl_len_offset:(incl_len_offset + 4)])[0]
+
+                # Add values to the dictionary        
+                pcap_tx_payload_dict[uniq_seq] = (orig_len, incl_len, payload_offset)
+
+        except KeyError:
+            pass
+
+    return pcap_tx_payload_dict
+
+# End def
+
+
+
 def _covert_log_data_to_pcap(file, log_data, log_pcap_index):
-    """ 
+    """Create a PCAP file from the log data and the PCAP index.
+    
+    The PCAP index has the form:
+        (timestamp, orig_len, [(incl_len, payload_offset), ...])
 
-
-    NOTE:  Currently, this does not adjust timestamps for TX / TX_LTG packets. 
-    In order to compare these to TX_LOW / TX_LOW_LTG packets, you need to adjust
-    the TX / TX_LTG packets by the 'time_to_accept' field.    
     """
     global pcap_global_header_fmt
     global pcap_global_header
 
     import struct
+    from operator import itemgetter
+
     time_factor = 1000000        # Timestamps are in # of microseconds (ie 10^(-6) seconds)
 
     # Write the Global header to the file
     file.write(_serialize_header(pcap_global_header, pcap_global_header_fmt))
     
-    
-    # TODO:  Need to re-order the index by timestamp so the events are in time order
-    
+    # Sort the PCAP data by timestamp
+    log_pcap_index = sorted(log_pcap_index, key=itemgetter(0))
     
     # Iterate through the index and create a pcap entry for each item
     for item in log_pcap_index:
-        # Get the timestamp (# of microseconds)
-        timestamp    = struct.unpack("<Q", log_data[item[1]:(item[1] + 8)])[0]
-        
-        # Get the length
-        orig_len     = struct.unpack("<H", log_data[item[2]:(item[2] + 2)])[0]
-        
+        # Get the item data
+        timestamp    = item[0]                        # Timestamp (# of microseconds)        
+        orig_len     = item[1]                        # Original packet length (in bytes)
+
         # Get the payload
-        incl_len_end = item[3] + 4
-        incl_len     = struct.unpack("<I", log_data[item[3]:incl_len_end])[0]
-        payload      = log_data[incl_len_end:(incl_len_end + incl_len)]
+        (incl_len, payload) = _extract_payload(item[2], log_data)
         
         # Populate the packet header
         ts_sec       = int(timestamp / time_factor)
@@ -265,14 +412,18 @@ def _covert_log_data_to_pcap(file, log_data, log_pcap_index):
 
 
 
+def _extract_payload(offsets, log_data):
+    """Extract the mac payload from the list of offsets"""
+    incl_len     = 0
+    payload_data = bytearray()
+    
+    for offset in offsets:
+        incl_len     += offset[0]
+        payload_data += log_data[offset[1]:(offset[1] + offset[0])]
 
+    return (incl_len, payload_data)
 
-
-
-
-
-
-
+# End def
 
 
 
