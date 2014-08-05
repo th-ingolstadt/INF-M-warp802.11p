@@ -146,6 +146,7 @@ typedef struct{
 CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK    0x0001         ///< Mask for flag in station_info -- disable association check
+#define STATION_INFO_FLAG_DOZE                   0x0002         ///< Mask to sleeping stations (if STA supports PS)
 
 
 
