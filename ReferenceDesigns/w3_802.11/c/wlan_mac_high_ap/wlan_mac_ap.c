@@ -90,6 +90,15 @@ u32 		 mac_param_chan;
 // MAC address
 static u8 	 wlan_mac_addr[6];
 
+// Traffic Indication Map State
+
+u8 dtim_period;
+u8 dtim_count;
+u64 dtim_timestamp;
+u64 dtim_unique_seq;
+u64 dtim_mcast_allow_window;
+
+
 u8 tim_bitmap[1] = {0x0};
 u8 tim_control = 1;
 u8 tim_len = 1;
@@ -211,6 +220,10 @@ int main(){
 
     // Setup default scheduled events:
 	//  Periodic beacon transmissions
+
+	dtim_period = 3;
+	dtim_count = 2;
+	dtim_mcast_allow_window = BEACON_INTERVAL_US / 4;
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 
 	//  Periodic check for timed-out associations
@@ -347,12 +360,16 @@ void poll_tx_queues(){
 						if(curr_station_info_entry == NULL){
 							// Check the broadcast queue
 							next_station_info_entry = my_bss_info->associated_stations.first;
-							if(dequeue_transmit_checkin(MCAST_QID)){
-								// Found a not-empty queue, transmitted a packet
-								return;
-							} else {
-								curr_station_info_entry = next_station_info_entry;
+
+							if((get_usec_timestamp() - dtim_timestamp) <= dtim_mcast_allow_window ){
+								if(dequeue_transmit_checkin(MCAST_QID)){
+									// Found a not-empty queue, transmitted a packet
+									return;
+								}
 							}
+
+							curr_station_info_entry = next_station_info_entry;
+
 						} else {
 							curr_station_info = (station_info*)(curr_station_info_entry->data);
 							if( wlan_mac_high_is_valid_association(&my_bss_info->associated_stations, curr_station_info) ){
@@ -764,6 +781,7 @@ void beacon_transmit() {
  	u8* txBufferPtr_u8;
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
+ 	u8 flags;
 
  	// Create a beacon
  	curr_tx_queue_element = queue_checkout();
@@ -790,8 +808,8 @@ void beacon_transmit() {
 
     	txBufferPtr_u8[0] = 5; //Tag 5: Traffic Indication Map (TIM)
     	txBufferPtr_u8[1] = 3+tim_len; //tag length... doesn't include the tag itself and the tag length
-    	txBufferPtr_u8[2] = 0; //DTIM count
-    	txBufferPtr_u8[3] = 1; //DTIM period
+    	txBufferPtr_u8[2] = dtim_count; //DTIM count
+    	txBufferPtr_u8[3] = dtim_period; //DTIM period
     	txBufferPtr_u8[4] = tim_control; //Bitmap control
     	memcpy(&txBufferPtr_u8[5], tim_bitmap,tim_len);
     	txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
@@ -799,7 +817,12 @@ void beacon_transmit() {
     	tx_length = txBufferPtr_u8 - (u8*)(curr_tx_queue_buffer->frame);
 
 		// Setup the TX frame info
- 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
+    	if(dtim_count == 0){
+    		flags = (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_DTIM);
+    	} else {
+    		flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
+    	}
+ 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, flags, MANAGEMENT_QID );
 
 		// Set the information in the TX queue buffer
  		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -808,6 +831,13 @@ void beacon_transmit() {
 
 		// Put the packet in the queue
  		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+ 		//Update DTIM fields
+ 		if(dtim_count > 0){
+ 			dtim_count--;
+ 		} else {
+ 			dtim_count = (dtim_period-1);
+ 		}
 
 	    // Poll the TX queues to possibly send the packet
  		poll_tx_queues();
@@ -1550,6 +1580,11 @@ void mpdu_dequeue(tx_queue_element* packet){
 		case PKT_TYPE_DATA_ENCAP_LTG:
 			pkt_id		       = (ltg_packet_id*)((u8*)header + sizeof(mac_header_80211));
 			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
+		break;
+		case PKT_TYPE_MGMT:
+			if((frame_info->flags) & TX_MPDU_FLAGS_DTIM){
+				dtim_timestamp = get_usec_timestamp();
+			}
 		break;
 	}
 }
