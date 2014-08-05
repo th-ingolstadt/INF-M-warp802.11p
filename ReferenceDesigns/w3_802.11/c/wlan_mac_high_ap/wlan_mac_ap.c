@@ -66,7 +66,7 @@ const u8 max_num_associations                   = 11;
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP-CRH";
 
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
@@ -95,13 +95,7 @@ static u8 	 wlan_mac_addr[6];
 u8 dtim_period;
 u8 dtim_count;
 u64 dtim_timestamp;
-u64 dtim_unique_seq;
 u64 dtim_mcast_allow_window;
-
-
-u8 tim_bitmap[1] = {0x0};
-u8 tim_control = 1;
-u8 tim_len = 1;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -778,10 +772,8 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  */
 void beacon_transmit() {
  	u16 tx_length;
- 	u8* txBufferPtr_u8;
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
- 	u8 flags;
 
  	// Create a beacon
  	curr_tx_queue_element = queue_checkout();
@@ -802,27 +794,7 @@ void beacon_transmit() {
 			(u8*)my_bss_info->ssid,
 			mac_param_chan);
 
-        // Append Traffic Indication Map
-
-        txBufferPtr_u8 = (u8*)(curr_tx_queue_buffer->frame) + tx_length;
-
-    	txBufferPtr_u8[0] = 5; //Tag 5: Traffic Indication Map (TIM)
-    	txBufferPtr_u8[1] = 3+tim_len; //tag length... doesn't include the tag itself and the tag length
-    	txBufferPtr_u8[2] = dtim_count; //DTIM count
-    	txBufferPtr_u8[3] = dtim_period; //DTIM period
-    	txBufferPtr_u8[4] = tim_control; //Bitmap control
-    	memcpy(&txBufferPtr_u8[5], tim_bitmap,tim_len);
-    	txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
-
-    	tx_length = txBufferPtr_u8 - (u8*)(curr_tx_queue_buffer->frame);
-
-		// Setup the TX frame info
-    	if(dtim_count == 0){
-    		flags = (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_DTIM);
-    	} else {
-    		flags = TX_MPDU_FLAGS_FILL_TIMESTAMP;
-    	}
- 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, flags, MANAGEMENT_QID );
+ 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
 
 		// Set the information in the TX queue buffer
  		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -831,13 +803,6 @@ void beacon_transmit() {
 
 		// Put the packet in the queue
  		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
- 		//Update DTIM fields
- 		if(dtim_count > 0){
- 			dtim_count--;
- 		} else {
- 			dtim_count = (dtim_period-1);
- 		}
 
 	    // Poll the TX queues to possibly send the packet
  		poll_tx_queues();
@@ -1571,10 +1536,14 @@ void mpdu_dequeue(tx_queue_element* packet){
 	tx_frame_info*		frame_info;
 	ltg_packet_id*      pkt_id;
 	u32 				packet_payload_size;
+	u8*                 txBufferPtr_u8;
+	u8                  tim_control;
+	u8 					tim_len;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
 	packet_payload_size	= frame_info->length;
+	txBufferPtr_u8      = (u8*)header;
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
 		case PKT_TYPE_DATA_ENCAP_LTG:
@@ -1582,8 +1551,41 @@ void mpdu_dequeue(tx_queue_element* packet){
 			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
 		break;
 		case PKT_TYPE_MGMT:
-			if((frame_info->flags) & TX_MPDU_FLAGS_DTIM){
-				dtim_timestamp = get_usec_timestamp();
+			if(header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON){
+				//If the packet we are about to send is a beacon, we need to tack on the TIM
+
+				tim_len = 1; //Need to loop through associated stations to figure this out
+				tim_control = 0; //The top 7 bits are an offset for the partial map
+
+				if(queue_num_queued(MCAST_QID)>0){
+					tim_control |= 0x01; //Raise the multicast bit in the TIM control field
+				}
+
+
+				txBufferPtr_u8 += packet_payload_size;
+		    	txBufferPtr_u8[0] = 5; //Tag 5: Traffic Indication Map (TIM)
+		    	txBufferPtr_u8[1] = 3+tim_len; //tag length... doesn't include the tag itself and the tag length
+		    	txBufferPtr_u8[2] = dtim_count; //DTIM count
+		    	txBufferPtr_u8[3] = dtim_period; //DTIM period
+		    	txBufferPtr_u8[4] = tim_control; //Bitmap control
+
+
+		    	//memcpy(&txBufferPtr_u8[5], tim_bitmap,tim_len); //TODO
+		    	txBufferPtr_u8[5] = 0;
+
+		    	txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
+
+		    	packet_payload_size = txBufferPtr_u8 - (u8*)(header);
+		    	frame_info->length = packet_payload_size;
+
+		    	//Update DTIM fields
+				if(dtim_count > 0){
+					dtim_count--;
+				} else {
+					dtim_timestamp = get_usec_timestamp();
+					dtim_count = (dtim_period-1);
+				}
+
 			}
 		break;
 	}
