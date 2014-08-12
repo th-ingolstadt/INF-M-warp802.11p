@@ -47,6 +47,7 @@
 #define WLAN_MAC_REG_SW_BACKOFF_CTRL		XPAR_WLAN_MAC_DCF_HW_MEMMAP_BACKOFF_CTRL
 #define WLAN_MAC_REG_SET_TIMESTAMP_LSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_SET_LSB
 #define WLAN_MAC_REG_SET_TIMESTAMP_MSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_SET_MSB
+#define WLAN_MAC_REG_SET_TIMESTAMP_OFFSET	XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_INSERT_OFFSET
 
 //Bit masks for STATUS register
 #define WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING	0x0000800 //b[11]
@@ -125,6 +126,8 @@
 																				 (pktBuf) & 0xF) | \
 																				 (((antMask) & 0xF)<<20) | \
 																				 (((preTx_delay) & 0x3FF) << 4))
+
+#define wlan_mac_set_timestamp_offset(d) Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_OFFSET, d)
 																				 
 																				 
 //WLAN_MAC_REG_AUTO_TX_GAINS
@@ -214,6 +217,7 @@
 #define LOW_PARAM_PHYSICAL_CS_THRESH	0x00000001
 #define	LOW_PARAM_CW_EXP_MIN			0x00000002
 #define LOW_PARAM_CW_EXP_MAX			0x00000003
+#define LOW_PARAM_TIMESTAMP_OFFSET		0x00000004
 
 
 int wlan_mac_low_init(u32 type);
