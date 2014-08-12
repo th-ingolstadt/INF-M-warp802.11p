@@ -39,10 +39,12 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	beacon_80211_header = (mac_header_80211*)(txBufferPtr_u8);
 
 	beacon_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_BEACON;
-	beacon_80211_header->frame_control_2 = 0; //TODO 0
+	beacon_80211_header->frame_control_2 = 0;
 
 	//This field may be overwritten by CPU_LOW
 	beacon_80211_header->duration_id = 0;
+
+	beacon_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
 	memcpy(beacon_80211_header->address_1,common->address_1,6);
 	memcpy(beacon_80211_header->address_2,common->address_2,6);
@@ -109,10 +111,12 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 	beacon_80211_header = (mac_header_80211*)(txBufferPtr_u8);
 
 	beacon_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP;
-	beacon_80211_header->frame_control_2 = 0; //TODO 0
+	beacon_80211_header->frame_control_2 = 0;
 
 	//This field may be overwritten by CPU_LOW
 	beacon_80211_header->duration_id = 0;
+
+	beacon_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
 	memcpy(beacon_80211_header->address_1,common->address_1,6);
 	memcpy(beacon_80211_header->address_2,common->address_2,6);
@@ -187,6 +191,8 @@ int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* co
 
 	//This field may be overwritten by CPU_LOW
 	hdr_80211->duration_id = 0;
+
+	hdr_80211->sequence_control = 0; //Will be filled in at dequeue
 
 	memcpy(hdr_80211->address_1,common->address_1,6);
 	memcpy(hdr_80211->address_2,common->address_2,6);

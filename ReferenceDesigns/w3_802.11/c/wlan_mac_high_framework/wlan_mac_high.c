@@ -1260,16 +1260,20 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 	// Copy the packet into the transmit packet buffer
 	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_ready_for_tx() )){
 
-		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-		src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
-		xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
 		header 	  = (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 
 		// Insert sequence number here
 		header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
 
 		// Call user code to notify it of dequeue
+
 		if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
+
+
+		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+		src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
+		xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
+
 
         // Transfer the frame info
 		wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
@@ -2383,7 +2387,7 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 /**
  * @brief Is the provided station a valid association
  *
- * Function will check that the provided station is pater of the association table
+ * Function will check that the provided station is part of the association table
  *
  * @param  dl_list* assoc_tbl
  *     - Association table pointer
