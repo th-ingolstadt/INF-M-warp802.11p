@@ -47,7 +47,7 @@
 
 // Time between beacon transmissions
 #define BEACON_INTERVAL_MS             (100)
-#define BEACON_INTERVAL_US             (BEACON_INTERVAL_MS*1000)
+#define BEACON_INTERVAL_US             (BEACON_INTERVAL_MS*1024)
 
 // Period for checking association table for stale STA associations
 #define ASSOCIATION_CHECK_INTERVAL_MS  (1000)
@@ -78,15 +78,21 @@
 #define  WLAN_EXP_STREAM_ASSOC_CHANGE            WN_TRANSMIT
 
 
+typedef struct{
+	u8 enable;
+	u8 dtim_period;
+	u8 dtim_count;
+	u64 dtim_timestamp;
+	u64 dtim_mcast_allow_window;
+} ps_conf;
+
+
 /*************************** Function Prototypes *****************************/
 int  main();
 
 void ltg_event(u32 id, void* callback_arg);
-
 int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
-
 void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
-
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details);
 
 void poll_tx_queues();

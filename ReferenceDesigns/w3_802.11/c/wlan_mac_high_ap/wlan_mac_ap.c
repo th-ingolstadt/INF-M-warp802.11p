@@ -92,10 +92,7 @@ static u8 	 wlan_mac_addr[6];
 
 // Traffic Indication Map State
 
-u8 dtim_period;
-u8 dtim_count;
-u64 dtim_timestamp;
-u64 dtim_mcast_allow_window;
+ps_conf power_save_configuration;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -215,9 +212,11 @@ int main(){
     // Setup default scheduled events:
 	//  Periodic beacon transmissions
 
-	dtim_period = 3;
-	dtim_count = 2;
-	dtim_mcast_allow_window = BEACON_INTERVAL_US / 4;
+	power_save_configuration.enable = 1;
+	power_save_configuration.dtim_period = 1;
+	power_save_configuration.dtim_count = 0;
+	power_save_configuration.dtim_mcast_allow_window = BEACON_INTERVAL_US / 4;
+
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 
 	//  Periodic check for timed-out associations
@@ -355,7 +354,7 @@ void poll_tx_queues(){
 							// Check the broadcast queue
 							next_station_info_entry = my_bss_info->associated_stations.first;
 
-							if((get_usec_timestamp() - dtim_timestamp) <= dtim_mcast_allow_window ){
+							if((get_usec_timestamp() - power_save_configuration.dtim_timestamp) <= power_save_configuration.dtim_mcast_allow_window || (power_save_configuration.enable == 0)){
 								if(dequeue_transmit_checkin(MCAST_QID)){
 									// Found a not-empty queue, transmitted a packet
 									return;
@@ -374,12 +373,15 @@ void poll_tx_queues(){
 									next_station_info_entry = dl_entry_next(curr_station_info_entry);
 								}
 
-								if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
-									// Found a not-empty queue, transmitted a packet
-									return;
-								} else {
-									curr_station_info_entry = next_station_info_entry;
+								if(((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) || (power_save_configuration.enable == 0)){
+									if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
+										// Found a not-empty queue, transmitted a packet
+										return;
+									}
 								}
+
+								curr_station_info_entry = next_station_info_entry;
+
 							} else {
 								// This curr_station_info is invalid. Perhaps it was removed from
 								// the association table before poll_tx_queues was called. We will
@@ -795,6 +797,7 @@ void beacon_transmit() {
 			mac_param_chan);
 
  		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
+        //wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID ); //DEBUG FIXME
 
 		// Set the information in the TX queue buffer
  		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -911,6 +914,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 		if( associated_station_entry != NULL ){
 			associated_station = (station_info*)(associated_station_entry->data);
+
+			// Update PS state
+			if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_POWER_MGMT){
+				associated_station->flags |= STATION_INFO_FLAG_DOZE;
+			} else {
+				associated_station->flags = (associated_station->flags) & ~STATION_INFO_FLAG_DOZE;
+			}
 
 			// Update station information
 			mpdu_info->additional_info            = (u32)associated_station;
@@ -1538,52 +1548,111 @@ void mpdu_dequeue(tx_queue_element* packet){
 	u32 				packet_payload_size;
 	u8*                 txBufferPtr_u8;
 	u8                  tim_control;
-	u8 					tim_len;
+	u16 				tim_byte_idx           = 0;
+	u16 				tim_next_byte_idx      = 0;
+	u8					tim_bit_idx            = 0;
+	dl_entry*			curr_station_entry;
+	station_info*		curr_station;
+	u32                 i;
+	u8					tim_len;
+	beacon_probe_frame* fixed_beacon_fields;
+
+
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
 	packet_payload_size	= frame_info->length;
 	txBufferPtr_u8      = (u8*)header;
+	fixed_beacon_fields = (beacon_probe_frame*)(txBufferPtr_u8 + sizeof(mac_header_80211));
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
 		case PKT_TYPE_DATA_ENCAP_LTG:
 			pkt_id		       = (ltg_packet_id*)((u8*)header + sizeof(mac_header_80211));
 			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
+		case PKT_TYPE_DATA_ENCAP_ETH:
+			if(my_bss_info != NULL){
+				curr_station_entry = wlan_mac_high_find_station_info_AID(&(my_bss_info->associated_stations), frame_info->AID);
+				if(curr_station_entry != NULL){
+					curr_station = (station_info*)(curr_station_entry->data);
+					if(queue_num_queued(AID_TO_QID(curr_station->AID)) > 1){
+						//If the is more data (in addition to this packet) queued for this station, we can let it know
+						//in the frame_control_2 field.
+						header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
+					} else {
+						header->frame_control_2 = (header->frame_control_2) & ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
+					}
+				}
+			}
 		break;
 		case PKT_TYPE_MGMT:
-			if(header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON){
+			if(header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON && my_bss_info != NULL){
 				//If the packet we are about to send is a beacon, we need to tack on the TIM
 
-				tim_len = 1; //Need to loop through associated stations to figure this out
-				tim_control = 0; //The top 7 bits are an offset for the partial map
-
-				if(queue_num_queued(MCAST_QID)>0){
-					tim_control |= 0x01; //Raise the multicast bit in the TIM control field
-				}
+				//FIXME DEBUG
+				//Insert timestamp
+				//fixed_beacon_fields->timestamp = get_usec_timestamp() - 2000;
 
 
-				txBufferPtr_u8 += packet_payload_size;
-		    	txBufferPtr_u8[0] = 5; //Tag 5: Traffic Indication Map (TIM)
-		    	txBufferPtr_u8[1] = 3+tim_len; //tag length... doesn't include the tag itself and the tag length
-		    	txBufferPtr_u8[2] = dtim_count; //DTIM count
-		    	txBufferPtr_u8[3] = dtim_period; //DTIM period
-		    	txBufferPtr_u8[4] = tim_control; //Bitmap control
+
+				if(power_save_configuration.enable){
+					txBufferPtr_u8 += packet_payload_size;
+
+					tim_control = 0; //The top 7 bits are an offset for the partial map
+
+					if(queue_num_queued(MCAST_QID)>0){
+						tim_control |= 0x01; //Raise the multicast bit in the TIM control field
+					}
+
+					txBufferPtr_u8[5] = 0;
+
+					curr_station_entry = my_bss_info->associated_stations.first;
+					while(curr_station_entry != NULL){
+						curr_station = (station_info*)(curr_station_entry->data);
+
+						if(queue_num_queued(AID_TO_QID(curr_station->AID))){
+							tim_next_byte_idx = (curr_station->AID) / 8;
+
+							if(tim_next_byte_idx > tim_byte_idx){
+								//We've moved on to a new octet. We should zero everything after the previous octet
+								//up to and including the new octet.
+								for(i = tim_byte_idx+1; i <= tim_next_byte_idx; i++){
+									txBufferPtr_u8[5+i] = 0;
+								}
+							}
+
+							tim_bit_idx  = (curr_station->AID) % 8;
+							tim_byte_idx = tim_next_byte_idx;
+
+							//Raise the bit for this station in the TIM partial bitmap
+							txBufferPtr_u8[5+tim_byte_idx] |= 1<<tim_bit_idx;
+						}
+
+						curr_station_entry = dl_entry_next(curr_station_entry);
+					}
+
+					tim_len = tim_byte_idx+1;
+					txBufferPtr_u8[0] = 5; //Tag 5: Traffic Indication Map (TIM)
+					txBufferPtr_u8[1] = 3+tim_len; //tag length... doesn't include the tag itself and the tag length
+					txBufferPtr_u8[2] = power_save_configuration.dtim_count; //DTIM count
+					txBufferPtr_u8[3] = power_save_configuration.dtim_period; //DTIM period
+					txBufferPtr_u8[4] = tim_control; //Bitmap control
 
 
-		    	//memcpy(&txBufferPtr_u8[5], tim_bitmap,tim_len); //TODO
-		    	txBufferPtr_u8[5] = 0;
+					//memcpy(&txBufferPtr_u8[5], tim_bitmap,tim_len); //TODO
+					//txBufferPtr_u8[5] = 0;
 
-		    	txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
+					txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
 
-		    	packet_payload_size = txBufferPtr_u8 - (u8*)(header);
-		    	frame_info->length = packet_payload_size;
+					packet_payload_size = txBufferPtr_u8 - (u8*)(header);
+					frame_info->length = packet_payload_size;
 
-		    	//Update DTIM fields
-				if(dtim_count > 0){
-					dtim_count--;
-				} else {
-					dtim_timestamp = get_usec_timestamp();
-					dtim_count = (dtim_period-1);
+					//Update DTIM fields
+					if(power_save_configuration.dtim_count > 0){
+						power_save_configuration.dtim_count--;
+					} else {
+						power_save_configuration.dtim_timestamp = get_usec_timestamp();
+						power_save_configuration.dtim_count = (power_save_configuration.dtim_period-1);
+					}
 				}
 
 			}
