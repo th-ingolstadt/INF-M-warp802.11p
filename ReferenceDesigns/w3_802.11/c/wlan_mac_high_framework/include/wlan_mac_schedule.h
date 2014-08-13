@@ -48,7 +48,7 @@ typedef struct {
 #define TIMER_CNTR_FAST	 0
 #define TIMER_CNTR_SLOW	 1
 
-#define	FAST_TIMER_DUR_US 100
+#define	FAST_TIMER_DUR_US 64
 #define	SLOW_TIMER_DUR_US 102400
 
 //Return value from wlan_mac_schedule_event
