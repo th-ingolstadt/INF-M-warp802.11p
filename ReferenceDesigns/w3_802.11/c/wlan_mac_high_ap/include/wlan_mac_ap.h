@@ -46,8 +46,8 @@
 #define AID_TO_QID(x) ((x)+1) ///map association ID to Tx queue ID; min AID is 1
 
 // Time between beacon transmissions
-#define BEACON_INTERVAL_MS             (100)
-#define BEACON_INTERVAL_US             (BEACON_INTERVAL_MS*1024)
+#define BEACON_INTERVAL_TU             (100)
+#define BEACON_INTERVAL_US             (BEACON_INTERVAL_TU*1024)
 
 // Period for checking association table for stale STA associations
 #define ASSOCIATION_CHECK_INTERVAL_MS  (1000)

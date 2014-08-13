@@ -66,7 +66,7 @@ const u8 max_num_associations                   = 11;
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
@@ -790,7 +790,7 @@ void beacon_transmit() {
         tx_length = wlan_create_beacon_frame(
 			(void*)(curr_tx_queue_buffer->frame),
 			&tx_header_common,
-			BEACON_INTERVAL_MS,
+			BEACON_INTERVAL_TU,
 			(CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
 			strlen(my_bss_info->ssid),
 			(u8*)my_bss_info->ssid,
@@ -1156,7 +1156,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
 
 							// Fill in the data
-							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, BEACON_INTERVAL_MS, (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT), strlen(my_bss_info->ssid), (u8*)my_bss_info->ssid, mac_param_chan);
+							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, BEACON_INTERVAL_TU, (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT), strlen(my_bss_info->ssid), (u8*)my_bss_info->ssid, mac_param_chan);
 
 							// Setup the TX frame info
 							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
@@ -1555,15 +1555,11 @@ void mpdu_dequeue(tx_queue_element* packet){
 	station_info*		curr_station;
 	u32                 i;
 	u8					tim_len;
-	beacon_probe_frame* fixed_beacon_fields;
-
-
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
 	packet_payload_size	= frame_info->length;
 	txBufferPtr_u8      = (u8*)header;
-	fixed_beacon_fields = (beacon_probe_frame*)(txBufferPtr_u8 + sizeof(mac_header_80211));
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
 		case PKT_TYPE_DATA_ENCAP_LTG:
@@ -1587,12 +1583,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 		case PKT_TYPE_MGMT:
 			if(header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON && my_bss_info != NULL){
 				//If the packet we are about to send is a beacon, we need to tack on the TIM
-
-				//FIXME DEBUG
-				//Insert timestamp
-				//fixed_beacon_fields->timestamp = get_usec_timestamp() - 2000;
-
-
 
 				if(power_save_configuration.enable){
 					txBufferPtr_u8 += packet_payload_size;
