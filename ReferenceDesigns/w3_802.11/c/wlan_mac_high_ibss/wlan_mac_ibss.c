@@ -271,7 +271,7 @@ int main() {
 		memcpy(locally_administered_addr,wlan_mac_addr,6);
 		locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL; //Raise the bit identifying this address as locally administered
 		my_bss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
-		my_bss_info->beacon_interval = BEACON_INTERVAL_MS;
+		my_bss_info->beacon_interval = BEACON_INTERVAL_TU;
 		my_bss_info->state = BSS_STATE_OWNED;
 	}
 
@@ -285,13 +285,13 @@ int main() {
 	xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
 	xil_printf("   SSID           : %s\n", my_bss_info->ssid);
 	xil_printf("   Channel        : %d\n", my_bss_info->chan);
-	xil_printf("   Beacon Interval: %d ms\n",my_bss_info->beacon_interval);
+	xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
 
 
 
 	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
 	//Note: Unlike the AP implementation, we need to use the SCHEDULE_FINE scheduler sub-beacon-interval fidelity
-	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
+	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
 
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
 
@@ -330,7 +330,7 @@ void beacon_transmit(u32 schedule_id) {
 		//the delay in reception and processing. As such, this function will update the period of this
 		//schedule with the actual beacon interval.
 
-		beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1000, 1, (void*)beacon_transmit);
+		beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
 
 		// Create a beacon
 		curr_tx_queue_element = queue_checkout();
@@ -868,7 +868,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						if(beacon_sched_id != SCHEDULE_FAILURE){
 							wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
 							timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
-							beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1000 - timestamp_diff, 1, (void*)beacon_transmit);
+							beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
 						}
 
 						if(queue_num_queued(BEACON_QID)){
