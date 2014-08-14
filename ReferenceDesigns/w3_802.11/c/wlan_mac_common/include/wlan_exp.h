@@ -81,6 +81,7 @@
 #define WARPNET_TYPE_80211_HIGH_IBSS   0x00000400
 
 #define WARPNET_TYPE_80211_LOW_DCF     0x00000001
+#define WARPNET_TYPE_80211_LOW_NOMAC   0x00000002
 
 
 // **********************************************************************
