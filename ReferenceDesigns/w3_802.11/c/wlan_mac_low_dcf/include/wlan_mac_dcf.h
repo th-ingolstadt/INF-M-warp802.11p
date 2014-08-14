@@ -11,8 +11,6 @@
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
- *  @bug
- *  - EIFS value is currently aggressive (DIFS). Needs calibration.
  */
 
 #ifndef WLAN_MAC_DCF_H_

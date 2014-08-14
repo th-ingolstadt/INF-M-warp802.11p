@@ -11,9 +11,6 @@
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
- *  @bug
- *  - NAV timing needs to be verified
- *  - 5 GHz support needs to be added.
  */
 
 /***************************** Include Files *********************************/
