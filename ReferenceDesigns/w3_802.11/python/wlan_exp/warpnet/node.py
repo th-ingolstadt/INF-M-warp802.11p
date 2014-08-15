@@ -751,13 +751,13 @@ class WnNodeFactory(WnNode):
         class function instead of returning an error so that the calls 
         will propagate to catch all node types.
         """
+        from . import defaults
         from . import node
         
         tmp_node = None
 
         try:
-            full_node_class = node_class + "(network_config)"
-            tmp_node = eval(full_node_class, globals(), locals())
+            tmp_node = eval(node_class, globals(), locals())
         except:
             pass
         

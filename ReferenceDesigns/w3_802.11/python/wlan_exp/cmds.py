@@ -98,9 +98,9 @@ CMD_PARAM_LOW_PARAM_CW_EXP_MAX                   = 0x00000003
 CMDID_GET_STATION_INFO                           = 0x001080
 
 CMDID_NODE_DISASSOCIATE                          = 0x001090
-CMDID_NODE_ASSOCIATE                             = 0x001091
+CMDID_NODE_ADD_ASSOCIATION                       = 0x001091
 
-CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT                = 0x00000001
+CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT          = 0x00000001
 
 
 # LTG commands and defined values
@@ -1165,7 +1165,7 @@ class QueueTxDataPurgeAll(wn_message.Cmd):
 #--------------------------------------------
 # AP Specific Commands
 #--------------------------------------------
-class NodeAPAssociate(wn_message.Cmd):
+class NodeAPAddAssociation(wn_message.Cmd):
     """Command to add the association to the association table on the AP.
     
     Attributes:
@@ -1179,16 +1179,16 @@ class NodeAPAssociate(wn_message.Cmd):
     name = None
 
     def __init__(self, device, allow_timeout=None):
-        super(NodeAPAssociate, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_ASSOCIATE
+        super(NodeAPAddAssociation, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_ADD_ASSOCIATION
 
         flags = 0
         mask  = 0
 
         if allow_timeout is not None:
-            mask += CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT
+            mask += CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT
             if allow_timeout:
-                flags += CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT
+                flags += CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT
         
         self.add_args(flags)
         self.add_args(mask)
@@ -1337,7 +1337,7 @@ class NodeSTAConfigure(wn_message.Cmd):
 # End Class
 
 
-class NodeSTAAssociate(wn_message.Cmd):
+class NodeSTAAddAssociation(wn_message.Cmd):
     """Command to add the association to the association table on the STA.
     
     Attributes:
@@ -1348,8 +1348,8 @@ class NodeSTAAssociate(wn_message.Cmd):
     """
     name = None
     def __init__(self, device, aid):
-        super(NodeSTAAssociate, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_ASSOCIATE
+        super(NodeSTAAddAssociation, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_ADD_ASSOCIATION
 
         flags = 0
         mask  = 0

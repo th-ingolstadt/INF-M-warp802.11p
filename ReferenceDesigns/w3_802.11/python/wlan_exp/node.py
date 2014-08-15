@@ -91,7 +91,9 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
         wlan_exp_ver_major             -- WLAN Exp version running on this node
         wlan_exp_ver_minor
-        wlan_exp_ver_revision        
+        wlan_exp_ver_revision
+
+        mac_type                       -- Value of the MAC type (see defaults.py for values)        
     """
     wlan_scheduler_resolution          = None
     
@@ -104,8 +106,9 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     wlan_exp_ver_minor                 = None
     wlan_exp_ver_revision              = None
 
+    mac_type                           = None
     
-    def __init__(self, network_config=None):
+    def __init__(self, network_config=None, mac_type=None):
         super(WlanExpNode, self).__init__(network_config)
         
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor, 
@@ -119,6 +122,8 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         self.log_num_wraps                  = 0
         self.log_next_read_index            = 0
 
+        self.mac_type                       = mac_type
+        
 
     def configure_node(self, jumbo_frame_support=False):
         """Get remaining information from the node and set remaining parameters."""
@@ -333,7 +338,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         print(msg)
 
 
-    def log_write_exp_info_to_log(self, info_type, message=None):
+    def log_write_exp_info(self, info_type, message=None):
         """Write the experiment information provided to the log.
         
         Attributes:
@@ -342,6 +347,16 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
             message   -- Information to be placed in the event log
         """
         self.send_cmd(cmds.LogAddExpInfoEntry(info_type, message))
+
+
+    def log_write_time(self, time_id=None):
+        """Adds the current time in microseconds to the log."""
+        return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_TIME_ADD_TO_LOG, cmds.CMD_PARAM_RSVD_TIME, time_id))
+
+
+    def log_write_txrx_stats(self):
+        """Write the current statistics to the log."""
+        return self.send_cmd(cmds.StatsAddTxRxToLog())
 
 
     #--------------------------------------------
@@ -393,11 +408,6 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         
         return ret_val
     
-
-    def stats_write_txrx_to_log(self):
-        """Write the current statistics to the log."""
-        return self.send_cmd(cmds.StatsAddTxRxToLog())
-
 
     #--------------------------------------------
     # Local Traffic Generation (LTG) Commands
@@ -632,11 +642,6 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_RSVD_TIME))
 
 
-    def write_time_to_log(self, time_id=None):
-        """Adds the current time in microseconds to the log."""
-        return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_TIME_ADD_TO_LOG, cmds.CMD_PARAM_RSVD_TIME, time_id))
-
-
     def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
         """Sets the filter on the packets that are passed from the low MAC to the high MAC.
         
@@ -802,8 +807,14 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
     def set_phy_cs_thresh(self, val):
         """Sets the physical carrier sense threshold of the node."""
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH, val)        
-        
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH, val)
+
+
+    def get_phy_cs_thresh(self):
+        """Gets the physical carrier sense threshold of the node."""
+        raise NotImplementedError
+
+       
     def set_cw_exp_min(self, val):
         """Sets the the minimum contention window:
                 1  -- [0,1]
@@ -815,6 +826,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
                 10 -- [0,1023]
         """
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN, val)       
+
         
     def set_cw_exp_max(self, val):
         """Sets the the maximum contention window:
@@ -827,6 +839,14 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
                 10 -- [0,1023]
         """
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, val)               
+
+
+    def get_cw_exp_range(self):
+        """Gets the contention window range.
+        
+        Returns a tuple containing the (min, max) contention window
+        """
+        raise NotImplementedError
 
 
     def set_random_seed(self, high_seed=None, low_seed=None, gen_random=False):
@@ -975,7 +995,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     # Association Commands
     #   NOTE:  Some commands are implemented in sub-classes
     #--------------------------------------------
-    def disassociate(self, device_list, force=True):
+    def disassociate(self, device_list):
         """Remove associations of devices within the device_list from the association table
         
         Attributes:
@@ -1122,13 +1142,29 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         super(WlanExpNodeFactory, self).__init__(network_config)
         
         # Add default classes to the factory
-        self.node_add_class(defaults.WLAN_EXP_AP_TYPE, 
-                            defaults.WLAN_EXP_AP_CLASS,
-                            defaults.WLAN_EXP_AP_DESCRIPTION)
+        self.node_add_class(defaults.WLAN_EXP_AP_DCF_TYPE, 
+                            defaults.WLAN_EXP_AP_DCF_CLASS_INST,
+                            defaults.WLAN_EXP_AP_DCF_DESCRIPTION)
 
-        self.node_add_class(defaults.WLAN_EXP_STA_TYPE, 
-                            defaults.WLAN_EXP_STA_CLASS, 
-                            defaults.WLAN_EXP_STA_DESCRIPTION)
+        self.node_add_class(defaults.WLAN_EXP_STA_DCF_TYPE, 
+                            defaults.WLAN_EXP_STA_DCF_CLASS_INST, 
+                            defaults.WLAN_EXP_STA_DCF_DESCRIPTION)
+
+        self.node_add_class(defaults.WLAN_EXP_IBSS_DCF_TYPE, 
+                            defaults.WLAN_EXP_IBSS_DCF_CLASS_INST, 
+                            defaults.WLAN_EXP_IBSS_DCF_DESCRIPTION)
+        
+        self.node_add_class(defaults.WLAN_EXP_AP_NOMAC_TYPE, 
+                            defaults.WLAN_EXP_AP_NOMAC_CLASS_INST,
+                            defaults.WLAN_EXP_AP_NOMAC_DESCRIPTION)
+
+        self.node_add_class(defaults.WLAN_EXP_STA_NOMAC_TYPE, 
+                            defaults.WLAN_EXP_STA_NOMAC_CLASS_INST, 
+                            defaults.WLAN_EXP_STA_NOMAC_DESCRIPTION)
+
+        self.node_add_class(defaults.WLAN_EXP_IBSS_NOMAC_TYPE, 
+                            defaults.WLAN_EXP_IBSS_NOMAC_CLASS_INST, 
+                            defaults.WLAN_EXP_IBSS_NOMAC_DESCRIPTION)
 
     
     def node_eval_class(self, node_class, network_config):
@@ -1138,14 +1174,15 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         overall structure but a different import.  Please call the super
         class so that the calls will propagate to catch all node types.
         """
+        import wlan_exp.defaults as defaults
         import wlan_exp.node_ap as node_ap
         import wlan_exp.node_sta as node_sta
+        import wlan_exp.node_ibss as node_ibss
         
         node = None
 
         try:
-            full_node_class = node_class + "(network_config)"
-            node = eval(full_node_class, globals(), locals())
+            node = eval(node_class, globals(), locals())
         except:
             pass
         

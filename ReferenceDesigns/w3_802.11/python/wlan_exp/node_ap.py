@@ -35,8 +35,8 @@ __all__ = ['WlanExpNodeAp']
 class WlanExpNodeAp(node.WlanExpNode):
     """802.11 Access Point (AP) for WLAN Experiment node."""
     
-    def __init__(self, network_config=None):
-        super(WlanExpNodeAp, self).__init__(network_config)
+    def __init__(self, network_config=None, mac_type=None):
+        super(WlanExpNodeAp, self).__init__(network_config, mac_type)
 
         # Set the correct WARPNet node type
         self.node_type = self.node_type + defaults.WLAN_EXP_HIGH_AP
@@ -121,13 +121,13 @@ class WlanExpNodeAp(node.WlanExpNode):
         """Internal command to add an association."""
         ret_val = False
 
-        aid = self.send_cmd(cmds.NodeAPAssociate(device))
+        aid = self.send_cmd(cmds.NodeAPAddAssociation(device))
         
         if (aid != cmds.CMD_PARAM_ERROR):
             import wlan_exp.node_sta as node_sta
 
             if isinstance(device, node_sta.WlanExpNodeSta):
-                if device.send_cmd(cmds.NodeSTAAssociate(self, aid)):
+                if device.send_cmd(cmds.NodeSTAAddAssociation(self, aid)):
                     ret_val = True
             else:
                 ret_val = True

@@ -30,16 +30,42 @@ PACKAGE_NAME                      = 'wlan_exp'
 WLAN_EXP_BASE                     = 0x10000
 WLAN_EXP_HIGH_AP                  = 0x00100
 WLAN_EXP_HIGH_STA                 = 0x00200
+WLAN_EXP_HIGH_IBSS                = 0x00300
 
 WLAN_EXP_LOW_DCF                  = 0x00001
+WLAN_EXP_LOW_NOMAC                = 0x00002
 
-WLAN_EXP_AP_TYPE                  = WLAN_EXP_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_DCF
-WLAN_EXP_AP_CLASS                 = 'node_ap.WlanExpNodeAp'
-WLAN_EXP_AP_DESCRIPTION           = 'WLAN Exp (AP/DCF) '
+WLAN_EXP_AP_DCF_TYPE              = WLAN_EXP_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_DCF
+WLAN_EXP_AP_DCF_CLASS_INST        = 'node_ap.WlanExpNodeAp(network_config, defaults.WLAN_EXP_LOW_DCF)'
+WLAN_EXP_AP_DCF_DESCRIPTION       = 'WLAN Exp (AP/DCF) '
 
-WLAN_EXP_STA_TYPE                 = WLAN_EXP_BASE + WLAN_EXP_HIGH_STA + WLAN_EXP_LOW_DCF
-WLAN_EXP_STA_CLASS                = 'node_sta.WlanExpNodeSta'
-WLAN_EXP_STA_DESCRIPTION          = 'WLAN Exp (STA/DCF)'
+WLAN_EXP_STA_DCF_TYPE             = WLAN_EXP_BASE + WLAN_EXP_HIGH_STA + WLAN_EXP_LOW_DCF
+WLAN_EXP_STA_DCF_CLASS_INST       = 'node_sta.WlanExpNodeSta(network_config, defaults.WLAN_EXP_LOW_DCF)'
+WLAN_EXP_STA_DCF_DESCRIPTION      = 'WLAN Exp (STA/DCF)'
+
+WLAN_EXP_IBSS_DCF_TYPE            = WLAN_EXP_BASE + WLAN_EXP_HIGH_IBSS + WLAN_EXP_LOW_DCF
+WLAN_EXP_IBSS_DCF_CLASS_INST      = 'node_ibss.WlanExpNodeIBSS(network_config, defaults.WLAN_EXP_LOW_DCF)'
+WLAN_EXP_IBSS_DCF_DESCRIPTION     = 'WLAN Exp (IBSS/DCF) '
+
+WLAN_EXP_AP_NOMAC_TYPE            = WLAN_EXP_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_NOMAC
+WLAN_EXP_AP_NOMAC_CLASS_INST      = 'node_ap.WlanExpNodeAp(network_config, defaults.WLAN_EXP_LOW_NOMAC)'
+WLAN_EXP_AP_NOMAC_DESCRIPTION     = 'WLAN Exp (AP/NOMAC) '
+
+WLAN_EXP_STA_NOMAC_TYPE           = WLAN_EXP_BASE + WLAN_EXP_HIGH_STA + WLAN_EXP_LOW_NOMAC
+WLAN_EXP_STA_NOMAC_CLASS_INST     = 'node_sta.WlanExpNodeSta(network_config, defaults.WLAN_EXP_LOW_NOMAC)'
+WLAN_EXP_STA_NOMAC_DESCRIPTION    = 'WLAN Exp (STA/NOMAC)'
+
+WLAN_EXP_IBSS_NOMAC_TYPE          = WLAN_EXP_BASE + WLAN_EXP_HIGH_IBSS + WLAN_EXP_LOW_NOMAC
+WLAN_EXP_IBSS_NOMAC_CLASS_INST    = 'node_ibss.WlanExpNodeIBSS(network_config, defaults.WLAN_EXP_LOW_NOMAC)'
+WLAN_EXP_IBSS_NOMAC_DESCRIPTION   = 'WLAN Exp (IBSS/NOMAC) '
+
+
+
+
+
+
+
+
 
 
 
