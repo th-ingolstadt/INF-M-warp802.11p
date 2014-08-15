@@ -314,11 +314,6 @@ int transport_init( unsigned int   node,
     XAxiEthernet_Config * mac_cfg_ptr;
 #endif
 
-	xil_printf("  ETH %c MAC Address: %02x", wn_conv_eth_dev_num(eth_dev_num), hw_addr[0] );
-	for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", hw_addr[i] ); } xil_printf("\n");
-    xil_printf("  ETH %c IP  Address: %d", wn_conv_eth_dev_num(eth_dev_num), ip_addr[0]);
-	for ( i = 1; i < IP_VERSION; i++ ) { xil_printf(".%d", ip_addr[i] ); } xil_printf("\n");
-
 	// Initialize the User callback
 	usr_receiveCallback = transport_null_callback;
 
@@ -351,6 +346,13 @@ int transport_init( unsigned int   node,
 	default:
 		break;
 	}
+
+	// Print IP / MAC information
+	xil_printf("  ETH %c MAC Address: %02x", wn_conv_eth_dev_num(eth_dev_num), hw_addr[0] );
+	for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", hw_addr[i] ); } xil_printf("\n");
+    xil_printf("  ETH %c IP  Address: %d", wn_conv_eth_dev_num(eth_dev_num), ip_addr[0]);
+	for ( i = 1; i < IP_VERSION; i++ ) { xil_printf(".%d", ip_addr[i] ); }
+	xil_printf("  (%d Mbps)\n", wn_eth_devices[eth_dev_num].eth_speed);
 
 	// Pull information based on the Ethernet device to initialize
 	mac_device_id    =  wn_eth_devices[eth_dev_num].mac_device_id;
