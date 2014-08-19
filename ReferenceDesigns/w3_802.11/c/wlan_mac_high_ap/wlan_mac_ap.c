@@ -58,6 +58,9 @@
 
 const u8 max_num_associations                   = 11;
 
+#define _DEMO_MODE 0
+u8 		_demo_spoof_src_mac_addr[6] = { 0x00, 0x50, 0xC2, 0x63, 0x3F, 0x00 };
+
 
 
 /*********************** Global Variable Definitions *************************/
@@ -252,6 +255,23 @@ int main(){
 
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_start();
+
+#if _DEMO_MODE
+	u32							_demo_traffic_blast_ltg_id;
+	ltg_pyld_all_assoc_fixed 	_demo_traffic_blast_pyld;
+	ltg_sched_periodic_params 	_demo_traffic_blast_sched;
+
+	//Set up and start
+	_demo_traffic_blast_pyld.hdr.type = LTG_PYLD_TYPE_ALL_ASSOC_FIXED;
+	_demo_traffic_blast_pyld.length = sizeof(ltg_packet_id);
+	_demo_traffic_blast_sched.duration_count = LTG_DURATION_FOREVER;
+	_demo_traffic_blast_sched.interval_count = 100000 / LTG_POLL_INTERVAL;
+
+	_demo_traffic_blast_ltg_id = ltg_sched_create(LTG_SCHED_TYPE_PERIODIC, &_demo_traffic_blast_sched, &_demo_traffic_blast_pyld, NULL);
+
+	ltg_sched_start(_demo_traffic_blast_ltg_id);
+#endif
+
 
 #if 0
 	/////// TODO DEBUG  READ EXAMPLE ///////
@@ -602,18 +622,23 @@ void ltg_event(u32 id, void* callback_arg){
 					// Setup the MAC header
 					wlan_mac_high_setup_tx_header( &tx_header_common, addr_da, wlan_mac_addr );
 
+#if _DEMO_MODE
+					tx_header_common.address_2 = &(_demo_spoof_src_mac_addr[0]);
+					if(station != NULL) (tx_header_common.address_2)[5] = station->AID;
+#endif
+
 					min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS, id);
 					payload_length = max(payload_length, min_ltg_payload_length);
 
 					// Finally prepare the 802.11 header
-					if (is_multicast) {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION), queue_sel);
+					if (is_multicast || _DEMO_MODE) {
+						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION), queue_sel );
 					} else {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel);
+						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
 					}
 
 					// Update the queue entry metadata to reflect the new new queue entry contents
-					if (is_multicast || (station == NULL)) {
+					if (is_multicast || (station == NULL) || _DEMO_MODE) {
 						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_multicast_data_tx_params;
 							curr_tx_queue_buffer->frame_info.AID     = 0;
@@ -626,6 +651,10 @@ void ltg_event(u32 id, void* callback_arg){
 					// Submit the new packet to the appropriate queue
 					enqueue_after_tail(queue_sel, curr_tx_queue_element);
 					poll_tx_queues();
+
+#if _DEMO_MODE
+					tx_header_common.address_2 = &(wlan_mac_addr[0]);
+#endif
 
 				} else {
 					// There aren't any free queue elements right now.
@@ -1570,7 +1599,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 				curr_station_entry = wlan_mac_high_find_station_info_AID(&(my_bss_info->associated_stations), frame_info->AID);
 				if(curr_station_entry != NULL){
 					curr_station = (station_info*)(curr_station_entry->data);
-					if(queue_num_queued(AID_TO_QID(curr_station->AID)) > 1){
+					if(queue_num_queued(AID_TO_QID(curr_station->AID)) > 1 || _DEMO_MODE ){
 						//If the is more data (in addition to this packet) queued for this station, we can let it know
 						//in the frame_control_2 field.
 						header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
@@ -1599,7 +1628,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 					while(curr_station_entry != NULL){
 						curr_station = (station_info*)(curr_station_entry->data);
 
-						if(queue_num_queued(AID_TO_QID(curr_station->AID))){
+						if(queue_num_queued(AID_TO_QID(curr_station->AID)) || _DEMO_MODE ){
 							tim_next_byte_idx = (curr_station->AID) / 8;
 
 							if(tim_next_byte_idx > tim_byte_idx){

@@ -62,9 +62,9 @@ static u8 print_scheduled = 0;
 
 u32 num_slots = SLOT_CONFIG_RAND;
 
-ltg_pyld_all_assoc_fixed 	traffic_blast_pyld;
-ltg_sched_periodic_params 	traffic_blast_sched;
-u32							traffic_blast_ltg_id;
+static ltg_pyld_all_assoc_fixed 	traffic_blast_pyld;
+static ltg_sched_periodic_params 	traffic_blast_sched;
+static u32							traffic_blast_ltg_id;
 
 void uart_rx(u8 rxByte){
 
