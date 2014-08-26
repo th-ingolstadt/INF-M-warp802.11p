@@ -31,7 +31,7 @@ If additional hardware parameters are needed for sub-classes of WlanExpNode,
 pleasemake sure that the values of these hardware parameters are not reused.
 
 """
-
+import sys
 
 import wlan_exp.warpnet.node as wn_node
 import wlan_exp.warpnet.exception as wn_ex
@@ -44,6 +44,9 @@ import wlan_exp.device as device
 
 __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
 
+
+# Fix to support Python 2.x and 3.x
+if sys.version[0]=="3": long=None
 
 
 # WLAN Exp Node Parameter Identifiers (Extension of WARPNet Parameter Identifiers)

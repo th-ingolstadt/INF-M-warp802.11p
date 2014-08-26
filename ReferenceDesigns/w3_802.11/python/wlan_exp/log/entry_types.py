@@ -42,8 +42,14 @@ To define a custom log entry type::
 
 ----
 """
-from struct import unpack, calcsize, error
+import sys
 import numpy as np
+from struct import unpack, calcsize, error
+
+
+# Fix to support Python 2.x and 3.x
+if sys.version[0]=="3": long=None
+
 
 # WLAN Exp Event Log Constants
 #   NOTE:  The C counterparts are found in wlan_mac_event_log.h
@@ -59,6 +65,7 @@ ENTRY_TYPE_STATION_INFO           = 3
 ENTRY_TYPE_NODE_TEMPERATURE       = 4
 ENTRY_TYPE_WN_CMD_INFO            = 5
 ENTRY_TYPE_TIME_INFO              = 6
+ENTRY_TYPE_BSS_INFO               = 7
 
 ENTRY_TYPE_RX_OFDM                = 10
 ENTRY_TYPE_RX_OFDM_LTG            = 11
@@ -760,6 +767,34 @@ entry_station_info.append_field_defs([
             ('tx_mac_num_tx_max',      'B',      'uint8',   'Maximum number of transmissions (original Tx + re-Tx) per MPDU to device'),
             ('tx_mac_flags',           'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
             ('padding',                '2x',     'uint16',  '')])
+
+
+###########################################################################
+# Basic Service Set (BSS) Info
+#
+entry_bss_info = WlanExpLogEntryType(name='BSS_INFO', entry_type_id=ENTRY_TYPE_BSS_INFO)
+
+entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
+
+entry_bss_info.append_field_defs([
+            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+            ('bssid',                  '6s',     '6uint8',  'BSS ID'),
+            ('chan_num',               'B',      'uint8',   'Channel (center frequency) index of transmission'),
+            ('flags',                  'B',      'uint32',  'BSS flags'),
+            ('last_timestamp',         'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
+            ('ssid',                   '33s',    '33uint8', 'SSID (32 chars max)'),
+            ('state',                  'B',      'uint8',   'State of the BSS'),
+            ('capabilities',           'H',      'uint16',  'Supported capabilities of the BSS'),
+            ('beacon_interval',        'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
+            ('padding0',               'x',      'uint8',   ''),
+            ('num_basic_rates',        'B',      'uint8',   'Number of basic rates supported'),
+            ('basic_rates',            '10s',    '10uint8', 'Supported basic rates'),
+            ('padding1',               '2x',     '2uint8',  '')])
+
+entry_bss_info.consts['BSS_STATE_UNAUTHENTICATED'] = 1
+entry_bss_info.consts['BSS_STATE_AUTHENTICATED']   = 2
+entry_bss_info.consts['BSS_STATE_ASSOCIATED']      = 4
+entry_bss_info.consts['BSS_STATE_OWNED']           = 5
 
 
 ###########################################################################

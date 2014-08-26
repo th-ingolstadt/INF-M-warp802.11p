@@ -237,6 +237,13 @@ mac_addr_desc_map = [(0xFFFFFFFFFFFF, 0xFFFFFFFFFFFF, 'Broadcast'),
                      (0x40D855042000, 0xFFFFFFFFF000, 'Mango WARP Hardware')]
 
 
+# MAC bit definitions
+#   - Reference: http://standards.ieee.org/develop/regauth/tut/macgrp.pdf
+mac_addr_mcast_mask = 0x010000000000
+mac_addr_local_mask = 0x020000000000
+mac_addr_broadcast  = 0xFFFFFFFFFFFF
+
+
 #-----------------------------------------------------------------------------
 # WLAN Exp Node Utilities
 #-----------------------------------------------------------------------------
@@ -368,9 +375,13 @@ def filter_nodes(nodes, filter_type, filter_val):
 
         if   (type(filter_val) is str):
             if   (filter_val.lower() == 'ap'):
-                filter_val = defaults.WLAN_EXP_AP_TYPE
+                filter_val = defaults.WLAN_EXP_AP_DCF_TYPE
             elif (filter_val.lower() == 'sta'):
-                filter_val = defaults.WLAN_EXP_STA_TYPE
+                filter_val = defaults.WLAN_EXP_STA_DCF_TYPE
+            elif (filter_val.lower() == 'ibss'):
+                filter_val = defaults.WLAN_EXP_IBSS_DCF_TYPE
+            elif (filter_val.lower() == 'mon'):
+                filter_val = defaults.WLAN_EXP_STA_NOMAC_TYPE                
             else:
                 error = True
 
@@ -408,6 +419,87 @@ def filter_nodes(nodes, filter_type, filter_val):
         warnings.warn(msg)
 
     return ret_nodes
+
+# End def
+
+
+def create_bss_info(bssid, ssid, channel, beacon_interval=1, ibss_status=False):
+    """Create a Basic Service Set (BSS) information structure.
+    
+    This method will create a dictionary that contains all necessary information 
+    for a BSS for the device.  This is the same structure that is used by the
+    bss_info log entry.
+
+    Attributes:
+        ssid              -- String of the SSID - Must be 32 characters or less
+        channel           -- Channel on which the BSS operates 
+        bssid             -- 40-bit ID of the BSS 
+                             (Uses current wlan_mac_address if not specified)
+        beacon_interval   -- Integer number of time units for beacon intervals
+                             (a time unit is 1024 microseconds)    
+        ibss_status       -- True  => Capabilities field = 0x2 (BSS info is for IBSS)
+                             False => Capabilities field = 0x1 (BSS info is for BSS)
+    """
+    channel_error = False
+    bss_dict      = {}
+    
+    # Set default values for fields not set by this method
+    bss_dict['timestamp']       = 0
+    bss_dict['last_timestamp']  = 0
+    bss_dict['flags']           = 0
+    bss_dict['state']           = 5              # BSS_STATE_OWNED
+    bss_dict['num_basic_rates'] = 0
+    bss_dict['basic_rates']     = bytes()
+    
+    # Check SSID
+    if type(ssid) is not str:
+        raise ValueError("The SSID must be a string.")
+
+    if len(ssid) > 32:
+        ssid = ssid[:32]
+        print("WARNING:  SSID must be 32 characters or less.  Trucating to {0}".format(ssid))
+
+    bss_dict['ssid'] = ssid
+
+    # Check Channel
+    #   - Make sure it is a valid channel; only store channel
+    if type(channel) is int:
+        channel = find_channel_by_channel_number(channel)
+
+        if channel is None: channel_error = True                
+
+    elif type(channel) is dict:
+        pass
+    else:
+        channel_error = True
+
+    if not channel_error:
+        bss_dict['chan_num'] = channel['channel']
+    else:        
+        msg  = "The channel must either be a valid channel number or a wlan_exp.util.wlan_channel entry."
+        raise ValueError(msg)
+
+    # Check beacon interval
+    if type(beacon_interval) is not int:
+        beacon_interval = int(beacon_interval)
+        print("WARNING:  Beacon interval must be an interger number of time units rounding to {0}".format(beacon_interval))
+
+    bss_dict['beacon_interval'] = beacon_interval
+
+    # Check IBSS status
+    if type(ibss_status) is not bool:
+        raise ValueError("The ibss_status must be a boolean.")
+
+    # Set BSSID, capabilities
+    #   - If this is an IBSS, then set local bit to '1' and mcast bit to '0'
+    if ibss_status:
+        bss_dict['bssid']        = (bssid | mac_addr_local_mask) & (mac_addr_broadcast - mac_addr_mcast_mask)
+        bss_dict['capabilities'] = 0x2
+    else:
+        bss_dict['bssid']        = bssid
+        bss_dict['capabilities'] = 0x1
+    
+    return bss_dict
 
 # End def
 
