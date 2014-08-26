@@ -780,7 +780,7 @@ entry_bss_info.append_field_defs([
             ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
             ('bssid',                  '6s',     '6uint8',  'BSS ID'),
             ('chan_num',               'B',      'uint8',   'Channel (center frequency) index of transmission'),
-            ('flags',                  'B',      'uint32',  'BSS flags'),
+            ('flags',                  'B',      'uint8',   'BSS flags'),
             ('last_timestamp',         'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
             ('ssid',                   '33s',    '33uint8', 'SSID (32 chars max)'),
             ('state',                  'B',      'uint8',   'State of the BSS'),
