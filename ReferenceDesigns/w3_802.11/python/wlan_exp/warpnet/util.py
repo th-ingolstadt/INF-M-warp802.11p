@@ -549,7 +549,7 @@ def _check_network_interface(network, quiet=False):
 
     # Create a temporary UDP socket to get the hostname
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect((test_ip_addr, 0))
+    s.connect((test_ip_addr, 1))
     socket_name = s.getsockname()[0]
     s.close()
 
