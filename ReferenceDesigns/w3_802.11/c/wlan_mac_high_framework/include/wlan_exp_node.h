@@ -89,6 +89,8 @@
 #define CMD_PARAM_RANDOM_SEED_VALID                        0x00000001
 
 #define CMDID_NODE_GET_STATION_INFO                        0x001080
+#define CMDID_NODE_GET_BSS_INFO                            0x001081
+#define CMDID_NODE_GET_SSID                                0x001082
 
 #define CMDID_NODE_DISASSOCIATE                            0x001090
 #define CMDID_NODE_ASSOCIATE                               0x001091

@@ -21,21 +21,53 @@
 #define MAX_NUM_BSS_INFO 1000 ///< Maximum number of BSS information structs. -1 will fill the allotted memory for BSS info.
 
 #define NUM_BASIC_RATES_MAX	10
+
+
+// Define common BSS info fields
+//   Note: These fields have been 32 bit aligned using padding bytes
+
+#define MY_BSS_INFO_COMMON_FIELDS                                                                       \
+        u8         bssid[6];                          /* BSS ID - 40 bit HW address */                  \
+        u8         chan;                              /* Channel */                                     \
+        u8         flags;                             /* BSS Flags - Each flag is 1 bit */              \
+        u64        timestamp;                         /* Timestamp - Last interaction with BSS */       \
+        char       ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
+        u8         state;                             /* State of the BSS */                            \
+        u16        capabilities;                      /* Supported capabilities */                      \
+        u16        beacon_interval;                   /* Beacon interval - In time units of 1024 us */  \
+        u8         padding0;                          /* Padding byte(s) - for 32-bit alignment */      \
+        u8         num_basic_rates;                   /* Number of basic rates supported */             \
+        u8         basic_rates[NUM_BASIC_RATES_MAX];  /* Supported basic rates - 10 bytes */            \
+        u8         padding1[2];                       /* Padding byte(s) - for 32-bit alignment */
+
+
+/**
+ * @brief Basic Service Set (BSS) Information Structure
+ *
+ * This struct contains information about the basic service set for the node.
+ */
 typedef struct{
-	u8   	bssid[6];
-	u8   	chan;
-	u8   	flags;
-	u64  	timestamp;
-	char 	ssid[SSID_LEN_MAX + 1];
-	u8 	 	state;
-	u16		capabilities;
-	u16		beacon_interval;
-	u8   	num_basic_rates;
-	u8 	 	padding0;
-	u8   	basic_rates[NUM_BASIC_RATES_MAX];
-	u16		padding1;
+	MY_BSS_INFO_COMMON_FIELDS
+
 	dl_list associated_stations;
 } bss_info;
+
+
+/**
+ * @brief Base BSS Information Structure
+ *
+ * This struct is a modification of the bss_info struct that eliminates
+ * pointers to other data.
+ */
+typedef struct{
+	MY_BSS_INFO_COMMON_FIELDS
+} bss_info_base;
+
+
+/*
+typedef struct{
+} bss_info;
+*/
 
 #define BSS_STATE_UNAUTHENTICATED	1
 #define BSS_STATE_AUTHENTICATED		2

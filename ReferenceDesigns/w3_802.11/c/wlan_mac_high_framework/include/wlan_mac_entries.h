@@ -33,6 +33,7 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_misc_util.h"
+#include "wlan_mac_bss_info.h"
 
 #define WLAN_MAC_ENTRIES_LOG_CHAN_EST
 
@@ -52,6 +53,7 @@
 #define ENTRY_TYPE_TEMPERATURE         4
 #define ENTRY_TYPE_WN_CMD              5
 #define ENTRY_TYPE_TIME_INFO           6
+#define ENTRY_TYPE_BSS_INFO            7
 
 //-----------------------------------------------
 // Receive Entries
@@ -158,6 +160,21 @@ CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
 
 #define STATION_INFO_ENTRY_NO_CHANGE             0
 #define STATION_INFO_ENTRY_ZERO_AID              1
+
+
+//-----------------------------------------------
+// Basic Service Set (BSS) Info Entry
+//
+// Example request for a new bss info entry:
+//
+//     (bss_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_BSS_INFO, sizeof(bss_info_entry) )
+//
+typedef struct{
+	u64                 timestamp;               // Timestamp of the log entry
+	bss_info_base       info;                    // Framework's bss_info struct
+} bss_info_entry;
+
+CASSERT(sizeof(bss_info_entry) == 76, bss_info_entry_alignment_check);
 
 
 //-----------------------------------------------

@@ -34,7 +34,7 @@ struct dl_entry{
 typedef struct {
 	dl_entry* first;
 	dl_entry* last;
-	u16 length;
+	u32       length;
 } dl_list;
 
 
