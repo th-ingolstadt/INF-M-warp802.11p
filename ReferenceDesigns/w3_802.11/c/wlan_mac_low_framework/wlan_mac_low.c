@@ -91,7 +91,8 @@ int wlan_mac_low_init(u32 type){
 
 	//xil_printf("Beacon Timestamp Offset: %d\n", ((s32)wlan_ofdm_txtime(sizeof(mac_header_80211_ACK),WLAN_PHY_FCS_NBYTES)));
 	//wlan_mac_set_timestamp_offset(((s32)wlan_ofdm_txtime(sizeof(mac_header_80211_ACK),WLAN_PHY_FCS_NBYTES)));
-	wlan_mac_set_timestamp_offset(0);
+
+	//wlan_mac_set_timestamp_offset(0); //FIXME: Re-enable once we are back on v45+ hardware
 
 	//wlan_phy_tx_timestamp_ins_start(24);
 	//wlan_phy_tx_timestamp_ins_end(31);
@@ -340,7 +341,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						cw_exp_max = ipc_msg_from_high_payload[1];
 					break;
 					case LOW_PARAM_TIMESTAMP_OFFSET:
-						wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1]));
+						//wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1])); //FIXME: Re-enable once we are back on v45+ hardware
 					break;
 					default:
 						ipc_low_param_callback(ipc_msg_from_high_payload);
