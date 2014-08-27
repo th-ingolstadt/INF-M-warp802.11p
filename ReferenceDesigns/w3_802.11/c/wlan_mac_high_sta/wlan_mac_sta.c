@@ -72,8 +72,8 @@ const u8 max_num_associations                    = 1;
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
-//char access_point_ssid[SSID_LEN_MAX + 1] = "";
+//char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
+char access_point_ssid[SSID_LEN_MAX + 1] = "";
 
 
 // Common TX header for 802.11 packets
