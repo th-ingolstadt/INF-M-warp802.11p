@@ -138,7 +138,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
 	//FIXME -- Remove EVEN for DEMO
-#if 0
+#if 1
 	mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
 #else
 	mpdu_info->ant_mode = spoof_rf_ind;
