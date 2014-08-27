@@ -58,10 +58,7 @@
 
 const u8 max_num_associations                   = 11;
 
-#define _DEMO_MODE 0
-u8 		_demo_spoof_src_mac_addr[6] = { 0x00, 0x50, 0xC2, 0x63, 0x3F, 0x00 };
-
-
+#define _DEMO_MODE 1
 
 /*********************** Global Variable Definitions *************************/
 
@@ -95,13 +92,21 @@ static u8 	 wlan_mac_addr[6];
 
 // Traffic Indication Map State
 
-ps_conf power_save_configuration;
+ps_conf      power_save_configuration;
+
+
+#if _DEMO_MODE
+u8 		     _demo_spoof_src_mac_addr[6] = { 0x00, 0x50, 0xC2, 0x63, 0x3F, 0x00 };
+#endif
 
 
 /*************************** Functions Prototypes ****************************/
 
 u8   sevenSegmentMap(u8 x);
 
+#if _DEMO_MODE
+void _demo_send_wnet_association_table();
+#endif
 
 /******************************** Functions **********************************/
 
@@ -257,6 +262,7 @@ int main(){
 	wlan_mac_high_interrupt_start();
 
 #if _DEMO_MODE
+#if 0
 	u32							_demo_traffic_blast_ltg_id;
 	ltg_pyld_all_assoc_fixed 	_demo_traffic_blast_pyld;
 	ltg_sched_periodic_params 	_demo_traffic_blast_sched;
@@ -270,6 +276,10 @@ int main(){
 	_demo_traffic_blast_ltg_id = ltg_sched_create(LTG_SCHED_TYPE_PERIODIC, &_demo_traffic_blast_sched, &_demo_traffic_blast_pyld, NULL);
 
 	ltg_sched_start(_demo_traffic_blast_ltg_id);
+#endif
+
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 1000000, SCHEDULE_REPEAT_FOREVER, (void*)_demo_send_wnet_association_table);
+
 #endif
 
 
@@ -1734,7 +1744,13 @@ int  send_channel_switch_announcement( u8 channel ) {
  * @param  None
  * @return None
  */
-dl_list * get_station_info_list(){ return &(my_bss_info->associated_stations);  }
+dl_list * get_station_info_list(){
+	if(my_bss_info != NULL){
+		return &(my_bss_info->associated_stations);
+	} else {
+		return NULL;
+	}
+}
 dl_list * get_statistics()       { return &statistics_table;   }
 
 
@@ -1825,5 +1841,19 @@ u8   sevenSegmentMap(u8 hex_value) {
     }
 }
 
+
+
+#if _DEMO_MODE
+/**
+ * @brief Add Association Table to Log and transmit asynchronously
+ *
+ * @param  None
+ * @return None
+ */
+void _demo_send_wnet_association_table(){
+	add_all_station_info_to_log(EVENT_LOG_NO_STATS, STATION_INFO_ENTRY_NO_CHANGE, WN_TRANSMIT);
+}
+
+#endif
 
 
