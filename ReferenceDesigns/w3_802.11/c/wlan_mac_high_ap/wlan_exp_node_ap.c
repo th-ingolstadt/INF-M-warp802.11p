@@ -252,6 +252,11 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 					}
 				}
 
+				// !!! FIX !!!
+				// NEED TO HAVE PROPER CONTROL OF THIS FLAG
+				flags |= STATION_INFO_DO_NOT_REMOVE;
+				// !!! FIX !!!
+
 				// Disable interrupts so no packets interrupt the disassociate
 				wlan_mac_high_interrupt_stop();
 
