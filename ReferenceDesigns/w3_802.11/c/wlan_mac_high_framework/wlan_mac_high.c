@@ -2348,6 +2348,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
  *     - -1  - Failed to remove association
  */
 int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
+	u32 i;
 	dl_entry* entry;
 	station_info* station;
 
@@ -2363,21 +2364,26 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 	} else {
 		station = (station_info*)(entry->data);
 
-		// Remove station from the association table;
-		dl_entry_remove(assoc_tbl, entry);
+		if ((station->flags & STATION_INFO_DO_NOT_REMOVE) != STATION_INFO_DO_NOT_REMOVE) {
+			// Remove station from the association table;
+			dl_entry_remove(assoc_tbl, entry);
 
-		if (promiscuous_stats_enabled) {
-			station->stats->is_associated = 0;
+			if (promiscuous_stats_enabled) {
+				station->stats->is_associated = 0;
+			} else {
+				//Remove station's statistics from statistics table
+				stats_entry = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
+				dl_entry_remove(stat_tbl, stats_entry);
+				wlan_mac_high_free(stats_entry);
+				wlan_mac_high_free(station->stats);
+			}
+
+			wlan_mac_high_free(station);
+			wlan_mac_high_print_associations(assoc_tbl);
 		} else {
-			//Remove station's statistics from statistics table
-			stats_entry = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
-			dl_entry_remove(stat_tbl, stats_entry);
-			wlan_mac_high_free(stats_entry);
-			wlan_mac_high_free(station->stats);
+			xil_printf("Station not removed due to flags: %02x", addr[0]);
+			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", addr[i] ); } xil_printf("\n");
 		}
-
-		wlan_mac_high_free(station);
-		wlan_mac_high_print_associations(assoc_tbl);
 		return 0;
 	}
 }
