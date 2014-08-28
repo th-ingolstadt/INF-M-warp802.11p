@@ -700,13 +700,21 @@ class WnNodeFactory(WnNode):
     def create_node(self, network_config=None):
         """Based on the WARPNet Node Type, dynamically create and return 
         the correct WARPNet node."""        
-        node = None
 
         # Send broadcast command to reset WARPNet node network interface
         self.node_reset_network_inf()
 
         # Send broadcast command to initialize WARPNet node network interface
         self.node_setup_network_inf()
+
+        # Return the node created by connect_node()
+        return self.connect_node(network_config)
+
+    
+    def connect_node(self, network_config):
+        """Based on the WARPNet Node Type, dynamically create and return 
+        the correct WARPNet node without changing the network interface."""
+        node = None
 
         try:
             # Send unicast command to get the WARPNet type
@@ -741,7 +749,7 @@ class WnNodeFactory(WnNode):
             print(err)
 
         return node
-
+        
 
     def node_eval_class(self, node_class, network_config):
         """Evaluate the node_class string to create a node.  

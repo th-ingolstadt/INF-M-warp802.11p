@@ -286,6 +286,38 @@ def init_nodes(nodes_config, network_config=None, node_factory=None, output=Fals
 # End def
 
 
+def connect_nodes(nodes_config, network_config=None, node_factory=None, output=False):
+    """Connect to WLAN Exp nodes.
+
+    Attributes:
+        nodes_config   -- A NodesConfiguration describing the nodes
+        network_config -- A NetworkConfiguration object describing the network configuration
+        node_factory   -- A WlanExpNodeFactory or subclass to create nodes of a 
+                          given WARPNet type
+        output -- Print output about the WARPNet nodes
+    """
+    global warpnet_type_dict
+    
+    # Create a Host Configuration if there is none provided
+    if network_config is None:
+        import wlan_exp.warpnet.config as wn_config
+        network_config = wn_config.NetworkConfiguration()
+
+    # If node_factory is not defined, create a default WlanExpNodeFactory
+    if node_factory is None:
+        import wlan_exp.node as node
+        node_factory = node.WlanExpNodeFactory(network_config)
+
+    # Record the WARPNet type dictionary from the NodeFactory for later use
+    warpnet_type_dict = node_factory.get_wn_type_dict()
+
+    # Use the WARPNet utility, wn_connect_nodes, to connect to the nodes
+    import wlan_exp.warpnet.util as wn_util
+    return wn_util.wn_connect_nodes(nodes_config, network_config, node_factory, output)
+
+# End def
+
+
 def broadcast_cmd_set_time(time, network_config, time_id=None):
     """Initialize the timebase on all of the WLAN Exp nodes.
     
