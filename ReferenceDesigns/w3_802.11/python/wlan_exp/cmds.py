@@ -1111,6 +1111,11 @@ class NodeGetStationInfo(wn_message.BufferCmd):
         data    = resp.get_bytes()
         ret_val = entry_types.entry_station_info.deserialize(data[index:])
 
+        # Clean up the station info entries
+        for val in ret_val:
+            if (val['host_name'][0] == '\x00'):
+                val['host_name'] = '\x00'
+
         return ret_val
 
 # End Class
