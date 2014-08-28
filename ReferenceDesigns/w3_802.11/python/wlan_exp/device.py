@@ -47,8 +47,22 @@ class WlanDevice(object):
     wlan_mac_address      = None
     
     def __init__(self, mac_address, name=None):
-        self.wlan_mac_address = mac_address
         self.name             = name
+        
+        if type(mac_address) is int:
+            self.wlan_mac_address = mac_address
+        elif type(mac_address) is str:
+            try:
+                mac_addr_int = mac_address
+                mac_addr_int = ''.join('{0:02X}:'.format(ord(x)) for x in mac_addr_int)[:-1]
+                mac_addr_int = '0x' + mac_addr_int.replace(':', '')                
+                mac_addr_int = int(mac_addr_int, 0)
+                
+                self.wlan_mac_address = mac_addr_int
+            except:
+                raise TypeError("MAC address is not valid")
+        else:
+            raise TypeError("MAC address is not valid")
 
 
     #-------------------------------------------------------------------------
