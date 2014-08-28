@@ -98,8 +98,9 @@ int main(){
 		wlan_mac_low_poll_frame_rx();
 
         if(_demo_num_iter>=200000){
-        	//_demo_set_antenna();
-        	_demo_num_iter = 0;
+        	wlan_mac_reset(1);
+        	_demo_set_antenna();
+        	wlan_mac_reset(0);
 	    }
 
 		//Poll IPC rx
@@ -122,9 +123,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	// (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
 	// (2): Pass up MPDUs (FCS valid or invalid) to CPU_HIGH
 
-	static u8 spoof_rf_ind = 0;
-
-
 	rx_frame_info* mpdu_info;
 	void* pkt_buf_addr = (void *)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
@@ -137,14 +135,8 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	mpdu_info->timestamp = get_rx_start_timestamp();
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
 
-	//FIXME -- Remove EVEN for DEMO
-#if 1
-	mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
-#else
-	mpdu_info->ant_mode = spoof_rf_ind;
-	spoof_rf_ind = (spoof_rf_ind+1)%4;
-#endif
 
+	mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
 
 	_demo_set_antenna(); //DEMO FIXME
 
@@ -259,6 +251,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 inline void _demo_set_antenna(){
 	//TODO: Demo code
+
+	_demo_num_iter = 0;
 
 		if(_demo_en){
 			curr_ant = (curr_ant+1)%4;
