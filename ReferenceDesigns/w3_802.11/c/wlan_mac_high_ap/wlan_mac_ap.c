@@ -1411,8 +1411,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				//   - Remove the assocation and update the display
 				//
 				if(associated_station != NULL){
-					// Log association state change
-					add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+					if ((associated_station->flags & STATION_INFO_DO_NOT_REMOVE) != STATION_INFO_DO_NOT_REMOVE) {
+						// Log association state change
+						add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+					}
 				}
 
 			    wlan_mac_high_remove_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2);
