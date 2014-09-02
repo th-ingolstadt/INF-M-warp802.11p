@@ -617,11 +617,17 @@ def _check_network_interface(network, quiet=False):
     test_ip_addr      = network_ip_subnet + ".255"
     network_addr      = network_ip_subnet + ".0"
 
-    # Create a temporary UDP socket to get the hostname
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect((test_ip_addr, 1))
-    socket_name = s.getsockname()[0]
-    s.close()
+    try:
+        # Create a temporary UDP socket to get the hostname
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect((test_ip_addr, 1))
+        socket_name = s.getsockname()[0]
+        s.close()
+    except:
+        msg  = "WARNING: Could not create temporary UDP socket.\n"
+        msg += "  {0} may not work as Network address.".format(network_addr)
+        print(msg)
+        
 
     # Get the subnet of the socket
     sock_ip_subnet = _get_ip_address_subnet(socket_name)
