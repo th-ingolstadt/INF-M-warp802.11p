@@ -597,11 +597,17 @@ def _get_host_ip_addr_for_network(network):
     # Get the broadcast address of the network
     bcast_addr = network.get_param('bcast_address')
     
-    # Create a temporary UDP socket to get the hostname
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect((bcast_addr, 0))
-    socket_name = s.getsockname()[0]
-    s.close()
+    try:
+        # Create a temporary UDP socket to get the hostname
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.connect((bcast_addr, 1))
+        socket_name = s.getsockname()[0]
+        s.close()
+    except:
+        msg  = "WARNING: Could not get host IP for network {0}.".format(network.get_param('network'))
+        print(msg)
+        socket_name = ''
 
     return socket_name
 
@@ -620,6 +626,7 @@ def _check_network_interface(network, quiet=False):
     try:
         # Create a temporary UDP socket to get the hostname
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         s.connect((test_ip_addr, 1))
         socket_name = s.getsockname()[0]
         s.close()
