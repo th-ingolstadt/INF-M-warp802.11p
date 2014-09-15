@@ -50,7 +50,7 @@
 
 
 /*************************** Constant Definitions ****************************/
-#define  WLAN_EXP_ETH                           WN_ETH_B
+#define  WLAN_EXP_ETH                           WN_ETH_B 
 #define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 
 #define  WLAN_DEFAULT_CHANNEL                   1
