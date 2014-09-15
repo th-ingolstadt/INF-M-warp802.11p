@@ -59,13 +59,12 @@
 #define IPC_MBOX_CONFIG_PHY_RX			8
 #define IPC_MBOX_CONFIG_PHY_TX			9
 #define IPC_MBOX_SET_TIME				11
-#define IPC_MBOX_DEMO_CONFIG			12
-#define IPC_MBOX_CONFIG_RX_ANT_MODE		13
-#define IPC_MBOX_CONFIG_TX_CTRL_POW		14
-#define IPC_MBOX_CONFIG_RX_FILTER		15
-#define IPC_MBOX_MEM_READ_WRITE     	16
-#define IPC_MBOX_LOW_PARAM				17
-#define IPC_MBOX_LOW_RANDOM_SEED        18
+#define IPC_MBOX_CONFIG_RX_ANT_MODE		12
+#define IPC_MBOX_CONFIG_TX_CTRL_POW		13
+#define IPC_MBOX_CONFIG_RX_FILTER		14
+#define IPC_MBOX_MEM_READ_WRITE     	15
+#define IPC_MBOX_LOW_PARAM				16
+#define IPC_MBOX_LOW_RANDOM_SEED        17
 
 typedef struct{
 	u32  baseaddr;
@@ -74,8 +73,6 @@ typedef struct{
 
 #define IPC_REG_READ_MODE 0
 #define IPC_REG_WRITE_MODE 1
-
-#define DEMO_CONFIG_FLAGS_EN 0x0001
 
 #define IPC_MBOX_MSG_ID(id) (IPC_MBOX_MSG_ID_DELIM | ((id) & 0xFFF))
 #define IPC_MBOX_MSG_ID_TO_MSG(id) (id) & 0xFFF
