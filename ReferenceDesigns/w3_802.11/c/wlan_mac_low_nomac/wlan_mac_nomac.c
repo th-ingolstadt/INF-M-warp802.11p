@@ -50,15 +50,9 @@ static u8               eeprom_addr[6];
 u8                      red_led_index;
 u8                      green_led_index;
 
-u8						_demo_en;
-u32                     _demo_num_iter;
-static u8               curr_ant = 0;
-
 /******************************** Functions **********************************/
 
 int main(){
-
-	_demo_en = 1;
 
 	wlan_mac_hw_info* hw_info;
 	xil_printf("\f");
@@ -92,16 +86,8 @@ int main(){
 
 	while(1){
 
-		 _demo_num_iter++;
-
 		//Poll PHY RX start
 		wlan_mac_low_poll_frame_rx();
-
-        if(_demo_num_iter>=200000){
-        	wlan_mac_reset(1);
-        	_demo_set_antenna();
-        	wlan_mac_reset(0);
-	    }
 
 		//Poll IPC rx
 		wlan_mac_low_poll_ipc_rx();
@@ -137,8 +123,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 
 	mpdu_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
-
-	_demo_set_antenna(); //DEMO FIXME
 
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode);
 	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(mpdu_info->ant_mode);
@@ -247,44 +231,4 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
 
 	return -1;
-}
-
-inline void _demo_set_antenna(){
-	//TODO: Demo code
-
-	_demo_num_iter = 0;
-
-		if(_demo_en){
-			curr_ant = (curr_ant+1)%4;
-
-			switch(curr_ant){
-				case 0:
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTA);
-				break;
-
-				case 1:
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTB);
-				break;
-
-				case 2:
-	#ifdef WLAN_4RF_EN
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTC);
-	#else
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTA);
-	#endif
-				break;
-				case 3:
-	#ifdef WLAN_4RF_EN
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTD);
-	#else
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTB);
-	#endif
-				break;
-				default:
-					wlan_rx_config_ant_mode(_DEMO_RX_ANTMODE_SISO_ANTA);
-					break;
-			}
-
-			//usleep(_DEMO_inter_pkt_sleep_usec);
-		}
 }
