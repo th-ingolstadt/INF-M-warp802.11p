@@ -816,7 +816,14 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     def get_phy_cs_thresh(self):
         """Gets the physical carrier sense threshold of the node."""
         raise NotImplementedError
+        
+    def set_timestamp_offset(self, val):
+        """Sets a usec offset that will be applied to beacon timestamps."""
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET, val)      
 
+    def get_timestamp_offset(self, val):
+        """Gets a usec offset that will be applied to beacon timestamps."""
+        raise NotImplementedError
        
     def set_cw_exp_min(self, val):
         """Sets the the minimum contention window:

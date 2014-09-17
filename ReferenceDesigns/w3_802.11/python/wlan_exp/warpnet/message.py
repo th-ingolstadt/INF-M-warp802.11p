@@ -294,8 +294,18 @@ class Cmd(CmdRespMessage):
         self.length = self.num_args * 4
     
     def add_args(self, *args):
-        """Append arguments to current command argument list."""
-        self.args.append(*args)
+        """Append arguments to current command argument list.
+        
+        NOTE: since the transport only operates on unsigned 32 bit integers, we 
+        will convert all values to 32 bit unsigned integers.        
+        """
+        import ctypes
+
+        for arg in args:
+            if (arg < 0):
+                arg = ctypes.c_uint32(arg).value
+            self.args.append(arg)
+ 
         self.num_args += len(args)
         self.length += len(args) * 4
 

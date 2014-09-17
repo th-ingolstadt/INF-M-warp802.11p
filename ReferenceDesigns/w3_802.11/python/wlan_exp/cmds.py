@@ -92,6 +92,7 @@ CMD_PARAM_RANDOM_SEED_RSVD                       = 0xFFFFFFFF
 CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH           = 0x00000001
 CMD_PARAM_LOW_PARAM_CW_EXP_MIN                   = 0x00000002
 CMD_PARAM_LOW_PARAM_CW_EXP_MAX                   = 0x00000003
+CMD_PARAM_LOW_PARAM_TS_OFFSET                    = 0x00000004
 
 
 # Association commands and defined values
