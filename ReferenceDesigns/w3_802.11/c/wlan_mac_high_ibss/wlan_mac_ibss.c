@@ -38,6 +38,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_scan_fsm.h"
+#include "wlan_mac_ibss_join_fsm.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
@@ -94,6 +95,7 @@ u8                                pause_data_queue;
 u32                               mac_param_chan;
 
 bss_info*						  my_bss_info;
+u8								  enable_beacon_tx;
 
 
 // List to hold Tx/Rx statistics
@@ -128,6 +130,9 @@ int main() {
 
 	// Unpause the queue
 	pause_data_queue = 0;
+
+
+	enable_beacon_tx = 1;
 
 	my_bss_info = NULL;
 
@@ -245,8 +250,30 @@ int main() {
 	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
+	//TODO: add scan and join
+	//AFTER TO, explicitly create and join BSS_INFO
+
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
+
+
+	while(1){
+#ifdef USE_WARPNET_WLAN_EXP
+		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
+		//     transport are required to service new commands. All other node activity (wired/wireless Tx/Rx,
+		//     scheduled events, user interaction, etc) are handled via interrupt service routines
+		transport_poll( WLAN_EXP_ETH );
+#endif
+	}
+
+	// Unreachable, but non-void return keeps the compiler happy
+	return -1;
+}
+
+void ibss_set_association_state( bss_info* new_bss_info ){
 	//Search for existing IBSS of default SSID string.
 
+	//////REMOVE START//////
+/*
 	#define SCAN_TIMEOUT_USEC 5000000
 	scan_start_timestamp = get_usec_timestamp();
 	wlan_mac_scan_enable((u8*)bcast_addr, default_ssid);
@@ -286,28 +313,22 @@ int main() {
 	xil_printf("   SSID           : %s\n", my_bss_info->ssid);
 	xil_printf("   Channel        : %d\n", my_bss_info->chan);
 	xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
+*/
+	//////REMOVE END//////
+
+
+	mac_param_chan = new_bss_info->chan;
+	wlan_mac_high_set_channel(mac_param_chan);
+
+	my_bss_info = new_bss_info;
 
 
 
 	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
 	//Note: Unlike the AP implementation, we need to use the SCHEDULE_FINE scheduler sub-beacon-interval fidelity
-	beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
-
-	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
-
-
-	while(1){
-#ifdef USE_WARPNET_WLAN_EXP
-		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
-		//     transport are required to service new commands. All other node activity (wired/wireless Tx/Rx,
-		//     scheduled events, user interaction, etc) are handled via interrupt service routines
-		transport_poll( WLAN_EXP_ETH );
-#endif
-	}
-
-	// Unreachable, but non-void return keeps the compiler happy
-	return -1;
+	if(enable_beacon_tx) beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
 }
+
 
 /**
  * @brief Transmit a beacon
