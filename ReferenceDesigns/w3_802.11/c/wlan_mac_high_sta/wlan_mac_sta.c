@@ -250,6 +250,8 @@ int main() {
 	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
+	wlan_mac_sta_set_join_success_callback((function_ptr_t)nullCallback);
+
 	// If there is a default SSID, initiate a probe request
 	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) wlan_mac_sta_scan_and_join(access_point_ssid, 0);
 

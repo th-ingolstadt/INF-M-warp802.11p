@@ -21,6 +21,8 @@
 typedef enum {JOIN_IDLE, JOIN_SEARCHING, JOIN_ATTEMPTING} join_state_t;
 static join_state_t join_state = JOIN_IDLE;
 
+static function_ptr_t  join_success_callback = (function_ptr_t)nullCallback;
+
 //External Global Variables:
 extern u8 pause_data_queue;
 extern u32 mac_param_chan; ///< This is the "home" channel
@@ -38,6 +40,11 @@ static bss_info* attempt_bss_info;
 static u32 attempt_sched_id = SCHEDULE_FAILURE;
 static u32 attempt_kill_sched_id = SCHEDULE_FAILURE;
 static u32 attempt_timeout;
+
+
+void wlan_mac_sta_set_join_success_callback(function_ptr_t callback){
+	join_success_callback = callback;
+}
 
 /**
  * @brief Attempt Scan and Join to AP
@@ -215,6 +222,7 @@ void wlan_mac_sta_bss_attempt_poll(u32 arg){
 					//Important: return_to_idle will NULL out attempt_bss_info,
 					//so it should not be called before actually setting the
 					//association state
+					join_success_callback(attempt_bss_info);
 					wlan_mac_sta_return_to_idle();
 				break;
 			}
