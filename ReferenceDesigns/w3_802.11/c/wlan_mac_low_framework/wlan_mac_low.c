@@ -341,7 +341,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						cw_exp_max = ipc_msg_from_high_payload[1];
 					break;
 					case LOW_PARAM_TIMESTAMP_OFFSET:
-						wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1])); //FIXME: Re-enable once we are back on v45+ hardware
+						wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1]));
+						xil_printf("New Offset: %d\n", (s32)(ipc_msg_from_high_payload[1]));
 					break;
 					default:
 						ipc_low_param_callback(ipc_msg_from_high_payload);
