@@ -218,11 +218,12 @@ void wlan_mac_sta_bss_attempt_poll(u32 arg){
 					wlan_mac_sta_scan_assoc_req_transmit();
 				break;
 				case BSS_STATE_ASSOCIATED:
-					sta_set_association_state(attempt_bss_info, arg);
-					//Important: return_to_idle will NULL out attempt_bss_info,
-					//so it should not be called before actually setting the
-					//association state
-					join_success_callback(attempt_bss_info);
+					if(sta_set_association_state(attempt_bss_info, arg) == 0){
+						//Important: return_to_idle will NULL out attempt_bss_info,
+						//so it should not be called before actually setting the
+						//association state
+						join_success_callback(attempt_bss_info);
+					}
 					wlan_mac_sta_return_to_idle();
 				break;
 			}

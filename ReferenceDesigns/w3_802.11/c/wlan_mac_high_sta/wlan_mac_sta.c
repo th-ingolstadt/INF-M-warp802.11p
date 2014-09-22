@@ -1004,6 +1004,8 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
 
 			pause_data_queue = 0;
 
+			status = 0;
+
 		} else {
 		    status = -1;
 		}
