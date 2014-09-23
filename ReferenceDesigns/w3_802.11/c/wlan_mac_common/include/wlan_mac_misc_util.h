@@ -142,7 +142,7 @@ typedef struct{
 #define CPU_STATUS_EXCEPTION			0x80000000
 
 #define NUM_TX_PKT_BUFS	16
-#define NUM_RX_PKT_BUFS	16
+#define NUM_RX_PKT_BUFS 16
 
 #define PKT_BUF_SIZE 4096
 
