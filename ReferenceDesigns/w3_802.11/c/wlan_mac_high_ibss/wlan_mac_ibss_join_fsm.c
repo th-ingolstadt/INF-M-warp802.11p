@@ -77,15 +77,18 @@ void wlan_mac_ibss_scan_and_join(char* ssid_str, u32 to_sec){
 }
 
 void wlan_mac_ibss_join(bss_info* bss_description){
-	switch(join_state){
-		case JOIN_IDLE:
-			ibss_set_association_state(bss_description);
-			join_success_callback(bss_description);
-		break;
-		case JOIN_SEARCHING:
-			wlan_mac_ibss_return_to_idle();
-			wlan_mac_ibss_join(bss_description);
-		break;
+
+	if(bss_description != NULL){
+		switch(join_state){
+			case JOIN_IDLE:
+				ibss_set_association_state(bss_description);
+				join_success_callback(bss_description);
+			break;
+			case JOIN_SEARCHING:
+				wlan_mac_ibss_return_to_idle();
+				wlan_mac_ibss_join(bss_description);
+			break;
+		}
 	}
 }
 

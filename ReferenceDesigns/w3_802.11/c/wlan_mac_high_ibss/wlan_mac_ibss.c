@@ -68,7 +68,7 @@ const u8 max_num_associations                    = 15;
 
 /*************************** Variable Definitions ****************************/
 
-// If you want this station to try to associate to a known AP at boot, type
+// If you want this station to try to associate to a known IBSS at boot, type
 //   the string here. Otherwise, let it be an empty string.
 char default_ssid[SSID_LEN_MAX + 1] = "WARP-IBSS";
 //char default_ssid[SSID_LEN_MAX + 1] = "";
@@ -119,7 +119,7 @@ u8 tim_control = 1;
 int main() {
 	u64 scan_start_timestamp;
 	u8 locally_administered_addr[6];
-	dl_entry* my_bss_info_entry;
+	bss_info* temp_bss_info;
 
 	// This function should be executed first. It will zero out memory, and if that
 	//     memory is used before calling this function, unexpected results may happen.
@@ -250,8 +250,29 @@ int main() {
 	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
-	//TODO: add scan and join
-	//AFTER TO, explicitly create and join BSS_INFO
+	#define SCAN_TIMEOUT_SEC 5
+	#define SCAN_TIMEOUT_USEC (SCAN_TIMEOUT_SEC*1000000)
+	if(strlen(default_ssid) > 0){
+		wlan_mac_ibss_scan_and_join(default_ssid, SCAN_TIMEOUT_SEC);
+		scan_start_timestamp = get_usec_timestamp();
+		while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
+			if(my_bss_info != NULL){
+				break;
+			}
+		}
+
+		if(my_bss_info == NULL){
+			xil_printf("Unable to find '%s' IBSS. Creating new network.\n",default_ssid);
+
+			memcpy(locally_administered_addr,wlan_mac_addr,6);
+			locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL; //Raise the bit identifying this address as locally administered
+			temp_bss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
+			temp_bss_info->beacon_interval = BEACON_INTERVAL_TU;
+			temp_bss_info->state = BSS_STATE_OWNED;
+			wlan_mac_ibss_join( temp_bss_info );
+		}
+
+	}
 
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
 
@@ -270,58 +291,17 @@ int main() {
 }
 
 void ibss_set_association_state( bss_info* new_bss_info ){
-	//Search for existing IBSS of default SSID string.
-
-	//////REMOVE START//////
-/*
-	#define SCAN_TIMEOUT_USEC 5000000
-	scan_start_timestamp = get_usec_timestamp();
-	wlan_mac_scan_enable((u8*)bcast_addr, default_ssid);
-
-	while((get_usec_timestamp() - scan_start_timestamp) < SCAN_TIMEOUT_USEC){
-		my_bss_info_entry = wlan_mac_high_find_bss_info_SSID(default_ssid);
-		if(my_bss_info_entry != NULL){
-			break;
-		}
-	}
-	wlan_mac_scan_disable();
-
-	if(my_bss_info_entry != NULL){
-		//TODO: We should check the capabilities of this bss_info and make
-		//sure it is an IBSS and not just an infrastructure network of the same
-		//SSID string
-		xil_printf("Found existing IBSS\n");
-		my_bss_info = (bss_info*)(my_bss_info_entry->data);
-		my_bss_info->state = BSS_STATE_OWNED;
-	} else {
-		xil_printf("Creating new IBSS\n");
-		memcpy(locally_administered_addr,wlan_mac_addr,6);
-		locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL; //Raise the bit identifying this address as locally administered
-		my_bss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
-		my_bss_info->beacon_interval = BEACON_INTERVAL_TU;
-		my_bss_info->state = BSS_STATE_OWNED;
-	}
-
-	mac_param_chan      = my_bss_info->chan;
-	wlan_mac_high_set_channel( mac_param_chan );
-
-	//TODO:
-	//New High to Low IPC that sets forward-looking beacon cancellation time to .5+ of beacon interval
-
-	xil_printf("IBSS Details: \n");
-	xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
-	xil_printf("   SSID           : %s\n", my_bss_info->ssid);
-	xil_printf("   Channel        : %d\n", my_bss_info->chan);
-	xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
-*/
-	//////REMOVE END//////
-
 
 	mac_param_chan = new_bss_info->chan;
 	wlan_mac_high_set_channel(mac_param_chan);
 
 	my_bss_info = new_bss_info;
 
+	xil_printf("IBSS Details: \n");
+	xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
+	xil_printf("   SSID           : %s\n", my_bss_info->ssid);
+	xil_printf("   Channel        : %d\n", my_bss_info->chan);
+	xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
 
 
 	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
