@@ -1115,14 +1115,22 @@ void wlan_mac_high_write_hex_display(u8 val){
  *	- -1 for memory test fail
  */
 int wlan_mac_high_memory_test(){
-	u8 i,j;
 
-	u8 test_u8;
-	u16 test_u16;
-	u32 test_u32;
-	u64 test_u64;
+#define READBACK_DELAY_USEC	10000
 
-	void* memory_ptr;
+	volatile u8 i,j;
+
+	volatile u8  test_u8;
+	volatile u16 test_u16;
+	volatile u32 test_u32;
+	volatile u64 test_u64;
+
+	volatile u8  readback_u8;
+	volatile u16 readback_u16;
+	volatile u32 readback_u32;
+	volatile u64 readback_u64;
+
+	volatile void* memory_ptr;
 
 	for(i=0;i<6;i++){
 		memory_ptr = (void*)((u8*)DDR3_BASEADDR + (i*100000*1024));
@@ -1134,25 +1142,41 @@ int wlan_mac_high_memory_test(){
 			test_u64 = (((u64)rand()&0xFFFFFFFF)<<32) + ((u64)rand()&0xFFFFFFFF);
 
 			*((u8*)memory_ptr) = test_u8;
-			if(*((u8*)memory_ptr) != test_u8){
+			usleep(READBACK_DELAY_USEC);
+			readback_u8 = *((u8*)memory_ptr);
+
+			if(readback_u8!= test_u8){
+				xil_printf("0x%08x: %2x = %2x\n", memory_ptr, readback_u8, test_u8);
 				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u8\n",memory_ptr);
 				return -1;
 			}
 			*((u16*)memory_ptr) = test_u16;
-			if(*((u16*)memory_ptr) != test_u16){
+			usleep(READBACK_DELAY_USEC);
+			readback_u16 = *((u16*)memory_ptr);
+
+			if(readback_u16 != test_u16){
+				xil_printf("0x%08x: %4x = %4x\n", memory_ptr, readback_u16, test_u16);
 				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u16\n",memory_ptr);
 				return -1;
 			}
 			*((u32*)memory_ptr) = test_u32;
-			if(*((u32*)memory_ptr) != test_u32){
+			usleep(READBACK_DELAY_USEC);
+			readback_u32 = *((u32*)memory_ptr);
+
+			if(readback_u32 != test_u32){
+				xil_printf("0x%08x: %8x = %8x\n", memory_ptr, readback_u32, test_u32);
 				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u32\n",memory_ptr);
 				return -1;
 			}
 			*((u64*)memory_ptr) = test_u64;
-			if(*((u64*)memory_ptr) != test_u64){
+			usleep(READBACK_DELAY_USEC);
+			readback_u64 = *((u64*)memory_ptr);
+
+			if(readback_u64!= test_u64){
 				xil_printf("DRAM Failure: Addr: 0x%08x -- Unable to verify write of u64\n",memory_ptr);
 				return -1;
 			}
+			memory_ptr++;
 		}
 	}
 	return 0;
