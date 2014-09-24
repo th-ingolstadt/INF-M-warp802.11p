@@ -119,6 +119,10 @@ void uart_rx(u8 rxByte){
 					print_bss_info();
 				break;
 
+				case ASCII_x:
+					reset_bss_info();
+				break;
+
 				case ASCII_r:
 					if((default_unicast_data_tx_params.phy.rate) > WLAN_MAC_RATE_6M){
 						(default_unicast_data_tx_params.phy.rate)--;

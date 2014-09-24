@@ -843,6 +843,30 @@ void reset_station_statistics(){
 	wlan_mac_high_reset_statistics(&statistics_table);
 }
 
+/**
+ * @brief Reset BSS Information
+ *
+ * Reset all BSS Info except for my_bss_info (if it exists)
+ *
+ * @param  None
+ * @return None
+ */
+void reset_bss_info(){
+	dl_list* bss_info_list = wlan_mac_high_get_bss_info_list();
+	dl_entry* next_dl_entry = bss_info_list->first;
+	dl_entry* curr_dl_entry;
+
+	while(next_dl_entry != NULL){
+		curr_dl_entry = next_dl_entry;
+		next_dl_entry = dl_entry_next(curr_dl_entry);
+
+		if(curr_dl_entry->data != my_bss_info){
+			dl_entry_remove(bss_info_list, curr_dl_entry);
+			bss_info_checkin(curr_dl_entry);
+		}
+	}
+}
+
 
 
 /**
