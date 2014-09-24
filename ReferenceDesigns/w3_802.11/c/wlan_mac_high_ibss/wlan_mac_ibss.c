@@ -96,6 +96,7 @@ u32                               mac_param_chan;
 
 bss_info*						  my_bss_info;
 u8								  enable_beacon_tx;
+u8	                              allow_beacon_ts_update;            // Allow timebase to be updated from beacons
 
 
 // List to hold Tx/Rx statistics
@@ -133,6 +134,7 @@ int main() {
 
 
 	enable_beacon_tx = 1;
+	allow_beacon_ts_update = 1;
 
 	my_bss_info = NULL;
 
@@ -324,7 +326,7 @@ void beacon_transmit(u32 schedule_id) {
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
 
-		if(my_bss_info != NULL){
+		if(my_bss_info != NULL && enable_beacon_tx == 1){
 
 		//When an IBSS node receives a beacon, it schedules the call of this beacon_transmit function
 		//for some point in the future that is generally less than the beacon interval to account for
@@ -861,17 +863,18 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
 
 						// Set the timestamp
-						if(timestamp_diff > 0){
-							wlan_mac_high_set_timestamp_delta(timestamp_diff);
-						}
+						if( allow_beacon_ts_update == 1 ){
+							if(timestamp_diff > 0){
+								wlan_mac_high_set_timestamp_delta(timestamp_diff);
+							}
 
-						// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
-						if(beacon_sched_id != SCHEDULE_FAILURE){
-							wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
-							timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
-							beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
+							// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
+							if(beacon_sched_id != SCHEDULE_FAILURE){
+								wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
+								timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
+								beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
+							}
 						}
-
 						if(queue_num_queued(BEACON_QID)){
 
 							//We should destroy the beacon that is currently enqueued if
@@ -1130,6 +1133,29 @@ void reset_station_statistics(){
 	wlan_mac_high_reset_statistics(&statistics_table);
 }
 
+/**
+ * @brief Reset BSS Information
+ *
+ * Reset all BSS Info except for my_bss_info (if it exists)
+ *
+ * @param  None
+ * @return None
+ */
+void reset_bss_info(){
+	dl_list* bss_info_list = wlan_mac_high_get_bss_info_list();
+	dl_entry* next_dl_entry = bss_info_list->first;
+	dl_entry* curr_dl_entry;
+
+	while(next_dl_entry != NULL){
+		curr_dl_entry = next_dl_entry;
+		next_dl_entry = dl_entry_next(curr_dl_entry);
+
+		if(curr_dl_entry->data != my_bss_info){
+			dl_entry_remove(bss_info_list, curr_dl_entry);
+			bss_info_checkin(curr_dl_entry);
+		}
+	}
+}
 
 void reset_all_associations(){
 	//FIXME: This doesn't mean anything for the IBSS implementation, but WN needs it to be here.

@@ -87,6 +87,7 @@ void purge_all_data_tx_queue();
 
 
 void reset_station_statistics();
+void reset_bss_info();
 dl_list * get_statistics();
 
 //int  sta_set_association_state( bss_info* new_bss_info, u16 aid );
