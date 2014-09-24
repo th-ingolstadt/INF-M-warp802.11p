@@ -106,6 +106,7 @@ void disable_associations();
 void association_timestamp_check();
 
 void reset_station_statistics();
+void reset_bss_info();
 
 u32  deauthenticate_station( station_info* station );
 void deauthenticate_stations();
