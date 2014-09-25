@@ -322,13 +322,14 @@ class WnNode(object):
     #-------------------------------------------------------------------------
     # Transmit / Receive methods for the Node
     #-------------------------------------------------------------------------
-    def send_cmd(self, cmd, max_attempts=2, max_req_size=None):
+    def send_cmd(self, cmd, max_attempts=2, max_req_size=None, timeout=None):
         """Send the provided command.
         
         Attributes:
             cmd          -- WnCommand to send
             max_attempts -- Maximum number of attempts to send a given command
             max_req_size -- Maximum request size (applys only to Buffer Commands)
+            timeout      -- Maximum time to wait for a response from the node
         """
         resp_type = cmd.get_resp_type()
         
@@ -337,11 +338,11 @@ class WnNode(object):
             self.transport.send(payload, robust=False)
 
         elif (resp_type == wn_transport.TRANSPORT_WN_RESP):
-            resp = self._receive_resp(cmd, max_attempts)
+            resp = self._receive_resp(cmd, max_attempts, timeout)
             return cmd.process_resp(resp)
 
         elif (resp_type == wn_transport.TRANSPORT_WN_BUFFER):
-            resp = self._receive_buffer(cmd, max_attempts, max_req_size)
+            resp = self._receive_buffer(cmd, max_attempts, max_req_size, timeout)
             return cmd.process_resp(resp)
 
         else:
@@ -349,7 +350,7 @@ class WnNode(object):
                                        "Unknown response type for command")
 
 
-    def _receive_resp(self, cmd, max_attempts):
+    def _receive_resp(self, cmd, max_attempts, timeout):
         """Internal method to receive a response for a given command payload"""
         reply = b''
         done = False
@@ -360,7 +361,7 @@ class WnNode(object):
 
         while not done:
             try:
-                reply = self.transport.receive()
+                reply = self.transport.receive(timeout)
                 self._receive_success()
             except wn_ex.TransportError:
                 self._receive_failure()
@@ -377,7 +378,7 @@ class WnNode(object):
         return resp
 
 
-    def _receive_buffer(self, cmd, max_attempts, max_req_size):
+    def _receive_buffer(self, cmd, max_attempts, max_req_size, timeout):
         """Internal method to receive a buffer for a given command payload.
         
         Depending on the size of the buffer, the framework will split a
@@ -463,7 +464,7 @@ class WnNode(object):
     
             while not resp.is_buffer_complete():
                 try:
-                    reply = self.transport.receive()
+                    reply = self.transport.receive(timeout)
                     self._receive_success()
                 except wn_ex.TransportError:
                     self._receive_failure()
@@ -559,14 +560,14 @@ class WnNode(object):
         self.transport_bcast.send(cmd.serialize(), 'message')
 
 
-    def receive_resp(self):
+    def receive_resp(self, timeout=None):
         """Return a list of responses that are sitting in the host's 
         receive queue.  It will empty the queue and return them all the 
         calling method."""
         
         output = []
         
-        resp = self.transport.receive()
+        resp = self.transport.receive(timeout)
         
         if resp:
             # Create a list of response object if the list of bytes is a 

@@ -455,7 +455,7 @@ def filter_nodes(nodes, filter_type, filter_val):
 # End def
 
 
-def create_bss_info(bssid, ssid, channel, beacon_interval=1, ibss_status=False):
+def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100):
     """Create a Basic Service Set (BSS) information structure.
     
     This method will create a dictionary that contains all necessary information 
@@ -467,10 +467,10 @@ def create_bss_info(bssid, ssid, channel, beacon_interval=1, ibss_status=False):
         channel           -- Channel on which the BSS operates 
         bssid             -- 40-bit ID of the BSS 
                              (Uses current wlan_mac_address if not specified)
-        beacon_interval   -- Integer number of time units for beacon intervals
-                             (a time unit is 1024 microseconds)    
         ibss_status       -- True  => Capabilities field = 0x2 (BSS info is for IBSS)
                              False => Capabilities field = 0x1 (BSS info is for BSS)
+        beacon_interval   -- Integer number of beacon Time Units in [1, 65535]
+                             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
     """
     channel_error = False
     bss_dict      = {}
@@ -516,6 +516,10 @@ def create_bss_info(bssid, ssid, channel, beacon_interval=1, ibss_status=False):
         beacon_interval = int(beacon_interval)
         print("WARNING:  Beacon interval must be an interger number of time units rounding to {0}".format(beacon_interval))
 
+    if not ((beacon_interval > 0) and (beacon_interval < 2**16)):
+        msg  = "The beacon interval must be in [1, 65535] (ie 16-bit positive integer)."
+        raise ValueError(msg)
+
     bss_dict['beacon_interval'] = beacon_interval
 
     # Check IBSS status
@@ -525,13 +529,24 @@ def create_bss_info(bssid, ssid, channel, beacon_interval=1, ibss_status=False):
     # Set BSSID, capabilities
     #   - If this is an IBSS, then set local bit to '1' and mcast bit to '0'
     if ibss_status:
-        bss_dict['bssid']        = (bssid | mac_addr_local_mask) & (mac_addr_broadcast - mac_addr_mcast_mask)
+        bss_dict['bssid_int']    = (bssid | mac_addr_local_mask) & (mac_addr_broadcast - mac_addr_mcast_mask)
         bss_dict['capabilities'] = 0x2
     else:
-        bss_dict['bssid']        = bssid
+        bss_dict['bssid_int']    = bssid
         bss_dict['capabilities'] = 0x1
+
+    # Convert bssid_int to string for bssid
+    bss_dict['bssid'] = ''.join([chr((bss_dict['bssid_int'] >> ((6 - i - 1) * 8)) % 256) for i in range(6)])    
     
     return bss_dict
+
+# End def
+
+
+def create_locally_administered_bssid(node):
+    """Create a locally administered BSSID based on the wireless MAC address of the node."""
+
+    return (node.wlan_mac_address | mac_addr_local_mask) & (mac_addr_broadcast - mac_addr_mcast_mask)
 
 # End def
 

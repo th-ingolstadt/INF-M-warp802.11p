@@ -109,7 +109,7 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
             print("Only {} of {} bytes of data sent".format(size, len(data)))
 
 
-    def receive(self):
+    def receive(self, timeout=None):
         """Not used on a broadcast transport"""
         raise NotImplementedError
 

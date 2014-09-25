@@ -27,12 +27,31 @@ import wlan_exp.warpnet.transport_eth_udp as wn_transport
 
 
 
-__all__ = ['LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
-           'StatsGetTxRx', 'StatsAddTxRxToLog', 
-           'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove',
-           'NodeResetState', 'NodeProcTime', 'NodeProcChannel', 'NodeProcTxPower', 
-           'NodeProcTxRate', 'NodeProcTxAntMode', 'NodeProcRxAntMode', 'NodeGetStationInfo',
-           'NodeSetLowToHighFilter', 'QueueTxDataPurgeAll']
+__all__ = [# Log command classes
+           'LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity', 'LogAddExpInfoEntry', 
+           'LogAddStatsTxRx',
+           # Stats command classes
+           'StatsConfigure', 'StatsGetTxRx', 
+           # LTG classes
+           'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove', 'LTGStatus',
+           # Node command classes
+           'NodeResetState', 'NodeConfigure', 'NodeProcWLANMACAddr', 'NodeProcTime', 
+           'NodeSetLowToHighFilter', 'NodeProcChannel', 'NodeProcRandomSeed', 'NodeLowParam', 
+           'NodeProcTxPower', 'NodeProcTxRate', 'NodeProcTxAntMode', 'NodeProcRxAntMode', 
+           # Association command classes
+           'NodeGetSSID', 'NodeDisassociate', 'NodeGetStationInfo', 'NodeGetBSSInfo',
+           # Queue command classes
+           'QueueTxDataPurgeAll',
+           # AP command classes
+           'NodeAPConfigure', 'NodeAPProcDTIMPeriod', 'NodeAPAddAssociation', 'NodeAPSetSSID', 
+           'NodeAPSetAuthAddrFilter',
+           # STA command classes
+           'NodeSTAConfigure',
+           # IBSS command classes
+           'NodeIBSSConfigure', 
+           # Common command classes for STA / IBSS
+           'NodeProcScanParam', 'NodeProcScan', 'NodeProcJoin', 'NodeProcScanAndJoin' 
+          ]
 
 
 # WLAN Exp Command IDs (Extension of WARPNet Command IDs)
@@ -41,20 +60,23 @@ __all__ = ['LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity',
 
 # Node commands and defined values
 CMDID_NODE_RESET_STATE                           = 0x001000
-CMDID_NODE_TIME                                  = 0x001001
-CMDID_NODE_CHANNEL                               = 0x001002
-CMDID_NODE_TX_POWER                              = 0x001003
-CMDID_NODE_TX_RATE                               = 0x001004
-CMDID_NODE_TX_ANT_MODE                           = 0x001005
-CMDID_NODE_RX_ANT_MODE                           = 0x001006
-CMDID_NODE_LOW_TO_HIGH_FILTER                    = 0x001007
-CMDID_NODE_LOW_PARAM                             = 0x001008
-CMDID_NODE_RANDOM_SEED                           = 0x001009
+CMDID_NODE_CONFIGURE                             = 0x001001
+CMDID_NODE_TIME                                  = 0x001010
+CMDID_NODE_CHANNEL                               = 0x001011
+CMDID_NODE_TX_POWER                              = 0x001012
+CMDID_NODE_TX_RATE                               = 0x001013
+CMDID_NODE_TX_ANT_MODE                           = 0x001014
+CMDID_NODE_RX_ANT_MODE                           = 0x001015
+CMDID_NODE_LOW_TO_HIGH_FILTER                    = 0x001016
+CMDID_NODE_RANDOM_SEED                           = 0x001017
+CMDID_NODE_WLAN_MAC_ADDR                         = 0x001018
+CMDID_NODE_LOW_PARAM                             = 0x001020
 
 CMD_PARAM_WRITE                                  = 0x00000000
 CMD_PARAM_READ                                   = 0x00000001
 CMD_PARAM_WRITE_DEFAULT                          = 0x00000002
 CMD_PARAM_READ_DEFAULT                           = 0x00000004
+CMD_PARAM_RSVD                                   = 0xFFFFFFFF
 
 CMD_PARAM_SUCCESS                                = 0x00000000
 CMD_PARAM_ERROR                                  = 0xFF000000
@@ -70,8 +92,17 @@ CMD_PARAM_NODE_RESET_FLAG_LTG                    = 0x00000004
 CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE          = 0x00000008
 CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS           = 0x00000010
 
+CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE           = 0x00000001
+
 CMD_PARAM_TIME_ADD_TO_LOG                        = 0x00000002
 CMD_PARAM_RSVD_TIME                              = 0xFFFFFFFF
+
+TIME_TYPE_FLOAT                                  = 0x00000000
+TIME_TYPE_INT                                    = 0x00000001
+
+CMD_PARAM_RSVD_CHANNEL                           = 0x00000000
+
+CMD_PARAM_RSVD_MAC_ADDR                          = 0xFFFFFFFF
 
 CMD_PARAM_NODE_TX_POWER_MAX_DBM                  = 19
 CMD_PARAM_NODE_TX_POWER_MIN_DBM                  = -12
@@ -93,15 +124,6 @@ CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH           = 0x00000001
 CMD_PARAM_LOW_PARAM_CW_EXP_MIN                   = 0x00000002
 CMD_PARAM_LOW_PARAM_CW_EXP_MAX                   = 0x00000003
 CMD_PARAM_LOW_PARAM_TS_OFFSET                    = 0x00000004
-
-
-# Association commands and defined values
-CMDID_GET_STATION_INFO                           = 0x001080
-
-CMDID_NODE_DISASSOCIATE                          = 0x001090
-CMDID_NODE_ADD_ASSOCIATION                       = 0x001091
-
-CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT          = 0x00000001
 
 
 # LTG commands and defined values
@@ -127,8 +149,9 @@ CMDID_LOG_GET_STATUS                             = 0x003001
 CMDID_LOG_GET_CAPACITY                           = 0x003002
 CMDID_LOG_GET_ENTRIES                            = 0x003003
 CMDID_LOG_ADD_EXP_INFO_ENTRY                     = 0x003004
-CMDID_LOG_ENABLE_ENTRY                           = 0x003005
-CMDID_LOG_STREAM_ENTRIES                         = 0x003006
+CMDID_LOG_ADD_STATS_TXRX                         = 0x003005
+CMDID_LOG_ENABLE_ENTRY                           = 0x003006
+CMDID_LOG_STREAM_ENTRIES                         = 0x003007
 
 
 CMD_PARAM_LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
@@ -141,8 +164,7 @@ CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS            = 0x00000008
 
 # Statistics commands and defined values
 CMDID_STATS_CONFIG_TXRX                          = 0x004000
-CMDID_STATS_ADD_TXRX_TO_LOG                      = 0x004001
-CMDID_STATS_GET_TXRX                             = 0x004002
+CMDID_STATS_GET_TXRX                             = 0x004001
 
 CMD_PARAM_STATS_CONFIG_FLAG_PROMISC              = 0x00000001
 
@@ -151,17 +173,53 @@ CMD_PARAM_STATS_CONFIG_FLAG_PROMISC              = 0x00000001
 CMDID_QUEUE_TX_DATA_PURGE_ALL                    = 0x005000
 
 
+# Association commands and defined values
+CMDID_NODE_GET_SSID                              = 0x006000
+CMDID_GET_STATION_INFO                           = 0x006001
+CMDID_GET_BSS_INFO                               = 0x006002
+
+CMDID_NODE_DISASSOCIATE                          = 0x006010
+CMDID_NODE_ADD_ASSOCIATION                       = 0x006011
+
+CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT          = 0x00000001
+
+CMD_PARAM_GET_ALL_ASSOCIATED                     = 0xFFFFFFFFFFFFFFFF
+
+
+# Common commands for STA / IBSS
+CMDID_NODE_SCAN_PARAM                            = 0x007000
+CMDID_NODE_SCAN                                  = 0x007001
+CMDID_NODE_JOIN                                  = 0x007002
+CMDID_NODE_SCAN_AND_JOIN                         = 0x007003
+
+CMD_PARAM_NODE_SCAN_ENABLE                       = 0x00000001
+CMD_PARAM_NODE_SCAN_DISABLE                      = 0x00000000
+
+CMD_PARAM_NODE_JOIN_FAILED                       = 0xFFFFFFFF
+
+
 # AP commands and defined values
-CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER     = 0x010000
-CMDID_NODE_AP_SSID                               = 0x010001
+CMDID_NODE_AP_CONFIG                             = 0x100000
+CMDID_NODE_AP_DTIM_PERIOD                        = 0x100001
+CMDID_NODE_AP_SET_SSID                           = 0x100002
+CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER     = 0x100003
+
+CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING       = 0x00000001
 
 CMD_PARAM_MAX_SSID_LEN                           = 32
 
 
 # STA commands and defined values
-CMDID_NODE_STA_CONFIG                            = 0x010000
+CMDID_NODE_STA_CONFIG                            = 0x200000
 
-CMD_PARAM_NODE_STA_BEACON_TS_UPDATE              = 0x00000001
+
+# STA commands and defined values
+CMDID_NODE_IBSS_CONFIG                           = 0x300000
+
+
+# Common command parameters between STA / IBSS
+CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE      = 0x00000001
+CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT       = 0x00000002
 
 
 # Developer commands and defined values
@@ -336,6 +394,22 @@ class LogAddExpInfoEntry(wn_message.Cmd):
 # End Class
 
 
+class LogAddStatsTxRx(wn_message.Cmd):
+    """Command to add the current statistics to the Event log"""
+    def __init__(self):
+        super(LogAddStatsTxRx, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_LOG_ADD_STATS_TXRX
+    
+    def process_resp(self, resp):
+        if resp.resp_is_valid(num_args=1):
+            args = resp.get_args()
+            return args[0]
+        else:
+            return 0
+
+# End Class
+
+
 
 #--------------------------------------------
 # Stats Commands
@@ -376,7 +450,7 @@ class StatsGetTxRx(wn_message.BufferCmd):
         if node is not None:
             mac_address = node.wlan_mac_address
         else:
-            mac_address = 0xFFFFFFFFFFFFFFFF            
+            mac_address = CMD_PARAM_GET_ALL_ASSOCIATED            
 
         self.add_args(((mac_address >> 32) & 0xFFFF))
         self.add_args((mac_address & 0xFFFFFFFF))
@@ -390,25 +464,20 @@ class StatsGetTxRx(wn_message.BufferCmd):
         data    = resp.get_bytes()
         ret_val = entry_types.entry_txrx_stats.deserialize(data[index:])
 
+        if (False):
+            msg = "Statistics Data buffer:"
+            for i, byte in enumerate(data[index:]):
+                if ((i % 16) == 0): msg += "\n    "
+                try:
+                    msg += "0x{0:02X} ".format(ord(byte))
+                except:
+                    msg += "0x{0:02X} ".format(byte)
+            print(msg)
+
         return ret_val
 
 # End Class
 
-
-class StatsAddTxRxToLog(wn_message.Cmd):
-    """Command to add the current statistics to the Event log"""
-    def __init__(self):
-        super(StatsAddTxRxToLog, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_STATS_ADD_TXRX_TO_LOG
-    
-    def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=1):
-            args = resp.get_args()
-            return args[0]
-        else:
-            return 0
-
-# End Class
 
 
 #--------------------------------------------
@@ -555,6 +624,9 @@ class NodeResetState(wn_message.Cmd):
     Attributes:
         flags -- [0] NODE_RESET_LOG
                  [1] NODE_RESET_TXRX_STATS
+                 [2] NODE_RESET_LTG
+                 [3] NODE_RESET_TX_DATA_QUEUE
+                 [4] NODE_RESET_ASSOCIATIONS
     """
     def __init__(self, flags):
         super(NodeResetState, self).__init__()
@@ -563,6 +635,76 @@ class NodeResetState(wn_message.Cmd):
     
     def process_resp(self, resp):
         pass
+
+# End Class
+
+
+class NodeConfigure(wn_message.Cmd):
+    """Command to configure flag parameters on the node
+    
+    Attributes:
+        dsss_enable -- Whether DSSS packets are received. 
+    """
+    def __init__(self, dsss_enable=None):
+        super(NodeConfigure, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_CONFIGURE
+        
+        flags = 0
+        mask  = 0
+
+        if dsss_enable is not None:
+            mask += CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE
+            if dsss_enable:
+                flags += CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE
+        
+        self.add_args(flags)
+        self.add_args(mask)
+
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
+
+class NodeProcWLANMACAddr(wn_message.Cmd):
+    """Command to get / set the WLAN MAC Address on the node.
+    
+    Attributes:
+        cmd           -- Sub-command to send over the WARPNet command.  Valid values are:
+                           CMD_PARAM_READ
+                           CMD_PARAM_WRITE
+        wlan_mac_addr -- 48-bit MAC address to write (optional)
+    """
+    def __init__(self, cmd, wlan_mac_address=None):
+        super(NodeProcWLANMACAddr, self).__init__()
+        self.command  = _CMD_GRPID_NODE + CMDID_NODE_WLAN_MAC_ADDR
+
+        if (cmd == CMD_PARAM_WRITE):
+            self.add_args(cmd)
+
+            if wlan_mac_address is not None:
+                self.add_args(((wlan_mac_address >> 32) & 0xFFFF))
+                self.add_args((wlan_mac_address & 0xFFFFFFFF))
+            else:
+                self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+                self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+
+        elif (cmd == CMD_PARAM_READ):
+            self.add_args(cmd)
+
+        else:
+            msg = "Unsupported command: {0}".format(cmd)
+            raise ValueError(msg)
+
+
+    def process_resp(self, resp):
+        if resp.resp_is_valid(num_args=3, status_errors=[CMD_PARAM_ERROR], name='WLAN Mac Address'):
+            args = resp.get_args()
+            addr = (2**32 * args[1]) + args[2]
+        else:
+            addr = None
+
+        return addr
 
 # End Class
 
@@ -587,16 +729,14 @@ class NodeProcTime(wn_message.Cmd):
     """
     time_factor = 6
     time_type   = None
-    time_cmd    = None
     
     def __init__(self, cmd, node_time, time_id=None):
         super(NodeProcTime, self).__init__()
         self.command  = _CMD_GRPID_NODE + CMDID_NODE_TIME
-        self.time_cmd = cmd
 
         # Read the time as a float
         if (cmd == CMD_PARAM_READ):
-            self.time_type = 0
+            self.time_type = TIME_TYPE_FLOAT
             self.add_args(CMD_PARAM_READ)
             self.add_args(CMD_PARAM_RSVD_TIME)             # Reads do not need a time_id
             self.add_args(CMD_PARAM_RSVD_TIME)
@@ -615,28 +755,15 @@ class NodeProcTime(wn_message.Cmd):
 
             if (cmd == CMD_PARAM_WRITE):
                 self.add_args(CMD_PARAM_WRITE)
-
-                # Format the node_time appropriately
-                if   (type(node_time) is float):
-                    time_to_send   = int(round(node_time, self.time_factor) * (10**self.time_factor))
-                    self.time_type = 0
-                elif (type(node_time) is int):
-                    time_to_send   = node_time
-                    self.time_type = 1
-                else:
-                    raise TypeError("Time must be either a float or int")
             else:
                 self.add_args(CMD_PARAM_TIME_ADD_TO_LOG)
-
-                # Send the reserved value
-                time_to_send = (CMD_PARAM_RSVD_TIME << 32) + CMD_PARAM_RSVD_TIME
+                node_time = None
 
             # Get the current time on the host
             now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
             
             self.add_args(int(time_id))
-            self.add_args((time_to_send & 0xFFFFFFFF))
-            self.add_args(((time_to_send >> 32) & 0xFFFFFFFF))
+            self.time_type = _add_time_to_cmd64(self, node_time, self.time_factor)
             self.add_args((now & 0xFFFFFFFF))
             self.add_args(((now >> 32) & 0xFFFFFFFF))
 
@@ -650,9 +777,9 @@ class NodeProcTime(wn_message.Cmd):
 
         ret_val = 0
         
-        if   (self.time_type == 0):
+        if   (self.time_type == TIME_TYPE_FLOAT):
             ret_val = float(time / (10**self.time_factor))
-        elif (self.time_type == 1):
+        elif (self.time_type == TIME_TYPE_INT):
             ret_val = time
             
         return ret_val
@@ -761,7 +888,7 @@ class NodeProcChannel(wn_message.Cmd):
         if self.channel is not None:
             self.add_args(self.channel)
         else:
-            self.add_args(0)
+            self.add_args(CMD_PARAM_RSVD_CHANNEL)
 
     
     def process_resp(self, resp):
@@ -831,32 +958,43 @@ class NodeLowParam(wn_message.Cmd):
     Attributes:
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
                        CMD_PARAM_WRITE
+                       CMD_PARAM_READ
 
         param     -- ID of parameter to modify
 
         values    -- When cmd==CMD_PARAM_WRITE, scalar or list of u32 values to write
                      When cmd==CMD_PARAM_READ, None
 
-    """    
-    def __init__(self, cmd, param, values):
+    """
+    read_write = None
+    
+    def __init__(self, cmd, param, values=None):
         super(NodeLowParam, self).__init__()        
         
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_LOW_PARAM
+        self.command    = _CMD_GRPID_NODE + CMDID_NODE_LOW_PARAM
+        self.read_write = cmd
 
         # Caluculate the size of the entire message to CPU Low [PARAM_ID, ARGS[]]
-        size = len(values) + 1
+        size = 1
+        if values is not None:
+            size += len(values)
 
         self.add_args(cmd)
         self.add_args(size)
         self.add_args(param)
-        try:
-            for v in values:
-                self.add_args(v)
-        except TypeError:
-            self.add_args(values)
+
+        if values is not None:
+            try:
+                for v in values:
+                    self.add_args(v)
+            except TypeError:
+                self.add_args(values)
             
     def process_resp(self, resp):
-        pass
+        if (self.read_write == CMD_PARAM_READ):            
+            return resp.get_args()
+        else:
+            return None
 
 # End Class
         
@@ -1089,43 +1227,25 @@ class NodeProcRxAntMode(wn_message.Cmd):
 # End Class
 
 
-class NodeGetStationInfo(wn_message.BufferCmd):
-    """Command to get the station info for a given node."""
-    def __init__(self, node=None):
-        super(NodeGetStationInfo, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_GET_STATION_INFO
-
-        if node is not None:
-            mac_address = node.wlan_mac_address
-        else:
-            mac_address = 0xFFFFFFFFFFFFFFFF            
-
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
-
-    def process_resp(self, resp):
-        # Contains a WWARPNet Buffer of all station info entries.  Need to 
-        #   convert to a list of station info dictionaries.
-        import wlan_exp.log.entry_types as entry_types
-
-        index   = 0
-        data    = resp.get_bytes()
-        ret_val = entry_types.entry_station_info.deserialize(data[index:])
-
-        # Clean up the station info entries
-        for val in ret_val:
-            if (val['host_name'][0] == '\x00'):
-                val['host_name'] = '\x00'
-
-        return ret_val
-
-# End Class
-
-
 
 #--------------------------------------------
 # Association Commands
 #--------------------------------------------
+class NodeGetSSID(wn_message.Cmd):
+    """Command to get the SSID of the node."""
+    ssid = None
+
+    def __init__(self):
+        super(NodeGetSSID, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_GET_SSID
+
+
+    def process_resp(self, resp):
+        return _get_ssid_from_resp(resp)
+
+# End Class
+
+
 class NodeDisassociate(wn_message.Cmd):
     """Command to remove associations from the association table."""
     name = None
@@ -1151,6 +1271,95 @@ class NodeDisassociate(wn_message.Cmd):
 # End Class
 
 
+class NodeGetStationInfo(wn_message.BufferCmd):
+    """Command to get the station info for a given node."""
+    def __init__(self, node=None):
+        super(NodeGetStationInfo, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_GET_STATION_INFO
+
+        if node is not None:
+            mac_address = node.wlan_mac_address
+        else:
+            mac_address = CMD_PARAM_GET_ALL_ASSOCIATED            
+
+        self.add_args(((mac_address >> 32) & 0xFFFF))
+        self.add_args((mac_address & 0xFFFFFFFF))
+
+    def process_resp(self, resp):
+        # Contains a WWARPNet Buffer of all station info entries.  Need to 
+        #   convert to a list of station info dictionaries.
+        import wlan_exp.log.entry_types as entry_types
+
+        index   = 0
+        data    = resp.get_bytes()
+        ret_val = entry_types.entry_station_info.deserialize(data[index:])
+
+        if (False):
+            msg = "Station Info Data buffer:"
+            for i, byte in enumerate(data[index:]):
+                if ((i % 16) == 0): msg += "\n    "
+                try:
+                    msg += "0x{0:02X} ".format(ord(byte))
+                except:
+                    msg += "0x{0:02X} ".format(byte)
+            print(msg)
+
+        # Clean up the station info entries
+        for val in ret_val:
+            if (val['host_name'][0] == '\x00'):
+                val['host_name'] = '\x00'
+
+        return ret_val
+
+# End Class
+
+
+class NodeGetBSSInfo(wn_message.BufferCmd):
+    """Command to get the BSS info for a given BSS ID."""
+    def __init__(self, bssid=None):
+        super(NodeGetBSSInfo, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_GET_BSS_INFO
+
+        if bssid is None:
+            bssid = 0x0000000000000000
+        elif type(bssid) is str:
+            bssid = CMD_PARAM_GET_ALL_ASSOCIATED      # If BSSID is a string, then get all bss info
+
+        self.add_args(((bssid >> 32) & 0xFFFF))
+        self.add_args((bssid & 0xFFFFFFFF))
+
+
+    def process_resp(self, resp):
+        # Contains a WWARPNet Buffer of all station info entries.  Need to 
+        #   convert to a list of station info dictionaries.
+        import wlan_exp.log.entry_types as entry_types
+
+        index   = 0
+        data    = resp.get_bytes()
+        ret_val = entry_types.entry_bss_info.deserialize(data[index:])
+
+        if (False):
+            msg = "BSS Info Data buffer:"
+            for i, byte in enumerate(data[index:]):
+                if ((i % 16) == 0): msg += "\n    "
+                try:
+                    msg += "0x{0:02X} ".format(ord(byte))
+                except:
+                    msg += "0x{0:02X} ".format(byte)
+            print(msg)
+
+        # Clean up the bss info entries
+        #   - Remove extra characters in the SSID
+        #   - Convert the BSS ID to an integer so it can be treated like a MAC address
+        for val in ret_val:
+            val['ssid']      = val['ssid'].strip('\x00')
+            val['bssid_int'] = sum([ord(b) << (8 * i) for i, b in enumerate(val['bssid'][::-1])])            
+
+        return ret_val
+
+# End Class
+
+
 
 #--------------------------------------------
 # Queue Commands
@@ -1171,6 +1380,76 @@ class QueueTxDataPurgeAll(wn_message.Cmd):
 #--------------------------------------------
 # AP Specific Commands
 #--------------------------------------------
+class NodeAPConfigure(wn_message.Cmd):
+    """Command to configure the AP.
+    
+    Attributes (default state on the node is in CAPS):
+        power_savings   -- Enable power saving mode (TRUE/False)
+    """
+    def __init__(self, power_savings=None):
+        super(NodeSTAConfigure, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_CONFIG
+
+        flags = 0
+        mask  = 0
+
+        if power_savings is not None:
+            mask += CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING
+            if power_savings:
+                flags += CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING
+                
+        self.add_args(flags)
+        self.add_args(mask)
+    
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
+
+class NodeAPProcDTIMPeriod(wn_message.Cmd):
+    """Command to get / set the number of beacon intervals between DTIM beacons
+    
+    Attributes:
+        cmd         -- Sub-command to send over the WARPNet command.  Valid values are:
+                         CMD_PARAM_READ
+                         CMD_PARAM_WRITE
+        num_beacons -- Number of beacon intervals between DTIM beacons (0 - 255)
+    """
+    def __init__(self, cmd, num_beacons=None):
+        super(NodeProcTxAntMode, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_DTIM_PERIOD
+
+        if (cmd == CMD_PARAM_WRITE):
+            self.add_args(cmd)
+
+            if num_beacons is None:
+                msg = "Number of beacon intervals [0,255] must be provided for WRITE"
+                raise ValueError(msg)
+            
+            if (num_beacons <   0): num_beacons = 0
+            if (num_beacons > 255): num_beacons = 255
+            
+            self.add_args(num_beacons)
+
+        elif (cmd == CMD_PARAM_READ):
+            self.add_args(cmd)
+
+        else:
+            msg = "Unsupported command: {0}".format(cmd)
+            raise ValueError(msg)
+            
+
+    def process_resp(self, resp):
+        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='DTIM Period command'):
+            args = resp.get_args()
+            return (args[1] & 0xFF)
+        else:
+            return CMD_PARAM_ERROR
+
+# End Class
+
+
 class NodeAPAddAssociation(wn_message.Cmd):
     """Command to add the association to the association table on the AP.
     
@@ -1218,49 +1497,22 @@ class NodeAPAddAssociation(wn_message.Cmd):
 # End Class
 
 
-class NodeAPProcSSID(wn_message.Cmd):
-    """Command to get / set the SSID of the AP."""
+class NodeAPSetSSID(wn_message.Cmd):
+    """Command to set the SSID of the AP."""
     ssid = None
 
-    def __init__(self, ssid=None):
-        super(NodeAPProcSSID, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SSID
+    def __init__(self, ssid):
+        super(NodeAPSetSSID, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SET_SSID
         
-        if ssid is None:
-            self.add_args(CMD_PARAM_READ)
-        else:
-            self.ssid = ssid            
-            self.add_args(CMD_PARAM_WRITE)
+        self.ssid = ssid            
+        self.add_args(CMD_PARAM_WRITE)
 
-            _add_ssid_to_cmd(self, ssid)
+        _add_ssid_to_cmd(self, ssid)
             
 
     def process_resp(self, resp):
-        args       = resp.get_args()
-        arg_length = len(args)
-
-        resp.resp_is_valid(num_args=arg_length, status_errors=[CMD_PARAM_ERROR], 
-                                  name='Process SSID')
-
-        # Actually check the number of arguments
-        if(arg_length >= 2):
-            length = args[1]
-        else:
-            raise Exception('ERROR: invalid response to process SSID - N_ARGS = {0}'.format(len(args)))
-
-        # Get the SSID from the response
-        if (length > 0):
-            import struct
-            ssid_buffer = struct.pack('!%dI' % (arg_length - 2), *args[2:] )
-            ssid_tuple  = struct.unpack_from('!%ds' % length, ssid_buffer)
-
-            # Python 3 vs 2 issue
-            try:
-                ssid    = str(ssid_tuple[0], encoding='UTF-8')
-            except:
-                ssid    = str(ssid_tuple[0])
-        else:
-            ssid        = ""
+        ssid = _get_ssid_from_resp(resp)
  
         if self.ssid is not None:
             if (self.ssid != ssid):
@@ -1330,9 +1582,9 @@ class NodeSTAConfigure(wn_message.Cmd):
         mask  = 0
 
         if beacon_ts_update is not None:
-            mask += CMD_PARAM_NODE_STA_BEACON_TS_UPDATE
+            mask += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE
             if beacon_ts_update:
-                flags += CMD_PARAM_NODE_STA_BEACON_TS_UPDATE
+                flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE
                 
         self.add_args(flags)
         self.add_args(mask)
@@ -1379,6 +1631,283 @@ class NodeSTAAddAssociation(wn_message.Cmd):
         if (resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], 
                                name='STA associate with {0}'.format(self.name))):
             return True
+        else:
+            return False
+
+# End Class
+
+
+
+#--------------------------------------------
+# IBSS Specific Commands
+#--------------------------------------------
+class NodeIBSSConfigure(wn_message.Cmd):
+    """Command to configure the IBSS.
+    
+    Attributes (default state on the node is in CAPS):
+        beacon_ts_update    -- Enable timestamp updates from beacons (TRUE/False)
+        beacon_transmit     -- Enable beacon transmission (TRUE/False)
+    
+    NOTE:
+        Allowed values of the (beacon_ts_update, beacon_transmit) are: 
+            (True, True), (True, False), (False, False)
+        (ie you must update your timestamps if you want to send beacons)
+    """
+    def __init__(self, beacon_ts_update=None, beacon_transmit=None):
+        super(NodeIBSSConfigure, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_IBSS_CONFIG
+
+        flags = 0
+        mask  = 0
+
+        if beacon_ts_update is not None:
+            mask += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE
+            if beacon_ts_update:
+                flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE
+
+        if beacon_transmit is not None:
+            mask += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT
+            if beacon_transmit:
+                flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT
+
+        legal_values = [0, CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE, 
+                        (CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE + CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT)]
+
+        if ((mask & flags) not in legal_values):
+            msg  = "Allowed values of the (beacon_ts_update, beacon_transmit) are:\n"
+            msg += "    (True, True), (True, False), (False, False)\n"
+            msg += "Provided: ({0}, {1})".format(beacon_ts_update, beacon_transmit)
+            raise ValueError(msg)
+
+        self.add_args(flags)
+        self.add_args(mask)
+
+    
+    def process_resp(self, resp):
+        if (resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], name='IBSS Configure command')):
+            return True
+        else:
+            return False
+
+# End Class
+
+
+
+#--------------------------------------------
+# STA / IBSS Common Commands
+#--------------------------------------------
+class NodeProcScanParam(wn_message.Cmd):
+    """Command to configure the scan parameters
+    
+    Attributes:
+        cmd                -- Command for Process Scan Param:
+                                CMD_PARAM_WRITE
+        time_per_channel   -- Time (in float sec) to spend on each channel (optional)
+        idle_time_per_loop -- Time (in float sec) to wait between each scan loop (optional)
+        channel_list       -- Channels to scan (optional)
+                                Defaults to all channels in util.py wlan_channel array
+                                Can provide either an entry or list of entries from 
+                                  wlan_channel array or a channel number or list of 
+                                  channel numbers
+    """
+    time_factor = 6
+    time_type   = None
+
+    def __init__(self, cmd, time_per_channel=None, idle_time_per_loop=None, channel_list=None):
+        super(NodeProcScanParam, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_SCAN_PARAM
+
+        if (cmd == CMD_PARAM_WRITE):
+            self.add_args(cmd)
+
+            # Add the time_per_channel to the command
+            _add_time_to_cmd32(self, time_per_channel, self.time_factor)
+
+            # Add the idle_time_per_loop to the command
+            _add_time_to_cmd32(self, idle_time_per_loop, self.time_factor)
+
+            # Format the channel list
+            if channel_list is not None:
+
+                if type(channel_list) is list:
+                    self.add_args(len(channel_list))
+                    
+                    for channel in channel_list:
+                        self.add_channel(channel)
+
+                else:
+                    self.add_args(1)
+                    self.add_channel(channel_list)
+                
+            else:
+                self.add_args(CMD_PARAM_RSVD)
+
+        else:
+            msg = "Unsupported command: {0}".format(cmd)
+            raise ValueError(msg)
+
+
+    def add_channel(self, channel):
+        """Internal method to add a channel"""
+        chan_to_add = CMD_PARAM_RSVD_CHANNEL
+        
+        try:
+            chan_to_add = channel['index']
+        except (KeyError, TypeError):
+            import wlan_exp.util as util
+            
+            tmp_chan = util.find_channel_by_channel_number(channel)
+            
+            if tmp_chan is not None:
+                chan_to_add = tmp_chan['index']
+            else:
+                msg  = "Unknown channel:  {0}".format(channel)
+                raise ValueError(msg)                    
+        
+        self.add_args(chan_to_add)
+            
+    
+    def process_resp(self, resp):
+        if (resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], name='Scan parameter command')):
+            return True
+        else:
+            return False
+
+# End Class
+
+
+class NodeProcScan(wn_message.Cmd):
+    """Command to enable / disable active scan
+    
+    Attributes:
+        enable -- Whether we are enabling (True) or disabling (False) active scan
+        ssid   -- SSID to scan for as part of probe request (optional)
+                      A value of None means that the node will scan for all SSIDs
+        bssid  -- BSSID to scan for as part of probe request (optional)
+                      A value of None means that the node will scan for all BSSIDs
+    """
+    def __init__(self, enable, ssid=None, bssid=None):
+        super(NodeProcScan, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_SCAN
+
+        if enable:
+            self.add_args(CMD_PARAM_NODE_SCAN_ENABLE)
+        else:
+            self.add_args(CMD_PARAM_NODE_SCAN_DISABLE)
+
+        if bssid is not None:
+            self.add_args(((bssid >> 32) & 0xFFFF))
+            self.add_args((bssid & 0xFFFFFFFF))
+        else:
+            self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+            self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+
+        if ssid is not None:
+            _add_ssid_to_cmd(self, ssid)
+        else:
+            _add_ssid_to_cmd(self, "")       # Default SSID to scan for "all SSIDs"
+        
+
+    def process_resp(self, resp):
+        pass
+
+# End Class
+
+
+class NodeProcJoin(wn_message.Cmd):
+    """Command to join a given BSS
+    
+    Attributes:
+        bss_info -- Dictionary discribing the BSS to join
+        timeout  -- Maximum amount of time (in float seconds) to try to join the 
+                    given network (optional)
+    """
+    time_factor = 6
+    
+    def __init__(self, bss_info, timeout=None):
+        super(NodeProcJoin, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_JOIN
+
+        _add_time_to_cmd32(self, timeout, self.time_factor)
+
+        if type(bss_info) is dict:
+            # Convert BSS info dictionary to bytes for transfer
+            import struct
+            import wlan_exp.log.entry_types as entry_types
+    
+            data_to_send = entry_types.entry_bss_info.serialize(bss_info)
+            data_len     = len(data_to_send)
+
+            self.add_args(data_len)
+        
+            data_buf = bytearray(data_to_send)
+            
+            # Zero pad so that the data buffer is 32-bit aligned
+            if ((len(data_buf) % 4) != 0):
+                data_buf += bytearray(4 - (len(data_buf) % 4))
+            
+            idx = 0
+            while (idx < len(data_buf)):
+                arg = struct.unpack_from('!I', data_buf[idx:idx+4])
+                self.add_args(arg[0])
+                idx += 4
+        else:
+            msg = "BSS info parameter must be a bss_info dictionary."
+            raise TypeError(msg)
+        
+
+    def process_resp(self, resp):
+        if (resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Join command')):
+            args = resp.get_args()
+            if (args[1] != CMD_PARAM_NODE_JOIN_FAILED):
+                return True
+            else:
+                return False
+        else:
+            return False
+
+# End Class
+
+
+class NodeProcScanAndJoin(wn_message.Cmd):
+    """Command to scan for the given network and join it if present
+    
+    Attributes:
+        ssid   -- SSID to scan for as part of probe request
+        bssid  -- BSSID to scan for as part of probe request (optional)
+                      A value of None means that the node will scan for all BSSIDs
+        timeout  -- Maximum amount of time (in float seconds) to try to scan for the 
+                    given network and depending on the type of node the maximum 
+                    amount of time to try to join the given network (optional)
+    """
+    time_factor = 0                              # Need to only transfer seconds
+    
+    def __init__(self, ssid, bssid=None, timeout=5.0):
+        super(NodeProcScanAndJoin, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_SCAN_AND_JOIN
+
+        _add_time_to_cmd32(self, timeout, self.time_factor)
+
+        if bssid is not None:
+            self.add_args(((bssid >> 32) & 0xFFFF))
+            self.add_args((bssid & 0xFFFFFFFF))
+        else:
+            self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+            self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+
+        if ssid is not None:
+            _add_ssid_to_cmd(self, ssid)
+        else:
+            raise ValueError("Must provide a valid SSID for Scan and Join.")
+
+
+    def process_resp(self, resp):
+        if (resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Join command')):
+            args = resp.get_args()
+            if (args[1] != CMD_PARAM_NODE_JOIN_FAILED):
+                return True
+            else:
+                return False
         else:
             return False
 
@@ -1457,7 +1986,6 @@ class NodeMemAccess(wn_message.Cmd):
 
 
 
-
 #--------------------------------------------
 # Misc Helper methods
 #--------------------------------------------
@@ -1494,6 +2022,99 @@ def _add_ssid_to_cmd(cmd, ssid):
 # End def
 
 
+def _add_time_to_cmd64(cmd, time, time_factor):
+    """Internal method to add a 64-bit time value to the given command.
+
+    Returns:
+        Type of the time argument    
+    """
+    ret_val = TIME_TYPE_FLOAT
+    
+    if time is not None:
+        # Format the time appropriately
+        if   (type(time) is float):
+            time_to_send   = int(round(time, time_factor) * (10**time_factor))
+            ret_val        = TIME_TYPE_FLOAT
+        elif (type(time) is int):
+            time_to_send   = time
+            ret_val        = TIME_TYPE_INT
+        else:
+            raise TypeError("Time must be either a float or int")
+
+        cmd.add_args((time_to_send & 0xFFFFFFFF))
+        cmd.add_args(((time_to_send >> 32) & 0xFFFFFFFF))
+    else:
+        cmd.add_args(CMD_PARAM_RSVD_TIME)
+        cmd.add_args(CMD_PARAM_RSVD_TIME)
+
+    return ret_val
+
+# End def
+
+
+def _add_time_to_cmd32(cmd, time, time_factor):
+    """Internal method to add a 32-bit time value to the given command.
+
+    Returns:
+        Type of the time argument    
+    """
+    ret_val = TIME_TYPE_FLOAT
+    
+    if time is not None:
+        # Format the time appropriately
+        if   (type(time) is float):
+            time_to_send   = int(round(time, time_factor) * (10**time_factor))
+            ret_val        = TIME_TYPE_FLOAT
+        elif (type(time) is int):
+            time_to_send   = time
+            ret_val        = TIME_TYPE_INT
+        else:
+            raise TypeError("Time must be either a float or int")
+
+        if (time_to_send > 0xFFFFFFFF):
+            time_to_send = 0xFFFFFFFF
+            print("WARNING:  Time value (in microseconds) exceeds 32-bits.  Truncating.\n")
+
+        cmd.add_args((time_to_send & 0xFFFFFFFF))
+    else:
+        cmd.add_args(CMD_PARAM_RSVD_TIME)
+
+    return ret_val
+
+# End def
+
+
+def _get_ssid_from_resp(resp):
+    """Internal method to process an SSID from a response."""
+    args       = resp.get_args()
+    arg_length = len(args)
+
+    resp.resp_is_valid(num_args=arg_length, status_errors=[CMD_PARAM_ERROR], 
+                              name='Process SSID')
+
+    # Actually check the number of arguments
+    if(arg_length >= 2):
+        length = args[1]
+    else:
+        raise Exception('ERROR: invalid response to process SSID - N_ARGS = {0}'.format(len(args)))
+
+    # Get the SSID from the response
+    if (length > 0):
+        import struct
+        ssid_buffer = struct.pack('!%dI' % (arg_length - 2), *args[2:] )
+        ssid_tuple  = struct.unpack_from('!%ds' % length, ssid_buffer)
+
+        # Python 3 vs 2 issue
+        try:
+            ssid    = str(ssid_tuple[0], encoding='UTF-8')
+        except:
+            ssid    = str(ssid_tuple[0])
+    else:
+        ssid        = ""
+    
+    return ssid
+
+# End def
 
 
 

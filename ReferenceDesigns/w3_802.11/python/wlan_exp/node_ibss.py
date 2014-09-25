@@ -55,84 +55,123 @@ class WlanExpNodeIBSS(node.WlanExpNode):
 
 
     #-------------------------------------------------------------------------
-    # WLAN Exp Commands for the AP
+    # WLAN Exp Commands for the IBSS
     #-------------------------------------------------------------------------
-    def set_authentication_address_filter(self, allow):
-        """Command to set the authentication address filter on the node.
+    def ibss_configure(self, beacon_ts_update=None, beacon_transmit=None ):
+        """Configure the STA behavior.
+
+        By default all attributes are set to None.  Only attributes that 
+        are given values will be updated on the node.  If an attribute is
+        not specified, then that attribute will retain the same value on
+        the node.
+
+        Attributes (default state on the node is in CAPS):
+            beacon_ts_update    -- Enable timestamp updates from beacons (TRUE/False)
+            beacon_transmit     -- Enable beacon transmission (TRUE/False)
+        
+        NOTE:
+            Allowed values of the (beacon_ts_update, beacon_transmit) are: 
+                (True, True), (True, False), (False, False)
+            (ie you must update your timestamps if you want to send beacons)
+        """
+        self.send_cmd(cmds.NodeIBSSConfigure(beacon_ts_update, beacon_transmit))
+
+
+    def scan_start(self, time_per_channel=0.1, channel_list=None, ssid=None, bssid=None):
+        """Scan for BSS networks.
         
         Attributes:
-            allow  -- List of (address, mask) tuples that will be used to filter addresses
-                      on the node.
-    
-        NOTE:  For the mask, bits that are 0 are treated as "any" and bits that are 1 are 
-        treated as "must equal".  For the address, locations of one bits in the mask 
-        must match the incoming addresses to pass the filter.
+            time_per_channel -- Time (in float sec) to spend on each channel (optional)
+            channel_list     -- Channels to scan (optional)
+                                  Defaults to all channels in util.py wlan_channel array
+                                  Can provide either an entry or list of entries from 
+                                      wlan_channel array or a channel number or list of 
+                                      channel numbers
+            ssid             -- SSID to scan for as part of probe request (optional)
+                                  A value of None means that the node will scan for all SSIDs
+            bssid            -- BSSID to scan for as part of probe request (optional)
+                                  A value of None means that the node will scan for all BSSIDs
+        
+        Returns:
+            List of bss_infos
         """
-        if (type(allow) is list):
-            self.send_cmd(cmds.NodeAPSetAuthAddrFilter(allow))
+        import time
+        import wlan_exp.util as util
+
+        wait_time = 0
+        idle_time_per_loop = 1.0
+
+        if channel_list is None:
+            wait_time = time_per_channel * (len(util.wlan_channel) + 1)
         else:
-            self.send_cmd(cmds.NodeAPSetAuthAddrFilter([allow]))
+            wait_time = time_per_channel * (len(channel_list) + 1)
+        
+        self.set_scan_parameters(time_per_channel, idle_time_per_loop, channel_list)
+        self.scan_enable(ssid, bssid)
+        time.sleep(wait_time)
+        self.scan_disable()
 
-
-    def get_ssid(self):
-        """Command to get the SSID of the AP."""
-        return self.send_cmd(cmds.NodeAPProcSSID())
-
-
-    def set_ssid(self, ssid):
-        """Command to set the SSID of the AP."""
-        return self.send_cmd(cmds.NodeAPProcSSID(ssid))
-
-
-    def add_association(self, device_list, allow_timeout=None):
-        """Command to add an association to each device in the device list.
+        return self.get_bss_info('ASSOCIATED_BSS')        
+    
+       
+    def set_scan_parameters(self, time_per_channel=0.1, idle_time_per_loop=1.0, channel_list=None):
+        """Set the scan parameters.
         
         Attributes:
-            device_list   -- Device(s) to add to the association table
-            allow_timeout -- Allow the association to timeout if inactive
+            time_per_channel   -- Time (in float sec) to spend on each channel (defaults to 0.1 sec)
+            idle_time_per_loop -- Time (in float sec) to wait between each scan loop (defaults to 1 sec)
+            channel_list       -- Channels to scan (optional)
+                                    Defaults to all channels in util.py wlan_channel array
+                                    Can provide either an entry or list of entries from 
+                                      wlan_channel array or a channel number or list of 
+                                      channel numbers
         
-        NOTE:  This adds an association with the default tx/rx params.  If
-            allow_timeout is not specified, the default on the node is to 
-            not allow timeout of the association.
-
-        NOTE:  If the device is a WlanExpNodeSta, then this method will also
-            add the association to that device.
-        
-        NOTE:  The add_association method will bypass any association address filtering
-            on the node.  One caveat is that if a device sends a de-authentication packet
-            to the AP, the AP will honor it and completely remove the device from the 
-            association table.  If the association address filtering is such that the
-            device is not allowed to associate, then the device will not be allowed back
-            on the AP even though at the start of the experiment the association was 
-            explicitly added.
+        NOTE:  If the channel list is not specified, then it will not be updated on the node.
         """
-        ret_val = []
+        self.send_cmd(cmds.NodeProcScanParam(cmds.CMD_PARAM_WRITE, time_per_channel, idle_time_per_loop, channel_list))
+    
+    
+    def scan_enable(self, ssid=None, bssid=None):
+        """Enables the scan utilizing the current scan parameters.
         
-        try:
-            for device in device_list:
-                ret_val.append(self._add_association(device, allow_timeout))
-        except TypeError:
-            ret_val.append(self._add_association(device_list, allow_timeout))
-        
-        return ret_val
-        
+        Attributes:
+            ssid   -- SSID to scan for as part of probe request (optional)
+                          A value of None means that the node will scan for all SSIDs
+            bssid  -- BSSID to scan for as part of probe request (optional)
+                          A value of None means that the node will scan for all BSSIDs
+        """
+        self.send_cmd(cmds.NodeProcScan(enable=True, ssid=ssid, bssid=bssid))
+    
+    
+    def scan_disable(self):
+        """Disables the current scan."""
+        self.send_cmd(cmds.NodeProcScan(enable=False, ssid=None, bssid=None))
 
-    def _add_association(self, device, allow_timeout):
-        """Internal command to add an association."""
-        ret_val = False
 
-        aid = self.send_cmd(cmds.NodeAPAddAssociation(device))
+    def join(self, bss_info):
+        """Join the provided BSS.
         
-        if (aid != cmds.CMD_PARAM_ERROR):
-            import wlan_exp.node_sta as node_sta
-
-            if isinstance(device, node_sta.WlanExpNodeSta):
-                if device.send_cmd(cmds.NodeSTAAddAssociation(self, aid)):
-                    ret_val = True
-            else:
-                ret_val = True
+        Attributes:
+            bss_info -- Dictionary discribing the BSS to join
             
-        return ret_val
+        Returns:
+            True -- Replaces "my_bss_info" so you always "join" the BSS.
+        """
+        return self.send_cmd(cmds.NodeProcJoin(bss_info))
+    
+            
+    def scan_and_join(self, ssid, timeout=5.0):
+        """Scan for the given network and try to join.
+        
+        Attributes:
+            ssid      -- SSID to scan for as part of probe request
+            timeout   -- Number of seconds to scan for the network before timing out
+
+        Returns:
+            True      -- Inidcates you successfully joined the BSS
+            False     -- Indicates that you were not able to find the BSS
+        """
+        return self.send_cmd(cmd=cmds.NodeProcScanAndJoin(ssid=ssid, bssid=None, timeout=timeout), timeout=timeout)
 
 
 

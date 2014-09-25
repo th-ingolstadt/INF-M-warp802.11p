@@ -359,7 +359,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
     def log_write_txrx_stats(self):
         """Write the current statistics to the log."""
-        return self.send_cmd(cmds.StatsAddTxRxToLog())
+        return self.send_cmd(cmds.LogAddStatsTxRx())
 
 
     #--------------------------------------------
@@ -416,7 +416,18 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     # Local Traffic Generation (LTG) Commands
     #--------------------------------------------
     def ltg_configure(self, traffic_flow, auto_start=False):
-        """Configure the node for the given traffic flow."""
+        """Configure the node for the given traffic flow.
+        
+        Attributes:
+            traffic_flow -- This is a traffic flow class (subclass of FlowConfig)
+                            that describes the parameters of the LTG.  You can 
+                            find the defined traffic flows in ltg.py
+            auto_start   -- Automatically start the LTG or wait until it is 
+                            explictly started.
+        
+        Returns:
+            LTG ID of the flow        
+        """
         traffic_flow.enforce_min_resolution(self.wlan_scheduler_resolution)
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
 
@@ -502,16 +513,13 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     def reset_all(self):
         """Resets all portions of a node.
         
-        NOTE:  reset_all will not alter assocation state.  This is to maintain 
-            backward compatibility with older code where it was not possible to 
-            set association state.  To clear association state, you can explictly
-            use the "associations" flag of the reset command.        
+        This includes:  Log, Statistics, LTG, Queues, Association State        
         """
         status = self.reset(log=True, 
                             txrx_stats=True, 
                             ltg=True, 
                             queue_data=True, 
-                            associations=False)
+                            associations=True)
 
         if (status == cmds.CMD_PARAM_LTG_ERROR):
             print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
@@ -544,92 +552,33 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         self.send_cmd(cmds.NodeResetState(flags))
 
 
-    def is_associated(self, device_list):
-        """Is the node associated with the devices in the device list.
+    def set_wlan_mac_address(self, mac_address=None):
+        """Set the WLAN MAC Address of the node.
         
-        Returns:
-            A boolean or list of booleans.  
+        This will allow a user to spoof the wireless MAC address of the node.  If
+        the mac_address is not provided, then the node will set the wirelss MAC
+        address back to the default for the node (ie the Eth A MAC address stored in 
+        the EEPROM).  This will perform a "reset_all()" command on the node to 
+        remove any existing state to limit any corner cases that might arise from
+        changing the wireless MAC address.        
+        """
+        addr = self.send_cmd(cmds.NodeProcWLANMACAddr(cmds.CMD_PARAM_WRITE, mac_address))
+        self.wlan_mac_address = addr
+
+
+    def get_wlan_mac_address(self):
+        """Get the WLAN MAC Address of the node."""
+        addr = self.send_cmd(cmds.NodeProcWLANMACAddr(cmds.CMD_PARAM_READ))
+
+        if (addr != self.wlan_mac_address):
+            import wlan_exp.util as util
             
-        If the device_list is a single device, then only a boolean is 
-        returned.  If the device_list is a list of devices, then a list of
-        booleans will be returned in the same order as the devices in the
-        list.
-        
-        For is_associated to return True, one of the following conditions 
-        must be met:
-          1) If the device is a wlan_exp node, then both the node and the 
-             device must be associated.
-          2) If the device is a 802.11 device, then only the node must be 
-             associated with the device, since we cannot know the state of
-             the 802.11 device.
-        """
-        ret_val = []
-        
-        if device_list is not None:
-            if (type(device_list) is list):
-                for idx, device in enumerate(device_list):
-                    my_info   = self.get_station_info(device)
-                    
-                    try:
-                        dev_info = device.send_cmd(cmds.NodeGetStationInfo(self))
-                    except AttributeError:
-                        dev_info = True
-                    
-                    # If the lists are not empty, then the nodes are associated
-                    if my_info and dev_info:
-                        ret_val.append(True)
-                    else:
-                        ret_val.append(False)
-            else:
-                my_info   = self.get_station_info(device_list)
-                try:
-                    dev_info = device_list.send_cmd(cmds.NodeGetStationInfo(self))
-                except AttributeError:
-                    dev_info = True
+            msg  = "WARNING:  WLAN MAC address mismatch.\n"
+            msg += "    Received MAC Address:  {0}".format(util.mac_addr_to_str(addr))
+            msg += "    Original MAC Address:  {0}".format(util.mac_addr_to_str(self.wlan_mac_address))
 
-                if my_info and dev_info:
-                    ret_val = True
-                else:
-                    ret_val = False
-        else:
-            ret_val = False
-        
-        return ret_val
+        return addr
 
-
-    def get_station_info(self, device_list=None):
-        """Get the station info from the node.
-        
-        Returns:
-            A station info dictionary or list of station info dictionaries.
-
-        If the device_list is a single device, then only a station info or 
-        None is returned.  If the device_list is a list of devices, then a 
-        list of station infos will be returned in the same order as the 
-        devices in the list.  If any of the station info are not there, 
-        None will be inserted in the list.  If the device_list is not 
-        specified, then all the station infos on the node will be returned.
-        """
-        ret_val = []
-        if not device_list is None:
-            if (type(device_list) is list):
-                for device in device_list:
-                    info = self.send_cmd(cmds.NodeGetStationInfo(device))
-                    if (len(info) == 1):
-                        ret_val.append(info)
-                    else:
-                        ret_val.append(None)
-            else:
-                ret_val = self.send_cmd(cmds.NodeGetStationInfo(device_list))
-                if (len(ret_val) == 1):
-                    ret_val = ret_val[0]
-                else:
-                    ret_val = None
-        else:
-            ret_val = self.send_cmd(cmds.NodeGetStationInfo())
-
-        return ret_val
-    
 
     def set_time(self, time, time_id=None):
         """Sets the time in microseconds on the node.
@@ -815,38 +764,35 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
     def get_phy_cs_thresh(self):
         """Gets the physical carrier sense threshold of the node."""
-        raise NotImplementedError
+        return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH))
         
+
     def set_timestamp_offset(self, val):
         """Sets a usec offset that will be applied to beacon timestamps."""
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET, val)      
 
-    def get_timestamp_offset(self, val):
+
+    def get_timestamp_offset(self):
         """Gets a usec offset that will be applied to beacon timestamps."""
-        raise NotImplementedError
-       
+        return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET))
+
+
     def set_cw_exp_min(self, val):
         """Sets the the minimum contention window:
-                1  -- [0,1]
-                2  -- [0,3]
-                3  -- [0,7]
-                4  -- [0,15]
-                5  -- [0,31]
-                ...
-                10 -- [0,1023]
+           
+           Attributes:
+               val  -- Sets the contention window to [0, 2^(val)]
+                       For example, 1 -- [0,1]; 10 -- [0,1023]
         """
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN, val)       
 
         
     def set_cw_exp_max(self, val):
         """Sets the the maximum contention window:
-                1  -- [0,1]
-                2  -- [0,3]
-                3  -- [0,7]
-                4  -- [0,15]
-                5  -- [0,31]
-                ...
-                10 -- [0,1023]
+
+           Attributes:
+               val  -- Sets the contention window to [0, 2^(val)]
+                       For example, 1 -- [0,1]; 10 -- [0,1023]
         """
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, val)               
 
@@ -856,7 +802,9 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         
         Returns a tuple containing the (min, max) contention window
         """
-        raise NotImplementedError
+        cw_max = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX))
+        cw_min = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN))
+        return (cw_min, cw_max)
 
 
     def set_random_seed(self, high_seed=None, low_seed=None, gen_random=False):
@@ -893,12 +841,12 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
     def enable_dsss(self):
         """Enables DSSS receptions on the node."""
-        raise NotImplementedError
+        self.send_cmd(cmds.NodeConfigure(dsss_enable=True))
     
     
     def disable_dsss(self):
         """Disable DSSS receptions on the node."""
-        raise NotImplementedError
+        self.send_cmd(cmds.NodeConfigure(dsss_enable=False))
 
 
 
@@ -1005,6 +953,11 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     # Association Commands
     #   NOTE:  Some commands are implemented in sub-classes
     #--------------------------------------------
+    def get_ssid(self):
+        """Command to get the SSID of the AP."""
+        return self.send_cmd(cmds.NodeGetSSID())
+
+
     def disassociate(self, device_list):
         """Remove associations of devices within the device_list from the association table
         
@@ -1021,6 +974,206 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     def disassociate_all(self):
         """Remove all associations from the association table"""
         self.send_cmd(cmds.NodeDisassociate())
+
+
+    def is_associated(self, device_list):
+        """Is the node associated with the devices in the device list.
+        
+        Returns:
+            A boolean or list of booleans.  
+            
+        If the device_list is a single device, then only a boolean is 
+        returned.  If the device_list is a list of devices, then a list of
+        booleans will be returned in the same order as the devices in the
+        list.
+        
+        For is_associated to return True, one of the following conditions 
+        must be met:
+          1) If the device is a wlan_exp node, then both the node and the 
+             device must be associated.
+          2) If the device is a 802.11 device, then only the node must be 
+             associated with the device, since we cannot know the state of
+             the 802.11 device.
+        """
+        ret_val  = [] 
+        ret_list = True        
+        my_info  = self.get_bss_info()           # Get node's BSS info
+        my_bssid = my_info['bssid']
+
+        if device_list is not None:            
+            # Convert device_list to a list if it is not already one; set flag to not return a list
+            if type(device_list) is not list:
+                device_list = [device_list]
+                ret_list    = False
+            
+            for idx, device in enumerate(device_list):                    
+                try:
+                    dev_info  = device.get_bss_info()
+                    dev_bssid = dev_info['bssid']
+                except (AttributeError, KeyError, TypeError):
+                    dev_bssid = None
+
+                # If the bssids are the same, then the nodes are associated
+                if (my_bssid == dev_bssid):
+                    ret_val.append(True)
+                else:
+                    ret_val.append(False)
+        else:
+            ret_val = False
+
+        # Need to return a single value and not a list
+        if not ret_list:
+            ret_val = ret_val[0]
+        
+        return ret_val
+
+
+    def is_associated_old(self, device_list):
+        """Is the node associated with the devices in the device list.
+        
+        Returns:
+            A boolean or list of booleans.  
+            
+        If the device_list is a single device, then only a boolean is 
+        returned.  If the device_list is a list of devices, then a list of
+        booleans will be returned in the same order as the devices in the
+        list.
+        
+        For is_associated to return True, one of the following conditions 
+        must be met:
+          1) If the device is a wlan_exp node, then both the node and the 
+             device must be associated.
+          2) If the device is a 802.11 device, then only the node must be 
+             associated with the device, since we cannot know the state of
+             the 802.11 device.
+        """
+        ret_val = []
+        
+        if device_list is not None:
+            if (type(device_list) is list):
+                for idx, device in enumerate(device_list):
+                    my_info   = self.get_station_info(device)
+                    
+                    try:
+                        dev_info = device.send_cmd(cmds.NodeGetStationInfo(self))
+                    except AttributeError:
+                        dev_info = True
+                    
+                    # If the lists are not empty, then the nodes are associated
+                    if my_info and dev_info:
+                        ret_val.append(True)
+                    else:
+                        ret_val.append(False)
+            else:
+                my_info   = self.get_station_info(device_list)
+                try:
+                    dev_info = device_list.send_cmd(cmds.NodeGetStationInfo(self))
+                except AttributeError:
+                    dev_info = True
+
+                if my_info and dev_info:
+                    ret_val = True
+                else:
+                    ret_val = False
+        else:
+            ret_val = False
+        
+        return ret_val
+
+
+    def get_station_info(self, device_list=None):
+        """Get the station info from the node.
+        
+        Returns:
+            A station info dictionary or list of station info dictionaries.
+
+        If the device_list is a single device, then only a station info or 
+        None is returned.  If the device_list is a list of devices, then a 
+        list of station infos will be returned in the same order as the 
+        devices in the list.  If any of the station info are not there, 
+        None will be inserted in the list.  If the device_list is not 
+        specified, then all the station infos on the node will be returned.
+        """
+        ret_val = []
+        if not device_list is None:
+            if (type(device_list) is list):
+                for device in device_list:
+                    info = self.send_cmd(cmds.NodeGetStationInfo(device))
+                    if (len(info) == 1):
+                        ret_val.append(info)
+                    else:
+                        ret_val.append(None)
+            else:
+                ret_val = self.send_cmd(cmds.NodeGetStationInfo(device_list))
+                if (len(ret_val) == 1):
+                    ret_val = ret_val[0]
+                else:
+                    ret_val = None
+        else:
+            ret_val = self.send_cmd(cmds.NodeGetStationInfo())
+
+        return ret_val
+    
+
+    def get_bss_info(self, bssid_list=None):
+        """Get the BSS info from the node.
+        
+        Returns:
+            A BSS info dictionary or list of BSS info dictionaries.
+
+        If the bssid_list is a single BSS ID, then only a single BSS info or 
+        None is returned.  If the bssid_list is a list of BSS IDs, then a 
+        list of BSS infos will be returned in the same order as the 
+        BSS IDs in the list.  If any of the BSS infos are not there, 
+        None will be inserted in the list.  If the bssid_list is not 
+        specified, then "my_bss_info" on the node will be returned.  If the
+        the bssid_list is the string "ASSOCIATED_BSS", then all of the BSS infos
+        on the node will be returned.
+        """
+        ret_val = []
+        if not bssid_list is None:
+            if (type(bssid_list) is list):
+                # Get all BSS infos in the list
+                for bssid in bssid_list:
+                    info = self.send_cmd(cmds.NodeGetBSSInfo(bssid))
+                    if (len(info) == 1):
+                        ret_val.append(info)
+                    else:
+                        ret_val.append(None)
+            elif (type(bssid_list) is str):
+                # Get all BSS infos on the node
+                ret_val = self.send_cmd(cmds.NodeGetBSSInfo("ALL"))
+            else:
+                # Get single BSS info or return None
+                ret_val = self.send_cmd(cmds.NodeGetBSSInfo(bssid_list))
+                if (len(ret_val) == 1):
+                    ret_val = ret_val[0]
+                else:
+                    ret_val = None
+        else:
+            # Get "my_bss_info"
+            ret_val = self.send_cmd(cmds.NodeGetBSSInfo())
+            if (len(ret_val) == 1):
+                ret_val = ret_val[0]
+            else:
+                ret_val = None
+
+        return ret_val
+    
+
+
+    #--------------------------------------------
+    # Queue Commands
+    #--------------------------------------------
+    def queue_tx_data_purge_all(self):
+        """Purges all data transmit queues on the node."""
+        self.send_cmd(cmds.QueueTxDataPurgeAll())
+
+
+
+    #--------------------------------------------
+    # Braodcast Commands can be found in util.py
+    #--------------------------------------------
 
 
 
@@ -1075,15 +1228,6 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
                 raise Exception('ERROR: values must be scalar or iterable of ints in [0,2^32-1]!')
 
         return True
-
-
-
-    #--------------------------------------------
-    # Queue Commands
-    #--------------------------------------------
-    def queue_tx_data_purge_all(self):
-        """Purges all data transmit queues on the node."""
-        self.send_cmd(cmds.QueueTxDataPurgeAll())
 
 
 

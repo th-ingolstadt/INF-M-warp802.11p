@@ -57,6 +57,34 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # WLAN Exp Commands for the AP
     #-------------------------------------------------------------------------
+    def ap_configure(self, power_savings=None):
+        """Configure the AP behavior.
+
+        By default all attributes are set to None.  Only attributes that 
+        are given values will be updated on the node.  If an attribute is
+        not specified, then that attribute will retain the same value on
+        the node.
+
+        Attributes (default state on the node is in CAPS):
+            power_savings    -- Enable power saving mode; TIM, queue pausing, etc (TRUE/False)
+        """
+        self.send_cmd(cmds.NodeAPConfigure(power_savings))
+
+
+    def set_dtim_period(self, num_beacons):
+        """Command to set the number of beacon intervals between DTIM beacons.
+        
+        Attributes:
+            num_beacons -- Number of beacon intervals between DTIM beacons (0 - 255)
+        """
+        return self.send_cmd(cmds.NodeAPProcDTIM(cmds.CMD_PARAM_WRITE, num_beacons))
+
+
+    def get_dtim_period(self):
+        """Command to get the number of beacon intervals between DTIM beacons."""
+        return self.send_cmd(cmds.NodeAPProcDTIM(cmds.CMD_PARAM_READ))
+        
+
     def set_authentication_address_filter(self, allow):
         """Command to set the authentication address filter on the node.
         
@@ -74,14 +102,19 @@ class WlanExpNodeAp(node.WlanExpNode):
             self.send_cmd(cmds.NodeAPSetAuthAddrFilter([allow]))
 
 
-    def get_ssid(self):
-        """Command to get the SSID of the AP."""
-        return self.send_cmd(cmds.NodeAPProcSSID())
-
-
     def set_ssid(self, ssid):
         """Command to set the SSID of the AP."""
-        return self.send_cmd(cmds.NodeAPProcSSID(ssid))
+        return self.send_cmd(cmds.NodeAPSetSSID(ssid))
+
+
+    def set_beacon_interval(self, beacon_interval):
+        """Command to set the beacon interval of the AP.
+
+        Attributes:
+            beacon_interval -- Integer number of beacon Time Units in [1, 65535]
+                               (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)        
+        """
+        return self.send_cmd(cmds.NodeAPSetBeaconInterval(beacon_interval))
 
 
     def add_association(self, device_list, allow_timeout=None):

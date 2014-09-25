@@ -74,14 +74,24 @@ class TransportEthUdpPy(tp.TransportEthUdp):
             print("Only {} of {} bytes of data sent".format(size, len(data)))
 
 
-    def receive(self):
+    def receive(self, timeout=None):
         """Return a response from the transport.
+
+        Attributes:
+            timeout  -- Time (in float seconds) to wait before raising an execption
+                        If no value is specified, then it will use the default 
+                        transport timeout (self.timeout)
         
         NOTE:  This function will block until a response is received or a
         timeout occurs.  If a timeout occurs, it will raise a WnTransportError
         exception.
         """
         reply = b''
+
+        if timeout is None:
+            timeout  = self.timeout
+        else:
+            timeout += self.timeout         # Extend timeout by a bit so we don't run in to race conditions
 
         max_pkt_len = self.get_max_payload() + 100;
         received_resp = 0
@@ -104,7 +114,7 @@ class TransportEthUdpPy(tp.TransportEthUdp):
                     reply = recv_data[hdr_len:]
                     received_resp = 1
             
-            if ((time.time() - start_time) > self.timeout ) and (received_resp == 0):
+            if ((time.time() - start_time) > timeout ) and (received_resp == 0):
                 raise wn_ex.TransportError(self, "Transport receive timed out.")
 
         return reply

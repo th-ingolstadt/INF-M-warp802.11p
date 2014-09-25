@@ -44,7 +44,7 @@ To define a custom log entry type::
 """
 import sys
 import numpy as np
-from struct import unpack, calcsize, error
+from struct import pack, unpack, calcsize, error
 
 
 # Fix to support Python 2.x and 3.x
@@ -102,7 +102,7 @@ class WlanExpLogEntryType(object):
 
     fields_np_dt        = None #:numpy dtype object describing format
     fields_fmt_struct   = None #:List of field formats, in struct module format
-    _field_offsets       = None
+    _field_offsets      = None
 
     gen_numpy_callbacks = None
 
@@ -374,6 +374,56 @@ class WlanExpLogEntryType(object):
 
             index += entry_size
 
+        return ret_val
+
+
+    def serialize(self, entries):
+        """Packs one or more list of dictionaries into a buffer of log entries of the same type
+
+        Args:
+            entry_list (dictionary):  Array of dictionaries for 1 or more log entries of the same type
+
+        Returns:
+            Bytearray of packed data.
+        """
+        length     = 1
+        ret_val    = ""
+        entry_size = calcsize(self.fields_fmt_struct)
+        
+        # Convert entries to a list if it is not already one
+        if type(entries) is not list:
+            entries = [entries]
+        
+        # Pack each of the entries into a single data buffer
+        for entry in entries:
+            fields     = []
+            tmp_values = []
+            used_field = []
+
+            for field in self._fields:
+                if 'x' not in field[1]:
+                    fields.append(field[0])
+                    try:
+                        tmp_values.append(entry[field[0]])
+                        used_field.append(True)
+                    except KeyError:
+                        tmp_values.append(0)
+                        used_field.append(False)
+
+            if (False):
+                print("Serialize Entry:")
+                print(fields)
+                print(used_field)
+                print(tmp_values)
+
+            ret_val += pack(self.fields_fmt_struct, *tmp_values)            
+
+        if (entry_size * length) != len(ret_val):
+            msg  = "WARNING: Sizes do not match.\n"
+            msg += "    Expected  {0} bytes".format(entry_size * length)
+            msg += "    Buffer is {0} bytes".format(len(ret_val))
+            print(msg)
+        
         return ret_val
 
 
