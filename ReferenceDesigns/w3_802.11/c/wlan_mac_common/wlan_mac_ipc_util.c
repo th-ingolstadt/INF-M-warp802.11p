@@ -300,6 +300,10 @@ int ipc_mailbox_write_msg(wlan_ipc_msg* msg) {
 		return IPC_MBOX_INVALID_MSG;
 	}
 
+#ifdef XPAR_INTC_0_DEVICE_ID
+	wlan_mac_high_interrupt_stop();
+#endif
+
 	//Write msg header (first 32b word)
 	XMbox_WriteBlocking(&ipc_mailbox, (u32*)msg, 4);
 
@@ -307,6 +311,10 @@ int ipc_mailbox_write_msg(wlan_ipc_msg* msg) {
 		//Write msg payload
 		XMbox_WriteBlocking(&ipc_mailbox, (u32*)(msg->payload_ptr), (u32)(4 * (msg->num_payload_words)));
 	}
+
+#ifdef XPAR_INTC_0_DEVICE_ID
+	wlan_mac_high_interrupt_start();
+#endif
 
 	return IPC_MBOX_SUCCESS;
 }
