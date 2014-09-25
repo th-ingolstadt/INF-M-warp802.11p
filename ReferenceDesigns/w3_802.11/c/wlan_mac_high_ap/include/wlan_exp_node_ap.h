@@ -35,8 +35,12 @@
 //-----------------------------------------------
 // WLAN Exp Node AP Commands
 //
-#define CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER       0x010000
-#define CMDID_NODE_AP_SSID                                 0x010001
+#define CMDID_NODE_AP_CONFIG                               0x100000
+#define CMDID_NODE_AP_DTIM_PERIOD                          0x100001
+#define CMDID_NODE_AP_SET_SSID                             0x100002
+#define CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER       0x100003
+
+#define CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING         0x00000001
 
 
 // ****************************************************************************

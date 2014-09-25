@@ -160,7 +160,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
             } else {
 				// If parameter is not the magic number to disassociate all stations
-				if ( id != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
+				if ( id != CMD_PARAM_NODE_CONFIG_ALL ) {
 					// Find the station_info entry
 					curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
 
@@ -400,8 +400,8 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, co
 
 
 		//---------------------------------------------------------------------
-		case CMDID_NODE_AP_SSID:
-            // Get / Set AP SSID
+		case CMDID_NODE_AP_SET_SSID:
+            // Set AP SSID
             //
 			// NOTE:  This method does not force any maximum length on the SSID.  However,
 			//   the rest of the framework enforces the convention that the maximum length

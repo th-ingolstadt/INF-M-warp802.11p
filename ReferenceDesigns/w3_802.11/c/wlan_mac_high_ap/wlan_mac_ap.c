@@ -143,7 +143,10 @@ int main(){
 
 
 #ifdef USE_WARPNET_WLAN_EXP
-	//Configure and initialize the wlan_exp framework
+	// Set up WLAN Exp init for AP
+	//   - Currently no additional init needed; Use wlan_exp_set_init_callback();
+
+	// Configure and initialize the wlan_exp framework
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_ETH);
 #endif
 
@@ -245,7 +248,7 @@ int main(){
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Set AP processing callbacks
-	node_set_process_callback( (void *)wlan_exp_node_ap_processCmd );
+	wlan_exp_set_process_callback( (void *)wlan_exp_node_ap_processCmd );
 #endif
 
 	// Finally enable all interrupts to start handling wireless and wired traffic
@@ -1739,6 +1742,7 @@ dl_list * get_station_info_list(){
 	}
 }
 dl_list * get_statistics()       { return &statistics_table;   }
+u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 
 
 
