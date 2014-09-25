@@ -167,6 +167,9 @@ int main() {
     wlan_mac_high_init();
 
 #ifdef USE_WARPNET_WLAN_EXP
+	// Set up WLAN Exp init for STA
+	//   - Currently no additional init needed; Use wlan_exp_set_init_callback();
+
     // Configure WLAN Exp framework
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_ETH);
 #endif
@@ -240,7 +243,7 @@ int main() {
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Set AP processing callbacks
-	node_set_process_callback( (void *)wlan_exp_node_sta_processCmd );
+	wlan_exp_set_process_callback( (void *)wlan_exp_node_sta_processCmd );
 #endif
 
 	// Start the interrupts
@@ -929,6 +932,7 @@ dl_list * get_station_info_list(){
 	}
 }
 dl_list * get_statistics()       { return &statistics_table;   }
+u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 
 
 
