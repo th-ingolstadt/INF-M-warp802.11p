@@ -32,9 +32,13 @@
 #include "wlan_mac_scan_fsm.h"
 #include "wlan_mac_ibss.h"
 
+
+#define MAX_NUM_CHAN                             41
+#define SCHEDULE_TEMP_VAL                        0xFFFFFFFE
+
+
 static u32 num_scan_channels = 0;
 
-#define MAX_NUM_CHAN 41
 static u8 channels[MAX_NUM_CHAN];
 static u32 idle_timeout_usec = 1000000;
 static u32 dwell_timeout_usec = 200000;
@@ -53,8 +57,14 @@ extern tx_params default_multicast_mgmt_tx_params;
 typedef enum {SCAN_DISABLED, SCAN_ENABLED} scan_state_t;
 static scan_state_t scan_state = SCAN_DISABLED;
 
+
+void wlan_mac_scan_restore_state();
+
+
+
 int wlan_mac_set_scan_channels(u8* channel_vec, u32 len){
 	u32 i;
+	u32 start_scan   = 0;
 	int return_value = -1;
 
 	if(len > MAX_NUM_CHAN){
@@ -69,77 +79,134 @@ int wlan_mac_set_scan_channels(u8* channel_vec, u32 len){
 		}
 	}
 
+	// If scan is enabled, then we need to stop it while we swap the underlying
+	//   channel parameters
 	if(scan_state == SCAN_ENABLED){
 		wlan_mac_scan_disable();
+		start_scan = 1;
+	}
+
+	// Set the new channel parameters
+	num_scan_channels = len;
+	memcpy(channels,channel_vec,len);
+	return_value = 0;
+
+	// Restart the scan if it was previously enabled
+	if (start_scan) {
 		wlan_mac_scan_enable(scan_bssid, scan_ssid);
 	}
 
-	return_value = 0;
-	num_scan_channels = len;
-	memcpy(channels,channel_vec,len);
-
 	return return_value;
-
 }
+
 
 void wlan_mac_set_scan_timings(u32 dwell_usec, u32 idle_usec){
-	idle_timeout_usec = idle_usec;
+    wlan_mac_high_interrupt_stop();
+
+	idle_timeout_usec  = idle_usec;
 	dwell_timeout_usec = dwell_usec;
+
+	wlan_mac_high_interrupt_start();
 }
+
 
 void wlan_mac_scan_enable(u8* bssid, char* ssid_str){
+	wlan_mac_high_interrupt_stop();
+
+	if(scan_state == SCAN_ENABLED){
+		wlan_mac_scan_disable();
+	}
+
 	memcpy(scan_bssid, bssid, 6);
 	strcpy(scan_ssid, ssid_str);
+
 	if(scan_state == SCAN_DISABLED){
-		channel_save = mac_param_chan;
+		channel_save  = mac_param_chan;
+		scan_sched_id = SCHEDULE_TEMP_VAL;       // Needed to enter state transition for the first time
 		wlan_mac_scan_state_transition();
 	}
+
+	wlan_mac_high_interrupt_start();
 }
 
+
 void wlan_mac_scan_disable(){
-	wlan_mac_high_interrupt_stop();
+    wlan_mac_high_interrupt_stop();
+
 	if(scan_state == SCAN_ENABLED){
 		if(scan_sched_id != SCHEDULE_FAILURE){
 			wlan_mac_remove_schedule(SCHEDULE_COARSE, scan_sched_id);
+			scan_sched_id = SCHEDULE_FAILURE;
+
 			scan_state = SCAN_DISABLED;
-			mac_param_chan = channel_save;
-			//xil_printf("Returning to Chan: %d\n", mac_param_chan);
-			wlan_mac_high_set_channel(mac_param_chan);
-			pause_data_queue = 0;
-			curr_scan_chan_idx = -1;
+
+			wlan_mac_scan_restore_state();
 		} else {
 			xil_printf("ERROR: Active scan currently enabled, but no schedule ID found\n");
 		}
 	}
+
+	if(scan_state == SCAN_DISABLED){
+	    if(scan_sched_id != SCHEDULE_FAILURE) {
+			xil_printf("ERROR: Active scan currently disabled, but schedule ID found\n");
+		}
+	}
+
 	wlan_mac_high_interrupt_start();
 }
 
+
 void wlan_mac_scan_state_transition(){
-	switch(scan_state){
+
+	if (scan_sched_id == SCHEDULE_FAILURE) {
+    	xil_printf("WARNING:  Scan state transition called after schedule has been removed.\n");
+    	return;
+    }
+
+    switch(scan_state){
 		case SCAN_DISABLED:
-			pause_data_queue = 1;
-			scan_state = SCAN_ENABLED;
+		    pause_data_queue   = 1;
 			curr_scan_chan_idx = -1;
+
+			scan_state = SCAN_ENABLED;
+
 			wlan_mac_scan_state_transition();
 		break;
+
 		case SCAN_ENABLED:
-			curr_scan_chan_idx++;
+		    curr_scan_chan_idx++;
+
 			if(curr_scan_chan_idx < num_scan_channels){
+				pause_data_queue = 1;                      // Make sure data queue is paused b/c it will be unpaused during the idle period
+
 				mac_param_chan = channels[(u8)curr_scan_chan_idx];
 				wlan_mac_high_set_channel(mac_param_chan);
+
 				wlan_mac_scan_probe_req_transmit();
+
 				scan_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, dwell_timeout_usec, 1, (void*)wlan_mac_scan_state_transition);
+
 			} else {
-				mac_param_chan = channel_save;
-				//xil_printf("Returning to Chan: %d\n", mac_param_chan);
-				wlan_mac_high_set_channel(mac_param_chan);
-				pause_data_queue = 0;
-				curr_scan_chan_idx = -1;
+			    wlan_mac_scan_restore_state();
+
 				scan_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, idle_timeout_usec, 1, (void*)wlan_mac_scan_state_transition);
 			}
 		break;
 	}
 }
+
+
+// Restore the previous state
+void wlan_mac_scan_restore_state() {
+	// xil_printf("Returning to Chan: %d\n", channel_save);
+	mac_param_chan = channel_save;
+	wlan_mac_high_set_channel(mac_param_chan);
+
+	pause_data_queue   = 0;
+	curr_scan_chan_idx = -1;
+}
+
+
 
 void wlan_mac_scan_probe_req_transmit(){
 	u16                 tx_length;

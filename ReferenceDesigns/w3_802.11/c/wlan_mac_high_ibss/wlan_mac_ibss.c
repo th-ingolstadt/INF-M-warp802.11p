@@ -139,7 +139,7 @@ int main() {
 	my_bss_info = NULL;
 
 	// Print initial message to UART
-	xil_printf("\f");
+	//xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v0.95 Beta ------------------------\n");
 	xil_printf("----- wlan_mac_ibss ----------------------\n");
@@ -172,6 +172,9 @@ int main() {
     wlan_mac_high_init();
 
 #ifdef USE_WARPNET_WLAN_EXP
+	// Set up WLAN Exp init for IBSS
+	wlan_exp_set_init_callback((void*)wlan_exp_node_ibss_init);
+
     // Configure WLAN Exp framework
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_ETH);
 #endif
@@ -242,7 +245,7 @@ int main() {
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Set AP processing callbacks
-	node_set_process_callback( (void *)wlan_exp_node_ibss_processCmd );
+	wlan_exp_set_process_callback( (void *)wlan_exp_node_ibss_processCmd );
 #endif
 
 	// Start the interrupts
@@ -257,7 +260,8 @@ int main() {
 	if(strlen(default_ssid) > 0){
 		wlan_mac_ibss_scan_and_join(default_ssid, SCAN_TIMEOUT_SEC);
 		scan_start_timestamp = get_usec_timestamp();
-		while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
+		// while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
+		while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC + 1000000))){
 			if(my_bss_info != NULL){
 				break;
 			}
@@ -326,7 +330,7 @@ void beacon_transmit(u32 schedule_id) {
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
 
-		if(my_bss_info != NULL && enable_beacon_tx == 1){
+	if(my_bss_info != NULL && enable_beacon_tx == 1){
 
 		//When an IBSS node receives a beacon, it schedules the call of this beacon_transmit function
 		//for some point in the future that is generally less than the beacon interval to account for
@@ -1157,10 +1161,17 @@ void reset_bss_info(){
 	}
 }
 
+
+/**
+ * @brief Reset All Associations
+ *
+ * Remove the node from the BSS
+ *
+ * @param  None
+ * @return None
+ */
 void reset_all_associations(){
-	//FIXME: This doesn't mean anything for the IBSS implementation, but WN needs it to be here.
-	//WN shouldn't require top-level code to implement this function. It should be callback that is optionally
-	//set up by top-level code at boot.
+    my_bss_info = NULL;
 }
 
 
@@ -1198,7 +1209,9 @@ dl_list * get_station_info_list(){
 		return NULL;
 	}
 }
+
 dl_list * get_statistics()       { return &statistics_table;   }
+u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 
 
 

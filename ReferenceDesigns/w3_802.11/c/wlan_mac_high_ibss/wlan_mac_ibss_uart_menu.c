@@ -187,42 +187,42 @@ void print_station_status(u8 manual_call){
 		xil_printf("\f");
 		//xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
 
-		curr_entry = my_bss_info->associated_stations.first;
+		if(my_bss_info != NULL){
+			curr_entry = my_bss_info->associated_stations.first;
 
-		while(curr_entry != NULL){
-			curr_station_info = (station_info*)(curr_entry->data);
-			xil_printf("---------------------------------------------------\n");
-			if(curr_station_info->hostname[0] != 0){
-				xil_printf(" Hostname: %s\n", curr_station_info->hostname);
+			while(curr_entry != NULL){
+				curr_station_info = (station_info*)(curr_entry->data);
+				xil_printf("---------------------------------------------------\n");
+				if(curr_station_info->hostname[0] != 0){
+					xil_printf(" Hostname: %s\n", curr_station_info->hostname);
+				}
+				xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->AID,
+						curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
+
+				xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx.last_timestamp)))/1000);
+				xil_printf("     - Last Rx Power:          %d dBm\n",curr_station_info->rx.last_power);
+				xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
+				xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_station_info->stats->data.tx_num_packets_total, curr_station_info->stats->data.tx_num_packets_success);
+				xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_station_info->stats->data.tx_num_bytes_total), (u32)(curr_station_info->stats->data.tx_num_bytes_success));
+				xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_station_info->stats->data.tx_num_packets_low);
+				xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", curr_station_info->stats->mgmt.tx_num_packets_total, curr_station_info->stats->mgmt.tx_num_packets_success);
+				xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(curr_station_info->stats->mgmt.tx_num_bytes_total), (u32)(curr_station_info->stats->mgmt.tx_num_bytes_success));
+				xil_printf("     - # Tx Low Mgmt MPDUs:    %d\n", curr_station_info->stats->mgmt.tx_num_packets_low);
+				xil_printf("     - # Rx Data MPDUs:        %d\n", curr_station_info->stats->data.rx_num_packets);
+				xil_printf("     - # Rx Data Bytes:        %d\n", curr_station_info->stats->data.rx_num_bytes);
+				xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_station_info->stats->mgmt.rx_num_packets);
+				xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_station_info->stats->mgmt.rx_num_bytes);
+
+				curr_entry = dl_entry_next(curr_entry);
+
 			}
-			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->AID,
-					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
-
-			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx.last_timestamp)))/1000);
-			xil_printf("     - Last Rx Power:          %d dBm\n",curr_station_info->rx.last_power);
-			xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
-			xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_station_info->stats->data.tx_num_packets_total, curr_station_info->stats->data.tx_num_packets_success);
-			xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_station_info->stats->data.tx_num_bytes_total), (u32)(curr_station_info->stats->data.tx_num_bytes_success));
-			xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_station_info->stats->data.tx_num_packets_low);
-			xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", curr_station_info->stats->mgmt.tx_num_packets_total, curr_station_info->stats->mgmt.tx_num_packets_success);
-			xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(curr_station_info->stats->mgmt.tx_num_bytes_total), (u32)(curr_station_info->stats->mgmt.tx_num_bytes_success));
-			xil_printf("     - # Tx Low Mgmt MPDUs:    %d\n", curr_station_info->stats->mgmt.tx_num_packets_low);
-			xil_printf("     - # Rx Data MPDUs:        %d\n", curr_station_info->stats->data.rx_num_packets);
-			xil_printf("     - # Rx Data Bytes:        %d\n", curr_station_info->stats->data.rx_num_bytes);
-			xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_station_info->stats->mgmt.rx_num_packets);
-			xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_station_info->stats->mgmt.rx_num_bytes);
-
-			curr_entry = dl_entry_next(curr_entry);
-
-		}
 
 			xil_printf("---------------------------------------------------\n");
 			xil_printf("\n");
 			xil_printf("[r] - reset statistics\n");
 			xil_printf("[d] - deauthenticate all stations\n\n");
-
+		}
 	}
-
 }
 
 void print_all_observed_statistics(){

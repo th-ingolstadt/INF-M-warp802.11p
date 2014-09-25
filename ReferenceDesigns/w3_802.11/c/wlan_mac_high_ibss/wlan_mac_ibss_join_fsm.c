@@ -34,6 +34,11 @@
 #include "wlan_mac_ibss_join_fsm.h"
 #include "wlan_mac_ibss.h"
 
+
+#define BSS_JOIN_SCAN_ENABLED                    1
+#define BSS_JOIN_SCAN_DISABLED                   0
+
+
 typedef enum {JOIN_IDLE, JOIN_SEARCHING} join_state_t;
 static join_state_t join_state = JOIN_IDLE;
 
@@ -46,14 +51,16 @@ extern mac_header_80211_common tx_header_common;
 extern tx_params default_unicast_mgmt_tx_params;
 
 //JOIN_SEARCHING Global Variables:
-static u32 search_sched_id = SCHEDULE_FAILURE;
-static u32 search_kill_sched_id = SCHEDULE_FAILURE;
+static u32  search_sched_id      = SCHEDULE_FAILURE;
+static u32  search_kill_sched_id = SCHEDULE_FAILURE;
 static char search_ssid[SSID_LEN_MAX + 1];
-static u32 search_timeout;
+static u32  search_timeout       = BSS_SEARCH_DEFAULT_TIMEOUT_SEC;
+static u32  search_scan_enabled  = BSS_JOIN_SCAN_DISABLED;
 
 void wlan_mac_ibss_set_join_success_callback(function_ptr_t callback){
 	join_success_callback = callback;
 }
+
 
 /**
  * @brief Attempt Scan and Join to AP
@@ -72,18 +79,21 @@ void wlan_mac_ibss_scan_and_join(char* ssid_str, u32 to_sec){
 	if(strlen(ssid_str) != 0){
 		switch(join_state){
 			case JOIN_IDLE:
-				join_state = JOIN_SEARCHING;
+			    join_state = JOIN_SEARCHING;
 				strcpy(search_ssid, ssid_str);
 				search_timeout = to_sec;
+
 				wlan_mac_scan_enable((u8*)bcast_addr, ssid_str);
+
 				if(to_sec != 0){
 					search_kill_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, (to_sec*1000000), 1, (void*)wlan_mac_ibss_return_to_idle);
 				}
-				search_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BSS_SEARCH_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_ibss_bss_search_poll);
 
+				search_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BSS_SEARCH_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_ibss_bss_search_poll);
 			break;
+
 			case JOIN_SEARCHING:
-				wlan_mac_ibss_return_to_idle();
+			    wlan_mac_ibss_return_to_idle();
 				wlan_mac_ibss_scan_and_join(ssid_str, to_sec);
 			break;
 		}
@@ -92,40 +102,59 @@ void wlan_mac_ibss_scan_and_join(char* ssid_str, u32 to_sec){
 	}
 }
 
+
 void wlan_mac_ibss_join(bss_info* bss_description){
+	wlan_mac_high_interrupt_stop();
 
 	if(bss_description != NULL){
 		switch(join_state){
 			case JOIN_IDLE:
-				ibss_set_association_state(bss_description);
+			    ibss_set_association_state(bss_description);
 				join_success_callback(bss_description);
 			break;
 			case JOIN_SEARCHING:
-				wlan_mac_ibss_return_to_idle();
+			    wlan_mac_ibss_return_to_idle();
 				wlan_mac_ibss_join(bss_description);
 			break;
 		}
 	}
+
+	wlan_mac_high_interrupt_start();
 }
 
 //Low-Level functions
 
 void wlan_mac_ibss_return_to_idle(){
-	switch(join_state){
+    switch(join_state){
 		case JOIN_IDLE:
-			//Nothing to do, we are already idle.
+		    // Nothing to do, we are already idle.
+			if(search_sched_id != SCHEDULE_FAILURE){
+				xil_printf("ERROR: Join currently idle, but search schedule ID found\n");
+			}
+
+			if(search_kill_sched_id != SCHEDULE_FAILURE){
+				xil_printf("ERROR: Join currently idle, but kill schedule ID found\n");
+			}
 		break;
+
 		case JOIN_SEARCHING:
-			wlan_mac_scan_disable();
-			//We should kill the search_sched_id and search_kill_sched_id schedules (if they are running)
+		    wlan_mac_scan_disable();
+
+			// We should kill the search_sched_id and search_kill_sched_id schedules (if they are running)
 			wlan_mac_high_interrupt_stop();
+
 			join_state = JOIN_IDLE;
-			wlan_mac_remove_schedule(SCHEDULE_COARSE, search_sched_id);
-			search_sched_id = SCHEDULE_FAILURE;
+
+			if(search_sched_id != SCHEDULE_FAILURE){
+				wlan_mac_remove_schedule(SCHEDULE_COARSE, search_sched_id);
+				search_sched_id = SCHEDULE_FAILURE;
+			}
+
 			if(search_kill_sched_id != SCHEDULE_FAILURE){
 				wlan_mac_remove_schedule(SCHEDULE_COARSE, search_kill_sched_id);
 				search_kill_sched_id = SCHEDULE_FAILURE;
 			}
+
 			wlan_mac_high_interrupt_start();
 		break;
 	}
@@ -135,12 +164,19 @@ void wlan_mac_ibss_bss_search_poll(u32 schedule_id){
 	dl_entry* curr_dl_entry = NULL;
 	bss_info* curr_bss_info;
 
-	switch(join_state){
+    if ((search_sched_id == SCHEDULE_FAILURE) || (search_kill_sched_id == SCHEDULE_FAILURE)) {
+    	xil_printf("WARNING:  BSS search poll called after schedule has been removed.\n");
+    	return;
+    }
+
+    switch(join_state){
 		case JOIN_IDLE:
 			xil_printf("JOIN FSM Error: Searching/Idle mismatch\n");
 		break;
+
 		case JOIN_SEARCHING:
 			curr_dl_entry = wlan_mac_high_find_bss_info_SSID(search_ssid);
+
 			if(curr_dl_entry != NULL){
 				wlan_mac_ibss_return_to_idle();
 				curr_bss_info = (bss_info*)(curr_dl_entry->data);
