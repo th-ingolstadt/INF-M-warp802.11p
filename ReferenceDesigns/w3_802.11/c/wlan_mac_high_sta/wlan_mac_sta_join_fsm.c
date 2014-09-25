@@ -190,6 +190,11 @@ void wlan_mac_sta_bss_search_poll(u32 schedule_id){
 	dl_entry* curr_dl_entry = NULL;
 	bss_info* curr_bss_info;
 
+    if (search_sched_id == SCHEDULE_FAILURE) {
+    	xil_printf("WARNING:  BSS search poll called after schedule has been removed.\n");
+    	return;
+    }
+
 	switch(join_state){
 		case JOIN_IDLE:
 			xil_printf("JOIN FSM Error: Searching/Idle mismatch\n");
