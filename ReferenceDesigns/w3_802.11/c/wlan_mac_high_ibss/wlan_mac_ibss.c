@@ -260,8 +260,7 @@ int main() {
 	if(strlen(default_ssid) > 0){
 		wlan_mac_ibss_scan_and_join(default_ssid, SCAN_TIMEOUT_SEC);
 		scan_start_timestamp = get_usec_timestamp();
-		// while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
-		while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC + 1000000))){
+		 while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
 			if(my_bss_info != NULL){
 				break;
 			}
@@ -297,6 +296,8 @@ int main() {
 }
 
 void ibss_set_association_state( bss_info* new_bss_info ){
+
+	reset_all_associations();
 
 	mac_param_chan = new_bss_info->chan;
 	wlan_mac_high_set_channel(mac_param_chan);
@@ -1171,7 +1172,24 @@ void reset_bss_info(){
  * @return None
  */
 void reset_all_associations(){
-    my_bss_info = NULL;
+
+	if(my_bss_info != NULL){
+
+		station_info* curr_station_info;
+		dl_entry* next_station_info_entry;
+		dl_entry* curr_station_info_entry;
+
+		next_station_info_entry = my_bss_info->associated_stations.first;
+
+		while(next_station_info_entry != NULL){
+			curr_station_info_entry = next_station_info_entry;
+			next_station_info_entry = dl_entry_next(curr_station_info_entry);
+			curr_station_info = (station_info*)(curr_station_info_entry->data);
+			wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, curr_station_info->addr );
+		}
+
+		my_bss_info = NULL;
+	}
 }
 
 

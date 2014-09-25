@@ -36,7 +36,6 @@
 #define MAX_NUM_CHAN                             41
 #define SCHEDULE_TEMP_VAL                        0xFFFFFFFE
 
-
 static u32 num_scan_channels = 0;
 
 static u8 channels[MAX_NUM_CHAN];
@@ -57,10 +56,7 @@ extern tx_params default_multicast_mgmt_tx_params;
 typedef enum {SCAN_DISABLED, SCAN_ENABLED} scan_state_t;
 static scan_state_t scan_state = SCAN_DISABLED;
 
-
 void wlan_mac_scan_restore_state();
-
-
 
 int wlan_mac_set_scan_channels(u8* channel_vec, u32 len){
 	u32 i;
@@ -101,18 +97,12 @@ int wlan_mac_set_scan_channels(u8* channel_vec, u32 len){
 
 
 void wlan_mac_set_scan_timings(u32 dwell_usec, u32 idle_usec){
-    wlan_mac_high_interrupt_stop();
-
 	idle_timeout_usec  = idle_usec;
 	dwell_timeout_usec = dwell_usec;
-
-	wlan_mac_high_interrupt_start();
 }
 
 
 void wlan_mac_scan_enable(u8* bssid, char* ssid_str){
-	wlan_mac_high_interrupt_stop();
-
 	if(scan_state == SCAN_ENABLED){
 		wlan_mac_scan_disable();
 	}
@@ -125,14 +115,10 @@ void wlan_mac_scan_enable(u8* bssid, char* ssid_str){
 		scan_sched_id = SCHEDULE_TEMP_VAL;       // Needed to enter state transition for the first time
 		wlan_mac_scan_state_transition();
 	}
-
-	wlan_mac_high_interrupt_start();
 }
 
 
 void wlan_mac_scan_disable(){
-    wlan_mac_high_interrupt_stop();
-
 	if(scan_state == SCAN_ENABLED){
 		if(scan_sched_id != SCHEDULE_FAILURE){
 			wlan_mac_remove_schedule(SCHEDULE_COARSE, scan_sched_id);
@@ -151,8 +137,6 @@ void wlan_mac_scan_disable(){
 			xil_printf("ERROR: Active scan currently disabled, but schedule ID found\n");
 		}
 	}
-
-	wlan_mac_high_interrupt_start();
 }
 
 
