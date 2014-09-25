@@ -67,31 +67,14 @@ extern struct sockaddr_in  addr_async;
 extern u8                  promiscuous_stats_enabled;
 extern u8                  rx_ant_mode_tracker;
 
-// Declared in each of the AP / STA
-extern tx_params           default_unicast_data_tx_params;
-
+// Declared in each of the AP / STA / IBSS
 extern bss_info*		   my_bss_info;
+
 extern tx_params           default_unicast_mgmt_tx_params;
 extern tx_params           default_unicast_data_tx_params;
 extern tx_params           default_multicast_mgmt_tx_params;
 extern tx_params           default_multicast_data_tx_params;
 
-
-
-/*************************** Variable Definitions ****************************/
-
-wn_node_info          node_info;
-wn_tag_parameter      node_parameters[NODE_MAX_PARAMETER];
-
-wn_function_ptr_t     node_process_callback;
-extern function_ptr_t check_queue_callback;
-
-u32                   async_pkt_enable;
-u32                   async_eth_dev_num;
-pktSrcInfo            async_pkt_dest;
-wn_transport_header   async_pkt_hdr;
-
-u32                   wlan_exp_enable_logging = 0;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -107,11 +90,32 @@ void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id);
 u8   node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate);
 u8   node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
+void print_mac_address(u8 * mac_address);
+
 
 #ifdef _DEBUG_
 void print_wn_node_info( wn_node_info * info );
 void print_wn_parameters( wn_tag_parameter *param, int num_params );
 #endif
+
+
+// WARPNet buffer functions
+u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
+	                         dl_list * source_list, u32 dest_size,
+	                         dl_entry * (*find_source_entry)(u8 *),
+	                         void (*copy_source_to_dest)(void *, void *, u64),
+	                         void (*zero_dest)(void *));
+
+dl_entry * find_station_info_entry(u8 * mac_addr);
+void zero_station_info_entry(void * dest);
+void copy_station_info_to_dest_entry(void * source, void * dest, u64 time);
+
+dl_entry * find_statistics_txrx_entry(u8 * mac_addr);
+void zero_txrx_stats_entry(void * dest);
+void copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time);
+
+void zero_bss_info_entry(void * dest);
+void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time);
 
 
 // Functions implemented in AP / STA
@@ -120,13 +124,36 @@ void purge_all_data_tx_queue();
 void reset_all_associations();
 
 
+// Callback function declarations
+int wlan_exp_null_init_callback(void* param);
+int wlan_exp_null_process_callback(unsigned int cmdID, void* param);
+
+
+
+/*************************** Variable Definitions ****************************/
+
+wn_node_info          node_info;
+wn_tag_parameter      node_parameters[NODE_MAX_PARAMETER];
+
+wn_function_ptr_t     wlan_exp_init_callback     = (wn_function_ptr_t)wlan_exp_null_init_callback;
+wn_function_ptr_t     wlan_exp_process_callback  = (wn_function_ptr_t)wlan_exp_null_process_callback;
+extern function_ptr_t check_queue_callback;
+
+u32                   async_pkt_enable;
+u32                   async_eth_dev_num;
+pktSrcInfo            async_pkt_dest;
+wn_transport_header   async_pkt_hdr;
+
+u32                   wlan_exp_enable_logging = 0;
+
+
 
 /******************************** Functions **********************************/
 
 
 /*****************************************************************************/
 /**
-* Node Processes Null Callback
+* Node Null Callbacks
 *
 * This function is part of the callback system for processing node commands.
 * If there are no additional node commands, then this will return appropriate values.
@@ -141,12 +168,15 @@ void reset_all_associations();
 *
 ******************************************************************************/
 int wlan_exp_null_process_callback(unsigned int cmdID, void* param){
-
 	xil_printf("Unknown node command: %d\n", cmdID);
-
 	return NO_RESP_SENT;
 };
 
+
+int wlan_exp_null_init_callback(void* param){
+	xil_printf("  No type specific initialization\n");
+	return SUCCESS;
+};
 
 
 /*****************************************************************************/
@@ -325,8 +355,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
     unsigned int  max_words  = 320;                // Max number of u32 words that can be sent in the packet (~1400 bytes)
                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
-    unsigned int  temp, temp2, i, j;
-    wlan_ipc_msg       ipc_msg_to_low;
+    u32           temp, temp2, i;
+    wlan_ipc_msg  ipc_msg_to_low;
 
     // Variables for functions
     u32           msg_cmd;
@@ -358,10 +388,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 	u32           mem_idx;
 
 	u32           entry_size;
-	u32           entry_remaining;
-	u32           total_entries;
-	u32           entry_per_pkt;
-	u32           transfer_entry_num;
 
 	u8            mac_addr[6];
 
@@ -387,6 +413,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 	wlan_mac_high_cdma_finish_transfer();
 
 	switch(cmdID){
+
+//-----------------------------------------------------------------------------
+// WARPNet Commands
+//-----------------------------------------------------------------------------
 
 	    //---------------------------------------------------------------------
         case CMDID_WARPNET_TYPE:
@@ -624,15 +654,442 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 		break;
 
 
+//-----------------------------------------------------------------------------
+// Log Commands
+//-----------------------------------------------------------------------------
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LOG_CONFIG:
+            // NODE_LOG_CONFIG Packet Format:
+			//   - cmdArgs32[0]  - flags
+			//                     [ 0] - Logging Enabled = 1; Logging Disabled = 0;
+			//                     [ 1] - Wrap = 1; No Wrap = 0;
+			//                     [ 2] - Full Payloads Enabled = 1; Full Payloads Disabled = 0;
+			//                     [ 3] - Log WN Cmds Enabled = 1; Log WN Cmds Disabled = 0;
+			//   - cmdArgs32[1]  - mask for flags
+			//
+            //   - respArgs32[0] - CMD_PARAM_SUCCESS
+			//                   - CMD_PARAM_ERROR
+
+			// Set the return value
+			status = CMD_PARAM_SUCCESS;
+
+			// Get flags
+			temp  = Xil_Ntohl(cmdArgs32[0]);
+			temp2 = Xil_Ntohl(cmdArgs32[1]);
+
+			xil_printf("EVENT LOG:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+
+			// Configure the LOG based on the flag bit / mask
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) {
+					event_log_config_logging( EVENT_LOG_LOGGING_ENABLE );
+				} else {
+					event_log_config_logging( EVENT_LOG_LOGGING_DISABLE );
+				}
+			}
+
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) {
+					event_log_config_wrap( EVENT_LOG_WRAP_ENABLE );
+				} else {
+					event_log_config_wrap( EVENT_LOG_WRAP_DISABLE );
+				}
+			}
+
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) {
+					wlan_exp_log_set_mac_payload_len( MAX_MAC_PAYLOAD_LOG_LEN );
+				} else {
+					wlan_exp_log_set_mac_payload_len( MIN_MAC_PAYLOAD_LOG_LEN );
+				}
+			}
+
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) == CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) == CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) {
+					wlan_exp_enable_logging = 1;
+				} else {
+					wlan_exp_enable_logging = 0;
+				}
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LOG_GET_STATUS:
+            // NODE_LOG_GET_INFO Packet Format:
+            //   - respArgs32[0] - Next empty entry index
+            //   - respArgs32[1] - Oldest empty entry index
+            //   - respArgs32[2] - Number of wraps
+            //   - respArgs32[3] - Flags
+			//
+			// NOTE: The print statements are commented out b/c this command is used
+			//   a lot in the inner loop of an experiment
+
+#ifdef _DEBUG_
+			xil_printf("EVENT LOG:  Get Info\n");
+#endif
+
+			temp = event_log_get_next_entry_index();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
+			xil_printf("    Next Index   = %10d\n", temp);
+#endif
+
+			temp = event_log_get_oldest_entry_index();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
+			xil_printf("    Oldest Index = %10d\n", temp);
+#endif
+
+			temp = event_log_get_num_wraps();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
+			xil_printf("    Num Wraps    = %10d\n", temp);
+#endif
+
+			temp = event_log_get_flags();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
+			xil_printf("    Flags        = 0x%08x\n", temp);
+#endif
+
+			// Send response of current info
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LOG_GET_CAPACITY:
+            // NODE_LOG_GET_CAPACITY Packet Format:
+            //   - respArgs32[0] - Max log size
+            //   - respArgs32[1] - Current log size
+            //
+			// NOTE: The print statements are commented out b/c this command is used
+			//   a lot in the inner loop of an experiment
+
+#ifdef _DEBUG_
+			xil_printf("EVENT LOG:  Get Capacity\n");
+#endif
+
+			temp = event_log_get_capacity();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
+			xil_printf("    Capacity = %10d\n", temp);
+#endif
+
+			temp = event_log_get_total_size();
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+#ifdef _DEBUG_
+			xil_printf("    Size     = %10d\n", temp);
+#endif
+
+			// Send response of current info
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LOG_GET_ENTRIES:
+            // NODE_LOG_GET_ENTRIES Packet Format:
+            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
+            //
+			//   - cmdArgs32[0] - buffer id
+			//   - cmdArgs32[1] - flags
+            //   - cmdArgs32[2] - start_address of transfer
+			//   - cmdArgs32[3] - size of transfer (in bytes)
+			//                      0xFFFF_FFFF  -> Get everything in the event log
+			//   - cmdArgs32[4] - bytes_per_pkt
+			//
+			//   Return Value:
+			//     - wn_buffer
+            //       - buffer_id       - uint32  - ID of the buffer
+			//       - flags           - uint32  - Flags
+			//       - bytes_remaining - uint32  - Number of bytes remaining in the transfer
+			//       - start_byte      - uint32  - Byte index of the first byte in this packet
+			//       - size            - uint32  - Number of payload bytes in this packet
+			//       - byte[]          - uint8[] - Array of payload bytes
+			//
+			// NOTE:  The address passed via the command is the address relative to the current
+			//   start of the event log.  It is not an absolute address and should not be treated
+			//   as such.
+			//
+			//     When you transferring "everything" in the event log, the command will take a
+			//   snapshot of the size of the log to the "end" at the time the command is received
+			//   (ie either the next_entry_index or the end of the log before it wraps).  It will then
+			//   only transfer those events.  It will not any new events that are added to the log while
+			//   we are transferring the current log as well as transfer any events after a wrap.
+            //
+
+			id                = Xil_Ntohl(cmdArgs32[0]);
+			flags             = Xil_Ntohl(cmdArgs32[1]);
+			start_index       = Xil_Ntohl(cmdArgs32[2]);
+            size              = Xil_Ntohl(cmdArgs32[3]);
+
+            // Get the size of the log to the "end"
+            evt_log_size      = event_log_get_size(start_index);
+
+            // Check if we should transfer everything or if the request was larger than the current log
+            if ( ( size == CMD_PARAM_LOG_GET_ALL_ENTRIES ) || ( size > evt_log_size ) ) {
+                size = evt_log_size;
+            }
+
+            bytes_per_pkt     = max_words * 4;
+            num_pkts          = (size / bytes_per_pkt) + 1;
+            if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
+            curr_index        = start_index;
+            bytes_remaining   = size;
+
+#ifdef _DEBUG_
+			// NOTE: The print statements are commented out b/c this command is used
+			//   a lot in the inner loop of an experiment
+            //
+			xil_printf("EVENT LOG: Get Entries \n");
+			xil_printf("    curr_index       = 0x%8x\n", curr_index);
+			xil_printf("    size             = %10d\n", size);
+			xil_printf("    num_pkts         = %10d\n", num_pkts);
+#endif
+
+            // Initialize constant parameters
+            respArgs32[0] = Xil_Htonl( id );
+            respArgs32[1] = Xil_Htonl( flags );
+
+            // Iterate through all the packets
+			for( i = 0; i < num_pkts; i++ ) {
+
+				// Get the next address
+				next_index  = curr_index + bytes_per_pkt;
+
+				// Compute the transfer size (use the full buffer unless you run out of space)
+				if( next_index > ( start_index + size ) ) {
+                    transfer_size = (start_index + size) - curr_index;
+				} else {
+					transfer_size = bytes_per_pkt;
+				}
+
+				// Set response args that change per packet
+				respArgs32[2]   = Xil_Htonl( bytes_remaining );
+	            respArgs32[3]   = Xil_Htonl( curr_index );
+                respArgs32[4]   = Xil_Htonl( transfer_size );
+
+                // Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all
+                //   three command parameters for each packet that is sent.
+	            respHdr->cmd     = cmdHdr->cmd;
+	            respHdr->length  = 20 + transfer_size;
+				respHdr->numArgs = 5;
+
+				// Transfer data
+				num_bytes = event_log_get_data( curr_index, transfer_size, (char *) &respArgs32[5] );
+
+#ifdef _DEBUG_
+				xil_printf("Packet %8d: \n", i);
+				xil_printf("    transfer_index = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", curr_index, transfer_size, num_bytes);
+#endif
+
+				// Check that we copied everything
+				if ( num_bytes == transfer_size ) {
+					// Send the packet
+					node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+				} else {
+					xil_printf("ERROR:  NODE_GET_EVENTS tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_index );
+				}
+
+				// Update our current address and bytes remaining
+				curr_index       = next_index;
+				bytes_remaining -= transfer_size;
+			}
+
+			respSent = RESP_SENT;
+		break;
+
+
 		//---------------------------------------------------------------------
-		case CMDID_NODE_GET_STATION_INFO:
-            // NODE_GET_STATION_INFO Packet Format:
+		case CMDID_LOG_ADD_EXP_INFO_ENTRY:
+			// Add EXP_INFO entry to the log
+			//
+			// Message format:
+			//     cmdArgs32[0]   info_type (lower 16 bits)
+			//     cmdArgs32[1]   info_length (lower 16 bits)
+			//     cmdArgs32[2:N] info_payload
+			//
+			// NOTE:  Entry data will be copied in to the log "as is" (ie it will not
+			//     have any network to host order translation performed on it)
+			//
+			type       = (Xil_Ntohl(cmdArgs32[0]) & 0xFFFF);
+			size       = (Xil_Ntohl(cmdArgs32[1]) & 0xFFFF);
+
+			// Get the entry size
+			if (size == 0) {
+				entry_size = sizeof(exp_info_entry);
+			} else {
+				// 32-bit align size; EXP INFO structure already contains 4 bytes of the payload
+				entry_size = sizeof(exp_info_entry) + (((size - 1) / 4)*4);
+			}
+
+			exp_info_entry * exp_info;
+
+			exp_info = (exp_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_EXP_INFO, entry_size);
+
+			if ( exp_info != NULL ) {
+				xil_printf("EVENT LOG:  Adding EXP INFO entry with type %d to log (%d bytes)\n", type, size);
+
+				exp_info->timestamp   = get_usec_timestamp();
+				exp_info->info_type   = type;
+				exp_info->info_length = size;
+
+				// Copy the data to the log entry
+				if (size == 0){
+					bzero((void *)(&exp_info->info_payload[0]), 4);
+				} else {
+					memcpy( (void *)(&exp_info->info_payload[0]), (void *)(&cmdArgs32[2]), size );
+				}
+
+#ifdef _DEBUG_
+				xil_printf("   Timestamp:  %d\n", (u32)(exp_info->timestamp));
+				xil_printf("   Info Type:  %d\n",       exp_info->info_type);
+				xil_printf("   Message  :  \n        ");
+				for( i = 0; i < exp_info->info_length; i++) {
+					xil_printf("0x%02x ", (exp_info->info_payload)[i]);
+					if ( (((i + 1) % 16) == 0) && ((i + 1) != size) ) {
+						xil_printf("\n        ");
+					}
+				}
+				xil_printf("\n");
+#endif
+			}
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LOG_ADD_STATS_TXRX:
+			// Add the current statistics to the log
+			// TODO:  Add parameter to command to transmit stats
+			temp = add_all_txrx_statistics_to_log(WN_NO_TRANSMIT);
+
+			xil_printf("EVENT LOG:  Added %d statistics.\n", temp);
+
+			// Send response of oldest index
+            respArgs32[respIndex++] = Xil_Htonl( temp );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+        break;
+
+
+		//---------------------------------------------------------------------
+		case CMDID_LOG_ENABLE_ENTRY:
+			xil_printf("EVENT LOG:  Enable Event not supported\n");
+			// TODO:  THIS FUNCTION IS NOT COMPLETE
+	    break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LOG_STREAM_ENTRIES:
+			// Stream entries from the log
+			//
+			// Message format:
+			//     cmdArgs32[0]   Enable = 1 / Disable = 0
+			//     cmdArgs32[1]   IP Address (32 bits)
+			//     cmdArgs32[2]   Host ID (upper 16 bits); Port (lower 16 bits)
+			//
+			temp       = Xil_Ntohl(cmdArgs32[0]);
+			ip_address = Xil_Ntohl(cmdArgs32[1]);
+			temp2      = Xil_Ntohl(cmdArgs32[2]);
+
+			// Check the enable
+			if ( temp == 0 ) {
+				xil_printf("EVENT LOG:  Disable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
+				async_pkt_enable = temp;
+			} else {
+				xil_printf("EVENT LOG:  Enable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
+
+				// Initialize all of the global async packet variables
+				async_pkt_enable = temp;
+
+				async_pkt_dest.srcIPAddr = ip_address;
+				async_pkt_dest.destPort  = (temp2 & 0xFFFF);
+
+				async_pkt_hdr.destID     = ((temp2 >> 16) & 0xFFFF);
+				async_pkt_hdr.srcID      = node_info.node;
+				async_pkt_hdr.pktType    = PKTTPYE_NTOH_MSG_ASYNC;
+				async_pkt_hdr.length     = PAYLOAD_PAD_NBYTES + 4;
+				async_pkt_hdr.seqNum     = 0;
+				async_pkt_hdr.flags      = 0;
+
+				status = transport_config_socket( eth_dev_num, &sock_async, &addr_async, ((temp2 >> 16) & 0xFFFF));
+				if (status == FAILURE) {
+					xil_printf("Failed to configure socket.\n");
+				}
+
+				// Transmit the Node Info
+				add_node_info_entry(WN_TRANSMIT);
+			}
+
+			// Send response
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+        break;
+
+
+//-----------------------------------------------------------------------------
+// Stats Commands
+//-----------------------------------------------------------------------------
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_STATS_CONFIG_TXRX:
+            // NODE_STATS_CONFIG_TXRX Packet Format:
+			//   - cmdArgs32[0]  - flags
+			//                     [ 0] - Promiscuous stats collected = 1
+			//                            Promiscuous stats not collected = 0
+			//   - cmdArgs32[1]  - mask for flags
+			//
+            //   - respArgs32[0] - CMD_PARAM_SUCCESS
+			//                   - CMD_PARAM_ERROR
+
+			// Set the return value
+			status = CMD_PARAM_SUCCESS;
+
+			// Get flags
+			temp  = Xil_Ntohl(cmdArgs32[0]);
+			temp2 = Xil_Ntohl(cmdArgs32[1]);
+
+			xil_printf("STATS:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+
+			// Configure the LOG based on the flag bit / mask
+			if ( ( temp2 & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) {
+				if ( ( temp & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) {
+					promiscuous_stats_enabled = 1;
+				} else {
+					promiscuous_stats_enabled = 0;
+				}
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+	    break;
+
+
+		//---------------------------------------------------------------------
+		case CMDID_STATS_GET_TXRX:
+            // NODE_GET_STATS Packet Format:
 			//   - cmdArgs32[0]   - buffer id
 			//   - cmdArgs32[1]   - flags
             //   - cmdArgs32[2]   - start_address of transfer
 			//   - cmdArgs32[3]   - size of transfer (in bytes)
-			//   - cmdArgs32[4:5] - MAC Address (All 0xFF means all station info)
-			//
+			//   - cmdArgs32[4:5] - MAC Address (All 0xFF means all stats)
 			// Always returns a valid WARPNet Buffer (either 1 or more packets)
             //   - buffer_id       - uint32  - buffer_id
 			//   - flags           - uint32  - 0
@@ -641,177 +1098,253 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//   - size            - uint32  - Number of payload bytes in this packet
 			//   - byte[]          - uint8[] - Array of payload bytes
 
-			xil_printf("Get Station Info\n");
+			xil_printf("Get TXRX Statistics\n");
 
-			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4], &mac_addr[0]);
-        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+			respSent = node_process_buffer_cmds(cmdHdr, cmdArgs32, respHdr, respArgs32, pktSrc, eth_dev_num, max_words,
+					                            get_statistics(),
+					                            sizeof(txrx_stats_entry),
+					                            &find_statistics_txrx_entry,
+					                            &copy_statistics_txrx_to_dest_entry,
+					                            &zero_txrx_stats_entry);
 
-        	// Local variables
-        	station_info_entry * info_entry;
-			u32                  station_info_size = sizeof(station_info_base);
+		break;
 
-        	entry_size = sizeof(station_info_entry);
 
-            // Initialize return values
-        	respIndex     = 5;              // There will always be 5 return args
-            respArgs32[0] = cmdArgs32[0];
-            respArgs32[1] = 0;
-			respArgs32[2] = 0;
-			respArgs32[3] = 0;
-			respArgs32[4] = 0;
+//-----------------------------------------------------------------------------
+// LTG Commands
+//-----------------------------------------------------------------------------
 
-            if ( id == 0 ) {
-				// If we cannot find the MAC address, print a warning and return an empty buffer
-				xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
-				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
 
-            } else {
-				// If parameter is not the magic number to return all Station Info structures
-				if ( id != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
-					// Find the station_info entry
-					if( get_station_info_list() != NULL){
-						curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
-					} else {
-						curr_entry = NULL;
+		//---------------------------------------------------------------------
+		case CMDID_LTG_CONFIG:
+            // NODE_LTG_START Packet Format:
+			//   - cmdArgs32[0]      - Flags
+			//                         [0] - Auto-start the LTG flow
+			//   - cmdArgs32[1 - N]  - LTG Schedule (packed)
+			//                         [0] - [31:16] Type    [15:0] Length
+			//   - cmdArgs32[N+1 - M]- LTG Payload (packed)
+			//                         [0] - [31:16] Type    [15:0] Length
+			//
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+
+			status = CMD_PARAM_SUCCESS;
+        	id     = LTG_ID_INVALID;
+			flags  = Xil_Ntohl(cmdArgs32[0]);
+
+			// Local variables
+			u32            s1, s2, t1, t2;
+			void *         ltg_callback_arg;
+        	void *         params;
+
+			// Get Schedule & Payload
+        	// NOTE:  This allocates memory for both the schedule and payload containers.
+        	//   The payload is freed as part of the node_ltg_cleanup() callback
+        	//   The schedule is freed as part of this method
+			params           = ltg_sched_deserialize( &(((u32 *)cmdArgs)[1]), &t1, &s1 );
+			ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[2 + s1]), &t2, &s2);
+
+			if( (ltg_callback_arg != NULL) && (params != NULL) ) {
+
+				// Configure the LTG
+				id = ltg_sched_create(t1, params, ltg_callback_arg, &node_ltg_cleanup);
+
+				if(id != LTG_ID_INVALID){
+					xil_printf("LTG %d configured\n", id);
+
+					if ((flags & CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) == CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) {
+						xil_printf("    Starting LTG %d\n", id);
+						ltg_sched_start( id );
 					}
 
-					if (curr_entry != NULL) {
-						curr_station_info = (station_info*)(curr_entry->data);
-						info_entry        = (station_info_entry *) &respArgs32[respIndex];
-
-						info_entry->timestamp = get_usec_timestamp();
-
-						// Copy the station info to the log entry
-						//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
-						//          similar to the station info and tx params structures in wlan_mac_high.h
-						memcpy( (void *)(&info_entry->info), (void *)(curr_station_info), station_info_size );
-
-						xil_printf("Getting Station Entry for node: %02x", mac_addr[0]);
-						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-						// Set the return args and increment the size
-						respArgs32[2]    = Xil_Htonl( entry_size );
-						respArgs32[3]    = 0;
-						respArgs32[4]    = Xil_Htonl( entry_size );
-						respHdr->length += entry_size;
-					} else {
-						// If we cannot find the MAC address, print a warning and return an empty buffer
-						xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
-						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-					}
+		        	// Free the memory allocated for the params (ltg_callback_arg will be freed later)
+					wlan_mac_high_free(params);
 				} else {
-					// Create a WARPNet buffer response to send all station_info entries
+		        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+					xil_printf("ERROR:  Could not create LTG.\n");
 
-					// Get the list of TXRX Statistics
-					curr_list      = get_station_info_list();
-					if(curr_list != NULL){
-						total_entries  = curr_list->length;
-					} else {
-						total_entries  = 0;
-					}
-					size           = entry_size * total_entries;
-
-					if ( size != 0 ) {
-						// Send the station_info as a series of WARPNet Buffers
-
-						// Set loop variables
-						entry_per_pkt     = (max_words * 4) / entry_size;
-						bytes_per_pkt     = entry_per_pkt * entry_size;
-						num_pkts          = size / bytes_per_pkt + 1;
-						if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
-
-						entry_remaining   = total_entries;
-						bytes_remaining   = size;
-						curr_index        = 0;
-						curr_entry        = curr_list->first;
-						curr_station_info = (station_info*)(curr_entry->data);
-						time              = get_usec_timestamp();
-
-						// Iterate through all the packets
-						for( i = 0; i < num_pkts; i++ ) {
-
-							// Get the next index
-							next_index  = curr_index + bytes_per_pkt;
-
-							// Compute the transfer size (use the full buffer unless you run out of space)
-							if( next_index > size ) {
-								transfer_size = size - curr_index;
-							} else {
-								transfer_size = bytes_per_pkt;
-							}
-
-							if( entry_remaining < entry_per_pkt) {
-								transfer_entry_num = entry_remaining;
-							} else {
-								transfer_entry_num = entry_per_pkt;
-							}
-
-							// Set response args that change per packet
-							respArgs32[2]    = Xil_Htonl( bytes_remaining );
-							respArgs32[3]    = Xil_Htonl( curr_index );
-							respArgs32[4]    = Xil_Htonl( transfer_size );
-
-							// Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all
-							//   three command parameters for each packet that is sent.
-							respHdr->cmd     = cmdHdr->cmd;
-							respHdr->length  = 20 + transfer_size;
-							respHdr->numArgs = 5;
-
-							// Transfer data
-							info_entry = (station_info_entry *) &respArgs32[respIndex];
-
-							for( j = 0; j < entry_remaining; j++ ){
-								// Set the timestamp for the station_info entry
-								info_entry->timestamp = time;
-
-								// Since this method is interruptable, we need to protect ourselves from list elements being
-								// removed (we will not handle the case that list elements are added and just ignore the new
-								// elements).
-								if (curr_entry != NULL) {
-									// Copy the station info to the log entry
-									//   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
-									//          similar to the station info and tx params structures in wlan_mac_high.h
-									memcpy( (void *)(&info_entry->info), (void *)(curr_station_info), station_info_size );
-
-									// Increment the station info pointers
-									curr_entry         = dl_entry_next(curr_entry);
-									curr_station_info  = (station_info*)(curr_entry->data);
-								} else {
-									// Zero out the new log entry
-									//   NOTE:  This entry will still have a timestamp, but the code will complete
-									bzero( (void *)(&info_entry->info), station_info_size );
-
-									// Do not do anything to the station info pointers since we are already at the end of the list
-								}
-
-								// Increment the ethernet packet pointer
-								info_entry         = (station_info_entry *)(((void *)info_entry) + entry_size );
-							}
-
-							// Send the packet
-							node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
-
-							// Update our current address and bytes remaining
-							curr_index       = next_index;
-							bytes_remaining -= transfer_size;
-							entry_remaining -= entry_per_pkt;
-						}
-
-						respSent = RESP_SENT;
-					}
+		        	// Free the memory allocated in the deserialize
+					wlan_mac_high_free(params);
+					wlan_mac_high_free(ltg_callback_arg);
 				}
-            }
+			} else {
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 
-			// Set the length and number of response args
-			respHdr->length += (5 * sizeof(respArgs32));
+	        	// Free the memory allocated in the deserialize
+	        	if (ltg_callback_arg != NULL) { wlan_mac_high_free(ltg_callback_arg); }
+	        	if (params           != NULL) { wlan_mac_high_free(params); }
+
+				xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg or params\n");
+			}
+
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
+            respArgs32[respIndex++] = Xil_Htonl( id );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
 		break;
 
 
-		// Case NODE_SET_STATION_INFO  is implemented in the child classes
+	    //---------------------------------------------------------------------
+		case CMDID_LTG_START:
+            // NODE_LTG_START Packet Format:
+			//   - cmdArgs32[0]      - LTG ID
+			//
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 
-		// Case NODE_DISASSOCIATE      is implemented in the child classes
+			status = CMD_PARAM_SUCCESS;
+			id     = Xil_Ntohl(cmdArgs32[0]);
+
+			// Try to start the ID
+			temp2 = ltg_sched_start( id );
+
+			if ( temp2 == 0 ) {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("Starting LTG %d.\n", id);
+				} else {
+					xil_printf("Starting all LTGs.\n");
+				}
+			} else {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("WARNING:  LTG - LTG %d failed to start.\n", id);
+				} else {
+					xil_printf("WARNING:  LTG - Some LTGs failed to start.\n");
+				}
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LTG_STOP:
+            // NODE_LTG_STOP Packet Format:
+			//   - cmdArgs32[0]      - LTG ID
+			//
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+
+			status = CMD_PARAM_SUCCESS;
+			id     = Xil_Ntohl(cmdArgs32[0]);
+
+			// Try to stop the ID
+			temp2 = ltg_sched_stop( id );
+
+			if ( temp2 == 0 ) {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("Stopping LTG %d.\n", id);
+				} else {
+					xil_printf("Stopping all LTGs.\n");
+				}
+			} else {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("WARNING:  LTG - LTG %d failed to stop.\n", id);
+				} else {
+					xil_printf("WARNING:  LTG - Some LTGs failed to stop.\n");
+				}
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+			}
+
+			// Send response of current rate
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LTG_REMOVE:
+            // NODE_LTG_REMOVE Packet Format:
+			//   - cmdArgs32[0]      - LTG ID
+			//
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+
+			status = CMD_PARAM_SUCCESS;
+			id     = Xil_Ntohl(cmdArgs32[0]);
+
+			// Try to remove the ID
+			temp2 = ltg_sched_remove( id );
+
+			if ( temp2 == 0 ) {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("Removing LTG %d.\n", id);
+				} else {
+					xil_printf("Removing All LTGs.\n");
+				}
+			} else {
+				if (id != CMD_PARAM_LTG_ALL_LTGS){
+					xil_printf("WARNING:  LTG - LTG %d failed to remove.\n", id);
+				} else {
+					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
+				}
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_LTG_STATUS:
+            // NODE_LTG_STATUS Packet Format:
+			//   - cmdArgs32[0]      - LTG ID
+			//
+            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
+			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+			//   - respArgs32[1]     - CMD_PARAM_LTG_RUNNING
+			//                       - CMD_PARAM_LTG_STOPPED
+			//   - respArgs32[3:2]   - Last start timestamp
+			//   - respArgs32[5:4]   - Last stop timestamp
+			//
+			status = CMD_PARAM_SUCCESS;
+			id     = Xil_Ntohl(cmdArgs32[0]);
+			temp   = sizeof(ltg_sched_state_hdr) / 4;      // Number of return args for the header
+
+			u32      * state;
+			dl_entry * curr_tg_dl_entry;
+
+			curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
+
+			if(curr_tg_dl_entry != NULL){
+				state  = (u32 *)((tg_schedule*)(curr_tg_dl_entry->data))->state;
+			} else {
+	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			if(curr_tg_dl_entry != NULL){
+            	for (i = 0; i < temp; i++) {
+                    respArgs32[respIndex++] = Xil_Htonl( state[i] );
+            	}
+            } else {
+            	for (i = 0; i < temp; i++) {
+                    respArgs32[respIndex++] = 0xFFFFFFFF;
+            	}
+            }
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+//-----------------------------------------------------------------------------
+// Node Commands
+//-----------------------------------------------------------------------------
 
 
 	    //---------------------------------------------------------------------
@@ -820,6 +1353,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//   - cmdArgs32[0]  - Flags
 			//                     [0] - NODE_RESET_LOG
 			//                     [1] - NODE_RESET_TXRX_STATS
+			//                     [2] - NODE_RESET_LTG
+			//                     [3] - NODE_RESET_TX_DATA_QUEUE
+			//                     [4] - NODE_RESET_ASSOCIATIONS
 			temp   = Xil_Ntohl(cmdArgs32[0]);
 			status = CMD_PARAM_SUCCESS;
 
@@ -862,6 +1398,320 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			// Send response of success
             respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
+		case CMDID_NODE_CONFIGURE:
+            // CMDID_NODE_CONFIGURE Packet Format:
+			//   - cmdArgs32[0]  - Flags
+			//                     [0] - NODE_CONFIG_FLAG_DSSS_ENABLE
+			//
+			status = CMD_PARAM_SUCCESS;
+
+			// Get flags
+			temp  = Xil_Ntohl(cmdArgs32[0]);
+			temp2 = Xil_Ntohl(cmdArgs32[1]);
+
+			xil_printf("Configure Node:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+
+			// Configure the Node based on the flag bit / mask
+			if ( ( temp2 & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE ) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE ) {
+				if ( ( temp & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE ) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE ) {
+					xil_printf("Enable DSSS\n");
+					wlan_mac_high_set_dsss( 0x1 );
+				} else {
+					xil_printf("Disable DSSS\n");
+					wlan_mac_high_set_dsss( 0x0 );
+				}
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
+		case CMDID_NODE_WLAN_MAC_ADDR:
+            // Get / Set the wireless MAC address
+			//
+			// Message format:
+			//     cmdArgs32[0]    Command:
+			//                       - Write       (NODE_WRITE_VAL)
+			//                       - Read        (NODE_READ_VAL)
+			//     cmdArgs32[1:2]  MAC Address (write-only)
+			//
+			// Response format:
+			//     respArgs32[0]   Status
+			//     respArgs32[1:2] Current MAC Address
+			//
+			status  = CMD_PARAM_SUCCESS;
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+					wlan_exp_get_mac_addr(&cmdArgs32[1], &mac_addr[0]);
+
+					// !!!! FIXME !!!!
+					// Need to set the MAC Address of the node; this will have to be
+					// implemented for each subclass of the nodes (ie AP, STA, IBSS, etc)
+					// Not sure if this should be a callback?
+
+				break;
+
+				case CMD_PARAM_READ_VAL:
+				break;
+
+				default:
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
+			}
+
+			// Send response of status
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+            wlan_exp_put_mac_addr(get_wlan_mac_addr(), &respArgs32[respIndex]);
+            respIndex += 2;
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
+		case CMDID_NODE_TIME:
+			// Set / Get node time
+			//
+			// Message format:
+			//     cmdArgs32[0]   Command:
+			//                      - Write       (NODE_WRITE_VAL)
+			//                      - Read        (NODE_READ_VAL)
+			//                      - Add to log  (NODE_TIME_ADD_TO_LOG_VAL)
+			//     cmdArgs32[1]   ID
+			//     cmdArgs32[2]   New Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[3]   New Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[4]   Abs Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
+			//     cmdArgs32[5]   Abs Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
+			//
+			// Response format:
+			//     respArgs32[0]  Status
+			//     respArgs32[1]  Time on node in microseconds - lower 32 bits
+			//     respArgs32[2]  Time on node in microseconds - upper 32 bits
+			//
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			id      = Xil_Ntohl(cmdArgs32[1]);
+			time    = get_usec_timestamp();
+			status  = CMD_PARAM_SUCCESS;
+
+			time_info_entry * time_entry;
+
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+				case CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL:
+					// Get the new time
+					temp     = Xil_Ntohl(cmdArgs32[2]);
+					temp2    = Xil_Ntohl(cmdArgs32[3]);
+					new_time = (((u64)temp2)<<32) + ((u64)temp);
+
+					// If this is a write, then update the time on the node
+					if (msg_cmd == CMD_PARAM_WRITE_VAL){
+						wlan_mac_high_set_timestamp( new_time );
+						xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
+					}
+
+					// Get the absolute time
+					temp     = Xil_Ntohl(cmdArgs32[4]);
+					temp2    = Xil_Ntohl(cmdArgs32[5]);
+					abs_time = (((u64)temp2)<<32) + ((u64)temp);
+
+					xil_printf("WARPNET:  Absolute time = 0x%08x 0x%08x\n", temp2, temp);
+
+					// Create a time info log entry
+					time_entry = (time_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
+
+					if (time_entry != NULL) {
+						time_entry->timestamp  = time;
+						time_entry->time_id    = id;
+						if ( msg_cmd == CMD_PARAM_WRITE_VAL) {
+							time_entry->reason = TIME_INFO_ENTRY_WN_SET_TIME;
+						} else {
+							time_entry->reason = TIME_INFO_ENTRY_WN_ADD_LOG;
+						}
+						time_entry->new_time   = new_time;
+						time_entry->abs_time   = abs_time;
+					}
+
+					// If this was a write, then update the time value so we can return it to the host
+					//   This is done after the log entry to the fields are correct in the entry.
+					if (msg_cmd == CMD_PARAM_WRITE_VAL){
+						time = new_time;
+					}
+				break;
+
+				case CMD_PARAM_READ_VAL:
+				break;
+
+				default:
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
+			}
+
+			temp  = time & 0xFFFFFFFF;
+			temp2 = (time >> 32) & 0xFFFFFFFF;
+
+			// Send response
+			respArgs32[respIndex++] = Xil_Htonl( status );
+			respArgs32[respIndex++] = Xil_Htonl( temp );
+			respArgs32[respIndex++] = Xil_Htonl( temp2 );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_NODE_LOW_TO_HIGH_FILTER:
+			// Set node MAC low to high filter
+			//
+			// Message format:
+			//     cmdArgs32[0]   Command
+			//     cmdArgs32[1]   RX Filter
+			//
+			// Response format:
+			//     respArgs32[0]  Status
+			//
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			temp    = Xil_Ntohl(cmdArgs32[1]);
+			status  = CMD_PARAM_SUCCESS;
+
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+					xil_printf("Setting RX filter = 0x%08x\n", temp);
+					wlan_mac_high_set_rx_filter_mode(temp);
+			    break;
+
+				default:
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
+			}
+
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
+		// Case NODE_CHANNEL is implemented in the child classes
+
+
+	    //---------------------------------------------------------------------
+		case CMDID_NODE_RANDOM_SEED:
+			// Set the random seed for the random number generator for cpu high / low
+			//
+			// Message format:
+			//     cmdArgs32[0]   Command (only writes are supported
+			//     cmdArgs32[1]   CPU High Seed Valid
+			//     cmdArgs32[2]   CPU High Seed
+			//     cmdArgs32[3]   CPU Low  Seed Valid
+			//     cmdArgs32[4]   CPU Low  Seed
+			//
+			// Response format:
+			//     respArgs32[0]  Status
+			//
+			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
+			status  = CMD_PARAM_SUCCESS;
+
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+					// Process the seed for CPU high
+					temp    = Xil_Ntohl(cmdArgs32[1]);
+					temp2   = Xil_Ntohl(cmdArgs32[2]);
+					if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
+						xil_printf("Setting CPU High random seed = 0x%08x\n", temp2);
+						srand(temp2);
+					}
+
+					// Process the seed for CPU low
+					temp    = Xil_Ntohl(cmdArgs32[3]);
+					temp2   = Xil_Ntohl(cmdArgs32[4]);
+					if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
+						xil_printf("Setting CPU Low  random seed = 0x%08x\n", temp2);
+						wlan_mac_high_set_srand(temp2);
+					}
+			    break;
+
+				default:
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
+			}
+
+			// Send response
+            respArgs32[respIndex++] = Xil_Htonl( status );
+
+			respHdr->length += (respIndex * sizeof(respArgs32));
+			respHdr->numArgs = respIndex;
+		break;
+
+
+		//---------------------------------------------------------------------
+		case CMDID_NODE_LOW_PARAM:
+			// Set node MAC low to high filter
+			//
+			// Message format:
+			//     cmdArgs32[0]   Command
+			//     cmdArgs32[1]   Size in words of LOW_PARAM_MESSAGE
+			//     cmdArgs32[2]   LOW_PARAM_MESSAGE
+			//                    [0]   PARAM_ID
+			//	                  [1:N] ARGS
+			//
+			// Response format:
+			//     respArgs32[0]  Status
+			//
+
+			msg_cmd 		 = Xil_Ntohl(cmdArgs32[0]);
+			size             = Xil_Ntohl(cmdArgs32[1]);
+
+			// Fix the order of all the payload words for the LOW_PARAM_MESSAGE
+			for(i = 2; i < (size + 2); i++) {
+				cmdArgs32[i] = Xil_Ntohl(cmdArgs32[i]);
+			}
+
+			status  = CMD_PARAM_SUCCESS;
+
+			switch (msg_cmd) {
+				case CMD_PARAM_WRITE_VAL:
+
+					// Send message to CPU Low
+					ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
+					ipc_msg_to_low.num_payload_words = size;
+					ipc_msg_to_low.payload_ptr       = &(cmdArgs32[2]);
+
+					wlan_mac_high_interrupt_stop();
+					ipc_mailbox_write_msg(&ipc_msg_to_low);
+					wlan_mac_high_interrupt_start();
+				break;
+
+				default:
+					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					status = CMD_PARAM_ERROR;
+				break;
+			}
+
+			// Send response
+			respArgs32[respIndex++] = Xil_Htonl( status );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -1135,95 +1985,48 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 		break;
 
 
-		// Case NODE_CHANNEL is implemented in the child classes
+//-----------------------------------------------------------------------------
+// Association Commands
+//-----------------------------------------------------------------------------
 
 
-	    //---------------------------------------------------------------------
-		case CMDID_NODE_TIME:
-			// Set / Get node time
+		//---------------------------------------------------------------------
+		case CMDID_NODE_GET_SSID:
+			// Get the SSID
+			//
+			// NOTE:  This method does not force any maximum length on the SSID.  However,
+			//   the rest of the framework enforces the convention that the maximum length
+			//   of the SSID is SSID_LEN_MAX.
 			//
 			// Message format:
-			//     cmdArgs32[0]   Command:
-			//                      - Write       (NODE_WRITE_VAL)
-			//                      - Read        (NODE_READ_VAL)
-			//                      - Add to log  (NODE_TIME_ADD_TO_LOG_VAL)
-			//     cmdArgs32[1]   ID
-			//     cmdArgs32[2]   New Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
-			//     cmdArgs32[3]   New Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
-			//     cmdArgs32[4]   Abs Time in microseconds - lower 32 bits (or NODE_TIME_RSVD_VAL)
-			//     cmdArgs32[5]   Abs Time in microseconds - upper 32 bits (or NODE_TIME_RSVD_VAL)
+			//     No arguments
 			//
 			// Response format:
-			//     respArgs32[0]  Status
-            //     respArgs32[1]  Time on node in microseconds - lower 32 bits
-			//     respArgs32[2]  Time on node in microseconds - upper 32 bits
+			//     respArgs32[0]       Status
+			//     respArgs32[1]       SSID Length
+			//     respArgs32[2:N]     SSID (packed array of ascii character values)
+			//                             NOTE: The characters are copied with a straight strcpy
+			//                               and must be correctly processed on the host side
 			//
-			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
-			id      = Xil_Ntohl(cmdArgs32[1]);
-			time    = get_usec_timestamp();
-			status  = CMD_PARAM_SUCCESS;
-
-			time_info_entry * time_entry;
-
-			switch (msg_cmd) {
-				case CMD_PARAM_WRITE_VAL:
-				case CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL:
-					// Get the new time
-					temp     = Xil_Ntohl(cmdArgs32[2]);
-					temp2    = Xil_Ntohl(cmdArgs32[3]);
-					new_time = (((u64)temp2)<<32) + ((u64)temp);
-
-					// If this is a write, then update the time on the node
-					if (msg_cmd == CMD_PARAM_WRITE_VAL){
-						wlan_mac_high_set_timestamp( new_time );
-						xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
-					}
-
-					// Get the absolute time
-					temp     = Xil_Ntohl(cmdArgs32[4]);
-					temp2    = Xil_Ntohl(cmdArgs32[5]);
-					abs_time = (((u64)temp2)<<32) + ((u64)temp);
-
-					xil_printf("WARPNET:  Absolute time = 0x%08x 0x%08x\n", temp2, temp);
-
-					// Create a time info log entry
-					time_entry = (time_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
-
-					if (time_entry != NULL) {
-					    time_entry->timestamp  = time;
-					    time_entry->time_id    = id;
-					    if ( msg_cmd == CMD_PARAM_WRITE_VAL) {
-							time_entry->reason = TIME_INFO_ENTRY_WN_SET_TIME;
-					    } else {
-							time_entry->reason = TIME_INFO_ENTRY_WN_ADD_LOG;
-					    }
-					    time_entry->new_time   = new_time;
-					    time_entry->abs_time   = abs_time;
-					}
-
-					// If this was a write, then update the time value so we can return it to the host
-					//   This is done after the log entry to the fields are correct in the entry.
-					if (msg_cmd == CMD_PARAM_WRITE_VAL){
-						time = new_time;
-					}
-			    break;
-
-				case CMD_PARAM_READ_VAL:
-				break;
-
-				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
-					status = CMD_PARAM_ERROR;
-				break;
-			}
-
-			temp  = time & 0xFFFFFFFF;
-			temp2 = (time >> 32) & 0xFFFFFFFF;
 
 			// Send response
-            respArgs32[respIndex++] = Xil_Htonl( status );
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-            respArgs32[respIndex++] = Xil_Htonl( temp2 );
+			respArgs32[respIndex++] = Xil_Htonl( CMD_PARAM_SUCCESS );
+
+			// Return the size and current SSID
+			if (my_bss_info->ssid != NULL) {
+				xil_printf("Get SSID: %s\n", my_bss_info->ssid);
+
+				temp = strlen(my_bss_info->ssid);
+
+				respArgs32[respIndex++] = Xil_Htonl( temp );
+
+				strcpy( (char *)&respArgs32[respIndex], my_bss_info->ssid );
+
+				respIndex       += ( temp / sizeof(respArgs32) ) + 1;
+			} else {
+				// Return a zero length string
+				respArgs32[respIndex++] = 0;
+			}
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -1231,140 +2034,91 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 	    //---------------------------------------------------------------------
-		case CMDID_NODE_LOW_TO_HIGH_FILTER:
-			// Set node MAC low to high filter
+		// Case NODE_DISASSOCIATE      is implemented in the child classes
+
+
+		//---------------------------------------------------------------------
+		case CMDID_NODE_GET_STATION_INFO:
+            // NODE_GET_STATION_INFO Packet Format:
+			//   - cmdArgs32[0]   - buffer id
+			//   - cmdArgs32[1]   - flags
+            //   - cmdArgs32[2]   - start_address of transfer
+			//   - cmdArgs32[3]   - size of transfer (in bytes)
+			//   - cmdArgs32[4:5] - MAC Address (All 0xFF means all entries)
 			//
-			// Message format:
-			//     cmdArgs32[0]   Command
-			//     cmdArgs32[1]   RX Filter
-			//
-			// Response format:
-			//     respArgs32[0]  Status
-			//
-			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
-			temp    = Xil_Ntohl(cmdArgs32[1]);
-			status  = CMD_PARAM_SUCCESS;
+			// Always returns a valid WARPNet Buffer (either 1 or more packets)
+            //   - buffer_id       - uint32  - buffer_id
+			//   - flags           - uint32  - 0
+			//   - bytes_remaining - uint32  - Number of bytes remaining in the transfer
+			//   - start_byte      - uint32  - Byte index of the first byte in this packet
+			//   - size            - uint32  - Number of payload bytes in this packet
+			//   - byte[]          - uint8[] - Array of payload bytes
 
-			switch (msg_cmd) {
-				case CMD_PARAM_WRITE_VAL:
-					xil_printf("Setting RX filter = 0x%08x\n", temp);
-					wlan_mac_high_set_rx_filter_mode(temp);
-			    break;
+			xil_printf("Get Station Info\n");
 
-				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
-					status = CMD_PARAM_ERROR;
-				break;
-			}
-
-			// Send response
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
+			respSent = node_process_buffer_cmds(cmdHdr, cmdArgs32, respHdr, respArgs32, pktSrc, eth_dev_num, max_words,
+                                                get_station_info_list(),
+					                            sizeof(station_info_entry),
+					                            &find_station_info_entry,
+					                            &copy_station_info_to_dest_entry,
+					                            &zero_station_info_entry);
 		break;
 
 
 		//---------------------------------------------------------------------
-		case CMDID_NODE_LOW_PARAM:
-			// Set node MAC low to high filter
+		case CMDID_NODE_GET_BSS_INFO:
+            // NODE_GET_BSS_INFO Packet Format:
+			//   - cmdArgs32[0]   - buffer id
+			//   - cmdArgs32[1]   - flags
+            //   - cmdArgs32[2]   - start_address of transfer
+			//   - cmdArgs32[3]   - size of transfer (in bytes)
+			//   - cmdArgs32[4:5] - MAC Address (All 0xFF means all entries)
 			//
-			// Message format:
-			//     cmdArgs32[0]   Command
-			//     cmdArgs32[1]   Size in words of LOW_PARAM_MESSAGE
-			//     cmdArgs32[2]   LOW_PARAM_MESSAGE
-			//                    [0]   PARAM_ID
-			//	                  [1:N] ARGS
-			//
-			// Response format:
-			//     respArgs32[0]  Status
-			//
+			// Always returns a valid WARPNet Buffer (either 1 or more packets)
+            //   - buffer_id       - uint32  - buffer_id
+			//   - flags           - uint32  - 0
+			//   - bytes_remaining - uint32  - Number of bytes remaining in the transfer
+			//   - start_byte      - uint32  - Byte index of the first byte in this packet
+			//   - size            - uint32  - Number of payload bytes in this packet
+			//   - byte[]          - uint8[] - Array of payload bytes
 
-			msg_cmd 		 = Xil_Ntohl(cmdArgs32[0]);
-			size             = Xil_Ntohl(cmdArgs32[1]);
+			xil_printf("Get BSS Info\n");
 
-			// Fix the order of all the payload words for the LOW_PARAM_MESSAGE
-			for(i = 2; i < (size + 2); i++) {
-				cmdArgs32[i] = Xil_Ntohl(cmdArgs32[i]);
+			// If MAC address is all zeros, then return my_bss_info
+			if ((cmdArgs32[4] == 0x0) && (cmdArgs32[5] == 0x0)) {
+				if (my_bss_info != NULL) {
+					// Replace MAC address of command with my_bss_info BSSID
+					wlan_exp_put_mac_addr(my_bss_info->bssid, &cmdArgs32[4]);
+				} else {
+					wlan_exp_put_mac_addr(get_wlan_mac_addr(), &cmdArgs32[4]);
+				}
 			}
 
-			status  = CMD_PARAM_SUCCESS;
-
-			switch (msg_cmd) {
-				case CMD_PARAM_WRITE_VAL:
-
-					// Send message to CPU Low
-					ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
-					ipc_msg_to_low.num_payload_words = size;
-					ipc_msg_to_low.payload_ptr       = &(cmdArgs32[2]);
-
-					wlan_mac_high_interrupt_stop();
-					ipc_mailbox_write_msg(&ipc_msg_to_low);
-					wlan_mac_high_interrupt_start();
-				break;
-
-				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
-					status = CMD_PARAM_ERROR;
-				break;
-			}
-
-			// Send response
-			respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
+			respSent = node_process_buffer_cmds(cmdHdr, cmdArgs32, respHdr, respArgs32, pktSrc, eth_dev_num, max_words,
+					                            wlan_mac_high_get_bss_info_list(),
+					                            sizeof(bss_info_entry),
+					                            &wlan_mac_high_find_bss_info_BSSID,
+					                            &copy_bss_info_to_dest_entry,
+					                            &zero_bss_info_entry);
 		break;
 
 
-	    //---------------------------------------------------------------------
-		case CMDID_NODE_RANDOM_SEED:
-			// Set the random seed for the random number generator for cpu high / low
-			//
-			// Message format:
-			//     cmdArgs32[0]   Command (only writes are supported
-			//     cmdArgs32[1]   CPU High Seed Valid
-			//     cmdArgs32[2]   CPU High Seed
-			//     cmdArgs32[3]   CPU Low  Seed Valid
-			//     cmdArgs32[4]   CPU Low  Seed
-			//
-			// Response format:
-			//     respArgs32[0]  Status
-			//
-			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
-			status  = CMD_PARAM_SUCCESS;
+//-----------------------------------------------------------------------------
+// Queue Commands
+//-----------------------------------------------------------------------------
 
-			switch (msg_cmd) {
-				case CMD_PARAM_WRITE_VAL:
-					// Process the seed for CPU high
-					temp    = Xil_Ntohl(cmdArgs32[1]);
-					temp2   = Xil_Ntohl(cmdArgs32[2]);
-					if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
-						xil_printf("Setting CPU High random seed = 0x%08x\n", temp2);
-						srand(temp2);
-					}
 
-					// Process the seed for CPU low
-					temp    = Xil_Ntohl(cmdArgs32[3]);
-					temp2   = Xil_Ntohl(cmdArgs32[4]);
-					if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
-						xil_printf("Setting CPU Low  random seed = 0x%08x\n", temp2);
-						wlan_mac_high_set_srand(temp2);
-					}
-			    break;
+		//---------------------------------------------------------------------
+		case CMDID_QUEUE_TX_DATA_PURGE_ALL:
+			xil_printf("Purging All Data Transmit Queues\n");
 
-				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
-					status = CMD_PARAM_ERROR;
-				break;
-			}
-
-			// Send response
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
+			purge_all_data_tx_queue();
 		break;
+
+
+//-----------------------------------------------------------------------------
+// Memory Access Commands - For developer use only
+//-----------------------------------------------------------------------------
 
 
 	    //---------------------------------------------------------------------
@@ -1455,6 +2209,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				respHdr->numArgs = respIndex;
 			}
 		break;
+
 
 	    //---------------------------------------------------------------------
 		case CMDID_DEV_MEM_LOW:
@@ -1548,844 +2303,324 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			}
 		break;
 
-		//---------------------------------------------------------------------
-		case CMDID_LTG_CONFIG:
-            // NODE_LTG_START Packet Format:
-			//   - cmdArgs32[0]      - Flags
-			//                         [0] - Auto-start the LTG flow
-			//   - cmdArgs32[1 - N]  - LTG Schedule (packed)
-			//                         [0] - [31:16] Type    [15:0] Length
-			//   - cmdArgs32[N+1 - M]- LTG Payload (packed)
-			//                         [0] - [31:16] Type    [15:0] Length
-			//
-            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
-			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 
-			status = CMD_PARAM_SUCCESS;
-        	id     = LTG_ID_INVALID;
-			flags  = Xil_Ntohl(cmdArgs32[0]);
-
-			// Local variables
-			u32            s1, s2, t1, t2;
-			void *         ltg_callback_arg;
-        	void *         params;
-
-			// Get Schedule & Payload
-        	// NOTE:  This allocates memory for both the schedule and payload containers.
-        	//   The payload is freed as part of the node_ltg_cleanup() callback
-        	//   The schedule is freed as part of this method
-			params           = ltg_sched_deserialize( &(((u32 *)cmdArgs)[1]), &t1, &s1 );
-			ltg_callback_arg = ltg_payload_deserialize( &(((u32 *)cmdArgs)[2 + s1]), &t2, &s2);
-
-			if( (ltg_callback_arg != NULL) && (params != NULL) ) {
-
-				// Configure the LTG
-				id = ltg_sched_create(t1, params, ltg_callback_arg, &node_ltg_cleanup);
-
-				if(id != LTG_ID_INVALID){
-					xil_printf("LTG %d configured\n", id);
-
-					if ((flags & CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) == CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) {
-						xil_printf("    Starting LTG %d\n", id);
-						ltg_sched_start( id );
-					}
-
-		        	// Free the memory allocated for the params (ltg_callback_arg will be freed later)
-					wlan_mac_high_free(params);
-				} else {
-		        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-					xil_printf("ERROR:  Could not create LTG.\n");
-
-		        	// Free the memory allocated in the deserialize
-					wlan_mac_high_free(params);
-					wlan_mac_high_free(ltg_callback_arg);
-				}
-			} else {
-	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-
-	        	// Free the memory allocated in the deserialize
-	        	if (ltg_callback_arg != NULL) { wlan_mac_high_free(ltg_callback_arg); }
-	        	if (params           != NULL) { wlan_mac_high_free(params); }
-
-				xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg or params\n");
-			}
-
-			// Send response
-            respArgs32[respIndex++] = Xil_Htonl( status );
-            respArgs32[respIndex++] = Xil_Htonl( id );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LTG_START:
-            // NODE_LTG_START Packet Format:
-			//   - cmdArgs32[0]      - LTG ID
-			//
-            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
-			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-
-			status = CMD_PARAM_SUCCESS;
-			id     = Xil_Ntohl(cmdArgs32[0]);
-
-			// Try to start the ID
-			temp2 = ltg_sched_start( id );
-
-			if ( temp2 == 0 ) {
-				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("Starting LTG %d.\n", id);
-				} else {
-					xil_printf("Starting all LTGs.\n");
-				}
-			} else {
-				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("WARNING:  LTG - LTG %d failed to start.\n", id);
-				} else {
-					xil_printf("WARNING:  LTG - Some LTGs failed to start.\n");
-				}
-	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-			}
-
-			// Send response of current rate
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LTG_STOP:
-            // NODE_LTG_STOP Packet Format:
-			//   - cmdArgs32[0]      - LTG ID
-			//
-            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
-			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-
-			status = CMD_PARAM_SUCCESS;
-			id     = Xil_Ntohl(cmdArgs32[0]);
-
-			// Try to stop the ID
-			temp2 = ltg_sched_stop( id );
-
-			if ( temp2 == 0 ) {
-				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("Stopping LTG %d.\n", id);
-				} else {
-					xil_printf("Stopping all LTGs.\n");
-				}
-			} else {
-				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("WARNING:  LTG - LTG %d failed to stop.\n", id);
-				} else {
-					xil_printf("WARNING:  LTG - Some LTGs failed to stop.\n");
-				}
-	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-			}
-
-			// Send response of current rate
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LTG_REMOVE:
-            // NODE_LTG_REMOVE Packet Format:
-			//   - cmdArgs32[0]      - LTG ID
-			//
-            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
-			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-
-			status = CMD_PARAM_SUCCESS;
-			id     = Xil_Ntohl(cmdArgs32[0]);
-
-			// Try to remove the ID
-			temp2 = ltg_sched_remove( id );
-
-			if ( temp2 == 0 ) {
-				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("Removing LTG %d.\n", id);
-				} else {
-					xil_printf("Removing All LTGs.\n");
-				}
-			} else {
-				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("WARNING:  LTG - LTG %d failed to remove.\n", id);
-				} else {
-					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
-				}
-	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-			}
-
-			// Send response of status
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LTG_STATUS:
-            // NODE_LTG_STATUS Packet Format:
-			//   - cmdArgs32[0]      - LTG ID
-			//
-            //   - respArgs32[0]     - CMD_PARAM_SUCCESS
-			//                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-			//   - respArgs32[1]     - CMD_PARAM_LTG_RUNNING
-			//                       - CMD_PARAM_LTG_STOPPED
-			//   - respArgs32[3:2]   - Last start timestamp
-			//   - respArgs32[5:4]   - Last stop timestamp
-			//
-			status = CMD_PARAM_SUCCESS;
-			id     = Xil_Ntohl(cmdArgs32[0]);
-			temp   = sizeof(ltg_sched_state_hdr) / 4;      // Number of return args for the header
-
-			u32      * state;
-			dl_entry * curr_tg_dl_entry;
-
-			curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
-
-			if(curr_tg_dl_entry != NULL){
-				state  = (u32 *)((tg_schedule*)(curr_tg_dl_entry->data))->state;
-			} else {
-	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-			}
-
-			// Send response of status
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			if(curr_tg_dl_entry != NULL){
-            	for (i = 0; i < temp; i++) {
-                    respArgs32[respIndex++] = Xil_Htonl( state[i] );
-            	}
-            } else {
-            	for (i = 0; i < temp; i++) {
-                    respArgs32[respIndex++] = 0xFFFFFFFF;
-            	}
-            }
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LOG_CONFIG:
-            // NODE_LOG_CONFIG Packet Format:
-			//   - cmdArgs32[0]  - flags
-			//                     [ 0] - Logging Enabled = 1; Logging Disabled = 0;
-			//                     [ 1] - Wrap = 1; No Wrap = 0;
-			//                     [ 2] - Full Payloads Enabled = 1; Full Payloads Disabled = 0;
-			//                     [ 3] - Log WN Cmds Enabled = 1; Log WN Cmds Disabled = 0;
-			//   - cmdArgs32[1]  - mask for flags
-			//
-            //   - respArgs32[0] - CMD_PARAM_SUCCESS
-			//                   - CMD_PARAM_ERROR
-
-			// Set the return value
-			status = CMD_PARAM_SUCCESS;
-
-			// Get flags
-			temp  = Xil_Ntohl(cmdArgs32[0]);
-			temp2 = Xil_Ntohl(cmdArgs32[1]);
-
-			xil_printf("EVENT LOG:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
-
-			// Configure the LOG based on the flag bit / mask
-			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) {
-				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) {
-					event_log_config_logging( EVENT_LOG_LOGGING_ENABLE );
-				} else {
-					event_log_config_logging( EVENT_LOG_LOGGING_DISABLE );
-				}
-			}
-
-			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) {
-				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP ) {
-					event_log_config_wrap( EVENT_LOG_WRAP_ENABLE );
-				} else {
-					event_log_config_wrap( EVENT_LOG_WRAP_DISABLE );
-				}
-			}
-
-			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) {
-				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS ) {
-					wlan_exp_log_set_mac_payload_len( MAX_MAC_PAYLOAD_LOG_LEN );
-				} else {
-					wlan_exp_log_set_mac_payload_len( MIN_MAC_PAYLOAD_LOG_LEN );
-				}
-			}
-
-			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) == CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) {
-				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) == CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS ) {
-					wlan_exp_enable_logging = 1;
-				} else {
-					wlan_exp_enable_logging = 0;
-				}
-			}
-
-			// Send response of status
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-	    break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LOG_GET_INFO:
-            // NODE_LOG_GET_INFO Packet Format:
-            //   - respArgs32[0] - Next empty entry index
-            //   - respArgs32[1] - Oldest empty entry index
-            //   - respArgs32[2] - Number of wraps
-            //   - respArgs32[3] - Flags
-			//
-			// NOTE: The print statements are commented out b/c this command is used
-			//   a lot in the inner loop of an experiment
-
-#ifdef _DEBUG_
-			xil_printf("EVENT LOG:  Get Info\n");
-#endif
-
-			temp = event_log_get_next_entry_index();
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Next Index   = %10d\n", temp);
-#endif
-
-			temp = event_log_get_oldest_entry_index();
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Oldest Index = %10d\n", temp);
-#endif
-
-			temp = event_log_get_num_wraps();
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Num Wraps    = %10d\n", temp);
-#endif
-
-			temp = event_log_get_flags();
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Flags        = 0x%08x\n", temp);
-#endif
-
-			// Send response of current info
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-	    break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LOG_GET_CAPACITY:
-            // NODE_LOG_GET_CAPACITY Packet Format:
-            //   - respArgs32[0] - Max log size
-            //   - respArgs32[1] - Current log size
-            //
-			// NOTE: The print statements are commented out b/c this command is used
-			//   a lot in the inner loop of an experiment
-
-#ifdef _DEBUG_
-			xil_printf("EVENT LOG:  Get Capacity\n");
-#endif
-
-			temp = event_log_get_capacity();
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Capacity = %10d\n", temp);
-#endif
-
-			temp = event_log_get_total_size();
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Size     = %10d\n", temp);
-#endif
-
-			// Send response of current info
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-	    break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LOG_GET_ENTRIES:
-            // NODE_LOG_GET_ENTRIES Packet Format:
-            //   - Note:  All u32 parameters in cmdArgs32 are byte swapped so use Xil_Ntohl()
-            //
-			//   - cmdArgs32[0] - buffer id
-			//   - cmdArgs32[1] - flags
-            //   - cmdArgs32[2] - start_address of transfer
-			//   - cmdArgs32[3] - size of transfer (in bytes)
-			//                      0xFFFF_FFFF  -> Get everything in the event log
-			//   - cmdArgs32[4] - bytes_per_pkt
-			//
-			//   Return Value:
-			//     - wn_buffer
-            //       - buffer_id       - uint32  - ID of the buffer
-			//       - flags           - uint32  - Flags
-			//       - bytes_remaining - uint32  - Number of bytes remaining in the transfer
-			//       - start_byte      - uint32  - Byte index of the first byte in this packet
-			//       - size            - uint32  - Number of payload bytes in this packet
-			//       - byte[]          - uint8[] - Array of payload bytes
-			//
-			// NOTE:  The address passed via the command is the address relative to the current
-			//   start of the event log.  It is not an absolute address and should not be treated
-			//   as such.
-			//
-			//     When you transferring "everything" in the event log, the command will take a
-			//   snapshot of the size of the log to the "end" at the time the command is received
-			//   (ie either the next_entry_index or the end of the log before it wraps).  It will then
-			//   only transfer those events.  It will not any new events that are added to the log while
-			//   we are transferring the current log as well as transfer any events after a wrap.
-            //
-
-			id                = Xil_Ntohl(cmdArgs32[0]);
-			flags             = Xil_Ntohl(cmdArgs32[1]);
-			start_index       = Xil_Ntohl(cmdArgs32[2]);
-            size              = Xil_Ntohl(cmdArgs32[3]);
-
-            // Get the size of the log to the "end"
-            evt_log_size      = event_log_get_size(start_index);
-
-            // Check if we should transfer everything or if the request was larger than the current log
-            if ( ( size == CMD_PARAM_LOG_GET_ALL_ENTRIES ) || ( size > evt_log_size ) ) {
-                size = evt_log_size;
-            }
-
-            bytes_per_pkt     = max_words * 4;
-            num_pkts          = (size / bytes_per_pkt) + 1;
-            if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
-            curr_index        = start_index;
-            bytes_remaining   = size;
-
-#ifdef _DEBUG_
-			// NOTE: The print statements are commented out b/c this command is used
-			//   a lot in the inner loop of an experiment
-            //
-			xil_printf("EVENT LOG: Get Entries \n");
-			xil_printf("    curr_index       = 0x%8x\n", curr_index);
-			xil_printf("    size             = %10d\n", size);
-			xil_printf("    num_pkts         = %10d\n", num_pkts);
-#endif
-
-            // Initialize constant parameters
-            respArgs32[0] = Xil_Htonl( id );
-            respArgs32[1] = Xil_Htonl( flags );
-
-            // Iterate through all the packets
-			for( i = 0; i < num_pkts; i++ ) {
-
-				// Get the next address
-				next_index  = curr_index + bytes_per_pkt;
-
-				// Compute the transfer size (use the full buffer unless you run out of space)
-				if( next_index > ( start_index + size ) ) {
-                    transfer_size = (start_index + size) - curr_index;
-				} else {
-					transfer_size = bytes_per_pkt;
-				}
-
-				// Set response args that change per packet
-				respArgs32[2]   = Xil_Htonl( bytes_remaining );
-	            respArgs32[3]   = Xil_Htonl( curr_index );
-                respArgs32[4]   = Xil_Htonl( transfer_size );
-
-                // Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all 
-                //   three command parameters for each packet that is sent.
-	            respHdr->cmd     = cmdHdr->cmd;
-	            respHdr->length  = 20 + transfer_size;
-				respHdr->numArgs = 5;
-
-				// Transfer data
-				num_bytes = event_log_get_data( curr_index, transfer_size, (char *) &respArgs32[5] );
-
-#ifdef _DEBUG_
-				xil_printf("Packet %8d: \n", i);
-				xil_printf("    transfer_index = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", curr_index, transfer_size, num_bytes);
-#endif
-
-				// Check that we copied everything
-				if ( num_bytes == transfer_size ) {
-					// Send the packet
-					node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
-				} else {
-					xil_printf("ERROR:  NODE_GET_EVENTS tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_index );
-				}
-
-				// Update our current address and bytes remaining
-				curr_index       = next_index;
-				bytes_remaining -= transfer_size;
-			}
-
-			respSent = RESP_SENT;
-		break;
+//-----------------------------------------------------------------------------
+// Child Commands
+//-----------------------------------------------------------------------------
 
 
 		//---------------------------------------------------------------------
-		case CMDID_LOG_ADD_EXP_INFO_ENTRY:
-			// Add EXP_INFO entry to the log
-			//
-			// Message format:
-			//     cmdArgs32[0]   info_type (lower 16 bits)
-			//     cmdArgs32[1]   info_length (lower 16 bits)
-			//     cmdArgs32[2:N] info_payload
-			//
-			// NOTE:  Entry data will be copied in to the log "as is" (ie it will not
-			//     have any network to host order translation performed on it)
-			//
-			type       = (Xil_Ntohl(cmdArgs32[0]) & 0xFFFF);
-			size       = (Xil_Ntohl(cmdArgs32[1]) & 0xFFFF);
-
-			// Get the entry size
-			if (size == 0) {
-				entry_size = sizeof(exp_info_entry);
-			} else {
-				// 32-bit align size; EXP INFO structure already contains 4 bytes of the payload
-				entry_size = sizeof(exp_info_entry) + (((size - 1) / 4)*4);
-			}
-
-			exp_info_entry * exp_info;
-
-			exp_info = (exp_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_EXP_INFO, entry_size);
-
-			if ( exp_info != NULL ) {
-				xil_printf("EVENT LOG:  Adding EXP INFO entry with type %d to log (%d bytes)\n", type, size);
-
-				exp_info->timestamp   = get_usec_timestamp();
-				exp_info->info_type   = type;
-				exp_info->info_length = size;
-
-				// Copy the data to the log entry
-				if (size == 0){
-					bzero((void *)(&exp_info->info_payload[0]), 4);
-				} else {
-					memcpy( (void *)(&exp_info->info_payload[0]), (void *)(&cmdArgs32[2]), size );
-				}
-
-#ifdef _DEBUG_
-				xil_printf("   Timestamp:  %d\n", (u32)(exp_info->timestamp));
-				xil_printf("   Info Type:  %d\n",       exp_info->info_type);
-				xil_printf("   Message  :  \n        ");
-				for( i = 0; i < exp_info->info_length; i++) {
-					xil_printf("0x%02x ", (exp_info->info_payload)[i]);
-					if ( (((i + 1) % 16) == 0) && ((i + 1) != size) ) {
-						xil_printf("\n        ");
-					}
-				}
-				xil_printf("\n");
-#endif
-			}
-	    break;
-
-
-		//---------------------------------------------------------------------
-		// TODO:  THIS FUNCTION IS NOT COMPLETE
-		case CMDID_LOG_ENABLE_ENTRY:
-			xil_printf("EVENT LOG:  Enable Event not supported\n");
-	    break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_LOG_STREAM_ENTRIES:
-			// Stream entries from the log
-			//
-			// Message format:
-			//     cmdArgs32[0]   Enable = 1 / Disable = 0
-			//     cmdArgs32[1]   IP Address (32 bits)
-			//     cmdArgs32[2]   Host ID (upper 16 bits); Port (lower 16 bits)
-			//
-			temp       = Xil_Ntohl(cmdArgs32[0]);
-			ip_address = Xil_Ntohl(cmdArgs32[1]);
-			temp2      = Xil_Ntohl(cmdArgs32[2]);
-
-			// Check the enable
-			if ( temp == 0 ) {
-				xil_printf("EVENT LOG:  Disable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
-				async_pkt_enable = temp;
-			} else {
-				xil_printf("EVENT LOG:  Enable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
-
-				// Initialize all of the global async packet variables
-				async_pkt_enable = temp;
-
-				async_pkt_dest.srcIPAddr = ip_address;
-				async_pkt_dest.destPort  = (temp2 & 0xFFFF);
-
-				async_pkt_hdr.destID     = ((temp2 >> 16) & 0xFFFF);
-				async_pkt_hdr.srcID      = node_info.node;
-				async_pkt_hdr.pktType    = PKTTPYE_NTOH_MSG_ASYNC;
-				async_pkt_hdr.length     = PAYLOAD_PAD_NBYTES + 4;
-				async_pkt_hdr.seqNum     = 0;
-				async_pkt_hdr.flags      = 0;
-
-				status = transport_config_socket( eth_dev_num, &sock_async, &addr_async, ((temp2 >> 16) & 0xFFFF));
-				if (status == FAILURE) {
-					xil_printf("Failed to configure socket.\n");
-				}
-
-				// Transmit the Node Info
-				add_node_info_entry(WN_TRANSMIT);
-			}
-
-			// Send response
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-        break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_STATS_CONFIG_TXRX:
-            // NODE_STATS_CONFIG_TXRX Packet Format:
-			//   - cmdArgs32[0]  - flags
-			//                     [ 0] - Promiscuous stats collected = 1
-			//                            Promiscuous stats not collected = 0
-			//   - cmdArgs32[1]  - mask for flags
-			//
-            //   - respArgs32[0] - CMD_PARAM_SUCCESS
-			//                   - CMD_PARAM_ERROR
-
-			// Set the return value
-			status = CMD_PARAM_SUCCESS;
-
-			// Get flags
-			temp  = Xil_Ntohl(cmdArgs32[0]);
-			temp2 = Xil_Ntohl(cmdArgs32[1]);
-
-			xil_printf("STATS:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
-
-			// Configure the LOG based on the flag bit / mask
-			if ( ( temp2 & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) {
-				if ( ( temp & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) {
-					promiscuous_stats_enabled = 1;
-				} else {
-					promiscuous_stats_enabled = 0;
-				}
-			}
-
-			// Send response of status
-            respArgs32[respIndex++] = Xil_Htonl( status );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-	    break;
-
-
-	    //---------------------------------------------------------------------
-		case CMDID_STATS_ADD_TXRX_TO_LOG:
-			// Add the current statistics to the log
-			// TODO:  Add parameter to command to transmit stats
-			temp = add_all_txrx_statistics_to_log(WN_NO_TRANSMIT);
-
-			xil_printf("EVENT LOG:  Added %d statistics.\n", temp);
-
-			// Send response of oldest index
-            respArgs32[respIndex++] = Xil_Htonl( temp );
-
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-        break;
-
-
-		//---------------------------------------------------------------------
-		case CMDID_STATS_GET_TXRX:
-            // NODE_GET_STATS Packet Format:
-			//   - cmdArgs32[0]   - buffer id
-			//   - cmdArgs32[1]   - flags
-            //   - cmdArgs32[2]   - start_address of transfer
-			//   - cmdArgs32[3]   - size of transfer (in bytes)
-			//   - cmdArgs32[4:5] - MAC Address (All 0xFF means all stats)
-			// Always returns a valid WARPNet Buffer (either 1 or more packets)
-            //   - buffer_id       - uint32  - buffer_id
-			//   - flags           - uint32  - 0
-			//   - bytes_remaining - uint32  - Number of bytes remaining in the transfer
-			//   - start_byte      - uint32  - Byte index of the first byte in this packet
-			//   - size            - uint32  - Number of payload bytes in this packet
-			//   - byte[]          - uint8[] - Array of payload bytes
-
-			xil_printf("Get TXRX Statistics\n");
-
-			// Get MAC Address
-        	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4], &mac_addr[0]);
-        	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
-
-        	// Local variables
-        	statistics_txrx  * stats;
-        	txrx_stats_entry * stats_entry;
-        	u32                stats_size  = sizeof(statistics_txrx);
-
-        	entry_size = sizeof(txrx_stats_entry);
-
-            // Initialize constant return values
-        	respIndex     = 5;              // There will always be 5 return args
-            respArgs32[0] = cmdArgs32[0];
-            respArgs32[1] = 0;
-			respArgs32[2] = 0;
-			respArgs32[3] = 0;
-			respArgs32[4] = 0;
-
-            if ( id == 0 ) {
-				// If we cannot find the MAC address, print a warning and return an empty buffer
-				xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
-				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-            } else {
-				// If parameter is not the magic number to return all statistics structures
-    			if ( id != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
-    				// Find the statistics entry
-    				curr_entry = wlan_mac_high_find_statistics_ADDR( get_statistics(), &mac_addr[0]);
-
-    				if (curr_entry != NULL) {
-    					stats       = (statistics_txrx *)(curr_entry->data);
-    					stats_entry = (txrx_stats_entry *) &respArgs32[respIndex];
-
-    					stats_entry->timestamp = get_usec_timestamp();
-
-    					// Copy the statistics to the log entry
-    					//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
-    					//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
-    					memcpy( (void *)(&stats_entry->stats), (void *)stats, stats_size );
-
-    					xil_printf("Getting Statistics for node: %02x", mac_addr[0]);
-    					for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-
-						// Set the return args and increment the size
-						respArgs32[2]    = Xil_Htonl( entry_size );
-						respArgs32[3]    = 0;
-						respArgs32[4]    = Xil_Htonl( entry_size );
-						respHdr->length += entry_size;
-    				} else {
-						// If we cannot find the MAC address, print a warning and return an empty buffer
-						xil_printf("WARNING:  Could not find specified node: %02x", mac_addr[0]);
-						for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", mac_addr[i] ); } xil_printf("\n");
-    				}
-    			} else {
-    				// Create a WARPNet buffer response to send all stats entries
-
-                    // Get the list of TXRX Statistics
-    	            curr_list     = get_statistics();
-                    total_entries = curr_list->length;
-    	            size          = entry_size * total_entries;
-
-    	            if ( size != 0 ) {
-                        // Send the stats as a series of WARPNet Buffers
-
-    	            	// Set loop variables
-    	            	entry_per_pkt     = (max_words * 4) / entry_size;
-    	            	bytes_per_pkt     = entry_per_pkt * entry_size;
-    	            	num_pkts          = size / bytes_per_pkt + 1;
-    		            if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
-
-    		            entry_remaining   = total_entries;
-    		            bytes_remaining   = size;
-    					curr_index        = 0;
-    					curr_entry        = curr_list->first;
-    					stats             = (statistics_txrx*)(curr_entry->data);
-    					time              = get_usec_timestamp();
-
-    					// Iterate through all the packets
-    					for( i = 0; i < num_pkts; i++ ) {
-
-    						// Get the next index
-    						next_index  = curr_index + bytes_per_pkt;
-
-    						// Compute the transfer size (use the full buffer unless you run out of space)
-    						if( next_index > size ) {
-    							transfer_size = size - curr_index;
-    						} else {
-    							transfer_size = bytes_per_pkt;
-    						}
-
-    						if( entry_remaining < entry_per_pkt) {
-    						    transfer_entry_num = entry_remaining;
-    						} else {
-    						    transfer_entry_num = entry_per_pkt;
-    						}
-
-    						// Set response args that change per packet
-    						respArgs32[2]    = Xil_Htonl( bytes_remaining );
-    						respArgs32[3]    = Xil_Htonl( curr_index );
-    						respArgs32[4]    = Xil_Htonl( transfer_size );
-
-    						// Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all
-    						//   three command parameters for each packet that is sent.
-    						respHdr->cmd     = cmdHdr->cmd;
-    						respHdr->length  = 20 + transfer_size;
-    						respHdr->numArgs = 5;
-
-    						// Transfer data
-    						stats_entry      = (txrx_stats_entry *) &respArgs32[respIndex];
-
-                            for( j = 0; j < transfer_entry_num; j++ ){
-                                // Set the timestamp for the stats entry
-                            	stats_entry->timestamp = time;
-
-								// Since this method is interruptable, we need to protect ourselves from list elements being
-								// removed (we will not handle the case that list elements are added and just ignore the new
-								// elements).
-								if (curr_entry != NULL) {
-	        						// Copy the statistics to the log entry
-	        						//   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
-	        						//          equivalent to the statistics structure in wlan_mac_high.h (without the dl_entry)
-	        						memcpy( (void *)(&stats_entry->stats), (void *)(stats), stats_size );
-
-									// Increment the station info pointers
-									curr_entry  = dl_entry_next(curr_entry);
-	    							stats       = (statistics_txrx *)(curr_entry->data);
-								} else {
-									// Zero out the new log entry
-									//   NOTE:  This entry will still have a timestamp, but the code will complete
-	        						bzero( (void *)(&stats_entry->stats), stats_size );
-
-									// Do not do anything to the station info pointers since we are already at the end of the list
-								}
-
-								// Increment the ethernet packet pointer
-    							stats_entry = (txrx_stats_entry *)(((void *)stats_entry) + entry_size );
-                            }
-
-    						// Send the packet
-    						node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
-
-    						// Update our current address and bytes remaining
-    						curr_index       = next_index;
-    						bytes_remaining -= transfer_size;
-    						entry_remaining -= entry_per_pkt;
-    					}
-
-    					respSent = RESP_SENT;
-    	            }
-    			}
-            }
-
-			// Set the length and number of response args
-			respHdr->length += (5 * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
-		break;
-
-
-		//---------------------------------------------------------------------
-		case CMDID_QUEUE_TX_DATA_PURGE_ALL:
-			xil_printf("Purging All Data Transmit Queues\n");
-
-			purge_all_data_tx_queue();
-		break;
-
-
-        //---------------------------------------------------------------------
 		default:
 			// Call standard function in child class to parse parameters implmented there
-			respSent = node_process_callback( cmdID, cmdHdr, cmdArgs, respHdr, respArgs, pktSrc, eth_dev_num);
+			respSent = wlan_exp_process_callback( cmdID, cmdHdr, cmdArgs, respHdr, respArgs, pktSrc, eth_dev_num);
 		break;
 	}
 
 	return respSent;
+}
+
+
+
+
+/*****************************************************************************/
+/**
+* This method will process buffer commands and return a valid WARPNet buffer
+* with the requested information.
+*
+* Terminology:
+*    "source" - the data to be transferred.
+*    "dest"   - log entry type (from wlan_mac_entries.h) that corresponds to the info
+*    "entry"  - dl_list term meaning an element of the list
+*
+* @param    None.
+*
+* @return   NO_RESP_SENT
+*           RESP_SENT
+*
+******************************************************************************/
+u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
+	                         dl_list * source_list, u32 dest_size,
+	                         dl_entry * (*find_source_entry)(u8 *),
+                             void (*copy_source_to_dest)(void *, void *, u64),
+                             void (*zero_dest)(void *)) {
+
+	u32           respIndex  = 5;                // There will always be 5 return args
+	u32           respSent   = NO_RESP_SENT;
+
+	u32           i, j;
+
+    u32           id;
+	u64           time;
+	u8            mac_addr[6];
+
+	u32           size;
+	u32           transfer_size;
+	u32           curr_index;
+	u32           next_index;
+	u32           num_pkts;
+	u32           bytes_per_pkt;
+	u32           bytes_remaining;
+
+	u32           total_entries;
+	u32           entry_remaining;
+	u32           transfer_entry_num;
+	u32           entry_per_pkt;
+
+	dl_entry	* curr_entry;
+    void        * curr_dest;
+
+	// Get MAC Address
+	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4], &mac_addr[0]);
+	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+
+    // Initialize return values
+    respArgs32[0] = cmdArgs32[0];
+    respArgs32[1] = 0;
+	respArgs32[2] = 0;
+	respArgs32[3] = 0;
+	respArgs32[4] = 0;
+
+    if ( id == WLAN_EXP_AID_NONE ) {
+		// If we cannot find the MAC address, print a warning and return an empty buffer
+		xil_printf("WARNING:  Could not find specified node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+
+    } else {
+		// If parameter is not the magic number to return all structures
+		if ( id != WLAN_EXP_AID_ALL ) {
+			// Find the source information entry
+			curr_entry = find_source_entry(&mac_addr[0]);
+
+			if (curr_entry != NULL) {
+				// Copy the info to the log entry
+				//   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
+				//          similar to the info structures in wlan_mac_high.h
+				copy_source_to_dest(curr_entry->data, &respArgs32[respIndex], get_usec_timestamp());
+
+				xil_printf("Getting entry for node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+
+				// Set the return args and increment the size
+				respArgs32[2]    = Xil_Htonl( dest_size );
+				respArgs32[3]    = 0;
+				respArgs32[4]    = Xil_Htonl( dest_size );
+				respHdr->length += dest_size;
+			} else {
+				// If we cannot find the MAC address, print a warning and return an empty buffer
+				xil_printf("WARNING:  Could not find specified node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+			}
+		} else {
+			// Create a WARPNet buffer response to send all entries
+			if(source_list != NULL){
+				total_entries  = source_list->length;
+			} else {
+				total_entries  = 0;
+			}
+
+			size      = dest_size * total_entries;
+
+			if ( size != 0 ) {
+				// Send the entries as a series of WARPNet Buffers
+
+				// Set loop variables
+				entry_per_pkt     = (max_words * 4) / dest_size;
+				bytes_per_pkt     = entry_per_pkt * dest_size;
+				num_pkts          = size / bytes_per_pkt + 1;
+				if ( (size % bytes_per_pkt) == 0 ){ num_pkts--; }    // Subtract the extra pkt if the division had no remainder
+
+				entry_remaining   = total_entries;
+				bytes_remaining   = size;
+				curr_index        = 0;
+				curr_entry        = source_list->first;
+				time              = get_usec_timestamp();
+
+				// Iterate through all the packets
+				for( i = 0; i < num_pkts; i++ ) {
+
+					// Get the next index
+					next_index  = curr_index + bytes_per_pkt;
+
+					// Compute the transfer size (use the full buffer unless you run out of space)
+					if( next_index > size ) {
+						transfer_size = size - curr_index;
+					} else {
+						transfer_size = bytes_per_pkt;
+					}
+
+					if( entry_remaining < entry_per_pkt) {
+						transfer_entry_num = entry_remaining;
+					} else {
+						transfer_entry_num = entry_per_pkt;
+					}
+
+					// Set response args that change per packet
+					respArgs32[2]    = Xil_Htonl( bytes_remaining );
+					respArgs32[3]    = Xil_Htonl( curr_index );
+					respArgs32[4]    = Xil_Htonl( transfer_size );
+
+					// Unfortunately, due to the byte swapping that occurs in node_sendEarlyResp, we need to set all
+					//   three command parameters for each packet that is sent.
+					respHdr->cmd     = cmdHdr->cmd;
+					respHdr->length  = 20 + transfer_size;
+					respHdr->numArgs = 5;
+
+					// Transfer data
+					curr_dest = (void *) &respArgs32[respIndex];
+
+					for( j = 0; j < transfer_entry_num; j++ ){
+						// Since this method is interruptable, we need to protect ourselves from list elements being
+						// removed (we will not handle the case that list elements are added and just ignore the new
+						// elements).
+						if (curr_entry != NULL) {
+							// Copy the info to the log entry
+							//   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
+							//          similar to the info structures in wlan_mac_high.h
+							copy_source_to_dest(curr_entry->data, curr_dest, time);
+
+							// Increment the station info pointers
+							curr_entry = dl_entry_next(curr_entry);
+						} else {
+							// Instead of transferring the information, zero out the destination
+							//   NOTE:  The destination will still potentially have a timestamp
+                            zero_dest(curr_dest);
+
+							// Do not do anything to the station info pointers since we are already at the end of the list
+						}
+
+						// Increment the ethernet packet pointer
+						curr_dest = (void *)(((void *)curr_dest) + dest_size);
+					}
+
+					// Send the packet
+					node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
+
+					// Update our current address and bytes remaining
+					curr_index       = next_index;
+					bytes_remaining -= transfer_size;
+					entry_remaining -= entry_per_pkt;
+				}
+
+				respSent = RESP_SENT;
+			}
+		}
+    }
+
+	// Set the length and number of response args
+	respHdr->length += (5 * sizeof(respArgs32));
+	respHdr->numArgs = respIndex;
+
+	return respSent;
+}
+
+
+
+/*****************************************************************************/
+/**
+* These methods are helper functions for node_process_buffer_cmds
+*
+* For each type of structure to be transferred using a WARPNet buffer, you need to
+* implement the following commands:
+*     dl_entry * find_*_entry(u8 * mac_addr)
+*     zero_*_entry(void * dest);
+*     copy_*_to_dest_entry(void * source, void * dest, u64 time);
+*
+* @param    See description
+*
+* @return   None.
+*
+******************************************************************************/
+dl_entry * find_station_info_entry(u8 * mac_addr) {
+    dl_list * source_list = get_station_info_list();
+
+	if( source_list != NULL){
+		return wlan_mac_high_find_station_info_ADDR(source_list, mac_addr);
+	} else {
+		return NULL;
+	}
+}
+
+
+void zero_station_info_entry(void * dest) {
+
+	station_info_entry * curr_entry = (station_info_entry *)(dest);
+
+	bzero((void *)(&curr_entry->info), sizeof(station_info_base));
+}
+
+
+
+void copy_station_info_to_dest_entry(void * source, void * dest, u64 time) {
+
+	station_info       * curr_source = (station_info *)(source);
+	station_info_entry * curr_dest   = (station_info_entry *)(dest);
+
+	// Set the timestamp for the station_info entry
+	curr_dest->timestamp = time;
+
+	// Copy the source information to the destination log entry
+	//   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
+	//          similar to the source information structure in wlan_mac_high.h
+	memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(station_info_base) );
+
+}
+
+
+dl_entry * find_statistics_txrx_entry(u8 * mac_addr) {
+    dl_list * source_list = get_statistics();
+
+	if( source_list != NULL){
+		return wlan_mac_high_find_statistics_ADDR(source_list, mac_addr);
+	} else {
+		return NULL;
+	}
+}
+
+
+void zero_txrx_stats_entry(void * dest) {
+
+	txrx_stats_entry * curr_entry = (txrx_stats_entry *)(dest);
+
+	bzero((void *)(&curr_entry->stats), sizeof(statistics_txrx));
+}
+
+
+
+void copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time) {
+
+	statistics_txrx    * curr_source = (statistics_txrx *)(source);
+	txrx_stats_entry   * curr_dest   = (txrx_stats_entry *)(dest);
+
+	// Set the timestamp for the station_info entry
+	curr_dest->timestamp = time;
+
+	// Copy the source information to the destination log entry
+	//   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
+	//          similar to the source information structure in wlan_mac_high.h
+	memcpy( (void *)(&curr_dest->stats), (void *)(curr_source), sizeof(statistics_txrx) );
+
+}
+
+
+void zero_bss_info_entry(void * dest) {
+
+	bss_info_entry * curr_entry = (bss_info_entry *)(dest);
+
+	bzero((void *)(&curr_entry->info), sizeof(bss_info_base));
+}
+
+
+
+void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time) {
+
+	bss_info           * curr_source = (bss_info *)(source);
+	bss_info_entry     * curr_dest   = (bss_info_entry *)(dest);
+
+	// Set the timestamp for the station_info entry
+	curr_dest->timestamp = time;
+
+	// Copy the source information to the destination log entry
+	//   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
+	//          similar to the source information structure in wlan_mac_high.h
+	memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(bss_info_base) );
+
 }
 
 
@@ -2450,9 +2685,6 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
     node_info.broadcast_port  = NODE_UDP_MCAST_BASE;
 
 
-    // Set up callback for process function
-    node_process_callback     = (wn_function_ptr_t)wlan_exp_null_process_callback;
-
     // Initialize the System Monitor
     node_init_system_monitor();
     
@@ -2511,6 +2743,9 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
 		xil_printf("  !!! Waiting for Network Configuration !!! \n");
 	}
 
+	// Call child init function
+	status = wlan_exp_init_callback( type, serial_number, fpga_dna, eth_dev_num, hw_addr );
+
 	xil_printf("End WARPNet WLAN Exp initialization\n");
 	return status;
 }
@@ -2519,7 +2754,7 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
 
 /*****************************************************************************/
 /**
-* Set the node process callback
+* Set the WLAN Exp callbacks
 *
 * @param    Pointer to the callback
 *
@@ -2528,8 +2763,13 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
 * @note     None.
 *
 ******************************************************************************/
-void node_set_process_callback(void(*callback)()){
-	node_process_callback = (wn_function_ptr_t)callback;
+void wlan_exp_set_process_callback(void(*callback)()){
+	wlan_exp_process_callback = (wn_function_ptr_t)callback;
+}
+
+
+void wlan_exp_set_init_callback(void(*callback)()){
+	wlan_exp_init_callback = (wn_function_ptr_t)callback;
 }
 
 
@@ -2871,27 +3111,23 @@ u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
 	station_info * info;
 
 	if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
-		id = 0xFFFFFFFF;
+		id = WLAN_EXP_AID_ALL;
 	} else {
-
 		if(my_bss_info != NULL){
-			entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), mac_addr);
+			if ( wlan_addr_eq(mac_addr, my_bss_info->bssid) ) {
+				id = WLAN_EXP_AID_ME;
+			} else {
+				entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), mac_addr);
+
+				if (entry != NULL) {
+					info = (station_info*)(entry->data);
+		            id = info->AID;
+				} else {
+					id = WLAN_EXP_AID_NONE;
+				}
+			}
 		} else {
-			entry = NULL;
-		}
-
-		if (entry != NULL) {
-			info = (station_info*)(entry->data);
-            id = info->AID;
-		} else {
-
-#ifdef _DEBUG_
-			// There are some situations where we want to search for a MAC address that may not exist
-			xil_printf("ERROR:  Could not find MAC address = %02x:%02x:%02x:%02x:%02x:%02x\n",
-                       mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-#endif
-
-			id = 0;
+			id = WLAN_EXP_AID_NONE;
 		}
 	}
 
@@ -2978,7 +3214,7 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 			while(curr_entry != NULL) {
 				curr_station_info = (station_info*)(curr_entry->data);
 
-				if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
+				if ( aid == WLAN_EXP_AID_ALL ) {
 					xil_printf("Setting TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
 					curr_station_info->tx.phy.rate = tx_rate;
 					rate                           = tx_rate;
@@ -2994,7 +3230,7 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 		}
 	} else {
 
-		if ( aid != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
+		if ( aid != WLAN_EXP_AID_ALL ) {
 			curr_list  = get_station_info_list();
 
 			if (curr_list != NULL){
@@ -3052,7 +3288,7 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 			while(curr_entry != NULL) {
 				curr_station_info = (station_info*)(curr_entry->data);
 
-				if ( aid == CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
+				if ( aid == WLAN_EXP_AID_ALL ) {
 					xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
 					curr_station_info->tx.phy.antenna_mode = ant_mode;
 					mode                                   = ant_mode;
@@ -3068,7 +3304,7 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 		}
 	} else {
 
-		if ( aid != CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED ) {
+		if ( aid != WLAN_EXP_AID_ALL ) {
 			curr_list  = get_station_info_list();
 
 			if(curr_list != NULL){
@@ -3088,6 +3324,31 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
 	return mode;
 }
+
+
+
+
+/*****************************************************************************/
+/**
+* Print MAC Address
+*
+* @param    u8 *     - Pointer to the MAC address to be printed
+* @return	None.
+* @note		None.
+*
+******************************************************************************/
+void print_mac_address(u8 * mac_address) {
+    u32 i;
+
+	xil_printf("%02x", mac_address[0]);
+
+	for ( i = 1; i < ETH_ADDR_LEN; i++ ) {
+		xil_printf(":%02x", mac_address[i] );
+	}
+}
+
+
+
 
 
 
@@ -3163,13 +3424,8 @@ void print_wn_node_info( wn_node_info * info ) {
 	xil_printf("  Serial Number:      0x%x \n",    info->serial_number);
     xil_printf("  WLAN Exp HW Ver:    0x%x \n",    info->wlan_exp_design_ver);
         
-    xil_printf("  HW Address:         %02x",       info->hw_addr[0]);
-                                              
-    for( i = 1; i < ETH_ADDR_LEN; i++ ) {
-        xil_printf(":%02x", info->hw_addr[i]);
-    }
-	xil_printf("\n");
-                                                                                            
+    xil_printf("  HW Address:         "); print_mac_address(&info->hw_addr[0]); xil_printf("\n");
+
     xil_printf("  IP Address 0:       %d",         info->ip_addr[0]);
     
     for( i = 1; i < IP_VERSION; i++ ) {

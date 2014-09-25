@@ -279,5 +279,6 @@ void             wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, stat
 // Common functions that must be implemented by users of the framework
 dl_list * get_statistics();
 dl_list * get_station_info_list();
+u8      * get_wlan_mac_addr();
 
 #endif /* WLAN_MAC_UTIL_H_ */

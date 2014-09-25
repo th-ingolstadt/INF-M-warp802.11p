@@ -112,8 +112,8 @@ typedef struct {
 // Define WARPNet Common Methods
 //
 void wlan_exp_configure(u32 type, u32 eth_dev_num);
-void wlan_exp_get_mac_addr( u32 * src, u8 * dest);
-
+void wlan_exp_get_mac_addr(u32 * src, u8 * dest);
+void wlan_exp_put_mac_addr(u8 * src, u32 * dest);
 
 
 //

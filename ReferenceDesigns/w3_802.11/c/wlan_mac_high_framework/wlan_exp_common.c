@@ -127,7 +127,7 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
 * @note     None.
 *
 ******************************************************************************/
-void wlan_exp_get_mac_addr( u32 * src, u8 * dest) {
+void wlan_exp_get_mac_addr(u32 * src, u8 * dest) {
 
     dest[0] = (src[0] >> 16) & 0xFF;
     dest[1] = (src[0] >> 24) & 0xFF;
@@ -139,6 +139,12 @@ void wlan_exp_get_mac_addr( u32 * src, u8 * dest) {
 }
 
 
+void wlan_exp_put_mac_addr(u8 * src, u32 * dest) {
+
+	dest[0] = (src[1] << 24) + (src[0] << 16);
+	dest[1] = (src[5] << 24) + (src[4] << 16) + (src[3] <<  8) + (src[2] <<  0);
+
+}
 
 
 

@@ -54,20 +54,23 @@
 // WLAN Exp Node Commands
 //
 #define CMDID_NODE_RESET_STATE                             0x001000
-#define CMDID_NODE_TIME                                    0x001001
-#define CMDID_NODE_CHANNEL                                 0x001002
-#define CMDID_NODE_TX_POWER                                0x001003
-#define CMDID_NODE_TX_RATE                                 0x001004
-#define CMDID_NODE_TX_ANT_MODE                             0x001005
-#define CMDID_NODE_RX_ANT_MODE                             0x001006
-#define CMDID_NODE_LOW_TO_HIGH_FILTER                      0x001007
-#define CMDID_NODE_LOW_PARAM				               0x001008
-#define CMDID_NODE_RANDOM_SEED                             0x001009
+#define CMDID_NODE_CONFIGURE                               0x001001
+#define CMDID_NODE_TIME                                    0x001010
+#define CMDID_NODE_CHANNEL                                 0x001011
+#define CMDID_NODE_TX_POWER                                0x001012
+#define CMDID_NODE_TX_RATE                                 0x001013
+#define CMDID_NODE_TX_ANT_MODE                             0x001014
+#define CMDID_NODE_RX_ANT_MODE                             0x001015
+#define CMDID_NODE_LOW_TO_HIGH_FILTER                      0x001016
+#define CMDID_NODE_RANDOM_SEED                             0x001017
+#define CMDID_NODE_WLAN_MAC_ADDR                           0x001018
+#define CMDID_NODE_LOW_PARAM				               0x001020
 
 #define CMD_PARAM_WRITE_VAL                                0x00000000
 #define CMD_PARAM_READ_VAL                                 0x00000001
 #define CMD_PARAM_WRITE_DEFAULT_VAL                        0x00000002
 #define CMD_PARAM_READ_DEFAULT_VAL                         0x00000004
+#define CMD_PARAM_RSVD                                     0xFFFFFFFF
 
 #define CMD_PARAM_SUCCESS                                  0x00000000
 #define CMD_PARAM_ERROR                                    0xFF000000
@@ -75,7 +78,7 @@
 #define CMD_PARAM_UNICAST_VAL                              0x00000000
 #define CMD_PARAM_MULTICAST_VAL                            0x00000001
 
-#define CMD_PARAM_NODE_CONFIG_ALL_ASSOCIATED               0xFFFFFFFF
+#define CMD_PARAM_NODE_CONFIG_ALL                          0xFFFFFFFF
 
 #define CMD_PARAM_NODE_RESET_FLAG_LOG                      0x00000001
 #define CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS               0x00000002
@@ -83,19 +86,16 @@
 #define CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE            0x00000008
 #define CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS             0x00000010
 
+#define CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE             0x00000001
+
 #define CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL                 0x00000002
 #define CMD_PARAM_NODE_TIME_RSVD_VAL                       0xFFFFFFFF
 
+#define CMD_PARAM_RSVD_CHANNEL                             0x00000000
+#define CMD_PARAM_RSVD_MAC_ADDR                            0xFFFFFFFF
+
 #define CMD_PARAM_RANDOM_SEED_VALID                        0x00000001
-
-#define CMDID_NODE_GET_STATION_INFO                        0x001080
-#define CMDID_NODE_GET_BSS_INFO                            0x001081
-#define CMDID_NODE_GET_SSID                                0x001082
-
-#define CMDID_NODE_DISASSOCIATE                            0x001090
-#define CMDID_NODE_ASSOCIATE                               0x001091
-
-#define CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT                  0x00000001
+#define CMD_PARAM_RANDOM_SEED_RSVD                         0xFFFFFFFF
 
 
 //-----------------------------------------------
@@ -113,20 +113,21 @@
 
 #define CMD_PARAM_LTG_ALL_LTGS                             LTG_ID_INVALID
 
-#define CMD_PARAM_LTG_STOPPED                              0x00000000
 #define CMD_PARAM_LTG_RUNNING                              0x00000001
+#define CMD_PARAM_LTG_STOPPED                              0x00000000
 
 
 //-----------------------------------------------
 // Log Commands
 //
 #define CMDID_LOG_CONFIG                                   0x003000
-#define CMDID_LOG_GET_INFO                                 0x003001
+#define CMDID_LOG_GET_STATUS                               0x003001
 #define CMDID_LOG_GET_CAPACITY                             0x003002
 #define CMDID_LOG_GET_ENTRIES                              0x003003
 #define CMDID_LOG_ADD_EXP_INFO_ENTRY                       0x003004
-#define CMDID_LOG_ENABLE_ENTRY                             0x003005
-#define CMDID_LOG_STREAM_ENTRIES                           0x003006
+#define CMDID_LOG_ADD_STATS_TXRX                           0x003005
+#define CMDID_LOG_ENABLE_ENTRY                             0x003006
+#define CMDID_LOG_STREAM_ENTRIES                           0x003007
 
 #define CMD_PARAM_LOG_GET_ALL_ENTRIES                      0xFFFFFFFF
 
@@ -140,8 +141,7 @@
 // Statistics Commands
 //
 #define CMDID_STATS_CONFIG_TXRX                            0x004000
-#define CMDID_STATS_ADD_TXRX_TO_LOG                        0x004001
-#define CMDID_STATS_GET_TXRX                               0x004002
+#define CMDID_STATS_GET_TXRX                               0x004001
 
 #define CMD_PARAM_STATS_CONFIG_FLAG_PROMISC                0x00000001
 
@@ -153,11 +153,47 @@
 
 
 //-----------------------------------------------
+// Association Commands
+//
+#define CMDID_NODE_GET_SSID                                0x006000
+#define CMDID_NODE_GET_STATION_INFO                        0x006001
+#define CMDID_NODE_GET_BSS_INFO                            0x006002
+
+#define CMDID_NODE_DISASSOCIATE                            0x006010
+#define CMDID_NODE_ASSOCIATE                               0x006011
+
+#define CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT                  0x00000001
+
+
+//-----------------------------------------------
+// Common Commands for STA / IBSS
+//
+#define CMDID_NODE_SCAN_PARAM                              0x007000
+#define CMDID_NODE_SCAN                                    0x007001
+#define CMDID_NODE_JOIN                                    0x007002
+#define CMDID_NODE_SCAN_AND_JOIN                           0x007003
+
+#define CMD_PARAM_NODE_SCAN_ENABLE                         0x00000001
+#define CMD_PARAM_NODE_SCAN_DISABLE                        0x00000000
+
+#define CMD_PARAM_NODE_JOIN_SUCCEEDED                      0x00000000
+#define CMD_PARAM_NODE_JOIN_FAILED                         0xFFFFFFFF
+
+
+//-----------------------------------------------
 // Development Commands
 //
 #define CMDID_DEV_MEM_HIGH                                 0xFFF000
 #define CMDID_DEV_MEM_LOW                                  0xFFF001
 
+
+
+// ****************************************************************************
+// WLAN Exp Defines
+//
+#define WLAN_EXP_AID_NONE                                  0x00000000
+#define WLAN_EXP_AID_ALL                                   0xFFFFFFFF
+#define WLAN_EXP_AID_ME                                    0xFFFFFFFE
 
 
 
@@ -215,7 +251,8 @@ typedef struct {
 //
 int  wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr );
 
-void node_set_process_callback(void(*callback)());
+void wlan_exp_set_process_callback(void(*callback)());
+void wlan_exp_set_init_callback(void(*callback)());
 int  node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network);
 int  node_get_parameter_values(u32 * buffer, unsigned int max_words);
 

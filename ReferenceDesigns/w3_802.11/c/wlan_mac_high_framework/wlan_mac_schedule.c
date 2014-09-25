@@ -185,39 +185,42 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 	dl_entry*	curr_entry_ptr;
 	wlan_sched* curr_sched_ptr;
 
-	curr_entry_ptr = find_schedule(scheduler_sel, id);
-	curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
+    curr_entry_ptr = find_schedule(scheduler_sel, id);
 
-	switch(scheduler_sel){
-		case SCHEDULE_COARSE:
-			if(curr_sched_ptr != NULL){
-				dl_entry_remove(&wlan_sched_coarse,curr_entry_ptr);
-				wlan_mac_high_free(curr_entry_ptr);
-				wlan_mac_high_free(curr_sched_ptr);
-			}
+    if (curr_entry_ptr != NULL) {
+		curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
-			if(wlan_sched_coarse.length == 0){
-				//We just removed the last schedule, but the timer is still running. We should stop it.
-				//When a future schedule is added, it will restart the timer at that time.
-				XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_SLOW);
-			}
+		switch(scheduler_sel){
+			case SCHEDULE_COARSE:
+				if(curr_sched_ptr != NULL){
+					dl_entry_remove(&wlan_sched_coarse,curr_entry_ptr);
+					wlan_mac_high_free(curr_entry_ptr);
+					wlan_mac_high_free(curr_sched_ptr);
+				}
 
-		break;
-		case SCHEDULE_FINE:
-			if(curr_sched_ptr != NULL){
-				dl_entry_remove(&wlan_sched_fine,curr_entry_ptr);
-				wlan_mac_high_free(curr_entry_ptr);
-				wlan_mac_high_free(curr_sched_ptr);
-			}
+				if(wlan_sched_coarse.length == 0){
+					//We just removed the last schedule, but the timer is still running. We should stop it.
+					//When a future schedule is added, it will restart the timer at that time.
+					XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_SLOW);
+				}
 
-			if(wlan_sched_fine.length == 0){
-				//We just removed the last schedule, but the timer is still running. We should stop it.
-				//When a future schedule is added, it will restart the timer at that time.
-				XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_FAST);
-			}
+			break;
+			case SCHEDULE_FINE:
+				if(curr_sched_ptr != NULL){
+					dl_entry_remove(&wlan_sched_fine,curr_entry_ptr);
+					wlan_mac_high_free(curr_entry_ptr);
+					wlan_mac_high_free(curr_sched_ptr);
+				}
 
-		break;
-	}
+				if(wlan_sched_fine.length == 0){
+					//We just removed the last schedule, but the timer is still running. We should stop it.
+					//When a future schedule is added, it will restart the timer at that time.
+					XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_FAST);
+				}
+
+			break;
+		}
+    }
 }
 
 /*****************************************************************************/
@@ -235,10 +238,16 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 ******************************************************************************/
 void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
-
 	dl_entry*	next_entry_ptr;
 	dl_entry*	curr_entry_ptr;
 	wlan_sched* curr_sched_ptr;
+
+	u32            coarse_id;
+	function_ptr_t coarse_callback;
+
+	u32            fine_id;
+	function_ptr_t fine_callback;
+
 
 	switch(TmrCtrNumber){
 		case TIMER_CNTR_FAST:
@@ -254,7 +263,10 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 				if(num_fine_checks >= (curr_sched_ptr->target)){
 				//	xil_printf("%d: FINE:   %d > %d\n", curr_sched_ptr->id, (u32)num_fine_checks, (u32)(curr_sched_ptr->target));
-					curr_sched_ptr->callback(curr_sched_ptr->id);
+					// curr_sched_ptr->callback(curr_sched_ptr->id);
+					fine_id       = curr_sched_ptr->id;
+					fine_callback = curr_sched_ptr->callback;
+
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
 						(curr_sched_ptr->num_calls)--;
 					}
@@ -265,6 +277,8 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 					} else {
 						curr_sched_ptr->target = num_fine_checks + (u64)(curr_sched_ptr->delay);
 					}
+
+					fine_callback(fine_id);
 				}
 			}
 			/*
@@ -289,7 +303,9 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 				curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
 				if(num_coarse_checks >= (curr_sched_ptr->target)){
-					curr_sched_ptr->callback(curr_sched_ptr->id);
+					// curr_sched_ptr->callback(curr_sched_ptr->id);
+					coarse_id       = curr_sched_ptr->id;
+					coarse_callback = curr_sched_ptr->callback;
 
 					if(curr_sched_ptr->num_calls != SCHEDULE_REPEAT_FOREVER && curr_sched_ptr->num_calls != 0){
 						(curr_sched_ptr->num_calls)--;
@@ -301,6 +317,8 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 					} else {
 						curr_sched_ptr->target = num_coarse_checks + (u64)(curr_sched_ptr->delay);
 					}
+
+					coarse_callback(coarse_id);
 				}
 			}
 			/*
@@ -340,28 +358,36 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 ******************************************************************************/
 dl_entry* find_schedule(u8 scheduler_sel, u32 id){
 	dl_entry*	curr_dl_entry;
+	dl_entry*   next_dl_entry;
 	wlan_sched* curr_wlan_sched;
-	u32 i;
 
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
-			curr_dl_entry = wlan_sched_coarse.first;
-			for(i = 0 ; i < wlan_sched_coarse.length ; i++){
+			next_dl_entry = wlan_sched_coarse.first;
+
+			while(next_dl_entry != NULL){
+				curr_dl_entry   = next_dl_entry;
+				next_dl_entry   = dl_entry_next(next_dl_entry);
+
 				curr_wlan_sched = (wlan_sched*)(curr_dl_entry->data);
+
 				if(curr_wlan_sched->id == id){
 					return curr_dl_entry;
 				}
-				curr_dl_entry = dl_entry_next(curr_dl_entry);
 			}
 		break;
 		case SCHEDULE_FINE:
-			curr_dl_entry = wlan_sched_fine.first;
-			for(i = 0 ; i < wlan_sched_fine.length ; i++){
+			next_dl_entry = wlan_sched_fine.first;
+
+			while(next_dl_entry != NULL){
+				curr_dl_entry   = next_dl_entry;
+				next_dl_entry   = dl_entry_next(next_dl_entry);
+
 				curr_wlan_sched = (wlan_sched*)(curr_dl_entry->data);
+
 				if(curr_wlan_sched->id == id){
 					return curr_dl_entry;
 				}
-				curr_dl_entry = dl_entry_next(curr_dl_entry);
 			}
 		break;
 	}
