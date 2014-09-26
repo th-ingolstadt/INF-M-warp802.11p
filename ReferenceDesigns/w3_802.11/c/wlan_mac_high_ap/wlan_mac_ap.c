@@ -64,7 +64,7 @@ const u8 max_num_associations                   = 11;
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP-CRH";
+static char default_AP_SSID[] = "WARP-AP";
 
 // Common TX header for 802.11 packets
 mac_header_80211_common tx_header_common;
