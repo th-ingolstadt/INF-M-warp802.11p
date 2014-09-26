@@ -30,6 +30,10 @@
 extern	u8	dram_present;			///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 static dl_list bss_info_free;	///< Free BSS info
+
+/// The bss_info_list is stored chronologically from .first being oldest
+/// and .last being newest. The "find" function search from last to first
+/// to minimize search time for new BSSes you hear from often.
 dl_list bss_info_list;			///< Filled BSS info
 
 void bss_info_init(){
@@ -318,7 +322,7 @@ dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
 
-	curr_dl_entry = bss_info_list.first;
+	curr_dl_entry = bss_info_list.last;
 	while(curr_dl_entry != NULL){
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
@@ -326,7 +330,7 @@ dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 			return curr_dl_entry;
 		}
 
-		curr_dl_entry = dl_entry_next(curr_dl_entry);
+		curr_dl_entry = dl_entry_prev(curr_dl_entry);
 	}
 	return NULL;
 }
