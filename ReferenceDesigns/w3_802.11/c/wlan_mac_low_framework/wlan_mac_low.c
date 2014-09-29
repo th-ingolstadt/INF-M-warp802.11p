@@ -92,8 +92,6 @@ int wlan_mac_low_init(u32 type){
 	//xil_printf("Beacon Timestamp Offset: %d\n", ((s32)wlan_ofdm_txtime(sizeof(mac_header_80211_ACK),WLAN_PHY_FCS_NBYTES)));
 	wlan_mac_set_timestamp_offset(((s32)wlan_ofdm_txtime(sizeof(mac_header_80211_ACK),WLAN_PHY_FCS_NBYTES)));
 
-	//wlan_mac_set_timestamp_offset(0); //FIXME: Re-enable once we are back on v45+ hardware
-
 	//wlan_phy_tx_timestamp_ins_start(24);
 	//wlan_phy_tx_timestamp_ins_end(31);
 	wlan_phy_tx_timestamp_ins_start(1);
@@ -267,331 +265,377 @@ inline void wlan_mac_low_poll_ipc_rx(){
  * @return None
  */
 void process_ipc_msg_from_high(wlan_ipc_msg* msg){
-	u16 tx_pkt_buf;
-	u8 rate;
-	tx_frame_info* tx_mpdu;
-	wlan_ipc_msg ipc_msg_to_high;
-	u32 status;
-	mac_header_80211* tx_80211_header;
-	u16 ACK_N_DBPS;
-	u32 isLocked, owner;
-	u64 new_timestamp;
+	u32                      status;
+	wlan_ipc_msg             ipc_msg_to_high;
+
+	tx_frame_info          * tx_mpdu;
+	mac_header_80211       * tx_80211_header;
 	wlan_mac_low_tx_details* low_tx_details;
-	u32 low_tx_details_size;
-	u32 temp1;
-	u32 temp2;
-	u32* payload_to_write;
 
-		switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
+	u32                      temp1, temp2;
 
-			case IPC_MBOX_CPU_STATUS:
-				ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
-				ipc_msg_to_high.num_payload_words = 1;
-				ipc_msg_to_high.payload_ptr = &cpu_low_status;
-				ipc_mailbox_write_msg(&ipc_msg_to_high);
+	u16                      tx_pkt_buf;
+	u8                       rate;
+	u16                      ACK_N_DBPS;
+	u32                      isLocked, owner;
+	u64                      new_timestamp;
+	u32                      low_tx_details_size;
+	u32*                     payload_to_write;
+
+	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
+
+		case IPC_MBOX_CPU_STATUS:
+			ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
+			ipc_msg_to_high.num_payload_words = 1;
+			ipc_msg_to_high.payload_ptr = &cpu_low_status;
+			ipc_mailbox_write_msg(&ipc_msg_to_high);
+			break;
+
+		case IPC_MBOX_MEM_READ_WRITE:
+			switch(msg->arg0){
+				case IPC_REG_WRITE_MODE:
+					payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write));
+
+					//IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
+					// Any byte swapping (i.e. for payloads that arrive over Ethernet) *must* be performed
+					//  before the payload is passed to this function
+					memcpy((u8*)(((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr),
+						  (u8*)payload_to_write,
+						  sizeof(u32)*((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words );
+
+				break;
+				case IPC_REG_READ_MODE:
+					/*
+					xil_printf("\nCPU Low Read:\n");
+					xil_printf(" Addr: 0x%08x\n", (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr);
+					xil_printf(" N Wrds: %d\n", ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
+
+					xil_printf("Mem[0x%08x] = 0x%08x\n",
+							(u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr,
+							Xil_In32((u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr));
+					 */
+					ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
+					ipc_msg_to_high.num_payload_words = ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words;
+					ipc_msg_to_high.payload_ptr = (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr;
+
+					ipc_mailbox_write_msg(&ipc_msg_to_high);
+
+				break;
+			}
+		break;
+
+		case IPC_MBOX_LOW_PARAM:
+			switch(msg->arg0){
+				case IPC_REG_WRITE_MODE:
+					switch(ipc_msg_from_high_payload[0]){
+						case LOW_PARAM_PHYSICAL_CS_THRESH:
+							if(ipc_msg_from_high_payload[1] < 1023){
+								wlan_phy_rx_set_cca_thresh(ipc_msg_from_high_payload[1] * PHY_RX_RSSI_SUM_LEN);
+							} else {
+								wlan_phy_rx_set_cca_thresh(0xFFFF);
+							}
+						break;
+						case LOW_PARAM_CW_EXP_MIN:
+							cw_exp_min = ipc_msg_from_high_payload[1];
+						break;
+						case LOW_PARAM_CW_EXP_MAX:
+							cw_exp_max = ipc_msg_from_high_payload[1];
+						break;
+						case LOW_PARAM_TIMESTAMP_OFFSET:
+							wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1]));
+							xil_printf("New Offset: %d\n", (s32)(ipc_msg_from_high_payload[1]));
+						break;
+						default:
+							ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
+						break;
+					}
 				break;
 
-			case IPC_MBOX_MEM_READ_WRITE:
-				switch(msg->arg0){
-					case IPC_REG_WRITE_MODE:
-						payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write));
+				case IPC_REG_READ_MODE:
+					ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
 
-						//IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
-						// Any byte swapping (i.e. for payloads that arrive over Ethernet) *must* be performed
-						//  before the payload is passed to this function
-						memcpy((u8*)(((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr),
- 							  (u8*)payload_to_write,
-							  sizeof(u32)*((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words );
+					switch(ipc_msg_from_high_payload[0]){
+						case LOW_PARAM_PHYSICAL_CS_THRESH:
+							temp1 = ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0x0000FFFF) / 8);
 
-					break;
-					case IPC_REG_READ_MODE:
-						/*
-						xil_printf("\nCPU Low Read:\n");
-						xil_printf(" Addr: 0x%08x\n", (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr);
-						xil_printf(" N Wrds: %d\n", ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
+							ipc_msg_to_high.num_payload_words = 1;
+							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
+						break;
+						case LOW_PARAM_CW_EXP_MIN:
+							temp1 = cw_exp_min;
 
-						xil_printf("Mem[0x%08x] = 0x%08x\n",
-								(u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr,
-								Xil_In32((u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr));
- 	 	 	 	 	 	 */
-						ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
-						ipc_msg_to_high.num_payload_words = ((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words;
-						ipc_msg_to_high.payload_ptr = (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr;
+							ipc_msg_to_high.num_payload_words = 1;
+							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
+						break;
+						case LOW_PARAM_CW_EXP_MAX:
+							temp1 = cw_exp_max;
 
-						ipc_mailbox_write_msg(&ipc_msg_to_high);
+							ipc_msg_to_high.num_payload_words = 1;
+							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
+						break;
+						case LOW_PARAM_TIMESTAMP_OFFSET:
+							temp1 = Xil_In32(WLAN_MAC_REG_SET_TIMESTAMP_OFFSET);
 
-					break;
-				}
+							ipc_msg_to_high.num_payload_words = 1;
+							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
+						break;
+						default:
+							// Set a Null response before executing the callback
+							temp1                             = 0;
+							ipc_msg_to_high.num_payload_words = 0;
+							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
 
-			break;
-
-			case IPC_MBOX_LOW_PARAM:
-				switch(ipc_msg_from_high_payload[0]){
-					case LOW_PARAM_PHYSICAL_CS_THRESH:
-						if(ipc_msg_from_high_payload[1] < 1023){
-							wlan_phy_rx_set_cca_thresh(ipc_msg_from_high_payload[1] * PHY_RX_RSSI_SUM_LEN);
-						} else {
-							wlan_phy_rx_set_cca_thresh(0xFFFF);
-						}
-					break;
-					case LOW_PARAM_CW_EXP_MIN:
-						cw_exp_min = ipc_msg_from_high_payload[1];
-					break;
-					case LOW_PARAM_CW_EXP_MAX:
-						cw_exp_max = ipc_msg_from_high_payload[1];
-					break;
-					case LOW_PARAM_TIMESTAMP_OFFSET:
-						wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1]));
-						xil_printf("New Offset: %d\n", (s32)(ipc_msg_from_high_payload[1]));
-					break;
-					default:
-						ipc_low_param_callback(ipc_msg_from_high_payload);
-					break;
-				}
-			break;
-
-			case IPC_MBOX_CONFIG_CHANNEL:
-				mac_param_chan = ipc_msg_from_high_payload[0];
-				if(wlan_lib_channel_verify(mac_param_chan) == 0){
-					//wlan_mac_low_wlan_chan_to_rc_chan
-
-					if(mac_param_chan <= 14){
-						mac_param_band = RC_24GHZ;
-
-					} else {
-						mac_param_band = RC_5GHZ;
+							ipc_low_param_callback(IPC_REG_READ_MODE, ipc_msg_from_high_payload);
+						break;
 					}
 
-					radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
-					wlan_mac_reset_NAV_counter();
+					ipc_mailbox_write_msg(&ipc_msg_to_high);
+				break;
+			}
+		break;
+
+		case IPC_MBOX_CONFIG_CHANNEL:
+			mac_param_chan = ipc_msg_from_high_payload[0];
+			if(wlan_lib_channel_verify(mac_param_chan) == 0){
+				//wlan_mac_low_wlan_chan_to_rc_chan
+
+				if(mac_param_chan <= 14){
+					mac_param_band = RC_24GHZ;
 
 				} else {
-					xil_printf("Invalid channel selection %d\n", mac_param_chan);
+					mac_param_band = RC_5GHZ;
 				}
 
+				radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
+				wlan_mac_reset_NAV_counter();
 
-			break;
-
-			case IPC_MBOX_LOW_RANDOM_SEED:
-				srand(ipc_msg_from_high_payload[0]);
-			break;
-
-			case IPC_MBOX_CONFIG_TX_CTRL_POW:
-				mac_param_ctrl_tx_pow = (s8)ipc_msg_from_high_payload[0];
-			break;
-
-			case IPC_MBOX_CONFIG_RX_FILTER:
-				temp1 = (u32)ipc_msg_from_high_payload[0];
-				temp2 = 0;
-				if((temp1 & RX_FILTER_FCS_MASK) == RX_FILTER_FCS_NOCHANGE){
-					temp2 |= (mac_param_rx_filter & RX_FILTER_FCS_MASK);
-				} else {
-					temp2 |= (temp1 & RX_FILTER_FCS_MASK);
-				}
-				if((temp1 & RX_FILTER_HDR_NOCHANGE) == RX_FILTER_HDR_NOCHANGE){
-					temp2 |= (mac_param_rx_filter & RX_FILTER_HDR_NOCHANGE);
-				} else {
-					temp2 |= (temp1 & RX_FILTER_HDR_NOCHANGE);
-				}
-
-				mac_param_rx_filter = temp2;
-			break;
-
-			case IPC_MBOX_CONFIG_RX_ANT_MODE:
-				wlan_rx_config_ant_mode(ipc_msg_from_high_payload[0]);
-			break;
-
-			case IPC_MBOX_CONFIG_MAC:
-				process_config_mac((ipc_config_mac*)ipc_msg_from_high_payload);
-			break;
-
-			case IPC_MBOX_SET_TIME:
-				switch(msg->arg0){
-					default:
-					case 0:
-						//This message contains a new timestamp that should completely replace
-						//the existing usec count
-						new_timestamp = *(u64*)ipc_msg_from_high_payload;
-					break;
-
-					case 1:
-						//This message contains a timestamp correction factor.
-						new_timestamp = get_usec_timestamp() + (*(s64*)ipc_msg_from_high_payload);
-					break;
-				}
-				wlan_mac_low_set_time(new_timestamp);
-			break;
-
-			case IPC_MBOX_CONFIG_PHY_TX:
-				process_config_phy_tx((ipc_config_phy_tx*)ipc_msg_from_high_payload);
-			break;
-
-			case IPC_MBOX_CONFIG_PHY_RX:
-				process_config_phy_rx((ipc_config_phy_rx*)ipc_msg_from_high_payload);
-			break;
-
-			case IPC_MBOX_TX_MPDU_READY:
-
-				//Message is an indication that a Tx Pkt Buf needs processing
-				tx_pkt_buf = msg->arg0;
-				//TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
+			} else {
+				xil_printf("Invalid channel selection %d\n", mac_param_chan);
+			}
 
 
-				ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_ACCEPT);
-				ipc_msg_to_high.num_payload_words = 0;
-				ipc_msg_to_high.arg0 = tx_pkt_buf;
-				ipc_mailbox_write_msg(&ipc_msg_to_high);
+		break;
+
+		case IPC_MBOX_LOW_RANDOM_SEED:
+			srand(ipc_msg_from_high_payload[0]);
+		break;
+
+		case IPC_MBOX_CONFIG_TX_CTRL_POW:
+			mac_param_ctrl_tx_pow = (s8)ipc_msg_from_high_payload[0];
+		break;
+
+		case IPC_MBOX_CONFIG_RX_FILTER:
+			temp1 = (u32)ipc_msg_from_high_payload[0];
+			temp2 = 0;
+			if((temp1 & RX_FILTER_FCS_MASK) == RX_FILTER_FCS_NOCHANGE){
+				temp2 |= (mac_param_rx_filter & RX_FILTER_FCS_MASK);
+			} else {
+				temp2 |= (temp1 & RX_FILTER_FCS_MASK);
+			}
+			if((temp1 & RX_FILTER_HDR_NOCHANGE) == RX_FILTER_HDR_NOCHANGE){
+				temp2 |= (mac_param_rx_filter & RX_FILTER_HDR_NOCHANGE);
+			} else {
+				temp2 |= (temp1 & RX_FILTER_HDR_NOCHANGE);
+			}
+
+			mac_param_rx_filter = temp2;
+		break;
+
+		case IPC_MBOX_CONFIG_RX_ANT_MODE:
+			wlan_rx_config_ant_mode(ipc_msg_from_high_payload[0]);
+		break;
+
+		case IPC_MBOX_CONFIG_MAC:
+			process_config_mac((ipc_config_mac*)ipc_msg_from_high_payload);
+		break;
+
+		case IPC_MBOX_SET_TIME:
+			switch(msg->arg0){
+				default:
+				case 0:
+					//This message contains a new timestamp that should completely replace
+					//the existing usec count
+					new_timestamp = *(u64*)ipc_msg_from_high_payload;
+				break;
+
+				case 1:
+					//This message contains a timestamp correction factor.
+					new_timestamp = get_usec_timestamp() + (*(s64*)ipc_msg_from_high_payload);
+				break;
+			}
+			wlan_mac_low_set_time(new_timestamp);
+		break;
+
+		case IPC_MBOX_CONFIG_PHY_TX:
+			process_config_phy_tx((ipc_config_phy_tx*)ipc_msg_from_high_payload);
+		break;
+
+		case IPC_MBOX_CONFIG_PHY_RX:
+			process_config_phy_rx((ipc_config_phy_rx*)ipc_msg_from_high_payload);
+		break;
+
+		case IPC_MBOX_TX_MPDU_READY:
+
+			//Message is an indication that a Tx Pkt Buf needs processing
+			tx_pkt_buf = msg->arg0;
+			//TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
 
 
-				if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-					warp_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
+			ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_ACCEPT);
+			ipc_msg_to_high.num_payload_words = 0;
+			ipc_msg_to_high.arg0 = tx_pkt_buf;
+			ipc_mailbox_write_msg(&ipc_msg_to_high);
 
-					status_pkt_buf_tx(tx_pkt_buf, &isLocked, &owner);
 
-					warp_printf(PL_ERROR, "	TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
+			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				warp_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
 
-				} else {
+				status_pkt_buf_tx(tx_pkt_buf, &isLocked, &owner);
 
-					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				warp_printf(PL_ERROR, "	TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
 
-					tx_mpdu->delay_accept = (u32)(get_usec_timestamp() - tx_mpdu->timestamp_create);
+			} else {
+
+				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+
+				tx_mpdu->delay_accept = (u32)(get_usec_timestamp() - tx_mpdu->timestamp_create);
 
 //					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
 
-					//Convert rate index into rate code used in PHY's SIGNAL field
-					//ACK_N_DBPS is used to calculate duration of received ACKs.
-					//The selection of ACK rates given DATA rates is specified in 9.7.6.5.2 of 802.11-2012
-					switch(tx_mpdu->params.phy.rate){
-						case WLAN_MAC_RATE_1M:
-							warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
+				//Convert rate index into rate code used in PHY's SIGNAL field
+				//ACK_N_DBPS is used to calculate duration of received ACKs.
+				//The selection of ACK rates given DATA rates is specified in 9.7.6.5.2 of 802.11-2012
+				switch(tx_mpdu->params.phy.rate){
+					case WLAN_MAC_RATE_1M:
+						warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
 
-							//Default to BPSK 1/2 if user requests DSSS Tx (should never happen - CPU High will catch this first)
-							rate = WLAN_PHY_RATE_BPSK12;
-							ACK_N_DBPS = N_DBPS_R6;
-						break;
-						case WLAN_MAC_RATE_6M:
-							rate = WLAN_PHY_RATE_BPSK12;
-							ACK_N_DBPS = N_DBPS_R6;
-						break;
-						case WLAN_MAC_RATE_9M:
-							rate = WLAN_PHY_RATE_BPSK34;
-							ACK_N_DBPS = N_DBPS_R6;
-						break;
-						case WLAN_MAC_RATE_12M:
-							rate = WLAN_PHY_RATE_QPSK12;
-							ACK_N_DBPS = N_DBPS_R12;
-						break;
-						case WLAN_MAC_RATE_18M:
-							rate = WLAN_PHY_RATE_QPSK34;
-							ACK_N_DBPS = N_DBPS_R12;
-						break;
-						case WLAN_MAC_RATE_24M:
-							rate = WLAN_PHY_RATE_16QAM12;
-							ACK_N_DBPS = N_DBPS_R24;
-						break;
-						case WLAN_MAC_RATE_36M:
-							rate = WLAN_PHY_RATE_16QAM34;
-							ACK_N_DBPS = N_DBPS_R24;
-						break;
-						case WLAN_MAC_RATE_48M:
-							rate = WLAN_PHY_RATE_64QAM23;
-							ACK_N_DBPS = N_DBPS_R24;
-						break;
-						case WLAN_MAC_RATE_54M:
-							rate = WLAN_PHY_RATE_64QAM34;
-							ACK_N_DBPS = N_DBPS_R24;
-						break;
-						default:
-							//Default to BSPK 1/2 if CPU High requests invalid rate
-							rate = WLAN_PHY_RATE_BPSK12;
-							ACK_N_DBPS = N_DBPS_R6;
+						//Default to BPSK 1/2 if user requests DSSS Tx (should never happen - CPU High will catch this first)
+						rate = WLAN_PHY_RATE_BPSK12;
+						ACK_N_DBPS = N_DBPS_R6;
+					break;
+					case WLAN_MAC_RATE_6M:
+						rate = WLAN_PHY_RATE_BPSK12;
+						ACK_N_DBPS = N_DBPS_R6;
+					break;
+					case WLAN_MAC_RATE_9M:
+						rate = WLAN_PHY_RATE_BPSK34;
+						ACK_N_DBPS = N_DBPS_R6;
+					break;
+					case WLAN_MAC_RATE_12M:
+						rate = WLAN_PHY_RATE_QPSK12;
+						ACK_N_DBPS = N_DBPS_R12;
+					break;
+					case WLAN_MAC_RATE_18M:
+						rate = WLAN_PHY_RATE_QPSK34;
+						ACK_N_DBPS = N_DBPS_R12;
+					break;
+					case WLAN_MAC_RATE_24M:
+						rate = WLAN_PHY_RATE_16QAM12;
+						ACK_N_DBPS = N_DBPS_R24;
+					break;
+					case WLAN_MAC_RATE_36M:
+						rate = WLAN_PHY_RATE_16QAM34;
+						ACK_N_DBPS = N_DBPS_R24;
+					break;
+					case WLAN_MAC_RATE_48M:
+						rate = WLAN_PHY_RATE_64QAM23;
+						ACK_N_DBPS = N_DBPS_R24;
+					break;
+					case WLAN_MAC_RATE_54M:
+						rate = WLAN_PHY_RATE_64QAM34;
+						ACK_N_DBPS = N_DBPS_R24;
+					break;
+					default:
+						//Default to BSPK 1/2 if CPU High requests invalid rate
+						rate = WLAN_PHY_RATE_BPSK12;
+						ACK_N_DBPS = N_DBPS_R6;
 
-							xil_printf("Invalid rate in Tx MPDU Info: %d\n", tx_mpdu->params.phy.rate);
-						break;
-					}
-
-
-					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
-						//Get pointer to start of MAC header in packet buffer
-						tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
-
-						//Compute and fill in the duration of any time-on-air following this packet's transmission
-						// For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
-						tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES, ACK_N_DBPS) + T_SIFS;
-					}
-
-					if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-						//Some management packets contain the node's local 64-bit microsecond timer value
-						// The Tx hardware can insert this value into the outgoing byte stream automatically
-						// This ensures the timestamp value is not skewed by any pre-Tx deferrals
-
-						//The macros below set the first and last byte index where the Tx logic should insert
-						// the 8-byte timestamp.
-						//In the current implementation these indexes must span an 8-byte-aligned
-						// region of the packet buffer (i.e. (start_ind % 8)==0 )
-						wlan_phy_tx_timestamp_ins_start((24+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
-						wlan_phy_tx_timestamp_ins_end((31+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
-					} else {
-						//When start>end, the Tx logic will not insert any timestamp
-						wlan_phy_tx_timestamp_ins_start(1);
-						wlan_phy_tx_timestamp_ins_end(0);
-					}
-
-					//Allocate memory to store the record of each transmission of this MPDU
-					// Allocating dynamically gives flexibility to change num_tx_max per packet, constrained only
-					//  by CPU Low's heap size. malloc failures are handled by skipping TX_LOW log data but proceeding
-					//  normally with actual MPDU transmission
-					low_tx_details_size = sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.num_tx_max;
-					low_tx_details = malloc(low_tx_details_size);
-
-					//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
-					// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
-
-					status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
-
-					//Record the total time this MPDU spent in the Tx state machine
-					tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
-
-					//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
-
-					if(status == 0){
-						tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
-					} else {
-						tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
-					}
-
-					//Revert the state of the packet buffer and return control to CPU High
-					tx_mpdu->state = TX_MPDU_STATE_EMPTY;
-
-					if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-						warp_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
-						wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
-					} else {
-						ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
-
-						//Add the per-Tx-event details to the IPC message so CPU High can add them to the log as TX_LOW entries
-						if(low_tx_details != NULL){
-							ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
-
-							//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
-							if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
-								ipc_msg_to_high.num_payload_words = ( (tx_mpdu->num_tx)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
-							} else {
-								ipc_msg_to_high.num_payload_words = ( ((IPC_BUFFER_MAX_NUM_WORDS << 2)/sizeof(wlan_mac_low_tx_details)  )*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
-							}
-						} else {
-							ipc_msg_to_high.num_payload_words = 0;
-							ipc_msg_to_high.payload_ptr = NULL;
-						}
-						ipc_msg_to_high.arg0 = tx_pkt_buf;
-						ipc_mailbox_write_msg(&ipc_msg_to_high);
-					}
-
-					free(low_tx_details);
+						xil_printf("Invalid rate in Tx MPDU Info: %d\n", tx_mpdu->params.phy.rate);
+					break;
 				}
-			break;
-		}
+
+
+				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
+					//Get pointer to start of MAC header in packet buffer
+					tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
+
+					//Compute and fill in the duration of any time-on-air following this packet's transmission
+					// For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
+					tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES, ACK_N_DBPS) + T_SIFS;
+				}
+
+				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+					//Some management packets contain the node's local 64-bit microsecond timer value
+					// The Tx hardware can insert this value into the outgoing byte stream automatically
+					// This ensures the timestamp value is not skewed by any pre-Tx deferrals
+
+					//The macros below set the first and last byte index where the Tx logic should insert
+					// the 8-byte timestamp.
+					//In the current implementation these indexes must span an 8-byte-aligned
+					// region of the packet buffer (i.e. (start_ind % 8)==0 )
+					wlan_phy_tx_timestamp_ins_start((24+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
+					wlan_phy_tx_timestamp_ins_end((31+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
+				} else {
+					//When start>end, the Tx logic will not insert any timestamp
+					wlan_phy_tx_timestamp_ins_start(1);
+					wlan_phy_tx_timestamp_ins_end(0);
+				}
+
+				//Allocate memory to store the record of each transmission of this MPDU
+				// Allocating dynamically gives flexibility to change num_tx_max per packet, constrained only
+				//  by CPU Low's heap size. malloc failures are handled by skipping TX_LOW log data but proceeding
+				//  normally with actual MPDU transmission
+				low_tx_details_size = sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.num_tx_max;
+				low_tx_details = malloc(low_tx_details_size);
+
+				//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
+				// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
+
+				status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
+
+				//Record the total time this MPDU spent in the Tx state machine
+				tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
+
+				//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
+
+				if(status == 0){
+					tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
+				} else {
+					tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
+				}
+
+				//Revert the state of the packet buffer and return control to CPU High
+				tx_mpdu->state = TX_MPDU_STATE_EMPTY;
+
+				if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					warp_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
+					wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
+				} else {
+					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
+
+					//Add the per-Tx-event details to the IPC message so CPU High can add them to the log as TX_LOW entries
+					if(low_tx_details != NULL){
+						ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
+
+						//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
+						if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
+							ipc_msg_to_high.num_payload_words = ( (tx_mpdu->num_tx)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+						} else {
+							ipc_msg_to_high.num_payload_words = ( ((IPC_BUFFER_MAX_NUM_WORDS << 2)/sizeof(wlan_mac_low_tx_details)  )*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+						}
+					} else {
+						ipc_msg_to_high.num_payload_words = 0;
+						ipc_msg_to_high.payload_ptr = NULL;
+					}
+					ipc_msg_to_high.arg0 = tx_pkt_buf;
+					ipc_mailbox_write_msg(&ipc_msg_to_high);
+				}
+
+				free(low_tx_details);
+			}
+		break;
+	}
 }
 
 /**
