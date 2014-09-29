@@ -56,6 +56,8 @@
 #define  WLAN_DEFAULT_CHANNEL                   1
 #define  WLAN_DEFAULT_TX_PWR		            5
 
+#define  WLAN_DEFAULT_BEACON_INTERVAL_TU        100
+
 const u8 max_num_associations                   = 11;
 
 /*********************** Global Variable Definitions *************************/
@@ -89,8 +91,10 @@ u32 		 mac_param_chan;
 static u8 	 wlan_mac_addr[6];
 
 // Traffic Indication Map State
-
 ps_conf      power_save_configuration;
+
+// Beacon variables
+u32          beacon_schedule_id = SCHEDULE_FAILURE;
 
 
 
@@ -104,10 +108,18 @@ int main(){
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v0.95 Beta ------------------------\n");
+	xil_printf("----- v0.96 Beta ------------------------\n");
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
+
+
+	// Check that right shift works correctly
+	//   Issue with -Os in Xilinx SDK 14.7
+	if (wlan_mac_high_right_shift_test() != 0) {
+		wlan_mac_high_set_node_error_status(0);
+		wlan_mac_high_blink_hex_display(0, 250000);
+	}
 
 	//heap_init() must be executed before any use of malloc. This explicit init
 	// handles the case of soft-reset of the MicroBlaze leaving stale values in the heap RAM
@@ -205,7 +217,8 @@ int main(){
 
 	// Set up BSS description
 	my_bss_info = wlan_mac_high_create_bss_info(wlan_mac_addr, default_AP_SSID, mac_param_chan);
-	my_bss_info->state = BSS_STATE_OWNED;
+	my_bss_info->state           = BSS_STATE_OWNED;
+	my_bss_info->beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -216,9 +229,9 @@ int main(){
 	power_save_configuration.enable = 1;
 	power_save_configuration.dtim_period = 1;
 	power_save_configuration.dtim_count = 0;
-	power_save_configuration.dtim_mcast_allow_window = BEACON_INTERVAL_US / 4;
+	power_save_configuration.dtim_mcast_allow_window = (WLAN_DEFAULT_BEACON_INTERVAL_TU * BSS_MICROSECONDS_IN_A_TU) / 4;
 
-	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BEACON_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+	beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU), SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
@@ -231,7 +244,7 @@ int main(){
 	userio_set_pwm_ramp_min(USERIO_BASEADDR, 2);
 	userio_set_pwm_ramp_max(USERIO_BASEADDR, 400);
 
-	wlan_mac_high_enable_hex_blink();
+	wlan_mac_high_enable_hex_pwm();
 
 	// Reset the event log
 	event_log_reset();
@@ -275,7 +288,6 @@ int main(){
 	//wlan_mac_high_interrupt_start();
 	/////// TODO DEBUG  READ EXAMPLE ///////
 #endif
-
 
 	while(1) {
 #ifdef USE_WARPNET_WLAN_EXP
@@ -792,14 +804,13 @@ void beacon_transmit() {
         tx_length = wlan_create_beacon_frame(
 			(void*)(curr_tx_queue_buffer->frame),
 			&tx_header_common,
-			BEACON_INTERVAL_TU,
+			my_bss_info->beacon_interval,
 			(CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
 			strlen(my_bss_info->ssid),
 			(u8*)my_bss_info->ssid,
 			mac_param_chan);
 
  		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
-        //wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID ); //DEBUG FIXME
 
 		// Set the information in the TX queue buffer
  		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1158,7 +1169,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
 
 							// Fill in the data
-							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, BEACON_INTERVAL_TU, (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT), strlen(my_bss_info->ssid), (u8*)my_bss_info->ssid, mac_param_chan);
+							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame),
+									                                 &tx_header_common,
+									                                 my_bss_info->beacon_interval,
+									                                 (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
+									                                 strlen(my_bss_info->ssid),
+									                                 (u8*)my_bss_info->ssid,
+									                                 mac_param_chan);
 
 							// Setup the TX frame info
 							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
@@ -1440,15 +1457,18 @@ void reset_station_statistics(){
  * @return None
  */
 void reset_bss_info(){
-	dl_list* bss_info_list = wlan_mac_high_get_bss_info_list();
-	dl_entry* next_dl_entry = bss_info_list->first;
-	dl_entry* curr_dl_entry;
+	dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
+	dl_entry * next_dl_entry = bss_info_list->first;
+	dl_entry * curr_dl_entry;
+    bss_info * curr_bss_info;
 
 	while(next_dl_entry != NULL){
 		curr_dl_entry = next_dl_entry;
 		next_dl_entry = dl_entry_next(curr_dl_entry);
+		curr_bss_info = (bss_info *)(curr_dl_entry->data);
 
-		if(curr_dl_entry->data != my_bss_info){
+		if(curr_bss_info != my_bss_info){
+			wlan_mac_high_clear_bss_info(curr_bss_info);
 			dl_entry_remove(bss_info_list, curr_dl_entry);
 			bss_info_checkin(curr_dl_entry);
 		}
@@ -1797,39 +1817,6 @@ void ap_write_hex_display(u8 val){
 
     // Set the pins that are using PWM mode
 	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, pwm_val);
-}
-
-
-
-/**
- * @brief Mapping of hexadecimal values to the 7-segment display
- *
- * @param  u8 hex_value
- *   - Hexadecimal value to be converted (between 0 and 15)
- * @return u8
- *   - LED map value of the 7-segment display
- */
-u8   sevenSegmentMap(u8 hex_value) {
-    switch(hex_value) {
-        case(0x0) : return 0x3F;
-        case(0x1) : return 0x06;
-        case(0x2) : return 0x5B;
-        case(0x3) : return 0x4F;
-        case(0x4) : return 0x66;
-        case(0x5) : return 0x6D;
-        case(0x6) : return 0x7D;
-        case(0x7) : return 0x07;
-        case(0x8) : return 0x7F;
-        case(0x9) : return 0x6F;
-
-        case(0xA) : return 0x77;
-        case(0xB) : return 0x7C;
-        case(0xC) : return 0x39;
-        case(0xD) : return 0x5E;
-        case(0xE) : return 0x79;
-        case(0xF) : return 0x71;
-        default   : return 0x00;
-    }
 }
 
 
