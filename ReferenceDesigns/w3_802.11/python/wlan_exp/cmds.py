@@ -91,6 +91,7 @@ CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS             = 0x00000002
 CMD_PARAM_NODE_RESET_FLAG_LTG                    = 0x00000004
 CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE          = 0x00000008
 CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS           = 0x00000010
+CMD_PARAM_NODE_RESET_FLAG_BSS_INFO               = 0x00000020
 
 CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE           = 0x00000001
 
@@ -203,6 +204,7 @@ CMDID_NODE_AP_CONFIG                             = 0x100000
 CMDID_NODE_AP_DTIM_PERIOD                        = 0x100001
 CMDID_NODE_AP_SET_SSID                           = 0x100002
 CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER     = 0x100003
+CMDID_NODE_AP_BEACON_INTERVAL                    = 0x100004
 
 CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING       = 0x00000001
 
@@ -627,6 +629,7 @@ class NodeResetState(wn_message.Cmd):
                  [2] NODE_RESET_LTG
                  [3] NODE_RESET_TX_DATA_QUEUE
                  [4] NODE_RESET_ASSOCIATIONS
+                 [5] NODE_RESET_BSS_INFO
     """
     def __init__(self, flags):
         super(NodeResetState, self).__init__()
@@ -872,18 +875,7 @@ class NodeProcChannel(wn_message.Cmd):
         self.add_args(cmd)
         
         if channel is not None:
-            try:
-                self.channel = channel['index']
-            except (KeyError, TypeError):
-                import wlan_exp.util as util
-                
-                tmp_chan = util.find_channel_by_channel_number(channel)
-                
-                if tmp_chan is not None:
-                    self.channel = tmp_chan['index']
-                else:
-                    msg  = "Unknown channel:  {0}".format(channel)
-                    raise ValueError(msg)                    
+            self.channel = _get_channel_number(channel)
 
         if self.channel is not None:
             self.add_args(self.channel)
@@ -902,7 +894,7 @@ class NodeProcChannel(wn_message.Cmd):
                     msg += "    Tried to set channel to {0}\n".format(util.channel_to_str(self.channel))
                     msg += "    Actually set channel to {0}\n".format(util.channel_to_str(args[1]))
                     print(msg)
-            return util.find_channel_by_index(args[1])
+            return util.find_channel_by_channel_number(args[1])
         else:
             return None
 
@@ -991,8 +983,18 @@ class NodeLowParam(wn_message.Cmd):
                 self.add_args(values)
             
     def process_resp(self, resp):
-        if (self.read_write == CMD_PARAM_READ):            
-            return resp.get_args()
+        """ Message format:
+                respArgs32[0]   Status
+                respArgs32[1]   Size in words of PARAM ARGS
+                respArgs32[2]   PARAM_ID
+                respArgs32[3:N] PARAM ARGS
+        """
+        if (self.read_write == CMD_PARAM_READ):
+            args = resp.get_args()
+            if resp.resp_is_valid(num_args=(args[1] + 3), status_errors=[CMD_PARAM_ERROR], name='Low Param command'):
+                return args[1:]
+            else:
+                return None
         else:
             return None
 
@@ -1308,6 +1310,9 @@ class NodeGetStationInfo(wn_message.BufferCmd):
         for val in ret_val:
             if (val['host_name'][0] == '\x00'):
                 val['host_name'] = '\x00'
+            else:
+                import ctypes
+                val['host_name'] = ctypes.c_char_p(val['host_name']).value
 
         return ret_val
 
@@ -1352,7 +1357,9 @@ class NodeGetBSSInfo(wn_message.BufferCmd):
         #   - Remove extra characters in the SSID
         #   - Convert the BSS ID to an integer so it can be treated like a MAC address
         for val in ret_val:
-            val['ssid']      = val['ssid'].strip('\x00')
+            print("SSID = {0}".format(val['ssid']))
+            import ctypes
+            val['ssid']      = ctypes.c_char_p(val['ssid']).value
             val['bssid_int'] = sum([ord(b) << (8 * i) for i, b in enumerate(val['bssid'][::-1])])            
 
         return ret_val
@@ -1387,7 +1394,7 @@ class NodeAPConfigure(wn_message.Cmd):
         power_savings   -- Enable power saving mode (TRUE/False)
     """
     def __init__(self, power_savings=None):
-        super(NodeSTAConfigure, self).__init__()
+        super(NodeAPConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_CONFIG
 
         flags = 0
@@ -1417,7 +1424,7 @@ class NodeAPProcDTIMPeriod(wn_message.Cmd):
         num_beacons -- Number of beacon intervals between DTIM beacons (0 - 255)
     """
     def __init__(self, cmd, num_beacons=None):
-        super(NodeProcTxAntMode, self).__init__()
+        super(NodeAPProcDTIMPeriod, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_DTIM_PERIOD
 
         if (cmd == CMD_PARAM_WRITE):
@@ -1564,6 +1571,49 @@ class NodeAPSetAuthAddrFilter(wn_message.Cmd):
 # End Class
 
 
+class NodeAPProcBeaconInterval(wn_message.Cmd):
+    """Command to get / set the time interval between beacons
+    
+    Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
+        interval -- Number of Time Units (TU) between beacons [1, 65535]
+    """
+    def __init__(self, cmd, interval=None):
+        super(NodeAPProcBeaconInterval, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_BEACON_INTERVAL
+
+        if (cmd == CMD_PARAM_WRITE):
+            self.add_args(cmd)
+
+            if interval is None:
+                msg = "Interval between beacons [1,65535] must be provided for WRITE"
+                raise ValueError(msg)
+            
+            if (interval <     1): interval = 1
+            if (interval > 65535): interval = 65535
+            
+            self.add_args(interval)
+
+        elif (cmd == CMD_PARAM_READ):
+            self.add_args(cmd)
+
+        else:
+            msg = "Unsupported command: {0}".format(cmd)
+            raise ValueError(msg)
+            
+
+    def process_resp(self, resp):
+        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Beacon interval command'):
+            args = resp.get_args()
+            return (args[1] & 0xFFFF)
+        else:
+            return CMD_PARAM_ERROR
+
+# End Class
+
+
 
 #--------------------------------------------
 # STA Specific Commands
@@ -1601,11 +1651,13 @@ class NodeSTAAddAssociation(wn_message.Cmd):
     Attributes:
         device        -- Device to add to the association table
         aid           -- Association ID returned by the AP from the associate command
+        channel       -- Channel of the association
+        ssid          -- SSID of the association
     
     NOTE:  This adds an association with the default tx/rx params
     """
     name = None
-    def __init__(self, device, aid):
+    def __init__(self, device, aid, channel, ssid):
         super(NodeSTAAddAssociation, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_ADD_ASSOCIATION
 
@@ -1625,6 +1677,15 @@ class NodeSTAAddAssociation(wn_message.Cmd):
         self.add_args((mac_address & 0xFFFFFFFF))
 
         self.add_args(aid)
+        
+        tmp_chan = _get_channel_number(channel)
+
+        if tmp_chan is not None:
+            self.add_args(tmp_chan)
+        else:
+            self.add_args(CMD_PARAM_RSVD_CHANNEL)
+        
+        _add_ssid_to_cmd(self, ssid)        
 
 
     def process_resp(self, resp):
@@ -2117,4 +2178,22 @@ def _get_ssid_from_resp(resp):
 # End def
 
 
+def _get_channel_number(channel):
+    """Internal method to get the channel number."""
+    try:
+        my_channel = channel['index']
+    except (KeyError, TypeError):
+        import wlan_exp.util as util
+        
+        tmp_chan = util.find_channel_by_channel_number(channel)
+        
+        if tmp_chan is not None:
+            my_channel = tmp_chan['index']
+        else:
+            msg  = "Unknown channel:  {0}".format(channel)
+            raise ValueError(msg)
+
+    return my_channel
+
+# End def
 

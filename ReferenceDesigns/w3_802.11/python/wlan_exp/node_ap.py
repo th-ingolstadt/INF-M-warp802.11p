@@ -77,12 +77,12 @@ class WlanExpNodeAp(node.WlanExpNode):
         Attributes:
             num_beacons -- Number of beacon intervals between DTIM beacons (0 - 255)
         """
-        return self.send_cmd(cmds.NodeAPProcDTIM(cmds.CMD_PARAM_WRITE, num_beacons))
+        return self.send_cmd(cmds.NodeAPProcDTIMPeriod(cmds.CMD_PARAM_WRITE, num_beacons))
 
 
     def get_dtim_period(self):
         """Command to get the number of beacon intervals between DTIM beacons."""
-        return self.send_cmd(cmds.NodeAPProcDTIM(cmds.CMD_PARAM_READ))
+        return self.send_cmd(cmds.NodeAPProcDTIMPeriod(cmds.CMD_PARAM_READ))
         
 
     def set_authentication_address_filter(self, allow):
@@ -114,7 +114,17 @@ class WlanExpNodeAp(node.WlanExpNode):
             beacon_interval -- Integer number of beacon Time Units in [1, 65535]
                                (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)        
         """
-        return self.send_cmd(cmds.NodeAPSetBeaconInterval(beacon_interval))
+        return self.send_cmd(cmds.NodeAPProcBeaconInterval(cmds.CMD_PARAM_WRITE, beacon_interval))
+
+
+    def get_beacon_interval(self):
+        """Command to get the beacon interval of the AP.
+
+        Returns:
+            beacon_interval -- Integer number of beacon Time Units in [1, 65535]
+                               (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)        
+        """
+        return self.send_cmd(cmds.NodeAPProcBeaconInterval(cmds.CMD_PARAM_READ))
 
 
     def add_association(self, device_list, allow_timeout=None):
@@ -140,19 +150,36 @@ class WlanExpNodeAp(node.WlanExpNode):
             explicitly added.
         """
         ret_val = []
+        ret_list = True
         
-        try:
-            for device in device_list:
-                ret_val.append(self._add_association(device, allow_timeout))
-        except TypeError:
-            ret_val.append(self._add_association(device_list, allow_timeout))
+        # Convert entries to a list if it is not already one
+        if type(device_list) is not list:
+            device_list = [device_list]
+            ret_list    = False
+
+        # Get the AP's current channel, SSID
+        channel = self.get_channel()
+        ssid    = self.get_ssid()
+
+        for device in device_list:
+            ret_val.append(self._add_association(device, channel, ssid, allow_timeout))
+
+        # Need to return a single value and not a list
+        if not ret_list:
+            ret_val = ret_val[0]
         
         return ret_val
         
 
-    def _add_association(self, device, allow_timeout):
+    def _add_association(self, device, channel, ssid, allow_timeout):
         """Internal command to add an association."""
         ret_val = False
+
+        import wlan_exp.node_ibss as node_ibss
+        
+        if isinstance(device, node_ibss.WlanExpNodeIBSS):
+            print("WARNING:  Could not add association for IBSS node '{0}'".format(device.name))
+            return ret_val
 
         aid = self.send_cmd(cmds.NodeAPAddAssociation(device))
         
@@ -160,9 +187,12 @@ class WlanExpNodeAp(node.WlanExpNode):
             import wlan_exp.node_sta as node_sta
 
             if isinstance(device, node_sta.WlanExpNodeSta):
-                if device.send_cmd(cmds.NodeSTAAddAssociation(self, aid)):
+                if device.send_cmd(cmds.NodeSTAAddAssociation(self, aid, channel, ssid)):
                     ret_val = True
             else:
+                msg  = "\nWARNING:  Could not add association to non-STA node '{0}'\n".format(device.name) 
+                msg += "    Please add the association to the AP manually on the device.\n"
+                print(msg)
                 ret_val = True
             
         return ret_val

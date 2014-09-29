@@ -77,8 +77,18 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         self.send_cmd(cmds.NodeIBSSConfigure(beacon_ts_update, beacon_transmit))
 
 
+    def disassociate(self, device_list=None):
+        """Remove associations of devices within the device_list from the association table
+        
+        Attributes:
+            device_list -- List of 802.11 devices to remove from the association table (ignored)
+        """
+        print("Error:  disassociate(device_list) is not supported for IBSS nodes.  Please use disassociate_all().")
+        raise NotImplementedError
+
+
     def scan_start(self, time_per_channel=0.1, channel_list=None, ssid=None, bssid=None):
-        """Scan for BSS networks.
+        """Scan the channel list once for BSS networks.
         
         Attributes:
             time_per_channel -- Time (in float sec) to spend on each channel (optional)

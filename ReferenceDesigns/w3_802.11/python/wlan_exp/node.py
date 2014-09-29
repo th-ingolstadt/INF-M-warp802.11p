@@ -519,21 +519,24 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
                             txrx_stats=True, 
                             ltg=True, 
                             queue_data=True, 
-                            associations=True)
+                            associations=True,
+                            bss_info=True)
 
         if (status == cmds.CMD_PARAM_LTG_ERROR):
             print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
     
 
     def reset(self, log=False, txrx_stats=False, ltg=False, queue_data=False, 
-                   associations=False ):
+                   associations=False, bss_info=False ):
         """Resets the state of node depending on the attributes.
         
         Attributes:
-            log        -- Reset the log
-            txrx_stats -- Reset the TX/RX Statistics
-            ltg        -- Remove all LTGs
-            queue_data -- Purge all TX queue data
+            log          -- Reset the log
+            txrx_stats   -- Reset the TX/RX Statistics
+            ltg          -- Remove all LTGs
+            queue_data   -- Purge all TX queue data
+            associations -- Remove all associations
+            bss_info     -- Remove all BSS info
         """
         flags = 0;
         
@@ -547,6 +550,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         if ltg:              flags += cmds.CMD_PARAM_NODE_RESET_FLAG_LTG        
         if queue_data:       flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE
         if associations:     flags += cmds.CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS
+        if bss_info:         flags += cmds.CMD_PARAM_NODE_RESET_FLAG_BSS_INFO
         
         # Send the reset command
         self.send_cmd(cmds.NodeResetState(flags))
@@ -562,8 +566,13 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         remove any existing state to limit any corner cases that might arise from
         changing the wireless MAC address.        
         """
-        addr = self.send_cmd(cmds.NodeProcWLANMACAddr(cmds.CMD_PARAM_WRITE, mac_address))
-        self.wlan_mac_address = addr
+        raise NotImplementedError
+        
+        # NOTE: We have not worked out all of the reset issues with changing the
+        # underlying MAC address; leaving this not implemented for now.
+        # 
+        # addr = self.send_cmd(cmds.NodeProcWLANMACAddr(cmds.CMD_PARAM_WRITE, mac_address))
+        # self.wlan_mac_address = addr
 
 
     def get_wlan_mac_address(self):
@@ -764,7 +773,16 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
     def get_phy_cs_thresh(self):
         """Gets the physical carrier sense threshold of the node."""
-        return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH))
+        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH))
+        
+        if ret_val is not None:
+            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH)):
+                return ret_val[2]
+            else:
+                print("WARNING:  CS Thresh:  Unexpected return value: {0}".format(ret_val))
+                return None
+        else:
+            return None
         
 
     def set_timestamp_offset(self, val):
@@ -774,7 +792,16 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
     def get_timestamp_offset(self):
         """Gets a usec offset that will be applied to beacon timestamps."""
-        return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET))
+        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET))
+        
+        if ret_val is not None:
+            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET)):
+                return ret_val[2]
+            else:
+                print("WARNING:  Timestamp offset:  Unexpected return value: {0}".format(ret_val))
+                return None
+        else:
+            return None
 
 
     def set_cw_exp_min(self, val):
@@ -803,7 +830,27 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         Returns a tuple containing the (min, max) contention window
         """
         cw_max = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX))
+        
+        if cw_max is not None:
+            if ((cw_max[0] == 1) and (cw_max[1] == cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX)):
+                cw_max = cw_max[2]
+            else:
+                print("WARNING:  CW Max:  Unexpected return value: {0}".format(cw_max))
+                cw_max = None
+        else:
+            cw_max = None
+
         cw_min = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN))
+
+        if cw_min is not None:
+            if ((cw_min[0] == 1) and (cw_min[1] == cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN)):
+                cw_min = cw_min[2]
+            else:
+                print("WARNING:  CW Min:  Unexpected return value: {0}".format(cw_min))
+                cw_min = None
+        else:
+            cw_min = None
+
         return (cw_min, cw_max)
 
 
@@ -996,7 +1043,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
              the 802.11 device.
         """
         ret_val  = [] 
-        ret_list = True        
+        ret_list = True
         my_info  = self.get_bss_info()           # Get node's BSS info
         my_bssid = my_info['bssid']
 
