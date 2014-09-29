@@ -120,6 +120,7 @@ void wlan_mac_sta_join(bss_info* bss_description, u32 to_sec){
 					}
 					attempt_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, BSS_ATTEMPT_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_sta_bss_attempt_poll);
 				break;
+
 				case BSS_STATE_AUTHENTICATED:
 					pause_data_queue = 1;
 					mac_param_chan = attempt_bss_info->chan;
@@ -133,8 +134,13 @@ void wlan_mac_sta_join(bss_info* bss_description, u32 to_sec){
 					}
 					attempt_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, BSS_ATTEMPT_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_sta_bss_attempt_poll);
 				break;
+
 				case BSS_STATE_ASSOCIATED:
 					xil_printf("Error: told to join %s but already associated\n");
+				break;
+
+				default:
+					xil_printf("Error: STA join: Unknown state %d for BSS info %s\n",attempt_bss_info->state, attempt_bss_info->ssid);
 				break;
 			}
 
@@ -235,9 +241,11 @@ void wlan_mac_sta_bss_attempt_poll(u32 arg){
 				case BSS_STATE_UNAUTHENTICATED:
 					wlan_mac_sta_scan_auth_transmit();
 				break;
+
 				case BSS_STATE_AUTHENTICATED:
 					wlan_mac_sta_scan_assoc_req_transmit();
 				break;
+
 				case BSS_STATE_ASSOCIATED:
 					if(sta_set_association_state(attempt_bss_info, arg) == 0){
 						//Important: return_to_idle will NULL out attempt_bss_info,
@@ -246,6 +254,10 @@ void wlan_mac_sta_bss_attempt_poll(u32 arg){
 						join_success_callback(attempt_bss_info);
 					}
 					wlan_mac_sta_return_to_idle();
+				break;
+
+				default:
+					xil_printf("Error: STA attempt poll: Unknown state %d for BSS info %s\n",attempt_bss_info->state, attempt_bss_info->ssid);
 				break;
 			}
 		break;

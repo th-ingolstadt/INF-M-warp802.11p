@@ -118,6 +118,21 @@ void uart_rx(u8 rxByte){ };
 
 int main() {
 
+	// Print initial message to UART
+	xil_printf("\f");
+	xil_printf("----- Mango 802.11 Reference Design -----\n");
+	xil_printf("----- v0.96 Beta ------------------------\n");
+	xil_printf("----- wlan_mac_sta ----------------------\n");
+	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
+
+
+	// Check that right shift works correctly
+	//   Issue with -Os in Xilinx SDK 14.7
+	if (wlan_mac_high_right_shift_test() != 0) {
+		wlan_mac_high_set_node_error_status(0);
+		wlan_mac_high_blink_hex_display(0, 250000);
+	}
+
 	// This function should be executed first. It will zero out memory, and if that
 	//     memory is used before calling this function, unexpected results may happen.
 	wlan_mac_high_heap_init();
@@ -131,14 +146,8 @@ int main() {
 	// Unpause the queue
 	pause_data_queue = 0;
 
+	// Set my_bss_info to NULL (ie STA is not currently on a BSS)
 	my_bss_info = NULL;
-
-	// Print initial message to UART
-	xil_printf("\f");
-	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v0.95 Beta ------------------------\n");
-	xil_printf("----- wlan_mac_sta ----------------------\n");
-	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
     // Set default transmission parameters
 	default_unicast_data_tx_params.mac.num_tx_max     = MAX_NUM_TX;
@@ -168,7 +177,7 @@ int main() {
 
 #ifdef USE_WARPNET_WLAN_EXP
 	// Set up WLAN Exp init for STA
-	//   - Currently no additional init needed; Use wlan_exp_set_init_callback();
+	wlan_exp_set_init_callback((void*)wlan_exp_node_sta_init);
 
     // Configure WLAN Exp framework
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_ETH);
@@ -252,8 +261,6 @@ int main() {
 	// Set the default active scan channels
 	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
-
-	wlan_mac_sta_set_join_success_callback((function_ptr_t)nullCallback);
 
 	// If there is a default SSID, initiate a probe request
 	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) wlan_mac_sta_scan_and_join(access_point_ssid, 0);
@@ -855,15 +862,18 @@ void reset_station_statistics(){
  * @return None
  */
 void reset_bss_info(){
-	dl_list* bss_info_list = wlan_mac_high_get_bss_info_list();
-	dl_entry* next_dl_entry = bss_info_list->first;
-	dl_entry* curr_dl_entry;
+	dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
+	dl_entry * next_dl_entry = bss_info_list->first;
+	dl_entry * curr_dl_entry;
+    bss_info * curr_bss_info;
 
 	while(next_dl_entry != NULL){
 		curr_dl_entry = next_dl_entry;
 		next_dl_entry = dl_entry_next(curr_dl_entry);
+		curr_bss_info = (bss_info *)(curr_dl_entry->data);
 
-		if(curr_dl_entry->data != my_bss_info){
+		if(curr_bss_info != my_bss_info){
+			wlan_mac_high_clear_bss_info(curr_bss_info);
 			dl_entry_remove(bss_info_list, curr_dl_entry);
 			bss_info_checkin(curr_dl_entry);
 		}
@@ -955,6 +965,8 @@ int  sta_disassociate( void ) {
 	station_info*       associated_station = NULL;
 	dl_entry*	        associated_station_entry;
 
+	xil_printf("Disassociate from AP\n");
+
 	// If the STA is currently associated, remove the association; otherwise do nothing
 	if(my_bss_info != NULL){
 
@@ -983,7 +995,6 @@ int  sta_disassociate( void ) {
 		status = wlan_mac_high_remove_association(&(my_bss_info->associated_stations), &statistics_table, associated_station->addr);
 
 		my_bss_info = NULL;
-
 	}
 
 	// Update the HEX display
@@ -1077,57 +1088,5 @@ void sta_write_hex_display(u8 val){
 	}
 }
 
-
-
-
-#if 0
-
-/*****************************************************************************/
-/**
-* Get AP List
-*
-* This function will populate the buffer with:
-*   buffer[0]      = Number of stations
-*   buffer[1 .. N] = memcpy of the station information structure
-* where N is less than max_words
-*
-* @param    stations      - Station info pointer
-*           num_stations  - Number of stations to copy
-*           buffer        - u32 pointer to the buffer to transfer the data
-*           max_words     - The maximum number of words in the buffer
-*
-* @return	Number of words copied in to the buffer
-*
-* @note     None.
-*
-******************************************************************************/
-int get_ap_list( ap_info * ap_list, u32 num_ap, u32 * buffer, u32 max_words ) {
-
-	unsigned int size;
-	unsigned int index;
-
-	index     = 0;
-
-	// Set number of Association entries
-	buffer[ index++ ] = num_ap;
-
-	// Get total size (in bytes) of data to be transmitted
-	size   = num_ap * sizeof( ap_info );
-	// Get total size of data (in words) to be transmitted
-	index += size / sizeof( u32 );
-    if ( (size > 0 ) && (index < max_words) ) {
-        memcpy( &buffer[1], ap_list, size );
-    }
-
-#ifdef _DEBUG_
-	#ifdef USE_WARPNET_WLAN_EXP
-    wlan_exp_print_ap_list( ap_list, num_ap );
-	#endif
-#endif
-
-	return index;
-}
-
-#endif
 
 
