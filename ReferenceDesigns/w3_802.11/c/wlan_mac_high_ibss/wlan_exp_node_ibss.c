@@ -171,14 +171,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 
 			status  = CMD_PARAM_SUCCESS;
 
-			// !!! FIXME !!! - This needs to be a disassociate method so there is one entry point in the IBSS code
-			// There isn't much to "disassociating" from an IBSS. We'll just stop sending beacons and probe responses
-			if(my_bss_info != NULL){
-				my_bss_info = NULL;
-				if(beacon_sched_id != SCHEDULE_FAILURE){
-					wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
-				}
-			}
+			reset_all_associations();
 
 			// Send response
 			respArgs32[respIndex++] = Xil_Htonl( status );
@@ -271,7 +264,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 
 
 //-----------------------------------------------------------------------------
-// WLAN Exp Node Commands that must be implemented in child classes
+// Common STA / IBSS Command
 //-----------------------------------------------------------------------------
 
 
@@ -416,14 +409,19 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 					                                            temp_bss_info_entry->info.ssid,
 					                                            temp_bss_info_entry->info.chan);
 
-			// Copy all the parameters
-			//   NOTE:  Even though this copies some things twice, this is done so that this function does not
-			//          need to be modified if the parameters in the bss_info change.
-			memcpy( (void *)(temp_bss_info), (void *)(&temp_bss_info_entry->info), sizeof(bss_info_base) );
-            temp_bss_info->timestamp = get_usec_timestamp();
+			if (temp_bss_info != NULL) {
+				// Copy all the parameters
+				//   NOTE:  Even though this copies some things twice, this is done so that this function does not
+				//          need to be modified if the parameters in the bss_info change.
+				memcpy( (void *)(temp_bss_info), (void *)(&temp_bss_info_entry->info), sizeof(bss_info_base) );
+				temp_bss_info->timestamp = get_usec_timestamp();
 
-            // Join the BSS
-            wlan_mac_ibss_join( temp_bss_info );
+				// Join the BSS
+				wlan_mac_ibss_join( temp_bss_info );
+
+			} else {
+				status  = CMD_PARAM_ERROR;
+			}
 
 			// Send response of status
 			respArgs32[respIndex++] = Xil_Htonl( status );

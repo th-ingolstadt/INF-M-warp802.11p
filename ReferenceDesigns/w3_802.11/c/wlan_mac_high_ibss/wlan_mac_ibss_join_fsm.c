@@ -55,7 +55,6 @@ static u32  search_sched_id      = SCHEDULE_FAILURE;
 static u32  search_kill_sched_id = SCHEDULE_FAILURE;
 static char search_ssid[SSID_LEN_MAX + 1];
 static u32  search_timeout       = BSS_SEARCH_DEFAULT_TIMEOUT_SEC;
-static u32  search_scan_enabled  = BSS_JOIN_SCAN_DISABLED;
 
 void wlan_mac_ibss_set_join_success_callback(function_ptr_t callback){
 	join_success_callback = callback;

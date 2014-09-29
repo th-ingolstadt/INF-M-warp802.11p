@@ -122,6 +122,22 @@ int main() {
 	u8 locally_administered_addr[6];
 	bss_info* temp_bss_info;
 
+
+	// Print initial message to UART
+	//xil_printf("\f");
+	xil_printf("----- Mango 802.11 Reference Design -----\n");
+	xil_printf("----- v0.96 Beta ------------------------\n");
+	xil_printf("----- wlan_mac_ibss ----------------------\n");
+	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
+
+
+	// Check that right shift works correctly
+	//   Issue with -Os in Xilinx SDK 14.7
+	if (wlan_mac_high_right_shift_test() != 0) {
+		wlan_mac_high_set_node_error_status(0);
+		wlan_mac_high_blink_hex_display(0, 250000);
+	}
+
 	// This function should be executed first. It will zero out memory, and if that
 	//     memory is used before calling this function, unexpected results may happen.
 	wlan_mac_high_heap_init();
@@ -129,21 +145,13 @@ int main() {
 	// Initialize the maximum TX queue size
 	max_queue_size = MAX_TX_QUEUE_LEN;
 
-	// Unpause the queue
-	pause_data_queue = 0;
-
-
-	enable_beacon_tx = 1;
+	// Set default behavior
+	pause_data_queue       = 0;
+	enable_beacon_tx       = 1;
 	allow_beacon_ts_update = 1;
 
+	// Set my_bss_info to NULL (ie IBSS is not currently on a BSS)
 	my_bss_info = NULL;
-
-	// Print initial message to UART
-	//xil_printf("\f");
-	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v0.95 Beta ------------------------\n");
-	xil_printf("----- wlan_mac_ibss ----------------------\n");
-	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
     // Set default transmission parameters
 	default_unicast_data_tx_params.mac.num_tx_max     = MAX_NUM_TX;
@@ -166,7 +174,6 @@ int main() {
 	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
 	default_multicast_mgmt_tx_params.phy.rate         = WLAN_MAC_RATE_6M;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = TX_ANTMODE_SISO_ANTA;
-
 
 	// Initialize the utility library
     wlan_mac_high_init();
@@ -1147,15 +1154,18 @@ void reset_station_statistics(){
  * @return None
  */
 void reset_bss_info(){
-	dl_list* bss_info_list = wlan_mac_high_get_bss_info_list();
-	dl_entry* next_dl_entry = bss_info_list->first;
-	dl_entry* curr_dl_entry;
+	dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
+	dl_entry * next_dl_entry = bss_info_list->first;
+	dl_entry * curr_dl_entry;
+    bss_info * curr_bss_info;
 
 	while(next_dl_entry != NULL){
 		curr_dl_entry = next_dl_entry;
 		next_dl_entry = dl_entry_next(curr_dl_entry);
+		curr_bss_info = (bss_info *)(curr_dl_entry->data);
 
-		if(curr_dl_entry->data != my_bss_info){
+		if(curr_bss_info != my_bss_info){
+			wlan_mac_high_clear_bss_info(curr_bss_info);
 			dl_entry_remove(bss_info_list, curr_dl_entry);
 			bss_info_checkin(curr_dl_entry);
 		}
@@ -1189,6 +1199,10 @@ void reset_all_associations(){
 		}
 
 		my_bss_info = NULL;
+
+		if(beacon_sched_id != SCHEDULE_FAILURE){
+			wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
+		}
 	}
 }
 
