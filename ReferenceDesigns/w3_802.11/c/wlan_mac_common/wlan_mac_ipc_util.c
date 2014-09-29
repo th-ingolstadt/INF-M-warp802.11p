@@ -138,7 +138,7 @@ void MailboxIntrHandler(void *CallbackRef){
 
 
 #endif
-inline int wlan_lib_mac_rate_to_mbps (u8 rate) {
+int wlan_lib_mac_rate_to_mbps (u8 rate) {
 	switch(rate){
 		case WLAN_MAC_RATE_1M:
 			return 1;
@@ -171,7 +171,7 @@ inline int wlan_lib_mac_rate_to_mbps (u8 rate) {
 	return -1;
 }
 
-inline int wlan_lib_channel_verify (u32 mac_channel){
+int wlan_lib_channel_verify (u32 mac_channel){
 	int return_value;
 
 	//We allow a subset of 2.4 and 5 GHz channels
