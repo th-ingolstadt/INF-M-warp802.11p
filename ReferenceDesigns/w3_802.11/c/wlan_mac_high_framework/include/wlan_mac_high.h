@@ -202,83 +202,103 @@ extern const  u8 bcast_addr[6];
 
 
 //////////// Initialization Functions ////////////
-void wlan_mac_high_heap_init();
-void wlan_mac_high_init();
-int wlan_mac_high_interrupt_init();
+void               wlan_mac_high_init();
+void               wlan_mac_high_heap_init();
 
+int                wlan_mac_high_interrupt_init();
+inline int         wlan_mac_high_interrupt_start();
+inline void        wlan_mac_high_interrupt_stop();
 
-inline int wlan_mac_high_interrupt_start();
-inline void wlan_mac_high_interrupt_stop();
-void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
-void wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
-dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
-dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
-dl_entry* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
-void wlan_mac_high_gpio_handler(void *InstancePtr);
-u32 wlan_mac_high_get_user_io_state();
-void wlan_mac_high_set_pb_u_callback(function_ptr_t callback);
-void wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
-void wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
-void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
-void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
-void wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
-void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback);
-void wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);
-u64  get_usec_timestamp();
-void wlan_mac_high_display_mallinfo();
-void* wlan_mac_high_malloc(u32 size);
-void* wlan_mac_high_calloc(u32 size);
-void* wlan_mac_high_realloc(void* addr, u32 size);
-void wlan_mac_high_free(void* addr);
-void wlan_mac_high_enable_hex_blink();
-void wlan_mac_high_disable_hex_blink();
-void wlan_mac_high_write_hex_display(u8 val);
-int wlan_mac_high_memory_test();
-int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size);
-void wlan_mac_high_cdma_finish_transfer();
-void wlan_mac_high_mpdu_transmit(tx_queue_element* packet);
-inline u64 wlan_mac_high_get_unique_seq();
-wlan_mac_hw_info* wlan_mac_high_get_hw_info();
-u8* wlan_mac_high_get_eeprom_mac_addr();
-u8 wlan_mac_high_valid_tagged_rate(u8 rate);
-void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
-void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
-void wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_queue_element * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID );
+void               wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
+void               wlan_mac_high_gpio_handler(void *InstancePtr);
 
-void wlan_mac_high_ipc_rx();
-void wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
-void wlan_mac_high_set_srand( unsigned int seed );
-void wlan_mac_high_set_channel( unsigned int mac_channel );
-void wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
-void wlan_mac_high_set_tx_ctrl_pow( s8 pow );
-void wlan_mac_high_set_rx_filter_mode( u32 filter_mode );
-int  wlan_mac_high_write_low_mem( u32 num_words, u32* payload );
-int  wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload );
-void wlan_mac_high_set_dsss( unsigned int dsss_value );
-void wlan_mac_high_set_timestamp( u64 timestamp );
-void wlan_mac_high_set_timestamp_delta( s64 timestamp );
-void wlan_mac_high_request_low_state();
-int  wlan_mac_high_is_cpu_low_initialized();
-int  wlan_mac_high_is_ready_for_tx();
-u8   wlan_mac_high_pkt_type(void* mpdu, u16 length);
-inline void wlan_mac_high_set_debug_gpio(u8 val);
-inline void wlan_mac_high_clear_debug_gpio(u8 val);
-int str2num(char* str);
-void usleep(u64 delay);
+dl_entry*          wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
+dl_entry*          wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
+dl_entry*          wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
 
-station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID);
-int           wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
-u8            wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
-void          wlan_mac_high_print_associations(dl_list* assoc_tbl);
+u32                wlan_mac_high_get_user_io_state();
 
-statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
-void             wlan_mac_high_reset_statistics(dl_list* stat_tbl);
-void             wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* station);
+void               wlan_mac_high_set_pb_u_callback(function_ptr_t callback);
+void               wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
+void               wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
+void               wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
+void               wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
+void               wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
+void               wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback);
+void               wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);
+
+u64                get_usec_timestamp();
+void               usleep(u64 delay);
+
+void*              wlan_mac_high_malloc(u32 size);
+void*              wlan_mac_high_calloc(u32 size);
+void*              wlan_mac_high_realloc(void* addr, u32 size);
+void               wlan_mac_high_free(void* addr);
+void               wlan_mac_high_display_mallinfo();
+
+void               wlan_mac_high_enable_hex_pwm();
+void               wlan_mac_high_disable_hex_pwm();
+void               wlan_mac_high_write_hex_display(u8 val);
+void               wlan_mac_high_set_node_error_status(u8 status);
+void               wlan_mac_high_blink_hex_display(u32 num_blinks, u32 blink_time);
+
+int                wlan_mac_high_memory_test();
+int                wlan_mac_high_right_shift_test();
+
+int                wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size);
+void               wlan_mac_high_cdma_finish_transfer();
+
+void               wlan_mac_high_mpdu_transmit(tx_queue_element* packet);
+
+wlan_mac_hw_info*  wlan_mac_high_get_hw_info();
+u8*                wlan_mac_high_get_eeprom_mac_addr();
+inline u64         wlan_mac_high_get_unique_seq();
+
+u8                 wlan_mac_high_valid_tagged_rate(u8 rate);
+void               wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
+
+void               wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
+void               wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_queue_element * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID );
+
+void               wlan_mac_high_ipc_rx();
+void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
+void               wlan_mac_high_set_srand( unsigned int seed );
+void               wlan_mac_high_set_channel( unsigned int mac_channel );
+void               wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
+void               wlan_mac_high_set_tx_ctrl_pow( s8 pow );
+void               wlan_mac_high_set_rx_filter_mode( u32 filter_mode );
+int                wlan_mac_high_write_low_mem( u32 num_words, u32* payload );
+int                wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload );
+int                wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload );
+void               wlan_mac_high_set_dsss( unsigned int dsss_value );
+void               wlan_mac_high_set_timestamp( u64 timestamp );
+void               wlan_mac_high_set_timestamp_delta( s64 timestamp );
+void               wlan_mac_high_request_low_state();
+int                wlan_mac_high_is_cpu_low_initialized();
+int                wlan_mac_high_is_ready_for_tx();
+u8                 wlan_mac_high_pkt_type(void* mpdu, u16 length);
+
+inline void        wlan_mac_high_set_debug_gpio(u8 val);
+inline void        wlan_mac_high_clear_debug_gpio(u8 val);
+
+int                str2num(char* str);
+u8                 sevenSegmentMap(u8 hex_value);
+
+station_info*      wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID);
+int                wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
+u8                 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
+
+statistics_txrx*   wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
+void               wlan_mac_high_reset_statistics(dl_list* stat_tbl);
+void               wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* station);
+
+void               wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
+void               wlan_mac_high_print_associations(dl_list* assoc_tbl);
 
 
 // Common functions that must be implemented by users of the framework
-dl_list * get_statistics();
-dl_list * get_station_info_list();
-u8      * get_wlan_mac_addr();
+dl_list *          get_statistics();
+dl_list *          get_station_info_list();
+u8      *          get_wlan_mac_addr();
 
 #endif /* WLAN_MAC_UTIL_H_ */

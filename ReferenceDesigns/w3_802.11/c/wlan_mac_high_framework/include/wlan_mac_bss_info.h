@@ -18,9 +18,10 @@
 #ifndef WLAN_MAC_BSS_INFO_H_
 #define WLAN_MAC_BSS_INFO_H_
 
-#define MAX_NUM_BSS_INFO 1000 ///< Maximum number of BSS information structs. -1 will fill the allotted memory for BSS info.
+#define BSS_INFO_TIMEOUT_USEC	                 600000000
 
-#define NUM_BASIC_RATES_MAX	10
+#define MAX_NUM_BSS_INFO                         1000 ///< Maximum number of BSS information structs. -1 will fill the allotted memory for BSS info.
+#define NUM_BASIC_RATES_MAX	                     10
 
 
 // Define common BSS info fields
@@ -64,26 +65,36 @@ typedef struct{
 } bss_info_base;
 
 
-/*
-typedef struct{
-} bss_info;
-*/
+// BSS State defines
+#define BSS_STATE_UNAUTHENTICATED	                       1
+#define BSS_STATE_AUTHENTICATED		                       2
+#define BSS_STATE_ASSOCIATED		                       4
+#define BSS_STATE_OWNED				                       5
 
-#define BSS_STATE_UNAUTHENTICATED	1
-#define BSS_STATE_AUTHENTICATED		2
-#define BSS_STATE_ASSOCIATED		4
-#define BSS_STATE_OWNED				5
+// BSS Beacon Interval defines
+#define BSS_MICROSECONDS_IN_A_TU                           1024
 
-void bss_info_init();
-void bss_info_init_finish();
-dl_entry* bss_info_checkout();
-void bss_info_checkin(dl_entry* bsi);
-inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
-void print_bss_info();
-void bss_info_timestamp_check();
-dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid);
-dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid);
-bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
-inline dl_list* wlan_mac_high_get_bss_info_list();
+
+
+/*************************** Function Prototypes *****************************/
+
+void             bss_info_init();
+void             bss_info_init_finish();
+
+dl_entry       * bss_info_checkout();
+void             bss_info_checkin(dl_entry* bsi);
+
+inline void      bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
+
+void             print_bss_info();
+void             bss_info_timestamp_check();
+
+dl_entry       * wlan_mac_high_find_bss_info_SSID(char* ssid);
+dl_entry       * wlan_mac_high_find_bss_info_BSSID(u8* bssid);
+
+bss_info       * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
+void             wlan_mac_high_clear_bss_info(bss_info * info);
+
+inline dl_list * wlan_mac_high_get_bss_info_list();
 
 #endif

@@ -54,9 +54,9 @@ int wlan_mac_schedule_init(){
 	int Status;
 
 	//Initialize internal variables
-	schedule_count = 0;
+	schedule_count    = 0;
 	num_coarse_checks = 0;
-	num_fine_checks = 0;
+	num_fine_checks   = 0;
 	dl_list_init(&wlan_sched_coarse);
 	dl_list_init(&wlan_sched_fine);
 
@@ -137,10 +137,13 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 	entry_ptr->data = sched_ptr;
 
 	id = (schedule_count++);
-	if(id == SCHEDULE_FAILURE) id = 0; //SCHEDULE_FAILURE is not a valid ID, so we wrap back to 0 and start again
-	sched_ptr->id = id;
+
+	// Check if we hit the section of reserved IDs; Wrap back to 0 and start again
+	if ((id >= SCHEDULE_ID_RESERVED_MIN) && (id <= SCHEDULE_ID_RESERVED_MAX)) { id = 0; }
+
+	sched_ptr->id        = id;
 	sched_ptr->num_calls = num_calls;
-	sched_ptr->callback = (function_ptr_t)callback;
+	sched_ptr->callback  = (function_ptr_t)callback;
 
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
@@ -162,6 +165,10 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
 			}
 			dl_entry_insertEnd(&wlan_sched_fine, entry_ptr);
+		break;
+		default:
+			xil_printf("Unknown scheduler selection.  No event scheduled.\n");
+			return SCHEDULE_FAILURE;
 		break;
 	}
 
@@ -203,8 +210,8 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 					//When a future schedule is added, it will restart the timer at that time.
 					XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_SLOW);
 				}
-
 			break;
+
 			case SCHEDULE_FINE:
 				if(curr_sched_ptr != NULL){
 					dl_entry_remove(&wlan_sched_fine,curr_entry_ptr);
@@ -217,7 +224,10 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 					//When a future schedule is added, it will restart the timer at that time.
 					XTmrCtr_Stop(&TimerCounterInst, TIMER_CNTR_FAST);
 				}
+			break;
 
+			default:
+				xil_printf("Unknown scheduler selection.  No event removed.\n");
 			break;
 		}
     }

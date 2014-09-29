@@ -85,6 +85,7 @@
 #define CMD_PARAM_NODE_RESET_FLAG_LTG                      0x00000004
 #define CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE            0x00000008
 #define CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS             0x00000010
+#define CMD_PARAM_NODE_RESET_FLAG_BSS_INFO                 0x00000020
 
 #define CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE             0x00000001
 
@@ -161,8 +162,6 @@
 
 #define CMDID_NODE_DISASSOCIATE                            0x006010
 #define CMDID_NODE_ASSOCIATE                               0x006011
-
-#define CMD_PARAM_ASSOCIATE_ALLOW_TIMEOUT                  0x00000001
 
 
 //-----------------------------------------------

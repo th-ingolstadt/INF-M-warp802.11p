@@ -118,10 +118,11 @@ void zero_bss_info_entry(void * dest);
 void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time);
 
 
-// Functions implemented in AP / STA
+// Functions implemented in AP / STA / IBSS
 void reset_station_statistics();
 void purge_all_data_tx_queue();
 void reset_all_associations();
+void reset_bss_info();
 
 
 // Callback function declarations
@@ -1356,6 +1357,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//                     [2] - NODE_RESET_LTG
 			//                     [3] - NODE_RESET_TX_DATA_QUEUE
 			//                     [4] - NODE_RESET_ASSOCIATIONS
+			//                     [5] - NODE_RESET_BSS_INFO
 			temp   = Xil_Ntohl(cmdArgs32[0]);
 			status = CMD_PARAM_SUCCESS;
 
@@ -1391,6 +1393,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS ) == CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS ) {
 				xil_printf("Resetting Associations\n");
 				reset_all_associations();
+			}
+
+			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO ) == CMD_PARAM_NODE_RESET_FLAG_BSS_INFO ) {
+				xil_printf("Resetting BSS info\n");
+				reset_bss_info();
 			}
 
 			// Re-enable interrupts
@@ -1462,6 +1469,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					// Need to set the MAC Address of the node; this will have to be
 					// implemented for each subclass of the nodes (ie AP, STA, IBSS, etc)
 					// Not sure if this should be a callback?
+					xil_printf("Setting Wireless MAC Address not supported at this time.\n");
 
 				break;
 
@@ -1671,18 +1679,21 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			// Set node MAC low to high filter
 			//
 			// Message format:
-			//     cmdArgs32[0]   Command
-			//     cmdArgs32[1]   Size in words of LOW_PARAM_MESSAGE
-			//     cmdArgs32[2]   LOW_PARAM_MESSAGE
-			//                    [0]   PARAM_ID
-			//	                  [1:N] ARGS
+			//     cmdArgs32[0]    Command
+			//     cmdArgs32[1]    Size in words of LOW_PARAM_MESSAGE
+			//     cmdArgs32[2]    LOW_PARAM_MESSAGE
+			//                       [0]   PARAM_ID
+			//	                     [1:N] ARGS
 			//
 			// Response format:
-			//     respArgs32[0]  Status
+			//     respArgs32[0]    Status
+			//     respArgs32[1]    Size in words of PARAM ARGS
+			//     respArgs32[2]    PARAM ID
+			//     respArgs32[3:N]  PARAM ARGS
 			//
-
 			msg_cmd 		 = Xil_Ntohl(cmdArgs32[0]);
 			size             = Xil_Ntohl(cmdArgs32[1]);
+			temp             = 0;
 
 			// Fix the order of all the payload words for the LOW_PARAM_MESSAGE
 			for(i = 2; i < (size + 2); i++) {
@@ -1693,10 +1704,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			switch (msg_cmd) {
 				case CMD_PARAM_WRITE_VAL:
-
 					// Send message to CPU Low
 					ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
 					ipc_msg_to_low.num_payload_words = size;
+					ipc_msg_to_low.arg0				 = IPC_REG_WRITE_MODE;
 					ipc_msg_to_low.payload_ptr       = &(cmdArgs32[2]);
 
 					wlan_mac_high_interrupt_stop();
@@ -1704,17 +1715,48 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					wlan_mac_high_interrupt_start();
 				break;
 
+				case CMD_PARAM_READ_VAL:
+					id    = cmdArgs32[2];        // Already byte swapped in for loop above
+					temp2 = wlan_mac_high_read_low_param(id, &size, &(respArgs32[3]));
+
+					if(temp2 == 0) { //Success
+						// Don't set the default response
+						temp = 1;
+
+						// Add length argument to response
+						respArgs32[respIndex++] = Xil_Htonl( status );
+						respArgs32[respIndex++] = Xil_Htonl( size );
+						respArgs32[respIndex++] = Xil_Htonl( id );
+						respHdr->length += (respIndex * sizeof(respArgs32));
+						respHdr->numArgs = respIndex;
+
+						// Endian swap payload returned by CPU Low
+						for(i = 0; i < size; i++) {
+							respArgs32[3 + i] = Xil_Htonl(respArgs32[3 + i]);
+						}
+
+						respHdr->length  += (size * sizeof(u32));
+						respHdr->numArgs += size;
+
+					} else { //failed
+						xil_printf("    ERROR: Parameter read failed in CPU low.\n");
+						status = CMD_PARAM_ERROR;
+					}
+			    break;
+
 				default:
 					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
 
-			// Send response
-			respArgs32[respIndex++] = Xil_Htonl( status );
+			// Send default response
+			if (temp == 0) {
+				respArgs32[respIndex++] = Xil_Htonl( status );
 
-			respHdr->length += (respIndex * sizeof(respArgs32));
-			respHdr->numArgs = respIndex;
+				respHdr->length += (respIndex * sizeof(respArgs32));
+				respHdr->numArgs = respIndex;
+			}
 		break;
 
 
@@ -2090,6 +2132,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					// Replace MAC address of command with my_bss_info BSSID
 					wlan_exp_put_mac_addr(my_bss_info->bssid, &cmdArgs32[4]);
 				} else {
+					xil_printf("    My BSS Info was Null.\n");
 					wlan_exp_put_mac_addr(get_wlan_mac_addr(), &cmdArgs32[4]);
 				}
 			}
@@ -2277,7 +2320,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 						// Endian swap payload returned by CPU Low
 						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
-							respArgs32[2 + mem_idx] = Xil_Ntohl(respArgs32[2 + mem_idx]);
+							respArgs32[2 + mem_idx] = Xil_Htonl(respArgs32[2 + mem_idx]); // !!! FIXME !!! - Need to test that is correct
 						}
 
 						respHdr->length += (mem_length * sizeof(u32));

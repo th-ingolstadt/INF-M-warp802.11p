@@ -103,12 +103,20 @@ volatile u8			dram_present;			///< Indication variable for whether DRAM SODIMM i
 volatile static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
 volatile static u32         cpu_high_status;			///< Tracking variable for upper-level CPU status
 
-// CPU Register Read Buffer
+// CPU Low Register Read Buffer
 volatile static u32*	   cpu_low_reg_read_buffer;
 volatile static u8		   cpu_low_reg_read_buffer_status;
 
-#define CPU_LOW_REG_READ_BUFFER_STATUS_READY 	 1
-#define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY 0
+#define CPU_LOW_REG_READ_BUFFER_STATUS_READY               1
+#define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY           0
+
+// CPU Low Parameter Read Buffer
+volatile static u32*	   cpu_low_param_read_buffer;
+volatile static u32        cpu_low_param_read_buffer_size;
+volatile static u8		   cpu_low_param_read_buffer_status;
+
+#define CPU_LOW_PARAM_READ_BUFFER_STATUS_READY             1
+#define CPU_LOW_PARAM_READ_BUFFER_STATUS_NOT_READY         0
 
 // Debug GPIO State
 static u8		   debug_gpio_state;			///< Current state of debug GPIO pins
@@ -248,7 +256,9 @@ void wlan_mac_high_init(){
 	num_realloc = 0;
 	num_free    = 0;
 
-	cpu_low_reg_read_buffer = NULL;
+	cpu_low_reg_read_buffer        = NULL;
+	cpu_low_param_read_buffer      = NULL;
+	cpu_low_param_read_buffer_size = 0;
 
 	// Enable promiscuous statistics by default
 	promiscuous_stats_enabled = 1;
@@ -1049,32 +1059,30 @@ void wlan_mac_high_free(void* addr){
 
 
 /**
- * @brief Enable blinking of Hex Display's Decimal Points"
+ * @brief Enable the PWM functionality of the hex display
  *
- * This function will tell the User I/O to begin blinking the decimal points present on the
- * hex displays on the board.
+ * This function will tell the User I/O to enable the PWM to blink the hex display.
  *
  * @param None
  * @return None
  *
  */
-void wlan_mac_high_enable_hex_blink(){
+void wlan_mac_high_enable_hex_pwm(){
 	userio_set_pwm_ramp_en(USERIO_BASEADDR, 1);
 }
 
 
 
 /**
- * @brief Disable blinking of Hex Display's Decimal Points"
+ * @brief Disable the PWM functionality of the hex display
  *
- * This function will tell the User I/O to begin blinking the decimal points present on the
- * hex displays on the board.
+ * This function will tell the User I/O to disable the PWM to blink the hex display.
  *
  * @param None
  * @return None
  *
  */
-void wlan_mac_high_disable_hex_blink(){
+void wlan_mac_high_disable_hex_pwm(){
 	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
 }
 
@@ -1091,14 +1099,174 @@ void wlan_mac_high_disable_hex_blink(){
  *
  */
 void wlan_mac_high_write_hex_display(u8 val){
-    u32 left_dp;
+    u32 right_dp;
+    u8  left_val;
+    u8  right_val;
 
-	// Need to retain the value of the left decimal point
-	left_dp = userio_read_hexdisp_left( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+	// Need to retain the value of the right decimal point
+	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
 
-	userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
-    userio_write_hexdisp_left(USERIO_BASEADDR, ((val/10) | left_dp));
-    userio_write_hexdisp_right(USERIO_BASEADDR, val%10);
+	userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
+
+	if ( val < 10 ) {
+		left_val  = sevenSegmentMap(0);
+		right_val = sevenSegmentMap(val);
+	} else {
+		left_val  = sevenSegmentMap(((val/10)%10));
+		right_val = sevenSegmentMap((val%10));
+	}
+
+	userio_write_hexdisp_left(USERIO_BASEADDR, left_val);
+	userio_write_hexdisp_right(USERIO_BASEADDR, (right_val | right_dp));
+}
+
+
+
+/**
+ * @brief Set Error Status for Node
+ *
+ * Function will set the hex display to be "Ex", where x is the value of the
+ * status error
+ *
+ * @param  int status
+ *     - Number from 0 - 0xF to indicate status error
+ * @return None
+ */
+void wlan_mac_high_set_node_error_status(u8 status) {
+    u32 right_dp;
+
+	// Need to retain the value of the right decimal point
+	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+
+	userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
+
+	userio_write_hexdisp_left(USERIO_BASEADDR,  sevenSegmentMap(0xE));
+	userio_write_hexdisp_right(USERIO_BASEADDR, (sevenSegmentMap(status % 16) | right_dp));
+}
+
+
+/**
+ * @brief Blink LEDs
+ *
+ * For WARP v3 Hardware, this function will blink the hex display.
+ *
+ * @param    num_blinks  - Number of blinks (0 means blink forever)
+ *           blink_time  - Time in us between blinks
+ *
+ * @return	None.
+ *
+ * @note	None.
+ *
+ */
+void wlan_mac_high_blink_hex_display(u32 num_blinks, u32 blink_time) {
+	u32          i, j;
+	u32          hw_control;
+	u32          temp_control;
+    u8           right_val;
+    u8           left_val;
+
+    u32          blink_time_extended;
+    volatile u32 tmp_value;
+
+    // Get left / right values
+	left_val  = userio_read_hexdisp_left( USERIO_BASEADDR );
+	right_val = userio_read_hexdisp_right( USERIO_BASEADDR );
+
+	// Store the original value of what is under HW control
+	hw_control   = userio_read_control(USERIO_BASEADDR);
+
+	// Need to zero out all of the HW control of the hex displays; Change to raw hex mode
+	temp_control = (hw_control & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE | W3_USERIO_CTRLSRC_HEXDISP_R | W3_USERIO_CTRLSRC_HEXDISP_L )));
+
+	// Set the hex display mode to raw bits
+    userio_write_control( USERIO_BASEADDR, temp_control );
+
+    // Do we have interrupts enabled so we can use the usleep function?
+	if(InterruptController.IsReady && InterruptController.IsStarted == 0){
+		if ( num_blinks > 0 ) {
+	        // Perform standard blink
+			for( i = 0; i < num_blinks; i++ ) {
+				userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
+				userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
+				usleep( blink_time );
+			}
+		} else {
+			// Perform an infinite blink
+			i = 0;
+			while(1){
+				userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
+				userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
+				usleep( blink_time );
+				i++;
+			}
+		}
+	} else {
+		blink_time_extended = blink_time * 4;
+
+		if ( num_blinks > 0 ) {
+	        // Perform standard blink
+			for( i = 0; i < num_blinks; i++ ) {
+				userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
+				userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
+				for( j=0; j < blink_time_extended; j++){
+					tmp_value = Xil_In32(0xC0000000);
+					if (tmp_value == 0xDEADBEEF) {
+						break;
+					}
+				}
+			}
+		} else {
+			// Perform an infinite blink
+			i = 0;
+			while(1){
+				userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
+				userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
+				for( j=0; j < blink_time_extended; j++){
+					tmp_value = Xil_In32(0xC0000000);
+					if (tmp_value == 0xDEADBEEF) {
+						break;
+					}
+				}
+				i++;
+			}
+		}
+	}
+
+	// Set control back to original value
+    userio_write_control( USERIO_BASEADDR, hw_control );
+}
+
+
+
+/**
+ * @brief Mapping of hexadecimal values to the 7-segment display
+ *
+ * @param  u8 hex_value
+ *   - Hexadecimal value to be converted (between 0 and 15)
+ * @return u8
+ *   - LED map value of the 7-segment display
+ */
+u8   sevenSegmentMap(u8 hex_value) {
+    switch(hex_value) {
+        case(0x0) : return 0x3F;
+        case(0x1) : return 0x06;
+        case(0x2) : return 0x5B;
+        case(0x3) : return 0x4F;
+        case(0x4) : return 0x66;
+        case(0x5) : return 0x6D;
+        case(0x6) : return 0x7D;
+        case(0x7) : return 0x07;
+        case(0x8) : return 0x7F;
+        case(0x9) : return 0x6F;
+
+        case(0xA) : return 0x77;
+        case(0xB) : return 0x7C;
+        case(0xC) : return 0x39;
+        case(0xD) : return 0x5E;
+        case(0xE) : return 0x79;
+        case(0xF) : return 0x71;
+        default   : return 0x00;
+    }
 }
 
 
@@ -1179,6 +1347,43 @@ int wlan_mac_high_memory_test(){
 			memory_ptr++;
 		}
 	}
+	return 0;
+}
+
+
+
+/**
+ * @brief Test Right Shift Operator
+ *
+ * This function tests the compiler right shift operator.  This is due to a bug in
+ * the Xilinx 14.7 toolchain when the '-Os' flag is used during compilation.  Please
+ * see:  http://warpproject.org/forums/viewtopic.php?id=2472 for more information.
+ *
+ * @param None
+ * @return int
+ * 	-  0 for right shift test pass
+ *	- -1 for right shift test fail
+ */
+u32 right_shift_test = 0xFEDCBA98;
+
+int wlan_mac_high_right_shift_test(){
+    u8 val_3, val_2, val_1, val_0;
+
+    u32 test_val   = right_shift_test;
+    u8 *test_array = (u8 *)&right_shift_test;
+
+    val_3 = (u8)((test_val & 0xFF000000) >> 24);
+    val_2 = (u8)((test_val & 0x00FF0000) >> 16);
+    val_1 = (u8)((test_val & 0x0000FF00) >>  8);
+    val_0 = (u8)((test_val & 0x000000FF) >>  0);
+
+    if ((val_3 != test_array[3]) || (val_2 != test_array[2]) || (val_1 != test_array[1]) || (val_0 != test_array[0])) {
+	    xil_printf("Right shift operator is not operating correctly in this toolchain.\n");
+	    xil_printf("Please use Xilinx 14.4 or an optimization level other than '-Os'\n");
+        xil_printf("See http://warpproject.org/forums/viewtopic.php?id=2472 for more info.\n");
+        return -1;
+    }
+
 	return 0;
 }
 
@@ -1674,6 +1879,22 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 
 		//---------------------------------------------------------------------
+		case IPC_MBOX_LOW_PARAM:
+			// Param Read / Write message
+			//   - Allows CPU High to read / write parameters in CPU low
+			//
+			if(cpu_low_param_read_buffer != NULL){
+				memcpy( (u8*)cpu_low_param_read_buffer, (u8*)ipc_msg_from_low_payload, (msg->num_payload_words) * sizeof(u32));
+				cpu_low_param_read_buffer_size   = msg->num_payload_words;
+				cpu_low_param_read_buffer_status = CPU_LOW_PARAM_READ_BUFFER_STATUS_READY;
+
+			} else {
+				warp_printf(PL_ERROR, "Error: received low-level parameter buffer from CPU_LOW and was not expecting it\n");
+			}
+		break;
+
+
+		//---------------------------------------------------------------------
 		default:
 			warp_printf(PL_ERROR, "Unknown IPC message type %d\n",IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
 		break;
@@ -1909,6 +2130,59 @@ int wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload ){
 		return 0;
 	} else {
 		xil_printf("Error: Reading CPU_LOW memory requires interrupts being enabled");
+		return -1;
+	}
+}
+
+
+
+/**
+ * @brief Read a parameter in CPU low
+ *
+ * Send an IPC message to CPU Low to read the given paramter
+ *
+ * @param  u32 num_words
+ *     - Number of words to read from CPU low
+ * @param  u32 baseaddr
+ *     - Base address of the data to read from CPU low
+ * @param  u32 * payload
+ *     - Pointer to the buffer to be populated with data
+ * @return None
+ */
+int wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload ){
+
+	wlan_ipc_msg	   ipc_msg_to_low;
+
+	if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
+		// Send message to CPU Low
+		ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
+		ipc_msg_to_low.num_payload_words = 1;
+		ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
+		ipc_msg_to_low.payload_ptr       = (u32*)(&(param_id));
+
+		// TODO: Add a timeout and failure return?
+		//     I'm leaning towards "no" on this capability as any failure to return indicates
+		//     that something else is deeply wrong. -CRH
+
+		// Set the read buffer to the payload pointer
+		cpu_low_param_read_buffer        = payload;
+		cpu_low_param_read_buffer_status = CPU_LOW_PARAM_READ_BUFFER_STATUS_NOT_READY;
+
+		ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+		// Wait for CPU low to finish the read
+		while(cpu_low_param_read_buffer_status != CPU_LOW_PARAM_READ_BUFFER_STATUS_READY){}
+
+		// Set the size
+		*(size) = cpu_low_param_read_buffer_size;
+
+		// Reset the read buffer
+		cpu_low_param_read_buffer        = NULL;
+		cpu_low_param_read_buffer_size   = 0;
+
+		return 0;
+	} else {
+		xil_printf("Error: Reading CPU_LOW parameters requires interrupts being enabled");
 		return -1;
 	}
 }
@@ -2675,7 +2949,6 @@ void wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* st
 
 
 
-
 #ifdef _DEBUG_
 
 /**
@@ -2795,8 +3068,8 @@ void print_buf(u8 *buf, u32 size) {
 	xil_printf("\n\n");
 }
 
-
 #endif
+
 
 
 

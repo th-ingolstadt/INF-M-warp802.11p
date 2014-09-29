@@ -36,6 +36,12 @@ static dl_list bss_info_free;	///< Free BSS info
 /// to minimize search time for new BSSes you hear from often.
 dl_list bss_info_list;			///< Filled BSS info
 
+
+
+dl_entry* wlan_mac_high_find_bss_info_oldest_unowned();
+
+
+
 void bss_info_init(){
 
 	u32 num_bss_info;
@@ -74,10 +80,12 @@ void bss_info_init(){
 	}
 }
 
+
 void bss_info_init_finish(){
 	//Will be called after interrupts have been started. Safe to use scheduler now.
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)bss_info_timestamp_check);
 }
+
 
 inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
@@ -90,7 +98,6 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	dl_entry*			curr_dl_entry;
 	bss_info*			curr_bss_info;
 	u32 				i;
-	u8					bss_state 				 = BSS_STATE_UNAUTHENTICATED;
 
 
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)){
@@ -102,30 +109,42 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 				if(curr_dl_entry != NULL){
 					curr_bss_info = (bss_info*)(curr_dl_entry->data);
-					bss_state = curr_bss_info->state;
 					dl_entry_remove(&bss_info_list, curr_dl_entry);
 				} else {
-					//We haven't seen this BSS information before, so we'll attempt to grab a new dl_entry
-					//struct from the free pool
+					// We haven't seen this BSS ID before, so we'll attempt to grab a new dl_entry
+					// struct from the free pool
 					curr_dl_entry = bss_info_checkout();
-					if(curr_dl_entry == NULL){
-						//No free dl_entry! We'll have to steal from the oldest in the filled list
-						curr_dl_entry = bss_info_list.first;
+
+					if (curr_dl_entry == NULL){
+						// No free dl_entry!
+						// We'll have to reallocate the oldest unowned entry in the filled list
+						curr_dl_entry = wlan_mac_high_find_bss_info_oldest_unowned();
+
+						if (curr_dl_entry != NULL) {
+							dl_entry_remove(&bss_info_list, curr_dl_entry);
+						} else {
+							xil_printf("Cannot create bss_info.  No unowned bss_info entries.\n");
+							return;
+						}
 					}
 
-					//By here, curr_dl_entry should not be NULL. If it is, there is a problem.
-					if(curr_dl_entry == NULL) xil_printf("PROBLEM: curr_dl_entry is NULL\n");
 					curr_bss_info = (bss_info*)(curr_dl_entry->data);
+
+					// Clear any old information from the BSS info
+					wlan_mac_high_clear_bss_info(curr_bss_info);
+
+					// Initialize the associated stations list
 					dl_list_init(&(curr_bss_info->associated_stations));
-					curr_bss_info->ssid[0] = 0;
+
+					// Copy BSSID into bss_info struct
+					memcpy(curr_bss_info->bssid, rx_80211_header->address_3, 6);
+
+					// Set the state to BSS_STATE_UNAUTHENTICATED since we have not seen this BSS info before
+				    curr_bss_info->state     = BSS_STATE_UNAUTHENTICATED;
 				}
 
 				// Update the AP information
-				curr_bss_info->state		   = bss_state;
 				curr_bss_info->num_basic_rates = 0;
-
-				// Copy BSSID into bss_info struct
-				memcpy(curr_bss_info->bssid, rx_80211_header->address_3, 6);
 
 				// Move the packet pointer to after the header
 				mpdu_ptr_u8 += sizeof(mac_header_80211);
@@ -149,8 +168,6 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						case TAG_SSID_PARAMS:
 							// SSID parameter set
 							//
-
-
 							ssid        = (char*)(&(mpdu_ptr_u8[2]));
 							ssid_length = min(mpdu_ptr_u8[1],SSID_LEN_MAX);
 
@@ -158,7 +175,6 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							// Terminate the string
 							(curr_bss_info->ssid)[ssid_length] = 0;
-
 						break;
 
 						//-------------------------------------------------
@@ -199,6 +215,13 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				curr_bss_info->timestamp = get_usec_timestamp();
 				dl_entry_insertEnd(&bss_info_list,curr_dl_entry);
 
+			break;
+
+
+			//---------------------------------------------------------------------
+			default:
+                // Only need to process MAC_FRAME_CTRL1_SUBTYPE_BEACON, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP
+				// to update BSS information.
 			break;
 		}
 	}
@@ -246,30 +269,25 @@ void print_bss_info(){
 	}
 }
 
-void bss_info_timestamp_check(){
-	#define BSS_INFO_TIMEOUT_USEC	600000000
 
+void bss_info_timestamp_check(){
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
 
 	curr_dl_entry = bss_info_list.first;
+
 	while(curr_dl_entry != NULL){
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
 		if((get_usec_timestamp() - curr_bss_info->timestamp) > BSS_INFO_TIMEOUT_USEC){
+			// We won't remove this BSS info if we are associated with it or if we are trying to associate with it.
 			if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
-				//We won't remove this BSS info if we are associated with it or if we are trying to associate with it.
-
-				// TODO: There is the possibility of a leak here, if user code doesn't clear the associated_stations
-				// dl_list of station_info structs. Should we loop through each and free using the remove_association
-				// high framework function? That would assume that every entry there was in the heap (from the
-				// add_association function). Maybe bss_info should have a cleanup callback?
-
+				wlan_mac_high_clear_bss_info(curr_bss_info);
 				dl_entry_remove(&bss_info_list, curr_dl_entry);
 				bss_info_checkin(curr_dl_entry);
 			}
 		} else {
-			//Nothing after this entry is older, so it's safe to quit
+			// Nothing after this entry is older, so it's safe to quit
 			return;
 		}
 
@@ -281,6 +299,7 @@ void bss_info_timestamp_check(){
 dl_entry* bss_info_checkout(){
 	dl_entry* bsi;
 	bss_info* curr_bss_info;
+
 	if(bss_info_free.length > 0){
 		bsi = ((dl_entry*)(bss_info_free.first));
 		dl_entry_remove(&bss_info_free,bss_info_free.first);
@@ -293,10 +312,12 @@ dl_entry* bss_info_checkout(){
 	}
 }
 
+
 void bss_info_checkin(dl_entry* bsi){
 	dl_entry_insertEnd(&bss_info_free,(dl_entry*)bsi);
 	return;
 }
+
 
 dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid){
 	//FIXME: SSIDs are not guaranteed to be unique. This function should be refactored
@@ -305,7 +326,7 @@ dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid){
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
 
-	curr_dl_entry = bss_info_list.first;
+	curr_dl_entry = bss_info_list.last;
 	while(curr_dl_entry != NULL){
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
@@ -313,10 +334,11 @@ dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid){
 			return curr_dl_entry;
 		}
 
-		curr_dl_entry = dl_entry_next(curr_dl_entry);
+		curr_dl_entry = dl_entry_prev(curr_dl_entry);
 	}
 	return NULL;
 }
+
 
 dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 	dl_entry* curr_dl_entry;
@@ -335,42 +357,106 @@ dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 	return NULL;
 }
 
+
+dl_entry* wlan_mac_high_find_bss_info_oldest_unowned(){
+	dl_entry* curr_dl_entry;
+	bss_info* curr_bss_info;
+
+	curr_dl_entry = bss_info_list.first;
+	while(curr_dl_entry != NULL){
+		curr_bss_info = (bss_info*)(curr_dl_entry->data);
+
+		if(curr_bss_info->state != BSS_STATE_OWNED){
+			return curr_dl_entry;
+		}
+
+		curr_dl_entry = dl_entry_next(curr_dl_entry);
+	}
+	return NULL;
+}
+
+
+
+// Function will create a bss_info and make sure that the BSS ID is unique
+// in the bss_info list.
+//
 bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
-	bss_info* return_value = NULL;
-	dl_entry*			curr_dl_entry;
-	bss_info*			curr_bss_info;
+	dl_entry * curr_dl_entry;
+	bss_info * curr_bss_info = NULL;
 
 	curr_dl_entry = wlan_mac_high_find_bss_info_BSSID(bssid);
 
-	if(curr_dl_entry != NULL){
+	if (curr_dl_entry != NULL){
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 		dl_entry_remove(&bss_info_list, curr_dl_entry);
 	} else {
-		//We haven't seen this BSS information before, so we'll attempt to grab a new dl_entry
-		//struct from the free pool
+		// We haven't seen this BSS ID before, so we'll attempt to grab a new dl_entry
+		// struct from the free pool
 		curr_dl_entry = bss_info_checkout();
-		if(curr_dl_entry == NULL){
-			//No free dl_entry! We'll have to steal from the oldest in the filled list
-			curr_dl_entry = bss_info_list.first;
+
+		if (curr_dl_entry == NULL){
+			// No free dl_entry!
+			// We'll have to reallocate the oldest unowned entry in the filled list
+			curr_dl_entry = wlan_mac_high_find_bss_info_oldest_unowned();
+
+			if (curr_dl_entry != NULL) {
+				dl_entry_remove(&bss_info_list, curr_dl_entry);
+			} else {
+				xil_printf("Cannot create bss_info.  No unowned bss_info entries.\n");
+				return NULL;
+			}
 		}
 
-		//By here, curr_dl_entry should not be NULL. If it is, there is a problem.
-		if(curr_dl_entry == NULL) xil_printf("PROBLEM: curr_dl_entry is NULL\n");
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
-		curr_bss_info->ssid[0] = 0;
+
+		// Clear any old information from the BSS info
+		wlan_mac_high_clear_bss_info(curr_bss_info);
+
+		// Initialize the associated stations list
+		dl_list_init(&(curr_bss_info->associated_stations));
+
+		// Copy the BSS ID to the entry
+		memcpy(curr_bss_info->bssid,bssid,6);
 	}
 
-	memcpy(curr_bss_info->bssid,bssid,6);
+	// Update the fields of the BSS Info
 	strcpy(curr_bss_info->ssid,ssid);
-	curr_bss_info->chan = chan;
-
-	return_value = curr_bss_info;
-
+	curr_bss_info->chan      = chan;
 	curr_bss_info->timestamp = get_usec_timestamp();
-	dl_entry_insertEnd(&bss_info_list,curr_dl_entry);
+    curr_bss_info->state     = BSS_STATE_UNAUTHENTICATED;
 
-	return return_value;
+	dl_entry_insertEnd(&bss_info_list, curr_dl_entry);
+
+	return curr_bss_info;
 }
+
+
+
+void wlan_mac_high_clear_bss_info(bss_info * info){
+	station_info * curr_station_info;
+	dl_entry     * next_station_info_entry;
+	dl_entry     * curr_station_info_entry;
+
+	if(info != NULL){
+        // Remove any station infos
+		next_station_info_entry = info->associated_stations.first;
+
+		if ((info->state != BSS_STATE_OWNED) && (next_station_info_entry != NULL)) {
+            xil_printf("WARNING:  BSS info was unowned but had station info entries.\n");
+		}
+
+		while(next_station_info_entry != NULL){
+			curr_station_info_entry = next_station_info_entry;
+			next_station_info_entry = dl_entry_next(curr_station_info_entry);
+			curr_station_info       = (station_info*)(curr_station_info_entry->data);
+			wlan_mac_high_remove_association( &info->associated_stations, get_statistics(), curr_station_info->addr );
+		}
+
+		// Clear the bss_info
+        bzero(info, sizeof(bss_info));
+	}
+}
+
 
 inline dl_list* wlan_mac_high_get_bss_info_list(){
 	return &bss_info_list;

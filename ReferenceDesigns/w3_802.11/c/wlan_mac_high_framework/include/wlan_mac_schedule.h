@@ -51,8 +51,15 @@ typedef struct {
 #define	FAST_TIMER_DUR_US 64
 #define	SLOW_TIMER_DUR_US 102400
 
-//Return value from wlan_mac_schedule_event
-#define SCHEDULE_FAILURE 0xFFFFFFFF
+
+// Reserved Schedule ID range
+#define SCHEDULE_ID_RESERVED_MIN                 0xFFFFFF00
+#define SCHEDULE_ID_RESERVED_MAX                 0xFFFFFFFF
+
+
+// Defined Reserved Schedule IDs
+#define SCHEDULE_FAILURE                         0xFFFFFFFF
+
 
 
 int wlan_mac_schedule_init();
