@@ -1,4 +1,4 @@
-/** @file wlan_exp_common.h
+/** @file wlan_exp.h
  *  @brief Experiment Framework (Common)
  *
  *  This contains the code for WARPnet Experimental Framework.
@@ -60,7 +60,7 @@
 //     MAJOR and MINOR are both u8, while REV is u16
 #define WLAN_EXP_VER_MAJOR        0
 #define WLAN_EXP_VER_MINOR        9
-#define WLAN_EXP_VER_REV          5
+#define WLAN_EXP_VER_REV          6
 
 #define REQ_WLAN_EXP_HW_VER       (WLAN_EXP_VER_MAJOR<<24)|(WLAN_EXP_VER_MINOR<<16)|(WLAN_EXP_VER_REV)
 
