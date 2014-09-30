@@ -124,7 +124,7 @@ int main() {
 
 
 	// Print initial message to UART
-	//xil_printf("\f");
+	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v0.96 Beta ------------------------\n");
 	xil_printf("----- wlan_mac_ibss ----------------------\n");
