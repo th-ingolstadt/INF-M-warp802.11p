@@ -14,7 +14,7 @@ from wlan_exp.prog_atten import ProgAttenController
 
 # NOTE: change these values to match your experiment setup
 NETWORK           = '10.0.0.0'
-NODE_SERIAL_LIST  = ['W3-a-00189', 'W3-a-00203']
+NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME        = 5
@@ -39,9 +39,10 @@ nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=networ
 #   This command will fail if either WARP v3 node does not respond
 nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
 
-# Extract the AP and STA nodes from the list of initialized nodes
-n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
-n_sta_l = wlan_exp_util.filter_nodes(nodes, 'node_type', 'STA')
+# Extract the different types of nodes from the list of initialized nodes
+#   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
+n_ap_l  = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='AP',  serial_numbers=NODE_SERIAL_LIST)
+n_sta_l = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='STA', serial_numbers=NODE_SERIAL_LIST)
 
 # Check that we have a valid AP and STA
 if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
@@ -66,7 +67,7 @@ rate = wlan_exp_util.wlan_rates[3]
 # Put each node in a known, good state
 for node in nodes:
     node.set_tx_rate_unicast(rate, curr_assoc=True, new_assoc=True)
-    node.reset_all()
+    node.reset(log=True, txrx_stats=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
 
     # Get some additional information about the experiment
     channel  = node.get_channel()
