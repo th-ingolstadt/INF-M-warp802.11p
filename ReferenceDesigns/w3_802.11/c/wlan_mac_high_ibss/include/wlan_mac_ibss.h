@@ -90,8 +90,6 @@ void reset_station_statistics();
 void reset_bss_info();
 dl_list * get_statistics();
 
-//int  sta_set_association_state( bss_info* new_bss_info, u16 aid );
-//int  sta_disassociate();
 void print_queue_status();
 void print_menu();
 void print_ap_list();
