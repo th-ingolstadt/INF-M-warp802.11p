@@ -167,15 +167,15 @@ for experiment in experiment_params:
     #      opposite of TX statistics in which to see the packets transmitted from Node 1 to Node 2 we would need 
     #      to get the TX/RX stats from Node 1 for Node 2.  In this example, since we are interested in received 
     #      throughput (not transmitted throughput), we need to use the received (RX) statistics.  
-    node1_rx_stats_start = node2.stats_get_txrx(node1)
-    node2_rx_stats_start = node1.stats_get_txrx(node2)
+    node2_txrx_stats_for_node1_start = node2.stats_get_txrx(node1)
+    node1_txrx_stats_for_node2_start = node1.stats_get_txrx(node2)
     
     # Wait for the TRIAL_TIME
     time.sleep(TRIAL_TIME)
     
     # Record the ending Tx/Rx stats
-    node1_rx_stats_end = node2.stats_get_txrx(node1)
-    node2_rx_stats_end = node1.stats_get_txrx(node2)
+    node2_txrx_stats_for_node1_end = node2.stats_get_txrx(node1)
+    node1_txrx_stats_for_node2_end = node1.stats_get_txrx(node2)
 
     # Stop the AP LTG flow and purge any remaining transmissions in the queue so that nodes are in a known, good state
     if (experiment['node1_ltg_en']):
@@ -194,14 +194,14 @@ for experiment in experiment_params:
     # NOTE:  In Python 3.x, the division operator is always floating point.  In order to be compatible with all versions 
     #    of python, cast operands to floats to ensure floating point division
     #
-    node1_num_bits  = float((node1_rx_stats_end['data_num_rx_bytes'] - node1_rx_stats_start['data_num_rx_bytes']) * 8)
-    node1_time_span = float(node1_rx_stats_end['timestamp'] - node1_rx_stats_start['timestamp'])
+    node1_num_bits  = float((node2_txrx_stats_for_node1_end['data_num_rx_bytes'] - node2_txrx_stats_for_node1_start['data_num_rx_bytes']) * 8)
+    node1_time_span = float(node2_txrx_stats_for_node1_end['timestamp'] - node2_txrx_stats_for_node1_start['timestamp'])
     node1_xput      = node1_num_bits / node1_time_span
-    print("    Node 1 Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node1_xput))
+    print("    Node 1: Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node1_xput))
 
-    node2_num_bits  = float((node2_rx_stats_end['data_num_rx_bytes'] - node2_rx_stats_start['data_num_rx_bytes']) * 8)
-    node2_time_span = float(node2_rx_stats_end['timestamp'] - node2_rx_stats_start['timestamp'])
+    node2_num_bits  = float((node1_txrx_stats_for_node2_end['data_num_rx_bytes'] - node1_txrx_stats_for_node2_start['data_num_rx_bytes']) * 8)
+    node2_time_span = float(node1_txrx_stats_for_node2_end['timestamp'] - node1_txrx_stats_for_node2_start['timestamp'])
     node2_xput      = node2_num_bits / node2_time_span
-    print("    Node 2 Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node2_xput))
+    print("    Node 2: Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node2_xput))
     
 
