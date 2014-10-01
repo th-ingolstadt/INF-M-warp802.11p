@@ -1547,13 +1547,13 @@ u32  deauthenticate_station( station_info* station ) {
 
  		// Purge any packets in the queue meant for this node
 		purge_queue(AID_TO_QID(aid));
-
-		// Log the association state change
-		add_station_info_to_log(station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
-
-		// Remove this STA from association list
-		wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, station->addr );
 	}
+
+	// Log the association state change
+	add_station_info_to_log(station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+
+	// Remove this STA from association list
+	wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, station->addr );
 
 	ap_write_hex_display(my_bss_info->associated_stations.length);
 
