@@ -163,7 +163,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 			// Response format:
 			//     respArgs32[0]       Status
 			//
-			xil_printf("Disassociate\n");
+			xil_printf("WLAN Exp Disassociate\n");
 
 			// Get MAC Address
 			wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
@@ -539,7 +539,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 			// Response format:
 			//     respArgs32[0]       Status
 			//
-			xil_printf("Associate\n");
+			xil_printf("WLAN Exp Associate\n");
 
 			status  = CMD_PARAM_SUCCESS;
 
@@ -567,12 +567,12 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 			// Stop any active scans
 			wlan_mac_scan_disable();
 
-
 			// Add the new association
 			bss_info* bss_temp = wlan_mac_high_create_bss_info(mac_addr, ssid, channel);
 
 			if(bss_temp != NULL){
 				bss_temp->state = BSS_STATE_ASSOCIATED;
+				wlan_mac_sta_return_to_idle();
 				status = sta_set_association_state(bss_temp, aid);
 			} else {
 				status = CMD_PARAM_ERROR;
@@ -646,6 +646,8 @@ int wlan_exp_node_sta_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_
 *
 ******************************************************************************/
 void wlan_exp_sta_join_success(bss_info* bss_description) {
+
+	xil_printf("Successfully joined:  %s\n", bss_description->ssid);
 
     // Set global variable back to idle to indicate successful join
 	join_success = WLAN_EXP_STA_JOIN_IDLE;

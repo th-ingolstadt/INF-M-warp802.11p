@@ -892,6 +892,7 @@ void reset_bss_info(){
  * @return None
  */
 void reset_all_associations(){
+    xil_printf("Reset All Associations");
 
     // STA disassociate command is the same for an individual AP or ALL
 	sta_disassociate();
