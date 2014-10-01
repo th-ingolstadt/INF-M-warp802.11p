@@ -233,10 +233,7 @@ int main() {
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
 
-    // Schedule all events
-    //     None at this time
-
-
+	ibss_write_hex_display(0);
 
 	// Reset the event log
 	event_log_reset();
@@ -622,6 +619,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				curr_tx_queue_buffer->frame_info.AID         = 0;
 		} else {
 			associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, eth_dest, ADD_ASSOCIATION_ANY_AID);
+			ibss_write_hex_display(my_bss_info->associated_stations.length);
 			//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
 
 			if(associated_station == NULL){
@@ -717,6 +715,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		if(my_bss_info != NULL){
 			if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)){
 				associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+				ibss_write_hex_display(my_bss_info->associated_stations.length);
 			}
 		} else {
 			associated_station = NULL;
@@ -964,6 +963,7 @@ void association_timestamp_check() {
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_rx > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
 				wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, curr_station_info->addr );
+				ibss_write_hex_display(my_bss_info->associated_stations.length);
 			}
 		}
 	}
@@ -1196,6 +1196,7 @@ void reset_all_associations(){
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 			curr_station_info = (station_info*)(curr_station_info_entry->data);
 			wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, curr_station_info->addr );
+			ibss_write_hex_display(my_bss_info->associated_stations.length);
 		}
 
 		my_bss_info = NULL;
@@ -1225,6 +1226,41 @@ void mpdu_dequeue(tx_queue_element* packet){
 	}
 
 }
+
+/**
+ * @brief Write a Decimal Value to the Hex Display
+ *
+ * This function will write a decimal value to the board's two-digit hex displays.
+ * For the IBSS, the display is right justified; WARPNet will indicate its connection
+ * state using the right decimal point.
+ *
+ * @param u8 val
+ *  - Value to be displayed (between 0 and 99)
+ * @return None
+ *
+ */
+void ibss_write_hex_display(u8 val){
+    u32 right_dp;
+
+	// Need to retain the value of the right decimal point
+	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+
+	if ( val < 10 ) {
+		// Turn off hex mapping; turn off left hex display
+		userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE ) ) ) );
+		userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
+
+		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_R_MAPMODE));
+		userio_write_hexdisp_right(USERIO_BASEADDR, (val | right_dp));
+	} else {
+		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
+
+	    userio_write_hexdisp_left(USERIO_BASEADDR, ((val/10)%10));
+		userio_write_hexdisp_right(USERIO_BASEADDR, ((val%10) | right_dp));
+	}
+}
+
+
 
 /**
  * @brief Accessor methods for global variables

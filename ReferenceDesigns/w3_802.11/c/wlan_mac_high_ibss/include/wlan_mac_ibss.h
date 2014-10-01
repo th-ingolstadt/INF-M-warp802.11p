@@ -102,6 +102,7 @@ void reset_all_associations();
 
 void sta_write_hex_display(u8 val);
 void mpdu_dequeue(tx_queue_element* packet);
+void ibss_write_hex_display(u8 val);
 
 
 
