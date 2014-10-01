@@ -1053,12 +1053,22 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
                 device_list = [device_list]
                 ret_list    = False
             
-            for idx, device in enumerate(device_list):                    
+            for idx, device in enumerate(device_list):
                 try:
                     dev_info  = device.get_bss_info()
                     dev_bssid = dev_info['bssid']
                 except (AttributeError, KeyError, TypeError):
-                    dev_bssid = None
+                    # Cannot get bss_info from device
+                    # Need to check the station info of caller to see if device is there
+                    my_station_info = self.get_station_info(device)
+
+                    if my_station_info is not None:
+                        # Device is in the station info list of the caller; good enough to 
+                        # say the two devices are associated.
+                        dev_bssid = my_bssid
+                    else:
+                        # Device is not in the station info list of the caller
+                        dev_bssid = None
 
                 # If the bssids are the same, then the nodes are associated
                 if (my_bssid == dev_bssid):
@@ -1071,59 +1081,6 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         # Need to return a single value and not a list
         if not ret_list:
             ret_val = ret_val[0]
-        
-        return ret_val
-
-
-    def is_associated_old(self, device_list):
-        """Is the node associated with the devices in the device list.
-        
-        Returns:
-            A boolean or list of booleans.  
-            
-        If the device_list is a single device, then only a boolean is 
-        returned.  If the device_list is a list of devices, then a list of
-        booleans will be returned in the same order as the devices in the
-        list.
-        
-        For is_associated to return True, one of the following conditions 
-        must be met:
-          1) If the device is a wlan_exp node, then both the node and the 
-             device must be associated.
-          2) If the device is a 802.11 device, then only the node must be 
-             associated with the device, since we cannot know the state of
-             the 802.11 device.
-        """
-        ret_val = []
-        
-        if device_list is not None:
-            if (type(device_list) is list):
-                for idx, device in enumerate(device_list):
-                    my_info   = self.get_station_info(device)
-                    
-                    try:
-                        dev_info = device.send_cmd(cmds.NodeGetStationInfo(self))
-                    except AttributeError:
-                        dev_info = True
-                    
-                    # If the lists are not empty, then the nodes are associated
-                    if my_info and dev_info:
-                        ret_val.append(True)
-                    else:
-                        ret_val.append(False)
-            else:
-                my_info   = self.get_station_info(device_list)
-                try:
-                    dev_info = device_list.send_cmd(cmds.NodeGetStationInfo(self))
-                except AttributeError:
-                    dev_info = True
-
-                if my_info and dev_info:
-                    ret_val = True
-                else:
-                    ret_val = False
-        else:
-            ret_val = False
         
         return ret_val
 
