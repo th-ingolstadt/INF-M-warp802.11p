@@ -1357,9 +1357,18 @@ class NodeGetBSSInfo(wn_message.BufferCmd):
         #   - Remove extra characters in the SSID
         #   - Convert the BSS ID to an integer so it can be treated like a MAC address
         for val in ret_val:
+            import sys
             import ctypes
             val['ssid']      = ctypes.c_char_p(val['ssid']).value
-            val['bssid_int'] = sum([ord(b) << (8 * i) for i, b in enumerate(val['bssid'][::-1])])            
+
+            # Fix to support Python 2.x and 3.x
+            if sys.version[0]=="2":
+                val['bssid_int'] = sum([ord(b) << (8 * i) for i, b in enumerate(val['bssid'][::-1])])
+            elif sys.version[0]=="3":
+                val['bssid_int'] = sum([b << (8 * i) for i, b in enumerate(val['bssid'][::-1])])
+            else:
+                print("WARNING:  Unsupported python version.")
+                val['bssid_int'] = 0
 
         return ret_val
 
