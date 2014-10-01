@@ -27,13 +27,14 @@ PACKAGE_NAME                      = 'wlan_exp'
 
 # WARPNet Node Types
 #   NOTE:  The C counterparts are found in wlan_exp_common.h
-WLAN_EXP_BASE                     = 0x10000
-WLAN_EXP_HIGH_AP                  = 0x00100
-WLAN_EXP_HIGH_STA                 = 0x00200
-WLAN_EXP_HIGH_IBSS                = 0x00300
+WLAN_EXP_BASE                     = 0x00010000
 
-WLAN_EXP_LOW_DCF                  = 0x00001
-WLAN_EXP_LOW_NOMAC                = 0x00002
+WLAN_EXP_HIGH_AP                  = 0x00000100
+WLAN_EXP_HIGH_STA                 = 0x00000200
+WLAN_EXP_HIGH_IBSS                = 0x00000300
+
+WLAN_EXP_LOW_DCF                  = 0x00000001
+WLAN_EXP_LOW_NOMAC                = 0x00000002
 
 WLAN_EXP_AP_DCF_TYPE              = WLAN_EXP_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_DCF
 WLAN_EXP_AP_DCF_CLASS_INST        = 'node_ap.WlanExpNodeAp(network_config, defaults.WLAN_EXP_LOW_DCF)'

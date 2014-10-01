@@ -383,71 +383,114 @@ def broadcast_cmd_write_exp_info_to_logs(network_config, info_type, message=None
 #-----------------------------------------------------------------------------
 # WLAN Exp Misc Utilities
 #-----------------------------------------------------------------------------
-def filter_nodes(nodes, filter_type, filter_val):
-    """Return a list of nodes that match the filter_val for the given 
-    filter_type.
+def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=True):
+    """Return a list of nodes that match all the values for the given 
+    filter parameters.
 
-    Supported Filter Types:
-        'node_type' -- Filters nodes by WARPNet Types.  filter_val must 
-            be either a integer corresponding to a WARPNet type (see 
-            wlan_exp_defaults for example WARPNet types) or the following
-            strings:  'AP'  (equivalent to WLAN_EXP_AP_TYPE)
-                      'STA' (equivalent to WLAN_EXP_STA_TYPE)
+    Filter Parameters:
+      mac_high     -- Filter for CPU High functionality.  This value must be either
+                      an integer corresponding to a WARPNet type (see wlan_exp/defaults.py
+                      for WARPNet types) or the following strings:
+                        'AP'   (equivalent to WLAN_EXP_HIGH_AP)
+                        'STA'  (equivalent to WLAN_EXP_HIGH_STA)
+                        'IBSS' (equivalent to WLAN_EXP_HIGH_IBSS)
+                      A value of None means that no filtering will occur for CPU High Functionality
 
-        'serial_number' -- Filters nodes by WARPv3 serial number.  filter_val
+      mac_low      -- Filter for CPU Low functionality.  This value must be either
+                      an integer corresponding to a WARPNet type (see wlan_exp/defaults.py
+                      for WARPNet types) or the following strings:
+                        'DCF'   (equivalent to WLAN_EXP_LOW_DCF)
+                        'NOMAC' (equivalent to WLAN_EXP_LOW_NOMAC)
+                      A value of None means that no filtering will occur for CPU Low Functionality
+
+      serial_number -- Filters nodes by WARPv3 serial number.  filter_val
             must be of the form:  'W3-a-XXXXX' where XXXXX is the five 
             digit serial number of the board.
+
+    Each of these filter parameters can be a single value or a list of values.
     
-    NOTE:  If the list is empty, then this method will issue a warning
+    Examples:
+        filter_nodes(nodes, mac_high='AP', mac_low='DCF') --> Only AP DCF nodes
+        filter_nodes(nodes, mac_high='AP')            --> AP nodes where low can be DCF/NOMAC
+        filter_nodes(nodes, mac_high='ap', mac_low='dcf', serial_numbers=['w3-a-00001','w3-a-00002'])
+            --> Find AP DCF nodes with serial numbers 'W3-a-00001' and 'W3-a-00002'
+        
+    NOTE:  If the list is empty, then this method will issue a warning if the 
+    parameter warn is True.
     """
-    ret_nodes = []
+    ret_nodes         = []
+    tmp_mac_high      = None
+    tmp_mac_low       = None
+    tmp_serial_number = None
 
-    if   (filter_type == 'node_type'):
-        error = False
+    # Create MAC High Filter
+    if mac_high is not None:
+        if type(mac_high) is not list:
+            mac_high = [mac_high]
 
-        if   (type(filter_val) is str):
-            if   (filter_val.lower() == 'ap'):
-                filter_val = defaults.WLAN_EXP_AP_DCF_TYPE
-            elif (filter_val.lower() == 'sta'):
-                filter_val = defaults.WLAN_EXP_STA_DCF_TYPE
-            elif (filter_val.lower() == 'ibss'):
-                filter_val = defaults.WLAN_EXP_IBSS_DCF_TYPE
-            elif (filter_val.lower() == 'mon'):
-                filter_val = defaults.WLAN_EXP_STA_NOMAC_TYPE                
-            else:
-                error = True
+        tmp_mac_high = []
 
-        elif (type(filter_val) is int):
-            pass
+        for value in mac_high:
+            if type(value) is str:
+                if (value.lower() == 'ap'):
+                    tmp_mac_high.append(defaults.WLAN_EXP_HIGH_AP)
+                elif (value.lower() == 'sta'):
+                    tmp_mac_high.append(defaults.WLAN_EXP_HIGH_STA)
+                elif (value.lower() == 'ibss'):
+                    tmp_mac_high.append(defaults.WLAN_EXP_HIGH_IBSS)
+                else:
+                    msg  = "Unknown mac_high filter value: {0}\n".format(value)
+                    msg += "    Must be either 'AP', 'STA', or 'IBSS'"
+                    print(msg)
 
-        else:
-            error = True;
+            if type(value) is int:
+                tmp_mac_high.append(value)
 
-        if not error:
-            ret_nodes = _get_nodes_by_type(nodes, filter_val)
-        else:            
-            msg  = "Unknown filter value: {0}\n".format(filter_val)
-            msg += "    Must be either 'AP' or 'STA'"
-            print(msg)
+    # Create MAC Low Filter                    
+    if mac_low is not None:
+        if type(mac_low) is not list:
+            mac_low = [mac_low]
 
+        tmp_mac_low = []
 
-    elif (filter_type == 'serial_number'):
+        for value in mac_low:
+            if type(value) is str:
+                if (value.lower() == 'dcf'):
+                    tmp_mac_low.append(defaults.WLAN_EXP_LOW_DCF)
+                elif (value.lower() == 'nomac'):
+                    tmp_mac_low.append(defaults.WLAN_EXP_LOW_NOMAC)
+                else:
+                    msg  = "Unknown mac_low filter value: {0}\n".format(value)
+                    msg += "    Must be either 'DCF' or 'NOMAC'"
+                    print(msg)
+
+            if type(value) is int:
+                tmp_mac_low.append(value)
+                    
+    # Create Serial Number Filter
+    if serial_number is not None:
         import wlan_exp.warpnet.util as wn_util
 
-        try:
-            (sn, sn_str) = wn_util.wn_get_serial_number(filter_val)
-            ret_nodes    = _get_nodes_by_sn(nodes, sn)
-        except TypeError as err:
-            print(err)
-    
-    else:
-        msg  = "Unknown filter type: {0}\n".format(filter_type)
-        msg += "    Supported types: 'node_type', 'serial_number'"
-        print(msg)
+        if type(serial_number) is not list:
+            serial_number = [serial_number]
+        
+        tmp_serial_number = []
+        
+        for value in serial_number:
+            try:
+                (sn, sn_str) = wn_util.wn_get_serial_number(value)
+                tmp_serial_number.append(sn)
+            except TypeError as err:
+                print(err)
+            
+    ret_nodes = _get_nodes_by_type(nodes, tmp_mac_high, tmp_mac_low)
+    ret_nodes = _get_nodes_by_sn(ret_nodes, tmp_serial_number)
 
-    if (len(ret_nodes) == 0):
+    if ((len(ret_nodes) == 0) and warn):
         import warnings
-        msg  = "\nNo nodes match filter: {0} = {1:x}".format(filter_type, filter_val)
+        msg  = "\nNo nodes match filter: \n"
+        msg += "    mac_high = {0}\n".format(mac_high)
+        msg += "    mac_high = {0}\n".format(mac_high)
         warnings.warn(msg)
 
     return ret_nodes
@@ -701,16 +744,38 @@ def debug_here(banner=None):
 #-----------------------------------------------------------------------------
 # Internal Methods
 #-----------------------------------------------------------------------------
-def _get_nodes_by_type(nodes, node_type):
+def _get_nodes_by_type(nodes, mac_high=None, mac_low=None):
     """Returns all nodes in the list that have the given node_type."""
-    return [n for n in nodes if (n.node_type == node_type)]
+
+    # Check that these nodes are 802.11 nodes
+    tmp_nodes = [n for n in nodes if (n.node_type & 0xFFFF0000 == defaults.WLAN_EXP_BASE)]
+
+    # Filter the 8 bits for MAC High node type
+    if mac_high is not None:
+        if type(mac_high) is not list:
+            mac_high = [mac_high]
+        tmp_nodes = [n for n in tmp_nodes if ((n.node_type & 0x0000FF00) in mac_high)]
+
+    # Filter the 8 bits for MAC Low node type
+    if mac_low is not None:
+        if type(mac_low) is not list:
+            mac_low = [mac_low]
+        tmp_nodes = [n for n in tmp_nodes if ((n.node_type & 0x000000FF) in mac_low)]
+    
+    return tmp_nodes
 
 # End def
 
 
-def _get_nodes_by_sn(nodes, serial_number):
+def _get_nodes_by_sn(nodes, serial_number=None):
     """Returns all nodes in the list that have the given serial number."""
-    return [n for n in nodes if (n.serial_number == serial_number)]
+
+    if serial_number is not None:
+        if type(serial_number) is not list:
+            serial_number = [serial_number]
+        nodes = [n for n in nodes if (n.serial_number in serial_number)]
+
+    return nodes
 
 # End def
 
