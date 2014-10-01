@@ -153,10 +153,10 @@ def init_experiment():
     # what the node currently has in the log.  However, the below code could
     # be used to initialize all nodes into a default state:
     #
-    # Set each not into the default state
+    # Set each node into the default state
     # for tmp_node in nodes:        
     #     # Issue a reset command to stop current operation / initialize components
-    #     tmp_node.reset_all()
+    #     tmp_node.reset(log=True, txrx_stats=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
     #     
     #     # Configure the log
     #     tmp_node.log_configure(log_full_payloads=True)
@@ -191,7 +191,7 @@ def run_experiment():
     wlan_exp_util.broadcast_cmd_write_time_to_logs(network_config)
 
     # Write Statistics to log
-    node.stats_write_txrx_to_log()
+    node.log_write_txrx_stats()
 
     # Get the start time
     start_time = time.time()
@@ -209,7 +209,7 @@ def run_experiment():
             print_node_state(start_time)
 
             # Write Statistics to log
-            node.stats_write_txrx_to_log()
+            node.log_write_txrx_stats()
             
             # Set the last_print time
             last_print = time.time()

@@ -49,7 +49,7 @@ nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
 print("\nInitialized nodes:")
 # Put each node in a known, good state
 for node in nodes:
-    msg  = "    {0} ".format(node.name)
+    msg  = "    {0} ".format(repr(node))
 
     print(msg)
 

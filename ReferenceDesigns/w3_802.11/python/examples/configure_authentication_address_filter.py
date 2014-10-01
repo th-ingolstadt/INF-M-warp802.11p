@@ -65,8 +65,9 @@ nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=networ
 #  This command will fail if either WARP v3 node does not respond
 nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
 
-# Extract the AP and STA nodes from the list of initialized nodes
-n_ap_l  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
+# Extract the different types of nodes from the list of initialized nodes
+#   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
+n_ap_l = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='AP', serial_number=NODE_SERIAL_LIST)
 
 # Setup WLAN devices
 devices = []
