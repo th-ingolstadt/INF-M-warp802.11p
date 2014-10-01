@@ -75,7 +75,8 @@ def run_experiment():
     print("\nRunning experiment\n")
 
     # Get all AP nodes from the list of initialize nodes    
-    nodes_ap  = wlan_exp_util.filter_nodes(nodes, 'node_type', 'AP')
+    #   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
+    nodes_ap = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='AP', serial_number=NODE_SERIAL_LIST)
 
     # If the node is not configured correctly, exit
     if (len(nodes_ap) == 0):

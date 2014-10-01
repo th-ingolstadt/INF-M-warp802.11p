@@ -194,14 +194,14 @@ for experiment in experiment_params:
     # NOTE:  In Python 3.x, the division operator is always floating point.  In order to be compatible with all versions 
     #    of python, cast operands to floats to ensure floating point division
     #
-    node1_num_bits  = float((node2_txrx_stats_for_node1_end['data_num_rx_bytes'] - node2_txrx_stats_for_node1_start['data_num_rx_bytes']) * 8)
-    node1_time_span = float(node2_txrx_stats_for_node1_end['timestamp'] - node2_txrx_stats_for_node1_start['timestamp'])
-    node1_xput      = node1_num_bits / node1_time_span
-    print("    Node 1: Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node1_xput))
+    node1_to_node2_num_bits  = float((node2_txrx_stats_for_node1_end['data_num_rx_bytes'] - node2_txrx_stats_for_node1_start['data_num_rx_bytes']) * 8)
+    node1_to_node2_time_span = float(node2_txrx_stats_for_node1_end['timestamp'] - node2_txrx_stats_for_node1_start['timestamp'])
+    node1_to_node2_xput      = node1_to_node2_num_bits / node1_to_node2_time_span
+    print("    Node 1 -> Node 2:  Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node1_to_node2_xput))
 
-    node2_num_bits  = float((node1_txrx_stats_for_node2_end['data_num_rx_bytes'] - node1_txrx_stats_for_node2_start['data_num_rx_bytes']) * 8)
-    node2_time_span = float(node1_txrx_stats_for_node2_end['timestamp'] - node1_txrx_stats_for_node2_start['timestamp'])
-    node2_xput      = node2_num_bits / node2_time_span
-    print("    Node 2: Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node2_xput))
+    node2_to_node1_num_bits  = float((node1_txrx_stats_for_node2_end['data_num_rx_bytes'] - node1_txrx_stats_for_node2_start['data_num_rx_bytes']) * 8)
+    node2_to_node1_time_span = float(node1_txrx_stats_for_node2_end['timestamp'] - node1_txrx_stats_for_node2_start['timestamp'])
+    node2_to_node1_xput      = node2_to_node1_num_bits / node2_to_node1_time_span
+    print("    Node 2 -> Node 1:  Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node2_to_node1_xput))
     
 
