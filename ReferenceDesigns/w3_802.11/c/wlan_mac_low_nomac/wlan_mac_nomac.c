@@ -77,10 +77,13 @@ int main(){
 	hw_info = wlan_mac_low_get_hw_info();
 	memcpy(eeprom_addr,hw_info->hw_addr_wlan,6);
 
+
 	wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
 	wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
 
 	wlan_mac_low_finish_init();
+
+	REG_SET_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_CCA_IGNORE_PHY_CS | WLAN_MAC_CTRL_MASK_CCA_IGNORE_NAV));
 
     xil_printf("Initialization Finished\n");
 
@@ -222,10 +225,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					return 0;
 				break;
-			}
-		} else {
-			if( tx_status & (WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)){
-				wlan_mac_low_poll_frame_rx();
 			}
 		}
 	} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
