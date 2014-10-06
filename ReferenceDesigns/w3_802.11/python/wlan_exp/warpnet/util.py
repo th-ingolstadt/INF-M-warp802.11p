@@ -45,13 +45,14 @@ if sys.version[0]=="3": raw_input=input
 #-----------------------------------------------------------------------------
 
 def wn_init_nodes(nodes_config, network_config=None, node_factory=None, 
-                  output=False):
+                  network_reset=True, output=False):
     """Initalize WARPNet nodes.
 
     Attributes:    
         nodes_config   -- A NodesConfiguration object describing the nodes
         network_config -- A NetworkConfiguration object describing the network configuration
         node_factory   -- A NodeFactory or subclass to create nodes of a given WARPNet type
+        network_reset  -- Issue a network reset to all the nodes 
         output         -- Print output about the WARPNet nodes
     """
     nodes       = []
@@ -73,9 +74,10 @@ def wn_init_nodes(nodes_config, network_config=None, node_factory=None,
         from . import node as wn_node
         node_factory = wn_node.WnNodeFactory(network_config)
 
-    # Send a broadcast network reset command to make sure all nodes are
-    # in their default state.
-    wn_reset_network_inf_all_nodes(network_config=network_config)
+    if network_reset:
+        # Send a broadcast network reset command to make sure all nodes are
+        # in their default state.
+        wn_reset_network_inf_all_nodes(network_config=network_config)
 
     # Create the nodes in the dictionary
     for node_dict in nodes_dict:
@@ -88,7 +90,7 @@ def wn_init_nodes(nodes_config, network_config=None, node_factory=None,
 
         # Create the correct type of node; will return None and print a 
         #   warning if the node is not recognized
-        node = node_factory.create_node(network_config)
+        node = node_factory.create_node(network_config, network_reset)
 
         if not node is None:
             node.configure_node(jumbo_frame_support)
@@ -107,76 +109,6 @@ def wn_init_nodes(nodes_config, network_config=None, node_factory=None,
     if output:
         print("-" * 50)
         print("Initialized Nodes:")
-        print("-" * 50)
-        for node in nodes:
-            print(node)
-            print("-" * 30)
-        print("-" * 50)
-
-    return nodes
-
-# End of wn_init_nodes()
-
-
-def wn_connect_nodes(nodes_config, network_config=None, node_factory=None, 
-                     output=False):
-    """Connect to WARPNet nodes.
-
-    Attributes:    
-        nodes_config   -- A NodesConfiguration object describing the nodes
-        network_config -- A NetworkConfiguration object describing the network configuration
-        node_factory   -- A NodeFactory or subclass to create nodes of a given WARPNet type
-        output         -- Print output about the WARPNet nodes
-    """
-    nodes       = []
-    error_nodes = []
-
-    # Create a Network Configuration if there is none provided
-    if network_config is None:
-        from . import config as wn_config
-        network_config = wn_config.NetworkConfiguration()
-
-    host_id             = network_config.get_param('host_id')
-    jumbo_frame_support = network_config.get_param('jumbo_frame_support')
-    
-    # Process the config to create nodes
-    nodes_dict = nodes_config.get_nodes_dict()
-
-    # If node_factory is not defined, create a default WnNodeFactory
-    if node_factory is None:
-        from . import node as wn_node
-        node_factory = wn_node.WnNodeFactory(network_config)
-
-    # Create the nodes in the dictionary
-    for node_dict in nodes_dict:
-        if (host_id == node_dict['node_id']):
-            msg = "Host id is set to {0} and must be unique.".format(host_id)
-            raise wn_ex.ConfigError(msg)
-
-        # Set up the node_factory from the Node dictionary
-        node_factory.setup(node_dict)
-
-        # Create the correct type of node; will return None and print a 
-        #   warning if the node is not recognized
-        node = node_factory.connect_node(network_config)
-
-        if not node is None:
-            node.configure_node(jumbo_frame_support)
-            nodes.append(node)
-        else:
-            error_nodes.append(node_dict)
-
-    if (len(nodes) != len(nodes_dict)):
-        msg  = "\n\nERROR:  Was not able to connect to all nodes.  Could not \n"
-        msg += "connect to the following nodes:\n"
-        for node_dict in error_nodes:
-            (sn, sn_str) = wn_get_serial_number(node_dict['serial_number'], output=False)
-            msg += "    {0}\n".format(sn_str)
-        raise wn_ex.ConfigError(msg)
-
-    if output:
-        print("-" * 50)
-        print("Nodes:")
         print("-" * 50)
         for node in nodes:
             print(node)

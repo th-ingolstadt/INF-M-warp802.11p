@@ -254,7 +254,8 @@ warpnet_type_dict = None
 
 
 
-def init_nodes(nodes_config, network_config=None, node_factory=None, output=False):
+def init_nodes(nodes_config, network_config=None, node_factory=None, 
+               network_reset=True, output=False):
     """Initalize WLAN Exp nodes.
 
     Attributes:
@@ -262,7 +263,9 @@ def init_nodes(nodes_config, network_config=None, node_factory=None, output=Fals
         network_config -- A NetworkConfiguration object describing the network configuration
         node_factory   -- A WlanExpNodeFactory or subclass to create nodes of a 
                           given WARPNet type
-        output -- Print output about the WARPNet nodes
+        network_reset  -- Issue a network reset command to the nodes to initialize / 
+                          re-initialize their network interface.
+        output         -- Print output about the WARPNet nodes
     """
     global warpnet_type_dict
     
@@ -281,39 +284,7 @@ def init_nodes(nodes_config, network_config=None, node_factory=None, output=Fals
 
     # Use the WARPNet utility, wn_init_nodes, to initialize the nodes
     import wlan_exp.warpnet.util as wn_util
-    return wn_util.wn_init_nodes(nodes_config, network_config, node_factory, output)
-
-# End def
-
-
-def connect_nodes(nodes_config, network_config=None, node_factory=None, output=False):
-    """Connect to WLAN Exp nodes.
-
-    Attributes:
-        nodes_config   -- A NodesConfiguration describing the nodes
-        network_config -- A NetworkConfiguration object describing the network configuration
-        node_factory   -- A WlanExpNodeFactory or subclass to create nodes of a 
-                          given WARPNet type
-        output -- Print output about the WARPNet nodes
-    """
-    global warpnet_type_dict
-    
-    # Create a Host Configuration if there is none provided
-    if network_config is None:
-        import wlan_exp.warpnet.config as wn_config
-        network_config = wn_config.NetworkConfiguration()
-
-    # If node_factory is not defined, create a default WlanExpNodeFactory
-    if node_factory is None:
-        import wlan_exp.node as node
-        node_factory = node.WlanExpNodeFactory(network_config)
-
-    # Record the WARPNet type dictionary from the NodeFactory for later use
-    warpnet_type_dict = node_factory.get_wn_type_dict()
-
-    # Use the WARPNet utility, wn_connect_nodes, to connect to the nodes
-    import wlan_exp.warpnet.util as wn_util
-    return wn_util.wn_connect_nodes(nodes_config, network_config, node_factory, output)
+    return wn_util.wn_init_nodes(nodes_config, network_config, node_factory, network_reset, output)
 
 # End def
 

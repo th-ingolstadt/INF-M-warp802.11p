@@ -698,24 +698,18 @@ class WnNodeFactory(WnNode):
                                     bcast_port=node_dict['bcast_port'])
 
 
-    def create_node(self, network_config=None):
+    def create_node(self, network_config=None, network_reset=True):
         """Based on the WARPNet Node Type, dynamically create and return 
         the correct WARPNet node."""        
-
-        # Send broadcast command to reset WARPNet node network interface
-        self.node_reset_network_inf()
-
-        # Send broadcast command to initialize WARPNet node network interface
-        self.node_setup_network_inf()
-
-        # Return the node created by connect_node()
-        return self.connect_node(network_config)
-
-    
-    def connect_node(self, network_config):
-        """Based on the WARPNet Node Type, dynamically create and return 
-        the correct WARPNet node without changing the network interface."""
         node = None
+
+        # Initialize the node network interface
+        if network_reset:
+            # Send broadcast command to reset WARPNet node network interface
+            self.node_reset_network_inf()
+    
+            # Send broadcast command to initialize WARPNet node network interface
+            self.node_setup_network_inf()
 
         try:
             # Send unicast command to get the WARPNet type
