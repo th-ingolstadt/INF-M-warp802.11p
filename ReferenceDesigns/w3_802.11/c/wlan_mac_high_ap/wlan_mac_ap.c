@@ -875,6 +875,24 @@ void association_timestamp_check() {
 			}
 		}
 	}
+
+	next_station_info_entry = station_info_state_2.first;
+
+	while(next_station_info_entry != NULL) {
+		curr_station_info_entry = next_station_info_entry;
+		next_station_info_entry = dl_entry_next(curr_station_info_entry);
+
+		curr_station_info  = (station_info*)(curr_station_info_entry->data);
+		time_since_last_rx = (get_usec_timestamp() - curr_station_info->rx.last_timestamp);
+
+		// De-authenticate the station if we have timed out and we have not disabled this check for the station
+		if((time_since_last_rx > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
+			aid = deauthenticate_station( curr_station_info );
+			if (aid != 0) {
+				xil_printf("\n\nDeauthentication due to inactivity:\n");
+			}
+		}
+	}
 }
 
 
