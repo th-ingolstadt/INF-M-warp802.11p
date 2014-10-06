@@ -1182,6 +1182,7 @@ void reset_bss_info(){
  * @return None
  */
 void reset_all_associations(){
+    xil_printf("Remove self from BSS\n");
 
 	if(my_bss_info != NULL){
 
