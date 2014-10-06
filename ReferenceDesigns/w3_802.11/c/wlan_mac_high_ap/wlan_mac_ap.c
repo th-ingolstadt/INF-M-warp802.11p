@@ -77,9 +77,19 @@ tx_params default_unicast_data_tx_params;
 tx_params default_multicast_mgmt_tx_params;
 tx_params default_multicast_data_tx_params;
 
-// Lists to hold association table and Tx/Rx statistics
+// "my_bss_info" is a pointer to the bss_info that describes this AP.
+// Inside this structure is a dl_list of station_info. This is a list
+// of all stations that are currently associated with this AP. In the
+// 802.11-2012 Section 10.3 parlance, these stations are currently
+// in State 4 (Authenticated, Associated). As part of the association
+// process, we want to track stations as they transition through the
+// 10.3 states. To do this, we'll create a totally separate dl_list of
+// station_info that represent stations in State 2
+// (Authenticated, Unassociated). Only members of this list will be allowed
+// to elevate to State 4 in the my_bss_info.
 bss_info*	 my_bss_info;
 dl_list		 statistics_table;
+dl_list		 station_info_state_2;
 
 // Tx queue variables;
 u32			 max_queue_size;
@@ -1222,6 +1232,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){
 
 					if(allow_auth){
+
+						if(wlan_mac_high_find_station_info_ADDR (&(my_bss_info->associated_stations), rx_80211_header->address_2) == NULL){
+							xil_printf("Authenticated, Unassociated Stations:\n");
+							//This station wasn't already authenticated/associated (state 4), so we'll manually add it to the state 2 list.
+							wlan_mac_high_add_association(&station_info_state_2, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+						}
+
 						// Create a successful authentication response frame
 						curr_tx_queue_element = queue_checkout();
 
@@ -1296,13 +1313,19 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 				if(wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr)) {
 
-			        // Check if we can allow the requester to associate with us
-					if (wlan_mac_addr_filter_is_allowed(rx_80211_header->address_2) != 0){
+
+
+			        // Check if we have authenticated this TA
+					if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
+
+						wlan_mac_high_remove_association(&station_info_state_2, &statistics_table, rx_80211_header->address_2);
+
 						// NOTE:  This function handles both the case that the station is already in the association
 						//   table and the case that the association needs to be added to the association table
 						//
-						associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
 
+						xil_printf("Authenticated, Associated Stations:\n");
+						associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
 						ap_write_hex_display(my_bss_info->associated_stations.length);
 					}
 
@@ -1397,6 +1420,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					}
 				}
 
+				xil_printf("Authenticated, Associated Stations:\n");
 			    wlan_mac_high_remove_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2);
 
 			    ap_write_hex_display(my_bss_info->associated_stations.length);
@@ -1553,6 +1577,7 @@ u32  deauthenticate_station( station_info* station ) {
 	add_station_info_to_log(station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
 	// Remove this STA from association list
+	xil_printf("Authenticated, Associated Stations:\n");
 	wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, station->addr );
 
 	ap_write_hex_display(my_bss_info->associated_stations.length);
