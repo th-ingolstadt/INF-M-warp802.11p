@@ -101,7 +101,7 @@ volatile u8			dram_present;			///< Indication variable for whether DRAM SODIMM i
 
 // Status information
 volatile static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
-volatile static u32         cpu_high_status;			///< Tracking variable for upper-level CPU status
+volatile static u32         cpu_high_status;		///< Tracking variable for upper-level CPU status
 
 // CPU Low Register Read Buffer
 volatile static u32*	   cpu_low_reg_read_buffer;
@@ -2738,7 +2738,7 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl){
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
 
-	xil_printf("\n   Current Associations\n (MAC time = %d usec)\n",timestamp);
+	xil_printf("\n(MAC time = %d usec)\n",timestamp);
 	xil_printf("|-ID-|----- MAC ADDR ----|\n");
 
 	curr_station_info_entry = assoc_tbl->first;
