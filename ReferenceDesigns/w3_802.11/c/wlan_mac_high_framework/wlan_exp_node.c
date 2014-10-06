@@ -3245,11 +3245,9 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 
 	// For Writes
 	if ( cmd == CMD_PARAM_WRITE_VAL ) {
-
 		curr_list  = get_station_info_list();
 
 		if(curr_list != NULL){
-
 			if (curr_list->length == 0) { return tx_rate; }
 
 			curr_entry = curr_list->first;
@@ -3270,14 +3268,20 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 				}
 				curr_entry = dl_entry_next(curr_entry);
 			}
+		} else {
+			if (aid == WLAN_EXP_AID_ALL) {
+				// This is not an error because we are trying to set the rate for all
+				// associations and there currently are none.
+				rate = tx_rate;
+			}
 		}
-	} else {
 
+	// For Reads
+	} else {
 		if ( aid != WLAN_EXP_AID_ALL ) {
 			curr_list  = get_station_info_list();
 
 			if (curr_list != NULL){
-
 				curr_entry = curr_list->first;
 
 				while(curr_entry != NULL){
@@ -3290,6 +3294,8 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 				}
 			}
 		}
+
+		// NOTE:  Trying to read the rate for all associations returns an error.
 	}
 
 	return rate;
@@ -3319,11 +3325,9 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
 	// For Writes
 	if ( cmd == CMD_PARAM_WRITE_VAL ) {
-
 		curr_list  = get_station_info_list();
 
 		if(curr_list != NULL){
-
 			if (curr_list->length == 0) { return ant_mode; }
 
 			curr_entry = curr_list->first;
@@ -3344,9 +3348,16 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 				}
 				curr_entry = dl_entry_next(curr_entry);
 			}
+		} else {
+			if (aid == WLAN_EXP_AID_ALL) {
+				// This is not an error because we are trying to set the mode for all
+				// associations and there currently are none.
+				mode = ant_mode;
+			}
 		}
-	} else {
 
+	// For Reads
+	} else {
 		if ( aid != WLAN_EXP_AID_ALL ) {
 			curr_list  = get_station_info_list();
 
@@ -3363,6 +3374,8 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 				}
 			}
 		}
+
+		// NOTE:  Trying to read the mode for all associations returns an error.
 	}
 
 	return mode;
