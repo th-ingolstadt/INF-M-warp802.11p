@@ -247,7 +247,7 @@ int main() {
 
 #ifdef WLAN_USE_UART_MENU
 	uart_mode = UART_MODE_MAIN;
-	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
+	xil_printf("\nAt any time, press the Esc key in your terminal to access the menu\n");
 #endif
 
 #ifdef USE_WARPNET_WLAN_EXP
@@ -892,7 +892,7 @@ void reset_bss_info(){
  * @return None
  */
 void reset_all_associations(){
-    xil_printf("Reset All Associations");
+    xil_printf("Reset All Associations\n");
 
     // STA disassociate command is the same for an individual AP or ALL
 	sta_disassociate();

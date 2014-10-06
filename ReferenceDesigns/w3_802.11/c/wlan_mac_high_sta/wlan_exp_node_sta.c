@@ -178,7 +178,10 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 				status = CMD_PARAM_ERROR;
 
 			} else {
-				// Disable interrupts so no packets interrupt the disassociate
+                // Stop any scan / join in progress
+				wlan_mac_sta_return_to_idle();
+
+                // Disable interrupts so no packets interrupt the disassociate
 				wlan_mac_high_interrupt_stop();
 
                 // STA disassociate command is the same for an individual AP or ALL
