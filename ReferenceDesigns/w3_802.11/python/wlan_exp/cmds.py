@@ -807,7 +807,7 @@ class NodeSetLowToHighFilter(wn_message.Cmd):
         super(NodeSetLowToHighFilter, self).__init__()
         self.command  = _CMD_GRPID_NODE + CMDID_NODE_LOW_TO_HIGH_FILTER
 
-        self.add_args(CMD_PARAM_WRITE)
+        self.add_args(cmd)
 
         rx_filter = 0
 
@@ -839,7 +839,7 @@ class NodeSetLowToHighFilter(wn_message.Cmd):
             if   (fcs == 'GOOD'):
                 rx_filter += CMD_PARAM_RX_FILTER_FCS_GOOD
             elif (fcs == 'ALL'):
-                rx_filter += CMD_PARAM_RX_FILTER_FCS_NOCHANGE
+                rx_filter += CMD_PARAM_RX_FILTER_FCS_ALL
             else:
                 msg  = "WARNING: Not a valid fcs value.\n"
                 msg += "    Provided:  {0}\n".format(fcs)

@@ -623,7 +623,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         to decide on the response.  Default behavior like this can only be modified in the 
         low MAC.
         """
-        self.send_cmd(cmds.NodeSetLowToHighFilter(mac_header, fcs))        
+        self.send_cmd(cmds.NodeSetLowToHighFilter(cmds.CMD_PARAM_WRITE, mac_header, fcs))        
         
 
     def set_channel(self, channel):
