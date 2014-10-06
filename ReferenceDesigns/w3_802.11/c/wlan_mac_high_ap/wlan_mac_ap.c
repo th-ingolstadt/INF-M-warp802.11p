@@ -1529,6 +1529,7 @@ void reset_bss_info(){
  * @return None
  */
 void reset_all_associations(){
+    xil_printf("Reset All Associations\n");
 
 	// Deauthenticate all stations
 	deauthenticate_stations();
