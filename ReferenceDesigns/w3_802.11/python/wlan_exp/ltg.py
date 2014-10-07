@@ -63,17 +63,16 @@ LTG_PYLD_TYPE_ALL_ASSOC_FIXED          = 3
 
 # LTG Payload Min/Max
 #
-#   These defines are a place-holder for now; In the future, the min/max will
-# change.  Currently, the minimum payload size is determined by the size
-# of the LTG header in the payload (as of 0.8, the LTG header only contained
-# the LLC header).  Currently, the maximum payload size is 1500 bytes.  This
-# is a relatively arbitrary amount chosen because 1) in 0.8 the 802.11 phy
-# cannot transmit more than 1600 bytes total per packet; 2) 1500 bytes is 
-# about the size of a standard Ethernet MTU.  If sizes outside the range are
-# requested, the functions will print a warning and adjust the value to the
-# appropriate boundary.
+#   Currently, the minimum payload size is determined by the size of the LTG 
+# header in the payload (as of 0.96, the LTG header contains the LLC header, 
+# a 64-bit unique sequence number and a 32-bit LTG ID).  Currently, the maximum 
+# payload size is 1500 bytes.  This is a relatively arbitrary amount chosen 
+# because 1) in 0.96 the 802.11 phy cannot transmit more than 1600 bytes total 
+# per packet; 2) 1500 bytes is about the size of a standard Ethernet MTU.  If 
+# sizes outside the range are requested, the functions will print a warning and 
+# adjust the value to the appropriate boundary.
 #
-LTG_PYLD_MIN                           = 8
+LTG_PYLD_MIN                           = 20
 LTG_PYLD_MAX                           = 1500
 
 
