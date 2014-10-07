@@ -53,7 +53,12 @@ MPDU_Null_Data = sscanf('48 11 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 5
 % LLC header: aa-aa-03-00-00-00-08-00
 % Arbitrary payload: 00-01-02...0f
 % FCS placeholder: 0x00000000
-MPDU_Data = sscanf('08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 00 00 00 00', '%02x');
+
+%Short pkt - 16 payload bytes
+MPDU_Data_short = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', [0:15]) ' 00 00 00 00'], '%02x');
+
+%Long pkt - 1420 payload bytes
+MPDU_Data_long = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:1420], 256)) ' 00 00 00 00'], '%02x');
 
 %ACK frame:
 % Frame Control field: 0xd400
@@ -63,8 +68,9 @@ MPDU_Data = sscanf('08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 
 ControlFrame_ACK = sscanf('d4 00 00 00 40 d8 55 04 21 4a 00 00 00 00', '%02x');
 
 %Choose a payload for simulation
-Pkt_Payload = MPDU_Null_Data;
-%Pkt_Payload = MPDU_Data;
+%Pkt_Payload = MPDU_Null_Data;
+Pkt_Payload = MPDU_Data_short;
+%Pkt_Payload = MPDU_Data_long;
 %Pkt_Payload = ControlFrame_ACK;
 
 Pkt_len = length(Pkt_Payload);
@@ -78,7 +84,7 @@ Pkt_Payload_words = sum(Pkt_Payload4 .* repmat(2.^[0:8:24]', 1, size(Pkt_Payload
 PPDU_words = zeros(1, MAX_NUM_BYTES/4);
 
 %Select the Tx rate in Mbps - must be one of the supported rates
-Tx_Rate = 6;
+Tx_Rate = 24;
 
 %Choose a modulation/coding rate and insert SIGNAL field in first 3 bytes
 switch Tx_Rate

@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.615"
+    ComputedModelVersion    "1.618"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -30,9 +30,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "murphpo"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Mon Oct 06 17:26:43 2014"
-  RTWModifiedTimeStamp	  334511135
-  ModelVersionFormat	  "1.%<AutoIncrement:615>"
+  LastModifiedDate	  "Tue Oct 07 11:41:59 2014"
+  RTWModifiedTimeStamp	  334582917
+  ModelVersionFormat	  "1.%<AutoIncrement:618>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -798,8 +798,8 @@ Model {
   }
   System {
     Name		    "wlan_phy_tx_pmd"
-    Location		    [2, 70, 1919, 1092]
-    Open		    off
+    Location		    [165, 223, 2082, 1245]
+    Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
     ScreenColor		    "white"
@@ -20189,8 +20189,14 @@ Model {
 	  "C (will be removed when correct endianess is determined in hw)\n\n2.00.t:\n-Made SIGNAL.LENGTH max value programmab"
 	  "le, in units of kB\n\n2.00.u - 2.00.w:\n-Added separate TX_GAIN paths per RF (MAC -> PHY -> radio_controller passth"
 	  "rough)\n-Added delayed TX_RUNNING signal, to trigger pkt det at other nodes\n\n2.00.x:\n-Merged TX_RUNNING outputs "
-	  "(delayed, not-delayed) with mux to select\n\n2.00.y:\n-Cleaed up init script - no PHY design changes"
+	  "(delayed, not-delayed) with mux to select"
 	  Position		  [37, 545]
+	  HorizontalAlignment	  "left"
+	  BackgroundColor	  "[0.913725, 0.913725, 0.913725]"
+	}
+	Annotation {
+	  Name			  "2.01.a:\n-Cleaed up init script - no PHY design changes"
+	  Position		  [547, 65]
 	  HorizontalAlignment	  "left"
 	  BackgroundColor	  "[0.913725, 0.913725, 0.913725]"
 	}
@@ -44243,7 +44249,7 @@ Model {
       Name		      "Preamble & Outputs"
       SID		      "2305"
       Ports		      [5]
-      Position		      [1120, 172, 1235, 268]
+      Position		      [1125, 172, 1240, 268]
       MinAlgLoopOccurrences   off
       PropExecContextOutsideSubsystem off
       RTWSystemCode	      "Auto"
@@ -47972,7 +47978,7 @@ Model {
 	  ZOrder		  -3
 	  Floating		  off
 	  Location		  [884, 87, 2461, 1594]
-	  Open			  on
+	  Open			  off
 	  NumInputPorts		  "10"
 	  ZoomMode		  "yonly"
 	  List {
@@ -58061,7 +58067,7 @@ Model {
       Name		      "Start Ctrl"
       SID		      "2769"
       Ports		      [0, 1]
-      Position		      [20, 186, 115, 224]
+      Position		      [25, 186, 120, 224]
       MinAlgLoopOccurrences   off
       PropExecContextOutsideSubsystem off
       RTWSystemCode	      "Auto"
@@ -58072,7 +58078,7 @@ Model {
       System {
 	Name			"Start Ctrl"
 	Location		[33, 628, 383, 737]
-	Open			on
+	Open			off
 	ModelBrowserVisibility	off
 	ModelBrowserWidth	200
 	ScreenColor		"white"
@@ -68112,7 +68118,7 @@ Model {
     Line {
       SrcBlock		      "Start Ctrl"
       SrcPort		      1
-      Points		      [25, 0]
+      Points		      [20, 0]
       Branch {
 	DstBlock		"Bit Source"
 	DstPort			1
