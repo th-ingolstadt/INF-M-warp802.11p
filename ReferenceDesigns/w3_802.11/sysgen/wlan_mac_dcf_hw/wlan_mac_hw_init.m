@@ -8,7 +8,7 @@ MAX_DIFS = 63;
 MAX_EIFS = 255;
 MAX_ACKTIMEOUT = 255;
 MAX_NAV = 4095;
-MAX_NUM_SLOTS = 2047;
+MAX_NUM_SLOTS = 2^16-1;
 
 %Calculate bit widths
 % All counters run at 160MHz (1/160 usec)

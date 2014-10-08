@@ -43,7 +43,7 @@ MAX_NUM_SYMS = 600;
 % FCS placeholder: 0x00000000
 MPDU_Null_Data = sscanf('48 11 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 4a f0 92 00 00 00 00', '%02x');
 
-%Data frame:
+%Data frames:
 % Frame Control field: 0x0801
 % Duration: 0x2c00 (44 usec)
 % Receiver address:    40-d8-55-04-21-4a
@@ -84,7 +84,7 @@ Pkt_Payload_words = sum(Pkt_Payload4 .* repmat(2.^[0:8:24]', 1, size(Pkt_Payload
 PPDU_words = zeros(1, MAX_NUM_BYTES/4);
 
 %Select the Tx rate in Mbps - must be one of the supported rates
-Tx_Rate = 24;
+Tx_Rate = 12;
 
 %Choose a modulation/coding rate and insert SIGNAL field in first 3 bytes
 switch Tx_Rate
