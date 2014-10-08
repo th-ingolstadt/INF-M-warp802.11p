@@ -806,7 +806,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
 
-		length = wlan_mac_get_rx_phy_length() - WLAN_PHY_FCS_NBYTES; //Strip off FCS
+		length = wlan_mac_get_rx_phy_length(); //MPDU length (incl. 802.11 header + WLAN_PHY_FCS_NBYTES)
 		rate =  wlan_mac_get_rx_phy_rate();
 
 		//Translate the PHY's rate code (from the SIGNAL field) into a rate index for use by the MAC

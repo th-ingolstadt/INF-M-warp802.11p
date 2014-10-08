@@ -39,7 +39,6 @@
 #define TXTIME_T_PREAMBLE 16	//320 samples @ 20MHz
 #define TXTIME_T_SIGNAL 4		//80 samples @ 20MHz
 #define TXTIME_T_SYM 4			//80 samples @ 20MHz
-#define WLAN_PHY_FCS_NBYTES	4
 
 #define PHY_RX_SIG_EXT_USEC 6
 #define PHY_TX_SIG_EXT_USEC 6
