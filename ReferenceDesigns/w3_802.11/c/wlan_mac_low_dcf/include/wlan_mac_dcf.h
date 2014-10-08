@@ -16,7 +16,7 @@
 #ifndef WLAN_MAC_DCF_H_
 #define WLAN_MAC_DCF_H_
 
-#define TX_PKT_BUF_ACK 2
+#define TX_PKT_BUF_ACK 7
 
 //RTS/CTS is not currently supported. This threshold must remain larger than any outgoing MPDU
 #define RTS_THRESHOLD 2000
