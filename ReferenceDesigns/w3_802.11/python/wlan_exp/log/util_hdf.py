@@ -89,9 +89,12 @@ __all__ = ['np_arrays_to_hdf5',
            'hdf5_to_log_index',
            'hdf5_to_attr_dict']
 
-
+import sys
 from . import util as log_util
 
+
+# Fix to support Python 2.x and 3.x
+if sys.version[0]=="3": unicode=str
 
 #-----------------------------------------------------------------------------
 # HDF5 Log Container Class
@@ -586,20 +589,25 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
     # Create an HDF5 Log Container
     container     = HDF5LogContainer(file_handle)
 
-    # Add the log data    
-    container.write_log_data(log_data)
+    # Try to write the file components
+    try:
+        # Add the log data    
+        container.write_log_data(log_data)
 
-    # Add the raw log index to the group
-    #   NOTE:  Done this way to save processing time.  Since log_data is already
-    #          in memory, we do not need to use the default write_log_index which
-    #          pulls the log data out of the HDF5 file to create the raw log index.
-    if gen_index:
-        raw_log_index = log_util.gen_raw_log_index(log_data)
-        container.write_log_index(raw_log_index)
-    
-    # Add the attribute dictionary to the group
-    if attr_dict is not None:
-        container.write_attr_dict(attr_dict)
+        # Add the raw log index to the group
+        #   NOTE:  Done this way to save processing time.  Since log_data is already
+        #          in memory, we do not need to use the default write_log_index which
+        #          pulls the log data out of the HDF5 file to create the raw log index.
+        if gen_index:
+            raw_log_index = log_util.gen_raw_log_index(log_data)
+            container.write_log_index(raw_log_index)
+        
+        # Add the attribute dictionary to the group
+        if attr_dict is not None:
+            container.write_attr_dict(attr_dict)
+
+    except AttributeError as err:
+        print("Error writing log file: {0}".format(err))
 
     # Close the file 
     hdf5_close_file(file_handle)
@@ -632,8 +640,13 @@ def hdf5_to_log_data(filename=None, group_name=None):
     # Create an HDF5 Log Container
     container   = HDF5LogContainer(file_handle, group_name)
 
-    # Extract the attribute dictionary
-    log_data    = container.get_log_data()
+    # Try to read the file components
+    try:
+        # Extract the attribute dictionary
+        log_data    = container.get_log_data()
+
+    except AttributeError as err:
+        print("Error reading log file: {0}".format(err))
 
     # Close the file 
     hdf5_close_file(file_handle)
@@ -665,8 +678,13 @@ def hdf5_to_log_index(filename=None, group_name=None, gen_index=True):
     # Create an HDF5 Log Container
     container   = HDF5LogContainer(file_handle, group_name)
 
-    # Extract the attribute dictionary
-    log_index   = container.get_log_index(gen_index)
+    # Try to read the file components
+    try:
+        # Extract the log index
+        log_index   = container.get_log_index(gen_index)
+
+    except AttributeError as err:
+        print("Error reading log file: {0}".format(err))
 
     # Close the file 
     hdf5_close_file(file_handle)
@@ -695,8 +713,13 @@ def hdf5_to_attr_dict(filename=None, group_name=None):
     # Create an HDF5 Log Container
     container   = HDF5LogContainer(file_handle, group_name)
 
-    # Extract the attribute dictionary
-    attr_dict   = container.get_attr_dict()    
+    # Try to read the file components
+    try:
+        # Extract the attribute dictionary
+        attr_dict   = container.get_attr_dict()    
+
+    except AttributeError as err:
+        print("Error reading log file: {0}".format(err))
 
     # Close the file 
     hdf5_close_file(file_handle)
