@@ -167,7 +167,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
-	wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
+	wlan_phy_set_tx_signal(pkt_buf, rate, length);
 
 	unsigned char mpdu_tx_ant_mask = 0;
 	switch(mpdu_info->params.phy.antenna_mode) {
