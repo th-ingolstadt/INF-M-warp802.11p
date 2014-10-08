@@ -690,7 +690,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		allocation_mutex = 1;
 
 		// Compute the end address of the newly allocated entry
-	    end_address = log_next_address + size;
+	    end_address = (u64)(log_next_address) + (u64)(size);
 
 	    // Check if the log has wrapped
 	    if ((log_next_address > log_oldest_address) ||
