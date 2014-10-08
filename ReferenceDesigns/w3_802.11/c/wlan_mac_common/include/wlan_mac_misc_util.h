@@ -22,6 +22,8 @@ typedef int (*function_ptr_t)();
 #define max(A,B) (((A)>(B))?(A):(B))
 #define min(A,B) (((A)<(B))?(A):(B))
 
+#define WLAN_PHY_FCS_NBYTES	4
+
 //#define _ISR_PERF_MON_EN_	///< ISR Performance Monitor Toggle
 #define ISR_PERF_MON_GPIO_MASK	0x01
 
