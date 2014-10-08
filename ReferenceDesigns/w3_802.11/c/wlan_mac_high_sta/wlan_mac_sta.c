@@ -574,10 +574,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			station_stats->last_rx_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_stats)->data.rx_num_packets)++;
-				((station_stats)->data.rx_num_bytes) += mpdu_info->length;
+				((station_stats)->data.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES);
 			} else if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) {
 				((station_stats)->mgmt.rx_num_packets)++;
-				((station_stats)->mgmt.rx_num_bytes) += mpdu_info->length;
+				((station_stats)->mgmt.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES);
 			}
 		}
 
