@@ -159,7 +159,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				mpdu_ptr_u8 += sizeof(beacon_probe_frame);
 
 				// Parse the tagged parameters
-				while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) < length ) {
+				while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) < (length - WLAN_PHY_FCS_NBYTES)) {
 
 					// Parse each of the tags
 					switch(mpdu_ptr_u8[0]){

@@ -348,7 +348,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 
 	u32 len_to_send;
 
-	if(length < (sizeof(mac_header_80211) + sizeof(llc_header))){
+	if(length < (sizeof(mac_header_80211) + sizeof(llc_header) + WLAN_PHY_FCS_NBYTES)){
 		xil_printf("Error in wlan_mpdu_eth_send: length of %d is too small... must be at least %d\n", length, (sizeof(mac_header_80211) + sizeof(llc_header)));
 		return -1;
 	}
@@ -359,7 +359,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 	eth_hdr = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
 
 	//Calculate length of de-encapsulated Ethernet packet
-	len_to_send = length - sizeof(mac_header_80211) - sizeof(llc_header) + sizeof(ethernet_header);
+	len_to_send = length - sizeof(mac_header_80211) - WLAN_PHY_FCS_NBYTES - sizeof(llc_header) + sizeof(ethernet_header);
 
 	//Do de-encapsulation of wireless packet
 	switch(eth_encap_mode) {
@@ -803,7 +803,7 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 	u32 mpdu_tx_len;
 
 	//Calculate actual wireless Tx len (eth payload - eth header + wireless header)
-	mpdu_tx_len = eth_rx_len - sizeof(ethernet_header) + sizeof(llc_header) + sizeof(mac_header_80211);
+	mpdu_tx_len = eth_rx_len - sizeof(ethernet_header) + sizeof(llc_header) + sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES;
 
 	//Helper pointers to interpret/fill fields in the new MPDU
 	eth_hdr = (ethernet_header*)eth_start_ptr;

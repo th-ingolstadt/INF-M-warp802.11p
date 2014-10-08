@@ -1501,7 +1501,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 
 		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 		src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
-		xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE;
+		xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
 
 
         // Transfer the frame info

@@ -95,7 +95,7 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	txBufferPtr_u8[2] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
 	txBufferPtr_u8+=(1+2);
 
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 	return packetLen_bytes;
 }
 
@@ -167,7 +167,7 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 	txBufferPtr_u8[2] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
 	txBufferPtr_u8+=(1+2);
 
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 
 
 
@@ -217,7 +217,7 @@ int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* co
 
 
 	txBufferPtr_u8 = (u8 *)((u8 *)(txBufferPtr_u8) + sizeof(measurement_common_frame));
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 
 
 
@@ -261,7 +261,7 @@ int wlan_create_channel_switch_announcement_frame(void* pkt_buf, mac_header_8021
 	chan_req->chan_switch_count = 0;             // Switch occurs any time after the frame is transmitted
 
 	txBufferPtr_u8  = (u8 *)((u8 *)(txBufferPtr_u8) + sizeof(channel_switch_announcement_frame));
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 
 
 
@@ -317,7 +317,7 @@ int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, 
 	txBufferPtr_u8[2] = chan;
 	txBufferPtr_u8+=(1+2);
 
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 
 
 
@@ -360,7 +360,7 @@ int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 a
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(authentication_frame));
 
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 
 
 
@@ -394,7 +394,7 @@ int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(authentication_frame));
 
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 
 
 
@@ -487,7 +487,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 
 
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 
 
 
@@ -558,7 +558,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	txBufferPtr_u8[5] = (0x60); 	//48Mbps
 	txBufferPtr_u8+=(4+2); //Move up to next tag*/
 
-	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf);
+	packetLen_bytes = txBufferPtr_u8 - (u8*)(pkt_buf) + WLAN_PHY_FCS_NBYTES;
 
 
 
@@ -586,7 +586,7 @@ int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 fl
 
 
 
-	return sizeof(mac_header_80211);
+	return (sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES);
 }
 
 u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_other, u8* rate_other){
