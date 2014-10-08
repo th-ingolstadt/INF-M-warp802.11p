@@ -103,8 +103,6 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 	curr_tg->type = type;
 	curr_tg->cleanup_callback = (function_ptr_t)cleanup_callback;
 
-	xil_printf("LTG size = %d    %d\n", sizeof(ltg_sched_periodic_state), sizeof(ltg_sched_uniform_rand_state));
-
 	switch(type){
 		case LTG_SCHED_TYPE_PERIODIC:
 			curr_tg->params = wlan_mac_high_malloc(sizeof(ltg_sched_periodic_params));
