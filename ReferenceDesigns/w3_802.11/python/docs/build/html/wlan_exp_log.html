@@ -1,0 +1,348 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Event Log Tools &mdash; warpnet 0.9-dev documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9-dev',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="warpnet 0.9-dev documentation" href="index.html" />
+    <link rel="prev" title="Welcome to warpnet’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to warpnet’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">warpnet 0.9-dev documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="event-log-tools">
+<span id="wlan-exp-log"></span><h1>Event Log Tools<a class="headerlink" href="#event-log-tools" title="Permalink to this headline">¶</a></h1>
+<p>The <tt class="xref py py-mod docutils literal"><span class="pre">wlan_exp_log</span></tt> package provides utilities to process log data from 802.11 Reference
+Design nodes.</p>
+<p>The documentation here describes the Python framework for processing log data. For more details
+on the reference design&#8217;s logging system itself, please refer to the design&#8217;s <a class="reference external" href="http://warpproject.org/trac/wiki/802.11/wlan_exp/log">user guide</a>.</p>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>The 802.11 Reference Design implements a logging framework which records any user-specified event in the nodes of an experimental network. The Reference Design implements many useful log entry types, including Tx packets, Rx packets and low-level MAC re-transmissions. Users can create additional entry types to suit their research application.</p>
+<p>The basic flow for using log data in an experiments is:</p>
+<ol class="arabic simple">
+<li>Retrieve log data from one or more 802.11 Reference Design nodes</li>
+<li>Generate an index of each node&#8217;s log data</li>
+<li>Filter the index to select the required subset of log entry types</li>
+<li>Convert the log data and filtered index into structured arrays of log entries</li>
+<li>Process the log entries to calculate the statistics required for the experiment</li>
+</ol>
+<p>Log data retrieval (step 1) is implemented in the <cite>wlan_exp_node.log_get_all_new()</cite> method.</p>
+<p>Log index generation and filtering (steps 2-3) and entry processing (steps 4-5) are described below.</p>
+</div>
+<div class="section" id="log-data">
+<h2>Log Data<a class="headerlink" href="#log-data" title="Permalink to this headline">¶</a></h2>
+<p>The term <tt class="docutils literal"><span class="pre">log_data</span></tt> refers to a <cite>bytearray</cite> of raw log data retrieved from an 802.11 Reference Design Node. The <tt class="docutils literal"><span class="pre">log_data</span></tt> is a tightly packed array of log entries, each composed of an entry header and arbitrary entry payload. The array of log data is a byte-for-byte copy of the log data retrieved
+from the node&#8217;s DRAM.</p>
+<p>The log data format is documented in the <a class="reference external" href="http://warpproject.org/trac/wiki/802.11/wlan_exp/log">802.11 Reference Design user guide</a>.</p>
+<p>In Python scripts log data is retrieved using the log methods implemented in <cite>wlan_exp_node</cite>.</p>
+</div>
+<div class="section" id="raw-log-index">
+<h2>Raw Log Index<a class="headerlink" href="#raw-log-index" title="Permalink to this headline">¶</a></h2>
+<p>Log data can be quite large, often many gigabytes for a long trial. Re-parsing the full log data array to summarize its contents would be expensive. A more efficient approach is to generate an index describing the contents of each log data array at the time the array is retrieved, then save this index with the log data for easier processing in the future.</p>
+<p>We call this index the <strong>raw log index</strong>. The raw log index contains the location of each log entry in the log data and the entry type ID of that entry.</p>
+<p>For example, consider the log data array illustrated below.</p>
+<div class="figure align-center">
+<img alt="Log data example" src="_images/wlan_exp_log_layout.png" />
+<p class="caption">Example 112-byte log data array with 5 entries of 3 different entry types.</p>
+</div>
+<p>The blue areas show the log entry headers. Each header starts with a delimiter value, followed by a sequence number, the log entry type ID and the log entry length. Following the header is the log entry payload itself, illustrated as red, green and yellow here.</p>
+<p>This log data contains 5 log entries of 3 distinct types:</p>
+<ul class="simple">
+<li>Two entries of type ID 10 (red) at byte offsets 8 and 88</li>
+<li>Two entries of type ID 214 (green) at byte offsets 36 and 76</li>
+<li>One entry of type ID 3 (yellow) at byte offset 56</li>
+</ul>
+<p>The raw log index for this log data would be the dictionary:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="mi">10</span><span class="p">:</span>  <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">88</span><span class="p">],</span>
+ <span class="mi">214</span><span class="p">:</span> <span class="p">[</span><span class="mi">36</span><span class="p">,</span> <span class="mi">76</span><span class="p">],</span>
+ <span class="mi">3</span><span class="p">:</span>   <span class="p">[</span><span class="mi">56</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In actual experiments the log data and corresponding index will be <strong>much</strong> larger. We have successfully tested these tools on log data with tens of millions of entries (on a 64-bit machine, of course).</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Notice that the dictionary keys are integer entry type IDs. This is by design, as it allows the raw log index to be generated using only the log data itself, with no dependence on the formats of the log entries themselves. The integer IDs will be translated into names in the log index filtering step, described below.</p>
+</div>
+<div class="section" id="tools">
+<h3>Tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h3>
+<p>The <cite>log_util.gen_raw_log_index(log_data)</cite> method will read a raw log data array and generate the log data index.</p>
+<p>The <cite>log_util_hdf.log_data_to_hdf5</cite> method will optionally create and save the raw log index when saving log data to an HDF5 file.</p>
+<p>The <cite>log_util_hdf.hdf5_to_log_index</cite> method will read a raw log index previously saved to an HDF5 file.</p>
+</div>
+</div>
+<div class="section" id="archiving-log-data">
+<h2>Archiving Log Data<a class="headerlink" href="#archiving-log-data" title="Permalink to this headline">¶</a></h2>
+<p>Log data retrieved from an 802.11 Reference Design node will initially be stored in RAM as a bytearray. In most experiments it is useful to write the log data to a file for archival and future processing.</p>
+<p>We recommend storing log data in <a class="reference external" href="http://www.hdfgroup.org/HDF5/">HDF5 files</a> using the <a class="reference external" href="http://docs.h5py.org/en/latest/index.html">h5py package</a>. The HDF5 format is open, fast, well documented and supported by a wide variety of tools.</p>
+<div class="section" id="hdf5-log-data-format">
+<h3>HDF5 Log Data Format<a class="headerlink" href="#hdf5-log-data-format" title="Permalink to this headline">¶</a></h3>
+<p>The HDF5 format is built from two types of objects:</p>
+<ul class="simple">
+<li><strong>Dataset</strong> - an array of homogenous data with arbitrary dimensions</li>
+<li><strong>Group</strong> - a named level of hierarchy which can contain datasets and other groups</li>
+</ul>
+<p>Datasets and groups can also store <strong>attributes</strong>. Datasets and attributes retain their data types and dimensions when written to HDF5 files. The h5py package uses numpy arrays and datatypes as the Python interface to the underlying HDF5 data.</p>
+<p>One important concept is the <strong>root group</strong>. Every HDF5 file has a root group named <tt class="docutils literal"><span class="pre">'/'</span></tt>. Named datasets and groups can be added to the root group to build more complex hierarchy. Sub-groups have names, forming Unix-like paths to datasets and other groups, always starting with the root group <tt class="docutils literal"><span class="pre">'/'</span></tt>.</p>
+<p>The h5py package supports building HDF5 files with arbitrary hierarchy. We define a simple HDF5 hierarchy for storing 802.11 Reference Design log data in an HDF5 group. We call this group format a <tt class="docutils literal"><span class="pre">wlan_exp_log_data_container</span></tt>. When an HDF5 group is used as a <tt class="docutils literal"><span class="pre">wlan_exp_log_data_container</span></tt> it must have the format illustrated below:</p>
+<div class="highlight-python"><div class="highlight"><pre>wlan_exp_log_data_container (HDF5 group):
+       |- Attributes:
+       |      |- &#39;wlan_exp_log&#39;         (1,)      bool
+       |      |- &#39;wlan_exp_ver&#39;         (3,)      uint32
+       |      |- &lt;user provided attributes&gt;
+       |- Datasets:
+       |      |- &#39;log_data&#39;             (1,)      voidN  (where N is the size of the data in bytes)
+       |- Groups (optional):
+              |- &#39;raw_log_index&#39;
+                     |- Datasets:
+                        (dtype depends if largest offset in raw_log_index is &lt; 2^32)
+                            |- &lt;int&gt;    (N1,)     uint32/uint64
+                            |- &lt;int&gt;    (N2,)     uint32/uint64
+                            |- ...
+</pre></div>
+</div>
+<p>The elements of this format are:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">wlan_exp_log</span></tt> attribute: must be present with boolean value True</li>
+<li><tt class="docutils literal"><span class="pre">wlan_exp_ver</span></tt> attribute: 3-tuple of integers recording the <cite>(major,minor,rev)</cite> version of the wlan_exp package that wrote the file</li>
+<li><tt class="docutils literal"><span class="pre">log_data</span></tt> dataset: the raw bytearray retrieved from the 802.11 Reference Design node, stored as a scalar value using the HDF5 opaque type</li>
+<li><tt class="docutils literal"><span class="pre">raw_log_index</span></tt> sub-group (optional): if present, must be a group with one dataset per log entry type, where each dataset contains the array of integers indicating the location of each log entry in the <tt class="docutils literal"><span class="pre">log_data</span></tt>. This group-of-datasets encodes the dictionary-of-arrays normally used to represent the raw_log_index.</li>
+<li>User provided attributes: additional attributes provided at the time of file creation. The <cite>log_util_hdf</cite> methods store these attributes when supplied by the user code. These can be useful to store additional experiment-specific details about the log data (i.e. date/time of the experiment, physical location of the nodes, etc.).</li>
+</ul>
+</div>
+<div class="section" id="writing-log-data-files">
+<h3>Writing Log Data Files<a class="headerlink" href="#writing-log-data-files" title="Permalink to this headline">¶</a></h3>
+<p>The <cite>log_data_to_hdf5(log_data, filename)</cite> method will create an HDF5 file with name <cite>filename</cite> for the supplied <cite>log_data</cite> bytearray. This method will automatically generate and store a raw log index for the <tt class="docutils literal"><span class="pre">log_data</span></tt>.</p>
+<p>The <cite>log_data_to_hdf5</cite> method will create an HDF5 file with a single log_data array (i.e. with log data from a single node) stored in the root group.</p>
+</div>
+<div class="section" id="reading-log-data-files">
+<h3>Reading Log Data Files<a class="headerlink" href="#reading-log-data-files" title="Permalink to this headline">¶</a></h3>
+<p>The <cite>hdf5_to_log_data(filename)</cite> method will read a <tt class="docutils literal"><span class="pre">log_data</span></tt> array from the HDF5 file named <tt class="docutils literal"><span class="pre">filename</span></tt>. The format of the returned array is identical to the bytearray retrieved from an 802.11 Reference Design node and can be used wherever the original <tt class="docutils literal"><span class="pre">log_data</span></tt> array would have been used.</p>
+<p>The <cite>hdf5_to_log_index(filename)</cite> method will read a raw log index from the HDF5 file named <tt class="docutils literal"><span class="pre">filename</span></tt>. The dictionary returned will be identical to re-generating the index from scratch (i.e. by calling <cite>log_util.gen_raw_log_index(hdf5_to_log_data(filename))</cite>). Retrieving the raw index from an HDF5 file is typically must faster than re-generating the index from the log data.</p>
+</div>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="filtered-log-indexes">
+<h2>Filtered Log Indexes<a class="headerlink" href="#filtered-log-indexes" title="Permalink to this headline">¶</a></h2>
+<p>In most cases the log data retrieved from a node will contain entries that are not required for a particular analysis. User scripts can select a subset of entry types for further processing by filtering the raw log index, then passing the log data and filtered index to downstream tools for further parsing. Filtering the log index can be much faster than filtering the log data itself, especially for multi-gigabyte log data arrays.</p>
+<p>Log index filtering is implemented in the <cite>log_util.filter_log_index</cite> method.</p>
+<p>The <cite>filter_log_index</cite> method takes a raw log index, stored as a dictionary, as input and produces a new log index, also a dictionary. The method implements two processes:</p>
+<ul class="simple">
+<li>Translation of dictionary keys</li>
+<li>Selection of a subset of entry types to include in the output dictionary</li>
+</ul>
+<div class="section" id="entry-type-translation">
+<h3>Entry Type Translation<a class="headerlink" href="#entry-type-translation" title="Permalink to this headline">¶</a></h3>
+<p>Raw log indexes use integer entry type IDs as dictionary keys. These IDs are taken directly from the log data itself, which allows index generation even if the corresponding entry types are not understood by the wlan_exp Python code. But remembering these &#8220;magic&#8221; numbers is inconvenient when building analysis scripts.</p>
+<p>The <cite>filter_log_index</cite> output dictionary uses entry type names as keys <a class="footnote-reference" href="#entry-type-names" id="id1">[1]</a>.</p>
+<p>For example, assume the following log entry type definitions:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">ENTRY_TYPE_RX_OFDM</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">ENTRY_TYPE_RX_DSSS</span> <span class="o">=</span> <span class="mi">11</span>
+<span class="n">ENTRY_TYPE_TX</span>      <span class="o">=</span> <span class="mi">20</span>
+
+<span class="n">entry_rx_ofdm</span> <span class="o">=</span> <span class="n">WlanExpLogEntryType</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;RX_OFDM&#39;</span><span class="p">,</span> <span class="n">entry_type_id</span><span class="o">=</span><span class="n">ENTRY_TYPE_RX_OFDM</span><span class="p">)</span>
+<span class="n">entry_rx_dsss</span> <span class="o">=</span> <span class="n">WlanExpLogEntryType</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;RX_DSSS&#39;</span><span class="p">,</span> <span class="n">entry_type_id</span><span class="o">=</span><span class="n">ENTRY_TYPE_RX_DSSS</span><span class="p">)</span>
+<span class="n">entry_tx</span> <span class="o">=</span> <span class="n">WlanExpLogEntryType</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;TX&#39;</span><span class="p">,</span> <span class="n">entry_type_id</span><span class="o">=</span><span class="n">ENTRY_TYPE_TX</span><span class="p">)</span>
+
+<span class="c">#Entry type fields omitted for clarity - actual field definitions are required!</span>
+</pre></div>
+</div>
+<p>And a raw log index with multiple instances of each entry type:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_raw_log_index</span>
+<span class="go">{10: [7724, 8116, 8428, 9716],</span>
+<span class="go"> 11: [3572, 4468, 6900],</span>
+<span class="go"> 20: [144, 336, 528, 720, 912, 1104, 1296, 1488]}</span>
+</pre></div>
+</div>
+<p>Using the <cite>filter_log_index</cite> method to translate the entry type keys will give:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;log_index = filter_log_index(my_raw_log_index)</span>
+<span class="go">&gt;&gt;&gt;log_index</span>
+<span class="go">{RX_OFDM: [7724, 8116, 8428, 9716],</span>
+<span class="go"> RX_DSSS: [3572, 4468, 6900],</span>
+<span class="go"> TX: [144, 336, 528, 720, 912, 1104, 1296, 1488]}</span>
+</pre></div>
+</div>
+<p>Notice that the lists of log entry locations are unchanged, only the dictionary keys have been replaced. Now this index can be accessed by entry type name:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="go">&gt;&gt;&gt;log_index[&#39;TX&#39;]</span>
+<span class="go">[144, 336, 528, 720, 912, 1104, 1296, 1488]</span>
+</pre></div>
+</div>
+<table class="docutils footnote" frame="void" id="entry-type-names" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>Technically, <cite>filter_log_index</cite> uses <em>instances</em> of the <em class="xref std std-ref">WlanExpLogEntryType</em> class as keys in its output dictionary. The <em class="xref std std-ref">WlanExpLogEntryType.__repr__</em> method returns the entry type name. The class itself overloads the <cite>__eq__</cite> and <cite>__hash__</cite> methods so an instance will &#8220;match&#8221; its name when the name is used to access a dictionary.</td></tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="entry-type-filtering">
+<h3>Entry Type Filtering<a class="headerlink" href="#entry-type-filtering" title="Permalink to this headline">¶</a></h3>
+<p>The <cite>log_util.filter_log_index</cite> method has two additional arguments which are used to construct the output dictionary:</p>
+<ul class="simple">
+<li><cite>include_only</cite>: List of entry type names to keep in output</li>
+<li><cite>exclude</cite>: List of entry type names to exclude from output</li>
+</ul>
+<p>The filter follows the a few basic rules:</p>
+<ol class="arabic simple">
+<li>If the <cite>include_only</cite> argument is present the <cite>exclude</cite> argument will be ignored</li>
+<li>Every requested output key in the include_only argument will be present in the output dictionary, even if its list of log entry locations is empty</li>
+<li>An instance of the <em class="xref std std-ref">WlanExpLogEntryType</em> class must be previously created for each entry type included in the output</li>
+</ol>
+<p>The following code snippets illustrate this include/exclude behavior:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_raw_log_index</span>
+<span class="go">{10: [7724, 8116, 8428, 9716],</span>
+<span class="go"> 11: [3572, 4468, 6900],</span>
+<span class="go"> 20: [144, 336, 528, 720, 912, 1104, 1296, 1488]}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log_index</span> <span class="o">=</span> <span class="n">filter_log_index</span><span class="p">(</span><span class="n">my_raw_log_index</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log_index</span>
+<span class="go">{RX_OFDM: [7724, 8116, 8428, 9716],</span>
+<span class="go"> RX_DSSS: [3572, 4468, 6900],</span>
+<span class="go"> TX: [144, 336, 528, 720, 912, 1104, 1296, 1488]}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log_index</span> <span class="o">=</span> <span class="n">filter_log_index</span><span class="p">(</span><span class="n">my_raw_log_index</span><span class="p">,</span> <span class="n">include_only</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;TX&#39;</span><span class="p">,</span> <span class="s">&#39;RX_OFDM&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log_index</span>
+<span class="go">{RX_OFDM: [7724, 8116, 8428, 9716],</span>
+<span class="go"> TX: [144, 336, 528, 720, 912, 1104, 1296, 1488]}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log_index</span> <span class="o">=</span> <span class="n">filter_log_index</span><span class="p">(</span><span class="n">my_raw_log_index</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;TX&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log_index</span>
+<span class="go">{RX_OFDM: [7724, 8116, 8428, 9716],</span>
+<span class="go"> RX_DSSS: [3572, 4468, 6900]}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log_index</span> <span class="o">=</span> <span class="n">filter_log_index</span><span class="p">(</span><span class="n">my_raw_log_index</span><span class="p">,</span> <span class="n">include_only</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;TX&#39;</span><span class="p">,</span> <span class="s">&#39;RX_OFDM&#39;</span><span class="p">,</span> <span class="s">&#39;NODE_INFO&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">log_index</span>
+<span class="go">{RX_OFDM: [7724, 8116, 8428, 9716],</span>
+<span class="go"> TX: [144, 336, 528, 720, 912, 1104, 1296, 1488],</span>
+<span class="go"> NODE_INFO: []}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="processing-log-data">
+<h2>Processing Log Data<a class="headerlink" href="#processing-log-data" title="Permalink to this headline">¶</a></h2>
+<p>After log data is retrieved and the log index is generated, there are many possible tool flows to parse and process the log entries. A few recommended processing flows are described below and implemented in our examples. This is not an exhaustive or static list- this list will evolve as we and our users find new ways to use data produced by the 802.11 Reference Design logging framework.</p>
+<div class="section" id="numpy-structured-arrays">
+<h3>NumPy Structured Arrays<a class="headerlink" href="#numpy-structured-arrays" title="Permalink to this headline">¶</a></h3>
+<p>The <a class="reference external" href="http://www.numpy.org/">NumPy package</a> provides many tools for processing large datasets. One very useful NumPy resource is <a class="reference external" href="http://docs.scipy.org/doc/numpy/user/basics.rec.html#structured-arrays-and-record-arrays">structured arrays</a>.</p>
+<p>The <cite>wlan_exp_log.log_util.log_data_to_np_arrays(log_data, log_index)</cite> method will process a log data array with its corresponding index and return a dictionary of NumPy structured arrays. The dictionary will have one key-value pair per log entry type in the <cite>log_index</cite> dictionary. Each dictionary value will be a NumPy structured array.</p>
+<p>The names and data types of each field for a log entry type are defined by that type&#8217;s WlanExpLogEntryType instance. The formats for log entry types implemented in the 802.11 Reference Design are defined in the <cite>wlan_exp_log.log_entries</cite> module.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Event Log Tools</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#log-data">Log Data</a></li>
+<li><a class="reference internal" href="#raw-log-index">Raw Log Index</a><ul>
+<li><a class="reference internal" href="#tools">Tools</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#archiving-log-data">Archiving Log Data</a><ul>
+<li><a class="reference internal" href="#hdf5-log-data-format">HDF5 Log Data Format</a></li>
+<li><a class="reference internal" href="#writing-log-data-files">Writing Log Data Files</a></li>
+<li><a class="reference internal" href="#reading-log-data-files">Reading Log Data Files</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#filtered-log-indexes">Filtered Log Indexes</a><ul>
+<li><a class="reference internal" href="#entry-type-translation">Entry Type Translation</a></li>
+<li><a class="reference internal" href="#entry-type-filtering">Entry Type Filtering</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#processing-log-data">Processing Log Data</a><ul>
+<li><a class="reference internal" href="#numpy-structured-arrays">NumPy Structured Arrays</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to warpnet&#8217;s documentation!</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/wlan_exp_log.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to warpnet’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">warpnet 0.9-dev documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Mango Communications, Inc..
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
