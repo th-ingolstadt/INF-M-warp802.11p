@@ -167,7 +167,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//Apply the mac_header_80211 template to the first bytes of the received MPDU
 	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
 
-	if(length<sizeof(mac_header_80211_ACK)){
+	if(length < ( sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES ) ){
 		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
 		wlan_mac_dcf_hw_unblock_rx_phy();
@@ -253,7 +253,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		wlan_mac_auto_tx_en(0);
 		wlan_mac_auto_tx_en(1);
 
-		wlan_phy_set_tx_signal(TX_PKT_BUF_ACK, tx_rate, tx_length + WLAN_PHY_FCS_NBYTES);
+		wlan_phy_set_tx_signal(TX_PKT_BUF_ACK, tx_rate, tx_length);
 
 	}
 
@@ -452,7 +452,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		}
 
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
-		wlan_phy_set_tx_signal(pkt_buf, rate, length + WLAN_PHY_FCS_NBYTES);
+		wlan_phy_set_tx_signal(pkt_buf, rate, length);
 
 		unsigned char mpdu_tx_ant_mask = 0;
 		switch(mpdu_info->params.phy.antenna_mode) {
@@ -714,7 +714,7 @@ int wlan_create_ack_frame(void* pkt_buf, u8* address_ra) {
 	ack_header->duration_id = 0;
 	memcpy(ack_header->address_ra, address_ra, 6);
 
-	return sizeof(mac_header_80211_ACK);
+	return (sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES);
 }
 
 
