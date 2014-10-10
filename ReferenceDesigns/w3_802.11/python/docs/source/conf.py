@@ -35,7 +35,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
-    'sphinxcontrib.napoleon',
+    'sphinxcontrib.napoleon'    
 ]
 
 extlinks = {'ug':
@@ -104,7 +104,8 @@ pygments_style = 'sphinx'
 # If true, keep warnings as "system message" paragraphs in the built documents.
 #keep_warnings = False
 
-autodoc_member_order = 'groupwise'
+autodoc_member_order = 'bysource'
+
 
 # -- Options for HTML output ----------------------------------------------
 
