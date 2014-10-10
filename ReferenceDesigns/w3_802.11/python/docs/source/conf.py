@@ -278,6 +278,3 @@ if os.path.exists("../doc_svn_rev.txt"):
     except:
         pass
 
-
-#new line
-
