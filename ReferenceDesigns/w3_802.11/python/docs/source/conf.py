@@ -35,7 +35,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
-    'sphinxcontrib.napoleon'    
+    'sphinxcontrib.napoleon'
 ]
 
 extlinks = {'ug':
@@ -278,4 +278,5 @@ if os.path.exists("../doc_svn_rev.txt"):
             release += f_str
     except:
         pass
+
 
