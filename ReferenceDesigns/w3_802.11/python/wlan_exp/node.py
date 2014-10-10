@@ -1,34 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Node
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
-------------------------------------------------------------------------------
-
-This module provides class definition for WLAN Exp Node.
-
-Functions (see below for more information):
-    WlanExpNode() -- Base class for WLAN Exp node
-    WlanExpNodeFactory() -- Base class for creating WLAN Exp nodes
-
-Integer constants:
-    NODE_WLAN_MAX_ASSN, NODE_WLAN_EVENT_LOG_SIZE, NODE_WLAN_MAX_STATS
-        -- Node hardware parameter constants 
-
-If additional hardware parameters are needed for sub-classes of WlanExpNode, 
-pleasemake sure that the values of these hardware parameters are not reused.
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Node
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  1/23/14  Initial release
+.. ------------------------------------------------------------------------------
 
 """
 import sys
@@ -51,6 +37,10 @@ if sys.version[0]=="3": long=None
 
 # WLAN Exp Node Parameter Identifiers (Extension of WARPNet Parameter Identifiers)
 #   NOTE:  The C counterparts are found in *_node.h
+#
+# If additional hardware parameters are needed for sub-classes of WlanExpNode, 
+# please make sure that the values of these hardware parameters are not reused.
+#
 NODE_WLAN_EXP_DESIGN_VER               = 6
 NODE_WLAN_MAC_ADDR                     = 7
 NODE_WLAN_SCHEDULER_RESOLUTION         = 8
@@ -61,42 +51,43 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     
     The WLAN experiment node represents one node in a WLAN experiment network.  
     This class is the primary interface for interacting with nodes by 
-    providing method for sending commands and checking status of nodes.
+    providing methods for sending commands and checking the status of the node.
     
-    The base WLAN experiment nodes builds off the WARPNet node and utilizes
-    the attributes of the WARPNet node.
-    
-    Attributes (inherited from WnNode):
-        node_type                      -- Unique type of the WARPNet node
-        node_id                        -- Unique identification for this node
-        name                           -- User specified name for this node (supplied by user scripts)
-        description                    -- String description of this node (auto-generated)
-        serial_number                  -- Node's serial number, read from EEPROM on hardware
-        fpga_dna                       -- Node's FPGA'a unique identification (on select hardware)
-        hw_ver                         -- WARP hardware version of this node
-        wn_ver_major                   -- WARPNet version running on this node
-        wn_ver_minor
-        wn_ver_revision
-        transport                      -- Node's transport object
-        transport_bcast                -- Node's broadcast transport object
+    Args:
+        network_config (warpnet.NetworkConfiguration): Network configuration of the node
+        mac_type (int):                                CPU Low MAC type         
 
-    Attributes (inherited from WlanDevice):
-        device_type                    -- Unique type of the Wlan Device
-        wlan_mac_address               -- Wireless MAC address of the node
 
-    New Attributes:
-        wlan_scheduler_resolution      -- Minimum resolution (in us) of the LTG
+    .. Inherited Attributes from WnNode:
+        node_type (int)                : Unique type of the WARPNet node
+        node_id (int)                  : Unique identification for this node
+        name (str)                     : User specified name for this node (supplied by user scripts)
+        description (str)              : String description of this node (auto-generated)
+        serial_number (int)            : Node's serial number, read from EEPROM on hardware
 
-        log_max_size                   -- Maximum size of event log (in bytes)
-        log_total_bytes_read           -- Number of bytes read from the event log
-        log_num_wraps                  -- Number of times the event log has wrapped
-        log_next_read_index            -- Index in to event log of next read
+        fpga_dna                       : Node's FPGA'a unique identification (on select hardware)
+        hw_ver                         : WARP hardware version of this node
+        wn_ver_major                   : WARPNet version running on this node
+        wn_ver_minor                   : WARPNet version running on this node
+        wn_ver_revision                : WARPNet version running on this node
+        transport                      : Node's transport object
+        transport_bcast                : Node's broadcast transport object
 
-        wlan_exp_ver_major             -- WLAN Exp version running on this node
-        wlan_exp_ver_minor
-        wlan_exp_ver_revision
+    .. Inherited Attributes from WlanDevice:
+        device_type                    : Unique type of the Wlan Device
+        wlan_mac_address               : Wireless MAC address of the node
 
-        mac_type                       -- Value of the MAC type (see defaults.py for values)        
+    .. Module Attributes:
+        wlan_scheduler_resolution      : Minimum resolution (in us) of the LTG
+        log_max_size                   : Maximum size of event log (in bytes)
+        log_total_bytes_read           : Number of bytes read from the event log
+        log_num_wraps                  : Number of times the event log has wrapped
+        log_next_read_index            : Index in to event log of next read
+        wlan_exp_ver_major             : WLAN Exp version running on this node
+        wlan_exp_ver_minor             : WLAN Exp version running on this node
+        wlan_exp_ver_revision          : WLAN Exp version running on this node
+        mac_type                       : Value of the MAC type (see wlan_exp.defaults for values)
+        
     """
     wlan_scheduler_resolution          = None
     
@@ -129,7 +120,17 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         
 
     def configure_node(self, jumbo_frame_support=False):
-        """Get remaining information from the node and set remaining parameters."""
+        """Communicate with the node to get remaining hardware parameters.
+        
+        This method is utilized as part of the node initialization to communicate
+        with the node to get the necessary hardware parameters and set the 
+        attributes associated with those hardware parameters.  
+        
+        Args:
+            jumbo_frame_support (bool): Does Ethernet support jumbo frames
+
+        NOTE: This method should not be called except when initializing the node.        
+        """
         # Call WarpNetNode apply_configuration method
         super(WlanExpNode, self).configure_node(jumbo_frame_support)
         
@@ -154,28 +155,30 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         not specified, then that attribute will retain the same value on
         the node.
 
-        Attributes (default state on the node is in CAPS):
-            log_enable           -- Enable the event log (TRUE/False)
-            log_warp_enable      -- Enable event log wrapping (True/FALSE)
-            log_full_payloads    -- Record full Tx/Rx payloads in event log (True/FALSE)
-            log_warpnet_commands -- Record WARPNet commands in event log (True/FALSE)        
+        Args:
+            log_enable (bool):           Enable the event log (Default value on Node: TRUE)
+            log_warp_enable (bool):      Enable event log wrapping (Default value on Node: FALSE)
+            log_full_payloads (bool):    Record full Tx/Rx payloads in event log (Default value on Node: FALSE)
+            log_warpnet_commands (bool): Record WARPNet commands in event log (Default value on Node: FALSE)        
         """
         self.send_cmd(cmds.LogConfigure(log_enable, log_wrap_enable, 
                                         log_full_payloads, log_warpnet_commands))
 
 
-    def log_get(self, size, offset=0, max_req_size=None):
+    def log_get(self, size, offset=0, max_req_size=2**23):
         """Low level method to get part of the log file as a WnBuffer.
         
-        Attributes:
-            size         -- Number of bytes to read from the log
-            offset       -- Starting byte to read from the log (optional)
-            max_req_size -- Max request size that the transport will fragment
+        Args:
+            size (int):                   Number of bytes to read from the log
+            offset (int, optional):       Starting byte to read from the log
+            max_req_size (int, optional): Max request size that the transport will fragment
                             the request into.
         
+        Returns:
+            buffer (warpnet.Buffer):  Data from the log corresponding to the input parameters
+        
         NOTE:  There is no guarentee that this will return data aligned to 
-        event boundaries.  Use log_get_start() and log_get_end() to get 
-        event aligned boundaries.
+        event boundaries.  Use llog_get_indexes() to get event aligned boundaries.
         
         NOTE:  Log reads are not destructive.  Log entries will only be
         destroyed by a log reset or if the log wraps.
@@ -199,17 +202,14 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
     def log_get_all_new(self, log_tail_pad=500, max_req_size=2**23):
         """Get all "new" entries in the log.
 
-        Attributes:
-            log_tail_pad  -- Number of bytes from the current end of the 
-                               "new" entries that will not be read during 
-                               the call.  This is to deal with the case that
-                               the node is processing the last log entry so 
-                               it contains incomplete data and should not be
-                               read.
+        Args:
+            log_tail_pad (int, optional): Number of bytes from the current end of the "new" entries 
+                that will not be read during the call.  This is to deal with the case where the node 
+                is in the process of modifying the last log entry so it my contain incomplete data 
+                and should not be read.
         
         Returns:
-           WARPNet Buffer that contains all entries since the last time the 
-             log was read.
+            buffer (warpnet.Buffer): Data from the log that contains all entries since the last time the log was read.
         """
         import wlan_exp.warpnet.message as wn_message
         
@@ -608,11 +608,14 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         
         Attributes:
             mac_header -- MAC header filter.  Values can be:
+
                             'MPDU_TO_ME' -- Pass any unicast-to-me or multicast data or 
                                             management packet
                             'ALL_MPDU'   -- Pass any data or management packet (no address filter)
                             'ALL'        -- Pass any packet (no type or address filters)
+
             FCS        -- FCS status filter.  Values can be:
+
                             'GOOD'       -- Pass only packets with good checksum result
                             'ALL'        -- Pass packets with any checksum result
         
