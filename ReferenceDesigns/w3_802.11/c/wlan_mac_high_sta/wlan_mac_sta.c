@@ -256,7 +256,7 @@ int main() {
 #endif
 
 	// Start the interrupts
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 	// Set the default active scan channels
 	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};

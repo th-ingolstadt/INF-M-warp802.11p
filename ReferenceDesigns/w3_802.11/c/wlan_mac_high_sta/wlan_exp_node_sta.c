@@ -137,6 +137,8 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
     bss_info          * temp_bss_info;
     bss_info_entry    * temp_bss_info_entry;
 
+    interrupt_state_t	prev_interrupt_state;
+
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
     
@@ -188,7 +190,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 				status = sta_disassociate();
 
 				// Re-enable interrupts
-				wlan_mac_high_interrupt_start();
+				wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 				// Set return parameters and print info to console
 				if ( status == 0 ) {
@@ -565,7 +567,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 			ssid = (char *)&cmdArgs32[6];
 
 			// Disable interrupts so no packets interrupt the associate
-			wlan_mac_high_interrupt_stop();
+			prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 			// Stop any active scans
 			wlan_mac_scan_disable();
@@ -582,7 +584,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 			}
 
 			// Re-enable interrupts
-			wlan_mac_high_interrupt_start();
+			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 			// Set return parameters and print info to console
 			if ( status == 0 ) {

@@ -157,6 +157,7 @@ void wlan_mac_sta_join(bss_info* bss_description, u32 to_sec){
 //Low-Level functions
 
 void wlan_mac_sta_return_to_idle(){
+	interrupt_state_t prev_interrupt_state;
 	switch(join_state){
 		case JOIN_IDLE:
 			//Nothing to do, we are already idle.
@@ -164,7 +165,7 @@ void wlan_mac_sta_return_to_idle(){
 		case JOIN_SEARCHING:
 			wlan_mac_scan_disable();
 			//We should kill the search_sched_id and search_kill_sched_id schedules (if they are running)
-			wlan_mac_high_interrupt_stop();
+			prev_interrupt_state = wlan_mac_high_interrupt_stop();
 			join_state = JOIN_IDLE;
 			wlan_mac_remove_schedule(SCHEDULE_COARSE, search_sched_id);
 			search_sched_id = SCHEDULE_FAILURE;
@@ -172,11 +173,11 @@ void wlan_mac_sta_return_to_idle(){
 				wlan_mac_remove_schedule(SCHEDULE_COARSE, search_kill_sched_id);
 				search_kill_sched_id = SCHEDULE_FAILURE;
 			}
-			wlan_mac_high_interrupt_start();
+			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 		break;
 		case JOIN_ATTEMPTING:
 			//We should kill the attempt_sched_id and attempt_kill_sched_id schedules (if they are running)
-			wlan_mac_high_interrupt_stop();
+			prev_interrupt_state = wlan_mac_high_interrupt_stop();
 			join_state = JOIN_IDLE;
 			wlan_mac_remove_schedule(SCHEDULE_FINE, attempt_sched_id);
 			attempt_sched_id = SCHEDULE_FAILURE;
@@ -184,7 +185,7 @@ void wlan_mac_sta_return_to_idle(){
 				wlan_mac_remove_schedule(SCHEDULE_COARSE, attempt_kill_sched_id);
 				attempt_kill_sched_id = SCHEDULE_FAILURE;
 			}
-			wlan_mac_high_interrupt_start();
+			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 		break;
 	}
 
