@@ -275,7 +275,7 @@ int main(){
 #endif
 
 	// Finally enable all interrupts to start handling wireless and wired traffic
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 #if 0
 	/////// TODO DEBUG  READ EXAMPLE ///////

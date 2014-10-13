@@ -126,6 +126,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 
 	dl_entry	* curr_entry;
 	station_info* curr_station_info;
+	interrupt_state_t prev_interrupt_state;
 
     // Note:    
     //   Response header cmd, length, and numArgs fields have already been initialized.
@@ -177,13 +178,13 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 						curr_station_info = (station_info*)(curr_entry->data);
 
 						// Disable interrupts so no packets interrupt the disassociate
-						wlan_mac_high_interrupt_stop();
+						prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 						// Deauthenticate station
 						deauthenticate_station(curr_station_info);
 
 						// Re-enable interrupts
-						wlan_mac_high_interrupt_start();
+						wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 						// Set return parameters and print info to console
 						xil_printf("Disassociated node: "); print_mac_address(mac_addr); xil_printf("\n");
@@ -196,13 +197,13 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 					}
 				} else {
 					// Disable interrupts so no packets interrupt the disassociate
-					wlan_mac_high_interrupt_stop();
+					prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 					// Deauthenticate all stations
 					deauthenticate_stations();
 
 					// Re-enable interrupts
-					wlan_mac_high_interrupt_start();
+					wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 					// Set return parameters and print info to console
 					xil_printf("Disassociated node: "); print_mac_address(mac_addr); xil_printf("\n");
@@ -361,7 +362,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			switch (msg_cmd) {
 				case CMD_PARAM_WRITE_VAL:
                     // Need to disable interrupts during this operation so the filter does not have any holes
-					wlan_mac_high_interrupt_stop();
+					prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 					// Reset the current address filter
 					wlan_mac_addr_filter_reset();
@@ -380,7 +381,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
                     	}
                     }
 
-					wlan_mac_high_interrupt_start();
+					wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 			    break;
 
 				default:
@@ -577,7 +578,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 				}
 
 				// Disable interrupts so no packets interrupt the disassociate
-				wlan_mac_high_interrupt_stop();
+				prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 				// Add association
 				curr_station_info = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
@@ -586,7 +587,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 				curr_station_info->flags = flags;
 
 				// Re-enable interrupts
-				wlan_mac_high_interrupt_start();
+				wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 				// Set return parameters and print info to console
 				if (curr_station_info != NULL) {
