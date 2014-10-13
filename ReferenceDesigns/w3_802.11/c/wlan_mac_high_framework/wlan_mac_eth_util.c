@@ -957,22 +957,21 @@ void wlan_eth_dma_update() {
 	dl_list checkout;
 	dl_entry*	tx_queue_entry;
 	u32 buf_addr;
-	u32 num_available_packet_bd;
 
 	ETH_A_RxRing_ptr = XAxiDma_GetRxRing(&ETH_A_DMA_Instance);
 	bd_count = XAxiDma_BdRingGetFreeCnt(ETH_A_RxRing_ptr);
 
-	num_available_packet_bd = queue_num_free();
-
 	//Calculate number of BD-queue pairs to attempt
-	// Minimum of:
-	//  -Number of free BDs in the ETH Rx ring
-	//  -Number of free Tx queue entries
-	u32 bd_queue_pairs_to_process = min(num_available_packet_bd, bd_count);
+	u32 bd_queue_pairs_to_process = bd_count;
 
 	if(bd_queue_pairs_to_process > 0) {
 		//Checkout free queue entries for each BD we can process
 		queue_checkout_list(&checkout, bd_queue_pairs_to_process);
+
+		//If there weren't bd_queue_pairs_to_process free queues available, the checkout list will be
+		//the number of free queues that were found. We now update bd_queue_pairs_to_process accordingly
+
+		bd_queue_pairs_to_process = min(bd_queue_pairs_to_process,checkout.length);
 
 		status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, bd_queue_pairs_to_process, &first_bd_ptr);
 		if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return;}
