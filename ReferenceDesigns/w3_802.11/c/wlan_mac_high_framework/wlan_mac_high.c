@@ -2362,7 +2362,7 @@ u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 	} else if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) {
 		llc_hdr = (llc_header*)((u8*)mpdu + sizeof(mac_header_80211));
 
-		if(length < (sizeof(mac_header_80211) + sizeof(llc_header))){
+		if(length < (sizeof(mac_header_80211) + sizeof(llc_header) + WLAN_PHY_FCS_NBYTES)){
 			// This was a DATA packet, but it wasn't long enough to have an LLC header.
 			return PKT_TYPE_DATA_OTHER;
 
