@@ -103,7 +103,8 @@ void wlan_mac_ibss_scan_and_join(char* ssid_str, u32 to_sec){
 
 
 void wlan_mac_ibss_join(bss_info* bss_description){
-	wlan_mac_high_interrupt_stop();
+	interrupt_state_t prev_interrupt_state;
+	prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 	if(bss_description != NULL){
 		switch(join_state){
@@ -118,12 +119,13 @@ void wlan_mac_ibss_join(bss_info* bss_description){
 		}
 	}
 
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 }
 
 //Low-Level functions
 
 void wlan_mac_ibss_return_to_idle(){
+	interrupt_state_t prev_interrupt_state;
     switch(join_state){
 		case JOIN_IDLE:
 		    // Nothing to do, we are already idle.
@@ -140,7 +142,7 @@ void wlan_mac_ibss_return_to_idle(){
 		    wlan_mac_scan_disable();
 
 			// We should kill the search_sched_id and search_kill_sched_id schedules (if they are running)
-			wlan_mac_high_interrupt_stop();
+		    prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 			join_state = JOIN_IDLE;
 
@@ -154,7 +156,7 @@ void wlan_mac_ibss_return_to_idle(){
 				search_kill_sched_id = SCHEDULE_FAILURE;
 			}
 
-			wlan_mac_high_interrupt_start();
+			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 		break;
 	}
 }
