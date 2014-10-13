@@ -203,8 +203,9 @@ int ltg_sched_start_all(){
 	dl_entry* curr_tg_dl_entry;
 
 	next_tg_dl_entry = tg_list.first;
+	interrupt_state_t prev_interrupt_state;
 
-	wlan_mac_high_interrupt_stop();
+	prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 	while(next_tg_dl_entry != NULL){
 		curr_tg_dl_entry = next_tg_dl_entry;
@@ -218,7 +219,7 @@ int ltg_sched_start_all(){
 		}
 	}
 
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 	return ret_val;
 }
@@ -345,10 +346,11 @@ int ltg_sched_stop(u32 id){
 int ltg_sched_stop_all(){
 	dl_entry*    next_tg_dl_entry;
 	dl_entry*    curr_tg_dl_entry;
+	interrupt_state_t prev_interrupt_state;
 
 	next_tg_dl_entry = tg_list.first;
 
-	wlan_mac_high_interrupt_stop();
+	prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 	while(next_tg_dl_entry != NULL){
 		curr_tg_dl_entry = next_tg_dl_entry;
@@ -356,7 +358,7 @@ int ltg_sched_stop_all(){
 		ltg_sched_stop_l(curr_tg_dl_entry);
 	}
 
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 	return 0;
 }
@@ -495,10 +497,11 @@ int ltg_sched_remove_all(){
 	tg_schedule* curr_tg;
 	dl_entry* 	 next_tg_dl_entry;
 	dl_entry* 	 curr_tg_dl_entry;
+	interrupt_state_t prev_interrupt_state;
 
 	next_tg_dl_entry = tg_list.first;
 
-	wlan_mac_high_interrupt_stop();
+	prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
 	//   elements from the list.
@@ -516,7 +519,7 @@ int ltg_sched_remove_all(){
 		ltg_sched_destroy_l(curr_tg_dl_entry);
 	}
 
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 	return 0;
 }

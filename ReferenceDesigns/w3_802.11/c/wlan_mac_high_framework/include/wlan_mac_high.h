@@ -22,6 +22,8 @@
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_dl_list.h"
 
+typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
+
 #define INIT_DATA_BASEADDR XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_BASEADDR   ///< Base address of memory used for storing boot data
 #define INIT_DATA_DOTDATA_IDENTIFIER	0x1234ABCD                      ///< "Magic number" used as an identifier in boot data memory
 #define INIT_DATA_DOTDATA_START (INIT_DATA_BASEADDR+0x200)              ///< Offset into memory for boot data
@@ -205,9 +207,9 @@ extern const  u8 bcast_addr[6];
 void               wlan_mac_high_init();
 void               wlan_mac_high_heap_init();
 
-int                wlan_mac_high_interrupt_init();
-inline int         wlan_mac_high_interrupt_start();
-inline void        wlan_mac_high_interrupt_stop();
+int                			wlan_mac_high_interrupt_init();
+inline int 					wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
+inline interrupt_state_t	wlan_mac_high_interrupt_stop();
 
 void               wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 void               wlan_mac_high_gpio_handler(void *InstancePtr);

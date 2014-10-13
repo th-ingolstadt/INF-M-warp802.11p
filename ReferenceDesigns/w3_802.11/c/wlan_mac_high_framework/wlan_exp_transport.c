@@ -672,6 +672,7 @@ void transport_send(int socket, wn_host_message* currMsg, pktSrcInfo* pktSrc, un
 	wn_transport_header * wn_header_tx;
 	int                   len_to_send;
 	struct sockaddr_in    sendAddr;
+	interrupt_state_t	  prev_interrupt_state;
 
 #ifdef _DEBUG_
 	xil_printf("BEGIN transport_send() \n");
@@ -723,7 +724,7 @@ void transport_send(int socket, wn_host_message* currMsg, pktSrcInfo* pktSrc, un
 #endif
 
 	// Check the interrupt status; Disable interrupts if enabled
-	wlan_mac_high_interrupt_stop();
+	prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 	// NOTE:  This command is not safe to execute when interrupts are enabled when commands can
 	//        arbitrarily send ethernet packets.  Technically, we only have to wrap the xilnet_eth_send_frame() call
@@ -732,7 +733,7 @@ void transport_send(int socket, wn_host_message* currMsg, pktSrcInfo* pktSrc, un
 	xilsock_sendto(socket, (unsigned char *)currMsg->buffer, len_to_send, (struct sockaddr *)&sendAddr, eth_dev_num);
 
 	// Restore interrupts
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 	//Restore wn_header_tx
 	memcpy(wn_header_tx, &tmp_hdr, sizeof(wn_transport_header));

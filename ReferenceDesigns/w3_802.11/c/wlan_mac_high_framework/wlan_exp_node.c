@@ -358,6 +358,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
     u32           temp, temp2, i;
     wlan_ipc_msg  ipc_msg_to_low;
+    interrupt_state_t prev_interrupt_state;
 
     // Variables for functions
     u32           msg_cmd;
@@ -1362,7 +1363,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			status = CMD_PARAM_SUCCESS;
 
 			// Disable interrupts so no packets interrupt the reset
-			wlan_mac_high_interrupt_stop();
+			prev_interrupt_state = wlan_mac_high_interrupt_stop();
 			// Configure the LOG based on the flag bits
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_LOG ) == CMD_PARAM_NODE_RESET_FLAG_LOG ) {
 				xil_printf("EVENT LOG:  Reset log\n");
@@ -1401,7 +1402,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			}
 
 			// Re-enable interrupts
-			wlan_mac_high_interrupt_start();
+			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 			// Send response of success
             respArgs32[respIndex++] = Xil_Htonl( status );
@@ -1710,9 +1711,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					ipc_msg_to_low.arg0				 = IPC_REG_WRITE_MODE;
 					ipc_msg_to_low.payload_ptr       = &(cmdArgs32[2]);
 
-					wlan_mac_high_interrupt_stop();
+					prev_interrupt_state = wlan_mac_high_interrupt_stop();
 					ipc_mailbox_write_msg(&ipc_msg_to_low);
-					wlan_mac_high_interrupt_start();
+					wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 				break;
 
 				case CMD_PARAM_READ_VAL:

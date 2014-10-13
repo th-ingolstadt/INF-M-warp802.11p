@@ -118,6 +118,9 @@ volatile static u8		   cpu_low_param_read_buffer_status;
 #define CPU_LOW_PARAM_READ_BUFFER_STATUS_READY             1
 #define CPU_LOW_PARAM_READ_BUFFER_STATUS_NOT_READY         0
 
+// Interrupt State
+static interrupt_state_t interrupt_state;
+
 // Debug GPIO State
 static u8		   debug_gpio_state;			///< Current state of debug GPIO pins
 
@@ -251,6 +254,8 @@ void wlan_mac_high_init(){
 	mpdu_tx_dequeue_callback = (function_ptr_t)nullCallback;
 
 	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
+
+	interrupt_state = INTERRUPTS_DISABLED;
 
 	num_malloc  = 0;
 	num_realloc = 0;
@@ -466,20 +471,27 @@ int wlan_mac_high_interrupt_init(){
 
 
 /**
- * @brief Start the interrupt controller
+ * @brief Restore the state of the interrupt controller
  *
  * This function starts the interrupt controller, allowing the executing code
  * to be interrupted.
  *
- * @param None
+ * @param interrupt_state_t new_interrupt_state
+ * 		- State to return interrupts. Typically, this argument is the output of a previous
+ * 		call to wlan_mac_high_interrupt_stop()
  * @return int
  *      - nonzero if error
  */
-inline int wlan_mac_high_interrupt_start(){
-	if(InterruptController.IsReady && InterruptController.IsStarted == 0){
-		return XIntc_Start(&InterruptController, XIN_REAL_MODE);
+inline int wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state){
+	interrupt_state = new_interrupt_state;
+	if(interrupt_state == INTERRUPTS_ENABLED){
+		if(InterruptController.IsReady && InterruptController.IsStarted == 0){
+			return XIntc_Start(&InterruptController, XIN_REAL_MODE);
+		} else {
+			return -1;
+		}
 	} else {
-		return -1;
+		return 0;
 	}
 }
 
@@ -492,14 +504,19 @@ inline int wlan_mac_high_interrupt_start(){
  * be used alongside wlan_mac_high_interrupt_start() to wrap code that is not interrupt-safe.
  *
  * @param None
- * @return None
+ * @return interrupt_state_t
+ * 		- INTERRUPTS_ENABLED if interrupts were enabled at the time this function was called
+ * 		- INTERRUPTS_DISABLED if interrupts were disabled at the time this function was called
  *
  * @note Interrupts that occur while the interrupt controller is off will be executed once it is
  * turned back on. They will not be "lost" as the interrupt inputs to the controller will remain
  * high.
  */
-inline void wlan_mac_high_interrupt_stop(){
+inline interrupt_state_t wlan_mac_high_interrupt_stop(){
+	interrupt_state_t curr_state = interrupt_state;
 	if(InterruptController.IsReady && InterruptController.IsStarted) XIntc_Stop(&InterruptController);
+	interrupt_state = INTERRUPTS_DISABLED;
+	return curr_state;
 }
 
 

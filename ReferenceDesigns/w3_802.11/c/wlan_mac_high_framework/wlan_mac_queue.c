@@ -102,9 +102,10 @@ void purge_queue(u16 queue_sel){
 	u32             num_queued;
 	u32			    i;
 	tx_queue_element* curr_tx_queue_element;
+	interrupt_state_t prev_interrupt_state;
 
 	// The queue purge is not interrupt safe
-	wlan_mac_high_interrupt_stop();
+	prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 	num_queued = queue_num_queued(queue_sel);
 
@@ -118,7 +119,7 @@ void purge_queue(u16 queue_sel){
 	}
 
 	// Re-enable interrupts now that we are done
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 }
 
 void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){

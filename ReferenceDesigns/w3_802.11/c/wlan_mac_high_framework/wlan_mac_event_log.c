@@ -1064,11 +1064,12 @@ void wn_transmit_log_entry(void * entry){
 	u32               entry_hdr_size;
 	entry_header    * entry_hdr;
 	wn_host_message * msg;
+	interrupt_state_t prev_interrupt_state;
 
 	// Send the log entry if
 	if ( async_pkt_enable ) {
 
-		wlan_mac_high_interrupt_stop();
+		prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 		entry_hdr_size = sizeof(entry_header);
 
@@ -1103,7 +1104,7 @@ void wn_transmit_log_entry(void * entry){
     	async_pkt_hdr.srcID = temp_id;
 #endif
 
-		wlan_mac_high_interrupt_start();
+		wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 	}
 
 #endif
