@@ -1678,7 +1678,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 				//If the packet we are about to send is a beacon, we need to tack on the TIM
 
 				if(power_save_configuration.enable){
-					txBufferPtr_u8 += packet_payload_size;
+					txBufferPtr_u8 += (packet_payload_size - WLAN_PHY_FCS_NBYTES);
 
 					tim_control = 0; //The top 7 bits are an offset for the partial map
 
@@ -1726,7 +1726,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 
 					txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
 
-					packet_payload_size = txBufferPtr_u8 - (u8*)(header);
+					packet_payload_size = (txBufferPtr_u8 - (u8*)(header)) + WLAN_PHY_FCS_NBYTES;
 					frame_info->length = packet_payload_size;
 
 					//Update DTIM fields
