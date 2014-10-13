@@ -290,6 +290,10 @@ int status_pkt_buf_rx(u8 pkt_buf_ind, u32* Locked, u32 *Owner){
 
 int ipc_mailbox_write_msg(wlan_ipc_msg* msg) {
 
+#ifdef XPAR_INTC_0_DEVICE_ID
+	interrupt_state_t prev_interrupt_state;
+#endif
+
 	//Check that msg points to a valid IPC message
 	if( ((msg->msg_id) & IPC_MBOX_MSG_ID_DELIM) != IPC_MBOX_MSG_ID_DELIM) {
 		return IPC_MBOX_INVALID_MSG;
@@ -301,7 +305,7 @@ int ipc_mailbox_write_msg(wlan_ipc_msg* msg) {
 	}
 
 #ifdef XPAR_INTC_0_DEVICE_ID
-	wlan_mac_high_interrupt_stop();
+	prev_interrupt_state = wlan_mac_high_interrupt_stop();
 #endif
 
 	//Write msg header (first 32b word)
@@ -313,7 +317,7 @@ int ipc_mailbox_write_msg(wlan_ipc_msg* msg) {
 	}
 
 #ifdef XPAR_INTC_0_DEVICE_ID
-	wlan_mac_high_interrupt_start();
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 #endif
 
 	return IPC_MBOX_SUCCESS;
