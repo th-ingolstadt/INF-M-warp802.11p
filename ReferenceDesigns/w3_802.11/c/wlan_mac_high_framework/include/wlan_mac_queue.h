@@ -55,7 +55,7 @@ void queue_checkin(tx_queue_element* tqe);
 void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe);
 tx_queue_element* dequeue_from_head(u16 queue_sel);
 
-void queue_checkout_list(dl_list* new_list, u16 num_tqe);
+int queue_checkout_list(dl_list* new_list, u16 num_tqe);
 inline u32 queue_num_free();
 inline u32 queue_num_queued(u16 queue_sel);
 

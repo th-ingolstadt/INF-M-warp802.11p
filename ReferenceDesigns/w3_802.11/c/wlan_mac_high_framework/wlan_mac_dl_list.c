@@ -89,8 +89,12 @@ void dl_entry_remove(dl_list* list, dl_entry* entry){
 }
 
 void dl_list_init(dl_list* list){
-	list->first = NULL;
-	list->last = NULL;
-	list->length = 0;
+	if(list != NULL){
+		list->first = NULL;
+		list->last = NULL;
+		list->length = 0;
+	} else {
+		xil_printf("Attemped to initialize NULL list\n");
+	}
 	return;
 }

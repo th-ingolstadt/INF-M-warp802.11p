@@ -201,14 +201,12 @@ void queue_checkin(tx_queue_element* tqe){
 	return;
 }
 
-void queue_checkout_list(dl_list* new_list, u16 num_tqe){
+int queue_checkout_list(dl_list* new_list, u16 num_tqe){
 	//Checks out up to num_packet_bd number of packet_bds from the free list. If num_packet_bd are not free,
 	//then this function will return the number that are free and only check out that many.
 
 	u32 i,num_checkout;
 	dl_entry* curr_dl_entry;
-
-	dl_list_init(new_list);
 
 	if(num_tqe <= queue_free.length){
 		num_checkout = num_tqe;
@@ -225,7 +223,7 @@ void queue_checkout_list(dl_list* new_list, u16 num_tqe){
 		//Add to new checkout list
 		dl_entry_insertEnd(new_list,curr_dl_entry);
 	}
-	return;
+	return num_checkout;
 }
 
 
