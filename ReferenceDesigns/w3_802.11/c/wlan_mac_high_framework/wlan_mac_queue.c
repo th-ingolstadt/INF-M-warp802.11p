@@ -94,10 +94,23 @@ int queue_init(){
 
 }
 
+/**
+ * @return Total number of queue entries; sum of all free and occupied entries
+ */
 int queue_total_size(){
 	return QUEUE_NUM_DL_ENTRY;
 }
 
+/**
+ * @brief Flushes the contents of the selected queue
+ *
+ * Purges all entries from the selected queue and returns them to the free pool. Packets contained
+ * in the purged entries will be dropped. This function should only be called when enqueued packets
+ * should no longer be transmitted wirelessly, such as when a node leaves a BSS.
+ *
+ * @param u16 queue_sel
+ *  -ID of the queue to purge
+ */
 void purge_queue(u16 queue_sel){
 	u32             num_queued;
 	u32			    i;
@@ -122,12 +135,24 @@ void purge_queue(u16 queue_sel){
 	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 }
 
+/**
+ * @brief Adds a queue entry to a specified queue
+ *
+ * Adds the queue entry pointed to by tqe to the queue with ID queue_sel. The calling context must ensure
+ * tqe points to a queue entry containing a packet ready for wireless transmission. If a queue with ID quele_sel
+ * does not already exist this function will create it, then add tqe to the new queue.
+ *
+ * @param u16 queue_sel
+ *  -ID of the queue to which tqe is added. A new queue with ID queue_sel will be created if it does not already exist.
+ * @param tx_queue_element* tqe
+ *  -Queue entry containing packet for transmission
+ */
 void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
 	u32 i;
 
-	dl_entry* curr_dl_entry = (dl_entry*)tqe;
-
-    if((queue_sel+1) > num_queue_tx){
+	//Create queues up to and including queue_sel if they don't already exist
+	// Queue IDs are low-valued integers, allowing for fast lookup by indexing the queue_tx array
+	if((queue_sel+1) > num_queue_tx){
     	queue_tx = wlan_mac_high_realloc(queue_tx, (queue_sel+1)*sizeof(dl_list));
 
     	if(queue_tx == NULL){
@@ -139,28 +164,36 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
     	}
 
     	num_queue_tx = queue_sel+1;
-
     }
 
-	dl_entry_insertEnd(&(queue_tx[queue_sel]),curr_dl_entry);
+	//Insert the queue entry into the dl_list representing the selected queue
+	dl_entry_insertEnd(&(queue_tx[queue_sel]), (dl_entry*)tqe);
 
 	return;
 }
 
+/**
+ * @brief Removes the head entry from the specified queue
+ *
+ * If queue_sel is not empty this function returns a tx_queue_element pointer for the head
+ * entry in the queue. If the specified queue is empty this function returns NULL.
+ *
+ * @param u16 queue_sel
+ *  -ID of the queue from which to dequeue an entry
+ * @return
+ *  -Pointer to queue entry if available, NULL if queue is empty
+ */
 tx_queue_element* dequeue_from_head(u16 queue_sel){
 	tx_queue_element* tqe;
 	dl_entry* curr_dl_entry;
 
 	if((queue_sel+1) > num_queue_tx){
-		//The calling function is asking to empty from a queue_tx element that is
-		//outside of the bounds that are currently allocated. This is not an error
-		//condition, as it can happen when an AP checks to see if any packets are
-		//ready to send to a station before any have ever been queued up for that
-		//station. In this case, we simply return the newly initialized new_list
-		//that says that no packets are currently in the queue_sel queue_tx.
+		//The specified queue does not exist; this can happen if a node has associated (has a valid AID=queue_sel)
+		// but no packet has ever been enqueued to it, as queues are created upon first insertion - see enqueue_after_tail()
 		return NULL;
 	} else {
 		if(queue_tx[queue_sel].length == 0){
+			//Requested queue exists but is empty
 			return NULL;
 		} else {
 			curr_dl_entry = (queue_tx[queue_sel].first);
@@ -171,10 +204,17 @@ tx_queue_element* dequeue_from_head(u16 queue_sel){
 	}
 }
 
+/**
+ * @return Number of queue entries in the free pool
+ */
 u32 queue_num_free(){
 	return queue_free.length;
 }
 
+/**
+ * @param u16 queue_sel ID of queue
+ * @return Number of entries in the specified queue
+ */
 u32 queue_num_queued(u16 queue_sel){
 	if((queue_sel+1) > num_queue_tx){
 		return 0;
@@ -183,6 +223,15 @@ u32 queue_num_queued(u16 queue_sel){
 	}
 }
 
+/**
+ * @brief Checks out one queue entry from the free pool
+ *
+ * The queue framework maintains a pool of free queue entries. This function removes one entry
+ * from the free pool and returns it for use by the MAC application. If the free pool is empty
+ * NULL is returned.
+ *
+ * @return New queue entry, NULL if none is available
+ */
 tx_queue_element* queue_checkout(){
 	tx_queue_element* tqe;
 
@@ -196,11 +245,36 @@ tx_queue_element* queue_checkout(){
 	}
 }
 
+/**
+ * @brief Checks out one queue entry from the free pool
+ *
+ * The queue framework maintains a pool of free queue entries. This function returns one entry
+ * to the free pool. tqe must be a valid pointer to a queue entry which the MAC application no
+ * longer needs. The application must not use the entry pointed to by tqe after calling this function.
+ *
+ * @param tx_queue_element* tqe Pointer to queue entry to be returned to free pool
+ *
+ * @return New queue entry, NULL if none is available
+ */
 void queue_checkin(tx_queue_element* tqe){
 	dl_entry_insertEnd(&queue_free,(dl_entry*)tqe);
 	return;
 }
 
+
+/**
+ * @brief Checks out multiple queue entries from the free pool
+ *
+ * The queue framework maintains a pool of free queue entries. This function attempts to check out
+ * num_tqe queue entries from the free pool. The number of queue entries successfully checked out
+ * is returned. This may be less than requested if the free pool had fewer than num_tqe entries
+ * available.
+ *
+ * @param dl_list* new_list Pointer to doubly linked list to which new queue entries are appended.
+ * @param u16 num_tqe Number of queue entries requested
+ *
+ * @return Number of queue entries successfully checked out and appended to new_list
+ */
 int queue_checkout_list(dl_list* new_list, u16 num_tqe){
 	//Checks out up to num_packet_bd number of packet_bds from the free list. If num_packet_bd are not free,
 	//then this function will return the number that are free and only check out that many.
@@ -228,6 +302,24 @@ int queue_checkout_list(dl_list* new_list, u16 num_tqe){
 
 
 
+/**
+ * @brief Dequeues one packet and submits it the lower MAC for wireless transmission
+ *
+ * This function is the link between the Tx queue framework and the lower-level MAC. The calling
+ * function has determined the next wireless transmission should come from the queue with ID queue_sel.
+ * This function attempts to checkout 1 packet from that queue. If a packet is available it is
+ * passed to wlan_mac_high_mpdu_transmit(), which handles the actual copy-to-pkt-buf and Tx process.
+ *
+ * When a packet is successfully de-queued and submitted for transmission the corresponding queue entry
+ * (tx_queue_element) is returned to the free pool.
+ *
+ * This function returns 0 if no packets are available in the requested queue or if the MAC state machine
+ * is not ready to submit a new packet to the lower MAC for transmission.
+ *
+ * @param u16 queue_sel Queue ID from which to dequeue packet
+ *
+ * @return Number of successfully transmitted packets (0 or 1)
+ */
 inline int dequeue_transmit_checkin(u16 queue_sel){
 	int return_value = 0;
 
