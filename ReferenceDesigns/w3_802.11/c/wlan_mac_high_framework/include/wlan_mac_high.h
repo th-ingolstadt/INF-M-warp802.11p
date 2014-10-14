@@ -108,7 +108,7 @@ typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 typedef struct{
 	u64     last_timestamp; ///< Timestamp of the last frame reception
 	u16     last_seq;       ///< Sequence number of the last MPDU reception
-	char    last_power;     ///< Power of last frame reception (in dBm)
+	s8      last_power;     ///< Power of last frame reception (in dBm)
 	u8      last_rate;      ///< Rate of last MPDU reception
 } rx_info;
 
