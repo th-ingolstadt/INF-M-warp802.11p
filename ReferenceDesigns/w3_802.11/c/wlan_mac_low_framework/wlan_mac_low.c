@@ -481,12 +481,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			//TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
 
 
-			ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_ACCEPT);
-			ipc_msg_to_high.num_payload_words = 0;
-			ipc_msg_to_high.arg0 = tx_pkt_buf;
-			ipc_mailbox_write_msg(&ipc_msg_to_high);
-
-
 			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 				warp_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
 
@@ -606,8 +600,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				}
 
 				//Revert the state of the packet buffer and return control to CPU High
-				tx_mpdu->state = TX_MPDU_STATE_EMPTY;
-
 				if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 					warp_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
 					wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
