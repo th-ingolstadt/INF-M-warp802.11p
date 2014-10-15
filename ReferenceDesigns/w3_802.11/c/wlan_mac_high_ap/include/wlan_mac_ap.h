@@ -39,7 +39,7 @@
 // Common Defines
 #define MAX_NUM_TX            7   ///max number of wireless Tx for any MPDU (= max_num_retransmissions + 1)
 #define MAX_TX_QUEUE_LEN	  150 ///max number of entries in any Tx queue
-#define MAX_NUM_ASSOC		  11  ///max number of associations the AP will attempt
+#define MAX_NUM_ASSOC		  10  ///max number of associations the AP will allow
 
 #define MCAST_QID 0
 #define MANAGEMENT_QID 1
@@ -101,6 +101,7 @@ void enable_associations();
 void disable_associations();
 void association_timestamp_check();
 
+void reset_all_associations();
 void reset_station_statistics();
 void reset_bss_info();
 

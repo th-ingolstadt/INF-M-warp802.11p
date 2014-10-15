@@ -382,7 +382,7 @@ void print_station_status(){
 			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->AID,
 					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 
-			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx.last_timestamp)))/1000);
+			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->latest_activity_timestamp)))/1000);
 			xil_printf("     - Last Rx Power:          %d dBm\n",curr_station_info->rx.last_power);
 			xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
 			xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_station_info->stats->data.tx_num_packets_total, curr_station_info->stats->data.tx_num_packets_success);
@@ -422,7 +422,7 @@ void print_all_observed_statistics(){
 
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_statistics->addr[0],curr_statistics->addr[1],curr_statistics->addr[2],curr_statistics->addr[3],curr_statistics->addr[4],curr_statistics->addr[5]);
-		xil_printf("     - Last timestamp:         %d usec\n", (u32)curr_statistics->last_rx_timestamp);
+		xil_printf("     - Last timestamp:         %d usec\n", (u32)curr_statistics->latest_txrx_timestamp);
 		xil_printf("     - Associated?             %d\n", curr_statistics->is_associated);
 		xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_statistics->data.tx_num_packets_total, curr_statistics->data.tx_num_packets_success);
 		xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_statistics->data.tx_num_bytes_total), (u32)(curr_statistics->data.tx_num_bytes_success));

@@ -549,7 +549,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
             // Set default value for the flags
             flags             = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 
-			if( my_bss_info->associated_stations.length < MAX_NUM_ASSOC ) {
+			if( my_bss_info->associated_stations.length < wlan_mac_high_get_max_associations() ) {
 
 				// Get MAC Address
 				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2], &mac_addr[0]);
