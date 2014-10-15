@@ -58,8 +58,6 @@ extern int __stack;	 	 ///< End of the stack
 
 
 // Variables implemented in child classes (ie AP, STA, etc)
-extern const u8  max_num_associations;
-
 extern tx_params default_unicast_mgmt_tx_params;
 extern tx_params default_unicast_data_tx_params;
 extern tx_params default_multicast_mgmt_tx_params;
@@ -70,14 +68,17 @@ extern tx_params default_multicast_data_tx_params;
 /*************************** Variable Definitions ****************************/
 
 // Constants
-const  u8 bcast_addr[6]      = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+const  u8          bcast_addr[6]        = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+// Associations
+static u32         max_num_associations = WLAN_MAC_HIGH_MAX_ASSOCIATONS;
 
 // HW structures
-static XGpio       Gpio_timestamp;			///< GPIO instance used for 64-bit usec timestamp
-static XGpio       Gpio;					///< General-purpose GPIO instance
-XIntc       	   InterruptController;		///< Interrupt Controller instance
-XUartLite          UartLite;				///< UART Device instance
-XAxiCdma           cdma_inst;				///< Central DMA instance
+static XGpio       Gpio_timestamp;			 ///< GPIO instance used for 64-bit usec timestamp
+static XGpio       Gpio;					 ///< General-purpose GPIO instance
+XIntc       	   InterruptController;		 ///< Interrupt Controller instance
+XUartLite          UartLite;				 ///< UART Device instance
+XAxiCdma           cdma_inst;				 ///< Central DMA instance
 
 // UART interface
 u8                 uart_rx_buffer[UART_BUFFER_SIZE];	///< Buffer for received byte from UART
@@ -93,12 +94,12 @@ function_ptr_t     tx_poll_callback; 		 ///< User callback when higher-level fra
 function_ptr_t	   mpdu_tx_dequeue_callback; ///< User callback for higher-level framework dequeuing a packet
 
 // Node information
-wlan_mac_hw_info   	hw_info;				///< Information about hardware
-volatile u8			dram_present;			///< Indication variable for whether DRAM SODIMM is present on this hardware
+wlan_mac_hw_info   	hw_info;				 ///< Information about hardware
+volatile u8			dram_present;			 ///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 // Status information
-volatile static u32         cpu_low_status;			///< Tracking variable for lower-level CPU status
-volatile static u32         cpu_high_status;		///< Tracking variable for upper-level CPU status
+volatile static u32         cpu_low_status;  ///< Tracking variable for lower-level CPU status
+volatile static u32         cpu_high_status; ///< Tracking variable for upper-level CPU status
 
 // CPU Low Register Read Buffer
 volatile static u32*	   cpu_low_reg_read_buffer;
@@ -120,11 +121,6 @@ static interrupt_state_t interrupt_state;
 
 // Debug GPIO State
 static u8		   debug_gpio_state;			///< Current state of debug GPIO pins
-
-// WARPNet information
-#ifdef USE_WARPNET_WLAN_EXP
-u8                 warpnet_initialized;		///< Indication variable for whether WARPnet has been initialized
-#endif
 
 // IPC variables
 wlan_ipc_msg       ipc_msg_from_low;							///< IPC message from lower-level
@@ -365,12 +361,6 @@ void wlan_mac_high_init(){
 	}
 
 	bss_info_init();
-
-#ifdef USE_WARPNET_WLAN_EXP
-	// Communicate the log size to WARPNet
-	warpnet_initialized = 0;
-#endif
-
 	wlan_fmc_pkt_init();
 	wlan_eth_init();
 	wlan_mac_schedule_init();
@@ -1527,7 +1517,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	unique_seq++;
 
 	switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
-		case QUEUE_METADATA_TYPE_IGNORE:
+	    case QUEUE_METADATA_TYPE_IGNORE:
 		break;
 
 		case QUEUE_METADATA_TYPE_STATION_INFO:
@@ -1567,8 +1557,7 @@ inline u64 wlan_mac_high_get_unique_seq(){
 /**
  * @brief Retrieve Hardware Information
  *
- * This function stops the interrupt controller, effectively pausing interrupts. This can
- * be used alongside wlan_mac_high_interrupt_start() to wrap code that is not interrupt-safe.
+ * This function returns the node hardware information structure maintained by CPU High.
  *
  * @param None
  * @return wlan_mac_hw_info*
@@ -1819,25 +1808,17 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 			// CPU low is passing up node hardware information that is only accessible by CPU low
 			//
 			temp_1 = hw_info.type;
-			temp_2 = hw_info.wn_exp_eth_device;
+			temp_2 = hw_info.wn_eth_device;
 
 			// CPU Low updated the node's HW information
             //     NOTE:  this information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
 			memcpy((void*) &hw_info, (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
 
-			hw_info.type              = hw_info.type + temp_1;       // Add type info from CPU low
-			hw_info.wn_exp_eth_device = temp_2;
+			// Add type info from CPU low
+			hw_info.type          = (hw_info.type & WARPNET_TYPE_80211_CPU_LOW_MASK) + (temp_1 & ~WARPNET_TYPE_80211_CPU_LOW_MASK);
 
-#ifdef USE_WARPNET_WLAN_EXP
-        	// Initialize WLAN Exp if it is being used
-            if ( warpnet_initialized == 0 ) {
-            	node_info_set_wlan_hw_addr(&(hw_info.hw_addr_wlan[0]));
-
-                wlan_exp_node_init( hw_info.type, hw_info.serial_number, hw_info.fpga_dna, hw_info.wn_exp_eth_device, hw_info.hw_addr_wn );
-
-                warpnet_initialized = 1;
-            }
-#endif
+			// Override value from CPU for Ethernet device
+			hw_info.wn_eth_device = temp_2;
 		break;
 
 
@@ -2293,6 +2274,8 @@ int wlan_mac_high_is_cpu_low_initialized(){
 	return ( (cpu_low_status & CPU_STATUS_INITIALIZED) != 0 );
 }
 
+
+
 /**
  * @brief Check that CPU low is ready to transmit
  *
@@ -2734,6 +2717,7 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 				wlan_mac_high_free(station->stats);
 			}
 
+			wlan_mac_high_free(entry);
 			wlan_mac_high_free(station);
 			wlan_mac_high_print_associations(assoc_tbl);
 		} else {
@@ -2778,6 +2762,45 @@ u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station)
 	}
 
 	return 0;
+}
+
+
+
+/**
+ * @brief Set the maximum number of associations
+ *
+ * Function will set the maximum number of associations allowed on the node.
+ *
+ * @param  u32 num_associations
+ *     - Number of associations (must be less than WLAN_MAC_HIGH_MAX_ASSOCIATONS)
+ * @return u32
+ *     - Maximum number of associations
+ */
+u32 wlan_mac_high_set_max_associations(u32 num_associations) {
+
+	if (num_associations < WLAN_MAC_HIGH_MAX_ASSOCIATONS) {
+		max_num_associations = num_associations;
+	} else {
+		max_num_associations = WLAN_MAC_HIGH_MAX_ASSOCIATONS;
+	}
+
+	xil_printf("Max Associations: %d\n", max_num_associations);
+
+    return max_num_associations;
+}
+
+
+
+/**
+ * @brief Get the maximum number of associations
+ *
+ * Function will get the maximum number of associations allowed on the node.
+ *
+ * @return u32
+ *     - Maximum number of associations
+ */
+u32 wlan_mac_high_get_max_associations() {
+    return max_num_associations;
 }
 
 
@@ -2856,7 +2879,7 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 		// In a busy environment, this promiscuous statistics gathering can be disabled by commenting
 		// out the ALLOW_PROMISC_STATISTICS or disabled via the WLAN Exp framework.
 
-		if(stat_tbl->length >= MAX_NUM_PROMISC_STATS){
+		if(stat_tbl->length >= WLAN_MAC_HIGH_MAX_PROMISC_STATS){
 			// There are too many statistics being tracked. We'll get rid of the oldest that isn't currently associated.
 			curr_statistics_entry = stat_tbl->first;
 
@@ -2868,7 +2891,7 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 						oldest_statistics_entry = curr_statistics_entry;
 						oldest_statistics = (statistics_txrx*)(oldest_statistics_entry->data);
 					}
-				} else if(( (curr_statistics->last_rx_timestamp) < (oldest_statistics->last_rx_timestamp)) ){
+				} else if(( (curr_statistics->latest_txrx_timestamp) < (oldest_statistics->latest_txrx_timestamp)) ){
 					if(curr_statistics->is_associated == 0){
 						oldest_statistics_entry = curr_statistics_entry;
 						oldest_statistics = (statistics_txrx*)(oldest_statistics_entry->data);
@@ -2878,8 +2901,9 @@ statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* s
 			}
 
 			if(oldest_statistics_entry == NULL){
-				xil_printf("Error: could not find deletable oldest statistics. Ensure that MAX_NUM_PROMISC_STATS > MAX_NUM_ASSOC\n");
-				xil_printf("if allowing promiscuous statistics\n");
+				xil_printf("ERROR: Could not find deletable oldest statistics.\n");
+				xil_printf("    Ensure that WLAN_MAC_HIGH_MAX_PROMISC_STATS > max_associations\n");
+				xil_printf("    if allowing promiscuous statistics\n");
 			} else {
 				dl_entry_remove(stat_tbl, oldest_statistics_entry);
 				wlan_mac_high_free(oldest_statistics_entry);

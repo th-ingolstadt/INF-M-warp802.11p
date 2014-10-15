@@ -76,7 +76,6 @@ extern tx_params           default_multicast_mgmt_tx_params;
 extern tx_params           default_multicast_data_tx_params;
 
 
-
 /*************************** Functions Prototypes ****************************/
 
 void node_init_system_monitor(void);
@@ -100,34 +99,29 @@ void print_wn_parameters( wn_tag_parameter *param, int num_params );
 
 
 // WARPNet buffer functions
-u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
+u32        node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32,
+		                     wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
 	                         dl_list * source_list, u32 dest_size,
 	                         dl_entry * (*find_source_entry)(u8 *),
 	                         void (*copy_source_to_dest)(void *, void *, u64),
 	                         void (*zero_dest)(void *));
 
 dl_entry * find_station_info_entry(u8 * mac_addr);
-void zero_station_info_entry(void * dest);
-void copy_station_info_to_dest_entry(void * source, void * dest, u64 time);
+void       zero_station_info_entry(void * dest);
+void       copy_station_info_to_dest_entry(void * source, void * dest, u64 time);
 
 dl_entry * find_statistics_txrx_entry(u8 * mac_addr);
-void zero_txrx_stats_entry(void * dest);
-void copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time);
+void       zero_txrx_stats_entry(void * dest);
+void       copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time);
 
-void zero_bss_info_entry(void * dest);
-void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time);
-
-
-// Functions implemented in AP / STA / IBSS
-void reset_station_statistics();
-void purge_all_data_tx_queue();
-void reset_all_associations();
-void reset_bss_info();
+void       zero_bss_info_entry(void * dest);
+void       copy_bss_info_to_dest_entry(void * source, void * dest, u64 time);
 
 
-// Callback function declarations
-int wlan_exp_null_init_callback(void* param);
-int wlan_exp_null_process_callback(unsigned int cmdID, void* param);
+// Null callback function declarations
+int        wlan_exp_null_callback();
+int        wlan_exp_null_init_callback(void* param);
+int        wlan_exp_null_process_callback(unsigned int cmdID, void* param);
 
 
 
@@ -136,8 +130,13 @@ int wlan_exp_null_process_callback(unsigned int cmdID, void* param);
 wn_node_info          node_info;
 wn_tag_parameter      node_parameters[NODE_MAX_PARAMETER];
 
-wn_function_ptr_t     wlan_exp_init_callback     = (wn_function_ptr_t)wlan_exp_null_init_callback;
-wn_function_ptr_t     wlan_exp_process_callback  = (wn_function_ptr_t)wlan_exp_null_process_callback;
+wn_function_ptr_t     wlan_exp_init_callback                     = (wn_function_ptr_t)wlan_exp_null_init_callback;
+wn_function_ptr_t     wlan_exp_process_callback                  = (wn_function_ptr_t)wlan_exp_null_process_callback;
+wn_function_ptr_t     wlan_exp_reset_station_statistics_callback = (wn_function_ptr_t)wlan_exp_null_callback;
+wn_function_ptr_t     wlan_exp_purge_all_data_tx_queue_callback  = (wn_function_ptr_t)wlan_exp_null_callback;
+wn_function_ptr_t     wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
+wn_function_ptr_t     wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
+
 extern function_ptr_t check_queue_callback;
 
 u32                   async_pkt_enable;
@@ -168,15 +167,21 @@ u32                   wlan_exp_enable_logging = 0;
 * @note		None.
 *
 ******************************************************************************/
-int wlan_exp_null_process_callback(unsigned int cmdID, void* param){
-	xil_printf("Unknown node command: %d\n", cmdID);
-	return NO_RESP_SENT;
+int wlan_exp_null_callback(void* param){
+	xil_printf("  WLAN Exp NULL Callback\n");
+	return SUCCESS;
 };
 
 
 int wlan_exp_null_init_callback(void* param){
 	xil_printf("  No type specific initialization\n");
 	return SUCCESS;
+};
+
+
+int wlan_exp_null_process_callback(unsigned int cmdID, void* param){
+	xil_printf("Unknown node command: %d\n", cmdID);
+	return NO_RESP_SENT;
 };
 
 
@@ -1372,7 +1377,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS ) == CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS ) {
 				xil_printf("Reseting Statistics\n");
-				reset_station_statistics();
+				wlan_exp_reset_station_statistics_callback();
 			}
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_LTG ) == CMD_PARAM_NODE_RESET_FLAG_LTG ) {
@@ -1388,17 +1393,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE ) == CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE ) {
 				xil_printf("Purging All Data Transmit Queues\n");
-				purge_all_data_tx_queue();
+				wlan_exp_purge_all_data_tx_queue_callback();
 			}
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS ) == CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS ) {
 				xil_printf("Resetting Associations\n");
-				reset_all_associations();
+				wlan_exp_reset_all_associations_callback();
 			}
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO ) == CMD_PARAM_NODE_RESET_FLAG_BSS_INFO ) {
 				xil_printf("Resetting BSS info\n");
-				reset_bss_info();
+				wlan_exp_reset_bss_info_callback();
 			}
 
 			// Re-enable interrupts
@@ -2156,7 +2161,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 		case CMDID_QUEUE_TX_DATA_PURGE_ALL:
 			xil_printf("Purging All Data Transmit Queues\n");
 
-			purge_all_data_tx_queue();
+			wlan_exp_purge_all_data_tx_queue_callback();
 		break;
 
 
@@ -2419,15 +2424,28 @@ u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHd
 
     // Initialize return values
     respArgs32[0] = cmdArgs32[0];
-    respArgs32[1] = 0;
+    respArgs32[1] = cmdArgs32[1];
 	respArgs32[2] = 0;
 	respArgs32[3] = 0;
 	respArgs32[4] = 0;
 
     if ( id == WLAN_EXP_AID_NONE ) {
-		// If we cannot find the MAC address, print a warning and return an empty buffer
-		xil_printf("WARNING:  Could not find specified node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+    	if ((Xil_Ntohl(cmdArgs32[1]) & CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE) == CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE) {
 
+    		// Copy routine will fill in a zeroed entry if the source is NULL
+			copy_source_to_dest(NULL, &respArgs32[respIndex], get_usec_timestamp());
+
+			xil_printf("Returning zeroed entry for node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+
+			// Set the return args and increment the size
+			respArgs32[2]    = Xil_Htonl( dest_size );
+			respArgs32[3]    = 0;
+			respArgs32[4]    = Xil_Htonl( dest_size );
+			respHdr->length += dest_size;
+    	} else {
+    		// If we cannot find the MAC address, print a warning and return an empty buffer
+    		xil_printf("WARNING:  Could not find specified node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+    	}
     } else {
 		// If parameter is not the magic number to return all structures
 		if ( id != WLAN_EXP_AID_ALL ) {
@@ -2599,11 +2617,28 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u64 time) {
 	// Set the timestamp for the station_info entry
 	curr_dest->timestamp = time;
 
+	// Fill in zeroed entry if source is NULL
+	if (source == NULL) {
+		curr_source = wlan_mac_high_malloc(sizeof(station_info));
+
+		if (curr_source != NULL) {
+			bzero(curr_source, sizeof(station_info));
+		}
+	}
+
 	// Copy the source information to the destination log entry
 	//   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
 	//          similar to the source information structure in wlan_mac_high.h
-	memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(station_info_base) );
+	if (curr_source != NULL) {
+		memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(station_info_base) );
+	} else {
+		xil_printf("WARNING:  Could not copy station_info to entry\n");
+	}
 
+	// Free curr_source if source was NULL
+	if (source == NULL) {
+		wlan_mac_high_free(curr_source);
+	}
 }
 
 
@@ -2622,24 +2657,44 @@ void zero_txrx_stats_entry(void * dest) {
 
 	txrx_stats_entry * curr_entry = (txrx_stats_entry *)(dest);
 
-	bzero((void *)(&curr_entry->stats), sizeof(statistics_txrx));
+	bzero((void *)(&curr_entry->stats), sizeof(statistics_txrx_base));
 }
 
 
 
 void copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time) {
 
-	statistics_txrx    * curr_source = (statistics_txrx *)(source);
-	txrx_stats_entry   * curr_dest   = (txrx_stats_entry *)(dest);
+	statistics_txrx    * curr_source   = (statistics_txrx *)(source);
+	txrx_stats_entry   * curr_dest     = (txrx_stats_entry *)(dest);
 
 	// Set the timestamp for the station_info entry
 	curr_dest->timestamp = time;
 
+	// Fill in zeroed entry if source is NULL
+	//   - All fields are zero except last_txrx_timestamp which is CMD_PARAM_NODE_TIME_RSVD_VAL_64
+	if (source == NULL) {
+		curr_source = wlan_mac_high_malloc(sizeof(statistics_txrx));
+
+		if (curr_source != NULL) {
+			bzero(curr_source, sizeof(statistics_txrx));
+
+			curr_source->latest_txrx_timestamp = CMD_PARAM_NODE_TIME_RSVD_VAL_64;
+		}
+	}
+
 	// Copy the source information to the destination log entry
 	//   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
 	//          similar to the source information structure in wlan_mac_high.h
-	memcpy( (void *)(&curr_dest->stats), (void *)(curr_source), sizeof(statistics_txrx) );
+	if (curr_source != NULL) {
+		memcpy( (void *)(&curr_dest->stats), (void *)(curr_source), sizeof(statistics_txrx_base) );
+	} else {
+		xil_printf("WARNING:  Could not copy statistics_txrx to entry\n");
+	}
 
+	// Free curr_source if source was NULL
+	if (source == NULL) {
+		wlan_mac_high_free(curr_source);
+	}
 }
 
 
@@ -2660,11 +2715,28 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time) {
 	// Set the timestamp for the station_info entry
 	curr_dest->timestamp = time;
 
+	// Fill in zeroed entry if source is NULL
+	if (source == NULL) {
+		curr_source = wlan_mac_high_malloc(sizeof(bss_info));
+
+		if (curr_source != NULL) {
+			bzero(curr_source, sizeof(bss_info));
+		}
+	}
+
 	// Copy the source information to the destination log entry
 	//   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
 	//          similar to the source information structure in wlan_mac_high.h
-	memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(bss_info_base) );
+	if (curr_source != NULL) {
+		memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(bss_info_base) );
+	} else {
+		xil_printf("WARNING:  Could not copy bss_info to entry\n");
+	}
 
+	// Free curr_source if source was NULL
+	if (source == NULL) {
+		wlan_mac_high_free(curr_source);
+	}
 }
 
 
@@ -2683,7 +2755,7 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time) {
 * @note		This function will print to the terminal but is not able to control any of the LEDs
 *
 ******************************************************************************/
-int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr ) {
+int wlan_exp_node_init(u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr, u8 *wlan_hw_addr) {
 
     int i;
 	int status = SUCCESS;
@@ -2728,6 +2800,7 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
     node_info.unicast_port    = NODE_UDP_UNICAST_PORT_BASE;
     node_info.broadcast_port  = NODE_UDP_MCAST_BASE;
 
+    node_info_set_wlan_hw_addr(wlan_hw_addr);
 
     // Initialize the System Monitor
     node_init_system_monitor();
@@ -2807,13 +2880,33 @@ int wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_
 * @note     None.
 *
 ******************************************************************************/
+void wlan_exp_set_init_callback(void(*callback)()){
+	wlan_exp_init_callback = (wn_function_ptr_t)callback;
+}
+
+
 void wlan_exp_set_process_callback(void(*callback)()){
 	wlan_exp_process_callback = (wn_function_ptr_t)callback;
 }
 
 
-void wlan_exp_set_init_callback(void(*callback)()){
-	wlan_exp_init_callback = (wn_function_ptr_t)callback;
+void wlan_exp_set_reset_station_statistics_callback(void(*callback)()){
+	wlan_exp_reset_station_statistics_callback = (wn_function_ptr_t)callback;
+}
+
+
+void wlan_exp_set_purge_all_data_tx_queue_callback(void(*callback)()){
+	wlan_exp_purge_all_data_tx_queue_callback = (wn_function_ptr_t)callback;
+}
+
+
+void wlan_exp_set_reset_all_associations_callback(void(*callback)()){
+	wlan_exp_reset_all_associations_callback = (wn_function_ptr_t)callback;
+}
+
+
+void wlan_exp_set_reset_bss_info_callback(void(*callback)()){
+	wlan_exp_reset_bss_info_callback = (wn_function_ptr_t)callback;
 }
 
 

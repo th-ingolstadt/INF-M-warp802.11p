@@ -91,6 +91,7 @@
 
 #define CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL                 0x00000002
 #define CMD_PARAM_NODE_TIME_RSVD_VAL                       0xFFFFFFFF
+#define CMD_PARAM_NODE_TIME_RSVD_VAL_64                    0xFFFFFFFFFFFFFFFF
 
 #define CMD_PARAM_RSVD_CHANNEL                             0x00000000
 #define CMD_PARAM_RSVD_MAC_ADDR                            0xFFFFFFFF
@@ -145,6 +146,7 @@
 #define CMDID_STATS_GET_TXRX                               0x004001
 
 #define CMD_PARAM_STATS_CONFIG_FLAG_PROMISC                0x00000001
+#define CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE              0x80000000
 
 
 //-----------------------------------------------
@@ -248,10 +250,15 @@ typedef struct {
 
 // WLAN Exp node commands
 //
-int  wlan_exp_node_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr );
+int  wlan_exp_node_init(u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr, u8 *wlan_hw_addr);
 
 void wlan_exp_set_process_callback(void(*callback)());
 void wlan_exp_set_init_callback(void(*callback)());
+void wlan_exp_set_reset_station_statistics_callback(void(*callback)());
+void wlan_exp_set_purge_all_data_tx_queue_callback(void(*callback)());
+void wlan_exp_set_reset_all_associations_callback(void(*callback)());
+void wlan_exp_set_reset_bss_info_callback(void(*callback)());
+
 int  node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network);
 int  node_get_parameter_values(u32 * buffer, unsigned int max_words);
 

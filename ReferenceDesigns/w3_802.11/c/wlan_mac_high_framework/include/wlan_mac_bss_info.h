@@ -31,7 +31,7 @@
         u8         bssid[6];                          /* BSS ID - 40 bit HW address */                  \
         u8         chan;                              /* Channel */                                     \
         u8         flags;                             /* BSS Flags - Each flag is 1 bit */              \
-        u64        timestamp;                         /* Timestamp - Last interaction with BSS */       \
+        u64        latest_activity_timestamp;         /* Timestamp - Last interaction with BSS */       \
         char       ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
         u8         state;                             /* State of the BSS */                            \
         u16        capabilities;                      /* Supported capabilities */                      \

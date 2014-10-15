@@ -1181,7 +1181,7 @@ u32 add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit){
 
 	txrx_stats_entry * entry;
 	u32                entry_size = sizeof(txrx_stats_entry);
-	u32                stats_size = sizeof(statistics_txrx);
+	u32                stats_size = sizeof(statistics_txrx_base);
 
 	// Check to see if we have valid statistics
 	if (stats == NULL) { return FAILURE; }

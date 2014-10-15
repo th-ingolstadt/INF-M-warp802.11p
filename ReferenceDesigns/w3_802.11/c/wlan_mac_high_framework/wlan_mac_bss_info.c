@@ -213,7 +213,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
 				}
 
-				curr_bss_info->timestamp = get_usec_timestamp();
+				curr_bss_info->latest_activity_timestamp = get_usec_timestamp();
 				dl_entry_insertEnd(&bss_info_list,curr_dl_entry);
 
 			break;
@@ -256,7 +256,7 @@ void print_bss_info(){
 
 		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", curr_bss_info->bssid[0],curr_bss_info->bssid[1],curr_bss_info->bssid[2],curr_bss_info->bssid[3],curr_bss_info->bssid[4],curr_bss_info->bssid[5]);
 		xil_printf("    Channel:       %d\n",curr_bss_info->chan);
-		xil_printf("    Last update:   %d msec ago\n", (u32)((get_usec_timestamp()-curr_bss_info->timestamp)/1000));
+		xil_printf("    Last update:   %d msec ago\n", (u32)((get_usec_timestamp()-curr_bss_info->latest_activity_timestamp)/1000));
 		xil_printf("    Basic Rates:   ");
 
 		for(j = 0; j < (curr_bss_info->num_basic_rates); j++ ){
@@ -280,7 +280,7 @@ void bss_info_timestamp_check(){
 	while(curr_dl_entry != NULL){
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
-		if((get_usec_timestamp() - curr_bss_info->timestamp) > BSS_INFO_TIMEOUT_USEC){
+		if((get_usec_timestamp() - curr_bss_info->latest_activity_timestamp) > BSS_INFO_TIMEOUT_USEC){
 			// We won't remove this BSS info if we are associated with it or if we are trying to associate with it.
 			if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
 				wlan_mac_high_clear_bss_info(curr_bss_info);
@@ -422,9 +422,9 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 
 	// Update the fields of the BSS Info
 	strcpy(curr_bss_info->ssid,ssid);
-	curr_bss_info->chan      = chan;
-	curr_bss_info->timestamp = get_usec_timestamp();
-    curr_bss_info->state     = BSS_STATE_UNAUTHENTICATED;
+	curr_bss_info->chan                      = chan;
+	curr_bss_info->latest_activity_timestamp = get_usec_timestamp();
+    curr_bss_info->state                     = BSS_STATE_UNAUTHENTICATED;
 
 	dl_entry_insertEnd(&bss_info_list, curr_dl_entry);
 

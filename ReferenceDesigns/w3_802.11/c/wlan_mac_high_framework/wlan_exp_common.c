@@ -33,13 +33,11 @@
 
 #include "wlan_mac_high.h"
 
-wlan_mac_hw_info* hw_info_ptr;
+void wlan_exp_configure(u32 type, u32 type_mask, u32 eth_dev_num){
+	wlan_mac_hw_info* hw_info_ptr = wlan_mac_high_get_hw_info();
 
-void wlan_exp_configure(u32 type, u32 eth_dev_num){
-	hw_info_ptr = wlan_mac_high_get_hw_info();
-
-	hw_info_ptr->type              = type;
-	hw_info_ptr->wn_exp_eth_device = eth_dev_num;
+	hw_info_ptr->type          = (type & type_mask) + (hw_info_ptr->type & ~type_mask);
+	hw_info_ptr->wn_eth_device = eth_dev_num;
 
 }
 

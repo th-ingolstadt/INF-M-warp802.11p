@@ -244,8 +244,8 @@ typedef struct{
 //     in wlan_mac_event_log.*
 //
 typedef struct{
-    u64                 timestamp;               // Timestamp of the log entry
-	statistics_txrx     stats;                   // Framework's statistics struct
+    u64                      timestamp;          // Timestamp of the log entry
+    statistics_txrx_base     stats;              // Framework's statistics struct
 } txrx_stats_entry;
 
 
