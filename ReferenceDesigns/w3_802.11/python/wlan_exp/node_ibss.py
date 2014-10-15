@@ -87,6 +87,21 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         raise NotImplementedError
 
 
+    def stats_get_txrx(self, device_list=None, return_zeroed_stats_if_none=True):
+        """Get the statistics from the node.
+        
+        Returns a list of statistic dictionaries or a single dictionary.  
+        
+        If the device_list is a single device, then a single dictionary or 
+        None is returned.  If the device_list is a list of devices, then a 
+        list of dictionaries will be returned in the same order as the 
+        devices in the list.  If any of the staistics are not there, 
+        None will be inserted in the list.  If the device_list is not 
+        specified, then all the statistics on the node will be returned.
+        """
+        super(WlanExpNodeIBSS, self).stats_get_txrx(device_list, return_zeroed_stats_if_none)
+
+
     def scan_start(self, time_per_channel=0.1, channel_list=None, ssid=None, bssid=None):
         """Scan the channel list once for BSS networks.
         

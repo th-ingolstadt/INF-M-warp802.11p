@@ -801,22 +801,22 @@ entry_station_info.description += 'for each associated STA and is logged wheneve
 entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
 
 entry_station_info.append_field_defs([
-            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-            ('mac_addr',               '6s',     '6uint8',  'MAC address of associated device'),
-            ('aid',                    'H',      'uint16',  'Association ID (AID) of device'),
-            ('host_name',              '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
-            ('flags',                  'I',      'uint32',  'Association state flags: ???'),
-            ('rx_last_timestamp',      'Q',      'uint64',  'Microsecond timer value at time of last successful Rx from device'),
-            ('rx_last_seq',            'H',      'uint16',  'Sequence number of last packet received from device'),
-            ('rx_last_power',          'b',      'int8',    'Rx power in dBm of last packet received from device'),
-            ('rx_last_rate',           'B',      'uint8',   'PHY rate index in [1:8] of last packet received from device'),
-            ('tx_phy_rate',            'B',      'uint8',   'Current PHY rate index in [1:8] for new transmissions to device'),
-            ('tx_phy_antenna_mode',    'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
-            ('tx_phy_power',           'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
-            ('tx_phy_flags',           'B',      'uint8',   'Flags for Tx PHY config for new transmissions to deivce'),
-            ('tx_mac_num_tx_max',      'B',      'uint8',   'Maximum number of transmissions (original Tx + re-Tx) per MPDU to device'),
-            ('tx_mac_flags',           'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
-            ('padding',                '2x',     'uint16',  '')])
+            ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+            ('mac_addr',                    '6s',     '6uint8',  'MAC address of associated device'),
+            ('aid',                         'H',      'uint16',  'Association ID (AID) of device'),
+            ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
+            ('flags',                       'I',      'uint32',  'Association state flags: ???'),
+            ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last successful Rx from device'),
+            ('rx_last_seq',                 'H',      'uint16',  'Sequence number of last packet received from device'),
+            ('rx_last_power',               'b',      'int8',    'Rx power in dBm of last packet received from device'),
+            ('rx_last_rate',                'B',      'uint8',   'PHY rate index in [1:8] of last packet received from device'),
+            ('tx_phy_rate',                 'B',      'uint8',   'Current PHY rate index in [1:8] for new transmissions to device'),
+            ('tx_phy_antenna_mode',         'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
+            ('tx_phy_power',                'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
+            ('tx_phy_flags',                'B',      'uint8',   'Flags for Tx PHY config for new transmissions to deivce'),
+            ('tx_mac_num_tx_max',           'B',      'uint8',   'Maximum number of transmissions (original Tx + re-Tx) per MPDU to device'),
+            ('tx_mac_flags',                'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
+            ('padding',                     '2x',     'uint16',  '')])
 
 
 ###########################################################################
@@ -827,19 +827,19 @@ entry_bss_info = WlanExpLogEntryType(name='BSS_INFO', entry_type_id=ENTRY_TYPE_B
 entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
 
 entry_bss_info.append_field_defs([
-            ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-            ('bssid',                  '6s',     '6uint8',  'BSS ID'),
-            ('chan_num',               'B',      'uint8',   'Channel (center frequency) index of transmission'),
-            ('flags',                  'B',      'uint8',   'BSS flags'),
-            ('last_timestamp',         'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
-            ('ssid',                   '33s',    '33uint8', 'SSID (32 chars max)'),
-            ('state',                  'B',      'uint8',   'State of the BSS'),
-            ('capabilities',           'H',      'uint16',  'Supported capabilities of the BSS'),
-            ('beacon_interval',        'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
-            ('padding0',               'x',      'uint8',   ''),
-            ('num_basic_rates',        'B',      'uint8',   'Number of basic rates supported'),
-            ('basic_rates',            '10s',    '10uint8', 'Supported basic rates'),
-            ('padding1',               '2x',     '2uint8',  '')])
+            ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+            ('bssid',                       '6s',     '6uint8',  'BSS ID'),
+            ('chan_num',                    'B',      'uint8',   'Channel (center frequency) index of transmission'),
+            ('flags',                       'B',      'uint8',   'BSS flags'),
+            ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
+            ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
+            ('state',                       'B',      'uint8',   'State of the BSS'),
+            ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
+            ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
+            ('padding0',                    'x',      'uint8',   ''),
+            ('num_basic_rates',             'B',      'uint8',   'Number of basic rates supported'),
+            ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
+            ('padding1',                    '2x',     '2uint8',  '')])
 
 entry_bss_info.consts['BSS_STATE_UNAUTHENTICATED'] = 1
 entry_bss_info.consts['BSS_STATE_AUTHENTICATED']   = 2
@@ -1025,7 +1025,6 @@ entry_txrx_stats.description += 'for every unique source MAC address, up to the 
 
 entry_txrx_stats.append_field_defs([
             ('timestamp',                      'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-            ('last_timestamp',                 'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
             ('mac_addr',                       '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
             ('associated',                     'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
             ('padding',                        'x',      'uint8',   ''),

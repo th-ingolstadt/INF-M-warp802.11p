@@ -379,7 +379,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         self.send_cmd(cmds.StatsConfigure(promisc_stats))
 
 
-    def stats_get_txrx(self, device_list=None):
+    def stats_get_txrx(self, device_list=None, return_zeroed_stats_if_none=False):
         """Get the statistics from the node.
         
         Returns a list of statistic dictionaries or a single dictionary.  
@@ -395,13 +395,13 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         if not device_list is None:
             if (type(device_list) is list):
                 for device in device_list:
-                    stats = self.send_cmd(cmds.StatsGetTxRx(device))
+                    stats = self.send_cmd(cmds.StatsGetTxRx(device, return_zeroed_stats_if_none))
                     if (len(stats) == 1):
                         ret_val.append(stats)
                     else:
                         ret_val.append(None)
             else:
-                ret_val = self.send_cmd(cmds.StatsGetTxRx(device_list))
+                ret_val = self.send_cmd(cmds.StatsGetTxRx(device_list, return_zeroed_stats_if_none))
                 if (len(ret_val) == 1):
                     ret_val = ret_val[0]
                 else:

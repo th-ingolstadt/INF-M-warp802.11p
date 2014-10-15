@@ -169,6 +169,8 @@ CMDID_STATS_GET_TXRX                             = 0x004001
 
 CMD_PARAM_STATS_CONFIG_FLAG_PROMISC              = 0x00000001
 
+CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE            = 0x80000000
+
 
 # Queue commands and defined values
 CMDID_QUEUE_TX_DATA_PURGE_ALL                    = 0x005000
@@ -445,8 +447,15 @@ class StatsConfigure(wn_message.Cmd):
 
 class StatsGetTxRx(wn_message.BufferCmd):
     """Command to get the statistics from the node for a given node."""
-    def __init__(self, node=None):
-        super(StatsGetTxRx, self).__init__()
+    def __init__(self, node=None, return_zeroed_stats_if_none=False):
+        flags = 0
+
+        # Compute the argument for the BufferCmd flags
+        if return_zeroed_stats_if_none:
+            flags += CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE
+
+        # Call parent initialziation
+        super(StatsGetTxRx, self).__init__(flags=flags)
         self.command = _CMD_GRPID_NODE + CMDID_STATS_GET_TXRX
 
         if node is not None:
@@ -1401,16 +1410,16 @@ class NodeAPConfigure(wn_message.Cmd):
     Attributes (default state on the node is in CAPS):
         power_savings   -- Enable power saving mode (TRUE/False)
     """
-    def __init__(self, power_savings=None):
+    def __init__(self, support_power_savings=None):
         super(NodeAPConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_CONFIG
 
         flags = 0
         mask  = 0
 
-        if power_savings is not None:
+        if support_power_savings is not None:
             mask += CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING
-            if power_savings:
+            if support_power_savings:
                 flags += CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING
                 
         self.add_args(flags)

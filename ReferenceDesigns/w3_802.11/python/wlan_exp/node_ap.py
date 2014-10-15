@@ -57,7 +57,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # WLAN Exp Commands for the AP
     #-------------------------------------------------------------------------
-    def ap_configure(self, power_savings=None):
+    def ap_configure(self, support_power_savings=None):
         """Configure the AP behavior.
 
         By default all attributes are set to None.  Only attributes that 
@@ -66,9 +66,9 @@ class WlanExpNodeAp(node.WlanExpNode):
         the node.
 
         Attributes (default state on the node is in CAPS):
-            power_savings    -- Enable power saving mode; TIM, queue pausing, etc (TRUE/False)
+            support_power_savings -- Enable power saving mode; TIM, queue pausing, etc (TRUE/False)
         """
-        self.send_cmd(cmds.NodeAPConfigure(power_savings))
+        self.send_cmd(cmds.NodeAPConfigure(support_power_savings))
 
 
     def set_dtim_period(self, num_beacons):

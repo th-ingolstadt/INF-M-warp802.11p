@@ -733,7 +733,7 @@ class WnNodeFactory(WnNode):
             else:
                 self.print_wn_node_types()
                 msg  = "ERROR:  Node {0}\n".format(self.sn_str)
-                msg += "    Unknown WARPNet type: {0}\n".format(wn_node_type)
+                msg += "    Unknown WARPNet type: 0x{0:8x}\n".format(wn_node_type)
                 print(msg)
 
         except wn_ex.TransportError as err:
