@@ -89,7 +89,7 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 		return return_value;
 	}
 
-	dl_entry_insertEnd(&tg_list,curr_tg_dl_entry);
+//	dl_entry_insertEnd(&tg_list,curr_tg_dl_entry); //FIXME
 
 	curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
@@ -114,7 +114,6 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 				curr_tg->callback_arg = callback_arg;
 			} else {
 				xil_printf("Failed to initialize LTG structs\n");
-				dl_entry_remove(&tg_list,curr_tg_dl_entry);
 				ltg_sched_destroy_l(curr_tg_dl_entry);
 				return -1;
 			}
@@ -130,7 +129,6 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 				curr_tg->callback_arg = callback_arg;
 			} else {
 				xil_printf("Failed to initialize LTG structs\n");
-				dl_entry_remove(&tg_list,curr_tg_dl_entry);
 				ltg_sched_destroy_l(curr_tg_dl_entry);
 				return_value = LTG_ID_INVALID;
 				return return_value;
@@ -139,15 +137,13 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 
 		default:
 			xil_printf("Unknown type %d, destroying tg_schedule struct\n");
-			dl_entry_remove(&tg_list,curr_tg_dl_entry);
 			ltg_sched_destroy_l(curr_tg_dl_entry);
 			return_value = LTG_ID_INVALID;
 			return return_value;
 		break;
 	}
 
-	// NOTE:  By zeroing out the state, enabled is set to zero automatically
-	//     ((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;
+	dl_entry_insertEnd(&tg_list,curr_tg_dl_entry);
 
 	return return_value;
 }
