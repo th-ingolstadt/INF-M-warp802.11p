@@ -438,7 +438,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 				//   NOTE:  Even though this copies some things twice, this is done so that this function does not
 				//          need to be modified if the parameters in the bss_info change.
 				memcpy( (void *)(temp_bss_info), (void *)(&temp_bss_info_entry->info), sizeof(bss_info_base) );
-				temp_bss_info->timestamp = get_usec_timestamp();
+				temp_bss_info->latest_activity_timestamp = get_usec_timestamp();
 
 				// Join the BSS
 				wlan_mac_sta_join( temp_bss_info, timeout );

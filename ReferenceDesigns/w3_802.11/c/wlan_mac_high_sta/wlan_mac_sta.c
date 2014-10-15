@@ -58,11 +58,10 @@
 
 #define  WLAN_EXP_ETH                            WN_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
+#define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     5
-
-const u8 max_num_associations                    = 1;
 
 
 /*********************** Global Variable Definitions *************************/
@@ -117,6 +116,8 @@ void uart_rx(u8 rxByte){ };
 /******************************** Functions **********************************/
 
 int main() {
+	wlan_mac_hw_info *hw_info;
+
 
 	// Print initial message to UART
 	xil_printf("\f");
@@ -167,14 +168,6 @@ int main() {
 	// Initialize the utility library
     wlan_mac_high_init();
 
-#ifdef USE_WARPNET_WLAN_EXP
-	// Set up WLAN Exp init for STA
-	wlan_exp_set_init_callback((void*)wlan_exp_node_sta_init);
-
-    // Configure WLAN Exp framework
-	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_ETH);
-#endif
-
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(       	(void*)ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback( 	(void*)mpdu_transmit_done);
@@ -190,6 +183,9 @@ int main() {
 	// Initialize the association and statistics tables
 	dl_list_init(&statistics_table);
 
+	// Set the maximum associations
+	wlan_mac_high_set_max_associations(MAX_NUM_ASSOC);
+
 	// Ask CPU Low for its status
 	//     The response to this request will be handled asynchronously
 	wlan_mac_high_request_low_state();
@@ -198,6 +194,29 @@ int main() {
 	while( wlan_mac_high_is_cpu_low_initialized() == 0){
 		xil_printf("waiting on CPU_LOW to boot\n");
 	};
+
+#ifdef USE_WARPNET_WLAN_EXP
+    // NOTE:  To use the WLAN Experiments Framework, it must be initialized after
+	//        CPU low has populated the hw_info structure in the MAC High framework.
+
+	// Set WLAN Exp callbacks
+	wlan_exp_set_init_callback(                     (void *)wlan_exp_node_sta_init);
+	wlan_exp_set_process_callback(                  (void *)wlan_exp_node_sta_processCmd);
+	wlan_exp_set_reset_station_statistics_callback( (void *)reset_station_statistics);
+	wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
+	wlan_exp_set_reset_all_associations_callback(   (void *)reset_all_associations);
+	wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
+
+	// Configure the wlan_exp framework
+	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_TYPE_MASK, WLAN_EXP_ETH);
+
+	// Get the hardware info that has been collected from CPU low
+	hw_info = wlan_mac_high_get_hw_info();
+
+	// Initialize WLAN Exp
+	wlan_exp_node_init(hw_info->type, hw_info->serial_number, hw_info->fpga_dna,
+			           hw_info->wn_eth_device, hw_info->hw_addr_wn, hw_info->hw_addr_wlan);
+#endif
 
 	// CPU Low will pass HW information to CPU High as part of the boot process
 	//   - Get necessary HW information
@@ -240,11 +259,6 @@ int main() {
 #ifdef WLAN_USE_UART_MENU
 	uart_mode = UART_MODE_MAIN;
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the menu\n");
-#endif
-
-#ifdef USE_WARPNET_WLAN_EXP
-	// Set AP processing callbacks
-	wlan_exp_set_process_callback( (void *)wlan_exp_node_sta_processCmd );
 #endif
 
 	// Start the interrupts
@@ -534,9 +548,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			associated_station = (station_info*)(associated_station_entry->data);
 
 			// Update station information
-			associated_station->rx.last_timestamp = get_usec_timestamp();
-			associated_station->rx.last_power     = mpdu_info->rx_power;
-			associated_station->rx.last_rate      = mpdu_info->rate;
+			associated_station->latest_activity_timestamp = get_usec_timestamp();
+			associated_station->rx.last_power             = mpdu_info->rx_power;
+			associated_station->rx.last_rate              = mpdu_info->rate;
 
 			is_associated = 1;
 			rx_seq        = ((rx_80211_header->sequence_control)>>4)&0xFFF;
@@ -560,7 +574,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
         // Update receive statistics
 		if(station_stats != NULL){
-			station_stats->last_rx_timestamp = get_usec_timestamp();
+			station_stats->latest_txrx_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_stats)->data.rx_num_packets)++;
 				((station_stats)->data.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));

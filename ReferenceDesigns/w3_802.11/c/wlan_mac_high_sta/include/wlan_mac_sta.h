@@ -81,7 +81,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 
-
+void reset_all_associations();
 void reset_station_statistics();
 void reset_bss_info();
 dl_list * get_statistics();
