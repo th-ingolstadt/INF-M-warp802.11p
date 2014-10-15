@@ -50,7 +50,6 @@
 //IPC Messages
 #define IPC_MBOX_RX_MPDU_READY			0
 #define IPC_MBOX_TX_MPDU_READY			1
-#define IPC_MBOX_TX_MPDU_ACCEPT			2
 #define IPC_MBOX_TX_MPDU_DONE			3
 #define IPC_MBOX_HW_INFO				4
 #define IPC_MBOX_CPU_STATUS				5

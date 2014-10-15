@@ -84,7 +84,7 @@ typedef struct{
 	u32 delay_accept;		///< Time in microseconds between timestamp_create and packet acceptance by CPU Low
 	u32 delay_done;			///< Time in microseconds between acceptance and transmit completion
 	u64	unique_seq;			///< Unique sequence number for this packet (12 LSB used as 802.11 MAC sequence number)
-	u8 state;				///< Packet buffer state - TX_MPDU_STATE_EMPTY, TX_MPDU_STATE_TX_PENDING or TX_MPDU_STATE_READY
+	u8 padding0;
 	u8 tx_result;			///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
 	u8 QID;					///< Queue ID from which this packet was taken
 	u8 num_tx;				///< Number of actual PHY transmissions of this packet, including all re-transmissions
@@ -98,10 +98,6 @@ typedef struct{
 
 #define TX_POWER_MAX_DBM (19)
 #define TX_POWER_MIN_DBM (-12)
-
-#define TX_MPDU_STATE_EMPTY			0
-#define TX_MPDU_STATE_TX_PENDING	1
-#define TX_MPDU_STATE_READY			2
 
 #define TX_MPDU_RESULT_SUCCESS	0
 #define TX_MPDU_RESULT_FAILURE	1
@@ -140,7 +136,6 @@ typedef struct{
 #define RX_MPDU_STATE_FCS_BAD 	 	3
 
 #define CPU_STATUS_INITIALIZED			0x00000001
-#define CPU_STATUS_WAIT_FOR_IPC_ACCEPT	0x00000002
 #define CPU_STATUS_EXCEPTION			0x80000000
 
 #define NUM_TX_PKT_BUFS	8
