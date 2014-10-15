@@ -188,6 +188,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		break;
 	}
 
+	mpdu_info->num_tx = 1;
+
 	curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
 
 	wlan_mac_MPDU_tx_params(pkt_buf, 0, 0, mpdu_tx_ant_mask);
