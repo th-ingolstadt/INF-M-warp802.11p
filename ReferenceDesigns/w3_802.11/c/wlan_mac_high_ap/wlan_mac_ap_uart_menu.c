@@ -206,41 +206,6 @@ void uart_rx(u8 rxByte){
 				case ASCII_m:
 					wlan_mac_high_display_mallinfo();
 				break;
-				case ASCII_D:
-
-					timestamp_offset++;
-
-					// Send message to CPU Low
-					ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
-					ipc_msg_to_low.num_payload_words = 2;
-					ipc_msg_to_low.arg0				 = IPC_REG_WRITE_MODE;
-					ipc_msg_to_low_payload[0] 		 = 0x00000004; //FIXME: hardcoded debug hook
-					ipc_msg_to_low_payload[1] 		 = (u32)timestamp_offset;
-					ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload[0]));
-
-					ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-					xil_printf("+ timestamp_offset = %d\n", (s32)(ipc_msg_to_low_payload[1]));
-				break;
-
-				case ASCII_d:
-					timestamp_offset--;
-
-					// Send message to CPU Low
-					ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
-					ipc_msg_to_low.num_payload_words = 2;
-					ipc_msg_to_low.arg0				 = IPC_REG_WRITE_MODE;
-					ipc_msg_to_low_payload[0] 		 = 0x00000004; //FIXME: hardcoded debug hook
-					ipc_msg_to_low_payload[1] 		 = (u32)timestamp_offset;
-					ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload[0]));
-
-					ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-					xil_printf("- timestamp_offset = %d\n", (s32)(ipc_msg_to_low_payload[1]));
-
-				break;
-
-
 			}
 		break;
 
