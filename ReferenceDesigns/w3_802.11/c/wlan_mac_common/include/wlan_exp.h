@@ -75,13 +75,22 @@
 //     802.11 AP DCF                   0x00010101
 //     802.11 Station DCF              0x00010201
 //
-#define WARPNET_TYPE_80211_BASE        0x00010000
-#define WARPNET_TYPE_80211_HIGH_AP     0x00000100
-#define WARPNET_TYPE_80211_HIGH_STA    0x00000200
-#define WARPNET_TYPE_80211_HIGH_IBSS   0x00000300
+#define WARPNET_TYPE_BASE_MASK                   0xFFFF0000
 
-#define WARPNET_TYPE_80211_LOW_DCF     0x00000001
-#define WARPNET_TYPE_80211_LOW_NOMAC   0x00000002
+#define WARPNET_TYPE_80211_BASE                  0x00010000
+
+
+#define WARPNET_TYPE_80211_HIGH_MASK             0x0000FF00
+
+#define WARPNET_TYPE_80211_HIGH_AP               0x00000100
+#define WARPNET_TYPE_80211_HIGH_STA              0x00000200
+#define WARPNET_TYPE_80211_HIGH_IBSS             0x00000300
+
+
+#define WARPNET_TYPE_80211_CPU_LOW_MASK          0x000000FF
+
+#define WARPNET_TYPE_80211_LOW_DCF               0x00000001
+#define WARPNET_TYPE_80211_LOW_NOMAC             0x00000002
 
 
 // **********************************************************************
