@@ -118,18 +118,11 @@ int main(){
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v0.96 Beta ------------------------\n");
+	xil_printf("----- v1.0 ------------------------------\n");
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
-
-	// Check that right shift works correctly
-	//   Issue with -Os in Xilinx SDK 14.7
-	if (wlan_mac_high_right_shift_test() != 0) {
-		wlan_mac_high_set_node_error_status(0);
-		wlan_mac_high_blink_hex_display(0, 250000);
-	}
 
 	//heap_init() must be executed before any use of malloc. This explicit init
 	// handles the case of soft-reset of the MicroBlaze leaving stale values in the heap RAM
@@ -181,15 +174,15 @@ int main(){
 	max_queue_size = min((queue_total_size()- eth_get_num_rx_bd()) / (1), MAX_TX_QUEUE_LEN);
 
 	// Initialize callbacks
-	wlan_mac_util_set_eth_rx_callback(       (void*)ethernet_receive);
-	wlan_mac_high_set_mpdu_tx_done_callback( (void*)mpdu_transmit_done);
-	wlan_mac_high_set_mpdu_rx_callback(      (void*)mpdu_rx_process);
-	wlan_mac_high_set_pb_u_callback(         (void*)up_button);
+	wlan_mac_util_set_eth_rx_callback(          (void*)ethernet_receive);
+	wlan_mac_high_set_mpdu_tx_done_callback(    (void*)mpdu_transmit_done);
+	wlan_mac_high_set_mpdu_rx_callback(         (void*)mpdu_rx_process);
+	wlan_mac_high_set_pb_u_callback(            (void*)up_button);
 
-	wlan_mac_high_set_uart_rx_callback(      (void*)uart_rx);
-	wlan_mac_high_set_mpdu_accept_callback(  (void*)poll_tx_queues);
-	wlan_mac_high_set_mpdu_dequeue_callback( (void*)mpdu_dequeue);
-    wlan_mac_ltg_sched_set_callback(         (void*)ltg_event);
+	wlan_mac_high_set_uart_rx_callback(         (void*)uart_rx);
+	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
+	wlan_mac_high_set_mpdu_dequeue_callback(    (void*)mpdu_dequeue);
+    wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
 
     // Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
     wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
@@ -649,7 +642,6 @@ void ltg_event(u32 id, void* callback_arg){
 
 					// Submit the new packet to the appropriate queue
 					enqueue_after_tail(queue_sel, curr_tx_queue_element);
-					poll_tx_queues();
 
 				} else {
 					// There aren't any free queue elements right now.
@@ -729,9 +721,6 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 			// Put the packet in the queue
 			enqueue_after_tail(MCAST_QID, curr_tx_queue_element);
 
-		    // Poll the TX queues to possibly send the packet
-			poll_tx_queues();
-
 		} else {
 			// Packet was not successfully enqueued
 			return 0;
@@ -768,9 +757,6 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 				// Put the packet in the queue
 				enqueue_after_tail(AID_TO_QID(station->AID), curr_tx_queue_element);
-
-				// Poll the TX queues to possibly send the packet
-				poll_tx_queues();
 
 			} else {
 				// Packet was not successfully enqueued
@@ -829,9 +815,6 @@ void beacon_transmit() {
 
 		// Put the packet in the queue
  		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-	    // Poll the TX queues to possibly send the packet
- 		poll_tx_queues();
 
  	}
 }
@@ -1044,8 +1027,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								// Put the packet in the queue
 								enqueue_after_tail(MCAST_QID, curr_tx_queue_element);
 
-							    // Poll the TX queues to possibly send the packet
-								poll_tx_queues();
 							}
 						} else {
 							// Packet is not a multi-cast packet.  Check if it is destined for one of our stations
@@ -1081,8 +1062,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									// Put the packet in the queue
 									enqueue_after_tail(AID_TO_QID(associated_station->AID),  curr_tx_queue_element);
 
-								    // Poll the TX queues to possibly send the packet
-									poll_tx_queues();
 
 									// Given we sent the packet wirelessly to our stations, if we do not allow Ethernet transmissions
 									//   of wireless transmissions, then do not send over Ethernet
@@ -1133,9 +1112,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							// Put the packet in the queue
 							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-							// Poll the TX queues to possibly send the packet
-							poll_tx_queues();
 						}
 					}
 				} // END if(associated_station != NULL)
@@ -1216,8 +1192,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							// Put the packet in the queue
 							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
-						    // Poll the TX queues to possibly send the packet
-							poll_tx_queues();
 						}
 
 						// Finish the function
@@ -1280,8 +1254,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							// Put the packet in the queue
 							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
-						    // Poll the TX queues to possibly send the packet
-							poll_tx_queues();
 						}
 
 						// Finish the function
@@ -1311,8 +1283,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							// Put the packet in the queue
 							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
-						    // Poll the TX queues to possibly send the packet
-							poll_tx_queues();
 						}
 					}
 
@@ -1383,8 +1353,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							// Put the packet in the queue
 							enqueue_after_tail(AID_TO_QID(associated_station->AID), curr_tx_queue_element);
 
-						    // Poll the TX queues to possibly send the packet
-							poll_tx_queues();
 						}
 
 						// Finish the function
@@ -1414,8 +1382,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							// Put the packet in the queue
 							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
-							// Poll the TX queues to possibly send the packet
-							poll_tx_queues();
 						}
 
 						// Finish the function
@@ -1584,9 +1550,6 @@ u32  deauthenticate_station( station_info* station ) {
 
 		// Put the packet in the queue
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-	    // Poll the TX queues to possibly send the packet
-		poll_tx_queues();
 
  		// Purge any packets in the queue meant for this node
 		purge_queue(AID_TO_QID(aid));
