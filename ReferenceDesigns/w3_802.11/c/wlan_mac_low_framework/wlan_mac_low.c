@@ -89,8 +89,8 @@ int wlan_mac_low_init(u32 type){
 		return -1;
 	}
 
-	//xil_printf("Beacon Timestamp Offset: %d\n", ((s32)wlan_ofdm_txtime(sizeof(mac_header_80211_ACK),WLAN_PHY_FCS_NBYTES)));
-	wlan_mac_set_timestamp_offset(((s32)wlan_ofdm_txtime(sizeof(mac_header_80211_ACK),WLAN_PHY_FCS_NBYTES)));
+	// TODO: This value should offset forward to the time when the timestamp bytes in the beacon are transmitter
+	wlan_mac_set_timestamp_offset(0);
 
 	//wlan_phy_tx_timestamp_ins_start(24);
 	//wlan_phy_tx_timestamp_ins_end(31);
@@ -570,6 +570,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					// region of the packet buffer (i.e. (start_ind % 8)==0 )
 					wlan_phy_tx_timestamp_ins_start((24+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
 					wlan_phy_tx_timestamp_ins_end((31+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
+
 				} else {
 					//When start>end, the Tx logic will not insert any timestamp
 					wlan_phy_tx_timestamp_ins_start(1);
@@ -587,6 +588,16 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
 
 				status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
+
+				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+					//The Tx logic automatically inserted the timestamp at the time that the bytes
+					//were being fed out to the Tx PHY. We can go back and re-insert this time into the
+					//payload so that further processing (e.g. logging) sees the correct payload.
+
+					//First, calculate what the value should be
+
+					*((u64*)( (TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET + 24)) ) = (u64) ( (u64)get_tx_start_timestamp() + (s64)wlan_mac_get_timestamp_offset() );
+				}
 
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));

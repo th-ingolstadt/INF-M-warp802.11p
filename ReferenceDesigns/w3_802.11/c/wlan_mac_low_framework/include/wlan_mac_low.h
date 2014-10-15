@@ -132,6 +132,7 @@
 																				 (((preTx_delay) & 0x3FF) << 4))
 
 #define wlan_mac_set_timestamp_offset(d) Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_OFFSET, d)
+#define wlan_mac_get_timestamp_offset() Xil_In32(WLAN_MAC_REG_SET_TIMESTAMP_OFFSET)
 																				 
 																				 
 //WLAN_MAC_REG_AUTO_TX_GAINS
