@@ -50,6 +50,8 @@ static void* QUEUE_BUFFER_SPACE;
 
 static u8 dram_present;
 
+extern function_ptr_t     tx_poll_callback; 		 ///< User callback when higher-level framework is ready to send a packet to low
+
 void queue_dram_present(u8 present){
 	dram_present = present;
 }
@@ -168,6 +170,8 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
 
 	//Insert the queue entry into the dl_list representing the selected queue
 	dl_entry_insertEnd(&(queue_tx[queue_sel]), (dl_entry*)tqe);
+
+	tx_poll_callback();
 
 	return;
 }
@@ -322,18 +326,21 @@ int queue_checkout_list(dl_list* new_list, u16 num_tqe){
  */
 inline int dequeue_transmit_checkin(u16 queue_sel){
 	int return_value = 0;
-
+	int tx_pkt_buf = -1;
 	tx_queue_element* curr_tx_queue_element;
 
-	if(wlan_mac_high_is_ready_for_tx()){
+	tx_pkt_buf = wlan_mac_high_lock_new_tx_packet_buffer();
 
+	if(tx_pkt_buf != -1){
 		curr_tx_queue_element = dequeue_from_head(queue_sel);
 
 		if(curr_tx_queue_element != NULL){
 			return_value = 1;
-			wlan_mac_high_mpdu_transmit(curr_tx_queue_element);
+			wlan_mac_high_mpdu_transmit(curr_tx_queue_element, tx_pkt_buf);
 			queue_checkin(curr_tx_queue_element);
 			wlan_eth_dma_update();
+		} else {
+			wlan_mac_high_release_tx_packet_buffer(tx_pkt_buf);
 		}
 	}
 	return return_value;

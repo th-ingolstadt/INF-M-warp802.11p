@@ -82,9 +82,6 @@ XAxiCdma           cdma_inst;				///< Central DMA instance
 // UART interface
 u8                 uart_rx_buffer[UART_BUFFER_SIZE];	///< Buffer for received byte from UART
 
-// 802.11 Transmit packet buffer
-u8                 tx_pkt_buf;				///< @brief Current transmit buffer (ping/pong)
-											///< @see TX_BUFFER_NUM
 // Callback function pointers
 function_ptr_t     pb_u_callback;			 ///< User callback for "up" pushbutton
 function_ptr_t     pb_m_callback;			 ///< User callback for "middle" pushbutton
@@ -92,7 +89,7 @@ function_ptr_t     pb_d_callback;			 ///< User callback for "down" pushbutton
 function_ptr_t     uart_callback;			 ///< User callback for UART reception
 function_ptr_t     mpdu_tx_done_callback;	 ///< User callback for lower-level message that MPDU transmission is complete
 function_ptr_t     mpdu_rx_callback;		 ///< User callback for lower-level message that MPDU reception is ready for processing
-function_ptr_t     mpdu_tx_accept_callback;  ///< User callback for lower-level message that MPDU has been accepted for transmission
+function_ptr_t     tx_poll_callback; 		 ///< User callback when higher-level framework is ready to send a packet to low
 function_ptr_t	   mpdu_tx_dequeue_callback; ///< User callback for higher-level framework dequeuing a packet
 
 // Node information
@@ -147,6 +144,8 @@ u8                  rx_ant_mode_tracker = 0;     ///< Tracking variable for RX A
 // Unique transmit sequence number
 volatile static u64	unique_seq;
 
+// Tx Packet Buffer Busy State
+volatile static u8 tx_pkt_buf_busy_state;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -230,8 +229,15 @@ void wlan_mac_high_init(){
 	u32            queue_len;
 	u64            timestamp;
 	u32            log_size;
-	tx_frame_info* tx_mpdu;
 	XAxiCdma_Config *cdma_cfg_ptr;
+
+
+	// Check that right shift works correctly
+	//   Issue with -Os in Xilinx SDK 14.7
+	if (wlan_mac_high_right_shift_test() != 0) {
+		wlan_mac_high_set_node_error_status(0);
+		wlan_mac_high_blink_hex_display(0, 250000);
+	}
 
 	// ***************************************************
 	// Initialize the utility library
@@ -250,7 +256,7 @@ void wlan_mac_high_init(){
 	uart_callback            = (function_ptr_t)nullCallback;
 	mpdu_rx_callback         = (function_ptr_t)nullCallback;
 	mpdu_tx_done_callback    = (function_ptr_t)nullCallback;
-	mpdu_tx_accept_callback  = (function_ptr_t)nullCallback;
+	tx_poll_callback	     = (function_ptr_t)nullCallback;
 	mpdu_tx_dequeue_callback = (function_ptr_t)nullCallback;
 
 	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
@@ -270,21 +276,14 @@ void wlan_mac_high_init(){
 
 	unique_seq = 0;
 
+	tx_pkt_buf_busy_state = 0;
 
 	// ***************************************************
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
 	for(i=0;i < NUM_TX_PKT_BUFS; i++){
-		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
-		tx_mpdu->state = TX_MPDU_STATE_EMPTY;
+		unlock_pkt_buf_tx(i);
 	}
-	tx_pkt_buf = 0;
-	warp_printf(PL_VERBOSE, "locking tx_pkt_buf = %d\n", tx_pkt_buf);
-	if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-		warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",tx_pkt_buf);
-	}
-	tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-	tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
 
 
 	// ***************************************************
@@ -836,19 +835,18 @@ void wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback){
 
 
 /**
- * @brief Set MPDU Accept Callback
+ * @brief Set Poll Tx Queue Callback
  *
- * Tells the framework which function should be called when
- * the lower-level CPU confirms that it has received the MPDU
- * from the upper-level CPU that it should transmit.
+ * Tells the framework which function should be called whenever
+ * the framework knows that CPU_LOW is ready to send a new packet.
  *
  * @param function_ptr_t callback
  *  - Pointer to callback function
  * @return None
  *
  */
-void wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback){
-	mpdu_tx_accept_callback = callback;
+void wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t callback){
+	tx_poll_callback = callback;
 }
 
 
@@ -1492,7 +1490,7 @@ void wlan_mac_high_cdma_finish_transfer(){
  * @return None
  *
  */
-void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
+void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu;
 	station_info* station;
@@ -1503,70 +1501,63 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet) {
 
 	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-	// Copy the packet into the transmit packet buffer
-	if(( tx_mpdu->state == TX_MPDU_STATE_TX_PENDING ) && ( wlan_mac_high_is_ready_for_tx() )){
+	header 	  = (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 
-		header 	  = (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
+	// Insert sequence number here
+	header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
 
-		// Insert sequence number here
-		header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
+	// Call user code to notify it of dequeue
 
-		// Call user code to notify it of dequeue
-
-		if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
+	if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
 
 
-		dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-		src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
-		xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
+	dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
+	xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
 
+	// Transfer the frame info
+	wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
 
-        // Transfer the frame info
-		wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
+	// Wait for transfer to finish
+	wlan_mac_high_cdma_finish_transfer();
 
-		// Wait for transfer to finish
-		wlan_mac_high_cdma_finish_transfer();
+	// Place the unique sequence number in the packet and increment
+	//   NOTE:  Adding to tx_mpdu must be done here due to the CDMA transfer
+	tx_mpdu->unique_seq = unique_seq;
+	unique_seq++;
 
-		// Place the unique sequence number in the packet and increment
-		//   NOTE:  Adding to tx_mpdu must be done here due to the CDMA transfer
-		tx_mpdu->unique_seq = unique_seq;
-		unique_seq++;
+	switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
+		case QUEUE_METADATA_TYPE_IGNORE:
+		break;
 
-		switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
-		    case QUEUE_METADATA_TYPE_IGNORE:
-			break;
+		case QUEUE_METADATA_TYPE_STATION_INFO:
+			station = (station_info*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr);
 
-			case QUEUE_METADATA_TYPE_STATION_INFO:
-				station = (station_info*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr);
+			//
+			// NOTE: this would be a good place to add code to handle the automatic adjustment of transmission properties like rate
+			//
 
-				//
-				// NOTE: this would be a good place to add code to handle the automatic adjustment of transmission properties like rate
-				//
+			memcpy(&(tx_mpdu->params), &(station->tx), sizeof(tx_params));
+		break;
 
-				memcpy(&(tx_mpdu->params), &(station->tx), sizeof(tx_params));
-			break;
-
-			case QUEUE_METADATA_TYPE_TX_PARAMS:
-				memcpy(&(tx_mpdu->params), (void*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params));
-			break;
-		}
-
-		tx_mpdu->state  = TX_MPDU_STATE_READY;
-		tx_mpdu->num_tx = 0;
-
-		ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
-		ipc_msg_to_low.arg0              = tx_pkt_buf;
-		ipc_msg_to_low.num_payload_words = 0;
-
-		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			warp_printf(PL_ERROR,"Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
-		} else {
-			cpu_high_status |= CPU_STATUS_WAIT_FOR_IPC_ACCEPT;
-			ipc_mailbox_write_msg(&ipc_msg_to_low);
-		}
-	} else {
-		warp_printf(PL_ERROR, "Bad state in wlan_mac_high_mpdu_transmit. Attempting to transmit but tx_buffer %d is not empty\n",tx_pkt_buf);
+		case QUEUE_METADATA_TYPE_TX_PARAMS:
+			memcpy(&(tx_mpdu->params), (void*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params));
+		break;
 	}
+
+	tx_mpdu->num_tx = 0;
+
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
+	ipc_msg_to_low.arg0              = tx_pkt_buf;
+	ipc_msg_to_low.num_payload_words = 0;
+
+	if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+		warp_printf(PL_ERROR,"Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
+	} else {
+		tx_pkt_buf_busy_state |= (1 << tx_pkt_buf);
+		ipc_mailbox_write_msg(&ipc_msg_to_low);
+	}
+
 }
 
 inline u64 wlan_mac_high_get_unique_seq(){
@@ -1801,41 +1792,25 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 			}
 		break;
 
-
-		//---------------------------------------------------------------------
-		case IPC_MBOX_TX_MPDU_ACCEPT:
-			// CPU Low has begun the Tx process for the previously submitted MPDU
-			//     CPU High is now free to begin processing its next Tx frame and submit it to CPU Low
-			//     CPU Low will not accept a new frame until the previous one is complete
-			//
-			if(tx_pkt_buf != (msg->arg0)) {
-				warp_printf(PL_ERROR, "Received CPU_LOW acceptance of buffer %d, but was expecting buffer %d\n", tx_pkt_buf, msg->arg0);
-			}
-
-			// Get the next packet buffer
-			tx_pkt_buf = (tx_pkt_buf + 1) % TX_BUFFER_NUM;
-
-			cpu_high_status &= (~CPU_STATUS_WAIT_FOR_IPC_ACCEPT);
-
-			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
-				warp_printf(PL_ERROR,"Error: unable to lock tx pkt_buf %d\n",tx_pkt_buf);
-			} else {
-				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-				tx_mpdu->state = TX_MPDU_STATE_TX_PENDING;
-			}
-
-			mpdu_tx_accept_callback(TX_PKT_BUF_TO_ADDR(msg->arg0));
-		break;
-
-
 		//---------------------------------------------------------------------
 		case IPC_MBOX_TX_MPDU_DONE:
 			// CPU Low has finished the Tx process for the previously submitted-accepted frame
 			//     CPU High should do any necessary post-processing, then recycle the packet buffer
             //
+
+			// Lock this packet buffer
+			if(lock_pkt_buf_tx(msg->arg0) != PKT_BUF_MUTEX_SUCCESS){
+				xil_printf("Error: DONE Lock Tx Pkt Buf State Mismatch\n");
+				return;
+			}
+
 			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
 			temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details);
 			mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details*)(msg->payload_ptr), temp_1);
+
+			wlan_mac_high_release_tx_packet_buffer(msg->arg0);
+
+			tx_poll_callback();
 		break;
 
 
@@ -2318,8 +2293,6 @@ int wlan_mac_high_is_cpu_low_initialized(){
 	return ( (cpu_low_status & CPU_STATUS_INITIALIZED) != 0 );
 }
 
-
-
 /**
  * @brief Check that CPU low is ready to transmit
  *
@@ -2329,8 +2302,76 @@ int wlan_mac_high_is_cpu_low_initialized(){
  *     - 1 if CPU low is ready to transmit
  */
 int wlan_mac_high_is_ready_for_tx(){
-	// xil_printf("cpu_high_status = 0x%08x\n",cpu_high_status);
-	return ((cpu_high_status & CPU_STATUS_WAIT_FOR_IPC_ACCEPT) == 0);
+	return (tx_pkt_buf_busy_state != 3);
+}
+
+
+/**
+ * @brief Return the index of the next free transmit packet buffer
+ * and lock it.
+ *
+ * @param  None
+ * @return int
+ *     - packet buffer index of free, now-locked packet buffer
+ *     - -1 if there are no free Tx packet buffers
+ */
+int wlan_mac_high_lock_new_tx_packet_buffer(){
+	int pkt_buf_sel = -1;
+
+	switch(tx_pkt_buf_busy_state){
+		case 1: //Ping: busy, Pong: free
+			pkt_buf_sel = 1;
+			tx_pkt_buf_busy_state |= 2;
+		break;
+		case 0: //Ping: free, Pong: free
+		case 2: //Ping: free, Pong: busy
+			pkt_buf_sel = 0;
+			tx_pkt_buf_busy_state |= 1;
+		break;
+		case 3: //Ping: free, Pong: busy
+			pkt_buf_sel = -1;
+		break;
+	}
+
+	if(pkt_buf_sel != -1){
+		if(lock_pkt_buf_tx(pkt_buf_sel) != PKT_BUF_MUTEX_SUCCESS){
+			xil_printf("Error: Unlock Tx Pkt Buf State Mismatch\n");
+			return -1;
+		}
+	}
+
+	return pkt_buf_sel;
+}
+
+/**
+ * @brief Release the current Tx packet buffer
+ *
+ * @param  None
+ * @return int
+ * 	   - 0 if success
+ *     - -1 if error
+ */
+int wlan_mac_high_release_tx_packet_buffer(int pkt_buf){
+
+	switch(pkt_buf){
+		case 0:
+			tx_pkt_buf_busy_state &= (~1);
+		break;
+		case 1:
+			tx_pkt_buf_busy_state &= (~2);
+		break;
+		default:
+			xil_printf("Error: invalid pkt buf selection");
+			return -1;
+		break;
+	}
+
+	if(unlock_pkt_buf_tx(pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+		xil_printf("Error: Unlock Tx Pkt Buf State Mismatch\n");
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 

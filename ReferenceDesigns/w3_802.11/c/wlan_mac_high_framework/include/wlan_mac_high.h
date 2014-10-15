@@ -226,7 +226,7 @@ void               wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
 void               wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
-void               wlan_mac_high_set_mpdu_accept_callback(function_ptr_t callback);
+void 			   wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);
 
 u64                get_usec_timestamp();
@@ -250,7 +250,7 @@ int                wlan_mac_high_right_shift_test();
 int                wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size);
 void               wlan_mac_high_cdma_finish_transfer();
 
-void               wlan_mac_high_mpdu_transmit(tx_queue_element* packet);
+void 			   wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf);
 
 wlan_mac_hw_info*  wlan_mac_high_get_hw_info();
 u8*                wlan_mac_high_get_eeprom_mac_addr();
@@ -277,7 +277,9 @@ void               wlan_mac_high_set_timestamp( u64 timestamp );
 void               wlan_mac_high_set_timestamp_delta( s64 timestamp );
 void               wlan_mac_high_request_low_state();
 int                wlan_mac_high_is_cpu_low_initialized();
-int                wlan_mac_high_is_ready_for_tx();
+int				   wlan_mac_high_is_ready_for_tx();
+int 			   wlan_mac_high_lock_new_tx_packet_buffer();
+int				   wlan_mac_high_release_tx_packet_buffer(int pkt_buf);
 u8                 wlan_mac_high_pkt_type(void* mpdu, u16 length);
 
 inline void        wlan_mac_high_set_debug_gpio(u8 val);
