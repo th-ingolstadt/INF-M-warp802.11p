@@ -705,7 +705,7 @@ void wlan_mac_low_init_hw_info( u32 type ) {
 	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 1, hw_info.hw_addr_wn);
 
     // WARPNet will use ethernet device 1 (ETH_B) by default
-    hw_info.wn_exp_eth_device = 1;
+    hw_info.wn_eth_device = 1;
 }
 
 /**
