@@ -419,18 +419,13 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 /**
  * @brief Handles transmission of a wireless packet
  *
- * This function is called after a good SIGNAL field is detected by either PHY (OFDM or DSSS)
- * It is the responsibility of this function to wait until a sufficient number of bytes have been received
- * before it can start to process those bytes. When this function is called the eventual checksum status is
- * unknown. The packet contents can be provisionally processed (e.g. prepare an ACK for fast transmission),
- * but post-reception actions must be conditioned on the eventual FCS status (good or bad).
+ * This function is called to transmit a new packet via the DCF+PHY. This code interacts with the wlan_mac_dcf_hw core
+ * to manage MAC and PHY state. This function should be called once per packet and will return after the full transmission
+ * state machine has executed for that packet. This state machine includes channel access (including carrier sensing, deferrals and
+ * backoffs), ACK reception, timeouts and re-transmissions.
  *
- * Note: The timing of this function is critical for correct operation of the 802.11 DCF. It is not
- * safe to add large delays to this function (e.g. xil_printf or usleep)
- *
- * Two primary job responsibilities of this function:
- *  (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
- *  (2): Pass up MPDUs (FCS valid or invalid) to CPU_HIGH
+ * This function is called once per IPC_MBOX_TX_MPDU_READY message from CPU High. The IPC_MBOX_TX_MPDU_DONE message will be sent
+ * back to CPU High when this function returns.
  *
  * @param u8 rx_pkt_buf
  *  -Index of the Tx packet buffer containing the packet to transmit
@@ -444,9 +439,8 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
  *  -Transmission result
  */
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
-	//This function manages the MAC_DCF_HW core.
-
 	u32 i;
+	u8 tx_rate;
 	u8 req_timeout;
 	u8 req_backoff;
 	u16 n_slots;
@@ -459,12 +453,16 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	u64 autocancel_curr_timestamp;
 	u64 autocancel_timestamp_diff;
 
+	//Remember the starting time, used to calculate the actual timestamps of each Tx below
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
+	//Store the rate value in a local variable; auto-rate algorithms might change this between re-transmissions
+	tx_rate = rate;
+
+	//This loop itereates for each transmissin/re-transmission of the packet, terminating when
+	// the max number of allowed transmissions has occurred or when another even causes early termination,
+	// like reception of an ACK (no need to keep re-transmitting) or a beacon (only in IBSS mode, for beacons from peers)
 	for(i=0; i<mpdu_info->params.mac.num_tx_max ; i++){
-		//Loop over retransmissions
-		//Note: this loop will terminate early if retransmissions aren't needed
-		//(e.g. ACK is received)
 
 		// TODO
 		//  * Make backoff slot selection on retransmissions less confusing
@@ -472,13 +470,14 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//  * Set tx antenna mode based on phy param. This should be done
 		//    after fixing antenna mode for ACK Tx to be a function of received antenna
 
-		//Check if the higher-layer MAC requires this transmission have a post-Tx timeout
+		//Check if the higher-layer MAC requires this transmission have a pre-Tx backoff or post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
 		req_backoff = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_BO) != 0;
 
+		//Check whether this transmission can be cancelled - used by IBSS nodes competing with peers to send beacons
 		autocancel_en = ((mpdu_info->flags) & TX_MPDU_FLAGS_AUTOCANCEL) != 0;
-
-		if(autocancel_en){
+		if(autocancel_en) {
+			//Define the conditions to apply to receptions that would trigger cancellation of this transmission
 			autocancel_match_type = header->frame_control_1;
 			memcpy((void*)autocancel_match_addr3, header->address_3, 6);
 
@@ -501,8 +500,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		}
 
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
-		wlan_phy_set_tx_signal(pkt_buf, rate, length);
+		wlan_phy_set_tx_signal(pkt_buf, tx_rate, length);
 
+		//Configure the Tx antenna selection
 		unsigned char mpdu_tx_ant_mask = 0;
 		switch(mpdu_info->params.phy.antenna_mode) {
 			case TX_ANTMODE_SISO_ANTA:
@@ -522,37 +522,44 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			break;
 		}
 
-
-
+		//Configure the Tx power - update all antennas, even though only one will be used
 		curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
+		wlan_mac_MPDU_tx_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 
-		if(i == 0){
+		if(i == 0) {
 			//This is the first transmission, so we speculatively draw a backoff in case
 			//the backoff counter is currently 0 but the medium is busy. Prior to all other
 			//(re)transmissions, an explicit backoff will have been started at the end of
 			//the previous iteration of this loop.
-			if (req_backoff == 0){
+			if (req_backoff == 0) {
+				//Normal packets don't require pre-Tx backoff; the pre-Tx backoff will only occur
+				// if the medium is busy at Tx time
 				n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 			} else {
+				//IBSS beacon transmissions always require a pre-Tx backoff to dither Tx attempts
+				// by multiple IBSS peers
 				n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
-				//n_slots = 0;
-				//xil_printf(" %d slot BO\n", n_slots);
+
+				//Force-reset the DCF core, to clear any previously-running backoffs
 				wlan_mac_reset(1);
 				wlan_mac_reset(0);
+
+				//Start the backoff
 				wlan_mac_dcf_hw_start_backoff(n_slots);
 			}
+
+			//Configure the DCF core Tx state machine for this transmission
 			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
 		} else {
-			REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x20);
+			//Re-transmission (loop index > 0)
+			//Configure the DCF core Tx state machine for this transmission
+			// preTx_backoff_slots is 0 here, since the core will have started a post-Timeout backoff automatically
 			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
-			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x20);
 		}
 		
-		//Set Tx Gains
-		wlan_mac_MPDU_tx_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
-
-		//Before we mess with any PHY state, we need to make sure it isn't actively
-		//transmitting. For example, it may be sending an ACK when we get to this part of the code
+		//Wait for the Tx PHY to be idle
+		//Actually waiting here is rare, but handles corner cases like a background ACK transmission at a low rate
+		// overlapping the attempt to start a new packet transmission
 		while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_PHY_TX_ACTIVE){}
 
 		//Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
@@ -675,9 +682,9 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 	rc_ptr = &(tx_mpdu->num_tx);
 
 	if(tx_mpdu->length > RTS_THRESHOLD){
-		station_rc_ptr = &stationLongRetryCount;
+		station_rc_ptr = (u32*)&stationLongRetryCount;
 	} else {
-		station_rc_ptr = &stationShortRetryCount;
+		station_rc_ptr = (u32*)&stationShortRetryCount;
 	}
 
 	retry_limit = tx_mpdu->params.mac.num_tx_max;
