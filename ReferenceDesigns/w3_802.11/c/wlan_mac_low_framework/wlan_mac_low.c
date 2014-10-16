@@ -604,7 +604,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 				//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
-				if(status == 0){
+				if(status == TX_MPDU_RESULT_SUCCESS){
 					tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
 				} else {
 					tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
