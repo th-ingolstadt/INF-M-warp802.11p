@@ -169,7 +169,7 @@ int transport_processCmd(const wn_cmdHdr* cmdHdr,const void* cmdArgs, wn_respHdr
                 transport_info[eth_dev_num].group_id = node_group_ID_membership;
 			break;
 			default:
-				xil_printf("Unknown user command ID: %d\n", cmdID);
+				wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Unknown user command ID: %d\n", cmdID);
 			break;
 	}
 
@@ -247,9 +247,10 @@ void transport_receiveCallback(unsigned char* buff, unsigned int len, void* pktS
 
 			fromNode.length = 0;
 		break;
+
 		default:
-			xil_printf("Got packet with unknown type: %d\n", wn_header_rx->pktType);
-			break;
+			wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Unknown packet type: %d\n", wn_header_rx->pktType);
+		break;
 	}
 
 #ifdef _DEBUG_
@@ -558,7 +559,7 @@ int transport_config_socket(unsigned int eth_dev_num, int * socket, struct socka
     //   UDP socket with domain Internet and UDP connection.
 	*socket = xilsock_socket(AF_INET, SOCK_DGRAM, 0, eth_dev_num);
 	if (*socket == -1) {
-		xil_printf("Error in creating socket\n");
+		wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Could not create socket\n");
 		status = FAILURE;
 		return status;
 	}
@@ -569,7 +570,7 @@ int transport_config_socket(unsigned int eth_dev_num, int * socket, struct socka
 
 	tempStatus = xilsock_bind( *socket, (struct sockaddr *)addr, sizeof(struct sockaddr),(void *)transport_receiveCallback, eth_dev_num);
 	if (tempStatus != 1) {
-		xil_printf("Unable to bind socket on port: %d\n", port);
+		wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Unable to bind socket on port: %d\n", port);
 		status = FAILURE;
 		return status;
 	}

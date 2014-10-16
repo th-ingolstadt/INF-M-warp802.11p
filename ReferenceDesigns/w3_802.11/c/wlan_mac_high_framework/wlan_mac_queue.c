@@ -27,6 +27,8 @@
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_eth_util.h"
 
+#include "wlan_exp_common.h"
+
 //This list holds all of the empty, free elements
 static dl_list queue_free;
 
@@ -125,7 +127,7 @@ void purge_queue(u16 queue_sel){
 	num_queued = queue_num_queued(queue_sel);
 
 	if( num_queued > 0 ){
-		xil_printf("purging %d packets from queue for queue ID %d\n", num_queued, queue_sel);
+		wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging %d packets from queue %d\n", num_queued, queue_sel);
 
 		for(i = 0; i < num_queued; i++){
 			curr_tx_queue_element = dequeue_from_head(queue_sel);
@@ -158,7 +160,7 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
     	queue_tx = wlan_mac_high_realloc(queue_tx, (queue_sel+1)*sizeof(dl_list));
 
     	if(queue_tx == NULL){
-    		xil_printf("Error in reallocating %d bytes for tx queue\n", (queue_sel+1)*sizeof(dl_list));
+    		wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_queue, "Could not reallocate %d bytes for queue %d\n", (queue_sel+1)*sizeof(dl_list), queue_sel);
     	}
 
     	for(i = num_queue_tx; i <= queue_sel; i++){

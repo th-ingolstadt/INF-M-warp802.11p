@@ -55,6 +55,7 @@
 #include "wlan_mac_entries.h"
 #include "wlan_mac_high.h"
 
+#include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_transport.h"
 
@@ -335,8 +336,7 @@ u32  event_log_get_data( u32 start_index, u32 size, char * buffer ) {
 
     // Check that the start_address is less than the log_size
     if ( start_index > log_size ) {
-    	xil_printf("WARNING:  EVENT LOG - Index out of bounds\n");
-    	xil_printf("          Data request from %d when the log only has %d bytes\n", start_index, log_size);
+    	xil_printf("EVENT LOG: WARNING: Index out of bounds: Request starts at %d; Log only has %d bytes\n", start_index, log_size);
     	return num_bytes;
     }
 
@@ -392,11 +392,11 @@ u32  event_log_get_size( u32 start_index ) {
 	}
 
 #ifdef _DEBUG_
-	xil_printf("Event Log:  size                 = 0x%x\n", size );
-	xil_printf("Event Log:  log_next_address     = 0x%x\n", log_next_address );
-	xil_printf("Event Log:  log_oldest_address   = 0x%x\n", log_oldest_address );
-	xil_printf("Event Log:  log_soft_end_address = 0x%x\n", log_soft_end_address );
-	xil_printf("Event Log:  log_max_address      = 0x%x\n", log_max_address );
+	xil_printf("EVENT LOG:  size                 = 0x%x\n", size );
+	xil_printf("EVENT LOG:  log_next_address     = 0x%x\n", log_next_address );
+	xil_printf("EVENT LOG:  log_oldest_address   = 0x%x\n", log_oldest_address );
+	xil_printf("EVENT LOG:  log_soft_end_address = 0x%x\n", log_soft_end_address );
+	xil_printf("EVENT LOG:  log_max_address      = 0x%x\n", log_max_address );
 #endif
 
 	return size;
@@ -552,10 +552,10 @@ int       event_log_update_type( void * entry_ptr, u16 entry_type ) {
 
         	return_value = 0;
     	} else {
-    		xil_printf("WARNING:  event_log_update_type() - entry_ptr (0x%8x) is not valid \n", entry_ptr );
+    		xil_printf("EVENT LOG: ERROR: event_log_update_type() - entry_ptr (0x%8x) is not valid \n", entry_ptr );
     	}
     } else {
-		xil_printf("WARNING:  event_log_update_type() - entry_ptr (0x%8x) is not in event log \n", entry_ptr );
+		xil_printf("EVENT LOG: ERROR: event_log_update_type() - entry_ptr (0x%8x) is not in event log \n", entry_ptr );
     }
 
     return return_value;
@@ -592,9 +592,8 @@ void event_log_move_oldest_address( u32 end_address ) {
 		// Check that the entry is still valid.  Otherwise, print a warning and
 		//   issue a log reset.
 		if ( (entry->entry_id & 0xFFFF0000) != EVENT_LOG_MAGIC_NUMBER ) {
-			xil_printf("EVENT LOG ERROR:  Oldest entry corrupted. \n");
-			xil_printf("    Please verify that no other code / data is using \n");
-			xil_printf("    the event log memory space.  Resetting event log.\n");
+			xil_printf("EVENT LOG: ERROR: Oldest entry corrupted. Resetting event log\n");
+			xil_printf("    Please verify that no other code / data is using the event log memory space\n");
 
 			event_log_reset();
 			return;
@@ -704,7 +703,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    	// Check to see if wrapping is enabled
 		    	if ( log_wrap_enabled ) {
 
-					xil_printf("EVENT LOG:  INFO - WRAPPING LOG %d ! \n", log_num_wraps);
+					xil_printf("EVENT LOG: LOG WRAP: Has wrapped %d times\n", log_num_wraps);
 
 					// Compute new end address
 					end_address = log_start_address + sizeof(node_info_entry) + sizeof(entry_header) + size;
@@ -776,7 +775,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 		    	// Check to see if wrapping is enabled
 		    	if ( log_wrap_enabled ) {
 
-					xil_printf("EVENT LOG:  INFO - WRAPPING LOG %d ! \n", log_num_wraps);
+					xil_printf("EVENT LOG: LOG WRAP: Has wrapped %d times\n", log_num_wraps);
 
 					// Compute new end address
 					end_address = log_start_address + sizeof(node_info_entry) + sizeof(entry_header) + size;
@@ -1029,7 +1028,7 @@ void print_event_log_size(){
 	size      = event_log_get_total_size();
 	timestamp = get_usec_timestamp();
 
-	xil_printf("Event Log (%10d us): %10d of %10d bytes used\n", (u32)timestamp, size, log_size );
+	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "(%10d us) %10d of %10d bytes used\n", (u32)timestamp, size, log_size );
 }
 
 
@@ -1148,7 +1147,7 @@ void add_node_info_entry(u8 transmit){
 		//       Therefore, we need to ignore when we get zero and be sure to reset the log
 		//       before normal operation
 		if ( (temp0 != (max_words - 2)) && (temp0 != 0) ) {
-			xil_printf("WARNING:  Node info size = %d, param size = %d\n", max_words, temp0);
+			wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log, "Node info size mismatch: size = %d, param size = %d\n", max_words, temp0);
 		}
 #ifdef _DEBUG_
 		print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
@@ -1190,8 +1189,7 @@ u32 add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit){
     	// If the statistics structure in wlan_mac_high.h is bigger than the statistics
     	// entry, print a warning and return since there is a mismatch in the definition of
     	// statistics.
-    	xil_printf("WARNING:  Statistics definitions do not match.  Statistics log entry is too small\n");
-    	xil_printf("    to hold statistics structure.\n");
+    	wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log, "Statistics log entry is too small to hold statistics structure.\n");
     	return FAILURE;
     }
 

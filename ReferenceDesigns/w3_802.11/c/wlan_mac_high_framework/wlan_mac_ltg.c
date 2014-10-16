@@ -89,8 +89,6 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 		return return_value;
 	}
 
-//	dl_entry_insertEnd(&tg_list,curr_tg_dl_entry); //FIXME
-
 	curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
 	curr_tg->id  = id;
@@ -113,9 +111,9 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 				memcpy(curr_tg->params, params, sizeof(ltg_sched_periodic_params));
 				curr_tg->callback_arg = callback_arg;
 			} else {
-				xil_printf("Failed to initialize LTG structs\n");
+				xil_printf("LTG: ERROR: Failed to initialize LTG structs\n");
 				ltg_sched_destroy_l(curr_tg_dl_entry);
-				return -1;
+				return LTG_ID_INVALID;
 			}
 		break;
 
@@ -128,18 +126,16 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 				memcpy(curr_tg->params, params, sizeof(ltg_sched_uniform_rand_params));
 				curr_tg->callback_arg = callback_arg;
 			} else {
-				xil_printf("Failed to initialize LTG structs\n");
+				xil_printf("LTG: ERROR: Failed to initialize LTG structs\n");
 				ltg_sched_destroy_l(curr_tg_dl_entry);
-				return_value = LTG_ID_INVALID;
-				return return_value;
+				return LTG_ID_INVALID;
 			}
 		break;
 
 		default:
-			xil_printf("Unknown type %d, destroying tg_schedule struct\n");
+			xil_printf("LTG: ERROR: Unknown type %d\n", type);
 			ltg_sched_destroy_l(curr_tg_dl_entry);
-			return_value = LTG_ID_INVALID;
-			return return_value;
+			return LTG_ID_INVALID;
 		break;
 	}
 
@@ -184,7 +180,7 @@ int ltg_sched_start(u32 id){
 		if(curr_tg_dl_entry != NULL){
 			return ltg_sched_start_l(curr_tg_dl_entry);
 		} else {
-			xil_printf("Failed to start LTG ID: %d. Please ensure LTG is configured before starting\n", id);
+			xil_printf("LTG: ERROR: Failed to start: %d. Please ensure LTG is configured before starting\n", id);
 			return -1;
 		}
 	}
@@ -210,7 +206,7 @@ int ltg_sched_start_all(){
 		curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
 		if(ltg_sched_start_l(curr_tg_dl_entry) == -1) {
-			xil_printf("Failed to start LTG ID: %d. Please ensure LTG is configured before starting\n", (curr_tg->id));
+			xil_printf("LTG: ERROR: Failed to start: %d. Please ensure LTG is configured before starting\n", (curr_tg->id));
 			ret_val = -1;
 		}
 	}
@@ -256,7 +252,7 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 		break;
 
 		default:
-			xil_printf("Unknown type %d, destroying tg_schedule struct\n");
+			xil_printf("LTG: ERROR: Unknown type %d\n", curr_tg->type);
 			dl_entry_remove(&tg_list,curr_tg_dl_entry);
 			ltg_sched_destroy_l(curr_tg_dl_entry);
 			return -1;
@@ -332,7 +328,7 @@ int ltg_sched_stop(u32 id){
 		if(curr_tg_dl_entry != NULL){
 			return ltg_sched_stop_l(curr_tg_dl_entry);
 		} else {
-			xil_printf("Failed to stop LTG ID: %d. Please ensure LTG is configured before stopping\n", id);
+			xil_printf("LTG: ERROR: Failed to stop: %d. Please ensure LTG is configured before stopping\n", id);
 			return -1;
 		}
 	}
@@ -415,7 +411,7 @@ int ltg_sched_get_state(u32 id, u32* type, void** state){
 		break;
 
 		default:
-			xil_printf("Unknown type %d\n", curr_tg->type);
+			xil_printf("LTG: ERROR: Unknown type %d\n", curr_tg->type);
 			return -1;
 		break;
 	}
@@ -482,7 +478,7 @@ int ltg_sched_remove(u32 id){
 
 			return 0;
 		} else {
-			xil_printf("Failed to remove LTG ID: %d. Please ensure LTG is configured before removing\n", id);
+			xil_printf("LTG: ERROR: Failed to remove: %d. Please ensure LTG is configured before removing\n", id);
 			return -1;
 		}
 	}
@@ -573,8 +569,6 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
     type  = (temp >> 16) & 0xFFFF;
     size  = (temp & 0xFFFF);
 
-    xil_printf("LTG Sched:  type = %d, size = %d\n", type, size);
-
     switch(type){
         case LTG_SCHED_TYPE_PERIODIC:
         	if (size == 3){
@@ -586,9 +580,9 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
         	    	temp2    = Xil_Ntohl(src[3]);
         	    	((ltg_sched_periodic_params *)ret_val)->duration_count = ((((u64)temp)<<32) + ((u64)temp2))/LTG_POLL_INTERVAL;
 
-        	    	xil_printf("LTG Sched Periodic: %d usec for %d usec\n",
-        	    			       LTG_POLL_INTERVAL * ((ltg_sched_periodic_params *)ret_val)->interval_count,
-        	    			       (u32)(LTG_POLL_INTERVAL * (((ltg_sched_periodic_params *)ret_val)->duration_count)));
+        	    	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Sched Periodic: %d usec for %d usec\n",
+        	    			        LTG_POLL_INTERVAL * ((ltg_sched_periodic_params *)ret_val)->interval_count,
+        	    			        (u32)(LTG_POLL_INTERVAL * (((ltg_sched_periodic_params *)ret_val)->duration_count)));
         	    }
         	}
     	break;
@@ -604,13 +598,17 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
         	    	temp2    = Xil_Ntohl(src[4]);
         	    	((ltg_sched_uniform_rand_params *)ret_val)->duration_count = ((((u64)temp)<<32) + ((u64)temp2))/LTG_POLL_INTERVAL;
 
-        	    	xil_printf("LTG Sched Uniform Rand: [%d %d] usec for %d usec\n",
-        	    			       LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->min_interval_count,
-        	    			       LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->max_interval_count,
- 			                       (u32)(LTG_POLL_INTERVAL * (((ltg_sched_uniform_rand_params *)ret_val)->duration_count)));
+        	    	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Sched Uniform Rand: [%d %d] usec for %d usec\n",
+                                    LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->min_interval_count,
+                                    LTG_POLL_INTERVAL * ((ltg_sched_uniform_rand_params *)ret_val)->max_interval_count,
+                                    (u32)(LTG_POLL_INTERVAL * (((ltg_sched_uniform_rand_params *)ret_val)->duration_count)));
         	    }
         	}
         break;
+
+        default:
+        	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Unknown schedule type %d\n", type);
+		break;
     }
 
     // Set return values
@@ -631,9 +629,6 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
     type  = (temp >> 16) & 0xFFFF;
     size  = (temp & 0xFFFF);
 
-
-    xil_printf("LTG Payload:  type = %d, size = %d\n", type, size);
-
     switch(type){
         case LTG_PYLD_TYPE_FIXED:
         	if (size == 3){
@@ -643,7 +638,7 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 					wlan_exp_get_mac_addr(&src[1], &((ltg_pyld_fixed *)ret_val)->addr_da[0]);
         	    	((ltg_pyld_fixed *)ret_val)->length   = Xil_Ntohl(src[3]) & 0xFFFF;
 
-        	    	xil_printf("LTG Payload Fixed: %d bytes\n", ((ltg_pyld_fixed *)ret_val)->length);
+        	    	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Payload Fixed: %d bytes\n", ((ltg_pyld_fixed *)ret_val)->length);
         	    }
         	}
     	break;
@@ -657,7 +652,8 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
         	    	((ltg_pyld_uniform_rand *)ret_val)->min_length = Xil_Ntohl(src[3]) & 0xFFFF;
         	    	((ltg_pyld_uniform_rand *)ret_val)->max_length = Xil_Ntohl(src[4]) & 0xFFFF;
 
-        	    	xil_printf("LTG Payload Uniform Rand: [%d %d] bytes\n", ((ltg_pyld_uniform_rand *)ret_val)->min_length, ((ltg_pyld_uniform_rand *)ret_val)->max_length);
+        	    	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Payload Uniform Rand: [%d %d] bytes\n",
+        	    			        ((ltg_pyld_uniform_rand *)ret_val)->min_length, ((ltg_pyld_uniform_rand *)ret_val)->max_length);
         	    }
         	}
         break;
@@ -669,10 +665,14 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 					((ltg_pyld_all_assoc_fixed *)ret_val)->hdr.type = LTG_PYLD_TYPE_ALL_ASSOC_FIXED;
         	    	((ltg_pyld_all_assoc_fixed *)ret_val)->length   = Xil_Ntohl(src[1]) & 0xFFFF;
 
-        	    	xil_printf("LTG Payload All Assoc Fixed: %d bytes\n", ((ltg_pyld_all_assoc_fixed *)ret_val)->length);
+        	    	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Payload All Assoc Fixed: %d bytes\n", ((ltg_pyld_all_assoc_fixed *)ret_val)->length);
         	    }
         	}
         break;
+
+        default:
+        	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Unknown payload type %d\n", type);
+		break;
     }
 
     // Set return values
@@ -680,6 +680,8 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
     *ret_size = size;
 	return ret_val;
 }
+
+
 
 int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_flags, u32 ltg_id){
 	u32               tx_length;

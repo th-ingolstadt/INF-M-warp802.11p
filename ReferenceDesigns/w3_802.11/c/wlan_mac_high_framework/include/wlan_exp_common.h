@@ -28,6 +28,35 @@
 
 
 // **********************************************************************
+// WLAN Exp print levels
+//
+#define WLAN_EXP_PRINT_NONE                      0
+#define WLAN_EXP_PRINT_ERROR                     1
+#define WLAN_EXP_PRINT_WARNING                   2
+#define WLAN_EXP_PRINT_INFO                      3
+#define WLAN_EXP_PRINT_DEBUG                     4
+
+
+#define wlan_exp_printf(level, type, format, args...) \
+	                    do {  \
+                            if (level <= wlan_exp_print_level) { \
+                            	wlan_exp_print_header(level, type, __FILE__, __LINE__); \
+                                xil_printf(format, ##args); \
+                            } \
+                        } while (0)
+
+
+extern u8       wlan_exp_print_level;
+extern char   * print_type_node;
+extern char   * print_type_transport;
+extern char   * print_type_event_log;
+extern char   * print_type_stats;
+extern char   * print_type_ltg;
+extern char   * print_type_queue;
+
+
+
+// **********************************************************************
 // Network Configuration Information
 //
 
@@ -112,6 +141,12 @@ typedef struct {
 // Define WARPNet Common Methods
 //
 void wlan_exp_configure(u32 type, u32 type_mask, u32 eth_dev_num);
+
+void wlan_exp_print_header(u8 level, char * type, char * filename, u32 line);
+void wlan_exp_print_mac_address(u8 level, u8 * mac_address);
+
+void wlan_exp_set_print_level(u8 level);
+
 void wlan_exp_get_mac_addr(u32 * src, u8 * dest);
 void wlan_exp_put_mac_addr(u8 * src, u32 * dest);
 

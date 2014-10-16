@@ -16,33 +16,23 @@
 
 /***************************** Include Files *********************************/
 
-#include "wlan_exp_common.h"
-
-
-
-
 // Xilinx / Standard library includes
 
 #include <xparameters.h>
 #include <xil_io.h>
 #include <xio.h>
 
+#include "ctype.h"
 #include "string.h"
+#include "stdarg.h"
 
 // WLAN includes
-
 #include "wlan_mac_high.h"
 
-void wlan_exp_configure(u32 type, u32 type_mask, u32 eth_dev_num){
-	wlan_mac_hw_info* hw_info_ptr = wlan_mac_high_get_hw_info();
-
-	hw_info_ptr->type          = (type & type_mask) + (hw_info_ptr->type & ~type_mask);
-	hw_info_ptr->wn_eth_device = eth_dev_num;
-
-}
+// WLAN Exp includes
+#include "wlan_exp_common.h"
 
 
-#ifdef USE_WARPNET_WLAN_EXP
 
 /*************************** Constant Definitions ****************************/
 
@@ -57,7 +47,115 @@ void wlan_exp_print_station_status( station_info * stations, unsigned int num_st
 #endif
 
 
+/*****************************************************************************/
+/**
+* Debug Printing Functions
+*
+******************************************************************************/
+u8       wlan_exp_print_level     = WLAN_EXP_PRINT_ERROR;
+char   * print_type_node          = "NODE";
+char   * print_type_transport     = "TRANSPORT";
+char   * print_type_event_log     = "EVENT LOG";
+char   * print_type_stats         = "STATS";
+char   * print_type_ltg           = "LTG";
+char   * print_type_queue         = "QUEUE";
+
+
+
+void wlan_exp_print_header(u8 level, char * type, char* filename, u32 line) {
+    char * basename = NULL;
+
+	if (type != NULL) {
+		xil_printf("%s", type);
+
+		if ((level <= WLAN_EXP_PRINT_WARNING) || (wlan_exp_print_level == WLAN_EXP_PRINT_DEBUG)) {
+            basename =  strrchr(filename, '/') ? strrchr(filename, '/') + 1 : filename;
+		}
+
+		if (wlan_exp_print_level == WLAN_EXP_PRINT_DEBUG) {
+			xil_printf(" (%s:%d): ", basename, line);
+		} else {
+			xil_printf(": ");
+		}
+
+		switch(level) {
+			case WLAN_EXP_PRINT_ERROR:
+				xil_printf("ERROR (%s:%d): ", basename, line);
+			break;
+
+			case WLAN_EXP_PRINT_WARNING:
+				xil_printf("WARNING (%s:%d): ", basename, line);
+			break;
+		}
+	}
+}
+
+
+
+void wlan_exp_print_mac_address(u8 level, u8 * mac_address) {
+    u32 i;
+
+    if (level <= wlan_exp_print_level) {
+		xil_printf("%02x", mac_address[0]);
+
+		for ( i = 1; i < ETH_ADDR_LEN; i++ ) {
+			xil_printf(":%02x", mac_address[i]);
+		}
+    }
+}
+
+
+
+
+#ifdef USE_WARPNET_WLAN_EXP
+
+
+
+void wlan_exp_set_print_level(u8 level) {
+
+	switch(level) {
+        case WLAN_EXP_PRINT_NONE:
+        case WLAN_EXP_PRINT_ERROR:
+        case WLAN_EXP_PRINT_WARNING:
+        case WLAN_EXP_PRINT_INFO:
+        case WLAN_EXP_PRINT_DEBUG:
+        	wlan_exp_print_level = level;
+        break;
+
+        default:
+        	xil_printf("Unsupported print level.  Setting to WLAN_EXP_PRINT_ERROR.\n");
+        	wlan_exp_print_level = WLAN_EXP_PRINT_ERROR;
+        break;
+	}
+}
+
+
+
 /**************************** Common Functions *******************************/
+
+
+/*****************************************************************************/
+/**
+* Configure WLAN Exp
+*
+* This function will configure the wlan_mac_hw_info structure with the WARPNet Type
+* and the Ethernet device to use with WARPNet
+*
+* @param    type          - WARPNet type
+*           type_mask     - Bit mask for WARPNet type
+*           eth_dev_num   - WARPNet Ethernet device
+*
+* @return	None.
+*
+******************************************************************************/
+void wlan_exp_configure(u32 type, u32 type_mask, u32 eth_dev_num){
+	wlan_mac_hw_info* hw_info_ptr = wlan_mac_high_get_hw_info();
+
+	hw_info_ptr->type          = (type & type_mask) + (hw_info_ptr->type & ~type_mask);
+	hw_info_ptr->wn_eth_device = eth_dev_num;
+
+}
+
 
 
 /*****************************************************************************/
@@ -100,10 +198,6 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
         memcpy( &buffer[1], stations, size );
     }
 
-#ifdef _DEBUG_
-    wlan_exp_print_station_status( stations, num_stations );
-#endif
-
 	return index;
 }
 
@@ -143,47 +237,6 @@ void wlan_exp_put_mac_addr(u8 * src, u32 * dest) {
 	dest[1] = (src[5] << 24) + (src[4] << 16) + (src[3] <<  8) + (src[2] <<  0);
 
 }
-
-
-
-
-#ifdef _DEBUG_
-
-
-/*****************************************************************************/
-/**
-* Print Station Status
-*
-* This function will print a list of station_info structures
-*
-* @param    stations     - pointer to the station_info list
-*           num_stations - number of station_info structures in the list
-*
-* @return	None.
-*
-* @note		None.
-*
-******************************************************************************/
-void wlan_exp_print_station_status( station_info * stations, unsigned int num_stations ){
-	u32 i;
-
-
-	// !!! FIX !!!
-	for(i=0; i < num_stations; i++){
-		xil_printf("---------------------------------------------------\n");
-		xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", stations[i].AID,
-				stations[i].addr[0],stations[i].addr[1],stations[i].addr[2],stations[i].addr[3],stations[i].addr[4],stations[i].addr[5]);
-		xil_printf("     - Last heard on %d ms with sequence number %d\n",((u32)(stations[i].rx_timestamp))/1000, stations[i].seq);
-		xil_printf("     - Last Rx Power    : %d dBm\n",stations[i].last_rx_power);
-		xil_printf("     - Tx Rate          : %d\n", stations[i].tx_rate);
-		xil_printf("     - # Tx MPDUs       : %d (%d successful)\n", stations[i].num_tx_total, stations[i].num_tx_success);
-		xil_printf("     - # Rx MPDUs       : %d (%d bytes)\n", stations[i].num_rx_success, stations[i].num_rx_bytes);
-	}
-
-}
-
-
-#endif
 
 
 // End USE_WARPNET_WLAN_EXP

@@ -661,7 +661,7 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
 
 
 	    default:
-	    	xil_printf("WARNING: Unknown log entry type:  %d", entry_type);
+	    	wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log, "Unknown entry type:  %d", entry_type);
 	    	tmp_entry_size             = 0;
 	    	tmp_entry_payload_size     = 0;
 	    break;

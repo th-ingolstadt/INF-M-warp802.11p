@@ -89,7 +89,7 @@ void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id);
 u8   node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate);
 u8   node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
-void print_mac_address(u8 * mac_address);
+void print_mac_address(u8 * mac_address, u8 level);
 
 
 #ifdef _DEBUG_
@@ -101,7 +101,7 @@ void print_wn_parameters( wn_tag_parameter *param, int num_params );
 // WARPNet buffer functions
 u32        node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32,
 		                     wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
-	                         dl_list * source_list, u32 dest_size,
+	                         char * type, char * description, dl_list * source_list, u32 dest_size,
 	                         dl_entry * (*find_source_entry)(u8 *),
 	                         void (*copy_source_to_dest)(void *, void *, u64),
 	                         void (*zero_dest)(void *));
@@ -168,19 +168,19 @@ u32                   wlan_exp_enable_logging = 0;
 *
 ******************************************************************************/
 int wlan_exp_null_callback(void* param){
-	xil_printf("  WLAN Exp NULL Callback\n");
+	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "WLAN Exp NULL callback\n");
 	return SUCCESS;
 };
 
 
 int wlan_exp_null_init_callback(void* param){
-	xil_printf("  No type specific initialization\n");
+	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "WLAN Exp NULL init callback\n");
 	return SUCCESS;
 };
 
 
 int wlan_exp_null_process_callback(unsigned int cmdID, void* param){
-	xil_printf("Unknown node command: %d\n", cmdID);
+	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown node command: %d\n", cmdID);
 	return NO_RESP_SENT;
 };
 
@@ -248,7 +248,7 @@ void node_rxFromTransport(wn_host_message* toNode, wn_host_message* fromNode,
 			respSent = transport_processCmd(cmdHdr,cmdArgs,respHdr,respArgs,pktSrc,eth_dev_num);
 		break;
 		default:
-			xil_printf("Unknown command group\n");
+			wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_transport, "Unknown command group\n");
 		break;
 	}
 
@@ -686,7 +686,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			temp  = Xil_Ntohl(cmdArgs32[0]);
 			temp2 = Xil_Ntohl(cmdArgs32[1]);
 
-			xil_printf("EVENT LOG:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
 
 			// Configure the LOG based on the flag bit / mask
 			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING ) {
@@ -737,36 +737,17 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             //   - respArgs32[2] - Number of wraps
             //   - respArgs32[3] - Flags
 			//
-			// NOTE: The print statements are commented out b/c this command is used
-			//   a lot in the inner loop of an experiment
-
-#ifdef _DEBUG_
-			xil_printf("EVENT LOG:  Get Info\n");
-#endif
-
 			temp = event_log_get_next_entry_index();
             respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Next Index   = %10d\n", temp);
-#endif
 
 			temp = event_log_get_oldest_entry_index();
             respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Oldest Index = %10d\n", temp);
-#endif
 
 			temp = event_log_get_num_wraps();
             respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Num Wraps    = %10d\n", temp);
-#endif
 
 			temp = event_log_get_flags();
             respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Flags        = 0x%08x\n", temp);
-#endif
 
 			// Send response of current info
 			respHdr->length += (respIndex * sizeof(respArgs32));
@@ -780,24 +761,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             //   - respArgs32[0] - Max log size
             //   - respArgs32[1] - Current log size
             //
-			// NOTE: The print statements are commented out b/c this command is used
-			//   a lot in the inner loop of an experiment
-
-#ifdef _DEBUG_
-			xil_printf("EVENT LOG:  Get Capacity\n");
-#endif
-
 			temp = event_log_get_capacity();
             respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Capacity = %10d\n", temp);
-#endif
 
 			temp = event_log_get_total_size();
             respArgs32[respIndex++] = Xil_Htonl( temp );
-#ifdef _DEBUG_
-			xil_printf("    Size     = %10d\n", temp);
-#endif
 
 			// Send response of current info
 			respHdr->length += (respIndex * sizeof(respArgs32));
@@ -897,17 +865,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				// Transfer data
 				num_bytes = event_log_get_data( curr_index, transfer_size, (char *) &respArgs32[5] );
 
-#ifdef _DEBUG_
-				xil_printf("Packet %8d: \n", i);
-				xil_printf("    transfer_index = 0x%8x\n    transfer_size    = %10d\n    num_bytes        = %10d\n", curr_index, transfer_size, num_bytes);
-#endif
-
 				// Check that we copied everything
 				if ( num_bytes == transfer_size ) {
 					// Send the packet
 					node_sendEarlyResp(respHdr, pktSrc, eth_dev_num);
 				} else {
-					xil_printf("ERROR:  NODE_GET_EVENTS tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_index );
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log,
+							        "Tried to get %d bytes, but only received %d @ 0x%x \n", transfer_size, num_bytes, curr_index );
 				}
 
 				// Update our current address and bytes remaining
@@ -947,7 +911,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			exp_info = (exp_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_EXP_INFO, entry_size);
 
 			if ( exp_info != NULL ) {
-				xil_printf("EVENT LOG:  Adding EXP INFO entry with type %d to log (%d bytes)\n", type, size);
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log,
+						        "Adding EXP INFO entry with type %d to log (%d bytes)\n", type, size);
 
 				exp_info->timestamp   = get_usec_timestamp();
 				exp_info->info_type   = type;
@@ -959,19 +924,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				} else {
 					memcpy( (void *)(&exp_info->info_payload[0]), (void *)(&cmdArgs32[2]), size );
 				}
-
-#ifdef _DEBUG_
-				xil_printf("   Timestamp:  %d\n", (u32)(exp_info->timestamp));
-				xil_printf("   Info Type:  %d\n",       exp_info->info_type);
-				xil_printf("   Message  :  \n        ");
-				for( i = 0; i < exp_info->info_length; i++) {
-					xil_printf("0x%02x ", (exp_info->info_payload)[i]);
-					if ( (((i + 1) % 16) == 0) && ((i + 1) != size) ) {
-						xil_printf("\n        ");
-					}
-				}
-				xil_printf("\n");
-#endif
 			}
 	    break;
 
@@ -982,7 +934,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			// TODO:  Add parameter to command to transmit stats
 			temp = add_all_txrx_statistics_to_log(WN_NO_TRANSMIT);
 
-			xil_printf("EVENT LOG:  Added %d statistics.\n", temp);
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Added %d statistics.\n", temp);
 
 			// Send response of oldest index
             respArgs32[respIndex++] = Xil_Htonl( temp );
@@ -994,7 +946,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 		//---------------------------------------------------------------------
 		case CMDID_LOG_ENABLE_ENTRY:
-			xil_printf("EVENT LOG:  Enable Event not supported\n");
+			wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log, "Enable Event not supported\n");
 			// TODO:  THIS FUNCTION IS NOT COMPLETE
 	    break;
 
@@ -1014,10 +966,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			// Check the enable
 			if ( temp == 0 ) {
-				xil_printf("EVENT LOG:  Disable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log,
+						        "Disable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
 				async_pkt_enable = temp;
 			} else {
-				xil_printf("EVENT LOG:  Enable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log,
+						        "Enable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF) );
 
 				// Initialize all of the global async packet variables
 				async_pkt_enable = temp;
@@ -1033,8 +987,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				async_pkt_hdr.flags      = 0;
 
 				status = transport_config_socket( eth_dev_num, &sock_async, &addr_async, ((temp2 >> 16) & 0xFFFF));
+
 				if (status == FAILURE) {
-					xil_printf("Failed to configure socket.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log, "Failed to configure socket.\n");
 				}
 
 				// Transmit the Node Info
@@ -1070,7 +1025,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			temp  = Xil_Ntohl(cmdArgs32[0]);
 			temp2 = Xil_Ntohl(cmdArgs32[1]);
 
-			xil_printf("STATS:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_stats, "Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
 
 			// Configure the LOG based on the flag bit / mask
 			if ( ( temp2 & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC ) {
@@ -1105,9 +1060,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//   - size            - uint32  - Number of payload bytes in this packet
 			//   - byte[]          - uint8[] - Array of payload bytes
 
-			xil_printf("Get TXRX Statistics\n");
-
 			respSent = node_process_buffer_cmds(cmdHdr, cmdArgs32, respHdr, respArgs32, pktSrc, eth_dev_num, max_words,
+					                            print_type_stats, "statistics",
 					                            get_statistics(),
 					                            sizeof(txrx_stats_entry),
 					                            &find_statistics_txrx_entry,
@@ -1157,10 +1111,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				id = ltg_sched_create(t1, params, ltg_callback_arg, &node_ltg_cleanup);
 
 				if(id != LTG_ID_INVALID){
-					xil_printf("LTG %d configured\n", id);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Configured %d\n", id);
 
 					if ((flags & CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) == CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) {
-						xil_printf("    Starting LTG %d\n", id);
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Starting %d\n", id);
 						ltg_sched_start( id );
 					}
 
@@ -1168,7 +1122,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					wlan_mac_high_free(params);
 				} else {
 		        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-					xil_printf("ERROR:  Could not create LTG.\n");
+		        	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Could not create LTG\n");
 
 		        	// Free the memory allocated in the deserialize
 					wlan_mac_high_free(params);
@@ -1181,7 +1135,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 	        	if (ltg_callback_arg != NULL) { wlan_mac_high_free(ltg_callback_arg); }
 	        	if (params           != NULL) { wlan_mac_high_free(params); }
 
-				xil_printf("ERROR:  LTG - Error allocating memory for ltg_callback_arg or params\n");
+	        	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Could not allocate memory for CMDID_LTG_CONFIG\n");
 			}
 
 			// Send response
@@ -1209,15 +1163,15 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			if ( temp2 == 0 ) {
 				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("Starting LTG %d.\n", id);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Starting %d\n", id);
 				} else {
-					xil_printf("Starting all LTGs.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Starting all LTGs\n");
 				}
 			} else {
 				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("WARNING:  LTG - LTG %d failed to start.\n", id);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to start %d\n", id);
 				} else {
-					xil_printf("WARNING:  LTG - Some LTGs failed to start.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to start all LTGs\n");
 				}
 	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 			}
@@ -1246,15 +1200,15 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			if ( temp2 == 0 ) {
 				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("Stopping LTG %d.\n", id);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Stopping %d\n", id);
 				} else {
-					xil_printf("Stopping all LTGs.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Stopping all LTGs\n");
 				}
 			} else {
 				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("WARNING:  LTG - LTG %d failed to stop.\n", id);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to stop %d\n", id);
 				} else {
-					xil_printf("WARNING:  LTG - Some LTGs failed to stop.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to stop all LTGs\n");
 				}
 	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 			}
@@ -1283,15 +1237,15 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			if ( temp2 == 0 ) {
 				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("Removing LTG %d.\n", id);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Removing %d\n", id);
 				} else {
-					xil_printf("Removing All LTGs.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Removing all LTGs\n");
 				}
 			} else {
 				if (id != CMD_PARAM_LTG_ALL_LTGS){
-					xil_printf("WARNING:  LTG - LTG %d failed to remove.\n", id);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to remove %d\n", id);
 				} else {
-					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to remove all LTGs\n");
 				}
 	        	status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 			}
@@ -1371,12 +1325,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			prev_interrupt_state = wlan_mac_high_interrupt_stop();
 			// Configure the LOG based on the flag bits
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_LOG ) == CMD_PARAM_NODE_RESET_FLAG_LOG ) {
-				xil_printf("EVENT LOG:  Reset log\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Reset log\n");
 				event_log_reset();
 			}
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS ) == CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS ) {
-				xil_printf("Reseting Statistics\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_stats, "Reseting Statistics\n");
 				wlan_exp_reset_station_statistics_callback();
 			}
 
@@ -1384,25 +1338,25 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				status = ltg_sched_remove( LTG_REMOVE_ALL );
 
 				if ( status != 0 ) {
-					xil_printf("WARNING:  LTG - Failed to remove all LTGs.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to remove all LTGs\n");
 					status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
 				} else {
-					xil_printf("Removing All LTGs.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Removing All LTGs\n");
 				}
 			}
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE ) == CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE ) {
-				xil_printf("Purging All Data Transmit Queues\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging all data transmit queues\n");
 				wlan_exp_purge_all_data_tx_queue_callback();
 			}
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS ) == CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS ) {
-				xil_printf("Resetting Associations\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting associations\n");
 				wlan_exp_reset_all_associations_callback();
 			}
 
 			if ( ( temp & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO ) == CMD_PARAM_NODE_RESET_FLAG_BSS_INFO ) {
-				xil_printf("Resetting BSS info\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting BSS info\n");
 				wlan_exp_reset_bss_info_callback();
 			}
 
@@ -1422,6 +1376,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             // CMDID_NODE_CONFIGURE Packet Format:
 			//   - cmdArgs32[0]  - Flags
 			//                     [0] - NODE_CONFIG_FLAG_DSSS_ENABLE
+			//   - cmdArgs32[1]  - Flag mask
+			//   - cmdArgs32[2]  - WLAN Exp debug level
+			//                     [31]  - Set debug level
+			//                     [7:0] - Debug level
 			//
 			status = CMD_PARAM_SUCCESS;
 
@@ -1429,17 +1387,24 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			temp  = Xil_Ntohl(cmdArgs32[0]);
 			temp2 = Xil_Ntohl(cmdArgs32[1]);
 
-			xil_printf("Configure Node:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
 
 			// Configure the Node based on the flag bit / mask
-			if ( ( temp2 & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE ) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE ) {
-				if ( ( temp & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE ) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE ) {
-					xil_printf("Enable DSSS\n");
+			if ((temp2 & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
+				if ((temp & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
 					wlan_mac_high_set_dsss( 0x1 );
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Enabled DSSS\n");
 				} else {
-					xil_printf("Disable DSSS\n");
 					wlan_mac_high_set_dsss( 0x0 );
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disabled DSSS\n");
 				}
+			}
+
+			temp  = Xil_Ntohl(cmdArgs32[2]);
+
+			// Set debug print level
+			if ((temp & CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) == CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) {
+				wlan_exp_set_print_level(temp & 0xFF);
 			}
 
 			// Send response of status
@@ -1475,7 +1440,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					// Need to set the MAC Address of the node; this will have to be
 					// implemented for each subclass of the nodes (ie AP, STA, IBSS, etc)
 					// Not sure if this should be a callback?
-					xil_printf("Setting Wireless MAC Address not supported at this time.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Setting Wireless MAC Address not supported at this time\n");
 
 				break;
 
@@ -1483,7 +1448,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1537,7 +1502,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					// If this is a write, then update the time on the node
 					if (msg_cmd == CMD_PARAM_WRITE_VAL){
 						wlan_mac_high_set_timestamp( new_time );
-						xil_printf("WARPNET:  Setting time = 0x%08x 0x%08x\n", temp2, temp);
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set time = 0x%08x 0x%08x\n", temp2, temp);
 					}
 
 					// Get the absolute time
@@ -1545,7 +1510,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					temp2    = Xil_Ntohl(cmdArgs32[5]);
 					abs_time = (((u64)temp2)<<32) + ((u64)temp);
 
-					xil_printf("WARPNET:  Absolute time = 0x%08x 0x%08x\n", temp2, temp);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Absolute time = 0x%08x 0x%08x\n", temp2, temp);
 
 					// Create a time info log entry
 					time_entry = (time_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
@@ -1573,7 +1538,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1608,12 +1573,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			switch (msg_cmd) {
 				case CMD_PARAM_WRITE_VAL:
-					xil_printf("Setting RX filter = 0x%08x\n", temp);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set RX filter = 0x%08x\n", temp);
 					wlan_mac_high_set_rx_filter_mode(temp);
 			    break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1653,7 +1618,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					temp    = Xil_Ntohl(cmdArgs32[1]);
 					temp2   = Xil_Ntohl(cmdArgs32[2]);
 					if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
-						xil_printf("Setting CPU High random seed = 0x%08x\n", temp2);
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set CPU High random seed = 0x%08x\n", temp2);
 						srand(temp2);
 					}
 
@@ -1661,13 +1626,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					temp    = Xil_Ntohl(cmdArgs32[3]);
 					temp2   = Xil_Ntohl(cmdArgs32[4]);
 					if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
-						xil_printf("Setting CPU Low  random seed = 0x%08x\n", temp2);
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set CPU Low  random seed = 0x%08x\n", temp2);
 						wlan_mac_high_set_srand(temp2);
 					}
 			    break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1745,13 +1710,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 						respHdr->numArgs += size;
 
 					} else { //failed
-						xil_printf("    ERROR: Parameter read failed in CPU low.\n");
+						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Parameter read failed in CPU low.\n");
 						status = CMD_PARAM_ERROR;
 					}
 			    break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -1784,7 +1749,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				// Check that the power is within the specified bounds
 		        if ((power >= TX_POWER_MIN_DBM) && (power <= TX_POWER_MAX_DBM)){
 
-				    xil_printf("Setting TX power = %d\n", power);
+		        	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set TX power = %d\n", power);
 
 		        	// Set the default power for new associations
 				    default_unicast_mgmt_tx_params.phy.power = power;
@@ -1862,7 +1827,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
     					// Set the default unicast rate
     					default_unicast_data_tx_params.phy.rate = rate;
-    					xil_printf("Setting Default Unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+    							        "Set default unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
 					break;
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
@@ -1871,7 +1837,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					break;
 
                     default:
-    					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
     					status = CMD_PARAM_ERROR;
                     break;
 				}
@@ -1881,7 +1847,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
     					// Set the default multicast rate
     					default_multicast_data_tx_params.phy.rate = rate;
-    					xil_printf("Setting Default Multicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+    							        "Set default multicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
 					break;
 
                     case CMD_PARAM_READ_VAL:
@@ -1891,12 +1858,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					break;
 
                     default:
-    					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
     					status = CMD_PARAM_ERROR;
                     break;
 				}
 			} else {
-				xil_printf("WARNING:  Unknown type for NODE_TX_RATE: %d \n", type);
+				wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_RATE: %d\n", type);
 				status = CMD_PARAM_ERROR;
 			}
 
@@ -1943,7 +1910,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
 						// Set the default unicast rate
 						default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
-						xil_printf("Setting Default Unicast TX antenna mode to %d \n", ant_mode);
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default unicast TX antenna mode = %d\n", ant_mode);
 					break;
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
@@ -1952,7 +1919,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					break;
 
                     default:
-    					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
     					status = CMD_PARAM_ERROR;
                     break;
 				}
@@ -1965,7 +1932,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
     					default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
 
     					ant_mode = (ant_mode << 16) + ant_mode;
-    					xil_printf("Setting Default Multicast TX antenna mode to %d\n", ant_mode);
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast TX antenna mode = %d\n", ant_mode);
 					break;
 
                     case CMD_PARAM_READ_VAL:
@@ -1975,12 +1942,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					break;
 
                     default:
-    					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
     					status = CMD_PARAM_ERROR;
                     break;
 				}
 			} else {
-				xil_printf("WARNING:  Unknown type for NODE_TX_RATE: %d \n", type);
+				wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_RATE: %d\n", type);
 				status = CMD_PARAM_ERROR;
 			}
 
@@ -2009,7 +1976,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			switch (msg_cmd) {
 				case CMD_PARAM_WRITE_VAL:
 				case CMD_PARAM_WRITE_DEFAULT_VAL:
-					xil_printf("Setting RX antenna mode to %d \n", ant_mode);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set RX antenna mode = %d\n", ant_mode);
 	            	wlan_mac_high_set_rx_ant_mode(ant_mode);
 				break;
 
@@ -2019,7 +1986,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -2062,7 +2029,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			// Return the size and current SSID
 			if (my_bss_info->ssid != NULL) {
-				xil_printf("Get SSID: %s\n", my_bss_info->ssid);
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "SSID = %s\n", my_bss_info->ssid);
 
 				temp = strlen(my_bss_info->ssid);
 
@@ -2102,9 +2069,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//   - size            - uint32  - Number of payload bytes in this packet
 			//   - byte[]          - uint8[] - Array of payload bytes
 
-			xil_printf("Get Station Info\n");
-
 			respSent = node_process_buffer_cmds(cmdHdr, cmdArgs32, respHdr, respArgs32, pktSrc, eth_dev_num, max_words,
+                                                print_type_node, "station info",
                                                 get_station_info_list(),
 					                            sizeof(station_info_entry),
 					                            &find_station_info_entry,
@@ -2130,20 +2096,19 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			//   - size            - uint32  - Number of payload bytes in this packet
 			//   - byte[]          - uint8[] - Array of payload bytes
 
-			xil_printf("Get BSS Info\n");
-
 			// If MAC address is all zeros, then return my_bss_info
 			if ((cmdArgs32[4] == 0x0) && (cmdArgs32[5] == 0x0)) {
 				if (my_bss_info != NULL) {
 					// Replace MAC address of command with my_bss_info BSSID
 					wlan_exp_put_mac_addr(my_bss_info->bssid, &cmdArgs32[4]);
 				} else {
-					xil_printf("    My BSS Info was Null.\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "my_bss_info was NULL\n");
 					wlan_exp_put_mac_addr(get_wlan_mac_addr(), &cmdArgs32[4]);
 				}
 			}
 
 			respSent = node_process_buffer_cmds(cmdHdr, cmdArgs32, respHdr, respArgs32, pktSrc, eth_dev_num, max_words,
+					                            print_type_node, "bss info",
 					                            wlan_mac_high_get_bss_info_list(),
 					                            sizeof(bss_info_entry),
 					                            &wlan_mac_high_find_bss_info_BSSID,
@@ -2159,8 +2124,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 		//---------------------------------------------------------------------
 		case CMDID_QUEUE_TX_DATA_PURGE_ALL:
-			xil_printf("Purging All Data Transmit Queues\n");
-
 			wlan_exp_purge_all_data_tx_queue_callback();
 		break;
 
@@ -2199,26 +2162,26 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			switch (msg_cmd) {
 				case CMD_PARAM_WRITE_VAL:
-					xil_printf("Writing CPU High Mem:\n");
-					xil_printf(" Addr: 0x%08x\n", mem_addr);
-					xil_printf(" Len:  %d\n", mem_length);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Write CPU High Mem\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", mem_addr);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
 					// Don't bother if length is clearly bogus
 					if(mem_length < 1400) {
 						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
-							xil_printf(" W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmdArgs32[3 + mem_idx]));
+							wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmdArgs32[3 + mem_idx]));
 							Xil_Out32((mem_addr + mem_idx*sizeof(u32)), Xil_Ntohl(cmdArgs32[3 + mem_idx]));
 						}
 					} else {
-						xil_printf("    ERROR: Write too long.  Must be 1400 bytes or less.\n");
+						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_HIGH write longer than 1400 bytes\n");
 						status = CMD_PARAM_ERROR;
 					}
 				break;
 
 				case CMD_PARAM_READ_VAL:
-					xil_printf("Reading CPU High Mem:\n");
-					xil_printf(" Addr: 0x%08x\n", mem_addr);
-					xil_printf(" Len:  %d\n", mem_length);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Read CPU High Mem:\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", mem_addr);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
 					// Add payload to response
 					if(mem_length < 1400) {
@@ -2240,13 +2203,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 						respHdr->length += (mem_length * sizeof(u32));
 						respHdr->numArgs += mem_length;
 					} else {
-						xil_printf("    ERROR: Read too long.  Must be 1400 bytes or less.\n");
+						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_HIGH read longer than 1400 bytes\n");
 					    status = CMD_PARAM_ERROR;
 					}
 				break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -2289,9 +2252,9 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 			switch (msg_cmd) {
 				case CMD_PARAM_WRITE_VAL:
-					xil_printf("Writing CPU Low Mem:\n");
-					xil_printf(" Addr: 0x%08x\n", mem_addr);
-					xil_printf(" Len:  %d\n", mem_length);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Write CPU Low Mem:\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", mem_addr);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
 					//Endian swap payload here - CPU Low requires payload that is ready to use as-is
 					for(mem_idx=0; mem_idx<mem_length+2; mem_idx++) {
@@ -2301,7 +2264,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					temp2 = wlan_mac_high_write_low_mem(mem_length + 2, &(cmdArgs32[1]));
 
 					if (temp2 == -1) {
-						xil_printf("    ERROR: Write failed in CPU low.\n");
+						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW write failed\n");
 						status = CMD_PARAM_ERROR;
 					}
 				break;
@@ -2333,13 +2296,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 						respHdr->numArgs += mem_length;
 
 					} else { //failed
-						xil_printf("    ERROR: Read failed in CPU low.\n");
+						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW read failed\n");
 						status = CMD_PARAM_ERROR;
 					}
 				break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -2388,7 +2351,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 *
 ******************************************************************************/
 u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
-	                         dl_list * source_list, u32 dest_size,
+	                         char * type, char * description, dl_list * source_list, u32 dest_size,
 	                         dl_entry * (*find_source_entry)(u8 *),
                              void (*copy_source_to_dest)(void *, void *, u64),
                              void (*zero_dest)(void *)) {
@@ -2435,7 +2398,8 @@ u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHd
     		// Copy routine will fill in a zeroed entry if the source is NULL
 			copy_source_to_dest(NULL, &respArgs32[respIndex], get_usec_timestamp());
 
-			xil_printf("Returning zeroed entry for node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Returning zeroed %s entry for node: ", description);
+			wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
 			// Set the return args and increment the size
 			respArgs32[2]    = Xil_Htonl( dest_size );
@@ -2443,8 +2407,9 @@ u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHd
 			respArgs32[4]    = Xil_Htonl( dest_size );
 			respHdr->length += dest_size;
     	} else {
-    		// If we cannot find the MAC address, print a warning and return an empty buffer
-    		xil_printf("WARNING:  Could not find specified node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+    		// If we cannot find the MAC address, return an empty buffer
+    		wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Could not find %s for specified node: ", description);
+			wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
     	}
     } else {
 		// If parameter is not the magic number to return all structures
@@ -2458,7 +2423,8 @@ u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHd
 				//          similar to the info structures in wlan_mac_high.h
 				copy_source_to_dest(curr_entry->data, &respArgs32[respIndex], get_usec_timestamp());
 
-				xil_printf("Getting entry for node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Get %s entry for node: ", description);
+				wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
 				// Set the return args and increment the size
 				respArgs32[2]    = Xil_Htonl( dest_size );
@@ -2467,7 +2433,8 @@ u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHd
 				respHdr->length += dest_size;
 			} else {
 				// If we cannot find the MAC address, print a warning and return an empty buffer
-				xil_printf("WARNING:  Could not find specified node: "); print_mac_address(&mac_addr[0]); xil_printf("\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Could not find %s for specified node: ", description);
+				wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 			}
 		} else {
 			// Create a WARPNet buffer response to send all entries
@@ -2632,7 +2599,7 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u64 time) {
 	if (curr_source != NULL) {
 		memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(station_info_base) );
 	} else {
-		xil_printf("WARNING:  Could not copy station_info to entry\n");
+		wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "Could not copy station_info to entry\n");
 	}
 
 	// Free curr_source if source was NULL
@@ -2688,7 +2655,7 @@ void copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time) {
 	if (curr_source != NULL) {
 		memcpy( (void *)(&curr_dest->stats), (void *)(curr_source), sizeof(statistics_txrx_base) );
 	} else {
-		xil_printf("WARNING:  Could not copy statistics_txrx to entry\n");
+		wlan_exp_printf(WLAN_EXP_PRINT_WARNING, "STATS", "Could not copy statistics_txrx to entry\n");
 	}
 
 	// Free curr_source if source was NULL
@@ -2730,7 +2697,7 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time) {
 	if (curr_source != NULL) {
 		memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(bss_info_base) );
 	} else {
-		xil_printf("WARNING:  Could not copy bss_info to entry\n");
+		wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy bss_info to entry\n");
 	}
 
 	// Free curr_source if source was NULL
@@ -3350,12 +3317,14 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 				curr_station_info = (station_info*)(curr_entry->data);
 
 				if ( aid == WLAN_EXP_AID_ALL ) {
-					xil_printf("Setting TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+							        "Set TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
 					curr_station_info->tx.phy.rate = tx_rate;
 					rate                           = tx_rate;
 
 				} else if ( aid == curr_station_info->AID ) {
-					xil_printf("Setting TX rate on AID %d = %d Mbps\n", aid, wlan_lib_mac_rate_to_mbps(tx_rate));
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+							        "Set TX rate on AID %d = %d Mbps\n", aid, wlan_lib_mac_rate_to_mbps(tx_rate));
 					curr_station_info->tx.phy.rate = tx_rate;
 					rate                           = tx_rate;
 					break;
@@ -3430,12 +3399,14 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 				curr_station_info = (station_info*)(curr_entry->data);
 
 				if ( aid == WLAN_EXP_AID_ALL ) {
-					xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+							        "Set TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
 					curr_station_info->tx.phy.antenna_mode = ant_mode;
 					mode                                   = ant_mode;
 
 				} else if ( aid == curr_station_info->AID ) {
-					xil_printf("Setting TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+							        "Set TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
 					curr_station_info->tx.phy.antenna_mode = ant_mode;
 					mode                                   = ant_mode;
 					break;
@@ -3474,29 +3445,6 @@ u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
 	return mode;
 }
-
-
-
-
-/*****************************************************************************/
-/**
-* Print MAC Address
-*
-* @param    u8 *     - Pointer to the MAC address to be printed
-* @return	None.
-* @note		None.
-*
-******************************************************************************/
-void print_mac_address(u8 * mac_address) {
-    u32 i;
-
-	xil_printf("%02x", mac_address[0]);
-
-	for ( i = 1; i < ETH_ADDR_LEN; i++ ) {
-		xil_printf(":%02x", mac_address[i] );
-	}
-}
-
 
 
 
