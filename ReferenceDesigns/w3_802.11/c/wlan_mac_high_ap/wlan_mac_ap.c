@@ -491,6 +491,15 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 	// Log all of the TX Low transmissions
 	for(i = 0; i < num_tx_low_details; i++) {
+		if(i==0 && (tx_low_details[i].tx_start_delta < T_SLOT)){
+			//This captures a subtle effect in the DCF hardware. A random backoff is calculated on the
+			//first transmission of an MPDU in case a CCA_BUSY causes a deferral. If there is no deferral,
+			//this slot count is not used. We can sanitize this value here by seeing if the packet transmitted
+			//immediately (i.e. a time from start to accept that is less than a slot). In this case, we know
+			//there was no backoff needed for this transmission. We signify this event with a num_slots value
+			//of -1.
+			tx_low_details[i].num_slots = -1;
+		}
 
 		// Log the TX low
 		wlan_exp_log_create_tx_low_entry(tx_mpdu, &tx_low_details[i], ts_old, i);
