@@ -80,8 +80,6 @@ u8                    join_success = WLAN_EXP_IBSS_JOIN_IDLE;
 
 void wlan_exp_ibss_join_success(bss_info* bss_description);
 
-void print_mac_address(u8 * mac_address);
-
 
 /******************************** Functions **********************************/
 
@@ -167,7 +165,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 			// Response format:
 			//     respArgs32[0]       Status
 			//
-			xil_printf("Disassociate\n");
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
 			status  = CMD_PARAM_SUCCESS;
 
@@ -200,8 +198,8 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 
 			if ( msg_cmd == CMD_PARAM_WRITE_VAL ) {
 				status  = CMD_PARAM_ERROR;
-				xil_printf("WARNING: Setting Channel via command not supported for IBSS.\n");
-				xil_printf("         See documentation for how to change channels for IBSS.\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Setting Channel via command not supported for IBSS\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "  See documentation for how to change channels for IBSS\n");
 			}
 
 			// Send response
@@ -236,7 +234,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 			temp  = Xil_Ntohl(cmdArgs32[0]);
 			temp2 = Xil_Ntohl(cmdArgs32[1]);
 
-			xil_printf("IBSS:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "IBSS: Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
 
 			// Configure based on the flag bit / mask
 			if ( ( temp2 & CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE ) == CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE ) {
@@ -291,14 +289,14 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 
 			switch (msg_cmd) {
 				case CMD_PARAM_WRITE_VAL:
-					xil_printf("Set Scan Parameters\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set Scan Parameters\n");
 					// Set the timing parameters
                     temp  = Xil_Ntohl(cmdArgs32[1]);       // Time per channel
                     temp2 = Xil_Ntohl(cmdArgs32[2]);       // Idle time per loop
 
                     if ((temp != CMD_PARAM_NODE_TIME_RSVD_VAL) && (temp2 != CMD_PARAM_NODE_TIME_RSVD_VAL)) {
-    					xil_printf("    Time per channel   = %d us\n", temp);
-    					xil_printf("    Idle time per loop = %d us\n", temp2);
+                    	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Time per channel   = %d us\n", temp);
+                    	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Idle time per loop = %d us\n", temp2);
     					wlan_mac_set_scan_timings(temp, temp2);
                     }
 
@@ -317,11 +315,11 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
                         }
 
                         if (status == CMD_PARAM_SUCCESS) {
-        					xil_printf("    Channels = ");
+                        	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Channels = ");
                             for (i = 0; i < length; i++) {
-                                xil_printf("%d ",channel_list[i]);
+                            	wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "%d ",channel_list[i]);
                             }
-                            xil_printf("\n");
+                            wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
                         }
 
                         wlan_mac_high_free(channel_list);
@@ -329,7 +327,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 			    break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -366,13 +364,13 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 
 				ssid = (char *)&cmdArgs32[4];
 
-            	xil_printf("Active scan enabled for SSID '%s'  BSSID: ", ssid);
-            	print_mac_address(&mac_addr[0]); xil_printf("\n");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Active scan enabled for SSID '%s'  BSSID: ", ssid);
+				wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
             	wlan_mac_scan_enable(&mac_addr[0], ssid);
             } else {
                 // Disable active scan
-            	xil_printf("Active scan disabled.\n");
+            	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Active scan disabled.\n");
             	wlan_mac_scan_disable();
             }
 
@@ -401,7 +399,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 			status  = CMD_PARAM_SUCCESS;
 			success = CMD_PARAM_NODE_JOIN_SUCCEEDED;
 
-			xil_printf("Joining the BSS\n");
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Joining the BSS\n");
 
 			temp_bss_info_entry = (bss_info_entry *)&cmdArgs32[2];
 
@@ -462,10 +460,10 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
         	// Scan and join the SSID
 			//   NOTE:  The scan and join method returns immediately.  Therefore, we have to wait until
 			//          we have successfully joined the network or we have timed out.
-			xil_printf("Scan and join SSID '%s' ... ", ssid);
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Scan and join SSID '%s' ... ", ssid);
 
 			if (timeout > 1000000) {
-				xil_printf("    WARNING:  Timeout of %d seconds is very large.\n", timeout);
+				wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "Scan timeout of %d seconds is very large.\n", timeout);
 			}
 
 			join_success = WLAN_EXP_IBSS_JOIN_RUN;
@@ -486,9 +484,9 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 
             // Indicate on the UART if we were successful in joining the network
             if (success == CMD_PARAM_NODE_JOIN_SUCCEEDED) {
-    			xil_printf("SUCCEEDED\n", ssid);
+            	wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "SUCCEEDED\n");
             } else {
-    			xil_printf("FAILED\n", ssid);
+            	wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "FAILED\n");
             }
 
 			// Send response of status
@@ -502,7 +500,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 
 		//---------------------------------------------------------------------
 		default:
-			xil_printf("Unknown node command: 0x%x\n", cmdID);
+			wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown node command: 0x%x\n", cmdID);
 		break;
 	}
 
@@ -545,6 +543,8 @@ int wlan_exp_node_ibss_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth
 *
 ******************************************************************************/
 void wlan_exp_ibss_join_success(bss_info* bss_description) {
+
+	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Successfully joined:  %s\n", bss_description->ssid);
 
     // Set global variable back to idle to indicate successful join
 	join_success = WLAN_EXP_IBSS_JOIN_IDLE;
