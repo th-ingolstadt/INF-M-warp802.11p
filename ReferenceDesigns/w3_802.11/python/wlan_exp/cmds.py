@@ -94,6 +94,7 @@ CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS           = 0x00000010
 CMD_PARAM_NODE_RESET_FLAG_BSS_INFO               = 0x00000020
 
 CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE           = 0x00000001
+CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL   = 0x80000000
 
 CMD_PARAM_TIME_ADD_TO_LOG                        = 0x00000002
 CMD_PARAM_RSVD_TIME                              = 0xFFFFFFFF
@@ -657,20 +658,25 @@ class NodeConfigure(wn_message.Cmd):
     Attributes:
         dsss_enable -- Whether DSSS packets are received. 
     """
-    def __init__(self, dsss_enable=None):
+    def __init__(self, dsss_enable=None, print_level=None):
         super(NodeConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_CONFIGURE
         
         flags = 0
         mask  = 0
+        level = 0
 
         if dsss_enable is not None:
             mask += CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE
             if dsss_enable:
                 flags += CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE
+
+        if print_level is not None:
+            level = CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL + print_level
         
         self.add_args(flags)
         self.add_args(mask)
+        self.add_args(level)
 
     def process_resp(self, resp):
         pass

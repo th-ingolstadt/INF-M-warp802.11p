@@ -899,6 +899,10 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         self.send_cmd(cmds.NodeConfigure(dsss_enable=False))
 
 
+    def set_print_level(self, level):
+        """Set the WLAN Exp print level on the node."""
+        self.send_cmd(cmds.NodeConfigure(print_level=level))
+
 
     #--------------------------------------------
     # Internal helper methods to configure node attributes

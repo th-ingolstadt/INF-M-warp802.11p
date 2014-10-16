@@ -61,7 +61,13 @@ WLAN_EXP_IBSS_NOMAC_CLASS_INST    = 'node_ibss.WlanExpNodeIBSS(network_config, d
 WLAN_EXP_IBSS_NOMAC_DESCRIPTION   = 'WLAN Exp (IBSS/NOMAC) '
 
 
-
+# WLAN Exp Node Print Levels
+#   NOTE:  The C counterparts are found in wlan_exp_common.h
+WLAN_EXP_PRINT_NONE               = 0
+WLAN_EXP_PRINT_ERROR              = 1
+WLAN_EXP_PRINT_WARNING            = 2
+WLAN_EXP_PRINT_INFO               = 3
+WLAN_EXP_PRINT_DEBUG              = 4
 
 
 
