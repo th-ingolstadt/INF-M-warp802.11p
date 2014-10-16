@@ -663,7 +663,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 
 inline int update_cw(u8 reason, u8 pkt_buf){
-	u32* station_rc_ptr;
+	volatile u32* station_rc_ptr;
 	u8* rc_ptr;
 	u8 retry_limit;
 	tx_frame_info* tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf);
