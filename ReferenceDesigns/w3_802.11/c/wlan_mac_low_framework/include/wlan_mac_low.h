@@ -195,8 +195,6 @@
 #define wlan_mac_get_rx_phy_rate() ((Xil_In32(WLAN_MAC_REG_RX_RATE_LENGTH) & 0xF0000) >> 16)
 #define wlan_mac_get_rx_phy_sel() ((Xil_In32(WLAN_MAC_REG_RX_RATE_LENGTH) & 0x1000000) >> 24)
 
-//MAC Timing Parameters
-#define T_SLOT 9
 #define T_SIFS 10
 #define T_DIFS (T_SIFS + 2*T_SLOT)
 #define T_EIFS 88
