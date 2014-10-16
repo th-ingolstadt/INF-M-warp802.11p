@@ -687,11 +687,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				}//END if(new Rx while waiting for Tx)
 			}//END if(Tx state machine done)
 		} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
-
-
-
 	} //end retransmission loop
 
+	//Reset the global variable
 	autocancel_en = 0;
 
 	//Return failure - any successful transmissions return inside the loop above
@@ -699,6 +697,31 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 }
 
 
+/**
+ * @brief Updates the MAC's contention window
+ *
+ * This function is called by the Tx state machine to update the contention window, typically after each transmission attempt
+ * The contention window, station short retry counter and long retry counters are all updated per call.
+ *
+ * Two station retry counters are maintained- long and short. In the current implementation RTS/CTS is not supported, so
+ * only the station short retry counter is incremented.
+ *
+ * The short station retry counter increments on every transmission failure. The counter is reset on any successful transmission.
+ *
+ * The contention window is reset to CW_min when either:
+ *  a) A packet is transmitted successfully
+ *  b) A station retry counter reaches its limit
+ *
+ *  Notice that in the case of multiple consecutive failed transmissions, the CW will reset after the first packet reaches its retry limit,
+ *  but not when subsequent packets reach their retry limits. This is the behavior intended by the standard; see:
+ *   -IEEE 802.11-2012 9.3.3
+ *   -IEEE doc 802.11-03/752r0
+ *
+ * @param u8 pkt_buf
+ *  -Index of the Tx packet buffer containing the packet who's transmission attempt caused this CW update
+ * @param u8 reason
+ *  -Reason code for this CW update (Tx success, Tx failure, etc)
+ */
 inline void update_cw(u8 reason, u8 pkt_buf){
 	volatile u32* station_rc_ptr;
 	u8* rc_ptr;
