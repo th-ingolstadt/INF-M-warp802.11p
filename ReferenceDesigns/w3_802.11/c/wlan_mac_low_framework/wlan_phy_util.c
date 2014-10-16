@@ -110,13 +110,13 @@ int w3_node_init() {
 
 	//Initialize the radio_controller core and MAX2829 transceivers for on-board RF interfaces
 	status = radio_controller_init(RC_BASEADDR, RC_ALL_RF, 1, 1);
-#if 0 //FIXME REMOVE
+
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
 		//Comment out allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
 		ret = XST_FAILURE;
 	}
-#endif
+
 
 	//Initialize the EEPROM read/write core
 	iic_eeprom_init(EEPROM_BASEADDR, 0x64);
