@@ -25,7 +25,6 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_queue.h"
-#include "wlan_mac_fmc_pkt.h"
 #include "wlan_mac_eth_util.h"
 
 #include "wlan_mac_queue.h"
