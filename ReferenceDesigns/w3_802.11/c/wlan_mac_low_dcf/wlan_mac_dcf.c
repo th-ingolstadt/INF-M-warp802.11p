@@ -462,7 +462,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	//This loop itereates for each transmissin/re-transmission of the packet, terminating when
 	// the max number of allowed transmissions has occurred or when another even causes early termination,
 	// like reception of an ACK (no need to keep re-transmitting) or a beacon (only in IBSS mode, for beacons from peers)
-	for(i=0; i<mpdu_info->params.mac.num_tx_max ; i++){
+	for(i=0; i<mpdu_info->params.mac.num_tx_max; i++) {
 
 		// TODO
 		//  * Make backoff slot selection on retransmissions less confusing
@@ -566,97 +566,126 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		wlan_mac_MPDU_tx_start(1);
 		wlan_mac_MPDU_tx_start(0);
 
-#if 0
-		!!! Something like this code will be used to determine the number of slots actually used
-		!!! since the hardware will ignore the num_slots argument if medium is idle for DIFS
-		tx_status = wlan_mac_get_status();
-		if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_STATE == WLAN_MAC_STATUS_MPDU_TX_STATE_DEFER){
-			low_tx_details[i].
-		} else {
-
-		}
-#endif
-
 		//Wait for the MPDU Tx to finish
-		do{
+		do{//while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING)
+
+			//While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
 			if(low_tx_details != NULL){
 				low_tx_details[i].phy_params.rate = mpdu_info->params.phy.rate;
 				low_tx_details[i].phy_params.power = mpdu_info->params.phy.power;
 				low_tx_details[i].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
 				low_tx_details[i].chan_num = wlan_mac_low_get_active_channel();
-				low_tx_details[i].num_slots = n_slots; //TODO
 				low_tx_details[i].cw = (1 << cw_exp)-1; //(2^(CW_EXP) - 1)
+
+				//NOTE: the pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
+				// the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
+				// to the time delta between the accept and start times of the first transmission to determine whether the pre-Tx backoff
+				// actually occurred.
+				low_tx_details[i].num_slots = n_slots;
 			}
+
+			//Poll the DCF core status register
 			tx_status = wlan_mac_get_status();
 
 			if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
+			//Transmission is complete
+
+				//Update the per-Tx metadata
 				if(low_tx_details != NULL){
 					low_tx_details[i].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
 					last_tx_timestamp = get_tx_start_timestamp();
 				}
 
-				switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
+				//Switch on the result of the transmission attempt
+				switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT) {
+
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
-						//Tx didn't require timeout, completed successfully
+						//Transmission was immediately successful - this implies
+						// no post-Tx timeout was required, so core didn't wait for any post-Tx receptions
+						// (i.e. multicast/broadcast transmission)
+
+						//Update contention window
 						update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
+
+						//Start a post-Tx backoff using the updated contention window
 						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 						wlan_mac_dcf_hw_start_backoff(n_slots);
+
+						//Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
 						autocancel_en = 0;
+
 						return 0;
 					break;
+
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED:
+						//Transmission ended, followed by a new reception (hopefully an ACK)
+
 						expect_ack = 1;
+
+						//Handle the new reception
 						rx_status = wlan_mac_low_poll_frame_rx();
-						if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack){
+
+						//Check if the reception is an ACK addressed to this node, received with a valid checksum
+						if((rx_status & POLL_MAC_TYPE_ACK) && (rx_status & POLL_MAC_STATUS_GOOD) && (rx_status & POLL_MAC_ADDR_MATCH) && (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && expect_ack) {
+
+							//Update contention window
 							update_cw(DCF_CW_UPDATE_MPDU_RX_ACK, pkt_buf);
+
+							//Start a post-Tx backoff using the updated contention window
 							n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 							wlan_mac_dcf_hw_start_backoff(n_slots);
+
+							//Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
 							autocancel_en = 0;
-							return 0;
-						} else if((autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)){
-							autocancel_en = 0;
-							return -1;
+
+							return TX_MPDU_RESULT_SUCCESS;
 						} else {
-							if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)){
-								n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-								wlan_mac_dcf_hw_start_backoff(n_slots);
-								break; //Transmission has failed. Halt loop
-							} else{
-								n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-								wlan_mac_dcf_hw_start_backoff(n_slots);
-								continue; //Begin retransmission.
-							}
+							//Received a packet immediately after transmitting, but it wasn't the ACK we wanted
+							// Could have been our ACK, but arrived with a bad checksum, or a different packet altogether
+
+							//Update the contention window, calling this transmission attempt a failure
+							update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf);
+
+							//Start the post-Tx backoff
+							n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+							wlan_mac_dcf_hw_start_backoff(n_slots);
+
+							//Jump to next loop iteration (next transmission attempt, or punting if this was the last)
+							continue;
 						}
 					break;
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT:
 						//Tx required timeout, timeout expired with no receptions
 
+						//Update the contention window, calling this transmission attempt a failure
+						update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf);
 						//Update the contention window
-						if(update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf)) {
-							n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-							wlan_mac_dcf_hw_start_backoff(n_slots);
-							break; //Transmission has failed. Halt loop
-						}
 
 						//Start a random backoff interval using the updated CW
 						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 						wlan_mac_dcf_hw_start_backoff(n_slots);
 
-						//Re-submit the same MPDU for re-transmission (it will defer to the backoff started above)
+						//Jump to next loop iteration (next transmission attempt, or punting if this was the last)
 						continue;
-
 					break;
-
 				}
 			} else {
-				if( tx_status & (WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)){
+				//Tx state machine still running - poll the MAC core status in case a reception occurred before the transmission could start
+				if( tx_status & (WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
+
+					//Handle the reception
 					rx_status = wlan_mac_low_poll_frame_rx();
-					if((autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)){
+
+					//Check if the new reception met the conditions to cancel the already-submitted transmission
+					if((autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
+						//The Rx handler killed this transmission already by resetting the MAC core
+						// Reset the global autocancel_en variable and return failure
 						autocancel_en = 0;
-						return -1;
+
+						return TX_MPDU_RESULT_FAILURE;
 					}
-				}
-			}
+				}//END if(new Rx while waiting for Tx)
+			}//END if(Tx state machine done)
 		} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
 
 
@@ -664,12 +693,13 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	} //end retransmission loop
 
 	autocancel_en = 0;
-	return -1;
 
+	//Return failure - any successful transmissions return inside the loop above
+	return TX_MPDU_RESULT_FAILURE;
 }
 
 
-inline int update_cw(u8 reason, u8 pkt_buf){
+inline void update_cw(u8 reason, u8 pkt_buf){
 	volatile u32* station_rc_ptr;
 	u8* rc_ptr;
 	u8 retry_limit;
@@ -694,7 +724,7 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 			//Update counts and contention windows
 			(*rc_ptr)++;
 			(*station_rc_ptr)++;
-			if(*rc_ptr == retry_limit) return -1;
+
 			if(*station_rc_ptr == retry_limit){
 				cw_exp = wlan_mac_low_get_cw_exp_min();
 			} else {
@@ -713,7 +743,7 @@ inline int update_cw(u8 reason, u8 pkt_buf){
 		break;
 	}
 
-	return 0;
+	return;
 
 }
 
