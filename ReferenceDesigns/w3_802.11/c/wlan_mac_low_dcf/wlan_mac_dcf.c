@@ -38,42 +38,34 @@
 #include "math.h"
 
 
-/*************************** Constant Definitions ****************************/
-
 #define WARPNET_TYPE_80211_LOW         WARPNET_TYPE_80211_LOW_DCF
 #define NUM_LEDS                       4
 
-/*********************** Global Variable Definitions *************************/
+volatile static u32              stationShortRetryCount;
+volatile static u32              stationLongRetryCount;
+volatile static u32              cw_exp;
 
+volatile static u8				autocancel_en;
+volatile static u8				autocancel_match_type;
+volatile static u8				autocancel_match_addr3[6];
+volatile static u64				autocancel_last_rx_ts;
 
-/*************************** Variable Definitions ****************************/
-static u32              stationShortRetryCount;
-static u32              stationLongRetryCount;
-static u32              cw_exp;
+volatile static u8               eeprom_addr[6];
 
-static u8				autocancel_en;
-static u8				autocancel_match_type;
-static u8				autocancel_match_addr3[6];
-static u64				autocancel_last_rx_ts;
-
-static u8               eeprom_addr[6];
-
-u8                      red_led_index;
-u8                      green_led_index;
-
-/******************************** Functions **********************************/
+volatile u8                      red_led_index;
+volatile u8                      green_led_index;
 
 int main(){
 	wlan_mac_hw_info* hw_info;
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v0.9 Beta -------------------------\n");
+	xil_printf("----- v1.0 ------------------------------\n");
 	xil_printf("----- wlan_mac_dcf ----------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
 	xil_printf("Note: this UART is currently printing from CPU_LOW. To view prints from\n");
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
-	xil_printf("This switch can be toggled live while the design is running.\n\n");
+	xil_printf("This switch can be toggled any time while the design is running.\n\n");
 
 	autocancel_en = 0;
 
@@ -101,7 +93,7 @@ int main(){
 	wlan_mac_low_init(WARPNET_TYPE_80211_LOW);
 
 	hw_info = wlan_mac_low_get_hw_info();
-	memcpy(eeprom_addr,hw_info->hw_addr_wlan,6);
+	memcpy((void*)eeprom_addr, hw_info->hw_addr_wlan, 6);
 
 	wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
 	wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
@@ -127,19 +119,32 @@ int main(){
 	return 0;
 }
 
+/**
+ * @brief Handles reception of a wireless packet
+ *
+ * This function is called after a good SIGNAL field is detected by either PHY (OFDM or DSSS)
+ * It is the responsibility of this function to wait until a sufficient number of bytes have been received
+ * before it can start to process those bytes. When this function is called the eventual checksum status is
+ * unknown. The packet contents can be provisionally processed (e.g. prepare an ACK for fast transmission),
+ * but post-reception actions must be conditioned on the eventual FCS status (good or bad).
+ *
+ * Note: The timing of this function is critical for correct operation of the 802.11 DCF. It is not
+ * safe to add large delays to this function (e.g. xil_printf or usleep)
+ *
+ * Two primary job responsibilities of this function:
+ *  (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
+ *  (2): Pass up MPDUs (FCS valid or invalid) to CPU_HIGH
+ *
+ * @param u8 rx_pkt_buf
+ *  -Index of the Rx packet buffer containing the newly recevied packet
+ * @param u8 rate
+ *  -Index of PHY rate at which pcaket was received
+ * @param u16 length
+ *  -Number of bytes received by the PHY, including MAC header and FCS
+ * @return
+ *  -Bit mask of flags indicating various results of the reception
+ */
 u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
-	//This function is called after a good SIGNAL field is detected by either PHY (OFDM or DSSS)
-	//It is the responsibility of this function to wait until a sufficient number of bytes have been received
-	// before it can start to process those bytes. When this function is called the eventual checksum status is
-	// unknown. The packet contents can be provisionally processed (e.g. prepare an ACK for fast transmission),
-	// but post-reception actions must be conditioned on the eventual FCS status (good or bad).
-	//
-	// Note: The timing of this function is critical for correct operation of the 802.11 DCF. It is not
-	// safe to add large delays to this function (e.g. xil_printf or usleep)
-	//
-	//Two primary job responsibilities of this function:
-	// (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
-	// (2): Pass up MPDUs (FCS valid or invalid) to CPU_HIGH
 
 	u32 return_value;
 	u32 tx_length;
@@ -155,28 +160,30 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
 
-	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x40);
-
+	//Translate Rx pkt buf index into actual memory address
 	void* pkt_buf_addr = (void *)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
 	return_value = 0;
 
-	//Update the MPDU info struct (stored at 0 offset in the pkt buffer)
+	//Get pointer to MPDU info struct (stored at 0 offset in the pkt buffer)
 	mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
 	//Apply the mac_header_80211 template to the first bytes of the received MPDU
 	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
 
+	//Sanity check length value - anything shorter than an ACK must be bogus
 	if(length < ( sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES ) ){
 		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
 		wlan_mac_dcf_hw_unblock_rx_phy();
-		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
+
 		return return_value;
 	}
 
-	//tx_rate will be used in the construction of ACK packets. tx_rate is set to the incoming rx_rate
-	//This rate selection is specified in 9.7.6.5.2 of 802.11-2012
+	//Translate the rate index into the rate code used by the Tx PHY
+	// This translation is required in case this reception needs to send an ACK, as the ACK
+	// rate is a function of the rate of the received packet
+	//The mapping of Rx rate to ACK rate is given in 9.7.6.5.2 of 802.11-2012
 	switch(rate){
 		default:
 		case WLAN_MAC_RATE_1M:
@@ -208,6 +215,8 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		break;
 	}
 
+	//Determine which antenna the ACK will be sent from
+	// The current implementation transmits ACKs from the same antenna over which the previous packet was received
 	unsigned char ack_tx_ant_mask = 0;
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	switch(active_rx_ant){
@@ -231,56 +240,72 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){};
 
+	//Check the destination address
 	unicast_to_me = wlan_addr_eq(rx_header->address_1, eeprom_addr);
 	to_multicast = wlan_addr_mcast(rx_header->address_1);
 
 	//Prep outgoing ACK just in case it needs to be sent
 	// ACKs are only sent for non-control frames addressed to this node
 	if(unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header)) {
-		//Note: the auto tx subsystem will only fire if enabled by software AND the preceeding reception
+		//Note: the auto tx subsystem will only fire if enabled by software AND the preceding reception
 		//has a good FCS. So, as software, we do not need to worry about FCS status when enabling the
 		//the subsystem.
 
-		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceeding reception.
+		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
 		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC))), ack_tx_ant_mask);
 		
+		//ACKs are transmitted with a nominal Tx power used for all control packets
 		ack_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
-		wlan_mac_auto_tx_gains(ack_tx_gain,ack_tx_gain,ack_tx_gain,ack_tx_gain);
+		wlan_mac_set_auto_tx_gains(ack_tx_gain, ack_tx_gain, ack_tx_gain, ack_tx_gain);
 
+		//Construct the ACK frame in the dedicated Tx pkt buf
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
-		//Auto-Tx enable requires rising edge; one rising edge results in 0 or 1 transmissions, depending on Rx FCS
-		wlan_mac_auto_tx_en(0);
-		wlan_mac_auto_tx_en(1);
-
+		//Write the SIGNAL field for the ACK
 		wlan_phy_set_tx_signal(TX_PKT_BUF_ACK, tx_rate, tx_length);
 
+		//Enable the Auto-Tx subsystem
+		// Auto-Tx enable requires rising edge; one rising edge results in 0 or 1 transmissions, depending on Rx FCS
+		wlan_mac_auto_tx_en(0);
+		wlan_mac_auto_tx_en(1);
 	}
 
-	mpdu_info->flags = 0;
-	mpdu_info->length = (u16)length;
-	mpdu_info->rate = (u8)rate;
-
-	mpdu_info->channel = wlan_mac_low_get_active_channel();
-
+	//Check if this reception is an ACK
 	if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
 		return_value |= POLL_MAC_TYPE_ACK;
 	}
 
+	//Update metadata about this reception
+	mpdu_info->flags = 0;
+	mpdu_info->length = (u16)length;
+	mpdu_info->rate = (u8)rate;
+	mpdu_info->channel = wlan_mac_low_get_active_channel();
 	mpdu_info->timestamp = get_rx_start_timestamp();
 
-	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
+	//Block until the reception is complete, storing the checksum status in the frame_info struct
+	mpdu_info->state = wlan_mac_dcf_hw_rx_finish();
 
-	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (rx_header->frame_control_1 == autocancel_match_type) && wlan_addr_eq(rx_header->address_3, autocancel_match_addr3) && (mpdu_info->length) >= sizeof(mac_header_80211)){
-		if(autocancel_en){
+	//Check if this reception should trigger the cancellation of a pending or future transmission
+	// This is used by the IBSS application to cancel a pending beacon transmission when
+	// a beacon is received from a peer node
+	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && //Rx pkt checksum good
+			(rx_header->frame_control_1 == autocancel_match_type) && //Pkt type matches auto-cancel condition
+			(wlan_addr_eq(rx_header->address_3, autocancel_match_addr3) && //Pkt addr3 matches auto-cancel condition when pkt has addr3
+			 (mpdu_info->length) >= sizeof(mac_header_80211) ) ) {
+
+		if(autocancel_en) {
+			//Clobber all state in the DCF core - this cancels deferrals and pending transmissions
 			wlan_mac_reset(1);
 			wlan_mac_reset(0);
+
 			return_value |= POLL_MAC_CANCEL_TX;
 		}
 
-		//Note: the below timestamp assignment is part of the way we deal with the race condition of receiving a beacon
-		//too early to rely on the to-be-transmitted beacon to already be in the hardware, but too late for it to be
-		//dequeued in CPU_HIGH
+		//Whether or not a transmission was just canceled, remember the timestamp of this auto-cancel-worthy packet reception
+		// This handles a race condition, where a beacon is received after CPU High has pushed down a new beacon with the
+		// TX_MPDU_FLAGS_AUTOCANCEL flag set, but a beacon is received before frame_transmit() is called. The timestamp
+		// recorded here is compared to the current time immediately before a new beacon might be transmitted, allowing
+		// just-in-time cancellation of the transmission
 		autocancel_last_rx_ts = get_rx_start_timestamp();
 	}
 
@@ -389,7 +414,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//If auto-tx ACK is currently transmitting, wait for it to finish
 	while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_AUTO_TX_PENDING){}
 
-	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
+	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x40);
 	return return_value;
 }
 
@@ -431,7 +456,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		if(autocancel_en){
 			autocancel_match_type = header->frame_control_1;
-			memcpy(autocancel_match_addr3, header->address_3, 6);
+			memcpy((void*)autocancel_match_addr3, header->address_3, 6);
 
 			autocancel_curr_timestamp = get_usec_timestamp();
 
@@ -487,20 +512,20 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			} else {
 				n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
 				//n_slots = 0;
-				//xil_printf(" %d slot BO\n",n_slots);
+				//xil_printf(" %d slot BO\n", n_slots);
 				wlan_mac_reset(1);
 				wlan_mac_reset(0);
 				wlan_mac_dcf_hw_start_backoff(n_slots);
 			}
 			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
 		} else {
-			REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x20);
+			REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x20);
 			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
-			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x20);
+			REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x20);
 		}
 		
 		//Set Tx Gains
-		wlan_mac_MPDU_tx_gains(curr_tx_pow,curr_tx_pow,curr_tx_pow,curr_tx_pow);
+		wlan_mac_MPDU_tx_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 
 		//Before we mess with any PHY state, we need to make sure it isn't actively
 		//transmitting. For example, it may be sending an ACK when we get to this part of the code
