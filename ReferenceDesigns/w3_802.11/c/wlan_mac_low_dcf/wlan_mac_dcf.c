@@ -459,7 +459,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	//Store the rate value in a local variable; auto-rate algorithms might change this between re-transmissions
 	tx_rate = rate;
 
-	//This loop itereates for each transmissin/re-transmission of the packet, terminating when
+	// This loop itereates for each transmission/re-transmission of the packet, terminating when
 	// the max number of allowed transmissions has occurred or when another even causes early termination,
 	// like reception of an ACK (no need to keep re-transmitting) or a beacon (only in IBSS mode, for beacons from peers)
 	for(i=0; i<mpdu_info->params.mac.num_tx_max; i++) {
