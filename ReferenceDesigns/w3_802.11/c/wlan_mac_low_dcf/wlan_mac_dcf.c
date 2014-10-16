@@ -474,7 +474,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
 		req_backoff = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_BO) != 0;
 
-		//Check whether this transmission can be cancelled - used by IBSS nodes competing with peers to send beacons
+		//Check whether this transmission can be canceled - used by IBSS nodes competing with peers to send beacons
 		autocancel_en = ((mpdu_info->flags) & TX_MPDU_FLAGS_AUTOCANCEL) != 0;
 		if(autocancel_en) {
 			//Define the conditions to apply to receptions that would trigger cancellation of this transmission
@@ -553,7 +553,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		} else {
 			//Re-transmission (loop index > 0)
 			//Configure the DCF core Tx state machine for this transmission
-			// preTx_backoff_slots is 0 here, since the core will have started a post-Timeout backoff automatically
+			// preTx_backoff_slots is 0 here, since the core will have started a post-timeout backoff automatically
 			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
 		}
 		
@@ -568,9 +568,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		//Wait for the MPDU Tx to finish
 		do{//while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING)
-
-			//Update the Tx count in the metadata for this pkt
-			mpdu_info->num_tx += 1;
 
 			//While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
 			if(low_tx_details != NULL){
@@ -593,6 +590,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
 			//Transmission is complete
 
+				//Update the Tx count in the metadata for this pkt
+				mpdu_info->num_tx += 1;
 
 				//Update the per-Tx metadata
 				if(low_tx_details != NULL){
@@ -715,9 +714,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
  *  a) A packet is transmitted successfully
  *  b) A station retry counter reaches its limit
  *
- *  Notice that in the case of multiple consecutive failed transmissions, the CW will reset after the first packet reaches its retry limit
- *  but not when subsequent packets reach their retry limits. This is the behavior intended by the standard to avoid excessive medium usage
- *  by a node who is consistently unable to transmit successfully. For more details, see:
+ * Notice that in the case of multiple consecutive failed transmissions the CW will reset after the first packet reaches its retry limit
+ *  but not when subsequent packets reach their retry limits. This is the behavior intended by the standard, to avoid excessive medium usage
+ *  by a node who is consistently unable to transmit successfully. For more details see:
  *   -IEEE 802.11-2012 9.3.3
  *   -IEEE doc 802.11-03/752r0
  *
@@ -726,7 +725,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
  * @param u8 reason
  *  -Reason code for this CW update (Tx success, Tx failure, etc)
  */
-inline void update_cw(u8 reason, u8 pkt_buf){
+inline void update_cw(u8 reason, u8 pkt_buf) {
 	volatile u32* station_rc_ptr;
 	u8 retry_limit;
 	tx_frame_info* tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf);
@@ -775,6 +774,17 @@ inline void update_cw(u8 reason, u8 pkt_buf){
 	return;
 }
 
+/**
+ * @brief Generate a random number in the range set by the current contention window
+ *
+ * When reason is RAND_SLOT_REASON_IBSS_BEACON the random draw is taken from the range
+ * [0, 2*CWmin], used for pre-beacon backoffs in IBSS (per 802.11-2012 10.1.3.3)
+ *
+ * @param u8 reason
+ *  -Code for the random draw; must be RAND_SLOT_REASON_STANDARD_ACCESS or RAND_SLOT_REASON_IBSS_BEACON
+ * @return
+ *  -Random integer
+ */
 inline unsigned int rand_num_slots(u8 reason){
 //Generates a uniform random value between [0, (2^(CW_EXP) - 1)], where CW_EXP is a positive integer
 //This function assumed RAND_MAX = 2^31.
@@ -788,21 +798,29 @@ inline unsigned int rand_num_slots(u8 reason){
 // |	10		|	[0, 1023]	|
 	volatile u32 n_slots;
 
-	switch(reason){
+	switch(reason) {
 		case RAND_SLOT_REASON_STANDARD_ACCESS:
 			n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
 		break;
+
 		case RAND_SLOT_REASON_IBSS_BEACON:
 			//Section 10.1.3.3 of 802.11-2012: Backoffs prior to IBSS beacons are drawn from [0, 2*CWmin]
 			n_slots = ((unsigned int)rand() >> (32-(wlan_mac_low_get_cw_exp_min()+1+1)));
 		break;
 	}
 
-
-
 	return n_slots;
 }
 
+/**
+ * @brief Start a backoff
+ *
+ * This function might do nothing if a backoff is already running. The backoff-start attempt will be safely ignored
+ * in this case.
+ *
+ * @param u16 num_slots
+ *  -Duration of backoff interval, in units of slots
+ */
 void wlan_mac_dcf_hw_start_backoff(u16 num_slots) {
 	//WLAN_MAC_REG_SW_BACKOFF_CTRL:
 	// b[15:0]: Num slots
@@ -815,20 +833,24 @@ void wlan_mac_dcf_hw_start_backoff(u16 num_slots) {
 	return;
 }
 
-
-
-
-int wlan_create_ack_frame(void* pkt_buf, u8* address_ra) {
+/**
+ * @brief Construct an ACK frame
+ *
+ * @param void* pkt_buf_addr
+ *  -Address of Tx packet buffer where to construct new ACK packet
+ * @param u8* address_ra
+ *  -Pointer to 6-byte MAC address of receiving node
+ */
+int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra) {
 
 	mac_header_80211_ACK* ack_header;
-	ack_header = (mac_header_80211_ACK*)(pkt_buf);
+	ack_header = (mac_header_80211_ACK*)(pkt_buf_addr);
 
 	ack_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_ACK;
 	ack_header->frame_control_2 = 0;
 	ack_header->duration_id = 0;
 	memcpy(ack_header->address_ra, address_ra, 6);
 
+	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
 	return (sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES);
 }
-
-

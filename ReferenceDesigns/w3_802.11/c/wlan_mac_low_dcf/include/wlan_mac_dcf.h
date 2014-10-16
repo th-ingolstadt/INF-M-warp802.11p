@@ -37,7 +37,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length);
 inline void update_cw(u8 reason, u8 pkt_buf);
 inline unsigned int rand_num_slots(u8 reason);
 void wlan_mac_dcf_hw_start_backoff(u16 num_slots);
-int wlan_create_ack_frame(void* pkt_buf, u8* address_ra);
+int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra);
 
 
 
