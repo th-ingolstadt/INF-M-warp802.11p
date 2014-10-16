@@ -22,8 +22,8 @@
 
 #define PKT_BUF_MUTEX_DEVICE_ID		XPAR_MUTEX_0_DEVICE_ID
 
-//FIXME: We need to disambiguate CPU_HIGH and CPU_LOW here. I'm currently using the presence
-//of an interrupt controller for that, but there has to be a better way
+//TODO: We need to disambiguate CPU_HIGH and CPU_LOW here. I'm currently using the presence
+//of an interrupt controller for that, but there may be a better way
 
 #ifdef XPAR_INTC_0_DEVICE_ID
 #include "xintc.h"
