@@ -287,7 +287,6 @@ int main(){
 
 #if 0
 	/////// TODO DEBUG  READ EXAMPLE ///////
-	//wlan_mac_high_interrupt_stop();
 	u32 	idx_read;
 	u32*	payload_read;
 	#define NUM_WORDS_TO_READ 5
@@ -302,8 +301,6 @@ int main(){
 	}
 
 	wlan_mac_high_free(payload_read);
-
-	//wlan_mac_high_interrupt_start();
 	/////// TODO DEBUG  READ EXAMPLE ///////
 #endif
 
@@ -1322,6 +1319,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			        // Check if we have authenticated this TA
 					if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
 
+						xil_printf("Authenticated, Unassociated Stations:\n");
 						wlan_mac_high_remove_association(&station_info_state_2, &statistics_table, rx_80211_header->address_2);
 
 						// NOTE:  This function handles both the case that the station is already in the association

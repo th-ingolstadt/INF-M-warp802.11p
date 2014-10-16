@@ -71,10 +71,6 @@ void uart_rx(u8 rxByte){
 	dl_entry* 	  curr_station_info_entry;
 	station_info* curr_station_info;
 
-	wlan_ipc_msg       ipc_msg_to_low;
-	u32				   ipc_msg_to_low_payload[2];
-	static s32		   timestamp_offset = 0;
-
 	void* ltg_state;
 
 	#define MAX_NUM_CHARS 31

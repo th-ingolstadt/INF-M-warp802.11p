@@ -72,8 +72,6 @@ extern u32          beacon_schedule_id;
 
 /*************************** Functions Prototypes ****************************/
 
-void print_mac_address(u8 * mac_address);
-
 
 /******************************** Functions **********************************/
 
@@ -154,7 +152,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			// Response format:
 			//     respArgs32[0]       Status
             //
-			xil_printf("Disassociate\n");
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
 			// Get MAC Address
         	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
@@ -163,8 +161,9 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			status  = CMD_PARAM_SUCCESS;
 
             if ( id == 0 ) {
-				// If we cannot find the MAC address, print a warning and return status error
-				xil_printf("WARNING:  Could not find specified node: "); print_mac_address(mac_addr); xil_printf("\n");
+				// If we cannot find the MAC address, return status error
+            	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not find specified node: ");
+				wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
 				status = CMD_PARAM_ERROR;
 
@@ -187,11 +186,13 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 						wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 						// Set return parameters and print info to console
-						xil_printf("Disassociated node: "); print_mac_address(mac_addr); xil_printf("\n");
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociated node: ");
+						wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
 					} else {
-						// If we cannot find the MAC address, print a warning and return status error
-						xil_printf("WARNING:  Could not find specified node: "); print_mac_address(mac_addr); xil_printf("\n");
+						// If we cannot find the MAC address, return status error
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not find specified node: ");
+						wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
 						status = CMD_PARAM_ERROR;
 					}
@@ -206,7 +207,8 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 					wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 					// Set return parameters and print info to console
-					xil_printf("Disassociated node: "); print_mac_address(mac_addr); xil_printf("\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociated node: ");
+					wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 				}
             }
 
@@ -239,11 +241,11 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 					mac_param_chan = temp;
 					wlan_mac_high_set_channel( mac_param_chan );
 
-				    xil_printf("Setting Channel = %d\n", mac_param_chan);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set Channel = %d\n", mac_param_chan);
 				} else {
 					status  = CMD_PARAM_ERROR;
-				    xil_printf("Channel %d is not supported by the node.\n", temp);
-				    xil_printf("Staying on Channel %d\n", mac_param_chan);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node,
+							        "Channel %d is not supported by the node. Staying on Channel %d\n", temp, mac_param_chan);
 				}
 			}
 
@@ -281,7 +283,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			temp  = Xil_Ntohl(cmdArgs32[0]);
 			temp2 = Xil_Ntohl(cmdArgs32[1]);
 
-			xil_printf("AP:  Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
 
 			// Configure based on the flag bit / mask
 			if ( ( temp2 & CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING ) == CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING ) {
@@ -328,7 +330,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			    break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -373,8 +375,9 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
                     	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[2 + (4*i)], &mac_addr[0]);
                     	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4 + (4*i)], &mask[0]);
 
-        				xil_printf("Adding Address filter: (");
-        				print_mac_address(mac_addr); xil_printf(", "); print_mac_address(mask); xil_printf(")\n");
+                    	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Adding Address filter: (");
+        				wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, mac_addr); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, ", ");
+        				wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, mask); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
                     	if ( wlan_mac_addr_filter_add(mask, mac_addr) == -1 ) {
                     		status = CMD_PARAM_ERROR;
@@ -385,7 +388,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			    break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -436,11 +439,11 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			    break;
 
 				case CMD_PARAM_READ_VAL:
-					xil_printf("Get SSID - AP - %s\n", my_bss_info->ssid);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: SSID = %s\n", my_bss_info->ssid);
 				break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -490,15 +493,15 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 					beacon_time                  = (temp & 0xFFFF) * BSS_MICROSECONDS_IN_A_TU;
 					my_bss_info->beacon_interval = (temp & 0xFFFF);
 
-					xil_printf("New beacon interval: %d microseconds\n", beacon_time);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Beacon interval: %d microseconds\n", beacon_time);
 
 					// Start / Restart the beacon event with the new beacon interval
 					if (beacon_schedule_id != SCHEDULE_FAILURE) {
-						xil_printf("Restarting beacon\n");
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Restarting beacon\n");
 						wlan_mac_remove_schedule(SCHEDULE_COARSE, beacon_schedule_id);
 						beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, beacon_time, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 					} else {
-						xil_printf("Starting beacon\n");
+						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Starting beacon\n");
 						beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, beacon_time, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 					}
 			    break;
@@ -508,7 +511,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			    break;
 
 				default:
-					xil_printf("Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
 					status = CMD_PARAM_ERROR;
 				break;
 			}
@@ -541,7 +544,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 			// Response format:
 			//     respArgs32[0]       Status
 			//
-			xil_printf("Associate\n");
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
 			status            = CMD_PARAM_SUCCESS;
             curr_station_info = NULL;
@@ -558,7 +561,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 				temp  = Xil_Ntohl(cmdArgs32[0]);
 				temp2 = Xil_Ntohl(cmdArgs32[1]);
 
-				xil_printf("FLAGS = 0x%08x  mask = 0x%08x\n", temp, temp2);
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associate flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
 
 				// Configure based on the flag bit / mask
 				if ( ( temp2 & CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT ) == CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT ) {
@@ -581,7 +584,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 				prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 				// Add association
-				curr_station_info = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
+				curr_station_info = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, &mac_addr[0], ADD_ASSOCIATION_ANY_AID);
 
 				// Set the flags
 				curr_station_info->flags = flags;
@@ -599,17 +602,17 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 					// Update the hex display
 					ap_write_hex_display(my_bss_info->associated_stations.length);
 
-					xil_printf("Associated with node: ");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associated with node: ");
 				} else {
-					xil_printf("Could not associate with node: ");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not associate with node: ");
 					status = CMD_PARAM_ERROR;
 				}
 			} else {
-				xil_printf("Could not associate with node: ");
+				wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not associate with node: ");
 				status = CMD_PARAM_ERROR;
 			}
 
-			print_mac_address(mac_addr); xil_printf("\n");
+			wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
 			// Send response
 			respArgs32[respIndex++] = Xil_Htonl( status );
@@ -626,7 +629,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 
         //---------------------------------------------------------------------
 		default:
-			xil_printf("Unknown node command: 0x%x\n", cmdID);
+			wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown node command: 0x%x\n", cmdID);
 		break;
 	}
 
