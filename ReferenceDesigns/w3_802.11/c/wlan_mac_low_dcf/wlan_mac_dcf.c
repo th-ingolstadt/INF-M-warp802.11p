@@ -604,7 +604,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 						//Transmission was immediately successful - this implies no post-Tx timeout was required,
-						// so core didn't wait for any post-Tx receptions (i.e. multicast/broadcast transmission)
+						// so the core didn't wait for any post-Tx receptions (i.e. multicast/broadcast transmission)
 
 						//Update contention window
 						update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
@@ -643,7 +643,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 							return TX_MPDU_RESULT_SUCCESS;
 						} else {
 							//Received a packet immediately after transmitting, but it wasn't the ACK we wanted
-							// Could have been our ACK, but arrived with a bad checksum, or a different packet altogether
+							// Could have been our ACK with a bad checksum or a different packet altogether
 
 							//Update the contention window, calling this transmission attempt a failure
 							update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf);
@@ -661,7 +661,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 						//Update the contention window, calling this transmission attempt a failure
 						update_cw(DCF_CW_UPDATE_MPDU_TX_ERR, pkt_buf);
-						//Update the contention window
 
 						//Start a random backoff interval using the updated CW
 						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
@@ -702,8 +701,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 /**
  * @brief Updates the MAC's contention window
  *
- * This function is called by the Tx state machine to update the contention window, typically after each transmission attempt
- * The contention window, station short retry counter and long retry counters are all updated per call.
+ * This function is called by the Tx state machine to update the contention window, typically after each transmission attempt.
+ * The contention window and one of the station retry counters (sort or long) are updated per call.
  *
  * Two station retry counters are maintained- long and short. In the current implementation RTS/CTS is not supported, so
  * only the station short retry counter is ever incremented.
