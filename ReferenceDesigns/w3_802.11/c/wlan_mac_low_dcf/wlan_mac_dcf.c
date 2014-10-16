@@ -569,6 +569,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		//Wait for the MPDU Tx to finish
 		do{//while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING)
 
+			//Update the Tx count in the metadata for this pkt
+			mpdu_info->num_tx += 1;
+
 			//While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
 			if(low_tx_details != NULL){
 				low_tx_details[i].phy_params.rate = mpdu_info->params.phy.rate;
@@ -590,6 +593,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
 			//Transmission is complete
 
+
 				//Update the per-Tx metadata
 				if(low_tx_details != NULL){
 					low_tx_details[i].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
@@ -600,9 +604,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT) {
 
 					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
-						//Transmission was immediately successful - this implies
-						// no post-Tx timeout was required, so core didn't wait for any post-Tx receptions
-						// (i.e. multicast/broadcast transmission)
+						//Transmission was immediately successful - this implies no post-Tx timeout was required,
+						// so core didn't wait for any post-Tx receptions (i.e. multicast/broadcast transmission)
 
 						//Update contention window
 						update_cw(DCF_CW_UPDATE_BCAST_TX, pkt_buf);
@@ -704,7 +707,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
  * The contention window, station short retry counter and long retry counters are all updated per call.
  *
  * Two station retry counters are maintained- long and short. In the current implementation RTS/CTS is not supported, so
- * only the station short retry counter is incremented.
+ * only the station short retry counter is ever incremented.
  *
  * The short station retry counter increments on every transmission failure. The counter is reset on any successful transmission.
  *
@@ -712,8 +715,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
  *  a) A packet is transmitted successfully
  *  b) A station retry counter reaches its limit
  *
- *  Notice that in the case of multiple consecutive failed transmissions, the CW will reset after the first packet reaches its retry limit,
- *  but not when subsequent packets reach their retry limits. This is the behavior intended by the standard; see:
+ *  Notice that in the case of multiple consecutive failed transmissions, the CW will reset after the first packet reaches its retry limit
+ *  but not when subsequent packets reach their retry limits. This is the behavior intended by the standard to avoid excessive medium usage
+ *  by a node who is consistently unable to transmit successfully. For more details, see:
  *   -IEEE 802.11-2012 9.3.3
  *   -IEEE doc 802.11-03/752r0
  *
@@ -724,7 +728,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
  */
 inline void update_cw(u8 reason, u8 pkt_buf){
 	volatile u32* station_rc_ptr;
-	u8* rc_ptr;
 	u8 retry_limit;
 	tx_frame_info* tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf);
 
@@ -732,42 +735,44 @@ inline void update_cw(u8 reason, u8 pkt_buf){
 
 	tx_80211_header = (mac_header_80211*)((void*)(TX_PKT_BUF_TO_ADDR(pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET));
 
-	rc_ptr = &(tx_mpdu->num_tx);
-
+	//Decide which station retry counter to operate on
 	if(tx_mpdu->length > RTS_THRESHOLD){
 		station_rc_ptr = (u32*)&stationLongRetryCount;
 	} else {
 		station_rc_ptr = (u32*)&stationShortRetryCount;
 	}
 
+	//Pull the retry limit for the current packet from its metadata
 	retry_limit = tx_mpdu->params.mac.num_tx_max;
 
-	switch(reason){
+	switch(reason) {
 		case DCF_CW_UPDATE_MPDU_TX_ERR:
-			//Update counts and contention windows
-			(*rc_ptr)++;
+
+			//Transmission error - update the station retry counter
 			(*station_rc_ptr)++;
 
-			if(*station_rc_ptr == retry_limit){
+			//Reest the CW if the station retry counter is eactly the retry limit
+			if(*station_rc_ptr == retry_limit) {
 				cw_exp = wlan_mac_low_get_cw_exp_min();
 			} else {
 				cw_exp = min(cw_exp+1, wlan_mac_low_get_cw_exp_max());
 			}
 
-			//Raise retry flag in mpdu
+			//Raise retry flag in the MAC header
 			tx_80211_header->frame_control_2 = (tx_80211_header->frame_control_2) | MAC_FRAME_CTRL2_FLAG_RETRY;
 		break;
+
 		case DCF_CW_UPDATE_BCAST_TX:
 		case DCF_CW_UPDATE_MPDU_RX_ACK:
-			//Update counts and contention windows
-			(*rc_ptr)++;
+			//Transmission success
+
+			//Reset station retry counter and contention window
 			(*station_rc_ptr) = 0;
 			cw_exp = wlan_mac_low_get_cw_exp_min();
 		break;
 	}
 
 	return;
-
 }
 
 inline unsigned int rand_num_slots(u8 reason){
