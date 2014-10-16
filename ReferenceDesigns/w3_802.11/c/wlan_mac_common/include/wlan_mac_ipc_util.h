@@ -130,7 +130,7 @@ typedef struct {
 typedef struct {
 	u32   tx_start_delta;
 	phy_tx_params phy_params;
-	u16   num_slots;
+	s16   num_slots;
 	u16	  cw;
 	u8 	  chan_num;
 	u8 	  reserved0;

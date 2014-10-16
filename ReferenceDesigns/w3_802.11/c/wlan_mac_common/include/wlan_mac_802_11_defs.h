@@ -35,6 +35,9 @@ typedef struct{
 	u8 address_ra[6];
 } mac_header_80211_ACK;
 
+//MAC Timing Parameters
+#define T_SLOT 9
+
 //IEEE 802.11-2012 section 8.2.4:
 //frame_control_1 bits[7:0]:
 // 7:4: Subtype
