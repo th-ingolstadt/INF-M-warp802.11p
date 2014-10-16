@@ -34,7 +34,6 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_queue.h"
-#include "wlan_mac_fmc_pkt.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_event_log.h"
@@ -68,80 +67,79 @@ extern tx_params default_multicast_data_tx_params;
 /*************************** Variable Definitions ****************************/
 
 // Constants
-const  u8          bcast_addr[6]        = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+const  u8                    bcast_addr[6]        = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 // Associations
-static u32         max_num_associations = WLAN_MAC_HIGH_MAX_ASSOCIATONS;
+volatile static u32          max_num_associations = WLAN_MAC_HIGH_MAX_ASSOCIATONS;
 
 // HW structures
-static XGpio       Gpio_timestamp;			 ///< GPIO instance used for 64-bit usec timestamp
-static XGpio       Gpio;					 ///< General-purpose GPIO instance
-XIntc       	   InterruptController;		 ///< Interrupt Controller instance
-XUartLite          UartLite;				 ///< UART Device instance
-XAxiCdma           cdma_inst;				 ///< Central DMA instance
+static XGpio                 Gpio_timestamp;               ///< GPIO instance used for 64-bit usec timestamp
+static XGpio                 Gpio;                         ///< General-purpose GPIO instance
+XIntc       	             InterruptController;          ///< Interrupt Controller instance
+XUartLite                    UartLite;                     ///< UART Device instance
+XAxiCdma                     cdma_inst;                    ///< Central DMA instance
 
 // UART interface
-u8                 uart_rx_buffer[UART_BUFFER_SIZE];	///< Buffer for received byte from UART
+u8                           uart_rx_buffer[UART_BUFFER_SIZE];       ///< Buffer for received byte from UART
 
 // Callback function pointers
-function_ptr_t     pb_u_callback;			 ///< User callback for "up" pushbutton
-function_ptr_t     pb_m_callback;			 ///< User callback for "middle" pushbutton
-function_ptr_t     pb_d_callback;			 ///< User callback for "down" pushbutton
-function_ptr_t     uart_callback;			 ///< User callback for UART reception
-function_ptr_t     mpdu_tx_done_callback;	 ///< User callback for lower-level message that MPDU transmission is complete
-function_ptr_t     mpdu_rx_callback;		 ///< User callback for lower-level message that MPDU reception is ready for processing
-function_ptr_t     tx_poll_callback; 		 ///< User callback when higher-level framework is ready to send a packet to low
-function_ptr_t	   mpdu_tx_dequeue_callback; ///< User callback for higher-level framework dequeuing a packet
+volatile function_ptr_t      pb_u_callback;                ///< User callback for "up" pushbutton
+volatile function_ptr_t      pb_m_callback;                ///< User callback for "middle" pushbutton
+volatile function_ptr_t      pb_d_callback;                ///< User callback for "down" pushbutton
+volatile function_ptr_t      uart_callback;                ///< User callback for UART reception
+volatile function_ptr_t      mpdu_tx_done_callback;        ///< User callback for lower-level message that MPDU transmission is complete
+volatile function_ptr_t      mpdu_rx_callback;             ///< User callback for lower-level message that MPDU reception is ready for processing
+volatile function_ptr_t      tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
+volatile function_ptr_t      mpdu_tx_dequeue_callback;     ///< User callback for higher-level framework dequeuing a packet
 
 // Node information
-wlan_mac_hw_info   	hw_info;				 ///< Information about hardware
-volatile u8			dram_present;			 ///< Indication variable for whether DRAM SODIMM is present on this hardware
+wlan_mac_hw_info             hw_info;                      ///< Information about hardware
+volatile u8                  dram_present;                 ///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 // Status information
-volatile static u32         cpu_low_status;  ///< Tracking variable for lower-level CPU status
-volatile static u32         cpu_high_status; ///< Tracking variable for upper-level CPU status
+volatile static u32          cpu_low_status;               ///< Tracking variable for lower-level CPU status
 
 // CPU Low Register Read Buffer
-volatile static u32*	   cpu_low_reg_read_buffer;
-volatile static u8		   cpu_low_reg_read_buffer_status;
+volatile static u32*	     cpu_low_reg_read_buffer;
+volatile static u8		     cpu_low_reg_read_buffer_status;
 
 #define CPU_LOW_REG_READ_BUFFER_STATUS_READY               1
 #define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY           0
 
 // CPU Low Parameter Read Buffer
-volatile static u32*	   cpu_low_param_read_buffer;
-volatile static u32        cpu_low_param_read_buffer_size;
-volatile static u8		   cpu_low_param_read_buffer_status;
+volatile static u32*	     cpu_low_param_read_buffer;
+volatile static u32          cpu_low_param_read_buffer_size;
+volatile static u8		     cpu_low_param_read_buffer_status;
 
 #define CPU_LOW_PARAM_READ_BUFFER_STATUS_READY             1
 #define CPU_LOW_PARAM_READ_BUFFER_STATUS_NOT_READY         0
 
 // Interrupt State
-static interrupt_state_t interrupt_state;
+volatile static interrupt_state_t interrupt_state;
 
 // Debug GPIO State
-static u8		   debug_gpio_state;			///< Current state of debug GPIO pins
+volatile static u8           debug_gpio_state;             ///< Current state of debug GPIO pins
 
 // IPC variables
-wlan_ipc_msg       ipc_msg_from_low;							///< IPC message from lower-level
-u32                ipc_msg_from_low_payload[IPC_BUFFER_MAX_NUM_WORDS];	///< Buffer space for IPC message from lower-level
+wlan_ipc_msg                 ipc_msg_from_low;							            ///< IPC message from lower-level
+u32                          ipc_msg_from_low_payload[IPC_BUFFER_MAX_NUM_WORDS];	///< Buffer space for IPC message from lower-level
 
 // Memory Allocation Debugging
-static u32			num_malloc;				///< Tracking variable for number of times malloc has been called
-static u32			num_free;				///< Tracking variable for number of times free has been called
-static u32			num_realloc;			///< Tracking variable for number of times realloc has been called
+volatile static u32          num_malloc;                   ///< Tracking variable for number of times malloc has been called
+volatile static u32          num_free;                     ///< Tracking variable for number of times free has been called
+volatile static u32          num_realloc;                  ///< Tracking variable for number of times realloc has been called
 
 // Statistics Flags
-u8                  promiscuous_stats_enabled;   ///< Are promiscuous statistics collected (1 = Yes / 0 = No)
+volatile u8                  promiscuous_stats_enabled;    ///< Are promiscuous statistics collected (1 = Yes / 0 = No)
 
 // Receive Antenna mode tracker
-u8                  rx_ant_mode_tracker = 0;     ///< Tracking variable for RX Antenna mode for CPU Low
+volatile u8                  rx_ant_mode_tracker = 0;      ///< Tracking variable for RX Antenna mode for CPU Low
 
 // Unique transmit sequence number
-volatile static u64	unique_seq;
+volatile static u64	         unique_seq;
 
 // Tx Packet Buffer Busy State
-volatile static u8 tx_pkt_buf_busy_state;
+volatile static u8           tx_pkt_buf_busy_state;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -321,7 +319,6 @@ void wlan_mac_high_init(){
 	}
 
 	// Test to see if DRAM SODIMM is connected to board
-	queue_dram_present(0);
 	dram_present = 0;
 	timestamp = get_usec_timestamp();
 
@@ -329,10 +326,8 @@ void wlan_mac_high_init(){
 		if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
 			xil_printf("DRAM SODIMM Detected\n");
 			if(wlan_mac_high_memory_test()==0){
-				queue_dram_present(1);
 				dram_present = 1;
 			} else {
-				queue_dram_present(0);
 				dram_present = 0;
 			}
 			break;
@@ -343,7 +338,7 @@ void wlan_mac_high_init(){
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
 	// ***************************************************
-	queue_len = queue_init();
+	queue_len = queue_init(dram_present);
 
 	if( dram_present ) {
 		// The event_list lives in DRAM immediately following the queue payloads.
@@ -361,7 +356,6 @@ void wlan_mac_high_init(){
 	}
 
 	bss_info_init();
-	wlan_fmc_pkt_init();
 	wlan_eth_init();
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
@@ -433,12 +427,6 @@ int wlan_mac_high_interrupt_init(){
 	Result = wlan_eth_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
 		warp_printf(PL_ERROR,"Failed to set up Ethernet interrupt\n");
-		return Result;
-	}
-
-	wlan_fmc_pkt_mailbox_setup_interrupt(&InterruptController);
-	if (Result != XST_SUCCESS) {
-		warp_printf(PL_ERROR,"Failed to set up FMC Pkt interrupt\n");
 		return Result;
 	}
 

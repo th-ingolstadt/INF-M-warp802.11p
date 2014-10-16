@@ -47,7 +47,7 @@ typedef struct{
 #define QUEUE_DL_ENTRY_SPACE_BASE		QUEUE_DL_ENTRY_MEM_BASE
 
 
-int queue_init();
+int queue_init(u8 dram_present);
 
 tx_queue_element* queue_checkout();
 void queue_checkin(tx_queue_element* tqe);
@@ -62,7 +62,6 @@ inline u32 queue_num_queued(u16 queue_sel);
 int queue_total_size();
 void purge_queue(u16 queue_sel);
 
-void queue_dram_present(u8 present);
 inline int dequeue_transmit_checkin(u16 queue_sel);
 
 #endif /* WLAN_MAC_QUEUE_H_ */

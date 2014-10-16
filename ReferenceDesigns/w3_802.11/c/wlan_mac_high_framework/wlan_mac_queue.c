@@ -29,8 +29,16 @@
 
 #include "wlan_exp_common.h"
 
+
+
+#define MAX_SIZE_FOR_PACKET_BD_DL_LIST                     48000
+#define QUEUE_NUM_DL_ENTRY                                 (MAX_SIZE_FOR_PACKET_BD_DL_LIST / sizeof(dl_entry))
+#define QUEUE_BUFFER_SPACE                                 DDR3_BASEADDR
+
+
+
 //This list holds all of the empty, free elements
-static dl_list queue_free;
+static dl_list               queue_free;
 
 //This queue_tx vector will get filled in with elements from the queue_free list
 //Note: this implementation sparsely packs the queue_tx array to allow fast
@@ -41,38 +49,25 @@ static dl_list queue_free;
 //this array will continue to grow and eventually be unable to be reallocated.
 //Practically speaking, this means an AP needs to re-use the AIDs it issues
 //stations if it wants to use the AIDs as an index into the tx queue.
-static dl_list* queue_tx;
-static u16 num_queue_tx;
+static dl_list*              queue_tx;
+static u16                   num_queue_tx;
+
+extern function_ptr_t        tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
 
 
-static u32 QUEUE_NUM_DL_ENTRY;
-static u32 MAX_SIZE_FOR_PACKET_BD_DL_LIST;
-
-static void* QUEUE_BUFFER_SPACE;
-
-static u8 dram_present;
-
-extern function_ptr_t     tx_poll_callback; 		 ///< User callback when higher-level framework is ready to send a packet to low
-
-void queue_dram_present(u8 present){
-	dram_present = present;
-}
-
-int queue_init(){
+int queue_init(u8 dram_present){
 	u32 i;
 
 	if(dram_present == 1){
-		MAX_SIZE_FOR_PACKET_BD_DL_LIST = 48000;
-		QUEUE_NUM_DL_ENTRY = MAX_SIZE_FOR_PACKET_BD_DL_LIST / (sizeof(dl_entry));
 		xil_printf("Queue of %d placed in DRAM: using %d kB\n", QUEUE_NUM_DL_ENTRY, (QUEUE_NUM_DL_ENTRY*QUEUE_BUFFER_SIZE)/1024);
-		QUEUE_BUFFER_SPACE = (void*)(DDR3_BASEADDR);
 
 	} else {
-		xil_printf("A working DRAM SODIMM has not been detected on this board. DRAM is required for\n");
-		xil_printf("the wireless transmission queue. Halting\n");
-		while(1){}
-	}
+		xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
+		xil_printf("DRAM is required for the wireless transmission queue.  Halting.\n");
 
+		wlan_mac_high_set_node_error_status(1);
+		wlan_mac_high_blink_hex_display(0, 250000);
+	}
 
 
 	dl_list_init(&queue_free);
@@ -92,7 +87,7 @@ int queue_init(){
 	}
 
 	num_queue_tx = 0;
-	queue_tx = NULL;
+	queue_tx     = NULL;
 
 	return QUEUE_NUM_DL_ENTRY*QUEUE_BUFFER_SIZE;
 

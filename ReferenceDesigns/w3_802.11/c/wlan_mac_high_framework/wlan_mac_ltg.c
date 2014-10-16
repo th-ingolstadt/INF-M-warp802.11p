@@ -39,13 +39,13 @@
 
 /*************************** Variable Definitions ****************************/
 
-static dl_list tg_list;
+static dl_list               tg_list;
 
-static function_ptr_t ltg_callback;
+static function_ptr_t        ltg_callback;
 
-static u64 num_ltg_checks;
-static u32 schedule_id;
-static u8  schedule_running;
+volatile static u64          num_ltg_checks;
+volatile static u32          schedule_id;
+volatile static u8           schedule_running;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -58,8 +58,10 @@ static u8  schedule_running;
 int  wlan_mac_ltg_sched_init(){
 
 	int return_value = 0;
+
 	schedule_running = 0;
-	num_ltg_checks = 0;
+	schedule_id      = SCHEDULE_FAILURE;
+	num_ltg_checks   = 0;
 	ltg_sched_remove(LTG_REMOVE_ALL);
 	dl_list_init(&tg_list);
 	ltg_callback = (function_ptr_t)nullCallback;

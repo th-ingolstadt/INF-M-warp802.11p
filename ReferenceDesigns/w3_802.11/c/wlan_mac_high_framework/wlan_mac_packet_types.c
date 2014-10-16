@@ -28,6 +28,8 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_packet_types.h"
 
+
+
 int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan) {
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
@@ -96,8 +98,10 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	txBufferPtr_u8+=(1+2);
 
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
+
 	return packetLen_bytes;
 }
+
 
 
 int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan) {
@@ -169,10 +173,9 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
-
-
 	return packetLen_bytes;
 }
+
 
 
 int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 measurement_type, u8 chan){
@@ -215,14 +218,12 @@ int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* co
 	bzero(measurement_req->duration,2);
 	(measurement_req->duration)[0] = 0; //Do it as fast as you can? Unclear
 
-
 	txBufferPtr_u8 = (u8 *)((u8 *)(txBufferPtr_u8) + sizeof(measurement_common_frame));
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
-
-
 	return packetLen_bytes;
 }
+
 
 
 int wlan_create_channel_switch_announcement_frame(void* pkt_buf, mac_header_80211_common* common, u8 channel){
@@ -263,10 +264,9 @@ int wlan_create_channel_switch_announcement_frame(void* pkt_buf, mac_header_8021
 	txBufferPtr_u8  = (u8 *)((u8 *)(txBufferPtr_u8) + sizeof(channel_switch_announcement_frame));
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
-
-
 	return packetLen_bytes;
 }
+
 
 
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan){
@@ -319,18 +319,10 @@ int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, 
 
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
-
-
-	//DEBUG
-	//xil_printf("\n packetLen_bytes = %d\n", packetLen_bytes);
-	//u32 i;
-	//for(i = 0; i<packetLen_bytes; i++){
-	//	xil_printf("%x ", ((u8*)pkt_buf)[i]);
-	//}
-	//xil_printf("\n");
-
 	return packetLen_bytes;
 }
+
+
 
 int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code){
 	u32 packetLen_bytes;
@@ -362,11 +354,10 @@ int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 a
 
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
-
-
 	return packetLen_bytes;
-
 }
+
+
 
 int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16 reason_code){
 	u32 packetLen_bytes;
@@ -396,11 +387,10 @@ int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16
 
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
-
-
 	return packetLen_bytes;
-
 }
+
+
 
 int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 num_basic_rates, u8* basic_rates){
 	u32 packetLen_bytes;
@@ -441,10 +431,8 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 	txBufferPtr_u8+=(real_ssid_len+2); //Move up to next tag
 
-
-
-
-/*	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
+/*
+    //http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
 	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
 	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
@@ -456,7 +444,8 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	txBufferPtr_u8[7] = (0x48); 				//36Mbps (16-QAM, 3/4)
 	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
 	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
-	txBufferPtr_u8+=(8+2); //Move up to next tag */
+	txBufferPtr_u8+=(8+2); //Move up to next tag
+*/
 
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
 	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
@@ -475,24 +464,18 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 		txBufferPtr_u8[2] = num_rates-8; //Tag 50: Extended Supported Rates
 		txBufferPtr_u8+=(num_rates-8+2);
 
-		//xil_printf("Error: too many rates to fill into supported rates tag. Need to used extended supported rates.\n");
-
 //		for(i = 0; i< num_rates; i++){
 //			xil_printf("0x%x\n", txBufferPtr_u8[2+i]);
 //		}
 
 	}
 
-
-
-
-
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
-
-
 
 	return packetLen_bytes;
 }
+
+
 
 int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID) {
 	u32 packetLen_bytes;
@@ -556,14 +539,15 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	txBufferPtr_u8[3] = (0x12);		//9Mbps
 	txBufferPtr_u8[4] = (0x18); 	//12Mbps
 	txBufferPtr_u8[5] = (0x60); 	//48Mbps
-	txBufferPtr_u8+=(4+2); //Move up to next tag*/
+	txBufferPtr_u8+=(4+2); //Move up to next tag
+*/
 
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
-
-
 	return packetLen_bytes;
 }
+
+
 
 int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 flags) {
 
@@ -584,10 +568,10 @@ int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 fl
 
 	data_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
-
-
 	return (sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES);
 }
+
+
 
 u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_other, u8* rate_other){
 

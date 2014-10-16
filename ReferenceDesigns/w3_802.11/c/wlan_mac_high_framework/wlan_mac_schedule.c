@@ -27,15 +27,16 @@
 #include "xintc.h"
 
 /*************************** Variable Definitions ****************************/
-static XTmrCtr     TimerCounterInst;
-static XIntc*      InterruptController_ptr;
+static XTmrCtr               TimerCounterInst;
+static XIntc*                InterruptController_ptr;
 
-static u32 schedule_count;
+volatile static u32          schedule_count;
 
-static u64 num_coarse_checks;
-static u64 num_fine_checks;
-static dl_list wlan_sched_coarse;
-static dl_list wlan_sched_fine;
+volatile static u64          num_coarse_checks;
+volatile static u64          num_fine_checks;
+
+static dl_list               wlan_sched_coarse;
+static dl_list               wlan_sched_fine;
 
 /******************************** Functions **********************************/
 
