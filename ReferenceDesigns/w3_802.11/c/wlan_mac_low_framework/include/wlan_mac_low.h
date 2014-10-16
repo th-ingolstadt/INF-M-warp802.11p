@@ -141,7 +141,7 @@
 // b[12:17]: RFC Tx gain
 // b[18:23]: RFD Tx gain
 
-#define wlan_mac_auto_tx_gains(rf_a, rf_b, rf_c, rf_d) \
+#define wlan_mac_set_auto_tx_gains(rf_a, rf_b, rf_c, rf_d) \
 	Xil_Out32(WLAN_MAC_REG_AUTO_TX_GAINS, \
 			(rf_a & 0x3F) | \
 			((rf_b & 0x3F) << 6) | \
