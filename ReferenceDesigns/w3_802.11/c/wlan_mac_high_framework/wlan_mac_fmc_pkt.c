@@ -25,22 +25,26 @@
 #include "wlan_mac_fmc_pkt.h"
 
 
-#define FMC_MBOX_RIT	0	/* mailbox receive interrupt threshold */
-#define FMC_MBOX_SIT	0	/* mailbox send interrupt threshold */
-#define FMC_MBOX_INTR_ID		XPAR_MB_HIGH_INTC_MAILBOX_FMC_INTERRUPT_0_INTR
+#define FMC_MBOX_RIT                                       0         /* mailbox receive interrupt threshold */
+#define FMC_MBOX_SIT                                       0         /* mailbox send interrupt threshold */
+#define FMC_MBOX_INTR_ID                                   XPAR_MB_HIGH_INTC_MAILBOX_FMC_INTERRUPT_0_INTR
 
-static XIntc*      InterruptController_ptr;
-extern function_ptr_t	   fmc_ipc_rx_callback;
-extern function_ptr_t      eth_rx_callback;
+#define FMC_IPC_BUFFER_SIZE                                1600
+#define FMC_TIMEOUT_USEC                                   10000
 
-XMbox fmc_ipc_mailbox;
+
+static XIntc*                InterruptController_ptr;
+static XMbox                 fmc_ipc_mailbox;
+
+
+extern function_ptr_t        fmc_ipc_rx_callback;
+extern function_ptr_t        eth_rx_callback;
+
 
 // IPC variables
-#define FMC_IPC_BUFFER_SIZE 1600
-wlan_fmc_ipc_msg   ipc_msg_from_fmc;
+static wlan_fmc_ipc_msg      ipc_msg_from_fmc;
 
 
-#define FMC_TIMEOUT_USEC 10000
 
 int fmc_ipc_rx(){
 	int status;
@@ -171,24 +175,16 @@ int fmc_ipc_rx(){
 						}
 
 						return 0;
-
-
 					}
-
-
 				}
-
-
 			break;
+
 			default:
 				xil_printf("Unknown FMC IPC message \n" );
 				xil_printf("    Delimiter: %x \n", ipc_msg_from_fmc.delimiter);
 				xil_printf("    MSG ID   : %x \n", ipc_msg_from_fmc.msg_id);
 				xil_printf("    BYTES    : %x \n", ipc_msg_from_fmc.size_bytes);
-
-
 			break;
-
 			}
 
 
