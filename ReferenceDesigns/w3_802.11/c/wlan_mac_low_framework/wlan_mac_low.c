@@ -754,37 +754,60 @@ inline u32 wlan_mac_low_get_current_rx_filter(){
  * @return None
  */
 inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
-#define RSSI_SLOPE_BITSHIFT		3
-#define RSSI_OFFSET_LNA_LOW		(-61)
-#define RSSI_OFFSET_LNA_MED		(-76)
-#define RSSI_OFFSET_LNA_HIGH	(-92)
+#define B24_RSSI_SLOPE_BITSHIFT		4
+#define B24_RSSI_OFFSET_LNA_LOW		(-61)
+#define B24_RSSI_OFFSET_LNA_MED		(-76)
+#define B24_RSSI_OFFSET_LNA_HIGH	(-92)
+
+#define B5_RSSI_SLOPE_BITSHIFT		7
+#define B5_RSSI_SLOPE_MULT			7
+#define B5_RSSI_OFFSET_LNA_LOW		(-51)
+#define B5_RSSI_OFFSET_LNA_MED		(-61)
+#define B5_RSSI_OFFSET_LNA_HIGH		(-84)
 	u8 band;
 	int power = -100;
 
 	band = mac_param_band;
+
 
 	if(band == RC_24GHZ){
 		switch(lna_gain){
 			case 0:
 			case 1:
 				//Low LNA Gain State
-				power = (rssi>>(RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + RSSI_OFFSET_LNA_LOW;
+				power = (rssi>>(B24_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B24_RSSI_OFFSET_LNA_LOW;
 			break;
 
 			case 2:
 				//Medium LNA Gain State
-				power = (rssi>>(RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + RSSI_OFFSET_LNA_MED;
+				power = (rssi>>(B24_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B24_RSSI_OFFSET_LNA_MED;
 			break;
 
 			case 3:
 				//High LNA Gain State
-				power = (rssi>>(RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + RSSI_OFFSET_LNA_HIGH;
+				power = (rssi>>(B24_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B24_RSSI_OFFSET_LNA_HIGH;
 			break;
-
 		}
 	} else if(band == RC_5GHZ){
-		//TODO
+		switch(lna_gain){
+			case 0:
+			case 1:
+				//Low LNA Gain State
+				power = ((B5_RSSI_SLOPE_MULT*(u32)rssi)>>(B5_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B5_RSSI_OFFSET_LNA_LOW;
+			break;
+
+			case 2:
+				//Medium LNA Gain State
+				power = ((B5_RSSI_SLOPE_MULT*(u32)rssi)>>(B5_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B5_RSSI_OFFSET_LNA_MED;
+			break;
+
+			case 3:
+				//High LNA Gain State
+				power = ((B5_RSSI_SLOPE_MULT*(u32)rssi)>>(B5_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B5_RSSI_OFFSET_LNA_HIGH;
+			break;
+		}
 	}
+
 	return power;
 }
 

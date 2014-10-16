@@ -110,12 +110,13 @@ int w3_node_init() {
 
 	//Initialize the radio_controller core and MAX2829 transceivers for on-board RF interfaces
 	status = radio_controller_init(RC_BASEADDR, RC_ALL_RF, 1, 1);
-
+#if 0 //FIXME REMOVE
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
 		//Comment out allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
 		ret = XST_FAILURE;
 	}
+#endif
 
 	//Initialize the EEPROM read/write core
 	iic_eeprom_init(EEPROM_BASEADDR, 0x64);
@@ -334,7 +335,8 @@ void wlan_phy_init() {
 
 	//Configure RSSI pkt det
  	// RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
- 	wlan_phy_rx_pktDet_RSSI_cfg(PHY_RX_RSSI_SUM_LEN, (PHY_RX_RSSI_SUM_LEN * 1023), 4);
+	// The summing logic realizes a sum of the length specified + 1
+ 	wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 4);
 
 	//Configure auto-corr pkt det autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
 	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 50, 4, 0x3F);

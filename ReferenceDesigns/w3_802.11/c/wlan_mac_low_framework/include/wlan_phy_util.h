@@ -202,10 +202,13 @@
 
 //RSSI reg: b[15:0]=RFA, b[31:16]=RFB
 //RSSI reg: b[15:0]=RFC, b[31:16]=RFd
-#define wlan_phy_rx_get_pkt_rssi(ant) ( (ant==0) ? (Xil_In32(WLAN_RX_PKT_RSSI_AB) & 0xFFFF) : \
+
+//Note: The final << 1 accounts for the fact that this register actually
+//returns the summed RSSI divided by 2
+#define wlan_phy_rx_get_pkt_rssi(ant) (( (ant==0) ? (Xil_In32(WLAN_RX_PKT_RSSI_AB) & 0xFFFF) : \
 		(ant==1) ? ((Xil_In32(WLAN_RX_PKT_RSSI_AB)>>16) & 0xFFFF) : \
 		(ant==2) ? (Xil_In32(WLAN_RX_PKT_RSSI_CD) & 0xFFFF) : \
-		(Xil_In32(WLAN_RX_PKT_RSSI_CD)>>16) & 0xFFFF)
+		(Xil_In32(WLAN_RX_PKT_RSSI_CD)>>16) & 0xFFFF) << 1)
 
 //AGC gains reg:
 // [4:0]: RF A BBG
