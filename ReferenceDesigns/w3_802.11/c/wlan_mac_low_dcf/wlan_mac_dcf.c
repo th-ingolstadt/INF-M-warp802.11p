@@ -309,39 +309,47 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		autocancel_last_rx_ts = get_rx_start_timestamp();
 	}
 
+	//Record the antenna selection, AGC gain selections and Rx power to the Rx pkt metadata
 	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	mpdu_info->ant_mode = active_rx_ant;
 
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	mpdu_info->bb_gain = wlan_phy_rx_get_agc_BBG(active_rx_ant);
 
-	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
-
 	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-
+	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
 	mpdu_info->rx_power = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
 
-	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
+	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) {
+		//Received packet had good checksum
+
+		//Increment green LEDs
 		green_led_index = (green_led_index + 1) % NUM_LEDS;
 		userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
 
 		return_value |= POLL_MAC_STATUS_GOOD;
 
+		//Check if this packet should be passed up to CPU High for further processing
 		rx_filter = wlan_mac_low_get_current_rx_filter();
 
 		switch(rx_filter & RX_FILTER_HDR_MASK){
 			default:
 			case RX_FILTER_HDR_ADDR_MATCH_MPDU:
+				//Non-control packet either addressed to me or addressed to multicast address
 				pass_up = (unicast_to_me || to_multicast) && !WLAN_IS_CTRL_FRAME(rx_header);
 			break;
 			case RX_FILTER_HDR_ALL_MPDU:
+				//Any non-control packet
 				pass_up = !WLAN_IS_CTRL_FRAME(rx_header);
 			break;
 			case RX_FILTER_HDR_ALL:
+				//All packets (data, management and control; no type or address filtering)
 				pass_up = 1;
 			break;
 		}
 
+		//Sanity check packet length - if the header says non-control but the length is shorter than a full MAC header
+		// it must be invalid; this should never happen, but better to catch rare events here than corrupt state in CPU High
 		if(!WLAN_IS_CTRL_FRAME(rx_header) && (mpdu_info->length < sizeof(mac_header_80211))){
 			pass_up = 0;
 		}
@@ -350,39 +358,28 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 			return_value |= POLL_MAC_ADDR_MATCH;
 		}
 
-		if(pass_up){
-			//This packet should be passed up to CPU_high for further processing
-
-			if(!WLAN_IS_CTRL_FRAME(rx_header)){
-				if(unicast_to_me){
-					//This good FCS, unicast, noncontrol packet was ACKed.
-					mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
-				}
-
-				if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
-					mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
-				}
+		//Update packet metadata to indicate whether this reception was ACK'd and if it was a re-transmission
+		if(!WLAN_IS_CTRL_FRAME(rx_header)){
+			if(unicast_to_me){
+				//This good FCS, unicast, noncontrol packet was ACKed.
+				mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
 			}
 
-			//Unlock the pkt buf mutex before passing the packet up
-			// If this fails, something has gone horribly wrong
-			if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
-				wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
-			} else {
-				wlan_mac_low_frame_ipc_send();
-				//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
-				wlan_mac_low_lock_empty_rx_pkt_buf();
-
+			if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY){
+				//This reception was a re-transmission by the other node
+				mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
 			}
-		} //END if (to_me or to_multicast)
+		}
+
 	} else {
+		//Received checksum was bad
+
+		//Increment red LEDs
 		red_led_index = (red_led_index + 1) % NUM_LEDS;
 		userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
 
-
+		//Check if this packet should be passed up to CPU High for further processing
 		rx_filter = wlan_mac_low_get_current_rx_filter();
-
 		switch(rx_filter & RX_FILTER_FCS_MASK){
 			default:
 			case RX_FILTER_FCS_GOOD:
@@ -393,32 +390,59 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 			break;
 		}
 
-		if(pass_up){
-			//Unlock the pkt buf mutex before passing the packet up
-			// If this fails, something has gone horribly wrong
-			if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
-				wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
-			} else {
-				wlan_mac_low_frame_ipc_send();
-				//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
-				wlan_mac_low_lock_empty_rx_pkt_buf();
-			}
-		}
+	} //END else (FCS was bad)
 
-	} //END else (FCS bad)
+	if(pass_up){
+		//This packet should be passed up to CPU_high for further processing
+
+		//Unlock the pkt buf mutex before passing the packet up
+		// If this fails, something has gone horribly wrong
+		if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
+			wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
+		} else {
+			wlan_mac_low_frame_ipc_send();
+			//Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
+			wlan_mac_low_lock_empty_rx_pkt_buf();
+		}
+	}
 
 	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
 	wlan_mac_dcf_hw_unblock_rx_phy();
 
-	//If auto-tx ACK is currently transmitting, wait for it to finish
+	//If auto-tx ACK is currently transmitting, wait for it to finish before returning
 	while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_AUTO_TX_PENDING){}
 
-	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x40);
 	return return_value;
 }
 
-
+/**
+ * @brief Handles transmission of a wireless packet
+ *
+ * This function is called after a good SIGNAL field is detected by either PHY (OFDM or DSSS)
+ * It is the responsibility of this function to wait until a sufficient number of bytes have been received
+ * before it can start to process those bytes. When this function is called the eventual checksum status is
+ * unknown. The packet contents can be provisionally processed (e.g. prepare an ACK for fast transmission),
+ * but post-reception actions must be conditioned on the eventual FCS status (good or bad).
+ *
+ * Note: The timing of this function is critical for correct operation of the 802.11 DCF. It is not
+ * safe to add large delays to this function (e.g. xil_printf or usleep)
+ *
+ * Two primary job responsibilities of this function:
+ *  (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
+ *  (2): Pass up MPDUs (FCS valid or invalid) to CPU_HIGH
+ *
+ * @param u8 rx_pkt_buf
+ *  -Index of the Tx packet buffer containing the packet to transmit
+ * @param u8 rate
+ *  -Index of PHY rate at which packet will be transmitted
+ * @param u16 length
+ *  -Number of bytes in packet, including MAC header and FCS
+ * @param wlan_mac_low_tx_details* low_tx_details
+ *  -Pointer to array of metadata entries to be created for each PHY transmission of this packet (eventually leading to TX_LOW log entries)
+ * @return
+ *  -Transmission result
+ */
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
 	//This function manages the MAC_DCF_HW core.
 
