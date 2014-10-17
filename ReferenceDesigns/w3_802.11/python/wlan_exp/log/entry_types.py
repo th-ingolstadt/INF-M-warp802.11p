@@ -43,7 +43,6 @@ To define a custom log entry type::
 ----
 """
 import sys
-import numpy as np
 from struct import pack, unpack, calcsize, error
 
 
@@ -222,6 +221,8 @@ class WlanExpLogEntryType(object):
         """Generate a NumPy array from the log_bytes of the given
         WlanExpLogEntryType instance at the given byte_offsets.
         """
+        import numpy as np
+
         index_iter = [log_bytes[o : o + self.fields_np_dt.itemsize] for o in byte_offsets]
         np_arr = np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
 
@@ -432,6 +433,8 @@ class WlanExpLogEntryType(object):
     #-------------------------------------------------------------------------
     def _update_field_defs(self):
         """Internal method to update fields."""
+        import numpy as np
+
         # Update the fields format used by struct unpack/calcsize
         self.fields_fmt_struct = ' '.join(self.get_field_struct_formats())
 
@@ -531,6 +534,8 @@ def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False):
     We must operate on a copy to avoid clobbering log entries adjacent to the
     Tx or Rx entries being extended
     """
+    import numpy as np
+
     names   = ()
     formats = ()
 
@@ -610,7 +615,7 @@ def extend_np_dt(dt_orig, new_fields=None):
     fields had specified offsets. Thus the original dtype should be used to interpret raw data buffers
     before the extended dtype is used to add new fields.
     """
-
+    import numpy as np
     from collections import OrderedDict
 
     if(type(dt_orig) is not np.dtype):
