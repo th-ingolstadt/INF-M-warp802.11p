@@ -739,7 +739,7 @@ entry_tx_low_common.append_field_defs([
             ('tx_count',               'B',      'uint8',   'Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions'),
             ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
             ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
-            ('num_slots',              'H',      'uint16',  'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0)'),
+            ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
             ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
             ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
             ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
