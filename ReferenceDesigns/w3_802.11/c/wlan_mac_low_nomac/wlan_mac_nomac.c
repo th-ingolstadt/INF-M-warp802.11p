@@ -45,10 +45,10 @@
 
 
 /*************************** Variable Definitions ****************************/
-static u8               eeprom_addr[6];
+static u8                              eeprom_addr[6];
 
-u8                      red_led_index;
-u8                      green_led_index;
+volatile u8                            red_led_index;
+volatile u8                            green_led_index;
 
 /******************************** Functions **********************************/
 
