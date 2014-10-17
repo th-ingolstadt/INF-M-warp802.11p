@@ -421,7 +421,10 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	association_req_mgmt_header = (association_request_frame*)(pkt_buf + sizeof(mac_header_80211));
 	association_req_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
 
-	association_req_mgmt_header->listen_interval = 0x000f; //FIXME: hardcoded temporarily
+	//This value is defined in 802.11-2012 in 8.4.1.6 and tells the AP how many beacon intervals
+	//this station intends to doze before waking. In our implementation we hardcode this to 1
+	//to represent that we will be awake at every beacon target time.
+	association_req_mgmt_header->listen_interval = 0x0001;
 
 	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(association_request_frame));
 

@@ -1436,7 +1436,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				case CMD_PARAM_WRITE_VAL:
 					wlan_exp_get_mac_addr(&cmdArgs32[1], &mac_addr[0]);
 
-					// !!!! FIXME !!!!
+					// !!!! TODO !!!!
 					// Need to set the MAC Address of the node; this will have to be
 					// implemented for each subclass of the nodes (ie AP, STA, IBSS, etc)
 					// Not sure if this should be a callback?
@@ -2289,7 +2289,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 						// Endian swap payload returned by CPU Low
 						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
-							respArgs32[2 + mem_idx] = Xil_Htonl(respArgs32[2 + mem_idx]); // !!! FIXME !!! - Need to test that is correct
+							respArgs32[2 + mem_idx] = Xil_Htonl(respArgs32[2 + mem_idx]);
 						}
 
 						respHdr->length += (mem_length * sizeof(u32));

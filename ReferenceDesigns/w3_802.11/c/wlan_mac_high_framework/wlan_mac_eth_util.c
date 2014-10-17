@@ -595,7 +595,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	int status;
 	XAxiDma_BdRing *txRing_ptr;
-	XAxiDma_Bd *cur_bd_ptr;
+	XAxiDma_Bd *cur_bd_ptr = NULL;
 
 
 	if( (length == 0) || (length > 1518) ){
@@ -612,23 +612,12 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	//Check if the user-supplied pointer is in the DLMB, unreachable by the DMA
 	if( ((u32)pkt_ptr > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)pkt_ptr < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR) ||
 		((u32)pkt_ptr > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)pkt_ptr < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR))	{
-
 		xil_printf("Error in Eth DMA send -- source address (0x%08x) not reachable by DMA\n", pkt_ptr);
-
-		//FIXME: The out_of_range check was commented out below- why? Comment-in this return -1 instead? It should do the same thing.
-		//	return -1;
+		return -1;
 	}
 
-	//if(out_of_range == 0){
-
 	//Get pointer to the axi_dma Tx buffer descriptor ring
-
-
-
 	txRing_ptr = XAxiDma_GetTxRing(&ETH_A_DMA_Instance);
-
-	//FIXME: Now that we have checked out a ring, we should be sure to check it back in even if configuring it fails
-	//for some reason.
 
 	//Allocate and setup one Tx BD
 	status = XAxiDma_BdRingAlloc(txRing_ptr, 1, &cur_bd_ptr);
@@ -639,7 +628,7 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 	if(status != XST_SUCCESS) {
 		xil_printf("length = %d, txRing_ptr->MaxTransferLen = %d\n", length, txRing_ptr->MaxTransferLen );
 		xil_printf("Error in setting ETH Tx BD! Err = %d\n", status);
-		//while(1){}
+		status = XAxiDma_BdRingFree(txRing_ptr, 1, cur_bd_ptr);
 		return -1;
 	}
 
@@ -651,9 +640,13 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 
 	//Push the BD ring to hardware; this initiates the actual DMA transfer and Ethernet Tx
 	status = XAxiDma_BdRingToHw(txRing_ptr, 1, cur_bd_ptr);
-	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingToHw(txRing_ptr)! Err = %d\n", status); return -1;}
+	if(status != XST_SUCCESS){
+		xil_printf("Error in XAxiDma_BdRingToHw(txRing_ptr)! Err = %d\n", status);
+		status = XAxiDma_BdRingFree(txRing_ptr, 1, cur_bd_ptr);
+		return -1;
+	}
 
-	//Wait for this DMA transfer to finish (will be replaced by post-Tx ISR)
+	//Wait for this DMA transfer to finish (TODO: replace with post-Tx ISR)
 	while (XAxiDma_BdRingFromHw(txRing_ptr, 1, &cur_bd_ptr) == 0) {/*Do Nothing*/}
 
 	//Free the BD for future use
@@ -662,10 +655,6 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 
 	return 0;
 
-	//} else {
-	//	xil_printf("Error in Eth DMA send -- source address not reachable by DMA\n");
-	//	return -1;
-	//}
 }
 
 /**
@@ -810,8 +799,6 @@ inline void wlan_poll_eth_rx() {
  * @return 0 for if packet type is unrecognized (failed encapsulation), otherwise returns length of encapsulated packet (in bytes)
 */
 int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len){
-	u8* eth_mid_ptr;
-	u8 continue_loop;
 	ethernet_header* eth_hdr;
 	ipv4_header* ip_hdr;
 	arp_packet* arp;
@@ -893,44 +880,12 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 							dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
 
 							if(Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE){
-								eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
-
 								//Assert the DHCP Discover's BROADCAST flag; this signals to any DHCP severs that their responses
 								// should be sent to the broadcast address. This is necessary for the DHCP response to propagate back
 								// through the wired-wireless portal at the AP, through the STA Rx MAC filters, back out the
 								// wireless-wired portal at the STA, and finally into the DHCP listener at the wired device
 								dhcp->flags = Xil_Htons(DHCP_BOOTP_FLAGS_BROADCAST);
 
-								//Tagged DHCP Options
-								continue_loop = 1;
-
-								//FIXME: Why does this loop exist? It doesn't affect any state. It looks like it mucked
-								// with addresses in old code, but maybe this isn't required anymore?
-								while(continue_loop){
-									switch(eth_mid_ptr[0]){
-
-										case DHCP_OPTION_TAG_TYPE:
-											switch(eth_mid_ptr[2]){
-												case DHCP_OPTION_TYPE_DISCOVER:
-												case DHCP_OPTION_TYPE_REQUEST:
-													//memcpy(dhcp->chaddr,hw_info.hw_addr_wlan,6);
-												break;
-
-											}
-
-										break;
-
-										case DHCP_OPTION_TAG_IDENTIFIER:
-											//memcpy(&(eth_mid_ptr[3]),hw_info.hw_addr_wlan,6);
-
-										break;
-
-										case DHCP_OPTION_END:
-											continue_loop = 0;
-										break;
-									}
-									eth_mid_ptr += (2+eth_mid_ptr[1]);
-								}//END loop over DHCP tags
 							}//END is DHCP valid
 						}//END is DHCP
 					}//END is UDP
