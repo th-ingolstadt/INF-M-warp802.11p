@@ -129,7 +129,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         Args:
             jumbo_frame_support (bool): Does Ethernet support jumbo frames
 
-        NOTE: This method should not be called except when initializing the node.        
+        .. note:: This method should not be called except when initializing the node.
         """
         # Call WarpNetNode apply_configuration method
         super(WlanExpNode, self).configure_node(jumbo_frame_support)
@@ -177,24 +177,25 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         Returns:
             buffer (warpnet.Buffer):  Data from the log corresponding to the input parameters
         
-        NOTE:  There is no guarentee that this will return data aligned to 
-        event boundaries.  Use llog_get_indexes() to get event aligned boundaries.
         
-        NOTE:  Log reads are not destructive.  Log entries will only be
-        destroyed by a log reset or if the log wraps.
+        .. note:: There is no guarentee that this will return data aligned to 
+           event boundaries.  Use llog_get_indexes() to get event aligned boundaries.
         
-        NOTE:  During a given log_get command, the Ethernet interface of
-        the node will not be able to respond to any other Ethernet packets
-        that are sent to the node.  This could cause the node to drop 
-        incoming packets and cause contention among multiple log consumers.
-        Therefore, for large requests, having a smaller max_req_size
-        will allow the transport to fragement the command and allow the 
-        node to be responsive to multiple hosts.
+        .. note:: Log reads are not destructive.  Log entries will only be
+           destroyed by a log reset or if the log wraps.
         
-        NOTE:  Some basic analysis shows that fragment sizes of 2**23 (8 MB)
-        add about 2% overhead to the receive time and each command takes less
-        than 1 second (~0.9 sec), which is the default WARPNet transport 
-        timeout.
+        .. note:: During a given log_get command, the Ethernet interface of
+           the node will not be able to respond to any other Ethernet packets
+           that are sent to the node.  This could cause the node to drop 
+           incoming packets and cause contention among multiple log consumers.
+           Therefore, for large requests, having a smaller max_req_size
+           will allow the transport to fragement the command and allow the 
+           node to be responsive to multiple hosts.
+        
+        .. note:: Some basic analysis shows that fragment sizes of 2**23 (8 MB)
+           add about 2% overhead to the receive time and each command takes less
+           than 1 second (~0.9 sec), which is the default WARPNet transport 
+           timeout.
         """
         return self.send_cmd(cmds.LogGetEvents(size, offset), max_req_size=max_req_size)
 
@@ -259,7 +260,11 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
 
     def log_get_size(self):
-        """Get the size of the log (in bytes)."""
+        """Get the size of the log (in bytes).
+        
+        Returns:
+          num_bytes (int): Number of bytes in the log        
+        """
         (capacity, size)  = self.send_cmd(cmds.LogGetCapacity())
 
         # Check the maximum size of the log and update the node state
@@ -277,15 +282,22 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
 
     def log_get_capacity(self):
-        """Get the capacity of the log (in bytes)."""
+        """Get the capacity of the log (in bytes).
+        
+        Returns:
+          capacity (int): Number of byte allocated for the log.        
+        """
         return self.log_max_size
 
 
     def log_get_indexes(self):
         """Get the indexes that describe the state of the event log.
         
-        Returns a tuple:
-            (oldest_index, next_index, num_wraps)        
+        Returns:
+            indexes (tuple):
+                #. oldest_index (int): Log index of the oldest event in the log
+                #. next_index (int):   Log index where the next event will be recorded
+                #. num_wraps (int):    Number of times the log has wrapped
         """
         (next_index, oldest_index, num_wraps, _) = self.send_cmd(cmds.LogGetStatus())
         
