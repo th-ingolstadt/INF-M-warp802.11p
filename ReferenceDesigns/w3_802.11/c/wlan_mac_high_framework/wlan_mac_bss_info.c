@@ -325,8 +325,11 @@ void bss_info_checkin(dl_entry* bsi){
 
 
 dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid){
-	//FIXME: SSIDs are not guaranteed to be unique. This function should be refactored
+	//TODO: SSIDs are not guaranteed to be unique. This function should be refactored
 	//to return a dl_list of multiple bss_info, all of which have the matching SSID string.
+	//This isn't critical, because in that scenario a user would probably not use this function.
+	//Instead, through WLAN_EXP, they would pull *all* the bss_info structs and do the search
+	//themselves prior to an explicit low-level join.
 
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;

@@ -90,7 +90,7 @@ int wlan_eth_init() {
 		xil_printf("%d Eth Tx BDs placed in BRAM: using %d B\n", num_tx_bd, num_tx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT);
 
 		num_rx_bd = ETH_RX_BD_SIZE / XAXIDMA_BD_MINIMUM_ALIGNMENT;
-		xil_printf("%d Eth Rx BDs placed in BRAM: using % kd B\n", num_rx_bd, num_rx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT/1024);
+		xil_printf("%d Eth Rx BDs placed in BRAM: using %d kB\n", num_rx_bd, num_rx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT/1024);
 
 
 		eth_rx_callback = (function_ptr_t)nullCallback;
@@ -196,10 +196,6 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
 	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
 #endif
 
-	//FIXME: Why do we explicitly disable interrupts here? Doesn't everything below happen in the context
-	// of the ISR anyway?
-	XIntc_Stop(Intc_ptr);
-
 	IrqStatus = XAxiDma_BdRingGetIrq(RxRingPtr);
 	XAxiDma_BdRingAckIrq(RxRingPtr, IrqStatus);
 
@@ -208,8 +204,6 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
 		// Call helper function to handle the received packet
 		wlan_poll_eth_rx();
 	}
-
-	XIntc_Start(Intc_ptr, XIN_REAL_MODE);
 
 #ifdef _ISR_PERF_MON_EN_
 	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
