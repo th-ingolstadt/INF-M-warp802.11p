@@ -873,17 +873,9 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 		if(wlan_mac_get_rx_phy_sel() == WLAN_RX_PHY_OFDM) {
 			//OFDM packet is being received
 
-			if(rate == WLAN_MAC_RATE_1M){
-				xil_printf("ERROR: PHY reported DSSS rate, OFDM PHY active\n");	  //DEBUG FIXME
-			}
-
 			return_status |= frame_rx_callback(rx_pkt_buf, rate, length);
 		} else {
 			//DSSS packet is being received
-
-			if(rate != WLAN_MAC_RATE_1M){
-				xil_printf("ERROR: PHY reported OFDM rate, DSSS PHY active\n");	  //DEBUG FIXME
-			}
 
 			//Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
 			// function to treat OFDM and DSSS payloads the same
