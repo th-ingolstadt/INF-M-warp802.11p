@@ -17,8 +17,8 @@ setup(
     description='Experiments framework for Mango 802.11 Reference Design',
     long_description=(read('README')),
     url='http://warpproject.org/w/802.11/',
-    license='WARP',
-    author='Mango Communications',
+    license='WARP - http://warpproject.org/license',
+    author='Mango Communications, Inc.',
     author_email='info@mangocomm.com',
     package_dir = {'wlan_exp': '.'}, #setup.py lives at same level as wlan_exp modules
     packages=['wlan_exp', 'wlan_exp.warpnet', 'wlan_exp.log'],
