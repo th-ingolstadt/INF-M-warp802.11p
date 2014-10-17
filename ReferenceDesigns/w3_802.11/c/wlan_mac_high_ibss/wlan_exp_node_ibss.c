@@ -72,7 +72,7 @@ extern u32            beacon_sched_id;
 
 /*************************** Variable Definitions ****************************/
 
-u8                    join_success = WLAN_EXP_IBSS_JOIN_IDLE;
+volatile u8           join_success = WLAN_EXP_IBSS_JOIN_IDLE;
 
 
 

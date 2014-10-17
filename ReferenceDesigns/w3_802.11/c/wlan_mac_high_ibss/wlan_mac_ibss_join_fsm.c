@@ -35,26 +35,29 @@
 #include "wlan_mac_ibss.h"
 
 
-#define BSS_JOIN_SCAN_ENABLED                    1
-#define BSS_JOIN_SCAN_DISABLED                   0
-
+#define BSS_JOIN_SCAN_ENABLED                              1
+#define BSS_JOIN_SCAN_DISABLED                             0
 
 typedef enum {JOIN_IDLE, JOIN_SEARCHING} join_state_t;
-static join_state_t join_state = JOIN_IDLE;
-
-static function_ptr_t  join_success_callback = (function_ptr_t)nullCallback;
 
 //External Global Variables:
-extern u8 pause_data_queue;
-extern u32 mac_param_chan; ///< This is the "home" channel
-extern mac_header_80211_common tx_header_common;
-extern tx_params default_unicast_mgmt_tx_params;
+extern mac_header_80211_common    tx_header_common;
+extern u8                         pause_data_queue;
+extern u32                        mac_param_chan; ///< This is the "home" channel
+extern tx_params                  default_unicast_mgmt_tx_params;
+
+
+// File Variables
+static join_state_t               join_state = JOIN_IDLE;
+static function_ptr_t             join_success_callback = (function_ptr_t)nullCallback;
 
 //JOIN_SEARCHING Global Variables:
-static u32  search_sched_id      = SCHEDULE_FAILURE;
-static u32  search_kill_sched_id = SCHEDULE_FAILURE;
-static char search_ssid[SSID_LEN_MAX + 1];
-static u32  search_timeout       = BSS_SEARCH_DEFAULT_TIMEOUT_SEC;
+static char                       search_ssid[SSID_LEN_MAX + 1];
+static u32                        search_sched_id      = SCHEDULE_FAILURE;
+static u32                        search_kill_sched_id = SCHEDULE_FAILURE;
+static u32                        search_timeout       = BSS_SEARCH_DEFAULT_TIMEOUT_SEC;
+
+
 
 void wlan_mac_ibss_set_join_success_callback(function_ptr_t callback){
 	join_success_callback = callback;

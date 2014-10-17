@@ -56,10 +56,13 @@
 
 #define  WLAN_EXP_ETH                            WN_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_IBSS)
-#define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
+#define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     5
+
+#define  SCAN_TIMEOUT_SEC                        5
+#define  SCAN_TIMEOUT_USEC                       (SCAN_TIMEOUT_SEC*1000000)
 
 
 /*********************** Global Variable Definitions *************************/
@@ -69,8 +72,8 @@
 
 // If you want this station to try to associate to a known IBSS at boot, type
 //   the string here. Otherwise, let it be an empty string.
-char default_ssid[SSID_LEN_MAX + 1] = "WARP-IBSS";
-//char default_ssid[SSID_LEN_MAX + 1] = "";
+static char                       default_ssid[SSID_LEN_MAX + 1] = "WARP-IBSS";
+// static char                       default_ssid[SSID_LEN_MAX + 1] = "";
 
 
 // Common TX header for 802.11 packets
@@ -83,36 +86,30 @@ tx_params                         default_multicast_mgmt_tx_params;
 tx_params                         default_multicast_data_tx_params;
 
 // Top level IBSS state
-static u8                         wlan_mac_addr[6];
-u8                                uart_mode;                         // Control variable for UART MENU
-u32	                              max_queue_size;                    // Maximum transmit queue size
-u32      						  beacon_sched_id = SCHEDULE_FAILURE;
-
-u8                                pause_data_queue;
-
-
-u32                               mac_param_chan;
-
-bss_info*						  my_bss_info;
-u8								  enable_beacon_tx;
-u8	                              allow_beacon_ts_update;            // Allow timebase to be updated from beacons
-
+bss_info*                         my_bss_info;
 
 // List to hold Tx/Rx statistics
 dl_list		                      statistics_table;
+
+// Tx queue variables;
+static u32                        max_queue_size;
+volatile u8                       pause_data_queue;
+
+// AP channel
+volatile u32                      mac_param_chan;
+
+// MAC address
+static u8 	                      wlan_mac_addr[6];
+
+// Beacon variables
+volatile u32                      beacon_schedule_id = SCHEDULE_FAILURE;
+volatile u8                       enable_beacon_tx;
+volatile u8	                      allow_beacon_ts_update;            // Allow timebase to be updated from beacons
 
 
 
 /*************************** Functions Prototypes ****************************/
 
-#ifdef WLAN_USE_UART_MENU
-void uart_rx(u8 rxByte);                         // Implemented in wlan_mac_sta_uart_menu.c
-#else
-void uart_rx(u8 rxByte){ };
-#endif
-
-u8 tim_bitmap[1] = {0x0};
-u8 tim_control = 1;
 
 /******************************** Functions **********************************/
 
@@ -121,6 +118,9 @@ int main() {
 	u8                 locally_administered_addr[6];
 	bss_info         * temp_bss_info;
 	wlan_mac_hw_info * hw_info;
+
+	// Default Channels
+	u8                 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 
 
 	// Print initial message to UART
@@ -243,6 +243,7 @@ int main() {
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
 
+	// Set the hex display initial value
 	ibss_write_hex_display(0);
 
 	// Reset the event log
@@ -253,7 +254,6 @@ int main() {
 	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",wlan_mac_addr[0],wlan_mac_addr[1],wlan_mac_addr[2],wlan_mac_addr[3],wlan_mac_addr[4],wlan_mac_addr[5]);
 
 #ifdef WLAN_USE_UART_MENU
-	uart_mode = UART_MODE_MAIN;
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
 #endif
 
@@ -261,15 +261,12 @@ int main() {
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 	// Set the default active scan channels
-	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
-	#define SCAN_TIMEOUT_SEC 5
-	#define SCAN_TIMEOUT_USEC (SCAN_TIMEOUT_SEC*1000000)
 	if(strlen(default_ssid) > 0){
 		wlan_mac_ibss_scan_and_join(default_ssid, SCAN_TIMEOUT_SEC);
 		scan_start_timestamp = get_usec_timestamp();
-		 while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
+		while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
 			if(my_bss_info != NULL){
 				break;
 			}
@@ -285,7 +282,6 @@ int main() {
 			temp_bss_info->state = BSS_STATE_OWNED;
 			wlan_mac_ibss_join( temp_bss_info );
 		}
-
 	}
 
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
@@ -303,6 +299,8 @@ int main() {
 	// Unreachable, but non-void return keeps the compiler happy
 	return -1;
 }
+
+
 
 void ibss_set_association_state( bss_info* new_bss_info ){
 
@@ -322,7 +320,7 @@ void ibss_set_association_state( bss_info* new_bss_info ){
 
 	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
 	//Note: Unlike the AP implementation, we need to use the SCHEDULE_FINE scheduler sub-beacon-interval fidelity
-	if(enable_beacon_tx) beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
+	if(enable_beacon_tx) beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
 }
 
 
@@ -347,7 +345,7 @@ void beacon_transmit(u32 schedule_id) {
 		//the delay in reception and processing. As such, this function will update the period of this
 		//schedule with the actual beacon interval.
 
-		beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
+		beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
 
 		// Create a beacon
 		curr_tx_queue_element = queue_checkout();
@@ -889,10 +887,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							}
 
 							// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
-							if(beacon_sched_id != SCHEDULE_FAILURE){
-								wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
+							if(beacon_schedule_id != SCHEDULE_FAILURE){
+								wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_schedule_id);
 								timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
-								beacon_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
+								beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
 							}
 						}
 						if(queue_num_queued(BEACON_QID)){
@@ -1211,8 +1209,8 @@ void reset_all_associations(){
 
 		my_bss_info = NULL;
 
-		if(beacon_sched_id != SCHEDULE_FAILURE){
-			wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_sched_id);
+		if(beacon_schedule_id != SCHEDULE_FAILURE){
+			wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_schedule_id);
 		}
 	}
 }

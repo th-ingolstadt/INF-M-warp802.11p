@@ -33,30 +33,37 @@
 #include "wlan_mac_ibss.h"
 
 
-#define MAX_NUM_CHAN                             41
-#define SCHEDULE_TEMP_VAL                        0xFFFFFFFE
+#define MAX_NUM_CHAN                                       41
+#define SCHEDULE_TEMP_VAL                                  0xFFFFFFFE
 
-static u32 num_scan_channels = 0;
-
-static u8 channels[MAX_NUM_CHAN];
-static u32 idle_timeout_usec = 1000000;
-static u32 dwell_timeout_usec = 200000;
-static s8 curr_scan_chan_idx;
-static char scan_ssid[SSID_LEN_MAX + 1];
-static u8 scan_bssid[6];
-static u32 scan_sched_id = SCHEDULE_FAILURE;
-static u8 channel_save;
-
-extern u8 pause_data_queue;
-extern u32 mac_param_chan; ///< This is the "home" channel
-
-extern mac_header_80211_common tx_header_common;
-extern tx_params default_multicast_mgmt_tx_params;
 
 typedef enum {SCAN_DISABLED, SCAN_ENABLED} scan_state_t;
-static scan_state_t scan_state = SCAN_DISABLED;
+
+
+extern mac_header_80211_common    tx_header_common;
+
+extern u8                    pause_data_queue;
+extern u32                   mac_param_chan;               ///< This is the "home" channel
+extern tx_params             default_multicast_mgmt_tx_params;
+
+static u32                   num_scan_channels           = 0;
+static u32                   idle_timeout_usec           = 1000000;
+static u32                   dwell_timeout_usec          = 200000;
+
+static u8                    channels[MAX_NUM_CHAN];
+static u8                    channel_save;
+static s8                    curr_scan_chan_idx;
+
+static char                  scan_ssid[SSID_LEN_MAX + 1];
+static u8                    scan_bssid[6];
+static u32                   scan_sched_id               = SCHEDULE_FAILURE;
+static scan_state_t          scan_state                  = SCAN_DISABLED;
+
+
 
 void wlan_mac_scan_restore_state();
+
+
 
 int wlan_mac_set_scan_channels(u8* channel_vec, u32 len){
 	u32 i;
