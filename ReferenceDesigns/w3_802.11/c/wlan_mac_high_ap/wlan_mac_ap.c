@@ -65,16 +65,16 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char default_AP_SSID[] = "WARP-AP";
+static char                       default_AP_SSID[] = "WARP-AP";
 
 // Common TX header for 802.11 packets
-mac_header_80211_common tx_header_common;
+static mac_header_80211_common    tx_header_common;
 
 // Default Transmission Parameters
-tx_params default_unicast_mgmt_tx_params;
-tx_params default_unicast_data_tx_params;
-tx_params default_multicast_mgmt_tx_params;
-tx_params default_multicast_data_tx_params;
+tx_params                         default_unicast_mgmt_tx_params;
+tx_params                         default_unicast_data_tx_params;
+tx_params                         default_multicast_mgmt_tx_params;
+tx_params                         default_multicast_data_tx_params;
 
 // "my_bss_info" is a pointer to the bss_info that describes this AP.
 // Inside this structure is a dl_list of station_info. This is a list
@@ -86,24 +86,25 @@ tx_params default_multicast_data_tx_params;
 // station_info that represent stations in State 2
 // (Authenticated, Unassociated). Only members of this list will be allowed
 // to elevate to State 4 in the my_bss_info.
-bss_info*	 my_bss_info;
-dl_list		 statistics_table;
-dl_list		 station_info_state_2;
+bss_info*	                      my_bss_info;
+
+dl_list		                      statistics_table;
+dl_list		                      station_info_state_2;
 
 // Tx queue variables;
-u32			 max_queue_size;
+static u32                        max_queue_size;
 
 // AP channel
-u32 		 mac_param_chan;
+volatile u32                      mac_param_chan;
 
 // MAC address
-static u8 	 wlan_mac_addr[6];
+static u8 	                      wlan_mac_addr[6];
 
 // Traffic Indication Map State
-ps_conf      power_save_configuration;
+volatile ps_conf                  power_save_configuration;
 
 // Beacon variables
-u32          beacon_schedule_id = SCHEDULE_FAILURE;
+volatile u32                      beacon_schedule_id = SCHEDULE_FAILURE;
 
 
 

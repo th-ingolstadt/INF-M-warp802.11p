@@ -46,37 +46,35 @@ void uart_rx(u8 rxByte){ };
 
 #else
 
-static u8 uart_mode = UART_MODE_MAIN;
-extern tx_params default_unicast_data_tx_params;
+#define MAX_NUM_CHARS                       31
 
 
-extern u32 mac_param_chan;
+extern u32                                  mac_param_chan;
+extern tx_params                            default_unicast_data_tx_params;
 
-extern bss_info* my_bss_info;
-extern dl_list statistics_table;
+extern bss_info*                            my_bss_info;
+extern dl_list                              statistics_table;
 
 
-static u32 cpu_high_status;
-static u32 schedule_ID;
-static u8 print_scheduled = 0;
+static volatile u8                          uart_mode            = UART_MODE_MAIN;
+static volatile u32                         schedule_ID;
+static volatile u8                          print_scheduled      = 0;
 
-u32 num_slots = SLOT_CONFIG_RAND;
+static          ltg_pyld_all_assoc_fixed    traffic_blast_pyld;
+static          ltg_sched_periodic_params   traffic_blast_sched;
+static volatile u32                         traffic_blast_ltg_id = LTG_ID_INVALID;
 
-static ltg_pyld_all_assoc_fixed 	traffic_blast_pyld;
-static ltg_sched_periodic_params 	traffic_blast_sched;
-static u32							traffic_blast_ltg_id;
 
 void uart_rx(u8 rxByte){
 
-	dl_entry* 	  curr_station_info_entry;
-	station_info* curr_station_info;
+	dl_entry* 	                curr_station_info_entry;
+	station_info*               curr_station_info;
 
-	void* ltg_state;
+	void*                       ltg_state;
 
-	#define MAX_NUM_CHARS 31
-	static char text_entry[MAX_NUM_CHARS+1];
-	static u8 curr_char = 0;
-    
+	char                        text_entry[MAX_NUM_CHARS+1];
+	u8                          curr_char = 0;
+
 	if(rxByte == ASCII_ESC){
 		uart_mode = UART_MODE_MAIN;
 		stop_periodic_print();
@@ -195,9 +193,6 @@ void uart_rx(u8 rxByte){
 					deauthenticate_stations();
 					curr_char = 0;
 					print_ssid_menu();
-				break;
-				case ASCII_h:
-					xil_printf("cpu_high_status = 0x%08x\n", cpu_high_status);
 				break;
 				case ASCII_m:
 					wlan_mac_high_display_mallinfo();
