@@ -20,7 +20,6 @@
 
 #define BSS_INFO_TIMEOUT_USEC	                 600000000
 
-#define MAX_NUM_BSS_INFO                         1000 ///< Maximum number of BSS information structs. -1 will fill the allotted memory for BSS info.
 #define NUM_BASIC_RATES_MAX	                     10
 
 

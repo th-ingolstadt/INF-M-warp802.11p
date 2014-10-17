@@ -52,8 +52,9 @@ static function_ptr_t        eth_rx_callback;
 
 static u8                    eth_encap_mode;
 
+static u32 num_rx_bd;
+static u32 num_tx_bd;
 
-static u32                   ETH_A_NUM_RX_BD;
 
 
 //The station code's implementation of encapsulation and de-encapsulation has an important
@@ -79,10 +80,21 @@ static u8                   eth_sta_mac_addr[6];
 int wlan_eth_init() {
 		int status;
 
+		//Check to see if we were given enough room by wlan_mac_high.h for our 1 Tx BD
+		if(ETH_TX_BD_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT){
+			xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_TX_BD_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
+			wlan_mac_high_set_node_error_status(1);
+			wlan_mac_high_blink_hex_display(0, 250000);
+		}
+		num_tx_bd = 1;
+		xil_printf("%d Eth Tx BDs placed in BRAM: using %d B\n", num_tx_bd, num_tx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT);
+
+		num_rx_bd = ETH_RX_BD_SIZE / XAXIDMA_BD_MINIMUM_ALIGNMENT;
+		xil_printf("%d Eth Rx BDs placed in BRAM: using % kd B\n", num_rx_bd, num_rx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT/1024);
+
+
 		eth_rx_callback = (function_ptr_t)nullCallback;
 
-		ETH_A_NUM_RX_BD = min(queue_total_size()/2,200);
-		xil_printf("Setting up %d DMA BDs\n", ETH_A_NUM_RX_BD);
 
 		//The TEMAC driver is only used during init - all packet interactions are handed via the DMA driver
 		XAxiEthernet_Config *ETH_A_MAC_CFG_ptr;
@@ -138,7 +150,7 @@ void wlan_mac_util_set_eth_encap_mode(u8 mode) {
  * @brief Returns the total number of axi_dma Rx buffer descriptors
  */
 inline int eth_get_num_rx_bd() {
-	return ETH_A_NUM_RX_BD;
+	return num_rx_bd;
 }
 
 /**
@@ -251,8 +263,8 @@ int wlan_eth_dma_init() {
 	XAxiDma_BdRingSetCoalesce(ETH_A_RxRing_ptr, 1, 0);
 
 	//Setup Tx/Rx buffer descriptor rings in memory
-	status =  XAxiDma_BdRingCreate(ETH_A_TxRing_ptr, ETH_A_TX_BD_SPACE_BASE, ETH_A_TX_BD_SPACE_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, ETH_A_NUM_TX_BD);
-	status |= XAxiDma_BdRingCreate(ETH_A_RxRing_ptr, ETH_A_RX_BD_SPACE_BASE, ETH_A_RX_BD_SPACE_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, ETH_A_NUM_RX_BD);
+	status =  XAxiDma_BdRingCreate(ETH_A_TxRing_ptr, ETH_TX_BD_BASE, ETH_TX_BD_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_tx_bd);
+	status |= XAxiDma_BdRingCreate(ETH_A_RxRing_ptr, ETH_RX_BD_BASE, ETH_RX_BD_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_rx_bd);
 	if(status != XST_SUCCESS) {xil_printf("Error creating DMA BD Rings! Err = %d\n", status); return -1;}
 
 	//Populate each ring with empty buffer descriptors
@@ -266,7 +278,7 @@ int wlan_eth_dma_init() {
 
 	//Initialize the Rx buffer descriptors
 	bd_count = XAxiDma_BdRingGetFreeCnt(ETH_A_RxRing_ptr);
-	if(bd_count != ETH_A_NUM_RX_BD) {xil_printf("Error in Eth Rx DMA init - not all Rx BDs were free at boot\n");}
+	if(bd_count != num_rx_bd) {xil_printf("Error in Eth Rx DMA init - not all Rx BDs were free at boot\n");}
 
 	status = XAxiDma_BdRingAlloc(ETH_A_RxRing_ptr, bd_count, &first_bd_ptr);
 	if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingAlloc()! Err = %d\n", status); return -1;}

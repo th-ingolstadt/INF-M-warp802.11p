@@ -44,25 +44,117 @@ typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 #define TIMESTAMP_GPIO_MSB_CHAN             2                                       ///< GPIO channel used for upper 32 bits of 64-bit timestamp
 
 
+
+// Aux. BRAM and DRAM Memory Map
+
+#define AUX_BRAM_BASE					(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
+#define AUX_BRAM_SIZE					(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR - XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + 1)
+#define AUX_BRAM_HIGH					(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR)
+#define	DRAM_BASE						(XPAR_DDR3_SODIMM_S_AXI_BASEADDR)
+#define DRAM_SIZE						(XPAR_DDR3_SODIMM_S_AXI_HIGHADDR - XPAR_DDR3_SODIMM_S_AXI_BASEADDR + 1)
+#define	DRAM_HIGH						(XPAR_DDR3_SODIMM_S_AXI_HIGHADDR)
 /*
- * DDR3 Hardcoded Memory Map:
+//     Aux. BRAM     |          DRAM
+//--------------------------------------------
+//
+// Tx Queue DL_ENTRY -> Tx Queue Buffer
+//
+//-------------------|
+//                   |
+// BSS Info DL_ENTRY |------------------------
+//                   ->
+//-------------------|  BSS Info Buffer
+// Eth Tx BD         |
+//-------------------|
+//                   |------------------------
+// Eth Rx BD         |
+//                   | User Scratch Space
+//-------------------|
+//                   |------------------------
+//                   |
+//                   |
+//                   | Event Log
+//                   |
+//                   |
+//                   |------------------------
+*/
+
+#define high_addr_calc(base, size)      ((base)+((size)-1))
+
+
+/* The Tx Queue consists of two pieces:
+ *  (1) dl_entry structs that live in the aux. BRAM and
+ *  (2) data buffers for the packets themselves than live in DRAM
  *
- * 0xC0000000 - 0xC0F9FFFF		16384000 bytes		Transmit Queue
- * 0xC0FA0000 - 0xC119FFFF		2097152 bytes		BSS Information
- * 0xC11A0000 - 0xC1F9FFFF		8388608 bytes		User Memory
- * 0xC1FA0000 - 0xFFFFFFFF		1040580608 bytes	WN Log
+ *	The below definitions carve out the sizes of memory for these two pieces.
+ *	The default value of 40 kB do the dl_entry memory space was chosen. Because
+ *	each dl_entry has a size of 12 bytes, this space allows for a potential
+ *	of 3413 dl_entry structs describing Tx queue elements.
+ *
+ *	As far as the actual payload space in DRAM, 14000 kB was chosen because this
+ *	is enough to store each of the 3413 Tx queue elements. Each queue element points
+ *	to a unique 4KB-sized buffer.
  */
+#define TX_QUEUE_DL_ENTRY_MEM_BASE		(AUX_BRAM_BASE)
+#define TX_QUEUE_DL_ENTRY_MEM_SIZE		(40*1024)
+#define TX_QUEUE_DL_ENTRY_MEM_HIGH		high_addr_calc(TX_QUEUE_DL_ENTRY_MEM_BASE,TX_QUEUE_DL_ENTRY_MEM_SIZE)
+#define TX_QUEUE_BUFFER_BASE            (DRAM_BASE)
+#define TX_QUEUE_BUFFER_SIZE            (14000*1024)
+#define TX_QUEUE_BUFFER_HIGH            high_addr_calc(TX_QUEUE_BUFFER_BASE,TX_QUEUE_BUFFER_SIZE)
 
-#define DDR3_BASEADDR                       XPAR_DDR3_SODIMM_S_AXI_BASEADDR    ///< XParameters rename for base address of DDR3 SODIMM
-#define DDR3_SIZE                           0x40000000                         ///< Available space in DDR3 SODIMM (1073741824 bytes)
+/* Like the Tx Queue, BSS Info consists of two pieces:
+ *  (1) dl_entry structs that live in the aux. BRAM and
+ *  (2) bss_info buffers with the actual content that live in DRAM
+ *
+ *	The below definitions carve out the sizes of memory for these two pieces.
+ *	The default value of 9 kB do the dl_entry memory space was chosen. Because
+ *	each dl_entry has a size of 12 bytes, this space allows for a potential
+ *	of 768 dl_entry structs describing bss_info elements.
+ *
+ *	Each bss_info struct is a total of 80 bytes in size. So, 768 bss_info
+ *	structs require 60 kB of memory. This is why BSS_INFO_BUFFER_SIZE
+ *	is set to 60 kB.
+ */
+#define BSS_INFO_DL_ENTRY_MEM_BASE		(TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
+#define	BSS_INFO_DL_ENTRY_MEM_SIZE		(9*1024)
+#define	BSS_INFO_DL_ENTRY_MEM_HIGH		high_addr_calc(BSS_INFO_DL_ENTRY_MEM_BASE,BSS_INFO_DL_ENTRY_MEM_SIZE)
+#define BSS_INFO_BUFFER_BASE			(TX_QUEUE_BUFFER_BASE + TX_QUEUE_BUFFER_SIZE)
+#define BSS_INFO_BUFFER_SIZE			(60*1024)
+#define BSS_INFO_BUFFER_HIGH			high_addr_calc(BSS_INFO_BUFFER_BASE,BSS_INFO_BUFFER_SIZE)
 
-#define DDR3_BSS_INFO_MEM_BASEADDR          0xC0FA0000                         ///< Space set aside in DDR3 for BSS info
-#define DDR3_BSS_INFO_MEM_SIZE              0x00200000                         ///< 2MB for BSS info
-#define DDR3_BSS_INFO_MEM_HIGHADDR          (DDR3_BSS_INFO_MEM_BASEADDR+DDR3_BSS_INFO_MEM_SIZE-1)       ///< Ending address for BSS info
+/* The current architecture blocks on Ethernet transmissions. As such, only a
+ * single Eth DMA buffer descriptor (BD) is needed. Each BD is 64 bytes in
+ * size (see XAXIDMA_BD_MINIMUM_ALIGNMENT), so we set ETH_TX_BD_SIZE to 64.
+ */
+#define ETH_TX_BD_BASE					(BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
+#define ETH_TX_BD_SIZE					(64)
+#define ETH_TX_BD_HIGH					high_addr_calc(ETH_TX_BD_BASE,ETH_TX_BD_SIZE)
 
-#define DDR3_USER_DATA_MEM_BASEADDR         0xC11A0000                         ///< Space set aside in DDR3 for user extension
-#define DDR3_USER_DATA_MEM_SIZE             0x00E00000                         ///< 14MB for scratch work
-#define DDR3_USER_DATA_MEM_HIGHADDR         (DDR3_USER_DATA_MEM_BASEADDR+DDR3_USER_DATA_MEM_SIZE-1)     ///< Ending address for user extension memory
+/* Since it is the last section we are defining in the aux. BRAM, we allow
+ * the ETH_RX to fill up the rest of the BRAM. This remaining space allows for
+ * a total of 239 Eth Rx DMA BDs.
+ */
+#define ETH_RX_BD_BASE					(ETH_TX_BD_BASE + ETH_TX_BD_SIZE)
+#define ETH_RX_BD_SIZE					(AUX_BRAM_SIZE - (TX_QUEUE_DL_ENTRY_MEM_SIZE + BSS_INFO_DL_ENTRY_MEM_SIZE + ETH_TX_BD_SIZE))
+#define ETH_RX_BD_HIGH					(ETH_RX_BD_BASE + (ETH_RX_BD_SIZE-1))
+
+/* We have set aside ~14MB of space for users to use the DRAM in their applications.
+ * We do not use the below definitions in any part of the reference design.
+ */
+#define USER_SCRATCH_BASE				(BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
+#define USER_SCRATCH_SIZE				(14336*1024)
+#define USER_SCRATCH_HIGH				high_addr_calc(USER_SCRATCH_BASE,USER_SCRATCH_SIZE)
+
+
+/* Finally, the remaining space in DRAM is used for the WLAN_EXP event log. The above sections in DRAM
+ * are much smaller than the space set aside for the event log. In the current implementation, the
+ * event log is ~996 MB.
+ */
+#define EVENT_LOG_BASE					(USER_SCRATCH_BASE + USER_SCRATCH_SIZE)
+#define EVENT_LOG_SIZE					(DRAM_SIZE - (TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + USER_SCRATCH_SIZE))
+#define EVENT_LOG_HIGH					high_addr_calc(EVENT_LOG_BASE,EVENT_LOG_SIZE)
+
+// End Aux. BRAM and DRAM Memory Map
 
 
 #define USERIO_BASEADDR                     XPAR_W3_USERIO_BASEADDR            ///< XParameters rename of base address of User I/O

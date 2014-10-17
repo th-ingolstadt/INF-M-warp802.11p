@@ -57,30 +57,27 @@ void bss_info_init(u8 dram_present){
 	if(dram_present){
 		dl_list_init(&bss_info_free);
 		dl_list_init(&bss_info_list);
-		bzero((void*)DDR3_BSS_INFO_MEM_BASEADDR, DDR3_BSS_INFO_MEM_SIZE);
+		bzero((void*)BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE);
 
-		//Unlike the transmit queue, where each dl_entry actually lived in an AUX BRAM,
-		//Here we will partition the DRAM space for BSS_INFO into two pieces
-		//	(1) dl_entry
-		//	(2) bss_info structs pointed to by dl_entry from (1)
 
-		//Determine the maximum number of bss_info structs we can store in memory
-		num_bss_info = DDR3_BSS_INFO_MEM_SIZE / (sizeof(dl_entry)+sizeof(bss_info));
+		//The number of BSS info elements we can initialize is limited by the smaller of two values:
+		//	(1) The number of dl_entry structs we can squeeze into BSS_INFO_DL_ENTRY_MEM_SIZE
+		//  (2) The number of bss_info structs we can squeeze into BSS_INFO_BUFFER_SIZE
+		num_bss_info = min(BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), BSS_INFO_BUFFER_SIZE/sizeof(bss_info));
 
-		if(MAX_NUM_BSS_INFO != -1){
-			num_bss_info = min(num_bss_info,MAX_NUM_BSS_INFO);
-		}
 
 		//At boot, every dl_entry buffer descriptor is free
 		//To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
 		//This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
 		dl_entry* dl_entry_base;
-		dl_entry_base = (dl_entry*)(DDR3_BSS_INFO_MEM_BASEADDR);
+		dl_entry_base = (dl_entry*)(BSS_INFO_DL_ENTRY_MEM_BASE);
 
 		for(i=0;i<num_bss_info;i++){
-			dl_entry_base[i].data = (void*)((DDR3_BSS_INFO_MEM_BASEADDR + (num_bss_info * sizeof(dl_entry))) + (i*sizeof(bss_info)));
+			dl_entry_base[i].data = (void*)(BSS_INFO_BUFFER_BASE + (i*sizeof(bss_info)));
 			dl_entry_insertEnd(&bss_info_free,&(dl_entry_base[i]));
 		}
+
+		xil_printf("BSS Info of %d placed in DRAM: using %d kB\n", num_bss_info, (num_bss_info*sizeof(bss_info))/1024);
 
 	} else {
 		xil_printf("Error initializing BSS info subsystem\n");

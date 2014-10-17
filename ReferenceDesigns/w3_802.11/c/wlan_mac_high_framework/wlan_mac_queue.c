@@ -30,13 +30,6 @@
 #include "wlan_exp_common.h"
 
 
-
-#define MAX_SIZE_FOR_PACKET_BD_DL_LIST                     48000
-#define QUEUE_NUM_DL_ENTRY                                 (MAX_SIZE_FOR_PACKET_BD_DL_LIST / sizeof(dl_entry))
-#define QUEUE_BUFFER_SPACE                                 DDR3_BASEADDR
-
-
-
 //This list holds all of the empty, free elements
 static dl_list               queue_free;
 
@@ -54,14 +47,17 @@ static u16                   num_queue_tx;
 
 extern function_ptr_t        tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
 
+volatile static u32          num_tx_queue;
 
-int queue_init(u8 dram_present){
+
+void queue_init(u8 dram_present){
 	u32 i;
+	//The number of Tx Queue elements we can initialize is limited by the smaller of two values:
+	//	(1) The number of dl_entry structs we can squeeze into TX_QUEUE_DL_ENTRY_MEM_SIZE
+	//  (2) The number of QUEUE_BUFFER_SIZE MPDU buffers we can squeeze into TX_QUEUE_BUFFER_SIZE
+	num_tx_queue =  min(TX_QUEUE_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), TX_QUEUE_BUFFER_SIZE/QUEUE_BUFFER_SIZE );
 
-	if(dram_present == 1){
-		xil_printf("Queue of %d placed in DRAM: using %d kB\n", QUEUE_NUM_DL_ENTRY, (QUEUE_NUM_DL_ENTRY*QUEUE_BUFFER_SIZE)/1024);
-
-	} else {
+	if(dram_present != 1){
 		xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
 		xil_printf("DRAM is required for the wireless transmission queue.  Halting.\n");
 
@@ -71,33 +67,31 @@ int queue_init(u8 dram_present){
 
 
 	dl_list_init(&queue_free);
-
-
-	bzero((void*)QUEUE_BUFFER_SPACE, QUEUE_NUM_DL_ENTRY*QUEUE_BUFFER_SIZE);
+	bzero((void*)TX_QUEUE_BUFFER_BASE, TX_QUEUE_BUFFER_SIZE);
 
 	//At boot, every dl_entry buffer descriptor is free
 	//To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
 	//This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
 	dl_entry* dl_entry_base;
-	dl_entry_base = (dl_entry*)(QUEUE_DL_ENTRY_SPACE_BASE);
+	dl_entry_base = (dl_entry*)(TX_QUEUE_DL_ENTRY_MEM_BASE);
 
-	for(i=0;i<QUEUE_NUM_DL_ENTRY;i++){
-		dl_entry_base[i].data = (void*)(QUEUE_BUFFER_SPACE + (i*QUEUE_BUFFER_SIZE));
+	for(i=0;i<num_tx_queue;i++){
+		dl_entry_base[i].data = (void*)(TX_QUEUE_BUFFER_BASE + (i*QUEUE_BUFFER_SIZE));
 		dl_entry_insertEnd(&queue_free,&(dl_entry_base[i]));
 	}
 
+	xil_printf("Tx Queue of %d placed in DRAM: using %d kB\n", num_tx_queue, (num_tx_queue*QUEUE_BUFFER_SIZE)/1024);
+
 	num_queue_tx = 0;
 	queue_tx     = NULL;
-
-	return QUEUE_NUM_DL_ENTRY*QUEUE_BUFFER_SIZE;
-
+	return;
 }
 
 /**
  * @return Total number of queue entries; sum of all free and occupied entries
  */
 int queue_total_size(){
-	return QUEUE_NUM_DL_ENTRY;
+	return num_tx_queue;
 }
 
 /**

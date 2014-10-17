@@ -120,17 +120,6 @@ typedef struct{
 //Memory space allocated per Ethernet packet
 #define ETH_A_PKT_BUF_SIZE	0x800 //2KB
 
-//Number of Tx and Rx DMA buffer descriptors
-#define ETH_A_NUM_TX_BD		1
-
-//Store DMA BDs in the AUX BRAM for fastest access; packet contents are still in DRAM
-// First 48KB of AUX BRAM is used for Tx queue entry descriptors
-// ETH DMA BDs are stored after the queue descriptors
-//FIXME: 48 is a magic number - any way to make auto-calculated based on max num Tx queue entries?
-#define ETH_A_BUF_MEM_BASE		(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + (48*1024))
-#define ETH_A_TX_BD_SPACE_BASE	(ETH_A_BUF_MEM_BASE)
-#define ETH_A_RX_BD_SPACE_BASE	(ETH_A_TX_BD_SPACE_BASE + (ETH_A_NUM_TX_BD * XAXIDMA_BD_MINIMUM_ALIGNMENT)) //safer than sizeof(XAxiDma_Bd)?
-
 int wlan_eth_init();
 void wlan_mac_util_set_eth_rx_callback(void(*callback)());
 void wlan_mac_util_set_eth_encap_mode(u8 mode);

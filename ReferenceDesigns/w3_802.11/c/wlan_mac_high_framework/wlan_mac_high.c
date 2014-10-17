@@ -220,7 +220,6 @@ void wlan_mac_high_heap_init(){
 void wlan_mac_high_init(){
 	int            Status;
     u32            i;
-	u32            queue_len;
 	u64            timestamp;
 	u32            log_size;
 	XAxiCdma_Config *cdma_cfg_ptr;
@@ -232,6 +231,20 @@ void wlan_mac_high_init(){
 		wlan_mac_high_set_node_error_status(0);
 		wlan_mac_high_blink_hex_display(0, 250000);
 	}
+
+	// Sanity check memory map of aux. BRAM and DRAM
+	//Aux. BRAM Check
+	Status = (AUX_BRAM_BASE <= TX_QUEUE_DL_ENTRY_MEM_BASE) && (TX_QUEUE_DL_ENTRY_MEM_HIGH < BSS_INFO_DL_ENTRY_MEM_BASE) && (BSS_INFO_DL_ENTRY_MEM_HIGH < ETH_TX_BD_BASE) && (ETH_TX_BD_HIGH < ETH_RX_BD_BASE) && (ETH_RX_BD_HIGH <= AUX_BRAM_HIGH);
+	if(Status != 1){
+		xil_printf("Error: Overlap detected in Aux. BRAM. Check address assignments\n");
+	}
+
+	//DRAM Check
+	Status = (DRAM_BASE <= TX_QUEUE_BUFFER_BASE) && (TX_QUEUE_BUFFER_HIGH < BSS_INFO_BUFFER_BASE) && (BSS_INFO_BUFFER_HIGH < USER_SCRATCH_BASE) && (USER_SCRATCH_HIGH < EVENT_LOG_BASE) && (EVENT_LOG_HIGH <= DRAM_HIGH);
+	if(Status != 1){
+		xil_printf("Error: Overlap detected in DRAM. Check address assignments\n");
+	}
+
 
 	// ***************************************************
 	// Initialize the utility library
@@ -338,17 +351,17 @@ void wlan_mac_high_init(){
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
 	// ***************************************************
-	queue_len = queue_init(dram_present);
+	queue_init(dram_present);
 
 	if( dram_present ) {
 		// The event_list lives in DRAM immediately following the queue payloads.
 		if(MAX_EVENT_LOG == -1){
-			log_size = (DDR3_SIZE - (queue_len+DDR3_USER_DATA_MEM_SIZE+DDR3_BSS_INFO_MEM_SIZE));
+			log_size = EVENT_LOG_SIZE;
 		} else {
-			log_size = min( (DDR3_SIZE - (queue_len+DDR3_USER_DATA_MEM_SIZE+DDR3_BSS_INFO_MEM_SIZE)), MAX_EVENT_LOG );
+			log_size = min(EVENT_LOG_SIZE, MAX_EVENT_LOG );
 		}
 
-		event_log_init( (void*)(DDR3_USER_DATA_MEM_BASEADDR + DDR3_USER_DATA_MEM_SIZE), log_size );
+		event_log_init( (void*)EVENT_LOG_BASE, log_size );
 
 	} else {
 		// No DRAM, so the log has nowhere to be stored.
@@ -1268,7 +1281,8 @@ u8   sevenSegmentMap(u8 hex_value) {
  * @brief Test DDR3 SODIMM Memory Module
  *
  * This function tests the integrity of the DDR3 SODIMM module attached to the hardware
- * by performing various write and read tests.
+ * by performing various write and read tests. Note, this function will destory contents
+ * in DRAM, so it should only be called immediately after booting.
  *
  * @param None
  * @return int
@@ -1294,7 +1308,7 @@ int wlan_mac_high_memory_test(){
 	volatile void* memory_ptr;
 
 	for(i=0;i<6;i++){
-		memory_ptr = (void*)((u8*)DDR3_BASEADDR + (i*100000*1024));
+		memory_ptr = (void*)((u8*)DRAM_BASE + (i*100000*1024));
 		for(j=0;j<3;j++){
 			//Test 1 byte offsets to make sure byte enables are all working
 			test_u8 = rand()&0xFF;

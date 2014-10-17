@@ -41,13 +41,7 @@ typedef struct{
 	u8 frame[QUEUE_BUFFER_SIZE - PHY_TX_PKT_BUF_PHY_HDR_SIZE - sizeof(tx_frame_info) - sizeof(tx_queue_metadata)];
 } tx_queue_buffer;
 
-//Bottom 48kB of data BRAM is used for tx_queue_element
-#define QUEUE_DL_ENTRY_MEM_BASE				(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
-
-#define QUEUE_DL_ENTRY_SPACE_BASE		QUEUE_DL_ENTRY_MEM_BASE
-
-
-int queue_init(u8 dram_present);
+void queue_init(u8 dram_present);
 
 tx_queue_element* queue_checkout();
 void queue_checkin(tx_queue_element* tqe);
