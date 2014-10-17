@@ -32,25 +32,25 @@
 #include "wlan_mac_low.h"
 
 
-volatile static u32					mac_param_chan; 										///< Current channel of the lower-level MAC
-volatile static u8           		mac_param_band;											///< Current band of the lower-level MAC
-volatile static s8					mac_param_ctrl_tx_pow;									///< Current transmit power (dBm) for control packets
-volatile static u32					mac_param_rx_filter;									///< Current filter applied to packet receptions
-volatile static u8   				rx_pkt_buf;												///< Current receive buffer of the lower-level MAC
-volatile static u8			 		cw_exp_min;
-volatile static u8					cw_exp_max;
+volatile static u32          mac_param_chan;                                        ///< Current channel of the lower-level MAC
+volatile static u8           mac_param_band;                                        ///< Current band of the lower-level MAC
+volatile static s8           mac_param_ctrl_tx_pow;                                 ///< Current transmit power (dBm) for control packets
+volatile static u32          mac_param_rx_filter;                                   ///< Current filter applied to packet receptions
+volatile static u8           rx_pkt_buf;                                            ///< Current receive buffer of the lower-level MAC
+volatile static u8           cw_exp_min;
+volatile static u8           cw_exp_max;
 
-static u32  				cpu_low_status;											///< Status flags that are reported to upper-level MAC
+static u32  				 cpu_low_status;                                        ///< Status flags that are reported to upper-level MAC
 
-static wlan_mac_hw_info    	hw_info;												///< Information about the hardware reported to upper-level MAC
-static wlan_ipc_msg        	ipc_msg_from_high;										///< Buffer for incoming IPC messages
-static u32                 	ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS];	///< Buffer for payload of incoming IPC messages
+static wlan_mac_hw_info    	 hw_info;                                               ///< Information about the hardware reported to upper-level MAC
+static wlan_ipc_msg        	 ipc_msg_from_high;                                     ///< Buffer for incoming IPC messages
+static u32                 	 ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS];   ///< Buffer for payload of incoming IPC messages
 
 // Callback function pointers
-function_ptr_t     frame_rx_callback;			///< User callback frame receptions
-function_ptr_t     frame_tx_callback;			///< User callback frame transmissions
+static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
+static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
-function_ptr_t     ipc_low_param_callback;      ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
+static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
 
 /**
