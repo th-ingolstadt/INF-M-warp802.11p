@@ -56,38 +56,38 @@
 //   that async packet will only be standard MTU size (1514 bytes rounded up
 //   for 32 bit alignment).
 //
-#define TRANSPORT_ASYNC_TX_SIZE       1516
+#define TRANSPORT_ASYNC_TX_SIZE                            1516
 
 
 /*********************** Global Variable Definitions *************************/
 
-extern wn_node_info node_info;
+extern wn_node_info          node_info;
 
 /*************************** Variable Definitions ****************************/
 
 // NOTE:  This structure has different member types depending on the WARP version
-wn_eth_device       wn_eth_devices[WN_NUM_ETH_DEVICES];
+static wn_eth_device         wn_eth_devices[WN_NUM_ETH_DEVICES];
 
-wn_host_message     toNode, fromNode;
+static wn_host_message       toNode, fromNode;
 
-wn_tag_parameter    transport_parameters[WN_NUM_ETH_DEVICES][TRANSPORT_MAX_PARAMETER];
-wn_transport_info   transport_info[WN_NUM_ETH_DEVICES];
+static wn_tag_parameter      transport_parameters[WN_NUM_ETH_DEVICES][TRANSPORT_MAX_PARAMETER];
+static wn_transport_info     transport_info[WN_NUM_ETH_DEVICES];
 
-u8                  node_group_ID_membership;
+static u8                    node_group_ID_membership;
 
-wn_host_message     async_pkt_msg;
-unsigned char       async_pkt_data[TRANSPORT_ASYNC_TX_SIZE];
+static wn_host_message       async_pkt_msg;
+static unsigned char         async_pkt_data[TRANSPORT_ASYNC_TX_SIZE];
 
 
 // Global socket variables
-int                 sock_unicast      = -1; // UDP socket for unicast traffic to / from the board
-struct sockaddr_in  addr_unicast;
+int                          sock_unicast      = -1; // UDP socket for unicast traffic to / from the board
+struct sockaddr_in           addr_unicast;
 
-int                 sock_bcast        = -1; // UDP socket for broadcast traffic to the board
-struct sockaddr_in  addr_bcast;
+int                          sock_bcast        = -1; // UDP socket for broadcast traffic to the board
+struct sockaddr_in           addr_bcast;
 
-int                 sock_async        = -1; // UDP socket for async transmissions from the board
-struct sockaddr_in  addr_async;
+int                          sock_async        = -1; // UDP socket for async transmissions from the board
+struct sockaddr_in           addr_async;
 
 
 /*************************** Function Prototypes *****************************/

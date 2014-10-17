@@ -15,6 +15,8 @@
  *  @bug No known bugs.
  */
 
+/***************************** Include Files *********************************/
+
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"
@@ -27,22 +29,27 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_schedule.h"
 
-extern	u8	dram_present;			///< Indication variable for whether DRAM SODIMM is present on this hardware
+/*********************** Global Variable Definitions *************************/
 
-static dl_list bss_info_free;	///< Free BSS info
+
+/*************************** Variable Definitions ****************************/
+
+static dl_list               bss_info_free;                ///< Free BSS info
 
 /// The bss_info_list is stored chronologically from .first being oldest
 /// and .last being newest. The "find" function search from last to first
 /// to minimize search time for new BSSes you hear from often.
-dl_list bss_info_list;			///< Filled BSS info
+static dl_list               bss_info_list;                ///< Filled BSS info
 
 
+/*************************** Functions Prototypes ****************************/
 
 dl_entry* wlan_mac_high_find_bss_info_oldest_unowned();
 
 
+/******************************** Functions **********************************/
 
-void bss_info_init(){
+void bss_info_init(u8 dram_present){
 
 	u32 num_bss_info;
 	u32 i;

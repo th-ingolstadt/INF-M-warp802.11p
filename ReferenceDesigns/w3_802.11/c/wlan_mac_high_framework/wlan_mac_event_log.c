@@ -77,31 +77,31 @@ extern wn_transport_header   async_pkt_hdr;
 /*************************** Variable Definitions ****************************/
 
 // Log definition variables
-static u32   log_start_address;        // Absolute start address of the log
-static u32   log_soft_end_address;     // Soft end address of the log
-static u32   log_max_address;          // Absolute end address of the log
+volatile static u32   log_start_address;        // Absolute start address of the log
+volatile static u32   log_soft_end_address;     // Soft end address of the log
+volatile static u32   log_max_address;          // Absolute end address of the log
 
-static u32   log_size;                 // Size of the log in bytes
+volatile static u32   log_size;                 // Size of the log in bytes
 
 // Log index variables
-static u32   log_oldest_address;       // Pointer to the oldest entry
-static u32   log_next_address;         // Pointer to the next entry
-static u32   log_num_wraps;            // Number of times the log has wrapped
+volatile static u32   log_oldest_address;       // Pointer to the oldest entry
+volatile static u32   log_next_address;         // Pointer to the next entry
+volatile static u32   log_num_wraps;            // Number of times the log has wrapped
 
 // Log config variables
-static u8    log_wrap_enabled;         // Will the log wrap or stop; By default wrapping is DISABLED
-static u8    event_logging_enabled;    // Will events be logged or not; By default logging is ENABLED
-static u16   wrap_buffer;              // Number of additional bytes that will be "erased" when
-                                       //   the log increments the oldest address (default = EVENT_LOG_WRAP_BUFFER)
+volatile static u8    log_wrap_enabled;         // Will the log wrap or stop; By default wrapping is DISABLED
+volatile static u8    event_logging_enabled;    // Will events be logged or not; By default logging is ENABLED
+volatile static u16   wrap_buffer;              // Number of additional bytes that will be "erased" when
+                                                //   the log increments the oldest address (default = EVENT_LOG_WRAP_BUFFER)
 
 // Log status variables
-static u8    log_empty;                // log_empty = (log_oldest_address == log_next_address);
-static u8    log_full;                 // log_full  = (log_tail_address == log_next_address);
-static u16   log_count;                // Monotonic counter for log entry sequence number
+volatile static u8    log_empty;                // log_empty = (log_oldest_address == log_next_address);
+volatile static u8    log_full;                 // log_full  = (log_tail_address == log_next_address);
+volatile static u16   log_count;                // Monotonic counter for log entry sequence number
                                        //   (wraps every (2^16 - 1) entries)
 
 // Mutex for critical allocation loop
-static u8    allocation_mutex;
+volatile static u8    allocation_mutex;
 
 
 // Variables to use with WLAN Exp framework

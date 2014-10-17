@@ -13,6 +13,8 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
+/***************************** Include Files *********************************/
+
 #include "stdlib.h"
 #include "xaxiethernet.h"
 #include "xaxidma.h"
@@ -29,21 +31,30 @@
 
 #include "wlan_mac_queue.h"
 
+
+/*********************** Global Variable Definitions *************************/
+
+#define ETH_A_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
+#define ETH_A_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
+
+
+extern wlan_mac_hw_info   	 hw_info;
+
+/*************************** Variable Definitions ****************************/
+
 //Global variable for instance of the axi_dma driver, scoped to this file only
-static XAxiDma ETH_A_DMA_Instance;
+static XAxiDma               ETH_A_DMA_Instance;
+static XIntc*                Intc_ptr;
 
 //Top-level code defines the callback, wlan_mac_util does the actual calling
 // It's sufficient to refer to the wlan_mac_util callback by name here
-function_ptr_t eth_rx_callback;
+static function_ptr_t        eth_rx_callback;
 
-u8 eth_encap_mode;
+static u8                    eth_encap_mode;
 
-static XIntc* Intc_ptr;
 
-u32 ETH_A_NUM_RX_BD;
+static u32                   ETH_A_NUM_RX_BD;
 
-#define ETH_A_RX_INTR_ID		XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
-#define ETH_A_TX_INTR_ID		XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
 
 //The station code's implementation of encapsulation and de-encapsulation has an important
 //limitation: only one device may be plugged into the station's Ethernet port. The station
@@ -51,9 +62,12 @@ u32 ETH_A_NUM_RX_BD;
 //as the destination MAC address on any Ethernet transmissions. This is fine when there is
 //only one device on the station's Ethernet port, but will definitely not work if the station
 //is plugged into a switch with more than one device.
-u8 eth_sta_mac_addr[6];
+static u8                   eth_sta_mac_addr[6];
 
-extern wlan_mac_hw_info   	hw_info;
+
+/*************************** Functions Prototypes ****************************/
+
+/******************************** Functions **********************************/
 
 /**
  * @brief Initializes the axi_dma hardware and framework for handling Ethernet Tx/Rx via the DMA

@@ -355,7 +355,7 @@ void wlan_mac_high_init(){
 		log_size = 0;
 	}
 
-	bss_info_init();
+	bss_info_init(dram_present);
 	wlan_eth_init();
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();

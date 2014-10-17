@@ -47,7 +47,7 @@
 // #define _DEBUG_
 
 #ifdef XPAR_XSYSMON_NUM_INSTANCES
-#define SYSMON_BASEADDR		           XPAR_SYSMON_0_BASEADDR
+#define SYSMON_BASEADDR		                               XPAR_SYSMON_0_BASEADDR
 #endif
 
 
@@ -66,6 +66,7 @@ extern struct sockaddr_in  addr_async;
 // Declared in wlan_mac_high.c
 extern u8                  promiscuous_stats_enabled;
 extern u8                  rx_ant_mode_tracker;
+
 
 // Declared in each of the AP / STA / IBSS
 extern bss_info*		   my_bss_info;
@@ -127,24 +128,23 @@ int        wlan_exp_null_process_callback(unsigned int cmdID, void* param);
 
 /*************************** Variable Definitions ****************************/
 
-wn_node_info          node_info;
-wn_tag_parameter      node_parameters[NODE_MAX_PARAMETER];
+wn_node_info                 node_info;
+static wn_tag_parameter      node_parameters[NODE_MAX_PARAMETER];
 
-wn_function_ptr_t     wlan_exp_init_callback                     = (wn_function_ptr_t)wlan_exp_null_init_callback;
-wn_function_ptr_t     wlan_exp_process_callback                  = (wn_function_ptr_t)wlan_exp_null_process_callback;
-wn_function_ptr_t     wlan_exp_reset_station_statistics_callback = (wn_function_ptr_t)wlan_exp_null_callback;
-wn_function_ptr_t     wlan_exp_purge_all_data_tx_queue_callback  = (wn_function_ptr_t)wlan_exp_null_callback;
-wn_function_ptr_t     wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
-wn_function_ptr_t     wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
+static wn_function_ptr_t     wlan_exp_init_callback                     = (wn_function_ptr_t)wlan_exp_null_init_callback;
+static wn_function_ptr_t     wlan_exp_process_callback                  = (wn_function_ptr_t)wlan_exp_null_process_callback;
+static wn_function_ptr_t     wlan_exp_reset_station_statistics_callback = (wn_function_ptr_t)wlan_exp_null_callback;
+static wn_function_ptr_t     wlan_exp_purge_all_data_tx_queue_callback  = (wn_function_ptr_t)wlan_exp_null_callback;
+static wn_function_ptr_t     wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
+static wn_function_ptr_t     wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
 
-extern function_ptr_t check_queue_callback;
 
-u32                   async_pkt_enable;
-u32                   async_eth_dev_num;
-pktSrcInfo            async_pkt_dest;
-wn_transport_header   async_pkt_hdr;
+u32                          async_pkt_enable;
+u32                          async_eth_dev_num;
+pktSrcInfo                   async_pkt_dest;
+wn_transport_header          async_pkt_hdr;
 
-u32                   wlan_exp_enable_logging = 0;
+static u32                   wlan_exp_enable_logging = 0;
 
 
 

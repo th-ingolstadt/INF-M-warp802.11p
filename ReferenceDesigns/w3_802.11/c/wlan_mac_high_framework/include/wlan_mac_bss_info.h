@@ -78,7 +78,7 @@ typedef struct{
 
 /*************************** Function Prototypes *****************************/
 
-void             bss_info_init();
+void             bss_info_init(u8 dram_present);
 void             bss_info_init_finish();
 
 dl_entry       * bss_info_checkout();
