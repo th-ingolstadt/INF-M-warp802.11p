@@ -66,7 +66,7 @@ extern u8	          allow_beacon_ts_update;
 
 /*************************** Variable Definitions ****************************/
 
-u8                    join_success = WLAN_EXP_STA_JOIN_IDLE;
+volatile u8           join_success = WLAN_EXP_STA_JOIN_IDLE;
 
 
 /*************************** Functions Prototypes ****************************/

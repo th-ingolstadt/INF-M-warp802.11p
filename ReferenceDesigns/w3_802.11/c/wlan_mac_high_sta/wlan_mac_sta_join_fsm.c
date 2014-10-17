@@ -34,28 +34,34 @@
 #include "wlan_mac_sta_join_fsm.h"
 #include "wlan_mac_sta.h"
 
-typedef enum {JOIN_IDLE, JOIN_SEARCHING, JOIN_ATTEMPTING} join_state_t;
-static join_state_t join_state = JOIN_IDLE;
 
-static function_ptr_t  join_success_callback = (function_ptr_t)nullCallback;
+typedef enum {JOIN_IDLE, JOIN_SEARCHING, JOIN_ATTEMPTING} join_state_t;
 
 //External Global Variables:
-extern u8 pause_data_queue;
-extern u32 mac_param_chan; ///< This is the "home" channel
-extern mac_header_80211_common tx_header_common;
-extern tx_params default_unicast_mgmt_tx_params;
+extern mac_header_80211_common    tx_header_common;
+extern u8                         pause_data_queue;
+extern u32                        mac_param_chan; ///< This is the "home" channel
+extern tx_params                  default_unicast_mgmt_tx_params;
+
+
+// File Variables
+static join_state_t               join_state = JOIN_IDLE;
+static function_ptr_t             join_success_callback = (function_ptr_t)nullCallback;
+
 
 //JOIN_SEARCHING Global Variables:
-static u32 search_sched_id = SCHEDULE_FAILURE;
-static u32 search_kill_sched_id = SCHEDULE_FAILURE;
-static char search_ssid[SSID_LEN_MAX + 1];
-static u32 search_timeout;
+static char                       search_ssid[SSID_LEN_MAX + 1];
+static u32                        search_sched_id      = SCHEDULE_FAILURE;
+static u32                        search_kill_sched_id = SCHEDULE_FAILURE;
+static u32                        search_timeout       = BSS_SEARCH_DEFAULT_TIMEOUT_SEC;
+
 
 //JOIN_ATTEMPTING Global Variables:
-static bss_info* attempt_bss_info;
-static u32 attempt_sched_id = SCHEDULE_FAILURE;
-static u32 attempt_kill_sched_id = SCHEDULE_FAILURE;
-static u32 attempt_timeout;
+static bss_info*                  attempt_bss_info;
+static u32                        attempt_sched_id      = SCHEDULE_FAILURE;
+static u32                        attempt_kill_sched_id = SCHEDULE_FAILURE;
+static u32                        attempt_timeout;
+
 
 
 void wlan_mac_sta_set_join_success_callback(function_ptr_t callback){

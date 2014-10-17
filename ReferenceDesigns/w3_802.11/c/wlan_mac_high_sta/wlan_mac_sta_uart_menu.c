@@ -39,34 +39,27 @@
 #include "wlan_mac_bss_info.h"
 
 
-#ifdef WLAN_USE_UART_MENU
+#ifndef WLAN_USE_UART_MENU
+
+void uart_rx(u8 rxByte){ };
+
+#else
+
+#define MAX_NUM_CHARS                       31
 
 
-// SSID variables
-extern char*  access_point_ssid;
+extern u32                                  mac_param_chan;
+extern tx_params                            default_unicast_data_tx_params;
 
-// Control variables
-extern tx_params default_unicast_data_tx_params;
-extern int association_state;                      // Section 10.3 of 802.11-2012
-extern u8  uart_mode;
-extern u8  active_scan;
-static u32 schedule_ID;
-static u8 print_scheduled = 0;
-
-extern u8       access_point_num_basic_rates;
-extern u8       access_point_basic_rates[NUM_BASIC_RATES_MAX];
-
-extern u8 pause_queue;
+extern bss_info*                            my_bss_info;
+extern dl_list                              statistics_table;
 
 
-// Association Table variables
-extern bss_info*	  my_bss_info;
-extern dl_list 		  statistics_table;
+static volatile u8                          uart_mode            = UART_MODE_MAIN;
+static volatile u32                         schedule_ID;
+static volatile u8                          print_scheduled      = 0;
 
-// AP channel
-extern u32 mac_param_chan;
 
-u32 num_slots = SLOT_CONFIG_RAND;
 
 void uart_rx(u8 rxByte){
 
@@ -75,10 +68,6 @@ void uart_rx(u8 rxByte){
 	if(my_bss_info != NULL){
 		access_point = ((station_info*)(my_bss_info->associated_stations.first->data));
 	}
-
-	#define MAX_NUM_CHARS 31
-
-
 
 	if(rxByte == ASCII_ESC){
 		uart_mode = UART_MODE_MAIN;

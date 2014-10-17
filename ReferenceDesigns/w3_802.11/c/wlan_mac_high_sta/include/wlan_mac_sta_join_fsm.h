@@ -17,8 +17,9 @@
 #ifndef WLAN_MAC_STA_JOIN_FSM_H_
 #define WLAN_MAC_STA_JOIN_FSM_H_
 
-#define BSS_SEARCH_POLL_INTERVAL_USEC 100000
-#define BSS_ATTEMPT_POLL_INTERVAL_USEC 50000
+#define BSS_SEARCH_DEFAULT_TIMEOUT_SEC           0
+#define BSS_SEARCH_POLL_INTERVAL_USEC            100000
+#define BSS_ATTEMPT_POLL_INTERVAL_USEC           50000
 
 void wlan_mac_sta_set_join_success_callback(function_ptr_t callback);
 void wlan_mac_sta_scan_and_join(char* ssid, u32 to_sec);

@@ -58,7 +58,7 @@
 
 #define  WLAN_EXP_ETH                            WN_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
-#define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
+#define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     5
@@ -71,8 +71,8 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-char access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
-//char access_point_ssid[SSID_LEN_MAX + 1] = "";
+static char                       access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
+// static char                       access_point_ssid[SSID_LEN_MAX + 1] = "";
 
 
 // Common TX header for 802.11 packets
@@ -84,39 +84,37 @@ tx_params                         default_unicast_data_tx_params;
 tx_params                         default_multicast_mgmt_tx_params;
 tx_params                         default_multicast_data_tx_params;
 
-// Top level STA state
-static u8                         wlan_mac_addr[6];
-u8                                uart_mode;                         // Control variable for UART MENU
-u32	                              max_queue_size;                    // Maximum transmit queue size
-u8	                              allow_beacon_ts_update;            // Allow timebase to be updated from beacons
-
-u8                                pause_data_queue;
-
 // Access point information
-
-u32                               mac_param_chan;
-bss_info*						  my_bss_info;
-
+bss_info*                         my_bss_info;
 
 // List to hold Tx/Rx statistics
 dl_list		                      statistics_table;
+
+// Tx queue variables;
+static u32                        max_queue_size;
+volatile u8                       pause_data_queue;
+
+// STA channel
+volatile u32                      mac_param_chan;
+
+// MAC address
+static u8 	                      wlan_mac_addr[6];
+
+// Beacon variables
+volatile u8	                      allow_beacon_ts_update;            // Allow timebase to be updated from beacons
 
 
 
 /*************************** Functions Prototypes ****************************/
 
-#ifdef WLAN_USE_UART_MENU
-void uart_rx(u8 rxByte);                         // Implemented in wlan_mac_sta_uart_menu.c
-#else
-void uart_rx(u8 rxByte){ };
-#endif
-
-
 
 /******************************** Functions **********************************/
 
 int main() {
-	wlan_mac_hw_info *hw_info;
+	wlan_mac_hw_info *       hw_info;
+
+	// Default Channels
+	u8                       channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 
 
 	// Print initial message to UART
@@ -257,7 +255,6 @@ int main() {
 	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",wlan_mac_addr[0],wlan_mac_addr[1],wlan_mac_addr[2],wlan_mac_addr[3],wlan_mac_addr[4],wlan_mac_addr[5]);
 
 #ifdef WLAN_USE_UART_MENU
-	uart_mode = UART_MODE_MAIN;
 	xil_printf("\nAt any time, press the Esc key in your terminal to access the menu\n");
 #endif
 
@@ -265,11 +262,12 @@ int main() {
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 	// Set the default active scan channels
-	u8 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
 	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
 	// If there is a default SSID, initiate a probe request
-	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) wlan_mac_sta_scan_and_join(access_point_ssid, 0);
+	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
+		wlan_mac_sta_scan_and_join(access_point_ssid, 0);
+	}
 
 	while(1){
 #ifdef USE_WARPNET_WLAN_EXP
