@@ -2086,10 +2086,6 @@ int wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload ){
 		ipc_msg_to_low_payload.baseaddr  = baseaddr;
 		ipc_msg_to_low_payload.num_words = num_words;
 
-		// TODO: Add a timeout and failure return?
-		//     I'm leaning towards "no" on this capability as any failure to return indicates
-		//     that something else is deeply wrong. -CRH
-
 		// Set the read buffer to the payload pointer
 		cpu_low_reg_read_buffer          = payload;
 		cpu_low_reg_read_buffer_status   = CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY;
@@ -2134,10 +2130,6 @@ int wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload ){
 		ipc_msg_to_low.num_payload_words = 1;
 		ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
 		ipc_msg_to_low.payload_ptr       = (u32*)(&(param_id));
-
-		// TODO: Add a timeout and failure return?
-		//     I'm leaning towards "no" on this capability as any failure to return indicates
-		//     that something else is deeply wrong. -CRH
 
 		// Set the read buffer to the payload pointer
 		cpu_low_param_read_buffer        = payload;
@@ -2373,9 +2365,6 @@ u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 
 	mac_header_80211* hdr_80211;
 	llc_header* llc_hdr;
-
-	// TODO: Check the beginning of the LLC header to make sure that we should
-	// actually be treating this as an LTG
 
 	hdr_80211 = (mac_header_80211*)((void*)mpdu);
 
