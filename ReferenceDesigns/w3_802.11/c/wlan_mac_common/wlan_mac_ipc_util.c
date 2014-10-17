@@ -15,6 +15,8 @@
  *  @bug No known bugs.
  */
 
+/***************************** Include Files *********************************/
+
 #include "stdlib.h"
 #include "stdio.h"
 
@@ -33,30 +35,39 @@
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
 
+/*********************** Global Variable Definitions *************************/
+
+/*************************** Variable Definitions ****************************/
 
 #ifdef XPAR_INTC_0_DEVICE_ID
 
-#define MAILBOX_RIT	0	/* mailbox receive interrupt threshold */
-#define MAILBOX_SIT	0	/* mailbox send interrupt threshold */
-//#define MBOX_INTR_ID		XPAR_INTC_0_MBOX_0_VEC_ID
-#define MBOX_INTR_ID		XPAR_MB_HIGH_INTC_MB_MAILBOX_INTERRUPT_0_INTR
-static XIntc* Intc_ptr;
-function_ptr_t mailbox_rx_callback;
+#define MAILBOX_RIT	                                       0         /* mailbox receive interrupt threshold */
+#define MAILBOX_SIT                                        0         /* mailbox send interrupt threshold */
+#define MBOX_INTR_ID                                       XPAR_MB_HIGH_INTC_MB_MAILBOX_INTERRUPT_0_INTR
+
+static XIntc*                Intc_ptr;
+static function_ptr_t        mailbox_rx_callback;
 
 #endif
 
 
+static XMbox                 ipc_mailbox;
+static XMutex                pkt_buf_mutex;
+
+
+/*************************** Functions Prototypes ****************************/
+
 void nullCallback(void* param){};
 
-XMbox ipc_mailbox;
-XMutex pkt_buf_mutex;
+
+/******************************** Functions **********************************/
 
 int wlan_lib_init () {
 	u32 i;
 
-	#ifdef XPAR_INTC_0_DEVICE_ID
+#ifdef XPAR_INTC_0_DEVICE_ID
 	mailbox_rx_callback = (function_ptr_t)nullCallback;
-	#endif
+#endif
 
 	//Initialize the pkt buffer mutex core
 	XMutex_Config *mutex_ConfigPtr;
@@ -79,6 +90,8 @@ int wlan_lib_init () {
 
 	return 0;
 }
+
+
 
 #ifdef XPAR_INTC_0_DEVICE_ID
 
@@ -135,9 +148,10 @@ void MailboxIntrHandler(void *CallbackRef){
 
 }
 
-
-
 #endif
+
+
+
 int wlan_lib_mac_rate_to_mbps (u8 rate) {
 	switch(rate){
 		case WLAN_MAC_RATE_1M:
