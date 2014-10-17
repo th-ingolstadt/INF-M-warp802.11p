@@ -9,7 +9,7 @@ This script uses the WLAN Exp Log utilities to prase raw log data and print
 details about the Tx and Rx events at the two nodes.
 
 Hardware Setup:
-    - None.  Parsing log data can be done completely off-line
+    - None.  Parsing log data can be done off-line
 
 Required Script Changes:
     - Set LOGFILE to the file name of your WLAN Exp log HDF5 file
