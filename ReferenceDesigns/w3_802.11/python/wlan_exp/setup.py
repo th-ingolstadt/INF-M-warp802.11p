@@ -12,7 +12,7 @@ def read(*paths):
         return f.read()
 
 setup(
-    name='wlan_exp',
+    name='mango-wlan-exp',
     version='1.0.0',
     description='Experiments framework for Mango 802.11 Reference Design',
     long_description=(read('README')),
