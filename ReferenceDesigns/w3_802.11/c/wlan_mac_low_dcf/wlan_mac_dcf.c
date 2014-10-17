@@ -41,19 +41,19 @@
 #define WARPNET_TYPE_80211_LOW         WARPNET_TYPE_80211_LOW_DCF
 #define NUM_LEDS                       4
 
-volatile static u32              stationShortRetryCount;
-volatile static u32              stationLongRetryCount;
-volatile static u32              cw_exp;
+volatile static u32                    stationShortRetryCount;
+volatile static u32                    stationLongRetryCount;
+volatile static u32                    cw_exp;
 
-volatile static u8				autocancel_en;
-volatile static u8				autocancel_match_type;
-volatile static u8				autocancel_match_addr3[6];
-volatile static u64				autocancel_last_rx_ts;
+volatile static u8                     autocancel_en;
+volatile static u8                     autocancel_match_type;
+volatile static u8                     autocancel_match_addr3[6];
+volatile static u64                    autocancel_last_rx_ts;
 
-volatile static u8               eeprom_addr[6];
+volatile static u8                     eeprom_addr[6];
 
-volatile u8                      red_led_index;
-volatile u8                      green_led_index;
+volatile u8                            red_led_index;
+volatile u8                            green_led_index;
 
 int main(){
 	wlan_mac_hw_info* hw_info;
