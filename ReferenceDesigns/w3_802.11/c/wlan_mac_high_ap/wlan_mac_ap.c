@@ -286,25 +286,6 @@ int main(){
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
-#if 0
-	/////// TODO DEBUG  READ EXAMPLE ///////
-	u32 	idx_read;
-	u32*	payload_read;
-	#define NUM_WORDS_TO_READ 5
-
-	payload_read = wlan_mac_high_malloc(NUM_WORDS_TO_READ * sizeof(u32));
-
-	//Read NUM_WORDS_TO_READ words from 0x12345678 in CPU_LOW's memory space
-	wlan_mac_high_read_low_mem(NUM_WORDS_TO_READ, 0x12345678, payload_read);
-
-	for(idx_read = 0; idx_read < NUM_WORDS_TO_READ; idx_read++){
-		xil_printf("[%d] = 0x%08x\n",idx_read, payload_read[idx_read]);
-	}
-
-	wlan_mac_high_free(payload_read);
-	/////// TODO DEBUG  READ EXAMPLE ///////
-#endif
-
 	while(1) {
 #ifdef USE_WARPNET_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
@@ -1104,7 +1085,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					// Packet was not from an associated station
 					//   - Print a WARNING and send a de-authentication to trigger a re-association
 					//
-					// TODO: Formally adopt conventions from 10.3 in 802.11-2012 for STA state transitions
 					//
 					if(unicast_to_me){
 
@@ -1342,14 +1322,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					}
 
 					if(associated_station != NULL) {
-
-						// TODO: move control of rate selection to WLAN_EXP
-
-						 //associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_SRA; //Enable Simple Autorate
-						 //associated_station->rate_info.pr_timestamp = get_usec_timestamp();
-
-						// associated_station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_MIRROR; //Enable Simple Autorate
-
 
 						// Log the association state change
 						add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
