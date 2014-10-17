@@ -77,7 +77,7 @@ typedef struct{
 #define IPC_MBOX_MSG_ID_TO_MSG(id) (id) & 0xFFF
 
 typedef struct{
-	u32 slot_config; //TODO: remove
+	u32 slot_config; //FIXME: remove
 } ipc_config_mac;
 
 #define SLOT_CONFIG_RAND 0xFFFFFFFF
