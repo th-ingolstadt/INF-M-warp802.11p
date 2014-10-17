@@ -466,7 +466,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		// TODO
 		//  * Make backoff slot selection on retransmissions less confusing
-		//  * Insert backoff slot selections into low_tx_details
 		//  * Set tx antenna mode based on phy param. This should be done
 		//    after fixing antenna mode for ACK Tx to be a function of received antenna
 
