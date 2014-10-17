@@ -360,7 +360,7 @@ typedef struct{
 	u8	                transmission_count;      // What transmission was this packet
 	u8 	                chan_num;                // Channel on which this packet was sent
 	u16                 length;                  // Length of the packet
-	u16                 num_slots;               // Number of backoff slots
+	s16                 num_slots;               // Number of backoff slots
 	u16                 cw;                      // Contention Window
 	u8 	                pkt_type;                // Type of packet
 	u8					flags;					 // Misc. flags from CPU_HIGH
