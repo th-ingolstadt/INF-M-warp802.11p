@@ -98,6 +98,24 @@ int main(){
 	return 0;
 }
 
+/**
+ * @brief Handles reception of a wireless packet
+ *
+ * This function is called after a good SIGNAL field is detected by either PHY (OFDM or DSSS)
+ * It is the responsibility of this function to wait until a sufficient number of bytes have been received
+ * before it can start to process those bytes. When this function is called the eventual checksum status is
+ * unknown. In NOMAC, this function doesn't need to do any kind of filtering or operations like transmitting
+ * an acknowledgment.
+ *
+ * @param u8 rx_pkt_buf
+ *  -Index of the Rx packet buffer containing the newly recevied packet
+ * @param u8 rate
+ *  -Index of PHY rate at which pcaket was received
+ * @param u16 length
+ *  -Number of bytes received by the PHY, including MAC header and FCS
+ * @return
+ *  - always returns 0 in NOMAC implementation
+ */
 u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//This function is called after a good SIGNAL field is detected by either PHY (OFDM or DSSS)
 	//It is the responsibility of this function to wait until a sufficient number of bytes have been received
@@ -156,7 +174,27 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	return 0;
 }
 
-
+/**
+ * @brief Handles transmission of a wireless packet
+ *
+ * This function is called to transmit a new packet via the PHY. While the code does utilize the wlan_mac_dcf_hw core,
+ * it bypasses any of the DCF-specific state in order to directly transmit the frame. This function should be called once per packet and will return 
+ * immediately following that transmission. It will not perform any DCF-like retransmissions.
+ *
+ * This function is called once per IPC_MBOX_TX_MPDU_READY message from CPU High. The IPC_MBOX_TX_MPDU_DONE message will be sent
+ * back to CPU High when this function returns.
+ *
+ * @param u8 rx_pkt_buf
+ *  -Index of the Tx packet buffer containing the packet to transmit
+ * @param u8 rate
+ *  -Index of PHY rate at which packet will be transmitted
+ * @param u16 length
+ *  -Number of bytes in packet, including MAC header and FCS
+ * @param wlan_mac_low_tx_details* low_tx_details
+ *  -Pointer to array of metadata entries to be created for each PHY transmission of this packet (eventually leading to TX_LOW log entries)
+ * @return
+ *  -Transmission result
+ */
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
 	//This function manages the MAC_DCF_HW core.
 
