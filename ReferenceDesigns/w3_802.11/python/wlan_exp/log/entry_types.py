@@ -247,6 +247,8 @@ class WlanExpLogEntryType(object):
         return np_arr
 
     def generate_entry_doc(self, fmt='wiki'):
+        import textwrap
+
         field_descs = list()
         for f in self._fields:
             # Field tuple is (name, struct_type, np_type, (optional)desc)
@@ -257,44 +259,76 @@ class WlanExpLogEntryType(object):
                 # Field missing description; use empty string
                 field_descs.append( (f[0], f[2], ''))
 
+        def doc_fields_table(field_list, fmt='wiki'):
+            """field_list must be iterable of 3-tuples:
+            0: Field name (string)
+            1: Field data type (string, preferably the numpy datatype string)
+            2: Field description (string)
+            """
+
+            doc_str = ''
+
+            if fmt == 'wiki':
+                doc_str += '||=  Field Name  =||=  Data Type  =||=  Description  =||\n'
+
+                for fd in field_list:
+                    import re
+                    # Wiki-ify some string formats:
+                    #   Line breaks in descriptions must be explicit "[[BR]]"
+                    #   Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
+                    fd_desc = fd[2]
+                    fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) # do this first, so other wiki tags inserted below aren't escaped
+                    fd_desc = fd_desc.replace('\n', '[[BR]]')
+
+                    doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
+
+            elif fmt == 'txt':
+                doc_str += 'Field Name\t\t\t| Data Type\t| Description\n'
+                doc_str += '---------------------------------------------------------------------------------------------------------------------\n'
+
+                for fd in field_descs:
+                    doc_str += '{0:30}\t| {1:10}\t| {2}\n'.format(fd[0], fd[1], fd[2])
+
+                doc_str += '---------------------------------------------------------------------------------------------------------------------\n'
+
+            return doc_str
+
         if fmt == 'wiki':
             # Construct the Trac-wiki-style documentation string for this entry type
-            doc_str = '=== Entry Type {0} ===\n'.format(self.name)
-
+            doc_str = '\n----\n\n'
+            doc_str += '=== Entry Type {0} ===\n'.format(self.name)
             doc_str += self.description + '\n\n'
-
             doc_str += 'Entry type ID: {0}\n\n'.format(self.entry_type_id)
 
-            doc_str += '||=  Field Name  =||=  Data Type  =||=  Description  =||\n'
-
-            for fd in field_descs:
-                import re
-                # Wiki-ify some string formats:
-                #   Line breaks in descriptions must be explicit "[[BR]]"
-                #   Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
-                fd_desc = fd[2]
-                fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) # do this first, so other wiki tags inserted below aren't escaped
-                fd_desc = fd_desc.replace('\n', '[[BR]]')
-
-                doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
-
-            doc_str += '\n----\n\n'
+            doc_str += doc_fields_table(field_descs, fmt='wiki')
 
         elif fmt == 'txt':
-            import textwrap
             # Construct plain text version of documentation string for this entry type
             doc_str = '---------------------------------------------------------------------------------------------------------------------\n'
             doc_str += 'Entry Type {0}\n'.format(self.name)
             doc_str += 'Entry type ID: {0}\n\n'.format(self.entry_type_id)
             doc_str += textwrap.fill(self.description) + '\n\n'
 
-            doc_str += 'Field Name\t\t\t| Data Type\t| Description\n'
-            doc_str += '---------------------------------------------------------------------------------------------------------------------\n'
+            doc_str += doc_fields_table(field_descs, fmt='txt')
 
-            for fd in field_descs:
-                doc_str += '{0:30}\t| {1:10}\t| {2}\n'.format(fd[0], fd[1], fd[2])
+        #Check each post-numpy array generation callback to any documentation to include
+        # The callbacks can define "virtual" fields - convenience fields appended to the numpy
+        # array that are calculated from the "real" fields
+        for cb in self.gen_numpy_callbacks:
+            field_descs = []
+            try:
+                (cb_doc_str, cb_doc_fields) = cb(docs_only=True)
+                for f in cb_doc_fields:
+                    field_descs.append( (f[0], f[1], f[2]) )
 
-            doc_str += '---------------------------------------------------------------------------------------------------------------------\n'
+                doc_str += '\n\n'
+                doc_str += cb_doc_str + '\n\n'
+                doc_str += doc_fields_table(field_descs, fmt=fmt)
+
+            except (TypeError, IndexError) as e:
+                #Callback didn't implement suitable 'docs_only' output; punt
+                #print('Error generating callback field docs for {0}\n{1}'.format(cb, e))
+                pass
 
         return doc_str
 
@@ -523,21 +557,21 @@ class WlanExpLogEntryType(object):
 # End class
 
 
-def np_array_add_txrx_ltg_fields(np_arr_orig):
+def np_array_add_txrx_ltg_fields(np_arr_orig=None, docs_only=False):
     """Add 'virtual' fields to TX/RX LTG packets."""
-    return np_array_add_fields(np_arr_orig, mac_addr=True, ltg=True)
+    return np_array_add_fields(np_arr_orig, mac_addr=True, ltg=True, docs_only=docs_only)
 
 # End def
 
 
-def np_array_add_txrx_fields(np_arr_orig):
+def np_array_add_txrx_fields(np_arr_orig=None, docs_only=False):
     """Add 'virtual' fields to TX/RX packets."""
-    return np_array_add_fields(np_arr_orig, mac_addr=True, ltg=False)
+    return np_array_add_fields(np_arr_orig, mac_addr=True, ltg=False, docs_only=docs_only)
 
 # End def
 
 
-def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False):
+def np_array_add_fields(np_arr_orig=None, mac_addr=False, ltg=False, docs_only=False):
     """Add 'virtual' fields to the numpy array.
 
     Extend the default np_arr with convenience fields for:
@@ -552,20 +586,33 @@ def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False):
 
     names   = ()
     formats = ()
+    descs = ()
 
     # Add the MAC address fields
     if mac_addr:
         names   += ('addr1', 'addr2', 'addr3', 'mac_seq')
         formats += ('uint64', 'uint64', 'uint64', 'uint16')
+        descs += ('MAC Header Address 1', 'MAC Header Address 2', 'MAC Header Address 3', 'MAC Header Sequence Number')
 
     # Add the LTG fields
     if ltg:
         names   += ('ltg_uniq_seq', 'ltg_flow_id')
         formats += ('uint64', 'uint64')
+        descs += ('Unique sequence number for LTG packet', 'LTG Flow ID, calculated as:\n  16LSB: LTG instance ID\n  48MSB: Destination MAC address')
 
     # If there are no fields to add, just return the original array
     if not names:
         return np_arr_orig
+
+    if docs_only:
+        ret_str = 'The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. '
+        ret_str += 'These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw '
+        ret_str += 'log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier '
+        ret_str += 'to use when filtering Tx/Rx log entries using numpy and pandas.'
+
+        ret_list = zip(names, formats, descs)
+
+        return (ret_str, ret_list)
 
     # Create a new numpy dtype with additional fields
     dt_new = extend_np_dt(np_arr_orig.dtype, {'names': names, 'formats': formats})
