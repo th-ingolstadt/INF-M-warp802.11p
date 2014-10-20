@@ -60,7 +60,6 @@ static u32                        search_timeout       = BSS_SEARCH_DEFAULT_TIME
 static bss_info*                  attempt_bss_info;
 static u32                        attempt_sched_id      = SCHEDULE_FAILURE;
 static u32                        attempt_kill_sched_id = SCHEDULE_FAILURE;
-static u32                        attempt_timeout;
 
 
 
@@ -110,7 +109,6 @@ void wlan_mac_sta_join(bss_info* bss_description, u32 to_sec){
 	switch(join_state){
 		case JOIN_IDLE:
 			join_state = JOIN_ATTEMPTING;
-			attempt_timeout = to_sec;
 			attempt_bss_info = bss_description;
 			switch(attempt_bss_info->state){
 				case BSS_STATE_UNAUTHENTICATED:
