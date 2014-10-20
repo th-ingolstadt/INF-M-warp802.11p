@@ -1,6 +1,21 @@
+# -*- coding: utf-8 -*-
 """
-entry_types.py
-==============
+------------------------------------------------------------------------------
+WLAN Experiment Log Entry Types
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
+MODIFICATION HISTORY:
+
+Ver   Who  Date     Changes
+----- ---- -------- -----------------------------------------------------
+1.00a ejw  1/23/14  Initial release
+
+------------------------------------------------------------------------------
 
 This module defines each type of log entry that may exist
 in the event log of an 802.11 Reference Design Node.
@@ -13,21 +28,22 @@ This module maintains a dictionary which contains a reference to each
 known log entry type. This dictionary is stored in the variable
 ``wlan_exp_log_entry_types``. The :class:`WlanExpLogEntryType` constructor
 automatically adds each log entry type definition to this dictionary. Users
-may access the dictionary to view currently defined log entry types. But user code
-should not modify the dictionary contents directly.
+may access the dictionary to view currently defined log entry types. But 
+user code should not modify the dictionary contents directly.
 
 Custom Log Entry Types
 ----------------------
-The :mod:`log_entries` module includes definitions for the log entry types implemented in
-the current 802.11 Reference Design C code.
+The :mod:`log_entries` module includes definitions for the log entry types 
+implemented in the current 802.11 Reference Design C code.
 
-Log entry types defined here must match the corresponding entry definitions in the node C code.
-Custom entries can be defined and added to the global dictionary by user scripts.
+Log entry types defined here must match the corresponding entry definitions in 
+the node C code.  Custom entries can be defined and added to the global 
+dictionary by user scripts.
 
-Log entry type definitions are instances of the :class:`WlanExpLogEntryType` class. The
-:class:`WlanExpLogEntryType` constructor requires two arguments: ``name`` and ``entry_type_id``.
-Both the name and entry type ID **must** be unique relative to the existing entry types defined in
-:mod:`log_entries`.
+Log entry type definitions are instances of the :class:`WlanExpLogEntryType` 
+class. The :class:`WlanExpLogEntryType` constructor requires two arguments: 
+``name`` and ``entry_type_id``.  Both the name and entry type ID **must** be 
+unique relative to the existing entry types defined in :mod:`log_entries`.
 
 To define a custom log entry type::
 
@@ -79,15 +95,15 @@ ENTRY_TYPE_TX_LOW_LTG             = 26
 
 ENTRY_TYPE_TXRX_STATS             = 30
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Log Entry Type Container
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 log_entry_types          = dict()
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Log Entry Type Base Class
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 class WlanExpLogEntryType(object):
     """Base class to define a log entry type."""
@@ -95,17 +111,17 @@ class WlanExpLogEntryType(object):
     #     (field_name, field_fmt_struct, field_fmt_np)
     _fields             = None
 
-    entry_type_id       = None #:Unique integer ID for entry type
-    name                = None #:Unique string name for entry type
-    description         = '' #:Description of log entry type, used for generating documentation
+    entry_type_id       = None # Unique integer ID for entry type
+    name                = None # Unique string name for entry type
+    description         = ''   # Description of log entry type, used for generating documentation
 
-    fields_np_dt        = None #:numpy dtype object describing format
-    fields_fmt_struct   = None #:List of field formats, in struct module format
+    fields_np_dt        = None # numpy dtype object describing format
+    fields_fmt_struct   = None # List of field formats, in struct module format
     _field_offsets      = None
 
     gen_numpy_callbacks = None
 
-    consts = None #:Container for user-defined, entry-specific constants
+    consts              = None # Container for user-defined, entry-specific constants
 
     def __init__(self, name=None, entry_type_id=None):
         # Require valid name
@@ -144,16 +160,14 @@ class WlanExpLogEntryType(object):
         self._field_offsets       = {}
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Accessor methods for the WlanExpLogEntryType
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def get_field_names(self):
         return [f[0] for f in self._fields]
-#        return [field_name for (field_name, field_fmt_struct, field_fmt_np, desc or _) in self._fields]
 
     def get_field_struct_formats(self):
         return [f[1] for f in self._fields]
-#        return [field_fmt_struct for (field_name, field_fmt_struct, field_fmt_np, desc or None) in self._fields]
 
     def get_field_defs(self):          return self._fields
 
@@ -214,9 +228,9 @@ class WlanExpLogEntryType(object):
             print("ERROR:  Callback must be callable function.")
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Utility methods for the WlanExpLogEntryType
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def generate_numpy_array(self, log_bytes, byte_offsets):
         """Generate a NumPy array from the log_bytes of the given
         WlanExpLogEntryType instance at the given byte_offsets.
@@ -235,16 +249,16 @@ class WlanExpLogEntryType(object):
     def generate_entry_doc(self, fmt='wiki'):
         field_descs = list()
         for f in self._fields:
-            #Field tuple is (name, struct_type, np_type, (optional)desc)
-            # Construct new tuple of (name, np_type, desc ('' if not defined))
+            # Field tuple is (name, struct_type, np_type, (optional)desc)
+            #   Construct new tuple of (name, np_type, desc ('' if not defined))
             try:
                 field_descs.append( (f[0], f[2], f[3]))
             except IndexError:
-                #Field missing description; use empty string
+                # Field missing description; use empty string
                 field_descs.append( (f[0], f[2], ''))
 
         if fmt == 'wiki':
-            #Construct the Trac-wiki-style documentation string for this entry type
+            # Construct the Trac-wiki-style documentation string for this entry type
             doc_str = '=== Entry Type {0} ===\n'.format(self.name)
 
             doc_str += self.description + '\n\n'
@@ -255,11 +269,11 @@ class WlanExpLogEntryType(object):
 
             for fd in field_descs:
                 import re
-                #Wiki-ify some string formats:
-                # Line breaks in descriptions must be explicit "[[BR]]"
-                # Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
+                # Wiki-ify some string formats:
+                #   Line breaks in descriptions must be explicit "[[BR]]"
+                #   Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
                 fd_desc = fd[2]
-                fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) #do this first, so other wiki tags inserted below aren't escaped
+                fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) # do this first, so other wiki tags inserted below aren't escaped
                 fd_desc = fd_desc.replace('\n', '[[BR]]')
 
                 doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
@@ -268,7 +282,7 @@ class WlanExpLogEntryType(object):
 
         elif fmt == 'txt':
             import textwrap
-            #Construct plain text version of documentation string for this entry type
+            # Construct plain text version of documentation string for this entry type
             doc_str = '---------------------------------------------------------------------------------------------------------------------\n'
             doc_str += 'Entry Type {0}\n'.format(self.name)
             doc_str += 'Entry type ID: {0}\n\n'.format(self.entry_type_id)
@@ -428,9 +442,9 @@ class WlanExpLogEntryType(object):
         return ret_val
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Internal methods for the WlanExpLogEntryType
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _update_field_defs(self):
         """Internal method to update fields."""
         import numpy as np
@@ -561,8 +575,8 @@ def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False):
 
     # Copy data from the base numpy array into the output array
     for f in np_arr_orig.dtype.names:
-        #TODO: maybe don't copy fields that are ignored in the struct format?
-        # problem is non-TxRx entries would still have these fields in their numpy versions
+        # TODO: maybe don't copy fields that are ignored in the struct format?
+        #   problem is non-TxRx entries would still have these fields in their numpy versions
         np_arr_out[f] = np_arr_orig[f]
 
     # Extract the MAC payload (the payload is at a minimum a 24-entry uint8 array)
@@ -601,7 +615,6 @@ def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False):
             np_arr_out['ltg_flow_id']  = (np_arr_out['addr2'] << 16) + (np.dot(flow_id_conv_arr, np.transpose(mac_hdrs[:, 40:44])) & 0xFFFF)
         except:
             np_arr_out['ltg_flow_id']  = np.dot(flow_id_conv_arr, np.transpose(mac_hdrs[:, 40:44]))
-        pass
 
     return np_arr_out
 
@@ -621,25 +634,25 @@ def extend_np_dt(dt_orig, new_fields=None):
     if(type(dt_orig) is not np.dtype):
         raise Exception("ERROR: extend_np_dt requires valid numpy dtype as input")
     else:
-        #Use ordered dictionary to preserve original field order (not required, just convenient)
+        # Use ordered dictionary to preserve original field order (not required, just convenient)
         dt_ext = OrderedDict()
 
-        #Extract the names/formats/offsets dictionary for the base dtype
-        # dt.fields returns dictionary with field names as keys and
-        #  values of (dtype, offset). The dtype objects in the first tuple field
-        #  can be used as values in the 'formats' entry when creating a new dtype
+        # Extract the names/formats/offsets dictionary for the base dtype
+        #   dt.fields returns dictionary with field names as keys and
+        #   values of (dtype, offset). The dtype objects in the first tuple field
+        #   can be used as values in the 'formats' entry when creating a new dtype
         # This approach will preserve the types and dimensions of scalar and non-scalar fields
         dt_ext['names'] = list(dt_orig.names)
         dt_ext['formats'] = [dt_orig.fields[f][0] for f in dt_orig.names]
 
         if(type(new_fields) is dict):
-            #Add new fields to the extended dtype
+            # Add new fields to the extended dtype
             dt_ext['names'].extend(new_fields['names'])
             dt_ext['formats'].extend(new_fields['formats'])
         elif type(new_fields) is not None:
             raise Exception("ERROR: new_fields argument must be dictionary with keys 'names' and 'formats'")
 
-        #Construct and return the new numpy dtype object
+        # Construct and return the new numpy dtype object
         dt_new = np.dtype(dt_ext)
 
         return dt_new
@@ -647,9 +660,9 @@ def extend_np_dt(dt_orig, new_fields=None):
 # End def
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # NULL Log Entry Instance
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # The NULL entry is used to "remove" an existing entry within the log.
 #   By replacing the current entry type with the NULL entry type and zeroing
@@ -660,9 +673,9 @@ def extend_np_dt(dt_orig, new_fields=None):
 entry_null = WlanExpLogEntryType(name='NULL', entry_type_id=ENTRY_TYPE_NULL)
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Virtual Log Entry Instances
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 ###########################################################################
 # Rx Common
@@ -725,9 +738,9 @@ entry_tx_common.consts['SUCCESS'] = 0
 #
 entry_tx_low_common = WlanExpLogEntryType(name='TX_LOW_ALL', entry_type_id=None)
 
-entry_tx_low_common.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries may be created '
-entry_tx_low_common.description += 'for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match between TX and TX_LOW entries '
-entry_tx_low_common.description += 'to find records common to the same MPUD.'
+entry_tx_low_common.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries '
+entry_tx_low_common.description += 'may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match '
+entry_tx_low_common.description += 'between TX and TX_LOW entries to find records common to the same MPUD.'
 
 entry_tx_low_common.append_field_defs([
             ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet transmission actually started (PHY TX_START time)'),
@@ -747,9 +760,9 @@ entry_tx_low_common.append_field_defs([
             ('padding1',               'B',      'uint8',   '')])
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Log Entry Type Instances
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 ###########################################################################
 # Node Info
@@ -874,9 +887,9 @@ entry_wn_cmd_info.append_field_defs([
 entry_time_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
 
 entry_time_info.description  = 'Record of a time base event at the node. This log entry is used to enable parsing of log data '
-entry_time_info.description += 'recored before and after changes to the node\'s microsecond timer. This entry also allows a wlan_exp controler to write the current '
-entry_time_info.description += 'absolute time to the node log without affecting the node\'s timer value. This enables adjustment of log entry timestamps to '
-entry_time_info.description += 'real timestamps in post-proessing.'
+entry_time_info.description += 'recored before and after changes to the node\'s microsecond timer. This entry also allows a wlan_exp controler to '
+entry_time_info.description += 'write the current absolute time to the node log without affecting the node\'s timer value. This enables adjustment '
+entry_time_info.description += 'of log entry timestamps to real timestamps in post-proessing.'
 
 entry_time_info.append_field_defs([
             ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
@@ -891,8 +904,9 @@ entry_time_info.append_field_defs([
 #
 entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
 
-entry_node_temperature.description  = 'Record of the FPGA system monitor die temperature. This entry is only created when directed by a wlan_exp command. Temperature '
-entry_node_temperature.description += 'values are stored as 32-bit unsigned integers. To convert to degrees Celcius, apply (((float)temp_u32)/(65536.0*0.00198421639)) - 273.15'
+entry_node_temperature.description  = 'Record of the FPGA system monitor die temperature. This entry is only created when directed by a wlan_exp '
+entry_node_temperature.description += 'command. Temperature values are stored as 32-bit unsigned integers. To convert to degrees Celcius, apply '
+entry_node_temperature.description += '(((float)temp_u32)/(65536.0*0.00198421639)) - 273.15'
 
 entry_node_temperature.append_field_defs([
             ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
@@ -1025,8 +1039,9 @@ entry_tx_low_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
 #
 entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
 
-entry_txrx_stats.description  = 'Copy of the Tx/Rx statistics struct maintained by CPU High. If promiscuous statistics mode is Tx/Rx stats structs will be maintained '
-entry_txrx_stats.description += 'for every unique source MAC address, up to the max_stats value. Otherwise statistics are maintaind only associated nodes.'
+entry_txrx_stats.description  = 'Copy of the Tx/Rx statistics struct maintained by CPU High. If promiscuous statistics mode is Tx/Rx stats structs will '
+entry_txrx_stats.description += 'be maintained for every unique source MAC address, up to the max_stats value. Otherwise statistics are maintaind only '
+entry_txrx_stats.description += 'associated nodes.'
 
 entry_txrx_stats.append_field_defs([
             ('timestamp',                      'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),

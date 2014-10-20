@@ -59,8 +59,6 @@ class Transport(object):
     """
     hdr = None
 
-    def send(self,): raise NotImplementedError
-
 # End Class
 
 

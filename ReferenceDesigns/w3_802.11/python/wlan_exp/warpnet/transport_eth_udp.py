@@ -121,7 +121,7 @@ class TransportEthUdp(tp.Transport):
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         
-        if not tx_buf_size is None:
+        if tx_buf_size is not None:
             try:
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, tx_buf_size)
             except socket_error as serr:
@@ -129,7 +129,7 @@ class TransportEthUdp(tp.Transport):
                 if serr.errno != errno.ENOBUFS:
                     raise serr
 
-        if not rx_buf_size is None:
+        if rx_buf_size is not None:
             try:
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, rx_buf_size)
             except socket_error as serr:
@@ -163,21 +163,21 @@ class TransportEthUdp(tp.Transport):
         self.status = 0
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Commands that must be implemented by child classes
-    #-------------------------------------------------------------------------
-    def send(self,):
+    # -------------------------------------------------------------------------
+    def send(self, payload, robust=None, pkt_type=None):
         """Send a message over the transport."""
         raise NotImplementedError
 
-    def receive(self,):
+    def receive(self, timeout=None):
         """Return a response from the transport."""
         raise NotImplementedError
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # WARPNet Commands for the Transport
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def ping(self, node, output=False):
         """Issues a ping command to the given node.
         
@@ -195,7 +195,7 @@ class TransportEthUdp(tp.Transport):
     def test_payload_size(self, node, jumbo_frame_support=False):
         """Determines the object's max_payload parameter."""
 
-        if (jumbo_frame_support == True):
+        if jumbo_frame_support:
             payload_test_sizes = [1000, 1470, 5000, 8966]
         else:
             payload_test_sizes = [1000, 1470]
@@ -222,10 +222,10 @@ class TransportEthUdp(tp.Transport):
         node.send_cmd(wn_cmds.ClearNodeGrpId(group))
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # WARPNet Parameter Framework
     #   Allows for processing of hardware parameters
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def process_parameter(self, identifier, length, values):
         """Extract values from the parameters"""
         if   (identifier == tp.TRANSPORT_TYPE):
@@ -268,9 +268,9 @@ class TransportEthUdp(tp.Transport):
             raise wn_ex.ParameterError(identifier, "Unknown transport parameter")
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Misc methods for the Transport
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def int_to_ip(self, ip_address):    return int_to_ip(ip_address)
 
     def ip_to_int(self, ip_address):    return ip_to_int(ip_address)
@@ -280,7 +280,7 @@ class TransportEthUdp(tp.Transport):
     def __str__(self):
         """Pretty print the Transport parameters"""
         msg = ""
-        if not self.mac_address is None:
+        if self.mac_address is not None:
             msg += "Transport {0}:\n".format(self.transport_type)
             msg += "    IP address    :  {0}\n".format(self.ip_address)
             msg += "    MAC address   :  {0}\n".format(self.mac_addr_to_str(self.mac_address)) 
@@ -297,9 +297,9 @@ class TransportEthUdp(tp.Transport):
 
 
 
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Global methods for the Transport
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 
 def int_to_ip(ip_address):
     """Convert an integer to IP address string (dotted notation)."""
@@ -329,7 +329,7 @@ def ip_to_int(ip_address):
 def mac_addr_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
     msg = ""
-    if not mac_address is None:
+    if mac_address is not None:
 
         # Force the input address to a Python int
         #   This handles the case of a numpy uint64 input, which kills the >> operator

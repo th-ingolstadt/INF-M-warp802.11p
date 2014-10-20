@@ -55,9 +55,9 @@ version += "{0:d} ".format(WN_REVISION)
 version += "{0:s} ".format(WN_XTRA)
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WARPNet Version Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def wn_ver():
     """Returns the version of WARPNet for this package.
     
@@ -94,11 +94,11 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None,
     The ver_str attribute takes precedence over the major, minor, revsion
     attributes.
     """
-    if not ver_str is None:
+    if ver_str is not None:
         try:
             temp = ver_str.split(" ")
             (major, minor, revision) = temp[0].split(".")
-        except:
+        except AttributeError:
             msg  = "ERROR: input parameter ver_str not valid"
             raise AttributeError(msg)
 
@@ -108,7 +108,7 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None,
         major    = int(major)
         minor    = int(minor)
         revision = int(revision)
-    except:
+    except ValueError:
         msg  = "ERROR: input parameters major, minor, revision not valid"
         raise AttributeError(msg)
     

@@ -78,7 +78,7 @@ class Message(object):
             raise AttributeError(msg)
     
     def serialize(self,): raise NotImplementedError
-    def deserialize(self,): raise NotImplementedError
+    def deserialize(self, data_buffer): raise NotImplementedError
     def sizeof(self,): raise NotImplementedError
 
 # End Class
@@ -115,7 +115,7 @@ class TransportHeader(Message):
                            self.reserved, self.pkt_type, self.length, 
                            self.seq_num, self.flags)
 
-    def deserialize(self, buffer):
+    def deserialize(self, data_buffer):
         """Not used for Transport headers"""
         pass
     
@@ -234,16 +234,16 @@ class CmdRespMessage(Message):
         return ret_val
                                
 
-    def deserialize(self, buffer):
+    def deserialize(self, data_buffer):
         """Populate the fields of a WnCmdResp from a buffer."""
         try:
-            dataTuple = struct.unpack('!I 2H', buffer[0:8])
+            dataTuple = struct.unpack('!I 2H', data_buffer[0:8])
             self.command = dataTuple[0]
             self.length = dataTuple[1]
             self.num_args = dataTuple[2]
             self.args = list(struct.unpack_from('!%dI' % self.num_args, 
-                                                buffer, offset=8))
-            self.raw_data = bytearray(buffer)
+                                                data_buffer, offset=8))
+            self.raw_data = bytearray(data_buffer)
         except struct.error as err:
             # Reset Cmd/Resp.  We want predictable behavior on error
             self.reset()
@@ -319,7 +319,7 @@ class Cmd(CmdRespMessage):
     def __str__(self):
         """Pretty print the WnCommand"""
         msg = ""
-        if not self.command is None:
+        if self.command is not None:
             msg += "WARPNet Command [{0:d}] ".format(self.command)
             msg += "({0:d} bytes): \n".format(self.length)
             
@@ -414,7 +414,7 @@ class BufferCmd(CmdRespMessage):
     def __str__(self):
         """Pretty print the WnCommand"""
         msg = ""
-        if not self.command is None:
+        if self.command is not None:
             msg += "WARPNet Buffer Command [{0:d}] ".format(self.command)
             msg += "({0:d} bytes): \n".format(self.length)
             
@@ -463,7 +463,7 @@ class Resp(CmdRespMessage):
     def __str__(self):
         """Pretty print the WnResponse"""
         msg = ""
-        if not self.command is None:
+        if self.command is not None:
             msg += "WARPNet Response [{0:d}] ".format(self.command)
             msg += "({0:d} bytes): \n".format(self.length)
             
@@ -509,7 +509,7 @@ class Buffer(Message):
     size        = None
     buffer      = None
 
-    def __init__(self, buffer_id=0, flags=0, start_byte=0, size=0, buffer=None):
+    def __init__(self, buffer_id=0, flags=0, start_byte=0, size=0, data_buffer=None):
         self.buffer_id  = buffer_id
         self.flags      = flags
         self.start_byte = start_byte
@@ -517,16 +517,21 @@ class Buffer(Message):
 
         self.tracker    = [{0:start_byte, 1:start_byte, 2:0}]
 
-        if buffer is None:
+        if data_buffer is not None:
+            self._add_buffer_data(start_byte, data_buffer)
+        else:
             # Create an empty buffer of the specified size
             self.complete  = False
             self.num_bytes = 0
             self.buffer    = bytearray(self.size)
-        else:
-            self._add_buffer_data(buffer)
 
 
-    def serialize(self, command=None, start_byte=None):
+    def serialize(self):
+        """Return a bytes object of a packed buffer."""
+        return self.serialize_cmd()
+
+
+    def serialize_cmd(self, command=None, start_byte=None):
         """Return a bytes object of a packed buffer."""
         if command is None:      command = 0
         if start_byte is None:   start_byte = self.start_byte
@@ -537,9 +542,9 @@ class Buffer(Message):
                            self.size, *self.buffer)
 
 
-    def deserialize(self, raw_data):
+    def deserialize(self, data_buffer):
         """Populate the fields of a WnBuffer with a message raw_data."""
-        (args, buffer) = self._unpack_data(raw_data) 
+        (args, data) = self._unpack_data(data_buffer) 
                 
         self.buffer_id  = args[3]
         self.flags      = args[4]
@@ -549,7 +554,7 @@ class Buffer(Message):
         offset = (start_byte - self.start_byte)
         
         self._update_buffer_size(bytes_remaining)
-        self._add_buffer_data(offset, buffer)
+        self._add_buffer_data(offset, data)
         self._set_buffer_complete()            
 
 
@@ -561,7 +566,7 @@ class Buffer(Message):
         as well as place it in the appropriate place indicated by the
         start_byte.        
         """
-        (args, buffer) = self._unpack_data(raw_data) 
+        (args, data) = self._unpack_data(raw_data) 
 
         buffer_id       = args[3]
         flags           = args[4]
@@ -572,7 +577,7 @@ class Buffer(Message):
             offset = (start_byte - self.start_byte)
             
             self._update_buffer_size(bytes_remaining)
-            self._add_buffer_data(offset, buffer)
+            self._add_buffer_data(offset, data)
             self._set_buffer_complete()            
  
             self.set_flags(flags)
@@ -642,10 +647,10 @@ class Buffer(Message):
         """Clear the bits in the flags field based on the value provided."""
         self.flags = self.flags & ~flags
 
-    def set_bytes(self, buffer):
+    def set_bytes(self, data_buffer):
         """Set the message bytes of the buffer."""
-        self._update_size(len(buffer), force=1)
-        self._add_buffer_data(0, buffer)
+        self._update_buffer_size(len(data_buffer), force=1)
+        self._add_buffer_data(0, data_buffer)
         self._set_buffer_complete()
 
     def get_bytes(self):
@@ -675,7 +680,7 @@ class Buffer(Message):
     def __str__(self):
         """Pretty print the WnBuffer"""
         msg = ""
-        if not self.buffer is None:
+        if self.buffer is not None:
             msg += "WARPNet Buffer [{0:d}] ".format(self.buffer_id)
             msg += "({0:d} bytes): \n".format(self.size)
             msg += "    Flags    : 0x{0:08x} \n".format(self.flags)
@@ -693,9 +698,9 @@ class Buffer(Message):
         return msg
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Internal helper methods
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _unpack_data(self, raw_data):
         """Internal method to unpack a data buffer."""
         args = []
@@ -730,7 +735,7 @@ class Buffer(Message):
                 self.buffer = self.buffer[:size]
 
 
-    def _add_buffer_data(self, buffer_offset, buffer):
+    def _add_buffer_data(self, buffer_offset, data_buffer):
         """Internal method to add data to the buffer
         
         Only self.size bytes were allocated for the buffer.  Therefore, we 
@@ -740,7 +745,7 @@ class Buffer(Message):
         NOTE:  If the provided buffer data is greater than specified buffer
             size, then the data will be truncated.
         """
-        data_to_add_size = len(buffer)
+        data_to_add_size = len(data_buffer)
         buffer_end_byte  = buffer_offset + data_to_add_size
 
         # If we are going to run off the end of the buffer, then truncate the add
@@ -754,7 +759,7 @@ class Buffer(Message):
         
         # Add the data to the buffer
         if (data_to_add_size > 0):
-            self.buffer[buffer_offset:buffer_end_byte] = buffer[:data_to_add_size]
+            self.buffer[buffer_offset:buffer_end_byte] = data_buffer[:data_to_add_size]
 
         # Update the ocupancy of the buffer
         self.num_bytes = self._tracker_size()

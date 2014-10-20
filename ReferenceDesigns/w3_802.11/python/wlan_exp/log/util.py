@@ -1,6 +1,21 @@
+# -*- coding: utf-8 -*-
 """
-log_util.py
-==============
+------------------------------------------------------------------------------
+WLAN Experiment Log Utility
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
+MODIFICATION HISTORY:
+
+Ver   Who  Date     Changes
+----- ---- -------- -----------------------------------------------------
+1.00a ejw  1/23/14  Initial release
+
+------------------------------------------------------------------------------
 
 This module provides utility functions for handling WLAN Exp log data.
 
@@ -29,9 +44,9 @@ __all__ = ['gen_raw_log_index',
            'log_data_to_np_arrays']
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Top level check for memory configuration
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 import sys
 import numpy as np
 
@@ -45,9 +60,9 @@ if (sys.maxsize <= 2**32):
 if sys.version[0]=="3": long=None
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Log Container base class
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class LogContainer(object):
     """Base class to define a log container."""
     file_handle = None
@@ -77,9 +92,9 @@ class LogContainer(object):
 
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Log Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def gen_raw_log_index(log_data):
     """Parses binary WLAN Exp log data by recording the byte index of each
     entry. The byte indexes are returned in a dictionary with the entry
@@ -150,8 +165,8 @@ def gen_raw_log_index(log_data):
         if( (offset + entry_size) > log_len):
             break
 
-        #Try/except slightly faster than "if(entry_type_id in log_index.keys()):"
-        # ~3 seconds faster (13s -> 10s) for ~1GB log file
+        # Try/except slightly faster than "if(entry_type_id in log_index.keys()):"
+        #   ~3 seconds faster (13s -> 10s) for ~1GB log file
         try:
             log_index[entry_type_id].append(offset)
         except KeyError:
@@ -169,6 +184,7 @@ def gen_raw_log_index(log_data):
     return log_index
 
 # End gen_log_index_raw()
+
 
 
 def filter_log_index(log_index, include_only=None, exclude=None, merge=None, verbose=False):
@@ -371,17 +387,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
 
 
     # Translate the keys in the return log index to WlanExpLogEntryType
-    new_log_index = {}
-
-    for k in ret_log_index.keys():
-        try:
-            new_log_index[log_entry_types[k]] = ret_log_index[k]
-        except KeyError as err:
-            msg  = "Issue generating log_index:\n"
-            msg += "    Could not find entry type with name:  {0}".format(err)
-            raise AttributeError(msg)
-
-    ret_log_index = new_log_index
+    ret_log_index = _translate_log_index_keys(ret_log_index)
 
     if verbose:
         summary += "-" * 50 + "\n"
@@ -389,7 +395,8 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
 
     return ret_log_index
 
-# End filter_log_index()
+# End def
+
 
 
 def log_data_to_np_arrays(log_data, log_index):
@@ -403,13 +410,34 @@ def log_data_to_np_arrays(log_data, log_index):
 
     return entries_nd
 
-# End log_data_to_np_arrays()
+# End def
 
 
 
-#-----------------------------------------------------------------------------
+def _translate_log_index_keys(log_index):
+    # Translate the keys in the return log index to WlanExpLogEntryType
+    from .entry_types import log_entry_types
+
+    new_log_index = {}
+
+    for k in log_index.keys():
+        try:
+            new_log_index[log_entry_types[k]] = log_index[k]
+        except KeyError as err:
+            msg  = "Issue generating log_index:\n"
+            msg += "    Could not find entry type with name:  {0}".format(err)
+            raise AttributeError(msg)
+
+    return new_log_index
+
+# End def
+
+
+
+
+# -----------------------------------------------------------------------------
 # WLAN Exp Log Misc Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def merge_log_indexes(dest_index, src_index, offset):
     """Merge log indexes.
 
@@ -565,6 +593,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 # End overwrite_payloads()
 
 
+
 def calc_tx_time(rate, payload_length):
     """Calculates the duration of an 802.11 transmission given its rate and payload length.
     This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not*
@@ -576,7 +605,7 @@ def calc_tx_time(rate, payload_length):
     """
     from wlan_exp.util import wlan_rates
 
-    #Times in microseconds
+    # Times in microseconds
     T_PREAMBLE = 16
     T_SIG = 4
     T_SYM = 4
@@ -587,10 +616,10 @@ def calc_tx_time(rate, payload_length):
     except TypeError :
         r = wlan_rates[rate-1]['NDBPS']
 
-    #Rate entry encodes data bits per symbol
+    # Rate entry encodes data bits per symbol
     bytes_per_sym = (r/8.0)
 
-    #6 = LEN_SERVICE (2) + LEN_FCS (4)
+    # 6 = LEN_SERVICE (2) + LEN_FCS (4)
     num_syms = np.ceil((6.0 + payload_length) / bytes_per_sym)
 
     T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
@@ -625,9 +654,9 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
 
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Log Printing Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def print_log_index_summary(log_index, title=None):
     """Prints a summary of the log_index."""
     total_len = 0
@@ -658,25 +687,25 @@ def _print_log_entries(log_bytes, log_index, entries_slice=None):
     if(entries_slice is not None) and (type(entries_slice) is slice):
         log_slice = entries_slice
     else:
-        #Use entire log index by default
+        # Use entire log index by default
         tot_entries = sum(map(len(log_index.values())))
         log_slice = slice(0, tot_entries)
 
-    #Create flat list of all byte offsets in log_index, sorted by offset
-    # See http://stackoverflow.com/questions/18642428/concatenate-an-arbitrary-number-of-lists-in-a-function-in-python
+    # Create flat list of all byte offsets in log_index, sorted by offset
+    #   See http://stackoverflow.com/questions/18642428/concatenate-an-arbitrary-number-of-lists-in-a-function-in-python
     log_index_flat = sorted(chain.from_iterable(log_index.values()))
 
-    for ii,entry_offset in enumerate(log_index_flat[log_slice]):
+    for entry_offset in log_index_flat[log_slice]:
 
-        #Look backwards for the log entry header and extract the entry type ID and size
+        # Look backwards for the log entry header and extract the entry type ID and size
         hdr_b = log_bytes[entry_offset-hdr_size:entry_offset]
         entry_type_id = (ord(hdr_b[4]) + (ord(hdr_b[5]) * 256))
         entry_size = (ord(hdr_b[6]) + (ord(hdr_b[7]) * 256))
 
-        #Lookup the corresponding entry object instance (KeyError here indicates corrupt log or index)
+        # Lookup the corresponding entry object instance (KeyError here indicates corrupt log or index)
         entry_type = log_entry_types[entry_type_id]
 
-        #Use the entry_type's class method to string-ify itself
+        # Use the entry_type's class method to string-ify itself
         print(entry_type._entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
 
 # End print_log_entries()

@@ -96,9 +96,9 @@ from . import util as log_util
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": unicode=str
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # HDF5 Log Container Class
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class HDF5LogContainer(log_util.LogContainer):
     """Class to define an HDF5 log container.
 
@@ -355,19 +355,19 @@ class HDF5LogContainer(log_util.LogContainer):
             index_group   = group_handle["log_index"]
             
             for k, v in index_group.items():
-                #Re-construct the raw_log_index dictionary, using integers
-                # (really entry_type IDs) as the keys and Python lists as values
-                # the [:] slice here is important - flattening the returned numpy array before
-                #  listifying is *way* faster (>10x) than just v.toList()
+                # Re-construct the raw_log_index dictionary, using integers
+                #   (really entry_type IDs) as the keys and Python lists as values
+                #   the [:] slice here is important - flattening the returned numpy array before
+                #   listifying is *way* faster (>10x) than just v.toList()
             
                 try:
                     log_index[int(k)] = v[:].tolist()
                 except ValueError:
                     log_index[k]      = v[:].tolist()                    
     
-                #Alternative to [:].toList() above - adds safetly in assuring dictionary value is
-                # Python list of ints, an requirement of downstream methods
-                #raw_log_index[int(k)] = map(int, v[:]) #fastish    
+                # Alternative to [:].toList() above - adds safetly in assuring dictionary value is
+                #   Python list of ints, an requirement of downstream methods
+                #   raw_log_index[int(k)] = map(int, v[:]) #fastish    
         except:
             error = True
         
@@ -410,9 +410,9 @@ class HDF5LogContainer(log_util.LogContainer):
         raise NotImplementedError
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Internal methods for the container
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _get_valid_group_handle(self):
         """Internal method to get a valid handle to the HDF5 group or raise an exception."""
         group_handle = self._get_group_handle()
@@ -494,9 +494,9 @@ class HDF5LogContainer(log_util.LogContainer):
 
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Log HDF5 file Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def hdf5_open_file(filename, readonly=False, append=False, print_warnings=True):
     """Open an HDF5 file.
     
@@ -559,7 +559,7 @@ def hdf5_close_file(file_handle):
 
 
 
-def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwrite=False, compression=None):
+def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwrite=False):
     """Create an HDF5 file that contains the log_data, a raw_log_index, and any
     user attributes.
 
@@ -794,8 +794,8 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
     hf = h5py.File(h5_filename, mode='w')
 
     try:
-        #Copy any user-supplied attributes to root group
-        # h5py uses the h5py.File handle to access the file itself and the root group
+        # Copy any user-supplied attributes to root group
+        #   h5py uses the h5py.File handle to access the file itself and the root group
         hf.attrs['INFO'] = attr_dict['/']
     except:
         pass
@@ -809,7 +809,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         #   value is another dictionary containing the log entry arrays
 
         for grp_k in np_log_dict.keys():
-            #Create one group per log file, using log file name as group name
+            # Create one group per log file, using log file name as group name
             grp = hf.create_group(grp_k)
             
             try:
@@ -818,7 +818,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
                 pass
 
             for arr_k in np_log_dict[grp_k].keys():
-                #Create one dataset per numpy array of log data
+                # Create one dataset per numpy array of log data
                 ds = grp.create_dataset(arr_k, data=np_log_dict[grp_k][arr_k], compression=compression)
                 
                 try:
@@ -842,12 +842,6 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
     return
 
 # End np_arrays_to_hdf5()
-
-
-
-#-----------------------------------------------------------------------------
-# Internal HDF5 file Utilities
-#-----------------------------------------------------------------------------
 
 
 

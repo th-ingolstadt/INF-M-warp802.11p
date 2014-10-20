@@ -25,7 +25,7 @@ import wlan_exp.warpnet.exception as wn_ex
 import wlan_exp.version as version
 import wlan_exp.defaults as defaults
 import wlan_exp.cmds as cmds
-import wlan_exp.device as device
+import wlan_exp.device as wlan_device
 
 
 __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
@@ -46,7 +46,7 @@ NODE_WLAN_MAC_ADDR                     = 7
 NODE_WLAN_SCHEDULER_RESOLUTION         = 8
 
 
-class WlanExpNode(wn_node.WnNode, device.WlanDevice):
+class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     """Base Class for WLAN Experiment node.
     
     The WLAN experiment node represents one node in a WLAN experiment network.  
@@ -215,7 +215,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
         import wlan_exp.warpnet.message as wn_message
         
         return_val = wn_message.Buffer()
-        (next_index, oldest_index, num_wraps) = self.log_get_indexes()
+        (next_index, _, num_wraps) = self.log_get_indexes()
 
         if ((self.log_next_read_index == 0) and (self.log_num_wraps == 0)):
             # This is the first read of the log by this python object
@@ -597,6 +597,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
             msg  = "WARNING:  WLAN MAC address mismatch.\n"
             msg += "    Received MAC Address:  {0}".format(util.mac_addr_to_str(addr))
             msg += "    Original MAC Address:  {0}".format(util.mac_addr_to_str(self.wlan_mac_address))
+            print(msg)
 
         return addr
 
@@ -1072,7 +1073,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
                 device_list = [device_list]
                 ret_list    = False
             
-            for idx, device in enumerate(device_list):
+            for device in device_list:
                 try:
                     dev_info  = device.get_bss_info()
                     dev_bssid = dev_info['bssid']
@@ -1211,13 +1212,13 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
             except TypeError:
                 vals = [values]
 
-            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_WRITE, high=True, address=address, length=len(vals), values=vals))
+            return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_WRITE, high=True, address=address, length=len(vals), values=vals))
 
 
     def _mem_read_high(self, address, length):
         """Reads 'length' values directly CPU High memory starting at 'address'"""
         if(self._check_mem_access_args(address, values=None)):
-            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_READ, high=True, address=address, length=length))
+            return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_READ, high=True, address=address, length=length))
 
 
     def _mem_write_low(self, address, values):
@@ -1228,13 +1229,13 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
             except TypeError:
                 vals = [values]
 
-            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_WRITE, high=False, address=address, length=len(vals), values=vals))
+            return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_WRITE, high=False, address=address, length=len(vals), values=vals))
 
 
     def _mem_read_low(self, address, length):
         """Reads 'length' values directly CPU High memory starting at 'address'"""
         if(self._check_mem_access_args(address, values=None)):
-            return self.send_cmd(cmds.NodeMemAccess(cmds.CMD_PARAM_READ, high=False, address=address, length=length))
+            return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_READ, high=False, address=address, length=length))
 
 
     def _check_mem_access_args(self, address, values=None, length=None):
@@ -1249,6 +1250,10 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
             
             if((type(v0) is not int) and (type(v0) is not long)) or (v0 >= 2**32):
                 raise Exception('ERROR: values must be scalar or iterable of ints in [0,2^32-1]!')
+
+        if length is not None:
+            if (int(length) != length) or (length >= 320):
+                raise Exception('ERROR: length must be an integer [0, 320] words (ie, 0 to 1400 bytes)!')
 
         return True
 
@@ -1350,8 +1355,10 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         NOTE:  This should be overridden in each sub-class with the same
         overall structure but a different import.  Please call the super
         class so that the calls will propagate to catch all node types.
+
+        NOTE:  network_config is used as part of the node_class string
+        to initialize the node.        
         """
-        import wlan_exp.defaults as defaults
         import wlan_exp.node_ap as node_ap
         import wlan_exp.node_sta as node_sta
         import wlan_exp.node_ibss as node_ibss

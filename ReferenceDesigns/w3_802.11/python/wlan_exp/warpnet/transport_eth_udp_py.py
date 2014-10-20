@@ -47,7 +47,11 @@ class TransportEthUdpPy(tp.TransportEthUdp):
     Attributes:
         See WnTransportEthUdp for all attributes
     """
-    def send(self, payload, robust=True):
+    def __init__(self):
+        super(TransportEthUdpPy, self).__init__()
+    
+    
+    def send(self, payload, robust=True, pkt_type=None):
         """Send a message over the transport.
         
         Attributes:
@@ -61,6 +65,9 @@ class TransportEthUdpPy(tp.TransportEthUdp):
         else:
             self.hdr.response_not_required()
         
+        if pkt_type is not None:
+            self.hdr.set_type(pkt_type)        
+
         self.hdr.set_length(len(payload))
         self.hdr.increment()
 
@@ -101,7 +108,7 @@ class TransportEthUdpPy(tp.TransportEthUdp):
             recv_data = []
             
             try:
-                (recv_data, recv_addr) = self.sock.recvfrom(max_pkt_len)
+                (recv_data, _) = self.sock.recvfrom(max_pkt_len)  # recv_addr is not used
             except socket.error as err:
                 expr = re.compile("timed out")
                 if not expr.match(str(err)):
@@ -132,7 +139,7 @@ class TransportEthUdpPy(tp.TransportEthUdp):
         max_pkt_len = self.get_max_payload() + 100;
         
         try:
-            (recv_data, recv_addr) = self.sock.recvfrom(max_pkt_len)
+            (recv_data, _) = self.sock.recvfrom(max_pkt_len)  # recv_addr is not used
         except socket.error as err:
             expr = re.compile("timed out")
             if not expr.match(str(err)):

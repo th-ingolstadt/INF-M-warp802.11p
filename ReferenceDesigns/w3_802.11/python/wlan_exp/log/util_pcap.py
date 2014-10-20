@@ -40,9 +40,9 @@ Functions (see below for more information):
 __all__ = []
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Log PCAP constants
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # Global header for pcap:
 #     typedef struct pcap_hdr_s {
@@ -87,9 +87,9 @@ pcap_packet_header     = [('ts_sec',   0),
                           ('orig_len', 0)]
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Log PCAP file Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def _log_data_to_pcap(log_data, log_index, filename, overwrite=False):
     """Create an PCAP file that contains the log_data for the entries in log_index 
 
@@ -138,9 +138,9 @@ def _log_data_to_pcap(log_data, log_index, filename, overwrite=False):
 
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Internal PCAP file Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def _serialize_header(header, fmt):
     """Use the struct library to serialize the header dictionary using the given format."""
     import struct
@@ -366,23 +366,20 @@ def _gen_pcap_tx_payload_dict(log_index, log_data):
 
 
 
-def _covert_log_data_to_pcap(file, log_data, log_pcap_index):
+def _covert_log_data_to_pcap(log_file, log_data, log_pcap_index):
     """Create a PCAP file from the log data and the PCAP index.
     
     The PCAP index has the form:
         (timestamp, orig_len, [(incl_len, payload_offset), ...])
 
     """
-    global pcap_global_header_fmt
-    global pcap_global_header
-
     import struct
     from operator import itemgetter
 
     time_factor = 1000000        # Timestamps are in # of microseconds (ie 10^(-6) seconds)
 
     # Write the Global header to the file
-    file.write(_serialize_header(pcap_global_header, pcap_global_header_fmt))
+    log_file.write(_serialize_header(pcap_global_header, pcap_global_header_fmt))
     
     # Sort the PCAP data by timestamp
     log_pcap_index = sorted(log_pcap_index, key=itemgetter(0))
@@ -403,8 +400,8 @@ def _covert_log_data_to_pcap(file, log_data, log_pcap_index):
         fmt = '<I I I I'
 
         try:
-            file.write(struct.pack(fmt, ts_sec, ts_usec, incl_len, orig_len))
-            file.write(payload)
+            log_file.write(struct.pack(fmt, ts_sec, ts_usec, incl_len, orig_len))
+            log_file.write(payload)
         except struct.error as err:
             print("Error packing packet: {0}".format(err))
 

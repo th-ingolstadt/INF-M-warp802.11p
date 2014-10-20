@@ -54,7 +54,7 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
     def __init__(self, network_config=None):
         super(TransportEthUdpPyBcast, self).__init__()
 
-        if not network_config is None:
+        if network_config is not None:
             self.network_config = network_config
         else:
             self.network_config = wn_config.NetworkConfiguration()
@@ -90,13 +90,18 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
         self.ip_address = "{0:d}.{1:d}.{2:d}.255".format(tmp[0], tmp[1], tmp[2])
 
     
-    def send(self, payload, pkt_type="message"):
-        """Send a broadcast message over the transport.
+    def send(self, payload, robust=False, pkt_type=None):
+        """Send a broadcast packet over the transport.
         
         Attributes:
             data -- Data to be sent over the socket
         """
-        self.hdr.set_type(pkt_type)
+        if robust:
+            print("WARNING: Not able to send broadcast robust packets.")        
+        
+        if pkt_type is not None:
+            self.hdr.set_type(pkt_type)
+
         self.hdr.response_not_required()
         self.hdr.set_length(len(payload))
         self.hdr.increment()
@@ -111,7 +116,7 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
 
     def receive(self, timeout=None):
         """Not used on a broadcast transport"""
-        raise NotImplementedError
+        super(TransportEthUdpPyBcast, self).receive()
 
 
 # End Class

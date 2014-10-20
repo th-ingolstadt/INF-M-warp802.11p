@@ -181,7 +181,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             print("WARNING:  Could not add association for IBSS node '{0}'".format(device.name))
             return ret_val
 
-        aid = self.send_cmd(cmds.NodeAPAddAssociation(device))
+        aid = self.send_cmd(cmds.NodeAPAddAssociation(device, allow_timeout))
         
         if (aid != cmds.CMD_PARAM_ERROR):
             import wlan_exp.node_sta as node_sta

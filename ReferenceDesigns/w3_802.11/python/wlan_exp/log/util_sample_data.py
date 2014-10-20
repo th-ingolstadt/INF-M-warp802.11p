@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+"""
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Log Util Sample Data
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  1/23/14  Initial release
+.. ------------------------------------------------------------------------------
+
+Provides sample data to use with the log examples.
+
+"""
 
 _SAMPLE_DATA_DIR = 'sample_data'
 
@@ -13,18 +34,21 @@ _FILES_TO_DL = [
 def get_sample_data_dir():
     import os
 
-    #Find wlan_exp.log directory using this module's location as a reference
+    # Find wlan_exp.log directory using this module's location as a reference
     sd_parent = os.path.split(os.path.abspath(__file__))[0]
 
-    #Construct the full path to the sample_data directory
+    # Construct the full path to the sample_data directory
     sd_path = os.path.join(sd_parent, _SAMPLE_DATA_DIR)
-#    print("{0} {1}".format(sd_parent, sd_path))
 
-    #Only return successfully if the directory already exists
+    # Only return successfully if the directory already exists
     if(os.path.isdir(sd_path)):
         return sd_path
     else:
         raise Exception("ERROR: Sample data directory not found in wlan_exp.log package!\n")
+
+# End def
+
+
 
 def download_sample_data():
     import os, sys
@@ -47,10 +71,10 @@ def download_sample_data():
     print(" {0}\n".format(os.path.normpath(sample_data_dir)))
 
 
-    #Progress indicator based on great StackOverflow posts:
-    #http://stackoverflow.com/questions/15644964/python-progress-bar-and-downloads
+    # Progress indicator based on great StackOverflow posts:
+    #   http://stackoverflow.com/questions/15644964/python-progress-bar-and-downloads
 
-    for ii,fn in enumerate(_FILES_TO_DL):
+    for fn in _FILES_TO_DL:
         fn_full = os.path.join(sample_data_dir, fn)
 
         if(os.path.isfile(fn_full)):
@@ -77,6 +101,10 @@ def download_sample_data():
                             sys.stdout.flush()
                         print('\r')
 
+# End def
+
+
+
 def get_sample_data_file(filename):
     import os
 
@@ -92,3 +120,4 @@ def get_sample_data_file(filename):
         msg += "      https://warpproject.org/trac/wiki/802.11/wlan_exp/sample_data"
         raise Exception(msg)
 
+# End def

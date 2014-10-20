@@ -85,7 +85,7 @@ class ParameterError(Error):
 
     def __str__(self):
         msg = ""
-        if not self.parameter is None:
+        if self.parameter is not None:
             msg += "Parameter {0} \n".format(self.parameter)
         msg += "    Error: {0} \n".format(self.message)
         return msg
@@ -106,7 +106,7 @@ class NodeError(Error):
 
     def __str__(self):
         msg = ""
-        if not self.node is None:        
+        if self.node is not None:        
             msg += "{0} \n".format(self.node.name)
         msg += "    Error: {0} \n".format(self.message)
         return msg
@@ -128,7 +128,7 @@ class TransportError(Error):
 
     def __str__(self):
         msg = ""
-        if not self.transport is None:
+        if self.transport is not None:
             msg += "{0} \n".format(self.transport)
         msg += "    Error: {0} \n".format(self.message)
         return msg

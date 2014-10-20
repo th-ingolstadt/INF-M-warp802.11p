@@ -40,9 +40,9 @@ __all__ = ['wn_init_nodes', 'wn_identify_all_nodes', 'wn_reset_network_inf_all_n
 if sys.version[0]=="3": raw_input=input
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WARPNet Node Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def wn_init_nodes(nodes_config, network_config=None, node_factory=None, 
                   network_reset=True, output=False):
@@ -92,7 +92,7 @@ def wn_init_nodes(nodes_config, network_config=None, node_factory=None,
         #   warning if the node is not recognized
         node = node_factory.create_node(network_config, network_reset)
 
-        if not node is None:
+        if node is not None:
             node.configure_node(jumbo_frame_support)
             nodes.append(node)
         else:
@@ -102,7 +102,7 @@ def wn_init_nodes(nodes_config, network_config=None, node_factory=None,
         msg  = "\n\nERROR:  Was not able to initialize all nodes.  The following \n"
         msg += "nodes were not able to be initialized:\n"
         for node_dict in error_nodes:
-            (sn, sn_str) = wn_get_serial_number(node_dict['serial_number'], output=False)
+            (_, sn_str) = wn_get_serial_number(node_dict['serial_number'], output=False)
             msg += "    {0}\n".format(sn_str)
         raise wn_ex.ConfigError(msg)
 
@@ -203,9 +203,9 @@ def wn_reset_network_inf_all_nodes(network_config):
 # End of wn_identify_all_nodes()
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WARPNet Misc Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def wn_get_serial_number(serial_number, output=True):
     """Function will check / convert the provided serial number to a WARPNet
     compatible format.
@@ -219,7 +219,7 @@ def wn_get_serial_number(serial_number, output=True):
     """
     max_sn        = 100000
     sn_valid      = True
-    ret_val       = None
+    ret_val       = (None, None)
     print_warning = False    
     
     
@@ -271,9 +271,9 @@ def wn_get_serial_number(serial_number, output=True):
 
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WARPNet Setup Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def wn_nodes_setup(ini_file=None):
     """Create / Modify WARPNet Nodes ini file from user input."""    
     nodes_config = None
@@ -319,20 +319,20 @@ def wn_nodes_setup(ini_file=None):
             if (action is None) or (action == 5):
                 nodes_done = True
             elif (action == 0):
-                serial_num = _add_node_from_user(nodes_config)
-                if not serial_num is None:
+                serial_num = _add_node_from_user()
+                if serial_num is not None:
                     nodes_config.add_node(serial_num)
                     print("    Adding node: {0}".format(serial_num))
             elif (action == 1):
                 node = _select_from_table("Select node : ", nodes)
-                if not node is None:
+                if node is not None:
                     nodes_config.remove_node(nodes[node])
                     print("    Removing node: {0}".format(nodes[node]))
             elif (action == 2):
                 node = _select_from_table("Select node : ", nodes)
-                if not node is None:
+                if node is not None:
                     tmp_node_id = _get_node_id_from_user(nodes[node])
-                    if not tmp_node_id is None:
+                    if tmp_node_id is not None:
                         nodes_config.set_param(nodes[node], 'node_id', tmp_node_id)
                         print("    Setting node: {0} to ID {1}".format(nodes[node], tmp_node_id))
                     else:
@@ -341,7 +341,7 @@ def wn_nodes_setup(ini_file=None):
                                 nodes_config.get_param(nodes[node], 'node_id')))
             elif (action == 3):
                 node = _select_from_table("Select node : ", nodes)
-                if not node is None:
+                if node is not None:
                     if (nodes_config.get_param(nodes[node], 'use_node')):
                         nodes_config.set_param(nodes[node], 'use_node', False)
                         print("    Disabling node: {0}".format(nodes[node]))
@@ -350,9 +350,9 @@ def wn_nodes_setup(ini_file=None):
                         print("    Enabling node: {0}".format(nodes[node]))
             elif (action == 4):
                 node = _select_from_table("Select node : ", nodes)
-                if not node is None:
+                if node is not None:
                     ip_addr = _get_ip_address_from_user(nodes[node])
-                    if not ip_addr is None:
+                    if ip_addr is not None:
                         nodes_config.set_param(nodes[node], 'ip_address', ip_addr)
                         print("    Setting node: {0} to IP address {1}".format(nodes[node], ip_addr))
                     else:
@@ -383,18 +383,18 @@ def wn_nodes_setup(ini_file=None):
 
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Internal Methods
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-def _add_node_from_user(nodes_config):
+def _add_node_from_user():
     """Internal method to add a node based on info from the user."""
     serial_num = None
     serial_num_done = False
 
     while not serial_num_done:
         temp = raw_input("WARP Node Serial Number (last 5 digits or enter to end): ")
-        if not temp is '':
+        if temp is not '':
             serial_num = "W3-a-{0:05d}".format(int(temp))
             message = "    Is {0} Correct? [Y/n]: ".format(serial_num)
             confirmation = _get_confirmation_from_user(message)
@@ -418,7 +418,7 @@ def _get_node_id_from_user(msg):
     while not node_id_done:
         print("-" * 30)
         temp = raw_input("Enter ID for node {0}: ".format(msg))
-        if not temp is '':
+        if temp is not '':
             if (int(temp) < 254) and (int(temp) >= 0):
                 print("    Setting Node ID to {0}".format(temp))
                 node_id = int(temp)
@@ -444,7 +444,7 @@ def _get_ip_address_from_user(msg):
     while not ip_address_done:
         print("-" * 30)
         temp = raw_input("Enter IP address for {0}: ".format(msg))
-        if not temp is '':
+        if temp is not '':
             if _check_ip_address_format(temp):
                 ip_address = temp
                 ip_address_done = True
@@ -462,7 +462,7 @@ def _select_from_table(select_msg, table):
 
     while not selection_done:
         temp = raw_input(select_msg)
-        if not temp is '':
+        if temp is not '':
             if (not int(temp) in table.keys()):
                 print("{0} is an invalid Selection.  Please choose again.".format(temp))
             else:
@@ -482,7 +482,7 @@ def _get_confirmation_from_user(message):
     
     while not confirmation:            
         selection = raw_input(message).lower()
-        if not selection is '':
+        if selection is not '':
             if (selection == 'y') or (selection == 'n'):
                 confirmation = True
             else:
@@ -536,7 +536,7 @@ def _get_host_ip_addr_for_network(network):
         s.connect((bcast_addr, 1))
         socket_name = s.getsockname()[0]
         s.close()
-    except:
+    except (socket.gaierror, socket.error):
         msg  = "WARNING: Could not get host IP for network {0}.".format(network.get_param('network'))
         print(msg)
         socket_name = ''
@@ -562,7 +562,7 @@ def _check_network_interface(network, quiet=False):
         s.connect((test_ip_addr, 1))
         socket_name = s.getsockname()[0]
         s.close()
-    except:
+    except (socket.gaierror, socket.error):
         msg  = "WARNING: Could not create temporary UDP socket.\n"
         msg += "  {0} may not work as Network address.".format(network_addr)
         print(msg)

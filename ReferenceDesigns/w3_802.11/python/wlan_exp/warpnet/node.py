@@ -183,9 +183,9 @@ class WnNode(object):
         self.description = "WARP v{} Node - ID {}".format(self.hw_ver, self.node_id)
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # WARPNet Commands for the Node
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def node_identify(self):
         """Have the node physically identify itself."""
         self.send_cmd(wn_cmds.NodeIdentify(self.serial_number))
@@ -200,7 +200,7 @@ class WnNode(object):
 
     def node_get_temp(self):
         """Get the temperature of the node."""
-        (curr_temp, min_temp, max_temp) = self.send_cmd(wn_cmds.NodeGetTemperature())
+        (curr_temp, _, _) = self.send_cmd(wn_cmds.NodeGetTemperature()) # Min / Max temp not used
         return curr_temp
 
     def node_setup_network_inf(self):
@@ -218,10 +218,10 @@ class WnNode(object):
         else:
             return self.node_type
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # WARPNet Parameter Framework
     #   Allows for processing of hardware parameters
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def process_parameters(self, parameters):
         """Process all parameters.
         
@@ -319,9 +319,9 @@ class WnNode(object):
             raise wn_ex.ParameterError(identifier, "Unknown node parameter")
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Transmit / Receive methods for the Node
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def send_cmd(self, cmd, max_attempts=2, max_req_size=None, timeout=None):
         """Send the provided command.
         
@@ -590,9 +590,9 @@ class WnNode(object):
 
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Transport Tracker
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _receive_success(self):
         """Internal method to indicate to the tracker that we successfully 
         received a packet.
@@ -616,9 +616,9 @@ class WnNode(object):
 
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Misc methods for the Node
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def check_wn_ver(self):
         """Check the WARPNet version of the node against the current WARPNet version."""
         ver_str     = version.wn_ver_str(self.wn_ver_major, self.wn_ver_minor, 
@@ -635,13 +635,13 @@ class WnNode(object):
     def __str__(self):
         """Pretty print WnNode object"""
         msg = ""
-        if not self.serial_number is None:
+        if self.serial_number is not None:
             msg += "Node '{0}' with ID {1}:\n".format(self.name, self.node_id)
             msg += "    Desc    :  {0}\n".format(self.description)
             msg += "    Serial #:  {0}\n".format(self.sn_str)
         else:
             msg += "Node not initialized."
-        if not self.transport is None:
+        if self.transport is not None:
             msg += str(self.transport)
         return msg
 
@@ -649,7 +649,7 @@ class WnNode(object):
     def __repr__(self):
         """Return node name and description"""
         msg = ""
-        if not self.serial_number is None:
+        if self.serial_number is not None:
             msg  = "{0}: ".format(self.sn_str)
             msg += "ID {0:5d} ".format(self.node_id)
             msg += "({0})".format(self.name)
@@ -718,7 +718,7 @@ class WnNodeFactory(WnNode):
             # Get the node class from the Factory dictionary
             node_class = self.node_get_class(wn_node_type)
         
-            if not node_class is None:
+            if node_class is not None:
                 node = self.node_eval_class(node_class, network_config)
                 node.set_init_configuration(serial_number=self.serial_number,
                                             node_id=self.node_id,
@@ -753,6 +753,9 @@ class WnNodeFactory(WnNode):
         overall structure but a different import.  Please call the super
         class function instead of returning an error so that the calls 
         will propagate to catch all node types.
+        
+        NOTE:  network_config is used as part of the node_class string
+        to initialize the node.
         """
         from . import defaults
         from . import node
