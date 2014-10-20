@@ -11,7 +11,6 @@
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
- *  @bug No known bugs.
  */
 
 #include "xil_types.h"
