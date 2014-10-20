@@ -326,7 +326,10 @@ int main(){
  * @return None
  */
 void poll_tx_queues(){
+	interrupt_state_t curr_interrupt_state;
 	u32 i,k;
+
+	curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
 	#define NUM_QUEUE_GROUPS 2
 	typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
@@ -351,6 +354,7 @@ void poll_tx_queues(){
 				case MGMT_QGRP:
 					next_queue_group = DATA_QGRP;
 					if(dequeue_transmit_checkin(MANAGEMENT_QID)){
+						goto poll_cleanup;
 						return;
 					}
 				break;
@@ -368,6 +372,7 @@ void poll_tx_queues(){
 							if((get_usec_timestamp() - power_save_configuration.dtim_timestamp) <= power_save_configuration.dtim_mcast_allow_window || (power_save_configuration.enable == 0)){
 								if(dequeue_transmit_checkin(MCAST_QID)){
 									// Found a not-empty queue, transmitted a packet
+									goto poll_cleanup;
 									return;
 								}
 							}
@@ -387,6 +392,7 @@ void poll_tx_queues(){
 								if(((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) || (power_save_configuration.enable == 0)){
 									if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
 										// Found a not-empty queue, transmitted a packet
+										goto poll_cleanup;
 										return;
 									}
 								}
@@ -398,6 +404,7 @@ void poll_tx_queues(){
 								// the association table before poll_tx_queues was called. We will
 								// start the round robin checking back at broadcast.
 								next_station_info_entry = NULL;
+								goto poll_cleanup;
 								return;
 							} // END if(is_valid_association)
 						}
@@ -406,6 +413,11 @@ void poll_tx_queues(){
 			} // END switch(queue group)
 		} // END loop over queue groups
 	} // END CPU low is ready
+
+	poll_cleanup:
+
+	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+
 }
 
 
@@ -1678,10 +1690,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 					txBufferPtr_u8[2] = power_save_configuration.dtim_count; //DTIM count
 					txBufferPtr_u8[3] = power_save_configuration.dtim_period; //DTIM period
 					txBufferPtr_u8[4] = tim_control; //Bitmap control
-
-
-					//memcpy(&txBufferPtr_u8[5], tim_bitmap,tim_len); //TODO
-					//txBufferPtr_u8[5] = 0;
 
 					txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
 
