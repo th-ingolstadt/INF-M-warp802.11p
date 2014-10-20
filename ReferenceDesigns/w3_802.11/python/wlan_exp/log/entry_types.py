@@ -761,8 +761,8 @@ entry_node_info.description = 'Details about the node hardware and its configura
 _node_info_node_types =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
 _node_info_node_types += ' b0: Always 0x00\n'
 _node_info_node_types += ' b1: Always 0x01 for 802.11 ref design nodes\n'
-_node_info_node_types += ' b2: CPU High application: 0x1 = AP, 0x2 = STA\n'
-_node_info_node_types += ' b3: CPU Low application: 0x1 = DCF'
+_node_info_node_types += ' b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS\n'
+_node_info_node_types += ' b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC'
 
 entry_node_info.append_field_defs([
             ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
