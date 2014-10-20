@@ -2167,8 +2167,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
 					// Don't bother if length is clearly bogus
-					if(mem_length < 1400) {
-						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
+					if(mem_length < max_words) {
+						for(mem_idx = 0; mem_idx < mem_length; mem_idx++) {
 							wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmdArgs32[3 + mem_idx]));
 							Xil_Out32((mem_addr + mem_idx*sizeof(u32)), Xil_Ntohl(cmdArgs32[3 + mem_idx]));
 						}
@@ -2184,7 +2184,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
 					// Add payload to response
-					if(mem_length < 1400) {
+					if(mem_length < max_words) {
 
 						// Don't set the default response
 						temp = 1;
@@ -2195,7 +2195,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 						respHdr->length += (respIndex * sizeof(respArgs32));
 						respHdr->numArgs = respIndex;
 
-						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
+						for(mem_idx = 0; mem_idx < mem_length; mem_idx++) {
 							respArgs32[respIndex + mem_idx] = Xil_Ntohl(Xil_In32((void*)(mem_addr) + mem_idx*sizeof(u32)));
 						}
 
@@ -2256,48 +2256,58 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", mem_addr);
 					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
-					//Endian swap payload here - CPU Low requires payload that is ready to use as-is
-					for(mem_idx=0; mem_idx<mem_length+2; mem_idx++) {
-						cmdArgs32[1 + mem_idx] = Xil_Ntohl(cmdArgs32[1 + mem_idx]);
-					}
+					// Don't bother if length is clearly bogus
+					if(mem_length < max_words) {
+						// Endian swap payload here - CPU Low requires payload that is ready to use as-is
+						for(mem_idx = 0; mem_idx < mem_length+2; mem_idx++) {
+							cmdArgs32[1 + mem_idx] = Xil_Ntohl(cmdArgs32[1 + mem_idx]);
+						}
 
-					temp2 = wlan_mac_high_write_low_mem(mem_length + 2, &(cmdArgs32[1]));
+						temp2 = wlan_mac_high_write_low_mem(mem_length + 2, &(cmdArgs32[1]));
 
-					if (temp2 == -1) {
-						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW write failed\n");
+						if (temp2 == -1) {
+							wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW write failed\n");
+							status = CMD_PARAM_ERROR;
+						}
+					} else {
+						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW write longer than 1400 bytes\n");
 						status = CMD_PARAM_ERROR;
 					}
 				break;
 
 				case CMD_PARAM_READ_VAL:
-					/*
-					xil_printf("Reading CPU Low Mem:\n");
-					xil_printf(" Addr: 0x%08x\n", mem_addr);
-					xil_printf(" Len:  %d\n", mem_length);
-					 */
-					temp2 = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(respArgs32[2]));
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Read CPU Low Mem:\n");
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", mem_addr);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
-					if(temp2 == 0) { //Success
-						// Don't set the default response
-						temp = 1;
+					if(mem_length < max_words) {
+						temp2 = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(respArgs32[2]));
 
-						// Add length argument to response
-			            respArgs32[respIndex++] = Xil_Htonl( status );
-			            respArgs32[respIndex++] = Xil_Htonl( mem_length );
-						respHdr->length += (respIndex * sizeof(respArgs32));
-						respHdr->numArgs = respIndex;
+						if(temp2 == 0) { //Success
+							// Don't set the default response
+							temp = 1;
 
-						// Endian swap payload returned by CPU Low
-						for(mem_idx=0; mem_idx<mem_length; mem_idx++) {
-							respArgs32[2 + mem_idx] = Xil_Htonl(respArgs32[2 + mem_idx]);
+							// Add length argument to response
+				            respArgs32[respIndex++] = Xil_Htonl( status );
+				            respArgs32[respIndex++] = Xil_Htonl( mem_length );
+							respHdr->length += (respIndex * sizeof(respArgs32));
+							respHdr->numArgs = respIndex;
+
+							// Endian swap payload returned by CPU Low
+							for(mem_idx = 0; mem_idx < mem_length; mem_idx++) {
+								respArgs32[2 + mem_idx] = Xil_Htonl(respArgs32[2 + mem_idx]);
+							}
+
+							respHdr->length += (mem_length * sizeof(u32));
+							respHdr->numArgs += mem_length;
+
+						} else { //failed
+							wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW read failed\n");
+							status = CMD_PARAM_ERROR;
 						}
-
-						respHdr->length += (mem_length * sizeof(u32));
-						respHdr->numArgs += mem_length;
-
-					} else { //failed
-						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW read failed\n");
-						status = CMD_PARAM_ERROR;
+					} else {
+						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW read longer than 1400 bytes\n");
+					    status = CMD_PARAM_ERROR;
 					}
 				break;
 
