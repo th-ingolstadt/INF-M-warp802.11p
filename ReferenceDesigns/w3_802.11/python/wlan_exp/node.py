@@ -157,7 +157,7 @@ class WlanExpNode(wn_node.WnNode, device.WlanDevice):
 
         Args:
             log_enable (bool):           Enable the event log (Default value on Node: TRUE)
-            log_warp_enable (bool):      Enable event log wrapping (Default value on Node: FALSE)
+            log_wrap_enable (bool):      Enable event log wrapping (Default value on Node: FALSE)
             log_full_payloads (bool):    Record full Tx/Rx payloads in event log (Default value on Node: FALSE)
             log_warpnet_commands (bool): Record WARPNet commands in event log (Default value on Node: FALSE)        
         """

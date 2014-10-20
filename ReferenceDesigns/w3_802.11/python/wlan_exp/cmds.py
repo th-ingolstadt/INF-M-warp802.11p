@@ -266,7 +266,7 @@ class LogConfigure(wn_message.Cmd):
     
     Attributes (default state on the node is in CAPS):
         log_enable           -- Enable the event log (TRUE/False)
-        log_warp_enable      -- Enable event log wrapping (True/FALSE)
+        log_wrap_enable      -- Enable event log wrapping (True/FALSE)
         log_full_payloads    -- Record full Tx/Rx payloads in event log (True/FALSE)
         log_warpnet_commands -- Record WARPNet commands in event log (True/FALSE)        
     """
