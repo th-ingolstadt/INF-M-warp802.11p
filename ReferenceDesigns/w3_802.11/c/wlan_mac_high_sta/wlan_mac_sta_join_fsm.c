@@ -43,18 +43,15 @@ extern u8                         pause_data_queue;
 extern u32                        mac_param_chan; ///< This is the "home" channel
 extern tx_params                  default_unicast_mgmt_tx_params;
 
-
 // File Variables
 static join_state_t               join_state = JOIN_IDLE;
 static function_ptr_t             join_success_callback = (function_ptr_t)nullCallback;
-
 
 //JOIN_SEARCHING Global Variables:
 static char                       search_ssid[SSID_LEN_MAX + 1];
 static u32                        search_sched_id      = SCHEDULE_FAILURE;
 static u32                        search_kill_sched_id = SCHEDULE_FAILURE;
 static u32                        search_timeout       = BSS_SEARCH_DEFAULT_TIMEOUT_SEC;
-
 
 //JOIN_ATTEMPTING Global Variables:
 static bss_info*                  attempt_bss_info;
