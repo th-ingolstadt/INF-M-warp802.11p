@@ -26,7 +26,6 @@ Functions (see below for more information):
 """
 
 import os
-import re
 
 try:                 # Python 3
     import configparser
@@ -95,7 +94,7 @@ class NetworkConfiguration(object):
                                                  wn_defaults.RX_BUFFER_SIZE)
 
         # Process input arguments        
-        if not host_id is None:
+        if host_id is not None:
             if (wn_util._check_host_id(host_id)):
                 my_host_id = host_id            
                 
@@ -150,7 +149,7 @@ class NetworkConfiguration(object):
 
     def set_param(self, parameter, value):
         """Sets the parameter to the given value."""
-        if (parameter in self.keys()):
+        if (parameter in self.config.keys()):
             self.config[parameter] = value
         else:
             print("Parameter {0} does not exist.".format(parameter))
@@ -158,7 +157,7 @@ class NetworkConfiguration(object):
 
     def __str__(self):
         msg = ""
-        if not self.config is None:
+        if self.config is not None:
             msg += "Network Configuration contains: \n"
             for parameter in self.config.keys():
                 msg += "        {0:20s} = ".format(parameter)
@@ -290,9 +289,9 @@ class NodesConfiguration(object):
 
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Methods for Config
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def set_default_config(self):
         """Set the default config."""
         self.config = configparser.ConfigParser()
@@ -308,7 +307,7 @@ class NodesConfiguration(object):
         fields will not be populated in the ini file unless they require a 
         non-default value.  
         """
-        (sn, sn_str) = wn_util.wn_get_serial_number(serial_number)
+        (_, sn_str) = wn_util.wn_get_serial_number(serial_number)
         
         if (sn_str in self.config.sections()):
             print("Node {0} exists.  Please use set_param to modify the node.".format(sn_str))
@@ -316,12 +315,12 @@ class NodesConfiguration(object):
             self.config.add_section(sn_str)
 
             # Populate optional parameters
-            if not ip_address   is None: self.config.set(sn_str, 'ip_address', ip_address)
-            if not node_id      is None: self.config.set(sn_str, 'node_id', node_id)
-            if not unicast_port is None: self.config.set(sn_str, 'unicast_port', unicast_port)
-            if not bcast_port   is None: self.config.set(sn_str, 'bcast_port', bcast_port)
-            if not node_name    is None: self.config.set(sn_str, 'node_name', node_name)
-            if not use_node     is None: self.config.set(sn_str, 'use_node', use_node)
+            if ip_address   is not None: self.config.set(sn_str, 'ip_address', ip_address)
+            if node_id      is not None: self.config.set(sn_str, 'node_id', node_id)
+            if unicast_port is not None: self.config.set(sn_str, 'unicast_port', unicast_port)
+            if bcast_port   is not None: self.config.set(sn_str, 'bcast_port', bcast_port)
+            if node_name    is not None: self.config.set(sn_str, 'node_name', node_name)
+            if use_node     is not None: self.config.set(sn_str, 'use_node', use_node)
 
         # Add node to shadow_config
         self.add_shadow_node(sn_str)
@@ -329,7 +328,7 @@ class NodesConfiguration(object):
 
     def remove_node(self, serial_number):
         """Remove a node from the NodesConfig structure."""
-        (sn, sn_str) = wn_util.wn_get_serial_number(serial_number)
+        (_, sn_str) = wn_util.wn_get_serial_number(serial_number)
 
         if (not self.config.remove_section(sn_str)):
             print("Node {0} not in nodes configuration.".format(sn_str))
@@ -339,7 +338,7 @@ class NodesConfiguration(object):
 
     def get_param(self, section, parameter):
         """Returns the value of the parameter within the config for the node."""        
-        (sn, sn_str) = wn_util.wn_get_serial_number(section)
+        (_, sn_str) = wn_util.wn_get_serial_number(section)
 
         return self.get_param_helper(sn_str, parameter)
 
@@ -359,7 +358,7 @@ class NodesConfiguration(object):
 
     def set_param(self, section, parameter, value):
         """Sets the parameter to the given value."""
-        (sn, sn_str) = wn_util.wn_get_serial_number(section)
+        (_, sn_str) = wn_util.wn_get_serial_number(section)
         
         if (sn_str in self.config.sections()):
             if (parameter in self.config.options(sn_str)):
@@ -377,7 +376,7 @@ class NodesConfiguration(object):
 
     def remove_param(self, section, parameter):
         """Removes the parameter from the config."""
-        (sn, sn_str) = wn_util.wn_get_serial_number(section)
+        (_, sn_str) = wn_util.wn_get_serial_number(section)
         
         if (sn_str in self.config.sections()):
             if (parameter in self.config.options(sn_str)):
@@ -407,7 +406,7 @@ class NodesConfiguration(object):
                 add_node = True
 
                 try:
-                    (sn, sn_str) = wn_util.wn_get_serial_number(node_config)
+                    (sn, _) = wn_util.wn_get_serial_number(node_config)
                 except TypeError as err:
                     print(err)
                     add_node = False
@@ -425,9 +424,9 @@ class NodesConfiguration(object):
         return output
 
 
-    def load_config(self, file):
+    def load_config(self, config_file):
         """Loads the WARPNet config from the provided file."""
-        self.config_file = os.path.normpath(file)
+        self.config_file = os.path.normpath(config_file)
         
         # TODO: allow relative paths
         self.clear_shadow_config()
@@ -442,10 +441,10 @@ class NodesConfiguration(object):
             self.load_shadow_config()
 
 
-    def save_config(self, file=None, output=False):
+    def save_config(self, config_file=None, output=False):
         """Saves the WARPNet config to the provided file."""
-        if not file is None:
-            self.config_file = os.path.normpath(file)
+        if config_file is not None:
+            self.config_file = os.path.normpath(config_file)
         else:
             self.config_file = wn_defaults.NODES_CONFIG_INI_FILE
         
@@ -459,9 +458,9 @@ class NodesConfiguration(object):
             print("Error writing config file: {0}".format(err))
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Methods for Shadow Config
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def init_shadow_config(self, ip_addr_base, unicast_port, bcast_port):
         """Initialize the 'default' section of the shadow_config."""
         self.shadow_config['default'] = {'node_id'     : 'auto',
@@ -564,9 +563,9 @@ class NodesConfiguration(object):
         del self.shadow_config[serial_number]
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Internal Methods
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def _get_next_node_id(self):
         next_node_id = self.node_id_counter
         
@@ -655,8 +654,7 @@ class NodesConfiguration(object):
 
     def _get_param_hack(self, section, parameter):
         """Internal method to work around differences in Python 2 vs 3"""
-        if ((parameter == 'ip_address') or 
-            (parameter == 'node_name')):
+        if ((parameter == 'ip_address') or (parameter == 'node_name')):
             return self.config.get(section, parameter)
         else:
             return eval(self.config.get(section, parameter))
@@ -668,9 +666,9 @@ class NodesConfiguration(object):
         self.config.set(section, parameter, my_value)
 
 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # Printing / Debug Methods
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     def print_shadow_config(self):
         for section in self.shadow_config.keys():
             print("{0}".format(section))
@@ -709,7 +707,7 @@ class NodesConfiguration(object):
 
     def __str__(self):
         section_str = ""
-        if not self.config is None:
+        if self.config is not None:
             section_str += "contains parameters: \n"
             for section in self.config.sections():
                 section_str = str(section_str + 

@@ -65,7 +65,7 @@ class WlanDevice(object):
                     mac_addr_int = int(mac_addr_int, 0)
                     
                     self.wlan_mac_address = mac_addr_int
-                except:
+                except TypeError:
                     raise TypeError("MAC address is not valid")
             else:
                 raise TypeError("MAC address is not valid")

@@ -33,15 +33,8 @@ make sure that the values of these hardware parameters are not reused.
 """
 
 from . import version
-from . import defaults as wn_defaults
-from . import util as wn_util
-from . import config as wn_config
-from . import message as wn_message
 from . import cmds as wn_cmds
 from . import exception as wn_ex
-from . import transport as wn_transport
-from . import transport_eth_udp_py as unicast_tp
-from . import transport_eth_udp_py_bcast as bcast_tp
 
 
 __all__ = ['WnNode', 'WnNodeFactory']
@@ -107,6 +100,8 @@ class WnNode(object):
         if network_config is not None:
             self.network_config = network_config
         else:
+            from . import config as wn_config
+
             self.network_config = wn_config.NetworkConfiguration()
 
         self.transport_tracker = 0
@@ -127,6 +122,7 @@ class WnNode(object):
     def set_init_configuration(self, serial_number, node_id, node_name, 
                                ip_address, unicast_port, bcast_port):
         """Set the initial configuration of the node."""
+        from . import util as wn_util
 
         host_id      = self.network_config.get_param('host_id')
         tx_buf_size  = self.network_config.get_param('tx_buffer_size')
@@ -136,8 +132,12 @@ class WnNode(object):
         (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
         
         if (tport_type == 'python'):
+            from . import transport_eth_udp_py as unicast_tp
+            from . import transport_eth_udp_py_bcast as bcast_tp
+
             if self.transport is None:
                 self.transport = unicast_tp.TransportEthUdpPy()
+
             if self.transport_bcast is None:
                 self.transport_bcast = bcast_tp.TransportEthUdpPyBcast(self.network_config)
         else:
@@ -303,6 +303,8 @@ class WnNode(object):
 
         elif (identifier == NODE_SERIAL_NUM):
             if (length == 1):
+                from . import util as wn_util
+
                 (sn, sn_str) = wn_util.wn_get_serial_number(values[0], output=False)
                 self.serial_number = sn
                 self.sn_str        = sn_str
@@ -331,6 +333,8 @@ class WnNode(object):
             max_req_size -- Maximum request size (applys only to Buffer Commands)
             timeout      -- Maximum time to wait for a response from the node
         """
+        from . import transport as wn_transport
+
         resp_type = cmd.get_resp_type()
         
         if  (resp_type == wn_transport.TRANSPORT_NO_RESP):
@@ -352,6 +356,8 @@ class WnNode(object):
 
     def _receive_resp(self, cmd, max_attempts, timeout):
         """Internal method to receive a response for a given command payload"""
+        from . import message as wn_message
+
         reply = b''
         done = False
         resp = wn_message.Resp()
@@ -390,6 +396,8 @@ class WnNode(object):
 
         To see performance data, set the 'display_perf' flag to True.
         """
+        from . import message as wn_message
+
         display_perf    = False
         print_warnings  = True
         print_debug_msg = False
@@ -564,7 +572,8 @@ class WnNode(object):
         """Return a list of responses that are sitting in the host's 
         receive queue.  It will empty the queue and return them all the 
         calling method."""
-        
+        from . import message as wn_message
+
         output = []
         
         resp = self.transport.receive(timeout)
@@ -679,6 +688,8 @@ class WnNodeFactory(WnNode):
 
 
     def __init__(self, network_config=None):
+        from . import defaults as wn_defaults
+
         super(WnNodeFactory, self).__init__(network_config)
  
         self.wn_dict = {}
@@ -765,6 +776,9 @@ class WnNodeFactory(WnNode):
         try:
             tmp_node = eval(node_class, globals(), locals())
         except:
+            # We will catch all errors that might occur when trying to create
+            # the node.  Since this is the parent class of all nodes, if we
+            # cannot create the node here, we will raise a ConfigError
             pass
         
         if tmp_node is None:

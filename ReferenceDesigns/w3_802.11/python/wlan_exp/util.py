@@ -45,9 +45,9 @@ __all__ = ['tx_rate_to_str', 'tx_rate_index_to_str',
            'filter_nodes']
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Rate definitions
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 wlan_rates = [{'index' :  1, 'rate' :  6.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
               {'index' :  2, 'rate' :  9.0, 'desc' : 'BPSK 3/4',   'NDBPS': 36},
               {'index' :  3, 'rate' : 12.0, 'desc' : 'QPSK 1/2',   'NDBPS': 48},
@@ -84,9 +84,9 @@ def tx_rate_index_to_str(index):
 # End def
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Channel definitions
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 wlan_channel = [{'index' :   1, 'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz Band'},
                 {'index' :   2, 'channel' :   2, 'freq': 2417, 'desc' : '2.4 GHz Band'},
                 {'index' :   3, 'channel' :   3, 'freq': 2422, 'desc' : '2.4 GHz Band'},
@@ -150,9 +150,9 @@ def channel_freq_to_str(freq):
 # End def
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Antenna Mode definitions
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 wlan_rx_ant_mode = [{'index' :  0x01, 'desc' : 'Rx SISO Antenna A'},
                     {'index' :  0x02, 'desc' : 'Rx SISO Antenna B'},
                     {'index' :  0x03, 'desc' : 'Rx SISO Antenna C'},
@@ -217,9 +217,9 @@ def tx_ant_mode_index_to_str(index):
 # End def
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp MAC Address definitions
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # MAC Description Map
 #   List of tuples:  (MAC value, mask, description) describe various MAC addresses
@@ -244,9 +244,9 @@ mac_addr_local_mask = 0x020000000000
 mac_addr_broadcast  = 0xFFFFFFFFFFFF
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Node Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # WARPNet Type Dictionary
 #   This variable is not valid until init_nodes has been run.
@@ -351,9 +351,9 @@ def broadcast_cmd_write_exp_info_to_logs(network_config, info_type, message=None
 # End def
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # WLAN Exp Misc Utilities
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=True):
     """Return a list of nodes that match all the values for the given 
     filter parameters.
@@ -449,7 +449,7 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
         
         for value in serial_number:
             try:
-                (sn, sn_str) = wn_util.wn_get_serial_number(value)
+                (sn, _) = wn_util.wn_get_serial_number(value)
                 tmp_serial_number.append(sn)
             except TypeError as err:
                 print(err)
@@ -665,9 +665,7 @@ def mac_addr_desc(mac_addr, desc_map=None):
     desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'), 
                  (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]
     """
-    global mac_addr_desc_map
-
-    #Cast to python int in case input is still numpy uint64
+    # Cast to python int in case input is still numpy uint64
     mac_addr = int(mac_addr)
 
     desc_out = ''
@@ -677,7 +675,7 @@ def mac_addr_desc(mac_addr, desc_map=None):
     else:
         desc_map = list(desc_map) + mac_addr_desc_map
 
-    for ii,(mask, req, desc) in enumerate(desc_map):
+    for (mask, req, desc) in desc_map:
         if( (mac_addr & mask) == req):
             desc_out += desc
             break
@@ -695,7 +693,7 @@ def debug_here(banner=None):
     # Use exception trick to pick up the current frame
     try:
         raise None
-    except:
+    except TypeError:
         frame = sys.exc_info()[2].tb_frame.f_back
 
     print("# Use quit() or Ctrl-D to exit")
@@ -712,9 +710,9 @@ def debug_here(banner=None):
 # End def
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Internal Methods
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def _get_nodes_by_type(nodes, mac_high=None, mac_low=None):
     """Returns all nodes in the list that have the given node_type."""
 

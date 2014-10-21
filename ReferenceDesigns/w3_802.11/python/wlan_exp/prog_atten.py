@@ -70,8 +70,8 @@ class ProgAttenController(object):
                 # Found an attenuator
             
                 # Check the serial number, if specified
-                if(serial_num is not None and serial_num != info_test.groups[2]):
-                    #Keep looking                  
+                if(serial_num is not None and serial_num != info_test[2]):
+                    # Keep looking                  
                     continue
 
                 # Future extension: return serial number too

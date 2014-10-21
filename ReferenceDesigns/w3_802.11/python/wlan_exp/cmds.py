@@ -482,7 +482,7 @@ class StatsGetTxRx(wn_message.BufferCmd):
                 if ((i % 16) == 0): msg += "\n    "
                 try:
                     msg += "0x{0:02X} ".format(ord(byte))
-                except:
+                except TypeError:
                     msg += "0x{0:02X} ".format(byte)
             print(msg)
 
@@ -1317,7 +1317,7 @@ class NodeGetStationInfo(wn_message.BufferCmd):
                 if ((i % 16) == 0): msg += "\n    "
                 try:
                     msg += "0x{0:02X} ".format(ord(byte))
-                except:
+                except TypeError:
                     msg += "0x{0:02X} ".format(byte)
             print(msg)
 
@@ -1364,7 +1364,7 @@ class NodeGetBSSInfo(wn_message.BufferCmd):
                 if ((i % 16) == 0): msg += "\n    "
                 try:
                     msg += "0x{0:02X} ".format(ord(byte))
-                except:
+                except TypeError:
                     msg += "0x{0:02X} ".format(byte)
             print(msg)
 
@@ -2191,7 +2191,7 @@ def _get_ssid_from_resp(resp):
         # Python 3 vs 2 issue
         try:
             ssid    = str(ssid_tuple[0], encoding='UTF-8')
-        except:
+        except TypeError:
             ssid    = str(ssid_tuple[0])
     else:
         ssid        = ""

@@ -32,7 +32,6 @@ Integer constants:
 
 import re
 
-from . import config as wn_config
 from . import transport_eth_udp as tp
 
 
@@ -57,6 +56,8 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
         if network_config is not None:
             self.network_config = network_config
         else:
+            from . import config as wn_config
+
             self.network_config = wn_config.NetworkConfiguration()
         
         self.set_default_config()

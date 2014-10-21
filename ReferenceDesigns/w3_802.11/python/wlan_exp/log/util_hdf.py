@@ -252,7 +252,7 @@ class HDF5LogContainer(log_util.LogContainer):
             for group in group_handle.keys():                
                 if (group == index_name):
                     del group_handle[index_name]
-        except:
+        except KeyError:
             pass
 
         # Write the log index to the group        
@@ -304,7 +304,7 @@ class HDF5LogContainer(log_util.LogContainer):
                     else:
                         print("WARNING: Converting '{0}' to string to add attribute.".format(k))
                         group_handle.attrs[str(k)] = v
-            except:
+            except KeyError:
                 print("WARNING: Could not add attribute '{0}' to group {1}".format(k, group_handle))
 
 
@@ -368,7 +368,7 @@ class HDF5LogContainer(log_util.LogContainer):
                 # Alternative to [:].toList() above - adds safetly in assuring dictionary value is
                 #   Python list of ints, an requirement of downstream methods
                 #   raw_log_index[int(k)] = map(int, v[:]) #fastish    
-        except:
+        except KeyError:
             error = True
         
         # If there was an error getting the raw_log_index from the file and 
@@ -399,7 +399,7 @@ class HDF5LogContainer(log_util.LogContainer):
                     attr_dict[k] = str(v)
                 else:
                     attr_dict[k] = v
-            except:
+            except KeyError:
                 print("WARNING: Could not retreive attribute '{0}' from group {1}".format(k, group_handle))
         
         return attr_dict
@@ -441,7 +441,7 @@ class HDF5LogContainer(log_util.LogContainer):
         # Check group exists in the file
         try:
             return file_handle[group_name]
-        except:
+        except KeyError:
             # Try to create the group
             try:
                 return file_handle.create_group(group_name)
@@ -476,7 +476,7 @@ class HDF5LogContainer(log_util.LogContainer):
         try:
             log_data       = self.get_log_data()
             raw_log_index  = log_util.gen_raw_log_index(log_data)
-        except:
+        except AttributeError:
             raw_log_index = None
         
         return raw_log_index
@@ -797,7 +797,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         # Copy any user-supplied attributes to root group
         #   h5py uses the h5py.File handle to access the file itself and the root group
         hf.attrs['INFO'] = attr_dict['/']
-    except:
+    except KeyError:
         pass
 
     if type(np_log_dict[dk[0]]) is dict:
@@ -814,7 +814,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
             
             try:
                 grp.attrs['INFO'] = attr_dict[grp_k]['/']
-            except:
+            except KeyError:
                 pass
 
             for arr_k in np_log_dict[grp_k].keys():
@@ -823,7 +823,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
                 
                 try:
                     ds.attrs[arr_k + '_INFO'] = attr_dict[grp_k][arr_k]
-                except:
+                except KeyError:
                     pass
 
     else:
@@ -836,7 +836,7 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
             
             try:
                 ds.attrs[arr_k + '_INFO'] = attr_dict[arr_k]
-            except:
+            except KeyError:
                 pass
     hf.close()
     return

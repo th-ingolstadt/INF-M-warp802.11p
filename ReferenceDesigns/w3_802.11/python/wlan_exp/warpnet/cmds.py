@@ -41,7 +41,6 @@ defining other sub-classes of WARPNet Cmd and BufferCmd.
 
 
 from . import message as wn_message
-from . import util as wn_util
 
 
 __all__ = ['NodeGetWarpNetType', 'NodeIdentify', 'NodeGetHwInfo', 
@@ -103,9 +102,9 @@ _CMD_GRPID_NODE                                  = (GRPID_NODE << 24)
 _CMD_GRPID_TRANS                                 = (GRPID_TRANS << 24)
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Class Definitions for WARPNet Commands
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 class NodeGetWarpNetType(wn_message.Cmd):
     """Command to get the WARPNet Node Type of the node"""
@@ -123,9 +122,9 @@ class NodeGetWarpNetType(wn_message.Cmd):
 # End Class
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Node Commands
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 class NodeIdentify(wn_message.Cmd):
     """Command to blink the WARPNet Node LEDs."""
@@ -136,6 +135,8 @@ class NodeIdentify(wn_message.Cmd):
         if (serial_number == CMD_PARAM_IDENTIFY_ALL_NODES):
             (sn, sn_str) = (CMD_PARAM_IDENTIFY_ALL_NODES, "All nodes")
         else:
+            from . import util as wn_util
+
             (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
 
         time_factor    = 6             # Time on node is microseconds
@@ -193,6 +194,8 @@ class NodeResetNetwork(wn_message.Cmd):
         if (serial_number == CMD_PARAM_NETWORK_RESET_ALL_NODES):
             (sn, sn_str) = (CMD_PARAM_NETWORK_RESET_ALL_NODES, "All nodes")
         else:
+            from . import util as wn_util
+
             (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
         
         self.id = sn_str
@@ -230,9 +233,9 @@ class NodeGetTemperature(wn_message.Cmd):
 # End Class
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Transport Commands
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class Ping(wn_message.Cmd):
     """Command to ping the node."""
     def __init__(self):

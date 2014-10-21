@@ -33,7 +33,6 @@ import errno
 import socket
 from socket import error as socket_error
 
-from . import cmds as wn_cmds
 from . import message as wn_message
 from . import exception as wn_ex
 from . import transport as tp
@@ -183,6 +182,8 @@ class TransportEthUdp(tp.Transport):
         
         Will optionally print the result of the ping.
         """
+        from . import cmds as wn_cmds
+
         start_time = time.clock()
         node.send_cmd(wn_cmds.Ping())
         end_time = time.clock()
@@ -191,9 +192,11 @@ class TransportEthUdp(tp.Transport):
             ms_time = (end_time - start_time) * 1000
             print("Reply from {0}:  time = {1:.3f} ms".format(self.ip_address, 
                                                               ms_time))
+
     
     def test_payload_size(self, node, jumbo_frame_support=False):
         """Determines the object's max_payload parameter."""
+        from . import cmds as wn_cmds
 
         if jumbo_frame_support:
             payload_test_sizes = [1000, 1470, 5000, 8966]
@@ -211,14 +214,20 @@ class TransportEthUdp(tp.Transport):
                 if (self.get_max_payload() < (4*my_arg_size)):
                     # If the node received a smaller payload, then break
                     break
-            except:
+            except wn_ex.TransportError:
                 # If there was a transmission error, then break
                 break
+
     
     def add_node_group_id(self, node, group):
+        from . import cmds as wn_cmds
+
         node.send_cmd(wn_cmds.AddNodeGrpId(group))
+
     
     def clear_node_group_id(self, node, group):
+        from . import cmds as wn_cmds
+
         node.send_cmd(wn_cmds.ClearNodeGrpId(group))
 
 

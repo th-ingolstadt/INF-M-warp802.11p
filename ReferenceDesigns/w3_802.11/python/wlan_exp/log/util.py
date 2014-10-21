@@ -370,7 +370,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
                             new_log_index[k] = ret_log_index[k]
 
                 summary += "    {0} added to output.\n".format(log_entry_types[entry_name])
-            except:
+            except KeyError:
                 summary += "    {0} ignored for include.  Could not find entry type with that name.\n".format(entry_name)
 
         ret_log_index = new_log_index
@@ -382,7 +382,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
                 try:
                     del ret_log_index[unwanted_key]
                     summary += "    {0} removed from index.\n".format(unwanted_key)
-                except:
+                except KeyError:
                     summary += "    {0} does not exist in log index.  Ignored for exclude.\n".format(unwanted_key)
 
 

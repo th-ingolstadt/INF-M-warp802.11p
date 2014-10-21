@@ -275,7 +275,7 @@ if os.path.exists("../doc_svn_rev.txt"):
         with open("../doc_svn_rev.txt", 'r') as f:
             f_str = '-' + f.read()
             release += f_str
-    except:
+    except (IOError, OSError):
         pass
 
 

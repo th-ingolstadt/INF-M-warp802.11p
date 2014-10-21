@@ -1359,6 +1359,7 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         NOTE:  network_config is used as part of the node_class string
         to initialize the node.        
         """
+        # NOTE:  "import wlan_exp.defaults as defaults" performed at the top of the file
         import wlan_exp.node_ap as node_ap
         import wlan_exp.node_sta as node_sta
         import wlan_exp.node_ibss as node_ibss
@@ -1368,6 +1369,8 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
         try:
             node = eval(node_class, globals(), locals())
         except:
+            # We will catch all errors that might occur when trying to create
+            # the node since this class might not be able to create the node.
             pass
         
         if node is None:

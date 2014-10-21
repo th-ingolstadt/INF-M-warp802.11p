@@ -94,7 +94,7 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
         try:
             temp = ver_str.split(" ")
             (major, minor, revision) = temp[0].split(".")
-        except:
+        except AttributeError:
             msg  = "ERROR: input parameter ver_str not valid"
             raise AttributeError(msg)
 
@@ -104,7 +104,7 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
         major    = int(major)
         minor    = int(minor)
         revision = int(revision)
-    except:
+    except ValueError:
         msg  = "ERROR: input parameters major, minor, revision not valid"
         raise AttributeError(msg)
     
