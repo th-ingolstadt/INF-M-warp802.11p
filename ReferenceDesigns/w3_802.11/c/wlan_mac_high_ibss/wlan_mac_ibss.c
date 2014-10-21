@@ -882,6 +882,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						// Set the timestamp
 						if( allow_beacon_ts_update == 1 ){
 							if(timestamp_diff > 0){
+
+								if(abs_64(timestamp_diff) >= (10*1024*my_bss_info->beacon_interval)){
+									association_timestamp_adjust(timestamp_diff);
+								}
+
 								wlan_mac_high_set_timestamp_delta(timestamp_diff);
 							}
 
