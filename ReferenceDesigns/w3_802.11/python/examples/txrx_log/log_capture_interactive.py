@@ -32,6 +32,7 @@ import threading
 import wlan_exp.util as wlan_exp_util
 import wlan_exp.config as wlan_exp_config
 
+import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
 
 # Fix to support Python 2.x and 3.x
@@ -126,6 +127,7 @@ def print_node_state(start_time):
 # End def
 
 
+
 #-----------------------------------------------------------------------------
 # Experiment Script
 #-----------------------------------------------------------------------------
@@ -136,7 +138,7 @@ def init_experiment():
     print("\nInitializing experiment\n")
 
     # Log attributes about the experiment
-    attr_dict['exp_start_time'] = str(datetime.datetime.now())
+    attr_dict['exp_start_time'] = log_util.convert_datetime_to_log_time_str(datetime.datetime.utcnow())
     
     # Create an object that describes the network configuration of the host PC
     network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK)
@@ -242,7 +244,7 @@ def end_experiment():
     log_container.write_log_index()
 
     # Get the end time as an attribute
-    attr_dict['exp_end_time'] = str(datetime.datetime.now())
+    attr_dict['exp_end_time'] = log_util.convert_datetime_to_log_time_str(datetime.datetime.utcnow())
 
     # Add the attribute dictionary to the log file
     log_container.write_attr_dict(attr_dict)

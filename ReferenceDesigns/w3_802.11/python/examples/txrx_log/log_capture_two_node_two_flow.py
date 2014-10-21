@@ -34,8 +34,6 @@ import wlan_exp.config as wlan_exp_config
 import wlan_exp.util as wlan_exp_util
 import wlan_exp.ltg as wlan_exp_ltg
 
-import wlan_exp.log.util_hdf as hdf_util
-
 
 #-----------------------------------------------------------------------------
 # Top Level Script Variables
@@ -50,23 +48,38 @@ STA_HDF5_FILENAME = "sta_two_node_two_flow_capture.hdf5"
 # Set the per-trial duration (in seconds)
 TRIAL_TIME        = 30
 
+
+
 #-----------------------------------------------------------------------------
 # Local Helper Utilities
 #-----------------------------------------------------------------------------
-def write_log_file(file_name, data_buffer):
-    """Writes log data to a HDF5 file."""
+def write_log_file(filename, node, exp_name):
+    """Writes all the log data from the node to a HDF5 file."""
+
+    import datetime
+    import wlan_exp.log.util_hdf as hdf_util
+    import wlan_exp.log.util as log_util
+    
+    data_buffer = node.log_get_all_new(log_tail_pad=0)  
+
     try:
-        print("    {0}".format(file_name))
+        print("    {0}".format(filename))
         
         # Get the byte log_data out of the WARPNet buffer
         data = data_buffer.get_bytes()
         
+        # Example Attribute Dictionary for the HDF5 file
+        attr_dict = {'exp_name'  : exp_name,
+                     'exp_time'  : log_util.convert_datetime_to_log_time_str(datetime.datetime.utcnow()),
+                     'node_desc' : node.description}
+        
         # Write the byte Log_data to the file 
-        hdf_util.log_data_to_hdf5(data, file_name)
+        hdf_util.log_data_to_hdf5(log_data=data, filename=filename, attr_dict=attr_dict)
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
 
 # End def
+
 
 
 #-----------------------------------------------------------------------------
@@ -182,8 +195,8 @@ print("            STA = {0:10,d} bytes".format(sta_log_size))
 # Write Log Files for processing by other scripts
 print("\nWriting Log Files...")
 
-write_log_file(AP_HDF5_FILENAME, n_ap.log_get_all_new(log_tail_pad=0))
-write_log_file(STA_HDF5_FILENAME, n_sta.log_get_all_new(log_tail_pad=0))
+write_log_file(filename=AP_HDF5_FILENAME, node=n_ap, exp_name='AP: Two Node, Two Flow')
+write_log_file(filename=STA_HDF5_FILENAME, node=n_sta, exp_name='STA: Two Node, Two Flow')
 
 print("Done.")
 

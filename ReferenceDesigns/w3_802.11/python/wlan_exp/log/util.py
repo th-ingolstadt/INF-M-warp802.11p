@@ -654,6 +654,84 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
 
 
 
+def convert_datetime_to_log_time_str(datetime_obj):
+    """Convert a datetime object to a log time string."""
+    
+    if datetime_obj.tzinfo is None:        
+        import datetime
+        
+        class UTC(datetime.tzinfo):
+            def utcoffset(self, dt):    return datetime.timedelta(0)
+            def tzname(self, dt):       return "UTC"
+            def dst(self, dt):          return datetime.timedelta(0)
+        
+        datetime_obj = datetime_obj.replace(tzinfo=UTC())
+    
+    return datetime_obj.strftime("%Y-%m-%d %H:%M:%S%z")
+
+# End def
+
+
+def convert_log_time_str_to_datetime(log_time_str):
+    """Convert a log time string to a datetime object."""
+    import datetime
+    
+    return datetime.datetime.strptime(log_time_str, "%Y-%m-%d %H:%M:%S%z")
+
+# End def
+
+
+
+def get_now_as_log_time_str():
+    """Get the current time as a log time string.
+    
+    NOTE:  This should be used instead of datetime.datetime.now() because it 
+    automatically handles timezones.    
+    """
+    import time
+    import datetime
+    
+    ZERO      = datetime.timedelta(0)
+    STDOFFSET = datetime.timedelta(seconds = -time.timezone)
+    
+    if time.daylight:
+        DSTOFFSET = datetime.timedelta(seconds = -time.altzone)
+    else:
+        DSTOFFSET = STDOFFSET
+    
+    DSTDIFF = DSTOFFSET - STDOFFSET
+    
+    class LocalTimezone(datetime.tzinfo):
+    
+        def utcoffset(self, dt):
+            if self._isdst(dt):
+                return DSTOFFSET
+            else:
+                return STDOFFSET
+        
+        def dst(self, dt):
+            if self._isdst(dt):
+                return DSTDIFF
+            else:
+                return ZERO
+        
+        def tzname(self, dt):
+            return time.tzname[self._isdst(dt)]
+        
+        def _isdst(self, dt):
+            tt = (dt.year, dt.month, dt.day,
+                  dt.hour, dt.minute, dt.second,
+                  dt.weekday(), 0, 0)
+            stamp = time.mktime(tt)
+            tt    = time.localtime(stamp)
+            return tt.tm_isdst > 0
+    
+    return convert_datetime_to_log_time_str(datetime.datetime.now(tz=LocalTimezone()))
+
+# End def
+
+
+
 # -----------------------------------------------------------------------------
 # WLAN Exp Log Printing Utilities
 # -----------------------------------------------------------------------------
