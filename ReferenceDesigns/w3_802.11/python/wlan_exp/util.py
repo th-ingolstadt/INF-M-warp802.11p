@@ -837,7 +837,7 @@ def _broadcast_cmd_to_nodes_helper(cmd, network_config):
 
     transport_bcast.wn_open(tx_buf_size, rx_buf_size)
 
-    transport_bcast.send(cmd.serialize(), 'message')
+    transport_bcast.send(payload=cmd.serialize())
 
     transport_bcast.wn_close()
 

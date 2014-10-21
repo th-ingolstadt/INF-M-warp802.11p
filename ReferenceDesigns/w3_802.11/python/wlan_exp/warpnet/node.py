@@ -557,7 +557,7 @@ class WnNode(object):
         return resp
         
     
-    def send_cmd_bcast(self, cmd):
+    def send_cmd_bcast(self, cmd, pkt_type=None):
         """Send the provided command over the broadcast transport.
 
         NOTE:  Currently, broadcast commands cannot have a response.
@@ -565,7 +565,7 @@ class WnNode(object):
         Attributes:
             cmd -- WnCommand to send
         """
-        self.transport_bcast.send(cmd.serialize(), 'message')
+        self.transport_bcast.send(payload=cmd.serialize(), pkt_type=pkt_type)
 
 
     def receive_resp(self, timeout=None):

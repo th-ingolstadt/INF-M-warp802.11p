@@ -153,7 +153,7 @@ def wn_identify_all_nodes(network_config):
 
         cmd = wn_cmds.NodeIdentify(wn_cmds.CMD_PARAM_IDENTIFY_ALL_NODES)
         payload = cmd.serialize()
-        transport.send(payload)
+        transport.send(payload=payload)
         
         # Wait IDENTIFY_WAIT_TIME seconds for blink to complete since 
         #   broadcast commands cannot wait for a response.
@@ -196,7 +196,7 @@ def wn_reset_network_inf_all_nodes(network_config):
 
         cmd = wn_cmds.NodeResetNetwork(wn_cmds.CMD_PARAM_NETWORK_RESET_ALL_NODES)
         payload = cmd.serialize()
-        transport.send(payload)
+        transport.send(payload=payload)
         
         transport.wn_close()
 
