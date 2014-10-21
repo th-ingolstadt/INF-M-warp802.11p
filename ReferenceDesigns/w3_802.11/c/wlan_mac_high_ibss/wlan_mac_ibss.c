@@ -1,7 +1,7 @@
-/** @file wlan_mac_sta.c
+/** @file wlan_mac_ibss.c
  *  @brief Station
  *
- *  This contains code for the 802.11 Station.
+ *  This contains code for the 802.11 IBSS node (ad hoc).
  *
  *  @copyright Copyright 2014, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
@@ -968,6 +968,7 @@ void association_timestamp_check() {
 
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
+                purge_queue(AID_TO_QID(curr_station_info->AID));
 				wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, curr_station_info->addr );
 				ibss_write_hex_display(my_bss_info->associated_stations.length);
 			}
@@ -1202,6 +1203,7 @@ void reset_all_associations(){
 			curr_station_info_entry = next_station_info_entry;
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 			curr_station_info = (station_info*)(curr_station_info_entry->data);
+            purge_queue(AID_TO_QID(curr_station_info->AID));
 			wlan_mac_high_remove_association( &my_bss_info->associated_stations, &statistics_table, curr_station_info->addr );
 			ibss_write_hex_display(my_bss_info->associated_stations.length);
 		}
