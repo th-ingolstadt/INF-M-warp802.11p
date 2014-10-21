@@ -181,6 +181,7 @@ typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 #define PKT_TYPE_DATA_OTHER                  1                                 ///< Other Data
 #define PKT_TYPE_DATA_ENCAP_ETH	             2                                 ///< Encapsulated Ethernet Type
 #define PKT_TYPE_DATA_ENCAP_LTG	             3                                 ///< Encapsulated LTG Type
+#define PKT_TYPE_DATA_PROTECTED	             4                                 ///< Protected Data
 #define PKT_TYPE_MGMT                       11                                 ///< Management Type
 #define PKT_TYPE_CONTROL                    21                                 ///< Control Type
 

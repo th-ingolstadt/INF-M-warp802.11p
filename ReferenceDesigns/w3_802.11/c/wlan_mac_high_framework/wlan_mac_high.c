@@ -2374,6 +2374,13 @@ u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 		return PKT_TYPE_CONTROL;
 
 	} else if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) {
+
+		//Check if this is an encrypted packet. If it is, we can't trust any of the MPDU
+		//payload bytes for further classification
+		if(hdr_80211->frame_control_2 & MAC_FRAME_CTRL2_FLAG_PROTECTED){
+			return PKT_TYPE_DATA_PROTECTED;
+		}
+
 		llc_hdr = (llc_header*)((u8*)mpdu + sizeof(mac_header_80211));
 
 		if(length < (sizeof(mac_header_80211) + sizeof(llc_header) + WLAN_PHY_FCS_NBYTES)){
