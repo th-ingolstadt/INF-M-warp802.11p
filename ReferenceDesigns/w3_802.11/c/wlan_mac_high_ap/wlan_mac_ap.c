@@ -893,6 +893,35 @@ void association_timestamp_check() {
 	}
 }
 
+/**
+ * @brief Update the last activity timestamps for all associated nodes
+ *
+ * In the current architecture, the last activity timestamps used the same usec counter than
+ * can be modified by WLAN_EXP. This can lead to unexpected timeouts by 
+ * association_timestamp_check(). This function should be called prior to large changes in
+ * the underlying timebase to prevent this from occuring.
+ *
+ * @param  s64 timestamp_diff
+ *  - number of usec that timestamps should be adjusted forward or backward
+ * @return None
+ */
+void association_timestamp_adjust(s64 timestamp_diff){
+    station_info*       curr_station_info;
+    dl_entry*           curr_station_info_entry;
+    dl_entry*           next_station_info_entry;
+    
+    if(my_bss_info != NULL){
+        next_station_info_entry = my_bss_info->associated_stations.first;
+        
+        while(next_station_info_entry != NULL) {
+            curr_station_info_entry = next_station_info_entry;
+            next_station_info_entry = dl_entry_next(curr_station_info_entry);
+            
+            curr_station_info        = (station_info*)(curr_station_info_entry->data);
+            (curr_station_info->latest_activity_timestamp) += timestamp_diff;
+        }
+    }
+
 
 
 /**

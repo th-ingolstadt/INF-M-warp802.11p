@@ -78,6 +78,7 @@ void ibss_set_association_state( bss_info* new_bss_info );
 void association_timestamp_check();
 
 void ltg_event(u32 id, void* callback_arg);
+void association_timestamp_adjust(s64 timestamp_diff);
 
 int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 

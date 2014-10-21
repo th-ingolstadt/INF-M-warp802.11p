@@ -100,6 +100,7 @@ int  send_channel_switch_announcement( u8 channel );
 void enable_associations();
 void disable_associations();
 void association_timestamp_check();
+void association_timestamp_adjust(s64 timestamp_diff);
 
 void reset_all_associations();
 void reset_station_statistics();
