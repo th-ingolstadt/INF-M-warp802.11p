@@ -2860,6 +2860,17 @@ int wlan_exp_node_init(u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_n
 * @note     None.
 *
 ******************************************************************************/
+void wlan_exp_reset_all_callbacks(){
+	wlan_exp_init_callback                     = (wn_function_ptr_t)wlan_exp_null_init_callback;
+	wlan_exp_process_callback                  = (wn_function_ptr_t)wlan_exp_null_process_callback;
+	wlan_exp_reset_station_statistics_callback = (wn_function_ptr_t)wlan_exp_null_callback;
+	wlan_exp_purge_all_data_tx_queue_callback  = (wn_function_ptr_t)wlan_exp_null_callback;
+	wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
+	wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
+	wlan_exp_adjust_timebase_callback          = (wn_function_ptr_t)wlan_exp_null_callback;
+}
+
+
 void wlan_exp_set_init_callback(void(*callback)()){
 	wlan_exp_init_callback = (wn_function_ptr_t)callback;
 }

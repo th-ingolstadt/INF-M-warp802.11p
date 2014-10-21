@@ -41,9 +41,7 @@
 
 /*************************** Functions Prototypes ****************************/
 
-#ifdef _DEBUG_
-void wlan_exp_print_station_status( station_info * stations, unsigned int num_stations );
-#endif
+/**************************** Common Functions *******************************/
 
 
 /*****************************************************************************/
@@ -58,7 +56,6 @@ char   * print_type_event_log     = "EVENT LOG";
 char   * print_type_stats         = "STATS";
 char   * print_type_ltg           = "LTG";
 char   * print_type_queue         = "QUEUE";
-
 
 
 void wlan_exp_print_header(u8 level, char * type, char* filename, u32 line) {
@@ -90,7 +87,6 @@ void wlan_exp_print_header(u8 level, char * type, char* filename, u32 line) {
 }
 
 
-
 void wlan_exp_print_mac_address(u8 level, u8 * mac_address) {
     u32 i;
 
@@ -102,12 +98,6 @@ void wlan_exp_print_mac_address(u8 level, u8 * mac_address) {
 		}
     }
 }
-
-
-
-
-#ifdef USE_WARPNET_WLAN_EXP
-
 
 
 void wlan_exp_set_print_level(u8 level) {
@@ -130,7 +120,45 @@ void wlan_exp_set_print_level(u8 level) {
 
 
 
-/**************************** Common Functions *******************************/
+#ifdef USE_WARPNET_WLAN_EXP
+
+
+
+/*****************************************************************************/
+/**
+* Get MAC Address
+*
+* This function will populate the MAC address buffer, dest, with the MAC
+* address coming over the network (byte swapped).  This uses the same formating
+* as the HW address parameter from transport.c
+*
+* @param    src  - Source buffer of MAC address (u32, byte swapped)
+*           dest - Destination buffer of MAC address
+*
+* @return	None.
+*
+* @note     None.
+*
+******************************************************************************/
+void wlan_exp_get_mac_addr(u32 * src, u8 * dest) {
+
+    dest[0] = (src[0] >> 16) & 0xFF;
+    dest[1] = (src[0] >> 24) & 0xFF;
+    dest[2] = (src[1] >>  0) & 0xFF;
+    dest[3] = (src[1] >>  8) & 0xFF;
+    dest[4] = (src[1] >> 16) & 0xFF;
+    dest[5] = (src[1] >> 24) & 0xFF;
+
+}
+
+
+void wlan_exp_put_mac_addr(u8 * src, u32 * dest) {
+
+	dest[0] = (src[1] << 24) + (src[0] << 16);
+	dest[1] = (src[5] << 24) + (src[4] << 16) + (src[3] <<  8) + (src[2] <<  0);
+
+}
+
 
 
 /*****************************************************************************/
@@ -200,42 +228,6 @@ int get_station_status( station_info * stations, u32 num_stations, u32 * buffer,
 	return index;
 }
 
-
-
-/*****************************************************************************/
-/**
-* Get MAC Address
-*
-* This function will populate the MAC address buffer, dest, with the MAC
-* address coming over the network (byte swapped).  This uses the same formating
-* as the HW address parameter from transport.c
-*
-* @param    src  - Source buffer of MAC address (u32, byte swapped)
-*           dest - Destination buffer of MAC address
-*
-* @return	None.
-*
-* @note     None.
-*
-******************************************************************************/
-void wlan_exp_get_mac_addr(u32 * src, u8 * dest) {
-
-    dest[0] = (src[0] >> 16) & 0xFF;
-    dest[1] = (src[0] >> 24) & 0xFF;
-    dest[2] = (src[1] >>  0) & 0xFF;
-    dest[3] = (src[1] >>  8) & 0xFF;
-    dest[4] = (src[1] >> 16) & 0xFF;
-    dest[5] = (src[1] >> 24) & 0xFF;
-
-}
-
-
-void wlan_exp_put_mac_addr(u8 * src, u32 * dest) {
-
-	dest[0] = (src[1] << 24) + (src[0] << 16);
-	dest[1] = (src[5] << 24) + (src[4] << 16) + (src[3] <<  8) + (src[2] <<  0);
-
-}
 
 
 // End USE_WARPNET_WLAN_EXP

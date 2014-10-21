@@ -253,6 +253,7 @@ typedef struct {
 //
 int  wlan_exp_node_init(u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr, u8 *wlan_hw_addr);
 
+void wlan_exp_reset_all_callbacks();
 void wlan_exp_set_process_callback(void(*callback)());
 void wlan_exp_set_init_callback(void(*callback)());
 void wlan_exp_set_reset_station_statistics_callback(void(*callback)());

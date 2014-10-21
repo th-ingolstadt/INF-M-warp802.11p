@@ -558,6 +558,38 @@ dl_entry* ltg_sched_find_tg_schedule(u32 id){
 }
 
 
+int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_flags, u32 ltg_id){
+	u32               tx_length;
+	u8*               mpdu_ptr_u8;
+	ltg_packet_id*    pkt_id;
+
+	mpdu_ptr_u8 = (u8*)pkt_buf;
+
+	tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, common, tx_flags);
+
+	// Prepare the MPDU LLC header
+	mpdu_ptr_u8 += sizeof(mac_header_80211);
+	pkt_id = (ltg_packet_id*)(mpdu_ptr_u8);
+
+	(pkt_id->llc_hdr).dsap = LLC_SNAP;
+	(pkt_id->llc_hdr).ssap = LLC_SNAP;
+	(pkt_id->llc_hdr).control_field = LLC_CNTRL_UNNUMBERED;
+	bzero((void *)((pkt_id->llc_hdr).org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
+	(pkt_id->llc_hdr).type = LLC_TYPE_WLAN_LTG;
+
+	pkt_id->unique_seq     = 0; //make sure this is filled in via the dequeue callback
+	pkt_id->ltg_id         = ltg_id;
+
+	// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
+	tx_length += (sizeof(ltg_packet_id));
+
+	return tx_length;
+}
+
+
+#ifdef USE_WARPNET_WLAN_EXP
+
+
 // NOTE:  The src information is from the network and must be byte swapped
 void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 	u32    temp, temp2;
@@ -683,32 +715,4 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 }
 
 
-
-int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_flags, u32 ltg_id){
-	u32               tx_length;
-	u8*               mpdu_ptr_u8;
-	ltg_packet_id*    pkt_id;
-
-	mpdu_ptr_u8 = (u8*)pkt_buf;
-
-	tx_length = wlan_create_data_frame((void*)mpdu_ptr_u8, common, tx_flags);
-
-	// Prepare the MPDU LLC header
-	mpdu_ptr_u8 += sizeof(mac_header_80211);
-	pkt_id = (ltg_packet_id*)(mpdu_ptr_u8);
-
-	(pkt_id->llc_hdr).dsap = LLC_SNAP;
-	(pkt_id->llc_hdr).ssap = LLC_SNAP;
-	(pkt_id->llc_hdr).control_field = LLC_CNTRL_UNNUMBERED;
-	bzero((void *)((pkt_id->llc_hdr).org_code), 3);             // Org Code 0x000000: Encapsulated Ethernet
-	(pkt_id->llc_hdr).type = LLC_TYPE_WLAN_LTG;
-
-	pkt_id->unique_seq     = 0; //make sure this is filled in via the dequeue callback
-	pkt_id->ltg_id         = ltg_id;
-
-	// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
-	tx_length += (sizeof(ltg_packet_id));
-
-	return tx_length;
-}
-
+#endif
