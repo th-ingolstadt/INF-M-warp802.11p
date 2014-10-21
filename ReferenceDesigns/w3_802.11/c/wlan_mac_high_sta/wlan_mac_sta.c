@@ -196,6 +196,9 @@ int main() {
     // NOTE:  To use the WLAN Experiments Framework, it must be initialized after
 	//        CPU low has populated the hw_info structure in the MAC High framework.
 
+	// Reset all callbacks
+	wlan_exp_reset_all_callbacks();
+
 	// Set WLAN Exp callbacks
 	wlan_exp_set_init_callback(                     (void *)wlan_exp_node_sta_init);
 	wlan_exp_set_process_callback(                  (void *)wlan_exp_node_sta_processCmd);
@@ -203,6 +206,7 @@ int main() {
 	wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
 	wlan_exp_set_reset_all_associations_callback(   (void *)reset_all_associations);
 	wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
+	//   - Currently no timebase adjust needed; Use wlan_exp_set_timebase_adjust_callback();
 
 	// Configure the wlan_exp framework
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_TYPE_MASK, WLAN_EXP_ETH);
