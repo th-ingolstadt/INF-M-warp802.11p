@@ -21,7 +21,7 @@ This module provides utility functions for HDF to handle WLAN Exp log data.
 
 For WLAN Exp log data manipulation, it is necessary to define a common file format
 so that it is easy for multiple consumers, both in python and other languages, to
-access the data.  To do this, we use HDF5 as the container format with a couple of 
+access the data.  To do this, we use HDF5 as the container format with a couple of
 additional conventions to hold the log data as well as other pieces of information.
 Below are the rules that we follow to create an HDF5 file that will contain WLAN
 Exp log data:
@@ -36,7 +36,7 @@ wlan_exp_log_data_container (equivalent to a HDF5 group):
        |      |- 'log_data'             (1,)      voidN  (where N is the size of the data)
        |- Groups (created if gen_index==True):
               |- 'raw_log_index'
-                     |- Datasets: 
+                     |- Datasets:
                         (dtype depends if largest offset in raw_log_index is < 2^32)
                             |- <int>    (N1,)     uint32/uint64
                             |- <int>    (N2,)     uint32/uint64
@@ -45,7 +45,7 @@ wlan_exp_log_data_container (equivalent to a HDF5 group):
 Naming convention:
 
   log_data       -- The binary data from a WLAN Exp node's log.
-  
+
   raw_log_index  -- This is an index that has not been interpreted / filtered
                     and corresponds 1-to-1 with what is in given log_data.
                     The defining characteristic of a raw_log_index is that
@@ -56,13 +56,13 @@ Naming convention:
                     general, this will be a interpreted / filtered version of
                     a raw_log_index.
 
-  hdf5           -- A data container format that we use to store log_data, 
-                    raw_log_index, and other user defined attributes.  You can 
+  hdf5           -- A data container format that we use to store log_data,
+                    raw_log_index, and other user defined attributes.  You can
                     find more documentation on HDF / HDF5 at:
                         http://www.hdfgroup.org/
                         http://www.h5py.org/
 
-  numpy          -- A python package that allows easy and fast manipulation of 
+  numpy          -- A python package that allows easy and fast manipulation of
                     large data sets.  You can find more documentaiton on numpy at:
                         http://www.numpy.org/
 
@@ -77,7 +77,7 @@ Functions (see below for more information):
     hdf5_to_log_data()       -- Extract the log_data from an HDF5 file
     hdf5_to_log_index()      -- Extract the log_index from an HDF5 file
     hdf5_to_attr_dict()      -- Extract the attribute dictionary from an HDF5 file
-    
+
 """
 
 __all__ = ['np_arrays_to_hdf5',
@@ -103,12 +103,12 @@ class HDF5LogContainer(log_util.LogContainer):
     """Class to define an HDF5 log container.
 
     Attributes (inherited from LogContainer):
-        file_handle          -- Handle of the HDF5 file 
-    
+        file_handle          -- Handle of the HDF5 file
+
     Attributes:
         hdf5_group_name      -- Name of the HDF5 group of the log container
         compression          -- HDF5 compression setting on the log container
-    
+
     NOTE:  When an HDF5LogContainer is created, the underlying HDF5 file will
     not be modified unless one of the write_* methods are called.
     """
@@ -137,18 +137,18 @@ class HDF5LogContainer(log_util.LogContainer):
 
         if group_handle is None:
             msg  = "WARNING: Log container is not valid.\n"
-            msg += "    Could not find {0} in file.".format(self.hdf5_group_name) 
+            msg += "    Could not find {0} in file.".format(self.hdf5_group_name)
             print(msg)
             return False
-    
+
         try:
             if group_handle.attrs['wlan_exp_log']:
                 # Require two attributes named 'wlan_exp_log' and 'wlan_exp_ver'
                 ver = group_handle.attrs['wlan_exp_ver']
-                
+
                 ver_str     = version.wlan_exp_ver_str(ver[0], ver[1], ver[2])
                 caller_desc = "HDF5 file '{0}' was written using version {1}".format(self.file_handle.filename, ver_str)
-                
+
                 version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2],
                                            caller_desc=caller_desc)
             else:
@@ -156,7 +156,7 @@ class HDF5LogContainer(log_util.LogContainer):
                 msg += "    'wlan_exp_log' attribute indicates log container is not valid."
                 print(msg)
                 return False
-            
+
             if group_handle['log_data']:
                 # Require a dataset named 'log_data'
                 if(group_handle['log_data'].dtype.kind != np.dtype(np.void).kind):
@@ -167,43 +167,43 @@ class HDF5LogContainer(log_util.LogContainer):
                     return False
         except Exception as err:
             msg  = "WARNING: Log container is not valid.  The following error occurred:\n"
-            msg += "    {0}".format(err) 
+            msg += "    {0}".format(err)
             print(msg)
             return False
-        
+
         return True
 
 
     def write_log_data(self, log_data, append=True):
         """Write the log data to the log container.
-        
+
         Attributes:
             log_data         -- Binary WLAN Exp log data
             append           -- Append to (True) or Overwrite (False) the current log data
         """
         import numpy as np
-        
+
         if not self._file_writeable():
             raise AttributeError("File {0} is not writeable.".format(self.file_handle))
 
-        group_handle    = self._get_valid_group_handle()                    
+        group_handle    = self._get_valid_group_handle()
 
         np_dt           = np.dtype('V1')
         log_data_length = len(log_data)
-        
+
         # Raise an exception if the log data length is zero
         if (log_data_length == 0):
             raise AttributeError("Did not provide any log data.")
-        
+
         # Get the log_data from the group data set
         ds = group_handle['log_data']
 
         # Set length of current data
-        if append:        
+        if append:
             curr_length = ds.shape[0]
         else:
             curr_length = 0
-        
+
         # Get total length of data
         length = curr_length + log_data_length
 
@@ -220,11 +220,11 @@ class HDF5LogContainer(log_util.LogContainer):
     def write_log_index(self, log_index=None):
         """Write the log index to the log container.
 
-        If the log index currently exists in the HDF5 file, that log index 
+        If the log index currently exists in the HDF5 file, that log index
         will be replaced with this new log index.  If log_index is provided
         then that log index will be written to the log container.  Otherwise,
         a raw log index will be generated and added to the log container.
-        
+
         Attributes:
             log_index        -- Log index generated from WLAN Exp log data
         """
@@ -235,8 +235,8 @@ class HDF5LogContainer(log_util.LogContainer):
 
         index_name   = "log_index"
         group_handle = self._get_valid_group_handle()
-        
-        if log_index is None:        
+
+        if log_index is None:
             log_index = self._create_raw_log_index()
 
             if log_index is None:
@@ -246,26 +246,26 @@ class HDF5LogContainer(log_util.LogContainer):
         try:
             # Normally the try-catch would handle this error but in HDF5 1.8.9
             # exceptions are not properly thrown when using h5py, so the check
-            # needs to be coded this way so that we don't get a lot of garbage 
+            # needs to be coded this way so that we don't get a lot of garbage
             # output.
             #
-            for group in group_handle.keys():                
+            for group in group_handle.keys():
                 if (group == index_name):
                     del group_handle[index_name]
         except KeyError:
             pass
 
-        # Write the log index to the group        
+        # Write the log index to the group
         try:
             index_grp = group_handle.create_group(index_name)
-    
+
             for k, v in log_index.items():
                 # Check if highest-valued entry index can be represented as uint32 or requires uint64
                 if (v[-1] < 2**32):
                     dtype = np.uint32
                 else:
                     dtype = np.uint64
-        
+
                 # Group names must be strings - keys here are known to be integers (entry_type_id values)
                 index_grp.create_dataset(str(k), data=np.array(v, dtype=dtype), maxshape=(None,), compression=self.compression)
         except Exception as err:
@@ -280,11 +280,11 @@ class HDF5LogContainer(log_util.LogContainer):
             attr_dict        -- An array of user provided attributes that will be added to the group.
         """
         import numpy as np
-        
+
         if not self._file_writeable():
             raise AttributeError("File {0} is not writeable.".format(self.file_handle))
 
-        default_attrs = ['wlan_exp_log', 'wlan_exp_ver']        
+        default_attrs = ['wlan_exp_log', 'wlan_exp_ver']
         group_handle  = self._get_valid_group_handle()
 
         # Remove all current attributes, except default attributes
@@ -312,11 +312,11 @@ class HDF5LogContainer(log_util.LogContainer):
         """Get the current size of the log data in the log container."""
 
         group_handle = self._get_valid_group_handle()
-        
+
         # Get the log_data from the group data set
         ds = group_handle['log_data']
 
-        # Return the length of the data        
+        # Return the length of the data
         return ds.shape[0]
 
 
@@ -325,74 +325,74 @@ class HDF5LogContainer(log_util.LogContainer):
         import numpy as np
 
         group_handle = self._get_valid_group_handle()
-        
+
         # Get the log_data from the group data set
         ds           = group_handle['log_data']
         log_data_np  = np.empty(shape=ds.shape, dtype=ds.dtype)
-    
+
         # Use the h5py library's HDF5 -> numpy hooks to preserve the log_data size and void type
         ds.read_direct(log_data_np)
-    
+
         # Point to the numpy array's underlying buffer to find the raw log_data to return
         log_data = bytes(log_data_np.data)
-    
+
         return log_data
 
-    
+
     def get_log_index(self, gen_index=True):
         """Get the raw log index from the log container.
-        
+
         Attributes:
-            gen_index  -- Generate the raw log index if the log index does not 
+            gen_index  -- Generate the raw log index if the log index does not
                           exist in the log container.
         """
         error        = False
-        log_index    = {}        
+        log_index    = {}
         group_handle = self._get_valid_group_handle()
-            
+
         # Get the raw_log_index group from the specified group
         try:
             index_group   = group_handle["log_index"]
-            
+
             for k, v in index_group.items():
                 # Re-construct the raw_log_index dictionary, using integers
                 #   (really entry_type IDs) as the keys and Python lists as values
                 #   the [:] slice here is important - flattening the returned numpy array before
                 #   listifying is *way* faster (>10x) than just v.toList()
-            
+
                 try:
                     log_index[int(k)] = v[:].tolist()
                 except ValueError:
-                    log_index[k]      = v[:].tolist()                    
-    
+                    log_index[k]      = v[:].tolist()
+
                 # Alternative to [:].toList() above - adds safetly in assuring dictionary value is
                 #   Python list of ints, an requirement of downstream methods
-                #   raw_log_index[int(k)] = map(int, v[:]) #fastish    
+                #   raw_log_index[int(k)] = map(int, v[:]) #fastish
         except KeyError:
             error = True
-        
-        # If there was an error getting the raw_log_index from the file and 
+
+        # If there was an error getting the raw_log_index from the file and
         #   gen_index=True, then generate the raw_log_index from the log_data
         #   in the file
         if error and gen_index:
             log_index = self._create_raw_log_index()
 
-        # If the log index is empty or None, then raise an exception        
+        # If the log index is empty or None, then raise an exception
         if not log_index:
             msg  = "Unable to get log index from "
             msg += "group {0} of {1}.".format(self.hdf5_group_name, self.file_handle)
             raise AttributeError(msg)
-        
+
         return log_index
 
-   
+
     def get_attr_dict(self):
         """Get the attribute dictionary from the log container."""
         import numpy as np
-        
+
         attr_dict    = {}
         group_handle = self._get_valid_group_handle()
-    
+
         for k, v in group_handle.attrs.items():
             try:
                 if (type(v) == np.bytes_):
@@ -401,7 +401,7 @@ class HDF5LogContainer(log_util.LogContainer):
                     attr_dict[k] = v
             except KeyError:
                 print("WARNING: Could not retreive attribute '{0}' from group {1}".format(k, group_handle))
-        
+
         return attr_dict
 
 
@@ -449,7 +449,7 @@ class HDF5LogContainer(log_util.LogContainer):
                 msg  = "Cannot create group {0} ".format(self.hdf5_group_name)
                 msg += "in {0}".format(self.file_handle)
                 raise AttributeError(msg)
-       
+
         # Could not get the group handle, return None
         return None
 
@@ -466,7 +466,7 @@ class HDF5LogContainer(log_util.LogContainer):
         # Create an empty numpy array of type 'V1' (ie one byte void)
         np_dt   = np.dtype('V1')
         np_data = np.empty((0,), np_dt)
-        
+
         # Create an empty re-sizeable data set for the numpy-formatted data
         group.create_dataset("log_data", data=np_data, maxshape=(None,), compression=self.compression)
 
@@ -478,7 +478,7 @@ class HDF5LogContainer(log_util.LogContainer):
             raw_log_index  = log_util.gen_raw_log_index(log_data)
         except AttributeError:
             raw_log_index = None
-        
+
         return raw_log_index
 
 
@@ -499,16 +499,16 @@ class HDF5LogContainer(log_util.LogContainer):
 # -----------------------------------------------------------------------------
 def hdf5_open_file(filename, readonly=False, append=False, print_warnings=True):
     """Open an HDF5 file.
-    
+
     Attributes:
         readonly         -- Open the file in read-only mode
         append           -- Append to the data in the current file
-    
+
     NOTE:  Behavior of input attributes:
       readonly   append    Behavior
       True       T/F       File opened in read-only mode
       False      True      File opened in append mode; created if it does not exist
-      False      False     If file with filename exists, then a new filename is 
+      False      False     If file with filename exists, then a new filename is
                            generated using the log utilities.  The new file is then
                            created by the h5py File method (DEFAULT)
     Returns:
@@ -517,25 +517,25 @@ def hdf5_open_file(filename, readonly=False, append=False, print_warnings=True):
 
     import os
     import h5py
-    
-    file_handle = None    
-    
+
+    file_handle = None
+
     # Get a file handle the log container file
     if readonly:
         # Open a HDF5 File Object in 'r' (Readonly) mode
         file_handle = h5py.File(filename, mode='r')
-    else: 
+    else:
         # Determine a safe filename for the output HDF5 file
         if append:
             if os.path.isfile(filename):
                 if print_warnings:
                     print("WARNING: Opening existing file {0} in append mode".format(filename))
-    
+
             h5_filename = filename
         else:
             h5_filename = log_util._get_safe_filename(filename, print_warnings)
 
-        if os.path.isfile(h5_filename):    
+        if os.path.isfile(h5_filename):
             # Open an HDF5 File Object in 'a' (Read/Write if exists, create otherwise) mode
             file_handle = h5py.File(h5_filename, mode='a')
         else:
@@ -543,7 +543,7 @@ def hdf5_open_file(filename, readonly=False, append=False, print_warnings=True):
             #
             # NOTE:  This is due to a bug in Anaconda where it does not throu the appropriate
             #    IOError to be caught to create a file with the 'a' mode
-            file_handle = h5py.File(h5_filename, mode='w')            
+            file_handle = h5py.File(h5_filename, mode='w')
 
     return file_handle
 
@@ -566,20 +566,20 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
     If the requested filename already exists and overwrite==True this
     method will replace the existing file, destroying any data in the original file.
 
-    If the filename already esists and overwrite==False this method will print a warning, 
+    If the filename already esists and overwrite==False this method will print a warning,
     then create a new filename with a unique date-time suffix.
-        
+
     Attributes:
-        filename   -- File name of HDF5 file to appear on disk.  
+        filename   -- File name of HDF5 file to appear on disk.
         log_data   -- Binary WLAN Exp log data
-        attr_dict  -- An array of user provided attributes that will be added to the group.                      
-        gen_index  -- Generate the 'raw_log_index' from the log_data and store it in the 
+        attr_dict  -- An array of user provided attributes that will be added to the group.
+        gen_index  -- Generate the 'raw_log_index' from the log_data and store it in the
                       file.
         overwrite  -- If true method will overwrite existing file with filename
     """
     # Need to not print warnings if overwrite is True
     print_warnings = not overwrite
-    
+
     # Open the file
     file_handle   = hdf5_open_file(filename, print_warnings=print_warnings)
 
@@ -591,7 +591,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
 
     # Try to write the file components
     try:
-        # Add the log data    
+        # Add the log data
         container.write_log_data(log_data)
 
         # Add the raw log index to the group
@@ -601,7 +601,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
         if gen_index:
             raw_log_index = log_util.gen_raw_log_index(log_data)
             container.write_log_index(raw_log_index)
-        
+
         # Add the attribute dictionary to the group
         if attr_dict is not None:
             container.write_attr_dict(attr_dict)
@@ -609,7 +609,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
 
-    # Close the file 
+    # Close the file
     hdf5_close_file(file_handle)
 
     # If overwrite use the os to move the temp file to a new file
@@ -628,12 +628,12 @@ def hdf5_to_log_data(filename=None, group_name=None):
     Attributes:
         filename   -- Name of HDF5 file to open as a h5py File object
         group_name -- Name of Group within the HDF5 file object
-    
+
     Returns:
         log_data from HDF5 file
     """
     log_data    = None
-    
+
     # Open the file
     file_handle = hdf5_open_file(filename, readonly=True)
 
@@ -648,9 +648,9 @@ def hdf5_to_log_data(filename=None, group_name=None):
     except AttributeError as err:
         print("Error reading log file: {0}".format(err))
 
-    # Close the file 
+    # Close the file
     hdf5_close_file(file_handle)
-        
+
     return log_data
 
 # End log_data_to_hdf5()
@@ -662,16 +662,16 @@ def hdf5_to_log_index(filename=None, group_name=None, gen_index=True):
 
     Attributes:
         filename   -- Name of HDF5 file to open as a h5py File object
-        group_name -- Name of Group within the HDF5 file object    
-        gen_index  -- Generate the 'raw_log_index' from the log_data if the 
+        group_name -- Name of Group within the HDF5 file object
+        gen_index  -- Generate the 'raw_log_index' from the log_data if the
                       'log_index' is not in the file.
 
     Returns:
-        - log_index from HDF5 file or 
+        - log_index from HDF5 file or
         - generated raw_log_index from log_data in HDF5 file
     """
     log_index   = None
-    
+
     # Open the file
     file_handle = hdf5_open_file(filename, readonly=True)
 
@@ -686,9 +686,9 @@ def hdf5_to_log_index(filename=None, group_name=None, gen_index=True):
     except AttributeError as err:
         print("Error reading log file: {0}".format(err))
 
-    # Close the file 
+    # Close the file
     hdf5_close_file(file_handle)
-    
+
     return log_index
 
 # End hdf5_to_log_index()
@@ -700,13 +700,13 @@ def hdf5_to_attr_dict(filename=None, group_name=None):
 
     Attributes:
         filename   -- Name of HDF5 file to open as a h5py File object
-        group_name -- Name of Group within the HDF5 file object    
+        group_name -- Name of Group within the HDF5 file object
 
     Returns:
         Attribute dictionary in the HDF5 file
     """
     attr_dict   = None
-    
+
     # Open the file
     file_handle = hdf5_open_file(filename, readonly=True)
 
@@ -716,12 +716,12 @@ def hdf5_to_attr_dict(filename=None, group_name=None):
     # Try to read the file components
     try:
         # Extract the attribute dictionary
-        attr_dict   = container.get_attr_dict()    
+        attr_dict   = container.get_attr_dict()
 
     except AttributeError as err:
         print("Error reading log file: {0}".format(err))
 
-    # Close the file 
+    # Close the file
     hdf5_close_file(file_handle)
 
     return attr_dict
@@ -739,10 +739,10 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         be a group in the root HDF5 group, each numpy array will be a
         dataset in the group.
 
-    attr_dict is optional. If provied, values in attr_dict will be copied to HDF5 
+    attr_dict is optional. If provied, values in attr_dict will be copied to HDF5
       group and dataset attributes. attr_dict values with keys matching np_log_dict keys
       will be used as dataset attributes named '<the_key>_INFO'.
-      attr_dict entries may have an extra value with key '/', which will be used 
+      attr_dict entries may have an extra value with key '/', which will be used
       as the value for a group attribute named 'INFO'.
 
       See examples below for supported np_log_dict and attr_dict structures.
@@ -797,7 +797,9 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         # Copy any user-supplied attributes to root group
         #   h5py uses the h5py.File handle to access the file itself and the root group
         hf.attrs['INFO'] = attr_dict['/']
-    except KeyError:
+    except (KeyError, TypeError):
+        #TypeError - attrs dictionary does not exist
+        #KeyError - attrs dictionary exists but key does not
         pass
 
     if type(np_log_dict[dk[0]]) is dict:
@@ -811,19 +813,19 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         for grp_k in np_log_dict.keys():
             # Create one group per log file, using log file name as group name
             grp = hf.create_group(grp_k)
-            
+
             try:
                 grp.attrs['INFO'] = attr_dict[grp_k]['/']
-            except KeyError:
+            except (KeyError, TypeError):
                 pass
 
             for arr_k in np_log_dict[grp_k].keys():
                 # Create one dataset per numpy array of log data
                 ds = grp.create_dataset(arr_k, data=np_log_dict[grp_k][arr_k], compression=compression)
-                
+
                 try:
                     ds.attrs[arr_k + '_INFO'] = attr_dict[grp_k][arr_k]
-                except KeyError:
+                except (KeyError, TypeError):
                     pass
 
     else:
@@ -833,10 +835,10 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         for arr_k in np_log_dict.keys():
             # Create one dataset per numpy array of log data
             ds = hf.create_dataset(arr_k, data=np_log_dict[arr_k], compression=compression)
-            
+
             try:
                 ds.attrs[arr_k + '_INFO'] = attr_dict[arr_k]
-            except KeyError:
+            except (KeyError, TypeError):
                 pass
     hf.close()
     return
