@@ -136,6 +136,7 @@ static wn_function_ptr_t     wlan_exp_reset_station_statistics_callback = (wn_fu
 static wn_function_ptr_t     wlan_exp_purge_all_data_tx_queue_callback  = (wn_function_ptr_t)wlan_exp_null_callback;
 static wn_function_ptr_t     wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
 static wn_function_ptr_t     wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
+static wn_function_ptr_t     wlan_exp_adjust_timebase_callback          = (wn_function_ptr_t)wlan_exp_null_callback;
 
 
 u32                          async_pkt_enable;
@@ -365,6 +366,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
     interrupt_state_t prev_interrupt_state;
 
     // Variables for functions
+    s64           timebase_diff;
     u32           msg_cmd;
     u32           id;
     u32           flags;
@@ -1500,6 +1502,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 					// If this is a write, then update the time on the node
 					if (msg_cmd == CMD_PARAM_WRITE_VAL){
+						timebase_diff = (s64)new_time - (s64)get_usec_timestamp();
+						wlan_exp_adjust_timebase_callback( timebase_diff );
 						wlan_mac_high_set_timestamp( new_time );
 						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set time = 0x%08x 0x%08x\n", temp2, temp);
 					}
@@ -2883,6 +2887,10 @@ void wlan_exp_set_reset_all_associations_callback(void(*callback)()){
 
 void wlan_exp_set_reset_bss_info_callback(void(*callback)()){
 	wlan_exp_reset_bss_info_callback = (wn_function_ptr_t)callback;
+}
+
+void wlan_exp_set_timebase_adjust_callback(void(*callback)()){
+	wlan_exp_adjust_timebase_callback = (wn_function_ptr_t)callback;
 }
 
 
