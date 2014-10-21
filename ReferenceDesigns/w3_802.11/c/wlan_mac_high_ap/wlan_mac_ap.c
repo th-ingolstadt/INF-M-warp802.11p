@@ -921,7 +921,7 @@ void association_timestamp_adjust(s64 timestamp_diff){
             (curr_station_info->latest_activity_timestamp) += timestamp_diff;
         }
     }
-
+}
 
 
 /**
