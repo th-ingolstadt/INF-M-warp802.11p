@@ -205,6 +205,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						break;
 
 						//-------------------------------------------------
+						case TAG_HT_INFORMATION:
 						case TAG_DS_PARAMS:
 							// DS Parameter set (e.g. channel)
 							//
