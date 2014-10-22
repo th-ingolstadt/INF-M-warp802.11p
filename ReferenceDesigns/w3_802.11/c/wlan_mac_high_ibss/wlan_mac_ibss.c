@@ -94,7 +94,7 @@ dl_list		                      statistics_table;
 static u32                        max_queue_size;
 volatile u8                       pause_data_queue;
 
-// AP channel
+// Default channel
 volatile u32                      mac_param_chan;
 
 // MAC address
@@ -257,7 +257,7 @@ int main() {
 	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",wlan_mac_addr[0],wlan_mac_addr[1],wlan_mac_addr[2],wlan_mac_addr[3],wlan_mac_addr[4],wlan_mac_addr[5]);
 
 #ifdef WLAN_USE_UART_MENU
-	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
+	xil_printf("\nAt any time, press the Esc key in your terminal to access the UART menu\n");
 #endif
 
 	// Start the interrupts
@@ -680,7 +680,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  *
  * This callback function will process all the received MPDUs.
  *
- * This function must implement the state machine that will allow a station to join the AP.
+ * This function must implement the state machine that will allow associaton with other IBSS nodes in the same BSS.
  *
  * @param  void * pkt_buf_addr
  *     - Packet buffer address;  Contains the contents of the MPDU as well as other packet information from CPU low
