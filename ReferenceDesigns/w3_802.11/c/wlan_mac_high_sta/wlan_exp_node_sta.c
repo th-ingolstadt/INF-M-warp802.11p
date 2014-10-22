@@ -575,6 +575,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 
 			if(bss_temp != NULL){
 				bss_temp->state = BSS_STATE_ASSOCIATED;
+				bss_temp->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
 				wlan_mac_sta_return_to_idle();
 				status = sta_set_association_state(bss_temp, aid);
 			} else {
