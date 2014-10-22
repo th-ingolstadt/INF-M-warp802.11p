@@ -247,6 +247,7 @@ int main(){
 	my_bss_info = wlan_mac_high_create_bss_info(wlan_mac_addr, default_AP_SSID, mac_param_chan);
 	my_bss_info->state           = BSS_STATE_OWNED;
 	my_bss_info->beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
+	my_bss_info->capabilities    = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -820,7 +821,7 @@ void beacon_transmit() {
 			(void*)(curr_tx_queue_buffer->frame),
 			&tx_header_common,
 			my_bss_info->beacon_interval,
-			(CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
+			my_bss_info->capabilities,
 			strlen(my_bss_info->ssid),
 			(u8*)my_bss_info->ssid,
 			mac_param_chan);
