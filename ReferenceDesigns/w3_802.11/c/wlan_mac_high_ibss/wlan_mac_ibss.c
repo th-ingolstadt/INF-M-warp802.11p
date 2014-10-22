@@ -257,7 +257,7 @@ int main() {
 	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",wlan_mac_addr[0],wlan_mac_addr[1],wlan_mac_addr[2],wlan_mac_addr[3],wlan_mac_addr[4],wlan_mac_addr[5]);
 
 #ifdef WLAN_USE_UART_MENU
-	xil_printf("\nAt any time, press the Esc key in your terminal to access the UART menu\n");
+	xil_printf("\nPress the Esc key in your terminal to access the UART menu\n");
 #endif
 
 	// Start the interrupts

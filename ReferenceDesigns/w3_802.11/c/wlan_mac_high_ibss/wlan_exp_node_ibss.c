@@ -522,7 +522,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 ******************************************************************************/
 int wlan_exp_node_ibss_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr ) {
 
-    xil_printf("  WLAN EXP IBSS Init\n");
+    xil_printf("WLAN EXP IBSS Init\n");
 
     wlan_mac_ibss_set_join_success_callback((void *)wlan_exp_ibss_join_success);
 
