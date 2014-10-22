@@ -10,7 +10,7 @@ be used to define non-WARP nodes so that the experiment framework can
 interact with them.
 
 Class
-```````
+`````
 .. autoclass:: wlan_exp.device.WlanDevice
    :members:
 

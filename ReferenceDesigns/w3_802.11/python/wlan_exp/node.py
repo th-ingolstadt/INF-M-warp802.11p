@@ -47,46 +47,41 @@ NODE_WLAN_SCHEDULER_RESOLUTION         = 8
 
 
 class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
-    """Base Class for WLAN Experiment node.
-    
-    The WLAN experiment node represents one node in a WLAN experiment network.  
-    This class is the primary interface for interacting with nodes by 
-    providing methods for sending commands and checking the status of the node.
-    
+    """Class for WLAN Experiment node.
+        
     Args:
         network_config (warpnet.NetworkConfiguration): Network configuration of the node
         mac_type (int):                                CPU Low MAC type         
 
 
     .. Inherited Attributes from WnNode:
-        node_type (int)                : Unique type of the WARPNet node
-        node_id (int)                  : Unique identification for this node
-        name (str)                     : User specified name for this node (supplied by user scripts)
-        description (str)              : String description of this node (auto-generated)
-        serial_number (int)            : Node's serial number, read from EEPROM on hardware
-
-        fpga_dna                       : Node's FPGA'a unique identification (on select hardware)
-        hw_ver                         : WARP hardware version of this node
-        wn_ver_major                   : WARPNet version running on this node
-        wn_ver_minor                   : WARPNet version running on this node
-        wn_ver_revision                : WARPNet version running on this node
-        transport                      : Node's transport object
-        transport_bcast                : Node's broadcast transport object
+        node_type (int)                     : Unique type of the WARPNet node
+        node_id (int)                       : Unique identification for this node
+        name (str)                          : User specified name for this node (supplied by user scripts)
+        description (str)                   : String description of this node (auto-generated)
+        serial_number (int)                 : Node's serial number, read from EEPROM on hardware
+        fpga_dna (int)                      : Node's FPGA'a unique identification (on select hardware)
+        hw_ver (int)                        : WARP hardware version of this node
+        wn_ver_major (int)                  : WARPNet Major version running on this node
+        wn_ver_minor (int)                  : WARPNet Minor version running on this node
+        wn_ver_revision (int)               : WARPNet Revision version running on this node
+        transport (warpnet.Transport)       : Node's transport object
+        transport_bcast (warpnet.Transport) : Node's broadcast transport object
 
     .. Inherited Attributes from WlanDevice:
-        device_type                    : Unique type of the Wlan Device
-        wlan_mac_address               : Wireless MAC address of the node
+        device_type                         : Unique type of the Wlan Device
+        wlan_mac_address                    : Wireless MAC address of the node
 
     .. Module Attributes:
-        wlan_scheduler_resolution      : Minimum resolution (in us) of the LTG
-        log_max_size                   : Maximum size of event log (in bytes)
-        log_total_bytes_read           : Number of bytes read from the event log
-        log_num_wraps                  : Number of times the event log has wrapped
-        log_next_read_index            : Index in to event log of next read
-        wlan_exp_ver_major             : WLAN Exp version running on this node
-        wlan_exp_ver_minor             : WLAN Exp version running on this node
-        wlan_exp_ver_revision          : WLAN Exp version running on this node
-        mac_type                       : Value of the MAC type (see wlan_exp.defaults for values)
+        wlan_scheduler_resolution           : Minimum resolution (in us) of the LTG
+        log_max_size                        : Maximum size of event log (in bytes)
+        log_total_bytes_read                : Number of bytes read from the event log
+        log_num_wraps                       : Number of times the event log has wrapped
+        log_next_read_index                 : Index in to event log of next read
+        wlan_exp_ver_major                  : WLAN Exp Major version running on this node
+        wlan_exp_ver_minor                  : WLAN Exp Minor version running on this node
+        wlan_exp_ver_revision               : WLAN Exp Revision version running on this node
+        mac_type                            : Value of the MAC type (see wlan_exp.defaults for values)
         
     """
     wlan_scheduler_resolution          = None

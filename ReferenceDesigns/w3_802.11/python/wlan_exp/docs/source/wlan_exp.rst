@@ -16,12 +16,9 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
-    device.rst
     node.rst
-    node_ap.rst
-    node_ibss.rst
-    node_sta.rst
-    ltg.rst
     wlan_exp_util.rst
+    ltg.rst
+    device.rst
 
 

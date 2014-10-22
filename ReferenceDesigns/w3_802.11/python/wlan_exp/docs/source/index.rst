@@ -18,7 +18,7 @@ Please refer to http://warpproject.org/trac/wiki/802.11/wlan_exp for more inform
 Contents:
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
     wlan_exp.rst
     wlan_exp_log.rst
