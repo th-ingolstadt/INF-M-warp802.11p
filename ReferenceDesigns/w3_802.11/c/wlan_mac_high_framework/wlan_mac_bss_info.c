@@ -234,8 +234,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 void print_bss_info(){
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
-	char str[4];
-	u32 i,j;
+	u32 i;
 
 
 	i = 0;
@@ -259,14 +258,10 @@ void print_bss_info(){
 
 		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", curr_bss_info->bssid[0],curr_bss_info->bssid[1],curr_bss_info->bssid[2],curr_bss_info->bssid[3],curr_bss_info->bssid[4],curr_bss_info->bssid[5]);
 		xil_printf("    Channel:       %d\n",curr_bss_info->chan);
-		xil_printf("    Last update:   %d msec ago\n", (u32)((get_usec_timestamp()-curr_bss_info->latest_activity_timestamp)/1000));
-		xil_printf("    Basic Rates:   ");
 
-		for(j = 0; j < (curr_bss_info->num_basic_rates); j++ ){
-			wlan_mac_high_tagged_rate_to_readable_rate(curr_bss_info->basic_rates[j], str);
-			xil_printf("%s, ",str);
+		if(curr_bss_info->state != BSS_STATE_OWNED){
+			xil_printf("    Last update:   %d msec ago\n", (u32)((get_usec_timestamp()-curr_bss_info->latest_activity_timestamp)/1000));
 		}
-		xil_printf("\b\b \n");
 		xil_printf("    Capabilities:  0x%04x\n", curr_bss_info->capabilities);
 		curr_dl_entry = dl_entry_prev(curr_dl_entry);
 		i++;
