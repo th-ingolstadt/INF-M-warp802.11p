@@ -283,6 +283,7 @@ int main() {
 			temp_bss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
 			temp_bss_info->beacon_interval = BEACON_INTERVAL_TU;
 			temp_bss_info->state = BSS_STATE_OWNED;
+			temp_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
 			wlan_mac_ibss_join( temp_bss_info );
 		}
 	}
@@ -364,7 +365,7 @@ void beacon_transmit(u32 schedule_id) {
 				(void*)(curr_tx_queue_buffer->frame),
 				&tx_header_common,
 				my_bss_info->beacon_interval,
-				(CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS),
+				my_bss_info->capabilities,
 				strlen(default_ssid),
 				(u8*)default_ssid,
 				mac_param_chan);

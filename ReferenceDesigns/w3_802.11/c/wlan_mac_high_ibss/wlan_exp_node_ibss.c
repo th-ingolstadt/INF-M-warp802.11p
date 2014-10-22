@@ -413,6 +413,13 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 				memcpy( (void *)(temp_bss_info), (void *)(&temp_bss_info_entry->info), sizeof(bss_info_base) );
 				temp_bss_info->latest_activity_timestamp = get_usec_timestamp();
 
+				// Enforce ownership over this bss_info so that the framework cannot purge it
+				temp_bss_info->state = BSS_STATE_OWNED;
+
+				// Overwrite capabilities in case user didn't set this properly. The capabilities
+				// are immutable anyway.
+				temp_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
+
 				// Join the BSS
 				wlan_mac_ibss_join( temp_bss_info );
 
