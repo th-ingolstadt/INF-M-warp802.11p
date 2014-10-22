@@ -2,16 +2,26 @@
 
 .. include:: globals.rst
 
-WLAN Experiments Framework
-**************************
+Framework
+*********
 
-The WLAN Experiments Framework was designed to allow for control and manipulation of WARP nodes.
+The WLAN Experiments framework communicates with WARP nodes in order to control their behavior and 
+gather status / log information.  
+
+Examples of WLAN Experiments can be found at http://warpproject.org/trac/wiki/802.11/wlan_exp/examples
 
 
-WLAN Exp Node
--------------
+Contents:
 
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members:
-   :inherited-members:
-   :exclude-members: configure_node
+.. toctree::
+    :maxdepth: 2
+
+    device.rst
+    node.rst
+    node_ap.rst
+    node_ibss.rst
+    node_sta.rst
+    ltg.rst
+    wlan_exp_util.rst
+
+

@@ -1,29 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Device
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
-------------------------------------------------------------------------------
-
-This module provides class definition for WLAN Device.
-
-Functions (see below for more information):
-    WlanDevice()        -- Base class for WLAN Devices
-
-Integer constants:
-    TBD
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Node
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  1/23/14  Initial release
+.. ------------------------------------------------------------------------------
 
 """
 import sys
@@ -36,15 +27,19 @@ if sys.version[0]=="3": long=None
 
 
 class WlanDevice(object):
-    """Base Class for WLAN Device.
+    """Class for WLAN Device.
     
-    The WLAN device represents one 802.11 device in a WLAN network.  
+    Args:
+        mac_address (int, str): Medium Access Control (MAC) address of the WLAN device (48-bits)
+        name (string):          User generated description of the WLAN device
+
+    **Class Members:**
     
     Attributes:
-        device_type       -- Unique type of the Wlan Device
-        name              -- String description of this node (user generated)
+        device_type (int):     Unique type of the WLAN Device
+        name (string):         User generated description of the WLAN device
+        wlan_mac_address(int): MAC Address of WLAN Device
 
-        wlan_mac_address  -- MAC Address of WLAN Device
     """
     device_type           = None
     name                  = None
