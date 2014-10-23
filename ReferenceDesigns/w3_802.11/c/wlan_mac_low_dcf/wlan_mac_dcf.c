@@ -99,7 +99,7 @@ int main(){
 	wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
 
 	if(lock_pkt_buf_tx(TX_PKT_BUF_ACK) != PKT_BUF_MUTEX_SUCCESS){
-		warp_printf(PL_ERROR, "Error: unable to lock ack packet buf %d\n", TX_PKT_BUF_ACK);
+		warp_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK);
 		wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 		return -1;
 	}
