@@ -99,7 +99,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         None will be inserted in the list.  If the device_list is not 
         specified, then all the statistics on the node will be returned.
         """
-        super(WlanExpNodeIBSS, self).stats_get_txrx(device_list, return_zeroed_stats_if_none)
+        return super(WlanExpNodeIBSS, self).stats_get_txrx(device_list, return_zeroed_stats_if_none)
 
 
     def scan_start(self, time_per_channel=0.1, channel_list=None, ssid=None, bssid=None):
