@@ -2459,6 +2459,8 @@ u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHd
 
 			size      = dest_size * total_entries;
 
+			wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Getting %d entries (%d bytes)\n", total_entries, size);
+
 			if ( size != 0 ) {
 				// Send the entries as a series of WARPNet Buffers
 
