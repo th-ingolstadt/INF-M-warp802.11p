@@ -23,13 +23,13 @@ Functions (see below for more information):
     tx_rate_index_to_str -- Converts tx_rate_index to string
 
     init_nodes()         -- Initialize nodes
-    init_timestamp()     -- Initialize the timestamps on all nodes to be as 
+    init_timestamp()     -- Initialize the timestamps on all nodes to be as
                               similar as possible
 
     filter_nodes()       -- Filter a list of nodes
 
 Integer constants:
-    WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION, WLAN_EXP_XTRA, 
+    WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION, WLAN_EXP_XTRA,
         WLAN_EXP_RELEASE -- WLAN Exp verision constants
 
 """
@@ -126,17 +126,17 @@ def find_channel_by_freq(freq):
 def channel_to_str(channel):
     """Convert a wlan_channel entry to a string."""
     msg = ""
-    
+
     if type(channel) is int:
         tmp_chan = find_channel_by_channel_number(channel)
-    if type(channel) is dict:
+    elif type(channel) is dict:
         tmp_chan = channel
     else:
         print("Invalid channel type.  Needed int or dict, provided {0}.".format(type(channel)))
         return msg
 
     msg += "{0:4d} ({1} MHz)".format(tmp_chan['channel'], tmp_chan['freq'])
-    
+
     return msg
 
 # End def
@@ -158,7 +158,7 @@ wlan_rx_ant_mode = [{'index' :  0x01, 'desc' : 'Rx SISO Antenna A'},
                     {'index' :  0x03, 'desc' : 'Rx SISO Antenna C'},
                     {'index' :  0x04, 'desc' : 'Rx SISO Antenna D'},
                     {'index' :  0x05, 'desc' : 'Rx SISO Selection Diversity 2 Antennas'}]
-                    
+
 wlan_tx_ant_mode = [{'index' :  0x10, 'desc' : 'Tx SISO Antenna A'},
                     {'index' :  0x20, 'desc' : 'Tx SISO Antenna B'}]
 
@@ -224,7 +224,7 @@ def tx_ant_mode_index_to_str(index):
 # MAC Description Map
 #   List of tuples:  (MAC value, mask, description) describe various MAC addresses
 #
-# IP -> MAC multicast references: 
+# IP -> MAC multicast references:
 #     http://technet.microsoft.com/en-us/library/cc957928.aspx
 #     http://en.wikipedia.org/wiki/Multicast_address#Ethernet
 #     http://www.cavebear.com/archive/cavebear/Ethernet/multicast.html
@@ -254,21 +254,21 @@ warpnet_type_dict = None
 
 
 
-def init_nodes(nodes_config, network_config=None, node_factory=None, 
+def init_nodes(nodes_config, network_config=None, node_factory=None,
                network_reset=True, output=False):
     """Initalize WLAN Exp nodes.
 
     Attributes:
         nodes_config   -- A NodesConfiguration describing the nodes
         network_config -- A NetworkConfiguration object describing the network configuration
-        node_factory   -- A WlanExpNodeFactory or subclass to create nodes of a 
+        node_factory   -- A WlanExpNodeFactory or subclass to create nodes of a
                           given WARPNet type
-        network_reset  -- Issue a network reset command to the nodes to initialize / 
+        network_reset  -- Issue a network reset command to the nodes to initialize /
                           re-initialize their network interface.
         output         -- Print output about the WARPNet nodes
     """
     global warpnet_type_dict
-    
+
     # Create a Host Configuration if there is none provided
     if network_config is None:
         import wlan_exp.warpnet.config as wn_config
@@ -291,20 +291,20 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
 
 def broadcast_cmd_set_time(time, network_config, time_id=None):
     """Initialize the timebase on all of the WLAN Exp nodes.
-    
-    This method will iterate through all host interfaces and issue a 
-    broadcast packet on each interface that will set the time to the 
-    timebase.  The method keeps track of how long it takes to send 
+
+    This method will iterate through all host interfaces and issue a
+    broadcast packet on each interface that will set the time to the
+    timebase.  The method keeps track of how long it takes to send
     each packet so that the time on all nodes is as close as possible
     even across interface.
-    
+
     Attributes:
-        network_config -- One or more NetworkConfiguration objects 
-        time           -- Time to broadcast to the nodes either as a floating point number 
-                          in seconds or an integer number of microseconds                 
+        network_config -- One or more NetworkConfiguration objects
+        time           -- Time to broadcast to the nodes either as a floating point number
+                          in seconds or an integer number of microseconds
         time_id        -- Optional value to identify broadcast time commands across nodes
     """
-    import wlan_exp.cmds as cmds    
+    import wlan_exp.cmds as cmds
     _broadcast_time_to_nodes(time_cmd=cmds.CMD_PARAM_WRITE, network_config=network_config, time=time, time_id=time_id)
 
 # End def
@@ -315,9 +315,9 @@ def broadcast_cmd_write_time_to_logs(network_config, time_id=None):
 
     This method will iterate through all host interfaces and issue a broadcast
     packet on each interface that will add the current time to the log
-    
+
     Attributes:
-        network_config -- One or more NetworkConfiguration objects 
+        network_config -- One or more NetworkConfiguration objects
         time_id        -- Optional value to identify broadcast time commands across nodes
     """
     import wlan_exp.cmds as cmds
@@ -331,20 +331,20 @@ def broadcast_cmd_write_exp_info_to_logs(network_config, info_type, message=None
 
     This method will iterate through all host interfaces and issue a broadcast
     packet on each interface that will add the EXP INFO log entry to the log
-    
+
     Attributes:
-        network_config -- One or more NetworkConfiguration objects 
-        info_type      -- Type of the experiment info.  This is an arbitrary 16 bit 
+        network_config -- One or more NetworkConfiguration objects
+        info_type      -- Type of the experiment info.  This is an arbitrary 16 bit
                           number chosen by the experimentor
         message        -- Information to be placed in the event log
     """
-    import wlan_exp.cmds as cmds        
+    import wlan_exp.cmds as cmds
 
     if type(network_config) is list:
         configs = network_config
     else:
         configs = [network_config]
-    
+
     for config in configs:
         _broadcast_cmd_to_nodes_helper(cmds.LogAddExpInfoEntry(info_type, message), config)
 
@@ -355,7 +355,7 @@ def broadcast_cmd_write_exp_info_to_logs(network_config, info_type, message=None
 # WLAN Exp Misc Utilities
 # -----------------------------------------------------------------------------
 def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=True):
-    """Return a list of nodes that match all the values for the given 
+    """Return a list of nodes that match all the values for the given
     filter parameters.
 
     Filter Parameters:
@@ -375,18 +375,18 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
                       A value of None means that no filtering will occur for CPU Low Functionality
 
       serial_number -- Filters nodes by WARPv3 serial number.  filter_val
-            must be of the form:  'W3-a-XXXXX' where XXXXX is the five 
+            must be of the form:  'W3-a-XXXXX' where XXXXX is the five
             digit serial number of the board.
 
     Each of these filter parameters can be a single value or a list of values.
-    
+
     Examples:
         filter_nodes(nodes, mac_high='AP', mac_low='DCF') --> Only AP DCF nodes
         filter_nodes(nodes, mac_high='AP')            --> AP nodes where low can be DCF/NOMAC
         filter_nodes(nodes, mac_high='ap', mac_low='dcf', serial_numbers=['w3-a-00001','w3-a-00002'])
             --> Find AP DCF nodes with serial numbers 'W3-a-00001' and 'W3-a-00002'
-        
-    NOTE:  If the list is empty, then this method will issue a warning if the 
+
+    NOTE:  If the list is empty, then this method will issue a warning if the
     parameter warn is True.
     """
     ret_nodes         = []
@@ -417,7 +417,7 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
             if type(value) is int:
                 tmp_mac_high.append(value)
 
-    # Create MAC Low Filter                    
+    # Create MAC Low Filter
     if mac_low is not None:
         if type(mac_low) is not list:
             mac_low = [mac_low]
@@ -437,23 +437,23 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
 
             if type(value) is int:
                 tmp_mac_low.append(value)
-                    
+
     # Create Serial Number Filter
     if serial_number is not None:
         import wlan_exp.warpnet.util as wn_util
 
         if type(serial_number) is not list:
             serial_number = [serial_number]
-        
+
         tmp_serial_number = []
-        
+
         for value in serial_number:
             try:
                 (sn, _) = wn_util.wn_get_serial_number(value)
                 tmp_serial_number.append(sn)
             except TypeError as err:
                 print(err)
-            
+
     ret_nodes = _get_nodes_by_type(nodes, tmp_mac_high, tmp_mac_low)
     ret_nodes = _get_nodes_by_sn(ret_nodes, tmp_serial_number)
 
@@ -471,15 +471,15 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
 
 def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100):
     """Create a Basic Service Set (BSS) information structure.
-    
-    This method will create a dictionary that contains all necessary information 
+
+    This method will create a dictionary that contains all necessary information
     for a BSS for the device.  This is the same structure that is used by the
     bss_info log entry.
 
     Attributes:
         ssid              -- String of the SSID - Must be 32 characters or less
-        channel           -- Channel on which the BSS operates 
-        bssid             -- 40-bit ID of the BSS 
+        channel           -- Channel on which the BSS operates
+        bssid             -- 40-bit ID of the BSS
                              (Uses current wlan_mac_address if not specified)
         ibss_status       -- True  => Capabilities field = 0x2 (BSS info is for IBSS)
                              False => Capabilities field = 0x1 (BSS info is for BSS)
@@ -488,7 +488,7 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
     """
     channel_error = False
     bss_dict      = {}
-    
+
     # Set default values for fields not set by this method
     bss_dict['timestamp']       = 0
     bss_dict['last_timestamp']  = 0
@@ -496,7 +496,7 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
     bss_dict['state']           = 5              # BSS_STATE_OWNED
     bss_dict['num_basic_rates'] = 0
     bss_dict['basic_rates']     = bytes()
-    
+
     # Check SSID
     if type(ssid) is not str:
         raise ValueError("The SSID must be a string.")
@@ -512,7 +512,7 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
     if type(channel) is int:
         channel = find_channel_by_channel_number(channel)
 
-        if channel is None: channel_error = True                
+        if channel is None: channel_error = True
 
     elif type(channel) is dict:
         pass
@@ -521,7 +521,7 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
 
     if not channel_error:
         bss_dict['chan_num'] = channel['channel']
-    else:        
+    else:
         msg  = "The channel must either be a valid channel number or a wlan_exp.util.wlan_channel entry."
         raise ValueError(msg)
 
@@ -550,8 +550,8 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
         bss_dict['capabilities'] = 0x1
 
     # Convert bssid_int to string for bssid
-    bss_dict['bssid'] = ''.join([chr((bss_dict['bssid_int'] >> ((6 - i - 1) * 8)) % 256) for i in range(6)])    
-    
+    bss_dict['bssid'] = ''.join([chr((bss_dict['bssid_int'] >> ((6 - i - 1) * 8)) % 256) for i in range(6)])
+
     return bss_dict
 
 # End def
@@ -612,14 +612,14 @@ def node_type_to_str(node_type, node_factory=None):
 
     Attributes:
         node_type    -- WARPNet node type code (u32)
-        node_factory -- A WlanExpNodeFactory or subclass to create nodes of a 
+        node_factory -- A WlanExpNodeFactory or subclass to create nodes of a
                         given WARPNet type
-    
-    By default, the dictionary of WARPNet types is built dynamically 
-    during init_nodes().  If init_nodes() has not been run, then the method 
-    will try to create a WARPNet type dictionary.  If a node_factory is not 
-    provided then a default WlanExpNodeFactory will be used to determine the 
-    WARPNet type.  If a default WlanExpNodeFactory is used, then only 
+
+    By default, the dictionary of WARPNet types is built dynamically
+    during init_nodes().  If init_nodes() has not been run, then the method
+    will try to create a WARPNet type dictionary.  If a node_factory is not
+    provided then a default WlanExpNodeFactory will be used to determine the
+    WARPNet type.  If a default WlanExpNodeFactory is used, then only
     framework WARPNet types will be known and custom WARPNet types will
     return:  "Unknown WARPNet type: <value>"
     """
@@ -627,12 +627,12 @@ def node_type_to_str(node_type, node_factory=None):
 
     # Build a warpnet_type_dict if it is not present
     if warpnet_type_dict is None:
-        
+
         # Build a default node_factory if it is not present
         if node_factory is None:
             import wlan_exp.node as node
             import wlan_exp.warpnet.config as wn_config
-    
+
             network_config = wn_config.NetworkConfiguration()
             node_factory   = node.WlanExpNodeFactory(network_config)
 
@@ -643,16 +643,16 @@ def node_type_to_str(node_type, node_factory=None):
         return warpnet_type_dict[node_type]['description']
     else:
         return "Unknown WARPNet type: 0x{0:8x}".format(node_type)
-    
+
 # End def
 
 
 def mac_addr_desc(mac_addr, desc_map=None):
     """Returns a string description of a MAC address.
 
-    This is useful when printing a table of addresses.  Custom MAC address 
-    descriptions can be provided via the desc_map argument.  In addition 
-    to the provided desc_map, the global mac_addr_desc_map that describes mappings 
+    This is useful when printing a table of addresses.  Custom MAC address
+    descriptions can be provided via the desc_map argument.  In addition
+    to the provided desc_map, the global mac_addr_desc_map that describes mappings
     of different MAC addresses will also be used.
 
     Attributes:
@@ -660,9 +660,9 @@ def mac_addr_desc(mac_addr, desc_map=None):
 
     The mac_addr argument will be bitwise AND'd with each addr_mask, then compared to
     addr_value. If the result is non-zero the corresponding descprition will be returned.
-    
+
     Example:
-    desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'), 
+    desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'),
                  (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]
     """
     # Cast to python int in case input is still numpy uint64
@@ -730,7 +730,7 @@ def _get_nodes_by_type(nodes, mac_high=None, mac_low=None):
         if type(mac_low) is not list:
             mac_low = [mac_low]
         tmp_nodes = [n for n in tmp_nodes if ((n.node_type & 0x000000FF) in mac_low)]
-    
+
     return tmp_nodes
 
 # End def
@@ -761,18 +761,18 @@ def _time():
 
 def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
     """Internal method to issue broadcast time commands
-    
-    This method will iterate through all host interfaces and issue a 
-    broadcast packet on each interface that will set the time to the 
-    timebase.  The method keeps track of how long it takes to send 
+
+    This method will iterate through all host interfaces and issue a
+    broadcast packet on each interface that will set the time to the
+    timebase.  The method keeps track of how long it takes to send
     each packet so that the time on all nodes is as close as possible
     even across interface.
-    
+
     Attributes:
         time_cmd       -- NodeProcTime command to issue
         network_config -- A NetworkConfiguration object
-        time           -- Optional time to broadcast to the nodes (defaults to 0.0) 
-                          either as an integer number of microseconds or a floating 
+        time           -- Optional time to broadcast to the nodes (defaults to 0.0)
+                          either as an integer number of microseconds or a floating
                           point number in seconds
         time_id        -- Optional value to identify broadcast time commands across nodes
     """
@@ -786,7 +786,7 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
     elif (type(time) is int):
         node_time   = float(time / (10**time_factor))   # Convert to float
     else:
-        raise TypeError("Time must be either a float or int")       
+        raise TypeError("Time must be either a float or int")
 
     # Determine if we are sending to multiple networks
     if type(network_config) is list:
@@ -794,7 +794,7 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
     else:
         configs = [network_config]
 
-    # Send command to each network    
+    # Send command to each network
     for idx, config in enumerate(configs):
         network_addr    = config.get_param('network')
 
@@ -803,11 +803,11 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
             start_time  = _time()
         else:
             node_time   = node_time + (_time() - start_time)
-            
+
         cmd             = cmds.NodeProcTime(time_cmd, node_time, time_id);
 
         _broadcast_cmd_to_nodes_helper(cmd, network_config)
-    
+
         msg = ""
         if (time_cmd == cmds.CMD_PARAM_WRITE):
             msg += "Initializing the time of all nodes on network "
@@ -820,7 +820,7 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
 
 
 def _broadcast_cmd_to_nodes_helper(cmd, network_config):
-    """Internal method to issue broadcast commands 
+    """Internal method to issue broadcast commands
 
     Attributes:
         network_config -- A NetworkConfiguration object
@@ -828,7 +828,7 @@ def _broadcast_cmd_to_nodes_helper(cmd, network_config):
     """
     import wlan_exp.warpnet.transport_eth_udp_py_bcast as bcast
 
-    # Get information out of the NetworkConfiguration    
+    # Get information out of the NetworkConfiguration
     tx_buf_size  = network_config.get_param('tx_buffer_size')
     rx_buf_size  = network_config.get_param('rx_buffer_size')
 
@@ -857,7 +857,7 @@ def _find_param_by_index(index, param_list, param_name):
 
     if ret_val is None:
         print("Unknown {0} index: {1}".format(param_name, index))
-    
+
     return ret_val
 
 # End def
@@ -874,7 +874,7 @@ def _find_param_by_name(name, value, param_list, param_name):
 
     if ret_val is None:
         print("Unknown {0} '{1}': {2}".format(param_name, name, value))
-    
+
     return ret_val
 
 # End def
