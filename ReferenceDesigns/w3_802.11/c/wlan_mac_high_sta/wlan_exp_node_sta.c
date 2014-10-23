@@ -56,12 +56,17 @@
 
 
 /*********************** Global Variable Definitions *************************/
-extern dl_list		  association_table;
+extern dl_list		         association_table;
 
-extern u8             pause_data_queue;
-extern u32            mac_param_chan;
+extern u8                    pause_data_queue;
+extern u32                   mac_param_chan;
 
-extern u8	          allow_beacon_ts_update;
+extern u8	                 allow_beacon_ts_update;
+
+extern wn_function_ptr_t     wlan_exp_purge_all_data_tx_queue_callback;
+extern wn_function_ptr_t     wlan_exp_reset_all_associations_callback;
+extern wn_function_ptr_t     wlan_exp_reset_bss_info_callback;
+
 
 /*************************** Variable Definitions ****************************/
 
@@ -566,6 +571,11 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 
 			// Disable interrupts so no packets interrupt the associate
 			prev_interrupt_state = wlan_mac_high_interrupt_stop();
+
+			// Reset the association state of the node
+			wlan_exp_purge_all_data_tx_queue_callback();
+			wlan_exp_reset_all_associations_callback();
+			wlan_exp_reset_bss_info_callback();
 
 			// Stop any active scans
 			wlan_mac_scan_disable();
