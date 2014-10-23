@@ -285,7 +285,7 @@ int main(){
 	xil_printf("  MAC Addr: %02x-%02x-%02x-%02x-%02x-%02x\n\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
 
 #ifdef WLAN_USE_UART_MENU
-	xil_printf("\nAt any time, press the Esc key in your terminal to access the AP menu\n");
+	xil_printf("\nPress the Esc key in your terminal to access the UART menu\n");
 #endif
 
 	// Finally enable all interrupts to start handling wireless and wired traffic
