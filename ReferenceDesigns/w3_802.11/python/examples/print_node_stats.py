@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-WARPNet Example
+Mango 802.11 Reference Design - Experiments Framework - Print Tx/Rx Stats
 ------------------------------------------------------------------------------
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -8,7 +8,7 @@ License:   Copyright 2014, Mango Communications. All rights reserved.
 This module provides a simple WARPNet example.
 
 Hardware Setup:
-  - Requires one WARP v3 node configured as AP using 802.11 Reference Design v0.895 or later
+  - Requires 1+ WARP v3 node running 802.11 Reference Design v0.895 or later
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
@@ -16,7 +16,7 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This script will initialize the given nodes; extract any APs from the initialized nodes; 
+  This script will initialize the given nodes; extract any APs from the initialized nodes;
 then for each AP, it will get the associations and statistics and display them.
 ------------------------------------------------------------------------------
 """
@@ -33,7 +33,7 @@ import wlan_exp.util as wlan_exp_util
 NETWORK                = '10.0.0.0'
 NODE_SERIAL_LIST       = ['W3-a-00001']
 PROMISCUOUS_STATISTICS = True
-
+CHANNEL = 6
 
 nodes = []
 
@@ -47,7 +47,7 @@ def initialize_experiment():
     # Create a NetworkConfiguration
     #   This describes the netwokr configuration.
     network_config = config.WlanExpNetworkConfiguration(network=NETWORK)
-    
+
     # Create a WnNodesConfiguration
     #   This describes each node to be initialized
     nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
@@ -65,40 +65,34 @@ def initialize_experiment():
     for node in nodes:
         node.stats_configure_txrx(promisc_stats=PROMISCUOUS_STATISTICS)
         node.reset(txrx_stats=True)
+        node.set_channel(CHANNEL)
+        node.set_low_to_high_rx_filter(mac_header='ALL_MPDU', fcs='GOOD')
 
 
 def run_experiment():
-    """WLAN Experiment.""" 
+    """WLAN Experiment."""
     global nodes
 
     # Print initial message
     print("\nRunning experiment\n")
 
-    # Get all AP nodes from the list of initialize nodes    
-    #   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
-    nodes_ap = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='AP', serial_number=NODE_SERIAL_LIST)
-
-    # If the node is not configured correctly, exit
-    if (len(nodes_ap) == 0):
-        print("AP not initialized.  Exiting.")
-        return
-
-
     while(True):
 
         # For each of the APs, get the statistics
-        for ap in nodes_ap:
-            station_info = ap.get_station_info()
-            stats        = ap.stats_get_txrx()
-            print_stats(stats, station_info)
-       
+        for node in nodes:
+            station_info = node.get_station_info()
+            stats        = node.stats_get_txrx()
+            print_stats(node, stats, station_info)
+
+        print(92*"*")
         # Wait for 5 seconds
         time.sleep(5)
 
 
-def print_stats(stats, station_info=None):
+def print_stats(node, stats, station_info=None):
     """Helper method to print the statistics."""
     print("-------------------- ----------------------------------- ----------------------------------- ")
+    print("                                          Tx/Rx Stats from Node {0}".format(node.sn_str))
     print("                               Number of Packets                   Number of Bytes           ")
     print("ID                   Tx Data  Tx Mgmt  Rx Data  Rx Mgmt  Tx Data  Tx Mgmt  Rx Data  Rx Mgmt  ")
     print("-------------------- -------- -------- -------- -------- -------- -------- -------- -------- ")
@@ -118,13 +112,13 @@ def print_stats(stats, station_info=None):
                         hostname = False
                     else:
                         hostname = True
-        
+
         if not hostname:
             stat_id = ''.join('{0:02X}:'.format(ord(x)) for x in stat_id)[:-1]
 
         msg += "{0:<20} ".format(stat_id)
         msg += "{0:8d} ".format(stat['data_num_tx_packets_success'])
-        msg += "{0:8d} ".format(stat['mgmt_num_tx_packets_success'])        
+        msg += "{0:8d} ".format(stat['mgmt_num_tx_packets_success'])
         msg += "{0:8d} ".format(stat['data_num_rx_packets'])
         msg += "{0:8d} ".format(stat['mgmt_num_rx_packets'])
         msg += "{0:8d} ".format(stat['data_num_tx_bytes_success'])
@@ -150,7 +144,7 @@ if __name__ == '__main__':
         run_experiment()
     except KeyboardInterrupt:
         pass
-        
+
     end_experiment()
     print("\nExperiment Finished.")
 
