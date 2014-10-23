@@ -1234,6 +1234,8 @@ void reset_bss_info(){
  */
 void leave_ibss(){
 
+	xil_printf("Resetting IBSS state (current BSS and all peer station_info structs)\n");
+
 	if(my_bss_info != NULL){
 
 		station_info* curr_station_info;
