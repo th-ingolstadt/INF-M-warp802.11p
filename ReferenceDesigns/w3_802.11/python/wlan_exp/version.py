@@ -40,9 +40,9 @@ __all__ = ['wlan_exp_ver', 'wlan_exp_ver_check', 'wlan_exp_ver_str']
 
 
 # WLAN Exp Version defines
-WLAN_EXP_MAJOR          = 0
-WLAN_EXP_MINOR          = 9
-WLAN_EXP_REVISION       = 6
+WLAN_EXP_MAJOR          = 1
+WLAN_EXP_MINOR          = 0
+WLAN_EXP_REVISION       = 0
 WLAN_EXP_XTRA           = str('')
 WLAN_EXP_RELEASE        = True
 
