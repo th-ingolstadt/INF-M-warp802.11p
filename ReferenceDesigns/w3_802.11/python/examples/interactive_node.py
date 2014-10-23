@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-WARPNet Example
+Mango 802.11 Reference Design - Experiments Framework - Interactive Node
 ------------------------------------------------------------------------------
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -53,10 +53,14 @@ for node in nodes:
 
     print(msg)
 
-print("")
+print("\n\n")
+print("*********************************************************************")
+print("Starting interactive console. The initialized wlan_exp node instances")
+print(" are stored in the list variable 'nodes', indexed in order of node ID")
+print("Example: blink LEDs at node ID 0: 'nodes[0].node_identify()'")
+print("*********************************************************************")
+print("\n\n")
 
 # Create Debug prompt
 wlan_exp_util.debug_here()
-
-
 
