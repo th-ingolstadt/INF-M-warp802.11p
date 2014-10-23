@@ -112,9 +112,10 @@ volatile u8	                      allow_beacon_ts_update;            // Allow ti
 int main() {
 	wlan_mac_hw_info *       hw_info;
 
-	// Default Channels
-	u8                       channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
-
+	// This list of channels will be used by the active scan state machine. The STA will scan
+	//  each channel looking for a network with the default SSID
+	//u8                       channel_selections[11] = {1,2,3,4,5,6,7,8,9,10,11}; //Scan only 2.4GHz channels
+	u8                       channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48}; //Scan 2.4GHz and 5GHz channels
 
 	// Print initial message to UART
 	xil_printf("\f");
@@ -258,7 +259,7 @@ int main() {
 	xil_printf("  MAC Addr     : %02x-%02x-%02x-%02x-%02x-%02x\n\n",wlan_mac_addr[0],wlan_mac_addr[1],wlan_mac_addr[2],wlan_mac_addr[3],wlan_mac_addr[4],wlan_mac_addr[5]);
 
 #ifdef WLAN_USE_UART_MENU
-	xil_printf("\nAt any time, press the Esc key in your terminal to access the menu\n");
+	xil_printf("\nPress the Esc key in your terminal to access the UART menu\n");
 #endif
 
 	// Start the interrupts
