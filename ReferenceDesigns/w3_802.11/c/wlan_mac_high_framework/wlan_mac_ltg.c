@@ -581,7 +581,7 @@ int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_
 	pkt_id->ltg_id         = ltg_id;
 
 	// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
-	tx_length += (sizeof(ltg_packet_id));
+	tx_length += ((sizeof(ltg_packet_id)));
 
 	return tx_length;
 }
