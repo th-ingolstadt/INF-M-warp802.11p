@@ -118,10 +118,10 @@ class Schedule(object):
 
 class SchedulePeriodic(Schedule):
     """LTG Schedule that will generate a payload every 'interval' microseconds.
-    
-    Attributes:
-        interval (float) -- Interval in seconds to generate a payload
-        duration (float) -- Duration in seconds of schedule
+
+    Args:
+        interval (float):              Interval between packets (in float seconds)
+        duration (float, optional):    Duration of the traffic flow (in float seconds)
     """
     time_factor = 6                    # Time on node is in microseconds
     interval    = None
@@ -157,10 +157,10 @@ class ScheduleUniformRandom(Schedule):
     """LTG Schedule that will generate a payload a uniformly random time 
     between min_interval and max_interval microseconds.
     
-    Attributes:
-        min_interval (float) -- Minimum interval in seconds to generate a payload
-        max_interval (float) -- Maximum interval in seconds to generate a payload
-        duration     (float) -- Duration in seconds of schedule    
+    Args:
+        min_interval (float):          Minimum interval between packets (in float seconds)
+        max_interval (float):          Maximum interval between packets (in float seconds)
+        duration (float, optional):    Duration of the traffic flow (in float seconds)
     """
     time_factor  = 6                   # Time on node is in microseconds
     min_interval = None
@@ -251,7 +251,13 @@ class Payload(object):
 
 
 class PayloadFixed(Payload):
-    """LTG payload that will generate a fixed payload of the given length."""    
+    """LTG payload that will generate a fixed payload of the given length.
+    
+    Args:
+        dest_addr (int):   Destination MAC address
+        length (int):      Minimum length of the LTG payload (in bytes)
+    
+    """
     dest_addr = None
     length    = None
 
@@ -270,7 +276,12 @@ class PayloadFixed(Payload):
 
 class PayloadUniformRandom(Payload):
     """LTG payload that will generate a payload with uniformly random size 
-    between min_length and max_length bytes.    
+    between min_length and max_length bytes.
+
+    Args:
+        dest_addr (int):       Destination MAC address
+        min_length (int):      Minimum length of the LTG payload (in bytes)
+        max_length (int):      Maximum length of the LTG payload (in bytes)    
     """
     dest_addr  = None
     min_length = None
@@ -292,7 +303,11 @@ class PayloadUniformRandom(Payload):
 
 class PayloadAllAssocFixed(Payload):
     """LTG payload that will generate a fixed payload of the given length
-    to all associated deivces."""
+    to all associated deivces.
+    
+    Args:
+        length (int):      Length of the LTG payload (in bytes)
+    """
     length    = None
 
     def __init__(self, length):
@@ -337,15 +352,15 @@ class FlowConfig(object):
 class FlowConfigCBR(FlowConfig):
     """Class to implement a Constant Bit Rate LTG flow configuration to a given device.
     
-    Attributes:
-        dest_addr    -- Destination MAC address
-        size         -- Length of the LTG payload (in bytes)
-        interval     -- Interval between packets (in float seconds)
-        duration     -- Duration of the traffic flow (in float seconds)
+    Args:
+        dest_addr (int):      Destination MAC address
+        payload_length (int): Length of the LTG payload (in bytes)
+        interval (float):     Interval between packets (in float seconds)
+        duration (float):     Duration of the traffic flow (in float seconds)
     """
-    def __init__(self, dest_addr, size, interval, duration=None):
+    def __init__(self, dest_addr, payload_length, interval, duration=None):
         self.ltg_schedule = SchedulePeriodic(interval, duration)
-        self.ltg_payload  = PayloadFixed(dest_addr, size)
+        self.ltg_payload  = PayloadFixed(dest_addr, payload_length)
 
 # End Class FlowConfigCBR
 
@@ -354,14 +369,14 @@ class FlowConfigAllAssocCBR(FlowConfig):
     """Class to implement a Constant Bit Rate LTG flow configuration to all associated
     devices.
     
-    Attributes:
-        size         -- Length of the LTG payload (in bytes)
-        interval     -- Interval between packets (in float seconds)
-        duration     -- Duration of the traffic flow (in float seconds)
+    Args:
+        payload_length (int): Length of the LTG payload (in bytes)
+        interval (float):     Interval between packets (in float seconds)
+        duration (float):     Duration of the traffic flow (in float seconds)
     """
-    def __init__(self, size, interval, duration=None):
+    def __init__(self, payload_length, interval, duration=None):
         self.ltg_schedule = SchedulePeriodic(interval, duration)
-        self.ltg_payload  = PayloadAllAssocFixed(size)
+        self.ltg_payload  = PayloadAllAssocFixed(payload_length)
 
 # End Class FlowConfigCBR
 
@@ -370,17 +385,17 @@ class FlowConfigRandomRandom(FlowConfig):
     """Class to implement an LTG flow configuration with random period and random 
     sized payload to a given device.
 
-    Attributes:
-        dest_addr    -- Destination MAC address
-        min_length   -- Minimum length of the LTG payload (in bytes)
-        max_length   -- Maximum length of the LTG payload (in bytes)
-        min_interval -- Minimum interval between packets (in float seconds)
-        max_interval -- Maximum interval between packets (in float seconds)
-        duration     -- Duration of the traffic flow (in float seconds)
+    Args:
+        dest_addr (int):               Destination MAC address
+        min_payload_length (int):      Minimum length of the LTG payload (in bytes)
+        max_payload_length (int):      Maximum length of the LTG payload (in bytes)
+        min_interval (float):          Minimum interval between packets (in float seconds)
+        max_interval (float):          Maximum interval between packets (in float seconds)
+        duration (float, optional):    Duration of the traffic flow (in float seconds)
     """
-    def __init__(self, dest_addr, min_length, max_length, min_interval, max_interval, duration=None):
+    def __init__(self, dest_addr, min_payload_length, max_payload_length, min_interval, max_interval, duration=None):
         self.ltg_schedule = ScheduleUniformRandom(min_interval, max_interval, duration)
-        self.ltg_payload  = PayloadUniformRandom(dest_addr, min_length, max_length)
+        self.ltg_payload  = PayloadUniformRandom(dest_addr, min_payload_length, max_payload_length)
 
 # End Class FlowConfigRandom
 

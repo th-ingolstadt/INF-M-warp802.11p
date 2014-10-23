@@ -638,9 +638,20 @@ def np_array_add_fields(np_arr_orig=None, mac_addr=False, ltg=False, docs_only=F
 
         # Compute values for address-as-int fields using numpy's dot-product routine
         #     MAC header offsets here select the 3 6-byte address fields
-        np_arr_out['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,  4:10]))
-        np_arr_out['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 10:16]))
-        np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 16:22]))
+        #     Checks to see how long the packet is to populate each address field (for packets like ACKs)
+        addr1_filt = np_arr_out['mac_payload_len'] >= 10;
+        np_arr_out[addr1_filt]['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[addr1_filt,  4:10]))
+
+        addr2_filt = np_arr_out['mac_payload_len'] >= 16;
+        np_arr_out[addr2_filt]['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[addr2_filt, 10:16]))
+
+        addr3_filt = np_arr_out['mac_payload_len'] >= 22;
+        np_arr_out[addr3_filt]['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[addr3_filt, 16:22]))
+
+        # Original way; does not check packet length
+        # np_arr_out['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,  4:10]))
+        # np_arr_out['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 10:16]))
+        # np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 16:22]))
 
         np_arr_out['mac_seq'] = np.dot(mac_hdrs[:, 22:24], [1, 256]) // 16
 

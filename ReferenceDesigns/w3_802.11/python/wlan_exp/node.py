@@ -69,21 +69,22 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         transport_bcast (warpnet.Transport) : Node's broadcast transport object
 
     .. Inherited Attributes from WlanDevice:
-        device_type                         : Unique type of the Wlan Device
-        wlan_mac_address                    : Wireless MAC address of the node
+        device_type (int)                   : Unique type of the Wlan Device
+        wlan_mac_address (int)              : Wireless MAC address of the node
 
     .. Module Attributes:
-        wlan_scheduler_resolution           : Minimum resolution (in us) of the LTG
-        log_max_size                        : Maximum size of event log (in bytes)
-        log_total_bytes_read                : Number of bytes read from the event log
-        log_num_wraps                       : Number of times the event log has wrapped
-        log_next_read_index                 : Index in to event log of next read
-        wlan_exp_ver_major                  : WLAN Exp Major version running on this node
-        wlan_exp_ver_minor                  : WLAN Exp Minor version running on this node
-        wlan_exp_ver_revision               : WLAN Exp Revision version running on this node
-        mac_type                            : Value of the MAC type (see wlan_exp.defaults for values)
+        wlan_scheduler_resolution (int)     : Minimum resolution (in us) of the LTG
+        log_max_size (int)                  : Maximum size of event log (in bytes)
+        log_total_bytes_read (int)          : Number of bytes read from the event log
+        log_num_wraps (int)                 : Number of times the event log has wrapped
+        log_next_read_index (int)           : Index in to event log of next read
+        wlan_exp_ver_major (int)            : WLAN Exp Major version running on this node
+        wlan_exp_ver_minor (int)            : WLAN Exp Minor version running on this node
+        wlan_exp_ver_revision (int)         : WLAN Exp Revision version running on this node
+        mac_type (int)                      : Value of the MAC type (see wlan_exp.defaults for values)
         
     """
+    
     wlan_scheduler_resolution          = None
     
     log_max_size                       = None
@@ -258,7 +259,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Get the size of the log (in bytes).
         
         Returns:
-          num_bytes (int): Number of bytes in the log        
+            num_bytes (int): Number of bytes in the log        
         """
         (capacity, size)  = self.send_cmd(cmds.LogGetCapacity())
 
@@ -280,7 +281,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Get the capacity of the log (in bytes).
         
         Returns:
-          capacity (int): Number of byte allocated for the log.        
+            capacity (int): Number of byte allocated for the log.        
         """
         return self.log_max_size
 
@@ -307,14 +308,24 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     def log_get_flags(self):
-        """Get the flags that describe the event log configuration."""
+        """Get the flags that describe the event log configuration.
+        
+        Returns:
+            flags (int): Integer describing the configuration of the event log.  
+            
+        .. note:: Flag values can be found in wlan_exp.cmds.CMD_PARAM_LOG_CONFIG_FLAG_*
+        """
         (_, _, _, flags) = self.send_cmd(cmds.LogGetStatus())
 
         return flags        
 
 
     def log_is_full(self):
-        """Return whether the log is full or not."""
+        """Return whether the log is full or not.
+
+        Returns:
+            status (bool): True if the log is full; False if the log is not full.         
+        """
         (next_index, oldest_index, num_wraps, flags) = self.send_cmd(cmds.LogGetStatus())
         
         if (((flags & cmds.CMD_PARAM_LOG_CONFIG_FLAG_WRAP) != cmds.CMD_PARAM_LOG_CONFIG_FLAG_WRAP) and
@@ -325,7 +336,16 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     def log_enable_stream(self, port, ip_address=None, host_id=None):
-        """Configure the node to stream log entries to the given port."""
+        """Configure the node to stream log entries to the given port.
+        
+        Args:
+            port (int): Port number to stream the log entries.
+            ip_address (int, str, optional):  IP address to stream the entries.
+            host_id (int, optional):  Host ID to be used in the WARPNet transport header for the streamed entries.
+        
+        .. note:: If ip_address or host_id is not provided, then ip_address and host_id of the
+            WLAN Exp host will be used.
+        """
 
         if (ip_address is None):
             import wlan_exp.warpnet.util as wn_util
@@ -351,16 +371,23 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def log_write_exp_info(self, info_type, message=None):
         """Write the experiment information provided to the log.
         
-        Attributes:
-            info_type -- Type of the experiment info.  This is an 
-                         arbitrary 16 bit number chosen by the experimentor
-            message   -- Information to be placed in the event log
+        Args:
+            info_type (int): Type of the experiment info.  This is an arbitrary 16 bit number 
+                chosen by the experimentor
+            message (int, str, bytes, optional): Information to be placed in the event log.  
+        
+        .. note:: Message must be able to be converted to bytearray with 'UTF-8' format.
         """
         self.send_cmd(cmds.LogAddExpInfoEntry(info_type, message))
 
 
     def log_write_time(self, time_id=None):
-        """Adds the current time in microseconds to the log."""
+        """Adds the current time in microseconds to the log.
+        
+        Args:
+            time_id (int, optional):  User providied identifier to be used for the TIME_INFO
+                log entry.  If none is provided, a random number will be inserted.
+        """
         return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_TIME_ADD_TO_LOG, cmds.CMD_PARAM_RSVD_TIME, time_id))
 
 
@@ -375,13 +402,12 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def stats_configure_txrx(self, promisc_stats=None):
         """Configure statistics collection on the node.
 
-        By default all attributes are set to None.  Only attributes that 
-        are given values will be updated on the node.  If an attribute is
-        not specified, then that attribute will retain the same value on
-        the node.
-
-        Attributes (default state on the node is in CAPS):
-            promisc_stats        -- Enable promiscuous statistics collection (TRUE/False)
+        Args:
+            promisc_stats (bool, optional): Enable promiscuous statistics collection (TRUE/False)
+        
+        .. note:: By default all attributes are set to None.  Only attributes that 
+            are given values will be updated on the node.  If an attribute is
+            not specified, then that attribute will retain the same value on the node.
         """
         self.send_cmd(cmds.StatsConfigure(promisc_stats))
 
@@ -389,14 +415,22 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def stats_get_txrx(self, device_list=None, return_zeroed_stats_if_none=False):
         """Get the statistics from the node.
         
-        Returns a list of statistic dictionaries or a single dictionary.  
+        Args:
+            device_list (list of WlanExpNode, WlanExpNode, WlanDevice, optional): List of devices
+                for which to get statistics.  See note below for more information.
+            return_zeroed_stats_if_none(bool, optional):  If no statistics exist on the node for 
+                the specified device(s), return a zeroed statistics dictionary with proper timestamps
+                instead of None.
         
-        If the device_list is a single device, then a single dictionary or 
-        None is returned.  If the device_list is a list of devices, then a 
-        list of dictionaries will be returned in the same order as the 
-        devices in the list.  If any of the staistics are not there, 
-        None will be inserted in the list.  If the device_list is not 
-        specified, then all the statistics on the node will be returned.
+        Returns:
+            staticstics_dictionary (list of dictionaries, dictionary): Statistics for the device(s) specified. 
+
+        .. note:: If the device_list is a single device, then a single dictionary or 
+            None is returned.  If the device_list is a list of devices, then a 
+            list of dictionaries will be returned in the same order as the 
+            devices in the list.  If any of the staistics are not there, 
+            None will be inserted in the list.  If the device_list is not 
+            specified, then all the statistics on the node will be returned.
         """
         ret_val = []
         if not device_list is None:
@@ -425,22 +459,35 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def ltg_configure(self, traffic_flow, auto_start=False):
         """Configure the node for the given traffic flow.
         
-        Attributes:
-            traffic_flow -- This is a traffic flow class (subclass of FlowConfig)
-                            that describes the parameters of the LTG.  You can 
-                            find the defined traffic flows in ltg.py
-            auto_start   -- Automatically start the LTG or wait until it is 
-                            explictly started.
+        Args:
+            traffic_flow (ltg.FlowConfig):  FlowConfig (or subclass of FlowConfig) that describes 
+                the parameters of the LTG.
+            auto_start (bool, optional): Automatically start the LTG or wait until it is explictly started.
         
         Returns:
-            LTG ID of the flow        
+            ID (int):  Identifier for the LTG flow        
         """
         traffic_flow.enforce_min_resolution(self.wlan_scheduler_resolution)
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
 
 
     def ltg_get_status(self, ltg_id_list):
-        """Get the status of the LTG flows."""
+        """Get the status of the LTG flows.
+        
+        Args:
+            ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier
+
+        .. note:: If the ltg_id_list is a single ID, then a single status tuple is
+            returned.  If the ltg_id_list is a list of IDs, then a list of status 
+            tuples will be returned in the same order as the IDs in the list.
+        
+        Returns:
+            status (tuple):
+                #. valid (bool):          Is the LTG ID valid? (True/False)
+                #. running (bool):        Is the LTG currently running? (True/False)
+                #. start_timestamp (int): Timestamp when the LTG started
+                #. stop_timestamp (int):  Timestamp when the LTG stopped
+        """
         ret_val = []
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
@@ -458,7 +505,11 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     def ltg_remove(self, ltg_id_list):
-        """Remove the LTG flows."""
+        """Remove the LTG flows.
+        
+        Args:
+            ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier
+        """
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
                 status = self.send_cmd(cmds.LTGRemove(ltg_id))
@@ -469,7 +520,11 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         
 
     def ltg_start(self, ltg_id_list):
-        """Start the LTG flow."""
+        """Start the LTG flow.
+        
+        Args:
+            ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier        
+        """
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
                 status = self.send_cmd(cmds.LTGStart(ltg_id))
@@ -480,7 +535,11 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     def ltg_stop(self, ltg_id_list):
-        """Stop the LTG flow to the given nodes."""
+        """Stop the LTG flow to the given nodes.
+        
+        Args:
+            ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier        
+        """
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
                 status = self.send_cmd(cmds.LTGStop(ltg_id))
@@ -509,7 +568,12 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     def _print_ltg_error(self, status, msg):
-        """Print an LTG error message."""
+        """Print an LTG error message.
+                
+        Args:
+            status (int): Status of LTG command
+            msg (str):    Message to print as part of LTG Error
+        """
         if (status == cmds.CMD_PARAM_LTG_ERROR):
             print("LTG ERROR: Could not {0} on {1}".format(msg, self.name))
 
@@ -520,7 +584,16 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def reset_all(self):
         """Resets all portions of a node.
         
-        This includes:  Log, Statistics, LTG, Queues, Association State        
+        This includes:  
+          * Log
+          * Statistics
+          * LTG
+          * Queues
+          * Association State
+          * BSS info
+        
+        See the reset() command for a list of all portions of the node that will
+        be reset.
         """
         status = self.reset(log=True, 
                             txrx_stats=True, 
@@ -537,13 +610,13 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                    associations=False, bss_info=False ):
         """Resets the state of node depending on the attributes.
         
-        Attributes:
-            log          -- Reset the log
-            txrx_stats   -- Reset the TX/RX Statistics
-            ltg          -- Remove all LTGs
-            queue_data   -- Purge all TX queue data
-            associations -- Remove all associations
-            bss_info     -- Remove all BSS info
+        Args:
+            log (bool):          Reset the log
+            txrx_stats (bool):   Reset the TX/RX Statistics
+            ltg (bool):          Remove all LTGs
+            queue_data (bool):   Purge all TX queue data
+            associations (bool): Remove all associations
+            bss_info (bool):     Remove all BSS info
         """
         flags = 0;
         
@@ -583,7 +656,11 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     def get_wlan_mac_address(self):
-        """Get the WLAN MAC Address of the node."""
+        """Get the WLAN MAC Address of the node.
+        
+        Returns:
+            MAC Address (int):  Wireless Medium Access Control (MAC) address of the node.        
+        """
         addr = self.send_cmd(cmds.NodeProcWLANMACAddr(cmds.CMD_PARAM_READ))
 
         if (addr != self.wlan_mac_address):
@@ -600,65 +677,81 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def set_time(self, time, time_id=None):
         """Sets the time in microseconds on the node.
         
-        Attributes:
-            time -- Time to send to the board (either float in sec or int in us)
+        Args:
+            time (float, int):       Time to which the node's timestamp will be set (either float in sec or int in us)
+            time_id (int, optional): Identifier used as part of the TIME_INFO log entry created by this command.
+                If not specified, then a random number will be used.
         """
         self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_WRITE, time, time_id))
     
 
     def get_time(self):
-        """Gets the time in microseconds from the node."""
+        """Gets the time in microseconds from the node.
+        
+        Returns:
+            Time (int):  Timestamp of the node in integer microseconds.        
+        """
         return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_RSVD_TIME))
 
 
     def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
         """Sets the filter on the packets that are passed from the low MAC to the high MAC.
         
-        Attributes:
-            mac_header -- MAC header filter.  Values can be:
+        Args:
+            mac_header (str, optional): MAC header filter.  Values can be:
+                **'MPDU_TO_ME'** -- Pass any unicast-to-me or multicast data or management packet;
+                **'ALL_MPDU'**   -- Pass any data or management packet (no address filter);
+                **'ALL'**        -- Pass any packet (no type or address filters)
+            fcs (str, optional):        FCS status filter.  Values can be
+                **'GOOD'**       -- Pass only packets with good checksum result;
+                **'ALL'**        -- Pass packets with any checksum result
 
-                            'MPDU_TO_ME' -- Pass any unicast-to-me or multicast data or 
-                                            management packet
-                            'ALL_MPDU'   -- Pass any data or management packet (no address filter)
-                            'ALL'        -- Pass any packet (no type or address filters)
+        .. note:: The default values on the node are mac_header='ALL_MPDU' and fcs='GOOD'
 
-            FCS        -- FCS status filter.  Values can be:
-
-                            'GOOD'       -- Pass only packets with good checksum result
-                            'ALL'        -- Pass packets with any checksum result
-        
-        NOTE:  One thing to note is that even though all packets are passed in the 'ALL' case 
-        of the mac_header filter, the high MAC does not necessarily get to decide the node's 
-        response to all packets.  For example, ACKs will still be transmitted for receptions
-        by the low MAC since there is not enough time in the 802.11 protocol for the high MAC 
-        to decide on the response.  Default behavior like this can only be modified in the 
-        low MAC.
+        .. note::  One thing to note is that even though all packets are passed in the 'ALL' case 
+            of the mac_header filter, the high MAC does not necessarily get to decide the node's 
+            response to all packets.  For example, ACKs will still be transmitted for receptions
+            by the low MAC since there is not enough time in the 802.11 protocol for the high MAC 
+            to decide on the response.  Default behavior like this can only be modified in the low MAC.
         """
         self.send_cmd(cmds.NodeSetLowToHighFilter(cmds.CMD_PARAM_WRITE, mac_header, fcs))        
         
 
     def set_channel(self, channel):
-        """Sets the channel of the node and returns the channel that was set."""
+        """Sets the channel of the node.
+        
+        Args:
+            channel (int, dictionary in util.wlan_channel array): Channel to set on the node
+        
+        Returns:
+            channel (dictionary):  Channel dictionary (see util.wlan_channel) that was set on the node.        
+        """
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
 
 
     def get_channel(self):
-        """Gets the current channel of the node."""
+        """Gets the current channel of the node.
+        
+        Returns:
+            channel (dictionary):  Channel dictionary (see util.wlan_channel) of the current channel on the node.        
+        """
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_READ))
 
 
     def set_tx_rate_unicast(self, rate, device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast transmit rate of the node.
         
-        One of device_list, curr_assoc or new_assoc must be set.  The device_list
-        and curr_assoc are mutually exclusive with curr_assoc having precedence
-        (ie if curr_assoc is True, then device_list will be ignored).
-
-        Attributes:
-            rate        -- Entry from the wlan_rates list in wlan_exp.util
-            device_list -- List of 802.11 devices for which to set the Tx unicast rate to 'rate'
-            curr_assoc  -- All current assocations will have Tx unicast rate set to 'rate'
-            new_assoc   -- All new associations will have Tx unicast rate set to 'rate'
+        Args:
+            rate (dictionary from util.wlan_rates):                    Rate dictionary 
+                (Entry from the wlan_rates list in wlan_exp.util)
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                for which to set the Tx unicast rate to 'rate'
+            curr_assoc (bool):  All current assocations will have Tx unicast rate set to 'rate'
+            new_assoc  (bool):  All new associations will have Tx unicast rate set to 'rate'
+        
+        .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
+            and curr_assoc are mutually exclusive with curr_assoc having precedence
+            (ie if curr_assoc is True, then device_list will be ignored).
         """
         self._node_set_tx_param_unicast(cmds.NodeProcTxRate, rate, 'rate', device_list, curr_assoc, new_assoc)
         
@@ -1298,10 +1391,17 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
         caller_desc = "During node initialization {0} returned version {1}".format(self.name, ver_str)
         
-        version.wlan_exp_ver_check(major=self.wlan_exp_ver_major,
-                                   minor=self.wlan_exp_ver_minor,
-                                   revision=self.wlan_exp_ver_revision,
-                                   caller_desc=caller_desc)
+        status = version.wlan_exp_ver_check(major=self.wlan_exp_ver_major,
+                                            minor=self.wlan_exp_ver_minor,
+                                            revision=self.wlan_exp_ver_revision,
+                                            caller_desc=caller_desc)
+        
+        if (status == version.WLAN_EXP_VERSION_NEWER):
+            print("Please update the C code on the node to the proper WLAN Exp version.")
+        
+        if (status == version.WLAN_EXP_VERSION_OLDER):
+            print("Please update the WLAN Exp installation to match the version on the node.")
+            
 
 # End Class WlanExpNode
 

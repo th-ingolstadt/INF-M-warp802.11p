@@ -55,6 +55,12 @@ version += "{0:d} ".format(WLAN_EXP_REVISION)
 version += "{0:s} ".format(WLAN_EXP_XTRA)
 
 
+# Status defines for wlan_ver_check
+WLAN_EXP_VERSION_SAME   = 0
+WLAN_EXP_VERSION_NEWER  = 1
+WLAN_EXP_VERSION_OLDER  = -1
+
+
 #-----------------------------------------------------------------------------
 # WLAN Exp Version Utilities
 #-----------------------------------------------------------------------------
@@ -90,6 +96,8 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
     The ver_str attribute takes precedence over the major, minor, revsion
     attributes.
     """
+    status = WLAN_EXP_VERSION_SAME
+    
     if not ver_str is None:
         try:
             temp = ver_str.split(" ")
@@ -127,21 +135,25 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
                     # Do nothing; Python must be the same or newer than C code                    
                     # pass
                     # TODO:  Need to move back to this after 1.0 release
-                    print("WARNING: " + msg + " (newer)")                
+                    print("WARNING: " + msg + " (newer)")
+                    status = WLAN_EXP_VERSION_NEWER
                 else:
                     print("WARNING: " + msg + " (older)")
+                    status = WLAN_EXP_VERSION_OLDER
         else:
             if (minor < WLAN_EXP_MINOR):
                 print("WARNING: " + msg + " (newer)")
+                status = WLAN_EXP_VERSION_NEWER
             else:
                 raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
     else:
         if (major < WLAN_EXP_MAJOR):
             print("WARNING: " + msg + " (newer)")
+            status = WLAN_EXP_VERSION_NEWER
         else:
             raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
     
-    return True
+    return status
     
 # End of wlan_exp_ver()
 

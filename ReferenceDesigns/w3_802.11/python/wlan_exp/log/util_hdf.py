@@ -146,11 +146,24 @@ class HDF5LogContainer(log_util.LogContainer):
                 # Require two attributes named 'wlan_exp_log' and 'wlan_exp_ver'
                 ver = group_handle.attrs['wlan_exp_ver']
 
-                ver_str     = version.wlan_exp_ver_str(ver[0], ver[1], ver[2])
+                ver_str            = version.wlan_exp_ver_str(ver[0], ver[1], ver[2])
+                ver_older_than_093 = (ver[0], ver[1], ver[2]) < (0, 9, 3)
                 caller_desc = "HDF5 file '{0}' was written using version {1}".format(self.file_handle.filename, ver_str)
 
-                version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2],
-                                           caller_desc=caller_desc)
+                status = version.wlan_exp_ver_check(major=ver[0], minor=ver[1], revision=ver[2],
+                                                    caller_desc=caller_desc)
+                
+
+                if (status == version.WLAN_EXP_VERSION_NEWER and 
+                        (version.wlan_exp_ver() >= (0, 9, 3)) and ver_older_than_093):
+                    msg  = "The HDF5 file uses a version older than 0.93, please convert using \n"
+                    msg += "the log_util_hdf5convert.py utility found the example directory in \n"
+                    msg += "releases prior to 1.0."
+                    print(msg)
+                
+                if (status == version.WLAN_EXP_VERSION_OLDER):
+                    print("Please update the WLAN Exp installation to match the version on the HDF5 file.")
+                            
             else:
                 msg  = "WARNING: Log container is not valid.\n"
                 msg += "    'wlan_exp_log' attribute indicates log container is not valid."

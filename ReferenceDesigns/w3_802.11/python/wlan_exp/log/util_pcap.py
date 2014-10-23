@@ -399,6 +399,11 @@ def _covert_log_data_to_pcap(log_file, log_data, log_pcap_index):
 
         fmt = '<I I I I'
 
+        # Trim the payload
+        if (incl_len > orig_len):
+            incl_len = orig_len
+            payload  = payload[:incl_len]
+
         try:
             log_file.write(struct.pack(fmt, ts_sec, ts_usec, incl_len, orig_len))
             log_file.write(payload)
