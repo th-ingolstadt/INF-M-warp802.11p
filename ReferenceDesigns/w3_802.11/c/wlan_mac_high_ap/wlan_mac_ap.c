@@ -117,6 +117,8 @@ u8   sevenSegmentMap(u8 x);
 
 int main(){
 	wlan_mac_hw_info *hw_info;
+	u8 disallow_filter[6] = {0x00,0x00,0x00,0x00,0x00,0x00};
+	u8 disallow_mask[6]   = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
 
 	xil_printf("\f");
@@ -277,6 +279,14 @@ int main(){
 
 	// Reset the event log
 	event_log_reset();
+
+	// Set address filter
+	if((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3)){
+		xil_printf("Disallowing Associations\n");
+		wlan_mac_addr_filter_reset();
+		wlan_mac_addr_filter_add(disallow_mask, disallow_filter);
+	}
+
 
 	// Print AP information to the terminal
     xil_printf("WLAN MAC AP boot complete: \n");
