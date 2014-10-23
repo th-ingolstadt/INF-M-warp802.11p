@@ -268,7 +268,7 @@ int main() {
 	// Set the default active scan channels
 	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
-	// If there is a default SSID, initiate a probe request
+	// If there is a default SSID and the DIP switch allows it, initiate a probe request
 	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
 		wlan_mac_sta_scan_and_join(access_point_ssid, 0);
 	}
