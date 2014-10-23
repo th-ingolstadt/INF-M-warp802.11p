@@ -98,7 +98,7 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
             msg  = "ERROR: input parameter ver_str not valid"
             raise AttributeError(msg)
 
-    # If ver_str was specified, then major, minor, revision should be defined
+    # If ver_str was not specified, then major, minor, revision should be defined
     #   and contain strings.  Need to convert to integers.        
     try:
         major    = int(major)
@@ -111,12 +111,12 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
     # Check the provided version vs the current version
     if (caller_desc is None):
         msg  = "WLAN Exp Version Mismatch: \n"
+        msg += "    Caller is using wlan_exp package version: {0}\n".format(wlan_exp_ver_str(major, minor, revision))
     else:
-        msg  = str(caller_desc)
-        msg += "\nWLAN Exp Version Mismatch: \n"
+        msg  = "\nWLAN Exp Version Mismatch: \n"
+        msg += "    " + str(caller_desc)
         
-    msg += "    Caller is using wlan_exp package version: {0}\n".format(wlan_exp_ver_str(major, minor, revision))
-    msg += "    However, trying to use wlan_exp package version: {0} ({1})".format(wlan_exp_ver_str(), __file__)
+    msg += "    Current wlan_exp package version: {0} ({1})".format(wlan_exp_ver_str(), __file__)
 
 
     if (major == WLAN_EXP_MAJOR):
