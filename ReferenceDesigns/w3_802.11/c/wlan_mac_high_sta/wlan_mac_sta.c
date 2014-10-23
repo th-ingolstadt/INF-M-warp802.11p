@@ -836,7 +836,7 @@ void ltg_event(u32 id, void* callback_arg){
 				wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr, addr_da );
 
 				min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS, id);
-				payload_length = max(payload_length, min_ltg_payload_length);
+				payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
 
 				// Finally prepare the 802.11 header
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID);
