@@ -76,7 +76,7 @@ void bss_info_init(u8 dram_present){
 			dl_entry_insertEnd(&bss_info_free,&(dl_entry_base[i]));
 		}
 
-		xil_printf("BSS Info of %d placed in DRAM: using %d kB\n", num_bss_info, (num_bss_info*sizeof(bss_info))/1024);
+		xil_printf("BSS Info list (len %d) placed in DRAM: using %d kB\n", num_bss_info, (num_bss_info*sizeof(bss_info))/1024);
 
 	} else {
 		xil_printf("Error initializing BSS info subsystem\n");

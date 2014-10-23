@@ -336,7 +336,7 @@ void wlan_mac_high_init(){
 
 	while((get_usec_timestamp() - timestamp) < 100000){
 		if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
-			xil_printf("DRAM SODIMM Detected\n");
+			xil_printf("------------------------\nDRAM SODIMM Detected\n");
 			if(wlan_mac_high_memory_test()==0){
 				dram_present = 1;
 			} else {
@@ -2780,8 +2780,6 @@ u32 wlan_mac_high_set_max_associations(u32 num_associations) {
 	} else {
 		max_num_associations = WLAN_MAC_HIGH_MAX_ASSOCIATONS;
 	}
-
-	xil_printf("Max Associations: %d\n", max_num_associations);
 
     return max_num_associations;
 }

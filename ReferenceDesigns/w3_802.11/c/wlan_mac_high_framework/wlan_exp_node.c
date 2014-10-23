@@ -2739,7 +2739,7 @@ int wlan_exp_node_init(u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_n
 
     int i;
 	int status = SUCCESS;
-
+	xil_printf("------------------------\n");
 	xil_printf("WARPNet v%d.%d.%d WLAN EXP v%d.%d.%d (compiled %s %s)\n", WARPNET_VER_MAJOR, WARPNET_VER_MINOR, WARPNET_VER_REV,
 			   WLAN_EXP_VER_MAJOR, WLAN_EXP_VER_MINOR, WLAN_EXP_VER_REV, __DATE__, __TIME__);
 
@@ -2834,11 +2834,6 @@ int wlan_exp_node_init(u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_n
 	//Assign the new packet callback
 	// IMPORTANT: must be called after transport_init()
 	transport_setReceiveCallback( (void *)node_rxFromTransport );
-
-	// If you are in configure over network mode, then indicate that to the user
-	if ( node_info.node == 0xFFFF ) {
-		xil_printf("  !!! Waiting for Network Configuration !!! \n");
-	}
 
 	// Call child init function
 	status = wlan_exp_init_callback( type, serial_number, fpga_dna, eth_dev_num, hw_addr );
