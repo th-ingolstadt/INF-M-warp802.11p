@@ -28,21 +28,6 @@
 /*************************** Constant Definitions ****************************/
 
 
-// **********************************************************************
-// White-list for individual addresses
-//
-//   This is a compile time option to allow specific addresses on to the
-//   network.  This will allow the given nodes to bypass the address filter
-//   check.
-//
-#define NUM_WHITELIST_NODES                      2
-
-/// whitelist_compare contains all addresses that are explicitly allowed on the network
-static u8 whitelist_compare[NUM_WHITELIST_NODES][WHITELIST_ADDR_LEN] = {  \
-                                  { 0x40, 0xD8, 0x55, 0x04, 0x21, 0x30 }, \
-						          { 0x40, 0xD8, 0x55, 0x04, 0x21, 0x3A }  };
-
-
 /*********************** Global Variable Definitions *************************/
 
 extern bss_info*		       my_bss_info;
@@ -59,8 +44,6 @@ extern bss_info*		       my_bss_info;
 //
 
 dl_list   addr_filter;
-
-static u8 none_range_mask[WHITELIST_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 static u8 warp_range_mask[WHITELIST_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x00 };
 static u8 warp_range_compare[WHITELIST_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
@@ -178,13 +161,13 @@ int   wlan_mac_addr_filter_add(u8* mask, u8* compare) {
  *      - one  if address is allowed
  */
 u8    wlan_mac_addr_filter_is_allowed(u8* addr){
-	u32              i;
 	u32              list_len = addr_filter.length;
     whitelist_range* curr_range;
 	dl_entry* 	     curr_range_dl_entry;
 
+
 	// Check if the list is empty
-	//     NOTE: By default, we allow all addresses
+	//     NOTE: By default, we disallow all addresses
 	//
 	if (list_len == 0) { return 1; }
 
@@ -194,13 +177,6 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
 	//
 	if(my_bss_info != NULL){
 		if ( wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), addr) != NULL) { return 1; }
-	}
-
-
-	// Check if the incoming address is one of the individual white-listed addresses
-	//
-	for(i = 0; i < NUM_WHITELIST_NODES; i++){
-		if ( addr_is_allowed(addr, none_range_mask, whitelist_compare[i]) == 1 ) return 1;
 	}
 
 
