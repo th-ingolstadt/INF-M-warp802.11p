@@ -92,7 +92,7 @@ void poll_tx_queues();
 void purge_all_data_tx_queue();
 
 void reset_bss_info();
-void reset_all_associations();
+void leave_ibss();
 void reset_station_statistics();
 
 dl_list * get_statistics();

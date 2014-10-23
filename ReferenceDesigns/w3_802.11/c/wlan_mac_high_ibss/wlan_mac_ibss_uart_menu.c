@@ -157,7 +157,8 @@ void print_menu(){
 	xil_printf("\f");
 	xil_printf("********************** Station Menu **********************\n");
 	xil_printf("[1] - Interactive Station Status\n");
-	xil_printf("[2] - Print all Observed Statistics\n");
+	xil_printf("[2] - Print Queue Status\n");
+	xil_printf("[3] - Print all Observed Statistics\n");
 	xil_printf("\n");
 	xil_printf("[a] - 	display BSS information\n");
 	xil_printf("[r/R] - change unicast rate\n");

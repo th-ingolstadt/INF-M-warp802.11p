@@ -208,7 +208,7 @@ int main() {
 	wlan_exp_set_process_callback(                  (void *)wlan_exp_node_ibss_processCmd);
 	wlan_exp_set_reset_station_statistics_callback( (void *)reset_station_statistics);
 	wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
-	wlan_exp_set_reset_all_associations_callback(   (void *)reset_all_associations);
+	wlan_exp_set_reset_all_associations_callback(   (void *)leave_ibss);
 	wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
 	wlan_exp_set_timebase_adjust_callback(          (void *)association_timestamp_adjust);
 
@@ -266,7 +266,9 @@ int main() {
 	// Set the default active scan channels
 	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
 
-	if(strlen(default_ssid) > 0){
+
+	// If there is a default SSID and the DIP switch allows it, initiate a probe request
+	if( (strlen(default_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
 		wlan_mac_ibss_scan_and_join(default_ssid, SCAN_TIMEOUT_SEC);
 		scan_start_timestamp = get_usec_timestamp();
 		while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
@@ -308,7 +310,7 @@ int main() {
 
 void ibss_set_association_state( bss_info* new_bss_info ){
 
-	reset_all_associations();
+	leave_ibss();
 
 	mac_param_chan = new_bss_info->chan;
 	wlan_mac_high_set_channel(mac_param_chan);
@@ -1223,15 +1225,16 @@ void reset_bss_info(){
 
 
 /**
- * @brief Reset All Associations
+ * @brief Leave the IBSS
  *
- * Remove the node from the BSS
+ * Removes the node from the BSS and resets all peer station_info
  *
  * @param  None
  * @return None
  */
-void reset_all_associations(){
-    xil_printf("Remove self from BSS\n");
+void leave_ibss(){
+
+	xil_printf("Leaving IBSS and resetting all peer station_info structs\n");
 
 	if(my_bss_info != NULL){
 

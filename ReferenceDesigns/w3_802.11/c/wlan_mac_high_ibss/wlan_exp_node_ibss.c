@@ -168,7 +168,7 @@ int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, 
 
 			status  = CMD_PARAM_SUCCESS;
 
-			reset_all_associations();
+			leave_ibss();
 
 			// Send response
 			respArgs32[respIndex++] = Xil_Htonl( status );
