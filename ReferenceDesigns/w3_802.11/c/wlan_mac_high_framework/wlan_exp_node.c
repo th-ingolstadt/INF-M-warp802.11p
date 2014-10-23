@@ -133,9 +133,9 @@ static wn_tag_parameter      node_parameters[NODE_MAX_PARAMETER];
 static wn_function_ptr_t     wlan_exp_init_callback                     = (wn_function_ptr_t)wlan_exp_null_init_callback;
 static wn_function_ptr_t     wlan_exp_process_callback                  = (wn_function_ptr_t)wlan_exp_null_process_callback;
 static wn_function_ptr_t     wlan_exp_reset_station_statistics_callback = (wn_function_ptr_t)wlan_exp_null_callback;
-static wn_function_ptr_t     wlan_exp_purge_all_data_tx_queue_callback  = (wn_function_ptr_t)wlan_exp_null_callback;
-static wn_function_ptr_t     wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
-static wn_function_ptr_t     wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
+       wn_function_ptr_t     wlan_exp_purge_all_data_tx_queue_callback  = (wn_function_ptr_t)wlan_exp_null_callback;
+       wn_function_ptr_t     wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
+       wn_function_ptr_t     wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
 static wn_function_ptr_t     wlan_exp_adjust_timebase_callback          = (wn_function_ptr_t)wlan_exp_null_callback;
 
 
