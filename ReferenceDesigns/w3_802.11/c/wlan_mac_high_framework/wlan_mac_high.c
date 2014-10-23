@@ -3013,7 +3013,7 @@ void wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* st
 
 			(frame_stats->tx_num_packets_total)++;
 
-			(frame_stats->tx_num_bytes_total) += tx_mpdu->length;
+			(frame_stats->tx_num_bytes_total) += (tx_mpdu->length);
 			(frame_stats->tx_num_packets_low) += (tx_mpdu->num_tx);
 
 			if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){

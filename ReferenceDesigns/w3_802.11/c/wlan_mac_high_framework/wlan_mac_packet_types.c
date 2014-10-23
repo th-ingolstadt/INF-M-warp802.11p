@@ -418,7 +418,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 	association_request_frame* association_req_mgmt_header;
 	association_req_mgmt_header = (association_request_frame*)(pkt_buf + sizeof(mac_header_80211));
-	association_req_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
+	association_req_mgmt_header->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_SHORT_PREAMBLE);
 
 	//This value is defined in 802.11-2012 in 8.4.1.6 and tells the AP how many beacon intervals
 	//this station intends to doze before waking. In our implementation we hardcode this to 1
@@ -433,37 +433,23 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 	txBufferPtr_u8+=(real_ssid_len+2); //Move up to next tag
 
-/*
-    //http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
-	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
-	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = RATE_BASIC | (0x0C); 	//6Mbps  (BPSK,   1/2)
-	txBufferPtr_u8[3] = (0x12);				 	//9Mbps  (BPSK,   3/4)
-	txBufferPtr_u8[4] = RATE_BASIC | (0x18); 	//12Mbps (QPSK,   1/2)
-	txBufferPtr_u8[5] = (0x24); 				//18Mbps (QPSK,   3/4)
-	txBufferPtr_u8[6] = RATE_BASIC | (0x30); 	//24Mbps (16-QAM, 1/2)
-	txBufferPtr_u8[7] = (0x48); 				//36Mbps (16-QAM, 3/4)
-	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
-	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
-	txBufferPtr_u8+=(8+2); //Move up to next tag
-*/
-
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
 	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
 	num_rates = rate_union(&txBufferPtr_u8[2], num_basic_rates, basic_rates, NUM_STA_SUPPORTED_RATES, sta_supported_rates);
+
+
 	if(num_rates <= 8){
 		txBufferPtr_u8[1] = num_rates;
-		txBufferPtr_u8+=(num_rates+2);
+		txBufferPtr_u8 += (num_rates+2);
 	} else {
 
 		txBufferPtr_u8[1] = 8;
-		txBufferPtr_u8+=(8+2);
+		txBufferPtr_u8 += (8+2);
 
 		memmove(txBufferPtr_u8+2, txBufferPtr_u8, num_rates-8);
 
 		txBufferPtr_u8[0] = 50; //Tag 50: Extended Supported Rates
-		txBufferPtr_u8[2] = num_rates-8; //Tag 50: Extended Supported Rates
+		txBufferPtr_u8[1] = num_rates-8; //Tag 50: Extended Supported Rates
 		txBufferPtr_u8+=(num_rates-8+2);
 
 //		for(i = 0; i< num_rates; i++){
