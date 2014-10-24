@@ -46,9 +46,8 @@ logfile_error   = False
 
 # Use log file given as command line argument, if present
 if(len(sys.argv) != 1):
-    cmd_arg_filename = str(sys.argv[1])
+    LOGFILE = str(sys.argv[1])
 
-    LOGFILE = cmd_arg_filename
     # Check if the string argument matchs a local file
     if not os.path.isfile(LOGFILE):
         # User specified non-existant file - punt
@@ -70,7 +69,7 @@ if logfile_error:
     print("ERROR: Logfile {0} not found".format(LOGFILE))
     sys.exit()
 else:
-    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/1E6)))
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/2**20)))
 
 #-----------------------------------------------------------------------------
 # Main script

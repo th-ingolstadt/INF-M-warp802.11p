@@ -27,64 +27,57 @@ import wlan_exp.log.util_hdf as hdf_util
 import wlan_exp.log.util_sample_data as sample_data_util
 
 #-----------------------------------------------------------------------------
-# Top level script variables
-#-----------------------------------------------------------------------------
-
-AP_LOGFILE  = 'raw_log_dual_flow_ap.hdf5'
-STA_LOGFILE = 'raw_log_dual_flow_sta.hdf5'
-
-
-#-----------------------------------------------------------------------------
 # Process filenames
 #-----------------------------------------------------------------------------
-ap_logfile_error  = False
-sta_logfile_error = False
+
+DEFAULT_AP_LOGFILE  = 'ap_two_node_two_flow_capture.hdf5'
+DEFAULT_STA_LOGFILE = 'sta_two_node_two_flow_capture.hdf5'
+
+logfile_error   = False
 
 # Use log file given as command line argument, if present
 if(len(sys.argv) != 1):
-    AP_LOGFILE  = str(sys.argv[1])
-    STA_LOGFILE = str(sys.argv[2])
+    LOGFILE_AP = str(sys.argv[1])
+    LOGFILE_STA = str(sys.argv[2])
 
-# See if the log file name is for a sample data file
-try:
-    AP_LOGFILE  = sample_data_util.get_sample_data_file(AP_LOGFILE)
-except:
-    ap_logfile_error = True
-
-# Ensure the log file actually exists - quit immediately if not
-if ((not os.path.isfile(AP_LOGFILE)) and ap_logfile_error):
-    print("ERROR: Logfile {0} not found".format(AP_LOGFILE))
-    sys.exit(0)
+    # Check if the string argument matchs a local file
+    if not (os.path.isfile(LOGFILE_AP) and os.path.isfile(LOGFILE_STA)):
+        # User specified non-existant files - punt
+        logfile_error = True
 else:
-    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(AP_LOGFILE)[1], (os.path.getsize(AP_LOGFILE)/1E6)))
+    # No command line arguments - check if default files exists locally
+    LOGFILE_AP = DEFAULT_AP_LOGFILE
+    LOGFILE_STA = DEFAULT_STA_LOGFILE
 
+    if not (os.path.isfile(LOGFILE_AP) and os.path.isfile(LOGFILE_STA)):
+        # No local files specified or found - check for matching sample data file
+        try:
+            LOGFILE_AP = sample_data_util.get_sample_data_file(DEFAULT_AP_LOGFILE)
+            LOGFILE_STA = sample_data_util.get_sample_data_file(DEFAULT_STA_LOGFILE)
+            print("Local log files not found - Using sample data files!")
 
-# See if the log file name is for a sample data file
-try:
-    STA_LOGFILE = sample_data_util.get_sample_data_file(STA_LOGFILE)
-except:
-    sta_logfile_error = True
+        except IOError as e:
+            logfile_error = True
 
-# Ensure the log file actually exists - quit immediately if not
-if ((not os.path.isfile(STA_LOGFILE)) and sta_logfile_error):
-    print("ERROR: Logfile {0} not found".format(STA_LOGFILE))
-    sys.exit(0)
+if logfile_error:
+    print("ERROR: Log files {0} and {1} not found".format(LOGFILE_AP, LOGFILE_STA))
+    sys.exit()
 else:
-    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(STA_LOGFILE)[1], (os.path.getsize(STA_LOGFILE)/1E6)))
-
+    print("Reading log files:")
+    print(  "'{0}' ({1:5.1f} MB)".format(LOGFILE_AP, (os.path.getsize(LOGFILE_AP)/2**20)))
+    print(  "'{0}' ({1:5.1f} MB)".format(LOGFILE_STA, (os.path.getsize(LOGFILE_AP)/2**20)))
 
 #-----------------------------------------------------------------------------
 # Main script
 #-----------------------------------------------------------------------------
 exit_script = False
 
-
 # Extract the log data and index from the log files
-log_data_ap       = hdf_util.hdf5_to_log_data(filename=AP_LOGFILE)
-raw_log_index_ap  = hdf_util.hdf5_to_log_index(filename=AP_LOGFILE)
+log_data_ap       = hdf_util.hdf5_to_log_data(filename=LOGFILE_AP)
+raw_log_index_ap  = hdf_util.hdf5_to_log_index(filename=LOGFILE_AP)
 
-log_data_sta      = hdf_util.hdf5_to_log_data(filename=STA_LOGFILE)
-raw_log_index_sta = hdf_util.hdf5_to_log_index(filename=STA_LOGFILE)
+log_data_sta      = hdf_util.hdf5_to_log_data(filename=LOGFILE_STA)
+raw_log_index_sta = hdf_util.hdf5_to_log_index(filename=LOGFILE_STA)
 
 # Generate indexes with just Tx and Rx events
 entries_filt  = ['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW']
