@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-WARPNet Example
+Mango 802.11 Reference Design - Experiments Framework - Log File Anonymizer
 ------------------------------------------------------------------------------
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -111,8 +111,8 @@ def log_anonymize(filename):
 
     # Generate the index of log entry locations sorted by log entry type
     #    Merge the Rx / Tx subtypes that can be processed together
-    log_index      = log_util.filter_log_index(raw_log_index, 
-                                               merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'], 
+    log_index      = log_util.filter_log_index(raw_log_index,
+                                               merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
                                                       'TX'     : ['TX', 'TX_LTG'],
                                                       'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']})
 
@@ -129,14 +129,14 @@ def log_anonymize(filename):
     # Step 1: Build a dictionary of all MAC addresses in the log, then
     #   map each addresses to a unique anonymous address
     #   Uses tuple(bytearray slice) since bytearray isn't hashable as-is
-    # 
+    #
     print("Anonmyizing file step 1 ...")
 
     start_time = time.time()
 
     #----------------------------------
     # Station Info entries
-    # 
+    #
     try:
         print("    Anonmyizing {0} STATION_INFO entries".format(len(log_index['STATION_INFO'])))
 
@@ -240,11 +240,11 @@ def log_anonymize(filename):
 
     addr_map = dict()
     for ii,addr in enumerate(all_addrs):
-        # NOTE:  Address should not have a first octet that is odd, as this 
+        # NOTE:  Address should not have a first octet that is odd, as this
         #  indicates the address is multicast.  Hence we use 0xFE as the first octet.
         #
-        # NOTE:  Due to FCS errors, the number of addresses in a log file is 
-        #  potentially large.  Therefore, we support 2^24 unique addresses with 
+        # NOTE:  Due to FCS errors, the number of addresses in a log file is
+        #  potentially large.  Therefore, we support 2^24 unique addresses with
         #  the anonymizer.
         #
         anon_addr = (0xFE, 0xFF, 0xFF, (ii//(256**2)), ((ii//256)%256), (ii%256))
