@@ -54,7 +54,7 @@
 #define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 #define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                   11
+#define  WLAN_DEFAULT_CHANNEL                   1
 #define  WLAN_DEFAULT_TX_PWR		            13
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU        100
