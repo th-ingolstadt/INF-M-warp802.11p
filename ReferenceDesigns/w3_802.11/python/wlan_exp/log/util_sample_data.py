@@ -25,8 +25,8 @@ _SAMPLE_DATA_DIR = 'sample_data'
 _URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/1.0.0/'
 
 _FILES_TO_DL = [
-    'raw_log_dual_flow_ap.hdf5',
-    'raw_log_dual_flow_sta.hdf5',
+    'ap_two_node_two_flow_capture.hdf5',
+    'sta_two_node_two_flow_capture.hdf5',
     'raw_log_one_flow.hdf5',
     'np_rx_ofdm_entries.hdf5',
 ]
@@ -118,6 +118,6 @@ def get_sample_data_file(filename):
         msg  = "ERROR: sample data file {0} not found in local sample data directory!\n".format(filename)
         msg += "  Please ensure that sample data has been downloaded.  Instructions at:\n"
         msg += "      https://warpproject.org/trac/wiki/802.11/wlan_exp/sample_data"
-        raise Exception(msg)
+        raise IOError(msg)
 
 # End def
