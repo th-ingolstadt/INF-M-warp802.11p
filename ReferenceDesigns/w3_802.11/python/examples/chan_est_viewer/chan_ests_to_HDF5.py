@@ -7,38 +7,43 @@ import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
 import wlan_exp.log.util_sample_data as sample_data_util
 
-#Use log file given as command line argument, if present
-if(len(sys.argv) == 1):
-    #No filename on command line
-    LOGFILE_IN = 'raw_log_one_flow.hdf5'
-    HDF5_FILE_OUT = 'np_rx_ofdm_entries.hdf5'
-elif(len(sys.argv) == 2):
-    LOGFILE_IN = str(sys.argv[1])
-    HDF5_FILE_OUT = 'np_rx_ofdm_entries.hdf5'
-elif(len(sys.argv) == 3):
-    LOGFILE_IN = str(sys.argv[1])
+DEFAULT_LOGFILE = 'ap_one_node_capture.hdf5'
+logfile_error   = False
+
+# Use log file given as command line argument, if present
+if(len(sys.argv) > 1):
+    LOGFILE = str(sys.argv[1])
+
+    # Check if the string argument matchs a local file
+    if not os.path.isfile(LOGFILE):
+        # User specified non-existant file - punt
+        logfile_error = True
+
+else:
+    # No command line argument - check if default file name exists locally
+    LOGFILE = DEFAULT_LOGFILE
+
+    if not os.path.isfile(LOGFILE):
+        # No local file specified or found - check for matching sample data file
+        try:
+            LOGFILE = sample_data_util.get_sample_data_file(DEFAULT_LOGFILE)
+            print("Local log file not found - Using sample data file!")
+        except IOError as e:
+            logfile_error = True
+
+if logfile_error:
+    print("ERROR: Logfile {0} not found".format(LOGFILE))
+    sys.exit()
+else:
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/2**20)))
+
+if len(sys.argv) == 3:
     HDF5_FILE_OUT = str(sys.argv[2])
+else:
+    HDF5_FILE_OUT = 'np_rx_ofdm_entries.hdf5'
 
 print("WLAN Exp Log Example: OFDM Rx Entry Exporter")
 
-#Interpret the supplied file name:
-# (1) Try filename as full path to actual file
-# (2) If (1) does not exist, try file name as sample data file
-# (3) If (1) and (2) don't exist, exit with error
-if(not os.path.isfile(LOGFILE_IN)):
-    try:
-        LOGFILE = sample_data_util.get_sample_data_file(LOGFILE_IN)
-        print("Reading sample log file '{0}' ({1:5.1f} MB)\n".format(
-            os.path.split(LOGFILE)[1],
-            os.path.getsize(LOGFILE)/1E6))
-    except:
-        print("ERROR: Logfile {0} not found".format(LOGFILE_IN))
-        sys.exit()
-else:
-    LOGFILE = LOGFILE_IN
-    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(
-        os.path.split(LOGFILE)[1],
-        os.path.getsize(LOGFILE)/1E6))
 
 #Extract the raw log data and log index from the HDF5 file
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
