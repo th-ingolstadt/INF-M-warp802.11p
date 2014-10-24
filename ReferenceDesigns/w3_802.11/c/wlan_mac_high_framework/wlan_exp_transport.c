@@ -445,7 +445,7 @@ int transport_init( unsigned int   node,
 	status = transport_config_sockets(eth_dev_num, unicast_port, bcast_port);
 
     // Initialize the tag parameters
-    transport_info[eth_dev_num].type           = TRANSPORT_TYPE_UDP; 
+    transport_info[eth_dev_num].type           = (eth_dev_num << 16) | TRANSPORT_TYPE_UDP;
     transport_info[eth_dev_num].hw_addr[0]     = (hw_addr[0]<<8)  |  hw_addr[1];
     transport_info[eth_dev_num].hw_addr[1]     = (hw_addr[2]<<24) | (hw_addr[3]<<16) | (hw_addr[4]<<8) | hw_addr[5];
     transport_info[eth_dev_num].ip_addr        = (ip_addr[0]<<24) | (ip_addr[1]<<16) | (ip_addr[2]<<8) | ip_addr[3];
