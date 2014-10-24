@@ -27,7 +27,7 @@ _URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/1.0.0/'
 _FILES_TO_DL = [
     'ap_two_node_two_flow_capture.hdf5',
     'sta_two_node_two_flow_capture.hdf5',
-    'raw_log_one_flow.hdf5',
+    'ap_one_node_capture.hdf5',
     'np_rx_ofdm_entries.hdf5',
 ]
 
