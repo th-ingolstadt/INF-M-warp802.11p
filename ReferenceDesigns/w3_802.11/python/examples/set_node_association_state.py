@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-WARPNet Example
+Mango 802.11 Reference Design - Experiments Framework - Set Association State
 ------------------------------------------------------------------------------
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -23,7 +23,7 @@ Required Script Changes:
   - Set ADDR_FILTER_LIST to the addresses of nodes that are allowed to associate wirelessly
 
 Description:
-  This script initializes two WARP v3 nodes, one AP and one STA. It sets the 
+  This script initializes two WARP v3 nodes, one AP and one STA. It sets the
   AP's authentication address address filter to block all wireless associations.
   The script then updates the associaiton state of the AP and STA to establish
   their association without any wireless handshake. Finally the script drops to an
@@ -89,14 +89,14 @@ else:
 #-----------------------------------------------------------------------------
 print("\nConfiguring Network\n")
 
-# Set the AP address filter 
+# Set the AP address filter
 n_ap.set_authentication_address_filter(ADDR_FILTER_LIST)
 
 # Configure the network of nodes
 for node in nodes:
     # Set all nodes to be on the same channel
     node.set_channel(CHANNEL)
-    
+
     # Remove any current association information
     node.disassociate_all()
 

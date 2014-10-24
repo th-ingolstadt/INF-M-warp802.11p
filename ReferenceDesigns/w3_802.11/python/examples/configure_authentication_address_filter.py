@@ -7,7 +7,7 @@ License:   Copyright 2014, Mango Communications. All rights reserved.
 ------------------------------------------------------------------------------
 This script uses the 802.11 ref design and WARPnet to create a closed network
 between the AP and the specified devices.  Than allows the user to explore this
-network.  
+network.
 
 Hardware Setup:
   - Requires one WARP v3 node configured as AP using 802.11 Reference Design v0.95 or later
@@ -39,7 +39,7 @@ import wlan_exp.device as wlan_device
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment setup
 NETWORK           = '10.0.0.0'
-NODE_SERIAL_LIST  = ['W3-a-00001']
+NODE_SERIAL_LIST  = ['W3-a-00183']
 CHANNEL           = 1
 AP_SSID           = "WARP Device Example"
 
@@ -96,7 +96,7 @@ n_ap.set_authentication_address_filter((0x000000000000, 0xFFFFFFFFFFFF))
 for node in nodes:
     # Set all nodes to be on the same channel
     node.set_channel(CHANNEL)
-    
+
     # Remove any current association information
     node.disassociate_all()
 
@@ -116,7 +116,7 @@ tmp_devices   = list(devices)
 num_joined    = 0
 
 while (total_devices != num_joined):
-    
+
     for device in tmp_devices:
         if n_ap.is_associated(device):
             print("    {0} joined".format(device.name))
