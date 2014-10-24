@@ -373,7 +373,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 	} else {
 		//Received checksum was bad
-
 		//Increment red LEDs
 		red_led_index = (red_led_index + 1) % NUM_LEDS;
 		userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
