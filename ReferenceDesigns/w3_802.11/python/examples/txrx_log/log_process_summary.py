@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-WARPNet Example
+Mango 802.11 Reference Design - Experiments Framework - Log File Summary
 ------------------------------------------------------------------------------
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -41,7 +41,7 @@ from wlan_exp.log.entry_types import log_entry_types
 # Process command line arguments
 #-----------------------------------------------------------------------------
 
-LOGFILE       = 'raw_log_dual_flow_ap.hdf5'
+LOGFILE       = 'ap_two_node_two_flow_capture.hdf5'
 logfile_error = False
 
 # Use log file given as command line argument, if present
@@ -61,9 +61,8 @@ if ((not os.path.isfile(LOGFILE)) and logfile_error):
 else:
     print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(LOGFILE)[1], (os.path.getsize(LOGFILE)/1E6)))
 
-
 #-----------------------------------------------------------------------------
-# Main script 
+# Main script
 #-----------------------------------------------------------------------------
 
 # Get the log_data from the file
@@ -76,9 +75,11 @@ raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 log_util.print_log_index_summary(raw_log_index, "Raw Log Index Contents:")
 
 # Filter log index to include all Rx entries and all Tx entries
-log_index = log_util.filter_log_index(raw_log_index, 
+# Merge LTG events into the non-LTG log entry types, so we can
+#  count all Tx/Rx events together
+log_index = log_util.filter_log_index(raw_log_index,
                                       include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX', 'EXP_INFO'],
-                                      merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'], 
+                                      merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
                                              'TX'     : ['TX', 'TX_LTG']})
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
@@ -90,15 +91,12 @@ log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 #    Refer to wlan_exp_log.log_entries.py for the definition of each record array datatype
 log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
-
 exp_info = log_np['EXP_INFO']
 
 for info in exp_info:
     print("Timestamp = {0}".format(info['timestamp']))
     print("Info Type = {0}".format(info['info_type']))
     print("Length    = {0}".format(info['length']))
-
-
 
 ###############################################################################
 # Example 0: Print node info / Time info
@@ -183,9 +181,9 @@ if('TX' in log_np.keys()):
     for k in sorted(tx_counts.keys()):
         # Use the string version of the MAC address as the key for readability
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-            wlan_exp_util.mac_addr_to_str(k), 
-            tx_counts[k][0], 
-            tx_counts[k][1], 
+            wlan_exp_util.mac_addr_to_str(k),
+            tx_counts[k][0],
+            tx_counts[k][1],
             wlan_exp_util.mac_addr_desc(k)))
 
 #################################################################################################
@@ -231,9 +229,9 @@ if('RX_OFDM' in log_np.keys()):
     for k in sorted(rx_counts.keys()):
         # Use the string version of the MAC address as the key for readability
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-            wlan_exp_util.mac_addr_to_str(k), 
-            rx_counts[k][0], 
-            rx_counts[k][1], 
+            wlan_exp_util.mac_addr_to_str(k),
+            rx_counts[k][0],
+            rx_counts[k][1],
             wlan_exp_util.mac_addr_desc(k)))
 
 print('')
