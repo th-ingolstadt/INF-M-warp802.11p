@@ -28,21 +28,21 @@ This module maintains a dictionary which contains a reference to each
 known log entry type. This dictionary is stored in the variable
 ``wlan_exp_log_entry_types``. The :class:`WlanExpLogEntryType` constructor
 automatically adds each log entry type definition to this dictionary. Users
-may access the dictionary to view currently defined log entry types. But 
+may access the dictionary to view currently defined log entry types. But
 user code should not modify the dictionary contents directly.
 
 Custom Log Entry Types
 ----------------------
-The :mod:`log_entries` module includes definitions for the log entry types 
+The :mod:`log_entries` module includes definitions for the log entry types
 implemented in the current 802.11 Reference Design C code.
 
-Log entry types defined here must match the corresponding entry definitions in 
-the node C code.  Custom entries can be defined and added to the global 
+Log entry types defined here must match the corresponding entry definitions in
+the node C code.  Custom entries can be defined and added to the global
 dictionary by user scripts.
 
-Log entry type definitions are instances of the :class:`WlanExpLogEntryType` 
-class. The :class:`WlanExpLogEntryType` constructor requires two arguments: 
-``name`` and ``entry_type_id``.  Both the name and entry type ID **must** be 
+Log entry type definitions are instances of the :class:`WlanExpLogEntryType`
+class. The :class:`WlanExpLogEntryType` constructor requires two arguments:
+``name`` and ``entry_type_id``.  Both the name and entry type ID **must** be
 unique relative to the existing entry types defined in :mod:`log_entries`.
 
 To define a custom log entry type::
@@ -438,11 +438,11 @@ class WlanExpLogEntryType(object):
         length     = 1
         ret_val    = ""
         entry_size = calcsize(self.fields_fmt_struct)
-        
+
         # Convert entries to a list if it is not already one
         if type(entries) is not list:
             entries = [entries]
-        
+
         # Pack each of the entries into a single data buffer
         for entry in entries:
             fields     = []
@@ -465,14 +465,14 @@ class WlanExpLogEntryType(object):
                 print(used_field)
                 print(tmp_values)
 
-            ret_val += pack(self.fields_fmt_struct, *tmp_values)            
+            ret_val += pack(self.fields_fmt_struct, *tmp_values)
 
         if (entry_size * length) != len(ret_val):
             msg  = "WARNING: Sizes do not match.\n"
             msg += "    Expected  {0} bytes".format(entry_size * length)
             msg += "    Buffer is {0} bytes".format(len(ret_val))
             print(msg)
-        
+
         return ret_val
 
 
@@ -637,22 +637,21 @@ def np_array_add_fields(np_arr_orig=None, mac_addr=False, ltg=False, docs_only=F
         addr_conv_arr = np.uint64(2)**np.array(range(40, -1, -8), dtype='uint64')
 
         # Compute values for address-as-int fields using numpy's dot-product routine
-        #     MAC header offsets here select the 3 6-byte address fields
-        #     Checks to see how long the packet is to populate each address field (for packets like ACKs)
-        addr1_filt = np_arr_out['mac_payload_len'] >= 10;
-        np_arr_out[addr1_filt]['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[addr1_filt,  4:10]))
+        #  MAC header offsets here select the 3 6-byte address fields and 1 3-byte sequence number
+        #  Each field is conditioned on the MAC payload length exceeding the bytes needed to compute the field
+        #   This check handles the case of logging code being changed to record short/no payloads or
+        #    for short packet Tx/Rx, such as ACKs, which do not contain all 3 address and sequence number fields
 
-        addr2_filt = np_arr_out['mac_payload_len'] >= 16;
-        np_arr_out[addr2_filt]['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[addr2_filt, 10:16]))
+        arr_filt = np_arr_out['mac_payload_len'] >= 10
+        np_arr_out['addr1'][arr_filt] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[arr_filt,  4:10]))
 
-        addr3_filt = np_arr_out['mac_payload_len'] >= 22;
-        np_arr_out[addr3_filt]['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[addr3_filt, 16:22]))
+        arr_filt = np_arr_out['mac_payload_len'] >= 16
+        np_arr_out['addr2'][arr_filt] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[arr_filt, 10:16]))
 
-        # Original way; does not check packet length
-        # np_arr_out['addr1'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:,  4:10]))
-        # np_arr_out['addr2'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 10:16]))
-        # np_arr_out['addr3'] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[:, 16:22]))
+        arr_filt = np_arr_out['mac_payload_len'] >= 22
+        np_arr_out['addr3'][arr_filt] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[arr_filt, 16:22]))
 
+        arr_filt = np_arr_out['mac_payload_len'] >= 24
         np_arr_out['mac_seq'] = np.dot(mac_hdrs[:, 22:24], [1, 256]) // 16
 
     # Populate the LTG fields
