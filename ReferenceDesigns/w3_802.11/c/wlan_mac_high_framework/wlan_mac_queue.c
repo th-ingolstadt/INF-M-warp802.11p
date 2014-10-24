@@ -60,7 +60,7 @@ void queue_init(u8 dram_present){
 		xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
 		xil_printf("DRAM is required for the wireless transmission queue.  Halting.\n");
 
-		wlan_mac_high_set_node_error_status(1);
+		wlan_mac_high_set_node_error_status(2);
 		wlan_mac_high_blink_hex_display(0, 250000);
 	}
 
