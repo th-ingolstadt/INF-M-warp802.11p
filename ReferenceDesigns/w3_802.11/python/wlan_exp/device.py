@@ -43,12 +43,13 @@ class WlanDevice(object):
     """
     device_type           = None
     name                  = None
+    description           = None
     
     wlan_mac_address      = None
     
     def __init__(self, mac_address, name=None):
-        self.name             = name
-        
+        self.name = name
+                
         if mac_address is not None:        
             if type(mac_address) in [int, long]:
                 self.wlan_mac_address = mac_address
@@ -67,11 +68,31 @@ class WlanDevice(object):
         else:
             raise TypeError("MAC address is not valid")
 
+        self.description  = self.__repr__()
+
 
     #-------------------------------------------------------------------------
     # WLAN Commands for the Device
     #-------------------------------------------------------------------------
 
+
+    # -------------------------------------------------------------------------
+    # Misc methods for the Device
+    # -------------------------------------------------------------------------
+    def __repr__(self):
+        """Return device description"""
+        msg = ""
+        
+        if self.wlan_mac_address is not None:
+            from wlan_exp.util import mac_addr_to_str
+            msg += "WLAN Device '{0}'".format(mac_addr_to_str(self.wlan_mac_address))
+            
+            if self.name is not None:
+                msg += " ({0})".format(self.name)
+        else:
+            msg += "Node not initialized."
+        
+        return msg
 
 # End Class WlanDevice
 

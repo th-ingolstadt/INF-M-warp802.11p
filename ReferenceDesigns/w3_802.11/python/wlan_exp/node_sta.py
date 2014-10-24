@@ -51,7 +51,7 @@ class WlanExpNodeSta(node.WlanExpNode):
         super(WlanExpNodeSta, self).configure_node(jumbo_frame_support)
         
         # Set description
-        self.description = str("STA " + self.description)
+        self.description = self.__repr__()
 
 
     #-------------------------------------------------------------------------
@@ -188,10 +188,25 @@ class WlanExpNodeSta(node.WlanExpNode):
     # Misc methods for the Node
     #-------------------------------------------------------------------------
     def __str__(self):
-        """Pretty print WlanExpNodeAp object"""
-        msg = super(WlanExpNodeSta, self).__str__()
-        msg = "WLAN Exp STA: \n" + msg
+        """Pretty print WlanExpNodeSta object"""
+        msg = ""
+
+        if self.serial_number is not None:
+            from wlan_exp.util import mac_addr_to_str
+            msg += "WLAN EXP STA Node:\n"
+            msg += "    WLAN MAC addr :  {0}\n".format(mac_addr_to_str(self.wlan_mac_address))
+            msg += "    Node ID       :  {0}\n".format(self.node_id)
+            msg += "    Serial #      :  {0}\n".format(self.sn_str)
+            msg += "    HW version    :  WARP v{0}\n".format(self.hw_ver)
+        else:
+            msg += "Node not initialized."
+
+        if self.transport is not None:
+            msg += "WLAN EXP "
+            msg += str(self.transport)
+
         return msg
+
 
     def __repr__(self):
         """Return node name and description"""

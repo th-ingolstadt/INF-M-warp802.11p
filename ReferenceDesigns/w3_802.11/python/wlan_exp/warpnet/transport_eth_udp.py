@@ -61,6 +61,7 @@ class TransportEthUdp(tp.Transport):
     """
     timeout         = None
     transport_type  = None
+    node_eth_device = None
     sock            = None
     status          = None
     max_payload     = None
@@ -239,7 +240,8 @@ class TransportEthUdp(tp.Transport):
         """Extract values from the parameters"""
         if   (identifier == tp.TRANSPORT_TYPE):
             if (length == 1):
-                self.transport_type = values[0]
+                self.transport_type  = (values[0] & 0xFFFF)
+                self.node_eth_device = node_eth_device_to_str((values[0] >> 16) & 0xFFFF)
             else:
                 raise wn_ex.ParameterError("TRANSPORT_TYPE", "Incorrect length")
                 
@@ -290,7 +292,7 @@ class TransportEthUdp(tp.Transport):
         """Pretty print the Transport parameters"""
         msg = ""
         if self.mac_address is not None:
-            msg += "Transport {0}:\n".format(self.transport_type)
+            msg += "{0} Transport ({1}):\n".format(self.node_eth_device, transport_type_to_str(self.transport_type))
             msg += "    IP address    :  {0}\n".format(self.ip_address)
             msg += "    MAC address   :  {0}\n".format(self.mac_addr_to_str(self.mac_address)) 
             msg += "    Max payload   :  {0}\n".format(self.max_payload)
@@ -357,8 +359,22 @@ def mac_addr_to_str(mac_address):
 # End def
 
 
+def transport_type_to_str(transport_type):
+    if (transport_type == tp.TRANSPORT_TYPE_UDP):
+        return "UDP"
+    else:
+        return "Type Undefined"
+    
+# End def
 
 
+def node_eth_device_to_str(eth_device):
+    if (eth_device == 0):
+        return 'ETH A'
+    elif (eth_device == 1):
+        return 'ETH B'
+    else:
+        return 'ETH Undefined'
 
-
+# End def
 

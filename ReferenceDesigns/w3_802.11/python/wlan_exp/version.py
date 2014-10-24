@@ -96,7 +96,9 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
     The ver_str attribute takes precedence over the major, minor, revsion
     attributes.
     """
-    status = WLAN_EXP_VERSION_SAME
+    status    = WLAN_EXP_VERSION_SAME
+    print_msg = False
+    raise_ex  = False
     
     if not ver_str is None:
         try:
@@ -121,10 +123,10 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
         msg  = "WLAN Exp Version Mismatch: \n"
         msg += "    Caller is using wlan_exp package version: {0}\n".format(wlan_exp_ver_str(major, minor, revision))
     else:
-        msg  = "\nWLAN Exp Version Mismatch: \n"
+        msg  = "WLAN Exp Version Mismatch: \n"
         msg += "    " + str(caller_desc)
         
-    msg += "    Current wlan_exp package version: {0} ({1})".format(wlan_exp_ver_str(), __file__)
+    msg += "    Current wlan_exp package version: {0}".format(wlan_exp_ver_str())
 
 
     if (major == WLAN_EXP_MAJOR):
@@ -135,23 +137,39 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
                     # Do nothing; Python must be the same or newer than C code                    
                     # pass
                     # TODO:  Need to move back to this after 1.0 release
-                    print("WARNING: " + msg + " (newer)")
-                    status = WLAN_EXP_VERSION_NEWER
+                    msg      += "WARNING: " + msg + " (newer)\n"
+                    status    = WLAN_EXP_VERSION_NEWER
+                    print_msg = True
                 else:
-                    print("WARNING: " + msg + " (older)")
-                    status = WLAN_EXP_VERSION_OLDER
+                    msg      += "WARNING: " + msg + " (older)\n"
+                    status    = WLAN_EXP_VERSION_OLDER
+                    print_msg = True
         else:
             if (minor < WLAN_EXP_MINOR):
-                print("WARNING: " + msg + " (newer)")
-                status = WLAN_EXP_VERSION_NEWER
+                msg      += "WARNING: " + msg + " (newer)\n"
+                status    = WLAN_EXP_VERSION_NEWER
+                print_msg = True
             else:
-                raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
+                msg      += "ERROR: " + msg + " (older)\n"
+                status    = WLAN_EXP_VERSION_OLDER
+                raise_ex  = True
     else:
         if (major < WLAN_EXP_MAJOR):
-            print("WARNING: " + msg + " (newer)")
-            status = WLAN_EXP_VERSION_NEWER
+            msg      += "WARNING: " + msg + " (newer)\n"
+            status    = WLAN_EXP_VERSION_NEWER
+            print_msg = True
         else:
-            raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
+            msg      += "ERROR: " + msg + " (older)\n"
+            status    = WLAN_EXP_VERSION_OLDER
+            raise_ex  = True
+
+    msg += "        ({0})\n".format(__file__)
+
+    if print_msg:
+        print(msg)
+
+    if raise_ex:
+        raise wn_ex.VersionError(msg)
     
     return status
     

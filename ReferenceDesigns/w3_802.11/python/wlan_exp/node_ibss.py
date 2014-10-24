@@ -51,7 +51,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         super(WlanExpNodeIBSS, self).configure_node(jumbo_frame_support)
         
         # Set description
-        self.description = str("IBSS " + self.description)
+        self.description = self.__repr__()
 
 
     #-------------------------------------------------------------------------
@@ -83,8 +83,24 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         Attributes:
             device_list -- List of 802.11 devices to remove from the association table (ignored)
         """
-        print("Error:  disassociate(device_list) is not supported for IBSS nodes.  Please use disassociate_all().")
+        print("ERROR:  disassociate(device_list) is not supported for IBSS nodes.  Please use disassociate_all().")
         raise NotImplementedError
+
+
+    def set_channel(self, channel):
+        """Sets the channel of the node.
+        
+        Args:
+            channel (int, dict in util.wlan_channel array): Channel to set on the node
+                (either the channel number as an it or an entry in the wlan_channel array)
+        
+        Returns:
+            channel (dict):  Channel dictionary (see util.wlan_channel) that was set on the node.        
+        """
+        msg  = "WARNING:  set_channel(channel) is not supported for IBSS nodes.\n"
+        msg += "    Please update the BSS info and have the IBSS node join the new BSS."
+        print(msg)
+        return self.get_channel()
 
 
     def stats_get_txrx(self, device_list=None, return_zeroed_stats_if_none=True):
@@ -204,10 +220,25 @@ class WlanExpNodeIBSS(node.WlanExpNode):
     # Misc methods for the Node
     #-------------------------------------------------------------------------
     def __str__(self):
-        """Pretty print WlanExpNodeAp object"""
-        msg = super(WlanExpNodeIBSS, self).__str__()
-        msg = "WLAN Exp IBSS: \n" + msg
+        """Pretty print WlanExpNodeIBSS object"""
+        msg = ""
+
+        if self.serial_number is not None:
+            from wlan_exp.util import mac_addr_to_str
+            msg += "WLAN EXP IBSS Node:\n"
+            msg += "    WLAN MAC addr :  {0}\n".format(mac_addr_to_str(self.wlan_mac_address))
+            msg += "    Node ID       :  {0}\n".format(self.node_id)
+            msg += "    Serial #      :  {0}\n".format(self.sn_str)
+            msg += "    HW version    :  WARP v{0}\n".format(self.hw_ver)
+        else:
+            msg += "Node not initialized."
+
+        if self.transport is not None:
+            msg += "WLAN EXP "
+            msg += str(self.transport)
+
         return msg
+
 
     def __repr__(self):
         """Return node name and description"""

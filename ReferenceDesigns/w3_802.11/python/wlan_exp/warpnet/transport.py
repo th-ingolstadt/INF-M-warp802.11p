@@ -50,6 +50,9 @@ TRANSPORT_NO_RESP       = 0
 TRANSPORT_WN_RESP       = 1
 TRANSPORT_WN_BUFFER     = 2
 
+# WARPNet Transport Types
+TRANSPORT_TYPE_UDP      = 0
+
 
 class Transport(object):
     """Base class for WARPNet transports.

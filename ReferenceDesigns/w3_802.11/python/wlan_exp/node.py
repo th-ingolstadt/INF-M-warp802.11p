@@ -131,7 +131,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         super(WlanExpNode, self).configure_node(jumbo_frame_support)
         
         # Set description
-        self.description = str("WLAN EXP " + self.description)
+        self.description = self.__repr__()
 
 
     #-------------------------------------------------------------------------
@@ -355,7 +355,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             host_id = self.network_config.get_param('host_id')
         
         self.send_cmd(cmds.LogStreamEntries(1, host_id, ip_address, port))
-        msg  = "{0}:".format(self.name) 
+        msg  = "{0}:".format(self.description) 
         msg += "Streaming Log Entries to {0} ({1}) with host ID {2}".format(ip_address, port, host_id)
         print(msg)
 
@@ -363,7 +363,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def log_disable_stream(self):
         """Configure the node to disable log entries stream."""
         self.send_cmd(cmds.LogStreamEntries(0, 0, 0, 0))
-        msg  = "{0}:".format(self.name) 
+        msg  = "{0}:".format(self.description) 
         msg += "Disable log entry stream."
         print(msg)
 
@@ -575,7 +575,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             msg (str):    Message to print as part of LTG Error
         """
         if (status == cmds.CMD_PARAM_LTG_ERROR):
-            print("LTG ERROR: Could not {0} on {1}".format(msg, self.name))
+            print("LTG ERROR: Could not {0} on '{1}'".format(msg, self.description))
 
 
     #--------------------------------------------
@@ -603,7 +603,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                             bss_info=True)
 
         if (status == cmds.CMD_PARAM_LTG_ERROR):
-            print("LTG ERROR: Could not stop all LTGs on {0}".format(self.name))
+            print("LTG ERROR: Could not stop all LTGs on '{0}'".format(self.description))
     
 
     def reset(self, log=False, txrx_stats=False, ltg=False, queue_data=False, 
@@ -721,10 +721,11 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Sets the channel of the node.
         
         Args:
-            channel (int, dictionary in util.wlan_channel array): Channel to set on the node
+            channel (int, dict in util.wlan_channel array): Channel to set on the node
+                (either the channel number as an it or an entry in the wlan_channel array)
         
         Returns:
-            channel (dictionary):  Channel dictionary (see util.wlan_channel) that was set on the node.        
+            channel (dict):  Channel dictionary (see util.wlan_channel) that was set on the node.        
         """
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
 
@@ -733,7 +734,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Gets the current channel of the node.
         
         Returns:
-            channel (dictionary):  Channel dictionary (see util.wlan_channel) of the current channel on the node.        
+            channel (dict):  Channel dictionary (see util.wlan_channel) of the current channel on the node.        
         """
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_READ))
 
@@ -742,10 +743,10 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Sets the unicast transmit rate of the node.
         
         Args:
-            rate (dictionary from util.wlan_rates):                    Rate dictionary 
-                (Entry from the wlan_rates list in wlan_exp.util)
+            rate (dict from util.wlan_rates):                    Rate dictionary 
+                (Dictionary from the wlan_rates list in wlan_exp.util)
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
-                for which to set the Tx unicast rate to 'rate'
+                or single 802.11 device for which to set the Tx unicast rate to 'rate'
             curr_assoc (bool):  All current assocations will have Tx unicast rate set to 'rate'
             new_assoc  (bool):  All new associations will have Tx unicast rate set to 'rate'
         
@@ -757,17 +758,18 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         
 
     def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast transmit rate of the node.
+        """Gets the unicast transmit rate of the node for the given device(s).
 
-        Attributes:
-            device_list -- List of 802.11 devices for which to get the Tx unicast rate
-            new_assoc   -- Get the Tx unicast rate for all new associations 
+        Args:
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                or single 802.11 device for which to get the Tx unicast rate
+            new_assoc  (bool):  Get the Tx unicast rate for all new associations 
         
         Returns:
-            A list of entries from the wlan_rates list in wlan_exp.util
-
-        If both new_assoc and device_list are specified, the return list will always have 
-        the Tx unicast rate for all new associations as the first item in the list.
+            rates (List of dict - Entries from the wlan_rates wlan_exp.util):  List of Tx unicast rate for the given devices.
+        
+        .. note:: If both new_assoc and device_list are specified, the return list will always have 
+            the Tx unicast rate for all new associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', device_list, new_assoc)
 
@@ -775,8 +777,9 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def set_tx_rate_multicast_data(self, rate):
         """Sets the multicast transmit rate for a node.
 
-        Attributes:
-            rate      -- Entry from the wlan_rates list in wlan_exp.util 
+        Args:
+            rate (dict from util.wlan_rates):  Rate dictionary 
+                (Dictionary from the wlan_rates list in wlan_exp.util)
         """
         return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST, rate))
 
@@ -785,7 +788,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Gets the current multicast transmit rate for a node.
 
         Returns:
-            An entry from the wlan_rates list in wlan_exp.util
+            rate (Dict - Entry from the wlan_rates wlan_exp.util):  Tx multicast rate for the node
         """
         return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST))
 
@@ -793,15 +796,17 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast transmit antenna mode of the node.
         
-        One of device_list, curr_assoc or new_assoc must be set.  The device_list
-        and curr_assoc are mutually exclusive with curr_assoc having precedence
-        (ie if curr_assoc is True, then device_list will be ignored).
-
-        Attributes:
-            ant_mode    -- Entry from the wlan_tx_ant_mode list in wlan_exp.util
-            device_list -- List of 802.11 devices for which to set the Tx unicast rate to 'rate'
-            curr_assoc  -- All current assocations will have Tx unicast rate set to 'rate'
-            new_assoc   -- All new associations will have Tx unicast rate set to 'rate'
+        Args:
+            ant_mode (dict from util.wlan_tx_ant_mode):          Antenna dictionary 
+                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                or single 802.11 device for which to set the Tx unicast antenna mode to 'ant_mode'
+            curr_assoc (bool):  All current assocations will have Tx unicast antenna mode set to 'ant_mode'
+            new_assoc  (bool):  All new associations will have Tx unicast antenna mode set to 'ant_mode'
+        
+        .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
+            and curr_assoc are mutually exclusive with curr_assoc having precedence
+            (ie if curr_assoc is True, then device_list will be ignored).
         """
         self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, ant_mode, 'antenna mode', 
                                         device_list, curr_assoc, new_assoc)
@@ -810,22 +815,29 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def get_tx_ant_mode_unicast(self, device_list=None, new_assoc=False):
         """Gets the unicast transmit antenna mode of the node.
 
-        Attributes:
-            device_list -- List of 802.11 devices for which to get the Tx unicast rate
-            new_assoc   -- Get the Tx unicast rate for all new associations 
+        Args:
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                or single 802.11 device for which to get the Tx unicast antenna mode
+            new_assoc  (bool):  Get the Tx unicast antenna mode for all new associations 
         
         Returns:
-            A list of antenna modes
-
-        If both new_assoc and device_list are specified, the return list will always have 
-        the Tx unicast antenna mode for all new associations as the first item in the list.
+            ant_modes (List of dict - Entries from the wlan_tx_ant_mode wlan_exp.util):  List of Tx unicast antenna modes for the given devices.
+        
+        .. note:: If both new_assoc and device_list are specified, the return list will always have 
+            the Tx unicast rate for all new associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', device_list, new_assoc)
 
 
     def set_tx_ant_mode_multicast(self, ant_mode):
-        """Sets the multicast transmit antenna mode for a node and returns the 
-        antenna mode that was set.
+        """Sets the multicast transmit antenna mode for a node and returns the antenna mode that was set.
+
+        Args:
+            ant_mode (dict from util.wlan_tx_ant_mode):          Antenna dictionary 
+                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+
+        Returns:
+            ant_modes (list of dict):  A list of antenna modes: [<multicast management tx antenna mode>, <multicast data tx antenna mode>]        
         """
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST, ant_mode))
 
@@ -834,27 +846,43 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Gets the current multicast transmit antenna mode for a node.
         
         Returns:
-          A list of antenna modes:  [<multicast management tx antenna mode>,
-                                     <multicast data tx antenna mode>]
-        
+            ant_modes (list of dict):  A list of antenna modes: [<multicast management tx antenna mode>, <multicast data tx antenna mode>]        
         """
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST))
 
 
     def set_rx_ant_mode(self, ant_mode):
-        """Sets the receive antenna mode for a node and returns the 
-        antenna mode that was set.
+        """Sets the receive antenna mode for a node and returns the antenna mode that was set.
+
+        Args:
+            ant_mode (dict from util.wlan_rx_ant_mode):          Antenna dictionary 
+                (Dictionary from the wlan_rx_ant_mode list in wlan_exp.util)
+
+        Returns:
+            ant_mode (dict):  Rx antenna mode dictionary
         """
         return self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_WRITE, ant_mode))
 
 
     def get_rx_ant_mode(self):
-        """Gets the current receive antenna mode for a node."""
+        """Gets the current receive antenna mode for a node.
+        
+        Returns:
+            ant_mode (dict):  Rx antenna mode dictionary
+        """
         return self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_READ))
 
 
     def set_tx_power(self, power):
-        """Sets the transmit power of the node and returns the power that was set."""
+        """Sets the transmit power of the node and returns the power that was set.
+        
+        Args:
+            power (int):  Transmit power.  Must have a value between 19 and -12 (dBm)
+
+        Returns
+
+        
+        """
         return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, power))
 
 
@@ -1389,7 +1417,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                                                self.wlan_exp_ver_minor, 
                                                self.wlan_exp_ver_revision)
 
-        caller_desc = "During node initialization {0} returned version {1}".format(self.name, ver_str)
+        caller_desc = "During initialization '{0}' returned version {1}".format(self.description, ver_str)
         
         status = version.wlan_exp_ver_check(major=self.wlan_exp_ver_major,
                                             minor=self.wlan_exp_ver_minor,

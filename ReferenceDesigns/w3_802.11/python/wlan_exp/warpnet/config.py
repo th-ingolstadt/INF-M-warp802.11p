@@ -193,7 +193,7 @@ class NodesConfiguration(object):
     are not specified in the INI, they will get auto-populated defaults:
     
         node_id      - Monotonic counter starting at 0
-        node_name    - "Node {0}".format(node_id)
+        node_name    - None (unless specified by the user)
         ip_address   - wn_config.ini get_param('network', 'host_address') for 
                        the first three octets and "node_id + 1" for the last 
                        octet
@@ -464,7 +464,7 @@ class NodesConfiguration(object):
     def init_shadow_config(self, ip_addr_base, unicast_port, bcast_port):
         """Initialize the 'default' section of the shadow_config."""
         self.shadow_config['default'] = {'node_id'     : 'auto',
-                                         'node_name'   : 'auto',
+                                         'node_name'   : None,
                                          'ip_address'  : ip_addr_base,
                                          'unicast_port': unicast_port,
                                          'bcast_port'  : bcast_port, 
@@ -609,7 +609,9 @@ class NodesConfiguration(object):
         if ('node_name' in self.config.options(section)):
             return self._get_param_hack(section, 'node_name')
         else:
-            return "Node {0}".format(node_id)
+            # We are not going to give the node a name unless explicitly told to do so
+            #   return "Node {0}".format(node_id)
+            return None
 
 
     def _get_ip_address(self, section, node_id):

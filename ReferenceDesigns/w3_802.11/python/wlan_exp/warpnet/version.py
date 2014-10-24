@@ -55,6 +55,12 @@ version += "{0:d} ".format(WN_REVISION)
 version += "{0:s} ".format(WN_XTRA)
 
 
+# Status defines for wn_ver_check
+WN_VERSION_SAME   = 0
+WN_VERSION_NEWER  = 1
+WN_VERSION_OLDER  = -1
+
+
 # -----------------------------------------------------------------------------
 # WARPNet Version Utilities
 # -----------------------------------------------------------------------------
@@ -94,6 +100,10 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None,
     The ver_str attribute takes precedence over the major, minor, revsion
     attributes.
     """
+    status    = WN_VERSION_SAME
+    print_msg = False
+    raise_ex  = False
+    
     if ver_str is not None:
         try:
             temp = ver_str.split(" ")
@@ -115,13 +125,12 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None,
     # Check the provided version vs the current version
     if (caller_desc is None):
         msg  = "WARPNet Version Mismatch: \n"
+        msg += "    Caller is using wlan_exp package version: {0}\n".format(wn_ver_str(major, minor, revision))
     else:
-        msg  = str(caller_desc)
-        msg += "\nWARPNet Version Mismatch: \n"
+        msg  = "WARPNet Version Mismatch: \n"
+        msg += "    " + str(caller_desc)
         
-    msg += "    Caller is using warpnet package version: {0}\n".format(wn_ver_str(major, minor, revision))
-    msg += "    However, trying to use warpnet package version: {0} ({1})".format(wn_ver_str(), __file__)
-
+    msg += "    Current warpnet package version: {0}".format(wn_ver_str())
 
     if (major == WN_MAJOR):
         if (minor == WN_MINOR):
@@ -131,19 +140,37 @@ def wn_ver_check(ver_str=None, major=None, minor=None, revision=None,
                     # Do nothing; Python must be the same or newer than C code
                     pass
                 else:
-                    print("WARNING: " + msg + " (older)")
+                    msg      += "WARNING: " + msg + " (older)\n" 
+                    status    = WN_VERSION_OLDER
+                    print_msg = True
         else:
             if (minor < WN_MINOR):
-                print("WARNING: " + msg + " (newer)")
+                msg      += "WARNING: " + msg + " (newer)\n"
+                status    = WN_VERSION_NEWER
+                print_msg = True
             else:
-                raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
+                msg      += "ERROR: " + msg + " (older)\n" 
+                status    = WN_VERSION_OLDER
+                raise_ex  = True
     else:
         if (major < WN_MAJOR):
-            print("WARNING: " + msg + " (newer)")
+            msg      += "WARNING: " + msg + " (newer)\n"
+            status    = WN_VERSION_NEWER
+            print_msg = True
         else:
-            raise wn_ex.VersionError("\nERROR: " + msg + " (older)")
-    
-    return True
+            msg      += "ERROR: " + msg + " (older)\n"
+            status    = WN_VERSION_OLDER
+            raise_ex  = True
+
+    msg += "        ({0})\n".format(__file__)
+
+    if print_msg:
+        print(msg)
+
+    if raise_ex:
+        raise wn_ex.VersionError(msg)
+
+    return status
     
 # End of wn_ver_check()
 

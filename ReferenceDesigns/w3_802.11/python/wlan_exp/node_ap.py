@@ -51,7 +51,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         super(WlanExpNodeAp, self).configure_node(jumbo_frame_support)
         
         # Set description
-        self.description = str("AP  " + self.description)
+        self.description = self.__repr__()
 
 
     #-------------------------------------------------------------------------
@@ -178,7 +178,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         import wlan_exp.node_ibss as node_ibss
         
         if isinstance(device, node_ibss.WlanExpNodeIBSS):
-            print("WARNING:  Could not add association for IBSS node '{0}'".format(device.name))
+            print("WARNING:  Could not add association for IBSS node '{0}'".format(device.description))
             return ret_val
 
         aid = self.send_cmd(cmds.NodeAPAddAssociation(device, allow_timeout))
@@ -190,7 +190,7 @@ class WlanExpNodeAp(node.WlanExpNode):
                 if device.send_cmd(cmds.NodeSTAAddAssociation(self, aid, channel, ssid)):
                     ret_val = True
             else:
-                msg  = "\nWARNING:  Could not add association to non-STA node '{0}'\n".format(device.name) 
+                msg  = "\nWARNING:  Could not add association to non-STA node '{0}'\n".format(device.description) 
                 msg += "    Please add the association to the AP manually on the device.\n"
                 print(msg)
                 ret_val = True
@@ -204,14 +204,29 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     def __str__(self):
         """Pretty print WlanExpNodeAp object"""
-        msg = super(WlanExpNodeAp, self).__str__()
-        msg = "WLAN Exp AP: \n" + msg
+        msg = ""
+
+        if self.serial_number is not None:
+            from wlan_exp.util import mac_addr_to_str
+            msg += "WLAN EXP AP Node:\n"
+            msg += "    WLAN MAC addr :  {0}\n".format(mac_addr_to_str(self.wlan_mac_address))
+            msg += "    Node ID       :  {0}\n".format(self.node_id)
+            msg += "    Serial #      :  {0}\n".format(self.sn_str)
+            msg += "    HW version    :  WARP v{0}\n".format(self.hw_ver)
+        else:
+            msg += "Node not initialized."
+
+        if self.transport is not None:
+            msg += "WLAN EXP "
+            msg += str(self.transport)
+
         return msg
+
 
     def __repr__(self):
         """Return node name and description"""
         msg = super(WlanExpNodeAp, self).__repr__()
-        msg = "WLAN EXP AP  " + msg
+        msg = "WLAN EXP AP " + msg
         return msg
 
 # End Class WlanExpNodeAp

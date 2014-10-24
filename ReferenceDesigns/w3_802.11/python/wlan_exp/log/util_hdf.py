@@ -811,8 +811,8 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         #   h5py uses the h5py.File handle to access the file itself and the root group
         hf.attrs['INFO'] = attr_dict['/']
     except (KeyError, TypeError):
-        #TypeError - attrs dictionary does not exist
-        #KeyError - attrs dictionary exists but key does not
+        # TypeError - attrs dictionary does not exist
+        # KeyError - attrs dictionary exists but key does not
         pass
 
     if type(np_log_dict[dk[0]]) is dict:

@@ -107,8 +107,8 @@ class NodeError(Error):
     def __str__(self):
         msg = ""
         if self.node is not None:        
-            msg += "{0} \n".format(self.node.name)
-        msg += "    Error: {0} \n".format(self.message)
+            msg += "{0} \n    ".format(self.node.description)
+        msg += "Error: {0} \n".format(self.message)
         return msg
 
 # End Class

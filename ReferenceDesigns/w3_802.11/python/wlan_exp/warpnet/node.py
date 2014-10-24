@@ -180,7 +180,21 @@ class WnNode(object):
             raise wn_ex.NodeError(self, "Configuration Error")
 
         # Set description
-        self.description = "WARP v{} Node - ID {}".format(self.hw_ver, self.node_id)
+        self.description = self.__repr__()
+
+
+    def set_name(self, name):
+        """Set the name of the node.
+        
+        Args:
+            name (str):  User provided name of the node.
+        
+        .. note::  The name provided will affect the Python environment only (ie it will
+            update strings in wlan_exp but will not be transmitted to the node.)
+        """
+        self.name        = name
+        self.description = self.__repr__()
+
 
 
     # -------------------------------------------------------------------------
@@ -225,7 +239,7 @@ class WnNode(object):
     def process_parameters(self, parameters):
         """Process all parameters.
         
-        Each parameter is of the form:
+        Each parameter is of the form::
                    | 31 ... 24 | 23 ... 16 | 15 ... 8 | 7 ... 0 |
             Word 0 | Reserved  | Group     | Length             |
             Word 1 | Parameter Identifier                       |
@@ -607,12 +621,14 @@ class WnNode(object):
         received a packet.
         """
         self.transport_tracker = 0
+
     
     def _receive_failure(self):
         """Internal method to indicate to the tracker that we had a 
         receive failure.
         """
         self.transport_tracker += 1
+
 
     def _receive_failure_exceeded(self, max_attempts):
         """Internal method to indicate if we have had more recieve 
@@ -633,25 +649,36 @@ class WnNode(object):
         ver_str     = version.wn_ver_str(self.wn_ver_major, self.wn_ver_minor, 
                                          self.wn_ver_revision)
 
-        caller_desc = "During node initialization {0} returned version {1}".format(self.name, ver_str)
+        caller_desc = "During initialization '{0}' returned version {1}".format(self.description, ver_str)
 
-        version.wn_ver_check(major=self.wn_ver_major,
-                             minor=self.wn_ver_minor,
-                             revision=self.wn_ver_revision,
-                             caller_desc=caller_desc)
+        status = version.wn_ver_check(major=self.wn_ver_major,
+                                      minor=self.wn_ver_minor,
+                                      revision=self.wn_ver_revision,
+                                      caller_desc=caller_desc)
+
+        if (status == version.WN_VERSION_NEWER):
+            print("Please update the C code on the node to the proper WARPNet version.")
+        
+        if (status == version.WN_VERSION_OLDER):
+            print("Please update the WARPNet installation to match the version on the node.")
 
 
     def __str__(self):
         """Pretty print WnNode object"""
         msg = ""
+
         if self.serial_number is not None:
-            msg += "Node '{0}' with ID {1}:\n".format(self.name, self.node_id)
-            msg += "    Desc    :  {0}\n".format(self.description)
-            msg += "    Serial #:  {0}\n".format(self.sn_str)
+            msg += "Node:\n"
+            msg += "    Node ID       :  {0}\n".format(self.node_id)
+            msg += "    Serial #      :  {0}\n".format(self.sn_str)
+            msg += "    HW version    :  WARP v{0}\n".format(self.hw_ver)
         else:
             msg += "Node not initialized."
+
         if self.transport is not None:
+            msg += "WARPNet "
             msg += str(self.transport)
+
         return msg
 
 
@@ -660,12 +687,15 @@ class WnNode(object):
         msg = ""
         if self.serial_number is not None:
             msg  = "{0}: ".format(self.sn_str)
-            msg += "ID {0:5d} ".format(self.node_id)
-            msg += "({0})".format(self.name)
+            msg += "ID {0:5d}".format(self.node_id)
+            
+            if self.name is not None:
+                msg += " ({0})".format(self.name)
         else:
             msg += "Node not initialized."
-        return msg
         
+        return msg
+
 # End Class
 
 
@@ -739,7 +769,8 @@ class WnNodeFactory(WnNode):
                                             bcast_port=self.transport.bcast_port)
 
                 msg  = "Initializing {0}".format(node.sn_str)
-                msg += " as {0}".format(node.name)
+                if node.name is not None:
+                    msg += " as {0}".format(node.name)
                 print(msg)
             else:
                 self.print_wn_node_types()

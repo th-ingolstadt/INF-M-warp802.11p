@@ -267,7 +267,15 @@ def wn_get_serial_number(serial_number, output=True):
     
     return ret_val
 
-# End of wn_get_serial_number()
+# End of def
+
+
+def mac_addr_to_str(mac_address):
+    """Convert an integer to a colon separated MAC address string."""
+    from warpnet.transport_eth_udp import mac_addr_to_str
+    return mac_addr_to_str(mac_address)
+
+# End def
 
 
 

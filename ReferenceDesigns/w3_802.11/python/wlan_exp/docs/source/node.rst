@@ -78,22 +78,29 @@ Node Commands
 These WlanExpNode commands are used to interact with the node and control parameters associated with the node operation.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
-   :members: reset_all, reset, get_wlan_mac_address, set_time, get_time, set_low_to_high_rx_filter, set_channel, get_channel, set_tx_rate_unicast 
+   :members: reset_all, reset, get_wlan_mac_address, set_name, set_time, get_time, set_low_to_high_rx_filter, set_channel, get_channel, set_tx_rate_unicast, get_tx_rate_unicast, set_tx_rate_multicast_data, get_tx_rate_multicast_data, set_tx_ant_mode_unicast, get_tx_ant_mode_unicast, set_tx_ant_mode_multicast, get_tx_ant_mode_multicast, set_rx_ant_mode, get_rx_ant_mode, set_tx_power, get_tx_power, set_phy_cs_thresh, get_phy_cs_thresh, set_timestamp_offset, get_timestamp_offset, set_cw_exp_min, set_cw_exp_max, get_cw_exp_range, set_random_seed, enable_dsss, disable_dsss, set_print_level 
 
 
 Association Commands
 ....................
+These WlanExpNode commands are used to modify / query the association state of the node.
+
+.. autoclass:: wlan_exp.node.WlanExpNode
+   :members: get_ssid, disassociate, disassociate_all, is_associated, get_station_info, get_bss_info
+
 
 Queue Commands
 ..............
+These WlanExpNode commands are used to modify the node's queues.
+
+.. autoclass:: wlan_exp.node.WlanExpNode
+   :members: queue_tx_data_purge_all
 
 
+Other Commands
+..............
+These are miscellaneous commands for the node.
 
+.. autoclass:: wlan_exp.node.WlanExpNode
+   :members: node_identify, node_ping, node_get_warpnet_type, node_get_temp, node_get_info
 
-Full List
-.........
-
-.. automodule:: wlan_exp.node
-   :members:
-   :inherited-members:
-   :exclude-members: configure_node, check_wlan_exp_ver
