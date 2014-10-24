@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-WARPNet Example
+Mango 802.11 Reference Design - Experiments Framework - Log Throughput vs Time
 ------------------------------------------------------------------------------
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -74,7 +74,7 @@ else:
 
 
 #-----------------------------------------------------------------------------
-# Main script 
+# Main script
 #-----------------------------------------------------------------------------
 exit_script = False
 
@@ -88,7 +88,7 @@ raw_log_index_sta = hdf_util.hdf5_to_log_index(filename=STA_LOGFILE)
 
 # Generate indexes with just Tx and Rx events
 entries_filt  = ['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW']
-entries_merge = {'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'], 
+entries_merge = {'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
                  'TX'     : ['TX', 'TX_LTG'],
                  'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']}
 
@@ -111,7 +111,7 @@ try:
 except:
     print("ERROR: Log for STA did not contain a NODE_INFO.  Cannot determine MAC Address of STA.\n")
     exit_script = True
-    
+
 # Extract Tx entry arrays
 try:
     tx_ap  = log_np_ap['TX']
@@ -221,8 +221,12 @@ plt.plot(plt_t, plt_xput_ap, 'r', label='STA -> AP Flow')
 plt.plot(plt_t, plt_xput_sta, 'b', label='AP -> STA Flow')
 plt.plot(plt_t, plt_xput_ap + plt_xput_sta, 'g', label='Sum of Flows')
 
+plt.xlim(min(plt_t), max(plt_t))
+
 plt.grid('on')
 
 plt.legend(loc='lower center')
 plt.xlabel('Time (usec)')
 plt.ylabel('Throughput (Mb/sec)')
+
+plt.savefig('Two_Node_Througput_vs_Time.png')
