@@ -22,7 +22,7 @@ Provides sample data to use with the log examples.
 
 _SAMPLE_DATA_DIR = 'sample_data'
 
-_URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/1.0/'
+_URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/1.0.0/'
 
 _FILES_TO_DL = [
     'raw_log_dual_flow_ap.hdf5',
@@ -68,8 +68,8 @@ def download_sample_data():
 
 
     print("Downloading 802.11 Reference Design sample data to local directory:")
-    print(" {0}\n".format(os.path.normpath(sample_data_dir)))
-
+    print(" From: {0}".format(_URL_ROOT))
+    print(" To:   {0}\n".format(os.path.normpath(sample_data_dir)))
 
     # Progress indicator based on great StackOverflow posts:
     #   http://stackoverflow.com/questions/15644964/python-progress-bar-and-downloads
