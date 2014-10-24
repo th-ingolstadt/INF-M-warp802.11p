@@ -879,9 +879,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         Args:
             power (int):  Transmit power.  Must have a value between 19 and -12 (dBm)
 
-        Returns
-
-        
+        Returns:
+            tx_powers (list): Current Tx powers: [<unicast mgmt tx power>, <unicast data tx power>, <multicast mgmt tx power>, <multicast data tx power>]
         """
         return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, power))
 
@@ -890,21 +889,26 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Gets the current transmit power of the node.
         
         Returns:
-          A list of tx powers:  [<unicast management tx power>,
-                                 <unicast data tx power>,
-                                 <multicast management tx power>,
-                                 <multicast data tx power>]
+            tx_powers (list): Current Tx powers: [<unicast mgmt tx power>, <unicast data tx power>, <multicast mgmt tx power>, <multicast data tx power>]
         """
         return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ))
 
 
-    def set_phy_cs_thresh(self, val):
-        """Sets the physical carrier sense threshold of the node."""
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH, val)
+    def set_phy_cs_thresh(self, threshold):
+        """Sets the physical carrier sense threshold of the node.
+        
+        Args:
+           threshold (int):  Value between [0, 1023] for the physical carrier sense threshold
+        """
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH, threshold)
 
 
     def get_phy_cs_thresh(self):
-        """Gets the physical carrier sense threshold of the node."""
+        """Gets the physical carrier sense threshold of the node.
+        
+        Returns:
+            phy_cs_thresh (int):  Value for the physical carrier sense threshold on the node
+        """
         ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH))
         
         if ret_val is not None:
@@ -914,16 +918,25 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                 print("WARNING:  CS Thresh:  Unexpected return value: {0}".format(ret_val))
                 return None
         else:
+            print("WARNING:  CS Thresh:  Could not get threshold.")
             return None
         
 
-    def set_timestamp_offset(self, val):
-        """Sets a usec offset that will be applied to beacon timestamps."""
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET, val)      
+    def set_timestamp_offset(self, offset):
+        """Sets a usec offset that will be applied to beacon timestamps.
+        
+        Args:
+            offset (int):  Integer number of microseconds to adjust the beacon timestamps [-2^31, (2^31 - 1)].
+        """
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET, offset)      
 
 
     def get_timestamp_offset(self):
-        """Gets a usec offset that will be applied to beacon timestamps."""
+        """Gets a usec offset that will be applied to beacon timestamps.
+        
+        Returns:
+            offset (int):  Integer number of microseconds beacon timestamps are being adjusted.
+        """
         ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET))
         
         if ret_val is not None:
@@ -933,33 +946,35 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                 print("WARNING:  Timestamp offset:  Unexpected return value: {0}".format(ret_val))
                 return None
         else:
+            print("WARNING:  Timestamp offset:  Could not get offset.")
             return None
 
 
-    def set_cw_exp_min(self, val):
+    def set_cw_exp_min(self, cw_exp):
         """Sets the the minimum contention window:
            
-           Attributes:
-               val  -- Sets the contention window to [0, 2^(val)]
-                       For example, 1 -- [0,1]; 10 -- [0,1023]
+        Args:
+            cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN, val)       
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN, cw_exp)       
 
         
-    def set_cw_exp_max(self, val):
+    def set_cw_exp_max(self, cw_exp):
         """Sets the the maximum contention window:
 
-           Attributes:
-               val  -- Sets the contention window to [0, 2^(val)]
-                       For example, 1 -- [0,1]; 10 -- [0,1023]
+        Args:
+            cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, val)               
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, cw_exp)               
 
 
     def get_cw_exp_range(self):
         """Gets the contention window range.
         
-        Returns a tuple containing the (min, max) contention window
+        Returns:
+            cw_exps (tuple):
+                #. cw_exp_min (int):  Exponent of the minimum contention window
+                #. cw_exp_max (int):  Exponent of the maximum contention window
         """
         cw_max = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX))
         
@@ -970,6 +985,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                 print("WARNING:  CW Max:  Unexpected return value: {0}".format(cw_max))
                 cw_max = None
         else:
+            print("WARNING:  CW Max:  Could not get cw exponent.")
             cw_max = None
 
         cw_min = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN))
@@ -981,6 +997,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                 print("WARNING:  CW Min:  Unexpected return value: {0}".format(cw_min))
                 cw_min = None
         else:
+            print("WARNING:  CW Min:  Could not get cw exponent.")
             cw_min = None
 
         return (cw_min, cw_max)
@@ -989,11 +1006,11 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def set_random_seed(self, high_seed=None, low_seed=None, gen_random=False):
         """Sets the random number generator seed on the node.
         
-        Attributes:
-            high_seed  -- Set the random number generator seed on CPU high
-            low_seed   -- Set the random number generator seed on CPU low
-            gen_random -- If high_seed or low_seed is not provided, then generate
-                          a random seed for the generator.
+        Args:
+            high_seed (int, optional):   Set the random number generator seed on CPU high
+            low_seed (int, optional):    Set the random number generator seed on CPU low
+            gen_random (bool, optional): If high_seed or low_seed is not provided, then generate 
+                a random seed for the generator.
         """
         import random
         max_seed = 2**32 - 1 
@@ -1029,7 +1046,18 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     def set_print_level(self, level):
-        """Set the WLAN Exp print level on the node."""
+        """Set the WLAN Exp print level for UART output on the node.
+        
+        Args:
+            level (int):  Printing level (defaults to WLAN_EXP_PRINT_ERROR)
+
+        Valid print levels can be found in wlan_exp.util:  
+          * WLAN_EXP_PRINT_NONE
+          * WLAN_EXP_PRINT_ERROR
+          * WLAN_EXP_PRINT_WARNING
+          * WLAN_EXP_PRINT_INFO
+          * WLAN_EXP_PRINT_DEBUG
+        """
         self.send_cmd(cmds.NodeConfigure(print_level=level))
 
 
@@ -1040,17 +1068,18 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                                          device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast transmit param of the node.
         
-        One of device_list, curr_assoc or new_assoc must be set.  The device_list
-        and curr_assoc are mutually exclusive with curr_assoc having precedence
-        (ie if curr_assoc is True, then device_list will be ignored).
-
-        Attributes:
-            cmd         -- WnCmd to be used to set param
-            param       -- Parameter to be set
-            param_name  -- Name of parameter for error messages
-            device_list -- List of 802.11 devices for which to set the Tx unicast param
-            curr_assoc  -- All current assocations will have Tx unicast param set
-            new_assoc   -- All new associations will have Tx unicast param set
+        Args:
+            cmd (WnCmd)         Command to be used to set param
+            param (int):        Parameter to be set
+            param_name (str):   Name of parameter for error messages
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                or single 802.11 device for which to set the Tx unicast param
+            curr_assoc (bool):  All current assocations will have Tx unicast param set
+            new_assoc  (bool):  All new associations will have Tx unicast param set 
+        
+        .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
+            and curr_assoc are mutually exclusive with curr_assoc having precedence
+            (ie if curr_assoc is True, then device_list will be ignored).
         """
         if (device_list is None) and (not curr_assoc) and (not new_assoc):
             msg  = "\nCannot set the unicast transmit {0}:\n".format(param_name)
@@ -1075,17 +1104,18 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def _node_get_tx_param_unicast(self, cmd, param_name, device_list=None, new_assoc=False):
         """Gets the unicast transmit param of the node.
 
-        Attributes:
-            cmd         -- WnCmd to be used to get param
-            param_name  -- Name of parameter for error messages
-            device_list -- List of 802.11 devices for which to get the Tx unicast rate
-            new_assoc   -- Get the Tx unicast rate for all new associations 
+        Args:
+            cmd (WnCmd)         Command to be used to set param
+            param_name (str):   Name of parameter for error messages
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                or single 802.11 device for which to get the Tx unicast param
+            new_assoc  (bool):  Get the Tx unicast param for all new associations 
         
         Returns:
-            A list of params
-
-        If both new_assoc and device_list are specified, the return list will always have 
-        the param for all new associations as the first item in the list.
+            params (List of params):  List of Tx unicast param for the given devices.
+        
+        .. note:: If both new_assoc and device_list are specified, the return list will always have 
+            the Tx unicast rate for all new associations as the first item in the list.
         """
         ret_val = []
 
@@ -1112,7 +1142,12 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     def _set_low_param(self, param, values):
-        """Sets any number of CPU Low parameters"""
+        """Sets any number of CPU Low parameters
+ 
+        Args:
+            param (int):          Parameter to be set
+            values (list of int): Value(s) to set the parameter
+        """
         
         if(values is not None):
             try:
@@ -1137,7 +1172,11 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     #   NOTE:  Some commands are implemented in sub-classes
     #--------------------------------------------
     def get_ssid(self):
-        """Command to get the SSID of the AP."""
+        """Command to get the SSID of the node.
+        
+        Returns:
+            ssid (str):  SSID of the node's current BSS.
+        """
         return self.send_cmd(cmds.NodeGetSSID())
 
 
@@ -1145,7 +1184,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Remove associations of devices within the device_list from the association table
         
         Attributes:
-            device_list -- List of 802.11 devices to remove from the association table
+            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 devices or single 
+                802.11 device for which to disassociate
         """
         try:
             for device in device_list:
@@ -1161,22 +1201,18 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
     def is_associated(self, device_list):
         """Is the node associated with the devices in the device list.
+
+        For is_associated to return True, one of the following conditions must be met:
+          #. If the device is a wlan_exp node, then both the node and the device must be associated.
+          #. If the device is a 802.11 device, then only the node must be associated with the device, since we cannot know the state of
+             the 802.11 device.
         
         Returns:
-            A boolean or list of booleans.  
+            associated (list of bool):  Boolean describing whether the given device is associated with the node.
             
-        If the device_list is a single device, then only a boolean is 
-        returned.  If the device_list is a list of devices, then a list of
-        booleans will be returned in the same order as the devices in the
-        list.
-        
-        For is_associated to return True, one of the following conditions 
-        must be met:
-          1) If the device is a wlan_exp node, then both the node and the 
-             device must be associated.
-          2) If the device is a 802.11 device, then only the node must be 
-             associated with the device, since we cannot know the state of
-             the 802.11 device.
+        .. note:: If the device_list is a single device, then only a boolean is 
+            returned.  If the device_list is a list of devices, then a list of
+            booleans will be returned in the same order as the devices in the list.        
         """
         ret_val  = [] 
         ret_list = True
@@ -1224,15 +1260,19 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def get_station_info(self, device_list=None):
         """Get the station info from the node.
         
+        Args:
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices or single 
+                802.11 device for which to get the station info        
+        
         Returns:
-            A station info dictionary or list of station info dictionaries.
+            station_infos (list of dict):  STATION_INFO dictionaries are defined in wlan_exp.log.entry_types
 
-        If the device_list is a single device, then only a station info or 
-        None is returned.  If the device_list is a list of devices, then a 
-        list of station infos will be returned in the same order as the 
-        devices in the list.  If any of the station info are not there, 
-        None will be inserted in the list.  If the device_list is not 
-        specified, then all the station infos on the node will be returned.
+        .. note:: If the device_list is a single device, then only a station info or 
+            None is returned.  If the device_list is a list of devices, then a 
+            list of station infos will be returned in the same order as the 
+            devices in the list.  If any of the station info are not there, 
+            None will be inserted in the list.  If the device_list is not 
+            specified, then all the station infos on the node will be returned.
         """
         ret_val = []
         if not device_list is None:
@@ -1258,17 +1298,19 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def get_bss_info(self, bssid_list=None):
         """Get the BSS info from the node.
         
+        Args:
+            bssid_list (list of int, optional):  List of BSS IDs (MAC address) or single 
+                BSS ID for which to get the BSS info        
+        
         Returns:
-            A BSS info dictionary or list of BSS info dictionaries.
+            bss_infos (list of dict):  BSS_INFO dictionaries are defined in wlan_exp.log.entry_types
 
-        If the bssid_list is a single BSS ID, then only a single BSS info or 
-        None is returned.  If the bssid_list is a list of BSS IDs, then a 
-        list of BSS infos will be returned in the same order as the 
-        BSS IDs in the list.  If any of the BSS infos are not there, 
-        None will be inserted in the list.  If the bssid_list is not 
-        specified, then "my_bss_info" on the node will be returned.  If the
-        the bssid_list is the string "ASSOCIATED_BSS", then all of the BSS infos
-        on the node will be returned.
+        .. note::  If the bssid_list is a single BSS ID, then only a single BSS info or None is 
+            returned.  If the bssid_list is a list of BSS IDs, then a list of BSS infos will be 
+            returned in the same order as the BSS IDs in the list.  If any of the BSS infos are 
+            not there, None will be inserted in the list.  If the bssid_list is not specified, 
+            then "my_bss_info" on the node will be returned.  If the the bssid_list is the string 
+            "ASSOCIATED_BSS", then all of the BSS infos on the node will be returned.
         """
         ret_val = []
         if not bssid_list is None:
@@ -1440,8 +1482,8 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
     """Sub-class of WARPNet node factory used to help with node configuration 
     and setup.
         
-    Attributes (inherited):
-        wn_dict -- Dictionary of WARPNet Node Types to class names
+    Attributes:
+        wn_dict (dict):  Dictionary of WARPNet Node Types to class names
     """
     def __init__(self, network_config=None):
         super(WlanExpNodeFactory, self).__init__(network_config)
@@ -1475,12 +1517,11 @@ class WlanExpNodeFactory(wn_node.WnNodeFactory):
     def node_eval_class(self, node_class, network_config):
         """Evaluate the node_class string to create a node.  
         
-        NOTE:  This should be overridden in each sub-class with the same
-        overall structure but a different import.  Please call the super
-        class so that the calls will propagate to catch all node types.
+        .. note::  This should be overridden in each sub-class with the same overall structure 
+            but a different import.  Please call the super class so that the calls will propagate 
+            to catch all node types.
 
-        NOTE:  network_config is used as part of the node_class string
-        to initialize the node.        
+        .. note::  network_config is used as part of the node_class string to initialize the node.        
         """
         # NOTE:  "import wlan_exp.defaults as defaults" performed at the top of the file
         import wlan_exp.node_ap as node_ap

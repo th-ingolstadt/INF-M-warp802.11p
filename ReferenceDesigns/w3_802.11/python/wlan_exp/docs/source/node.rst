@@ -102,5 +102,5 @@ Other Commands
 These are miscellaneous commands for the node.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
-   :members: node_identify, node_ping, node_get_warpnet_type, node_get_temp, node_get_info
+   :members: node_identify, node_ping
 

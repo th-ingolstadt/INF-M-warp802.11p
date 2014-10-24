@@ -45,6 +45,20 @@ __all__ = ['tx_rate_to_str', 'tx_rate_index_to_str',
            'filter_nodes']
 
 
+
+# -----------------------------------------------------------------------------
+# WLAN Exp Node Print Levels
+# -----------------------------------------------------------------------------
+
+#   NOTE:  The C counterparts are found in wlan_exp_common.h
+WLAN_EXP_PRINT_NONE               = 0
+WLAN_EXP_PRINT_ERROR              = 1
+WLAN_EXP_PRINT_WARNING            = 2
+WLAN_EXP_PRINT_INFO               = 3
+WLAN_EXP_PRINT_DEBUG              = 4
+
+
+
 # -----------------------------------------------------------------------------
 # WLAN Exp Rate definitions
 # -----------------------------------------------------------------------------
