@@ -288,7 +288,7 @@ class WnNode(object):
         """Extract values from the parameters"""
         if   (identifier == NODE_TYPE):
             if (length == 1):
-                self.node_type = values[0]
+                self._set_node_type(values[0])
             else:
                 raise wn_ex.ParameterError("NODE_TYPE", "Incorrect length")
 
@@ -644,6 +644,11 @@ class WnNode(object):
     # -------------------------------------------------------------------------
     # Misc methods for the Node
     # -------------------------------------------------------------------------
+    def _set_node_type(self, node_type):
+        """Set the node_type """
+        self.node_type = node_type
+
+
     def check_wn_ver(self):
         """Check the WARPNet version of the node against the current WARPNet version."""
         ver_str     = version.wn_ver_str(self.wn_ver_major, self.wn_ver_minor, 

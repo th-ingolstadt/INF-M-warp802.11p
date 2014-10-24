@@ -63,7 +63,7 @@ Local Traffic Generator (LTG) Commands
 ......................................
 
 These WlanExpNode commands are used to interact with the LTG framework.  LTGs are used to have the node locally
-generate different types of traffic for experiments.  See _wlan_exp_ltg for more information on LTGs.
+generate different types of traffic for experiments.  See .. _wlan_exp_ltg: for more information on LTGs.
 
 .. note:: Please be careful that LTGs are removed when they are done being used.  By not removing unused LTGs, this
     will not allow memory to be freed within the heap on the node and can lead to memory allocation failures when

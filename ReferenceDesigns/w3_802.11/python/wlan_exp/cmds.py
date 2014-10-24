@@ -1071,7 +1071,7 @@ class NodeProcTxRate(wn_message.Cmd):
                        CMD_PARAM_WRITE
                        CMD_PARAM_WRITE_DEFAULT
                        CMD_PARAM_READ_DEFAULT 
-        node_type -- Is this for unicast transmit or multicast transmit.
+        tx_type   -- Is this for unicast transmit or multicast transmit.
         rate      -- 802.11 transmit rate for the node.  Should be an entry
                      from the rates table in wlan_exp.util.  Checking is
                      done on the node and the current rate will always be 
@@ -1081,14 +1081,14 @@ class NodeProcTxRate(wn_message.Cmd):
     rate     = None
     dev_name = None
     
-    def __init__(self, cmd, node_type, rate=None, device=None):
+    def __init__(self, cmd, tx_type, rate=None, device=None):
         super(NodeProcTxRate, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_RATE
 
         self.add_args(cmd)
 
-        if ((node_type == CMD_PARAM_UNICAST) or (node_type == CMD_PARAM_MULTICAST)):
-            self.add_args(node_type)
+        if ((tx_type == CMD_PARAM_UNICAST) or (tx_type == CMD_PARAM_MULTICAST)):
+            self.add_args(tx_type)
         else:
             msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
             raise ValueError(msg)
@@ -1139,23 +1139,23 @@ class NodeProcTxAntMode(wn_message.Cmd):
                        CMD_PARAM_WRITE
                        CMD_PARAM_WRITE_DEFAULT
                        CMD_PARAM_READ_DEFAULT 
-        node_type -- Is this for unicast transmit or multicast transmit.
+        tx_type   -- Is this for unicast transmit or multicast transmit.
         ant_mode  -- Transmit antenna mode for the node.  Checking is
                      done both in the command and on the node.  The current
                      antenna mode will be returned by the node.  
         device    -- 802.11 device for which the rate is being set.  
     """
-    node_type = None    
+    tx_type = None    
     
-    def __init__(self, cmd, node_type, ant_mode=None, device=None):
+    def __init__(self, cmd, tx_type, ant_mode=None, device=None):
         super(NodeProcTxAntMode, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_ANT_MODE
 
         self.add_args(cmd)
         
-        if ((node_type == CMD_PARAM_UNICAST) or (node_type == CMD_PARAM_MULTICAST)):
-            self.node_type = node_type
-            self.add_args(node_type)
+        if ((tx_type == CMD_PARAM_UNICAST) or (tx_type == CMD_PARAM_MULTICAST)):
+            self.tx_type = tx_type
+            self.add_args(tx_type)
         else:
             msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
             raise ValueError(msg)
@@ -1188,9 +1188,9 @@ class NodeProcTxAntMode(wn_message.Cmd):
         
         if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Tx antenna mode command'):
             args = resp.get_args()
-            if   (self.node_type == CMD_PARAM_UNICAST):
+            if   (self.tx_type == CMD_PARAM_UNICAST):
                 return util.find_tx_ant_mode_by_index(args[1])
-            elif (self.node_type == CMD_PARAM_MULTICAST):
+            elif (self.tx_type == CMD_PARAM_MULTICAST):
                 return [util.find_tx_ant_mode_by_index((args[1] >> 16) & 0xFFFF),
                         util.find_tx_ant_mode_by_index(args[1] & 0xFFFF)]
             else:

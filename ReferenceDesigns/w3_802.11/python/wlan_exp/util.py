@@ -1,36 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Utilities
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
-------------------------------------------------------------------------------
-
-This module provides WLAN Exp utility commands.
-
-Functions (see below for more information):
-    tx_rate_index_to_str -- Converts tx_rate_index to string
-
-    init_nodes()         -- Initialize nodes
-    init_timestamp()     -- Initialize the timestamps on all nodes to be as
-                              similar as possible
-
-    filter_nodes()       -- Filter a list of nodes
-
-Integer constants:
-    WLAN_EXP_MAJOR, WLAN_EXP_MINOR, WLAN_EXP_REVISION, WLAN_EXP_XTRA,
-        WLAN_EXP_RELEASE -- WLAN Exp verision constants
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Utilities
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  1/23/14  Initial release
+.. ------------------------------------------------------------------------------
 
 """
 
@@ -40,8 +24,7 @@ import time
 import wlan_exp.defaults as defaults
 
 
-__all__ = ['tx_rate_to_str', 'tx_rate_index_to_str',
-           'init_nodes', 'broadcast_cmd_set_time', 'broadcast_cmd_write_time_to_logs',
+__all__ = ['init_nodes', 'broadcast_cmd_set_time', 'broadcast_cmd_write_time_to_logs',
            'filter_nodes']
 
 
@@ -72,14 +55,28 @@ wlan_rates = [{'index' :  1, 'rate' :  6.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
               {'index' :  8, 'rate' : 54.0, 'desc' : '64-QAM 3/4', 'NDBPS': 216}]
 
 def find_tx_rate_by_index(index):
-    """Return the wlan_rates entry for the given index."""
+    """Return the wlan_rates entry for the given index.
+    
+    Args:
+        index (int):  Index into wlan_rate array.    
+    
+    Returns:
+        rate (dict):  Rate dictionary corresponding to the index    
+    """
     return _find_param_by_index(index, wlan_rates, 'tx rate')
 
 # End def
 
 
 def tx_rate_to_str(rate):
-    """Convert a wlan_rates entry to a string."""
+    """Convert a wlan_rates entry to a string.
+    
+    Args:
+        rate (dict):  Rate dictionary 
+    
+    Returns:
+        output (str):  String representation of the 'rate'
+    """
     msg = ""
     if type(rate) is dict:
         msg += "{0:2.1f} Mbps ({1})".format(rate['rate'], rate['desc'])
@@ -91,11 +88,19 @@ def tx_rate_to_str(rate):
 
 
 def tx_rate_index_to_str(index):
-    """Convert a wlan_rates entry index to a string."""
+    """Convert a wlan_rates entry index to a string.
+    
+    Args:
+        index (int):  Index into wlan_rate array.    
+    
+    Returns:
+        output (str):  String representation of the 'rate' corresponding to the index
+    """
     rate = find_tx_rate_by_index(index)
     return tx_rate_to_str(rate)
 
 # End def
+
 
 
 # -----------------------------------------------------------------------------
@@ -162,6 +167,7 @@ def channel_freq_to_str(freq):
     return channel_to_str(channel)
 
 # End def
+
 
 
 # -----------------------------------------------------------------------------
@@ -231,6 +237,7 @@ def tx_ant_mode_index_to_str(index):
 # End def
 
 
+
 # -----------------------------------------------------------------------------
 # WLAN Exp MAC Address definitions
 # -----------------------------------------------------------------------------
@@ -256,6 +263,7 @@ mac_addr_desc_map = [(0xFFFFFFFFFFFF, 0xFFFFFFFFFFFF, 'Broadcast'),
 mac_addr_mcast_mask = 0x010000000000
 mac_addr_local_mask = 0x020000000000
 mac_addr_broadcast  = 0xFFFFFFFFFFFF
+
 
 
 # -----------------------------------------------------------------------------
@@ -365,9 +373,6 @@ def broadcast_cmd_write_exp_info_to_logs(network_config, info_type, message=None
 # End def
 
 
-# -----------------------------------------------------------------------------
-# WLAN Exp Misc Utilities
-# -----------------------------------------------------------------------------
 def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=True):
     """Return a list of nodes that match all the values for the given
     filter parameters.
@@ -482,6 +487,11 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
 
 # End def
 
+
+
+# -----------------------------------------------------------------------------
+# WLAN Exp Misc Utilities
+# -----------------------------------------------------------------------------
 
 def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100):
     """Create a Basic Service Set (BSS) information structure.

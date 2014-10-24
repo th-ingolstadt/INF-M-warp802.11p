@@ -1,45 +1,40 @@
 # -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Local Traffic Generation (LTG)
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  02/07/14 Initial release
-
-------------------------------------------------------------------------------
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Local Traffic Generation (LTG)
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  1/23/14  Initial release
+.. ------------------------------------------------------------------------------
 
 This module provides definitions for Local Traffic Generation (LTG) on 
 WLAN Exp nodes.
 
-Functions (see below for more information):
-    FlowConfigCBR() -- Constant Bit Rate (CBR) LTG flow config
-    FlowConfigRandomRandom() -- Random (size, period) LTG flow config 
-
-Integer constants:
-    LTG_REMOVE_ALL -- Constant to remove all LTG flows on a given node.
-    LTG_START_ALL  -- Constant to start all LTG flows on a given node.
-    LTG_STOP_ALL   -- Constant to stop all LTG flows on a given node.
-
 It is assumed that users will extend these classes to create their own
 LTG flow configurations.  When an LTG component is serialized, it follows 
 the following structure:
-  Word        Bits           Function   
-   [0]        [31:16]        type
-   [0]        [15:0]         length (number of 32 bit words)
-   [1:length]                parameters
+
++------------+------------+---------------------------------+ 
+| Word       | Bits       | Function                        | 
++============+============+=================================+ 
+| [0]        |  [31:16]   | Type                            | 
++------------+------------+---------------------------------+ 
+| [0]        |  [15:0]    | Length (number of 32 bit words) |
++------------+------------+---------------------------------+ 
+| [1:length]              | Parameters                      | 
++------------+------------+---------------------------------+
 
 When a LTG flow configuration is serialized, the schedule is serialized 
 first and then the payload.
-
 """
 
 
@@ -91,16 +86,26 @@ class Schedule(object):
     ltg_type = None
     
     def get_type(self):
-        """Return the type of the LTG Schedule."""
+        """Return the type of the LTG Schedule.
+        
+        Returns:
+            type (int):  Type of Schedule
+        """
         return self.ltg_type
 
     def get_params(self):
-        """Returns a list of parameters of the LTG Schedule."""
+        """Returns a list of parameters of the LTG Schedule.
+        
+        Returns:
+            params (list of int):  Parameters of the Schedule
+        """
         raise NotImplementedError
 
     def serialize(self):
-        """Returns a list of 32 bit intergers that can be added as arguments
-        to a WnCmd.
+        """Returns a list of 32 bit intergers that can be added as arguments to a WnCmd.
+        
+        Returns:
+            words (list of int):  List of 32-bit words representing the Schedule
         """
         args = []
         params = self.get_params()
@@ -110,7 +115,11 @@ class Schedule(object):
         return args
 
     def enforce_min_resolution(self, resolution):
-        """Enforce the minimum resolution on the Schedule."""
+        """Enforce the minimum resolution on the Schedule.
+        
+        Args:
+            resolution (int):  Resolution of the schedule
+        """
         raise NotImplementedError
 
 # End Class WlanExpLTGSchedule
@@ -136,12 +145,21 @@ class SchedulePeriodic(Schedule):
             self.duration = int(round(float(duration), self.time_factor) * (10**self.time_factor))
     
     def get_params(self):
+        """Returns a list of parameters of the LTG Schedule.
+        
+        Returns:
+            params (list of int):  Parameters of the Schedule
+        """
         duration0 = ((self.duration >> 32) & 0xFFFFFFFF)
         duration1 = (self.duration & 0xFFFFFFFF)
         return [self.interval, duration0, duration1]
 
     def enforce_min_resolution(self, resolution):
-        """Enforce the minimum resolution on periodic interval."""
+        """Enforce the minimum resolution on the Schedule.
+        
+        Args:
+            resolution (int):  Resolution of the schedule
+        """
         temp_interval = (self.interval // resolution) * resolution
         if (temp_interval != self.interval):
             msg  = "WARNING:  Cannot schedule LTG with interval: {0} us\n".format(self.interval)
@@ -177,12 +195,21 @@ class ScheduleUniformRandom(Schedule):
             self.duration = int(round(float(duration), self.time_factor) * (10**self.time_factor))
         
     def get_params(self):
+        """Returns a list of parameters of the LTG Schedule.
+        
+        Returns:
+            params (list of int):  Parameters of the Schedule
+        """
         duration0 = ((self.duration >> 32) & 0xFFFFFFFF)
         duration1 = (self.duration & 0xFFFFFFFF)
         return [self.min_interval, self.max_interval, duration0, duration1]
 
     def enforce_min_resolution(self, resolution):
-        """Enforce the minimum resolution on periodic interval."""
+        """Enforce the minimum resolution on the Schedule.
+        
+        Args:
+            resolution (int):  Resolution of the schedule
+        """
         temp_interval = (self.min_interval // resolution) * resolution
         if (temp_interval != self.min_interval):
             msg  = "WARNING:  Cannot schedule LTG with min interval: {0} us\n".format(self.min_interval)
@@ -210,16 +237,43 @@ class Payload(object):
     ltg_type = None
     
     def get_type(self):
-        """Return the type of the LTG Payload."""
+        """Return the type of the LTG Payload.
+                
+        Returns:
+            type (int):  Type of Payload
+        """
         return self.ltg_type
 
     def get_params(self): 
-        """Returns a list of parameters of the LTG Payload."""
+        """Returns a list of parameters of the LTG Payload.
+        
+        Returns:
+            params (list of int):  Parameters of the Payload
+        """
         raise NotImplementedError
 
+    def serialize(self):
+        """Returns a list of 32 bit intergers that can be added as arguments to a WnCmd.
+        
+        Returns:
+            words (list of int):  List of 32-bit words representing the Schedule
+        """
+        args = []
+        params = self.get_params()
+        args.append(int((self.ltg_type << 16) + len(params)))
+        for param in params:
+            args.append(int(param))
+        return args
+
     def validate_length(self, length):
-        """Returns a valid LTG Payload length and prints warnings if 
-        length was invalid.
+        """Returns a valid LTG Payload length and prints warnings if length was invalid.
+        
+        Args:
+            length (int):  Length of the payload (in bytes)
+        
+        Returns:
+            length (int):  Adjusted length of the payload (in bytes)
+        
         """
         msg  = "WARNING:  Adjusting LTG Payload length from {0} ".format(length)
 
@@ -234,18 +288,6 @@ class Payload(object):
             length = LTG_PYLD_MAX
         
         return length
-
-
-    def serialize(self):
-        """Returns a list of 32 bit intergers that can be added as arguments
-        to a WnCmd.
-        """
-        args = []
-        params = self.get_params()
-        args.append(int((self.ltg_type << 16) + len(params)))
-        for param in params:
-            args.append(int(param))
-        return args
 
 # End Class Payload
 
@@ -267,6 +309,11 @@ class PayloadFixed(Payload):
         self.length    = self.validate_length(length)
         
     def get_params(self):
+        """Returns a list of parameters of the LTG Payload.
+        
+        Returns:
+            params (list of int):  Parameters of the Payload
+        """
         addr0 = ((self.dest_addr >> 32) & 0xFFFF)
         addr1 = (self.dest_addr & 0xFFFFFFFF)
         return [addr0, addr1, self.length]
@@ -294,6 +341,11 @@ class PayloadUniformRandom(Payload):
         self.max_length = self.validate_length(max_length)
         
     def get_params(self):
+        """Returns a list of parameters of the LTG Payload.
+        
+        Returns:
+            params (list of int):  Parameters of the Payload
+        """
         addr0 = ((self.dest_addr >> 32) & 0xFFFF)
         addr1 = (self.dest_addr & 0xFFFFFFFF)
         return [addr0, addr1, self.min_length, self.max_length]
@@ -315,6 +367,11 @@ class PayloadAllAssocFixed(Payload):
         self.length    = self.validate_length(length)
         
     def get_params(self):
+        """Returns a list of parameters of the LTG Payload.
+        
+        Returns:
+            params (list of int):  Parameters of the Payload
+        """
         return [self.length]
 
 # End Class PayloadAllAssocFixed
@@ -332,6 +389,11 @@ class FlowConfig(object):
     def get_payload(self):   return self.ltg_payload
 
     def serialize(self):
+        """Returns a list of 32 bit intergers that can be added as arguments to a WnCmd.
+        
+        Returns:
+            words (list of int):  List of 32-bit words representing the FlowConfig
+        """
         args = []
 
         for arg in self.ltg_schedule.serialize():
@@ -343,7 +405,11 @@ class FlowConfig(object):
         return args
     
     def enforce_min_resolution(self, resolution):
-        """Enforce the minimum resolution on the LTG schedule."""
+        """Enforce the minimum resolution on the Schedule.
+        
+        Args:
+            resolution (int):  Resolution of the schedule
+        """
         self.ltg_schedule.enforce_min_resolution(resolution)
 
 # End Class FlowConfig

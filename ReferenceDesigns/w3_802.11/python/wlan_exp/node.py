@@ -51,7 +51,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         
     Args:
         network_config (warpnet.NetworkConfiguration): Network configuration of the node
-        mac_type (int):                                CPU Low MAC type         
+        mac_type (int):                                CPU Low MAC type
 
 
     .. Inherited Attributes from WnNode:
@@ -104,8 +104,6 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor, 
                 self.wlan_exp_ver_revision) = version.wlan_exp_ver()
         
-        self.node_type                      = defaults.WLAN_EXP_BASE
-        self.device_type                    = self.node_type
         self.wlan_scheduler_resolution      = 1
 
         self.log_total_bytes_read           = 0
@@ -113,26 +111,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         self.log_next_read_index            = 0
 
         self.mac_type                       = mac_type
-        
-
-    def configure_node(self, jumbo_frame_support=False):
-        """Communicate with the node to get remaining hardware parameters.
-        
-        This method is utilized as part of the node initialization to communicate
-        with the node to get the necessary hardware parameters and set the 
-        attributes associated with those hardware parameters.  
-        
-        Args:
-            jumbo_frame_support (bool): Does Ethernet support jumbo frames
-
-        .. note:: This method should not be called except when initializing the node.
-        """
-        # Call WarpNetNode apply_configuration method
-        super(WlanExpNode, self).configure_node(jumbo_frame_support)
-        
-        # Set description
-        self.description = self.__repr__()
-
+    
 
     #-------------------------------------------------------------------------
     # WLAN Exp Commands for the Node
@@ -725,7 +704,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                 (either the channel number as an it or an entry in the wlan_channel array)
         
         Returns:
-            channel (dict):  Channel dictionary (see util.wlan_channel) that was set on the node.        
+            channel (dict):  Channel dictionary (see util.wlan_channel) that was set on the node.
         """
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
 
@@ -1453,6 +1432,12 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     #-------------------------------------------------------------------------
     # Misc methods for the Node
     #-------------------------------------------------------------------------
+    def _set_node_type(self, node_type):
+        """Set the node_type and keep the device_type in sync."""
+        self.node_type   = node_type
+        self.device_type = self.node_type
+    
+    
     def check_wlan_exp_ver(self):
         """Check the WLAN Exp version of the node against the current WLAN Exp version."""        
         ver_str     = version.wlan_exp_ver_str(self.wlan_exp_ver_major, 
@@ -1471,7 +1456,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         
         if (status == version.WLAN_EXP_VERSION_OLDER):
             print("Please update the WLAN Exp installation to match the version on the node.")
-            
+
 
 # End Class WlanExpNode
 
