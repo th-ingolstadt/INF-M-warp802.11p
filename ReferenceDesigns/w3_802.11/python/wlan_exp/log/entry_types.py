@@ -652,7 +652,7 @@ def np_array_add_fields(np_arr_orig=None, mac_addr=False, ltg=False, docs_only=F
         np_arr_out['addr3'][arr_filt] = np.dot(addr_conv_arr, np.transpose(mac_hdrs[arr_filt, 16:22]))
 
         arr_filt = np_arr_out['mac_payload_len'] >= 24
-        np_arr_out['mac_seq'] = np.dot(mac_hdrs[:, 22:24], [1, 256]) // 16
+        np_arr_out['mac_seq'][arr_filt] = np.dot(mac_hdrs[arr_filt, 22:24], [1, 256]) // 16
 
     # Populate the LTG fields
     if ltg:
