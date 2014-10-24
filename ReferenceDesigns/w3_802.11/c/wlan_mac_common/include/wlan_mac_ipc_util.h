@@ -54,7 +54,6 @@
 #define IPC_MBOX_HW_INFO				4
 #define IPC_MBOX_CPU_STATUS				5
 #define IPC_MBOX_CONFIG_CHANNEL			6
-#define IPC_MBOX_CONFIG_MAC				7
 #define IPC_MBOX_CONFIG_PHY_RX			8
 #define IPC_MBOX_CONFIG_PHY_TX			9
 #define IPC_MBOX_SET_TIME				11
