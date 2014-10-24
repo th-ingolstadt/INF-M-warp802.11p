@@ -542,7 +542,8 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 			//     cmdArgs32[2:3]      Association MAC Address
 			//     cmdArgs32[4]        Association AID
 			//     cmdArgs32[5]        Association Channel
-			//     cmdArgs32[6:N]      Association SSID
+			//     cmdArgs32[6]        SSID Length
+			//     cmdArgs32[7:N]      Association SSID
 			//
 			// Response format:
 			//     respArgs32[0]       Status
@@ -567,7 +568,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 			}
 
 			// Get SSID
-			ssid = (char *)&cmdArgs32[6];
+			ssid = (char *)&cmdArgs32[7];
 
 			// Disable interrupts so no packets interrupt the associate
 			prev_interrupt_state = wlan_mac_high_interrupt_stop();
