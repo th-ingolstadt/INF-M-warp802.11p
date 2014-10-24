@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-WARPNet Example
+Mango 802.11 Reference Design - Experiments Framework - Log File Tx Stats
 ------------------------------------------------------------------------------
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -11,7 +11,7 @@ Hardware Setup:
     - None.  Parsing log data can be done completely off-line
 
 Required Script Changes:
-    - Set LOGFILE to the file name of your WLAN Exp log HDF5 file (or pass in 
+    - Set LOGFILE to the file name of your WLAN Exp log HDF5 file (or pass in
         via command line argument)
 
 ------------------------------------------------------------------------------
@@ -55,7 +55,7 @@ else:
 
 
 #-----------------------------------------------------------------------------
-# Main script 
+# Main script
 #-----------------------------------------------------------------------------
 
 # Get the log_data from the file
@@ -65,7 +65,7 @@ log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 
 # Extract just OFDM Tx events
-tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX'], 
+tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX'],
                                           merge={'TX' : ['TX', 'TX_LTG']})
 
 # Generate numpy array

@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-WARPNet Example
+Mango 802.11 Reference Design - Experiments Framework - Log File Details
 ------------------------------------------------------------------------------
 License:   Copyright 2014, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -56,7 +56,7 @@ else:
 
 
 #-----------------------------------------------------------------------------
-# Main script 
+# Main script
 #-----------------------------------------------------------------------------
 
 # Get the log_data from the file
@@ -69,9 +69,9 @@ raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 log_util.print_log_index_summary(raw_log_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries and all Tx entries
-log_index = log_util.filter_log_index(raw_log_index, 
+log_index = log_util.filter_log_index(raw_log_index,
                                       include_only=['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW'],
-                                      merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'], 
+                                      merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
                                              'TX'     : ['TX', 'TX_LTG'],
                                              'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']})
 
@@ -87,7 +87,7 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 ###############################################################################
 # Example 1: Gather some Tx information from the log
-#   NOTE:  Since there are only loops, this example can deal with TX / TX_LOW 
+#   NOTE:  Since there are only loops, this example can deal with TX / TX_LOW
 #          being an empty list and does not need a try / except.
 #
 
@@ -140,9 +140,9 @@ print("{0:9} {1:>10} {2:>10} {3:>10} {4:>10}".format(
 for (i,c) in enumerate(wlan_exp_util.wlan_rates):
     retrans = tx_low_rate_counts[i] - tx_rate_counts[i]
     total_retrans  += retrans
-    
+
     print(" {0:2d} Mbps: {1:10} {2:10} {3:10} {4:>10.0f}".format(
-        int(c['rate']), 
+        int(c['rate']),
         tx_rate_counts[i],
         tx_low_rate_counts[i],
         retrans,
@@ -163,25 +163,25 @@ for tx in ['TX', 'TX_LOW']:
     if(tx in log_np.keys()):
         # Extract all OFDM transmissions
         log_tx = log_np[tx]
-    
+
         # Count number of packets transmitted to each unique address in the 'addr1' field
         tx_addrs_1 = log_tx['addr1']
         tx_counts = dict()
-    
+
         for addr in np.unique(tx_addrs_1):
             # Find indexes of all instances where addresses match
             #   np.squeeze here flattens the result to a 1-D array
             addr_idx = np.squeeze(tx_addrs_1 == addr)
-    
+
             # Count the number of packets (True values in index array) to this address
             tx_pkts_to_addr  = np.sum(addr_idx)
-    
+
             # Count the number of bytes to this address
             tx_bytes_to_addr = np.sum(log_tx['length'][addr_idx])
-    
+
             # Record the results in the output dictionary
             tx_counts[addr] = (tx_pkts_to_addr, tx_bytes_to_addr)
-    
+
         # Print the results
         if (tx == 'TX'):
             print("\nExample 2: Tx Counts (CPU High):");
@@ -192,13 +192,13 @@ for tx in ['TX', 'TX_LOW']:
             "# Pkts",
             "# Bytes",
             "MAC Addr Type"))
-    
+
         for k in sorted(tx_counts.keys()):
             # Use the string version of the MAC address as the key for readability
             print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-                wlan_exp_util.mac_addr_to_str(k), 
-                tx_counts[k][0], 
-                tx_counts[k][1], 
+                wlan_exp_util.mac_addr_to_str(k),
+                tx_counts[k][0],
+                tx_counts[k][1],
                 wlan_exp_util.mac_addr_desc(k)))
 
 #################################################################################################
@@ -245,9 +245,9 @@ if('RX_OFDM' in log_np.keys()):
     for k in sorted(rx_counts.keys()):
         # Use the string version of the MAC address as the key for readability
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-            wlan_exp_util.mac_addr_to_str(k), 
-            rx_counts[k][0], 
-            rx_counts[k][1], 
+            wlan_exp_util.mac_addr_to_str(k),
+            rx_counts[k][0],
+            rx_counts[k][1],
             wlan_exp_util.mac_addr_desc(k)))
 
 print('')
