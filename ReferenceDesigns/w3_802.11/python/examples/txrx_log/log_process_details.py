@@ -34,25 +34,36 @@ import wlan_exp.log.util_sample_data as sample_data_util
 # Process command line arguments
 #-----------------------------------------------------------------------------
 
-LOGFILE       = 'raw_log_dual_flow_ap.hdf5'
-logfile_error = False
+DEFAULT_LOGFILE = 'ap_two_node_two_flow_capture.hdf5'
+logfile_error   = False
 
 # Use log file given as command line argument, if present
 if(len(sys.argv) != 1):
-    LOGFILE = str(sys.argv[1])
+    cmd_arg_filename = str(sys.argv[1])
 
-# See if the command line argument was for a sample data file
-try:
-    LOGFILE = sample_data_util.get_sample_data_file(LOGFILE)
-except:
-    logfile_error = True
+    LOGFILE = cmd_arg_filename
+    # Check if the string argument matchs a local file
+    if not os.path.isfile(LOGFILE):
+        # User specified non-existant file - punt
+        logfile_error = True
 
-# Ensure the log file actually exists - quit immediately if not
-if ((not os.path.isfile(LOGFILE)) and logfile_error):
+else:
+    # No command line argument - check if default file name exists locally
+    LOGFILE = DEFAULT_LOGFILE
+
+    if not os.path.isfile(LOGFILE):
+        # No local file specified or found - check for matching sample data file
+        try:
+            LOGFILE = sample_data_util.get_sample_data_file(DEFAULT_LOGFILE)
+            print("Local log file not found - Using sample data file!")
+        except IOError as e:
+            logfile_error = True
+
+if logfile_error:
     print("ERROR: Logfile {0} not found".format(LOGFILE))
     sys.exit()
 else:
-    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(os.path.split(LOGFILE)[1], (os.path.getsize(LOGFILE)/1E6)))
+    print("Reading log file '{0}' ({1:5.1f} MB)\n".format(LOGFILE, (os.path.getsize(LOGFILE)/1E6)))
 
 
 #-----------------------------------------------------------------------------
