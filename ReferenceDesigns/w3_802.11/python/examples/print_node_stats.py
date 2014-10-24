@@ -31,7 +31,7 @@ import wlan_exp.util as wlan_exp_util
 
 # TOP Level script variables
 NETWORK                = '10.0.0.0'
-NODE_SERIAL_LIST       = ['W3-a-00183',]
+NODE_SERIAL_LIST       = ['W3-a-00001']
 PROMISCUOUS_STATISTICS = True
 CHANNEL = 6
 
