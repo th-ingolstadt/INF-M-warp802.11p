@@ -76,10 +76,6 @@ typedef struct{
 #define IPC_MBOX_MSG_ID(id) (IPC_MBOX_MSG_ID_DELIM | ((id) & 0xFFF))
 #define IPC_MBOX_MSG_ID_TO_MSG(id) (id) & 0xFFF
 
-typedef struct{
-	u32 slot_config; //FIXME: remove
-} ipc_config_mac;
-
 #define SLOT_CONFIG_RAND 0xFFFFFFFF
 
 typedef struct{
