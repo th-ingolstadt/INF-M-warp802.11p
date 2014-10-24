@@ -91,7 +91,7 @@ def tx_rate_index_to_str(index):
     """Convert a wlan_rates entry index to a string.
     
     Args:
-        index (int):  Index into wlan_rate array.    
+        index (int):  Index into wlan_rate array.
     
     Returns:
         output (str):  String representation of the 'rate' corresponding to the index
@@ -122,28 +122,58 @@ wlan_channel = [{'index' :   1, 'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz
                 {'index' :  48, 'channel' :  48, 'freq': 5240, 'desc' : '5 GHz Band'}]
 
 def find_channel_by_index(index):
-    """Return the wlan_channel entry for the given index."""
+    """Return the wlan_channel entry for the given index.
+    
+    Args:
+        index (int):  Index into wlan_rate array.    
+    
+    Returns:
+        channel (dict):  Channel dictionary corresponding to the index    
+    """
     return _find_param_by_index(index, wlan_channel, 'channel')
 
 # End def
 
 
 def find_channel_by_channel_number(channel_number):
-    """Return the wlan_channel entry for the given channel number."""
+    """Return the wlan_channel entry for the given channel number.
+    
+    Args:
+        channel_number (int):  Number of 802.11 channel
+            (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
+    
+    Returns:
+        channel (dict):  Channel dictionary corresponding to the channel number
+    """
     return _find_param_by_name('channel', channel_number, wlan_channel, 'channel')
 
 # End def
 
 
 def find_channel_by_freq(freq):
-    """Return the wlan_channel entry for the given frequency."""
+    """Return the wlan_channel entry for the given frequency.
+
+    Args:
+        freq (int):  Frequency (in MHz) of the channel
+            (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
+    
+    Returns:
+        channel (dict):  Channel dictionary corresponding to the frequency
+    """
     return _find_param_by_name('freq', freq, wlan_channel, 'channel')
 
 # End def
 
 
 def channel_to_str(channel):
-    """Convert a wlan_channel entry to a string."""
+    """Convert a wlan_channel entry to a string.
+
+    Args:
+        channel (dict):  Channel dictionary 
+    
+    Returns:
+        output (str):  String representation of the 'channel'    
+    """
     msg = ""
 
     if type(channel) is int:
@@ -162,7 +192,15 @@ def channel_to_str(channel):
 
 
 def channel_freq_to_str(freq):
-    """Convert a wlan_rates entry index to a string."""
+    """Convert a channel frequency to a channel string.
+
+    Args:
+        freq (int):  Frequency (in MHz) of the channel
+            (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
+    
+    Returns:
+        output (str):  String representation of the channel corresponding to 'freq'
+    """
     channel = find_channel_by_freq(freq)
     return channel_to_str(channel)
 
@@ -184,14 +222,28 @@ wlan_tx_ant_mode = [{'index' :  0x10, 'desc' : 'Tx SISO Antenna A'},
 
 
 def find_rx_ant_mode_by_index(index):
-    """Return the wlan_rx_ant_mode entry for the given index."""
+    """Return the wlan_rx_ant_mode entry for the given index.
+    
+    Args:
+        index (int):  Index into wlan_rx_ant_mode array.    
+    
+    Returns:
+        ant_mode (dict):  Antenna mode dictionary corresponding to the index    
+    """
     return _find_param_by_index(index, wlan_rx_ant_mode, 'rx antenna mode')
 
 # End def
 
 
 def rx_ant_mode_to_str(ant_mode):
-    """Convert a wlan_rx_ant_mode entry to a string."""
+    """Convert a wlan_rx_ant_mode entry to a string.
+
+    Args:
+        ant_mode (dict):  Antenna Mode dictionary 
+    
+    Returns:
+        output (str):  String representation of the 'ant_mode'
+    """
     msg = ""
     if type(ant_mode) is dict:
         msg += "{0}".format(ant_mode['desc'])
@@ -203,7 +255,14 @@ def rx_ant_mode_to_str(ant_mode):
 
 
 def rx_ant_mode_index_to_str(index):
-    """Convert a wlan_rx_ant_mode entry index to a string."""
+    """Convert a wlan_rx_ant_mode entry index to a string.
+
+    Args:
+        index (int):  Index into wlan_rx_ant_mode array.
+    
+    Returns:
+        output (str):  String representation of the antenna mode corresponding to 'index'
+    """
     ant_mode = find_rx_ant_mode_by_index(index)
     return rx_ant_mode_to_str(ant_mode)
 
@@ -211,14 +270,28 @@ def rx_ant_mode_index_to_str(index):
 
 
 def find_tx_ant_mode_by_index(index):
-    """Return the wlan_tx_ant_mode entry for the given index."""
+    """Return the wlan_tx_ant_mode entry for the given index.
+    
+    Args:
+        index (int):  Index into wlan_tx_ant_mode array.    
+    
+    Returns:
+        ant_mode (dict):  Antenna mode dictionary corresponding to the index    
+    """
     return _find_param_by_index(index, wlan_tx_ant_mode, 'tx antenna mode')
 
 # End def
 
 
 def tx_ant_mode_to_str(ant_mode):
-    """Convert a wlan_tx_ant_mode entry to a string."""
+    """Convert a wlan_tx_ant_mode entry to a string.
+
+    Args:
+        ant_mode (dict):  Antenna Mode dictionary 
+    
+    Returns:
+        output (str):  String representation of the 'ant_mode'
+    """
     msg = ""
     if type(ant_mode) is dict:
         msg += "{0}".format(ant_mode['desc'])
@@ -230,7 +303,14 @@ def tx_ant_mode_to_str(ant_mode):
 
 
 def tx_ant_mode_index_to_str(index):
-    """Convert a wlan_tx_ant_mode entry index to a string."""
+    """Convert a wlan_tx_ant_mode entry index to a string.
+
+    Args:
+        index (int):  Index into wlan_tx_ant_mode array.
+    
+    Returns:
+        output (str):  String representation of the antenna mode corresponding to 'index'
+    """
     ant_mode = find_tx_ant_mode_by_index(index)
     return tx_ant_mode_to_str(ant_mode)
 
