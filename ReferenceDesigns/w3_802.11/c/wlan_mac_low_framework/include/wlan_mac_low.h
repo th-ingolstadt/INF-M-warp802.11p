@@ -232,7 +232,6 @@ inline void wlan_mac_low_send_exception(u32 reason);
 inline void wlan_mac_low_poll_ipc_rx();
 void process_ipc_msg_from_high(wlan_ipc_msg* msg);
 void wlan_mac_low_set_time(u64 new_time);
-void process_config_mac(ipc_config_mac* config_mac);
 void wlan_mac_low_init_hw_info( u32 type );
 wlan_mac_hw_info* wlan_mac_low_get_hw_info();
 inline u32 wlan_mac_low_get_active_channel();

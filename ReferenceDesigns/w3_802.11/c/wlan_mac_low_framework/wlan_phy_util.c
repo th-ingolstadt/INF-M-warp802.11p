@@ -115,7 +115,6 @@ int w3_node_init() {
 		ret = XST_FAILURE;
 	}
 
-
 	//Initialize the EEPROM read/write core
 	iic_eeprom_init(EEPROM_BASEADDR, 0x64);
 
@@ -329,7 +328,7 @@ void wlan_phy_init() {
 	wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2);
 
 	//LTS correlation thresholds (low NSR, high SNR)
-	wlan_phy_rx_lts_corr_thresholds(12500, 12500); //FIXME
+	wlan_phy_rx_lts_corr_thresholds(12500, 12500);
 
 	//Configure RSSI pkt det
  	// RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)

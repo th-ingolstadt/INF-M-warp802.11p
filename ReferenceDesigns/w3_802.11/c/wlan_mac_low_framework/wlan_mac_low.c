@@ -405,7 +405,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				} else {
 					mac_param_band = RC_5GHZ;
 				}
-
 				radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
 				wlan_mac_reset_NAV_counter();
 
@@ -443,10 +442,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 		case IPC_MBOX_CONFIG_RX_ANT_MODE:
 			wlan_rx_config_ant_mode(ipc_msg_from_high_payload[0]);
-		break;
-
-		case IPC_MBOX_CONFIG_MAC:
-			process_config_mac((ipc_config_mac*)ipc_msg_from_high_payload);
 		break;
 
 		case IPC_MBOX_SET_TIME:
@@ -662,19 +657,6 @@ void wlan_mac_low_set_time(u64 new_time) {
 	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
 }
 
-
-/**
- * @brief Process MAC Configuration
- *
- * This function processes MAC configurations.
- *
- * @param ipc_config_mac config_mac
- *  - configuration struct
- * @return None
- */
-void process_config_mac(ipc_config_mac* config_mac){
-	//TODO
-}
 
 /**
  * @brief Initialize Hardware Info Struct
