@@ -230,7 +230,7 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 
 			if ( msg_cmd == CMD_PARAM_WRITE_VAL ) {
 				// Set the Channel
-				if (wlan_lib_channel_verify(temp) == 0){
+				if ( wlan_lib_channel_verify(temp) == 0 ){
 					// Send Channel Switch Announcement
 					//   NOTE:  We are not sending this at this time b/c it does not look like commercial
 					//       devices honor this message; The WARP nodes do not currently honor this message
@@ -238,6 +238,15 @@ int wlan_exp_node_ap_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, vo
 					// send_channel_switch_announcement( temp );
 
 					mac_param_chan = temp;
+					if(my_bss_info != NULL){
+						//The AP uses the value in my_bss_info->chan when constructing beacons and probe response,
+						//not mac_param_chan. In this Reference Design, mac_param_chan and my_bss_info are kept
+						//in lockstep. Keeping them as separate variables, however, allows for flexibility in an
+						//application where the AP wants to temporarily move to a different channel but not shift
+						//the whole BSS to that new channel. In this case, mac_param_chan would change independently
+						//of the channel within the bss_info.
+						my_bss_info->chan = mac_param_chan;
+					}
 					wlan_mac_high_set_channel( mac_param_chan );
 
 					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set Channel = %d\n", mac_param_chan);

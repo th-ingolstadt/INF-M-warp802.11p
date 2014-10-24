@@ -54,7 +54,7 @@
 #define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 #define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                   1
+#define  WLAN_DEFAULT_CHANNEL                   11
 #define  WLAN_DEFAULT_TX_PWR		            13
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU        100
@@ -834,7 +834,7 @@ void beacon_transmit() {
 			my_bss_info->capabilities,
 			strlen(my_bss_info->ssid),
 			(u8*)my_bss_info->ssid,
-			mac_param_chan);
+			my_bss_info->chan);
 
  		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
 
@@ -1238,7 +1238,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									                                 (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
 									                                 strlen(my_bss_info->ssid),
 									                                 (u8*)my_bss_info->ssid,
-									                                 mac_param_chan);
+									                                 my_bss_info->chan);
 
 							// Setup the TX frame info
 							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );

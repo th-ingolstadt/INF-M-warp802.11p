@@ -114,6 +114,10 @@ void uart_rx(u8 rxByte){
 						deauthenticate_stations();
 						(mac_param_chan--);
 
+						if(my_bss_info != NULL){
+							my_bss_info->chan = mac_param_chan;
+						}
+
 						//Send a message to other processor to tell it to switch channels
 						wlan_mac_high_set_channel( mac_param_chan );
 					} else {
@@ -127,6 +131,10 @@ void uart_rx(u8 rxByte){
 					if(mac_param_chan < 11){
 						deauthenticate_stations();
 						(mac_param_chan++);
+
+						if(my_bss_info != NULL){
+							my_bss_info->chan = mac_param_chan;
+						}
 
 						//Send a message to other processor to tell it to switch channels
 						wlan_mac_high_set_channel( mac_param_chan );
