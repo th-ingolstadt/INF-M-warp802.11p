@@ -15,24 +15,34 @@
 import os
 import sys
 
-try:
-  from mock import Mock as MagicMock
+#Some wlan_exp modules require numpy, but the Python environment
+# on the warpproject.org server doesn't have numpy (on purpose).
+# Numpy methods aren't actually called during autodoc, but a call
+# to 'import numpy' must succeed for autodoc to scan every wlan_exp
+# module successfully. Mock fixes this - see:
+# http://read-the-docs.readthedocs.org/en/latest/faq.html#i-get-import-errors-on-libraries-that-depend-on-c-modules
 
-  class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-            return Mock()
+# The server sets an environment variable BUILDING_DOCS_ON_SERVER when it runs post-svn-commit
+#  Mock the numpy import only on the server
+if os.environ.get('BUILDING_DOCS_ON_SERVER', False):
+  try:
+    from mock import Mock as MagicMock
 
-  MOCK_MODULES = ['numpy', 'pandas']
-  sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-except ImportError:
-  #mock wasn't installed - keep trying, will probably fail at actual numpy import
-  pass
+    class Mock(MagicMock):
+      @classmethod
+      def __getattr__(cls, name):
+              return Mock()
+
+    MOCK_MODULES = ['numpy', 'pandas']
+    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+  except ImportError:
+    #mock wasn't installed - keep trying, will probably fail at actual numpy import
+    pass
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-
 
 # -- General configuration ------------------------------------------------
 

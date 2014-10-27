@@ -57,7 +57,7 @@
 ..             ('field_B',                'H',      'uint16')])
 .. 
 """
-import sys
+import sys, os
 from struct import pack, unpack, calcsize, error
 
 
@@ -757,406 +757,413 @@ def extend_np_dt(dt_orig, new_fields=None):
 
 # End def
 
+# The code below runs when this module is imported to define each log entry type implemented
+#  in the reference design. However the append_field_defs method depends on numpy, which is
+#  not avaiable on the warpproject.org server, so this code will break autodoc as-is
+# The server sets an environment variable BUILDING_DOCS_ON_SERVER when it runs post-svn-commit
+#  Skip all code below if this variable is set
+if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
+
+    # -----------------------------------------------------------------------------
+    # NULL Log Entry Instance
+    # -----------------------------------------------------------------------------
+
+    # The NULL entry is used to "remove" an existing entry within the log.
+    #   By replacing the current entry type with the NULL entry type and zeroing
+    #   out all data following the header, we can effectively remove an entry
+    #   without changing the memory footprint of the log.  NULL entries will
+    #   be filtered and never show up in the raw_log_index.
+
+    entry_null = WlanExpLogEntryType(name='NULL', entry_type_id=ENTRY_TYPE_NULL)
+
+
+    # -----------------------------------------------------------------------------
+    # Virtual Log Entry Instances
+    # -----------------------------------------------------------------------------
+
+    ###########################################################################
+    # Rx Common
+    #
+    entry_rx_common = WlanExpLogEntryType(name='RX_ALL', entry_type_id=None)
+
+    entry_rx_common.description  = 'These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If '
+    entry_rx_common.description += 'the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-level '
+    entry_rx_common.description += 'MAC filter is configured to pass all receptions up to CPU High.'
+
+    entry_rx_common.append_field_defs([
+        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
+        ('length',                 'H',      'uint16',  'Length of payload in bytes'),
+        ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
+        ('power',                  'b',      'int8',    'Rx power in dBm'),
+        ('fcs_result',             'B',      'uint8',   'Checksum status, 0 = no errors'),
+        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+        ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
+        ('ant_mode',               'B',      'uint8',   'Antenna mode: [1,2,3,4] for SISO Rx on RF [A,B,C,D]'),
+        ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
+        ('bb_gain',                'B',      'uint8',   'AGC BB gain setting: [0:31] for approx [0:63]dB gain'),
+        ('flags',                  'H',      'uint16',  'Bit OR\'d flags: 0x1 = Rx was duplicate of previous Rx')])
+
+    entry_rx_common.consts['FCS_GOOD'] = 0
+    entry_rx_common.consts['FCS_BAD']  = 1
+    entry_rx_common.consts['FLAG_DUP'] = 0x4
+
+
+    ###########################################################################
+    # Tx CPU High Common
+    #
+    entry_tx_common = WlanExpLogEntryType(name='TX_ALL', entry_type_id=None)
+
+    entry_tx_common.description  = 'Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of '
+    entry_tx_common.description += 'actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue '
+    entry_tx_common.description += '(time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion '
+    entry_tx_common.description += '(time_to_accept+time_to_done).'
+
+    entry_tx_common.append_field_defs([
+        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet was created, immediately before it was enqueued'),
+        ('time_to_accept',         'I',      'uint32',  'Time duration in microseconds between packet creation and packet acceptance by CPU Low'),
+        ('time_to_done',           'I',      'uint32',  'Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low'),
+        ('uniq_seq',               'Q',      'uint64',  'Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number'),
+        ('num_tx',                 'B',      'uint8',   'Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)'),
+        ('tx_power',               'b',      'int8',    'Tx power in dBm of final Tx attempt'),
+        ('chan_num',               'B',      'uint8',   'Channel (center frequency) index of transmission'),
+        ('rate',                   'B',      'uint8',   'PHY rate index in [1:8] of final Tx attempt'),
+        ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
+        ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
+        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+        ('ant_mode',               'B',      'uint8',   'PHY antenna mode of final Tx attempt'),
+        ('queue_id',               'B',      'uint8',   'Tx queue ID from which the packet was retrieved'),
+        ('padding',                '2x',     '2uint8',  '')])
+
+    entry_tx_common.consts['SUCCESS'] = 0
+
+
+    ###########################################################################
+    # Tx CPU Low Common
+    #
+    entry_tx_low_common = WlanExpLogEntryType(name='TX_LOW_ALL', entry_type_id=None)
+
+    entry_tx_low_common.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries '
+    entry_tx_low_common.description += 'may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match '
+    entry_tx_low_common.description += 'between TX and TX_LOW entries to find records common to the same MPUD.'
+
+    entry_tx_low_common.append_field_defs([
+        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet transmission actually started (PHY TX_START time)'),
+        ('uniq_seq',               'Q',      'uint64',  'Unique sequence number of original MPDU'),
+        ('rate',                   'B',      'uint8',   'PHY rate index in [1:8]'),
+        ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [1:4]'),
+        ('tx_power',               'b',      'int8',    'Tx power in dBm'),
+        ('phy_flags',              'B',      'uint8',   'Tx PHY flags'),
+        ('tx_count',               'B',      'uint8',   'Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions'),
+        ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
+        ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
+        ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
+        ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
+        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+        ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
+        ('padding0',               'B',      'uint8',   ''),
+        ('padding1',               'B',      'uint8',   '')])
+
+
+    # -----------------------------------------------------------------------------
+    # Log Entry Type Instances
+    # -----------------------------------------------------------------------------
+
+    ###########################################################################
+    # Node Info
+    #
+    entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
+
+    entry_node_info.description = 'Details about the node hardware and its configuration. Node info values are static after boot.'
+
+    _node_info_node_types =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
+    _node_info_node_types += ' b0: Always 0x00\n'
+    _node_info_node_types += ' b1: Always 0x01 for 802.11 ref design nodes\n'
+    _node_info_node_types += ' b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS\n'
+    _node_info_node_types += ' b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC'
+
+    entry_node_info.append_field_defs([
+        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('node_type',              'I',      'uint32',  _node_info_node_types),
+        ('node_id',                'I',      'uint32',  'Node ID, as set during wlan_exp init'),
+        ('hw_generation',          'I',      'uint32',  'WARP hardware generation: 3 for WARP v3'),
+        ('wn_ver',                 'I',      'uint32',  'WARPnet version, as packed bytes [0 major minor rev]'),
+        ('fpga_dna',               'Q',      'uint64',  'DNA value of node FPGA'),
+        ('serial_num',             'I',      'uint32',  'Serial number of WARP board'),
+        ('wlan_exp_ver',           'I',      'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
+        ('wlan_mac_addr',          'Q',      'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
+        ('wlan_scheduler_resolution', 'I',   'uint32',  'Minimum interval in microseconds of the WLAN scheduler')])
+
+
+    ###########################################################################
+    # Experiment Info header - actual exp_info contains a "message" field that
+    #   follows this header. Since the message is variable length it is not described
+    #   in the fields list below. Full exp_info entries (header + message) must be extracted
+    #   directly by a user script.
+    #
+    entry_exp_info_hdr = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
+
+    entry_exp_info_hdr.description = 'Header for generic experiment info entries created by the user application. '
+    entry_exp_info_hdr.description += 'The payload of the EXP_INFO entry is not described by the Python entry type. User '
+    entry_exp_info_hdr.description += 'code must access the payload in the binary log data directly.'
+
+    entry_exp_info_hdr.append_field_defs([
+        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('info_type',              'H',      'uint16',  'Exp info type (arbitrary value supplied by application'),
+        ('info_len',               'H',      'uint16',  'Exp info length (describes arbitrary payload supplied by application'),
+        ('info_payload',           'I',      'uint32',  'Exp info payload')])
+
+
+    ###########################################################################
+    # Station Info
+    #
+    entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
+
+    entry_station_info.description  = 'Information about an 802.11 association. At the AP one STATION_INFO is created '
+    entry_station_info.description += 'for each associated STA and is logged whenever the STA association state changes. '
+    entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
+
+    entry_station_info.append_field_defs([
+        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('mac_addr',                    '6s',     '6uint8',  'MAC address of associated device'),
+        ('aid',                         'H',      'uint16',  'Association ID (AID) of device'),
+        ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
+        ('flags',                       'I',      'uint32',  'Association state flags: ???'),
+        ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last successful Rx from device'),
+        ('rx_last_seq',                 'H',      'uint16',  'Sequence number of last packet received from device'),
+        ('rx_last_power',               'b',      'int8',    'Rx power in dBm of last packet received from device'),
+        ('rx_last_rate',                'B',      'uint8',   'PHY rate index in [1:8] of last packet received from device'),
+        ('tx_phy_rate',                 'B',      'uint8',   'Current PHY rate index in [1:8] for new transmissions to device'),
+        ('tx_phy_antenna_mode',         'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
+        ('tx_phy_power',                'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
+        ('tx_phy_flags',                'B',      'uint8',   'Flags for Tx PHY config for new transmissions to deivce'),
+        ('tx_mac_num_tx_max',           'B',      'uint8',   'Maximum number of transmissions (original Tx + re-Tx) per MPDU to device'),
+        ('tx_mac_flags',                'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
+        ('padding',                     '2x',     'uint16',  '')])
+
+
+    ###########################################################################
+    # Basic Service Set (BSS) Info
+    #
+    entry_bss_info = WlanExpLogEntryType(name='BSS_INFO', entry_type_id=ENTRY_TYPE_BSS_INFO)
+
+    entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
+
+    entry_bss_info.append_field_defs([
+        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('bssid',                       '6s',     '6uint8',  'BSS ID'),
+        ('chan_num',                    'B',      'uint8',   'Channel (center frequency) index of transmission'),
+        ('flags',                       'B',      'uint8',   'BSS flags'),
+        ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
+        ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
+        ('state',                       'B',      'uint8',   'State of the BSS'),
+        ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
+        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
+        ('padding0',                    'x',      'uint8',   ''),
+        ('num_basic_rates',             'B',      'uint8',   'Number of basic rates supported'),
+        ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
+        ('padding1',                    '2x',     '2uint8',  '')])
+
+    entry_bss_info.consts['BSS_STATE_UNAUTHENTICATED'] = 1
+    entry_bss_info.consts['BSS_STATE_AUTHENTICATED']   = 2
+    entry_bss_info.consts['BSS_STATE_ASSOCIATED']      = 4
+    entry_bss_info.consts['BSS_STATE_OWNED']           = 5
+
+
+    ###########################################################################
+    # WARPNet Command Info
+    #
+    entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
+
+    entry_wn_cmd_info.description  = 'Record of a WARPnet / wlan_exp command received by the node. The full command payload '
+    entry_wn_cmd_info.description += 'is logged, including any (possibly personal-info-carrying) parameters like MAC addresses.'
+
+    entry_wn_cmd_info.append_field_defs([
+        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('command',                'I',      'uint32',  'WARPnet / wlan_exp command ID'),
+        ('src_id',                 'H',      'uint16',  'Node ID of device sending command'),
+        ('num_args',               'H',      'uint16',  'Number of arguments supplied in command'),
+        ('args',                   '10I',    '10uint32','Command arguments')])
+
+
+    ###########################################################################
+    # Time Info
+    #
+    entry_time_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
+
+    entry_time_info.description  = 'Record of a time base event at the node. This log entry is used to enable parsing of log data '
+    entry_time_info.description += 'recored before and after changes to the node\'s microsecond timer. This entry also allows a wlan_exp controler to '
+    entry_time_info.description += 'write the current absolute time to the node log without affecting the node\'s timer value. This enables adjustment '
+    entry_time_info.description += 'of log entry timestamps to real timestamps in post-proessing.'
+
+    entry_time_info.append_field_defs([
+        ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
+        ('time_id',                'I',      'uint32', 'Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes'),
+        ('reason',                 'I',      'uint32', 'Reason code for TIME_INFO log entry creation'),
+        ('new_time',               'Q',      'uint64', 'New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed'),
+        ('abs_time',               'Q',      'uint64', 'Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
+
+
+    ###########################################################################
+    # Temperature
+    #
+    entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
+
+    entry_node_temperature.description  = 'Record of the FPGA system monitor die temperature. This entry is only created when directed by a wlan_exp '
+    entry_node_temperature.description += 'command. Temperature values are stored as 32-bit unsigned integers. To convert to degrees Celcius, apply '
+    entry_node_temperature.description += '(((float)temp_u32)/(65536.0*0.00198421639)) - 273.15'
+
+    entry_node_temperature.append_field_defs([
+        ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
+        ('node_id',                'I',      'uint32', 'wlan_exp node ID'),
+        ('serial_num',             'I',      'uint32', 'Node serial number'),
+        ('temp_current',           'I',      'uint32', 'Current FPGA die temperature'),
+        ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature since FPGA configuration or sysmon reset'),
+        ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature since FPGA configuration or sysmon reset')])
+
 
-# -----------------------------------------------------------------------------
-# NULL Log Entry Instance
-# -----------------------------------------------------------------------------
-
-# The NULL entry is used to "remove" an existing entry within the log.
-#   By replacing the current entry type with the NULL entry type and zeroing
-#   out all data following the header, we can effectively remove an entry
-#   without changing the memory footprint of the log.  NULL entries will
-#   be filtered and never show up in the raw_log_index.
-
-entry_null = WlanExpLogEntryType(name='NULL', entry_type_id=ENTRY_TYPE_NULL)
-
-
-# -----------------------------------------------------------------------------
-# Virtual Log Entry Instances
-# -----------------------------------------------------------------------------
-
-###########################################################################
-# Rx Common
-#
-entry_rx_common = WlanExpLogEntryType(name='RX_ALL', entry_type_id=None)
-
-entry_rx_common.description  = 'These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If '
-entry_rx_common.description += 'the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-level '
-entry_rx_common.description += 'MAC filter is configured to pass all receptions up to CPU High.'
-
-entry_rx_common.append_field_defs([
-    ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
-    ('length',                 'H',      'uint16',  'Length of payload in bytes'),
-    ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
-    ('power',                  'b',      'int8',    'Rx power in dBm'),
-    ('fcs_result',             'B',      'uint8',   'Checksum status, 0 = no errors'),
-    ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
-    ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
-    ('ant_mode',               'B',      'uint8',   'Antenna mode: [1,2,3,4] for SISO Rx on RF [A,B,C,D]'),
-    ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
-    ('bb_gain',                'B',      'uint8',   'AGC BB gain setting: [0:31] for approx [0:63]dB gain'),
-    ('flags',                  'H',      'uint16',  'Bit OR\'d flags: 0x1 = Rx was duplicate of previous Rx')])
-
-entry_rx_common.consts['FCS_GOOD'] = 0
-entry_rx_common.consts['FCS_BAD']  = 1
-entry_rx_common.consts['FLAG_DUP'] = 0x4
-
-
-###########################################################################
-# Tx CPU High Common
-#
-entry_tx_common = WlanExpLogEntryType(name='TX_ALL', entry_type_id=None)
-
-entry_tx_common.description  = 'Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of '
-entry_tx_common.description += 'actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue '
-entry_tx_common.description += '(time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion '
-entry_tx_common.description += '(time_to_accept+time_to_done).'
-
-entry_tx_common.append_field_defs([
-    ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet was created, immediately before it was enqueued'),
-    ('time_to_accept',         'I',      'uint32',  'Time duration in microseconds between packet creation and packet acceptance by CPU Low'),
-    ('time_to_done',           'I',      'uint32',  'Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low'),
-    ('uniq_seq',               'Q',      'uint64',  'Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number'),
-    ('num_tx',                 'B',      'uint8',   'Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)'),
-    ('tx_power',               'b',      'int8',    'Tx power in dBm of final Tx attempt'),
-    ('chan_num',               'B',      'uint8',   'Channel (center frequency) index of transmission'),
-    ('rate',                   'B',      'uint8',   'PHY rate index in [1:8] of final Tx attempt'),
-    ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
-    ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
-    ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
-    ('ant_mode',               'B',      'uint8',   'PHY antenna mode of final Tx attempt'),
-    ('queue_id',               'B',      'uint8',   'Tx queue ID from which the packet was retrieved'),
-    ('padding',                '2x',     '2uint8',  '')])
-
-entry_tx_common.consts['SUCCESS'] = 0
-
-
-###########################################################################
-# Tx CPU Low Common
-#
-entry_tx_low_common = WlanExpLogEntryType(name='TX_LOW_ALL', entry_type_id=None)
-
-entry_tx_low_common.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries '
-entry_tx_low_common.description += 'may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match '
-entry_tx_low_common.description += 'between TX and TX_LOW entries to find records common to the same MPUD.'
-
-entry_tx_low_common.append_field_defs([
-    ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet transmission actually started (PHY TX_START time)'),
-    ('uniq_seq',               'Q',      'uint64',  'Unique sequence number of original MPDU'),
-    ('rate',                   'B',      'uint8',   'PHY rate index in [1:8]'),
-    ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [1:4]'),
-    ('tx_power',               'b',      'int8',    'Tx power in dBm'),
-    ('phy_flags',              'B',      'uint8',   'Tx PHY flags'),
-    ('tx_count',               'B',      'uint8',   'Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions'),
-    ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
-    ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
-    ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
-    ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
-    ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
-    ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
-    ('padding0',               'B',      'uint8',   ''),
-    ('padding1',               'B',      'uint8',   '')])
-
-
-# -----------------------------------------------------------------------------
-# Log Entry Type Instances
-# -----------------------------------------------------------------------------
-
-###########################################################################
-# Node Info
-#
-entry_node_info = WlanExpLogEntryType(name='NODE_INFO', entry_type_id=ENTRY_TYPE_NODE_INFO)
-
-entry_node_info.description = 'Details about the node hardware and its configuration. Node info values are static after boot.'
-
-_node_info_node_types =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
-_node_info_node_types += ' b0: Always 0x00\n'
-_node_info_node_types += ' b1: Always 0x01 for 802.11 ref design nodes\n'
-_node_info_node_types += ' b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS\n'
-_node_info_node_types += ' b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC'
-
-entry_node_info.append_field_defs([
-    ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-    ('node_type',              'I',      'uint32',  _node_info_node_types),
-    ('node_id',                'I',      'uint32',  'Node ID, as set during wlan_exp init'),
-    ('hw_generation',          'I',      'uint32',  'WARP hardware generation: 3 for WARP v3'),
-    ('wn_ver',                 'I',      'uint32',  'WARPnet version, as packed bytes [0 major minor rev]'),
-    ('fpga_dna',               'Q',      'uint64',  'DNA value of node FPGA'),
-    ('serial_num',             'I',      'uint32',  'Serial number of WARP board'),
-    ('wlan_exp_ver',           'I',      'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
-    ('wlan_mac_addr',          'Q',      'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
-    ('wlan_scheduler_resolution', 'I',   'uint32',  'Minimum interval in microseconds of the WLAN scheduler')])
-
-
-###########################################################################
-# Experiment Info header - actual exp_info contains a "message" field that
-#   follows this header. Since the message is variable length it is not described
-#   in the fields list below. Full exp_info entries (header + message) must be extracted
-#   directly by a user script.
-#
-entry_exp_info_hdr = WlanExpLogEntryType(name='EXP_INFO', entry_type_id=ENTRY_TYPE_EXP_INFO)
-
-entry_exp_info_hdr.description = 'Header for generic experiment info entries created by the user application. '
-entry_exp_info_hdr.description += 'The payload of the EXP_INFO entry is not described by the Python entry type. User '
-entry_exp_info_hdr.description += 'code must access the payload in the binary log data directly.'
-
-entry_exp_info_hdr.append_field_defs([
-    ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-    ('info_type',              'H',      'uint16',  'Exp info type (arbitrary value supplied by application'),
-    ('info_len',               'H',      'uint16',  'Exp info length (describes arbitrary payload supplied by application'),
-    ('info_payload',           'I',      'uint32',  'Exp info payload')])
-
-
-###########################################################################
-# Station Info
-#
-entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
-
-entry_station_info.description  = 'Information about an 802.11 association. At the AP one STATION_INFO is created '
-entry_station_info.description += 'for each associated STA and is logged whenever the STA association state changes. '
-entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
-
-entry_station_info.append_field_defs([
-    ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-    ('mac_addr',                    '6s',     '6uint8',  'MAC address of associated device'),
-    ('aid',                         'H',      'uint16',  'Association ID (AID) of device'),
-    ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
-    ('flags',                       'I',      'uint32',  'Association state flags: ???'),
-    ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last successful Rx from device'),
-    ('rx_last_seq',                 'H',      'uint16',  'Sequence number of last packet received from device'),
-    ('rx_last_power',               'b',      'int8',    'Rx power in dBm of last packet received from device'),
-    ('rx_last_rate',                'B',      'uint8',   'PHY rate index in [1:8] of last packet received from device'),
-    ('tx_phy_rate',                 'B',      'uint8',   'Current PHY rate index in [1:8] for new transmissions to device'),
-    ('tx_phy_antenna_mode',         'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
-    ('tx_phy_power',                'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
-    ('tx_phy_flags',                'B',      'uint8',   'Flags for Tx PHY config for new transmissions to deivce'),
-    ('tx_mac_num_tx_max',           'B',      'uint8',   'Maximum number of transmissions (original Tx + re-Tx) per MPDU to device'),
-    ('tx_mac_flags',                'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
-    ('padding',                     '2x',     'uint16',  '')])
-
-
-###########################################################################
-# Basic Service Set (BSS) Info
-#
-entry_bss_info = WlanExpLogEntryType(name='BSS_INFO', entry_type_id=ENTRY_TYPE_BSS_INFO)
-
-entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
-
-entry_bss_info.append_field_defs([
-    ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-    ('bssid',                       '6s',     '6uint8',  'BSS ID'),
-    ('chan_num',                    'B',      'uint8',   'Channel (center frequency) index of transmission'),
-    ('flags',                       'B',      'uint8',   'BSS flags'),
-    ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
-    ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-    ('state',                       'B',      'uint8',   'State of the BSS'),
-    ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
-    ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
-    ('padding0',                    'x',      'uint8',   ''),
-    ('num_basic_rates',             'B',      'uint8',   'Number of basic rates supported'),
-    ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
-    ('padding1',                    '2x',     '2uint8',  '')])
-
-entry_bss_info.consts['BSS_STATE_UNAUTHENTICATED'] = 1
-entry_bss_info.consts['BSS_STATE_AUTHENTICATED']   = 2
-entry_bss_info.consts['BSS_STATE_ASSOCIATED']      = 4
-entry_bss_info.consts['BSS_STATE_OWNED']           = 5
-
-
-###########################################################################
-# WARPNet Command Info
-#
-entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
-
-entry_wn_cmd_info.description  = 'Record of a WARPnet / wlan_exp command received by the node. The full command payload '
-entry_wn_cmd_info.description += 'is logged, including any (possibly personal-info-carrying) parameters like MAC addresses.'
-
-entry_wn_cmd_info.append_field_defs([
-    ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-    ('command',                'I',      'uint32',  'WARPnet / wlan_exp command ID'),
-    ('src_id',                 'H',      'uint16',  'Node ID of device sending command'),
-    ('num_args',               'H',      'uint16',  'Number of arguments supplied in command'),
-    ('args',                   '10I',    '10uint32','Command arguments')])
-
-
-###########################################################################
-# Time Info
-#
-entry_time_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
-
-entry_time_info.description  = 'Record of a time base event at the node. This log entry is used to enable parsing of log data '
-entry_time_info.description += 'recored before and after changes to the node\'s microsecond timer. This entry also allows a wlan_exp controler to '
-entry_time_info.description += 'write the current absolute time to the node log without affecting the node\'s timer value. This enables adjustment '
-entry_time_info.description += 'of log entry timestamps to real timestamps in post-proessing.'
-
-entry_time_info.append_field_defs([
-    ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
-    ('time_id',                'I',      'uint32', 'Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes'),
-    ('reason',                 'I',      'uint32', 'Reason code for TIME_INFO log entry creation'),
-    ('new_time',               'Q',      'uint64', 'New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed'),
-    ('abs_time',               'Q',      'uint64', 'Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
-
-
-###########################################################################
-# Temperature
-#
-entry_node_temperature = WlanExpLogEntryType(name='NODE_TEMPERATURE', entry_type_id=ENTRY_TYPE_NODE_TEMPERATURE)
+    ###########################################################################
+    # Receive OFDM
+    #
+    entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
 
-entry_node_temperature.description  = 'Record of the FPGA system monitor die temperature. This entry is only created when directed by a wlan_exp '
-entry_node_temperature.description += 'command. Temperature values are stored as 32-bit unsigned integers. To convert to degrees Celcius, apply '
-entry_node_temperature.description += '(((float)temp_u32)/(65536.0*0.00198421639)) - 273.15'
+    entry_rx_ofdm.description  = 'Rx events from OFDM PHY. ' + entry_rx_common.description
 
-entry_node_temperature.append_field_defs([
-    ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
-    ('node_id',                'I',      'uint32', 'wlan_exp node ID'),
-    ('serial_num',             'I',      'uint32', 'Node serial number'),
-    ('temp_current',           'I',      'uint32', 'Current FPGA die temperature'),
-    ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature since FPGA configuration or sysmon reset'),
-    ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature since FPGA configuration or sysmon reset')])
+    entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
+    entry_rx_ofdm.append_field_defs([
+        ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
+        ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+        ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 
+    entry_rx_ofdm.add_gen_numpy_array_callback(np_array_add_txrx_fields)
 
-###########################################################################
-# Receive OFDM
-#
-entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
+    entry_rx_ofdm.consts = entry_rx_common.consts.copy()
 
-entry_rx_ofdm.description  = 'Rx events from OFDM PHY. ' + entry_rx_common.description
 
-entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
-entry_rx_ofdm.append_field_defs([
-    ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
-    ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
-    ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
+    ###########################################################################
+    # Receive OFDM LTG packet
+    #
+    entry_rx_ofdm_ltg = WlanExpLogEntryType(name='RX_OFDM_LTG', entry_type_id=ENTRY_TYPE_RX_OFDM_LTG)
 
-entry_rx_ofdm.add_gen_numpy_array_callback(np_array_add_txrx_fields)
+    entry_rx_ofdm_ltg.description  = 'LTG ' + entry_rx_ofdm.description
 
-entry_rx_ofdm.consts = entry_rx_common.consts.copy()
+    entry_rx_ofdm_ltg.append_field_defs(entry_rx_common.get_field_defs())
+    entry_rx_ofdm_ltg.append_field_defs([
+        ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
+        ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+        ('mac_payload',            '44s',    '44uint8',     'First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID')])
 
+    entry_rx_ofdm_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
 
-###########################################################################
-# Receive OFDM LTG packet
-#
-entry_rx_ofdm_ltg = WlanExpLogEntryType(name='RX_OFDM_LTG', entry_type_id=ENTRY_TYPE_RX_OFDM_LTG)
+    entry_rx_ofdm_ltg.consts = entry_rx_common.consts.copy()
 
-entry_rx_ofdm_ltg.description  = 'LTG ' + entry_rx_ofdm.description
 
-entry_rx_ofdm_ltg.append_field_defs(entry_rx_common.get_field_defs())
-entry_rx_ofdm_ltg.append_field_defs([
-    ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
-    ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
-    ('mac_payload',            '44s',    '44uint8',     'First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID')])
+    ###########################################################################
+    # Receive DSSS
+    #
+    entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
+
+    entry_rx_dsss.description  = 'Rx events from DSSS PHY. ' + entry_rx_common.description
+
+    entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
+    entry_rx_dsss.append_field_defs([
+        ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+        ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
+
+    entry_rx_dsss.add_gen_numpy_array_callback(np_array_add_txrx_fields)
+
+    entry_rx_dsss.consts = entry_rx_common.consts.copy()
+
+
+    ###########################################################################
+    # Transmit from CPU High
+    #
+    entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
+
+    entry_tx.description  = entry_tx_common.description
+
+    entry_tx.append_field_defs(entry_tx_common.get_field_defs())
+    entry_tx.append_field_defs([
+        ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+        ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
+
+    entry_tx.add_gen_numpy_array_callback(np_array_add_txrx_fields)
+
+    entry_tx.consts = entry_tx_common.consts.copy()
+
+
+    ###########################################################################
+    # Transmit from CPU High LTG packet
+    #
+    entry_tx_ltg = WlanExpLogEntryType(name='TX_LTG', entry_type_id=ENTRY_TYPE_TX_LTG)
+
+    entry_tx_ltg.description  = entry_tx_common.description
+
+    entry_tx_ltg.append_field_defs(entry_tx_common.get_field_defs())
+    entry_tx_ltg.append_field_defs([
+        ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+        ('mac_payload',            '44s',    '44uint8',     'First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID')])
+
+    entry_tx_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
+
+    entry_tx_ltg.consts = entry_tx_common.consts.copy()
+
+
+    ###########################################################################
+    # Transmit from CPU Low
+    #
+    entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
+
+    entry_tx_low.description  = entry_tx_low_common.description
+
+    entry_tx_low.append_field_defs(entry_tx_low_common.get_field_defs())
+    entry_tx_low.append_field_defs([
+        ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+        ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
+
+    entry_tx_low.add_gen_numpy_array_callback(np_array_add_txrx_fields)
+
+
+    ###########################################################################
+    # Transmit from CPU Low LTG packet
+    #
+    entry_tx_low_ltg = WlanExpLogEntryType(name='TX_LOW_LTG', entry_type_id=ENTRY_TYPE_TX_LOW_LTG)
+
+    entry_tx_low_ltg.description  = entry_tx_low_common.description
+
+    entry_tx_low_ltg.append_field_defs(entry_tx_low_common.get_field_defs())
+    entry_tx_low_ltg.append_field_defs([
+        ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
+        ('mac_payload',            '44s',    '44uint8',     'First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID')])
+
+    entry_tx_low_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
+
+
+    ###########################################################################
+    # Tx / Rx Statistics
+    #
+    entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
+
+    entry_txrx_stats.description  = 'Copy of the Tx/Rx statistics struct maintained by CPU High. If promiscuous statistics mode is Tx/Rx stats structs will '
+    entry_txrx_stats.description += 'be maintained for every unique source MAC address, up to the max_stats value. Otherwise statistics are maintaind only '
+    entry_txrx_stats.description += 'associated nodes.'
+
+    entry_txrx_stats.append_field_defs([
+        ('timestamp',                      'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('mac_addr',                       '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
+        ('associated',                     'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
+        ('padding',                        'x',      'uint8',   ''),
+        ('data_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in DATA packets from remote node'),
+        ('data_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in DATA packets to remote node'),
+        ('data_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in DATA packets to remote node'),
+        ('data_num_rx_packets',            'I',      'uint32',  'Total number of DATA packets received from remote node'),
+        ('data_num_tx_packets_success',    'I',      'uint32',  'Total number of DATA packets successfully transmitted to remote node'),
+        ('data_num_tx_packets_total',      'I',      'uint32',  'Total number of DATA packets transmitted (successfully or not) to remote node'),
+        ('data_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)'),
+        ('mgmt_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),
+        ('mgmt_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in management packets to remote node'),
+        ('mgmt_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in management packets to remote node'),
+        ('mgmt_num_rx_packets',            'I',      'uint32',  'Total number of management packets received from remote node'),
+        ('mgmt_num_tx_packets_success',    'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
+        ('mgmt_num_tx_packets_total',      'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
+        ('mgmt_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of management packets to remote node (includes re-transmissions)')])
 
-entry_rx_ofdm_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
-
-entry_rx_ofdm_ltg.consts = entry_rx_common.consts.copy()
-
-
-###########################################################################
-# Receive DSSS
-#
-entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
-
-entry_rx_dsss.description  = 'Rx events from DSSS PHY. ' + entry_rx_common.description
-
-entry_rx_dsss.append_field_defs(entry_rx_common.get_field_defs())
-entry_rx_dsss.append_field_defs([
-    ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
-    ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
-
-entry_rx_dsss.add_gen_numpy_array_callback(np_array_add_txrx_fields)
-
-entry_rx_dsss.consts = entry_rx_common.consts.copy()
-
-
-###########################################################################
-# Transmit from CPU High
-#
-entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
-
-entry_tx.description  = entry_tx_common.description
-
-entry_tx.append_field_defs(entry_tx_common.get_field_defs())
-entry_tx.append_field_defs([
-    ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
-    ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
-
-entry_tx.add_gen_numpy_array_callback(np_array_add_txrx_fields)
-
-entry_tx.consts = entry_tx_common.consts.copy()
-
-
-###########################################################################
-# Transmit from CPU High LTG packet
-#
-entry_tx_ltg = WlanExpLogEntryType(name='TX_LTG', entry_type_id=ENTRY_TYPE_TX_LTG)
-
-entry_tx_ltg.description  = entry_tx_common.description
-
-entry_tx_ltg.append_field_defs(entry_tx_common.get_field_defs())
-entry_tx_ltg.append_field_defs([
-    ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
-    ('mac_payload',            '44s',    '44uint8',     'First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID')])
-
-entry_tx_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
-
-entry_tx_ltg.consts = entry_tx_common.consts.copy()
-
-
-###########################################################################
-# Transmit from CPU Low
-#
-entry_tx_low = WlanExpLogEntryType(name='TX_LOW', entry_type_id=ENTRY_TYPE_TX_LOW)
-
-entry_tx_low.description  = entry_tx_low_common.description
-
-entry_tx_low.append_field_defs(entry_tx_low_common.get_field_defs())
-entry_tx_low.append_field_defs([
-    ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
-    ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
-
-entry_tx_low.add_gen_numpy_array_callback(np_array_add_txrx_fields)
-
-
-###########################################################################
-# Transmit from CPU Low LTG packet
-#
-entry_tx_low_ltg = WlanExpLogEntryType(name='TX_LOW_LTG', entry_type_id=ENTRY_TYPE_TX_LOW_LTG)
-
-entry_tx_low_ltg.description  = entry_tx_low_common.description
-
-entry_tx_low_ltg.append_field_defs(entry_tx_low_common.get_field_defs())
-entry_tx_low_ltg.append_field_defs([
-    ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
-    ('mac_payload',            '44s',    '44uint8',     'First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID')])
-
-entry_tx_low_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
-
-
-###########################################################################
-# Tx / Rx Statistics
-#
-entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
-
-entry_txrx_stats.description  = 'Copy of the Tx/Rx statistics struct maintained by CPU High. If promiscuous statistics mode is Tx/Rx stats structs will '
-entry_txrx_stats.description += 'be maintained for every unique source MAC address, up to the max_stats value. Otherwise statistics are maintaind only '
-entry_txrx_stats.description += 'associated nodes.'
-
-entry_txrx_stats.append_field_defs([
-    ('timestamp',                      'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-    ('mac_addr',                       '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
-    ('associated',                     'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
-    ('padding',                        'x',      'uint8',   ''),
-    ('data_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in DATA packets from remote node'),
-    ('data_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in DATA packets to remote node'),
-    ('data_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in DATA packets to remote node'),
-    ('data_num_rx_packets',            'I',      'uint32',  'Total number of DATA packets received from remote node'),
-    ('data_num_tx_packets_success',    'I',      'uint32',  'Total number of DATA packets successfully transmitted to remote node'),
-    ('data_num_tx_packets_total',      'I',      'uint32',  'Total number of DATA packets transmitted (successfully or not) to remote node'),
-    ('data_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)'),
-    ('mgmt_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),
-    ('mgmt_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in management packets to remote node'),
-    ('mgmt_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in management packets to remote node'),
-    ('mgmt_num_rx_packets',            'I',      'uint32',  'Total number of management packets received from remote node'),
-    ('mgmt_num_tx_packets_success',    'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
-    ('mgmt_num_tx_packets_total',      'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
-    ('mgmt_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of management packets to remote node (includes re-transmissions)')])
