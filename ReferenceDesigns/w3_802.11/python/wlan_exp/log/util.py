@@ -1,42 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Log Utility
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
-------------------------------------------------------------------------------
-
-This module provides utility functions for handling WLAN Exp log data.
-
-Naming convention:
-
-  log_data       -- The binary data from a WLAN Exp node's log.
-
-  raw_log_index  -- This is an index that has not been interpreted / filtered
-                    and corresponds 1-to-1 with what is in given log_data.
-                    The defining characteristic of a raw_log_index is that
-                    the dictionary keys are all integers:
-                      { <int> : [<offsets>] }
-
-  log_index      -- A log_index is any index that is not a raw_log_index.  In
-                    general, this will be a interpreted / filtered version of
-                    a raw_log_index.
-
-  numpy          -- A python package that allows easy and fast manipulation of
-                    large data sets.  You can find more documentaiton on numpy at:
-                        http://www.numpy.org/
-----
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Log Utility
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  1/23/14  Initial release
+.. ------------------------------------------------------------------------------
+.. 
+.. This module provides utility functions for handling WLAN Exp log data.
+.. 
+.. Naming convention::
+..     log_data       -- The binary data from a WLAN Exp node's log.
+..     
+..     raw_log_index  -- This is an index that has not been interpreted / filtered
+..                       and corresponds 1-to-1 with what is in given log_data.
+..                       The defining characteristic of a raw_log_index is that
+..                       the dictionary keys are all integers:
+..                         { <int> : [<offsets>] }
+..     
+..     log_index      -- A log_index is any index that is not a raw_log_index.  In
+..                       general, this will be a interpreted / filtered version of
+..                       a raw_log_index.
+..     
+..     numpy          -- A python package that allows easy and fast manipulation of
+..                       large data sets.  You can find more documentaiton on numpy at:
+..                           http://www.numpy.org/
 """
 
 __all__ = ['gen_raw_log_index',
@@ -96,21 +93,29 @@ class LogContainer(object):
 # WLAN Exp Log Utilities
 # -----------------------------------------------------------------------------
 def gen_raw_log_index(log_data):
-    """Parses binary WLAN Exp log data by recording the byte index of each
-    entry. The byte indexes are returned in a dictionary with the entry
-    type IDs as keys. This method does not unpack or interpret each log
-    entry and does not change any values in the log file itself (the
-    log_data array argument can be read-only).
+    """Parses binary WLAN Exp log data by recording the byte index of each entry. 
+
+    Args:
+        log_data (bytes):  Binary data from a WlanExpNode log
+    
+    Returns:
+        raw_log_index (dict):  
+            Dictionary that corresponds 1-to-1 with what is in the given log_data of the
+            form:  ``{ <int> : [<offsets>] }``
+    
+    The byte indexes are returned in a dictionary with the entry type IDs as keys. This 
+    method does not unpack or interpret each log entry and does not change any values 
+    in the log file itself (the log_data array argument can be read-only).
 
     Format of log entry header:
-
+    ::
         typedef struct{
             u32 delimiter;
             u16 entry_type;
             u16 entry_length;
         } entry_header;
 
-    fmt_log_hdr = 'I H H' #if we were using struct.unpack
+        fmt_log_hdr = 'I H H' # If we were using struct.unpack    
     """
 
     offset         = 0
@@ -190,98 +195,99 @@ def gen_raw_log_index(log_data):
 def filter_log_index(log_index, include_only=None, exclude=None, merge=None, verbose=False):
     """Parses a log index to generate a filtered log index.
 
+    Args:
+        log_index (dict):  Log index dictionary (can be either a 'raw_log_index' or a 
+            previously processed 'log_index')
+        include_only (list of WlanExpLogEntryType, optional):  All WlanExpLogEntryType to 
+            include in the output log index.  This takes precedence over 'exclude'.
+        exclude (list of WlanExpLogEntryType, optional):       All WlanExpLogEntryType to 
+            exclude in the output log index.  This will not be used if include != None.
+        merge (dict, optional):  Dictionary of the form:  
+            ``{'WlanExpLogEntryType name': [List of 'WlanExpLogEntryTypes name' to merge]}``
+
+    Returns:
+        log_index (dict):  Filtered log index dictionary based on the given parameters
+            
+
     Consumers, in general, cannot operate on a raw log index since that has
     not been converted in to log entry types.  The besides filtering a log
     index, this method will also convert any raw index entries (ie entries
     with keys of type int) in to the corresponding WlanExpLogEntryTypes.
 
-    Attributes:
-        include_only -- List of WlanExpLogEntryTypes to include in the output
-                        log index.  This takes precedence over 'exclude'.
-        exclude      -- List of WlanExpLogEntryTypes to exclude in the output
-                        log index.  This will not be used if include != None.
-        merge        -- A dictionary of the form:
-
-    {'WlanExpLogEntryType name': [List of 'WlanExpLogEntryTypes name' to merge]}
-
-    By using the 'merge', we are able to combine the indexes of
-    WlanExpLogEntryTypes to create super-sets of entries.  For example,
-    we could create a log index that contains all the receive events:
-        {'RX_ALL': ['RX_OFDM', 'RX_DSSS']}
-    as long as the names 'RX_ALL', 'RX_OFDM', and 'RX_DSSS' are valid
-    WlanExpLogEntryTypes.
+    By using the 'merge', we are able to combine the indexes of WlanExpLogEntryTypes to 
+    create super-sets of entries.  For example, we could create a log index that 
+    contains all the receive events: ``{'RX_ALL': ['RX_OFDM', 'RX_DSSS']}``
+    as long as the names 'RX_ALL', 'RX_OFDM', and 'RX_DSSS' are valid WlanExpLogEntryTypes.
 
     The filter follows the following basic rules:
-        1) Every requested output (either through 'include_only' or 'merge')
-             has a key in the output dictionary
-        2) All input and output keys must refer to the 'name' property of
-             valid WlanExpLogEntryType instances
+        #. Every requested output (either through 'include_only' or 'merge') has a key in the output dictionary
+        #. All input and output keys must refer to the 'name' property of valid WlanExpLogEntryType instances
 
-    For example, assume:
-      - 'A', 'B', 'C', 'D', 'M' are valid WlanExpLogEntryType instance names
-      - The log_index = {'A': [A0, A1, A2], 'B': [B0, B1], 'C': []}
+    **Examples:**
 
-    'include_only' behavior:
+    Assume:
+            - 'A', 'B', 'C', 'D', 'M' are valid WlanExpLogEntryType instance names
+            - The log_index = {'A': [A0, A1, A2], 'B': [B0, B1], 'C': []}
 
-        x = filter_log_index(log_index, include_only=['A'])
-        x == {'A': [A0, A1, A2]}
+    * **include_only**:  
+        All names specified in 'include_only' are included as part of the
+        output dictionary.  It is then up to the consumer to check if the
+        number of entries for a given 'name' is zero (ie the list is empty).
+        ::
+            x = filter_log_index(log_index, include_only=['A'])
+            x == {'A': [A0, A1, A2]}
 
-        x = filter_log_index(log_index, include_only=['A',B'])
-        x == {'A': [A0, A1, A2], 'B': [B0, B1]}
+            x = filter_log_index(log_index, include_only=['A',B'])
+            x == {'A': [A0, A1, A2], 'B': [B0, B1]}
 
-        x = filter_log_index(log_index, include_only=['C'])
-        x == {'C': []]}
+            x = filter_log_index(log_index, include_only=['C'])
+            x == {'C': []]}
 
-        x = filter_log_index(log_index, include_only=['D'])
-        x == {'D': []]}
+            x = filter_log_index(log_index, include_only=['D'])
+            x == {'D': []]}
 
-    All names specified in 'include_only' are included as part of the
-    output dictionary.  It is then up to the consumer to check if the
-    number of entries for a given 'name' is zero (ie the list is empty).
+    * **exclude**:
+        All names specified in 'exclude' are removed from the output dictionary.
+        However, there is no guarentee what other WlanExpLogEntryTypes are in
+        the output dictionary.  That depends on the entries in the input log index.
+        ::
+            x = filter_log_index(log_index, exclude=['B'])
+            x == {'A': [A0, A1, A2]}, 'C': []}
 
-    'exclude' behavior:
+            x = filter_log_index(log_index, exclude=['D'])
+            WARNING:  D does not exist in log index.  Ignoring for exclude.
+            x == {'A': [A0, A1, A2]}, 'B': [B0, B1], 'C': []}
 
-        x = filter_log_index(log_index, exclude=['B'])
-        x == {'A': [A0, A1, A2]}, 'C': []}
+    * **merge**:
+        All names specified in the 'merge' are included as part of the output
+        dictionary.  It is then up to the consumer to check if the number of
+        entries for a given 'name' is zero (ie the list is empty).
+        ::
+            x = filter_log_index(log_index, merge={'D': ['A', 'B']}
+            x == {'A': [A0, A1, A2],
+                  'B': [B0, B1],
+                  'C': [],
+                  'D': [A0, A1, A2, B0, B1]}
 
-        x = filter_log_index(log_index, exclude=['D'])
-        WARNING:  D does not exist in log index.  Ignoring for exclude.
-        x == {'A': [A0, A1, A2]}, 'B': [B0, B1], 'C': []}
+            x = filter_log_index(log_index, merge={'M': ['C', 'D']}
+            x == {'A': [A0,A1,A2]},
+                  'B': [B0,B1],
+                  'C': [],
+                  'M': []}
 
-    All names specified in 'exclude' are removed from the output dictionary.
-    However, there is no guarentee what other WlanExpLogEntryTypes are in
-    the output dictionary.  That depends on the entries in the input log index.
+    * **Combined**:
+        Combining the behavior of 'include_only', 'exclude', and 'merge'
+        ::
+            x = filter_log_index(log_index, include_only=['M'], merge={'M': ['A','C']}
+            x == {'M': [A0, A1, A2]}
 
-    'merge' behavior:
+            x = filter_log_index(log_index, include_only=['M'], merge={'M': ['A','D']}
+            WARNING:  D does not exist in log index.  Ignoring for merge.
+            x == {'M': [A0, A1, A2]}
 
-        x = filter_log_index(log_index, merge={'D': ['A', 'B']}
-        x == {'A': [A0, A1, A2],
-              'B': [B0, B1],
-              'C': [],
-              'D': [A0, A1, A2, B0, B1]}
-
-        x = filter_log_index(log_index, merge={'M': ['C', 'D']}
-        x == {'A': [A0,A1,A2]},
-              'B': [B0,B1],
-              'C': [],
-              'M': []}
-
-    All names specified in the 'merge' are included as part of the output
-    dictionary.  It is then up to the consumer to check if the number of
-    entries for a given 'name' is zero (ie the list is empty).
-
-    Combined behavior:
-
-        x = filter_log_index(log_index, include_only=['M'], merge={'M': ['A','C']}
-        x == {'M': [A0, A1, A2]}
-
-        x = filter_log_index(log_index, include_only=['M'], merge={'M': ['A','D']}
-        WARNING:  D does not exist in log index.  Ignoring for merge.
-        x == {'M': [A0, A1, A2]}
-
-        x = filter_log_index(log_index, include_only=['M'], merge={'M': ['C','D']}
-        WARNING:  D does not exist in log index.  Ignoring for merge.
-        x == {'M': []}
+            x = filter_log_index(log_index, include_only=['M'], merge={'M': ['C','D']}
+            WARNING:  D does not exist in log index.  Ignoring for merge.
+            x == {'M': []}
     """
     from .entry_types import log_entry_types
 

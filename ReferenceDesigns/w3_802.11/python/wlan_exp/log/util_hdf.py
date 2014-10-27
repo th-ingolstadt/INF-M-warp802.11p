@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Log HDF5 Utilities
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  03/21/14 Initial release
-
-------------------------------------------------------------------------------
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Log HDF5 Utilities
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  1/23/14  Initial release
+.. ------------------------------------------------------------------------------
 
 This module provides utility functions for HDF to handle WLAN Exp log data.
 

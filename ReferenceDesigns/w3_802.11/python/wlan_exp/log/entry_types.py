@@ -1,62 +1,61 @@
 # -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Log Entry Types
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
-------------------------------------------------------------------------------
-
-This module defines each type of log entry that may exist
-in the event log of an 802.11 Reference Design Node.
-
-The log entry definitions in this file must match the corresponding
-definitions in the wlan_mac_entries.h header file in the C code
-running on the node.
-
-This module maintains a dictionary which contains a reference to each
-known log entry type. This dictionary is stored in the variable
-``wlan_exp_log_entry_types``. The :class:`WlanExpLogEntryType` constructor
-automatically adds each log entry type definition to this dictionary. Users
-may access the dictionary to view currently defined log entry types. But
-user code should not modify the dictionary contents directly.
-
-Custom Log Entry Types
-----------------------
-The :mod:`log_entries` module includes definitions for the log entry types
-implemented in the current 802.11 Reference Design C code.
-
-Log entry types defined here must match the corresponding entry definitions in
-the node C code.  Custom entries can be defined and added to the global
-dictionary by user scripts.
-
-Log entry type definitions are instances of the :class:`WlanExpLogEntryType`
-class. The :class:`WlanExpLogEntryType` constructor requires two arguments:
-``name`` and ``entry_type_id``.  Both the name and entry type ID **must** be
-unique relative to the existing entry types defined in :mod:`log_entries`.
-
-To define a custom log entry type::
-
-    import wlan_exp.log.entry_types as entry_types
-
-    #name and entry_type_id must not collide with existing log entry type definitions
-    my_entry_type = entry_types.WlanExpLogEntryType(name='MY_ENTRY', entry_type_id=999)
-    my_entry_type.append_field_defs([
-            ('timestamp',              'Q',      'uint64'),
-            ('field_A',                'H',      'uint16'),
-            ('field_B',                'H',      'uint16')])
-
-----
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Log HDF5 Utilities
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  1/23/14  Initial release
+.. ------------------------------------------------------------------------------
+.. 
+.. This module defines each type of log entry that may exist in the event log of 
+.. an 802.11 Reference Design Node.
+.. 
+.. The log entry definitions in this file must match the corresponding
+.. definitions in the wlan_mac_entries.h header file in the C code
+.. running on the node.
+.. 
+.. This module maintains a dictionary which contains a reference to each
+.. known log entry type. This dictionary is stored in the variable
+.. ``wlan_exp_log_entry_types``. The :class:`WlanExpLogEntryType` constructor
+.. automatically adds each log entry type definition to this dictionary. Users
+.. may access the dictionary to view currently defined log entry types. But
+.. user code should not modify the dictionary contents directly.
+.. 
+.. 
+.. Custom Log Entry Types
+.. ----------------------
+.. The :mod:`log_entries` module includes definitions for the log entry types
+.. implemented in the current 802.11 Reference Design C code.
+.. 
+.. Log entry types defined here must match the corresponding entry definitions in
+.. the node C code.  Custom entries can be defined and added to the global
+.. dictionary by user scripts.
+.. 
+.. Log entry type definitions are instances of the :class:`WlanExpLogEntryType`
+.. class. The :class:`WlanExpLogEntryType` constructor requires two arguments:
+.. ``name`` and ``entry_type_id``.  Both the name and entry type ID **must** be
+.. unique relative to the existing entry types defined in :mod:`log_entries`.
+.. 
+.. To define a custom log entry type::
+.. 
+..     import wlan_exp.log.entry_types as entry_types
+.. 
+..     #name and entry_type_id must not collide with existing log entry type definitions
+..     my_entry_type = entry_types.WlanExpLogEntryType(name='MY_ENTRY', entry_type_id=999)
+..     my_entry_type.append_field_defs([
+..             ('timestamp',              'Q',      'uint64'),
+..             ('field_A',                'H',      'uint16'),
+..             ('field_B',                'H',      'uint16')])
+.. 
 """
 import sys
 from struct import pack, unpack, calcsize, error
@@ -106,7 +105,7 @@ log_entry_types          = dict()
 # -----------------------------------------------------------------------------
 
 class WlanExpLogEntryType(object):
-    """Base class to define a log entry type."""
+    """Class to define a log entry type."""
     # _fields is a list of 3-tuples:
     #     (field_name, field_fmt_struct, field_fmt_np)
     _fields             = None
@@ -164,27 +163,43 @@ class WlanExpLogEntryType(object):
     # Accessor methods for the WlanExpLogEntryType
     # -------------------------------------------------------------------------
     def get_field_names(self):
+        """Get the field names of the log entry.
+        
+        Returns:
+            names (list of str):  List of string field names for the entry
+        """
         return [f[0] for f in self._fields]
 
     def get_field_struct_formats(self):
+        """Get the Python struct format of the log entry fields.
+        
+        Returns:
+            formats (list of str):  List of Python struct formats for the fields in the log entry
+        """
         return [f[1] for f in self._fields]
 
     def get_field_defs(self):          return self._fields
 
     def get_field_offsets(self):       return self._field_offsets
 
-    def get_entry_type_id(self):       return self.entry_type_id
+    def get_entry_type_id(self):
+        """Get the ID for the entry type.
+        
+        Returns:
+            ID (int):  Integer ID for the log entry
+        """
+        return self.entry_type_id
 
     def append_field_defs(self, field_info):
         """Adds fields to the definition of the log entry type.
 
-        Arg ``field_info`` must be a list of 3-tuples. Each 3-tuple must be of the form
-        ``(field_name, field_type_struct, field_type_numpy)`` where:
-
-        * ``field_name``: Name of field as string
-        * ``field_type_struct``: Field type as string, using formats specified by ``struct`` module
-        * ``field_type_numpy``: Field type as string, using formats specified by numpy ``dtype``
-        * ``field_desc``: String describing the field's meaning, used to generate wiki docs
+        Args:
+            field_info (list of tuple):  Each must be of the form 
+                ``(field_name, field_type_struct, field_type_numpy)`` where:
+                    * ``field_name``: Name of field as string
+                    * ``field_type_struct``: Field type as string, using formats specified by ``struct`` module
+                    * ``field_type_numpy``: Field type as string, using formats specified by numpy ``dtype``
+                    * ``field_desc``: String describing the field's meaning, used to generate wiki docs
         """
         if type(field_info) is list:
             self._fields.extend(field_info)
@@ -196,11 +211,11 @@ class WlanExpLogEntryType(object):
     def modify_field_def(self, name, struct_type, numpy_type, doc_str=None):
         """Modifies fields of the definition of the log entry type.
 
-        Attributes:
-            name         -- Name of field to modify
-            struct_type  -- New struct type for the field
-            numpy_type   -- New numpy type for the field
-            doc_str      -- New documentation string (optional)
+        Args:
+            name (str):              Name of field to modify
+            struct_type (str):       New Python struct type for the field
+            numpy_type (str):        New numpy type for the field
+            doc_str (str, optional): New documentation string
         """
         index = None
 
@@ -221,7 +236,13 @@ class WlanExpLogEntryType(object):
 
 
     def add_gen_numpy_array_callback(self, callback):
-        """Add callback that is run after the numpy array is generated from the entry type."""
+        """Add callback that is run after the numpy array is generated from the entry type.
+        
+        Args:
+            callback (function):  Function to run after the numpy array is generated
+        
+        .. note:: The callbacks will be executed in the order the are added to the log entry
+        """
         if callable(callback):
             self.gen_numpy_callbacks.append(callback)
         else:
@@ -231,13 +252,13 @@ class WlanExpLogEntryType(object):
     # -------------------------------------------------------------------------
     # Utility methods for the WlanExpLogEntryType
     # -------------------------------------------------------------------------
-    def generate_numpy_array(self, log_bytes, byte_offsets):
-        """Generate a NumPy array from the log_bytes of the given
-        WlanExpLogEntryType instance at the given byte_offsets.
+    def generate_numpy_array(self, log_data, byte_offsets):
+        """Generate a NumPy array from the log_bytes of the given WlanExpLogEntryType instance 
+        at the given byte_offsets.
         """
         import numpy as np
 
-        index_iter = [log_bytes[o : o + self.fields_np_dt.itemsize] for o in byte_offsets]
+        index_iter = [log_data[o : o + self.fields_np_dt.itemsize] for o in byte_offsets]
         np_arr = np.fromiter(index_iter, self.fields_np_dt, len(byte_offsets))
 
         if self.gen_numpy_callbacks:
@@ -246,7 +267,9 @@ class WlanExpLogEntryType(object):
 
         return np_arr
 
+
     def generate_entry_doc(self, fmt='wiki'):
+        """Generate wiki documentation."""
         import textwrap
 
         field_descs = list()
@@ -338,8 +361,8 @@ class WlanExpLogEntryType(object):
         be used for debugging log data parsing and log index generation, not for general creation
         of text log files.
 
-        NOTE:  This method does not work correctly on RX_OFDM entries due to the way the channel
-        estimates are defined.  The channel_est, mac_payload_len, and mac_payload will all be zeros.
+        .. note::  This method does not work correctly on RX_OFDM entries due to the way the channel
+            estimates are defined.  The channel_est, mac_payload_len, and mac_payload will all be zeros.
         """
         entry_size = calcsize(self.fields_fmt_struct)
         entry      = self.deserialize(buf[0:entry_size])[0]
@@ -391,13 +414,12 @@ class WlanExpLogEntryType(object):
         """Unpacks one or more raw log entries of the same type into a list of dictionaries
 
         Args:
-            buf (bytearray): Array of raw log data containing 1 or more log entries
-            of the same type.
+            buf (bytearray): Array of raw log data containing 1 or more log entries of the same type.
 
         Returns:
-            List of dictoinaries. Each dictionary has one value per field in the
-            log entry definition using the field names as keys.
-
+            entries (List of dict):  
+                Each dictionary in the list has one value per field in the log entry definition using 
+                the field names as keys.
         """
         from collections import OrderedDict
 
@@ -433,7 +455,7 @@ class WlanExpLogEntryType(object):
             entry_list (dictionary):  Array of dictionaries for 1 or more log entries of the same type
 
         Returns:
-            Bytearray of packed data.
+            data (bytearray):  Bytearray of packed binary data
         """
         length     = 1
         ret_val    = ""
@@ -557,30 +579,42 @@ class WlanExpLogEntryType(object):
 # End class
 
 
-def np_array_add_txrx_ltg_fields(np_arr_orig=None, docs_only=False):
+def np_array_add_txrx_ltg_fields(np_arr_orig, docs_only=False):
     """Add 'virtual' fields to TX/RX LTG packets."""
     return np_array_add_fields(np_arr_orig, mac_addr=True, ltg=True, docs_only=docs_only)
 
 # End def
 
 
-def np_array_add_txrx_fields(np_arr_orig=None, docs_only=False):
+def np_array_add_txrx_fields(np_arr_orig, docs_only=False):
     """Add 'virtual' fields to TX/RX packets."""
     return np_array_add_fields(np_arr_orig, mac_addr=True, ltg=False, docs_only=docs_only)
 
 # End def
 
 
-def np_array_add_fields(np_arr_orig=None, mac_addr=False, ltg=False, docs_only=False):
+def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False, docs_only=False):
     """Add 'virtual' fields to the numpy array.
 
+    Args:
+        np_arr_orig (Numpy Array):  Numpy array to extend
+        mac_addr (bool, optional):  Add MAC address information to the numpy array?
+        ltg (bool, optional):       Add LTG information ot the numpy array?
+        docs_only (bool):           Only generate documentation strings for virtual fields?
+            If this is True, then only documentation strings are returned.
+
+    Returns:
+        np_array (Numpy Array):     Updated numpy array
+
     Extend the default np_arr with convenience fields for:
-        - MAC header addresses
-        - LTG packet information
+        * MAC header addresses
+        * LTG packet information
 
     IMPORTANT: np_arr uses the original bytearray as its underlying data
     We must operate on a copy to avoid clobbering log entries adjacent to the
-    Tx or Rx entries being extended
+    Tx or Rx entries being extended.
+    
+    .. note:: This is an example of a gen_numpy_array_callback
     """
     import numpy as np
 
@@ -613,6 +647,10 @@ def np_array_add_fields(np_arr_orig=None, mac_addr=False, ltg=False, docs_only=F
         ret_list = zip(names, formats, descs)
 
         return (ret_str, ret_list)
+
+    # Check that the array is not None so we don't raise an Attribute Exception
+    if np_arr_orig is None:
+        return np_arr_orig
 
     # Create a new numpy dtype with additional fields
     dt_new = extend_np_dt(np_arr_orig.dtype, {'names': names, 'formats': formats})
@@ -679,21 +717,24 @@ def np_array_add_fields(np_arr_orig=None, mac_addr=False, ltg=False, docs_only=F
 
 
 def extend_np_dt(dt_orig, new_fields=None):
-    """Extends a numpy dtype object with additional fields. new_fields input must be dictionary
-    with keys 'names' and 'formats', same as when specifying new dtype objects. The return
-    dtype will *not* contain byte offset values for existing or new fields, even if exisiting
-    fields had specified offsets. Thus the original dtype should be used to interpret raw data buffers
-    before the extended dtype is used to add new fields.
+    """Extends a numpy dtype object with additional fields. 
+    
+    Args:
+        dt_orig (Numpy DataType):  Original Numpy data type
+        new_fields (dict):         Dictionary with keys 'names' and 'formats', same as when specifying 
+            new dtype objects. The return dtype will *not* contain byte offset values for existing or 
+            new fields, even if exisiting fields had specified offsets. Thus the original dtype should 
+            be used to interpret raw data buffers before the extended dtype is used to add new fields.
     """
     import numpy as np
     from collections import OrderedDict
-
+    
     if(type(dt_orig) is not np.dtype):
         raise Exception("ERROR: extend_np_dt requires valid numpy dtype as input")
     else:
         # Use ordered dictionary to preserve original field order (not required, just convenient)
         dt_ext = OrderedDict()
-
+        
         # Extract the names/formats/offsets dictionary for the base dtype
         #   dt.fields returns dictionary with field names as keys and
         #   values of (dtype, offset). The dtype objects in the first tuple field
@@ -701,17 +742,17 @@ def extend_np_dt(dt_orig, new_fields=None):
         # This approach will preserve the types and dimensions of scalar and non-scalar fields
         dt_ext['names'] = list(dt_orig.names)
         dt_ext['formats'] = [dt_orig.fields[f][0] for f in dt_orig.names]
-
+        
         if(type(new_fields) is dict):
             # Add new fields to the extended dtype
             dt_ext['names'].extend(new_fields['names'])
             dt_ext['formats'].extend(new_fields['formats'])
         elif type(new_fields) is not None:
             raise Exception("ERROR: new_fields argument must be dictionary with keys 'names' and 'formats'")
-
+        
         # Construct and return the new numpy dtype object
         dt_new = np.dtype(dt_ext)
-
+        
         return dt_new
 
 # End def
