@@ -28,7 +28,7 @@
 // ****************************************************************************
 // Define WLAN Exp Node Station Commands
 //
-#define CMDID_NODE_STA_CONFIG                              0x010000
+#define CMDID_NODE_STA_CONFIG                              0x200000
 
 
 
