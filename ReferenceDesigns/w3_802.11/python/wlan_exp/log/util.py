@@ -406,7 +406,15 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
 
 
 def log_data_to_np_arrays(log_data, log_index):
-    """Generate numpy structured arrays using log_data and a log_index."""
+    """Generate numpy structured arrays using log_data and a log_index.
+
+    Args:
+        log_data (bytes):  Binary data from a WlanExpNode log
+        log_index (dict):  Log index dictionary 
+
+    Return:
+        np_array (Numpy Array):  Numpy structured arrays corresponding to the log_data and log_index
+    """
     entries_nd = dict()
 
     for k in log_index.keys():
@@ -447,19 +455,18 @@ def _translate_log_index_keys(log_index):
 def merge_log_indexes(dest_index, src_index, offset):
     """Merge log indexes.
 
-    Attributes:
-        dest_index      -- Destination index to merge src_index into
-        src_index       -- Source index to merge into destination index
-        offset          -- Offset of src_index into dest_index
+    Args:
+        dest_index (dict):  Destination log index to merge 'src_index' into
+        src_index (dict):   Source log index to merge into destination log index
+        offset (int):       Offset of src_index into dest_index
 
-    NOTE:  Both the dest_index and src_index have log entry offsets that are
-    relative to the beginning of the log data from which they were generated.
-    If the log data used to generate the log indexes are being merged, then
-    we need to move the log entry offsets in the src_index to their absolute
-    offset in the merged log index.  For each of the log entry offsets in
-    the src_index, the following translation will occur:
-
-      <Offset in merged log index> = <Offset in src_index> + offset
+    .. note::  Both the dest_index and src_index have log entry offsets that are
+        relative to the beginning of the log data from which they were generated.
+        If the log data used to generate the log indexes are being merged, then
+        we need to move the log entry offsets in the src_index to their absolute
+        offset in the merged log index.  For each of the log entry offsets in
+        the src_index, the following translation will occur:
+            <Offset in merged log index> = <Offset in src_index> + offset
 
     """
     return_val = dest_index
@@ -482,17 +489,17 @@ def calc_next_entry_offset(log_data, raw_log_index):
     """Calculates the offset of the next log entry given the log data and
     the raw log index.
 
-    Attributes:
-        log_data        -- Binary WLAN Exp log data to append
-        raw_log_index   -- Raw log index of the log data
+    Args:
+        log_data (bytes):  Binary data from a WlanExpNode log
+        log_index (dict):  Raw log index dictionary
 
     Returns:
-        offset of next log entry
+        offset (int):  Offset of next log entry
 
-    NOTE:  The log data does not necessarily end on a log entry boundary.
-    Therefore, it is necessary to be able to calculate the offset of the
-    next log entry so that it is possible to continue index generation
-    when reading the log in multiple pieces.
+    .. note::  The log data does not necessarily end on a log entry boundary.
+        Therefore, it is necessary to be able to calculate the offset of the
+        next log entry so that it is possible to continue index generation
+        when reading the log in multiple pieces.
     """
     # See documentation above on header format
     hdr_size             = 8
@@ -517,7 +524,14 @@ def calc_next_entry_offset(log_data, raw_log_index):
 
 
 def overwrite_entries_with_null_entry(log_data, byte_offsets):
-    """Overwrite the entries in byte_offsets with NULL entries."""
+    """Overwrite the entries in byte_offsets with NULL entries.
+
+    Args:
+        log_data (bytes):            Binary data from a WlanExpNode log
+        byte_offsets (list of int):  List of offsets corresponding to the entries to overwrite
+    
+    .. note:: This is an in-place modification of log_data.    
+    """
     # See documentation above on header format
     hdr_size         = 8
 
@@ -540,10 +554,10 @@ def overwrite_entries_with_null_entry(log_data, byte_offsets):
 def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
     """Overwrite any payloads with zeros.
 
-    Attributes:
-        log_data        -- Binary log data to be modified
-        byte_offsets    -- Offsets in the log data that need to be modified
-        payload_offsets -- Dictionary of { entry_type_id : <payload offset> }
+    Args:
+        log_data (bytes):            Binary data from a WlanExpNode log
+        byte_offsets (list of int):  List of offsets corresponding to the entries to be modified
+        payload_offsets (dict):      Dictionary of ``{ entry_type_id : <payload offset> }``
 
     By default, if payload_offsets is not specified, the method will iterate through all
     the entry types and calculate the defined size of the entry (ie it will use calcsize
@@ -556,11 +570,13 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
     result in the calling code potentially calling this function multiple times with
     different payload_offsets for a given entry_type_id.
 
-    NOTE:  This method relies on the fact that for variable length log entries, the
-    variable length data, ie the payload, is always at the end of the entry.  We also
-    know, based on the entry type, the size of the entry without the payload.  Therefore,
-    from the entry header, we can determine how many payload bytes are after the defined
-    fields and zero them out.
+    .. note:: This method relies on the fact that for variable length log entries, the
+        variable length data, ie the payload, is always at the end of the entry.  We also
+        know, based on the entry type, the size of the entry without the payload.  Therefore,
+        from the entry header, we can determine how many payload bytes are after the defined
+        fields and zero them out.
+
+    .. note:: This is an in-place modification of log_data.    
     """
     import struct
     from entry_types import log_entry_types
@@ -602,12 +618,17 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 
 def calc_tx_time(rate, payload_length):
     """Calculates the duration of an 802.11 transmission given its rate and payload length.
+
+    Args:
+        rate (list of dict from util.wlan_rates):  List of rate dictionaries 
+            (Dictionary from the wlan_rates list in wlan_exp.util)
+        payload_length (list of int):              List of number of bytes in the payload                
+    
     This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not*
     account for MAC overhead. The payload_length argument must include any MAC fields
     (typically a 24-byte MAC header plus 4 byte FCS).
 
-    # TODO: The vector case needs safety checkts (i.e., both rate and payload_length need to
-    be the same length)
+    .. note:: This method does not check that both rate and payload_length are the same length
     """
     from wlan_exp.util import wlan_rates
 
@@ -636,7 +657,16 @@ def calc_tx_time(rate, payload_length):
 
 
 def find_overlapping_tx_low(src_tx_low, int_tx_low):
-    """Finds TX_LOW entries in the source that are overlapped by the TX_LOW entries in other flow."""
+    """Finds TX_LOW entries in the source that are overlapped by the TX_LOW entries in other flow.
+
+    Args:
+        src_tx_low (Numpy Array):  Source TX_LOW numpy array of entries
+        int_tx_low (Numpy Array):  Other TX_LOW numpy array of entries
+    
+    Returns:
+        indexes (tuple):  
+            Tuple containing indexes into the provided arrays indicating which entries overlapped
+    """
 
     import wlan_exp.log.coll_util as collision_utility
 
@@ -654,14 +684,22 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
     src_idx = src_idx[src_idx>0]
     int_idx = int_idx[int_idx>0]
 
-    return (src_idx,int_idx)
+    return (src_idx, int_idx)
 
 # End def
 
 
 
 def convert_datetime_to_log_time_str(datetime_obj):
-    """Convert a datetime object to a log time string."""
+    """Convert a datetime object to a log time string.
+    
+    Args:
+        datetime_obj (DateTime()):  Python DateTime() object
+    
+    Returns:
+        log_time_str (str):  
+            String format of the DateTime() object to be used in HDF5 files
+    """
     
     if datetime_obj.tzinfo is None:        
         import datetime
@@ -679,7 +717,14 @@ def convert_datetime_to_log_time_str(datetime_obj):
 
 
 def convert_log_time_str_to_datetime(log_time_str):
-    """Convert a log time string to a datetime object."""
+    """Convert a log time string to a datetime object.
+    
+    Args:
+        log_time_str (str):  String format of the DateTime() object to be used in HDF5 files
+    
+    Returns:
+        datetime_obj (DateTime()):  Python DateTime() object
+    """
     import datetime
     
     return datetime.datetime.strptime(log_time_str, "%Y-%m-%d %H:%M:%S%z")
@@ -690,9 +735,12 @@ def convert_log_time_str_to_datetime(log_time_str):
 
 def get_now_as_log_time_str():
     """Get the current time as a log time string.
+
+    Returns:
+        log_time_str (str):  String format of the datetime.datetime.now() to be used in HDF5 files
     
-    NOTE:  This should be used instead of datetime.datetime.now() because it 
-    automatically handles timezones.    
+    .. note::  This should be used instead of datetime.datetime.now() because it 
+        automatically handles timezones.    
     """
     import time
     import datetime
@@ -742,7 +790,13 @@ def get_now_as_log_time_str():
 # WLAN Exp Log Printing Utilities
 # -----------------------------------------------------------------------------
 def print_log_index_summary(log_index, title=None):
-    """Prints a summary of the log_index."""
+    """Prints a summary of the log_index.
+    
+    Args:
+        log_index (dict):       Log index dictionary 
+        title (str, optional):  Title to be used for the log_index 
+            (default is 'Log Index Summary:')
+    """
     total_len = 0
 
     if title is None:
@@ -757,7 +811,7 @@ def print_log_index_summary(log_index, title=None):
     print('--------------------------')
     print('{0:>10,} total entries\n'.format(total_len))
 
-# End log_index_print_summary()
+# End def
 
 
 def _print_log_entries(log_bytes, log_index, entries_slice=None):
@@ -792,7 +846,7 @@ def _print_log_entries(log_bytes, log_index, entries_slice=None):
         # Use the entry_type's class method to string-ify itself
         print(entry_type._entry_as_string(log_bytes[entry_offset : entry_offset+entry_size]))
 
-# End print_log_entries()
+# End def
 
 
 def _get_safe_filename(filename, print_warnings=True):
@@ -847,6 +901,6 @@ def _get_safe_filename(filename, print_warnings=True):
 
     return safe_filename
 
-# End _get_safe_filename()
+# End def
 
 
