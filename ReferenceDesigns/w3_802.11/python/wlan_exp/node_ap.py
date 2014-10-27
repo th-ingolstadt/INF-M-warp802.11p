@@ -86,7 +86,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         """Command to set the SSID of the AP.
 
         Args:
-            ssid (str):  SSID to set on the AP.
+            ssid (str):  SSID to set on the AP (Must be 32 characters or less)
         
         Returns:
             ssid (str):  Current SSID on the AP.        
