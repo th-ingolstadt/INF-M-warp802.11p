@@ -445,6 +445,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 		break;
 
 		case IPC_MBOX_SET_TIME:
+		#define SET_TIME_CALIB 5
 			switch(msg->arg0){
 				default:
 				case 0:
@@ -455,7 +456,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 				case 1:
 					//This message contains a timestamp correction factor.
-					new_timestamp = get_usec_timestamp() + (*(s64*)ipc_msg_from_high_payload);
+					new_timestamp = get_usec_timestamp() + (*(s64*)ipc_msg_from_high_payload) + SET_TIME_CALIB;
 				break;
 			}
 			wlan_mac_low_set_time(new_timestamp);
