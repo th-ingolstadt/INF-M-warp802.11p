@@ -437,27 +437,50 @@ class Resp(CmdRespMessage):
         return self.args
 
 
-    def resp_is_valid(self, num_args, status_errors=None, name=None):
-        if len(self.args) != num_args:
-            print("Invalid response:\n{0}".format(self))
-            return False
+    def resp_is_valid(self, num_args=None, status_errors=None, name=None):
+        """Checks if the response is valid
+        
+        Args:
+            num_args (int, optional):        Check that the number of arguments matches the
+                provided value
+            status_errors (dict, optional):  Dictionary of status errors for the form:
+                { <status error value (int)> : <Error message (str)>}
+            name (str, optional):            Name of the command
+        
+        Returns:
+            is_valid (bool):   Is the response valid?
+        """
+        error = False
+        msg   = "ERROR:  Invalid response from node:\n"
+        
+        if num_args is not None:
+            if len(self.args) != num_args:
+                msg  += "        Number of arguments in response ({0}) does not match\n".format(self.args)
+                msg  += "        number of expected arguments ({0})\n".format(num_args)
+                error = True
 
         if status_errors is not None:
             if self.args:
-                if (self.args[0] in status_errors):
+                if (self.args[0] in status_errors.keys()):
                     if name is not None:
-                        print("STATUS ERROR: {0} - received 0x{1:x}".format(name, self.args[0]))
+                        msg  += "        Received status error {0}\n".format(name)
                     else:
-                        print("STATUS ERROR: Received 0x{1:x}".format(self.args[0]))                        
-                    return False
+                        msg  += "        Received status error\n"
+                    msg  += "        {0}\n".format(status_errors[self.args[0]])
+                    error = True
             else:
                 if name is not None:
-                    print("STATUS ERROR: {0} - no status in response".format(name))
+                    msg  += "        No status in response {0}\n".format(name)
                 else:
-                    print("STATUS ERROR: No status in response")                    
-                return False
+                    msg  += "        No status in response\n"
+                error = True
 
-        return True
+        if error:
+            print(msg)
+            print(self)
+            return False
+        else:
+            return True
                 
 
     def __str__(self):

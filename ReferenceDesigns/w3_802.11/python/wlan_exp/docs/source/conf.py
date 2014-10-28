@@ -25,19 +25,19 @@ import sys
 # The server sets an environment variable BUILDING_DOCS_ON_SERVER when it runs post-svn-commit
 #  Mock the numpy import only on the server
 if os.environ.get('BUILDING_DOCS_ON_SERVER', False):
-  try:
-    from mock import Mock as MagicMock
+    try:
+        from mock import Mock as MagicMock
 
-    class Mock(MagicMock):
-      @classmethod
-      def __getattr__(cls, name):
-              return Mock()
+        class Mock(MagicMock):
+            @classmethod
+            def __getattr__(cls, name):
+                return Mock()
 
-    MOCK_MODULES = ['numpy', 'pandas']
-    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-  except ImportError:
-    #mock wasn't installed - keep trying, will probably fail at actual numpy import
-    pass
+        MOCK_MODULES = ['numpy', 'pandas']
+        sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+    except ImportError:
+        #mock wasn't installed - keep trying, will probably fail at actual numpy import
+        pass
 
 
 # If extensions (or modules to document with autodoc) are in another directory,

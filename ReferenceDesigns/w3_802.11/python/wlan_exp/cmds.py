@@ -510,9 +510,13 @@ class LTGCommon(wn_message.Cmd):
             self.add_args(CMD_PARAM_LTG_ALL_LTGS)
 
     def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR
+        error_msg     = "LTG {0} command was not successful.".format(self.name)
+        status_errors = { error_code : error_msg }
+        
         if resp.resp_is_valid(num_args=1, 
-                              status_errors=[CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR], 
-                              name='LTG {0} command'.format(self.name)):
+                              status_errors=status_errors, 
+                              name='for the LTG {0} command'.format(self.name)):
             args = resp.get_args()
             return args[0]
         else:
@@ -542,9 +546,13 @@ class LTGConfigure(wn_message.Cmd):
             self.add_args(arg)
 
     def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR
+        error_msg     = "LTG {0} command was not successful.".format(self.name)
+        status_errors = { error_code : error_msg }
+
         if resp.resp_is_valid(num_args=2, 
-                              status_errors=[CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR], 
-                              name='LTG {0} command'.format(self.name)):
+                              status_errors=status_errors, 
+                              name='for the LTG {0} command'.format(self.name)):
             args = resp.get_args()
             return args[1]
         else:
@@ -612,9 +620,13 @@ class LTGStatus(wn_message.Cmd):
         self.add_args(ltg_id)
 
     def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR
+        error_msg     = "LTG {0} command was not successful.".format(self.name)
+        status_errors = { error_code : error_msg }
+
         if resp.resp_is_valid(num_args=6, 
-                              status_errors=[CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR], 
-                              name='LTG {0} command'.format(self.name)):
+                              status_errors=status_errors, 
+                              name='for the LTG {0} command'.format(self.name)):
             args = resp.get_args()
 
             start_timestamp = (2**32 * args[3]) + args[2]
@@ -716,7 +728,11 @@ class NodeProcWLANMACAddr(wn_message.Cmd):
 
 
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=3, status_errors=[CMD_PARAM_ERROR], name='WLAN Mac Address'):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get the WLAN MAC address on the node"
+        status_errors = { error_code : error_msg }
+
+        if resp.resp_is_valid(num_args=3, status_errors=status_errors, name='from the WLAN Mac Address command'):
             args = resp.get_args()
             addr = (2**32 * args[1]) + args[2]
         else:
@@ -787,7 +803,11 @@ class NodeProcTime(wn_message.Cmd):
 
 
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=3, status_errors=[CMD_PARAM_ERROR], name='Time command'):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set the time on the node"
+        status_errors = { error_code : error_msg }
+
+        if resp.resp_is_valid(num_args=3, status_errors=status_errors, name='from the Time command'):
             args = resp.get_args()
             time = (2**32 * args[2]) + args[1]
         else:
@@ -900,8 +920,11 @@ class NodeProcChannel(wn_message.Cmd):
     
     def process_resp(self, resp):
         import wlan_exp.util as util
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set the channel on the node"
+        status_errors = { error_code : error_msg }
         
-        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Channel command'):
+        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from the Channel command'):
             args = resp.get_args()
             if self.channel is not None:
                 if (args[1] != self.channel):
@@ -1004,9 +1027,19 @@ class NodeLowParam(wn_message.Cmd):
                 respArgs32[2]   PARAM_ID
                 respArgs32[3:N] PARAM ARGS
         """
+        error_code_cs_thresh    = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH
+        error_code_cw_min       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_CW_EXP_MIN
+        error_code_cw_max       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_CW_EXP_MAX
+        error_code_ts_offset    = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_TS_OFFSET
+
+        status_errors = { error_code_cs_thresh : "Could not get / set carrier sense threshold",
+                          error_code_cw_min    : "Could not get / set minimum contention window",
+                          error_code_cw_max    : "Could not get / set maximum contention window", 
+                          error_code_ts_offset : "Could not get / set the timestamp offset"}
+
         if (self.read_write == CMD_PARAM_READ):
             args = resp.get_args()
-            if resp.resp_is_valid(num_args=(args[1] + 3), status_errors=[CMD_PARAM_ERROR], name='Low Param command'):
+            if resp.resp_is_valid(num_args=(args[1] + 3), status_errors=status_errors, name='from Low Param command'):
                 return args[1:]
             else:
                 return None
@@ -1051,7 +1084,11 @@ class NodeProcTxPower(wn_message.Cmd):
             self.add_args(power - CMD_PARAM_NODE_TX_POWER_MIN_DBM)
     
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=5, status_errors=[CMD_PARAM_ERROR], name='Power command'):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set the transmit power on the node"
+        status_errors = { error_code : error_msg }
+
+        if resp.resp_is_valid(num_args=5, status_errors=status_errors, name='from the Tx power command'):
             args = resp.get_args()
             # Shift values back to the original range
             args = [x + CMD_PARAM_NODE_TX_POWER_MIN_DBM for x in args]
@@ -1114,8 +1151,12 @@ class NodeProcTxRate(wn_message.Cmd):
     
     def process_resp(self, resp):
         import wlan_exp.util as util
+
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set transmit rate on the node"
+        status_errors = { error_code : error_msg }
         
-        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Tx rate command'):
+        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx rate command'):
             args = resp.get_args()
             if self.rate is not None:
                 if (args[1] != self.rate):
@@ -1185,8 +1226,12 @@ class NodeProcTxAntMode(wn_message.Cmd):
     
     def process_resp(self, resp):
         import wlan_exp.util as util
+
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set transmit antenna mode of teh node"
+        status_errors = { error_code : error_msg }
         
-        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Tx antenna mode command'):
+        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx antenna mode command'):
             args = resp.get_args()
             if   (self.tx_type == CMD_PARAM_UNICAST):
                 return util.find_tx_ant_mode_by_index(args[1])
@@ -1234,8 +1279,12 @@ class NodeProcRxAntMode(wn_message.Cmd):
     
     def process_resp(self, resp):
         import wlan_exp.util as util
+
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could get / set receive antenna mode of the node"
+        status_errors = { error_code : error_msg }
         
-        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Rx antenna mode command'):
+        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Rx antenna mode command'):
             args = resp.get_args()
             return util.find_rx_ant_mode_by_index(args[1])
         else:
@@ -1258,32 +1307,40 @@ class NodeGetSSID(wn_message.Cmd):
 
 
     def process_resp(self, resp):
-        return _get_ssid_from_resp(resp)
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get SSID from Node."
+        status_errors = { error_code : error_msg }
+
+        return _get_ssid_from_resp(resp, status_errors)
 
 # End Class
 
 
 class NodeDisassociate(wn_message.Cmd):
     """Command to remove associations from the association table."""
-    name = None
+    description = None
 
     def __init__(self, device=None):
         super(NodeDisassociate, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_DISASSOCIATE
 
         if device is not None:
-            self.name   = device.name
-            mac_address = device.wlan_mac_address
+            self.description = device.description
+            mac_address      = device.wlan_mac_address
         else:
-            self.name   = "All nodes"
-            mac_address = 0xFFFFFFFFFFFFFFFF            
+            self.description = "All nodes"
+            mac_address      = 0xFFFFFFFFFFFFFFFF            
 
         self.add_args(((mac_address >> 32) & 0xFFFF))
         self.add_args((mac_address & 0xFFFFFFFF))
 
     def process_resp(self, resp):
-        resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], 
-                           name='Node {0} Disassociate'.format(self.name))
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not disassociate from {0}.".format(self.description)
+        status_errors = { error_code : error_msg }
+
+        resp.resp_is_valid(num_args=1, status_errors=status_errors, 
+                           name='from Disassociate command')
 
 # End Class
 
@@ -1471,7 +1528,11 @@ class NodeAPProcDTIMPeriod(wn_message.Cmd):
             
 
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='DTIM Period command'):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set number of beacon intervals between DTIM beacons"
+        status_errors = { error_code : error_msg }
+
+        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from DTIM Period command'):
             args = resp.get_args()
             return (args[1] & 0xFF)
         else:
@@ -1491,7 +1552,7 @@ class NodeAPAddAssociation(wn_message.Cmd):
         allow_timeout is not specified, the default on the node is to 
         not allow timeout of the association.
     """
-    name = None
+    description = None
 
     def __init__(self, device, allow_timeout=None):
         super(NodeAPAddAssociation, self).__init__()
@@ -1508,18 +1569,21 @@ class NodeAPAddAssociation(wn_message.Cmd):
         self.add_args(flags)
         self.add_args(mask)
 
-        self.name   = device.name
-        mac_address = device.wlan_mac_address
+        self.description = device.description
+        mac_address      = device.wlan_mac_address
 
         self.add_args(((mac_address >> 32) & 0xFFFF))
         self.add_args((mac_address & 0xFFFFFFFF))
 
 
     def process_resp(self, resp):
-        args       = resp.get_args()
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not add AP association to {0}.".format(self.description)
+        status_errors = { error_code : error_msg }
 
-        if (resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], 
-                               name='AP associate with {0}'.format(self.name))):
+        if (resp.resp_is_valid(num_args=2, status_errors=status_errors, 
+                               name='from AP associate command')):
+            args = resp.get_args()
             return args[1]
         else:
             return CMD_PARAM_ERROR
@@ -1542,7 +1606,11 @@ class NodeAPSetSSID(wn_message.Cmd):
             
 
     def process_resp(self, resp):
-        ssid = _get_ssid_from_resp(resp)
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not set SSID on Node."
+        status_errors = { error_code : error_msg }
+        
+        ssid = _get_ssid_from_resp(resp, status_errors)
  
         if self.ssid is not None:
             if (self.ssid != ssid):
@@ -1588,8 +1656,12 @@ class NodeAPSetAuthAddrFilter(wn_message.Cmd):
 
 
     def process_resp(self, resp):
-        resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], 
-                           name='AP set association address filter')
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not set authentication address filter on the node."
+        status_errors = { error_code : error_msg }
+        
+        resp.resp_is_valid(num_args=1, status_errors=status_errors, 
+                           name='from AP set association address filter command')
 
 # End Class
 
@@ -1628,7 +1700,11 @@ class NodeAPProcBeaconInterval(wn_message.Cmd):
             
 
     def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Beacon interval command'):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not read/write beacon interval."
+        status_errors = { error_code : error_msg }
+
+        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Beacon interval command'):
             args = resp.get_args()
             return (args[1] & 0xFFFF)
         else:
@@ -1679,7 +1755,8 @@ class NodeSTAAddAssociation(wn_message.Cmd):
     
     NOTE:  This adds an association with the default tx/rx params
     """
-    name = None
+    description = None
+
     def __init__(self, device, aid, channel, ssid):
         super(NodeSTAAddAssociation, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_ADD_ASSOCIATION
@@ -1693,8 +1770,8 @@ class NodeSTAAddAssociation(wn_message.Cmd):
         self.add_args(flags)
         self.add_args(mask)
 
-        self.name   = device.name
-        mac_address = device.wlan_mac_address
+        self.description = device.description
+        mac_address      = device.wlan_mac_address
 
         self.add_args(((mac_address >> 32) & 0xFFFF))
         self.add_args((mac_address & 0xFFFFFFFF))
@@ -1712,8 +1789,12 @@ class NodeSTAAddAssociation(wn_message.Cmd):
 
 
     def process_resp(self, resp):
-        if (resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], 
-                               name='STA associate with {0}'.format(self.name))):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could add STA association to {0}.".format(self.description)
+        status_errors = { error_code : error_msg }
+
+        if (resp.resp_is_valid(num_args=1, status_errors=status_errors, 
+                               name='from STA associate command')):
             return True
         else:
             return False
@@ -1768,7 +1849,11 @@ class NodeIBSSConfigure(wn_message.Cmd):
 
     
     def process_resp(self, resp):
-        if (resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], name='IBSS Configure command')):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not configure IBSS Node."
+        status_errors = { error_code : error_msg }
+
+        if (resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from IBSS Configure command')):
             return True
         else:
             return False
@@ -1852,7 +1937,11 @@ class NodeProcScanParam(wn_message.Cmd):
             
     
     def process_resp(self, resp):
-        if (resp.resp_is_valid(num_args=1, status_errors=[CMD_PARAM_ERROR], name='Scan parameter command')):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not set scan parameters."
+        status_errors = { error_code : error_msg }
+
+        if (resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from Scan parameter command')):
             return True
         else:
             return False
@@ -1941,7 +2030,11 @@ class NodeProcJoin(wn_message.Cmd):
         
 
     def process_resp(self, resp):
-        if (resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Join command')):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not join the network."
+        status_errors = { error_code : error_msg }
+
+        if (resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Join command')):
             args = resp.get_args()
             if (args[1] != CMD_PARAM_NODE_JOIN_FAILED):
                 return True
@@ -1986,7 +2079,11 @@ class NodeProcScanAndJoin(wn_message.Cmd):
 
 
     def process_resp(self, resp):
-        if (resp.resp_is_valid(num_args=2, status_errors=[CMD_PARAM_ERROR], name='Join command')):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not join the network."
+        status_errors = { error_code : error_msg }
+
+        if (resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Join command')):
             args = resp.get_args()
             if (args[1] != CMD_PARAM_NODE_JOIN_FAILED):
                 return True
@@ -2051,8 +2148,12 @@ class NodeMemAccess(wn_message.Cmd):
     
     def process_resp(self, resp):
         if (self._read_len is not None): # Was a read command
-            if resp.resp_is_valid(num_args=(2 + self._read_len), status_errors=[CMD_PARAM_ERROR], 
-                                  name='CPU Mem command'):
+            error_code    = CMD_PARAM_ERROR
+            error_msg     = "Memory access failed."
+            status_errors = { error_code : error_msg }
+
+            if resp.resp_is_valid(num_args=(2 + self._read_len), status_errors=status_errors, 
+                                  name='from CPU Mem command'):
                 args = resp.get_args()
 
                 if(len(args) == 3):
@@ -2168,13 +2269,13 @@ def _add_time_to_cmd32(cmd, time, time_factor):
 # End def
 
 
-def _get_ssid_from_resp(resp):
+def _get_ssid_from_resp(resp, status_errors):
     """Internal method to process an SSID from a response."""
     args       = resp.get_args()
     arg_length = len(args)
 
-    resp.resp_is_valid(num_args=arg_length, status_errors=[CMD_PARAM_ERROR], 
-                              name='Process SSID')
+    resp.resp_is_valid(num_args=arg_length, status_errors=status_errors, 
+                              name='while processing SSID')
 
     # Actually check the number of arguments
     if(arg_length >= 2):
