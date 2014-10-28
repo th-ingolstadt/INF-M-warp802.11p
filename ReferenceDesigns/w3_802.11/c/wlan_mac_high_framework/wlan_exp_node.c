@@ -1674,6 +1674,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				cmdArgs32[i] = Xil_Ntohl(cmdArgs32[i]);
 			}
 
+			id      = cmdArgs32[2];        // Already byte swapped in for loop above
 			status  = CMD_PARAM_SUCCESS;
 
 			switch (msg_cmd) {
@@ -1690,7 +1691,6 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 				break;
 
 				case CMD_PARAM_READ_VAL:
-					id    = cmdArgs32[2];        // Already byte swapped in for loop above
 					temp2 = wlan_mac_high_read_low_param(id, &size, &(respArgs32[3]));
 
 					if(temp2 == 0) { //Success
@@ -1714,13 +1714,13 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 					} else { //failed
 						wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Parameter read failed in CPU low.\n");
-						status = CMD_PARAM_ERROR;
+						status = CMD_PARAM_ERROR + id;
 					}
 			    break;
 
 				default:
 					wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
-					status = CMD_PARAM_ERROR;
+					status = CMD_PARAM_ERROR + id;
 				break;
 			}
 
