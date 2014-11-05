@@ -944,8 +944,59 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         Args:
             cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, cw_exp)               
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, cw_exp)     
 
+    def set_bb_gain(self, bb_gain):
+        """Sets the the baseband gain:
+
+        Args:
+            bb_gain (int):  Baseband gain setting [0,3]
+        """
+        if bb_gain is not None:
+            if (bb_gain >= 0) and (bb_gain <=3):
+                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_BB_GAIN, bb_gain)                  
+            else:
+                msg  = "\nBB Gain must be in the range [0,3]\n"                
+                raise ValueError(msg)
+            
+    def set_linearity_pa(self, linearity_val):
+        """Sets the the PA linearity:
+
+        Args:
+            linearity_val (int):  Linearity setting [0,3]
+        """
+        if linearity_val is not None:
+            if (linearity_val >= 0) and (linearity_val <=3):
+                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_PA, linearity_val)                  
+            else:
+                msg  = "\nBB Linearity must be in the range [0,3]\n"                
+                raise ValueError(msg)
+            
+    def set_linearity_vga(self, linearity_val):
+        """Sets the the VGA linearity:
+
+        Args:
+            linearity_val (int):  Linearity setting [0,3]
+        """
+        if linearity_val is not None:
+            if (linearity_val >= 0) and (linearity_val <=3):
+                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_VGA, linearity_val)                  
+            else:
+                msg  = "\nBB Linearity must be in the range [0,3]\n"                
+                raise ValueError(msg)
+            
+    def set_linearity_upconv(self, linearity_val):
+        """Sets the the upconversion linearity:
+
+        Args:
+            linearity_val (int):  Linearity setting [0,3]
+        """
+        if linearity_val is not None:
+            if (linearity_val >= 0) and (linearity_val <=3):
+                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_UPCONV, linearity_val)                  
+            else:
+                msg  = "\nBB Linearity must be in the range [0,3]\n"                
+                raise ValueError(msg)                        
 
     def get_cw_exp_range(self):
         """Gets the contention window range.
