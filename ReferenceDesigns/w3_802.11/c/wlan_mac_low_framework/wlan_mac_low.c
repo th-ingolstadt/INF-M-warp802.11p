@@ -37,8 +37,8 @@ volatile static u8           mac_param_band;                                    
 volatile static s8           mac_param_ctrl_tx_pow;                                 ///< Current transmit power (dBm) for control packets
 volatile static u32          mac_param_rx_filter;                                   ///< Current filter applied to packet receptions
 volatile static u8           rx_pkt_buf;                                            ///< Current receive buffer of the lower-level MAC
-volatile static u8           cw_exp_min;
-volatile static u8           cw_exp_max;
+volatile static u8           cw_exp_min;											///< Current minimum contention window exponent
+volatile static u8           cw_exp_max;											///< Current maximum contention window exponent
 
 static u32  				 cpu_low_status;                                        ///< Status flags that are reported to upper-level MAC
 
@@ -341,10 +341,37 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						case LOW_PARAM_CW_EXP_MAX:
 							cw_exp_max = ipc_msg_from_high_payload[1];
 						break;
+
 						case LOW_PARAM_TIMESTAMP_OFFSET:
 							wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1]));
 							xil_printf("New Offset: %d\n", (s32)(ipc_msg_from_high_payload[1]));
 						break;
+
+						case LOW_PARAM_BB_GAIN:
+							if(ipc_msg_from_high_payload[1] <= 3){
+								radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, ipc_msg_from_high_payload[1]);
+							}
+						break;
+
+						case LOW_PARAM_LINEARITY_PA:
+							if(ipc_msg_from_high_payload[1] <= 3){
+								radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_PADRIVER, ipc_msg_from_high_payload[1]);
+							}
+						break;
+
+						case LOW_PARAM_LINEARITY_VGA:
+							if(ipc_msg_from_high_payload[1] <= 3){
+								radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_VGA, ipc_msg_from_high_payload[1]);
+							}
+						break;
+
+						case LOW_PARAM_LINEARITY_UPCONV:
+							if(ipc_msg_from_high_payload[1] <= 3){
+								radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_UPCONV, ipc_msg_from_high_payload[1]);
+							}
+						break;
+
+
 						default:
 							ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
 						break;
