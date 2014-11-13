@@ -108,13 +108,13 @@ int w3_node_init() {
 
 	//Initialize the radio_controller core and MAX2829 transceivers for on-board RF interfaces
 	status = radio_controller_init(RC_BASEADDR, RC_ALL_RF, 1, 1);
-
+#if 0
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
 		//Comment out allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
 		ret = XST_FAILURE;
 	}
-
+#endif
 	//Initialize the EEPROM read/write core
 	iic_eeprom_init(EEPROM_BASEADDR, 0x64);
 
@@ -434,11 +434,22 @@ void wlan_agc_config(u32 ant_mode) {
 
 void wlan_radio_init() {
 
+#if 1
 	//Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
 	clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-
 	ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+#else
+    //Setup clocking and filtering:
+    // 80MHz ref clk to AD9963
+    // 20MSps Tx/Rx at FPGA
+    // 80MHz DAC, 4x interp in AD9963
+    // 40MHz ADC, 2x decimate in AD9963
+    clk_config_dividers(CLK_BASEADDR, 1, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
 
+    ad_config_clocks(AD_BASEADDR, AD_ALL_RF, AD_DACCLKSRC_EXT, AD_DACCLKSRC_EXT, AD_ADCCLKDIV_2, AD_DCS_OFF);
+
+    ad_config_filters(AD_BASEADDR, AD_ALL_RF, 4, 2);
+#endif
 
 	//Setup RFA
 	radio_controller_TxRxDisable(RC_BASEADDR, RC_ALL_RF);

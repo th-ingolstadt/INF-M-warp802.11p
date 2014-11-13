@@ -371,6 +371,13 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 							}
 						break;
 
+						case LOW_PARAM_AD_SCALING:
+							xil_printf("Interp Scaling: %d %d %d\n", ipc_msg_from_high_payload[1],ipc_msg_from_high_payload[2],ipc_msg_from_high_payload[3]);
+							ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x36, (0x1F & ipc_msg_from_high_payload[1]));
+							ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x37, (0x1F & ipc_msg_from_high_payload[2]));
+							ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x35, (0x1F & ipc_msg_from_high_payload[3]));
+						break;
+
 
 						default:
 							ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
