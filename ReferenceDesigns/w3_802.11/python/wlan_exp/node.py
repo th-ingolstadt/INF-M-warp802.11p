@@ -971,6 +971,21 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             else:
                 msg  = "\nBB Linearity must be in the range [0,3]\n"                
                 raise ValueError(msg)
+                
+    def set_interp_filt_scaling(self, scale_int0 = 0x10, scale_int1 = 0x10, scale_srrc = 0x10):
+        """Sets the the DAC scaling at the output of each stage of interpolations:
+
+        Args:
+            scale_int0 (int):  Scaling Stage 0    [0,31] 
+            scale_int1 (int):  Scaling Stage 0    [0,31]
+            scale_srrc (int):  Scaling Stage SRRC [0,31]
+        """
+    
+        if (scale_int0 >= 0) and (scale_int0 <=31) and (scale_int1 >= 0) and (scale_int1 <=31) and (scale_srrc >= 0) and (scale_srrc <=31):
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_AD_SCALING, [scale_int0,scale_int1,scale_srrc])                  
+        else:
+            msg  = "\nInterp scalings must be in the range [0,31]\n"                
+            raise ValueError(msg)
             
     def set_linearity_vga(self, linearity_val):
         """Sets the the VGA linearity:
