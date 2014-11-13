@@ -208,6 +208,7 @@ int main() {
 	wlan_exp_set_reset_all_associations_callback(   (void *)reset_all_associations);
 	wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
 	//   - Currently no timebase adjust needed; Use wlan_exp_set_timebase_adjust_callback();
+    //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the STA
 
 	// Configure the wlan_exp framework
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_TYPE_MASK, WLAN_EXP_ETH);
