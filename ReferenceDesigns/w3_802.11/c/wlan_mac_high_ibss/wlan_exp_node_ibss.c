@@ -58,6 +58,7 @@
 
 /*********************** Global Variable Definitions *************************/
 extern dl_list		  association_table;
+extern dl_list        statistics_table;
 
 extern u8             pause_data_queue;
 extern u32            mac_param_chan;
@@ -555,6 +556,26 @@ void wlan_exp_ibss_join_success(bss_info* bss_description) {
     // Set global variable back to idle to indicate successful join
 	join_success = WLAN_EXP_IBSS_JOIN_IDLE;
 
+}
+
+
+
+
+/*****************************************************************************/
+/**
+* Used by wlan_exp_cmd_add_association_callback in wlan_exp_node.c
+*
+* @param    u8 * -- Pointer to MAC address association that will be added
+*
+* @return	None.
+*
+******************************************************************************/
+void wlan_exp_ibss_tx_cmd_add_association(u8* mac_addr) {
+
+	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Adding association for:  ");
+	wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, mac_addr); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
+
+	wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
 }
 
 

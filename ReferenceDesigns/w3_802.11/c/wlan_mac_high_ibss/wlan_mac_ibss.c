@@ -211,6 +211,7 @@ int main() {
 	wlan_exp_set_reset_all_associations_callback(   (void *)leave_ibss);
 	wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
 	wlan_exp_set_timebase_adjust_callback(          (void *)association_timestamp_adjust);
+	wlan_exp_set_tx_cmd_add_association_callback(   (void *)wlan_exp_ibss_tx_cmd_add_association);
 
 	// Configure the wlan_exp framework
 	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_TYPE_MASK, WLAN_EXP_ETH);
