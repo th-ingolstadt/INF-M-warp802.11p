@@ -261,6 +261,7 @@ void wlan_exp_set_purge_all_data_tx_queue_callback(void(*callback)());
 void wlan_exp_set_reset_all_associations_callback(void(*callback)());
 void wlan_exp_set_reset_bss_info_callback(void(*callback)());
 void wlan_exp_set_timebase_adjust_callback(void(*callback)());
+void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)());
 
 int  node_get_parameters(u32 * buffer, unsigned int max_words, unsigned char network);
 int  node_get_parameter_values(u32 * buffer, unsigned int max_words);

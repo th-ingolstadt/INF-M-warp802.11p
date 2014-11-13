@@ -137,6 +137,7 @@ static wn_function_ptr_t     wlan_exp_reset_station_statistics_callback = (wn_fu
        wn_function_ptr_t     wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
        wn_function_ptr_t     wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
 static wn_function_ptr_t     wlan_exp_adjust_timebase_callback          = (wn_function_ptr_t)wlan_exp_null_callback;
+       wn_function_ptr_t     wlan_exp_tx_cmd_add_association_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
 
 
 u32                          async_pkt_enable;
@@ -1818,6 +1819,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     case CMD_PARAM_READ_VAL:
         				// Get MAC Address
         				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
+
+        				// If necessary, add an association.  This is primarily for IBSS nodes where
+        				//   the association table might not be set up at the time this is called.
+        				wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+
         				id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
         				rate = node_process_tx_rate( msg_cmd, id, (rate & 0xFF));
@@ -1901,6 +1907,11 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     case CMD_PARAM_READ_VAL:
         				// Get MAC Address
         				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
+
+        				// If necessary, add an association.  This is primarily for IBSS nodes where
+        				//   the association table might not be set up at the time this is called.
+        				wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+
         				id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
 
         				ant_mode = node_process_tx_ant_mode( msg_cmd, id, (ant_mode & 0xFF));
@@ -2865,6 +2876,7 @@ void wlan_exp_reset_all_callbacks(){
 	wlan_exp_reset_all_associations_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
 	wlan_exp_reset_bss_info_callback           = (wn_function_ptr_t)wlan_exp_null_callback;
 	wlan_exp_adjust_timebase_callback          = (wn_function_ptr_t)wlan_exp_null_callback;
+	wlan_exp_tx_cmd_add_association_callback   = (wn_function_ptr_t)wlan_exp_null_callback;
 }
 
 
@@ -2899,6 +2911,10 @@ void wlan_exp_set_reset_bss_info_callback(void(*callback)()){
 
 void wlan_exp_set_timebase_adjust_callback(void(*callback)()){
 	wlan_exp_adjust_timebase_callback = (wn_function_ptr_t)callback;
+}
+
+void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)()){
+	wlan_exp_tx_cmd_add_association_callback = (wn_function_ptr_t)callback;
 }
 
 
