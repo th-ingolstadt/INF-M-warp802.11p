@@ -171,7 +171,7 @@ int wlan_exp_node_sta_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, v
 
 			// Get MAC Address
 			wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[0], &mac_addr[0]);
-			aid = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+			aid = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
 			status  = CMD_PARAM_SUCCESS;
 
