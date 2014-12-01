@@ -154,7 +154,7 @@ void wlan_exp_put_mac_addr(u8 * src, u32 * dest);
 //
 // Define WARPNet Common Methods that must be implemented in child classes
 //
-u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr);
+u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr);
 
 
 #ifdef _DEBUG_

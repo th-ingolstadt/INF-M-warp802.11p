@@ -196,7 +196,7 @@
 #define WLAN_EXP_AID_NONE                                  0x00000000
 #define WLAN_EXP_AID_ALL                                   0xFFFFFFFF
 #define WLAN_EXP_AID_ME                                    0xFFFFFFFE
-
+#define WLAN_EXP_AID_DEFAULT                               0x00000001
 
 
 // ****************************************************************************

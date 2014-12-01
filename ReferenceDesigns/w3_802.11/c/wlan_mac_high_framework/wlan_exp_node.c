@@ -99,12 +99,13 @@ void print_wn_parameters( wn_tag_parameter *param, int num_params );
 
 
 // WARPNet buffer functions
-u32        node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32,
-		                     wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
+u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32,
+                             wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
 	                         char * type, char * description, dl_list * source_list, u32 dest_size,
+	                         u32 (*find_id)(u8 *),
 	                         dl_entry * (*find_source_entry)(u8 *),
-	                         void (*copy_source_to_dest)(void *, void *, u64),
-	                         void (*zero_dest)(void *));
+                             void (*copy_source_to_dest)(void *, void *, u64),
+                             void (*zero_dest)(void *));
 
 dl_entry * find_station_info_entry(u8 * mac_addr);
 void       zero_station_info_entry(void * dest);
@@ -117,6 +118,9 @@ void       copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 ti
 void       zero_bss_info_entry(void * dest);
 void       copy_bss_info_to_dest_entry(void * source, void * dest, u64 time);
 
+u32        wlan_exp_get_id_in_associated_stations(u8 * mac_addr);
+u32        wlan_exp_get_id_in_statistics(u8 * mac_addr);
+u32        wlan_exp_get_id_in_bss_info(u8 * bssid);
 
 // Null callback function declarations
 int        wlan_exp_null_callback();
@@ -1066,6 +1070,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					                            print_type_stats, "statistics",
 					                            get_statistics(),
 					                            sizeof(txrx_stats_entry),
+					                            &wlan_exp_get_id_in_statistics,
 					                            &find_statistics_txrx_entry,
 					                            &copy_statistics_txrx_to_dest_entry,
 					                            &zero_txrx_stats_entry);
@@ -1824,7 +1829,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
         				//   the association table might not be set up at the time this is called.
         				wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
 
-        				id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+        				id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
         				rate = node_process_tx_rate( msg_cmd, id, (rate & 0xFF));
 
@@ -1912,7 +1917,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
         				//   the association table might not be set up at the time this is called.
         				wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
 
-        				id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+        				id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
         				ant_mode = node_process_tx_ant_mode( msg_cmd, id, (ant_mode & 0xFF));
 
@@ -2087,6 +2092,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                                                 print_type_node, "station info",
                                                 get_station_info_list(),
 					                            sizeof(station_info_entry),
+					                            &wlan_exp_get_id_in_associated_stations,
 					                            &find_station_info_entry,
 					                            &copy_station_info_to_dest_entry,
 					                            &zero_station_info_entry);
@@ -2125,6 +2131,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					                            print_type_node, "bss info",
 					                            wlan_mac_high_get_bss_info_list(),
 					                            sizeof(bss_info_entry),
+					                            &wlan_exp_get_id_in_bss_info,
 					                            &wlan_mac_high_find_bss_info_BSSID,
 					                            &copy_bss_info_to_dest_entry,
 					                            &zero_bss_info_entry);
@@ -2376,6 +2383,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 ******************************************************************************/
 u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHdr * respHdr, u32 * respArgs32, void* pktSrc, u32 eth_dev_num, u32 max_words,
 	                         char * type, char * description, dl_list * source_list, u32 dest_size,
+	                         u32 (*find_id)(u8 *),
 	                         dl_entry * (*find_source_entry)(u8 *),
                              void (*copy_source_to_dest)(void *, void *, u64),
                              void (*zero_dest)(void *)) {
@@ -2407,7 +2415,7 @@ u32 node_process_buffer_cmds(const wn_cmdHdr* cmdHdr, u32 * cmdArgs32, wn_respHd
 
 	// Get MAC Address
 	wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[4], &mac_addr[0]);
-	id = wlan_exp_get_aid_from_ADDR(&mac_addr[0]);
+	id = find_id(&mac_addr[0]);
 
     // Initialize return values
     respArgs32[0] = cmdArgs32[0];
@@ -3239,18 +3247,21 @@ void node_ltg_cleanup(u32 id, void* callback_arg){
 
 /*****************************************************************************/
 /**
-* WLAN Mapping of MAC Addr to AID
+* WLAN Mapping of MAC Addr to ID
 *
-* This function contains the mapping of MAC address to AID within a node.
+* This function contains the mapping of MAC address to ID within a node for
+*   - associated stations
+*   - statistics
+*   - bss infos
 *
 * @param    MAC Address
 *
-* @return	AID associated with that MAC address
+* @return	ID associated with that MAC address
 *
 * @note		None.
 *
 ******************************************************************************/
-u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
+u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
 	u32            id;
 	dl_entry*	   entry;
 	station_info * info;
@@ -3271,6 +3282,53 @@ u32  wlan_exp_get_aid_from_ADDR(u8 * mac_addr) {
 					id = WLAN_EXP_AID_NONE;
 				}
 			}
+		} else {
+			id = WLAN_EXP_AID_NONE;
+		}
+	}
+
+	return id;
+}
+
+
+u32  wlan_exp_get_id_in_statistics(u8 * mac_addr) {
+	u32            id;
+	dl_list*       stats;
+	dl_entry*	   entry;
+
+	if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
+		id = WLAN_EXP_AID_ALL;
+	} else {
+		stats = get_statistics();
+
+		if(stats != NULL){
+			entry = wlan_mac_high_find_statistics_ADDR(stats, mac_addr);
+
+			if (entry != NULL) {
+				id = WLAN_EXP_AID_DEFAULT;            // Only returns the default AID if found
+			} else {
+				id = WLAN_EXP_AID_NONE;
+			}
+		} else {
+			id = WLAN_EXP_AID_NONE;
+		}
+	}
+
+	return id;
+}
+
+
+u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
+	u32            id;
+	dl_entry*	   entry;
+
+	if ( wlan_addr_eq(bssid, bcast_addr) ) {
+		id = WLAN_EXP_AID_ALL;
+	} else {
+		entry = wlan_mac_high_find_bss_info_BSSID(bssid);
+
+		if (entry != NULL) {
+			id = WLAN_EXP_AID_DEFAULT;
 		} else {
 			id = WLAN_EXP_AID_NONE;
 		}
