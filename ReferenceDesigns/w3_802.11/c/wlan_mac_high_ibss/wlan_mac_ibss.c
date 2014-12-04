@@ -57,7 +57,7 @@
 #define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_IBSS)
 #define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                    1
+#define  WLAN_DEFAULT_CHANNEL                    10
 #define  WLAN_DEFAULT_TX_PWR                     13
 
 #define  SCAN_TIMEOUT_SEC                        5
@@ -289,6 +289,17 @@ int main() {
 			temp_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
 			wlan_mac_ibss_join( temp_bss_info );
 		}
+	} else {
+		//FIXME: Hack for Tx Char
+		xil_printf("Unable to find '%s' IBSS. Creating new network.\n",default_ssid);
+
+		memcpy(locally_administered_addr,wlan_mac_addr,6);
+		locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL; //Raise the bit identifying this address as locally administered
+		temp_bss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
+		temp_bss_info->beacon_interval = BEACON_INTERVAL_TU;
+		temp_bss_info->state = BSS_STATE_OWNED;
+		temp_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
+		wlan_mac_ibss_join( temp_bss_info );
 	}
 
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
@@ -716,13 +727,13 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8					send_response			 = 0;
 	u32					tx_length;
 
-
 	// Log the reception
 	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
 
 	// Determine destination of packet
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
+	//xil_printf("Rate: %d, Rx Power: %d\n", rate, mpdu_info->rx_power);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (unicast_to_me || to_multicast)){
