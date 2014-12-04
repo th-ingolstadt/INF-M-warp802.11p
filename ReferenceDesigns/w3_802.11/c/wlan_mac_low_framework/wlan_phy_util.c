@@ -336,7 +336,7 @@ void wlan_phy_init() {
  	wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 4);
 
 	//Configure auto-corr pkt det autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
-	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 50, 4, 0x3F);
+	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 150, 4, 0x3F);
 
 	//Configure the default antenna selections as SISO Tx/Rx on RF A
 	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);

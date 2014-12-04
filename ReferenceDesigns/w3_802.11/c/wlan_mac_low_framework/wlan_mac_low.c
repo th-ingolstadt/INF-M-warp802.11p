@@ -775,9 +775,9 @@ inline u32 wlan_mac_low_get_current_rx_filter(){
  */
 inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 #define B24_RSSI_SLOPE_BITSHIFT		4
-#define B24_RSSI_OFFSET_LNA_LOW		(-61)
-#define B24_RSSI_OFFSET_LNA_MED		(-76)
-#define B24_RSSI_OFFSET_LNA_HIGH	(-92)
+#define B24_RSSI_OFFSET_LNA_LOW		(-56)
+#define B24_RSSI_OFFSET_LNA_MED		(-71)
+#define B24_RSSI_OFFSET_LNA_HIGH	(-87)
 
 #define B5_RSSI_SLOPE_BITSHIFT		7
 #define B5_RSSI_SLOPE_MULT			7
