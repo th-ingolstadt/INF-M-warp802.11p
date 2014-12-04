@@ -1177,7 +1177,7 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
 		power_railed = power;
 	}
 
-	return_value = (u8)(2*power_railed + 25);
+	return_value = (u8)(2*power_railed + 20);
 
 	return return_value;
 }

@@ -371,7 +371,8 @@ void wlan_phy_init() {
 	wlan_phy_tx_set_rx_invalid_extension(150); //100
 
 	//Set digital scaling of preamble/payload signals before DACs (UFix12_0)
-	wlan_phy_tx_set_scaling(0x2000, 0x2000);
+	//wlan_phy_tx_set_scaling(0x2800, 0x2800); //Scaling of 2.5
+	wlan_phy_tx_set_scaling(0x2000, 0x2000); //Scaling of 2.0
 
 	//Enable the Tx PHY 4-bit TxEn port that captures the MAC's selection of active antennas per Tx
 	REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_USE_MAC_ANT_MASKS);
@@ -490,11 +491,11 @@ void wlan_radio_init() {
 	//radio_controller_setTxGainTarget(RC_BASEADDR, RC_ALL_RF, 45);
 	radio_controller_setTxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_HW); //Used for hardware control of gains
 
-	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 2);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 1);
 	
 
 	//Set misc radio params
-	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_PADRIVER, 0);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_PADRIVER, 2);
 	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_VGA, 0);
 	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_UPCONV, 0);
 
