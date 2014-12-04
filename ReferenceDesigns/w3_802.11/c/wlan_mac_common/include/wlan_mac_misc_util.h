@@ -97,8 +97,8 @@ typedef struct{
 	tx_params params;		///< Additional lower-level MAC and PHY parameters
 } tx_frame_info;
 
-#define TX_POWER_MAX_DBM (19)
-#define TX_POWER_MIN_DBM (-12)
+#define TX_POWER_MAX_DBM (21)
+#define TX_POWER_MIN_DBM (-9)
 
 #define TX_MPDU_RESULT_SUCCESS	0
 #define TX_MPDU_RESULT_FAILURE	1
