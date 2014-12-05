@@ -23,9 +23,9 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %Output of PHY Tx simulation
 % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-%load('rx_sigs/wlan_tx_sig_Null_Data_24Mbps.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_24Mbps.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+%load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_12Mbps_newLat.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+rx_sim_sig_adc_IQ = 0.5.*[zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
 rx_sim_sig_samp_time = 8;
 
 
@@ -116,7 +116,7 @@ PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 400;%hex2dec('3FF');%(20) * 2^4; %UFix10
 %PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 0;%hex2dec('3FF');%(20) * 2^4; %UFix10_0
 
 
-PHY_CONFIG_PKT_DET_ENERGY_THRESH = 1; %UFix14_8 thresh; set to low non-zero value
+PHY_CONFIG_PKT_DET_ENERGY_THRESH = 1; %UFix14_4 thresh; set to low non-zero value
 PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 

@@ -184,7 +184,7 @@ REG_TX_PKT_BUF_SEL = ...
     2^16 * 0  + ... %b[23:16] pkt buf address offset
     0;
 
-REG_TX_Output_Scaling = (2^0 * 2^12) + (2^16 * 2^12); %UFix16_12 values
+REG_TX_Output_Scaling = (2.5 * 2^12) + (2^16 * 2.5 * 2^12); %UFix16_12 values
 
 
 %% Cyclic Redundancy Check parameters
