@@ -96,6 +96,7 @@
 #define WLAN_RX_REG_CFG_PHY_CCA_MODE_SEL	0x004000 //Selects any(0) or all(1) antenna requirement for PHY CCA BUSY
 #define WLAN_RX_REG_CFG_ANT_SEL_MASK		0x018000 //Selects antenna for PHY input when sel div is disabled ([0,1,2,3] = RF[A,B,C,D])
 #define WLAN_RX_REG_CFG_MAX_PKT_LEN_MASK	0x1E0000 //Sets max SIGNAL.LENGTH value in kB
+#define WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET	0x200000 //Requires both auto_corr and RSSI pkt det assertion to start Rx
 
 #define wlan_phy_select_rx_antenna(d) Xil_Out32(WLAN_RX_REG_CFG, ((Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_ANT_SEL_MASK) | ((d&0x3) << 15)))
 
