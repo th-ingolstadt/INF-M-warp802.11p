@@ -319,6 +319,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
 	mpdu_info->rx_power = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
+	mpdu_info->rssi_avg = rssi;
 
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) {
 		//Received packet had good checksum
