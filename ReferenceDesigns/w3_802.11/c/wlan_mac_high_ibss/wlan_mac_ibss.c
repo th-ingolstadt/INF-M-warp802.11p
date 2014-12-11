@@ -57,8 +57,7 @@
 #define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_IBSS)
 #define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                    10
-//#define  WLAN_DEFAULT_CHANNEL                    36
+#define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     13
 
 #define  SCAN_TIMEOUT_SEC                        5
@@ -126,7 +125,7 @@ int main() {
 	// Print initial message to UART
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.0 ------------------------------\n");
+	xil_printf("----- v1.1 ------------------------------\n");
 	xil_printf("----- wlan_mac_ibss ---------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -290,17 +289,6 @@ int main() {
 			temp_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
 			wlan_mac_ibss_join( temp_bss_info );
 		}
-	} else {
-		//FIXME: Hack for Tx Char
-		xil_printf("Unable to find '%s' IBSS. Creating new network.\n",default_ssid);
-
-		memcpy(locally_administered_addr,wlan_mac_addr,6);
-		locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL; //Raise the bit identifying this address as locally administered
-		temp_bss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
-		temp_bss_info->beacon_interval = BEACON_INTERVAL_TU;
-		temp_bss_info->state = BSS_STATE_OWNED;
-		temp_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
-		wlan_mac_ibss_join( temp_bss_info );
 	}
 
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
