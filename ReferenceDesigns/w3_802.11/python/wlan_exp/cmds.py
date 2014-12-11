@@ -106,8 +106,8 @@ CMD_PARAM_RSVD_CHANNEL                           = 0x00000000
 
 CMD_PARAM_RSVD_MAC_ADDR                          = 0xFFFFFFFF
 
-CMD_PARAM_NODE_TX_POWER_MAX_DBM                  = 19
-CMD_PARAM_NODE_TX_POWER_MIN_DBM                  = -12
+CMD_PARAM_NODE_TX_POWER_MAX_DBM                  = 21
+CMD_PARAM_NODE_TX_POWER_MIN_DBM                  = -9
 
 CMD_PARAM_RX_FILTER_FCS_GOOD                     = 0x1000
 CMD_PARAM_RX_FILTER_FCS_ALL                      = 0x2000
