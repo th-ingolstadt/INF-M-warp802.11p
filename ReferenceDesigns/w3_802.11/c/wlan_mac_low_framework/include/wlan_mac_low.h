@@ -20,7 +20,6 @@
 
 #define USERIO_BASEADDR     XPAR_W3_USERIO_BASEADDR
 
-
 /*************** WLAN MAC HW ***************/
 //Register renames
 //RO:

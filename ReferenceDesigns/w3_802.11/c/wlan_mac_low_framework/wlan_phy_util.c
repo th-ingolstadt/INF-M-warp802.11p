@@ -336,6 +336,7 @@ void wlan_phy_init() {
  	wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 4);
 
 	//Configure auto-corr pkt det autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
+
 //	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 150, 4, 0x3F); //pre v47: energy_thresh was UFix14_8, now UFix14_4
 	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
 
@@ -408,12 +409,14 @@ void wlan_agc_config(u32 ant_mode) {
 	//AGC config:
 	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
 	wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
+	//wlan_agc_set_config( (256-66), (256-47), 0, 6, 24); //FIXME DEBUG ONLY
 
 	//AGC RSSI->Rx power offsets
 	wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
 
 	//AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-	wlan_agc_set_AGC_timing(1, 30, 90, 96);
+	//wlan_agc_set_AGC_timing(1, 30, 90, 96);
+	wlan_agc_set_AGC_timing(1, 30, 90, 127);
 
 	//AGC timing: start_dco, en_iir_filt
 	wlan_agc_set_DCO_timing(100, (100+34));

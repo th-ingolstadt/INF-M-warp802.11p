@@ -344,7 +344,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 						case LOW_PARAM_TIMESTAMP_OFFSET:
 							wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1]));
-							xil_printf("New Offset: %d\n", (s32)(ipc_msg_from_high_payload[1]));
 						break;
 
 						case LOW_PARAM_BB_GAIN:
@@ -372,7 +371,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						break;
 
 						case LOW_PARAM_AD_SCALING:
-							xil_printf("Interp Scaling: %d %d %d\n", ipc_msg_from_high_payload[1],ipc_msg_from_high_payload[2],ipc_msg_from_high_payload[3]);
 							ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x36, (0x1F & ipc_msg_from_high_payload[1]));
 							ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x37, (0x1F & ipc_msg_from_high_payload[2]));
 							ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x35, (0x1F & ipc_msg_from_high_payload[3]));
@@ -773,19 +771,31 @@ inline u32 wlan_mac_low_get_current_rx_filter(){
  * @param None
  * @return None
  */
-inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
-#define B24_RSSI_SLOPE_BITSHIFT		4
-#define B24_RSSI_OFFSET_LNA_LOW		(-56)
-#define B24_RSSI_OFFSET_LNA_MED		(-71)
-#define B24_RSSI_OFFSET_LNA_HIGH	(-87)
 
-#define B5_RSSI_SLOPE_BITSHIFT		7
-#define B5_RSSI_SLOPE_MULT			7
-#define B5_RSSI_OFFSET_LNA_LOW		(-51)
-#define B5_RSSI_OFFSET_LNA_MED		(-61)
-#define B5_RSSI_OFFSET_LNA_HIGH		(-84)
+#define POW_LOOKUP_SHIFT 3 //Shift from 10 bit RSSI to 7 bit for lookup
+const s8 pow_lookup_B24[128] = {-90, -90, -89, -88, -88, -87, -87, -86, -86, -85, -84, -84, -83, -83, -82, -82,
+								-81, -81, -80, -79, -79, -78, -78, -77, -77, -76, -75, -75, -74, -74, -73, -73,
+								-72, -72, -71, -70, -70, -69, -69, -68, -68, -67, -66, -66, -65, -65, -64, -64,
+								-63, -63, -62, -61, -61, -60, -60, -59, -59, -58, -58, -57, -56, -56, -55, -55,
+								-54, -54, -53, -52, -52, -51, -51, -50, -50, -49, -49, -48, -47, -47, -46, -46,
+								-45, -45, -44, -43, -43, -42, -42, -41, -41, -40, -40, -39, -38, -38, -37, -37,
+								-36, -36, -35, -34, -34, -33, -33, -32, -32, -31, -31, -30, -29, -29, -28, -28,
+								-27, -27, -26, -26, -25, -24, -24, -23, -23, -22, -22, -21, -20, -20, -19, -19};
+
+const s8 pow_lookup_B5[128] = {-97, -97, -96, -96, -95, -94, -94, -93, -93, -92, -92, -91, -90, -90, -89, -89,
+							   -88, -88, -87, -87, -86, -85, -85, -84, -84, -83, -83, -82, -81, -81, -80, -80,
+							   -79, -79, -78, -78, -77, -76, -76, -75, -75, -74, -74, -73, -72, -72, -71, -71,
+							   -70, -70, -69, -69, -68, -67, -67, -66, -66, -65, -65, -64, -63, -63, -62, -62,
+							   -61, -61, -60, -60, -59, -58, -58, -57, -57, -56, -56, -55, -54, -54, -53, -53,
+							   -52, -52, -51, -51, -50, -49, -49, -48, -48, -47, -47, -46, -45, -45, -44, -44,
+							   -43, -43, -42, -42, -41, -40, -40, -39, -39, -38, -38, -37, -36, -36, -35, -35,
+							   -34, -34, -33, -32, -32, -31, -31, -30, -30, -29, -29, -28, -27, -27, -26, -26};
+
+inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
+
 	u8 band;
 	int power = -100;
+	u16 adj_rssi;
 
 	band = mac_param_band;
 
@@ -795,37 +805,44 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 			case 0:
 			case 1:
 				//Low LNA Gain State
-				power = (rssi>>(B24_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B24_RSSI_OFFSET_LNA_LOW;
+				adj_rssi = rssi + (440 << PHY_RX_RSSI_SUM_LEN_BITS);
 			break;
 
 			case 2:
 				//Medium LNA Gain State
-				power = (rssi>>(B24_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B24_RSSI_OFFSET_LNA_MED;
+				adj_rssi = rssi + (220 << PHY_RX_RSSI_SUM_LEN_BITS);
 			break;
 
 			case 3:
 				//High LNA Gain State
-				power = (rssi>>(B24_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B24_RSSI_OFFSET_LNA_HIGH;
+				adj_rssi = rssi;
 			break;
 		}
+
+		power = pow_lookup_B24[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
+
+
+
 	} else if(band == RC_5GHZ){
 		switch(lna_gain){
 			case 0:
 			case 1:
 				//Low LNA Gain State
-				power = ((B5_RSSI_SLOPE_MULT*(u32)rssi)>>(B5_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B5_RSSI_OFFSET_LNA_LOW;
+				adj_rssi = rssi + (540 << PHY_RX_RSSI_SUM_LEN_BITS);
 			break;
 
 			case 2:
 				//Medium LNA Gain State
-				power = ((B5_RSSI_SLOPE_MULT*(u32)rssi)>>(B5_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B5_RSSI_OFFSET_LNA_MED;
+				adj_rssi = rssi + (280 << PHY_RX_RSSI_SUM_LEN_BITS);
 			break;
 
 			case 3:
 				//High LNA Gain State
-				power = ((B5_RSSI_SLOPE_MULT*(u32)rssi)>>(B5_RSSI_SLOPE_BITSHIFT + PHY_RX_RSSI_SUM_LEN_BITS)) + B5_RSSI_OFFSET_LNA_HIGH;
+				adj_rssi = rssi;
 			break;
 		}
+
+		power = pow_lookup_B5[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
 	}
 
 	return power;

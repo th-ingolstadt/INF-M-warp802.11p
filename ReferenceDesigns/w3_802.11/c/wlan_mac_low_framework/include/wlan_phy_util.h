@@ -48,8 +48,8 @@
 //We empirically measured a 2.2usec latency from RC PHY start to observable waveform
 #define TX_PHY_DLY_100NSEC ( ((TX_RC_PHYSTART_DLY)/4) + 22)
 
-#define PHY_RX_RSSI_SUM_LEN 8
-#define PHY_RX_RSSI_SUM_LEN_BITS 3 //LOG2(PHY_RX_RSSI_SUM_LEN)
+#define PHY_RX_RSSI_SUM_LEN 4
+#define PHY_RX_RSSI_SUM_LEN_BITS 2 //LOG2(PHY_RX_RSSI_SUM_LEN)
 
 //Modulation/coding rate values
 #define WLAN_PHY_RATE_DSSS_1M	0x1 //RX Only
