@@ -58,6 +58,7 @@
 #define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
 #define  WLAN_DEFAULT_CHANNEL                    10
+//#define  WLAN_DEFAULT_CHANNEL                    36
 #define  WLAN_DEFAULT_TX_PWR                     13
 
 #define  SCAN_TIMEOUT_SEC                        5
