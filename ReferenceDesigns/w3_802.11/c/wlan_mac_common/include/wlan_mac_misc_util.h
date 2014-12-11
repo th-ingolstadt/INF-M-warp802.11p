@@ -122,7 +122,7 @@ typedef struct{
 	u8 channel;			///< Channel index
 	u8 flags;			///< Bit flags
 	u8 ant_mode;		///< Rx antenna selection
-	u8 reserved[2];
+	u16 rssi_avg;		///< Average RSSI
 	u32 additional_info;///< Field to hold MAC-specific info, such as a pointer to a station_info 
 	u64 timestamp;		///< MAC timestamp at time of reception
 	u32 channel_est[64];///< Rx PHY channel estimates
