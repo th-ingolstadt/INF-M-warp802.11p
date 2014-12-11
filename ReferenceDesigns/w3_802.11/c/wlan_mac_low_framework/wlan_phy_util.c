@@ -108,13 +108,13 @@ int w3_node_init() {
 
 	//Initialize the radio_controller core and MAX2829 transceivers for on-board RF interfaces
 	status = radio_controller_init(RC_BASEADDR, RC_ALL_RF, 1, 1);
-#if 0
+
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
 		//Comment out allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
 		ret = XST_FAILURE;
 	}
-#endif
+
 	//Initialize the EEPROM read/write core
 	iic_eeprom_init(EEPROM_BASEADDR, 0x64);
 
@@ -409,7 +409,6 @@ void wlan_agc_config(u32 ant_mode) {
 	//AGC config:
 	//RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
 	wlan_agc_set_config( (256-56), (256-37), 0, 6, 24);
-	//wlan_agc_set_config( (256-66), (256-47), 0, 6, 24); //FIXME DEBUG ONLY
 
 	//AGC RSSI->Rx power offsets
 	wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
