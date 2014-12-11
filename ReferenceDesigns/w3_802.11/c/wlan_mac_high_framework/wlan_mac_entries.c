@@ -484,7 +484,8 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 		rx_event_log_entry->power      = rx_mpdu->rx_power;
 		rx_event_log_entry->rf_gain    = rx_mpdu->rf_gain;
 		rx_event_log_entry->bb_gain    = rx_mpdu->bb_gain;
-		rx_event_log_entry->length     = rx_mpdu->length;
+		//rx_event_log_entry->length     = rx_mpdu->length;
+		rx_event_log_entry->length     = rx_mpdu->rssi_avg; //FIXME! TODO! Total hack to get raw RSSI into the log
 		rx_event_log_entry->rate       = rx_mpdu->rate;
 		rx_event_log_entry->pkt_type   = pkt_type;
 		rx_event_log_entry->chan_num   = channel_num;
