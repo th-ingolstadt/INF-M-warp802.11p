@@ -22,7 +22,7 @@ Provides sample data to use with the log examples.
 
 _SAMPLE_DATA_DIR = 'sample_data'
 
-_URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/1.0.0/'
+_URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/1.1.0/'
 
 _FILES_TO_DL = [
     'ap_two_node_two_flow_capture.hdf5',

@@ -1,4 +1,4 @@
-== WLAN Exp v1.0.0   Log Entry Types ==
+== WLAN Exp v1.1.0   Log Entry Types ==
 
 ----
 
