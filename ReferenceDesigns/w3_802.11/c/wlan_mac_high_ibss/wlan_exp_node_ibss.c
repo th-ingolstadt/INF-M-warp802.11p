@@ -25,7 +25,7 @@
 // Xilinx includes
 #include <xparameters.h>
 #include <xil_io.h>
-#include <Xio.h>
+#include <xio.h>
 #include "xintc.h"
 
 
