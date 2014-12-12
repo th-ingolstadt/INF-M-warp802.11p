@@ -169,6 +169,9 @@
 
 //PHY Macros
 
+#define wlan_phy_enable_req_both_pkt_det() Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) |  WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET))
+#define wlan_phy_disable_req_both_pkt_det() Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET))
+
 #define wlan_phy_rx_set_max_pkt_len_kB(d) Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_MAX_PKT_LEN_MASK) | (((d) << 17) & WLAN_RX_REG_CFG_MAX_PKT_LEN_MASK))
 #define wlan_phy_tx_set_max_pkt_len_kB(d) Xil_Out32(WLAN_TX_REG_CFG, (Xil_In32(WLAN_TX_REG_CFG) & ~WLAN_TX_REG_CFG_MAX_PKT_LEN_MASK) | (((d) << 8) & WLAN_TX_REG_CFG_MAX_PKT_LEN_MASK))
 

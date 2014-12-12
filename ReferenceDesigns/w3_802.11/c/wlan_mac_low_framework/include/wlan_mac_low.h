@@ -225,6 +225,7 @@
 #define LOW_PARAM_LINEARITY_VGA			0x00000007
 #define LOW_PARAM_LINEARITY_UPCONV		0x00000008
 #define LOW_PARAM_AD_SCALING			0x00000009
+#define LOW_PARAM_PKT_DET_MIN_POWER		0x0000000A
 
 
 int wlan_mac_low_init(u32 type);
@@ -241,6 +242,7 @@ wlan_mac_hw_info* wlan_mac_low_get_hw_info();
 inline u32 wlan_mac_low_get_active_channel();
 inline s8 wlan_mac_low_get_current_ctrl_tx_pow();
 inline u32 wlan_mac_low_get_current_rx_filter();
+int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow);
 inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);
 inline u32 wlan_mac_low_poll_frame_rx();
 void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);

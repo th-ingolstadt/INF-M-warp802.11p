@@ -376,6 +376,16 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 							ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x35, (0x1F & ipc_msg_from_high_payload[3]));
 						break;
 
+						case LOW_PARAM_PKT_DET_MIN_POWER:
+							if( ipc_msg_from_high_payload[1]&0xFF000000 ){
+								wlan_phy_enable_req_both_pkt_det();
+								wlan_mac_low_set_pkt_det_min_power(ipc_msg_from_high_payload[1]&0x0000FFFF);
+
+							} else {
+								wlan_phy_disable_req_both_pkt_det();
+							}
+						break;
+
 
 						default:
 							ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
@@ -790,6 +800,47 @@ const s8 pow_lookup_B5[128] = {-97, -97, -96, -96, -95, -94, -94, -93, -93, -92,
 							   -52, -52, -51, -51, -50, -49, -49, -48, -48, -47, -47, -46, -45, -45, -44, -44,
 							   -43, -43, -42, -42, -41, -40, -40, -39, -39, -38, -38, -37, -36, -36, -35, -35,
 							   -34, -34, -33, -32, -32, -31, -31, -30, -30, -29, -29, -28, -27, -27, -26, -26};
+
+const u16 rssi_lookup_B24[61] = {1, 16, 24, 40, 56, 72, 80, 96, 112, 128, 144, 152, 168, 184, 200, 208, 224, 240,
+								256, 272, 280, 296, 312, 328, 336, 352, 368, 384, 400, 408, 424, 440, 456, 472,
+								480, 496, 512, 528, 536, 552, 568, 584, 600, 608, 624, 640, 656, 664, 680, 696,
+								712, 728, 736, 752, 768, 784, 792, 808, 824, 840, 856};
+
+const u16 rssi_lookup_B5[61] = {96, 112, 128, 144, 160, 168, 184, 200, 216, 224, 240, 256, 272, 288, 296, 312,
+							   328, 344, 352, 368, 384, 400, 416, 424, 440, 456, 472, 480, 496, 512, 528, 544,
+							   552, 568, 584, 600, 608, 624, 640, 656, 672, 680, 696, 712, 728, 736, 752, 768,
+							   784, 800, 808, 824, 840, 856, 864, 880, 896, 912, 920, 936, 952};
+
+
+int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
+	//rx_pow must be in the range [-90,-30] inclusive
+
+	u8 band;
+	u16 rssi_val;
+
+	#define PKT_DET_MIN_POWER_MIN -90
+	#define PKT_DET_MIN_POWER_MAX -30
+
+	band = mac_param_band;
+
+	if( (rx_pow <= PKT_DET_MIN_POWER_MAX) && (rx_pow >= PKT_DET_MIN_POWER_MIN)){
+
+		if(band == RC_24GHZ){
+			rssi_val = rssi_lookup_B24[rx_pow+PKT_DET_MIN_POWER_MIN];
+		} else if(band == RC_5GHZ){
+			rssi_val = rssi_lookup_B5[rx_pow+PKT_DET_MIN_POWER_MIN];
+		}
+
+		wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), (rssi_val << PHY_RX_RSSI_SUM_LEN_BITS), 4);
+
+		xil_printf("Setting Pkt Det Min Power to %d dBm:  %d RSSI thresh\n", rx_pow, rssi_val);
+
+		return 0;
+	} else {
+		return -1;
+	}
+
+}
 
 inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 
