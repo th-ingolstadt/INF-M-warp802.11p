@@ -958,7 +958,31 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             else:
                 msg  = "\nBB Gain must be in the range [0,3]\n"                
                 raise ValueError(msg)
+    def pkt_det_min_power_configure(self, enable, power_level=None): 
+        """Configured Minimum Power Requirement of Packet Detector:
+
+        Args:
+            enable (bool):      True/False
+            power_level (int):  [-90,-30] dBm  
+        """                
+        if enable is False:            
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, 0)
+        else:
+            if power_level is not None:
+                if power_level >= cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM and power_level <= cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM:
+                    param = (1 << 24) | ((power_level+cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM) & 0xFF)
+                    self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, param)
+                    
+                else:
+                    msg  = "\nPower level must be in the range of [{0},{1}]\n".format(cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM,cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM)                
+                    raise ValueError(msg)    
             
+            else:
+                msg  = "\nPower level not specified\n"                
+                raise ValueError(msg)
+                
+            
+        
     def set_linearity_pa(self, linearity_val):
         """Sets the the PA linearity:
 
