@@ -724,7 +724,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
-	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (unicast_to_me || to_multicast)){
+	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)){
 
 		// Update the association information
 		if(my_bss_info != NULL){
@@ -773,167 +773,167 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				((station_stats)->mgmt.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 			}
 		}
+		if(unicast_to_me || to_multicast){
+			// Process the packet
+			switch(rx_80211_header->frame_control_1) {
 
-		// Process the packet
-		switch(rx_80211_header->frame_control_1) {
-
-			//---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
-				// Data packet
-				//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
-				//
-				if(my_bss_info != NULL){
-					if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)) {
-						// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
-						wlan_mpdu_eth_send(mpdu,length);
-					}
-				}
-			break;
-
-			//---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_REQ):
-				if(my_bss_info != NULL){
-					if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr)) {
-						mpdu_ptr_u8 += sizeof(mac_header_80211);
-
-						// Loop through tagged parameters
-						while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= (length - WLAN_PHY_FCS_NBYTES)){
-
-							// What kind of tag is this?
-							switch(mpdu_ptr_u8[0]){
-								//-----------------------------------------------------
-								case TAG_SSID_PARAMS:
-									// SSID parameter set
-									if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)default_ssid, mpdu_ptr_u8[1])==0)) {
-										// Broadcast SSID or my SSID - send unicast probe response
-										send_response = 1;
-									}
-								break;
-
-								//-----------------------------------------------------
-								case TAG_SUPPORTED_RATES:
-									// Supported rates
-								break;
-
-								//-----------------------------------------------------
-								case TAG_EXT_SUPPORTED_RATES:
-									// Extended supported rates
-								break;
-
-								//-----------------------------------------------------
-								case TAG_DS_PARAMS:
-									// DS Parameter set (e.g. channel)
-								break;
-							}
-
-							// Move up to the next tag
-							mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
-						}
-
-						if(send_response) {
-							// Create a probe response frame
-							curr_tx_queue_element = queue_checkout();
-
-							if(curr_tx_queue_element != NULL){
-								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-								// Setup the TX header
-								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, my_bss_info->bssid );
-
-								// Fill in the data
-								tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, my_bss_info->beacon_interval, (CAPABILITIES_IBSS | CAPABILITIES_SHORT_TIMESLOT), strlen(default_ssid), (u8*)default_ssid, my_bss_info->chan);
-
-								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-								curr_tx_queue_buffer->frame_info.AID         = 0;
-
-								// Put the packet in the queue
-								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-							}
-
-							// Finish the function
-							goto mpdu_rx_process_end;
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
+					// Data packet
+					//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
+					//
+					if(my_bss_info != NULL){
+						if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)) {
+							// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
+							wlan_mpdu_eth_send(mpdu,length);
 						}
 					}
-				}
-			break;
+				break;
 
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
-			    // Beacon Packet
-			    //   -
-			    //
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_REQ):
+					if(my_bss_info != NULL){
+						if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr)) {
+							mpdu_ptr_u8 += sizeof(mac_header_80211);
 
-			    // Define the PHY timestamp offset
-				#define PHY_T_OFFSET 25
+							// Loop through tagged parameters
+							while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= (length - WLAN_PHY_FCS_NBYTES)){
 
-			    // Update the timestamp from the beacon
-				if(my_bss_info != NULL){
-					// If this packet was from our IBSS
-					if( wlan_addr_eq( my_bss_info->bssid, rx_80211_header->address_3)){
+								// What kind of tag is this?
+								switch(mpdu_ptr_u8[0]){
+									//-----------------------------------------------------
+									case TAG_SSID_PARAMS:
+										// SSID parameter set
+										if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)default_ssid, mpdu_ptr_u8[1])==0)) {
+											// Broadcast SSID or my SSID - send unicast probe response
+											send_response = 1;
+										}
+									break;
 
+									//-----------------------------------------------------
+									case TAG_SUPPORTED_RATES:
+										// Supported rates
+									break;
 
+									//-----------------------------------------------------
+									case TAG_EXT_SUPPORTED_RATES:
+										// Extended supported rates
+									break;
 
-						// Move the packet pointer to after the header
-						mpdu_ptr_u8 += sizeof(mac_header_80211);
-
-						// Calculate the difference between the beacon timestamp and the packet timestamp
-						//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
-						timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
-
-						// Set the timestamp
-						if( allow_beacon_ts_update == 1 ){
-							if(timestamp_diff > 0){
-
-								if(abs_64(timestamp_diff) >= (10*1024*my_bss_info->beacon_interval)){
-									association_timestamp_adjust(timestamp_diff);
+									//-----------------------------------------------------
+									case TAG_DS_PARAMS:
+										// DS Parameter set (e.g. channel)
+									break;
 								}
 
-								wlan_mac_high_set_timestamp_delta(timestamp_diff);
+								// Move up to the next tag
+								mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
 							}
 
-							// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
-							if(beacon_schedule_id != SCHEDULE_FAILURE){
-								wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_schedule_id);
-								timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
-								beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
+							if(send_response) {
+								// Create a probe response frame
+								curr_tx_queue_element = queue_checkout();
+
+								if(curr_tx_queue_element != NULL){
+									curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+									// Setup the TX header
+									wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, my_bss_info->bssid );
+
+									// Fill in the data
+									tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, my_bss_info->beacon_interval, (CAPABILITIES_IBSS | CAPABILITIES_SHORT_TIMESLOT), strlen(default_ssid), (u8*)default_ssid, my_bss_info->chan);
+
+									// Setup the TX frame info
+									wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+
+									// Set the information in the TX queue buffer
+									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+									curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+									curr_tx_queue_buffer->frame_info.AID         = 0;
+
+									// Put the packet in the queue
+									enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+								}
+
+								// Finish the function
+								goto mpdu_rx_process_end;
 							}
 						}
-						if(queue_num_queued(BEACON_QID)){
+					}
+				break;
 
-							//We should destroy the beacon that is currently enqueued if
-							//it exists. Note: these statements aren't typically executed.
-							//It's very likely the to-be-transmitted BEACON is already down
-							//in CPU_LOW's domain and needs to be cancelled there.
-							curr_tx_queue_element = dequeue_from_head(BEACON_QID);
-							if(curr_tx_queue_element != NULL){
-								queue_checkin(curr_tx_queue_element);
-								wlan_eth_dma_update();
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
+					// Beacon Packet
+					//   -
+					//
+
+					// Define the PHY timestamp offset
+					#define PHY_T_OFFSET 25
+
+					// Update the timestamp from the beacon
+					if(my_bss_info != NULL){
+						// If this packet was from our IBSS
+						if( wlan_addr_eq( my_bss_info->bssid, rx_80211_header->address_3)){
+
+
+
+							// Move the packet pointer to after the header
+							mpdu_ptr_u8 += sizeof(mac_header_80211);
+
+							// Calculate the difference between the beacon timestamp and the packet timestamp
+							//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
+							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+
+							// Set the timestamp
+							if( allow_beacon_ts_update == 1 ){
+								if(timestamp_diff > 0){
+
+									if(abs_64(timestamp_diff) >= (10*1024*my_bss_info->beacon_interval)){
+										association_timestamp_adjust(timestamp_diff);
+									}
+
+									wlan_mac_high_set_timestamp_delta(timestamp_diff);
+								}
+
+								// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
+								if(beacon_schedule_id != SCHEDULE_FAILURE){
+									wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_schedule_id);
+									timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
+									beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
+								}
 							}
+							if(queue_num_queued(BEACON_QID)){
+
+								//We should destroy the beacon that is currently enqueued if
+								//it exists. Note: these statements aren't typically executed.
+								//It's very likely the to-be-transmitted BEACON is already down
+								//in CPU_LOW's domain and needs to be cancelled there.
+								curr_tx_queue_element = dequeue_from_head(BEACON_QID);
+								if(curr_tx_queue_element != NULL){
+									queue_checkin(curr_tx_queue_element);
+									wlan_eth_dma_update();
+								}
+							}
+
+							// Move the packet pointer back to the start for the rest of the function
+							mpdu_ptr_u8 -= sizeof(mac_header_80211);
 						}
 
-						// Move the packet pointer back to the start for the rest of the function
-						mpdu_ptr_u8 -= sizeof(mac_header_80211);
 					}
 
-				}
-
-			break;
+				break;
 
 
-            //---------------------------------------------------------------------
-			default:
-				//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
-				//null data frames (type: DATA, subtype: 0x4) for power management reasons.
-				warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
-			break;
+				//---------------------------------------------------------------------
+				default:
+					//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
+					//null data frames (type: DATA, subtype: 0x4) for power management reasons.
+					warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
+				break;
+			}
 		}
-
 		// Finish the function
 		goto mpdu_rx_process_end;
 	} else {
