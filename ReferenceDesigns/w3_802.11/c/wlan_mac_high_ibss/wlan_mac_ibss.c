@@ -57,7 +57,7 @@
 #define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_IBSS)
 #define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                    1
+#define  WLAN_DEFAULT_CHANNEL                    10
 #define  WLAN_DEFAULT_TX_PWR                     15
 
 #define  SCAN_TIMEOUT_SEC                        5
@@ -722,7 +722,6 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	// Determine destination of packet
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
-	//xil_printf("Rate: %d, Rx Power: %d\n", rate, mpdu_info->rx_power);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (unicast_to_me || to_multicast)){
@@ -1056,7 +1055,6 @@ void ltg_event(u32 id, void* callback_arg){
 			case LTG_PYLD_TYPE_FIXED:
 				payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
 				addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
-
 				is_multicast = wlan_addr_mcast(addr_da);
 				if(is_multicast){
 					queue_sel = MCAST_QID;
@@ -1114,6 +1112,13 @@ void ltg_event(u32 id, void* callback_arg){
 			break;
 		}
 
+		if(is_multicast == 0){
+			wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, addr_da, ADD_ASSOCIATION_ANY_AID);
+			//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
+			ibss_write_hex_display(my_bss_info->associated_stations.length);
+		}
+
+
 		do{
 			continue_loop = 0;
 
@@ -1125,7 +1130,7 @@ void ltg_event(u32 id, void* callback_arg){
 					curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
 
 					// Setup the MAC header
-					wlan_mac_high_setup_tx_header( &tx_header_common, addr_da, wlan_mac_addr );
+					wlan_mac_high_setup_tx_header( &tx_header_common, addr_da, my_bss_info->bssid );
 
 					min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS, id);
 					payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);

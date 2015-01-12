@@ -182,9 +182,11 @@ void wlan_mac_ibss_bss_search_poll(u32 schedule_id){
 			curr_dl_entry = wlan_mac_high_find_bss_info_SSID(search_ssid);
 
 			if(curr_dl_entry != NULL){
-				wlan_mac_ibss_return_to_idle();
 				curr_bss_info = (bss_info*)(curr_dl_entry->data);
-				wlan_mac_ibss_join(curr_bss_info);
+				if(curr_bss_info->capabilities & CAPABILITIES_IBSS){
+					wlan_mac_ibss_return_to_idle();
+					wlan_mac_ibss_join(curr_bss_info);
+				}
 			}
 		break;
 	}
