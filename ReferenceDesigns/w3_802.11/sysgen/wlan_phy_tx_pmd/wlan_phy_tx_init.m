@@ -69,8 +69,8 @@ ControlFrame_ACK = sscanf('d4 00 00 00 40 d8 55 04 21 4a 00 00 00 00', '%02x');
 
 %Choose a payload for simulation
 %Pkt_Payload = MPDU_Null_Data;
-Pkt_Payload = MPDU_Data_short;
-%Pkt_Payload = MPDU_Data_long;
+%Pkt_Payload = MPDU_Data_short;
+Pkt_Payload = MPDU_Data_long;
 %Pkt_Payload = ControlFrame_ACK;
 
 Pkt_len = length(Pkt_Payload);
@@ -84,7 +84,7 @@ Pkt_Payload_words = sum(Pkt_Payload4 .* repmat(2.^[0:8:24]', 1, size(Pkt_Payload
 PPDU_words = zeros(1, MAX_NUM_BYTES/4);
 
 %Select the Tx rate in Mbps - must be one of the supported rates
-Tx_Rate = 12;
+Tx_Rate = 54;
 
 %Choose a modulation/coding rate and insert SIGNAL field in first 3 bytes
 switch Tx_Rate
@@ -192,23 +192,29 @@ CRCPolynomial32 = hex2dec('04c11db7'); %CRC-32
 CRC_Table32 = CRC_table_gen(CRCPolynomial32, 32);
 
 %% Constellation params
-Mod_Constellation_BPSK(1) = -1 * 0.95; %Scale down from spec to avoid overflow in FFT
-Mod_Constellation_BPSK(2) =  1 * 0.95; %Scale down from spec to avoid overflow in FFT
 
-Mod_Constellation_QPSK(1) = -1/sqrt(2);
-Mod_Constellation_QPSK(2) =  1/sqrt(2);
+%Common scaling for preamble and all constellations that keeps all points within
+% numeric range of Fix16_15 values at input to IFFT
+ALL_MOD_SCALING = ( 1.0 - (2^-15) )/(7/sqrt(42));
+Preamble_IQ_scaled = ALL_MOD_SCALING * Preamble_IQ;
 
-Mod_Constellation_16QAM(1) = -3/sqrt(10);
-Mod_Constellation_16QAM(2) = -1/sqrt(10);
-Mod_Constellation_16QAM(3) =  3/sqrt(10);
-Mod_Constellation_16QAM(4) =  1/sqrt(10);
+Mod_Constellation_BPSK(1) = ALL_MOD_SCALING * -1;
+Mod_Constellation_BPSK(2) = ALL_MOD_SCALING *  1;
 
-Mod_Constellation_64QAM(1) = -7/sqrt(42);
-Mod_Constellation_64QAM(2) = -5/sqrt(42);
-Mod_Constellation_64QAM(3) = -1/sqrt(42);
-Mod_Constellation_64QAM(4) = -3/sqrt(42);
-Mod_Constellation_64QAM(5) =  7/sqrt(42);
-Mod_Constellation_64QAM(6) =  5/sqrt(42);
-Mod_Constellation_64QAM(7) =  1/sqrt(42);
-Mod_Constellation_64QAM(8) =  3/sqrt(42);
+Mod_Constellation_QPSK(1) = ALL_MOD_SCALING * -1/sqrt(2);
+Mod_Constellation_QPSK(2) = ALL_MOD_SCALING *  1/sqrt(2);
+
+Mod_Constellation_16QAM(1) = ALL_MOD_SCALING * -3/sqrt(10);
+Mod_Constellation_16QAM(2) = ALL_MOD_SCALING * -1/sqrt(10);
+Mod_Constellation_16QAM(3) = ALL_MOD_SCALING *  3/sqrt(10);
+Mod_Constellation_16QAM(4) = ALL_MOD_SCALING *  1/sqrt(10);
+
+Mod_Constellation_64QAM(1) = ALL_MOD_SCALING * -7/sqrt(42);
+Mod_Constellation_64QAM(2) = ALL_MOD_SCALING * -5/sqrt(42);
+Mod_Constellation_64QAM(3) = ALL_MOD_SCALING * -1/sqrt(42);
+Mod_Constellation_64QAM(4) = ALL_MOD_SCALING * -3/sqrt(42);
+Mod_Constellation_64QAM(5) = ALL_MOD_SCALING *  7/sqrt(42);
+Mod_Constellation_64QAM(6) = ALL_MOD_SCALING *  5/sqrt(42);
+Mod_Constellation_64QAM(7) = ALL_MOD_SCALING *  1/sqrt(42);
+Mod_Constellation_64QAM(8) = ALL_MOD_SCALING *  3/sqrt(42);
 

@@ -23,11 +23,9 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %Output of PHY Tx simulation
 % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-%load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_12Mbps_newLat.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-rx_sim_sig_adc_IQ = 0.5.*[zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat'); tx_sig_t = [1:length(wlan_tx_out)];
+rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
 rx_sim_sig_samp_time = 8;
-
 
 %Set simulation time to just long enough for the input waveform
 rx_sim_time = rx_sim_sig_samp_time*length(rx_sim_sig_adc_IQ) + 500;
