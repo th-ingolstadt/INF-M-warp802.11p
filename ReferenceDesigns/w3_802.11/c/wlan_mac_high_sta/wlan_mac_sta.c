@@ -549,7 +549,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
-	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && (unicast_to_me || to_multicast)){
+	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)){
 
 		// Update the association information
 		if(my_bss_info != NULL){
@@ -597,167 +597,168 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 				((station_stats)->mgmt.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 			}
 		}
+		if(unicast_to_me || to_multicast){
+			// Process the packet
+			switch(rx_80211_header->frame_control_1) {
 
-		// Process the packet
-		switch(rx_80211_header->frame_control_1) {
-
-			//---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
-				// Data packet
-				//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
-				//
-				if(is_associated){
-					if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
-						// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
-						wlan_mpdu_eth_send(mpdu,length);
-					}
-				}
-			break;
-
-
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP):
-				// Association response
-				//   - If we are in the correct association state and the response was success, then associate with the AP
-				//
-
-
-				mpdu_ptr_u8 += sizeof(mac_header_80211);
-
-				if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && ((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
-					// AP is authenticating us. Update BSS_info.
-					bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
-
-					if(bss_info_entry != NULL){
-						curr_bss_info = (bss_info*)(bss_info_entry->data);
-						if(curr_bss_info->state == BSS_STATE_AUTHENTICATED){
-							curr_bss_info->state = BSS_STATE_ASSOCIATED;
-							wlan_mac_sta_bss_attempt_poll((((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
+					// Data packet
+					//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
+					//
+					if(is_associated){
+						if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
+							// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
+							wlan_mpdu_eth_send(mpdu,length);
 						}
 					}
-				} else {
-					xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mpdu_ptr_u8)->status_code);
-				}
-
-			break;
+				break;
 
 
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH):
-				// Authentication Reponse
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP):
+					// Association response
+					//   - If we are in the correct association state and the response was success, then associate with the AP
+					//
 
-				if( wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
 
-					// Move the packet pointer to after the header
 					mpdu_ptr_u8 += sizeof(mac_header_80211);
 
-					// Check the authentication algorithm
-					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
+					if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && ((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
+						// AP is authenticating us. Update BSS_info.
+						bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
-					    case AUTH_ALGO_OPEN_SYSTEM:
-					    	// Check that this was a successful authentication response
-							if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_RESP){
-
-								if(((authentication_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
-									// AP is authenticating us. Update BSS_info.
-									bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
-
-									if(bss_info_entry != NULL){
-										curr_bss_info = (bss_info*)(bss_info_entry->data);
-										if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
-											curr_bss_info->state = BSS_STATE_AUTHENTICATED;
-											wlan_mac_sta_bss_attempt_poll(0);
-										}
-									}
-								}
-
-								// Finish the function
-								goto mpdu_rx_process_end;
+						if(bss_info_entry != NULL){
+							curr_bss_info = (bss_info*)(bss_info_entry->data);
+							if(curr_bss_info->state == BSS_STATE_AUTHENTICATED){
+								curr_bss_info->state = BSS_STATE_ASSOCIATED;
+								wlan_mac_sta_bss_attempt_poll((((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
 							}
-						break;
-
-						default:
-							xil_printf("Authentication failed.  AP uses authentication algorithm %d which is not support by the 802.11 reference design.\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
-						break;
+						}
+					} else {
+						xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mpdu_ptr_u8)->status_code);
 					}
-				}
-			break;
+
+				break;
 
 
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH):
-				// De-authentication
-				//   - If we are being de-authenticated, then log and update the association state
-				//   - Start and active scan to find the AP if an SSID is defined
-				//
-				if(my_bss_info != NULL){
-					if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), rx_80211_header->address_2) != NULL)){
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_AUTH):
+					// Authentication Reponse
 
-						// Log the association state change
-						add_station_info_to_log((station_info*)((my_bss_info->associated_stations.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
-
-						// Remove the association
-						wlan_mac_high_remove_association(&(my_bss_info->associated_stations), &statistics_table, rx_80211_header->address_2);
-
-						// Purge all packets for the AP
-						purge_queue(UNICAST_QID);
-
-						// Update the hex display to show that we are no longer associated
-						sta_write_hex_display(0);
-
-						my_bss_info->state = BSS_STATE_UNAUTHENTICATED;
-
-						curr_bss_info = my_bss_info;
-						my_bss_info = NULL;
-
-						wlan_mac_sta_join(curr_bss_info,0); //Attempt to rejoin the AP
-
-					}
-				}
-			break;
-
-
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
-			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
-			    // Beacon Packet / Probe Response Packet
-			    //   -
-			    //
-
-			    // Define the PHY timestamp offset
-				#define PHY_T_OFFSET 25
-
-			    // Update the timestamp from the beacon / probe response if allowed
-				if(my_bss_info != NULL && allow_beacon_ts_update == 1){
-
-					// If this packet was from our AP
-					if( wlan_addr_eq( ((station_info*)(((my_bss_info->associated_stations).first)->data))->addr, rx_80211_header->address_3)){
+					if( wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
 
 						// Move the packet pointer to after the header
 						mpdu_ptr_u8 += sizeof(mac_header_80211);
 
-						// Calculate the difference between the beacon timestamp and the packet timestamp
-						//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
+						// Check the authentication algorithm
+						switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
 
-						timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+							case AUTH_ALGO_OPEN_SYSTEM:
+								// Check that this was a successful authentication response
+								if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_RESP){
 
-						// Set the timestamp
-						wlan_mac_high_set_timestamp_delta(timestamp_diff);
+									if(((authentication_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
+										// AP is authenticating us. Update BSS_info.
+										bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
-						// Move the packet pointer back to the start for the rest of the function
-						mpdu_ptr_u8 -= sizeof(mac_header_80211);
+										if(bss_info_entry != NULL){
+											curr_bss_info = (bss_info*)(bss_info_entry->data);
+											if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
+												curr_bss_info->state = BSS_STATE_AUTHENTICATED;
+												wlan_mac_sta_bss_attempt_poll(0);
+											}
+										}
+									}
+
+									// Finish the function
+									goto mpdu_rx_process_end;
+								}
+							break;
+
+							default:
+								xil_printf("Authentication failed.  AP uses authentication algorithm %d which is not support by the 802.11 reference design.\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
+							break;
+						}
 					}
-				}
-
-			break;
+				break;
 
 
-            //---------------------------------------------------------------------
-			default:
-				//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
-				//null data frames (type: DATA, subtype: 0x4) for power management reasons.
-				warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
-			break;
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_DEAUTH):
+					// De-authentication
+					//   - If we are being de-authenticated, then log and update the association state
+					//   - Start and active scan to find the AP if an SSID is defined
+					//
+					if(my_bss_info != NULL){
+						if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), rx_80211_header->address_2) != NULL)){
+
+							// Log the association state change
+							add_station_info_to_log((station_info*)((my_bss_info->associated_stations.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+
+							// Remove the association
+							wlan_mac_high_remove_association(&(my_bss_info->associated_stations), &statistics_table, rx_80211_header->address_2);
+
+							// Purge all packets for the AP
+							purge_queue(UNICAST_QID);
+
+							// Update the hex display to show that we are no longer associated
+							sta_write_hex_display(0);
+
+							my_bss_info->state = BSS_STATE_UNAUTHENTICATED;
+
+							curr_bss_info = my_bss_info;
+							my_bss_info = NULL;
+
+							wlan_mac_sta_join(curr_bss_info,0); //Attempt to rejoin the AP
+
+						}
+					}
+				break;
+
+
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
+				case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
+					// Beacon Packet / Probe Response Packet
+					//   -
+					//
+
+					// Define the PHY timestamp offset
+					#define PHY_T_OFFSET 25
+
+					// Update the timestamp from the beacon / probe response if allowed
+					if(my_bss_info != NULL && allow_beacon_ts_update == 1){
+
+						// If this packet was from our AP
+						if( wlan_addr_eq( ((station_info*)(((my_bss_info->associated_stations).first)->data))->addr, rx_80211_header->address_3)){
+
+							// Move the packet pointer to after the header
+							mpdu_ptr_u8 += sizeof(mac_header_80211);
+
+							// Calculate the difference between the beacon timestamp and the packet timestamp
+							//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
+
+							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+
+							// Set the timestamp
+							wlan_mac_high_set_timestamp_delta(timestamp_diff);
+
+							// Move the packet pointer back to the start for the rest of the function
+							mpdu_ptr_u8 -= sizeof(mac_header_80211);
+						}
+					}
+
+				break;
+
+
+				//---------------------------------------------------------------------
+				default:
+					//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
+					//null data frames (type: DATA, subtype: 0x4) for power management reasons.
+					warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
+				break;
+			}
 		}
 
 		// Finish the function
