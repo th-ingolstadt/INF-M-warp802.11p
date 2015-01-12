@@ -989,7 +989,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
-	if( mpdu_info->state == RX_MPDU_STATE_FCS_GOOD && (unicast_to_me || to_multicast)){
+	if( mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
 
 		// Update the association information
 		if(my_bss_info != NULL){
@@ -1045,58 +1045,25 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			}
 		}
 
-		// Process the packet
-		switch(rx_80211_header->frame_control_1) {
+		if(unicast_to_me || to_multicast){
+			// Process the packet
+			switch(rx_80211_header->frame_control_1) {
 
-            //---------------------------------------------------------------------
-		    case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
-				// Data packet
-				//   - Determine if this packet is from an associated station
-			    //   - Depending on the type and destination, transmit the packet wirelessly or over the wired network
-			    //
-				if(associated_station != NULL){
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
+					// Data packet
+					//   - Determine if this packet is from an associated station
+					//   - Depending on the type and destination, transmit the packet wirelessly or over the wired network
+					//
+					if(associated_station != NULL){
 
-					// MPDU is flagged as destined to the DS
-					if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
-						eth_send = 1;
+						// MPDU is flagged as destined to the DS
+						if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_TO_DS) {
+							eth_send = 1;
 
-						// Check if this is a multicast packet
-						if(wlan_addr_mcast(rx_80211_header->address_3)){
-							// Send the data packet over the wireless
-							curr_tx_queue_element = queue_checkout();
-
-							if(curr_tx_queue_element != NULL){
-								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-								// Setup the TX header
-								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_3, rx_80211_header->address_2);
-
-								// Fill in the data
-								mpdu_ptr_u8  = curr_tx_queue_buffer->frame;
-								tx_length    = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
-								mpdu_ptr_u8 += sizeof(mac_header_80211);
-								memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
-
-								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, mpdu_info->length, 0, MCAST_QID );
-
-								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
-								curr_tx_queue_buffer->frame_info.AID         = 0;
-
-								// Put the packet in the queue
-								enqueue_after_tail(MCAST_QID, curr_tx_queue_element);
-
-							}
-						} else {
-							// Packet is not a multi-cast packet.  Check if it is destined for one of our stations
-							associated_station_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, rx_80211_header->address_3);
-
-							if(associated_station_entry != NULL){
-								associated_station = (station_info*)(associated_station_entry->data);
-
-								// Send the data packet over the wireless to our station
+							// Check if this is a multicast packet
+							if(wlan_addr_mcast(rx_80211_header->address_3)){
+								// Send the data packet over the wireless
 								curr_tx_queue_element = queue_checkout();
 
 								if(curr_tx_queue_element != NULL){
@@ -1112,367 +1079,402 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
 
 									// Setup the TX frame info
-									wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, mpdu_info->length , (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(associated_station->AID) );
-
+									wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, mpdu_info->length, 0, MCAST_QID );
 
 									// Set the information in the TX queue buffer
-									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-									curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(associated_station);
-									curr_tx_queue_buffer->frame_info.AID         = associated_station->AID;
+									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+									curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
+									curr_tx_queue_buffer->frame_info.AID         = 0;
 
 									// Put the packet in the queue
-									enqueue_after_tail(AID_TO_QID(associated_station->AID),  curr_tx_queue_element);
+									enqueue_after_tail(MCAST_QID, curr_tx_queue_element);
 
-
-									// Given we sent the packet wirelessly to our stations, if we do not allow Ethernet transmissions
-									//   of wireless transmissions, then do not send over Ethernet
-									#ifndef ALLOW_ETH_TX_OF_WIRELESS_TX
-									eth_send = 0;
-									#endif
 								}
+							} else {
+								// Packet is not a multi-cast packet.  Check if it is destined for one of our stations
+								associated_station_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, rx_80211_header->address_3);
+
+								if(associated_station_entry != NULL){
+									associated_station = (station_info*)(associated_station_entry->data);
+
+									// Send the data packet over the wireless to our station
+									curr_tx_queue_element = queue_checkout();
+
+									if(curr_tx_queue_element != NULL){
+										curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+										// Setup the TX header
+										wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_3, rx_80211_header->address_2);
+
+										// Fill in the data
+										mpdu_ptr_u8  = curr_tx_queue_buffer->frame;
+										tx_length    = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
+										mpdu_ptr_u8 += sizeof(mac_header_80211);
+										memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
+
+										// Setup the TX frame info
+										wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, mpdu_info->length , (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(associated_station->AID) );
+
+
+										// Set the information in the TX queue buffer
+										curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+										curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(associated_station);
+										curr_tx_queue_buffer->frame_info.AID         = associated_station->AID;
+
+										// Put the packet in the queue
+										enqueue_after_tail(AID_TO_QID(associated_station->AID),  curr_tx_queue_element);
+
+
+										// Given we sent the packet wirelessly to our stations, if we do not allow Ethernet transmissions
+										//   of wireless transmissions, then do not send over Ethernet
+										#ifndef ALLOW_ETH_TX_OF_WIRELESS_TX
+										eth_send = 0;
+										#endif
+									}
+								}
+							}
+
+							// Encapsulate the packet and send over the wired network
+							if(eth_send){
+								wlan_mpdu_eth_send(mpdu,length);
+							}
+						}
+					} else {
+						// Packet was not from an associated station
+						//   - Print a WARNING and send a de-authentication to trigger a re-association
+						//
+						//
+						if(unicast_to_me){
+
+							// Received a data frame from a STA that claims to be associated with this AP but is not in the AP association table
+							//   Discard the MPDU and reply with a de-authentication frame to trigger re-association at the STA
+							warp_printf(PL_WARNING, "Data from non-associated station: [%x %x %x %x %x %x], issuing de-authentication\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
+							warp_printf(PL_WARNING, "Address 3: [%x %x %x %x %x %x]\n", rx_80211_header->address_3[0],rx_80211_header->address_3[1],rx_80211_header->address_3[2],rx_80211_header->address_3[3],rx_80211_header->address_3[4],rx_80211_header->address_3[5]);
+
+							// Send de-authentication packet to the station
+							curr_tx_queue_element = queue_checkout();
+
+							if(curr_tx_queue_element != NULL){
+								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+								// Setup the TX header
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
+
+								// Fill in the data
+								tx_length = wlan_create_deauth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
+
+								// Setup the TX frame info
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+
+								// Set the information in the TX queue buffer
+								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+								curr_tx_queue_buffer->frame_info.AID         = 0;
+
+								// Put the packet in the queue
+								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+							}
+						}
+					} // END if(associated_station != NULL)
+				break;
+
+
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_REQ):
+					// Probe Request Packet
+					//   - Check that this packet is to the broadcast address
+					//   - Look at the tagged parameters
+					//   - Depending on the parameters, send a probe response
+					//
+					if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr)) {
+						mpdu_ptr_u8 += sizeof(mac_header_80211);
+
+						// Loop through tagged parameters
+						while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= (length - WLAN_PHY_FCS_NBYTES)){
+
+							// What kind of tag is this?
+							switch(mpdu_ptr_u8[0]){
+								//-----------------------------------------------------
+								case TAG_SSID_PARAMS:
+									// SSID parameter set
+									if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)my_bss_info->ssid, mpdu_ptr_u8[1])==0)) {
+										// Broadcast SSID or my SSID - send unicast probe response
+										send_response = 1;
+									}
+								break;
+
+								//-----------------------------------------------------
+								case TAG_SUPPORTED_RATES:
+									// Supported rates
+								break;
+
+								//-----------------------------------------------------
+								case TAG_EXT_SUPPORTED_RATES:
+									// Extended supported rates
+								break;
+
+								//-----------------------------------------------------
+								case TAG_DS_PARAMS:
+									// DS Parameter set (e.g. channel)
+								break;
+							}
+
+							// Move up to the next tag
+							mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
+						}
+
+						if(send_response) {
+							// Create a probe response frame
+							curr_tx_queue_element = queue_checkout();
+
+							if(curr_tx_queue_element != NULL){
+								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+								// Setup the TX header
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
+
+								// Fill in the data
+								tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame),
+																		 &tx_header_common,
+																		 my_bss_info->beacon_interval,
+																		 (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
+																		 strlen(my_bss_info->ssid),
+																		 (u8*)my_bss_info->ssid,
+																		 my_bss_info->chan);
+
+								// Setup the TX frame info
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+
+								// Set the information in the TX queue buffer
+								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+								curr_tx_queue_buffer->frame_info.AID         = 0;
+
+								// Put the packet in the queue
+								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+							}
+
+							// Finish the function
+							goto mpdu_rx_process_end;
+						}
+					}
+				break;
+
+
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_AUTH):
+					// Authentication Packet
+					//   - Check if authentication is allowed
+					//   - Potentially send authentication response
+					//
+					if(wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr) && wlan_mac_addr_filter_is_allowed(rx_80211_header->address_2)) {
+						mpdu_ptr_u8 += sizeof(mac_header_80211);
+						switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm ){
+							case AUTH_ALGO_OPEN_SYSTEM:
+								allow_auth = 1;
+							break;
+							default:
+								allow_auth = 0;
+							break;
+						}
+					}
+
+					// Only send response if the packet was from a requester
+					//
+					if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){
+
+						if(allow_auth){
+
+							if(wlan_mac_high_find_station_info_ADDR (&(my_bss_info->associated_stations), rx_80211_header->address_2) == NULL){
+								xil_printf("Authenticated, Unassociated Stations:\n");
+								//This station wasn't already authenticated/associated (state 4), so we'll manually add it to the state 2 list.
+								wlan_mac_high_add_association(&station_info_state_2, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+							}
+
+							// Create a successful authentication response frame
+							curr_tx_queue_element = queue_checkout();
+
+							if(curr_tx_queue_element != NULL){
+								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+								// Setup the TX header
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
+
+								// Fill in the data
+								tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
+
+								// Setup the TX frame info
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+
+								// Set the information in the TX queue buffer
+								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+								curr_tx_queue_buffer->frame_info.AID         = 0;
+
+								// Put the packet in the queue
+								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+							}
+
+							// Finish the function
+							goto mpdu_rx_process_end;
+
+						} else {
+							// Create a unsuccessful authentication response frame
+							curr_tx_queue_element = queue_checkout();
+
+							if(curr_tx_queue_element != NULL){
+								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+								// Setup the TX header
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
+
+								// Fill in the data
+								tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_UNSPECIFIED);
+
+								// Setup the TX frame info
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+
+								// Set the information in the TX queue buffer
+								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+								curr_tx_queue_buffer->frame_info.AID         = 0;
+
+								// Put the packet in the queue
+								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
 							}
 						}
 
-						// Encapsulate the packet and send over the wired network
-						if(eth_send){
-							wlan_mpdu_eth_send(mpdu,length);
-						}
-					}
-				} else {
-					// Packet was not from an associated station
-					//   - Print a WARNING and send a de-authentication to trigger a re-association
-					//
-					//
-					if(unicast_to_me){
-
-						// Received a data frame from a STA that claims to be associated with this AP but is not in the AP association table
-						//   Discard the MPDU and reply with a de-authentication frame to trigger re-association at the STA
-						warp_printf(PL_WARNING, "Data from non-associated station: [%x %x %x %x %x %x], issuing de-authentication\n", rx_80211_header->address_2[0],rx_80211_header->address_2[1],rx_80211_header->address_2[2],rx_80211_header->address_2[3],rx_80211_header->address_2[4],rx_80211_header->address_2[5]);
-						warp_printf(PL_WARNING, "Address 3: [%x %x %x %x %x %x]\n", rx_80211_header->address_3[0],rx_80211_header->address_3[1],rx_80211_header->address_3[2],rx_80211_header->address_3[3],rx_80211_header->address_3[4],rx_80211_header->address_3[5]);
-
-						// Send de-authentication packet to the station
-						curr_tx_queue_element = queue_checkout();
-
-						if(curr_tx_queue_element != NULL){
-							curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-							// Setup the TX header
-							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
-
-							// Fill in the data
-							tx_length = wlan_create_deauth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
-
-							// Setup the TX frame info
-							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-							// Set the information in the TX queue buffer
-							curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-							curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-							curr_tx_queue_buffer->frame_info.AID         = 0;
-
-							// Put the packet in the queue
-							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-						}
-					}
-				} // END if(associated_station != NULL)
-			break;
-
-
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_REQ):
-				// Probe Request Packet
-                //   - Check that this packet is to the broadcast address
-                //   - Look at the tagged parameters
-                //   - Depending on the parameters, send a probe response
-                //
-				if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr)) {
-					mpdu_ptr_u8 += sizeof(mac_header_80211);
-
-					// Loop through tagged parameters
-					while(((u32)mpdu_ptr_u8 -  (u32)mpdu)<= (length - WLAN_PHY_FCS_NBYTES)){
-
-						// What kind of tag is this?
-						switch(mpdu_ptr_u8[0]){
-							//-----------------------------------------------------
-							case TAG_SSID_PARAMS:
-								// SSID parameter set
-								if((mpdu_ptr_u8[1]==0) || (memcmp(mpdu_ptr_u8+2, (u8*)my_bss_info->ssid, mpdu_ptr_u8[1])==0)) {
-									// Broadcast SSID or my SSID - send unicast probe response
-									send_response = 1;
-								}
-							break;
-
-							//-----------------------------------------------------
-							case TAG_SUPPORTED_RATES:
-								// Supported rates
-							break;
-
-							//-----------------------------------------------------
-							case TAG_EXT_SUPPORTED_RATES:
-								// Extended supported rates
-							break;
-
-							//-----------------------------------------------------
-							case TAG_DS_PARAMS:
-								// DS Parameter set (e.g. channel)
-							break;
-						}
-
-						// Move up to the next tag
-						mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
-					}
-
-					if(send_response) {
-						// Create a probe response frame
-						curr_tx_queue_element = queue_checkout();
-
-						if(curr_tx_queue_element != NULL){
-							curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-							// Setup the TX header
-							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
-
-							// Fill in the data
-							tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame),
-									                                 &tx_header_common,
-									                                 my_bss_info->beacon_interval,
-									                                 (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
-									                                 strlen(my_bss_info->ssid),
-									                                 (u8*)my_bss_info->ssid,
-									                                 my_bss_info->chan);
-
-							// Setup the TX frame info
-							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-							// Set the information in the TX queue buffer
-							curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-							curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-							curr_tx_queue_buffer->frame_info.AID         = 0;
-
-							// Put the packet in the queue
-							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-						}
-
 						// Finish the function
 						goto mpdu_rx_process_end;
 					}
-				}
-			break;
+				break;
 
 
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_AUTH):
-				// Authentication Packet
-			    //   - Check if authentication is allowed
-			    //   - Potentially send authentication response
-			    //
-				if(wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr) && wlan_mac_addr_filter_is_allowed(rx_80211_header->address_2)) {
-					mpdu_ptr_u8 += sizeof(mac_header_80211);
-					switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm ){
-						case AUTH_ALGO_OPEN_SYSTEM:
-							allow_auth = 1;
-						break;
-						default:
-							allow_auth = 0;
-						break;
-					}
-				}
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ):
+				case (MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ):
+					// Association Request / Re-association Request
+					//   - Check if the packet is for me
+					//
 
-		        // Only send response if the packet was from a requester
-			    //
-				if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){
+					if(wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr)) {
 
-					if(allow_auth){
 
-						if(wlan_mac_high_find_station_info_ADDR (&(my_bss_info->associated_stations), rx_80211_header->address_2) == NULL){
+
+						// Check if we have authenticated this TA
+						if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
+
 							xil_printf("Authenticated, Unassociated Stations:\n");
-							//This station wasn't already authenticated/associated (state 4), so we'll manually add it to the state 2 list.
-							wlan_mac_high_add_association(&station_info_state_2, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+							wlan_mac_high_remove_association(&station_info_state_2, &statistics_table, rx_80211_header->address_2);
+
+							// NOTE:  This function handles both the case that the station is already in the association
+							//   table and the case that the association needs to be added to the association table
+							//
+
+							xil_printf("Authenticated, Associated Stations:\n");
+							associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+							ap_write_hex_display(my_bss_info->associated_stations.length);
 						}
 
-						// Create a successful authentication response frame
-						curr_tx_queue_element = queue_checkout();
+						if(associated_station != NULL) {
 
-						if(curr_tx_queue_element != NULL){
-							curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+							// Log the association state change
+							add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
-							// Setup the TX header
-							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
+							// Create a successful association response frame
+							curr_tx_queue_element = queue_checkout();
 
-							// Fill in the data
-							tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
+							if(curr_tx_queue_element != NULL){
+								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
-							// Setup the TX frame info
-							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+								// Setup the TX header
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
 
-							// Set the information in the TX queue buffer
-							curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-							curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-							curr_tx_queue_buffer->frame_info.AID         = 0;
+								// Fill in the data
+								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_SUCCESS, associated_station->AID);
 
-							// Put the packet in the queue
-							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+								// Setup the TX frame info
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(associated_station->AID) );
 
+								// Set the information in the TX queue buffer
+								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
+								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)associated_station;
+								curr_tx_queue_buffer->frame_info.AID         = associated_station->AID;
+
+								// Put the packet in the queue
+								enqueue_after_tail(AID_TO_QID(associated_station->AID), curr_tx_queue_element);
+
+							}
+
+							// Finish the function
+							goto mpdu_rx_process_end;
+
+						} else {
+							// Create an unsuccessful association response frame
+							curr_tx_queue_element = queue_checkout();
+
+							if(curr_tx_queue_element != NULL){
+								curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+								// Setup the TX header
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
+
+								// Fill in the data
+								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0);
+
+								// Setup the TX frame info
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+
+								// Set the information in the TX queue buffer
+								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+								curr_tx_queue_buffer->frame_info.AID         = 0;
+
+								// Put the packet in the queue
+								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+							}
+
+							// Finish the function
+							goto mpdu_rx_process_end;
 						}
+					}
+				break;
 
-						// Finish the function
-						goto mpdu_rx_process_end;
 
-					} else {
-						// Create a unsuccessful authentication response frame
-						curr_tx_queue_element = queue_checkout();
-
-						if(curr_tx_queue_element != NULL){
-							curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-							// Setup the TX header
-							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
-
-							// Fill in the data
-							tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_UNSPECIFIED);
-
-							// Setup the TX frame info
-							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-							// Set the information in the TX queue buffer
-							curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-							curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-							curr_tx_queue_buffer->frame_info.AID         = 0;
-
-							// Put the packet in the queue
-							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_DISASSOC):
+					// Disassociation
+					//   - Log the assocation state change
+					//   - Remove the assocation and update the display
+					//
+					if(associated_station != NULL){
+						if ((associated_station->flags & STATION_INFO_DO_NOT_REMOVE) != STATION_INFO_DO_NOT_REMOVE) {
+							// Log association state change
+							add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 						}
 					}
 
-					// Finish the function
-					goto mpdu_rx_process_end;
-				}
-			break;
+					xil_printf("Authenticated, Associated Stations:\n");
+					wlan_mac_high_remove_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2);
 
+					ap_write_hex_display(my_bss_info->associated_stations.length);
+				break;
 
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ):
-			case (MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ):
-			    // Association Request / Re-association Request
-			    //   - Check if the packet is for me
-			    //
+				case (MAC_FRAME_CTRL1_SUBTYPE_NULLDATA):
+				break;
 
-				if(wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr)) {
+				//---------------------------------------------------------------------
+				default:
+					//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
+					//null data frames (type: DATA, subtype: 0x4) for power management reasons.
+					warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
 
-
-
-			        // Check if we have authenticated this TA
-					if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
-
-						xil_printf("Authenticated, Unassociated Stations:\n");
-						wlan_mac_high_remove_association(&station_info_state_2, &statistics_table, rx_80211_header->address_2);
-
-						// NOTE:  This function handles both the case that the station is already in the association
-						//   table and the case that the association needs to be added to the association table
-						//
-
-						xil_printf("Authenticated, Associated Stations:\n");
-						associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
-						ap_write_hex_display(my_bss_info->associated_stations.length);
-					}
-
-					if(associated_station != NULL) {
-
-						// Log the association state change
-						add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
-
-						// Create a successful association response frame
-						curr_tx_queue_element = queue_checkout();
-
-						if(curr_tx_queue_element != NULL){
-							curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-							// Setup the TX header
-							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
-
-							// Fill in the data
-							tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_SUCCESS, associated_station->AID);
-
-							// Setup the TX frame info
-							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(associated_station->AID) );
-
-							// Set the information in the TX queue buffer
-							curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-							curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)associated_station;
-							curr_tx_queue_buffer->frame_info.AID         = associated_station->AID;
-
-							// Put the packet in the queue
-							enqueue_after_tail(AID_TO_QID(associated_station->AID), curr_tx_queue_element);
-
-						}
-
-						// Finish the function
-						goto mpdu_rx_process_end;
-
-					} else {
-						// Create an unsuccessful association response frame
-						curr_tx_queue_element = queue_checkout();
-
-						if(curr_tx_queue_element != NULL){
-							curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-							// Setup the TX header
-							wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, wlan_mac_addr );
-
-							// Fill in the data
-							tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0);
-
-							// Setup the TX frame info
-							wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
-
-							// Set the information in the TX queue buffer
-							curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-							curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-							curr_tx_queue_buffer->frame_info.AID         = 0;
-
-							// Put the packet in the queue
-							enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-						}
-
-						// Finish the function
-						goto mpdu_rx_process_end;
-					}
-				}
-			break;
-
-
-            //---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_DISASSOC):
-				// Disassociation
-				//   - Log the assocation state change
-				//   - Remove the assocation and update the display
-				//
-				if(associated_station != NULL){
-					if ((associated_station->flags & STATION_INFO_DO_NOT_REMOVE) != STATION_INFO_DO_NOT_REMOVE) {
-						// Log association state change
-						add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
-					}
-				}
-
-				xil_printf("Authenticated, Associated Stations:\n");
-			    wlan_mac_high_remove_association(&my_bss_info->associated_stations, &statistics_table, rx_80211_header->address_2);
-
-			    ap_write_hex_display(my_bss_info->associated_stations.length);
-			break;
-
-			case (MAC_FRAME_CTRL1_SUBTYPE_NULLDATA):
-			break;
-
-            //---------------------------------------------------------------------
-			default:
-				//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
-				//null data frames (type: DATA, subtype: 0x4) for power management reasons.
-				warp_printf(PL_VERBOSE, "Received unknown frame control type/subtype %x\n",rx_80211_header->frame_control_1);
-
-			break;
+				break;
+			}
 		}
 
 		goto mpdu_rx_process_end;
