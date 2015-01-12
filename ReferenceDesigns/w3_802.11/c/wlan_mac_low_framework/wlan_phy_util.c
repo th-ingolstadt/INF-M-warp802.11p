@@ -333,7 +333,7 @@ void wlan_phy_init() {
 	//Configure RSSI pkt det
  	// RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
 	// The summing logic realizes a sum of the length specified + 1
- 	wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 4);
+ 	wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 1);
 
 	//Configure auto-corr pkt det autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
 

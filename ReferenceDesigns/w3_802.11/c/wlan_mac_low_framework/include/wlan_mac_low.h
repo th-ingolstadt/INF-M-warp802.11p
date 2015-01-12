@@ -227,6 +227,9 @@
 #define LOW_PARAM_AD_SCALING			0x00000009
 #define LOW_PARAM_PKT_DET_MIN_POWER		0x0000000A
 
+#define PKT_DET_MIN_POWER_MIN -90
+#define PKT_DET_MIN_POWER_MAX -30
+
 
 int wlan_mac_low_init(u32 type);
 u8 wlan_mac_low_get_cw_exp_min();

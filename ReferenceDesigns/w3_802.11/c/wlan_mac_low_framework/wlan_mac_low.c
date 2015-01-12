@@ -379,7 +379,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						case LOW_PARAM_PKT_DET_MIN_POWER:
 							if( ipc_msg_from_high_payload[1]&0xFF000000 ){
 								wlan_phy_enable_req_both_pkt_det();
-								wlan_mac_low_set_pkt_det_min_power(ipc_msg_from_high_payload[1]&0x0000FFFF);
+								//The value sent from wlan_exp will be unsigned with 0 representing PKT_DET_MIN_POWER_MIN
+								wlan_mac_low_set_pkt_det_min_power((ipc_msg_from_high_payload[1]&0x000000FF) - PKT_DET_MIN_POWER_MIN);
 
 							} else {
 								wlan_phy_disable_req_both_pkt_det();
@@ -818,22 +819,17 @@ int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
 	u8 band;
 	u16 rssi_val;
 
-	#define PKT_DET_MIN_POWER_MIN -90
-	#define PKT_DET_MIN_POWER_MAX -30
-
 	band = mac_param_band;
 
 	if( (rx_pow <= PKT_DET_MIN_POWER_MAX) && (rx_pow >= PKT_DET_MIN_POWER_MIN)){
 
 		if(band == RC_24GHZ){
-			rssi_val = rssi_lookup_B24[rx_pow+PKT_DET_MIN_POWER_MIN];
+			rssi_val = rssi_lookup_B24[rx_pow-PKT_DET_MIN_POWER_MIN];
 		} else if(band == RC_5GHZ){
-			rssi_val = rssi_lookup_B5[rx_pow+PKT_DET_MIN_POWER_MIN];
+			rssi_val = rssi_lookup_B5[rx_pow-PKT_DET_MIN_POWER_MIN];
 		}
 
-		wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), (rssi_val << PHY_RX_RSSI_SUM_LEN_BITS), 4);
-
-		xil_printf("Setting Pkt Det Min Power to %d dBm:  %d RSSI thresh\n", rx_pow, rssi_val);
+		wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), (rssi_val << PHY_RX_RSSI_SUM_LEN_BITS), 1);
 
 		return 0;
 	} else {
@@ -1273,6 +1269,14 @@ inline void wlan_mac_reset_NAV_counter() {
  */
 inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
 	int return_value = 0;
+
+	if(mac_channel >= 36){
+		//5GHz Channel we need to tweak gain settings
+		//so that tx power settings are accurate
+		radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 3);
+	} else {
+		radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 1);
+	}
 
 	switch(mac_channel){
 		//2.4GHz channels
