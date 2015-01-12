@@ -1825,9 +1825,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
         				// Get MAC Address
         				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
 
-        				// If necessary, add an association.  This is primarily for IBSS nodes where
-        				//   the association table might not be set up at the time this is called.
-        				wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+        				if(wlan_addr_mcast(mac_addr) == 0){
+            				// If necessary, add an association.  This is primarily for IBSS nodes where
+            				//   the association table might not be set up at the time this is called.
+        					// Note: a multicast mac_addr should *not* be added to the association table.
+        					wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+        				}
 
         				id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
@@ -1913,9 +1916,12 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
         				// Get MAC Address
         				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
 
-        				// If necessary, add an association.  This is primarily for IBSS nodes where
-        				//   the association table might not be set up at the time this is called.
-        				wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+        				if(wlan_addr_mcast(mac_addr) == 0){
+            				// If necessary, add an association.  This is primarily for IBSS nodes where
+            				//   the association table might not be set up at the time this is called.
+        					// Note: a multicast mac_addr should *not* be added to the association table.
+        					wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+        				}
 
         				id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
