@@ -298,7 +298,7 @@ texinfo_documents = [
 if os.path.exists("../doc_svn_rev.txt"):
     try:
         with open("../doc_svn_rev.txt", 'r') as f:
-            f_str = '-' + f.read()[:-2] #strip trailing CR-NUL
+            f_str = '-' + f.read().rstrip() #strip trailing CR-NUL
             release += f_str
     except (IOError, OSError):
         pass
