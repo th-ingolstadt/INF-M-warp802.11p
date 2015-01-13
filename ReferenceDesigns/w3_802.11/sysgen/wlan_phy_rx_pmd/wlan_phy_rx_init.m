@@ -211,6 +211,8 @@ REG_RX_FEC_Config = ...
     2^10 * (SOFT_DEMAP_SCALE_64QAM) + ...
     0;
 
+REG_RX_PKT_BUF_Max_Write_Addr = 3800;
+
 %%
 bit_scrambler_lfsr = ones(1,7);
 bit_scrambler_lfsr_states = zeros(127, 7);
