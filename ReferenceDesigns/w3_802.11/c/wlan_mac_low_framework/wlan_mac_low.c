@@ -121,7 +121,7 @@ int wlan_mac_low_init(u32 type){
 	wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
 
 	//Tell Rx PHY how many bytes it is allowed to write into the Rx Packet buffer
-	xil_printf("Rx Payload Size: %d bytes\n",  PKT_BUF_SIZE - sizeof(rx_frame_info)  );
+	xil_printf("Rx Payload Size: %d bytes\n",  PKT_BUF_SIZE - sizeof(rx_frame_info) - PHY_RX_PKT_BUF_PHY_HDR_SIZE );
 
 	wlan_radio_init();
 	wlan_phy_init();
