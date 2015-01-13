@@ -55,6 +55,12 @@ version += "{0:d} ".format(WN_REVISION)
 version += "{0:s} ".format(WN_XTRA)
 
 
+# Version number
+version_number  = "{0:d}.".format(WN_MAJOR)
+version_number += "{0:d}.".format(WN_MINOR)
+version_number += "{0:d} ".format(WN_REVISION)
+
+
 # Status defines for wn_ver_check
 WN_VERSION_SAME   = 0
 WN_VERSION_NEWER  = 1

@@ -41,7 +41,7 @@ __all__ = ['wlan_exp_ver', 'wlan_exp_ver_check', 'wlan_exp_ver_str']
 
 # WLAN Exp Version defines
 WLAN_EXP_MAJOR          = 1
-WLAN_EXP_MINOR          = 1
+WLAN_EXP_MINOR          = 2
 WLAN_EXP_REVISION       = 0
 WLAN_EXP_XTRA           = str('')
 WLAN_EXP_RELEASE        = True
@@ -53,6 +53,12 @@ version += "{0:d}.".format(WLAN_EXP_MAJOR)
 version += "{0:d}.".format(WLAN_EXP_MINOR)
 version += "{0:d} ".format(WLAN_EXP_REVISION)
 version += "{0:s} ".format(WLAN_EXP_XTRA)
+
+
+# Version number
+version_number  = "{0:d}.".format(WLAN_EXP_MAJOR)
+version_number += "{0:d}.".format(WLAN_EXP_MINOR)
+version_number += "{0:d} ".format(WLAN_EXP_REVISION)
 
 
 # Status defines for wlan_ver_check
