@@ -123,7 +123,7 @@ int main(){
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.1 ------------------------------\n");
+	xil_printf("----- v1.2 ------------------------------\n");
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
