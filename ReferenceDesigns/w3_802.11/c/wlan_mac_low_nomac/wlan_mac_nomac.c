@@ -57,7 +57,7 @@ int main(){
 	wlan_mac_hw_info* hw_info;
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.1 ------------------------------\n");
+	xil_printf("----- v1.2 ------------------------------\n");
 	xil_printf("----- wlan_mac_nomac --------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
