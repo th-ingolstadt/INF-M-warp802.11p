@@ -14,7 +14,7 @@ framework is called wlan_exp.
 
 Please refer to http://warpproject.org/trac/wiki/802.11/wlan_exp for more information.
 
-Distributed under the Mango Reference Design License: http://mangocomm.com/802.11/license
+Distributed under the Mango Reference Design License (http://mangocomm.com/802.11/license).
 
 Contents:
 
