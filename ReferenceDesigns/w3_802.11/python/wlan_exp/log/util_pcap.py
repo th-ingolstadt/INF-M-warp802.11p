@@ -1,40 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-------------------------------------------------------------------------------
-WLAN Experiment Log PCAP Utilities
-------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
-           Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  03/31/14 Initial release
-
-------------------------------------------------------------------------------
-
-This module provides utility functions for PCAP to handle WLAN Exp log data.
-
-Naming convention:
-
-  log_data       -- The binary data from a WLAN Exp node's log.
-  
-  log_pcap_index -- This is an index that will be used for PCAP generation.
-                    Based on the selected event types, this index is a list
-                    of tuples of event type ids and offsets:
-                      [ (<int>, <offset>) ]
-
-  pcap           -- A packet capture format for capturing / processing network traffic
-                        http://en.wikipedia.org/wiki/Pcap
-                        http://wiki.wireshark.org/Development/LibpcapFileFormat
-
-Functions (see below for more information):
-    log_data_to_pcap()            -- Generate a PCAP file based on log_data
-    
+.. ------------------------------------------------------------------------------
+.. WLAN Experiment Log PCAP Utilities
+.. ------------------------------------------------------------------------------
+.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
+..            Patrick Murphy (murphpo [at] mangocomm.com)
+..            Erik Welsh (welsh [at] mangocomm.com)
+.. License:   Copyright 2014, Mango Communications. All rights reserved.
+..            Distributed under the WARP license (http://warpproject.org/license)
+.. ------------------------------------------------------------------------------
+.. MODIFICATION HISTORY:
+..
+.. Ver   Who  Date     Changes
+.. ----- ---- -------- -----------------------------------------------------
+.. 1.00a ejw  03/31/14 Initial release
+.. ------------------------------------------------------------------------------
+.. 
+.. This module provides utility functions for PCAP to handle WLAN Exp log data.
+.. 
+.. Naming convention:
+.. 
+..   log_data       -- The binary data from a WLAN Exp node's log.
+..   
+..   log_pcap_index -- This is an index that will be used for PCAP generation.
+..                     Based on the selected event types, this index is a list
+..                     of tuples of event type ids and offsets:
+..                       [ (<int>, <offset>) ]
+.. 
+..   pcap           -- A packet capture format for capturing / processing network traffic
+..                         http://en.wikipedia.org/wiki/Pcap
+..                         http://wiki.wireshark.org/Development/LibpcapFileFormat
+.. 
+..   radio_tap      -- A packet structure to capture radio information about a wireless packet
+..                         http://www.radiotap.org/
+.. 
 """
 
 __all__ = []
@@ -87,27 +86,44 @@ pcap_packet_header     = [('ts_sec',   0),
                           ('orig_len', 0)]
 
 
+# Generic packet header for radio_tap:
+#     struct ieee80211_radiotap_header {
+#             u_int8_t        it_version;     /* set to 0 */
+#             u_int8_t        it_pad;
+#             u_int16_t       it_len;         /* entire length */
+#             u_int32_t       it_present;     /* fields present */
+#     } __attribute__((__packed__));
+
+pcap_packet_header_fmt = '<B B H I'
+pcap_packet_header     = [('it_version', 0),
+                          ('it_pad',     0),
+                          ('it_len',     0),
+                          ('it_present', 0)]
+
+
+
 # -----------------------------------------------------------------------------
 # WLAN Exp Log PCAP file Utilities
 # -----------------------------------------------------------------------------
 def _log_data_to_pcap(log_data, log_index, filename, overwrite=False):
     """Create an PCAP file that contains the log_data for the entries in log_index 
 
+    Args:
+        log_data (bytes):            Binary data from a WlanExpNode log
+        log_index (dict):            Log index generated from WLAN Exp log data
+        filename (str):              Filename of the PCAP file to appear on disk
+        overwrite (bool, optional):  If True method will overwrite existing file with filename
+    
     If the requested filename already exists and overwrite==True this
     method will replace the existing file, destroying any data in the original file.
 
     If the filename already esists and overwrite==False this method will print a warning, 
     then create a new filename with a unique date-time suffix.
     
-    NOTE:  Currently log_data_to_pcap only supports ['RX_DSSS', 'RX_OFDM', 'TX', 'TX_LOW']
-    entry types.  If other entry types are contained within the log_index, they will
-    be ignored but a warning will be printed.
-    
-    Attributes:
-        log_data    -- Binary WLAN Exp log data
-        log_index   -- Filtered log index
-        filename    -- File name of PCAP file to appear on disk.
-        overwrite   -- If true method will overwrite existing file with filename
+    .. note::  Currently log_data_to_pcap only supports ['RX_DSSS', 'RX_OFDM', 'RX_OFDM_LTG', 
+        'TX', 'TX_LTG', 'TX_LOW', 'TX_LOW_LTG']
+        entry types.  If other entry types are contained within the log_index, they will
+        be ignored but a warning will be printed.    
     """
     import os
     from . import util as log_util
