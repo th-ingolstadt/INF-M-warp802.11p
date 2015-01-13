@@ -292,7 +292,7 @@ void wlan_phy_init() {
 	//Set the max Tx/Rx packet sizes to 2KB (sane default for standard 802.11a/g links)
 	wlan_phy_rx_set_max_pkt_len_kB(2);
 	wlan_phy_tx_set_max_pkt_len_kB(2);
-	wlan_phy_rx_set_max_pktbuf_addr(3800);//FIXME: parameterize me!
+	wlan_phy_rx_set_max_pktbuf_addr( PKT_BUF_SIZE - sizeof(rx_frame_info) - PHY_RX_PKT_BUF_PHY_HDR_SIZE );
 
 	//Configure the DSSS Rx pipeline
 	// DSSS_rx_config(code_corr, despread_dly, sfd_timeout)
