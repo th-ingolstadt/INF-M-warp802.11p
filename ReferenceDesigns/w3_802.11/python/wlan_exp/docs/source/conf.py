@@ -302,5 +302,3 @@ if os.path.exists("../doc_svn_rev.txt"):
             #release += f_str
     except (IOError, OSError):
         pass
-
-
