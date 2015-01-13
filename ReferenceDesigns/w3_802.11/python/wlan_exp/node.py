@@ -937,105 +937,15 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN, cw_exp)       
 
-        
+
     def set_cw_exp_max(self, cw_exp):
-        """Sets the the maximum contention window:
+        """Sets the the maximum contention window.
 
         Args:
             cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, cw_exp)     
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, cw_exp)
 
-    def set_bb_gain(self, bb_gain):
-        """Sets the the baseband gain:
-
-        Args:
-            bb_gain (int):  Baseband gain setting [0,3]
-        """
-        if bb_gain is not None:
-            if (bb_gain >= 0) and (bb_gain <=3):
-                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_BB_GAIN, bb_gain)                  
-            else:
-                msg  = "\nBB Gain must be in the range [0,3]\n"                
-                raise ValueError(msg)
-    def pkt_det_min_power_configure(self, enable, power_level=None): 
-        """Configured Minimum Power Requirement of Packet Detector:
-
-        Args:
-            enable (bool):      True/False
-            power_level (int):  [-90,-30] dBm  
-        """                
-        if enable is False:            
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, 0)
-        else:
-            if power_level is not None:
-                if power_level >= cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM and power_level <= cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM:
-                    param = (1 << 24) | ((power_level+cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM) & 0xFF)
-                    self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, param)
-                    
-                else:
-                    msg  = "\nPower level must be in the range of [{0},{1}]\n".format(cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM,cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM)                
-                    raise ValueError(msg)    
-            
-            else:
-                msg  = "\nPower level not specified\n"                
-                raise ValueError(msg)
-                
-            
-        
-    def set_linearity_pa(self, linearity_val):
-        """Sets the the PA linearity:
-
-        Args:
-            linearity_val (int):  Linearity setting [0,3]
-        """
-        if linearity_val is not None:
-            if (linearity_val >= 0) and (linearity_val <=3):
-                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_PA, linearity_val)                  
-            else:
-                msg  = "\nBB Linearity must be in the range [0,3]\n"                
-                raise ValueError(msg)
-                
-    def set_interp_filt_scaling(self, scale_int0 = 0x10, scale_int1 = 0x10, scale_srrc = 0x10):
-        """Sets the the DAC scaling at the output of each stage of interpolations:
-
-        Args:
-            scale_int0 (int):  Scaling Stage 0    [0,31] 
-            scale_int1 (int):  Scaling Stage 0    [0,31]
-            scale_srrc (int):  Scaling Stage SRRC [0,31]
-        """
-    
-        if (scale_int0 >= 0) and (scale_int0 <=31) and (scale_int1 >= 0) and (scale_int1 <=31) and (scale_srrc >= 0) and (scale_srrc <=31):
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_AD_SCALING, [scale_int0,scale_int1,scale_srrc])                  
-        else:
-            msg  = "\nInterp scalings must be in the range [0,31]\n"                
-            raise ValueError(msg)
-            
-    def set_linearity_vga(self, linearity_val):
-        """Sets the the VGA linearity:
-
-        Args:
-            linearity_val (int):  Linearity setting [0,3]
-        """
-        if linearity_val is not None:
-            if (linearity_val >= 0) and (linearity_val <=3):
-                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_VGA, linearity_val)                  
-            else:
-                msg  = "\nBB Linearity must be in the range [0,3]\n"                
-                raise ValueError(msg)
-            
-    def set_linearity_upconv(self, linearity_val):
-        """Sets the the upconversion linearity:
-
-        Args:
-            linearity_val (int):  Linearity setting [0,3]
-        """
-        if linearity_val is not None:
-            if (linearity_val >= 0) and (linearity_val <=3):
-                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_UPCONV, linearity_val)                  
-            else:
-                msg  = "\nBB Linearity must be in the range [0,3]\n"                
-                raise ValueError(msg)                        
 
     def get_cw_exp_range(self):
         """Gets the contention window range.
@@ -1071,6 +981,28 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
         return (cw_min, cw_max)
 
+
+    def configure_pkt_det_min_power(self, enable, power_level=None): 
+        """Configure Minimum Power Requirement of Packet Detector.
+
+        Args:
+            enable (bool):      True/False
+            power_level (int):  [-90,-30] dBm  
+        """                
+        if enable is False:            
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, 0)
+        else:
+            if power_level is not None:
+                if power_level >= cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM and power_level <= cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM:
+                    param = (1 << 24) | ((power_level+cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM) & 0xFF)
+                    self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, param)
+                else:
+                    msg  = "\nPower level must be in the range of [{0},{1}]\n".format(cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM, cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM)
+                    raise ValueError(msg)
+            else:
+                msg  = "\nPower level not specified\n"
+                raise ValueError(msg)
+                
 
     def set_random_seed(self, high_seed=None, low_seed=None, gen_random=False):
         """Sets the random number generator seed on the node.
@@ -1233,6 +1165,78 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             vals = [values]
 
         return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_WRITE, param=param, values=vals))
+
+
+    def _set_bb_gain(self, bb_gain):
+        """Sets the the baseband gain.
+
+        Args:
+            bb_gain (int):  Baseband gain setting [0,3]
+        """
+        if bb_gain is not None:
+            if (bb_gain >= 0) and (bb_gain <=3):
+                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_BB_GAIN, bb_gain)                  
+            else:
+                msg  = "\nBB Gain must be in the range [0,3]\n"                
+                raise ValueError(msg)
+
+
+    def _set_linearity_pa(self, linearity_val):
+        """Sets the the PA linearity.
+
+        Args:
+            linearity_val (int):  Linearity setting [0,3]
+        """
+        if linearity_val is not None:
+            if (linearity_val >= 0) and (linearity_val <=3):
+                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_PA, linearity_val)                  
+            else:
+                msg  = "\nBB Linearity must be in the range [0,3]\n"                
+                raise ValueError(msg)
+
+                
+    def _set_interp_filt_scaling(self, scale_int0=0x10, scale_int1=0x10, scale_srrc=0x10):
+        """Sets the the DAC scaling at the output of each stage of interpolations.
+
+        Args:
+            scale_int0 (int):  Scaling Stage 0    [0,31] 
+            scale_int1 (int):  Scaling Stage 0    [0,31]
+            scale_srrc (int):  Scaling Stage SRRC [0,31]
+        """
+    
+        if (scale_int0 >= 0) and (scale_int0 <=31) and (scale_int1 >= 0) and (scale_int1 <=31) and (scale_srrc >= 0) and (scale_srrc <=31):
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_AD_SCALING, [scale_int0,scale_int1,scale_srrc])                  
+        else:
+            msg  = "\nInterp scalings must be in the range [0,31]\n"                
+            raise ValueError(msg)
+
+            
+    def _set_linearity_vga(self, linearity_val):
+        """Sets the the VGA linearity.
+
+        Args:
+            linearity_val (int):  Linearity setting [0,3]
+        """
+        if linearity_val is not None:
+            if (linearity_val >= 0) and (linearity_val <=3):
+                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_VGA, linearity_val)                  
+            else:
+                msg  = "\nBB Linearity must be in the range [0,3]\n"                
+                raise ValueError(msg)
+
+            
+    def _set_linearity_upconv(self, linearity_val):
+        """Sets the the upconversion linearity.
+
+        Args:
+            linearity_val (int):  Linearity setting [0,3]
+        """
+        if linearity_val is not None:
+            if (linearity_val >= 0) and (linearity_val <=3):
+                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_UPCONV, linearity_val)                  
+            else:
+                msg  = "\nBB Linearity must be in the range [0,3]\n"                
+                raise ValueError(msg)                        
 
 
 

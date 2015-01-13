@@ -54,6 +54,7 @@ wlan_rates = [{'index' :  1, 'rate' :  6.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
               {'index' :  7, 'rate' : 48.0, 'desc' : '64-QAM 2/3', 'NDBPS': 192},
               {'index' :  8, 'rate' : 54.0, 'desc' : '64-QAM 3/4', 'NDBPS': 216}]
 
+
 def find_tx_rate_by_index(index):
     """Return the wlan_rates entry for the given index.
     
@@ -120,6 +121,7 @@ wlan_channel = [{'index' :   1, 'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz
                 {'index' :  36, 'channel' :  36, 'freq': 5180, 'desc' : '5 GHz Band'},
                 {'index' :  44, 'channel' :  44, 'freq': 5220, 'desc' : '5 GHz Band'},
                 {'index' :  48, 'channel' :  48, 'freq': 5240, 'desc' : '5 GHz Band'}]
+
 
 def find_channel_by_index(index):
     """Return the wlan_channel entry for the given index.
@@ -359,6 +361,21 @@ warpnet_type_dict = None
 def init_nodes(nodes_config, network_config=None, node_factory=None,
                network_reset=True, output=False):
     """Initalize WLAN Exp nodes.
+    
+    The init_nodes function serves two purposes:  1) To initialize the node for
+    participation in the experiment and 2) To retrieve all necessary information 
+    from the node to provide a valid python WlanExpNode object to be used in 
+    the experiment script.
+    
+    When a WARP node is first configured from a bitstream, its network interface is
+    set to a default value such that it is part of the defalt subnet 10.0.0 but does not 
+    have a valid IP address for communication with the host.  As part of the init_nodes 
+    process, if network_reset is True, the host will reset the network configuration
+    on the node and configure the node with a valid IP address.  If the network settings 
+    of a node have already been configured and are known to the python experiment script
+    a priori, then it is not necessary to issue a network reset to reset the network
+    settings on the node.  This can be extremely useful when trying to interact with a 
+    node via multiple python experiment scripts at the same time.    
 
     Args:
         nodes_config (NodesConfiguration):  A NodesConfiguration describing the nodes
