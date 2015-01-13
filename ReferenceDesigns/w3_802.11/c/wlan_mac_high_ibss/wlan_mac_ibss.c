@@ -125,7 +125,7 @@ int main() {
 	// Print initial message to UART
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.1 ------------------------------\n");
+	xil_printf("----- v1.2 ------------------------------\n");
 	xil_printf("----- wlan_mac_ibss ---------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
