@@ -32,6 +32,7 @@
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_phy_util.h"
+#include "wlan_mac_low.h"
 
 //LUT of number of ones in each byte (used to calculate PARITY in SIGNAL)
 const u8 ones_in_chars[256] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, 4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8};
@@ -345,9 +346,9 @@ void wlan_phy_init() {
 	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
 	//Set physical carrier sensing threshold
-	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 480); //-62dBm from 802.11-2012
-	//wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 750);
-	//wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * 1023);
+
+
+	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * wlan_mac_low_rx_power_to_rssi(-62)); //-62dBm from 802.11-2012
 
 	//Set post Rx extension (number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for decoding latency at 64QAM 3/4)
 	wlan_phy_rx_set_extension(PHY_RX_SIG_EXT_USEC*20); //num samp periods post done to extend CCA BUSY

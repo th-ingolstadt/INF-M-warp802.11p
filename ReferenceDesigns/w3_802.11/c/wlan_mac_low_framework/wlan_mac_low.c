@@ -813,7 +813,7 @@ const u16 rssi_lookup_B5[61] = {96, 112, 128, 144, 160, 168, 184, 200, 216, 224,
 							   784, 800, 808, 824, 840, 856, 864, 880, 896, 912, 920, 936, 952};
 
 
-int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
+int wlan_mac_low_rx_power_to_rssi(s8 rx_pow){
 	//rx_pow must be in the range [-90,-30] inclusive
 
 	u8 band;
@@ -828,9 +828,20 @@ int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
 		} else if(band == RC_5GHZ){
 			rssi_val = rssi_lookup_B5[rx_pow-PKT_DET_MIN_POWER_MIN];
 		}
+		return rssi_val;
+	} else {
+		return -1;
+	}
+}
 
+
+int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
+	int rssi_val;
+
+	rssi_val = wlan_mac_low_rx_power_to_rssi(rx_pow);
+
+	if(rssi_val != -1){
 		wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), (rssi_val << PHY_RX_RSSI_SUM_LEN_BITS), 1);
-
 		return 0;
 	} else {
 		return -1;
