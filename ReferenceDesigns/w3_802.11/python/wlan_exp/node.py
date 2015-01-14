@@ -933,8 +933,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         new_assoc, this method will set both the default unicast data and unicast management packet tx power.
         
         Args:
-            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
-                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
+                util.get_node_min_tx_power())
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
                 or single 802.11 device for which to set the unicast packet Tx power to 'power'
             curr_assoc (bool):  All current assocations will have the unicast packet Tx power set to 'power'
@@ -959,8 +959,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Sets the multicast data packet transmit power.
 
         Args:
-            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
-                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
+                util.get_node_min_tx_power())
         """
         self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, power))
 
@@ -969,8 +969,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Sets the multicast management packet transmit power.
 
         Args:
-            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
-                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
+                util.get_node_min_tx_power())
         """
         self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, power))
 
@@ -1021,8 +1021,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             ack for a reception will go out on the same antenna on which the reception occurred).
             
         Args:
-            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
-                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
+                util.get_node_min_tx_power())
         """
         self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_LOW, power))
 
@@ -1040,8 +1040,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         It will also update the transmit power of all current associations on the node.
 
         Args:
-            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
-                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
+                util.get_node_min_tx_power())
         """
         return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, power))
 
@@ -1052,7 +1052,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         Returns:
             tx_power (int): Current unicast data transmit power in dBm.
         """        
-        return self.get_tx_power_unicast(new_assoc=True)
+        return self.get_tx_power_unicast(new_assoc=True)[0]
 
 
     #------------------------

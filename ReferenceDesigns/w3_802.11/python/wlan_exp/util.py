@@ -349,6 +349,26 @@ mac_addr_broadcast  = 0xFFFFFFFFFFFF
 
 
 # -----------------------------------------------------------------------------
+# WLAN Exp Power definitions
+# -----------------------------------------------------------------------------
+def get_node_max_tx_power():
+    """Get the maximum supported transmit power of the node."""
+    import wlan_exp.cmds as cmds
+    return cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM
+
+# End def
+
+
+def get_node_min_tx_power():
+    """Get the minimum supported transmit power of the node."""
+    import wlan_exp.cmds as cmds
+    return cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM
+
+# End def
+
+
+
+# -----------------------------------------------------------------------------
 # WLAN Exp Node Utilities
 # -----------------------------------------------------------------------------
 

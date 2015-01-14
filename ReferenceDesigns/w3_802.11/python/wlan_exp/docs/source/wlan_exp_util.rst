@@ -104,6 +104,15 @@ Pre-defined MAC address constants
     :annotation: = Broadcast MAC Address
 
 
+Transmit Power Definitions
+..........................
+
+.. autofunction:: wlan_exp.util.get_node_max_tx_power
+
+.. autofunction:: wlan_exp.util.get_node_min_tx_power
+
+
+
 Node Utility Functions
 ......................
 
