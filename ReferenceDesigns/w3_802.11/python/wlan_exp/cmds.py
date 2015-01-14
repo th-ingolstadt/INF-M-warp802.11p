@@ -1061,56 +1061,6 @@ class NodeProcTxPower(wn_message.Cmd):
         cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
-        power     -- Transmit power for the WARP node (in dBm).
-    """
-    def __init__(self, cmd, power=None):
-        super(NodeProcTxPower, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_POWER
-
-        self.add_args(cmd)
-
-        if (cmd == CMD_PARAM_WRITE):
-            if power is None:
-                raise ValueError("Must supply value to set Tx power.")
-            
-            if (power > CMD_PARAM_NODE_TX_POWER_MAX_DBM):
-                msg  = "WARNING:  Requested power too high.\n"
-                msg += "    Adjusting transmit power from {0} to {1}".format(power, CMD_PARAM_NODE_TX_POWER_MAX_DBM)
-                print(msg)
-                power = CMD_PARAM_NODE_TX_POWER_MAX_DBM
-
-            if (power < CMD_PARAM_NODE_TX_POWER_MIN_DBM):
-                msg  = "WARNING:  Requested power too low. \n"
-                msg += "    Adjusting transmit power from {0} to {1}".format(power, CMD_PARAM_NODE_TX_POWER_MIN_DBM)
-                print(msg)
-                power = CMD_PARAM_NODE_TX_POWER_MIN_DBM
-
-            # Shift the value so that there are only positive integers over the wire
-            self.add_args(power - CMD_PARAM_NODE_TX_POWER_MIN_DBM)
-    
-    def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not get / set the transmit power on the node"
-        status_errors = { error_code : error_msg }
-
-        if resp.resp_is_valid(num_args=5, status_errors=status_errors, name='from the Tx power command'):
-            args = resp.get_args()
-            # Shift values back to the original range
-            args = [x + CMD_PARAM_NODE_TX_POWER_MIN_DBM for x in args]
-            return args[1:]
-        else:
-            return []
-
-# End Class
-
-
-class NodeProcTxPower(wn_message.Cmd):
-    """Command to get / set the transmit power of the node.
-    
-    Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
-                       CMD_PARAM_READ
-                       CMD_PARAM_WRITE
                        CMD_PARAM_WRITE_DEFAULT
                        CMD_PARAM_READ_DEFAULT 
         tx_type   -- Which Tx parameters to set.  Valid values are:
@@ -1270,7 +1220,7 @@ class NodeProcTxRate(wn_message.Cmd):
     def check_rate(self, rate):
         """Check the rate to see if it is valid."""
         try:
-            self.add_args(self.rate)
+            return rate['index']
         except (KeyError, TypeError):
             msg  = "The TX rate must be an entry from the rates table in wlan_exp.util"
             raise ValueError(msg)
