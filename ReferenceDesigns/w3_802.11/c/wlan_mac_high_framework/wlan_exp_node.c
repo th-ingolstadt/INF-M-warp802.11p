@@ -86,6 +86,7 @@ void node_ltg_cleanup(u32 id, void* callback_arg);
 
 void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id);
 
+int  node_process_tx_power(u32 cmd, u32 aid, int tx_power);
 u8   node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate);
 u8   node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
@@ -350,81 +351,72 @@ void node_sendEarlyResp(wn_respHdr* respHdr, void* pktSrc, unsigned int eth_dev_
 *
 ******************************************************************************/
 int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,void* respArgs, void* pktSrc, u16 dest_id, u32 eth_dev_num){
-	//IMPORTANT ENDIAN NOTES:
-	// -cmdHdr is safe to access directly (pre-swapped if needed)
-	// -cmdArgs is *not* pre-swapped, since the framework doesn't know what it is
-	// -respHdr will be swapped by the framework; user code should fill it normally
-	// -respArgs will *not* be swapped by the framework, since only user code knows what it is
-	//    Any data added to respArgs by the code below must be endian-safe (swapped on AXI hardware)
+	// IMPORTANT ENDIAN NOTES:
+	//   - cmdHdr is safe to access directly (pre-swapped if needed)
+	//   - cmdArgs is *not* pre-swapped, since the framework doesn't know what it is
+	//   - respHdr will be swapped by the framework; user code should fill it normally
+	//   - respArgs will *not* be swapped by the framework, since only user code knows what it is
+	//         Any data added to respArgs by the code below must be endian-safe (swapped on AXI hardware)
 
-	int           status     = 0;
-	u32         * cmdArgs32  = cmdArgs;
-	u32         * respArgs32 = respArgs;
+	int            status     = 0;
+	u32          * cmdArgs32  = cmdArgs;
+	u32          * respArgs32 = respArgs;
 
-	unsigned int  respIndex  = 0;
-	unsigned int  respSent   = NO_RESP_SENT;
-    unsigned int  max_words  = 320;                // Max number of u32 words that can be sent in the packet (~1400 bytes)
-                                                   //   If we need more, then we will need to rework this to send multiple response packets
+	u32            respIndex  = 0;
+	u32            respSent   = NO_RESP_SENT;
+    u32            max_words  = 320;                // Max number of u32 words that can be sent in the packet (~1400 bytes)
+                                                    //   If we need more, then we will need to rework this to send multiple response packets
 
-    u32           temp, temp2, i;
-    wlan_ipc_msg  ipc_msg_to_low;
-    interrupt_state_t prev_interrupt_state;
+	u32            cmdID      = WN_CMD_TO_CMDID(cmdHdr->cmd);
 
     // Variables for functions
-    s64           timebase_diff;
-    u32           msg_cmd;
-    u32           id;
-    u32           flags;
-    u32           serial_number;
-    u32           num_blinks;
-    u32           time_per_blink;
-	u32           start_index;
-	u32           curr_index;
-	u32           next_index;
-	u32           bytes_remaining;
-	u32           ip_address;
-	u32           size;
-	u32           evt_log_size;
-	u32           transfer_size;
-	u32           bytes_per_pkt;
-	u32           num_bytes;
-	u32           num_pkts;
-	u64           time;
-	u64           new_time;
-	u64           abs_time;
-	u32           rate;
-	u32           ant_mode;
-	u32           type;
+    u32            temp, temp2, i;
+    s64            timebase_diff;
+    u32            msg_cmd;
+    u32            id;
+    u32            flags;
+    u32            serial_number;
+    u32            num_blinks;
+    u32            time_per_blink;
+	u32            start_index;
+	u32            curr_index;
+	u32            next_index;
+	u32            bytes_remaining;
+	u32            ip_address;
+	u32            size;
+	u32            evt_log_size;
+	u32            transfer_size;
+	u32            bytes_per_pkt;
+	u32            num_bytes;
+	u32            num_pkts;
+	u64            time;
+	u64            new_time;
+	u64            abs_time;
+	int            power;
+	u32            rate;
+	u32            ant_mode;
+	u32            type;
 
-	u32           mem_addr;
-	u32           mem_length;
-	u32           mem_idx;
+	u32            mem_addr;
+	u32            mem_length;
+	u32            mem_idx;
 
-	u32           entry_size;
+	u32            entry_size;
 
-	u8            mac_addr[6];
+	u8             mac_addr[6];
 
-	dl_list     * curr_list;
-	dl_entry	* curr_entry;
-	station_info* curr_station_info;
+    wlan_ipc_msg        ipc_msg_to_low;
+    interrupt_state_t   prev_interrupt_state;
 
-	int           power;
-
-
-	unsigned int  cmdID;
-    
-	cmdID = WN_CMD_TO_CMDID(cmdHdr->cmd);
-    
+    // Populate response header
 	respHdr->cmd     = cmdHdr->cmd;
 	respHdr->length  = 0;
 	respHdr->numArgs = 0;
 
-#ifdef _DEBUG_
-	xil_printf("In node_processCmd():  ID = %d \n", cmdID);
-#endif
-
+	// Finish any CDMA transfers that might be occurring
 	wlan_mac_high_cdma_finish_transfer();
 
+	// Process the command
 	switch(cmdID){
 
 //-----------------------------------------------------------------------------
@@ -1009,7 +1001,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 //-----------------------------------------------------------------------------
-// Stats Commands
+// Statistics Commands
 //-----------------------------------------------------------------------------
 
 
@@ -1079,7 +1071,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 
 //-----------------------------------------------------------------------------
-// LTG Commands
+// Local Traffic Generator (LTG) Commands
 //-----------------------------------------------------------------------------
 
 
@@ -1742,59 +1734,155 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 	    //---------------------------------------------------------------------
 		case CMDID_NODE_TX_POWER:
-            // NODE_TX_POWER Packet Format:
-			//   - cmdArgs32[0]  - Command
-			//   - cmdArgs32[1]  - Power (shifted by TX_POWER_MIN_DBM)
+            // CMDID_NODE_TX_POWER Packet Format:
+			//   - cmdArgs32[0]      - Command
+			//   - cmdArgs32[1]      - Type
+			//   - cmdArgs32[2]      - Power (Shifted by TX_POWER_MIN_DBM)
+			//   - cmdArgs32[3 - 4]  - MAC Address (All 0xF means all nodes)
+
 			msg_cmd = Xil_Ntohl(cmdArgs32[0]);
-			temp    = Xil_Ntohl(cmdArgs32[1]);
+			type    = Xil_Ntohl(cmdArgs32[1]);
+			temp    = Xil_Ntohl(cmdArgs32[2]);
 			status  = CMD_PARAM_SUCCESS;
 
-			// Shift temp to get power
+			// Shift power value from transmission to get the power
 			power = temp + TX_POWER_MIN_DBM;
 
-			// Operate on the msg_cmd
-			if ( msg_cmd == CMD_PARAM_WRITE_VAL ) {
+			// Adjust the power so that it falls in an acceptable range
+			if(power < TX_POWER_MIN_DBM){ power = TX_POWER_MIN_DBM; }
+			if(power > TX_POWER_MAX_DBM){ power = TX_POWER_MAX_DBM; }
 
-				// Check that the power is within the specified bounds
-		        if ((power >= TX_POWER_MIN_DBM) && (power <= TX_POWER_MAX_DBM)){
+			// Process the command
+			if (type == CMD_PARAM_UNICAST_VAL) {
+				switch (msg_cmd) {
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_READ_VAL:
+        				// Get MAC Address
+        				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
 
-		        	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set TX power = %d\n", power);
+        				// If necessary, add an association.  This is primarily for IBSS nodes where
+        				//   the association table might not be set up at the time this is called.
+    					// NOTE: A multicast mac_addr should *not* be added to the association table.
+        				if(wlan_addr_mcast(mac_addr) == 0){
+        					wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+        				}
 
-		        	// Set the default power for new associations
-				    default_unicast_mgmt_tx_params.phy.power = power;
-				    default_unicast_data_tx_params.phy.power = power;
+        				id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
-				    // Update the Tx power in each current association
-					curr_list  = get_station_info_list();
+        				status = node_process_tx_power(msg_cmd, id, power);
+                    break;
 
-					if(curr_list != NULL){
-						curr_entry = curr_list->first;
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
+    					// Set the default unicast data & management parameter
+    					default_unicast_data_tx_params.phy.power = power;
+    					default_unicast_mgmt_tx_params.phy.power = power;
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default unicast TX power = %d dBm\n", power);
+					break;
 
-						while(curr_entry != NULL){
-							curr_station_info = (station_info*)(curr_entry->data);
-							curr_station_info->tx.phy.power = power;
-							curr_entry = dl_entry_next(curr_entry);
-						}
-					}
-		        	// Set the multicast power
-				    default_multicast_mgmt_tx_params.phy.power = power;
-				    default_multicast_data_tx_params.phy.power = power;
+                    case CMD_PARAM_READ_DEFAULT_VAL:
+    					// Get the default unicast data parameter
+    					power = default_unicast_data_tx_params.phy.power;
+					break;
 
-		        	// Send IPC to CPU low to set the Tx power for control frames
-				    wlan_mac_high_set_tx_ctrl_pow(power);
+                    default:
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+    					status = CMD_PARAM_ERROR;
+                    break;
+				}
+			} else if (type == CMD_PARAM_MULTICAST_DATA_VAL) {
+				switch (msg_cmd) {
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
+    					// Set the default multicast data parameter
+    					default_multicast_data_tx_params.phy.power = power;
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast data TX power = %d dBm\n", power);
+					break;
 
-		        } else {
-		        	status = CMD_PARAM_ERROR;
-		        }
+                    case CMD_PARAM_READ_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
+    					// Get the default multicast data parameter
+    					power = default_multicast_data_tx_params.phy.power;
+					break;
+
+                    default:
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+    					status = CMD_PARAM_ERROR;
+                    break;
+				}
+			} else if (type == CMD_PARAM_MULTICAST_MGMT_VAL) {
+				switch (msg_cmd) {
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
+    					// Set the default multicast management parameter
+    					default_multicast_mgmt_tx_params.phy.power = power;
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX power = %d dBm\n", power);
+					break;
+
+                    case CMD_PARAM_READ_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
+    					// Get the default multicast management parameter
+    					power = default_multicast_mgmt_tx_params.phy.power;
+					break;
+
+                    default:
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+    					status = CMD_PARAM_ERROR;
+                    break;
+				}
+			} else if (type == CMD_PARAM_NODE_TX_POWER_LOW) {
+				switch (msg_cmd) {
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
+        	        	// Send IPC to CPU low to set the Tx power for control frames
+        			    wlan_mac_high_set_tx_ctrl_pow(power);
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set control packet TX power = %d dBm\n", power);
+					break;
+
+                    case CMD_PARAM_READ_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Reading control packet power not currently supported\n");
+    					status = CMD_PARAM_ERROR;
+					break;
+
+                    default:
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+    					status = CMD_PARAM_ERROR;
+                    break;
+				}
+			} else if (type == CMD_PARAM_NODE_TX_POWER_ALL) {
+				// Set all power values:
+				//     * Default Unicast Management Packet Tx Power for new associations
+	            //     * Default Unicast Data Packet Tx Power for new associations
+				//     * Default Multicast Management Packet Tx Power for new associations
+				//     * Default Multicast Data Packet Tx Power for new associations
+				//     * Control Packet Tx Power
+				//     * Update the transmit power of all current associations on the node.
+	        	wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set all TX power = %d dBm\n", power);
+
+	        	// Set the default unicast power for new associations
+			    default_unicast_mgmt_tx_params.phy.power   = power;
+			    default_unicast_data_tx_params.phy.power   = power;
+
+	        	// Set the default multicast power for new associations
+			    default_multicast_mgmt_tx_params.phy.power = power;
+			    default_multicast_data_tx_params.phy.power = power;
+
+	        	// Send IPC to CPU low to set the Tx power for control frames
+			    wlan_mac_high_set_tx_ctrl_pow(power);
+
+			    // Update the Tx power in each current association
+			    status = node_process_tx_power(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, power);
+			} else {
+				wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_RATE: %d\n", type);
+				status = CMD_PARAM_ERROR;
 			}
 
+			// Shift power for transmission
+			temp = power - TX_POWER_MIN_DBM;
+
 			// Send response
-			//   - Shift power values so that we do not transmit negative numbers
             respArgs32[respIndex++] = Xil_Htonl( status );
-            respArgs32[respIndex++] = Xil_Htonl( default_unicast_data_tx_params.phy.power   - TX_POWER_MIN_DBM );
-            respArgs32[respIndex++] = Xil_Htonl( default_unicast_mgmt_tx_params.phy.power   - TX_POWER_MIN_DBM );
-            respArgs32[respIndex++] = Xil_Htonl( default_multicast_data_tx_params.phy.power - TX_POWER_MIN_DBM );
-            respArgs32[respIndex++] = Xil_Htonl( default_multicast_mgmt_tx_params.phy.power - TX_POWER_MIN_DBM );
+            respArgs32[respIndex++] = Xil_Htonl( temp );
 
 			respHdr->length += (respIndex * sizeof(respArgs32));
 			respHdr->numArgs = respIndex;
@@ -1818,6 +1906,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
 			if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
 
+			// Process the command
 			if (type == CMD_PARAM_UNICAST_VAL) {
 				switch (msg_cmd) {
                     case CMD_PARAM_WRITE_VAL:
@@ -1825,10 +1914,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
         				// Get MAC Address
         				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
 
+        				// If necessary, add an association.  This is primarily for IBSS nodes where
+        				//   the association table might not be set up at the time this is called.
+    					// NOTE: A multicast mac_addr should *not* be added to the association table.
         				if(wlan_addr_mcast(mac_addr) == 0){
-            				// If necessary, add an association.  This is primarily for IBSS nodes where
-            				//   the association table might not be set up at the time this is called.
-        					// Note: a multicast mac_addr should *not* be added to the association table.
         					wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
         				}
 
@@ -1842,14 +1931,15 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     break;
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
-    					// Set the default unicast rate
+    					// Set the default unicast data & management parameter
     					default_unicast_data_tx_params.phy.rate = rate;
+    					default_unicast_mgmt_tx_params.phy.rate = rate;
     					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
     							        "Set default unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
 					break;
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
-    					// Get the default rate
+    					// Get the default unicast data parameter
     					rate = default_unicast_data_tx_params.phy.rate;
 					break;
 
@@ -1858,20 +1948,41 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
     					status = CMD_PARAM_ERROR;
                     break;
 				}
-			} else if (type == CMD_PARAM_MULTICAST_VAL) {
+			} else if (type == CMD_PARAM_MULTICAST_DATA_VAL) {
 				switch (msg_cmd) {
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
-    					// Set the default multicast rate
+    					// Set the default multicast data parameter
     					default_multicast_data_tx_params.phy.rate = rate;
     					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-    							        "Set default multicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+    							        "Set default multicast data TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
 					break;
 
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
-    					// Get the default rate
+    					// Get the default multicast data parameter
     					rate = default_multicast_data_tx_params.phy.rate;
+					break;
+
+                    default:
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+    					status = CMD_PARAM_ERROR;
+                    break;
+				}
+			} else if (type == CMD_PARAM_MULTICAST_MGMT_VAL) {
+				switch (msg_cmd) {
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
+    					// Set the default multicast management parameter
+    					default_multicast_mgmt_tx_params.phy.rate = rate;
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+    							        "Set default multicast mgmt TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
+					break;
+
+                    case CMD_PARAM_READ_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
+    					// Get the default multicast management parameter
+    					rate = default_multicast_mgmt_tx_params.phy.rate;
 					break;
 
                     default:
@@ -1904,7 +2015,7 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			msg_cmd  = Xil_Ntohl(cmdArgs32[0]);
 			type     = Xil_Ntohl(cmdArgs32[1]);
 			ant_mode = Xil_Ntohl(cmdArgs32[2]);
-			status  = CMD_PARAM_SUCCESS;
+			status   = CMD_PARAM_SUCCESS;
 
 			// NOTE:  This method assumes that the Antenna mode received is valid.
 			// The checking will be done on either the host, in CPU Low or both.
@@ -1916,10 +2027,10 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
         				// Get MAC Address
         				wlan_exp_get_mac_addr(&((u32 *)cmdArgs32)[3], &mac_addr[0]);
 
+        				// If necessary, add an association.  This is primarily for IBSS nodes where
+        				//   the association table might not be set up at the time this is called.
+    					// NOTE: A multicast mac_addr should *not* be added to the association table.
         				if(wlan_addr_mcast(mac_addr) == 0){
-            				// If necessary, add an association.  This is primarily for IBSS nodes where
-            				//   the association table might not be set up at the time this is called.
-        					// Note: a multicast mac_addr should *not* be added to the association table.
         					wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
         				}
 
@@ -1933,13 +2044,14 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
                     break;
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
-						// Set the default unicast rate
+						// Set the default unicast data & management parameter
 						default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
+						default_unicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
 						wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default unicast TX antenna mode = %d\n", ant_mode);
 					break;
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
-						// Get the default rate
+						// Get the default unicast data parameter
 						ant_mode = default_unicast_data_tx_params.phy.antenna_mode;
 					break;
 
@@ -1948,22 +2060,39 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
     					status = CMD_PARAM_ERROR;
                     break;
 				}
-			} else if (type == CMD_PARAM_MULTICAST_VAL) {
+			} else if (type == CMD_PARAM_MULTICAST_DATA_VAL) {
 				switch (msg_cmd) {
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
-    					// Set the default multicast rate
+    					// Set the default multicast data paramter
     					default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
-    					default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
-
-    					ant_mode = (ant_mode << 16) + ant_mode;
-    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast TX antenna mode = %d\n", ant_mode);
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast data TX antenna mode = %d\n", ant_mode);
 					break;
 
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
-    					// Get the default rate
-    					ant_mode = (default_multicast_mgmt_tx_params.phy.antenna_mode << 16) + default_multicast_data_tx_params.phy.antenna_mode;
+    					// Get the default multicast data parameter
+    					ant_mode = default_multicast_data_tx_params.phy.antenna_mode;
+					break;
+
+                    default:
+                    	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmdID, msg_cmd);
+    					status = CMD_PARAM_ERROR;
+                    break;
+				}
+			} else if (type == CMD_PARAM_MULTICAST_MGMT_VAL) {
+				switch (msg_cmd) {
+                    case CMD_PARAM_WRITE_VAL:
+                    case CMD_PARAM_WRITE_DEFAULT_VAL:
+    					// Set the default multicast management parameter
+    					default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+    					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX antenna mode = %d\n", ant_mode);
+					break;
+
+                    case CMD_PARAM_READ_VAL:
+                    case CMD_PARAM_READ_DEFAULT_VAL:
+    					// Get the default multicast management parameter
+    					ant_mode = default_multicast_mgmt_tx_params.phy.antenna_mode;
 					break;
 
                     default:
@@ -3385,6 +3514,88 @@ void create_wn_cmd_log_entry(wn_cmdHdr* cmdHdr, void * cmdArgs, u16 src_id) {
 		print_entry( 0, ENTRY_TYPE_WN_CMD, (void *) entry );
 #endif
 	}
+}
+
+
+
+/*****************************************************************************/
+/**
+* Process TX Power
+*
+* @param    cmd      - NODE_WRITE_VAL or NODE_READ_VAL
+*           aid      - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
+*           tx_power - Power to set the node (function assumes power is valid)
+* @return	power    - CMD_PARAM_ERROR on ERROR
+* @note		None.
+*
+******************************************************************************/
+int node_process_tx_power(u32 cmd, u32 aid, int tx_power) {
+
+	int           power;
+	dl_list     * curr_list;
+	dl_entry	* curr_entry;
+	station_info* curr_station_info;
+
+	power = CMD_PARAM_ERROR;
+
+	// For Writes
+	if ( cmd == CMD_PARAM_WRITE_VAL ) {
+		curr_list  = get_station_info_list();
+
+		if(curr_list != NULL){
+			if (curr_list->length == 0) { return tx_power; }
+
+			curr_entry = curr_list->first;
+
+			while(curr_entry != NULL) {
+				curr_station_info = (station_info*)(curr_entry->data);
+
+				if ( aid == WLAN_EXP_AID_ALL ) {
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+							        "Set TX power on AID %d = %d dBm\n", curr_station_info->AID, tx_power);
+					curr_station_info->tx.phy.power = tx_power;
+					power                           = tx_power;
+
+				} else if ( aid == curr_station_info->AID ) {
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
+							        "Set TX power on AID %d = %d dBm\n", aid, tx_power);
+					curr_station_info->tx.phy.power = tx_power;
+					power                           = tx_power;
+					break;
+				}
+				curr_entry = dl_entry_next(curr_entry);
+			}
+		} else {
+			if (aid == WLAN_EXP_AID_ALL) {
+				// This is not an error because we are trying to set the rate for all
+				// associations and there currently are none.
+				power = tx_power;
+			}
+		}
+
+	// For Reads
+	} else {
+		if ( aid != WLAN_EXP_AID_ALL ) {
+			curr_list  = get_station_info_list();
+
+			if (curr_list != NULL){
+				curr_entry = curr_list->first;
+
+				while(curr_entry != NULL){
+					curr_station_info = (station_info*)(curr_entry->data);
+					if ( aid == curr_station_info->AID ) {
+						power = curr_station_info->tx.phy.power;
+						break;
+					}
+					curr_entry = dl_entry_next(curr_entry);
+				}
+			}
+		}
+
+		// NOTE:  Trying to read the rate for all associations returns an error.
+	}
+
+	return power;
 }
 
 

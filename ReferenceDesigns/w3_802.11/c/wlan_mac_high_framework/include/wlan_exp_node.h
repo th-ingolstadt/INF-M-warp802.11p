@@ -76,7 +76,8 @@
 #define CMD_PARAM_ERROR                                    0xFF000000
 
 #define CMD_PARAM_UNICAST_VAL                              0x00000000
-#define CMD_PARAM_MULTICAST_VAL                            0x00000001
+#define CMD_PARAM_MULTICAST_DATA_VAL                       0x00000001
+#define CMD_PARAM_MULTICAST_MGMT_VAL                       0x00000002
 
 #define CMD_PARAM_NODE_CONFIG_ALL                          0xFFFFFFFF
 
@@ -93,6 +94,9 @@
 #define CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL                 0x00000002
 #define CMD_PARAM_NODE_TIME_RSVD_VAL                       0xFFFFFFFF
 #define CMD_PARAM_NODE_TIME_RSVD_VAL_64                    0xFFFFFFFFFFFFFFFF
+
+#define CMD_PARAM_NODE_TX_POWER_LOW                        0x00000010
+#define CMD_PARAM_NODE_TX_POWER_ALL                        0x00000020
 
 #define CMD_PARAM_RSVD_CHANNEL                             0x00000000
 #define CMD_PARAM_RSVD_MAC_ADDR                            0xFFFFFFFF
@@ -205,16 +209,16 @@
 //     and then change the value of "NODE_MAX_PARAMETER" to be the largest value
 //     in the list so it is easy to iterate over all parameters
 //
-#define NODE_TYPE                                0
-#define NODE_ID                                  1
-#define NODE_HW_GEN                              2
-#define NODE_DESIGN_VER                          3
-#define NODE_FPGA_DNA                            4
-#define NODE_SERIAL_NUM                          5
-#define NODE_WLAN_EXP_DESIGN_VER                 6
-#define NODE_WLAN_MAC_ADDR                       7
-#define NODE_WLAN_SCHEDULER_RESOLUTION           8
-#define NODE_MAX_PARAMETER                       9
+#define NODE_TYPE                                          0
+#define NODE_ID                                            1
+#define NODE_HW_GEN                                        2
+#define NODE_DESIGN_VER                                    3
+#define NODE_FPGA_DNA                                      4
+#define NODE_SERIAL_NUM                                    5
+#define NODE_WLAN_EXP_DESIGN_VER                           6
+#define NODE_WLAN_MAC_ADDR                                 7
+#define NODE_WLAN_SCHEDULER_RESOLUTION                     8
+#define NODE_MAX_PARAMETER                                 9
 
 
 
