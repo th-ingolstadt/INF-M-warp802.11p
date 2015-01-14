@@ -15,47 +15,47 @@
 .. ----- ---- -------- -----------------------------------------------------
 .. 1.00a ejw  1/23/14  Initial release
 .. ------------------------------------------------------------------------------
-.. 
-.. This module defines each type of log entry that may exist in the event log of 
+..
+.. This module defines each type of log entry that may exist in the event log of
 .. an 802.11 Reference Design Node.
-.. 
+..
 .. The log entry definitions in this file must match the corresponding
 .. definitions in the wlan_mac_entries.h header file in the C code
 .. running on the node.
-.. 
+..
 .. This module maintains a dictionary which contains a reference to each
 .. known log entry type. This dictionary is stored in the variable
 .. ``wlan_exp_log_entry_types``. The :class:`WlanExpLogEntryType` constructor
 .. automatically adds each log entry type definition to this dictionary. Users
 .. may access the dictionary to view currently defined log entry types. But
 .. user code should not modify the dictionary contents directly.
-.. 
-.. 
+..
+..
 .. Custom Log Entry Types
 .. ----------------------
 .. The :mod:`log_entries` module includes definitions for the log entry types
 .. implemented in the current 802.11 Reference Design C code.
-.. 
+..
 .. Log entry types defined here must match the corresponding entry definitions in
 .. the node C code.  Custom entries can be defined and added to the global
 .. dictionary by user scripts.
-.. 
+..
 .. Log entry type definitions are instances of the :class:`WlanExpLogEntryType`
 .. class. The :class:`WlanExpLogEntryType` constructor requires two arguments:
 .. ``name`` and ``entry_type_id``.  Both the name and entry type ID **must** be
 .. unique relative to the existing entry types defined in :mod:`log_entries`.
-.. 
+..
 .. To define a custom log entry type::
-.. 
+..
 ..     import wlan_exp.log.entry_types as entry_types
-.. 
+..
 ..     #name and entry_type_id must not collide with existing log entry type definitions
 ..     my_entry_type = entry_types.WlanExpLogEntryType(name='MY_ENTRY', entry_type_id=999)
 ..     my_entry_type.append_field_defs([
 ..             ('timestamp',              'Q',      'uint64'),
 ..             ('field_A',                'H',      'uint16'),
 ..             ('field_B',                'H',      'uint16')])
-.. 
+..
 """
 import sys, os
 from struct import pack, unpack, calcsize, error
@@ -164,7 +164,7 @@ class WlanExpLogEntryType(object):
     # -------------------------------------------------------------------------
     def get_field_names(self):
         """Get the field names of the log entry.
-        
+
         Returns:
             names (list of str):  List of string field names for the entry
         """
@@ -172,7 +172,7 @@ class WlanExpLogEntryType(object):
 
     def get_field_struct_formats(self):
         """Get the Python struct format of the log entry fields.
-        
+
         Returns:
             formats (list of str):  List of Python struct formats for the fields in the log entry
         """
@@ -184,7 +184,7 @@ class WlanExpLogEntryType(object):
 
     def get_entry_type_id(self):
         """Get the ID for the entry type.
-        
+
         Returns:
             ID (int):  Integer ID for the log entry
         """
@@ -194,7 +194,7 @@ class WlanExpLogEntryType(object):
         """Adds fields to the definition of the log entry type.
 
         Args:
-            field_info (list of tuple):  Each must be of the form 
+            field_info (list of tuple):  Each must be of the form
                 ``(field_name, field_type_struct, field_type_numpy)`` where:
                     * ``field_name``: Name of field as string
                     * ``field_type_struct``: Field type as string, using formats specified by ``struct`` module
@@ -237,10 +237,10 @@ class WlanExpLogEntryType(object):
 
     def add_gen_numpy_array_callback(self, callback):
         """Add callback that is run after the numpy array is generated from the entry type.
-        
+
         Args:
             callback (function):  Function to run after the numpy array is generated
-        
+
         .. note:: The callbacks will be executed in the order the are added to the log entry
         """
         if callable(callback):
@@ -253,7 +253,7 @@ class WlanExpLogEntryType(object):
     # Utility methods for the WlanExpLogEntryType
     # -------------------------------------------------------------------------
     def generate_numpy_array(self, log_data, byte_offsets):
-        """Generate a NumPy array from the log_bytes of the given WlanExpLogEntryType instance 
+        """Generate a NumPy array from the log_bytes of the given WlanExpLogEntryType instance
         at the given byte_offsets.
         """
         import numpy as np
@@ -349,7 +349,7 @@ class WlanExpLogEntryType(object):
                 doc_str += doc_fields_table(field_descs, fmt=fmt)
 
             except (TypeError, IndexError):
-                # Callback didn't implement suitable 'docs_only' output; punt
+                # Callback didn't implement suitable 'docs_only' output; fail quietly and return
                 #   print('Error generating callback field docs for {0}\n{1}'.format(cb, e))
                 pass
 
@@ -417,8 +417,8 @@ class WlanExpLogEntryType(object):
             buf (bytearray): Array of raw log data containing 1 or more log entries of the same type.
 
         Returns:
-            entries (List of dict):  
-                Each dictionary in the list has one value per field in the log entry definition using 
+            entries (List of dict):
+                Each dictionary in the list has one value per field in the log entry definition using
                 the field names as keys.
         """
         from collections import OrderedDict
@@ -613,7 +613,7 @@ def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False, docs_only=False)
     IMPORTANT: np_arr uses the original bytearray as its underlying data
     We must operate on a copy to avoid clobbering log entries adjacent to the
     Tx or Rx entries being extended.
-    
+
     .. note:: This is an example of a gen_numpy_array_callback
     """
     import numpy as np
@@ -717,24 +717,24 @@ def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False, docs_only=False)
 
 
 def extend_np_dt(dt_orig, new_fields=None):
-    """Extends a numpy dtype object with additional fields. 
-    
+    """Extends a numpy dtype object with additional fields.
+
     Args:
         dt_orig (Numpy DataType):  Original Numpy data type
-        new_fields (dict):         Dictionary with keys 'names' and 'formats', same as when specifying 
-            new dtype objects. The return dtype will *not* contain byte offset values for existing or 
-            new fields, even if exisiting fields had specified offsets. Thus the original dtype should 
+        new_fields (dict):         Dictionary with keys 'names' and 'formats', same as when specifying
+            new dtype objects. The return dtype will *not* contain byte offset values for existing or
+            new fields, even if exisiting fields had specified offsets. Thus the original dtype should
             be used to interpret raw data buffers before the extended dtype is used to add new fields.
     """
     import numpy as np
     from collections import OrderedDict
-    
+
     if(type(dt_orig) is not np.dtype):
         raise Exception("ERROR: extend_np_dt requires valid numpy dtype as input")
     else:
         # Use ordered dictionary to preserve original field order (not required, just convenient)
         dt_ext = OrderedDict()
-        
+
         # Extract the names/formats/offsets dictionary for the base dtype
         #   dt.fields returns dictionary with field names as keys and
         #   values of (dtype, offset). The dtype objects in the first tuple field
@@ -742,17 +742,17 @@ def extend_np_dt(dt_orig, new_fields=None):
         # This approach will preserve the types and dimensions of scalar and non-scalar fields
         dt_ext['names'] = list(dt_orig.names)
         dt_ext['formats'] = [dt_orig.fields[f][0] for f in dt_orig.names]
-        
+
         if(type(new_fields) is dict):
             # Add new fields to the extended dtype
             dt_ext['names'].extend(new_fields['names'])
             dt_ext['formats'].extend(new_fields['formats'])
         elif type(new_fields) is not None:
             raise Exception("ERROR: new_fields argument must be dictionary with keys 'names' and 'formats'")
-        
+
         # Construct and return the new numpy dtype object
         dt_new = np.dtype(dt_ext)
-        
+
         return dt_new
 
 # End def

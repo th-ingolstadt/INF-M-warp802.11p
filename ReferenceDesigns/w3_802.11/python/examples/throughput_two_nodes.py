@@ -38,7 +38,7 @@ import wlan_exp.ltg as wlan_exp_ltg
 
 # NOTE: change these values to match your experiment setup
 NETWORK           = '10.0.0.0'
-NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
+NODE_SERIAL_LIST  = ['W3-a-00183', 'W3-a-00381']
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME        = 10

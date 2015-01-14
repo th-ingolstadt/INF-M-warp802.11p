@@ -649,7 +649,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 							n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 							wlan_mac_dcf_hw_start_backoff(n_slots);
 
-							//Jump to next loop iteration (next transmission attempt, or punting if this was the last)
+							//Jump to next loop iteration, which will either start the next transmission attempt
+							//  or the loop will terminate if this was the last attempt
 							continue;
 						}
 					break;
@@ -663,7 +664,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 						wlan_mac_dcf_hw_start_backoff(n_slots);
 
-						//Jump to next loop iteration (next transmission attempt, or punting if this was the last)
+						//Jump to next loop iteration, which will either start the next transmission attempt
+						//  or the loop will terminate if this was the last attempt
 						continue;
 					break;
 				}

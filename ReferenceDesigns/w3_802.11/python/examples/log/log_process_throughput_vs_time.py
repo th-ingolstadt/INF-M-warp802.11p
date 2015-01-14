@@ -42,7 +42,7 @@ if(len(sys.argv) != 1):
 
     # Check if the string argument matchs a local file
     if not (os.path.isfile(LOGFILE_AP) and os.path.isfile(LOGFILE_STA)):
-        # User specified non-existant files - punt
+        # User specified non-existant files - give up and exit
         logfile_error = True
 else:
     # No command line arguments - check if default files exists locally

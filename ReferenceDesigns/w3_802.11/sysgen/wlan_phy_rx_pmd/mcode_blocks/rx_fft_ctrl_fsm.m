@@ -5,7 +5,7 @@ persistent fsm_state, fsm_state=xl_state(0, {xlUnsigned, 3, 0});
 %Inputs:
 % lts_sync: Successful correlation of second LTS (must be 1 cycle)
 % fft_load_done: Last FFT input sample loaded
-% pkt_done: Resets state (last FFT is performed, pkt Rx punts, etc.)
+% pkt_done: Resets state (last FFT is performed, pkt Rx ends early, etc.)
 
 %Outputs:
 % fft_load: Start FFT load operation

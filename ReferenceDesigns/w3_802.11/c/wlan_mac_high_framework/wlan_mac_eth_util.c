@@ -465,7 +465,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 				break;//END case(IP packet)
 
 				default:
-					//Invalid or unsupported Eth type; punt
+					//Invalid or unsupported Eth type; give up and return
 					return -1;
 				break;
 			}//END switch(LLC type)
@@ -510,7 +510,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 				break;
 
 				default:
-					//Invalid or unsupported Eth type; punt
+					//Invalid or unsupported Eth type; give up and return
 					return -1;
 				break;
 			}
@@ -549,7 +549,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 				break;
 
 				default:
-					//Invalid or unsupported Eth type; punt
+					//Invalid or unsupported Eth type; give up and return
 					return -1;
 				break;
 			}
@@ -731,7 +731,7 @@ inline void wlan_poll_eth_rx() {
 
 		if(mpdu_tx_len == 0) {
 			//Encapsulation failed for some reason (probably unknown ETHERTYPE value)
-			// Don't pass the invalid frame to the MAC - just cleanup and punt
+			// Don't pass the invalid frame to the MAC - just cleanup and return
 			packet_is_queued = 0;
 		} else {
 			//Call the MAC's callback to process the packet

@@ -16,7 +16,7 @@ if(len(sys.argv) > 1):
 
     # Check if the string argument matchs a local file
     if not os.path.isfile(LOGFILE):
-        # User specified non-existant file - punt
+        # User specified non-existant file - give up and exit
         logfile_error = True
 
 else:
