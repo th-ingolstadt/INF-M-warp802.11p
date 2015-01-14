@@ -78,7 +78,7 @@ Node Commands
 These WlanExpNode commands are used to interact with the node and control parameters associated with the node operation.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
-   :members: reset_all, reset, get_wlan_mac_address, set_name, set_time, get_time, set_low_to_high_rx_filter, set_channel, get_channel, set_tx_rate_unicast, get_tx_rate_unicast, set_tx_rate_multicast_data, get_tx_rate_multicast_data, set_tx_ant_mode_unicast, get_tx_ant_mode_unicast, set_tx_ant_mode_multicast, get_tx_ant_mode_multicast, set_rx_ant_mode, get_rx_ant_mode, set_tx_power, get_tx_power, set_phy_cs_thresh, get_phy_cs_thresh, set_timestamp_offset, get_timestamp_offset, set_cw_exp_min, set_cw_exp_max, get_cw_exp_range, configure_pkt_det_min_power, set_random_seed, enable_dsss, disable_dsss, set_print_level 
+   :members: reset_all, reset, get_wlan_mac_address, set_name, set_time, get_time, set_low_to_high_rx_filter, set_channel, get_channel, set_tx_rate_unicast, set_tx_rate_multicast_data, set_tx_rate_multicast_mgmt, get_tx_rate_unicast, get_tx_rate_multicast_data, get_tx_rate_multicast_mgmt, set_tx_ant_mode_unicast, set_tx_ant_mode_multicast_data, set_tx_ant_mode_multicast_mgmt, get_tx_ant_mode_unicast, get_tx_ant_mode_multicast_data, get_tx_ant_mode_multicast_mgmt, set_rx_ant_mode, get_rx_ant_mode, set_tx_power_unicast, set_tx_power_multicast_data, set_tx_power_multicast_mgmt, get_tx_power_unicast, get_tx_power_multicast_data, get_tx_power_multicast_mgmt, set_tx_power_ctrl, set_tx_power, get_tx_power, set_phy_cs_thresh, set_timestamp_offset, set_cw_exp_min, set_cw_exp_max, configure_pkt_det_min_power, set_random_seed, enable_dsss, disable_dsss, set_print_level 
 
 
 Association Commands

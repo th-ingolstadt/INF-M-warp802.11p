@@ -718,117 +718,190 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_READ))
 
 
+    #------------------------
+    # Tx Rate commands
+
     def set_tx_rate_unicast(self, rate, device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast transmit rate of the node.
+        """Sets the unicast packet transmit rate of the node.
+        
+        When using device_list or curr_assoc, this method will set the unicast data packet tx rate since
+        only unicast data transmit parameters are maintained for a given assoication.  However, when using 
+        new_assoc, this method will set both the default unicast data and unicast management packet tx rate.
         
         Args:
-            rate (dict from util.wlan_rates):                    Rate dictionary 
+            rate (dict from util.wlan_rates):  Rate dictionary 
                 (Dictionary from the wlan_rates list in wlan_exp.util)
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
-                or single 802.11 device for which to set the Tx unicast rate to 'rate'
-            curr_assoc (bool):  All current assocations will have Tx unicast rate set to 'rate'
-            new_assoc  (bool):  All new associations will have Tx unicast rate set to 'rate'
+                or single 802.11 device for which to set the unicast packet Tx rate to 'rate'
+            curr_assoc (bool):  All current assocations will have the unicast packet Tx rate set to 'rate'
+            new_assoc  (bool):  All new associations will have the unicast packet Tx rate set to 'rate'
         
         .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
             and curr_assoc are mutually exclusive with curr_assoc having precedence
             (ie if curr_assoc is True, then device_list will be ignored).
+            
+        .. note:: WLAN Exp does not differentiate between unicast management tx parameters
+            and unicast data tx parameters since unicast management packets only occur when
+            they will not materially affect an experiment (ie they are only sent during 
+            deauthentication)
+            
+        .. note:: This will not affect the transmit antenna mode for control frames like ACKs that 
+            will be transmitted. The rate of control packets is determined by the 802.11 standard.
         """
         self._node_set_tx_param_unicast(cmds.NodeProcTxRate, rate, 'rate', device_list, curr_assoc, new_assoc)
         
 
-    def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast transmit rate of the node for the given device(s).
-
-        Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
-                or single 802.11 device for which to get the Tx unicast rate
-            new_assoc  (bool):  Get the Tx unicast rate for all new associations 
-        
-        Returns:
-            rates (List of dict - Entries from the wlan_rates wlan_exp.util):  List of Tx unicast rate for the given devices.
-        
-        .. note:: If both new_assoc and device_list are specified, the return list will always have 
-            the Tx unicast rate for all new associations as the first item in the list.
-        """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', device_list, new_assoc)
-
-
     def set_tx_rate_multicast_data(self, rate):
-        """Sets the multicast transmit rate for a node.
+        """Sets the multicast data packet transmit rate for a node.
 
         Args:
             rate (dict from util.wlan_rates):  Rate dictionary 
                 (Dictionary from the wlan_rates list in wlan_exp.util)
         """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST, rate))
+        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, rate))
+
+
+    def set_tx_rate_multicast_mgmt(self, rate):
+        """Sets the multicast management packet transmit rate for a node.
+
+        Args:
+            rate (dict from util.wlan_rates):  Rate dictionary 
+                (Dictionary from the wlan_rates list in wlan_exp.util)
+        """
+        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, rate))
+
+
+    def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
+        """Gets the unicast packet transmit rate of the node for the given device(s).
+        
+        This will get the unicast data packet tx rate (unicast managment packet tx rate is the same).
+
+        Args:
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                or single 802.11 device for which to get the unicast packet Tx rate
+            new_assoc  (bool):  Get the unicast packet Tx rate for all new associations 
+        
+        Returns:
+            rates (List of dict - Entries from the wlan_rates wlan_exp.util):  List of unicast packet Tx rate for the given devices.
+        
+        .. note:: If both new_assoc and device_list are specified, the return list will always have 
+            the unicast packet Tx rate for all new associations as the first item in the list.
+        """
+        return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', device_list, new_assoc)
 
 
     def get_tx_rate_multicast_data(self):
+        """Gets the current multicast data packet transmit rate for a node.
+
+        Returns:
+            rate (Dict - Entry from the wlan_rates in wlan_exp.util):  Multicast data packet transmit rate for the node
+        """
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
+
+
+    def get_tx_rate_multicast_mgmt(self):
         """Gets the current multicast transmit rate for a node.
 
         Returns:
-            rate (Dict - Entry from the wlan_rates wlan_exp.util):  Tx multicast rate for the node
+            rate (Dict - Entry from the wlan_rates in wlan_exp.util):  Multicast management packet transmit rate for the node
         """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST))
+        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
 
+
+    #------------------------
+    # Tx Antenna Mode commands
 
     def set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast transmit antenna mode of the node.
+        """Sets the unicast packet transmit antenna mode of the node.
+
+        When using device_list or curr_assoc, this method will set the unicast data packet tx antenna mode since
+        only unicast data transmit parameters are maintained for a given assoication.  However, when using 
+        new_assoc, this method will set both the default unicast data and unicast management packet tx antenna mode.
         
         Args:
-            ant_mode (dict from util.wlan_tx_ant_mode):          Antenna dictionary 
+            ant_mode (dict from util.wlan_tx_ant_mode):  Antenna dictionary 
                 (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
-                or single 802.11 device for which to set the Tx unicast antenna mode to 'ant_mode'
-            curr_assoc (bool):  All current assocations will have Tx unicast antenna mode set to 'ant_mode'
-            new_assoc  (bool):  All new associations will have Tx unicast antenna mode set to 'ant_mode'
+                or single 802.11 device for which to set the unicast packet Tx antenna mode to 'ant_mode'
+            curr_assoc (bool):  All current assocations will have the unicast packet Tx antenna mode set to 'ant_mode'
+            new_assoc  (bool):  All new associations will have the unicast packet Tx antenna mode set to 'ant_mode'
         
         .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
             and curr_assoc are mutually exclusive with curr_assoc having precedence
             (ie if curr_assoc is True, then device_list will be ignored).
+            
+        .. note:: WLAN Exp does not differentiate between unicast management tx parameters
+            and unicast data tx parameters since unicast management packets only occur when
+            they will not materially affect an experiment (ie they are only sent during 
+            deauthentication)
+
+        .. note:: This will not affect the transmit antenna mode for control frames like ACKs that 
+            will be transmitted. Control packets will be sent on whatever antenna that cause the 
+            control packet to be generated (ie an ack for a reception will go out on the same antenna 
+            on which the reception occurred).
         """
-        self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, ant_mode, 'antenna mode', 
-                                        device_list, curr_assoc, new_assoc)
+        self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, ant_mode, 'antenna mode',  device_list, curr_assoc, new_assoc)
+
+
+    def set_tx_ant_mode_multicast_data(self, ant_mode):
+        """Sets the multicast data packet transmit antenna mode.
+
+        Args:
+            ant_mode (dict from util.wlan_tx_ant_mode):  Antenna dictionary 
+                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+        """
+        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, ant_mode))
+
+
+    def set_tx_ant_mode_multicast_mgmt(self, ant_mode):
+        """Sets the multicast management packet transmit antenna mode.
+
+        Args:
+            ant_mode (dict from util.wlan_tx_ant_mode):  Antenna dictionary 
+                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+        """
+        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, ant_mode))
 
 
     def get_tx_ant_mode_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast transmit antenna mode of the node.
+        """Gets the unicast packet transmit antenna mode of the node for the given device(s). 
+
+        This will get the unicast data packet Tx antenna mode (unicast managment packet Tx antenna mode is the same).
 
         Args:
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
-                or single 802.11 device for which to get the Tx unicast antenna mode
-            new_assoc  (bool):  Get the Tx unicast antenna mode for all new associations 
+                or single 802.11 device for which to get the unicast packet Tx antenna mode
+            new_assoc  (bool):  Get the unicast packet Tx antenna mode for all new associations 
         
         Returns:
-            ant_modes (List of dict - Entries from the wlan_tx_ant_mode wlan_exp.util):  List of Tx unicast antenna modes for the given devices.
+            ant_modes (List of dict - Entries from the wlan_tx_ant_mode in wlan_exp.util):  List of unicast packet Tx antenna mode for the given devices.
         
         .. note:: If both new_assoc and device_list are specified, the return list will always have 
-            the Tx unicast rate for all new associations as the first item in the list.
+            the unicast packet Tx antenna mode for all new associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', device_list, new_assoc)
 
 
-    def set_tx_ant_mode_multicast(self, ant_mode):
-        """Sets the multicast transmit antenna mode for a node and returns the antenna mode that was set.
-
-        Args:
-            ant_mode (dict from util.wlan_tx_ant_mode):          Antenna dictionary 
-                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
-
-        Returns:
-            ant_modes (list of dict):  A list of antenna modes: [<multicast management tx antenna mode>, <multicast data tx antenna mode>]        
-        """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST, ant_mode))
-
-
-    def get_tx_ant_mode_multicast(self):
-        """Gets the current multicast transmit antenna mode for a node.
+    def get_tx_ant_mode_multicast_data(self):
+        """Gets the current multicast data packet transmit antenna mode for a node.
         
         Returns:
-            ant_modes (list of dict):  A list of antenna modes: [<multicast management tx antenna mode>, <multicast data tx antenna mode>]        
+            ant_mode (Dict - Entry from the wlan_tx_ant_mode in wlan_exp.util):  Multicast data packet transmit antenna mode for the node
         """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST))
+        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
 
+
+    def get_tx_ant_mode_multicast_mgmt(self):
+        """Gets the current multicast management packet transmit antenna mode for a node.
+        
+        Returns:
+            ant_mode (Dict - Entry from the wlan_tx_ant_mode in wlan_exp.util):  Multicast management packet transmit antenna mode for the node
+        """
+        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
+
+
+    #------------------------
+    # Rx Antenna Mode commands
 
     def set_rx_ant_mode(self, ant_mode):
         """Sets the receive antenna mode for a node and returns the antenna mode that was set.
@@ -836,11 +909,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         Args:
             ant_mode (dict from util.wlan_rx_ant_mode):          Antenna dictionary 
                 (Dictionary from the wlan_rx_ant_mode list in wlan_exp.util)
-
-        Returns:
-            ant_mode (dict):  Rx antenna mode dictionary
         """
-        return self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_WRITE, ant_mode))
+        self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_WRITE, ant_mode))
 
 
     def get_rx_ant_mode(self):
@@ -852,26 +922,141 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         return self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_READ))
 
 
-    def set_tx_power(self, power):
-        """Sets the transmit power of the node and returns the power that was set.
+    #------------------------
+    # Tx Power commands
+
+    def set_tx_power_unicast(self, power, device_list=None, curr_assoc=False, new_assoc=False):
+        """Sets the unicast packet transmit power of the node.
+
+        When using device_list or curr_assoc, this method will set the unicast data packet tx power since
+        only unicast data transmit parameters are maintained for a given assoication.  However, when using 
+        new_assoc, this method will set both the default unicast data and unicast management packet tx power.
         
         Args:
-            power (int):  Transmit power.  Must have a value between 19 and -12 (dBm)
-
-        Returns:
-            tx_powers (list): Current Tx powers: [<unicast mgmt tx power>, <unicast data tx power>, <multicast mgmt tx power>, <multicast data tx power>]
+            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
+                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                or single 802.11 device for which to set the unicast packet Tx power to 'power'
+            curr_assoc (bool):  All current assocations will have the unicast packet Tx power set to 'power'
+            new_assoc  (bool):  All new associations will have the unicast packet Tx power set to 'power'
+        
+        .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
+            and curr_assoc are mutually exclusive with curr_assoc having precedence
+            (ie if curr_assoc is True, then device_list will be ignored).
+            
+        .. note:: WLAN Exp does not differentiate between unicast management tx parameters
+            and unicast data tx parameters since unicast management packets only occur when
+            they will not materially affect an experiment (ie they are only sent during 
+            deauthentication)
+                        
+        .. note:: This will not affect the transmit power for control frames like ACKs that 
+            will be transmitted. To adjust this power, use the set_tx_power_ctrl command
         """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, power))
+        self._node_set_tx_param_unicast(cmds.NodeProcTxPower, power, 'power', device_list, curr_assoc, new_assoc)
+
+
+    def set_tx_power_multicast_data(self, power):
+        """Sets the multicast data packet transmit power.
+
+        Args:
+            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
+                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+        """
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, power))
+
+
+    def set_tx_power_multicast_mgmt(self, power):
+        """Sets the multicast management packet transmit power.
+
+        Args:
+            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
+                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+        """
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, power))
+
+
+    def get_tx_power_unicast(self, device_list=None, new_assoc=False):
+        """Gets the unicast packet transmit power of the node for the given device(s).
+
+        This will get the unicast data packet Tx power (unicast managment packet Tx power is the same).
+
+        Args:
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
+                or single 802.11 device for which to get the unicast packet Tx power
+            new_assoc  (bool):  Get the unicast packet Tx power for all new associations 
+        
+        Returns:
+            tx_powers (List of int):  List of unicast packet Tx power for the given devices.
+        
+        .. note:: If both new_assoc and device_list are specified, the return list will always have 
+            the unicast packet Tx power for all new associations as the first item in the list.
+        """
+        return self._node_get_tx_param_unicast(cmds.NodeProcTxPower, 'antenna mode', device_list, new_assoc)
+
+
+    def get_tx_power_multicast_data(self):
+        """Gets the current multicast data packet transmit power for a node.
+        
+        Returns:
+            tx_power (int):  Multicast data packet transmit power for the node in dBm
+        """
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
+
+
+    def get_tx_power_multicast_mgmt(self):
+        """Gets the current multicast management packet transmit power for a node.
+        
+        Returns:
+            tx_power (int):  Multicast management packet transmit power for the node in dBm
+        """
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
+
+
+    def set_tx_power_ctrl(self, power):
+        """Sets the control packet transmit power of the node.
+        
+        .. note:: Only the Tx power of the control packets can be set from WLAN Exp.  The rate
+            of control packets is determined by the 802.11 standard and control packets will
+            be sent on whatever antenna that cause the control packet to be generated (ie an 
+            ack for a reception will go out on the same antenna on which the reception occurred).
+            
+        Args:
+            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
+                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+        """
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_LOW, power))
+
+
+    def set_tx_power(self, power):
+        """Sets the transmit power of the node.
+        
+        This command will set all transmit power fields on the node to the same value:
+            * Default Unicast Management Packet Tx Power for new associations
+            * Default Unicast Data Packet Tx Power for new associations
+            * Default Multicast Management Packet Tx Power for new associations
+            * Default Multicast Data Packet Tx Power for new associations
+            * Control Packet Tx Power
+
+        It will also update the transmit power of all current associations on the node.
+
+        Args:
+            power (int):  Transmit power in dBm (a value between cmds.CMD_PARAM_NODE_TX_POWER_MAX_DBM and
+                cmds.CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+        """
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, power))
 
 
     def get_tx_power(self):
-        """Gets the current transmit power of the node.
+        """Gets the current default unicast data transmit power of the node for new associations.
         
         Returns:
-            tx_powers (list): Current Tx powers: [<unicast mgmt tx power>, <unicast data tx power>, <multicast mgmt tx power>, <multicast data tx power>]
-        """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ))
+            tx_power (int): Current unicast data transmit power in dBm.
+        """        
+        return self.get_tx_power_unicast(new_assoc=True)
 
+
+    #------------------------
+    # Other commands
 
     def set_phy_cs_thresh(self, threshold):
         """Sets the physical carrier sense threshold of the node.
@@ -882,25 +1067,6 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH, threshold)
 
 
-    def get_phy_cs_thresh(self):
-        """Gets the physical carrier sense threshold of the node.
-        
-        Returns:
-            phy_cs_thresh (int):  Value for the physical carrier sense threshold on the node
-        """
-        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH))
-        
-        if ret_val is not None:
-            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH)):
-                return ret_val[2]
-            else:
-                print("WARNING:  CS Thresh:  Unexpected return value: {0}".format(ret_val))
-                return None
-        else:
-            print("WARNING:  CS Thresh:  Could not get threshold.")
-            return None
-        
-
     def set_timestamp_offset(self, offset):
         """Sets a usec offset that will be applied to beacon timestamps.
         
@@ -908,25 +1074,6 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             offset (int):  Integer number of microseconds to adjust the beacon timestamps [-2^31, (2^31 - 1)].
         """
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET, offset)      
-
-
-    def get_timestamp_offset(self):
-        """Gets a usec offset that will be applied to beacon timestamps.
-        
-        Returns:
-            offset (int):  Integer number of microseconds beacon timestamps are being adjusted.
-        """
-        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET))
-        
-        if ret_val is not None:
-            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET)):
-                return ret_val[2]
-            else:
-                print("WARNING:  Timestamp offset:  Unexpected return value: {0}".format(ret_val))
-                return None
-        else:
-            print("WARNING:  Timestamp offset:  Could not get offset.")
-            return None
 
 
     def set_cw_exp_min(self, cw_exp):
@@ -945,41 +1092,6 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
         """
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, cw_exp)
-
-
-    def get_cw_exp_range(self):
-        """Gets the contention window range.
-        
-        Returns:
-            cw_exps (tuple):
-                #. cw_exp_min (int):  Exponent of the minimum contention window
-                #. cw_exp_max (int):  Exponent of the maximum contention window
-        """
-        cw_max = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX))
-        
-        if cw_max is not None:
-            if ((cw_max[0] == 1) and (cw_max[1] == cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX)):
-                cw_max = cw_max[2]
-            else:
-                print("WARNING:  CW Max:  Unexpected return value: {0}".format(cw_max))
-                cw_max = None
-        else:
-            print("WARNING:  CW Max:  Could not get cw exponent.")
-            cw_max = None
-
-        cw_min = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN))
-
-        if cw_min is not None:
-            if ((cw_min[0] == 1) and (cw_min[1] == cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN)):
-                cw_min = cw_min[2]
-            else:
-                print("WARNING:  CW Min:  Unexpected return value: {0}".format(cw_min))
-                cw_min = None
-        else:
-            print("WARNING:  CW Min:  Could not get cw exponent.")
-            cw_min = None
-
-        return (cw_min, cw_max)
 
 
     def configure_pkt_det_min_power(self, enable, power_level=None): 
@@ -1165,6 +1277,84 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             vals = [values]
 
         return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_WRITE, param=param, values=vals))
+
+
+    #--------------------------------------------
+    # Internal methods to view / configure node attributes
+    #     NOTE:  These methods are not safe in all cases; therefore they are not part of the public API
+    #--------------------------------------------
+
+    def _get_phy_cs_thresh(self):
+        """Gets the physical carrier sense threshold of the node.
+        
+        Returns:
+            phy_cs_thresh (int):  Value for the physical carrier sense threshold on the node
+        """
+        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH))
+        
+        if ret_val is not None:
+            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH)):
+                return ret_val[2]
+            else:
+                print("WARNING:  CS Thresh:  Unexpected return value: {0}".format(ret_val))
+                return None
+        else:
+            print("WARNING:  CS Thresh:  Could not get threshold.")
+            return None
+        
+
+    def _get_timestamp_offset(self):
+        """Gets a usec offset that will be applied to beacon timestamps.
+        
+        Returns:
+            offset (int):  Integer number of microseconds beacon timestamps are being adjusted.
+        """
+        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET))
+        
+        if ret_val is not None:
+            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET)):
+                return ret_val[2]
+            else:
+                print("WARNING:  Timestamp offset:  Unexpected return value: {0}".format(ret_val))
+                return None
+        else:
+            print("WARNING:  Timestamp offset:  Could not get offset.")
+            return None
+
+
+    def _get_cw_exp_range(self):
+        """Gets the contention window range.
+        
+        Returns:
+            cw_exps (tuple):
+                #. cw_exp_min (int):  Exponent of the minimum contention window
+                #. cw_exp_max (int):  Exponent of the maximum contention window
+        """
+        cw_max = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX))
+        
+        if cw_max is not None:
+            if ((cw_max[0] == 1) and (cw_max[1] == cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX)):
+                cw_max = cw_max[2]
+            else:
+                print("WARNING:  CW Max:  Unexpected return value: {0}".format(cw_max))
+                cw_max = None
+        else:
+            print("WARNING:  CW Max:  Could not get cw exponent.")
+            cw_max = None
+
+        cw_min = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN))
+
+        if cw_min is not None:
+            if ((cw_min[0] == 1) and (cw_min[1] == cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN)):
+                cw_min = cw_min[2]
+            else:
+                print("WARNING:  CW Min:  Unexpected return value: {0}".format(cw_min))
+                cw_min = None
+        else:
+            print("WARNING:  CW Min:  Could not get cw exponent.")
+            cw_min = None
+
+        return (cw_min, cw_max)
 
 
     def _set_bb_gain(self, bb_gain):

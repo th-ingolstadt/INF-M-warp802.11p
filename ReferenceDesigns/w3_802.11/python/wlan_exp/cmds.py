@@ -82,7 +82,8 @@ CMD_PARAM_SUCCESS                                = 0x00000000
 CMD_PARAM_ERROR                                  = 0xFF000000
 
 CMD_PARAM_UNICAST                                = 0x00000000
-CMD_PARAM_MULTICAST                              = 0x00000001
+CMD_PARAM_MULTICAST_DATA                         = 0x00000001
+CMD_PARAM_MULTICAST_MGMT                         = 0x00000002
 
 CMD_PARAM_NODE_CONFIG_ALL                        = 0xFFFFFFFF 
 
@@ -106,6 +107,8 @@ CMD_PARAM_RSVD_CHANNEL                           = 0x00000000
 
 CMD_PARAM_RSVD_MAC_ADDR                          = 0xFFFFFFFF
 
+CMD_PARAM_NODE_TX_POWER_LOW                      = 0x00000010
+CMD_PARAM_NODE_TX_POWER_ALL                      = 0x00000020
 CMD_PARAM_NODE_TX_POWER_MAX_DBM                  = 21
 CMD_PARAM_NODE_TX_POWER_MIN_DBM                  = -9
 
@@ -472,8 +475,8 @@ class StatsGetTxRx(wn_message.BufferCmd):
         else:
             mac_address = CMD_PARAM_GET_ALL_ASSOCIATED            
 
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
+        _add_mac_address_to_cmd(self, mac_address)
+
 
     def process_resp(self, resp):
         # Contains a WARPNet Buffer of all stats entries.  Need to convert to 
@@ -719,13 +722,7 @@ class NodeProcWLANMACAddr(wn_message.Cmd):
 
         if (cmd == CMD_PARAM_WRITE):
             self.add_args(cmd)
-
-            if wlan_mac_address is not None:
-                self.add_args(((wlan_mac_address >> 32) & 0xFFFF))
-                self.add_args((wlan_mac_address & 0xFFFFFFFF))
-            else:
-                self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
-                self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+            _add_mac_address_to_cmd(self, wlan_mac_address)
 
         elif (cmd == CMD_PARAM_READ):
             self.add_args(cmd)
@@ -1107,6 +1104,108 @@ class NodeProcTxPower(wn_message.Cmd):
 # End Class
 
 
+class NodeProcTxPower(wn_message.Cmd):
+    """Command to get / set the transmit power of the node.
+    
+    Attributes:
+        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
+                       CMD_PARAM_WRITE_DEFAULT
+                       CMD_PARAM_READ_DEFAULT 
+        tx_type   -- Which Tx parameters to set.  Valid values are:
+                       CMD_PARAM_UNICAST
+                       CMD_PARAM_MULTICAST_DATA
+                       CMD_PARAM_MULTICAST_MGMT
+                       CMD_PARAM_NODE_TX_POWER_LOW
+                       CMD_PARAM_NODE_TX_POWER_ALL
+        power     -- Transmit power for the WARP node (in dBm).
+        device    -- 802.11 device for which the rate is being set.  
+    """
+    rate     = None
+    dev_name = None
+    
+    def __init__(self, cmd, tx_type, power=None, device=None):
+        super(NodeProcTxPower, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_POWER
+        mac_address  = None
+
+        self.add_args(cmd)
+
+        self.add_args(self.check_type(tx_type))
+
+        if (cmd == CMD_PARAM_WRITE):
+            self.add_args(self.check_power(power))
+        else:
+            self.add_args(0)
+
+        if device is not None:
+            mac_address = device.wlan_mac_address
+
+        _add_mac_address_to_cmd(self, mac_address)
+
+
+    def check_type(self, tx_type):
+        """Check the tx type value is valid."""
+        return_type = None
+        valid_types = [('CMD_PARAM_UNICAST',           CMD_PARAM_UNICAST), 
+                       ('CMD_PARAM_MULTICAST_DATA',    CMD_PARAM_MULTICAST_DATA), 
+                       ('CMD_PARAM_MULTICAST_MGMT',    CMD_PARAM_MULTICAST_MGMT),
+                       ('CMD_PARAM_NODE_TX_POWER_LOW', CMD_PARAM_NODE_TX_POWER_LOW),
+                       ('CMD_PARAM_NODE_TX_POWER_ALL', CMD_PARAM_NODE_TX_POWER_ALL)]
+         
+        for tmp_type in valid_types:
+            if (tx_type == tmp_type[1]):
+                return_type = tx_type
+                break
+            
+        if return_type is not None:
+            return return_type
+        else:
+            msg  = "The type must be one of: ["
+            for tmp_type in valid_types:
+                msg += "{0} ".format(tmp_type[0])
+            msg += "]"
+            raise ValueError(msg)
+            
+    
+    def check_power(self, power):
+        """Check the power value is valid."""
+        if power is None:
+            raise ValueError("Must supply value to set Tx power.")
+        
+        if (power > CMD_PARAM_NODE_TX_POWER_MAX_DBM):
+            msg  = "WARNING:  Requested power too high.\n"
+            msg += "    Adjusting transmit power from {0} to {1}".format(power, CMD_PARAM_NODE_TX_POWER_MAX_DBM)
+            print(msg)
+            power = CMD_PARAM_NODE_TX_POWER_MAX_DBM
+
+        if (power < CMD_PARAM_NODE_TX_POWER_MIN_DBM):
+            msg  = "WARNING:  Requested power too low. \n"
+            msg += "    Adjusting transmit power from {0} to {1}".format(power, CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            print(msg)
+            power = CMD_PARAM_NODE_TX_POWER_MIN_DBM
+
+        # Shift the value so that there are only positive integers over the wire
+        return (power - CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            
+            
+    def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set the transmit power on the node"
+        status_errors = { error_code : error_msg }
+        
+        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx power command'):
+            args = resp.get_args()
+            
+            # Shift the value since only positive integers are transmitted over the wire
+            return (args[1] + CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+        else:
+            return None
+
+# End Class
+
+
 class NodeProcTxRate(wn_message.Cmd):
     """Command to get / set the transmit rate of the node.
     
@@ -1116,46 +1215,66 @@ class NodeProcTxRate(wn_message.Cmd):
                        CMD_PARAM_WRITE
                        CMD_PARAM_WRITE_DEFAULT
                        CMD_PARAM_READ_DEFAULT 
-        tx_type   -- Is this for unicast transmit or multicast transmit.
+        tx_type   -- Which Tx parameters to set.  Valid values are:
+                       CMD_PARAM_UNICAST
+                       CMD_PARAM_MULTICAST_DATA
+                       CMD_PARAM_MULTICAST_MGMT
         rate      -- 802.11 transmit rate for the node.  Should be an entry
                      from the rates table in wlan_exp.util.  Checking is
                      done on the node and the current rate will always be 
                      returned by the node.
         device    -- 802.11 device for which the rate is being set.  
     """
-    rate     = None
-    dev_name = None
-    
     def __init__(self, cmd, tx_type, rate=None, device=None):
         super(NodeProcTxRate, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_RATE
+        mac_address  = None
 
         self.add_args(cmd)
 
-        if ((tx_type == CMD_PARAM_UNICAST) or (tx_type == CMD_PARAM_MULTICAST)):
-            self.add_args(tx_type)
-        else:
-            msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
-            raise ValueError(msg)
+        self.add_args(self.check_type(tx_type))
         
         if rate is not None:
-            try:
-                self.rate = rate['index']
-                self.add_args(self.rate)
-            except (KeyError, TypeError):
-                msg  = "The TX rate must be an entry from the rates table in wlan_exp.util"
-                raise ValueError(msg)
+            self.add_args(self.check_rate(rate))
         else:
             self.add_args(0)
 
         if device is not None:
             mac_address   = device.wlan_mac_address
-            self.dev_name = device.name
-            self.add_args(((mac_address >> 32) & 0xFFFF))
-            self.add_args((mac_address & 0xFFFFFFFF))
+
+        _add_mac_address_to_cmd(self, mac_address)
+            
+    
+    def check_type(self, tx_type):
+        """Check the tx type value is valid."""
+        return_type = None
+        valid_types = [('CMD_PARAM_UNICAST',           CMD_PARAM_UNICAST), 
+                       ('CMD_PARAM_MULTICAST_DATA',    CMD_PARAM_MULTICAST_DATA), 
+                       ('CMD_PARAM_MULTICAST_MGMT',    CMD_PARAM_MULTICAST_MGMT)]
+         
+        for tmp_type in valid_types:
+            if (tx_type == tmp_type[1]):
+                return_type = tx_type
+                break
+            
+        if return_type is not None:
+            return return_type
         else:
-            self.add_args(0xFFFFFFFF)
-            self.add_args(0xFFFFFFFF)
+            msg  = "The type must be one of: ["
+            for tmp_type in valid_types:
+                msg += "{0} ".format(tmp_type[0])
+            msg += "]"
+            raise ValueError(msg)
+            
+    
+    def check_rate(self, rate):
+        """Check the rate to see if it is valid."""
+        try:
+            self.add_args(self.rate)
+        except (KeyError, TypeError):
+            msg  = "The TX rate must be an entry from the rates table in wlan_exp.util"
+            raise ValueError(msg)
+    
     
     def process_resp(self, resp):
         import wlan_exp.util as util
@@ -1166,12 +1285,6 @@ class NodeProcTxRate(wn_message.Cmd):
         
         if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx rate command'):
             args = resp.get_args()
-            if self.rate is not None:
-                if (args[1] != self.rate):
-                    msg  = "WARNING: Device {0} rate mismatch.\n".format(self.dev_name)
-                    msg += "    Tried to set rate to {0}\n".format(util.tx_rate_index_to_str(self.rate))
-                    msg += "    Actually set rate to {0}\n".format(util.tx_rate_index_to_str(args[1]))
-                    print(msg)
             return util.find_tx_rate_by_index(args[1])
         else:
             return None
@@ -1188,27 +1301,24 @@ class NodeProcTxAntMode(wn_message.Cmd):
                        CMD_PARAM_WRITE
                        CMD_PARAM_WRITE_DEFAULT
                        CMD_PARAM_READ_DEFAULT 
-        tx_type   -- Is this for unicast transmit or multicast transmit.
+        tx_type   -- Which Tx parameters to set.  Valid values are:
+                       CMD_PARAM_UNICAST
+                       CMD_PARAM_MULTICAST_DATA
+                       CMD_PARAM_MULTICAST_MGMT
         ant_mode  -- Transmit antenna mode for the node.  Checking is
                      done both in the command and on the node.  The current
                      antenna mode will be returned by the node.  
         device    -- 802.11 device for which the rate is being set.  
     """
-    tx_type = None    
-    
     def __init__(self, cmd, tx_type, ant_mode=None, device=None):
         super(NodeProcTxAntMode, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_ANT_MODE
+        mac_address  = None
 
         self.add_args(cmd)
         
-        if ((tx_type == CMD_PARAM_UNICAST) or (tx_type == CMD_PARAM_MULTICAST)):
-            self.tx_type = tx_type
-            self.add_args(tx_type)
-        else:
-            msg  = "The type must be either the define NODE_UNICAST or NODE_MULTICAST"
-            raise ValueError(msg)
-        
+        self.add_args(self.check_type(tx_type))
+
         if ant_mode is not None:
             self.add_args(self.check_ant_mode(ant_mode))
         else:
@@ -1216,38 +1326,51 @@ class NodeProcTxAntMode(wn_message.Cmd):
 
         if device is not None:
             mac_address = device.wlan_mac_address
-            self.add_args(((mac_address >> 32) & 0xFFFF))
-            self.add_args((mac_address & 0xFFFFFFFF))
+            
+        _add_mac_address_to_cmd(self, mac_address)
+
+
+    def check_type(self, tx_type):
+        """Check the tx type value is valid."""
+        return_type = None
+        valid_types = [('CMD_PARAM_UNICAST',           CMD_PARAM_UNICAST), 
+                       ('CMD_PARAM_MULTICAST_DATA',    CMD_PARAM_MULTICAST_DATA), 
+                       ('CMD_PARAM_MULTICAST_MGMT',    CMD_PARAM_MULTICAST_MGMT)]
+         
+        for tmp_type in valid_types:
+            if (tx_type == tmp_type[1]):
+                return_type = tx_type
+                break
+            
+        if return_type is not None:
+            return return_type
         else:
-            self.add_args(0xFFFFFFFF)
-            self.add_args(0xFFFFFFFF)
-
-
+            msg  = "The type must be one of: ["
+            for tmp_type in valid_types:
+                msg += "{0} ".format(tmp_type[0])
+            msg += "]"
+            raise ValueError(msg)
+            
+    
     def check_ant_mode(self, ant_mode):
         """Check the antenna mode to see if it is valid."""
         try:
             return ant_mode['index']
         except KeyError:
-            msg  = "The antenna mode must be an entry from the wlan_tx_ant_mode\n"
-            msg += "    list in wlan_exp.util\n"
+            msg  = "The antenna mode must be an entry from the wlan_tx_ant_mode list in wlan_exp.util\n"
             raise ValueError(msg)
+    
     
     def process_resp(self, resp):
         import wlan_exp.util as util
 
         error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not get / set transmit antenna mode of teh node"
+        error_msg     = "Could not get / set transmit antenna mode of the node"
         status_errors = { error_code : error_msg }
         
         if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx antenna mode command'):
             args = resp.get_args()
-            if   (self.tx_type == CMD_PARAM_UNICAST):
-                return util.find_tx_ant_mode_by_index(args[1])
-            elif (self.tx_type == CMD_PARAM_MULTICAST):
-                return [util.find_tx_ant_mode_by_index((args[1] >> 16) & 0xFFFF),
-                        util.find_tx_ant_mode_by_index(args[1] & 0xFFFF)]
-            else:
-                return CMD_PARAM_ERROR
+            return util.find_tx_ant_mode_by_index(args[1])
         else:
             return CMD_PARAM_ERROR
 
@@ -1339,8 +1462,8 @@ class NodeDisassociate(wn_message.Cmd):
             self.description = "All nodes"
             mac_address      = 0xFFFFFFFFFFFFFFFF            
 
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
+        _add_mac_address_to_cmd(self, mac_address)
+
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR
@@ -1364,8 +1487,8 @@ class NodeGetStationInfo(wn_message.BufferCmd):
         else:
             mac_address = CMD_PARAM_GET_ALL_ASSOCIATED            
 
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
+        _add_mac_address_to_cmd(self, mac_address)
+
 
     def process_resp(self, resp):
         # Contains a WWARPNet Buffer of all station info entries.  Need to 
@@ -1410,8 +1533,7 @@ class NodeGetBSSInfo(wn_message.BufferCmd):
         elif type(bssid) is str:
             bssid = CMD_PARAM_GET_ALL_ASSOCIATED      # If BSSID is a string, then get all bss info
 
-        self.add_args(((bssid >> 32) & 0xFFFF))
-        self.add_args((bssid & 0xFFFFFFFF))
+        _add_mac_address_to_cmd(self, bssid)
 
 
     def process_resp(self, resp):
@@ -1580,8 +1702,7 @@ class NodeAPAddAssociation(wn_message.Cmd):
         self.description = device.description
         mac_address      = device.wlan_mac_address
 
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
+        _add_mac_address_to_cmd(self, mac_address)
 
 
     def process_resp(self, resp):
@@ -1781,8 +1902,7 @@ class NodeSTAAddAssociation(wn_message.Cmd):
         self.description = device.description
         mac_address      = device.wlan_mac_address
 
-        self.add_args(((mac_address >> 32) & 0xFFFF))
-        self.add_args((mac_address & 0xFFFFFFFF))
+        _add_mac_address_to_cmd(self, mac_address)
 
         self.add_args(aid)
         
@@ -1911,11 +2031,9 @@ class NodeProcScanParam(wn_message.Cmd):
                     
                     for channel in channel_list:
                         self.add_channel(channel)
-
                 else:
                     self.add_args(1)
-                    self.add_channel(channel_list)
-                
+                    self.add_channel(channel_list)       
             else:
                 self.add_args(CMD_PARAM_RSVD)
 
@@ -1976,12 +2094,7 @@ class NodeProcScan(wn_message.Cmd):
         else:
             self.add_args(CMD_PARAM_NODE_SCAN_DISABLE)
 
-        if bssid is not None:
-            self.add_args(((bssid >> 32) & 0xFFFF))
-            self.add_args((bssid & 0xFFFFFFFF))
-        else:
-            self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
-            self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+        _add_mac_address_to_cmd(self, bssid)
 
         if ssid is not None:
             _add_ssid_to_cmd(self, ssid)
@@ -2073,12 +2186,7 @@ class NodeProcScanAndJoin(wn_message.Cmd):
 
         _add_time_to_cmd32(self, timeout, self.time_factor)
 
-        if bssid is not None:
-            self.add_args(((bssid >> 32) & 0xFFFF))
-            self.add_args((bssid & 0xFFFFFFFF))
-        else:
-            self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
-            self.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+        _add_mac_address_to_cmd(self, bssid)
 
         if ssid is not None:
             _add_ssid_to_cmd(self, ssid)
@@ -2182,6 +2290,17 @@ class NodeMemAccess(wn_message.Cmd):
 #--------------------------------------------
 # Misc Helper methods
 #--------------------------------------------
+def _add_mac_address_to_cmd(cmd, mac_address):
+    if mac_address is not None:
+        cmd.add_args(((mac_address >> 32) & 0xFFFF))
+        cmd.add_args((mac_address & 0xFFFFFFFF))
+    else:
+        cmd.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+        cmd.add_args(CMD_PARAM_RSVD_MAC_ADDR)
+
+# End def
+
+
 def _add_ssid_to_cmd(cmd, ssid):
     """Internal method to add an ssid to the given command"""
     import struct
