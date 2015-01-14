@@ -171,7 +171,7 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A);
 
 			//Select RF A I/Q stream for Rx PHY
-			wlan_phy_select_rx_antenna(0);
+			wlan_phy_select_rx_antenna(RX_ANTMODE_SISO_ANTA);
 
 			//Give PHY control of RF A Tx/Rx status
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
@@ -183,7 +183,7 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 
 		case RX_ANTMODE_SISO_ANTB:
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B);
-			wlan_phy_select_rx_antenna(1);
+			wlan_phy_select_rx_antenna(RX_ANTMODE_SISO_ANTB);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			wlan_agc_config(RX_ANTMODE_SISO_ANTB);
 
@@ -191,7 +191,7 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 
 		case RX_ANTMODE_SISO_ANTC:
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C);
-			wlan_phy_select_rx_antenna(2);
+			wlan_phy_select_rx_antenna(RX_ANTMODE_SISO_ANTC);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			wlan_agc_config(RX_ANTMODE_SISO_ANTC);
 
@@ -199,7 +199,7 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 
 		case RX_ANTMODE_SISO_ANTD:
 			REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D);
-			wlan_phy_select_rx_antenna(3);
+			wlan_phy_select_rx_antenna(RX_ANTMODE_SISO_ANTD);
 			radio_controller_setCtrlSource(RC_BASEADDR, RC_RFD, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
 			wlan_agc_config(RX_ANTMODE_SISO_ANTD);
 
