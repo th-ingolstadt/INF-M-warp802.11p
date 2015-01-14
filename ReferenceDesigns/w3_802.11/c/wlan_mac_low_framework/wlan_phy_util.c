@@ -416,8 +416,8 @@ void wlan_agc_config(u32 ant_mode) {
 	wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
 
 	//AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-	//wlan_agc_set_AGC_timing(1, 30, 90, 96);
-	wlan_agc_set_AGC_timing(1, 30, 90, 127);
+	wlan_agc_set_AGC_timing(1, 30, 90, 96);
+	//wlan_agc_set_AGC_timing(1, 30, 90, 127);
 
 	//AGC timing: start_dco, en_iir_filt
 	wlan_agc_set_DCO_timing(100, (100+34));
