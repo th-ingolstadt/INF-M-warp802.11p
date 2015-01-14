@@ -218,18 +218,18 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	//Determine which antenna the ACK will be sent from
 	// The current implementation transmits ACKs from the same antenna over which the previous packet was received
 	unsigned char ack_tx_ant_mask = 0;
-	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
+	active_rx_ant = (wlan_phy_rx_get_active_rx_ant());
 	switch(active_rx_ant){
-		case RX_ANTMODE_SISO_ANTA:
+		case RX_ACTIVE_ANTA:
 			ack_tx_ant_mask |= 0x1;
 		break;
-		case RX_ANTMODE_SISO_ANTB:
+		case RX_ACTIVE_ANTB:
 			ack_tx_ant_mask |= 0x2;
 		break;
-		case RX_ANTMODE_SISO_ANTC:
+		case RX_ACTIVE_ANTC:
 			ack_tx_ant_mask |= 0x4;
 		break;
-		case RX_ANTMODE_SISO_ANTD:
+		case RX_ACTIVE_ANTD:
 			ack_tx_ant_mask |= 0x8;
 		break;
 		default:
@@ -310,7 +310,6 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	}
 
 	//Record the antenna selection, AGC gain selections and Rx power to the Rx pkt metadata
-	active_rx_ant = wlan_phy_rx_get_active_rx_ant();
 	mpdu_info->ant_mode = active_rx_ant;
 
 	mpdu_info->rf_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
@@ -465,7 +464,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	for(i=0; i<mpdu_info->params.mac.num_tx_max; i++) {
 
 		// TODO
-		//  * Make backoff slot selection on retransmissions less confusing
 		//  * Set tx antenna mode based on phy param. This should be done
 		//    after fixing antenna mode for ACK Tx to be a function of received antenna
 
@@ -490,7 +488,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 			if(autocancel_timestamp_diff < 50000){
 				//TODO: this is currently hardcoded to 50ms. In the future, it should be a parameter that passes down from CPU_HIGH
-				//Conceptually, this value should be just less than a beacon interval. Any beacon transmission will be cancelled if it
+				//Conceptually, this value should be just less than a beacon interval. Any beacon transmission will be canceled if it
 				//happens in this interval after the previous beacon reception.
 				autocancel_en = 0;
 				return -1;
