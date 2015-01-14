@@ -213,11 +213,11 @@ def channel_freq_to_str(freq):
 # -----------------------------------------------------------------------------
 # WLAN Exp Antenna Mode definitions
 # -----------------------------------------------------------------------------
-wlan_rx_ant_mode = [{'index' :  0x01, 'desc' : 'Rx SISO Antenna A'},
-                    {'index' :  0x02, 'desc' : 'Rx SISO Antenna B'},
-                    {'index' :  0x03, 'desc' : 'Rx SISO Antenna C'},
-                    {'index' :  0x04, 'desc' : 'Rx SISO Antenna D'},
-                    {'index' :  0x05, 'desc' : 'Rx SISO Selection Diversity 2 Antennas'}]
+wlan_rx_ant_mode = [{'index' :  0x00, 'desc' : 'Rx SISO Antenna A'},
+                    {'index' :  0x01, 'desc' : 'Rx SISO Antenna B'},
+                    {'index' :  0x02, 'desc' : 'Rx SISO Antenna C'},
+                    {'index' :  0x03, 'desc' : 'Rx SISO Antenna D'},
+                    {'index' :  0x04, 'desc' : 'Rx SISO Selection Diversity 2 Antennas'}]
 
 wlan_tx_ant_mode = [{'index' :  0x10, 'desc' : 'Tx SISO Antenna A'},
                     {'index' :  0x20, 'desc' : 'Tx SISO Antenna B'}]
