@@ -30,7 +30,7 @@ import wlan_exp.util as wlan_exp_util
 
 # NOTE: change these values to match your experiment setup
 NETWORK           = '10.0.0.0'
-NODE_SERIAL_LIST  = ['W3-a-00183']
+NODE_SERIAL_LIST  = ['W3-a-00001']
 
 #-------------------------------------------------------------------------
 #  Initialization
