@@ -3,7 +3,7 @@
  *
  *  This contains code for constructing a variety of different types of MPDUs.
  *
- *  @copyright Copyright 2014, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license
@@ -106,10 +106,6 @@ typedef struct{
 #define STATUS_AUTH_REJECT_OUTSIDE_SCOPE 12
 #define STATUS_AUTH_REJECT_CHALLENGE_FAILURE 15
 #define STATUS_REJECT_TOO_MANY_ASSOCIATIONS 17
-
-//#define wlan_create_beacon_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_BEACON, common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap)
-//#define wlan_create_probe_resp_frame(pkt_buf,common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap) wlan_create_beacon_probe_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, common, beacon_interval, ssid_len, ssid, chan, tim_len, control, bitmap)
-//int wlan_create_beacon_probe_frame(void* pkt_buf, u8 subtype, mac_header_80211_common* common, u16 beacon_interval, u8 ssid_len, u8* ssid, u8 chan, u8 tim_len, u8 tim_control, u8* tim_bitmap);
 
 int wlan_create_beacon_frame(void* pkt_buf, mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan);
 int wlan_create_probe_resp_frame(void* pkt_buf, mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan);

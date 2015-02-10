@@ -26,30 +26,30 @@
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_packet_types.h"
-
+#include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_bss_info.h"
 
 
 int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan) {
 	u32 packetLen_bytes;
-	u8* txBufferPtr_u8;
+	mgmt_tag_template* mgmt_tag_ptr;
+
 	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
 
-	txBufferPtr_u8 = (u8*)pkt_buf;
+	mac_header_80211* mac_header;
+	mac_header = (mac_header_80211*)(pkt_buf);
 
-	mac_header_80211* beacon_80211_header;
-	beacon_80211_header = (mac_header_80211*)(txBufferPtr_u8);
-
-	beacon_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_BEACON;
-	beacon_80211_header->frame_control_2 = 0;
+	mac_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_BEACON;
+	mac_header->frame_control_2 = 0;
 
 	//This field may be overwritten by CPU_LOW
-	beacon_80211_header->duration_id = 0;
+	mac_header->duration_id = 0;
 
-	beacon_80211_header->sequence_control = 0; //Will be filled in at dequeue
+	mac_header->sequence_control = 0; //Will be filled in at dequeue
 
-	memcpy(beacon_80211_header->address_1,common->address_1,6);
-	memcpy(beacon_80211_header->address_2,common->address_2,6);
-	memcpy(beacon_80211_header->address_3,common->address_3,6);
+	memcpy(mac_header->address_1,common->address_1,6);
+	memcpy(mac_header->address_2,common->address_2,6);
+	memcpy(mac_header->address_3,common->address_3,6);
 
 	beacon_probe_frame* beacon_probe_mgmt_header;
 	beacon_probe_mgmt_header = (beacon_probe_frame*)(pkt_buf + sizeof(mac_header_80211));
@@ -60,43 +60,39 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	beacon_probe_mgmt_header->beacon_interval = beacon_interval;
 	beacon_probe_mgmt_header->capabilities = capabilities;
 
-	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame));
-	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
-	txBufferPtr_u8[1] = real_ssid_len;
-	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),real_ssid_len);
+	mgmt_tag_ptr = (mgmt_tag_template *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame) );
 
-	txBufferPtr_u8+=(real_ssid_len+2); //Move up to next tag
 
-	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
+	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SSID;
+	mgmt_tag_ptr->header.tag_length = real_ssid_len;
+	memcpy((void *)(mgmt_tag_ptr->data),(void *)(&ssid[0]),real_ssid_len);
+	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+
+
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
-	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = RATE_BASIC | (0x0C); 	//6Mbps  (BPSK,   1/2)
-	txBufferPtr_u8[3] = (0x12);				 	//9Mbps  (BPSK,   3/4)
-	txBufferPtr_u8[4] = RATE_BASIC | (0x18); 	//12Mbps (QPSK,   1/2)
-	txBufferPtr_u8[5] = (0x24); 				//18Mbps (QPSK,   3/4)
-	txBufferPtr_u8[6] = RATE_BASIC | (0x30); 	//24Mbps (16-QAM, 1/2)
-	txBufferPtr_u8[7] = (0x48); 				//36Mbps (16-QAM, 3/4)
-	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
-	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
-	txBufferPtr_u8+=(8+2); //Move up to next tag
+	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SUPPORTED_RATES;
+	mgmt_tag_ptr->header.tag_length = 8;
+	mgmt_tag_ptr->data[0] = RATE_BASIC | (0x0C); 	//6Mbps  (BPSK,   1/2)
+	mgmt_tag_ptr->data[1] = (0x12);				 	//9Mbps  (BPSK,   3/4)
+	mgmt_tag_ptr->data[2] = RATE_BASIC | (0x18); 	//12Mbps (QPSK,   1/2)
+	mgmt_tag_ptr->data[3] = (0x24); 				//18Mbps (QPSK,   3/4)
+	mgmt_tag_ptr->data[4] = RATE_BASIC | (0x30); 	//24Mbps (16-QAM, 1/2)
+	mgmt_tag_ptr->data[5] = (0x48); 				//36Mbps (16-QAM, 3/4)
+	mgmt_tag_ptr->data[6] = (0x60); 				//48Mbps  (64-QAM, 2/3)
+	mgmt_tag_ptr->data[7] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
+	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	txBufferPtr_u8[0] = 3; //Tag 3: DS Parameter set
-	txBufferPtr_u8[1] = 1; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = chan;
-	txBufferPtr_u8+=(1+2);
+	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_DSSS_PARAMETER_SET;
+	mgmt_tag_ptr->header.tag_length = 1; //tag length... doesn't include the tag itself and the tag length
+	mgmt_tag_ptr->data[0] = chan;
+	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	txBufferPtr_u8[0] = 42; //Tag 42: ERP Info
-	txBufferPtr_u8[1] = 1; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
-	txBufferPtr_u8+=(1+2);
+	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_ERP;
+	mgmt_tag_ptr->header.tag_length = 1;
+	mgmt_tag_ptr->data[0] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
+	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	txBufferPtr_u8[0] = 47; //Tag 47: ERP Info
-	txBufferPtr_u8[1] = 1; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
-	txBufferPtr_u8+=(1+2);
-
-	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
+	packetLen_bytes = ((u8*)mgmt_tag_ptr - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
 	return packetLen_bytes;
 }
@@ -110,20 +106,20 @@ int wlan_create_probe_resp_frame(void* pkt_buf,mac_header_80211_common* common, 
 
 	txBufferPtr_u8 = (u8*)pkt_buf;
 
-	mac_header_80211* beacon_80211_header;
-	beacon_80211_header = (mac_header_80211*)(txBufferPtr_u8);
+	mac_header_80211* mac_header;
+	mac_header = (mac_header_80211*)(txBufferPtr_u8);
 
-	beacon_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP;
-	beacon_80211_header->frame_control_2 = 0;
+	mac_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP;
+	mac_header->frame_control_2 = 0;
 
 	//This field may be overwritten by CPU_LOW
-	beacon_80211_header->duration_id = 0;
+	mac_header->duration_id = 0;
 
-	beacon_80211_header->sequence_control = 0; //Will be filled in at dequeue
+	mac_header->sequence_control = 0; //Will be filled in at dequeue
 
-	memcpy(beacon_80211_header->address_1,common->address_1,6);
-	memcpy(beacon_80211_header->address_2,common->address_2,6);
-	memcpy(beacon_80211_header->address_3,common->address_3,6);
+	memcpy(mac_header->address_1,common->address_1,6);
+	memcpy(mac_header->address_2,common->address_2,6);
+	memcpy(mac_header->address_3,common->address_3,6);
 
 	beacon_probe_frame* beacon_probe_mgmt_header;
 	beacon_probe_mgmt_header = (beacon_probe_frame*)(pkt_buf + sizeof(mac_header_80211));
