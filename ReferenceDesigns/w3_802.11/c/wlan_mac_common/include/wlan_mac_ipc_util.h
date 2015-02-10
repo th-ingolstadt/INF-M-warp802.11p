@@ -4,7 +4,7 @@
  *  This contains code common to both CPU_LOW and CPU_HIGH that allows them
  *  to pass messages to one another.
  *
- *  @copyright Copyright 2014, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license
