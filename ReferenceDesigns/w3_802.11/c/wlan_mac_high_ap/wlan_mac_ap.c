@@ -3,7 +3,7 @@
  *
  *  This contains code for the 802.11 Access Point.
  *
- *  @copyright Copyright 2014, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license
@@ -54,7 +54,7 @@
 #define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 #define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                   1
+#define  WLAN_DEFAULT_CHANNEL                   4
 #define  WLAN_DEFAULT_TX_PWR		            15
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU        100
