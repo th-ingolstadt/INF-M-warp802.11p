@@ -17,6 +17,8 @@
 #ifndef WLAN_MAC_BSS_INFO_H_
 #define WLAN_MAC_BSS_INFO_H_
 
+#include "wlan_mac_high.h"
+
 #define BSS_INFO_TIMEOUT_USEC	                 600000000
 
 #define NUM_BASIC_RATES_MAX	                     10
@@ -47,7 +49,6 @@
  */
 typedef struct{
 	MY_BSS_INFO_COMMON_FIELDS
-
 	dl_list associated_stations;
 } bss_info;
 

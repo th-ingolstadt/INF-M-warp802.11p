@@ -25,16 +25,19 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_packet_types.h"
 #include "wlan_mac_mgmt_tags.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_packet_types.h"
 
 
-int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan) {
+int wlan_create_beacon_frame(void* pkt_buf, mac_header_80211_common* common, bss_info* my_bss_info) {
+
+	//void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan
+
 	u32 packetLen_bytes;
 	mgmt_tag_template* mgmt_tag_ptr;
 
-	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
+	u8  real_ssid_len = min(strlen(my_bss_info->ssid), SSID_LEN_MAX);
 
 	mac_header_80211* mac_header;
 	mac_header = (mac_header_80211*)(pkt_buf);
@@ -57,15 +60,15 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	//This field may be overwritten by CPU_LOW
 	beacon_probe_mgmt_header->timestamp = 0;
 
-	beacon_probe_mgmt_header->beacon_interval = beacon_interval;
-	beacon_probe_mgmt_header->capabilities = capabilities;
+	beacon_probe_mgmt_header->beacon_interval = my_bss_info->beacon_interval;
+	beacon_probe_mgmt_header->capabilities = my_bss_info->capabilities;
 
 	mgmt_tag_ptr = (mgmt_tag_template *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame) );
 
 
 	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SSID;
 	mgmt_tag_ptr->header.tag_length = real_ssid_len;
-	memcpy((void *)(mgmt_tag_ptr->data),(void *)(&ssid[0]),real_ssid_len);
+	memcpy((void *)(mgmt_tag_ptr->data),my_bss_info->ssid,real_ssid_len);
 	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 
@@ -84,7 +87,7 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 
 	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_DSSS_PARAMETER_SET;
 	mgmt_tag_ptr->header.tag_length = 1; //tag length... doesn't include the tag itself and the tag length
-	mgmt_tag_ptr->data[0] = chan;
+	mgmt_tag_ptr->data[0] = my_bss_info->chan;
 	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_ERP;
@@ -95,6 +98,7 @@ int wlan_create_beacon_frame(void* pkt_buf,mac_header_80211_common* common, u16 
 	packetLen_bytes = ((u8*)mgmt_tag_ptr - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
 	return packetLen_bytes;
+
 }
 
 

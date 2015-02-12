@@ -13,16 +13,8 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
-#ifndef WLAN_MAC_UTIL_H_
-#define WLAN_MAC_UTIL_H_
-
-#include "wlan_mac_queue.h"
-#include "wlan_mac_packet_types.h"
-#include "wlan_mac_ipc_util.h"
-#include "wlan_mac_misc_util.h"
-#include "wlan_mac_dl_list.h"
-
-typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
+#ifndef WLAN_MAC_HIGH_H_
+#define WLAN_MAC_HIGH_H_
 
 #define INIT_DATA_BASEADDR                  XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_BASEADDR   ///< Base address of memory used for storing boot data
 #define INIT_DATA_DOTDATA_IDENTIFIER	    0x1234ABCD                                   ///< "Magic number" used as an identifier in boot data memory
@@ -192,6 +184,19 @@ typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 
 #define SSID_LEN_MAX                        32                                 ///< Maximum SSID length
 
+
+/* Include other framework headers
+ * Includes have to be after any #define
+ * that are needed in the typedefs within the
+ * includes. */
+#include "wlan_mac_queue.h"
+#include "wlan_mac_packet_types.h"
+#include "wlan_mac_ipc_util.h"
+#include "wlan_mac_misc_util.h"
+#include "wlan_mac_dl_list.h"
+
+
+typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 
 /**
  * @brief Frame Statistics Structure
@@ -425,4 +430,4 @@ dl_list *          get_statistics();
 dl_list *          get_station_info_list();
 u8      *          get_wlan_mac_addr();
 
-#endif /* WLAN_MAC_UTIL_H_ */
+#endif /* WLAN_MAC_HIGH_H_ */

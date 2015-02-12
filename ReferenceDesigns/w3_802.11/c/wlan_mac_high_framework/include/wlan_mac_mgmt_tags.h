@@ -14,6 +14,8 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
+#ifndef WLAN_MAC_MGMT_TAGS_H_
+#define WLAN_MAC_MGMT_TAGS_H_
 
 typedef struct{
 	u8 tag_element_id;
@@ -158,3 +160,5 @@ typedef struct{
 //			RESERVED									175-220
 #define MGMT_TAG_VENDOR_SPECIFIC						221
 //			RESERVED									222-255
+
+#endif
