@@ -367,11 +367,7 @@ void beacon_transmit(u32 schedule_id) {
 			tx_length = wlan_create_beacon_frame(
 				(void*)(curr_tx_queue_buffer->frame),
 				&tx_header_common,
-				my_bss_info->beacon_interval,
-				my_bss_info->capabilities,
-				strlen(default_ssid),
-				(u8*)default_ssid,
-				mac_param_chan);
+				my_bss_info);
 
 			// Setup the TX frame info
 			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_AUTOCANCEL), BEACON_QID );
