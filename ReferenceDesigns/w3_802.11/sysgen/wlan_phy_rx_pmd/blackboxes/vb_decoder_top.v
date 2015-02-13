@@ -33,14 +33,19 @@ module vb_decoder_top (
         vout        ,   // O, valid output
         dout_in_byte,   // O, decoded output in byte
         done,            // O, decoding done
-		early_trace
+		early_trace1,
+		early_trace2
         ) ;
 parameter           SW = 4 ;        // soft input precision
 parameter           M = 7 ;         // Metric precision
 
-parameter			R_EARLY = 24; //Early total trace depth
-parameter			C_EARLY = 0;  //Early unreliable trace
-parameter			L_EARLY = 24; //Early reliable trace trace 
+parameter			R_EARLY1 = 24; //Early total trace depth
+parameter			C_EARLY1 = 0;  //Early unreliable trace
+parameter			L_EARLY1 = 24; //Early reliable trace trace 
+
+parameter			R_EARLY2 = 48; //Early total trace depth
+parameter			C_EARLY2 = 0;  //Early unreliable trace
+parameter			L_EARLY2 = 48; //Early reliable trace trace 
 
 //parameter           L = 24 ;        // total trace depth //WLAN
 //parameter           R = 24 ;        // reliable trace
@@ -64,7 +69,9 @@ input               packet_end ;    // end of packet pulse
 input               vin ;           // data valid input
 input   [4 -1:0]   llr_b1 ;        // soft value for bit1
 input   [4 -1:0]   llr_b0 ;        // soft value for bit0
-input early_trace;
+
+input early_trace1;
+input early_trace2;
 
 output              done ;
 output              vout ;
@@ -100,7 +107,8 @@ viterbi_core viterbi_core (
         .done           (dec_done       ),  //OUT
         .dv_out         (dec_vout       ),  //OUT
         .dout           (dec_dout       ),   //OUT[R -1:0]
-		.early_trace (early_trace)
+		.early_trace1 (early_trace1),
+		.early_trace2 (early_trace2)
         ) ;
 defparam viterbi_core.SW = SW;
 defparam viterbi_core.M = M;
@@ -109,9 +117,13 @@ defparam viterbi_core.R = R;
 defparam viterbi_core.C = C;
 defparam viterbi_core.L = L;
 
-defparam viterbi_core.R_EARLY = R_EARLY;
-defparam viterbi_core.C_EARLY = C_EARLY;
-defparam viterbi_core.L_EARLY = L_EARLY;
+defparam viterbi_core.R_EARLY1 = R_EARLY1;
+defparam viterbi_core.C_EARLY1 = C_EARLY1;
+defparam viterbi_core.L_EARLY1 = L_EARLY1;
+
+defparam viterbi_core.R_EARLY2 = R_EARLY2;
+defparam viterbi_core.C_EARLY2 = C_EARLY2;
+defparam viterbi_core.L_EARLY2 = L_EARLY2;
 
 defparam viterbi_core.LW = LW;
 defparam viterbi_core.K = K;
@@ -133,11 +145,11 @@ unpack_m2n unpack_Rto8 (
         .dout   (dout_in_byte   ),  //OUT
         .vout   (vout           ),  //OUT
         .done   (done           ),   //OUT
-		.early_trace(early_trace) //IN
+		.early_trace( early_trace1 ) //IN
         ) ;
 
 		defparam unpack_Rto8.BITM = R;
-		defparam unpack_Rto8.BITM_EARLY = R_EARLY;
+		defparam unpack_Rto8.BITM_EARLY = R_EARLY1;
 		defparam unpack_Rto8.BITN = 8;
 		defparam unpack_Rto8.LW = LW;
 		

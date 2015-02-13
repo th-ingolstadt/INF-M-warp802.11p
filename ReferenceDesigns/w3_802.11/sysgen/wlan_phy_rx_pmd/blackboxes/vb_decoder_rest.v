@@ -152,9 +152,13 @@ module viterbi_core (
         dout        ,   // O, data out
         done        ,   // O, done pulse
         remain,          // O, remain data cnt
-		early_trace
+		early_trace1,
+		early_trace2
         ) ;
-        input early_trace;
+
+input early_trace1;
+input early_trace2;
+
 parameter           SW = 4 ;        // soft input precision
 parameter           M = 7 ;         // metric width
 
@@ -163,9 +167,13 @@ parameter           C = 40 ;        // unreliable trace
 parameter           L = 88 ;        // total trace depth
 parameter           LW = 7 ;        // L width
 
-parameter			R_EARLY = 24; //Early total trace depth
-parameter			C_EARLY = 0;  //Early unreliable trace
-parameter			L_EARLY = 24; //Early reliable trace trace 
+parameter			R_EARLY1 = 24; //Early total trace depth
+parameter			C_EARLY1 = 0;  //Early unreliable trace
+parameter			L_EARLY1 = 24; //Early reliable trace trace 
+
+parameter			R_EARLY2 = 48; //Early total trace depth
+parameter			C_EARLY2 = 0;  //Early unreliable trace
+parameter			L_EARLY2 = 48; //Early reliable trace trace 
 
 parameter           K = 7 ;         // constraint length
 parameter           N = 64 ;        // number of states = 2^(K-1)
@@ -720,7 +728,9 @@ reg                 nd ;
 reg     [LW -1:0]   cnt ;
 reg                 trace ;
 reg                 trace_en ;
-reg					early_trace_en;
+
+reg					early_trace1_en;
+reg					early_trace2_en;
 
 wire                trace_done ;
 reg                 trace_done_s0 ;
@@ -1535,27 +1545,31 @@ always @ (posedge clk)
     tran_state_63 [wptr] <= diff_63 [M -1] ;
   end
   
-	reg early_trace_d0;
-	wire early_trace_pos;
+	reg early_trace1_d0, early_trace2_d0;
+	wire early_trace1_pos, early_trace2_pos;
 
 	always @ (posedge clk)
 	begin
-		early_trace_d0 <= early_trace;
+		early_trace1_d0 <= early_trace1;
+		early_trace2_d0 <= early_trace2;
 	end
 
-	assign early_trace_pos = (early_trace & ~early_trace_d0);
+	assign early_trace1_pos = (early_trace1 & ~early_trace1_d0);
+	assign early_trace2_pos = (early_trace2 & ~early_trace2_d0);
 
 always @ (posedge clk)
   if (~nrst)
   begin
-    early_trace_en <= 1'b0;
+    early_trace1_en <= 1'b0;
+    early_trace2_en <= 1'b0;
     trace <= 1'b0 ;
     cnt <= 0 ;
     trace_start_wptr <= 0 ;
   end
   else if (packet_start)
   begin
-    early_trace_en <= 1'b0;
+    early_trace1_en <= 1'b0;
+    early_trace2_en <= 1'b0;
     trace <= 1'b0 ;
     cnt <= 0 ;
   end
@@ -1563,21 +1577,32 @@ always @ (posedge clk)
   begin
     if (cnt == L-1)
     begin
-      early_trace_en <= 1'b0;
+      early_trace1_en <= 1'b0;
+      early_trace2_en <= 1'b0;
       trace <= 1'b1 ;
       trace_start_wptr <= wptr ;
       cnt <= C ;
     end
-    else if (early_trace_pos)
+    else if (early_trace1_pos)
     begin
-	  early_trace_en <= 1'b1;
+	  early_trace1_en <= 1'b1;
+	  early_trace2_en <= 1'b0;
       trace <= 1'b1 ;
       trace_start_wptr <= wptr ;
-      cnt <= C_EARLY ;
+      cnt <= C_EARLY1 ;
+    end
+    else if (early_trace2_pos)
+    begin
+	  early_trace1_en <= 1'b0;
+	  early_trace2_en <= 1'b1;
+      trace <= 1'b1 ;
+      trace_start_wptr <= wptr ;
+      cnt <= C_EARLY2 ;
     end
 	else
     begin
-      early_trace_en <= 1'b0;
+      early_trace1_en <= 1'b0;
+      early_trace2_en <= 1'b0;
       trace <= 1'b0 ;
       cnt <= cnt + 1 ;
     end
@@ -1712,9 +1737,11 @@ always @ (posedge clk)
     trace_en <= 0 ;
   else if (trace_pos)
     trace_en <= 1'b1 ;
-  else if ((trace_cnt == L-2) & (early_trace_en == 0))
+  else if ((trace_cnt == L-2) & (early_trace1_en == 0) & (early_trace2_en == 0))
     trace_en <= 1'b0 ;
-  else if ((trace_cnt == L_EARLY-2) & (early_trace_en == 1))
+  else if ((trace_cnt == L_EARLY1-2) & (early_trace1_en == 1))
+    trace_en <= 1'b0 ;
+  else if ((trace_cnt == L_EARLY2-2) & (early_trace2_en == 1))
     trace_en <= 1'b0 ;
     
 always @ (posedge clk)
@@ -1726,7 +1753,7 @@ always @ (posedge clk)
     trace_cnt <= trace_cnt + 2; 
     
 //assign trace_done = (trace_cnt == L);
-assign trace_done = early_trace_en ? (trace_cnt == L_EARLY) : (trace_cnt == L);
+assign trace_done = early_trace1_en ? (trace_cnt == L_EARLY1) : (early_trace2_en ? (trace_cnt == L_EARLY2) : (trace_cnt == L));
 
 always @ (posedge clk)
   trace_done_s0 <= trace_done ;

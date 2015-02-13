@@ -12,6 +12,10 @@ addpath('./blackboxes');
 PLCP_Preamble = PLCP_Preamble_gen;
 
 %% Define an input signal for simulation
+% Ensure previously-defined waveforms are cleared
+clear wlan_tx_out;
+clear tx_sig;
+clear ADC_I ADC_Q;
 
 %---------
 %PHY debugging with ChipScope captures of I/Q
@@ -23,9 +27,28 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %Output of PHY Tx simulation
 % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat'); tx_sig_t = [1:length(wlan_tx_out)];
-rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+%load('rx_sigs/wlan_tx_sig_Null_Data_24Mbps.mat');wlan_tx_out = 2.*wlan_tx_out;
+load('rx_sigs/tx_sig_NON_HT_QPSK_12_100B_W_FCS.mat'); wlan_tx_out = 0.3.*tx_sig.'; 
+%load('rx_sigs/tx_sig_HT_MM_QPSK_12_100B_W_FCS_v1.mat'); wlan_tx_out = 0.3.*sig(1:2100).'; 
+%load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat');wlan_tx_out = 2*wlan_tx_out; %.mat too small for non-zero energy thresh
+
+%Supported HT MCS's
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_01_bw_0_len_0100.mat'); wlan_tx_out = sig.';
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_03_bw_0_len_0100.mat'); wlan_tx_out = sig.';
+load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
+
+%Unsuported MCS's
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sum(sig).'; %Rx=Tx1+Tx2
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sig(1,:).'; %Rx=Tx1
+
+tx_sig_t = [1:length(wlan_tx_out)];
+%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1);];
 rx_sim_sig_samp_time = 8;
+
+%Apply CFO
+%cfo_vec = exp(1i*2*pi*1e-4*[0:length(rx_sim_sig_adc_IQ)-1]');
+%rx_sim_sig_adc_IQ = rx_sim_sig_adc_IQ.*cfo_vec;
 
 %Set simulation time to just long enough for the input waveform
 rx_sim_time = rx_sim_sig_samp_time*length(rx_sim_sig_adc_IQ) + 500;
@@ -79,15 +102,29 @@ preFFT_sampBuff_numSamps = 4*MAX_NUM_SC;
 
 %Define the frequency-domain training symbol coefficients
 % sign() here stores +/-1 (LTS is BPSK in freq domain) for smaller memory in  hardware
-train_sym_f = sign(PLCP_Preamble.LTS_f);
+
+%L-LTF (legacy training symbol - 52 non-zero subcarriers)
+l_ltf_f = sign(PLCP_Preamble.LTS_f);
+
+%HT-LTF (11n training symbol - 56 non-zero subcarriers)
+ht_ltf_f = l_ltf_f;
+ht_ltf_f([28 29 37 38]) = [-1 -1 +1 +1];
+
 
 %Initialize a vector defining the subcarrier map
 % This vector is used by the interleaver control logic to select which
 % subcarriers carry data symbols. A value of MAX_NUM_SC tells the hardware to
 % not use the subcarrier for data.
-sc_ind_data = [2:7 9:21 23:27 39:43 45:57 59:64];
-sc_data_sym_map = MAX_NUM_SC*ones(1,MAX_NUM_SC);
-sc_data_sym_map(sc_ind_data) = fftshift(0:47);
+sc_ind_data_11a = [2:7 9:21 23:27 39:43 45:57 59:64];
+sc_data_sym_map_11a = MAX_NUM_SC*ones(1,MAX_NUM_SC);
+sc_data_sym_map_11a(sc_ind_data_11a) = fftshift(0:length(sc_ind_data_11a)-1);
+sc_data_sym_map_11a_bool = double(sc_data_sym_map_11a ~= MAX_NUM_SC);
+
+sc_ind_data_11n = [2:7 9:21 23:29 37:43 45:57 59:64];
+sc_data_sym_map_11n = MAX_NUM_SC*ones(1,MAX_NUM_SC);
+sc_data_sym_map_11n(sc_ind_data_11n) = fftshift(0:length(sc_ind_data_11n)-1);
+sc_data_sym_map_11n_bool = double(sc_data_sym_map_11n ~= MAX_NUM_SC);
+
 
 %Register init
 PHY_CONFIG_RSSI_SUM_LEN = 8;
@@ -228,7 +265,7 @@ for ii=1:127
 end
 
 %Convert bitwise descrambler states to bytewise descramber states
-bit_scrambler_lfsr_bytes = bi2de(reshape(repmat(scr, 1, 8), 8, 127)', 'left-msb');
+bit_scrambler_lfsr_bytes = bi2de(reshape(repmat(scr, 1, 8), 8, 127)', 'right-msb');
 
 %Generate the vector of addresses for the bytewise descramber ROM
 scr = [scr scr(1:10)];
@@ -242,26 +279,48 @@ clear scr x bit_scrambler_lfsr ii
 CRCPolynomial32 = hex2dec('04c11db7'); %CRC-32
 CRC_Table32 = CRC_table_gen(CRCPolynomial32, 32);
 
-%% Calculate de-interleaving vectors
-NCBPS_BPSK = 48;
-NCBPS_QPSK = 96;
-NCBPS_16QAM = 192;
-NCBPS_64QAM = 288;
+CRCPolynomial8 = hex2dec('07'); %CRC-8
+CRC_Table8 = CRC_table_gen(CRCPolynomial8, 8);
+
+%%
+[mcs_rom_11ag, mcs_rom_11n] = mcs_info_rom_init();
+
+%% Define numbers of coded and data bits per MCS
+NCBPS_11a_BPSK = 48;
+NCBPS_11a_QPSK = 96;
+NCBPS_11a_16QAM = 192;
+NCBPS_11a_64QAM = 288;
+
+NCBPS_11n_BPSK = 52;
+NCBPS_11n_QPSK = 104;
+NCBPS_11n_16QAM = 208;
+NCBPS_11n_64QAM = 312;
 
 %Max bits-per-symbol determines size of de-interleaver RAM
-MAX_NCBPS = NCBPS_64QAM;
+MAX_NCBPS = NCBPS_11n_64QAM;
 
-NDBPS_BPSK12 = 24;
-NDBPS_BPSK34 = 36;
-NDBPS_QPSK12 = 48;
-NDBPS_QPSK34 = 72;
-NDBPS_16QAM12 = 96;
-NDBPS_16QAM34 = 144;
-NDBPS_64QAM23 = 192;
-NDBPS_64QAM34 = 216;
+NDBPS_11a_BPSK12 = 24;
+NDBPS_11a_BPSK34 = 36;
+NDBPS_11a_QPSK12 = 48;
+NDBPS_11a_QPSK34 = 72;
+NDBPS_11a_16QAM12 = 96;
+NDBPS_11a_16QAM34 = 144;
+NDBPS_11a_64QAM23 = 192;
+NDBPS_11a_64QAM34 = 216;
 
+NDBPS_11n_BPSK12 = 26;
+NDBPS_11n_QPSK12 = 52;
+NDBPS_11n_QPSK34 = 78;
+NDBPS_11n_16QAM12 = 104;
+NDBPS_11n_16QAM34 = 156;
+NDBPS_11n_64QAM23 = 208;
+NDBPS_11n_64QAM34 = 234;
+NDBPS_11n_64QAM56 = 260;
+
+%% Calculate de-interleaving vectors
+%11a
 % BPSK
-N_CBPS = 48;
+N_CBPS = NCBPS_11a_BPSK;
 N_BPSC = 1;
 s = max(N_BPSC/2, 1);
 
@@ -270,51 +329,112 @@ k = 0:N_CBPS-1;
 i = (N_CBPS/16) .* mod(k,16) + floor(k/16);
 %BPSK doesn't need j
 
-interleave_BPSK = i;
+interleave_11a_BPSK = i;
 clear N_CBPS N_BPSC s k i
 
 % QPSK
-N_CBPS = 96;
+N_CBPS = NCBPS_11a_QPSK;
 N_BPSC = 2;
 s = max(N_BPSC/2, 1);
 
 k = 0:N_CBPS-1;
 i = (N_CBPS/16) .* mod(k,16) + floor(k/16);
 j = s * floor(i/s) + mod( (i + N_CBPS - floor(16*i/N_CBPS)), s);
-interleave_QPSK = j;
+interleave_11a_QPSK = j;
 clear N_CBPS N_BPSC s k i j
 
 % 16-QAM
-N_CBPS = 192;
+N_CBPS = NCBPS_11a_16QAM;
 N_BPSC = 4;
 s = max(N_BPSC/2, 1);
 
 k = 0:N_CBPS-1;
 i = (N_CBPS/16) .* mod(k,16) + floor(k/16);
 j = s * floor(i/s) + mod( (i + N_CBPS - floor(16*i/N_CBPS)), s);
-interleave_16QAM = j;
+interleave_11a_16QAM = j;
 clear N_CBPS N_BPSC s k i j
 
 % 64-QAM
-N_CBPS = 288;
+N_CBPS = NCBPS_11a_64QAM;
 N_BPSC = 6;
 s = max(N_BPSC/2, 1);
 
 k = 0:N_CBPS-1;
 i = (N_CBPS/16) .* mod(k,16) + floor(k/16);
 j = s * floor(i/s) + mod( (i + N_CBPS - floor(16*i/N_CBPS)), s);
-interleave_64QAM = j;
+interleave_11a_64QAM = j;
 clear N_CBPS N_BPSC s k i j
 
 %FFT Shift
-interleave_BPSK = mod(interleave_BPSK + (NCBPS_BPSK/2), NCBPS_BPSK);
-interleave_QPSK = mod(interleave_QPSK + (NCBPS_QPSK/2), NCBPS_QPSK);
-interleave_16QAM = mod(interleave_16QAM + (NCBPS_16QAM/2), NCBPS_16QAM);
-interleave_64QAM = mod(interleave_64QAM + (NCBPS_64QAM/2), NCBPS_64QAM);
+interleave_11a_BPSK = mod(interleave_11a_BPSK + (NCBPS_11a_BPSK/2), NCBPS_11a_BPSK);
+interleave_11a_QPSK = mod(interleave_11a_QPSK + (NCBPS_11a_QPSK/2), NCBPS_11a_QPSK);
+interleave_11a_16QAM = mod(interleave_11a_16QAM + (NCBPS_11a_16QAM/2), NCBPS_11a_16QAM);
+interleave_11a_64QAM = mod(interleave_11a_64QAM + (NCBPS_11a_64QAM/2), NCBPS_11a_64QAM);
+
+%%
+%11n
+% BPSK
+N_CBPS = NCBPS_11n_BPSK;
+N_BPSC = 1;
+s = max(N_BPSC/2, 1);
+
+%Interleaver (k=src bit index -> j=dest bit index)
+k = 0:N_CBPS-1;
+i = (4 * N_BPSC) .* mod(k,13) + floor(k/13);
+%BPSK doesn't need j
+
+interleave_11n_BPSK = i;
+clear N_CBPS N_BPSC s k i
+
+% QPSK
+N_CBPS = NCBPS_11n_QPSK;
+N_BPSC = 2;
+s = max(N_BPSC/2, 1);
+
+k = 0:N_CBPS-1;
+i = (4 * N_BPSC) .* mod(k,13) + floor(k/13);
+j = s * floor(i/s) + mod( (i + N_CBPS - floor(13*i/N_CBPS)), s);
+interleave_11n_QPSK = j;
+clear N_CBPS N_BPSC s k i j
+
+% 16-QAM
+N_CBPS = NCBPS_11n_16QAM;
+N_BPSC = 4;
+s = max(N_BPSC/2, 1);
+
+k = 0:N_CBPS-1;
+i = (4 * N_BPSC) .* mod(k,13) + floor(k/13);
+j = s * floor(i/s) + mod( (i + N_CBPS - floor(13*i/N_CBPS)), s);
+interleave_11n_16QAM = j;
+clear N_CBPS N_BPSC s k i j
+
+% 64-QAM
+N_CBPS = NCBPS_11n_64QAM;
+N_BPSC = 6;
+s = max(N_BPSC/2, 1);
+
+k = 0:N_CBPS-1;
+i = (4 * N_BPSC) .* mod(k,13) + floor(k/13);
+j = s * floor(i/s) + mod( (i + N_CBPS - floor(13*i/N_CBPS)), s);
+interleave_11n_64QAM = j;
+clear N_CBPS N_BPSC s k i j
+
+%FFT Shift
+interleave_11n_BPSK = mod(interleave_11n_BPSK + (NCBPS_11n_BPSK/2), NCBPS_11n_BPSK);
+interleave_11n_QPSK = mod(interleave_11n_QPSK + (NCBPS_11n_QPSK/2), NCBPS_11n_QPSK);
+interleave_11n_16QAM = mod(interleave_11n_16QAM + (NCBPS_11n_16QAM/2), NCBPS_11n_16QAM);
+interleave_11n_64QAM = mod(interleave_11n_64QAM + (NCBPS_11n_64QAM/2), NCBPS_11n_64QAM);
+
 
 %De-interleaver ROM contents - one ROM used for all rates
 deinterleave_ROM = [];
-deinterleave_ROM = [deinterleave_ROM interleave_BPSK zeros(1, 512-length(interleave_BPSK))];
-deinterleave_ROM = [deinterleave_ROM interleave_QPSK zeros(1, 512-length(interleave_QPSK))];
-deinterleave_ROM = [deinterleave_ROM interleave_16QAM zeros(1, 512-length(interleave_16QAM))];
-deinterleave_ROM = [deinterleave_ROM interleave_64QAM zeros(1, 512-length(interleave_64QAM))];
+deinterleave_ROM = [deinterleave_ROM interleave_11a_BPSK zeros(1, 512-length(interleave_11a_BPSK))];
+deinterleave_ROM = [deinterleave_ROM interleave_11a_QPSK zeros(1, 512-length(interleave_11a_QPSK))];
+deinterleave_ROM = [deinterleave_ROM interleave_11a_16QAM zeros(1, 512-length(interleave_11a_16QAM))];
+deinterleave_ROM = [deinterleave_ROM interleave_11a_64QAM zeros(1, 512-length(interleave_11a_64QAM))];
+
+deinterleave_ROM = [deinterleave_ROM interleave_11n_BPSK zeros(1, 512-length(interleave_11n_BPSK))];
+deinterleave_ROM = [deinterleave_ROM interleave_11n_QPSK zeros(1, 512-length(interleave_11n_QPSK))];
+deinterleave_ROM = [deinterleave_ROM interleave_11n_16QAM zeros(1, 512-length(interleave_11n_16QAM))];
+deinterleave_ROM = [deinterleave_ROM interleave_11n_64QAM zeros(1, 512-length(interleave_11n_64QAM))];
+
