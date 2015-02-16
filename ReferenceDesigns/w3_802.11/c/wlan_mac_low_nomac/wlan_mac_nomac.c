@@ -198,11 +198,13 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
 	//This function manages the MAC_DCF_HW core.
 
-	u32 tx_status;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 	u64 last_tx_timestamp;
 	int curr_tx_pow;
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
+
+	mac_status_reg_bf mac_hw_status;
+	mac_hw_status.raw_value = 0;
 
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 	wlan_phy_set_tx_signal(pkt_buf, rate, length);
@@ -237,7 +239,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 	//Before we mess with any PHY state, we need to make sure it isn't actively
 	//transmitting. For example, it may be sending an ACK when we get to this part of the code
-	while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_PHY_TX_ACTIVE){}
+	do{
+		mac_hw_status.raw_value = wlan_mac_get_status();
+	} while(mac_hw_status.phy_tx_active == 1);
 
 	//Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
 	wlan_mac_MPDU_tx_start(1);
@@ -253,21 +257,21 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			low_tx_details[0].num_slots = 0;
 			low_tx_details[0].cw = 0;
 		}
-		tx_status = wlan_mac_get_status();
+		mac_hw_status.raw_value = wlan_mac_get_status();
 
-		if(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_DONE) {
-			if(low_tx_details != NULL){
+		if( mac_hw_status.mpdu_tx_done == 1 ) {
+			if( low_tx_details != NULL ){
 				low_tx_details[0].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
 				last_tx_timestamp = get_tx_start_timestamp();
 			}
 
-			switch(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT){
+			switch( mac_hw_status.mpdu_tx_result ){
 				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
 					return 0;
 				break;
 			}
 		}
-	} while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING);
+	} while( mac_hw_status.mpdu_tx_pending == 1 );
 
 	return -1;
 }
