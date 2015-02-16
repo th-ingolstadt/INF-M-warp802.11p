@@ -920,10 +920,12 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 	u32 rate, length;
 
 	//Read the MAC/PHY status
-	u32 mac_hw_status = wlan_mac_get_status();
+	mac_status_reg_bf mac_hw_status;
+	mac_hw_status.raw_value = wlan_mac_get_status();
+
 
 	//Check if PHY is currently receiving or has finished receiving
-	if(mac_hw_status & (WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
+	if( (mac_hw_status.phy_rx_active == 1) || (mac_hw_status.rx_phy_blocked_fcs_good == 1) || (mac_hw_status.rx_phy_blocked == 1) ) {
 
 		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
 
@@ -1211,16 +1213,16 @@ void wlan_mac_dcf_hw_unblock_rx_phy() {
  * - FCS status (RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD)
  */
 inline u32 wlan_mac_dcf_hw_rx_finish(){
-	u32 mac_status;
+	mac_status_reg_bf mac_hw_status;
+	mac_hw_status.raw_value = 0;
 
 	//Wait for the packet to finish
 	do{
-		mac_status = wlan_mac_get_status();
-	} while(mac_status & WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE);
+		mac_hw_status.raw_value = wlan_mac_get_status();
+	} while( mac_hw_status.phy_rx_active == 1 );
 
 	//Check FCS
-
-	if(mac_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) {
+	if( mac_hw_status.rx_fcs_good == 1 ) {
 		return RX_MPDU_STATE_FCS_GOOD;
 
 	} else {

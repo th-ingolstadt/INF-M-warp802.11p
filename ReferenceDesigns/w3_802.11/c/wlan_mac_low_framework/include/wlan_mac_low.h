@@ -48,35 +48,39 @@
 #define WLAN_MAC_REG_SET_TIMESTAMP_MSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_SET_MSB
 #define WLAN_MAC_REG_SET_TIMESTAMP_OFFSET	XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_INSERT_OFFSET
 
-//Bit masks for STATUS register
-#define WLAN_MAC_STATUS_MASK_BACKOFF_COUNTER				0x0000FFFF //b[15:0]
-#define WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING				0x00010000 //b[16]
-#define WLAN_MAC_STATUS_MASK_MPDU_TX_DONE					0x00020000 //b[17]
-#define WLAN_MAC_STATUS_MASK_PHY_TX_ACTIVE					0x00040000 //b[18]
-#define WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE					0x00080000 //b[19]
-#define WLAN_MAC_STATUS_MASK_MPDU_TX_RESULT					0x00300000 //b[21:20]
-#define WLAN_MAC_STATUS_MASK_MPDU_TX_STATE					0x01C00000 //b[24:22]
-#define WLAN_MAC_STATUS_MASK_NAV_BUSY						0x02000000 //b[25]
-#define WLAN_MAC_STATUS_MASK_PHY_CCA_BUSY					0x04000000 //b[26]
-#define WLAN_MAC_STATUS_MASK_AUTO_TX_PENDING				0x08000000 //b[27]
-#define WLAN_MAC_STATUS_MASK_RX_FCS_GOOD					0x10000000 //b[28]
-#define WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD		0x20000000 //b[29]
-#define WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED					0x40000000 //b[30]
+//Bit-Field for STATUS register
+typedef union{
+	u32 raw_value;
+	struct{
+		unsigned backoff_counter			:16; //b[15:0]
+		unsigned mpdu_tx_pending        	:1;  //b[16]
+		unsigned mpdu_tx_done		    	:1;  //b[17]
+		unsigned phy_tx_active		    	:1;  //b[18]
+		unsigned phy_rx_active		    	:1;  //b[19]
+		unsigned mpdu_tx_result		    	:2;  //b[21:20]
+		unsigned mpdu_tx_state		    	:3;  //b[24:22]
+		unsigned nav_busy			    	:1;  //b[25]
+		unsigned phy_cca_busy		    	:1;  //b[26]
+		unsigned auto_tx_pending	    	:1;  //b[27]
+		unsigned rx_fcs_good		    	:1;  //b[28]
+		unsigned rx_phy_blocked_fcs_good    :1;  //b[29]
+		unsigned rx_phy_blocked			    :1;  //b[30]
+		unsigned reserved                   :1;  //b[31]
+	};
+} mac_status_reg_bf;
 
-#define WLAN_MAC_STATUS_SHIFT_TX_RESULT				20
-#define WLAN_MAC_STATUS_SHIFT_TX_STATE				22
 
-#define WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS		(0<<WLAN_MAC_STATUS_SHIFT_TX_RESULT)
-#define WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT	(1<<WLAN_MAC_STATUS_SHIFT_TX_RESULT)
-#define WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED	(2<<WLAN_MAC_STATUS_SHIFT_TX_RESULT)
+#define WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS		(0)
+#define WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT	(1)
+#define WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED	(2)
 
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_IDLE 			(0<<WLAN_MAC_STATUS_SHIFT_TX_STATE)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_DO_TX 		(1<<WLAN_MAC_STATUS_SHIFT_TX_STATE)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_START_BO		(2<<WLAN_MAC_STATUS_SHIFT_TX_STATE)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_DEFER 		(3<<WLAN_MAC_STATUS_SHIFT_TX_STATE)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_POST_TX 		(4<<WLAN_MAC_STATUS_SHIFT_TX_STATE)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_POST_TX_WAIT 	(5<<WLAN_MAC_STATUS_SHIFT_TX_STATE)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_DONE		 	(6<<WLAN_MAC_STATUS_SHIFT_TX_STATE)
+#define WLAN_MAC_STATUS_MPDU_TX_STATE_IDLE 			(0)
+#define WLAN_MAC_STATUS_MPDU_TX_STATE_DO_TX 		(1)
+#define WLAN_MAC_STATUS_MPDU_TX_STATE_START_BO		(2)
+#define WLAN_MAC_STATUS_MPDU_TX_STATE_DEFER 		(3)
+#define WLAN_MAC_STATUS_MPDU_TX_STATE_POST_TX 		(4)
+#define WLAN_MAC_STATUS_MPDU_TX_STATE_POST_TX_WAIT 	(5)
+#define WLAN_MAC_STATUS_MPDU_TX_STATE_DONE		 	(6)
 
 //Bit masks for CONTROL register
 #define WLAN_MAC_CTRL_MASK_RESET					0x001
