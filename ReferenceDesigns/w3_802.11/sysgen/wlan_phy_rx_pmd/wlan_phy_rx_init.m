@@ -28,7 +28,7 @@ clear ADC_I ADC_Q;
 %Output of PHY Tx simulation
 % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
 %load('rx_sigs/wlan_tx_sig_Null_Data_24Mbps.mat');wlan_tx_out = 2.*wlan_tx_out;
-load('rx_sigs/tx_sig_NON_HT_QPSK_12_100B_W_FCS.mat'); wlan_tx_out = 0.3.*tx_sig.'; 
+%load('rx_sigs/tx_sig_NON_HT_QPSK_12_100B_W_FCS.mat'); wlan_tx_out = 0.3.*tx_sig.'; 
 %load('rx_sigs/tx_sig_HT_MM_QPSK_12_100B_W_FCS_v1.mat'); wlan_tx_out = 0.3.*sig(1:2100).'; 
 %load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat');wlan_tx_out = 2*wlan_tx_out; %.mat too small for non-zero energy thresh
 
@@ -39,11 +39,12 @@ load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
 
 %Unsuported MCS's
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sum(sig).'; %Rx=Tx1+Tx2
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sig(1,:).'; %Rx=Tx1
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig(1,:).']; %Rx=Tx1
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig(1,:).']; %Append Rx=Tx1
 
 tx_sig_t = [1:length(wlan_tx_out)];
-%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
-rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1);];
+rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1);wlan_tx_out(tx_sig_t); zeros(500,1);]; %Double sig
 rx_sim_sig_samp_time = 8;
 
 %Apply CFO
