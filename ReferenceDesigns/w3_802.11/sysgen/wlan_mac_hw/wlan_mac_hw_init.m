@@ -68,22 +68,30 @@ REG_MAC_Calib_Times = ...
     2^24 * (10*calib_time_NAV_adj) + ... %b[31:24]
     0;
 
-REG_MAC_NewTx_Params = ...
+REG_MAC_Tx_Ctrl_A_Params = ...
     2^0  * (4) + ... %b[3:0] - pkt buf to Tx
     2^8  * (3) + ... %b[23:8] - pre-Tx BO slots
     2^24 * (1) + ... %b[24] - post-Tx timeout
     0;
     
-REG_MAC_PostRxTx_Params = ...
+REG_MAC_Tx_Ctrl_B_Params = ...
     2^0  * (0) + ... %b[3:0] - pkt buf to Tx
     2^4  * (8.5*10) + ... %b[13:4] - pre-Tx delay (=SIFS-turnaround)
     2^31 * (0) + ... %b[31] - enable post-Rx auto-Tx
     0;
+
 REG_MAC_PostRxTimers = ...
-    2^0  * (10*16) + ... %b[9:0] - timer 1 value
-    2^10 * (0)     + ... %b[10] - enable timer 1
-    2^11 * (10*16) + ... %b[20:11] - timer 2 value
-    2^21 * (0)     + ... %b[21] - enable timer 2
+    2^0  * (10*16) + ... %b[14:0] - timer 1 value
+    2^15 * (0)     + ... %b[15] - enable timer 1
+    2^16 * (10*16) + ... %b[30:16] - timer 2 value
+    2^31 * (0)     + ... %b[31] - enable timer 2
+    0;
+
+REG_MAC_PostTxTimers = ...
+    2^0  * (10*16) + ... %b[14:0] - timer 1 value
+    2^15 * (0)     + ... %b[15] - enable timer 1
+    2^16 * (10*16) + ... %b[30:16] - timer 2 value
+    2^31 * (0)     + ... %b[31] - enable timer 2
     0;
 
 

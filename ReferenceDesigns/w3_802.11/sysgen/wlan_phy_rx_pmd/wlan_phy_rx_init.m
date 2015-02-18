@@ -28,22 +28,24 @@ clear ADC_I ADC_Q;
 %Output of PHY Tx simulation
 % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
 %load('rx_sigs/wlan_tx_sig_Null_Data_24Mbps.mat');wlan_tx_out = 2.*wlan_tx_out;
+%load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat');wlan_tx_out = 2*wlan_tx_out; %.mat too small for non-zero energy thresh
+
 %load('rx_sigs/tx_sig_NON_HT_QPSK_12_100B_W_FCS.mat'); wlan_tx_out = 0.3.*tx_sig.'; 
 %load('rx_sigs/tx_sig_HT_MM_QPSK_12_100B_W_FCS_v1.mat'); wlan_tx_out = 0.3.*sig(1:2100).'; 
-%load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat');wlan_tx_out = 2*wlan_tx_out; %.mat too small for non-zero energy thresh
 
 %Supported HT MCS's
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_01_bw_0_len_0100.mat'); wlan_tx_out = sig.';
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_03_bw_0_len_0100.mat'); wlan_tx_out = sig.';
-load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_06_bw_0_len_0000.mat'); wlan_tx_out = sig.';
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
 
 %Unsuported MCS's
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sum(sig).'; %Rx=Tx1+Tx2
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig(1,:).']; %Rx=Tx1
+load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sig(1,:).'; %Rx=Tx1
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig(1,:).']; %Append Rx=Tx1
 
 tx_sig_t = [1:length(wlan_tx_out)];
-rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
 %rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1);wlan_tx_out(tx_sig_t); zeros(500,1);]; %Double sig
 rx_sim_sig_samp_time = 8;
 
@@ -130,13 +132,14 @@ sc_data_sym_map_11n_bool = double(sc_data_sym_map_11n ~= MAX_NUM_SC);
 %Register init
 PHY_CONFIG_RSSI_SUM_LEN = 8;
 
-PHY_MIN_PKT_LEN = 14;
+PHY_SIGNAL_MIN_LEN = 14;
 
 PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 10e3; %FIXME back to 10e3!
 PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 10e3; %FIXME back to 10e3!
 PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 
-PHY_CONFIG_LTS_CORR_TIMEOUT = 250;%150;%*2 in hardware
+%PHY_CONFIG_LTS_CORR_TIMEOUT = 250; %v1.2
+PHY_CONFIG_LTS_CORR_TIMEOUT = 175;
 
 PHY_CONFIG_PKT_DET_CORR_THRESH = (0.75) * 2^8; %UFix8_8 threshold
 
@@ -210,6 +213,8 @@ REG_RX_Config = ...
     2^14 * 0 + ... %PHY CCA mode (0=any, 1=all)
     2^15 * 0 + ... %Manual ant sel when sel div disabled (2-bits, 00=RFA)
     2^17 * 2 + ... %Max SIGNAL.LENGTH value, in kB (UFix4_0)
+    2^21 * 0 + ... %Require pkt det on RF A and B
+    2^22 * 0 + ... %Rate-Length Busy holds pkt det high
     0;
 
 REG_RX_DSSS_RX_CONFIG = ...
@@ -239,8 +244,8 @@ REG_RX_CCA_CONFIG = ...
 REG_RX_PktBuf_Sel = ...
     2^0 *  0 + ... %b[3:0]: OFDM Pkt Buf
     2^8 *  0 + ... %b[11:8]: DSSS Pkt Buf
-    2^16 * 0 + ... %b[23:16]: Pkt buf offset for Rx bytes (u64 words)
-    2^24 * (8/8) + ... %b[31:24]: Pkt buf offset for chan est (u64 words)
+    2^16 * 35 + ... %b[23:16]: Pkt buf offset for Rx bytes (u64 words)
+    2^24 * 3 + ... %b[31:24]: Pkt buf offset for chan est (u64 words)
     0;
 
 REG_RX_FEC_Config = ...
