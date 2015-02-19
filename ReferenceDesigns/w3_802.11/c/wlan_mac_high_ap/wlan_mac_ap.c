@@ -39,15 +39,15 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
 #include "ascii_characters.h"
+#include "wlan_mac_bss_info.h"
+#include "wlan_mac_mgmt_tags.h"
 
 // Experiments framework includes
-#include "wlan_mac_bss_info.h"
 #include "wlan_exp.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
 #include "wlan_exp_transport.h"
-
 
 
 /*************************** Constant Definitions ****************************/
@@ -128,7 +128,6 @@ int main(){
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
-
 
 	//heap_init() must be executed before any use of malloc. This explicit init
 	// handles the case of soft-reset of the MicroBlaze leaving stale values in the heap RAM
@@ -656,16 +655,24 @@ void ltg_event(u32 id, void* callback_arg){
 
 					// Finally prepare the 802.11 header
 					if (is_multicast) {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION), queue_sel );
+						wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+															curr_tx_queue_element,
+															payload_length,
+															(TX_MPDU_FLAGS_FILL_DURATION),
+															queue_sel );
 					} else {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
+						wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+															curr_tx_queue_element,
+															payload_length,
+															(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
+															queue_sel );
 					}
 
 					// Update the queue entry metadata to reflect the new new queue entry contents
 					if (is_multicast || (station == NULL)) {
 						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_multicast_data_tx_params;
-							curr_tx_queue_buffer->frame_info.AID     = 0;
+						curr_tx_queue_buffer->frame_info.AID     	 = 0;
 					} else {
 					    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 					    curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)station;
@@ -743,7 +750,11 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
 			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0 , MCAST_QID);
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+												curr_tx_queue_element,
+												tx_length,
+												0,
+												MCAST_QID);
 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -780,7 +791,11 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
 				// Setup the TX frame info
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(station->AID));
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+													curr_tx_queue_element,
+													tx_length,
+													(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
+													AID_TO_QID(station->AID));
 
 				// Set the information in the TX queue buffer
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
@@ -834,7 +849,11 @@ void beacon_transmit() {
 			&tx_header_common,
 			my_bss_info);
 
- 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, TX_MPDU_FLAGS_FILL_TIMESTAMP, MANAGEMENT_QID );
+ 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+ 										curr_tx_queue_element,
+ 										tx_length,
+ 										(TX_MPDU_FLAGS_FILL_DURATION),
+ 										MANAGEMENT_QID );
 
 		// Set the information in the TX queue buffer
  		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1076,7 +1095,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
 
 									// Setup the TX frame info
-									wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, mpdu_info->length, 0, MCAST_QID );
+									wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+																		curr_tx_queue_element,
+																		mpdu_info->length, 0,
+																		MCAST_QID );
 
 									// Set the information in the TX queue buffer
 									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1110,7 +1132,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 										memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
 
 										// Setup the TX frame info
-										wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, mpdu_info->length , (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(associated_station->AID) );
+										wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+																			curr_tx_queue_element,
+																			mpdu_info->length,
+																			(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
+																			AID_TO_QID(associated_station->AID) );
 
 
 										// Set the information in the TX queue buffer
@@ -1161,7 +1187,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								tx_length = wlan_create_deauth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
 
 								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+																	curr_tx_queue_element,
+																	tx_length,
+																	(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
+																	MANAGEMENT_QID );
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1233,14 +1263,14 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								// Fill in the data
 								tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame),
 																		 &tx_header_common,
-																		 my_bss_info->beacon_interval,
-																		 (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT),
-																		 strlen(my_bss_info->ssid),
-																		 (u8*)my_bss_info->ssid,
-																		 my_bss_info->chan);
+																		 my_bss_info);
 
 								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+																	curr_tx_queue_element,
+																	tx_length,
+																	(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO | TX_MPDU_FLAGS_FILL_TIMESTAMP),
+																	MANAGEMENT_QID );
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1302,7 +1332,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
 
 								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+																	curr_tx_queue_element,
+																	tx_length,
+																	(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO ),
+																	MANAGEMENT_QID );
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1331,7 +1365,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_UNSPECIFIED);
 
 								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+																	curr_tx_queue_element,
+																	tx_length,
+																	(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
+																	MANAGEMENT_QID );
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1394,7 +1432,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_SUCCESS, associated_station->AID);
 
 								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), AID_TO_QID(associated_station->AID) );
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+																	curr_tx_queue_element,
+																	tx_length,
+																	(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO ),
+																	AID_TO_QID(associated_station->AID) );
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
@@ -1423,7 +1465,11 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0);
 
 								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+																	curr_tx_queue_element,
+																	tx_length,
+																	(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO ),
+																	MANAGEMENT_QID );
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1593,7 +1639,11 @@ u32  deauthenticate_station( station_info* station ) {
 		tx_length = wlan_create_deauth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DEAUTH_REASON_INACTIVITY);
 
 		// Setup the TX frame info
-		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
+		wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+											curr_tx_queue_element,
+											tx_length,
+											(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO ),
+											MANAGEMENT_QID );
 
 		// Set the information in the TX queue buffer
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1786,7 +1836,11 @@ int  send_channel_switch_announcement( u8 channel ) {
 
 		tx_length = wlan_create_channel_switch_announcement_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, channel);
 
- 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID );
+ 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+ 											curr_tx_queue_element,
+ 											tx_length,
+ 											0,
+ 											MANAGEMENT_QID );
 
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
