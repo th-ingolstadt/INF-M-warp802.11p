@@ -1704,7 +1704,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 	tx_frame_info*		frame_info;
 	ltg_packet_id*      pkt_id;
 	u32 				packet_payload_size;
-	u8*                 txBufferPtr_u8;
 	u8                  tim_control;
 	u16 				tim_byte_idx           = 0;
 	u16 				tim_next_byte_idx      = 0;
@@ -1713,11 +1712,12 @@ void mpdu_dequeue(tx_queue_element* packet){
 	station_info*		curr_station;
 	u32                 i;
 	u8					tim_len;
+	mgmt_tag_template* 	mgmt_tag_ptr;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
 	packet_payload_size	= frame_info->length;
-	txBufferPtr_u8      = (u8*)header;
+
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
 		case PKT_TYPE_DATA_ENCAP_LTG:
@@ -1743,7 +1743,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 				//If the packet we are about to send is a beacon, we need to tack on the TIM
 
 				if(power_save_configuration.enable){
-					txBufferPtr_u8 += (packet_payload_size - WLAN_PHY_FCS_NBYTES);
+					mgmt_tag_ptr = (mgmt_tag_template*) ( ((u8*)header) + (packet_payload_size - WLAN_PHY_FCS_NBYTES) );
 
 					tim_control = 0; //The top 7 bits are an offset for the partial map
 
@@ -1751,7 +1751,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 						tim_control |= 0x01; //Raise the multicast bit in the TIM control field
 					}
 
-					txBufferPtr_u8[5] = 0;
+					mgmt_tag_ptr->data[3] =  0;
 
 					curr_station_entry = my_bss_info->associated_stations.first;
 					while(curr_station_entry != NULL){
@@ -1764,7 +1764,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 								//We've moved on to a new octet. We should zero everything after the previous octet
 								//up to and including the new octet.
 								for(i = tim_byte_idx+1; i <= tim_next_byte_idx; i++){
-									txBufferPtr_u8[5+i] = 0;
+									mgmt_tag_ptr->data[3+i] = 0;
 								}
 							}
 
@@ -1772,22 +1772,25 @@ void mpdu_dequeue(tx_queue_element* packet){
 							tim_byte_idx = tim_next_byte_idx;
 
 							//Raise the bit for this station in the TIM partial bitmap
-							txBufferPtr_u8[5+tim_byte_idx] |= 1<<tim_bit_idx;
+							mgmt_tag_ptr->data[3+tim_byte_idx] |= 1<<tim_bit_idx;
 						}
 
 						curr_station_entry = dl_entry_next(curr_station_entry);
 					}
 
 					tim_len = tim_byte_idx+1;
-					txBufferPtr_u8[0] = 5; //Tag 5: Traffic Indication Map (TIM)
-					txBufferPtr_u8[1] = 3+tim_len; //tag length... doesn't include the tag itself and the tag length
-					txBufferPtr_u8[2] = power_save_configuration.dtim_count; //DTIM count
-					txBufferPtr_u8[3] = power_save_configuration.dtim_period; //DTIM period
-					txBufferPtr_u8[4] = tim_control; //Bitmap control
 
-					txBufferPtr_u8+=(txBufferPtr_u8[1]+2);
+					mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_TIM;
+					mgmt_tag_ptr->header.tag_length = 3+tim_len;
 
-					packet_payload_size = (txBufferPtr_u8 - (u8*)(header)) + WLAN_PHY_FCS_NBYTES;
+					mgmt_tag_ptr->data[0] = power_save_configuration.dtim_count; //DTIM count
+					mgmt_tag_ptr->data[1] =  power_save_configuration.dtim_period; //DTIM period
+					mgmt_tag_ptr->data[2] =  tim_control; //Bitmap control
+
+					mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+
+					packet_payload_size = ((u8*)mgmt_tag_ptr - (u8*)(header)) + WLAN_PHY_FCS_NBYTES;
+
 					frame_info->length = packet_payload_size;
 
 					//Update DTIM fields
