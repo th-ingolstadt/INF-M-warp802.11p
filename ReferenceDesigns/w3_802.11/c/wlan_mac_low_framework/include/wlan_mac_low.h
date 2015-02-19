@@ -50,7 +50,6 @@
 
 //Bit-Field for STATUS register
 typedef union{
-	u32 raw_value;
 	struct{
 		unsigned backoff_counter			:16; //b[15:0]
 		unsigned mpdu_tx_pending        	:1;  //b[16]
@@ -67,6 +66,7 @@ typedef union{
 		unsigned rx_phy_blocked			    :1;  //b[30]
 		unsigned reserved                   :1;  //b[31]
 	};
+	u32 raw_value;
 } mac_status_reg_bf;
 
 
