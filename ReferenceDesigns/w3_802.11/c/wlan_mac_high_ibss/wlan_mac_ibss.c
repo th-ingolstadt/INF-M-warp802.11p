@@ -837,7 +837,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, my_bss_info->bssid );
 
 									// Fill in the data
-									tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, my_bss_info->beacon_interval, (CAPABILITIES_IBSS | CAPABILITIES_SHORT_TIMESLOT), strlen(default_ssid), (u8*)default_ssid, my_bss_info->chan);
+									tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, my_bss_info);
 
 									// Setup the TX frame info
 									wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
