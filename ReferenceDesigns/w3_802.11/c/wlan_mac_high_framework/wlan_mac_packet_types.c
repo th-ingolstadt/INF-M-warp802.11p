@@ -32,6 +32,9 @@
 
 int wlan_create_beacon_probe_resp_frame(void* pkt_buf, mac_header_80211_common* common, bss_info* my_bss_info) {
 
+	ht_capabilities* ht_capabilities_element;
+	ht_information* ht_information_element;
+
 	//void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan
 
 	u32 packetLen_bytes;
@@ -84,6 +87,40 @@ int wlan_create_beacon_probe_resp_frame(void* pkt_buf, mac_header_80211_common* 
 	mgmt_tag_ptr->data[6] = (0x60); 				//48Mbps  (64-QAM, 2/3)
 	mgmt_tag_ptr->data[7] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+
+	if( (my_bss_info->phy_mode) & BSS_INFO_PHY_MODE_11N ){
+		//Insert HT Capabilities and HT Information tags
+		mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
+		mgmt_tag_ptr->header.tag_length = 26;
+
+		ht_capabilities_element = (ht_capabilities*)mgmt_tag_ptr->data;
+		ht_capabilities_element->ht_capabilities_info = 0x010c;
+		ht_capabilities_element->a_mpdu_parameters = 0x00;
+		ht_capabilities_element->rx_supported_mcs[0] = 0x000000ff;
+		ht_capabilities_element->rx_supported_mcs[1] = 0x00000000;
+		ht_capabilities_element->rx_supported_mcs[2] = 0x00000000;
+		ht_capabilities_element->rx_supported_mcs[3] = 0x00000000;
+		ht_capabilities_element->ht_extended_capabilities = 0x0000;
+		ht_capabilities_element->tx_beamforming = 0x0000;
+		ht_capabilities_element->ant_sel = 0x00;
+
+		mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+
+		mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_HT_OPERATION;
+		mgmt_tag_ptr->header.tag_length = 22;
+
+		ht_information_element = (ht_information*)mgmt_tag_ptr->data;
+		ht_information_element->channel = my_bss_info->chan;
+		ht_information_element->ht_info_subset_1 = 0x00;
+		ht_information_element->ht_info_subset_2 = 0x0000;
+		ht_information_element->ht_info_subset_3 = 0x0000;
+		ht_information_element->rx_supported_mcs[0] = 0x00000000;
+		ht_information_element->rx_supported_mcs[1] = 0x00000000;
+		ht_information_element->rx_supported_mcs[2] = 0x00000000;
+		ht_information_element->rx_supported_mcs[3] = 0x00000000;
+
+		mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	}
 
 	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_DSSS_PARAMETER_SET;
 	mgmt_tag_ptr->header.tag_length = 1; //tag length... doesn't include the tag itself and the tag length

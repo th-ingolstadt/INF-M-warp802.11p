@@ -29,6 +29,23 @@ typedef struct{
 	u8				data[256];
 } mgmt_tag_template;
 
+typedef struct __attribute__ ((__packed__)){
+	u16		ht_capabilities_info;
+	u8		a_mpdu_parameters;
+	u32     rx_supported_mcs[4];
+	u16		ht_extended_capabilities;
+	u32		tx_beamforming;
+	u8		ant_sel;
+} ht_capabilities;
+
+typedef struct __attribute__ ((__packed__)){
+	u8		channel;
+	u8		ht_info_subset_1;
+	u16		ht_info_subset_2;
+	u16		ht_info_subset_3;
+	u32		rx_supported_mcs[4];
+} ht_information;
+
 // Tag Element IDs from Table 8-54 in 802.11-2012
 #define MGMT_TAG_SSID									0
 #define MGMT_TAG_SUPPORTED_RATES						1
