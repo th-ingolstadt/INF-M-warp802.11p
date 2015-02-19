@@ -1684,7 +1684,7 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  *     - Pointer to the TX queue element
  * @param  u32 tx_length
  *     - Length of the frame info
- * @param  u8 flags
+ * @param  tx_frame_info_flags_bf flags
  *     - Flags for the frame info
  * @param  u8 QID
  *     - Queue ID
@@ -1701,6 +1701,7 @@ void wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_que
 	curr_tx_queue_buffer->frame_info.length          			 = tx_length;
 	curr_tx_queue_buffer->frame_info.flags                       = flags;
 	curr_tx_queue_buffer->frame_info.QID                         = QID;
+
 }
 
 

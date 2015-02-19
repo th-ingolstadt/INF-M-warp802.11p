@@ -109,8 +109,9 @@ typedef struct{
 #define STATUS_AUTH_REJECT_CHALLENGE_FAILURE 15
 #define STATUS_REJECT_TOO_MANY_ASSOCIATIONS 17
 
-int wlan_create_beacon_frame(void* pkt_buf, mac_header_80211_common* common, bss_info* my_bss_info);
-int wlan_create_probe_resp_frame(void* pkt_buf, mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan);
+#define wlan_create_beacon_frame(a,b,c) wlan_create_beacon_probe_resp_frame(a,b,c)
+#define wlan_create_probe_resp_frame(a,b,c) wlan_create_beacon_probe_resp_frame(a,b,c)
+int wlan_create_beacon_probe_resp_frame(void* pkt_buf, mac_header_80211_common* common, bss_info* my_bss_info);
 
 int wlan_create_measurement_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 measurement_type, u8 chan);
 int wlan_create_channel_switch_announcement_frame(void* pkt_buf, mac_header_80211_common* common, u8 channel);
