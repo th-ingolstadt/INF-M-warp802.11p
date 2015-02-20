@@ -137,14 +137,12 @@ int main(){
  *
  * @param u8 rx_pkt_buf
  *  -Index of the Rx packet buffer containing the newly recevied packet
- * @param u8 rate
- *  -Index of PHY rate at which pcaket was received
- * @param u16 length
- *  -Number of bytes received by the PHY, including MAC header and FCS
+ * @param phy_rx_details* phy_details
+ *  -Pointer to phy_rx_details struct containing PHY mode, MCS, and Length
  * @return
  *  -Bit mask of flags indicating various results of the reception
  */
-u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
+u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 
 	u32 return_value;
 	u32 tx_length;
@@ -174,7 +172,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
 
 	//Sanity check length value - anything shorter than an ACK must be bogus
-	if(length < ( sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES ) ){
+	if( (phy_details->length) < ( sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES ) ){
 		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
 		wlan_mac_dcf_hw_unblock_rx_phy();
@@ -186,9 +184,9 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	// This translation is required in case this reception needs to send an ACK, as the ACK
 	// rate is a function of the rate of the received packet
 	//The mapping of Rx rate to ACK rate is given in 9.7.6.5.2 of 802.11-2012
-	switch(rate){
+	switch( phy_details->mcs ){
 		default:
-		case WLAN_MAC_RATE_1M:
+		case WLAN_MAC_MCS_DSSS:
 			tx_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
 		break;
 		case WLAN_MAC_RATE_6M:
@@ -281,8 +279,8 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 	//Update metadata about this reception
 	mpdu_info->flags = 0;
-	mpdu_info->length = (u16)length;
-	mpdu_info->rate = (u8)rate;
+	mpdu_info->length = (u16)(phy_details->length);
+	mpdu_info->rate = (u8)(phy_details->mcs);
 	mpdu_info->channel = wlan_mac_low_get_active_channel();
 	mpdu_info->timestamp = get_rx_start_timestamp();
 

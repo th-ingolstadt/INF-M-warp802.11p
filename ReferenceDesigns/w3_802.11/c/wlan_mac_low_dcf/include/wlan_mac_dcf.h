@@ -33,7 +33,7 @@
 
 int main();
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details);
-u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length);
+u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
 inline void update_cw(u8 reason, u8 pkt_buf);
 inline unsigned int rand_num_slots(u8 reason);
 void wlan_mac_dcf_hw_start_backoff(u16 num_slots);
