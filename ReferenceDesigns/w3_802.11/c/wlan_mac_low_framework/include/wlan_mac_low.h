@@ -23,64 +23,114 @@
 /*************** WLAN MAC HW ***************/
 //Register renames
 //RO:
-#define WLAN_MAC_REG_STATUS					XPAR_WLAN_MAC_DCF_HW_MEMMAP_STATUS
-#define WLAN_MAC_REG_TIMESTAMP_MSB			XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_MSB
-#define WLAN_MAC_REG_TIMESTAMP_LSB			XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_LSB
-#define WLAN_MAC_REG_LATEST_RX_BYTE			XPAR_WLAN_MAC_DCF_HW_MEMMAP_LATEST_RX_BYTE
-#define WLAN_MAC_REG_RX_RATE_LENGTH			XPAR_WLAN_MAC_DCF_HW_MEMMAP_RX_RATE_LENGTH
-#define WLAN_MAC_REG_RX_TIMESTAMP_LSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_RX_START_TIMESTAMP_LSB
-#define WLAN_MAC_REG_RX_TIMESTAMP_MSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_RX_START_TIMESTAMP_MSB
-#define WLAN_MAC_REG_TX_TIMESTAMP_LSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TX_START_TIMESTAMP_LSB
-#define WLAN_MAC_REG_TX_TIMESTAMP_MSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TX_START_TIMESTAMP_MSB
+#define WLAN_MAC_REG_STATUS					XPAR_WLAN_MAC_HW_MEMMAP_STATUS
+#define WLAN_MAC_REG_TIMESTAMP_MSB			XPAR_WLAN_MAC_HW_MEMMAP_TIMESTAMP_MSB
+#define WLAN_MAC_REG_TIMESTAMP_LSB			XPAR_WLAN_MAC_HW_MEMMAP_TIMESTAMP_LSB
+#define WLAN_MAC_REG_LATEST_RX_BYTE			XPAR_WLAN_MAC_HW_MEMMAP_LATEST_RX_BYTE
+#define WLAN_MAC_REG_PHY_RX_PARAMS			XPAR_WLAN_MAC_HW_MEMMAP_PHY_RX_PARAMS
+#define WLAN_MAC_REG_BACKOFF_COUNTER		XPAR_WLAN_MAC_HW_MEMMAP_BACKOFF_COUNTER
+#define WLAN_MAC_REG_RX_TIMESTAMP_LSB		XPAR_WLAN_MAC_HW_MEMMAP_RX_START_TIMESTAMP_LSB
+#define WLAN_MAC_REG_RX_TIMESTAMP_MSB		XPAR_WLAN_MAC_HW_MEMMAP_RX_START_TIMESTAMP_MSB
+#define WLAN_MAC_REG_TX_TIMESTAMP_LSB		XPAR_WLAN_MAC_HW_MEMMAP_TX_START_TIMESTAMP_LSB
+#define WLAN_MAC_REG_TX_TIMESTAMP_MSB		XPAR_WLAN_MAC_HW_MEMMAP_TX_START_TIMESTAMP_MSB
 
 //RW:
-#define WLAN_MAC_REG_AUTO_TX_PARAMS			XPAR_WLAN_MAC_DCF_HW_MEMMAP_AUTO_TX_PARAMS
-#define WLAN_MAC_REG_CALIB_TIMES			XPAR_WLAN_MAC_DCF_HW_MEMMAP_CALIB_TIMES
-#define WLAN_MAC_REG_IFS_1					XPAR_WLAN_MAC_DCF_HW_MEMMAP_IFS_INTERVALS1
-#define WLAN_MAC_REG_IFS_2					XPAR_WLAN_MAC_DCF_HW_MEMMAP_IFS_INTERVALS2
-#define WLAN_MAC_REG_MPDU_TX_START			XPAR_WLAN_MAC_DCF_HW_MEMMAP_TX_START
-#define WLAN_MAC_REG_MPDU_TX_PARAMS			XPAR_WLAN_MAC_DCF_HW_MEMMAP_MPDU_TX_PARAMS
-#define WLAN_MAC_REG_MPDU_TX_GAINS			XPAR_WLAN_MAC_DCF_HW_MEMMAP_MPDU_TX_GAINS
-#define WLAN_MAC_REG_AUTO_TX_GAINS			XPAR_WLAN_MAC_DCF_HW_MEMMAP_AUTO_TX_GAINS
-#define WLAN_MAC_REG_CONTROL				XPAR_WLAN_MAC_DCF_HW_MEMMAP_CONTROL
-#define WLAN_MAC_REG_SW_BACKOFF_CTRL		XPAR_WLAN_MAC_DCF_HW_MEMMAP_BACKOFF_CTRL
-#define WLAN_MAC_REG_SET_TIMESTAMP_LSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_SET_LSB
-#define WLAN_MAC_REG_SET_TIMESTAMP_MSB		XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_SET_MSB
-#define WLAN_MAC_REG_SET_TIMESTAMP_OFFSET	XPAR_WLAN_MAC_DCF_HW_MEMMAP_TIMESTAMP_INSERT_OFFSET
+#define WLAN_MAC_REG_TX_START				XPAR_WLAN_MAC_HW_MEMMAP_TX_START
+#define WLAN_MAC_REG_CALIB_TIMES			XPAR_WLAN_MAC_HW_MEMMAP_CALIB_TIMES
+#define WLAN_MAC_REG_IFS_1					XPAR_WLAN_MAC_HW_MEMMAP_IFS_INTERVALS1
+#define WLAN_MAC_REG_IFS_2					XPAR_WLAN_MAC_HW_MEMMAP_IFS_INTERVALS2
+#define WLAN_MAC_REG_CONTROL				XPAR_WLAN_MAC_HW_MEMMAP_CONTROL
+#define WLAN_MAC_REG_SW_BACKOFF_CTRL		XPAR_WLAN_MAC_HW_MEMMAP_BACKOFF_CTRL
+#define WLAN_MAC_REG_SET_TIMESTAMP_LSB		XPAR_WLAN_MAC_HW_MEMMAP_TIMESTAMP_SET_LSB
+#define WLAN_MAC_REG_SET_TIMESTAMP_MSB		XPAR_WLAN_MAC_HW_MEMMAP_TIMESTAMP_SET_MSB
+#define WLAN_MAC_REG_SET_TIMESTAMP_OFFSET	XPAR_WLAN_MAC_HW_MEMMAP_TIMESTAMP_INSERT_OFFSET
+#define WLAN_MAC_REG_TX_CTRL_A_PARAMS		XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_A_PARAMS
+#define WLAN_MAC_REG_TX_CTRL_A_GAINS		XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_A_GAINS
+#define WLAN_MAC_REG_TX_CTRL_B_PARAMS		XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_B_PARAMS
+#define WLAN_MAC_REG_TX_CTRL_B_GAINS		XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_B_GAINS
+#define WLAN_MAC_REG_POST_TX_TIMERS			XPAR_WLAN_MAC_HW_MEMMAP_POST_TX_TIMERS
+#define WLAN_MAC_REG_POST_RX_TIMERS			XPAR_WLAN_MAC_HW_MEMMAP_POST_RX_TIMERS
 
-//Bit-Field for STATUS register
-typedef union{
-	struct{
-		unsigned backoff_counter			:16; //b[15:0]
-		unsigned mpdu_tx_pending        	:1;  //b[16]
-		unsigned mpdu_tx_done		    	:1;  //b[17]
-		unsigned phy_tx_active		    	:1;  //b[18]
-		unsigned phy_rx_active		    	:1;  //b[19]
-		unsigned mpdu_tx_result		    	:2;  //b[21:20]
-		unsigned mpdu_tx_state		    	:3;  //b[24:22]
-		unsigned nav_busy			    	:1;  //b[25]
-		unsigned phy_cca_busy		    	:1;  //b[26]
-		unsigned auto_tx_pending	    	:1;  //b[27]
-		unsigned rx_fcs_good		    	:1;  //b[28]
-		unsigned rx_phy_blocked_fcs_good    :1;  //b[29]
-		unsigned rx_phy_blocked			    :1;  //b[30]
-		unsigned reserved                   :1;  //b[31]
-	};
-	u32 raw_value;
-} mac_status_reg_bf;
+#define WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_COUNTTO	0x00007FFF
+#define WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_EN		0x00008000
+#define WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_COUNTTO	0x7FFF0000
+#define WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_EN		0x80000000
 
+#define WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_COUNTTO	0x00007FFF
+#define WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_EN		0x00008000
+#define WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_COUNTTO	0x7FFF0000
+#define WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_EN		0x80000000
 
-#define WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS		(0)
-#define WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT	(1)
-#define WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED	(2)
+#define wlan_mac_set_postTx_timer1(d)		(Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ( (Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_COUNTTO) | ((d) & WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_COUNTTO))))
+#define wlan_mac_set_postTx_timer2(d)		(Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ( (Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_COUNTTO) | (((d)<<16) & WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_COUNTTO))))
+#define wlan_mac_set_postRx_timer1(d)		(Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ( (Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_COUNTTO) | ((d) & WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_COUNTTO))))
+#define wlan_mac_set_postRx_timer2(d)		(Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ( (Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_COUNTTO) | (((d)<<16) & WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_COUNTTO))))
 
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_IDLE 			(0)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_DO_TX 		(1)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_START_BO		(2)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_DEFER 		(3)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_POST_TX 		(4)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_POST_TX_WAIT 	(5)
-#define WLAN_MAC_STATUS_MPDU_TX_STATE_DONE		 	(6)
+#define wlan_mac_postTx_timer1_en(d)		(Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ( (Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_EN) | (d ? WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_EN : 0))))
+#define wlan_mac_postTx_timer2_en(d)		(Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ( (Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_EN) | (d ? WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_EN : 0))))
+#define wlan_mac_postRx_timer1_en(d)		(Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ( (Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_EN) | (d ? WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_EN : 0))))
+#define wlan_mac_postRx_timer2_en(d)		(Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ( (Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_EN) | (d ? WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_EN : 0))))
+
+//Bit masks for wlan_mac_hw STATUS register
+#define WLAN_MAC_STATUS_MASK_TX_A_PENDING			0x00000001 //b[0]
+#define WLAN_MAC_STATUS_MASK_TX_A_DONE				0x00000002 //b[1]
+#define WLAN_MAC_STATUS_MASK_TX_A_RESULT			0x0000000C //b[3:2]
+#define WLAN_MAC_STATUS_MASK_TX_A_STATE				0x00000070 //b[6:4]
+#define WLAN_MAC_STATUS_MASK_TX_B_PENDING			0x00000080 //b[7]
+#define WLAN_MAC_STATUS_MASK_TX_B_DONE				0x00000100 //b[8]
+#define WLAN_MAC_STATUS_MASK_TX_B_RESULT			0x00000600 //b[10:9]
+#define WLAN_MAC_STATUS_MASK_TX_B_STATE				0x00003800 //b[13:11]
+#define WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE			0x00004000 //b[14]
+#define WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE			0x00008000 //b[15]
+#define WLAN_MAC_STATUS_MASK_NAV_BUSY				0x00010000 //b[16]
+#define WLAN_MAC_STATUS_MASK_CCA_BUSY				0x00020000 //b[17]
+#define WLAN_MAC_STATUS_MASK_RX_FCS_GOOD			0x00040000 //b[18]
+#define WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD 0x00080000 //b[19]
+#define WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED			0x00100000 //b[20]
+#define WLAN_MAC_STATUS_MASK_NAV_ADDR_MATCHED		0x00200000 //b[21]
+#define WLAN_MAC_STATUS_MASK_POSTTX_TIMER2_RUNNING	0x00400000 //b[22]
+#define WLAN_MAC_STATUS_MASK_POSTTX_TIMER1_RUNNING	0x00800000 //b[23]
+#define WLAN_MAC_STATUS_MASK_POSTRX_TIMER2_RUNNING	0x01000000 //b[24]
+#define WLAN_MAC_STATUS_MASK_POSTRX_TIMER1_RUNNING	0x02000000 //b[25]
+
+#define WLAN_MAC_STATUS_TX_A_RESULT_NONE		(0 << 2) //FSM idle or still running
+#define WLAN_MAC_STATUS_TX_A_RESULT_TIMEOUT		(1 << 2) //FSM completed with postTx timer expiration
+#define WLAN_MAC_STATUS_TX_A_RESULT_RX_STARTED	(2 << 2) //FSM completed with PHY Rx starting
+
+#define WLAN_MAC_STATUS_TX_A_STATE_IDLE 		(0 << 4)
+#define WLAN_MAC_STATUS_TX_A_STATE_PRE_TX_WAIT	(1 << 4)
+#define WLAN_MAC_STATUS_TX_A_STATE_START_BO		(2 << 4)
+#define WLAN_MAC_STATUS_TX_A_STATE_DEFER 		(3 << 4)
+#define WLAN_MAC_STATUS_TX_A_STATE_DO_TX 		(4 << 4)
+#define WLAN_MAC_STATUS_TX_A_STATE_POST_TX 		(5 << 4)
+#define WLAN_MAC_STATUS_TX_A_STATE_POST_TX_WAIT (6 << 4)
+#define WLAN_MAC_STATUS_TX_A_STATE_DONE		 	(7 << 4)
+
+#define WLAN_MAC_STATUS_TX_B_RESULT_NONE		(0 << 9) //FSM idle or still running
+#define WLAN_MAC_STATUS_TX_B_RESULT_DID_TX		(1 << 9) //FSM completed with PHY Tx
+#define WLAN_MAC_STATUS_TX_B_RESULT_NO_TX		(2 << 9) //FSM completed, skipped PHY Tx
+
+#define WLAN_MAC_STATUS_TX_B_STATE_IDLE 		(0 << 11)
+#define WLAN_MAC_STATUS_TX_B_STATE_PRE_TX_WAIT	(1 << 11)
+#define WLAN_MAC_STATUS_TX_B_STATE_CHECK_NAV	(2 << 11)
+#define WLAN_MAC_STATUS_TX_B_STATE_DO_TX 		(3 << 11)
+#define WLAN_MAC_STATUS_TX_B_STATE_DONE		 	(4 << 11)
+
+//Bit masks for PHY_RX_PARAMS register
+#define WLAN_MAC_PHY_RX_PARAMS_MASK_LENGTH			0x0000FFFF //b[15:0]
+#define WLAN_MAC_PHY_RX_PARAMS_MASK_MCS				0x003F0000 //b[22:16]
+#define WLAN_MAC_PHY_RX_PARAMS_MASK_UNSUPPORTED		0x00800000 //b[23]
+#define WLAN_MAC_PHY_RX_PARAMS_MASK_RX_ERROR		0x01000000 //b[24]
+#define WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_MODE		0x0E000000 //b[27:25]
+#define WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID	0x10000000 //b[28]
+#define WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_SEL			0x20000000 //b[29]
+
+#define WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_OFDM			0x00000000
+#define WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS			0x20000000
+
+#define WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11AG		0x1
+#define WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11N			0x2
+#define WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11AC		0x8
 
 //Bit masks for CONTROL register
 #define WLAN_MAC_CTRL_MASK_RESET					0x001
@@ -116,7 +166,6 @@ typedef union{
 // b[15:0]: EIFS
 // b[31:16]: ACK Timeout
 #define wlan_mac_set_EIFS(d) Xil_Out32(WLAN_MAC_REG_IFS_2, ((Xil_In32(WLAN_MAC_REG_IFS_2) & (~0x0000FFFF)) | ((d) & 0x0000FFFF)))
-#define wlan_mac_set_timeout(d) Xil_Out32(WLAN_MAC_REG_IFS_2, ((Xil_In32(WLAN_MAC_REG_IFS_2) & (~0xFFFF0000)) | (((d)<<16) & 0xFFFF0000)))
 
 //WLAN_MAC_CALIB_TIMES:
 // b[9:0]: TxDIFS
@@ -124,63 +173,70 @@ typedef union{
 #define wlan_mac_set_TxDIFS(d) Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0x000003FF)) | ((d) & 0x000003FF)))
 #define wlan_mac_set_NAV_adj(d) Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0xFF000000)) | (((d)<<20) & 0xFF000000)))
 
-//WLAN_MAC_REG_AUTO_TX_PARAMS:
+//TX_CTRL_A_PARAMS:
 // b[3:0]: Pkt buf
-// b[13:4]: Pre-auto-Tx delay (MAC_SIFS)
-// b[23:20]: Tx ant mask
-// b[31]: Auto-Tx en
-#define wlan_mac_auto_tx_params(pktBuf, preTx_delay, antMask) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS, ( \
-																				 (pktBuf) & 0xF) | \
-																				 (((antMask) & 0xF)<<20) | \
-																				 (((preTx_delay) & 0x3FF) << 4))
+// b[7:4]: Tx ant mask
+// b[23:8]: Num backoff slots
+// b[24]: Pre-Wait for PostRx Timer 1
+// b[25]: Pre-Wait for PostTx Timer 1
+// b[26]: Post-Wait for PostTx Timer 2
+#define wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2) \
+	Xil_Out32(WLAN_MAC_REG_TX_CTRL_A_PARAMS, \
+		((pktBuf & 0xF) | \
+		((antMask & 0xF) << 4) | \
+		((preTx_backoff_slots & 0xFFFF) << 8) | \
+		((preWait_postRxTimer1 & 0x1) << 24) | \
+		((preWait_postTxTimer1 & 0x1) << 25) | \
+		((postWait_postTxTimer2 & 0x1) << 26)))
+
+////TX_CTRL_A_GAINS
+// b[0:5]: RFA Tx gain
+// b[6:11]: RFB Tx gain
+// b[12:17]: RFC Tx gain
+// b[18:23]: RFD Tx gain
+#define wlan_mac_tx_ctrl_A_gains(rf_a, rf_b, rf_c, rf_d) \
+	Xil_Out32(WLAN_MAC_REG_TX_CTRL_A_GAINS, \
+			((rf_a & 0x3F) | \
+			((rf_b & 0x3F) << 6) | \
+			((rf_c & 0x3F) << 12) | \
+			((rf_d & 0x3F) << 18)))
+
+//TX_CTRL_B_PARAMS:
+// b[3:0]: Pkt buf
+// b[7:4]: Tx ant mask
+// b[8]: Pre-Wait for PostRx Timer 1
+// b[9]: Pre-Wait for PostRx Timer 2
+// b[10]: Post-Wait for PostTx Timer 1
+// b[11]: Require NAV=0 at Tx time (otherwise skip Tx)
+#define wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1) \
+	Xil_Out32(WLAN_MAC_REG_TX_CTRL_B_PARAMS, \
+		((pktBuf & 0xF) | \
+		((antMask & 0xF) << 4) | \
+		((preWait_postRxTimer1 & 0x1) << 8) | \
+		((preWait_postRxTimer2 & 0x1) << 9) | \
+		((postWait_postTxTimer1 & 0x1) << 10) | \
+		((req_zeroNAV & 0x1) << 11)))
+
+//TX_CTRL_B_GAINS
+// b[0:5]: RFA Tx gain
+// b[6:11]: RFB Tx gain
+// b[12:17]: RFC Tx gain
+// b[18:23]: RFD Tx gain
+#define wlan_mac_tx_ctrl_B_gains(rf_a, rf_b, rf_c, rf_d) \
+	Xil_Out32(WLAN_MAC_REG_TX_CTRL_B_GAINS, \
+			((rf_a & 0x3F) | \
+			((rf_b & 0x3F) << 6) | \
+			((rf_c & 0x3F) << 12) | \
+			((rf_d & 0x3F) << 18)))
+
+//TX_START
+// b[0]: Tx CTRL A Start
+// b[1]: Tx CTRL B Start
+#define wlan_mac_tx_ctrl_A_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~0x1) | (x & 0x1)))
+#define wlan_mac_tx_ctrl_B_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~0x2) | (x & 0x2)))
 
 #define wlan_mac_set_timestamp_offset(d) Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_OFFSET, d)
 #define wlan_mac_get_timestamp_offset() Xil_In32(WLAN_MAC_REG_SET_TIMESTAMP_OFFSET)
-																				 
-																				 
-//WLAN_MAC_REG_AUTO_TX_GAINS
-// b[0:5]: RFA Tx gain
-// b[6:11]: RFB Tx gain
-// b[12:17]: RFC Tx gain
-// b[18:23]: RFD Tx gain
-
-#define wlan_mac_set_auto_tx_gains(rf_a, rf_b, rf_c, rf_d) \
-	Xil_Out32(WLAN_MAC_REG_AUTO_TX_GAINS, \
-			(rf_a & 0x3F) | \
-			((rf_b & 0x3F) << 6) | \
-			((rf_c & 0x3F) << 12) | \
-			((rf_d & 0x3F) << 18))
-
-#define wlan_mac_auto_tx_en(x) Xil_Out32(WLAN_MAC_REG_AUTO_TX_PARAMS,((Xil_In32(WLAN_MAC_REG_AUTO_TX_PARAMS) & 0x7FFFFFFF)) | (((x) & 0x1) << 31))
-
-//WLAN_MAC_MPDU_TX_PARAMS:
-// b[3:0]: Pkt buf
-// b[7:4]: Ant mask (0x1=RFA, 0x2=RFB)
-// b[23:8]: Num pre-Tx backoff slots
-// b[24]: Start post-Tx timeout
-
-#define wlan_mac_MPDU_tx_params(pktBuf, preTx_backoff_slots, postTx_timeout_req, antMask) \
-	Xil_Out32(WLAN_MAC_REG_MPDU_TX_PARAMS, \
-			(pktBuf & 0xF) | \
-			((antMask & 0xF) << 4) | \
-			((preTx_backoff_slots & 0xFFFF) << 8) | \
-			((postTx_timeout_req & 0x1) << 24))
-
-//WLAN_MAC_REG_MPDU_TX_GAINS
-// b[0:5]: RFA Tx gain
-// b[6:11]: RFB Tx gain
-// b[12:17]: RFC Tx gain
-// b[18:23]: RFD Tx gain
-
-#define wlan_mac_MPDU_tx_gains(rf_a, rf_b, rf_c, rf_d) \
-	Xil_Out32(WLAN_MAC_REG_MPDU_TX_GAINS, \
-			(rf_a & 0x3F) | \
-			((rf_b & 0x3F) << 6) | \
-			((rf_c & 0x3F) << 12) | \
-			((rf_d & 0x3F) << 18))
-			
-			
-#define wlan_mac_MPDU_tx_start(x) Xil_Out32(WLAN_MAC_REG_MPDU_TX_START, (x&0x1))
 
 #define wlan_mac_reset(x) Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | (WLAN_MAC_CTRL_MASK_RESET & x))
 
@@ -188,24 +244,31 @@ typedef union{
 #define wlan_mac_get_last_byte() ((Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0x3FC000) >> 14)
 
 #define wlan_mac_get_status() (Xil_In32(WLAN_MAC_REG_STATUS))
-#define wlan_mac_get_backoff_count (Xil_In32(WLAN_MAC_REG_STATUS) & WLAN_MAC_STATUS_MASK_BACKOFF_COUNTER)
+#define wlan_mac_get_backoff_count() (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTER) & 0xFFFF)
 
-//WLAN_MAC_REG_RX_RATE_LENGTH:
-// b[11:0]: Rx Length (in bytes)
-// b[19:17]: Rx rate (4-bit code)
-// b[24]: Rx PHY sel (1=OFDM, 0=DSSS)
-#define wlan_mac_get_rx_phy_length() (Xil_In32(WLAN_MAC_REG_RX_RATE_LENGTH) & 0xFFF)
-#define wlan_mac_get_rx_phy_rate() ((Xil_In32(WLAN_MAC_REG_RX_RATE_LENGTH) & 0xF0000) >> 16)
-#define wlan_mac_get_rx_phy_sel() ((Xil_In32(WLAN_MAC_REG_RX_RATE_LENGTH) & 0x1000000) >> 24)
+//RX_PHY_PARAMS Register:
+// b[15:0] Length
+// b[22:16] MCS
+// b[23] Unsupported
+// b[24] Rx Error
+// b[27:25] Rx PHY Mode ([1,2,4] = [11a,11n,11ac])
+// b[28] Rx params valid
+// b[29] Rx PHY Sel (0=OFDM, 1=DSSS)
+#define wlan_mac_get_rx_params() 			 (Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS))
+#define wlan_mac_get_rx_phy_length()		 (Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_LENGTH)
+#define wlan_mac_get_rx_phy_mcs() 			((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_MCS) >> 16)
+#define wlan_mac_get_rx_phy_sel() 			((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_SEL))
+#define wlan_mac_get_rx_phy_mode() 			((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_MODE) >> 25)
+#define wlan_mac_get_rx_phy_params_valid() 	((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID))
+
+//Use invalid MCS (127) to indicate DSSS
+#define WLAN_MAC_MCS_DSSS	0x3F
 
 #define T_SIFS 10
 #define T_DIFS (T_SIFS + 2*T_SLOT)
 #define T_EIFS 88
 #define T_PHY_RX_START_DLY 25
 #define T_TIMEOUT (T_SIFS+T_SLOT+T_PHY_RX_START_DLY)
-
-#define WLAN_RX_PHY_DSSS	0
-#define WLAN_RX_PHY_OFDM	1
 
 #define POLL_MAC_STATUS_RECEIVED_PKT	0x00000001 //b[0]
 #define POLL_MAC_STATUS_GOOD  		 	0x00000002 //b[1]

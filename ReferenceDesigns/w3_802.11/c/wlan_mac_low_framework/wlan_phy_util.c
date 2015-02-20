@@ -339,15 +339,12 @@ void wlan_phy_init() {
 
 	//Configure auto-corr pkt det autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
 
-//	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 150, 4, 0x3F); //pre v47: energy_thresh was UFix14_8, now UFix14_4
 	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
 
 	//Configure the default antenna selections as SISO Tx/Rx on RF A
 	wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
 	//Set physical carrier sensing threshold
-
-
 	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * wlan_mac_low_rx_power_to_rssi(-62)); //-62dBm from 802.11-2012
 
 	//Set post Rx extension (number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for decoding latency at 64QAM 3/4)

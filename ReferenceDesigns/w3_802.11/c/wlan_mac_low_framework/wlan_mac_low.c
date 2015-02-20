@@ -92,8 +92,7 @@ int wlan_mac_low_init(u32 type){
 	// TODO: This value should offset forward to the time when the timestamp bytes in the beacon are transmitter
 	wlan_mac_set_timestamp_offset(0);
 
-	//wlan_phy_tx_timestamp_ins_start(24);
-	//wlan_phy_tx_timestamp_ins_end(31);
+	//Disable timestamp insertion by default (start>end == disabled)
 	wlan_phy_tx_timestamp_ins_start(1);
 	wlan_phy_tx_timestamp_ins_end(0);
 
@@ -189,7 +188,14 @@ void wlan_mac_low_dcf_init(){
 	wlan_mac_set_slot(T_SLOT*10);
 	wlan_mac_set_DIFS((T_DIFS)*10);
 	wlan_mac_set_TxDIFS(((T_DIFS)*10) - (TX_PHY_DLY_100NSEC));
-	wlan_mac_set_timeout(T_TIMEOUT*10);
+
+	//Use postTx timer 2 for ACK timeout
+	wlan_mac_set_postTx_timer2(T_TIMEOUT * 10);
+	wlan_mac_postTx_timer2_en(1);
+
+	//Use postRx timer 1 for SIFS
+	wlan_mac_set_postRx_timer1((T_SIFS*10)-(TX_PHY_DLY_100NSEC));
+	wlan_mac_postRx_timer1_en(1);
 
 	//TODO: NAV adjust needs verification
 	//NAV adjust time - signed char (Fix8_0) value
@@ -917,68 +923,58 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
  */
 inline u32 wlan_mac_low_poll_frame_rx(){
 	u32 return_status = 0;
-	u32 rate, length;
+	u32 mcs, length;
+	u32 phy_mode; //FIXME - Rx callback needs PHY mode - use separate arg, or include in MCS upper bits?
 
 	//Read the MAC/PHY status
-	mac_status_reg_bf mac_hw_status;
-	mac_hw_status.raw_value = wlan_mac_get_status();
+	u32 mac_hw_status;
+	u32 mac_hw_phy_rx_params;
 
+	mac_hw_status = wlan_mac_get_status();
 
 	//Check if PHY is currently receiving or has finished receiving
-	if( (mac_hw_status.phy_rx_active == 1) || (mac_hw_status.rx_phy_blocked_fcs_good == 1) || (mac_hw_status.rx_phy_blocked == 1) ) {
+	if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
 
-		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
-
-		length = wlan_mac_get_rx_phy_length(); //MPDU length (incl. 802.11 header + WLAN_PHY_FCS_NBYTES)
-		rate =  wlan_mac_get_rx_phy_rate();
-
-		//Translate the PHY's rate code (from the SIGNAL field) into a rate index for use by the MAC
-		switch(rate){
-			case WLAN_PHY_RATE_DSSS_1M:
-				rate = WLAN_MAC_RATE_1M;
-			break;
-			case WLAN_PHY_RATE_BPSK12:
-				rate = WLAN_MAC_RATE_6M;
-			break;
-			case WLAN_PHY_RATE_BPSK34:
-				rate = WLAN_MAC_RATE_9M;
-			break;
-			case WLAN_PHY_RATE_QPSK12:
-				rate = WLAN_MAC_RATE_12M;
-			break;
-			case WLAN_PHY_RATE_QPSK34:
-				rate = WLAN_MAC_RATE_18M;
-			break;
-			case WLAN_PHY_RATE_16QAM12:
-				rate = WLAN_MAC_RATE_24M;
-			break;
-			case WLAN_PHY_RATE_16QAM34:
-				rate = WLAN_MAC_RATE_36M;
-			break;
-			case WLAN_PHY_RATE_64QAM23:
-				rate = WLAN_MAC_RATE_48M;
-			break;
-			case WLAN_PHY_RATE_64QAM34:
-				rate = WLAN_MAC_RATE_54M;
-			break;
-			default:
-				//Assume DSSS if PHY-reported rate was somehow invalid
-				rate = WLAN_MAC_RATE_1M;
-			break;
-		}
-
-		if(wlan_mac_get_rx_phy_sel() == WLAN_RX_PHY_OFDM) {
-			//OFDM packet is being received
-
-			return_status |= frame_rx_callback(rx_pkt_buf, rate, length);
-		} else {
-			//DSSS packet is being received
+		//Check whether this is an OFDM or DSSS Rx
+		if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS) {
+			//DSSS Rx - PHY Rx length is alread valid, other params unused for DSSS
 
 			//Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
 			// function to treat OFDM and DSSS payloads the same
-			length = length-5;
+			length = wlan_mac_get_rx_phy_length() - 5;
 
-			return_status |= frame_rx_callback(rx_pkt_buf, rate, length);
+			mcs = WLAN_MAC_MCS_DSSS;
+
+			//Call the user callback to handle this Rx, capture return value
+			return_status |= frame_rx_callback(rx_pkt_buf, mcs, length);
+
+		} else {
+			//OFDM Rx - must wait for PHY_RX_PARAMS to be valid before reading mcs/length
+			do {
+				mac_hw_phy_rx_params = wlan_mac_get_rx_params();
+			} while((mac_hw_phy_rx_params & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID) == 0);
+
+			//Check if PHY is continuing Rx (11a: valid SIGNAL, 11n: valid+supported HT-SIG)
+			if( (mac_hw_phy_rx_params & (WLAN_MAC_PHY_RX_PARAMS_MASK_UNSUPPORTED | WLAN_MAC_PHY_RX_PARAMS_MASK_RX_ERROR))) {
+				//PHY is not processing this Rx - do not call user callback
+				return_status |= 0; //FIXME - how to communicate no-Rx result to caller?
+
+				//Wait for PHY to finish, then clear block
+				do {
+					mac_hw_status = wlan_mac_get_status();
+				} while(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE);
+
+				wlan_mac_dcf_hw_unblock_rx_phy();
+
+			} else {
+				//PHY is processing this Rx - read mcs/length/phy-mode
+				phy_mode = wlan_mac_get_rx_phy_mode();
+				length = wlan_mac_get_rx_phy_length();
+				mcs = wlan_mac_get_rx_phy_mcs();
+
+				//Call the user callback to handle this Rx, capture return value
+				return_status |= frame_rx_callback(rx_pkt_buf, mcs, length);
+			}
 		}
 
 		//Current frame_rx_callback() always unblocks PHY
@@ -1213,22 +1209,18 @@ void wlan_mac_dcf_hw_unblock_rx_phy() {
  * - FCS status (RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD)
  */
 inline u32 wlan_mac_dcf_hw_rx_finish(){
-	mac_status_reg_bf mac_hw_status;
-	mac_hw_status.raw_value = 0;
+	u32 mac_hw_status;
 
 	//Wait for the packet to finish
 	do{
-		mac_hw_status.raw_value = wlan_mac_get_status();
-	} while( mac_hw_status.phy_rx_active == 1 );
+		mac_hw_status = wlan_mac_get_status();
+	} while( mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE );
 
 	//Check FCS
-	if( mac_hw_status.rx_fcs_good == 1 ) {
+	if( mac_hw_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD ) {
 		return RX_MPDU_STATE_FCS_GOOD;
 
 	} else {
-		//Ensure auto-Tx logic is disabled if FCS was bad
-		// Actual MAC code above should do the same thing - no harm disabling twice
-		wlan_mac_auto_tx_en(0);
 		return RX_MPDU_STATE_FCS_BAD;
 	}
 }
