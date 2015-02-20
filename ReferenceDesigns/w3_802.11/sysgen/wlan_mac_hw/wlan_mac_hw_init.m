@@ -2,22 +2,19 @@ addpath('./mcode_blocks');
 
 %Maximum interval values in usec
 % These determine bit widths of counters
-MAX_SIFS = 63;
 MAX_SLOT = 63;
 MAX_DIFS = 63;
 MAX_EIFS = 255;
-MAX_ACKTIMEOUT = 255;
 MAX_NAV = 4095;
 MAX_NUM_SLOTS = 2^16-1;
 
 %Calculate bit widths
 % All counters run at 160MHz (1/160 usec)
-NB_CNTR_SIFS = ceil(log2(MAX_SIFS * 160));
 NB_CNTR_SLOT = ceil(log2(MAX_SLOT * 160));
 NB_CNTR_DIFS = max(ceil(log2(MAX_DIFS * 160)), ceil(log2(MAX_EIFS * 160)));
-NB_CNTR_ACKTIMEOUT = ceil(log2(MAX_ACKTIMEOUT * 160));
 NB_CNTR_NAV = ceil(log2(MAX_NAV * 160));
 NB_CNTR_NUM_SLOTS = ceil(log2(MAX_NUM_SLOTS));
+NB_CNTR_POSTRX = 19; %big enough for SIFS and timeout
 
 %Max hardware latencies, used to calculate various MAC intervals
 PHY_RX_START_DLY = 25;
@@ -112,4 +109,24 @@ REG_MAC_Control = ...
     2^8  * (0) + ... %b[8] Ignore Tx PHY active for CCA
     2^9  * (0) + ... %b[9] Ignore NAV for CCA
     0;
-    
+
+%Match 40-d8-55-04-21-4a
+%REG_NAV_Match_Addr_1 = hex2dec('0455d840');
+%REG_NAV_Match_Addr_2 = hex2dec('00004a21');
+
+%Default to zeros - won't match anything until overwritten by software
+REG_NAV_Match_Addr_1 = 0;
+REG_NAV_Match_Addr_2 = 0;
+
+mac_sim_rx_data_b.time = [];
+mac_sim_rx_data_b.signals.values = sscanf('48 11 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 4a f0 92 f7 db e5 d9 ', '%02x');
+NUM_BYTES = length(mac_sim_rx_data_b.signals.values);
+
+mac_sim_rx_data_valid.time = [];
+mac_sim_rx_data_valid.signals.values = [zeros(1, NUM_BYTES) ones(1, NUM_BYTES) zeros(1, NUM_BYTES)].';
+
+mac_sim_rx_data_addr.time = [];
+mac_sim_rx_data_addr.signals.values = [zeros(1, NUM_BYTES) 0:NUM_BYTES-1 zeros(1, NUM_BYTES)].';
+
+
+

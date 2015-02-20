@@ -37,11 +37,11 @@ clear ADC_I ADC_Q;
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_01_bw_0_len_0100.mat'); wlan_tx_out = sig.';
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_03_bw_0_len_0100.mat'); wlan_tx_out = sig.';
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_06_bw_0_len_0000.mat'); wlan_tx_out = sig.';
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
+load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
 
 %Unsuported MCS's
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sum(sig).'; %Rx=Tx1+Tx2
-load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sig(1,:).'; %Rx=Tx1
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sig(1,:).'; %Rx=Tx1
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig(1,:).']; %Append Rx=Tx1
 
 tx_sig_t = [1:length(wlan_tx_out)];
@@ -73,7 +73,7 @@ MAX_NUM_SC = 64;
 MAX_CP_LEN = 32;
 MAX_NUM_SAMPS = 50e3;
 MAX_NUM_SYMS = 600;
-MAX_NUM_BYTES = 4096;
+MAX_NUM_BYTES = 2^16-1;
 
 %PHY params - used as default values in registers
 PHY_CONFIG_NUM_SC = 64;
@@ -213,7 +213,7 @@ REG_RX_Config = ...
     2^14 * 0 + ... %PHY CCA mode (0=any, 1=all)
     2^15 * 0 + ... %Manual ant sel when sel div disabled (2-bits, 00=RFA)
     2^17 * 2 + ... %Max SIGNAL.LENGTH value, in kB (UFix4_0)
-    2^21 * 0 + ... %Require pkt det on RF A and B
+    2^21 * 0 + ... %Require auto-corr and RSSI pkt det
     2^22 * 0 + ... %Rate-Length Busy holds pkt det high
     0;
 
