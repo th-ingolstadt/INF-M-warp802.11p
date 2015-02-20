@@ -130,7 +130,8 @@ typedef struct{
 
 //Warning: DSSS rate is only valid for Rx. There is no DSSS transmitter.
 //0x66 is an arbitrary value which cannot be confused with another PHY rate
-#define WLAN_MAC_RATE_1M	0x66
+#define WLAN_MAC_RATE_1M	0x66 //FIXME: We've overloaded a few values for this. See WLAN_MAC_MCS_DSSS. Also
+								 //the PHY mode itself is encoded directly now, so we may not need a magic number
 
 #define WLAN_MAC_RATE_6M	1
 #define WLAN_MAC_RATE_9M	2
