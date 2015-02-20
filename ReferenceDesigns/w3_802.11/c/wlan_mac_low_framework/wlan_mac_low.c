@@ -923,8 +923,7 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
  */
 inline u32 wlan_mac_low_poll_frame_rx(){
 	u32 return_status = 0;
-	u32 mcs, length;
-	u32 phy_mode; //FIXME - Rx callback needs PHY mode - use separate arg, or include in MCS upper bits?
+	phy_rx_details phy_details;
 
 	//Read the MAC/PHY status
 	u32 mac_hw_status;
@@ -938,15 +937,15 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 		//Check whether this is an OFDM or DSSS Rx
 		if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS) {
 			//DSSS Rx - PHY Rx length is alread valid, other params unused for DSSS
+			phy_details.phy_mode = PHY_RX_DETAILS_MODE_DSSS;
 
 			//Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
 			// function to treat OFDM and DSSS payloads the same
-			length = wlan_mac_get_rx_phy_length() - 5;
-
-			mcs = WLAN_MAC_MCS_DSSS;
+			phy_details.length = wlan_mac_get_rx_phy_length() - 5;
+			phy_details.mcs = WLAN_MAC_MCS_DSSS;
 
 			//Call the user callback to handle this Rx, capture return value
-			return_status |= frame_rx_callback(rx_pkt_buf, mcs, length);
+			return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
 
 		} else {
 			//OFDM Rx - must wait for PHY_RX_PARAMS to be valid before reading mcs/length
@@ -968,12 +967,12 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 			} else {
 				//PHY is processing this Rx - read mcs/length/phy-mode
-				phy_mode = wlan_mac_get_rx_phy_mode();
-				length = wlan_mac_get_rx_phy_length();
-				mcs = wlan_mac_get_rx_phy_mcs();
+				phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
+				phy_details.length = wlan_mac_get_rx_phy_length();
+				phy_details.mcs = wlan_mac_get_rx_phy_mcs();
 
 				//Call the user callback to handle this Rx, capture return value
-				return_status |= frame_rx_callback(rx_pkt_buf, mcs, length);
+				return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
 			}
 		}
 
