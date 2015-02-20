@@ -151,7 +151,7 @@ typedef struct{
 #define PHY_RX_PKT_BUF_PHY_HDR_OFFSET (sizeof(rx_frame_info))
 #define PHY_TX_PKT_BUF_PHY_HDR_OFFSET (sizeof(tx_frame_info))
 
-#define PHY_RX_PKT_BUF_PHY_HDR_SIZE 0x8
+#define PHY_RX_PKT_BUF_PHY_HDR_SIZE 0x10 //Was 0x8 through release v1.2 / xps v48
 #define PHY_TX_PKT_BUF_PHY_HDR_SIZE 0x8
 
 #define PHY_RX_PKT_BUF_MPDU_OFFSET (PHY_RX_PKT_BUF_PHY_HDR_SIZE+PHY_RX_PKT_BUF_PHY_HDR_OFFSET)
