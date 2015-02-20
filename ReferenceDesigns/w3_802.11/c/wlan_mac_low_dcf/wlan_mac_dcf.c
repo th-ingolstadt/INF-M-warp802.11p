@@ -160,8 +160,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
 
-	mac_status_reg_bf mac_hw_status;
-	mac_hw_status.raw_value = 0;
+	u32 mac_hw_status;
 
 	//Translate Rx pkt buf index into actual memory address
 	void* pkt_buf_addr = (void *)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
@@ -255,11 +254,13 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		//the subsystem.
 
 		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
-		wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC))), ack_tx_ant_mask);
+		//wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
+		wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK, ack_tx_ant_mask, 0, 1, 0, 0);
+		//wlan_mac_auto_tx_params(TX_PKT_BUF_ACK, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC))), ack_tx_ant_mask);
 		
 		//ACKs are transmitted with a nominal Tx power used for all control packets
 		ack_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
-		wlan_mac_set_auto_tx_gains(ack_tx_gain, ack_tx_gain, ack_tx_gain, ack_tx_gain);
+		wlan_mac_tx_ctrl_B_gains(ack_tx_gain, ack_tx_gain, ack_tx_gain, ack_tx_gain);
 
 		//Construct the ACK frame in the dedicated Tx pkt buf
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
@@ -269,8 +270,8 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 		//Enable the Auto-Tx subsystem
 		// Auto-Tx enable requires rising edge; one rising edge results in 0 or 1 transmissions, depending on Rx FCS
-		wlan_mac_auto_tx_en(0);
-		wlan_mac_auto_tx_en(1);
+		//wlan_mac_auto_tx_en(0);
+		//wlan_mac_auto_tx_en(1);
 	}
 
 	//Check if this reception is an ACK
@@ -364,6 +365,10 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 		//Update packet metadata to indicate whether this reception was ACK'd and if it was a re-transmission
 		if(!WLAN_IS_CTRL_FRAME(rx_header)){
 			if(unicast_to_me){
+				//FIXME - is this too late to enable Tx ctrl B? PostRx timer 2 (SIFS) must still be running
+				wlan_mac_tx_ctrl_B_start(1);
+				wlan_mac_tx_ctrl_B_start(0);
+
 				//This good FCS, unicast, noncontrol packet was ACKed.
 				mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
 			}
@@ -414,9 +419,8 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 
 	//If auto-tx ACK is currently transmitting, wait for it to finish before returning
     do{
-    	mac_hw_status.raw_value = wlan_mac_get_status();
-    } while(mac_hw_status.auto_tx_pending == 1);
-
+    	mac_hw_status = wlan_mac_get_status();
+    } while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
 
 	return return_value;
 }
@@ -457,8 +461,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	mac_header_80211* header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	u64 autocancel_curr_timestamp;
 	u64 autocancel_timestamp_diff;
-	mac_status_reg_bf mac_hw_status;
-	mac_hw_status.raw_value = 0;
+	u32 mac_hw_status;
 
 	//Remember the starting time, used to calculate the actual timestamps of each Tx below
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
@@ -529,7 +532,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 		//Configure the Tx power - update all antennas, even though only one will be used
 		curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
-		wlan_mac_MPDU_tx_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
+		wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 
 		if(i == 0) {
 			//This is the first transmission, so we speculatively draw a backoff in case
@@ -554,24 +557,27 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			}
 
 			//Configure the DCF core Tx state machine for this transmission
-			wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
+			//wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
+			//wlan_mac_MPDU_tx_params(pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
+			wlan_mac_tx_ctrl_A_params(pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout);
 		} else {
 			//Re-transmission (loop index > 0)
 			//Configure the DCF core Tx state machine for this transmission
 			// preTx_backoff_slots is 0 here, since the core will have started a post-timeout backoff automatically
-			wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
+			//wlan_mac_MPDU_tx_params(pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
+			wlan_mac_tx_ctrl_A_params(pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout);
 		}
 		
 		//Wait for the Tx PHY to be idle
 		//Actually waiting here is rare, but handles corner cases like a background ACK transmission at a low rate
 		// overlapping the attempt to start a new packet transmission
 		do{
-			mac_hw_status.raw_value = wlan_mac_get_status();
-		} while(mac_hw_status.phy_tx_active == 1);
+			mac_hw_status = wlan_mac_get_status();
+		} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE);
 
 		//Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
-		wlan_mac_MPDU_tx_start(1);
-		wlan_mac_MPDU_tx_start(0);
+		wlan_mac_tx_ctrl_A_start(1);
+		wlan_mac_tx_ctrl_A_start(0);
 
 		//Wait for the MPDU Tx to finish
 		do{//while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING)
@@ -592,9 +598,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			}
 
 			//Poll the DCF core status register
-			mac_hw_status.raw_value = wlan_mac_get_status();
+			mac_hw_status = wlan_mac_get_status();
 
-			if( mac_hw_status.mpdu_tx_done == 1 ) {
+			if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE ) {
 			//Transmission is complete
 
 				//Update the Tx count in the metadata for this pkt
@@ -607,9 +613,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				}
 
 				//Switch on the result of the transmission attempt
-				switch( mac_hw_status.mpdu_tx_result ) {
+				switch( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT ) {
 
-					case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
+					case WLAN_MAC_STATUS_TX_A_RESULT_NONE:
 						//Transmission was immediately successful - this implies no post-Tx timeout was required,
 						// so the core didn't wait for any post-Tx receptions (i.e. multicast/broadcast transmission)
 
@@ -626,7 +632,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 						return 0;
 					break;
 
-					case WLAN_MAC_STATUS_MPDU_TX_RESULT_RX_STARTED:
+					case WLAN_MAC_STATUS_TX_A_RESULT_RX_STARTED:
 						//Transmission ended, followed by a new reception (hopefully an ACK)
 
 						expect_ack = 1;
@@ -664,7 +670,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 							continue;
 						}
 					break;
-					case WLAN_MAC_STATUS_MPDU_TX_RESULT_TIMED_OUT:
+					case WLAN_MAC_STATUS_TX_A_RESULT_TIMEOUT:
 						//Tx required timeout, timeout expired with no receptions
 
 						//Update the contention window, calling this transmission attempt a failure
@@ -682,7 +688,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			} else {
 
 				//Tx state machine still running - poll the MAC core status in case a reception occurred before the transmission could start
-				if( (mac_hw_status.phy_rx_active == 1) || (mac_hw_status.rx_phy_blocked_fcs_good == 1) || (mac_hw_status.rx_phy_blocked == 1) ) {
+				if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
 
 					//Handle the reception
 					rx_status = wlan_mac_low_poll_frame_rx();
@@ -697,7 +703,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 					}
 				}//END if(new Rx while waiting for Tx)
 			}//END if(Tx state machine done)
-		} while( mac_hw_status.mpdu_tx_pending == 1 );
+		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING );
 	} //end retransmission loop
 
 	//Reset the global variable
