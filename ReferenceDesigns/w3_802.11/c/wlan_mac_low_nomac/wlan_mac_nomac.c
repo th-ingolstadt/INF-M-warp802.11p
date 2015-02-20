@@ -203,8 +203,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	int curr_tx_pow;
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
-	mac_status_reg_bf mac_hw_status;
-	mac_hw_status.raw_value = 0;
+	u32 mac_hw_status;
 
 	//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 	wlan_phy_set_tx_signal(pkt_buf, rate, length);
@@ -232,20 +231,19 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 	curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
 
-	wlan_mac_MPDU_tx_params(pkt_buf, 0, 0, mpdu_tx_ant_mask);
+	//wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
+	wlan_mac_tx_ctrl_A_params(pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, 0);
 
 	//Set Tx Gains
-	wlan_mac_MPDU_tx_gains(curr_tx_pow,curr_tx_pow,curr_tx_pow,curr_tx_pow);
+	wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 
 	//Before we mess with any PHY state, we need to make sure it isn't actively
 	//transmitting. For example, it may be sending an ACK when we get to this part of the code
-	do{
-		mac_hw_status.raw_value = wlan_mac_get_status();
-	} while(mac_hw_status.phy_tx_active == 1);
+	while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE){}
 
 	//Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
-	wlan_mac_MPDU_tx_start(1);
-	wlan_mac_MPDU_tx_start(0);
+	wlan_mac_tx_ctrl_A_start(1);
+	wlan_mac_tx_ctrl_A_start(0);
 
 	//Wait for the MPDU Tx to finish
 	do{
@@ -257,21 +255,21 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			low_tx_details[0].num_slots = 0;
 			low_tx_details[0].cw = 0;
 		}
-		mac_hw_status.raw_value = wlan_mac_get_status();
+		mac_hw_status = wlan_mac_get_status();
 
-		if( mac_hw_status.mpdu_tx_done == 1 ) {
+		if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE) {
 			if( low_tx_details != NULL ){
 				low_tx_details[0].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
 				last_tx_timestamp = get_tx_start_timestamp();
 			}
 
-			switch( mac_hw_status.mpdu_tx_result ){
-				case WLAN_MAC_STATUS_MPDU_TX_RESULT_SUCCESS:
+			switch( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT ){
+				case WLAN_MAC_STATUS_TX_A_RESULT_NONE:
 					return 0;
 				break;
 			}
 		}
-	} while( mac_hw_status.mpdu_tx_pending == 1 );
+	} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING );
 
 	return -1;
 }
