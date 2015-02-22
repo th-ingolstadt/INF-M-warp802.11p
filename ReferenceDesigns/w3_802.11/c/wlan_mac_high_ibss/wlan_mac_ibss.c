@@ -57,7 +57,7 @@
 #define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_IBSS)
 #define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                    10
+#define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     15
 
 #define  SCAN_TIMEOUT_SEC                        5
@@ -138,7 +138,7 @@ int main() {
 
 	// Set default behavior
 	pause_data_queue       = 0;
-	enable_beacon_tx       = 1;
+	enable_beacon_tx       = 0;
 	allow_beacon_ts_update = 1;
 
 	// Set my_bss_info to NULL (ie IBSS is not currently on a BSS)
