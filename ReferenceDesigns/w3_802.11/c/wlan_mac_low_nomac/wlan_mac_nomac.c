@@ -198,6 +198,8 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
 	//This function manages the MAC_DCF_HW core.
 
+	//return 0; //disable all Tx
+
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 	u64 last_tx_timestamp;
 	int curr_tx_pow;
