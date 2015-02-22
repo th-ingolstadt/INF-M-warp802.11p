@@ -113,7 +113,7 @@ int w3_node_init() {
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
 		//Comment out allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
-		ret = XST_FAILURE;
+		//ret = XST_FAILURE;
 	}
 
 	//Initialize the EEPROM read/write core
@@ -316,6 +316,8 @@ void wlan_phy_init() {
 
 	//Enable writing OFDM chan ests to Rx pkt buffer
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_RECORD_CHAN_EST);
+
+	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET);
 
 	//Block Rx inputs during Tx
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);

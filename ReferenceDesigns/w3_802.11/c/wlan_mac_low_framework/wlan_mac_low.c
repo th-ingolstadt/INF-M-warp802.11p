@@ -31,6 +31,7 @@
 #include "wlan_exp.h"
 #include "wlan_mac_low.h"
 
+#define DBG_PRINT 0
 
 volatile static u32          mac_param_chan;                                        ///< Current channel of the lower-level MAC
 volatile static u8           mac_param_band;                                        ///< Current band of the lower-level MAC
@@ -135,6 +136,83 @@ int wlan_mac_low_init(u32 type){
 
 	return 0;
 }
+
+inline u32 wlan_mac_low_poll_frame_rx(){
+	u32 return_status = 0;
+	phy_rx_details phy_details;
+	int i;
+
+	//Read the MAC/PHY status
+	u32 mac_hw_status;
+	u32 mac_hw_phy_rx_params;
+
+	mac_hw_status = wlan_mac_get_status();
+
+	//Check if PHY is currently receiving or has finished receiving
+	if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
+		i = 0;
+		if(DBG_PRINT) xil_printf("MAC Rx: 0x%08x\n", mac_hw_status);
+		//Check whether this is an OFDM or DSSS Rx
+		if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS) {
+			//DSSS Rx - PHY Rx length is already valid, other params unused for DSSS
+			phy_details.phy_mode = PHY_RX_DETAILS_MODE_DSSS;
+
+			//Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
+			// function to treat OFDM and DSSS payloads the same
+			phy_details.length = wlan_mac_get_rx_phy_length() - 5;
+			phy_details.mcs = WLAN_MAC_MCS_DSSS;
+
+			if(DBG_PRINT) xil_printf("DSSS Rx callback: %d / %d / %d\n", phy_details.phy_mode, phy_details.length, phy_details.mcs);
+
+			//Call the user callback to handle this Rx, capture return value
+			return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
+
+			if(DBG_PRINT) xil_printf("DSSS Rx callback return: 0x%08x\n", return_status);
+
+		} else {
+			//OFDM Rx - must wait for PHY_RX_PARAMS to be valid before reading mcs/length
+			do {
+				mac_hw_phy_rx_params = wlan_mac_get_rx_params();
+				if(DBG_PRINT) xil_printf("MAC Rx Poll 1 (%4d): 0x%08x  0x%08x\n", i++, mac_hw_phy_rx_params, wlan_mac_get_status());
+
+			} while((mac_hw_phy_rx_params & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID) == 0);
+			i = 0;
+			//Check if PHY is continuing Rx (11a: valid SIGNAL, 11n: valid+supported HT-SIG)
+			if( (mac_hw_phy_rx_params & (WLAN_MAC_PHY_RX_PARAMS_MASK_UNSUPPORTED | WLAN_MAC_PHY_RX_PARAMS_MASK_RX_ERROR))) {
+				//PHY is not processing this Rx - do not call user callback
+				return_status |= 0; //FIXME - how to communicate no-Rx result to caller?
+
+				//Wait for PHY to finish, then clear block
+				do {
+					mac_hw_status = wlan_mac_get_status();
+					if(DBG_PRINT) xil_printf("MAC Rx Poll 2 (%4d): 0x%08x  0x%08x\n", i++, mac_hw_phy_rx_params, wlan_mac_get_status());
+				} while(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE);
+
+				wlan_mac_dcf_hw_unblock_rx_phy();
+
+			} else {
+				//PHY is processing this Rx - read mcs/length/phy-mode
+				phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
+				phy_details.length = wlan_mac_get_rx_phy_length();
+				phy_details.mcs = wlan_mac_get_rx_phy_mcs();
+
+				if(DBG_PRINT) xil_printf("OFDM Rx callback: %d / %d / %d\n", phy_details.phy_mode, phy_details.length, phy_details.mcs);
+
+				//Call the user callback to handle this Rx, capture return value
+				return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
+
+				if(DBG_PRINT) xil_printf("OFDM Rx callback return: 0x%08x\n", return_status);
+			}
+		}
+
+		//Current frame_rx_callback() always unblocks PHY
+		// uncomment this unblock_rx_phy if custom frame_rx_callback does not wait to unblock the PHY
+		//wlan_mac_dcf_hw_unblock_rx_phy();
+	}
+
+	return return_status;
+}
+
 
 u8 wlan_mac_low_get_cw_exp_min(){
 	return cw_exp_min;
@@ -921,70 +999,6 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
  * @return u32
  * 	- status flags about the reception
  */
-inline u32 wlan_mac_low_poll_frame_rx(){
-	u32 return_status = 0;
-	phy_rx_details phy_details;
-
-	//Read the MAC/PHY status
-	u32 mac_hw_status;
-	u32 mac_hw_phy_rx_params;
-
-	mac_hw_status = wlan_mac_get_status();
-
-	//Check if PHY is currently receiving or has finished receiving
-	if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
-
-		//Check whether this is an OFDM or DSSS Rx
-		if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS) {
-			//DSSS Rx - PHY Rx length is alread valid, other params unused for DSSS
-			phy_details.phy_mode = PHY_RX_DETAILS_MODE_DSSS;
-
-			//Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
-			// function to treat OFDM and DSSS payloads the same
-			phy_details.length = wlan_mac_get_rx_phy_length() - 5;
-			phy_details.mcs = WLAN_MAC_MCS_DSSS;
-
-			//Call the user callback to handle this Rx, capture return value
-			return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
-
-		} else {
-			//OFDM Rx - must wait for PHY_RX_PARAMS to be valid before reading mcs/length
-			do {
-				mac_hw_phy_rx_params = wlan_mac_get_rx_params();
-			} while((mac_hw_phy_rx_params & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID) == 0);
-
-			//Check if PHY is continuing Rx (11a: valid SIGNAL, 11n: valid+supported HT-SIG)
-			if( (mac_hw_phy_rx_params & (WLAN_MAC_PHY_RX_PARAMS_MASK_UNSUPPORTED | WLAN_MAC_PHY_RX_PARAMS_MASK_RX_ERROR))) {
-				//PHY is not processing this Rx - do not call user callback
-				return_status |= 0; //FIXME - how to communicate no-Rx result to caller?
-
-				//Wait for PHY to finish, then clear block
-				do {
-					mac_hw_status = wlan_mac_get_status();
-				} while(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE);
-
-				wlan_mac_dcf_hw_unblock_rx_phy();
-
-			} else {
-				//PHY is processing this Rx - read mcs/length/phy-mode
-				phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
-				phy_details.length = wlan_mac_get_rx_phy_length();
-				phy_details.mcs = wlan_mac_get_rx_phy_mcs();
-
-				//Call the user callback to handle this Rx, capture return value
-				return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
-			}
-		}
-
-		//Current frame_rx_callback() always unblocks PHY
-		// uncomment this unblock_rx_phy if custom frame_rx_callback does not wait to unblock the PHY
-		//wlan_mac_dcf_hw_unblock_rx_phy();
-	}
-
-	return return_status;
-}
-
-
 /**
  * @brief Set Frame Reception Callback
  *
