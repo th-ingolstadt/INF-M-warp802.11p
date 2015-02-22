@@ -14,6 +14,7 @@
  */
 
 /***************************** Include Files *********************************/
+#define DBG_PRINT 0
 
 // Xilinx SDK includes
 #include "xparameters.h"
@@ -184,35 +185,68 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 	// This translation is required in case this reception needs to send an ACK, as the ACK
 	// rate is a function of the rate of the received packet
 	//The mapping of Rx rate to ACK rate is given in 9.7.6.5.2 of 802.11-2012
-	switch( phy_details->mcs ){
-		default:
-		case WLAN_MAC_MCS_DSSS:
-			tx_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
-		break;
-		case WLAN_MAC_RATE_6M:
-			tx_rate = WLAN_PHY_RATE_BPSK12;
-		break;
-		case WLAN_MAC_RATE_9M:
-			tx_rate = WLAN_PHY_RATE_BPSK12;
-		break;
-		case WLAN_MAC_RATE_12M:
-			tx_rate = WLAN_PHY_RATE_QPSK12;
-		break;
-		case WLAN_MAC_RATE_18M:
-			tx_rate = WLAN_PHY_RATE_QPSK12;
-		break;
-		case WLAN_MAC_RATE_24M:
-			tx_rate = WLAN_PHY_RATE_16QAM12;
-		break;
-		case WLAN_MAC_RATE_36M:
-			tx_rate = WLAN_PHY_RATE_16QAM12;
-		break;
-		case WLAN_MAC_RATE_48M:
-			tx_rate = WLAN_PHY_RATE_16QAM12;
-		break;
-		case WLAN_MAC_RATE_54M:
-			tx_rate = WLAN_PHY_RATE_16QAM12;
-		break;
+	if(phy_details->phy_mode == 1) {
+		//802.11a/g Rx
+		switch( phy_details->mcs ){
+			default:
+			case WLAN_MAC_MCS_DSSS:
+				tx_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
+			break;
+			case 0:
+				tx_rate = WLAN_PHY_RATE_BPSK12;
+			break;
+			case 1:
+				tx_rate = WLAN_PHY_RATE_BPSK12;
+			break;
+			case 2:
+				tx_rate = WLAN_PHY_RATE_QPSK12;
+			break;
+			case 3:
+				tx_rate = WLAN_PHY_RATE_QPSK12;
+			break;
+			case 4:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+			case 5:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+			case 6:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+			case 7:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+		}
+	} else {
+		//802.11n or 802.11ac Rx
+		switch( phy_details->mcs ){
+			default:
+			case 0:
+				tx_rate = WLAN_PHY_RATE_BPSK12;
+			break;
+			case 1:
+				tx_rate = WLAN_PHY_RATE_QPSK12;
+			break;
+			case 2:
+				tx_rate = WLAN_PHY_RATE_QPSK12;
+			break;
+			case 3:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+			case 4:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+			case 5:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+			case 6:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+			case 7:
+				tx_rate = WLAN_PHY_RATE_16QAM12;
+			break;
+		}
+
 	}
 
 	//Determine which antenna the ACK will be sent from
@@ -238,7 +272,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 	}
 
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
-	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){};
+	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
+		if(DBG_PRINT) xil_printf("Waiting for Rx Bytes (%d < %d)\n", wlan_mac_get_last_byte_index(), MAC_HW_LASTBYTE_ADDR1);
+	};
 
 	//Check the destination address
 	unicast_to_me = wlan_addr_eq(rx_header->address_1, eeprom_addr);
@@ -364,8 +400,10 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 		if(!WLAN_IS_CTRL_FRAME(rx_header)){
 			if(unicast_to_me){
 				//FIXME - is this too late to enable Tx ctrl B? PostRx timer 2 (SIFS) must still be running
+				REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x80);
 				wlan_mac_tx_ctrl_B_start(1);
 				wlan_mac_tx_ctrl_B_start(0);
+				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x80);
 
 				//This good FCS, unicast, noncontrol packet was ACKed.
 				mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
