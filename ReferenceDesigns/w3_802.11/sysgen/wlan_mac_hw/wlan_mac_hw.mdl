@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.515"
+    ComputedModelVersion    "1.517"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -30,9 +30,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "murphpo"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Thu Feb 19 13:30:18 2015"
-  RTWModifiedTimeStamp	  346253330
-  ModelVersionFormat	  "1.%<AutoIncrement:515>"
+  LastModifiedDate	  "Sat Feb 21 21:04:15 2015"
+  RTWModifiedTimeStamp	  346453420
+  ModelVersionFormat	  "1.%<AutoIncrement:517>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -800,8 +800,8 @@ Model {
   }
   System {
     Name		    "wlan_mac_hw"
-    Location		    [2, 74, 1951, 1217]
-    Open		    on
+    Location		    [-1678, 70, 271, 1213]
+    Open		    off
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
     ScreenColor		    "white"
@@ -17067,7 +17067,7 @@ Model {
 	      Name		      "Constant"
 	      SID		      "1793"
 	      Ports		      [0, 1]
-	      Position		      [935, 386, 960, 404]
+	      Position		      [910, 386, 935, 404]
 	      ShowName		      off
 	      LibraryVersion	      "1.2"
 	      SourceBlock	      "xbsIndex_r4/Constant"
@@ -23315,7 +23315,7 @@ Model {
 	TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
 	TiledPageScale		1
 	ShowPageBoundaries	off
-	ZoomFactor		"170"
+	ZoomFactor		"108"
 	Block {
 	  BlockType		  Reference
 	  Name			  " b[15:0]"
@@ -23400,39 +23400,6 @@ Model {
 	  bit1			  "0"
 	  base1			  "MSB of Input"
 	  bit0			  "20"
-	  base0			  "LSB of Input"
-	  dbl_ovrd		  off
-	  has_advanced_control	  "0"
-	  sggui_pos		  "20,20,449,398"
-	  block_type		  "slice"
-	  block_version		  "VER_STRING_GOES_HERE"
-	  sg_icon_stat		  "35,18,1,1,white,blue,0,1fd851a7,right,,[ ],[ ]"
-	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.91"
-	  " ]);\nplot([0 35 35 0 0 ],[0 0 18 18 0 ]);\npatch([12.55 15.44 17.44 19.44 21.44 17.44 14.55 12.55 ],[11.22 11.22 1"
-	  "3.22 11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([14.55 17.44 15.44 12.55 14.55 ],[9.22 9.22 11.22 11.22 9.22"
-	  " ],[0.931 0.946 0.973 ]);\npatch([12.55 15.44 17.44 14.55 12.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([14"
-	  ".55 21.44 19.44 17.44 15.44 12.55 14.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('',"
-	  "'COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black');port_label('output',1,'[a"
-	  ":b]');\nfprintf('','COMMENT: end icon text');"
-	}
-	Block {
-	  BlockType		  Reference
-	  Name			  " b[31:16]"
-	  SID			  "784"
-	  Ports			  [1, 1]
-	  Position		  [270, 526, 305, 544]
-	  LibraryVersion	  "1.2"
-	  SourceBlock		  "xbsIndex_r4/Slice"
-	  SourceType		  "Xilinx Bit Slice Extractor Block"
-	  infoedit		  "Extracts a given range of bits from each input sample and presents it at the output.  The output type "
-	  "is ordinarily unsigned with binary point at zero, but can be Boolean when the slice is one bit wide.<br><br>Hardwar"
-	  "e notes: In hardware this block costs nothing."
-	  nbits			  "16"
-	  boolean_output	  off
-	  mode			  "Lower Bit Location + Width"
-	  bit1			  "0"
-	  base1			  "MSB of Input"
-	  bit0			  "16"
 	  base0			  "LSB of Input"
 	  dbl_ovrd		  off
 	  has_advanced_control	  "0"
@@ -25540,16 +25507,6 @@ Model {
 	  TagVisibility		  "global"
 	}
 	Block {
-	  BlockType		  Goto
-	  Name			  "Goto9"
-	  SID			  "385"
-	  Position		  [465, 526, 660, 544]
-	  ZOrder		  -10
-	  ShowName		  off
-	  GotoTag		  "reg_Interval_ACK_Timeout"
-	  TagVisibility		  "global"
-	}
-	Block {
 	  BlockType		  Reference
 	  Name			  "Logical"
 	  SID			  "2933"
@@ -26056,35 +26013,6 @@ Model {
 	  SID			  "1956"
 	  Ports			  [1, 1]
 	  Position		  [330, 636, 360, 664]
-	  ShowName		  off
-	  LibraryVersion	  "1.2"
-	  SourceBlock		  "xbsIndex_r4/Register"
-	  SourceType		  "Xilinx Register Block"
-	  init			  "0"
-	  rst			  off
-	  en			  off
-	  dbl_ovrd		  off
-	  xl_use_area		  off
-	  xl_area		  "[0,0,0,0,0,0,0]"
-	  has_advanced_control	  "0"
-	  sggui_pos		  "-1,-1,-1,-1"
-	  block_type		  "register"
-	  sg_icon_stat		  "30,28,1,1,white,blue,0,c80657c5,right,,[ ],[ ]"
-	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 30 30 0 0 ],[0 0 28 28 0 ],[0.77 0.82 0.91"
-	  " ]);\nplot([0 30 30 0 0 ],[0 0 28 28 0 ]);\npatch([6.1 11.88 15.88 19.88 23.88 15.88 10.1 6.1 ],[18.44 18.44 22.44 "
-	  "18.44 22.44 22.44 22.44 18.44 ],[1 1 1 ]);\npatch([10.1 15.88 11.88 6.1 10.1 ],[14.44 14.44 18.44 18.44 14.44 ],[0."
-	  "931 0.946 0.973 ]);\npatch([6.1 11.88 15.88 10.1 6.1 ],[10.44 10.44 14.44 14.44 10.44 ],[1 1 1 ]);\npatch([10.1 23."
-	  "88 19.88 15.88 11.88 6.1 10.1 ],[6.44 6.44 10.44 6.44 10.44 10.44 6.44 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
-	  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('input',1,'d');\ncolor("
-	  "'black');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprintf('','COMMENT: end icon "
-	  "text');"
-	}
-	Block {
-	  BlockType		  Reference
-	  Name			  "Register31"
-	  SID			  "1957"
-	  Ports			  [1, 1]
-	  Position		  [330, 521, 360, 549]
 	  ShowName		  off
 	  LibraryVersion	  "1.2"
 	  SourceBlock		  "xbsIndex_r4/Register"
@@ -30477,7 +30405,7 @@ Model {
 	  System {
 	    Name		    "Tx Controller\nRegs"
 	    Location		    [75, 541, 630, 1234]
-	    Open		    off
+	    Open		    on
 	    ModelBrowserVisibility  off
 	    ModelBrowserWidth	    200
 	    ScreenColor		    "white"
@@ -31670,7 +31598,7 @@ Model {
 	      Position		      [1020, 191, 1260, 209]
 	      ZOrder		      -10
 	      ShowName		      off
-	      GotoTag		      "reg_Tx_B_Param_PostWait_PostTxTimer1"
+	      GotoTag		      "reg_Tx_B_Param_PreWait_PostTxTimer1"
 	      TagVisibility	      "global"
 	    }
 	    Block {
@@ -33996,137 +33924,6 @@ Model {
 	}
 	Block {
 	  BlockType		  SubSystem
-	  Name			  "x16"
-	  SID			  "421"
-	  Ports			  [1, 1]
-	  Position		  [395, 526, 435, 544]
-	  ShowName		  off
-	  MinAlgLoopOccurrences	  off
-	  PropExecContextOutsideSubsystem off
-	  RTWSystemCode		  "Auto"
-	  FunctionWithSeparateData off
-	  Opaque		  off
-	  RequestExecContextInheritance	off
-	  MaskHideContents	  off
-	  System {
-	    Name		    "x16"
-	    Location		    [1342, 1109, 1556, 1227]
-	    Open		    off
-	    ModelBrowserVisibility  off
-	    ModelBrowserWidth	    200
-	    ScreenColor		    "white"
-	    PaperOrientation	    "landscape"
-	    PaperPositionMode	    "auto"
-	    PaperType		    "usletter"
-	    PaperUnits		    "inches"
-	    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
-	    TiledPageScale	    1
-	    ShowPageBoundaries	    off
-	    ZoomFactor		    "100"
-	    Block {
-	      BlockType		      Inport
-	      Name		      "A"
-	      SID		      "422"
-	      Position		      [230, 218, 260, 232]
-	      NamePlacement	      "alternate"
-	      IconDisplay	      "Port number"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Concat1"
-	      SID		      "419"
-	      Ports		      [2, 1]
-	      Position		      [285, 209, 330, 271]
-	      ShowName		      off
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Concat"
-	      SourceType	      "Xilinx Bus Concatenator Block"
-	      infoedit		      "Concatenates two or more inputs.  Output will be cast to an unsigned value with the binary poi"
-	      "nt at zero."
-	      num_inputs	      "2"
-	      dbl_ovrd		      off
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "concat"
-	      sg_icon_stat	      "45,62,2,1,white,blue,0,16398980,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 62 62 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 45 45 0 0 ],[0 0 62 62 0 ]);\npatch([8.65 17.32 23.32 29.32 35.32 23.32 14.65 8.65 ],[37."
-	      "66 37.66 43.66 37.66 43.66 43.66 43.66 37.66 ],[1 1 1 ]);\npatch([14.65 23.32 17.32 8.65 14.65 ],[31.66 31.66 3"
-	      "7.66 37.66 31.66 ],[0.931 0.946 0.973 ]);\npatch([8.65 17.32 23.32 14.65 8.65 ],[25.66 25.66 31.66 31.66 25.66 "
-	      "],[1 1 1 ]);\npatch([14.65 35.32 29.32 23.32 17.32 8.65 14.65 ],[19.66 19.66 25.66 19.66 25.66 25.66 19.66 ],[0"
-	      ".931 0.946 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor"
-	      "('black');port_label('input',1,'hi');\ncolor('black');port_label('input',2,'lo');\n\ncolor('black');disp('\\fon"
-	      "tsize{20}\\}','texmode','on');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Constant9"
-	      SID		      "420"
-	      Ports		      [0, 1]
-	      Position		      [230, 242, 255, 268]
-	      ShowName		      off
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Constant"
-	      SourceType	      "Xilinx Constant Block Block"
-	      const		      "0"
-	      gui_display_data_type   "Fixed-point"
-	      arith_type	      "Unsigned"
-	      n_bits		      "4"
-	      bin_pt		      "0"
-	      preci_type	      "Single"
-	      exp_width		      "8"
-	      frac_width	      "24"
-	      explicit_period	      off
-	      period		      "1"
-	      dsp48_infoedit	      "The use of this block for DSP48 instructions is deprecated.  Please use the Opmode block."
-	      equ		      "P=C"
-	      opselect		      "C"
-	      inp2		      "PCIN>>17"
-	      opr		      "+"
-	      inp1		      "P"
-	      carry		      "CIN"
-	      dbl_ovrd		      off
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "constant"
-	      sg_icon_stat	      "25,26,0,1,white,blue,0,bf4ddd8b,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 25 25 0 0 ],[0 0 26 26 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 25 25 0 0 ],[0 0 26 26 0 ]);\npatch([5.325 9.66 12.66 15.66 18.66 12.66 8.325 5.325 ],[16"
-	      ".33 16.33 19.33 16.33 19.33 19.33 19.33 16.33 ],[1 1 1 ]);\npatch([8.325 12.66 9.66 5.325 8.325 ],[13.33 13.33 "
-	      "16.33 16.33 13.33 ],[0.931 0.946 0.973 ]);\npatch([5.325 9.66 12.66 8.325 5.325 ],[10.33 10.33 13.33 13.33 10.3"
-	      "3 ],[1 1 1 ]);\npatch([8.325 18.66 15.66 12.66 9.66 5.325 8.325 ],[7.33 7.33 10.33 7.33 10.33 10.33 7.33 ],[0.9"
-	      "31 0.946 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('"
-	      "black');port_label('output',1,'0');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Outport
-	      Name		      "Ax16"
-	      SID		      "423"
-	      Position		      [355, 233, 385, 247]
-	      IconDisplay	      "Port number"
-	    }
-	    Line {
-	      SrcBlock		      "Constant9"
-	      SrcPort		      1
-	      DstBlock		      "Concat1"
-	      DstPort		      2
-	    }
-	    Line {
-	      SrcBlock		      "A"
-	      SrcPort		      1
-	      DstBlock		      "Concat1"
-	      DstPort		      1
-	    }
-	    Line {
-	      SrcBlock		      "Concat1"
-	      SrcPort		      1
-	      DstBlock		      "Ax16"
-	      DstPort		      1
-	    }
-	  }
-	}
-	Block {
-	  BlockType		  SubSystem
 	  Name			  "x3"
 	  SID			  "439"
 	  Ports			  [1, 1]
@@ -34525,12 +34322,6 @@ Model {
 	  DstPort		  1
 	}
 	Line {
-	  SrcBlock		  "x16"
-	  SrcPort		  1
-	  DstBlock		  "Goto9"
-	  DstPort		  1
-	}
-	Line {
 	  SrcBlock		  "x1"
 	  SrcPort		  1
 	  DstBlock		  "Goto7"
@@ -34571,16 +34362,8 @@ Model {
 	Line {
 	  SrcBlock		  "From Register6"
 	  SrcPort		  1
-	  Points		  [35, 0]
-	  Branch {
-	    DstBlock		    " b[15:0]"
-	    DstPort		    1
-	  }
-	  Branch {
-	    Points		    [0, 50]
-	    DstBlock		    " b[31:16]"
-	    DstPort		    1
-	  }
+	  DstBlock		  " b[15:0]"
+	  DstPort		  1
 	}
 	Line {
 	  SrcBlock		  " b[9:0]"
@@ -34598,12 +34381,6 @@ Model {
 	  SrcBlock		  " b[15:0]"
 	  SrcPort		  1
 	  DstBlock		  "Register32"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  " b[31:16]"
-	  SrcPort		  1
-	  DstBlock		  "Register31"
 	  DstPort		  1
 	}
 	Line {
@@ -34826,12 +34603,6 @@ Model {
 	  SrcBlock		  "Register30"
 	  SrcPort		  1
 	  DstBlock		  "Reinterpret"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "Register31"
-	  SrcPort		  1
-	  DstBlock		  "x16"
 	  DstPort		  1
 	}
 	Line {
@@ -38079,7 +37850,7 @@ Model {
 	  Position		  [530, 721, 770, 739]
 	  ZOrder		  -9
 	  ShowName		  off
-	  GotoTag		  "reg_Tx_B_Param_PostWait_PostTxTimer1"
+	  GotoTag		  "reg_Tx_B_Param_PreWait_PostTxTimer1"
 	  TagVisibility		  "global"
 	}
 	Block {

@@ -35,9 +35,15 @@ clear ADC_I ADC_Q;
 
 %Supported HT MCS's
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_01_bw_0_len_0100.mat'); wlan_tx_out = sig.';
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_03_bw_0_len_0100.mat'); wlan_tx_out = sig.';
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_06_bw_0_len_0000.mat'); wlan_tx_out = sig.';
-load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
+load('rx_sigs/HT/wlan_tx_sig_HT_mcs_03_bw_0_len_0100.mat'); wlan_tx_out = sig.';
+%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
+
+%Zero-length HT payload (NDP packet - not supported in our PHY)
+load('rx_sigs/HT/wlan_tx_sig_HT_mcs_06_bw_0_len_0000.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig.'];
+
+%Misc
+%load('rx_sigs/HT/wlan_tx_sig_NON_HT_mcs_04_bw_0_len_0014.mat'); wlan_tx_out = sig.';
+load('rx_sigs/HT/wlan_tx_sig_NON_HT_mcs_04_bw_0_len_0014_ERR.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig.'];
 
 %Unsuported MCS's
 %load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sum(sig).'; %Rx=Tx1+Tx2
