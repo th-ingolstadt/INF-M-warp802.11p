@@ -251,7 +251,7 @@ int main(){
 	my_bss_info->state           = BSS_STATE_OWNED;
 	my_bss_info->beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
 	my_bss_info->capabilities    = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
-	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11N;
+	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11A;
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
