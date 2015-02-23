@@ -30,7 +30,7 @@
 #include "wlan_mac_packet_types.h"
 
 
-int wlan_create_beacon_probe_resp_frame(void* pkt_buf, mac_header_80211_common* common, bss_info* my_bss_info) {
+int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, bss_info* my_bss_info) {
 
 	ht_capabilities* ht_capabilities_element;
 	ht_information* ht_information_element;
@@ -45,7 +45,7 @@ int wlan_create_beacon_probe_resp_frame(void* pkt_buf, mac_header_80211_common* 
 	mac_header_80211* mac_header;
 	mac_header = (mac_header_80211*)(pkt_buf);
 
-	mac_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_BEACON;
+	mac_header->frame_control_1 = frame_control_1;
 	mac_header->frame_control_2 = 0;
 
 	//This field may be overwritten by CPU_LOW
