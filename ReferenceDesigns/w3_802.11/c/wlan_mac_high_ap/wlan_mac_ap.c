@@ -251,7 +251,7 @@ int main(){
 	my_bss_info->state           = BSS_STATE_OWNED;
 	my_bss_info->beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
 	my_bss_info->capabilities    = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
-	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11A;
+	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11N;
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -995,6 +995,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8                  eth_send;
 	u8                  allow_auth               = 0;
 
+	u8					pre_llc_offset			 = 0;
+
 	// Set the additional info field to NULL
 	mpdu_info->additional_info = (u32)NULL;
 
@@ -1065,13 +1067,16 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 		if(unicast_to_me || to_multicast){
 			// Process the packet
 			switch(rx_80211_header->frame_control_1) {
-
 				//---------------------------------------------------------------------
+				case MAC_FRAME_CTRL1_SUBTYPE_QOSDATA:
+					pre_llc_offset = sizeof(qos_control);
 				case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
 					// Data packet
 					//   - Determine if this packet is from an associated station
 					//   - Depending on the type and destination, transmit the packet wirelessly or over the wired network
 					//
+
+
 					if(associated_station != NULL){
 
 						// MPDU is flagged as destined to the DS
@@ -1080,6 +1085,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							// Check if this is a multicast packet
 							if(wlan_addr_mcast(rx_80211_header->address_3)){
+								//FIXME: Needs fix for QoS case to handle u16 offset of QoS Control
+
 								// Send the data packet over the wireless
 								curr_tx_queue_element = queue_checkout();
 
@@ -1115,6 +1122,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								associated_station_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, rx_80211_header->address_3);
 
 								if(associated_station_entry != NULL){
+									//FIXME: Needs fix for QoS case to handle u16 offset of QoS Control
 									associated_station = (station_info*)(associated_station_entry->data);
 
 									// Send the data packet over the wireless to our station
@@ -1160,7 +1168,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							// Encapsulate the packet and send over the wired network
 							if(eth_send){
-								wlan_mpdu_eth_send(mpdu,length);
+								wlan_mpdu_eth_send(mpdu,length,pre_llc_offset);
 							}
 						}
 					} else {
