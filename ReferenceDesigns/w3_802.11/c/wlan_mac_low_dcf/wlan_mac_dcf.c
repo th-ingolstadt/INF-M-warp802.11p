@@ -56,6 +56,10 @@ volatile static u8                     eeprom_addr[6];
 volatile u8                            red_led_index;
 volatile u8                            green_led_index;
 
+volatile u16						   _debug_prev_length;
+volatile u8						       _debug_prev_phy_mode;
+volatile u8						       _debug_prev_mcs;
+
 int main(){
 	wlan_mac_hw_info* hw_info;
 	xil_printf("\f");
@@ -177,7 +181,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
 		wlan_mac_dcf_hw_unblock_rx_phy();
-
+	    _debug_prev_length = phy_details->length;
+	    _debug_prev_phy_mode = phy_details->phy_mode;
+	    _debug_prev_mcs = phy_details->mcs;
 		return return_value;
 	}
 
@@ -185,7 +191,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 	// This translation is required in case this reception needs to send an ACK, as the ACK
 	// rate is a function of the rate of the received packet
 	//The mapping of Rx rate to ACK rate is given in 9.7.6.5.2 of 802.11-2012
-	if(phy_details->phy_mode == 1) {
+	if(phy_details->phy_mode == 1) { //FIXME
 		//802.11a/g Rx
 		switch( phy_details->mcs ){
 			default:
@@ -272,8 +278,29 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 	}
 
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
+	u32 iter = 0;
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
 		if(DBG_PRINT) xil_printf("Waiting for Rx Bytes (%d < %d)\n", wlan_mac_get_last_byte_index(), MAC_HW_LASTBYTE_ADDR1);
+
+
+		iter++;
+
+		if(iter > 1000){
+			xil_printf("-------\n");
+			xil_printf("wlan_mac_get_last_byte_index() = %d\n", wlan_mac_get_last_byte_index());
+			xil_printf("phy_details->phy_mode          = %d\n", phy_details->phy_mode);
+			xil_printf("phy_details->length            = %d\n", phy_details->length);
+			xil_printf("phy_details->mcs               = %d\n", phy_details->mcs);
+			xil_printf("wlan_mac_get_status()          = 0x%08x\n", wlan_mac_get_status());
+			xil_printf("wlan_mac_get_rx_params()       = 0x%08x\n", wlan_mac_get_rx_params());
+			xil_printf("WLAN_RX_STATUS                 = 0x%08x\n", Xil_In32(WLAN_RX_STATUS));
+			xil_printf("_debug_prev_length             = %d\n", _debug_prev_length);
+			xil_printf("_debug_prev_phy_mode           = %d\n", _debug_prev_phy_mode);
+			xil_printf("_debug_prev_mcs                = %d\n", _debug_prev_mcs);
+
+
+
+		}
 	};
 
 	//Check the destination address
@@ -458,6 +485,10 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     	mac_hw_status = wlan_mac_get_status();
     } while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
 
+
+    _debug_prev_length = phy_details->length;
+    _debug_prev_phy_mode = phy_details->phy_mode;
+    _debug_prev_mcs = phy_details->mcs;
 	return return_value;
 }
 
