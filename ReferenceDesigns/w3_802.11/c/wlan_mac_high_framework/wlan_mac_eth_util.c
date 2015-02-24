@@ -345,7 +345,8 @@ int wlan_eth_dma_init() {
  *  - Length (in bytes) of the packet to send
  * @return 0 for successful de-encapsulation, -1 otherwise; failure usually indicates malformed or unrecognized LLC header
 */
-int wlan_mpdu_eth_send(void* mpdu, u16 length) {
+int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
+
 	int status;
 	u8* eth_mid_ptr;
 
@@ -367,18 +368,18 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 
 	u32 len_to_send;
 
-	if(length < (sizeof(mac_header_80211) + sizeof(llc_header) + WLAN_PHY_FCS_NBYTES)){
+	if(length < (sizeof(mac_header_80211) + pre_llc_offset + sizeof(llc_header) + WLAN_PHY_FCS_NBYTES)){
 		xil_printf("Error in wlan_mpdu_eth_send: length of %d is too small... must be at least %d\n", length, (sizeof(mac_header_80211) + sizeof(llc_header)));
 		return -1;
 	}
 
 	//Get helper pointers to various byte offsets in the packet payload
 	rx80211_hdr = (mac_header_80211*)((void *)mpdu);
-	llc_hdr = (llc_header*)((void *)mpdu + sizeof(mac_header_80211));
-	eth_hdr = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
+	llc_hdr = (llc_header*)((void *)mpdu + sizeof(mac_header_80211) + pre_llc_offset);
+	eth_hdr = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header) + pre_llc_offset - sizeof(ethernet_header));
 
 	//Calculate length of de-encapsulated Ethernet packet
-	len_to_send = length - sizeof(mac_header_80211) - WLAN_PHY_FCS_NBYTES - sizeof(llc_header) + sizeof(ethernet_header);
+	len_to_send = length - sizeof(mac_header_80211) - WLAN_PHY_FCS_NBYTES - sizeof(llc_header) - pre_llc_offset + sizeof(ethernet_header);
 
 	//Do de-encapsulation of wireless packet
 	switch(eth_encap_mode) {
@@ -407,11 +408,13 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length) {
 					if(ip_hdr->prot == IPV4_PROT_UDP){
 						udp = (udp_header*)((void*)ip_hdr + 4*((u8)(ip_hdr->ver_ihl) & 0xF));
 
+
 						if(Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPC || Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPS){
 							dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
 
 							if(Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE){
 									eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
+
 
 									//Iterate over all tagged parameters in the DHCP request, looking for the hostname parameter
 									// Stop after 20 tagged parameters (handles case of mal-formed DHCP packets missing END tag)
