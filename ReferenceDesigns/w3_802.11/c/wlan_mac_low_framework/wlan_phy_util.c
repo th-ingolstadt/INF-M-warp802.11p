@@ -323,7 +323,7 @@ void wlan_phy_init() {
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
 
 	//Keep CCA.BUSY asserted when DSSS Rx is active
-	REG_SET_BTIS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
+	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
 	
 	//FFT config
 	wlan_phy_rx_set_fft_window_offset(3);
