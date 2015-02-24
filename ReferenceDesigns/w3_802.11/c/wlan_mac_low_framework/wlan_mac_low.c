@@ -150,6 +150,10 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 	//Check if PHY is currently receiving or has finished receiving
 	if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
+		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
+
+		xil_printf("poll mac_hw_status =   0x%08x\n",mac_hw_status);
+
 		i = 0;
 		if(DBG_PRINT) xil_printf("MAC Rx: 0x%08x\n", mac_hw_status);
 		//Check whether this is an OFDM or DSSS Rx

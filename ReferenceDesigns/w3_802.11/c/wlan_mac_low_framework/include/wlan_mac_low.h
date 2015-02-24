@@ -242,8 +242,9 @@
 
 #define wlan_mac_reset(x) Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | (WLAN_MAC_CTRL_MASK_RESET & x))
 
-#define wlan_mac_get_last_byte_index() (Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0x3FFF)
-#define wlan_mac_get_last_byte() ((Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0x3FC000) >> 14)
+
+#define wlan_mac_get_last_byte_index() (Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFFFF)
+#define wlan_mac_get_last_byte() ((Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFF0000) >> 16)
 
 #define wlan_mac_get_status() (Xil_In32(WLAN_MAC_REG_STATUS))
 #define wlan_mac_get_backoff_count() (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTER) & 0xFFFF)
