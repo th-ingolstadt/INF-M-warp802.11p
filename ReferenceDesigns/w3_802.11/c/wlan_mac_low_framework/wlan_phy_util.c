@@ -322,6 +322,9 @@ void wlan_phy_init() {
 	//Block Rx inputs during Tx
 	REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
 
+	//Keep CCA.BUSY asserted when DSSS Rx is active
+	REG_SET_BTIS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
+	
 	//FFT config
 	wlan_phy_rx_set_fft_window_offset(3);
 	wlan_phy_rx_set_fft_scaling(5);

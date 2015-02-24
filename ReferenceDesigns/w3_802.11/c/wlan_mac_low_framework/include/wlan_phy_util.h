@@ -98,6 +98,7 @@
 #define WLAN_RX_REG_CFG_MAX_PKT_LEN_MASK	0x1E0000 //Sets max SIGNAL.LENGTH value in kB
 #define WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET	0x200000 //Requires both auto_corr and RSSI pkt det assertion to start Rx
 #define WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET	0x400000 //Valid SIGNAL holds pkt det for rate*lengh duration, even if unsupported
+#define WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA	0x800000 //DSSS active holds CCA busy
 
 #define wlan_phy_select_rx_antenna(d) Xil_Out32(WLAN_RX_REG_CFG, ((Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_ANT_SEL_MASK) | ((d&0x3) << 15)))
 
