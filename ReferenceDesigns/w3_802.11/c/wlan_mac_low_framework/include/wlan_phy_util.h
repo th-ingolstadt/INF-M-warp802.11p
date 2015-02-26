@@ -332,16 +332,6 @@
 #endif
 
 
-typedef struct {
-	u16 phy_mode;
-	u8	mcs;
-	u16 length;
-} phy_rx_details;
-
-#define PHY_RX_DETAILS_MODE_DSSS      (0)
-#define PHY_RX_DETAILS_MODE_11AG   (WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11AG)
-#define PHY_RX_DETAILS_MODE_11N    (WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11N)
-
 
 /* Function Prototypes for wlan_phy_util.c */
 u32 wlan_phy_cca_indication();
