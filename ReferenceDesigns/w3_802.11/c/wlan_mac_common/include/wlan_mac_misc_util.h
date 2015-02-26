@@ -80,6 +80,16 @@ typedef struct{
 	mac_tx_params mac; ///< Lower-level MAC Tx params
 } tx_params;
 
+typedef struct {
+	u8  phy_mode;
+	u8	mcs;
+	u16 length;
+} phy_rx_details;
+
+#define PHY_RX_DETAILS_MODE_DSSS      (0)
+#define PHY_RX_DETAILS_MODE_11AG   (WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11AG)
+#define PHY_RX_DETAILS_MODE_11N    (WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11N)
+
 typedef struct{
 	u64 timestamp_create; 						///< MAC timestamp of packet creation
 	u32 delay_accept;							///< Time in microseconds between timestamp_create and packet acceptance by CPU Low
@@ -113,19 +123,18 @@ typedef struct{
 //The rx_frame_info struct is padded to give space for the PHY to fill in channel estimates. The offset where
 //the PHY fills in this information must be written to the wlan_phy_rx_pkt_buf_h_est_offset macro
 typedef struct{
-	u8 state;			///< Packet buffer state - RX_MPDU_STATE_EMPTY, RX_MPDU_STATE_RX_PENDING, RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD
-	u8 rate;			///< PHY rate index
-	u16 length;			///< Number of bytes in MAC packet, including MAC header and FCS
-	s8 rx_power;		///< Rx power, in dBm
-	u8 rf_gain;			///< Gain setting of radio Rx LNA, in [0,1,2]
-	u8 bb_gain;			///< Gain setting of radio Rx VGA, in [0,1,...31]
-	u8 channel;			///< Channel index
-	u8 flags;			///< Bit flags
-	u8 ant_mode;		///< Rx antenna selection
-	u16 rssi_avg;		///< Average RSSI
-	u32 additional_info;///< Field to hold MAC-specific info, such as a pointer to a station_info 
-	u64 timestamp;		///< MAC timestamp at time of reception
-	u32 channel_est[64];///< Rx PHY channel estimates
+	u8 state;						///< Packet buffer state - RX_MPDU_STATE_EMPTY, RX_MPDU_STATE_RX_PENDING, RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD
+	u8 flags;						///< Bit flags
+	u8 ant_mode;					///< Rx antenna selection
+	s8 rx_power;					///< Rx power, in dBm
+	phy_rx_details phy_details;		///< Details from PHY used in this reception
+	u8 rf_gain;						///< Gain setting of radio Rx LNA, in [0,1,2]
+	u8 bb_gain;						///< Gain setting of radio Rx VGA, in [0,1,...31]
+	u8 channel;						///< Channel index
+	u8 reserved;
+	u32 additional_info;			///< Field to hold MAC-specific info, such as a pointer to a station_info
+	u64 timestamp;					///< MAC timestamp at time of reception
+	u32 channel_est[64];			///< Rx PHY channel estimates
 } rx_frame_info;
 
 #define RX_MPDU_FLAGS_ACKED		0x1
