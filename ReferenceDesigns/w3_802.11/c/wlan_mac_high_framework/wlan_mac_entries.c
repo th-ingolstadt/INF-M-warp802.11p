@@ -381,7 +381,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 	void*             mpdu                    = (u8*)rx_mpdu + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8*               mpdu_ptr_u8             = (u8*)mpdu;
 	mac_header_80211* rx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
-	u32               packet_payload_size     = rx_mpdu->length;
+	u32               packet_payload_size     = rx_mpdu->phy_details.length;
 	u8                pkt_type;
     u32               entry_type;
 	u32               entry_size;
@@ -484,8 +484,8 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 		rx_event_log_entry->power      = rx_mpdu->rx_power;
 		rx_event_log_entry->rf_gain    = rx_mpdu->rf_gain;
 		rx_event_log_entry->bb_gain    = rx_mpdu->bb_gain;
-		rx_event_log_entry->length     = rx_mpdu->length;
-		rx_event_log_entry->rate       = rx_mpdu->rate;
+		rx_event_log_entry->length     = rx_mpdu->phy_details.length; //FIXME
+		rx_event_log_entry->rate       = rx_mpdu->phy_details.mcs;
 		rx_event_log_entry->pkt_type   = pkt_type;
 		rx_event_log_entry->chan_num   = channel_num;
 		rx_event_log_entry->ant_mode   = rx_mpdu->ant_mode;
