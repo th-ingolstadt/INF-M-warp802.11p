@@ -251,7 +251,7 @@ int main(){
 	my_bss_info->state           = BSS_STATE_OWNED;
 	my_bss_info->beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
 	my_bss_info->capabilities    = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
-	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11N;
+	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11A;
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -1031,7 +1031,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			associated_station->latest_activity_timestamp = get_usec_timestamp();
 
 			associated_station->rx.last_power             = mpdu_info->rx_power;
-			associated_station->rx.last_rate              = mpdu_info->rate;
+			associated_station->rx.last_rate              = rate;
 
 			rx_seq        = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			station_stats = associated_station->stats;
@@ -1057,10 +1057,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			station_stats->latest_txrx_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_stats)->data.rx_num_packets)++;
-				((station_stats)->data.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
+				((station_stats)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 			} else if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) {
 				((station_stats)->mgmt.rx_num_packets)++;
-				((station_stats)->mgmt.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
+				((station_stats)->mgmt.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 			}
 		}
 
@@ -1100,12 +1100,12 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 									mpdu_ptr_u8  = curr_tx_queue_buffer->frame;
 									tx_length    = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 									mpdu_ptr_u8 += sizeof(mac_header_80211);
-									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
+									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 
 									// Setup the TX frame info
 									wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
 																		curr_tx_queue_element,
-																		mpdu_info->length, 0,
+																		length, 0,
 																		MCAST_QID );
 
 									// Set the information in the TX queue buffer
@@ -1138,12 +1138,12 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 										mpdu_ptr_u8  = curr_tx_queue_buffer->frame;
 										tx_length    = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 										mpdu_ptr_u8 += sizeof(mac_header_80211);
-										memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), mpdu_info->length - sizeof(mac_header_80211));
+										memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 
 										// Setup the TX frame info
 										wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
 																			curr_tx_queue_element,
-																			mpdu_info->length,
+																			length,
 																			(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
 																			AID_TO_QID(associated_station->AID) );
 
@@ -1168,7 +1168,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							// Encapsulate the packet and send over the wired network
 							if(eth_send){
-								wlan_mpdu_eth_send(mpdu,length,pre_llc_offset);
+								wlan_mpdu_eth_send(mpdu, length, pre_llc_offset);
 							}
 						}
 					} else {
