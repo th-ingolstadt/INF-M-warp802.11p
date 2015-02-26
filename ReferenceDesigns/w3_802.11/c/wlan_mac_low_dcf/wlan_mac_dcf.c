@@ -279,6 +279,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
 	u32 iter = 0;
+	REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x80);
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
 		if(DBG_PRINT) xil_printf("Waiting for Rx Bytes (%d < %d)\n", wlan_mac_get_last_byte_index(), MAC_HW_LASTBYTE_ADDR1);
 
@@ -286,6 +287,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 		iter++;
 
 		if(iter > 1000){
+//FIXME: Remove
+#if 0
 			xil_printf("-------\n");
 			xil_printf("wlan_mac_get_last_byte_index() = %d\n", wlan_mac_get_last_byte_index());
 			xil_printf("phy_details->phy_mode          = %d\n", phy_details->phy_mode);
@@ -297,11 +300,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 			xil_printf("_debug_prev_length             = %d\n", _debug_prev_length);
 			xil_printf("_debug_prev_phy_mode           = %d\n", _debug_prev_phy_mode);
 			xil_printf("_debug_prev_mcs                = %d\n", _debug_prev_mcs);
+#endif
 
 
 
 		}
 	};
+	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x80);
 
 	//Check the destination address
 	unicast_to_me = wlan_addr_eq(rx_header->address_1, eeprom_addr);
@@ -342,8 +347,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 
 	//Update metadata about this reception
 	mpdu_info->flags = 0;
-	mpdu_info->length = (u16)(phy_details->length);
-	mpdu_info->rate = (u8)(phy_details->mcs);
+	mpdu_info->phy_details = *phy_details;
+
 	mpdu_info->channel = wlan_mac_low_get_active_channel();
 	mpdu_info->timestamp = get_rx_start_timestamp();
 
@@ -356,7 +361,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && //Rx pkt checksum good
 			(rx_header->frame_control_1 == autocancel_match_type) && //Pkt type matches auto-cancel condition
 			(wlan_addr_eq(rx_header->address_3, autocancel_match_addr3) && //Pkt addr3 matches auto-cancel condition when pkt has addr3
-			 (mpdu_info->length) >= sizeof(mac_header_80211) ) ) {
+			(phy_details->length) >= sizeof(mac_header_80211) ) ) {
 
 		if(autocancel_en) {
 			//Clobber all state in the DCF core - this cancels deferrals and pending transmissions
@@ -383,7 +388,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 	lna_gain = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
 	mpdu_info->rx_power = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
-	mpdu_info->rssi_avg = rssi;
 
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) {
 		//Received packet had good checksum
@@ -415,7 +419,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 
 		//Sanity check packet length - if the header says non-control but the length is shorter than a full MAC header
 		// it must be invalid; this should never happen, but better to catch rare events here than corrupt state in CPU High
-		if(!WLAN_IS_CTRL_FRAME(rx_header) && (mpdu_info->length < sizeof(mac_header_80211))){
+		if(!WLAN_IS_CTRL_FRAME(rx_header) && (phy_details->length < sizeof(mac_header_80211))){
 			pass_up = 0;
 		}
 
@@ -427,11 +431,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 		if(!WLAN_IS_CTRL_FRAME(rx_header)){
 			if(unicast_to_me){
 				//FIXME - is this too late to enable Tx ctrl B? PostRx timer 2 (SIFS) must still be running
-				REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x80);
 				wlan_mac_tx_ctrl_B_start(1);
 				wlan_mac_tx_ctrl_B_start(0);
-				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x80);
-
 				//This good FCS, unicast, noncontrol packet was ACKed.
 				mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
 			}
