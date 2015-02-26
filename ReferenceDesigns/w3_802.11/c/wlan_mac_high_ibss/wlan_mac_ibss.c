@@ -711,6 +711,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	s64                 timestamp_diff;
 	u8					send_response			 = 0;
 	u32					tx_length;
+	u8					pre_llc_offset			 = 0;
 
 	// Log the reception
 	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
@@ -737,7 +738,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			// Update station information
 			associated_station->latest_activity_timestamp = get_usec_timestamp();
 			associated_station->rx.last_power             = mpdu_info->rx_power;
-			associated_station->rx.last_rate              = mpdu_info->rate;
+			associated_station->rx.last_rate              = rate;
 
 			rx_seq        = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			station_stats = associated_station->stats;
@@ -763,10 +764,10 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			station_stats->latest_txrx_timestamp = get_usec_timestamp();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_stats)->data.rx_num_packets)++;
-				((station_stats)->data.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
+				((station_stats)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 			} else if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) {
 				((station_stats)->mgmt.rx_num_packets)++;
-				((station_stats)->mgmt.rx_num_bytes) += (mpdu_info->length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
+				((station_stats)->mgmt.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 			}
 		}
 		if(unicast_to_me || to_multicast){
@@ -774,6 +775,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 			switch(rx_80211_header->frame_control_1) {
 
 				//---------------------------------------------------------------------
+				case MAC_FRAME_CTRL1_SUBTYPE_QOSDATA:
+					pre_llc_offset = sizeof(qos_control);
 				case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
 					// Data packet
 					//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
@@ -781,7 +784,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 					if(my_bss_info != NULL){
 						if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)) {
 							// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
-							wlan_mpdu_eth_send(mpdu,length);
+							wlan_mpdu_eth_send(mpdu, length, pre_llc_offset);
 						}
 					}
 				break;
