@@ -16,6 +16,6 @@
 
 int main();
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details);
-u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length);
+u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
 
 #endif /* WLAN_MAC_NOMAC_H_ */

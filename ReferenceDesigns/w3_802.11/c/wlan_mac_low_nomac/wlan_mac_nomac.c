@@ -116,7 +116,7 @@ int main(){
  * @return
  *  - always returns 0 in NOMAC implementation
  */
-u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
+u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 	//This function is called after a good SIGNAL field is detected by either PHY (OFDM or DSSS)
 	//It is the responsibility of this function to wait until a sufficient number of bytes have been received
 	// before it can start to process those bytes. When this function is called the eventual checksum status is
@@ -136,8 +136,7 @@ u32 frame_receive(u8 rx_pkt_buf, u8 rate, u16 length){
 	mpdu_info = (rx_frame_info*)pkt_buf_addr;
 
 	mpdu_info->flags = 0;
-	mpdu_info->length = (u16)length;
-	mpdu_info->rate = (u8)rate;
+	mpdu_info->phy_details = *phy_details;
 	mpdu_info->channel = wlan_mac_low_get_active_channel();
 	mpdu_info->timestamp = get_rx_start_timestamp();
 	mpdu_info->state = wlan_mac_dcf_hw_rx_finish(); //Blocks until reception is complete
