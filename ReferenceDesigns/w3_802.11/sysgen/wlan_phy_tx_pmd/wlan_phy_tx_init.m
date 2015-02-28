@@ -68,9 +68,9 @@ MPDU_Data_long = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 
 ControlFrame_ACK = sscanf('d4 00 00 00 40 d8 55 04 21 4a 00 00 00 00', '%02x');
 
 %Choose a payload for simulation
-%Pkt_Payload = MPDU_Null_Data;
+Pkt_Payload = MPDU_Null_Data;
 %Pkt_Payload = MPDU_Data_short;
-Pkt_Payload = MPDU_Data_long;
+%Pkt_Payload = MPDU_Data_long;
 %Pkt_Payload = ControlFrame_ACK;
 
 Pkt_len = length(Pkt_Payload);
@@ -184,7 +184,7 @@ REG_TX_PKT_BUF_SEL = ...
     2^16 * 0  + ... %b[23:16] pkt buf address offset
     0;
 
-REG_TX_Output_Scaling = (2.5 * 2^12) + (2^16 * 2.5 * 2^12); %UFix16_12 values
+REG_TX_Output_Scaling = (2.0 * 2^12) + (2^16 * 2.0 * 2^12); %UFix16_12 values
 
 
 %% Cyclic Redundancy Check parameters
