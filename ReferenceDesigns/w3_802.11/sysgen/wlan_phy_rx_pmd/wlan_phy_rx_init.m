@@ -277,13 +277,19 @@ for ii=1:127
 end
 
 %Convert bitwise descrambler states to bytewise descramber states
-bit_scrambler_lfsr_bytes = bi2de(reshape(repmat(scr, 1, 8), 8, 127)', 'right-msb');
-
+% same as bit_scrambler_lfsr_bytes = bi2de(reshape(repmat(scr, 1, 8), 8, 127)', 'right-msb');
+%  without using bi2de
+bit_scrambler_lfsr_bytes = (reshape(repmat(scr, 1, 8), 8, 127)');
+bit_scrambler_lfsr_bytes = sum(bit_scrambler_lfsr_bytes .* repmat(2.^[0:7], 127, 1),2);
+ 
+%%
 %Generate the vector of addresses for the bytewise descramber ROM
 scr = [scr scr(1:10)];
 scr_ind_rev = zeros(1,128);
 for ii=1:127
-    scr_ind_rev(1 + bi2de(scr(ii:ii+6))) = ii - 1;
+    %Same as scr_ind_rev(1 + bi2de(scr(ii:ii+6))) = ii - 1;
+    % without using bi2de
+    scr_ind_rev(1 + sum(2.^[0:1:6].*scr(ii:ii+6))) = ii - 1;
 end
 clear scr x bit_scrambler_lfsr ii
 
