@@ -144,6 +144,10 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 					// Set the state to BSS_STATE_UNAUTHENTICATED since we have not seen this BSS info before
 				    curr_bss_info->state     = BSS_STATE_UNAUTHENTICATED;
+
+				    // Default the PHY mode to 802.11g/a. This will be overwritten if a beacon/probe resp is
+				    // observed that contains HT fields
+				    curr_bss_info->phy_mode = BSS_INFO_PHY_MODE_11A;
 				}
 
 				// Update the AP information
@@ -205,7 +209,11 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 						break;
 
 						//-------------------------------------------------
-						case TAG_HT_INFORMATION:
+						case TAG_HT_CAPABILITIES:
+							curr_bss_info->phy_mode = BSS_INFO_PHY_MODE_11N;
+						break;
+						//-------------------------------------------------
+						case TAG_HT_INFORMATION: //FIXME -- there is more to pull from HT information that a channel
 						case TAG_DS_PARAMS:
 							// DS Parameter set (e.g. channel)
 							//

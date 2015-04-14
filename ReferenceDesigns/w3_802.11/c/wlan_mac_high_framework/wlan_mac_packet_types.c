@@ -352,19 +352,18 @@ int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16
 
 
 
-int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 num_basic_rates, u8* basic_rates){
+int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, bss_info* attempt_bss_info){
 	u32 packetLen_bytes;
-	u8* txBufferPtr_u8;
-	u8 num_rates;
-	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
 
-	#define NUM_STA_SUPPORTED_RATES 8
-	u8 sta_supported_rates[NUM_STA_SUPPORTED_RATES] = {0x0c, 0x12, 0x18, 0x24, 0x30, 0x48, 0x60, 0x6c};
+	ht_capabilities* ht_capabilities_element;
+	ht_information* ht_information_element;
 
-	txBufferPtr_u8 = (u8*)pkt_buf;
+	u8  real_ssid_len = min(strlen(attempt_bss_info->ssid), SSID_LEN_MAX);
+	mgmt_tag_template* mgmt_tag_ptr;
+
 
 	mac_header_80211* assoc_80211_header;
-	assoc_80211_header = (mac_header_80211*)(txBufferPtr_u8);
+	assoc_80211_header = (mac_header_80211*)(pkt_buf);
 
 	assoc_80211_header->frame_control_1 = frame_control_1;
 	assoc_80211_header->frame_control_2 = 0;
@@ -386,40 +385,72 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	//to represent that we will be awake at every beacon target time.
 	association_req_mgmt_header->listen_interval = 0x0001;
 
-	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(association_request_frame));
+	mgmt_tag_ptr = (mgmt_tag_template *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(association_request_frame) );
 
-	txBufferPtr_u8[0] = 0; //Tag 0: SSID parameter set
-	txBufferPtr_u8[1] = real_ssid_len;
-	memcpy((void *)(&(txBufferPtr_u8[2])),(void *)(&ssid[0]),real_ssid_len);
 
-	txBufferPtr_u8+=(real_ssid_len+2); //Move up to next tag
+	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SSID;
+	mgmt_tag_ptr->header.tag_length = real_ssid_len;
+	memcpy((void *)(mgmt_tag_ptr->data),attempt_bss_info->ssid,real_ssid_len);
+	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
-	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	num_rates = rate_union(&txBufferPtr_u8[2], num_basic_rates, basic_rates, NUM_STA_SUPPORTED_RATES, sta_supported_rates);
+	//Note: these parameters are spoofed. The 802.11 Reference Design does not support the 802.11b rates (with the exception
+	//of Rx of DSSS 1Mbps). However, most commercial APs will decline a STA from joining if they don't advertise support
+	//for the nominal set of 802.11b basic rates.
+	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SUPPORTED_RATES;
+	mgmt_tag_ptr->header.tag_length = 8;
+	mgmt_tag_ptr->data[0] = RATE_BASIC | (0x02); 	//1Mbps
+	mgmt_tag_ptr->data[1] = RATE_BASIC | (0x04);	//2Mbps
+	mgmt_tag_ptr->data[2] = RATE_BASIC | (0x0B);	//5.5Mbps
+	mgmt_tag_ptr->data[3] = RATE_BASIC | (0x16);	//11Mbps
+	mgmt_tag_ptr->data[4] = (0x24); 				//18Mbps
+	mgmt_tag_ptr->data[5] = (0x30); 				//24Mbps
+	mgmt_tag_ptr->data[6] = (0x48); 				//36Mbps
+	mgmt_tag_ptr->data[7] = (0x6C); 				//54Mbps
+	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
+	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_EXTENDED_SUPPORTED_RATES;
+	mgmt_tag_ptr->header.tag_length = 4;
+	mgmt_tag_ptr->data[0] = (0x0c); 				//6Mbps
+	mgmt_tag_ptr->data[1] = (0x12);					//9Mbps
+	mgmt_tag_ptr->data[2] = (0x18);					//12Mbps
+	mgmt_tag_ptr->data[3] = (0x60);					//48Mbps
+	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if(num_rates <= 8){
-		txBufferPtr_u8[1] = num_rates;
-		txBufferPtr_u8 += (num_rates+2);
-	} else {
+	if( (attempt_bss_info->phy_mode) & BSS_INFO_PHY_MODE_11N ){
+			//Insert HT Capabilities and HT Information tags
+			mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
+			mgmt_tag_ptr->header.tag_length = 26;
 
-		txBufferPtr_u8[1] = 8;
-		txBufferPtr_u8 += (8+2);
+			ht_capabilities_element = (ht_capabilities*)mgmt_tag_ptr->data;
+			ht_capabilities_element->ht_capabilities_info = 0x010c;
+			ht_capabilities_element->a_mpdu_parameters = 0x00;
+			ht_capabilities_element->rx_supported_mcs[0] = 0x000000ff;
+			ht_capabilities_element->rx_supported_mcs[1] = 0x00000000;
+			ht_capabilities_element->rx_supported_mcs[2] = 0x00000000;
+			ht_capabilities_element->rx_supported_mcs[3] = 0x00000000;
+			ht_capabilities_element->ht_extended_capabilities = 0x0000;
+			ht_capabilities_element->tx_beamforming = 0x0000;
+			ht_capabilities_element->ant_sel = 0x00;
 
-		memmove(txBufferPtr_u8+2, txBufferPtr_u8, num_rates-8);
+			mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-		txBufferPtr_u8[0] = 50; //Tag 50: Extended Supported Rates
-		txBufferPtr_u8[1] = num_rates-8; //Tag 50: Extended Supported Rates
-		txBufferPtr_u8+=(num_rates-8+2);
+			mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_HT_OPERATION;
+			mgmt_tag_ptr->header.tag_length = 22;
 
-//		for(i = 0; i< num_rates; i++){
-//			xil_printf("0x%x\n", txBufferPtr_u8[2+i]);
-//		}
+			ht_information_element = (ht_information*)mgmt_tag_ptr->data;
+			ht_information_element->channel = attempt_bss_info->chan;
+			ht_information_element->ht_info_subset_1 = 0x00;
+			ht_information_element->ht_info_subset_2 = 0x0000;
+			ht_information_element->ht_info_subset_3 = 0x0000;
+			ht_information_element->rx_supported_mcs[0] = 0x00000000;
+			ht_information_element->rx_supported_mcs[1] = 0x00000000;
+			ht_information_element->rx_supported_mcs[2] = 0x00000000;
+			ht_information_element->rx_supported_mcs[3] = 0x00000000;
 
-	}
-
-	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
+			mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+		}
+	packetLen_bytes = ((u8*)mgmt_tag_ptr - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
 	return packetLen_bytes;
 }
@@ -520,41 +551,5 @@ int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 fl
 	return (sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES);
 }
 
-
-
-u8 rate_union(u8* rate_vec_out, u8 num_rate_basic, u8* rate_basic, u8 num_rate_other, u8* rate_other){
-
-	u32 i,j;
-	u8 num_rate_other_temp = num_rate_other;
-	u8* rate_other_temp = wlan_mac_high_malloc(num_rate_other);
-
-	memcpy(rate_other_temp, rate_other, num_rate_other);
-
-	for(i = 0; i < num_rate_basic; i++ ){
-
-		//wlan_mac_high_tagged_rate_to_readable_rate(rate_basic[i] & ~RATE_BASIC, str);
-		//xil_printf(" %d: rate: 0x%x, (%s Mbps)\n",i, rate_basic[i] & ~RATE_BASIC, str);
-		rate_vec_out[i] = RATE_BASIC | rate_basic[i];
-
-		for(j = 0; j < num_rate_other_temp; j++ ){
-			//wlan_mac_high_tagged_rate_to_readable_rate(rate_other_temp[j] & ~RATE_BASIC, str);
-			//xil_printf("    %d: rate_other: 0x%x, (%s Mbps)\n", j, rate_other_temp[j],str);
-			if(rate_other_temp[j] == (rate_basic[i] & ~RATE_BASIC )){
-				//We have a duplicate rate. Remove it from the rate_other_temp vector
-				num_rate_other_temp--;
-				memmove(&rate_other_temp[j], &rate_other_temp[j+1], num_rate_other_temp - j);
-
-				//xil_printf("    %d: new other num: %d, 0x%08x -> 0x%08x, len: %d\n", j, num_rate_other_temp, &rate_other_temp[j+1], &rate_other_temp[j], num_rate_other_temp - j );
-				break;
-			}
-		}
-	}
-
-	memcpy(rate_vec_out + num_rate_basic, rate_other_temp, num_rate_other_temp);
-
-	wlan_mac_high_free(rate_other_temp);
-
-	return (num_rate_other_temp + num_rate_basic);
-}
 
 
