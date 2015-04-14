@@ -124,7 +124,7 @@ typedef struct{
 #define TAG_EXT_SUPPORTED_RATES		0x32
 #define TAG_DS_PARAMS				0x03
 #define TAG_HT_INFORMATION          0x3d
-#define TAG_HT_CAPABILITIES			0x45
+#define TAG_HT_CAPABILITIES			0x2d
 
 #define RATE_BASIC 0x80
 
