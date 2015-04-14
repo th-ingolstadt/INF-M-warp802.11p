@@ -73,7 +73,6 @@
 static char                       access_point_ssid[SSID_LEN_MAX + 1] = "WARP-AP";
 // static char                       access_point_ssid[SSID_LEN_MAX + 1] = "";
 
-
 // Common TX header for 802.11 packets
 mac_header_80211_common           tx_header_common;
 

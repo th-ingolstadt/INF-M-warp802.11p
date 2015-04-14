@@ -321,7 +321,7 @@ void wlan_mac_sta_scan_assoc_req_transmit(){
 			wlan_mac_high_setup_tx_header( &tx_header_common, attempt_bss_info->bssid, attempt_bss_info->bssid );
 
 			// Fill in the data
-			tx_length = wlan_create_association_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, (u8)strlen(attempt_bss_info->ssid), (u8*)attempt_bss_info->ssid, attempt_bss_info->num_basic_rates, attempt_bss_info->basic_rates);
+			tx_length = wlan_create_association_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, attempt_bss_info);
 
 			// Setup the TX frame info
 			wlan_mac_high_setup_tx_frame_info (&tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), MANAGEMENT_QID );
