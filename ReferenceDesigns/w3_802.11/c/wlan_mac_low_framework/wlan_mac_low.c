@@ -1330,3 +1330,10 @@ inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
 
 	return return_value;
 }
+
+void wlan_mac_set_nav_check_addr(u8* addr) {
+	Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_1, &(addr[0]));
+	Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_2, &(addr[4]));
+
+	return;
+}

@@ -50,6 +50,9 @@
 #define WLAN_MAC_REG_TX_CTRL_B_GAINS		XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_B_GAINS
 #define WLAN_MAC_REG_POST_TX_TIMERS			XPAR_WLAN_MAC_HW_MEMMAP_POST_TX_TIMERS
 #define WLAN_MAC_REG_POST_RX_TIMERS			XPAR_WLAN_MAC_HW_MEMMAP_POST_RX_TIMERS
+#define WLAN_MAC_REG_NAV_CHECK_ADDR_1		XPAR_WLAN_MAC_HW_MEMMAP_NAV_MATCH_ADDR_1
+#define WLAN_MAC_REG_NAV_CHECK_ADDR_2		XPAR_WLAN_MAC_HW_MEMMAP_NAV_MATCH_ADDR_2
+
 
 #define WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_COUNTTO	0x00007FFF
 #define WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_EN		0x00008000
@@ -333,5 +336,6 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power);
 inline void wlan_mac_reset_backoff_counter();
 inline void wlan_mac_reset_NAV_counter();
 inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
+void wlan_mac_set_nav_check_addr(u8* addr);
 
 #endif /* WLAN_MAC_LOW_H_ */
