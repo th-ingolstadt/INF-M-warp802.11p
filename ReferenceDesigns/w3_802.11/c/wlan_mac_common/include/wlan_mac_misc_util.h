@@ -56,9 +56,8 @@ typedef struct{
 } phy_tx_params;
 
 typedef struct{
-	u8		num_tx_max;		///< Maximum number of transmission attempts
-	u8		flags;			///< Flags affecting waveform construction
-	u8 		reserved[2];
+	u8		flags;					///< Flags affecting waveform construction
+	u8 		reserved[3];
 } mac_tx_params;
 
 
@@ -98,9 +97,11 @@ typedef struct{
 	u8 padding0;
 	u8 tx_result;								///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
 	u8 QID;										///< Queue ID from which this packet was taken
-	u8 num_tx;									///< Number of actual PHY transmissions of this packet, including all re-transmissions
+	u8 short_retry_count;
+	u8 long_retry_count;
+	u8 num_attempts;
 	u8 flags;									///< Bit flags en/disabling certain operations by the lower-level MAC
-	u8 padding1[3];
+	u8 padding1;
 	u16 length;									///< Number of bytes in MAC packet, including MAC header and FCS
 	u16 AID;									///< Association ID of the node to which this packet is addressed
 	u8 padding2[4];
