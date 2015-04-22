@@ -709,7 +709,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				// Allocating dynamically gives flexibility to change num_tx_max per packet, constrained only
 				//  by CPU Low's heap size. malloc failures are handled by skipping TX_LOW log data but proceeding
 				//  normally with actual MPDU transmission
-				low_tx_details_size = sizeof(wlan_mac_low_tx_details)*tx_mpdu->params.mac.num_tx_max;
+				low_tx_details_size = sizeof(wlan_mac_low_tx_details)*7; //TODO: Change to statically allocated space. //FIXME
 				low_tx_details = malloc(low_tx_details_size);
 
 				//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
@@ -751,7 +751,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 						//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
 						if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
-							ipc_msg_to_high.num_payload_words = ( (tx_mpdu->num_tx)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+							ipc_msg_to_high.num_payload_words = ( (tx_mpdu->short_retry_count)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words //FIXME short/long
 						} else {
 							ipc_msg_to_high.num_payload_words = ( ((IPC_BUFFER_MAX_NUM_WORDS << 2)/sizeof(wlan_mac_low_tx_details)  )*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
 						}

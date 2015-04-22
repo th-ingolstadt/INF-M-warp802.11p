@@ -282,9 +282,10 @@
 #define POLL_MAC_CANCEL_TX				0x00000008 //b[3]
 #define POLL_MAC_STATUS_TYPE			0x0000FF00 //b[15:8]
 
-#define POLL_MAC_TYPE_DATA				(0<<8)
-#define POLL_MAC_TYPE_ACK				(1<<8)
-#define POLL_MAC_TYPE_OTHER				(255<<8)
+#define POLL_MAC_TYPE_DATA				(1<<8)
+#define POLL_MAC_TYPE_ACK				(1<<9)
+#define POLL_MAC_TYPE_CTS				(1<<10)
+#define POLL_MAC_TYPE_OTHER				(1<<11)
 
 // WN Low Params
 //     NOTE:  Need to make sure that these values do not conflict with any of the LOW PARAM
