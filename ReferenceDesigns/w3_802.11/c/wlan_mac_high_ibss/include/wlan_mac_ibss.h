@@ -36,7 +36,6 @@
 // Common Defines
 #define NUM_BASIC_RATES_MAX            10
 
-#define MAX_NUM_TX            7   ///max number of wireless Tx for any MPDU (= max_num_retransmissions + 1)
 #define MAX_TX_QUEUE_LEN	  150 ///max number of entries in any Tx queue
 #define MAX_NUM_ASSOC		  15  ///max number of associations the IBSS will allow
 
