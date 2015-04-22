@@ -216,7 +216,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 		}
 
 		// Set the flags in the log entry
-		if(((tx_low_count + 1) == (tx_mpdu->num_tx)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){
+		if(((tx_low_count + 1) == (tx_mpdu->short_retry_count)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){ //FIXME. num_tx is now more subtle
 			tx_low_event_log_entry->flags = TX_LOW_FLAGS_WAS_ACKED;
 		} else {
 			tx_low_event_log_entry->flags = 0;
@@ -339,7 +339,7 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
 		tx_high_event_log_entry->rate                     = tx_mpdu->params.phy.rate;
 		tx_high_event_log_entry->chan_num				  = channel_num;
 		tx_high_event_log_entry->pkt_type				  = pkt_type;
-		tx_high_event_log_entry->num_tx                   = tx_mpdu->num_tx;
+		tx_high_event_log_entry->num_tx                   = tx_mpdu->short_retry_count; //TODO: Add long/short distinction to event log
 		tx_high_event_log_entry->timestamp_create         = tx_mpdu->timestamp_create;
 		tx_high_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
 		tx_high_event_log_entry->delay_done               = tx_mpdu->delay_done;

@@ -1536,7 +1536,8 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 		break;
 	}
 
-	tx_mpdu->num_tx = 0;
+	tx_mpdu->short_retry_count = 0;
+	tx_mpdu->long_retry_count = 0;
 
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
 	ipc_msg_to_low.arg0              = tx_pkt_buf;
@@ -3015,7 +3016,7 @@ void wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* st
 			(frame_stats->tx_num_packets_total)++;
 
 			(frame_stats->tx_num_bytes_total) += (tx_mpdu->length);
-			(frame_stats->tx_num_packets_low) += (tx_mpdu->num_tx);
+			(frame_stats->tx_num_packets_low) += (tx_mpdu->short_retry_count); //TODO: Needs to be fixed for short/long
 
 			if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
 				(frame_stats->tx_num_packets_success)++;
