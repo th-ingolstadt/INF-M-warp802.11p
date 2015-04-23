@@ -94,7 +94,7 @@ int main(){
 	dot11ShortRetryLimit = 7;
 	dot11LongRetryLimit = 4;
 
-	rts_threshold = 2000; //FIXME: Set to minimum to test RTS
+	rts_threshold = 1000; //FIXME: Set to minimum to test RTS
 
 	stationShortRetryCount = 0;
 	stationLongRetryCount = 0;
@@ -551,6 +551,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	u16 n_slots;
 	u32 rx_status;
 	u16 CTS_N_DBPS;
+	u16 MPDU_N_DBPS;
 	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 	u64 last_tx_timestamp;
 	int curr_tx_pow;
@@ -631,34 +632,42 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				case WLAN_PHY_RATE_BPSK12:
 					tx_rate = WLAN_PHY_RATE_BPSK12;
 					CTS_N_DBPS = N_DBPS_R6;
+					MPDU_N_DBPS = N_DBPS_R6;
 				break;
 				case WLAN_PHY_RATE_BPSK34:
 					tx_rate = WLAN_PHY_RATE_BPSK12;
 					CTS_N_DBPS = N_DBPS_R6;
+					MPDU_N_DBPS = N_DBPS_R9;
 				break;
 				case WLAN_PHY_RATE_QPSK12:
 					tx_rate = WLAN_PHY_RATE_QPSK12;
 					CTS_N_DBPS = N_DBPS_R12;
+					MPDU_N_DBPS = N_DBPS_R12;
 				break;
 				case WLAN_PHY_RATE_QPSK34:
 					tx_rate = WLAN_PHY_RATE_QPSK12;
 					CTS_N_DBPS = N_DBPS_R12;
+					MPDU_N_DBPS = N_DBPS_R18;
 				break;
 				case WLAN_PHY_RATE_16QAM12:
 					tx_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
+					MPDU_N_DBPS = N_DBPS_R24;
 				break;
 				case WLAN_PHY_RATE_16QAM34:
 					tx_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
+					MPDU_N_DBPS = N_DBPS_R36;
 				break;
 				case WLAN_PHY_RATE_64QAM23:
 					tx_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
+					MPDU_N_DBPS = N_DBPS_R48;
 				break;
 				case WLAN_PHY_RATE_64QAM34:
 					tx_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
+					MPDU_N_DBPS = N_DBPS_R54;
 				break;
 			}
 
@@ -666,7 +675,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			tx_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_CTRL) + PHY_TX_PKT_BUF_MPDU_OFFSET),
 											   header->address_1,
 											   header->address_2,
-											   header->duration_id + wlan_ofdm_txtime(sizeof(mac_header_80211_RTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) + (2*T_SIFS));
+											   	   (T_SIFS) +
+											   	   wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
+											   	   (T_SIFS) +
+											   	   wlan_ofdm_txtime(length, MPDU_N_DBPS) +
+											   	   header->duration_id);
 
 			wlan_phy_set_tx_signal(tx_pkt_buf, tx_rate, tx_length); // Write SIGNAL for RTS
 
