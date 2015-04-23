@@ -40,6 +40,13 @@ typedef struct{
 	u8 frame_control_2;
 	u16 duration_id;
 	u8 address_ra[6];
+} mac_header_80211_CTS;
+
+typedef struct{
+	u8 frame_control_1;
+	u8 frame_control_2;
+	u16 duration_id;
+	u8 address_ra[6];
 	u8 address_ta[6];
 } mac_header_80211_RTS;
 
