@@ -120,16 +120,19 @@ typedef struct {
     
 } wlan_mac_hw_info;
 
+
+typedef enum {TX_DETAILS_MPDU, TX_DETAILS_RTS_ONLY, TX_DETAILS_RTS_MPDU} tx_details_type_t;
+
 ///Note: This struct must be padded to be an integer
 ///number of u32 words.
 typedef struct {
-	u32   tx_start_delta;
-	phy_tx_params phy_params;
-	s16   num_slots;
-	u16	  cw;
-	u8 	  chan_num;
-	u8 	  reserved0;
-	u8 	  reserved1[2];
+	u32   				  tx_start_delta;
+	phy_tx_params 		  phy_params;
+	s16  				  num_slots;
+	u16	  				  cw;
+	u8 	  				  chan_num;
+	tx_details_type_t 	  tx_details_type;
+	u8 	  				  reserved[2];
 } wlan_mac_low_tx_details;
 
 
