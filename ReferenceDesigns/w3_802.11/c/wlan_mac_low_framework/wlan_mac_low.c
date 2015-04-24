@@ -19,9 +19,6 @@
 #include "w3_clock_controller.h"
 #include "w3_iic_eeprom.h"
 #include "radio_controller.h"
-#include "malloc.h"
-#include "string.h"
-#include "stdlib.h"
 
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -52,6 +49,10 @@ static function_ptr_t        frame_rx_callback;                                 
 static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
+
+//Note: this statically allocated space should be larger than the maximum number of attempts
+//dot11ShortRetryLimit+dot11LongRetryLimit-1
+static wlan_mac_low_tx_details low_tx_details[50]; //TODO make a #define
 
 
 /**
@@ -356,7 +357,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 	tx_frame_info          * tx_mpdu;
 	mac_header_80211       * tx_80211_header;
-	wlan_mac_low_tx_details* low_tx_details;
 
 	u32                      temp1, temp2;
 
@@ -705,13 +705,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					wlan_phy_tx_timestamp_ins_end(0);
 				}
 
-				//Allocate memory to store the record of each transmission of this MPDU
-				// Allocating dynamically gives flexibility to change num_tx_max per packet, constrained only
-				//  by CPU Low's heap size. malloc failures are handled by skipping TX_LOW log data but proceeding
-				//  normally with actual MPDU transmission
-				low_tx_details_size = sizeof(wlan_mac_low_tx_details)*7; //TODO: Change to statically allocated space. //FIXME
-				low_tx_details = malloc(low_tx_details_size);
-
 				//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 				// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
 
@@ -729,6 +722,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
+
+				low_tx_details_size = (tx_mpdu->num_attempts)*sizeof(wlan_mac_low_tx_details);
 
 				//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
@@ -751,7 +746,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 						//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
 						if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
-							ipc_msg_to_high.num_payload_words = ( (tx_mpdu->short_retry_count)*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words //FIXME short/long
+							ipc_msg_to_high.num_payload_words = ( low_tx_details_size ) >> 2; // # of u32 words
 						} else {
 							ipc_msg_to_high.num_payload_words = ( ((IPC_BUFFER_MAX_NUM_WORDS << 2)/sizeof(wlan_mac_low_tx_details)  )*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
 						}
@@ -762,8 +757,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					ipc_msg_to_high.arg0 = tx_pkt_buf;
 					ipc_mailbox_write_msg(&ipc_msg_to_high);
 				}
-
-				free(low_tx_details);
 			}
 		break;
 	}
