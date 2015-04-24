@@ -542,7 +542,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
  *  -Transmission result
  */
 int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
-	u32 idx_attempt;
 	u8 tx_rate;
 	u16 tx_length;
 	u8 tx_pkt_buf;
@@ -578,13 +577,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		tx_mode = TX_MODE_LONG;
 	}
 
-	idx_attempt = 0;
-
-
 
 	while(1){ //This is the retry loop
-		idx_attempt++; //FIXME: This is currently a hacky way of whether we are on the first attempt or not
-			 //Maybe it can also be used for tracking the total number of MPDU attempts?
+		(mpdu_info->num_attempts)++;
 
 		//Check if the higher-layer MAC requires this transmission have a pre-Tx backoff or post-Tx timeout
 		req_timeout = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
@@ -721,7 +716,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
 		wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 
-		if(idx_attempt == 1) {
+		if( (mpdu_info->num_attempts) == 1 ) {
 			//This is the first transmission, so we speculatively draw a backoff in case
 			//the backoff counter is currently 0 but the medium is busy. Prior to all other
 			//(re)transmissions, an explicit backoff will have been started at the end of
@@ -766,41 +761,46 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		wlan_mac_tx_ctrl_A_start(1);
 		wlan_mac_tx_ctrl_A_start(0);
 
+		//While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
+
+		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.rate = mpdu_info->params.phy.rate;
+		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.power = mpdu_info->params.phy.power;
+		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
+		low_tx_details[(mpdu_info->num_attempts)-1].chan_num = wlan_mac_low_get_active_channel();
+		low_tx_details[(mpdu_info->num_attempts)-1].cw = (1 << cw_exp)-1; //(2^(CW_EXP) - 1)
+
+		//NOTE: the pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
+		// the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
+		// to the time delta between the accept and start times of the first transmission to determine whether the pre-Tx backoff
+		// actually occurred.
+		low_tx_details[(mpdu_info->num_attempts)-1].num_slots = n_slots;
+
 		//Wait for the MPDU Tx to finish
 		do{//while(tx_status & WLAN_MAC_STATUS_MASK_MPDU_TX_PENDING)
 
-#if 0
-			//FIXME
-			//While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
-			if(low_tx_details != NULL){
-				low_tx_details[i].phy_params.rate = mpdu_info->params.phy.rate;
-				low_tx_details[i].phy_params.power = mpdu_info->params.phy.power;
-				low_tx_details[i].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
-				low_tx_details[i].chan_num = wlan_mac_low_get_active_channel();
-				low_tx_details[i].cw = (1 << cw_exp)-1; //(2^(CW_EXP) - 1)
-
-				//NOTE: the pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
-				// the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
-				// to the time delta between the accept and start times of the first transmission to determine whether the pre-Tx backoff
-				// actually occurred.
-				low_tx_details[i].num_slots = n_slots;
-			}
-#endif
 			//Poll the DCF core status register
 			mac_hw_status = wlan_mac_get_status();
 
 			if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE ) {
 				//Transmission is complete
-				(mpdu_info->num_attempts)++;
 
-#if 0
-			//FIXME
-				//Update the per-Tx metadata
-				if(low_tx_details != NULL){
-					low_tx_details[i].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
+
+				if( (tx_mode == TX_MODE_LONG) && (tx_wait_state == TX_WAIT_CTS) ){
+					low_tx_details[(mpdu_info->num_attempts)-1].tx_details_type = TX_DETAILS_RTS_ONLY;
+					low_tx_details[(mpdu_info->num_attempts)-1].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
+					last_tx_timestamp = get_tx_start_timestamp();
+				} else if( (tx_mode == TX_MODE_LONG) && (tx_wait_state == TX_WAIT_ACK) ){
+					//Note: this if clause will overwrite the previous RTS_ONLY state in the event
+					//a CTS is received.
+					low_tx_details[(mpdu_info->num_attempts)-1].tx_details_type = TX_DETAILS_RTS_MPDU;
+					//Second note: we won't update the tx_start_delta field in this case. We already wrote it
+					//in the RTS_ONLY state.
+				} else {
+					//This is a non-RTS/CTS-protected MPDU transmission
+					low_tx_details[(mpdu_info->num_attempts)-1].tx_details_type = TX_DETAILS_MPDU;
+					low_tx_details[(mpdu_info->num_attempts)-1].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
 					last_tx_timestamp = get_tx_start_timestamp();
 				}
-#endif
 
 				//Switch on the result of the transmission attempt
 				switch( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT ) {
