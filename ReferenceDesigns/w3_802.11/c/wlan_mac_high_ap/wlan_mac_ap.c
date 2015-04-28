@@ -497,7 +497,9 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	// mac_header_80211*      tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
 
 	// Log all of the TX Low transmissions
+
 	for(i = 0; i < num_tx_low_details; i++) {
+
 		if(i==0 && (tx_low_details[i].tx_start_delta < T_SLOT)){
 			//This captures a subtle effect in the DCF hardware. A random backoff is calculated on the
 			//first transmission of an MPDU in case a CCA_BUSY causes a deferral. If there is no deferral,
