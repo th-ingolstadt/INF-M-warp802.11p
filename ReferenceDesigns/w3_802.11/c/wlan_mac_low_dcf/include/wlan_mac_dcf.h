@@ -20,7 +20,6 @@
 
 #define TX_PKT_BUF_CTRL 7
 
-
 //CW Update Reasons
 #define DCF_CW_UPDATE_MPDU_TX_ERR 0
 #define DCF_CW_UPDATE_MPDU_RX_ACK 1
