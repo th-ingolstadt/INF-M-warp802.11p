@@ -132,12 +132,11 @@ typedef struct {
 	u16	  				  cw;
 	u8 	  				  chan_num;
 	tx_details_type_t 	  tx_details_type;
-	u8 	  				  reserved[2];
+	u16 	  			  duration1;		//Used for RTS details
+	u16 	  			  duration2;		//Used for post-RTS TS
+	u16					  reserved;
+	phy_tx_params 		  phy_params2;		//Used for RTS details
 } wlan_mac_low_tx_details;
-
-
-
-
 
 int wlan_lib_init ();
 inline int ipc_mailbox_read_isempty();
