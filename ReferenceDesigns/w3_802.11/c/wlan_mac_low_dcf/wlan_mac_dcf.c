@@ -628,53 +628,71 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 					tx_rate = WLAN_PHY_RATE_BPSK12;
 					CTS_N_DBPS = N_DBPS_R6;
 					MPDU_N_DBPS = N_DBPS_R6;
+					low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_6M;
 				break;
 				case WLAN_PHY_RATE_BPSK34:
 					tx_rate = WLAN_PHY_RATE_BPSK12;
 					CTS_N_DBPS = N_DBPS_R6;
 					MPDU_N_DBPS = N_DBPS_R9;
+					low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_9M;
 				break;
 				case WLAN_PHY_RATE_QPSK12:
 					tx_rate = WLAN_PHY_RATE_QPSK12;
 					CTS_N_DBPS = N_DBPS_R12;
 					MPDU_N_DBPS = N_DBPS_R12;
+					low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_12M;
 				break;
 				case WLAN_PHY_RATE_QPSK34:
 					tx_rate = WLAN_PHY_RATE_QPSK12;
 					CTS_N_DBPS = N_DBPS_R12;
 					MPDU_N_DBPS = N_DBPS_R18;
+					low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_18M;
 				break;
 				case WLAN_PHY_RATE_16QAM12:
 					tx_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
 					MPDU_N_DBPS = N_DBPS_R24;
+					low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_24M;
 				break;
 				case WLAN_PHY_RATE_16QAM34:
 					tx_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
 					MPDU_N_DBPS = N_DBPS_R36;
+					low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_36M;
 				break;
 				case WLAN_PHY_RATE_64QAM23:
 					tx_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
 					MPDU_N_DBPS = N_DBPS_R48;
+					low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_48M;
 				break;
 				case WLAN_PHY_RATE_64QAM34:
 					tx_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
 					MPDU_N_DBPS = N_DBPS_R54;
+					low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_54M;
 				break;
 			}
+
+
+			low_tx_details[(mpdu_info->num_attempts)-1].duration1 = (T_SIFS) +
+				   	   	   	   	   	   	   	   	   	   	   	   	    wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
+				   	   	   	   	   	   	   	   	   	   	   	   	    (T_SIFS) +
+				   	   	   	   	   	   	   	   	   	   	   	   	    wlan_ofdm_txtime(length, MPDU_N_DBPS) +
+				   	   	   	   	   	   	   	   	   	   	   	   	    header->duration_id;
+
+			low_tx_details[(mpdu_info->num_attempts)-1].duration2 = (T_SIFS) +
+																	wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
+																	(T_SIFS);;
 
 			//Construct the RTS frame in the dedicated Tx pkt buf
 			tx_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_CTRL) + PHY_TX_PKT_BUF_MPDU_OFFSET),
 											   header->address_1,
 											   header->address_2,
-											   	   (T_SIFS) +
-											   	   wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
-											   	   (T_SIFS) +
-											   	   wlan_ofdm_txtime(length, MPDU_N_DBPS) +
-											   	   header->duration_id);
+											   low_tx_details[(mpdu_info->num_attempts)-1].duration1);
+
+			low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.power = mpdu_info->params.phy.power;
+			low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.antenna_mode = mpdu_info->params.phy.antenna_mode;
 
 			wlan_phy_set_tx_signal(tx_pkt_buf, tx_rate, tx_length); // Write SIGNAL for RTS
 
@@ -762,7 +780,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		wlan_mac_tx_ctrl_A_start(0);
 
 		//While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
-
 		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.rate = mpdu_info->params.phy.rate;
 		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.power = mpdu_info->params.phy.power;
 		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
