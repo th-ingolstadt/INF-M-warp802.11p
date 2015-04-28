@@ -123,5 +123,6 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 #define wlan_create_reassociation_req_frame(pkt_buf, common, attempt_bss_info) wlan_create_reassoc_assoc_req_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ, common, attempt_bss_info)
 int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, bss_info* attempt_bss_info);
 int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 flags);
+int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u16 duration);
 
 #endif /* WLAN_MAC_PACKET_TYPES_H_ */
