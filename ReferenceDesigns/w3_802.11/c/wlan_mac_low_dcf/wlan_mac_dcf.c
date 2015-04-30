@@ -586,7 +586,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
 	//Compare the length of this frame to the RTS Threshold
-	if(length < rts_threshold){
+	if(length <= rts_threshold){
 		tx_mode = TX_MODE_SHORT;
 	} else {
 		tx_mode = TX_MODE_LONG;
@@ -1023,7 +1023,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 						//The Rx handler killed this transmission already by resetting the MAC core
 						// Reset the global autocancel_en variable and return failure
 						autocancel_en = 0;
-
 						return TX_MPDU_RESULT_FAILURE;
 					}
 				}//END if(new Rx while waiting for Tx)
