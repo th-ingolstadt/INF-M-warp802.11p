@@ -330,6 +330,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 		if( data_pkt_buf != PKT_BUF_INVALID ){
 			//We have an outgoing data frame we should send
 			//Configure the Tx antenna selection
+			//The frame_transmit() context already configured the SIGNAL field,
+			//so we do not have to worry about it in this context
 			unsigned char mpdu_tx_ant_mask = 0;
 			tx_frame_info* tx_mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(data_pkt_buf));
 			int curr_tx_pow;
@@ -362,6 +364,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 		} else {
 			xil_printf("Error: unexpected CTS to me\n");
 		}
+	} else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_RTS)){
+		//TODO: Send CTS if NAV is clear
 	}
 
 	//Check if this reception is an ACK
@@ -568,7 +572,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	tx_wait_state_t tx_wait_state;
 	tx_mode_t tx_mode;
 
-
+	//This state variable will inform the rest of the frame_transmit function
+	//on whether the code is actively waiting for an ACK, for an RTS, or not
+	//waiting for anything.
 	tx_wait_state = TX_WAIT_NONE;
 
 	//Reset SRC/LRC and num_attempts (which is the union of SRC and LRC)
@@ -600,15 +606,12 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			//Define the conditions to apply to receptions that would trigger cancellation of this transmission
 			autocancel_match_type = header->frame_control_1;
 			memcpy((void*)autocancel_match_addr3, header->address_3, 6);
-
 			autocancel_curr_timestamp = get_usec_timestamp();
-
 			if(autocancel_curr_timestamp >= autocancel_last_rx_ts){
 				autocancel_timestamp_diff = autocancel_curr_timestamp - autocancel_last_rx_ts;
 			} else {
 				autocancel_timestamp_diff = autocancel_last_rx_ts - autocancel_curr_timestamp;
 			}
-
 			if(autocancel_timestamp_diff < 50000){
 				//TODO: this is currently hardcoded to 50ms. In the future, it should be a parameter that passes down from CPU_HIGH
 				//Conceptually, this value should be just less than a beacon interval. Any beacon transmission will be canceled if it
@@ -616,13 +619,12 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				autocancel_en = 0;
 				return -1;
 			}
-
 		}
 
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		//This is the SIGNAL field for the MPDU we will eventually transmit. It's possible
 		//the next waveform we send will be an RTS with its own independent SIGNAL
-		wlan_phy_set_tx_signal(pkt_buf, rate, length); //write SIGNAL for data
+		wlan_phy_set_tx_signal(pkt_buf, rate, length);
 
 		if( (tx_mode == TX_MODE_LONG) && (req_timeout == 1) ){
 			//This is a long MPDU that requires an RTS/CTS handshake prior to the MPDU transmission.
@@ -708,12 +710,15 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 																	wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
 																	(T_SIFS);;
 
-			//Construct the RTS frame in the dedicated Tx pkt buf
+			//Construct the RTS frame in the dedicated Tx pkt buf for control frames
 			tx_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_CTRL) + PHY_TX_PKT_BUF_MPDU_OFFSET),
 											   header->address_1,
 											   header->address_2,
 											   low_tx_details[(mpdu_info->num_attempts)-1].duration1);
 
+			//The phy_params2 element of low_tx_details is only used when we are send an RTS and describes
+			//the PHY parameters used in the transmission of the RTS. This element remains unused during
+			//MPDU-only transmissions
 			low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.power = mpdu_info->params.phy.power;
 			low_tx_details[(mpdu_info->num_attempts)-1].phy_params2.antenna_mode = mpdu_info->params.phy.antenna_mode;
 
@@ -784,7 +789,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			//wlan_mac_MPDU_tx_params(tx_pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
 			wlan_mac_tx_ctrl_A_params(tx_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout);
 		} else {
-			//Re-transmission (loop index > 0)
+			//This is a retry. We will inherit whatever backoff that is currently running.
 			//Configure the DCF core Tx state machine for this transmission
 			// preTx_backoff_slots is 0 here, since the core will have started a post-timeout backoff automatically
 			//wlan_mac_MPDU_tx_params(tx_pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
@@ -803,6 +808,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		wlan_mac_tx_ctrl_A_start(0);
 
 		//While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
+		//The phy_params (as opposed to phy_params2) element is used for the MPDU itself. If we are waiting for a CTS and we do not
+		//receive one, CPU_HIGH will know to ignore this element of low_tx_details (since the MPDU will not be transmitted).
 		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.rate = mpdu_info->params.phy.rate;
 		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.power = mpdu_info->params.phy.power;
 		low_tx_details[(mpdu_info->num_attempts)-1].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
@@ -825,13 +832,13 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				//Transmission is complete
 
 
-				if( (tx_mode == TX_MODE_LONG) && (tx_wait_state == TX_WAIT_CTS) ){
+				if( (tx_wait_state == TX_WAIT_CTS) ){
 					low_tx_details[(mpdu_info->num_attempts)-1].tx_details_type = TX_DETAILS_RTS_ONLY; //This will potentially be overwritten with TX_DETAILS_RTS_MPDU
 																									   //should we make it that far.
 					low_tx_details[(mpdu_info->num_attempts)-1].tx_start_delta = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
 					last_tx_timestamp = get_tx_start_timestamp();
 				} else if( (tx_mode == TX_MODE_LONG) && (tx_wait_state == TX_WAIT_ACK) ){
-					//Note: this clause will overwrite the previous RTS_ONLY state in the event
+					//Note: this clause will overwrite the previous TX_DETAILS_RTS_ONLY state in the event
 					//a CTS is received.
 					low_tx_details[(mpdu_info->num_attempts)-1].tx_details_type = TX_DETAILS_RTS_MPDU;
 					//Second note: we won't update the tx_start_delta field in this case. We already wrote it
@@ -906,8 +913,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 							tx_wait_state = TX_WAIT_ACK;
 
 							//We received the CTS, so we can reset our SSRC
+							//Note: as per 9.3.3 of 802.11-2012, we do not reset our CW
 							reset_ssrc();
 
+							//At this point, the MAC tx state machine has started anew to send a the MPDU itself.
+							//This was triggered by the frame_receive() context.
 							//Re-read the MAC status register so we don't get kicked out of this do-while loop
 							mac_hw_status = wlan_mac_get_status();
 							continue;
@@ -924,17 +934,17 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 									switch(tx_mode){
 										case TX_MODE_SHORT:
-											increment_src(&(mpdu_info->short_retry_count));
+											increment_src_ssrc(&(mpdu_info->short_retry_count));
 										break;
 										case TX_MODE_LONG:
-											increment_lrc(&(mpdu_info->long_retry_count));
+											increment_lrc_slrc(&(mpdu_info->long_retry_count));
 										break;
 									}
 								break;
 								case TX_WAIT_CTS:
 									//We were waiting for a CTS but did not get it.
 									//Increment the SRC
-									increment_src(&(mpdu_info->short_retry_count));
+									increment_src_ssrc(&(mpdu_info->short_retry_count));
 								break;
 								case TX_WAIT_NONE:
 									xil_printf("Error: unexpected state");
@@ -969,17 +979,17 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 								switch(tx_mode){
 									case TX_MODE_SHORT:
-										increment_src(&(mpdu_info->short_retry_count));
+										increment_src_ssrc(&(mpdu_info->short_retry_count));
 									break;
 									case TX_MODE_LONG:
-										increment_lrc(&(mpdu_info->long_retry_count));
+										increment_lrc_slrc(&(mpdu_info->long_retry_count));
 									break;
 								}
 							break;
 							case TX_WAIT_CTS:
 								//We were waiting for a CTS but did not get it.
 								//Increment the SRC
-								increment_src(&(mpdu_info->short_retry_count));
+								increment_src_ssrc(&(mpdu_info->short_retry_count));
 							break;
 							case TX_WAIT_NONE:
 								xil_printf("Error: unexpected state");
@@ -1022,7 +1032,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	} //end retransmission loop
 }
 
-inline void increment_src(u8* src_ptr){
+inline void increment_src_ssrc(u8* src_ptr){
 
 	//Increment the Short Retry Count
 	(*src_ptr)++;
@@ -1040,7 +1050,7 @@ inline void increment_src(u8* src_ptr){
 	return;
 }
 
-inline void increment_lrc(u8* lrc_ptr){
+inline void increment_lrc_slrc(u8* lrc_ptr){
 	//Increment the Long Retry Count
 	(*lrc_ptr)++;
 
@@ -1058,16 +1068,13 @@ inline void increment_lrc(u8* lrc_ptr){
 }
 
 inline void reset_ssrc(){
-	//Note: Resetting the station counters does not necessarily
+	//Note: Resetting the SSRC does not necessarily
 	//indicate that the contention window should be reset.
 	//e.g., the reception of a valid CTS.
 	stationShortRetryCount = 0;
 }
 
 inline void reset_slrc(){
-	//Note: Resetting the station counters does not necessarily
-	//indicate that the contention window should be reset.
-	//e.g., the reception of a valid CTS.
 	stationLongRetryCount = 0;
 }
 
