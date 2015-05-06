@@ -23,6 +23,9 @@ typedef int (*function_ptr_t)();
 #define min(A,B) (((A)<(B))?(A):(B))
 #define abs_64(A) (((A) < 0)?(-1*A):(A))
 
+#define sat_add16(a, b) ( (a > 0xFFFF - b) ? 0xFFFF : a + b )
+#define sat_add32(a, b) ( (a > 0xFFFFFFFF - b) ? 0xFFFFFFFF : a + b )
+
 #define WLAN_PHY_FCS_NBYTES	4
 
 //#define _ISR_PERF_MON_EN_	///< ISR Performance Monitor Toggle
@@ -99,7 +102,7 @@ typedef struct{
 	u8 QID;										///< Queue ID from which this packet was taken
 	u8 short_retry_count;
 	u8 long_retry_count;
-	u8 num_attempts;
+	u8 num_tx_attempts;
 	u8 flags;									///< Bit flags en/disabling certain operations by the lower-level MAC
 	u8 padding1;
 	u16 length;									///< Number of bytes in MAC packet, including MAC header and FCS
