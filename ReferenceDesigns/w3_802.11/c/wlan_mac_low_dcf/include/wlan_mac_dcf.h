@@ -18,7 +18,8 @@
 
 #define PKT_BUF_INVALID 0xFF
 
-#define TX_PKT_BUF_CTRL 7
+#define TX_PKT_BUF_RTS	   6
+#define TX_PKT_BUF_ACK_CTS 7
 
 //CW Update Reasons
 #define DCF_CW_UPDATE_MPDU_TX_ERR 0
@@ -30,11 +31,13 @@
 #define RAND_SLOT_REASON_STANDARD_ACCESS 0
 #define RAND_SLOT_REASON_IBSS_BEACON     1
 
+
+typedef enum {RX_FINISH_SEND_NONE, RX_FINISH_SEND_A, RX_FINISH_SEND_B} rx_finish_state_t;
 typedef enum {TX_WAIT_NONE, TX_WAIT_ACK, TX_WAIT_CTS} tx_wait_state_t;
 typedef enum {TX_MODE_SHORT, TX_MODE_LONG} tx_mode_t;
 
 int main();
-int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details);
+int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_tx_details* low_tx_details);
 u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
 inline void increment_src_ssrc(u8* src_ptr);
 inline void increment_lrc_slrc(u8* lrc_ptr);

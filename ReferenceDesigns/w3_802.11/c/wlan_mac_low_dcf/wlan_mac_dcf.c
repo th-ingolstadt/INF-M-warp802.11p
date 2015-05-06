@@ -42,30 +42,27 @@
 #define WARPNET_TYPE_80211_LOW         WARPNET_TYPE_80211_LOW_DCF
 #define NUM_LEDS                       4
 
-volatile static u32                    stationShortRetryCount;
-volatile static u32                    stationLongRetryCount;
-volatile static u32                    cw_exp;
+volatile static u32                    gl_stationShortRetryCount;
+volatile static u32                    gl_stationLongRetryCount;
+volatile static u32                    gl_cw_exp;
 
-volatile static u16					   rts_threshold; //TODO: Expose through wlan_exp
+volatile static u16					   gl_dot11RTSThreshold; //TODO: Expose through wlan_exp
 
-volatile static u8                     autocancel_en;
-volatile static u8                     autocancel_match_type;
-volatile static u8                     autocancel_match_addr3[6];
-volatile static u64                    autocancel_last_rx_ts;
+volatile static u8                     gl_autocancel_en;
+volatile static u8                     gl_autocancel_match_type;
+volatile static u8                     gl_autocancel_match_addr3[6];
+volatile static u64                    gl_autocancel_last_rx_ts;
 
-volatile static u8                     eeprom_addr[6];
+volatile static u8                     gl_eeprom_addr[6];
 
-volatile static u8					   data_pkt_buf;
+volatile static u8					   gl_mpdu_pkt_buf;
 
-volatile static u8					   dot11ShortRetryLimit; //TODO: Expose through wlan_exp
-volatile static u8					   dot11LongRetryLimit;  //TODO: Expose through wlan_exp
+volatile static u8					   gl_dot11ShortRetryLimit; //TODO: Expose through wlan_exp
+volatile static u8					   gl_dot11LongRetryLimit;  //TODO: Expose through wlan_exp
 
-volatile u8                            red_led_index;
-volatile u8                            green_led_index;
+volatile u8                            gl_red_led_index;
+volatile u8                            gl_green_led_index;
 
-volatile u16						   _debug_prev_length;
-volatile u8						       _debug_prev_phy_mode;
-volatile u8						       _debug_prev_mcs;
 
 int main(){
 	wlan_mac_hw_info* hw_info;
@@ -79,44 +76,50 @@ int main(){
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled any time while the design is running.\n\n");
 
-	autocancel_en = 0;
-	data_pkt_buf = PKT_BUF_INVALID;
+	gl_autocancel_en = 0;
+	gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 
-	autocancel_match_addr3[0] = 0x00;
-	autocancel_match_addr3[1] = 0x00;
-	autocancel_match_addr3[2] = 0x00;
-	autocancel_match_addr3[3] = 0x00;
-	autocancel_match_addr3[4] = 0x00;
-	autocancel_match_addr3[5] = 0x00;
-	autocancel_match_type     = 0x00;
-	autocancel_last_rx_ts = 0;
+	gl_autocancel_match_addr3[0] = 0x00;
+	gl_autocancel_match_addr3[1] = 0x00;
+	gl_autocancel_match_addr3[2] = 0x00;
+	gl_autocancel_match_addr3[3] = 0x00;
+	gl_autocancel_match_addr3[4] = 0x00;
+	gl_autocancel_match_addr3[5] = 0x00;
+	gl_autocancel_match_type     = 0x00;
+	gl_autocancel_last_rx_ts = 0;
 
-	dot11ShortRetryLimit = 7;
-	dot11LongRetryLimit = 4;
+	gl_dot11ShortRetryLimit = 7;
+	gl_dot11LongRetryLimit = 4;
 
-	rts_threshold = 1000; //FIXME: Set to minimum to test RTS
+	gl_dot11RTSThreshold = 2000; //FIXME: This should default to MTU+1 (aka, disable RTS/CTS)
 
-	stationShortRetryCount = 0;
-	stationLongRetryCount = 0;
-	cw_exp = wlan_mac_low_get_cw_exp_min();
+	gl_stationShortRetryCount = 0;
+	gl_stationLongRetryCount = 0;
+	gl_cw_exp = wlan_mac_low_get_cw_exp_min();
 
 	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
 
-	red_led_index = 0;
-	green_led_index = 0;
-	userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
-	userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
+	gl_red_led_index = 0;
+	gl_green_led_index = 0;
+	userio_write_leds_green(USERIO_BASEADDR, (1<<gl_green_led_index));
+	userio_write_leds_red(USERIO_BASEADDR, (1<<gl_red_led_index));
 
 	wlan_mac_low_init(WARPNET_TYPE_80211_LOW);
 
 	hw_info = wlan_mac_low_get_hw_info();
-	memcpy((void*)eeprom_addr, hw_info->hw_addr_wlan, 6);
+	memcpy((void*)gl_eeprom_addr, hw_info->hw_addr_wlan, 6);
 
 	wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
 	wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
 
-	if(lock_pkt_buf_tx(TX_PKT_BUF_CTRL) != PKT_BUF_MUTEX_SUCCESS){
-		warp_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_CTRL);
+	if(lock_pkt_buf_tx(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
+		warp_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK_CTS);
+		wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
+		return -1;
+	}
+
+	if(lock_pkt_buf_tx(TX_PKT_BUF_RTS) != PKT_BUF_MUTEX_SUCCESS){
+		warp_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_RTS);
 		wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 		return -1;
 	}
@@ -161,6 +164,20 @@ int main(){
  */
 u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
+	//RX_LEN_THRESH is used to manage a potential pipeline bubble
+	//that can be used during a reception for processing.
+	//
+	// - if the ongoing reception is >RX_LEN_THRESH, we will start
+	//   processing the frame and filling in metadata into the packet
+	//   buffer prior to calling wlan_mac_dcf_hw_rx_finish().
+	// - if the ongoing reception is <RX_LEN_THRESH, we'll immediately
+	//   start polling the PHY with wlan_mac_dcf_hw_rx_finish() and,
+	//   if need be, configure a MAC Tx core to send a response.
+	//
+	//This structure handles any risk of response packets (e.g. an ACK)
+	//not being configured in time for the hard SIFS boundary.
+	#define RX_LEN_THRESH	200
+
 	u32 return_value;
 	u32 tx_length;
 	u8 tx_rate;
@@ -171,6 +188,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	u32 rx_filter;
 	u8 report_to_mac_high;
 	u8 ack_tx_gain;
+
+	rx_finish_state_t rx_finish_state = RX_FINISH_SEND_NONE;
 
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
@@ -193,13 +212,10 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
 		wlan_mac_dcf_hw_unblock_rx_phy();
-	    _debug_prev_length = phy_details->length;
-	    _debug_prev_phy_mode = phy_details->phy_mode;
-	    _debug_prev_mcs = phy_details->mcs;
 		return return_value;
 	}
 
-	FIXME: replace switch(rate) with array[rate] after checking rate<=max_supported_mcs
+	//FIXME: replace switch(rate) with array[rate] after checking rate<=max_supported_mcs
 
 	//Translate the rate index into the rate code used by the Tx PHY
 	// This translation is required in case this reception needs to send an ACK, as the ACK
@@ -271,35 +287,34 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 	//Determine which antenna the ACK will be sent from
 	// The current implementation transmits ACKs from the same antenna over which the previous packet was received
-	unsigned char ack_tx_ant_mask = 0;
+	unsigned char tx_ant_mask = 0;
 	active_rx_ant = (wlan_phy_rx_get_active_rx_ant());
 	switch(active_rx_ant){
 		case RX_ACTIVE_ANTA:
-			ack_tx_ant_mask |= 0x1;
+			tx_ant_mask |= 0x1;
 		break;
 		case RX_ACTIVE_ANTB:
-			ack_tx_ant_mask |= 0x2;
+			tx_ant_mask |= 0x2;
 		break;
 		case RX_ACTIVE_ANTC:
-			ack_tx_ant_mask |= 0x4;
+			tx_ant_mask |= 0x4;
 		break;
 		case RX_ACTIVE_ANTD:
-			ack_tx_ant_mask |= 0x8;
+			tx_ant_mask |= 0x8;
 		break;
 		default:
-			ack_tx_ant_mask = 0x1;
+			tx_ant_mask = 0x1;
 		break;
 	}
 
 	//Wait until the PHY has written enough bytes so that the first address field can be processed
-	REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x80);
+
 	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
 		if(DBG_PRINT) xil_printf("Waiting for Rx Bytes (%d < %d)\n", wlan_mac_get_last_byte_index(), MAC_HW_LASTBYTE_ADDR1);
 	};
-	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x80);
 
 	//Check the destination address
-	unicast_to_me = wlan_addr_eq(rx_header->address_1, eeprom_addr);
+	unicast_to_me = wlan_addr_eq(rx_header->address_1, gl_eeprom_addr);
 	to_multicast = wlan_addr_mcast(rx_header->address_1);
 
 	//Prep outgoing ACK just in case it needs to be sent
@@ -311,31 +326,32 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
 		//wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
-		wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_CTRL, ack_tx_ant_mask, 0, 1, 0, 0);
-		//wlan_mac_auto_tx_params(TX_PKT_BUF_CTRL, ((T_SIFS*10)-((TX_PHY_DLY_100NSEC))), ack_tx_ant_mask);
+		wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 0, 1, 0, 0);
 		
 		//ACKs are transmitted with a nominal Tx power used for all control packets
 		ack_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
 		wlan_mac_tx_ctrl_B_gains(ack_tx_gain, ack_tx_gain, ack_tx_gain, ack_tx_gain);
 
 		//Construct the ACK frame in the dedicated Tx pkt buf
-		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_CTRL) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
+		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
 		//Write the SIGNAL field for the ACK
-		wlan_phy_set_tx_signal(TX_PKT_BUF_CTRL, tx_rate, tx_length);
+		wlan_phy_set_tx_signal(TX_PKT_BUF_ACK_CTS, tx_rate, tx_length);
 
-		//Enable the Auto-Tx subsystem
-		// Auto-Tx enable requires rising edge; one rising edge results in 0 or 1 transmissions, depending on Rx FCS
-		//wlan_mac_auto_tx_en(0);
-		//wlan_mac_auto_tx_en(1);
+		rx_finish_state = RX_FINISH_SEND_B;
+
+		//This good FCS, unicast, noncontrol packet was ACKed.
+		mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
+
 	} else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_CTS)){
-		if( data_pkt_buf != PKT_BUF_INVALID ){
+		if( gl_mpdu_pkt_buf != PKT_BUF_INVALID ){
+			//FIXME: we need to re-organize when to finish phy receive
 			//We have an outgoing data frame we should send
 			//Configure the Tx antenna selection
 			//The frame_transmit() context already configured the SIGNAL field,
 			//so we do not have to worry about it in this context
 			unsigned char mpdu_tx_ant_mask = 0;
-			tx_frame_info* tx_mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(data_pkt_buf));
+			tx_frame_info* tx_mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(gl_mpdu_pkt_buf));
 			int curr_tx_pow;
 			switch(tx_mpdu_info->params.phy.antenna_mode) {
 				case TX_ANTMODE_SISO_ANTA:
@@ -358,9 +374,12 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 			//Configure the Tx power - update all antennas, even though only one will be used
 			curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_mpdu_info->params.phy.power);
 			wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
-			wlan_mac_tx_ctrl_A_params(data_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1); //Use postRx timer 1 and postTx_timer2
-			wlan_mac_tx_ctrl_A_start(1);
-			wlan_mac_tx_ctrl_A_start(0);
+			wlan_mac_tx_ctrl_A_params(gl_mpdu_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1); //Use postRx timer 1 and postTx_timer2
+			//wlan_mac_tx_ctrl_A_start(1);
+			//wlan_mac_tx_ctrl_A_start(0);
+
+			rx_finish_state = RX_FINISH_SEND_A;
+
 			return_value |= POLL_MAC_TYPE_CTS;
 
 		} else {
@@ -371,6 +390,30 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		//MAC hw Tx B can check NAV automagically
 	}
 
+	if( (phy_details->length) <= RX_LEN_THRESH ){
+		mpdu_info->state = wlan_mac_dcf_hw_rx_finish();
+
+		if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
+			switch( rx_finish_state ){
+				case RX_FINISH_SEND_A:
+					wlan_mac_tx_ctrl_A_start(1);
+					wlan_mac_tx_ctrl_A_start(0);
+				break;
+
+				case RX_FINISH_SEND_B:
+					wlan_mac_tx_ctrl_B_start(1);
+					wlan_mac_tx_ctrl_B_start(0);
+				break;
+
+				default:
+				case RX_FINISH_SEND_NONE:
+				break;
+			}
+		}
+		rx_finish_state = RX_FINISH_SEND_NONE;
+	}
+
+
 	//Check if this reception is an ACK
 	if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
 		return_value |= POLL_MAC_TYPE_ACK;
@@ -380,37 +423,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	mpdu_info->flags = 0;
 	mpdu_info->phy_details = *phy_details;
 
-	mpdu_info->channel = wlan_mac_low_get_active_channel();
-	mpdu_info->timestamp = get_rx_start_timestamp();
-
-	//Block until the reception is complete, storing the checksum status in the frame_info struct
-	mpdu_info->state = wlan_mac_dcf_hw_rx_finish();
-
-	//Check if this reception should trigger the cancellation of a pending or future transmission
-	// This is used by the IBSS application to cancel a pending beacon transmission when
-	// a beacon is received from a peer node
-	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && //Rx pkt checksum good
-			(rx_header->frame_control_1 == autocancel_match_type) && //Pkt type matches auto-cancel condition
-			(wlan_addr_eq(rx_header->address_3, autocancel_match_addr3) && //Pkt addr3 matches auto-cancel condition when pkt has addr3
-			(phy_details->length) >= sizeof(mac_header_80211) ) ) {
-
-		if(autocancel_en) {
-			//Clobber all state in the DCF core - this cancels deferrals and pending transmissions
-			wlan_mac_reset(1);
-			wlan_mac_reset(0);
-
-			return_value |= POLL_MAC_CANCEL_TX;
-		}
-
-		//Whether or not a transmission was just canceled, remember the timestamp of this auto-cancel-worthy packet reception
-		// This handles a race condition, where a beacon is received after CPU High has pushed down a new beacon with the
-		// TX_MPDU_FLAGS_AUTOCANCEL flag set, but a beacon is received before frame_transmit() is called. The timestamp
-		// recorded here is compared to the current time immediately before a new beacon might be transmitted, allowing
-		// just-in-time cancellation of the transmission
-		autocancel_last_rx_ts = get_rx_start_timestamp();
+	if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) {
+		//This reception was a re-transmission by the other node
+		mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
 	}
 
-	FIXME: the metadata below can be gathered before Rx PHY finish
+	mpdu_info->channel = wlan_mac_low_get_active_channel();
+	mpdu_info->timestamp = get_rx_start_timestamp();
 
 	//Record the antenna selection, AGC gain selections and Rx power to the Rx pkt metadata
 	mpdu_info->ant_mode = active_rx_ant;
@@ -422,12 +441,40 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	rssi = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
 	mpdu_info->rx_power = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
 
+	//Block until the reception is complete, storing the checksum status in the frame_info struct
+	if( (phy_details->length) > RX_LEN_THRESH ){
+		mpdu_info->state = wlan_mac_dcf_hw_rx_finish();
+	}
+
+	//Check if this reception should trigger the cancellation of a pending or future transmission
+	// This is used by the IBSS application to cancel a pending beacon transmission when
+	// a beacon is received from a peer node
+	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) && //Rx pkt checksum good
+			(rx_header->frame_control_1 == gl_autocancel_match_type) && //Pkt type matches auto-cancel condition
+			(wlan_addr_eq(rx_header->address_3, gl_autocancel_match_addr3) && //Pkt addr3 matches auto-cancel condition when pkt has addr3
+			(phy_details->length) >= sizeof(mac_header_80211) ) ) {
+
+		if(gl_autocancel_en) {
+			//Clobber all state in the DCF core - this cancels deferrals and pending transmissions
+			wlan_mac_reset(1);
+			wlan_mac_reset(0);
+			return_value |= POLL_MAC_CANCEL_TX;
+		}
+
+		//Whether or not a transmission was just canceled, remember the timestamp of this auto-cancel-worthy packet reception
+		// This handles a race condition, where a beacon is received after CPU High has pushed down a new beacon with the
+		// TX_MPDU_FLAGS_AUTOCANCEL flag set, but a beacon is received before frame_transmit() is called. The timestamp
+		// recorded here is compared to the current time immediately before a new beacon might be transmitted, allowing
+		// just-in-time cancellation of the transmission
+		gl_autocancel_last_rx_ts = get_rx_start_timestamp();
+	}
+
 	if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) {
 		//Received packet had good checksum
 
 		//Increment green LEDs
-		green_led_index = (green_led_index + 1) % NUM_LEDS;
-		userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
+		gl_green_led_index = (gl_green_led_index + 1) % NUM_LEDS;
+		userio_write_leds_green(USERIO_BASEADDR, (1<<gl_green_led_index));
 
 		return_value |= POLL_MAC_STATUS_GOOD;
 
@@ -460,27 +507,30 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 			return_value |= POLL_MAC_ADDR_MATCH;
 		}
 
-		//Update packet metadata to indicate whether this reception was ACK'd and if it was a re-transmission
-		if(!WLAN_IS_CTRL_FRAME(rx_header)) {
-			if(unicast_to_me){
-				//FIXME - is this too late to enable Tx ctrl B? PostRx timer 2 (SIFS) must still be running
-				wlan_mac_tx_ctrl_B_start(1);
-				wlan_mac_tx_ctrl_B_start(0);
-				//This good FCS, unicast, noncontrol packet was ACKed.
-				mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
-			}
+		if( (phy_details->length) <= RX_LEN_THRESH ){
+			switch( rx_finish_state ){
+				case RX_FINISH_SEND_A:
+					wlan_mac_tx_ctrl_A_start(1);
+					wlan_mac_tx_ctrl_A_start(0);
+				break;
 
-			if((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) {
-				//This reception was a re-transmission by the other node
-				mpdu_info->flags |= RX_MPDU_FLAGS_RETRY;
+				case RX_FINISH_SEND_B:
+					wlan_mac_tx_ctrl_B_start(1);
+					wlan_mac_tx_ctrl_B_start(0);
+				break;
+
+				default:
+				case RX_FINISH_SEND_NONE:
+				break;
 			}
 		}
+
 
 	} else {
 		//Received checksum was bad
 		//Increment red LEDs
-		red_led_index = (red_led_index + 1) % NUM_LEDS;
-		userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
+		gl_red_led_index = (gl_red_led_index + 1) % NUM_LEDS;
+		userio_write_leds_red(USERIO_BASEADDR, (1<<gl_red_led_index));
 
 		//Check if this packet should be passed up to CPU High for further processing
 		rx_filter = wlan_mac_low_get_current_rx_filter();
@@ -519,9 +569,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     	mac_hw_status = wlan_mac_get_status();
     } while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
 
-    _debug_prev_length = phy_details->length;
-    _debug_prev_phy_mode = phy_details->phy_mode;
-    _debug_prev_mcs = phy_details->mcs;
 
 	return return_value;
 }
@@ -550,29 +597,27 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
  * @return
  *  -Transmission result
  */
-int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
+int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_tx_details* low_tx_details) {
 	//The pkt_buf, rate, and length arguments provided to this function specifically relate to
 	//the MPDU that the WLAN MAC LOW framework wants us to send. We may opt to first send an RTS
 	//to reserve the medium prior to doing this. The tx_rate, tx_length, and tx_pkt_buf relate
 	//to whatever the next waveform will be. That waveform could be an RTS, or it could be the
 	//MPDU itself.
 
-	FIXME: rename this functions args with mpdu_
-
-	u8 tx_rate;    FIXME: prefix with mac_cfg_ ?
-	u16 tx_length;
-	u8 tx_pkt_buf;
-
+	u8 mac_cfg_rate;
+	u16 mac_cfg_length;
+	u8 mac_cfg_pkt_buf;
+	u16 rts_header_duration;
 	u8 req_timeout;
 	u8 req_backoff;
 	u16 n_slots;
 	u32 rx_status;
 	u16 CTS_N_DBPS;
 	u16 MPDU_N_DBPS;
-	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+	tx_frame_info* mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(mpdu_pkt_buf));
 	u64 last_tx_timestamp;
 	int curr_tx_pow;
-	mac_header_80211* header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	mac_header_80211* header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(mpdu_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	u64 autocancel_curr_timestamp;
 	u64 autocancel_timestamp_diff;
 	u32 mac_hw_status;
@@ -594,7 +639,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
 	//Compare the length of this frame to the RTS Threshold
-	if(length <= rts_threshold) {
+	if(mpdu_length <= gl_dot11RTSThreshold) {
 		tx_mode = TX_MODE_SHORT;
 	} else {
 		tx_mode = TX_MODE_LONG;
@@ -609,41 +654,38 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		req_backoff = ((mpdu_info->flags) & TX_MPDU_FLAGS_REQ_BO) != 0;
 
 		//Check whether this transmission can be canceled - used by IBSS nodes competing with peers to send beacons
-		autocancel_en = ((mpdu_info->flags) & TX_MPDU_FLAGS_AUTOCANCEL) != 0;
-		if(autocancel_en) {
+		gl_autocancel_en = ((mpdu_info->flags) & TX_MPDU_FLAGS_AUTOCANCEL) != 0;
+		if(gl_autocancel_en) {
 			//Define the conditions to apply to receptions that would trigger cancellation of this transmission
-			autocancel_match_type = header->frame_control_1;
-			memcpy((void*)autocancel_match_addr3, header->address_3, 6);
+			gl_autocancel_match_type = header->frame_control_1;
+			memcpy((void*)gl_autocancel_match_addr3, header->address_3, 6);
 			autocancel_curr_timestamp = get_usec_timestamp();
-			if(autocancel_curr_timestamp >= autocancel_last_rx_ts){
-				autocancel_timestamp_diff = autocancel_curr_timestamp - autocancel_last_rx_ts;
+			if(autocancel_curr_timestamp >= gl_autocancel_last_rx_ts){
+				autocancel_timestamp_diff = autocancel_curr_timestamp - gl_autocancel_last_rx_ts;
 			} else {
-				autocancel_timestamp_diff = autocancel_last_rx_ts - autocancel_curr_timestamp;
+				autocancel_timestamp_diff = gl_autocancel_last_rx_ts - autocancel_curr_timestamp;
 			}
 			if(autocancel_timestamp_diff < 50000){
 				//TODO: this is currently hardcoded to 50ms. In the future, it should be a parameter that passes down from CPU_HIGH
 				//Conceptually, this value should be just less than a beacon interval. Any beacon transmission will be canceled if it
 				//happens in this interval after the previous beacon reception.
-				autocancel_en = 0;
+				gl_autocancel_en = 0;
 				return -1;
 			}
 		}
 
-		FIXME: move RTS to dedicated pkt buf to avoid problems when Tx ACK while deferring RTS Tx
-		 -Mark global variables (like data_pkt_buf) with some naming scheme (G_blah?)
-
 		//Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
 		//This is the SIGNAL field for the MPDU we will eventually transmit. It's possible
 		//the next waveform we send will be an RTS with its own independent SIGNAL
-		wlan_phy_set_tx_signal(pkt_buf, rate, length);
+		wlan_phy_set_tx_signal(mpdu_pkt_buf, mpdu_rate, mpdu_length);
 
 		if( (tx_mode == TX_MODE_LONG) && (req_timeout == 1) ) {
 			//This is a long MPDU that requires an RTS/CTS handshake prior to the MPDU transmission.
 			tx_wait_state = TX_WAIT_CTS;
-			data_pkt_buf = pkt_buf; //This is a global pkt_buf index that can be seen by the frame_receive() context.
+			gl_mpdu_pkt_buf = mpdu_pkt_buf; //This is a global pkt_buf index that can be seen by the frame_receive() context.
 									//frame_receive() needs this to figure out what to send in the event that it receives
 									//a valid CTS.
-			tx_pkt_buf = TX_PKT_BUF_CTRL;
+			mac_cfg_pkt_buf = TX_PKT_BUF_RTS;
 
 			// The rate given to us in the argument of frame_transmit applies to the MPDU. Several
 			// elements depend on this rate:
@@ -653,82 +695,81 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			// 3) The duration of the RTS/CTS/DATA frames a long with the IFS periods between them
 			//
 			// The below switch() sets these elements accordingly.
-			switch( rate ) {
+			switch( mpdu_rate ) {
 				default:
 				case WLAN_PHY_RATE_BPSK12:
-					tx_rate = WLAN_PHY_RATE_BPSK12;
+					mac_cfg_rate = WLAN_PHY_RATE_BPSK12;
 					CTS_N_DBPS = N_DBPS_R6;
 					MPDU_N_DBPS = N_DBPS_R6;
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_6M;
 				break;
 				case WLAN_PHY_RATE_BPSK34:
-					tx_rate = WLAN_PHY_RATE_BPSK12;
+					mac_cfg_rate = WLAN_PHY_RATE_BPSK12;
 					CTS_N_DBPS = N_DBPS_R6;
 					MPDU_N_DBPS = N_DBPS_R9;
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_9M;
 				break;
 				case WLAN_PHY_RATE_QPSK12:
-					tx_rate = WLAN_PHY_RATE_QPSK12;
+					mac_cfg_rate = WLAN_PHY_RATE_QPSK12;
 					CTS_N_DBPS = N_DBPS_R12;
 					MPDU_N_DBPS = N_DBPS_R12;
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_12M;
 				break;
 				case WLAN_PHY_RATE_QPSK34:
-					tx_rate = WLAN_PHY_RATE_QPSK12;
+					mac_cfg_rate = WLAN_PHY_RATE_QPSK12;
 					CTS_N_DBPS = N_DBPS_R12;
 					MPDU_N_DBPS = N_DBPS_R18;
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_18M;
 				break;
 				case WLAN_PHY_RATE_16QAM12:
-					tx_rate = WLAN_PHY_RATE_16QAM12;
+					mac_cfg_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
 					MPDU_N_DBPS = N_DBPS_R24;
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_24M;
 				break;
 				case WLAN_PHY_RATE_16QAM34:
-					tx_rate = WLAN_PHY_RATE_16QAM12;
+					mac_cfg_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
 					MPDU_N_DBPS = N_DBPS_R36;
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_36M;
 				break;
 				case WLAN_PHY_RATE_64QAM23:
-					tx_rate = WLAN_PHY_RATE_16QAM12;
+					mac_cfg_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
 					MPDU_N_DBPS = N_DBPS_R48;
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_48M;
 				break;
 				case WLAN_PHY_RATE_64QAM34:
-					tx_rate = WLAN_PHY_RATE_16QAM12;
+					mac_cfg_rate = WLAN_PHY_RATE_16QAM12;
 					CTS_N_DBPS = N_DBPS_R24;
 					MPDU_N_DBPS = N_DBPS_R54;
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.rate = WLAN_MAC_RATE_54M;
 				break;
 			}
 
+			rts_header_duration = (T_SIFS) +
+	   	   	   	   	   	   	   	  wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
+	   	   	   	   	   	   	   	  (T_SIFS) +
+	   	   	   	   	   	   	   	  wlan_ofdm_txtime(mpdu_length, MPDU_N_DBPS) +
+	   	   	   	   	   	   	   	  header->duration_id;
+
 			//We let "duration1" be equal to the duration field of an RTS. This value is provided explicitly to CPU_HIGH
 			//in the low_tx_details struct such that CPU_HIGH has can reconstruct the RTS in its log. This isn't critical
 			//to the operation of the DCF, but is critical for the logging framework.
-
-			FIXME: make local variable rts_header_duration = (code below), then read it twice
-
-			low_tx_details[(mpdu_info->num_tx_attempts)-1].duration1 = (T_SIFS) +
-				   	   	   	   	   	   	   	   	   	   	   	   	    wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
-				   	   	   	   	   	   	   	   	   	   	   	   	    (T_SIFS) +
-				   	   	   	   	   	   	   	   	   	   	   	   	    wlan_ofdm_txtime(length, MPDU_N_DBPS) +
-				   	   	   	   	   	   	   	   	   	   	   	   	    header->duration_id;
+			low_tx_details[(mpdu_info->num_tx_attempts)-1].duration1 = rts_header_duration;
 
 			//We let "duration2" be equal to the amount of time after an RTS start that an MPDU start begins. This allows
 			//CPU_HIGH to calculate the timestamp of the transmission of the MPDU given the timestamp of the transmission
 			//of the RTS.
 			low_tx_details[(mpdu_info->num_tx_attempts)-1].duration2 = (T_SIFS) +
-																	wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
-																	(T_SIFS);;
+																	   wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
+																	   (T_SIFS);
 
 			//Construct the RTS frame in the dedicated Tx pkt buf for control frames
-			tx_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_CTRL) + PHY_TX_PKT_BUF_MPDU_OFFSET),
+			mac_cfg_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
 											   header->address_1,
 											   header->address_2,
-											   low_tx_details[(mpdu_info->num_tx_attempts)-1].duration1);
+											   rts_header_duration);
 
 			//The phy_params2 element of low_tx_details is only used when we are send an RTS and describes
 			//the PHY parameters used in the transmission of the RTS. This element remains unused during
@@ -736,21 +777,21 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 			low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.power = mpdu_info->params.phy.power;
 			low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params2.antenna_mode = mpdu_info->params.phy.antenna_mode;
 
-			wlan_phy_set_tx_signal(tx_pkt_buf, tx_rate, tx_length); // Write SIGNAL for RTS
+			wlan_phy_set_tx_signal(mac_cfg_pkt_buf, mac_cfg_rate, mac_cfg_length); // Write SIGNAL for RTS
 
 
 		} else if( (tx_mode == TX_MODE_SHORT) && (req_timeout == 1) ) {
 			//Unicast, no RTS
 			tx_wait_state = TX_WAIT_ACK;
-			tx_rate = rate;
-			tx_length = length;
-			tx_pkt_buf = pkt_buf;
+			mac_cfg_rate = mpdu_rate;
+			mac_cfg_length = mpdu_length;
+			mac_cfg_pkt_buf = mpdu_pkt_buf;
 		} else {
 			//Multicast, short or long
 			tx_wait_state = TX_WAIT_NONE;
-			tx_rate = rate;
-			tx_length = length;
-			tx_pkt_buf = pkt_buf;
+			mac_cfg_rate = mpdu_rate;
+			mac_cfg_length = mpdu_length;
+			mac_cfg_pkt_buf = mpdu_pkt_buf;
 		}
 
 
@@ -793,9 +834,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
 
 				//Force-reset the DCF core, to clear any previously-running backoffs
-				FIXME: add explicit backoff reset to mac hw, to avoid having to reset everything here
-				wlan_mac_reset(1);
-				wlan_mac_reset(0);
+				wlan_mac_set_backoff_reset(1);
+				wlan_mac_set_backoff_reset(0);
 
 				//Start the backoff
 				wlan_mac_dcf_hw_start_backoff(n_slots);
@@ -803,14 +843,13 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 			//Configure the DCF core Tx state machine for this transmission
 			//wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
-			//wlan_mac_MPDU_tx_params(tx_pkt_buf, n_slots, req_timeout, mpdu_tx_ant_mask);
-			wlan_mac_tx_ctrl_A_params(tx_pkt_buf, mpdu_tx_ant_mask, n_slots, NO_WAIT, NO_WAIT, req_timeout);
+			wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout);
 		} else {
 			//This is a retry. We will inherit whatever backoff that is currently running.
 			//Configure the DCF core Tx state machine for this transmission
 			// preTx_backoff_slots is 0 here, since the core will have started a post-timeout backoff automatically
 			//wlan_mac_MPDU_tx_params(tx_pkt_buf, 0, req_timeout, mpdu_tx_ant_mask);
-			wlan_mac_tx_ctrl_A_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout);
+			wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout);
 		}
 		
 		//Wait for the Tx PHY to be idle
@@ -831,7 +870,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params.power = mpdu_info->params.phy.power;
 		low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
 		low_tx_details[(mpdu_info->num_tx_attempts)-1].chan_num = wlan_mac_low_get_active_channel();
-		low_tx_details[(mpdu_info->num_tx_attempts)-1].cw = (1 << cw_exp)-1; //(2^(CW_EXP) - 1)
+		low_tx_details[(mpdu_info->num_tx_attempts)-1].cw = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
 
 		//NOTE: the pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
 		// the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
@@ -891,7 +930,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 						wlan_mac_dcf_hw_start_backoff(n_slots);
 
 						//Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
-						autocancel_en = 0;
+						gl_autocancel_en = 0;
 
 						return 0;
 					break;
@@ -902,7 +941,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 						//Handle the new reception
 						rx_status = wlan_mac_low_poll_frame_rx();
 
-						data_pkt_buf = PKT_BUF_INVALID;
+						gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 
 						//Check if the reception is an ACK addressed to this node, received with a valid checksum
 						if((rx_status & POLL_MAC_TYPE_ACK) && 
@@ -928,7 +967,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 							wlan_mac_dcf_hw_start_backoff(n_slots);
 
 							//Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
-							autocancel_en = 0;
+							gl_autocancel_en = 0;
 
 							return TX_MPDU_RESULT_SUCCESS;
 
@@ -946,8 +985,12 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 							//At this point, the MAC tx state machine has started anew to send a the MPDU itself.
 							//This was triggered by the frame_receive() context.
-							//Re-read the MAC status register so we don't get kicked out of this do-while loop
-							mac_hw_status = wlan_mac_get_status();
+							mac_hw_status |= WLAN_MAC_STATUS_MASK_TX_A_PENDING; //We know that the frame_receive context
+																				//has started the transmission of the MPDU.
+																				//This ensures we are not kicked out of the
+																				//do-while loop.
+							//Note: the above assignment is better than re-reading wlan_mac_get_status() in the case of a short
+							//MPDU, where we may skip the PENDING state directly to DONE without this code context seeing it.
 							continue;
 
 						} else {
@@ -986,9 +1029,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 
 							//Now we evaluate the SRC and LRC to see if either has reached its maximum
 							// Use >= here to handle unlikely case of retryLimit values changing mid-Tx
-							if( (mpdu_info->short_retry_count >=  dot11ShortRetryLimit) || (mpdu_info->long_retry_count >=  dot11LongRetryLimit) ){
+							if( (mpdu_info->short_retry_count >=  gl_dot11ShortRetryLimit) || (mpdu_info->long_retry_count >=  gl_dot11LongRetryLimit) ){
 								//We are done transmitting. We now break out of the retry while loop
-								autocancel_en = 0;
+								gl_autocancel_en = 0;
 								return TX_MPDU_RESULT_FAILURE;
 							}
 
@@ -997,10 +1040,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 						}
 					break;
 					case WLAN_MAC_STATUS_TX_A_RESULT_TIMEOUT:
-
-						//FIXME: Consider moving this and duplicate code above to handle_tx_failure(pkt_buf)
-
-						data_pkt_buf = PKT_BUF_INVALID;
+						gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 						//Tx required timeout, timeout expired with no receptions
 
 						switch(tx_wait_state){
@@ -1035,9 +1075,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 						wlan_mac_dcf_hw_start_backoff(n_slots);
 
 						//Now we evaluate the SRC and LRC to see if either has reached its maximum
-						if( (mpdu_info->short_retry_count ==  dot11ShortRetryLimit) || (mpdu_info->long_retry_count ==  dot11LongRetryLimit) ){
+						if( (mpdu_info->short_retry_count ==  gl_dot11ShortRetryLimit) || (mpdu_info->long_retry_count ==  gl_dot11LongRetryLimit) ){
 							//We are done transmitting. We now break out of the retry while loop
-							autocancel_en = 0;
+							gl_autocancel_en = 0;
 							return TX_MPDU_RESULT_FAILURE;
 						}
 						//Jump to next loop iteration
@@ -1050,10 +1090,10 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 				rx_status = wlan_mac_low_poll_frame_rx();
 
 				//Check if the new reception met the conditions to cancel the already-submitted transmission
-				if((autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
+				if((gl_autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
 					//The Rx handler killed this transmission already by resetting the MAC core
-					// Reset the global autocancel_en variable and return failure
-					autocancel_en = 0;
+					// Reset the global gl_autocancel_en variable and return failure
+					gl_autocancel_en = 0;
 					return TX_MPDU_RESULT_FAILURE;
 				}
 			}//END if(Tx A state machine done)
@@ -1070,12 +1110,12 @@ inline void increment_src_ssrc(u8* src_ptr){
 
 	//Increment the Station Short Retry Count
 	//9.3.3 in 802.11-2012
-	stationShortRetryCount++;
+	sat_add32(gl_stationShortRetryCount, 1);
 
-	if(stationShortRetryCount == dot11ShortRetryLimit){
+	if(gl_stationShortRetryCount == gl_dot11ShortRetryLimit){
 		reset_cw();
 	} else {
-		cw_exp = min(cw_exp+1, wlan_mac_low_get_cw_exp_max());
+		gl_cw_exp = min(gl_cw_exp+1, wlan_mac_low_get_cw_exp_max());
 	}
 
 	return;
@@ -1087,12 +1127,12 @@ inline void increment_lrc_slrc(u8* lrc_ptr){
 
 	//Increment the Station Long Retry Count
 	//9.3.3 in 802.11-2012
-	stationLongRetryCount++; FIXME- saturating adds all around here
+	sat_add32(gl_stationLongRetryCount, 1);
 
-	if(stationLongRetryCount == dot11LongRetryLimit){
+	if(gl_stationLongRetryCount == gl_dot11LongRetryLimit){
 		reset_cw();
 	} else {
-		cw_exp = min(cw_exp+1, wlan_mac_low_get_cw_exp_max());
+		gl_cw_exp = min(gl_cw_exp+1, wlan_mac_low_get_cw_exp_max());
 	}
 
 	return;
@@ -1102,15 +1142,15 @@ inline void reset_ssrc(){
 	//Note: Resetting the SSRC does not necessarily
 	//indicate that the contention window should be reset.
 	//e.g., the reception of a valid CTS.
-	stationShortRetryCount = 0;
+	gl_stationShortRetryCount = 0;
 }
 
 inline void reset_slrc(){
-	stationLongRetryCount = 0;
+	gl_stationLongRetryCount = 0;
 }
 
 inline void reset_cw(){
-	cw_exp = wlan_mac_low_get_cw_exp_min();
+	gl_cw_exp = wlan_mac_low_get_cw_exp_min();
 	return;
 }
 
@@ -1151,10 +1191,10 @@ inline void update_cw(u8 reason, u8 pkt_buf) {
 	tx_80211_header = (mac_header_80211*)((void*)(TX_PKT_BUF_TO_ADDR(pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET));
 
 	//Decide which station retry counter to operate on
-	if(tx_mpdu->length > rts_threshold){
-		station_rc_ptr = (u32*)&stationLongRetryCount;
+	if(tx_mpdu->length > gl_dot11RTSThreshold){
+		station_rc_ptr = (u32*)&gl_stationLongRetryCount;
 	} else {
-		station_rc_ptr = (u32*)&stationShortRetryCount;
+		station_rc_ptr = (u32*)&gl_stationShortRetryCount;
 	}
 
 	//Pull the retry limit for the current packet from its metadata
@@ -1168,9 +1208,9 @@ inline void update_cw(u8 reason, u8 pkt_buf) {
 
 			//Reest the CW if the station retry counter is eactly the retry limit
 			if(*station_rc_ptr == retry_limit) {
-				cw_exp = wlan_mac_low_get_cw_exp_min();
+				gl_cw_exp = wlan_mac_low_get_cw_exp_min();
 			} else {
-				cw_exp = min(cw_exp+1, wlan_mac_low_get_cw_exp_max());
+				gl_cw_exp = min(gl_cw_exp+1, wlan_mac_low_get_cw_exp_max());
 			}
 
 			//Raise retry flag in the MAC header
@@ -1183,7 +1223,7 @@ inline void update_cw(u8 reason, u8 pkt_buf) {
 
 			//Reset station retry counter and contention window
 			(*station_rc_ptr) = 0;
-			cw_exp = wlan_mac_low_get_cw_exp_min();
+			gl_cw_exp = wlan_mac_low_get_cw_exp_min();
 		break;
 	}
 
@@ -1203,9 +1243,9 @@ inline void update_cw(u8 reason, u8 pkt_buf) {
  *  -Random integer
  */
 inline unsigned int rand_num_slots(u8 reason){
-//Generates a uniform random value between [0, (2^(CW_EXP) - 1)], where CW_EXP is a positive integer
+//Generates a uniform random value between [0, (2^(gl_cw_exp) - 1)], where gl_cw_exp is a positive integer
 //This function assumed RAND_MAX = 2^31.
-// |	CW_EXP	|	CW			|
+// |	gl_cw_exp	|	CW			|
 // |	4		|	[0, 15]		|
 // |	5       |	[0, 31]		|
 // |	6		|	[0, 63]		|
@@ -1217,7 +1257,7 @@ inline unsigned int rand_num_slots(u8 reason){
 
 	switch(reason) {
 		case RAND_SLOT_REASON_STANDARD_ACCESS:
-			n_slots = ((unsigned int)rand() >> (32-(cw_exp+1)));
+			n_slots = ((unsigned int)rand() >> (32-(gl_cw_exp+1)));
 		break;
 
 		case RAND_SLOT_REASON_IBSS_BEACON:
