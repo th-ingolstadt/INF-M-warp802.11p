@@ -724,7 +724,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
 
-				low_tx_details_size = (tx_mpdu->num_attempts)*sizeof(wlan_mac_low_tx_details);
+				low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details);
 
 				//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 

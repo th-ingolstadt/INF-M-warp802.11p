@@ -232,6 +232,9 @@
 			((rf_c & 0x3F) << 12) | \
 			((rf_d & 0x3F) << 18)))
 
+
+#define wlan_mac_set_backoff_reset(x) Xil_Out32( WLAN_MAC_REG_CONTROL, ( Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_BACKOFF ) | ( (x) ? WLAN_MAC_CTRL_MASK_RESET_BACKOFF : 0 ) )
+
 //TX_START
 // b[0]: Tx CTRL A Start
 // b[1]: Tx CTRL B Start
