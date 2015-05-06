@@ -280,7 +280,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 			}
 
 			// Set the flags in the log entry
-			if(((tx_low_count + 1) == (tx_mpdu->num_attempts)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){
+			if(((tx_low_count + 1) == (tx_mpdu->num_tx_attempts)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){
 				tx_low_event_log_entry->flags = TX_LOW_FLAGS_WAS_ACKED;
 			} else {
 				tx_low_event_log_entry->flags = 0;
