@@ -176,7 +176,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	//
 	//This structure handles any risk of response packets (e.g. an ACK)
 	//not being configured in time for the hard SIFS boundary.
-	#define RX_LEN_THRESH	200
+	#define RX_LEN_THRESH 0
 
 	u32 return_value;
 	u32 tx_length;
@@ -188,6 +188,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	u32 rx_filter;
 	u8 report_to_mac_high;
 	u8 ack_tx_gain;
+
+	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 
 	rx_finish_state_t rx_finish_state = RX_FINISH_SEND_NONE;
 
@@ -221,7 +223,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	// This translation is required in case this reception needs to send an ACK, as the ACK
 	// rate is a function of the rate of the received packet
 	//The mapping of Rx rate to ACK rate is given in 9.7.6.5.2 of 802.11-2012
-	if(phy_details->phy_mode == 1) { //FIXME
+	if( phy_details->phy_mode == 1 ) { //FIXME
 		//802.11a/g Rx
 		switch( phy_details->mcs ){
 			default:
@@ -319,7 +321,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 	//Prep outgoing ACK just in case it needs to be sent
 	// ACKs are only sent for non-control frames addressed to this node
-	if(unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header)) {
+	if( unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header) ) {
 		//Note: the auto tx subsystem will only fire if enabled by software AND the preceding reception
 		//has a good FCS. So, as software, we do not need to worry about FCS status when enabling the
 		//the subsystem.
@@ -343,7 +345,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		//This good FCS, unicast, noncontrol packet was ACKed.
 		mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
 
-	} else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_CTS)){
+	} else if( unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_CTS) ){
 		if( gl_mpdu_pkt_buf != PKT_BUF_INVALID ){
 			//FIXME: we need to re-organize when to finish phy receive
 			//We have an outgoing data frame we should send
@@ -396,13 +398,17 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
 			switch( rx_finish_state ){
 				case RX_FINISH_SEND_A:
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 					wlan_mac_tx_ctrl_A_start(1);
 					wlan_mac_tx_ctrl_A_start(0);
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 				break;
 
 				case RX_FINISH_SEND_B:
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 				break;
 
 				default:
@@ -507,16 +513,20 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 			return_value |= POLL_MAC_ADDR_MATCH;
 		}
 
-		if( (phy_details->length) <= RX_LEN_THRESH ){
+		if( (phy_details->length) > RX_LEN_THRESH ){
 			switch( rx_finish_state ){
 				case RX_FINISH_SEND_A:
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 					wlan_mac_tx_ctrl_A_start(1);
 					wlan_mac_tx_ctrl_A_start(0);
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 				break;
 
 				case RX_FINISH_SEND_B:
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
+					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 				break;
 
 				default:
