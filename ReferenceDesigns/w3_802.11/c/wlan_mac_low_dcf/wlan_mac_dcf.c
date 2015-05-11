@@ -91,7 +91,7 @@ int main(){
 	gl_dot11ShortRetryLimit = 7;
 	gl_dot11LongRetryLimit = 4;
 
-	gl_dot11RTSThreshold = 2000; //FIXME: This should default to MTU+1 (aka, disable RTS/CTS)
+	gl_dot11RTSThreshold = 2000; //FIXME: This should default to MTU (aka, disable RTS/CTS)
 
 	gl_stationShortRetryCount = 0;
 	gl_stationLongRetryCount = 0;
@@ -129,7 +129,6 @@ int main(){
     xil_printf("Initialization Finished\n");
 
 	while(1){
-
 		//Poll PHY RX start
 		wlan_mac_low_poll_frame_rx();
 
@@ -176,7 +175,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	//
 	//This structure handles any risk of response packets (e.g. an ACK)
 	//not being configured in time for the hard SIFS boundary.
-	#define RX_LEN_THRESH 0
+
+	#define RX_LEN_THRESH 200
 
 	u32 return_value;
 	u32 tx_length;
@@ -398,17 +398,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
 			switch( rx_finish_state ){
 				case RX_FINISH_SEND_A:
-					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 					wlan_mac_tx_ctrl_A_start(1);
 					wlan_mac_tx_ctrl_A_start(0);
-					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 				break;
 
 				case RX_FINISH_SEND_B:
-					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
-					REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 				break;
 
 				default:
@@ -422,7 +418,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 	//Check if this reception is an ACK
 	if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
+		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 		return_value |= POLL_MAC_TYPE_ACK;
+		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 	}
 
 	//Update metadata about this reception
@@ -880,7 +878,13 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 		low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params.power = mpdu_info->params.phy.power;
 		low_tx_details[(mpdu_info->num_tx_attempts)-1].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
 		low_tx_details[(mpdu_info->num_tx_attempts)-1].chan_num = wlan_mac_low_get_active_channel();
+
+
 		low_tx_details[(mpdu_info->num_tx_attempts)-1].cw = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
+		low_tx_details[(mpdu_info->num_tx_attempts)-1].ssrc = gl_stationShortRetryCount;
+		low_tx_details[(mpdu_info->num_tx_attempts)-1].slrc = gl_stationLongRetryCount;
+		low_tx_details[(mpdu_info->num_tx_attempts)-1].src = mpdu_info->short_retry_count;
+		low_tx_details[(mpdu_info->num_tx_attempts)-1].lrc = mpdu_info->long_retry_count;
 
 		//NOTE: the pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
 		// the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
@@ -949,6 +953,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 						//Transmission ended, followed by a new reception (hopefully a CTS or ACK)
 
 						//Handle the new reception
+
 						rx_status = wlan_mac_low_poll_frame_rx();
 
 						gl_mpdu_pkt_buf = PKT_BUF_INVALID;
@@ -959,7 +964,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 							(rx_status & POLL_MAC_ADDR_MATCH) && 
 							(rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&  //FIXME: understand this
 							(tx_wait_state == TX_WAIT_ACK)) {
-
+							REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 							//Update contention window
 							switch(tx_mode) {
 								case TX_MODE_SHORT:
@@ -971,7 +976,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 									reset_cw();
 								break;
 							}
-
+							REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 							//Start a post-Tx backoff using the updated contention window
 							n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 							wlan_mac_dcf_hw_start_backoff(n_slots);
@@ -1050,6 +1055,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 						}
 					break;
 					case WLAN_MAC_STATUS_TX_A_RESULT_TIMEOUT:
+
 						gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 						//Tx required timeout, timeout expired with no receptions
 
@@ -1096,15 +1102,21 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 				}
 			} else { //else for if(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE)
 				//Poll the MAC Rx state to check if a packet was received while our Tx was deferring
-				// No harm calling this if no Rx has occurred - the poll will return quickly
-				rx_status = wlan_mac_low_poll_frame_rx();
 
-				//Check if the new reception met the conditions to cancel the already-submitted transmission
-				if((gl_autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
-					//The Rx handler killed this transmission already by resetting the MAC core
-					// Reset the global gl_autocancel_en variable and return failure
-					gl_autocancel_en = 0;
-					return TX_MPDU_RESULT_FAILURE;
+				if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
+					rx_status = wlan_mac_low_poll_frame_rx();
+
+					if((rx_status & POLL_MAC_TYPE_ACK)){
+						xil_printf("unexpected ACK!\n");
+					}
+
+					//Check if the new reception met the conditions to cancel the already-submitted transmission
+					if((gl_autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
+						//The Rx handler killed this transmission already by resetting the MAC core
+						// Reset the global gl_autocancel_en variable and return failure
+						gl_autocancel_en = 0;
+						return TX_MPDU_RESULT_FAILURE;
+					}
 				}
 			}//END if(Tx A state machine done)
 		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING ); //Potentally racey for short DATA post-RTS; maybe a local loop-condition variable?
@@ -1120,7 +1132,7 @@ inline void increment_src_ssrc(u8* src_ptr){
 
 	//Increment the Station Short Retry Count
 	//9.3.3 in 802.11-2012
-	sat_add32(gl_stationShortRetryCount, 1);
+	gl_stationShortRetryCount = sat_add32(gl_stationShortRetryCount, 1);
 
 	if(gl_stationShortRetryCount == gl_dot11ShortRetryLimit){
 		reset_cw();
@@ -1137,7 +1149,7 @@ inline void increment_lrc_slrc(u8* lrc_ptr){
 
 	//Increment the Station Long Retry Count
 	//9.3.3 in 802.11-2012
-	sat_add32(gl_stationLongRetryCount, 1);
+	gl_stationLongRetryCount = sat_add32(gl_stationLongRetryCount, 1);
 
 	if(gl_stationLongRetryCount == gl_dot11LongRetryLimit){
 		reset_cw();
