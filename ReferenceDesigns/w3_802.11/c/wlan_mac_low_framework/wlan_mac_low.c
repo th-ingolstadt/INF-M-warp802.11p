@@ -150,6 +150,8 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 	mac_hw_status = wlan_mac_get_status();
 
+	//xil_printf("mac_hw_status = 0x%08x\n", mac_hw_status);
+
 	//Check if PHY is currently receiving or has finished receiving
 	if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
 		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
@@ -815,6 +817,9 @@ void wlan_mac_low_init_hw_info( u32 type ) {
 
     // WARPNet will use ethernet device 1 (ETH_B) by default
     hw_info.wn_eth_device = 1;
+
+    // Set the NAV ignore addr to this HW address
+    wlan_mac_set_nav_check_addr( hw_info.hw_addr_wlan );
 }
 
 /**
@@ -1326,8 +1331,7 @@ inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
 }
 
 void wlan_mac_set_nav_check_addr(u8* addr) {
-	Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_1, &(addr[0]));
-	Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_2, &(addr[4]));
-
+	Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_1, *((u32*)&(addr[0])) );
+	Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_2, *((u32*)&(addr[4])) );
 	return;
 }
