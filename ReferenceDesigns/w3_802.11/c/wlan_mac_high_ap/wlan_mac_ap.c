@@ -498,9 +498,10 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 	// Log all of the TX Low transmissions
 
+	//xil_printf("------------\n"); //DEBUG
 	for(i = 0; i < num_tx_low_details; i++) {
 
-		if(i==0 && (tx_low_details[i].tx_start_delta < T_SLOT)){
+		if( i==0 && (tx_low_details[i].tx_start_delta < T_SLOT) ){
 			//This captures a subtle effect in the DCF hardware. A random backoff is calculated on the
 			//first transmission of an MPDU in case a CCA_BUSY causes a deferral. If there is no deferral,
 			//this slot count is not used. We can sanitize this value here by seeing if the packet transmitted
@@ -512,6 +513,28 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 
 		// Log the TX low
 		wlan_exp_log_create_tx_low_entry(tx_mpdu, &tx_low_details[i], ts_old, i);
+
+		//xil_printf("[%d] :", i); //DEBUG
+
+		//switch(tx_low_details[i].tx_details_type){
+		//	case TX_DETAILS_RTS_ONLY:
+		//		xil_printf(" RTS\n");
+		//	break;
+		//	case TX_DETAILS_RTS_MPDU:
+		//		xil_printf(" RTS+MPDU\n");
+		//	break;
+		//	case TX_DETAILS_MPDU:
+		//		xil_printf(" MPDU\n");
+		//	break;
+		//}
+
+		//xil_printf("     TS:   %d\n", (u32)(ts_old) ); //DEBUG
+		//xil_printf("     CW:   %d\n", tx_low_details[i].cw ); //DEBUG
+		//xil_printf("     SRC:  %d\n", tx_low_details[i].src ); //DEBUG
+		//xil_printf("     LRC:  %d\n", tx_low_details[i].lrc ); //DEBUG
+		//xil_printf("     SSRC: %d\n", tx_low_details[i].ssrc ); //DEBUG
+		//xil_printf("     SLRC: %d\n", tx_low_details[i].slrc ); //DEBUG
+
 
 		// Accumulate the time-between-transmissions, used to calculate absolute time of each TX_LOW event above
 		ts_old += tx_low_details[i].tx_start_delta;
