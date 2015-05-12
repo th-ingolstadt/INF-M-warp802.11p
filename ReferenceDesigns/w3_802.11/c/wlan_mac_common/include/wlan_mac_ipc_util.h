@@ -134,7 +134,10 @@ typedef struct {
 	tx_details_type_t 	  tx_details_type;
 	u16 	  			  duration1;		//Used for RTS details
 	u16 	  			  duration2;		//Used for post-RTS TS
-	u16					  reserved;
+	u16					  ssrc;
+	u16					  slrc;
+	u8					  src;
+	u8					  lrc;
 	phy_tx_params 		  phy_params2;		//Used for RTS details
 } wlan_mac_low_tx_details;
 

@@ -141,8 +141,8 @@ typedef struct{
 	u32 channel_est[64];			///< Rx PHY channel estimates
 } rx_frame_info;
 
-#define RX_MPDU_FLAGS_ACKED		0x1
-#define RX_MPDU_FLAGS_RETRY		0x2
+#define RX_MPDU_FLAGS_FORMED_RESPONSE		0x1
+#define RX_MPDU_FLAGS_RETRY					0x2
 
 #define RX_MPDU_STATE_EMPTY 	 	0
 #define RX_MPDU_STATE_RX_PENDING	1
