@@ -48,6 +48,7 @@ inline void reset_slrc();
 inline unsigned int rand_num_slots(u8 reason);
 void wlan_mac_dcf_hw_start_backoff(u16 num_slots);
 int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra);
+int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration);
 int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u16 duration);
 
 

@@ -91,7 +91,7 @@ int main(){
 	gl_dot11ShortRetryLimit = 7;
 	gl_dot11LongRetryLimit = 4;
 
-	gl_dot11RTSThreshold = 2000; //FIXME: This should default to MTU (aka, disable RTS/CTS)
+	gl_dot11RTSThreshold = 200; //FIXME: This should default to MTU (aka, disable RTS/CTS)
 
 	gl_stationShortRetryCount = 0;
 	gl_stationLongRetryCount = 0;
@@ -181,13 +181,15 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	u32 return_value;
 	u32 tx_length;
 	u8 tx_rate;
+	u16 tx_N_DBPS;
 	u8 unicast_to_me, to_multicast;
 	u16 rssi;
 	u8 lna_gain;
 	u8 active_rx_ant;
 	u32 rx_filter;
 	u8 report_to_mac_high;
-	u8 ack_tx_gain;
+	u8 ctrl_tx_gain;
+	unsigned char mpdu_tx_ant_mask = 0;
 
 	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 
@@ -229,30 +231,39 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 			default:
 			case WLAN_MAC_MCS_DSSS:
 				tx_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
+				tx_N_DBPS = N_DBPS_R6;
 			break;
 			case 0:
 				tx_rate = WLAN_PHY_RATE_BPSK12;
+				tx_N_DBPS = N_DBPS_R6;
 			break;
 			case 1:
 				tx_rate = WLAN_PHY_RATE_BPSK12;
+				tx_N_DBPS = N_DBPS_R6;
 			break;
 			case 2:
 				tx_rate = WLAN_PHY_RATE_QPSK12;
+				tx_N_DBPS = N_DBPS_R12;
 			break;
 			case 3:
 				tx_rate = WLAN_PHY_RATE_QPSK12;
+				tx_N_DBPS = N_DBPS_R12;
 			break;
 			case 4:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R24;
 			break;
 			case 5:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R24;
 			break;
 			case 6:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R24;
 			break;
 			case 7:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R24;
 			break;
 		}
 	} else {
@@ -261,27 +272,35 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 			default:
 			case 0:
 				tx_rate = WLAN_PHY_RATE_BPSK12;
+				tx_N_DBPS = N_DBPS_R6;
 			break;
 			case 1:
 				tx_rate = WLAN_PHY_RATE_QPSK12;
+				tx_N_DBPS = N_DBPS_R6;
 			break;
 			case 2:
 				tx_rate = WLAN_PHY_RATE_QPSK12;
+				tx_N_DBPS = N_DBPS_R12;
 			break;
 			case 3:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R12;
 			break;
 			case 4:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R24;
 			break;
 			case 5:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R24;
 			break;
 			case 6:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R24;
 			break;
 			case 7:
 				tx_rate = WLAN_PHY_RATE_16QAM12;
+				tx_N_DBPS = N_DBPS_R24;
 			break;
 		}
 
@@ -322,17 +341,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	//Prep outgoing ACK just in case it needs to be sent
 	// ACKs are only sent for non-control frames addressed to this node
 	if( unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header) ) {
-		//Note: the auto tx subsystem will only fire if enabled by software AND the preceding reception
-		//has a good FCS. So, as software, we do not need to worry about FCS status when enabling the
-		//the subsystem.
-
 		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
 		//wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
 		wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 0, 1, 0, 0);
 		
 		//ACKs are transmitted with a nominal Tx power used for all control packets
-		ack_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
-		wlan_mac_tx_ctrl_B_gains(ack_tx_gain, ack_tx_gain, ack_tx_gain, ack_tx_gain);
+		ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
+		wlan_mac_tx_ctrl_B_gains(ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain);
 
 		//Construct the ACK frame in the dedicated Tx pkt buf
 		tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
@@ -343,7 +358,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		rx_finish_state = RX_FINISH_SEND_B;
 
 		//This good FCS, unicast, noncontrol packet was ACKed.
-		mpdu_info->flags |= RX_MPDU_FLAGS_ACKED;
+		mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
 
 	} else if( unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_CTS) ){
 		if( gl_mpdu_pkt_buf != PKT_BUF_INVALID ){
@@ -352,7 +367,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 			//Configure the Tx antenna selection
 			//The frame_transmit() context already configured the SIGNAL field,
 			//so we do not have to worry about it in this context
-			unsigned char mpdu_tx_ant_mask = 0;
 			tx_frame_info* tx_mpdu_info = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(gl_mpdu_pkt_buf));
 			int curr_tx_pow;
 			switch(tx_mpdu_info->params.phy.antenna_mode) {
@@ -388,8 +402,27 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 			xil_printf("Error: unexpected CTS to me\n");
 		}
 	} else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_RTS)){
-		//TODO: Send CTS if NAV is clear
-		//MAC hw Tx B can check NAV automagically
+		//We need to send a CTS
+		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
+		//wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
+		wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0); //FIXME: req_zeroNAV is borked
+
+		//ACKs are transmitted with a nominal Tx power used for all control packets
+		ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
+		wlan_mac_tx_ctrl_B_gains(ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain);
+
+		//Construct the ACK frame in the dedicated Tx pkt buf
+		tx_length = wlan_create_cts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
+										  rx_header->address_2,
+										  (rx_header->duration_id)-((T_SIFS) + wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_N_DBPS)));
+
+		//Write the SIGNAL field for the ACK
+		wlan_phy_set_tx_signal(TX_PKT_BUF_ACK_CTS, tx_rate, tx_length);
+
+		rx_finish_state = RX_FINISH_SEND_B;
+
+		//This good FCS, unicast, noncontrol packet was ACKed.
+		mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE; //TODO: we need a way to ask MAC CFG B if it actually sent the CTS. Otherwise we will have incorrect log entries.
 	}
 
 	if( (phy_details->length) <= RX_LEN_THRESH ){
@@ -1332,6 +1365,20 @@ int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra) {
 
 	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
 	return (sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES);
+}
+
+int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration) {
+
+	mac_header_80211_CTS* cts_header;
+	cts_header = (mac_header_80211_CTS*)(pkt_buf_addr);
+
+	cts_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_CTS;
+	cts_header->frame_control_2 = 0;
+	cts_header->duration_id = duration;
+	memcpy(cts_header->address_ra, address_ra, 6);
+
+	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
+	return (sizeof(mac_header_80211_CTS)+WLAN_PHY_FCS_NBYTES);
 }
 
 int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u16 duration) {
