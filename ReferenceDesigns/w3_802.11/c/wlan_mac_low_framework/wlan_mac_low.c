@@ -162,6 +162,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 		if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS) {
 			//DSSS Rx - PHY Rx length is already valid, other params unused for DSSS
 			phy_details.phy_mode = PHY_RX_DETAILS_MODE_DSSS;
+			phy_details.N_DBPS = 0; //Invalid for DSSS
 
 			//Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
 			// function to treat OFDM and DSSS payloads the same
@@ -201,6 +202,34 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 				phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
 				phy_details.length = wlan_mac_get_rx_phy_length();
 				phy_details.mcs = wlan_mac_get_rx_phy_mcs();
+
+				switch(phy_details.mcs){
+				default:
+					case 0:
+						phy_details.N_DBPS = N_DBPS_R6;
+					break;
+					case 1:
+						phy_details.N_DBPS = N_DBPS_R9;
+					break;
+					case 2:
+						phy_details.N_DBPS = N_DBPS_R12;
+					break;
+					case 3:
+						phy_details.N_DBPS = N_DBPS_R18;
+					break;
+					case 4:
+						phy_details.N_DBPS = N_DBPS_R24;
+					break;
+					case 5:
+						phy_details.N_DBPS = N_DBPS_R36;
+					break;
+					case 6:
+						phy_details.N_DBPS = N_DBPS_R48;
+					break;
+					case 7:
+						phy_details.N_DBPS = N_DBPS_R54;
+					break;
+				}
 
 				if(DBG_PRINT) xil_printf("OFDM Rx callback: %d / %d / %d\n", phy_details.phy_mode, phy_details.length, phy_details.mcs);
 

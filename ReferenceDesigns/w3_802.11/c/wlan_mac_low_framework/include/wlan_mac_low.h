@@ -273,7 +273,6 @@
 //Use invalid MCS (127) to indicate DSSS
 #define WLAN_MAC_MCS_DSSS	0x3F
 
-#define T_SIFS 10
 #define T_DIFS (T_SIFS + 2*T_SLOT)
 #define T_EIFS 88
 #define T_PHY_RX_START_DLY 25
