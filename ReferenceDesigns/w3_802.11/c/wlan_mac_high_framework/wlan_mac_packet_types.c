@@ -570,4 +570,40 @@ int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u1
 	return (sizeof(mac_header_80211_RTS)+WLAN_PHY_FCS_NBYTES);
 }
 
+int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration) {
+	//TODO: This function is redundant to the same function in wlam_mac_dcf.c. These could be merged,
+	//but there isn't currently a good place in wlan_mac_common to place this merged copy. If there
+	//are additional cases of universal-scope functions, we could create a new top-level C file to
+	//sit alongside wlan_mac_ipc_util.c.
+
+	mac_header_80211_CTS* cts_header;
+	cts_header = (mac_header_80211_CTS*)(pkt_buf_addr);
+
+	cts_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_CTS;
+	cts_header->frame_control_2 = 0;
+	cts_header->duration_id = duration;
+	memcpy(cts_header->address_ra, address_ra, 6);
+
+	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
+	return (sizeof(mac_header_80211_CTS)+WLAN_PHY_FCS_NBYTES);
+}
+
+int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra) {
+	//TODO: This function is redundant to the same function in wlam_mac_dcf.c. These could be merged,
+	//but there isn't currently a good place in wlan_mac_common to place this merged copy. If there
+	//are additional cases of universal-scope functions, we could create a new top-level C file to
+	//sit alongside wlan_mac_ipc_util.c.
+	mac_header_80211_ACK* ack_header;
+	ack_header = (mac_header_80211_ACK*)(pkt_buf_addr);
+
+	ack_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_ACK;
+	ack_header->frame_control_2 = 0;
+	ack_header->duration_id = 0;
+	memcpy(ack_header->address_ra, address_ra, 6);
+
+	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
+	return (sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES);
+}
+
+
 

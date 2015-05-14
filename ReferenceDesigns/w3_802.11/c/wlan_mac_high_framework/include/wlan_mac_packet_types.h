@@ -124,5 +124,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, bss_info* attempt_bss_info);
 int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 flags);
 int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u16 duration);
+int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration);
+int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra);
 
 #endif /* WLAN_MAC_PACKET_TYPES_H_ */

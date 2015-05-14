@@ -215,7 +215,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 			wlan_create_rts_frame((void*)(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload),
 								  tx_80211_header->address_1,
 								  tx_80211_header->address_2,
-								  tx_low_details->duration1);
+								  tx_low_details->duration);
 
 			// Zero pad log entry if payload_size was less than the allocated space in the log (ie min_log_len)
 			if(entry_payload_size < min_entry_payload_size){
@@ -236,7 +236,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 			tx_low_event_log_entry->chan_num                  = tx_low_details->chan_num;
 			tx_low_event_log_entry->num_slots				  = tx_low_details->num_slots;
 			tx_low_event_log_entry->cw						  = tx_low_details->cw;
-			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params2), sizeof(phy_tx_params));
+			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->ctrl_phy_params), sizeof(phy_tx_params));
 			tx_low_event_log_entry->length                    = packet_payload_size;
 			tx_low_event_log_entry->pkt_type				  = pkt_type;
 
@@ -281,6 +281,9 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 
 			// Set the flags in the log entry
 			if(((tx_low_count + 1) == (tx_mpdu->num_tx_attempts)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){
+				//FIXME: Should we remove this flag once we explicitly create the ACK Tx entries? I vote yes.
+				//That said, anyone using this flag in existing scripts could continue to if we just left it along for a
+				//couple of releases.
 				tx_low_event_log_entry->flags = TX_LOW_FLAGS_WAS_ACKED;
 			} else {
 				tx_low_event_log_entry->flags = 0;
@@ -292,7 +295,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 				tx_low_event_log_entry->timestamp_send            = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset);
 			}
 			else{
-				tx_low_event_log_entry->timestamp_send            = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset + (u64)(tx_low_details->duration2));
+				tx_low_event_log_entry->timestamp_send            = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset + (u64)(tx_low_details->timestamp_offset));
 
 			}
 
@@ -301,7 +304,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 			tx_low_event_log_entry->chan_num                  = tx_low_details->chan_num;
 			tx_low_event_log_entry->num_slots				  = tx_low_details->num_slots;
 			tx_low_event_log_entry->cw						  = tx_low_details->cw;
-			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params), sizeof(phy_tx_params));
+			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->mpdu_phy_params), sizeof(phy_tx_params));
 			tx_low_event_log_entry->length                    = tx_mpdu->length;
 			tx_low_event_log_entry->pkt_type				  = pkt_type;
 			wlan_mac_high_cdma_finish_transfer();
@@ -452,7 +455,10 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
 ******************************************************************************/
 rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channel_num, u8 rate){
 
+	//TODO: This needs to be extended to also write Tx entries for ACKs/CTS
+
 	rx_common_entry*  rx_event_log_entry      = NULL;
+	tx_low_entry*     tx_low_event_log_entry  = NULL; //This is for any inferred CTRL transmissions
 	void*             mpdu                    = (u8*)rx_mpdu + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8*               mpdu_ptr_u8             = (u8*)mpdu;
 	mac_header_80211* rx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
@@ -600,6 +606,105 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 		xil_printf("RX      : %8d    %8d    %8d    %8d    %8d\n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN, length, extra_payload, payload_log_len);
         print_buf((u8 *)((u32)rx_event_log_entry - 8), sizeof(rx_ofdm_entry) + extra_payload + 12);
 #endif
+	}
+
+	if(rx_mpdu->flags & RX_MPDU_FLAGS_FORMED_RESPONSE){
+
+		if(rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_RTS){
+			//CREATE CTS LOG ENTRY
+			entry_type = ENTRY_TYPE_TX_LOW;
+
+			packet_payload_size = sizeof(mac_header_80211_CTS)+WLAN_PHY_FCS_NBYTES;
+
+			// Get all the necessary sizes to log the packet
+			wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
+
+			// Request space for a TX_LOW log entry
+			tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( entry_type, entry_size );
+
+			if(tx_low_event_log_entry != NULL){
+				// Store the payload size in the log entry
+				tx_low_event_log_entry->mac_payload_log_len = entry_payload_size;
+
+				// Create the payload for the log entry
+				// The actual RTS bytes that were transmitted aren't visible to this function. We only have the underlying MPDU that
+				// the RTS was trying to reserve the medium for. Instead, we can reconstruct what the RTS payload actually was in
+				// this log entry.
+				wlan_create_cts_frame((void*)(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload),
+									  rx_80211_header->address_2,
+									  0); //FIXME: the duration field is unknowable without passing more up from CPU_LOW
+
+				// Zero pad log entry if payload_size was less than the allocated space in the log (ie min_log_len)
+				if(entry_payload_size < min_entry_payload_size){
+					bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + entry_payload_size), (min_entry_payload_size - entry_payload_size));
+				}
+
+				tx_low_event_log_entry->flags = 0;
+
+				// Compute the timestamp of the actual Tx event
+				//   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
+				tx_low_event_log_entry->timestamp_send			  = (rx_mpdu->timestamp) + (rx_mpdu->resp_low_tx_details.timestamp_offset); //FIXME: I think there is a Tx/Rx timestamp offset that should be accounted for
+
+				pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
+
+				memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.ctrl_phy_params), sizeof(phy_tx_params));
+
+				tx_low_event_log_entry->transmission_count        = 1;
+				tx_low_event_log_entry->chan_num                  = rx_mpdu->resp_low_tx_details.chan_num;
+				tx_low_event_log_entry->num_slots				  = rx_mpdu->resp_low_tx_details.num_slots;
+				tx_low_event_log_entry->cw						  = rx_mpdu->resp_low_tx_details.cw;
+				tx_low_event_log_entry->length                    = packet_payload_size;
+				tx_low_event_log_entry->pkt_type				  = pkt_type;
+			}
+
+
+
+			} else if((rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_DATA) || (rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_QOSDATA)){
+				//CREATE ACK LOG ENTRY
+				entry_type = ENTRY_TYPE_TX_LOW;
+
+				packet_payload_size = sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES;
+
+				// Get all the necessary sizes to log the packet
+				wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
+
+				// Request space for a TX_LOW log entry
+				tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( entry_type, entry_size );
+
+				if(tx_low_event_log_entry != NULL){
+					// Store the payload size in the log entry
+					tx_low_event_log_entry->mac_payload_log_len = entry_payload_size;
+
+					// Create the payload for the log entry
+					// The actual RTS bytes that were transmitted aren't visible to this function. We only have the underlying MPDU that
+					// the RTS was trying to reserve the medium for. Instead, we can reconstruct what the RTS payload actually was in
+					// this log entry.
+					wlan_create_ack_frame((void*)(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload),
+										  rx_80211_header->address_2);
+
+					// Zero pad log entry if payload_size was less than the allocated space in the log (ie min_log_len)
+					if(entry_payload_size < min_entry_payload_size){
+						bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + entry_payload_size), (min_entry_payload_size - entry_payload_size));
+					}
+
+					tx_low_event_log_entry->flags = 0;
+
+					// Compute the timestamp of the actual Tx event
+					//   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
+					tx_low_event_log_entry->timestamp_send			  = (rx_mpdu->timestamp) + (rx_mpdu->resp_low_tx_details.timestamp_offset); //FIXME: I think there is a Tx/Rx timestamp offset that should be accounted for
+
+					pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
+
+					memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.ctrl_phy_params), sizeof(phy_tx_params));
+
+					tx_low_event_log_entry->transmission_count        = 1;
+					tx_low_event_log_entry->chan_num                  = rx_mpdu->resp_low_tx_details.chan_num;
+					tx_low_event_log_entry->num_slots				  = rx_mpdu->resp_low_tx_details.num_slots;
+					tx_low_event_log_entry->cw						  = rx_mpdu->resp_low_tx_details.cw;
+					tx_low_event_log_entry->length                    = packet_payload_size;
+					tx_low_event_log_entry->pkt_type				  = pkt_type;
+				}
+			}
 	}
 
 	return rx_event_log_entry;
