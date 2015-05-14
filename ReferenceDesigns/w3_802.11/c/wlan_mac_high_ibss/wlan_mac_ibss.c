@@ -240,7 +240,7 @@ int main() {
 	// Configure CPU Low's filter for passing Rx packets up to CPU High
 	//     Default is "promiscuous" mode - pass all data and management packets with good or bad checksums
 	//     This allows logging of all data/management receptions, even if they're not intended for this node
-	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL_MPDU);
+	wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
     // Initialize interrupts
 	wlan_mac_high_interrupt_init();
