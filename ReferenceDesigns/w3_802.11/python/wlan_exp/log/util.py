@@ -44,7 +44,7 @@ __all__ = ['gen_raw_log_index',
 # -----------------------------------------------------------------------------
 # Top level check for memory configuration
 # -----------------------------------------------------------------------------
-import sys
+import sys, os
 
 # The WARP server doesn't have numpy installed
 if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
