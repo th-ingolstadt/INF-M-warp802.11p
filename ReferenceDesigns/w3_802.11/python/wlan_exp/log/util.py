@@ -15,22 +15,22 @@
 .. ----- ---- -------- -----------------------------------------------------
 .. 1.00a ejw  1/23/14  Initial release
 .. ------------------------------------------------------------------------------
-.. 
+..
 .. This module provides utility functions for handling WLAN Exp log data.
-.. 
+..
 .. Naming convention::
 ..     log_data       -- The binary data from a WLAN Exp node's log.
-..     
+..
 ..     raw_log_index  -- This is an index that has not been interpreted / filtered
 ..                       and corresponds 1-to-1 with what is in given log_data.
 ..                       The defining characteristic of a raw_log_index is that
 ..                       the dictionary keys are all integers:
 ..                         { <int> : [<offsets>] }
-..     
+..
 ..     log_index      -- A log_index is any index that is not a raw_log_index.  In
 ..                       general, this will be a interpreted / filtered version of
 ..                       a raw_log_index.
-..     
+..
 ..     numpy          -- A python package that allows easy and fast manipulation of
 ..                       large data sets.  You can find more documentaiton on numpy at:
 ..                           http://www.numpy.org/
@@ -45,7 +45,10 @@ __all__ = ['gen_raw_log_index',
 # Top level check for memory configuration
 # -----------------------------------------------------------------------------
 import sys
-import numpy as np
+
+# The WARP server doesn't have numpy installed
+if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
+    import numpy as np
 
 if (sys.maxsize <= 2**32):
     print("\n" + ("-" * 75))
@@ -93,18 +96,18 @@ class LogContainer(object):
 # WLAN Exp Log Utilities
 # -----------------------------------------------------------------------------
 def gen_raw_log_index(log_data):
-    """Parses binary WLAN Exp log data by recording the byte index of each entry. 
+    """Parses binary WLAN Exp log data by recording the byte index of each entry.
 
     Args:
         log_data (bytes):  Binary data from a WlanExpNode log
-    
+
     Returns:
-        raw_log_index (dict):  
+        raw_log_index (dict):
             Dictionary that corresponds 1-to-1 with what is in the given log_data of the
             form:  ``{ <int> : [<offsets>] }``
-    
-    The byte indexes are returned in a dictionary with the entry type IDs as keys. This 
-    method does not unpack or interpret each log entry and does not change any values 
+
+    The byte indexes are returned in a dictionary with the entry type IDs as keys. This
+    method does not unpack or interpret each log entry and does not change any values
     in the log file itself (the log_data array argument can be read-only).
 
     Format of log entry header:
@@ -115,7 +118,7 @@ def gen_raw_log_index(log_data):
             u16 entry_length;
         } entry_header;
 
-        fmt_log_hdr = 'I H H' # If we were using struct.unpack    
+        fmt_log_hdr = 'I H H' # If we were using struct.unpack
     """
 
     offset         = 0
@@ -196,26 +199,26 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
     """Parses a log index to generate a filtered log index.
 
     Args:
-        log_index (dict):  Log index dictionary (can be either a 'raw_log_index' or a 
+        log_index (dict):  Log index dictionary (can be either a 'raw_log_index' or a
             previously processed 'log_index')
-        include_only (list of WlanExpLogEntryType, optional):  All WlanExpLogEntryType to 
+        include_only (list of WlanExpLogEntryType, optional):  All WlanExpLogEntryType to
             include in the output log index.  This takes precedence over 'exclude'.
-        exclude (list of WlanExpLogEntryType, optional):       All WlanExpLogEntryType to 
+        exclude (list of WlanExpLogEntryType, optional):       All WlanExpLogEntryType to
             exclude in the output log index.  This will not be used if include != None.
-        merge (dict, optional):  Dictionary of the form:  
+        merge (dict, optional):  Dictionary of the form:
             ``{'WlanExpLogEntryType name': [List of 'WlanExpLogEntryTypes name' to merge]}``
 
     Returns:
         log_index (dict):  Filtered log index dictionary based on the given parameters
-            
+
 
     Consumers, in general, cannot operate on a raw log index since that has
     not been converted in to log entry types.  The besides filtering a log
     index, this method will also convert any raw index entries (ie entries
     with keys of type int) in to the corresponding WlanExpLogEntryTypes.
 
-    By using the 'merge', we are able to combine the indexes of WlanExpLogEntryTypes to 
-    create super-sets of entries.  For example, we could create a log index that 
+    By using the 'merge', we are able to combine the indexes of WlanExpLogEntryTypes to
+    create super-sets of entries.  For example, we could create a log index that
     contains all the receive events: ``{'RX_ALL': ['RX_OFDM', 'RX_DSSS']}``
     as long as the names 'RX_ALL', 'RX_OFDM', and 'RX_DSSS' are valid WlanExpLogEntryTypes.
 
@@ -229,7 +232,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
             - 'A', 'B', 'C', 'D', 'M' are valid WlanExpLogEntryType instance names
             - The log_index = {'A': [A0, A1, A2], 'B': [B0, B1], 'C': []}
 
-    * **include_only**:  
+    * **include_only**:
         All names specified in 'include_only' are included as part of the
         output dictionary.  It is then up to the consumer to check if the
         number of entries for a given 'name' is zero (ie the list is empty).
@@ -312,7 +315,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
     # Create any new log indexes through the merge dictionary
     if merge is not None:
         summary  += "\nMERGE:"
-        
+
         # For each new merged index output
         for k in merge.keys():
             new_index = []
@@ -325,8 +328,8 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
                 # we need to try both cases before we ignore the item in the list
                 # since <str> hashes to the appropriate <WlanExpLogEntryType> but
                 # <int> does not.
-                index = []            
-            
+                index = []
+
                 try:
                     index      = ret_log_index[v]
                     merge_tmp += "        {0} ({1} entries)\n".format(log_entry_types[v], len(index))
@@ -342,7 +345,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
 
             # If this merge is going to replace one of the entry types in the current
             # index, then we need to delete the previous entry.  This is necessary
-            # because at this point, we have a mixture of keys, some are entry type 
+            # because at this point, we have a mixture of keys, some are entry type
             # ids and some are log entry types.
             try:
                 del ret_log_index[log_entry_types[k].entry_type_id]
@@ -353,13 +356,13 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
             # Use the type instance corresponding to the user-supplied string as the key
             ret_log_index[log_entry_types[k]] = sorted(new_index)
 
-            summary += "\n    {0} ({1} entries) contains:\n".format(log_entry_types[k], len(new_index))                
+            summary += "\n    {0} ({1} entries) contains:\n".format(log_entry_types[k], len(new_index))
             summary += merge_tmp
 
     # Filter the resulting log index by 'include' / 'exclude' lists
     if include_only is not None:
         summary += "\nINCLUDE ONLY:\n"
-        
+
         new_log_index = {}
 
         for entry_name in include_only:
@@ -383,7 +386,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
     else:
         if exclude is not None:
             summary += "\nEXCLUDE:\n"
-            
+
             for unwanted_key in exclude:
                 try:
                     del ret_log_index[unwanted_key]
@@ -410,7 +413,7 @@ def log_data_to_np_arrays(log_data, log_index):
 
     Args:
         log_data (bytes):  Binary data from a WlanExpNode log
-        log_index (dict):  Log index dictionary 
+        log_index (dict):  Log index dictionary
 
     Return:
         np_array (Numpy Array):  Numpy structured arrays corresponding to the log_data and log_index
@@ -529,8 +532,8 @@ def overwrite_entries_with_null_entry(log_data, byte_offsets):
     Args:
         log_data (bytes):            Binary data from a WlanExpNode log
         byte_offsets (list of int):  List of offsets corresponding to the entries to overwrite
-    
-    .. note:: This is an in-place modification of log_data.    
+
+    .. note:: This is an in-place modification of log_data.
     """
     # See documentation above on header format
     hdr_size         = 8
@@ -576,7 +579,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
         from the entry header, we can determine how many payload bytes are after the defined
         fields and zero them out.
 
-    .. note:: This is an in-place modification of log_data.    
+    .. note:: This is an in-place modification of log_data.
     """
     import struct
     from entry_types import log_entry_types
@@ -620,10 +623,10 @@ def calc_tx_time(rate, payload_length):
     """Calculates the duration of an 802.11 transmission given its rate and payload length.
 
     Args:
-        rate (list of dict from util.wlan_rates):  List of rate dictionaries 
+        rate (list of dict from util.wlan_rates):  List of rate dictionaries
             (Dictionary from the wlan_rates list in wlan_exp.util)
-        payload_length (list of int):              List of number of bytes in the payload                
-    
+        payload_length (list of int):              List of number of bytes in the payload
+
     This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not*
     account for MAC overhead. The payload_length argument must include any MAC fields
     (typically a 24-byte MAC header plus 4 byte FCS).
@@ -662,9 +665,9 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
     Args:
         src_tx_low (Numpy Array):  Source TX_LOW numpy array of entries
         int_tx_low (Numpy Array):  Other TX_LOW numpy array of entries
-    
+
     Returns:
-        indexes (tuple):  
+        indexes (tuple):
             Tuple containing indexes into the provided arrays indicating which entries overlapped
     """
 
@@ -692,25 +695,25 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
 
 def convert_datetime_to_log_time_str(datetime_obj):
     """Convert a datetime object to a log time string.
-    
+
     Args:
         datetime_obj (DateTime()):  Python DateTime() object
-    
+
     Returns:
-        log_time_str (str):  
+        log_time_str (str):
             String format of the DateTime() object to be used in HDF5 files
     """
-    
-    if datetime_obj.tzinfo is None:        
+
+    if datetime_obj.tzinfo is None:
         import datetime
-        
+
         class UTC(datetime.tzinfo):
             def utcoffset(self, dt):    return datetime.timedelta(0)
             def tzname(self, dt):       return "UTC"
             def dst(self, dt):          return datetime.timedelta(0)
-        
+
         datetime_obj = datetime_obj.replace(tzinfo=UTC())
-    
+
     return datetime_obj.strftime("%Y-%m-%d %H:%M:%S%z")
 
 # End def
@@ -718,15 +721,15 @@ def convert_datetime_to_log_time_str(datetime_obj):
 
 def convert_log_time_str_to_datetime(log_time_str):
     """Convert a log time string to a datetime object.
-    
+
     Args:
         log_time_str (str):  String format of the DateTime() object to be used in HDF5 files
-    
+
     Returns:
         datetime_obj (DateTime()):  Python DateTime() object
     """
     import datetime
-    
+
     return datetime.datetime.strptime(log_time_str, "%Y-%m-%d %H:%M:%S%z")
 
 # End def
@@ -738,40 +741,40 @@ def get_now_as_log_time_str():
 
     Returns:
         log_time_str (str):  String format of the datetime.datetime.now() to be used in HDF5 files
-    
-    .. note::  This should be used instead of datetime.datetime.now() because it 
-        automatically handles timezones.    
+
+    .. note::  This should be used instead of datetime.datetime.now() because it
+        automatically handles timezones.
     """
     import time
     import datetime
-    
+
     ZERO      = datetime.timedelta(0)
     STDOFFSET = datetime.timedelta(seconds = -time.timezone)
-    
+
     if time.daylight:
         DSTOFFSET = datetime.timedelta(seconds = -time.altzone)
     else:
         DSTOFFSET = STDOFFSET
-    
+
     DSTDIFF = DSTOFFSET - STDOFFSET
-    
+
     class LocalTimezone(datetime.tzinfo):
-    
+
         def utcoffset(self, dt):
             if self._isdst(dt):
                 return DSTOFFSET
             else:
                 return STDOFFSET
-        
+
         def dst(self, dt):
             if self._isdst(dt):
                 return DSTDIFF
             else:
                 return ZERO
-        
+
         def tzname(self, dt):
             return time.tzname[self._isdst(dt)]
-        
+
         def _isdst(self, dt):
             tt = (dt.year, dt.month, dt.day,
                   dt.hour, dt.minute, dt.second,
@@ -779,7 +782,7 @@ def get_now_as_log_time_str():
             stamp = time.mktime(tt)
             tt    = time.localtime(stamp)
             return tt.tm_isdst > 0
-    
+
     return convert_datetime_to_log_time_str(datetime.datetime.now(tz=LocalTimezone()))
 
 # End def
@@ -791,10 +794,10 @@ def get_now_as_log_time_str():
 # -----------------------------------------------------------------------------
 def print_log_index_summary(log_index, title=None):
     """Prints a summary of the log_index.
-    
+
     Args:
-        log_index (dict):       Log index dictionary 
-        title (str, optional):  Title to be used for the log_index 
+        log_index (dict):       Log index dictionary
+        title (str, optional):  Title to be used for the log_index
             (default is 'Log Index Summary:')
     """
     total_len = 0
