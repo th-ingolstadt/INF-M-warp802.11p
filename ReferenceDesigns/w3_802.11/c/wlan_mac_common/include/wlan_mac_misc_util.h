@@ -27,6 +27,7 @@ typedef int (*function_ptr_t)();
 #define sat_add32(a, b) ( (a > 0xFFFFFFFF - b) ? 0xFFFFFFFF : a + b )
 
 #define WLAN_PHY_FCS_NBYTES	4
+#define T_SIFS 10
 
 //#define _ISR_PERF_MON_EN_	///< ISR Performance Monitor Toggle
 #define ISR_PERF_MON_GPIO_MASK	0x01
@@ -82,10 +83,31 @@ typedef struct{
 	mac_tx_params mac; ///< Lower-level MAC Tx params
 } tx_params;
 
+typedef enum {TX_DETAILS_MPDU, TX_DETAILS_RTS_ONLY, TX_DETAILS_RTS_MPDU, TX_DETAILS_CTS, TX_DETAILS_ACK} tx_details_type_t;
+
+///Note: This struct must be padded to be an integer
+///number of u32 words.
+typedef struct {
+	u32   				  tx_start_delta;
+	phy_tx_params 		  mpdu_phy_params;
+	s16  				  num_slots;
+	u16	  				  cw;
+	u8 	  				  chan_num;
+	tx_details_type_t 	  tx_details_type;
+	u16 	  			  duration;
+	u16 	  			  timestamp_offset;
+	u16					  ssrc;
+	u16					  slrc;
+	u8					  src;
+	u8					  lrc;
+	phy_tx_params 		  ctrl_phy_params;
+} wlan_mac_low_tx_details;
+
 typedef struct {
 	u8  phy_mode;
 	u8	mcs;
 	u16 length;
+	u16 N_DBPS;		///< Number of data bits per OFDM symbol
 } phy_rx_details;
 
 #define PHY_RX_DETAILS_MODE_DSSS      (0)
@@ -127,18 +149,19 @@ typedef struct{
 //The rx_frame_info struct is padded to give space for the PHY to fill in channel estimates. The offset where
 //the PHY fills in this information must be written to the wlan_phy_rx_pkt_buf_h_est_offset macro
 typedef struct{
-	u8 state;						///< Packet buffer state - RX_MPDU_STATE_EMPTY, RX_MPDU_STATE_RX_PENDING, RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD
-	u8 flags;						///< Bit flags
-	u8 ant_mode;					///< Rx antenna selection
-	s8 rx_power;					///< Rx power, in dBm
-	phy_rx_details phy_details;		///< Details from PHY used in this reception
-	u8 rf_gain;						///< Gain setting of radio Rx LNA, in [0,1,2]
-	u8 bb_gain;						///< Gain setting of radio Rx VGA, in [0,1,...31]
-	u8 channel;						///< Channel index
-	u8 reserved;
-	u32 additional_info;			///< Field to hold MAC-specific info, such as a pointer to a station_info
-	u64 timestamp;					///< MAC timestamp at time of reception
-	u32 channel_est[64];			///< Rx PHY channel estimates
+	u8 state;										///< Packet buffer state - RX_MPDU_STATE_EMPTY, RX_MPDU_STATE_RX_PENDING, RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD
+	u8 flags;										///< Bit flags
+	u8 ant_mode;									///< Rx antenna selection
+	s8 rx_power;									///< Rx power, in dBm
+	phy_rx_details phy_details;						///< Details from PHY used in this reception
+	u8 rf_gain;										///< Gain setting of radio Rx LNA, in [0,1,2]
+	u8 bb_gain;										///< Gain setting of radio Rx VGA, in [0,1,...31]
+	u8 channel;										///< Channel index
+	u8 reserved1;
+	u32 additional_info;							///< Field to hold MAC-specific info, such as a pointer to a station_info
+	wlan_mac_low_tx_details	resp_low_tx_details;
+	u64 timestamp;									///< MAC timestamp at time of reception
+	u32 channel_est[64];							///< Rx PHY channel estimates
 } rx_frame_info;
 
 #define RX_MPDU_FLAGS_FORMED_RESPONSE		0x1

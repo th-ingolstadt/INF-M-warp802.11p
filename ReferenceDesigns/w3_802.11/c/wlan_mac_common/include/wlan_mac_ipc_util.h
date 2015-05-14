@@ -121,26 +121,6 @@ typedef struct {
 } wlan_mac_hw_info;
 
 
-typedef enum {TX_DETAILS_MPDU, TX_DETAILS_RTS_ONLY, TX_DETAILS_RTS_MPDU} tx_details_type_t;
-
-///Note: This struct must be padded to be an integer
-///number of u32 words.
-typedef struct {
-	u32   				  tx_start_delta;
-	phy_tx_params 		  phy_params;
-	s16  				  num_slots;
-	u16	  				  cw;
-	u8 	  				  chan_num;
-	tx_details_type_t 	  tx_details_type;
-	u16 	  			  duration1;		//Used for RTS details
-	u16 	  			  duration2;		//Used for post-RTS TS
-	u16					  ssrc;
-	u16					  slrc;
-	u8					  src;
-	u8					  lrc;
-	phy_tx_params 		  phy_params2;		//Used for RTS details
-} wlan_mac_low_tx_details;
-
 int wlan_lib_init ();
 inline int ipc_mailbox_read_isempty();
 inline int wlan_lib_mac_rate_to_mbps (u8 rate);
