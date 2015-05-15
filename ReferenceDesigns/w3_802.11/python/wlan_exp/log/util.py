@@ -634,15 +634,16 @@ def calc_tx_time(rate, payload_length):
     .. note:: This method does not check that both rate and payload_length are the same length
     """
     from wlan_exp.util import wlan_rates
+    
 
     # Times in microseconds
     T_PREAMBLE = 16
     T_SIG = 4
     T_SYM = 4
     T_EXT = 6
-
+     
     try:
-        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate-1).tolist()])
+        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
     except TypeError :
         r = wlan_rates[rate-1]['NDBPS']
 

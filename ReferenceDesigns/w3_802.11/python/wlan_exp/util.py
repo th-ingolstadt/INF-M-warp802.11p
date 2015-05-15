@@ -45,14 +45,14 @@ WLAN_EXP_PRINT_DEBUG              = 4
 # -----------------------------------------------------------------------------
 # WLAN Exp Rate definitions
 # -----------------------------------------------------------------------------
-wlan_rates = [{'index' :  1, 'rate' :  6.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
-              {'index' :  2, 'rate' :  9.0, 'desc' : 'BPSK 3/4',   'NDBPS': 36},
-              {'index' :  3, 'rate' : 12.0, 'desc' : 'QPSK 1/2',   'NDBPS': 48},
-              {'index' :  4, 'rate' : 18.0, 'desc' : 'QPSK 3/4',   'NDBPS': 72},
-              {'index' :  5, 'rate' : 24.0, 'desc' : '16-QAM 1/2', 'NDBPS': 96},
-              {'index' :  6, 'rate' : 36.0, 'desc' : '16-QAM 3/4', 'NDBPS': 144},
-              {'index' :  7, 'rate' : 48.0, 'desc' : '64-QAM 2/3', 'NDBPS': 192},
-              {'index' :  8, 'rate' : 54.0, 'desc' : '64-QAM 3/4', 'NDBPS': 216}]
+wlan_rates = [{'index' :  0, 'rate' :  6.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
+              {'index' :  1, 'rate' :  9.0, 'desc' : 'BPSK 3/4',   'NDBPS': 36},
+              {'index' :  2, 'rate' : 12.0, 'desc' : 'QPSK 1/2',   'NDBPS': 48},
+              {'index' :  3, 'rate' : 18.0, 'desc' : 'QPSK 3/4',   'NDBPS': 72},
+              {'index' :  4, 'rate' : 24.0, 'desc' : '16-QAM 1/2', 'NDBPS': 96},
+              {'index' :  5, 'rate' : 36.0, 'desc' : '16-QAM 3/4', 'NDBPS': 144},
+              {'index' :  6, 'rate' : 48.0, 'desc' : '64-QAM 2/3', 'NDBPS': 192},
+              {'index' :  7, 'rate' : 54.0, 'desc' : '64-QAM 3/4', 'NDBPS': 216}]
 
 
 def find_tx_rate_by_index(index):
