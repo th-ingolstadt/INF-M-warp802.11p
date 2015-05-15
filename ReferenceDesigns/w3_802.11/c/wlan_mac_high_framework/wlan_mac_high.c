@@ -2372,8 +2372,14 @@ u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 	if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT){
 		return PKT_TYPE_MGMT;
 
-	} else if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_CTRL) {
-		return PKT_TYPE_CONTROL;
+	} else if((hdr_80211->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK) {
+		return PKT_TYPE_CONTROL_ACK;
+
+	} else if((hdr_80211->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_CTS) {
+		return PKT_TYPE_CONTROL_CTS;
+
+	} else if((hdr_80211->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_RTS) {
+		return PKT_TYPE_CONTROL_RTS;
 
 	} else if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) {
 

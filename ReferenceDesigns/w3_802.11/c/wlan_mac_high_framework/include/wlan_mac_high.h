@@ -175,7 +175,9 @@
 #define PKT_TYPE_DATA_ENCAP_LTG	             3                                 ///< Encapsulated LTG Type
 #define PKT_TYPE_DATA_PROTECTED	             4                                 ///< Protected Data
 #define PKT_TYPE_MGMT                       11                                 ///< Management Type
-#define PKT_TYPE_CONTROL                    21                                 ///< Control Type
+#define PKT_TYPE_CONTROL_ACK                21                                 ///< ACK Control Type
+#define PKT_TYPE_CONTROL_RTS                22                                 ///< RTS Control Type
+#define PKT_TYPE_CONTROL_CTS                23                                 ///< CTS Control Type
 
 #define ADD_ASSOCIATION_ANY_AID              0                                 ///< Special argument to function that adds associations
 

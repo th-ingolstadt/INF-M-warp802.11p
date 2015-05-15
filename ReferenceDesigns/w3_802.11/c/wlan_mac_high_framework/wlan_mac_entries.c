@@ -237,6 +237,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 			tx_low_event_log_entry->num_slots				  = tx_low_details->num_slots;
 			tx_low_event_log_entry->cw						  = tx_low_details->cw;
 			memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->ctrl_phy_params), sizeof(phy_tx_params));
+
 			tx_low_event_log_entry->length                    = packet_payload_size;
 			tx_low_event_log_entry->pkt_type				  = pkt_type;
 
@@ -632,11 +633,14 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 				// this log entry.
 				wlan_create_cts_frame((void*)(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload),
 									  rx_80211_header->address_2,
-									  0); //FIXME: the duration field is unknowable without passing more up from CPU_LOW
+									  rx_mpdu->resp_low_tx_details.duration);
 
-				// Zero pad log entry if payload_size was less than the allocated space in the log (ie min_log_len)
-				if(entry_payload_size < min_entry_payload_size){
-					bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + entry_payload_size), (min_entry_payload_size - entry_payload_size));
+				//Because a CTS is smaller than a typical 24-byte 802.11 header, we need to be sure to zero pad out the rest of the payload
+				//TODO: There is no good way to get a valid FCS for CTRL transmissions since the packet buffer is long gone.
+				//Instead, we'll explicitly zero out those bytes as well.
+				if((packet_payload_size-WLAN_PHY_FCS_NBYTES) < entry_payload_size){
+					bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + (packet_payload_size-WLAN_PHY_FCS_NBYTES)),
+						  (entry_payload_size -(packet_payload_size-WLAN_PHY_FCS_NBYTES)));
 				}
 
 				tx_low_event_log_entry->flags = 0;
@@ -682,9 +686,12 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 					wlan_create_ack_frame((void*)(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload),
 										  rx_80211_header->address_2);
 
-					// Zero pad log entry if payload_size was less than the allocated space in the log (ie min_log_len)
-					if(entry_payload_size < min_entry_payload_size){
-						bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + entry_payload_size), (min_entry_payload_size - entry_payload_size));
+					//Because an ACK is smaller than a typical 24-byte 802.11 header, we need to be sure to zero pad out the rest of the payload
+					//TODO: There is no good way to get a valid FCS for CTRL transmissions since the packet buffer is long gone.
+					//Instead, we'll explicitly zero out those bytes as well.
+					if((packet_payload_size-WLAN_PHY_FCS_NBYTES) < entry_payload_size){
+						bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + (packet_payload_size-WLAN_PHY_FCS_NBYTES)),
+							  (entry_payload_size -(packet_payload_size-WLAN_PHY_FCS_NBYTES)));
 					}
 
 					tx_low_event_log_entry->flags = 0;
@@ -809,7 +816,7 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
 	    	// Determine if we need to log the mimimum entry payload size or the mac_payload_log_len, whichever is larger
 	    	log_bytes_to_log       = max(tmp_min_entry_payload_size, mac_payload_log_len);
 
-	    	// Log the mimimum of either the pkt_bytes_to_log or the log_bytes_to_log
+	    	// Log the minimum of either the pkt_bytes_to_log or the log_bytes_to_log
 	    	tmp_entry_payload_size = min( pkt_bytes_to_log, log_bytes_to_log  );
 
 	    	// Determine the extra payload bytes needed for the entry beyond the MIN_MAC_PAYLOAD_LOG_LEN already allocated
