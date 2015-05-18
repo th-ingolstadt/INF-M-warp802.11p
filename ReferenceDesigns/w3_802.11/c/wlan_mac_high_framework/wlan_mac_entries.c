@@ -297,7 +297,6 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 			}
 			else{
 				tx_low_event_log_entry->timestamp_send            = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset + (u64)(tx_low_details->timestamp_offset));
-
 			}
 
 			tx_low_event_log_entry->unique_seq				  = tx_mpdu->unique_seq;
@@ -647,7 +646,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 
 				// Compute the timestamp of the actual Tx event
 				//   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
-				tx_low_event_log_entry->timestamp_send			  = (rx_mpdu->timestamp) + (rx_mpdu->resp_low_tx_details.timestamp_offset); //FIXME: I think there is a Tx/Rx timestamp offset that should be accounted for
+				tx_low_event_log_entry->timestamp_send			  = (rx_mpdu->timestamp) + (rx_mpdu->resp_low_tx_details.timestamp_offset);
 
 				pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
@@ -698,7 +697,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 
 					// Compute the timestamp of the actual Tx event
 					//   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
-					tx_low_event_log_entry->timestamp_send			  = (rx_mpdu->timestamp) + (rx_mpdu->resp_low_tx_details.timestamp_offset); //FIXME: I think there is a Tx/Rx timestamp offset that should be accounted for
+					tx_low_event_log_entry->timestamp_send			  = (rx_mpdu->timestamp) + (rx_mpdu->resp_low_tx_details.timestamp_offset);
 
 					pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
