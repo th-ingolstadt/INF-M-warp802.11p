@@ -196,6 +196,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0xFF);
 
 	rx_finish_state_t rx_finish_state = RX_FINISH_SEND_NONE;
+	tx_pending_state_t tx_pending_state = TX_PENDING_NONE;
 
 	rx_frame_info* mpdu_info;
 	mac_header_80211* rx_header;
@@ -387,14 +388,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		//to the operation of the DCF, but is critical for the logging framework.
 		mpdu_info->resp_low_tx_details.duration = 0;
 
-		//We let "timestamp_offset" be equal to the amount of time after an RX start that an ACK TX start begins. This allows
-		if(phy_details->phy_mode != PHY_RX_DETAILS_MODE_DSSS){
-			mpdu_info->resp_low_tx_details.timestamp_offset = wlan_ofdm_txtime(phy_details->length, phy_details->N_DBPS) +
-													   T_SIFS;
-		} else {
-			mpdu_info->resp_low_tx_details.timestamp_offset = 0; //FIXME for DSSS. Do we need a calc_dsss_time
-		}
-
 		//This element remains unused during MPDU-only transmissions
 		mpdu_info->resp_low_tx_details.ctrl_phy_params.power = wlan_mac_low_get_current_ctrl_tx_pow();
 		mpdu_info->resp_low_tx_details.ctrl_phy_params.antenna_mode = active_rx_ant;
@@ -471,14 +464,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		//to the operation of the DCF, but is critical for the logging framework.
 		mpdu_info->resp_low_tx_details.duration = cts_duration;
 
-		//We let "timestamp_offset" be equal to the amount of time after an RX start that an ACK TX start begins. This allows
-		if(phy_details->phy_mode != PHY_RX_DETAILS_MODE_DSSS){
-			mpdu_info->resp_low_tx_details.timestamp_offset = wlan_ofdm_txtime(phy_details->length, phy_details->N_DBPS) +
-													   T_SIFS;
-		} else {
-			mpdu_info->resp_low_tx_details.timestamp_offset = 0; //FIXME for DSSS. Do we need a calc_dsss_time
-		}
-
 		//This element remains unused during MPDU-only transmissions
 		mpdu_info->resp_low_tx_details.ctrl_phy_params.power = wlan_mac_low_get_current_ctrl_tx_pow();
 		mpdu_info->resp_low_tx_details.ctrl_phy_params.antenna_mode = active_rx_ant;
@@ -492,13 +477,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 				case RX_FINISH_SEND_A:
 					wlan_mac_tx_ctrl_A_start(1);
 					wlan_mac_tx_ctrl_A_start(0);
-					mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
+					tx_pending_state = TX_PENDING_A;
 				break;
 
 				case RX_FINISH_SEND_B:
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
-					mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE; //TODO: we need a way to ask MAC CFG B if it actually sent the CTS. Otherwise we will have incorrect log entries.
+					tx_pending_state = TX_PENDING_B;
 				break;
 
 				default:
@@ -609,13 +594,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 				case RX_FINISH_SEND_A:
 					wlan_mac_tx_ctrl_A_start(1);
 					wlan_mac_tx_ctrl_A_start(0);
-					mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
+					tx_pending_state = TX_PENDING_A;
 				break;
 
 				case RX_FINISH_SEND_B:
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
-					mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE; //TODO: we need a way to ask MAC CFG B if it actually sent the CTS. Otherwise we will have incorrect log entries.
+					tx_pending_state = TX_PENDING_B;
 				break;
 
 				default:
@@ -645,6 +630,42 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 	} //END else (FCS was bad)
 
+
+	//Wait for MAC CFG A or B to finish starting a response transmission
+	switch(tx_pending_state){
+		default:
+		case TX_PENDING_A:
+			//We don't need to do anything here for pending transmissions from CFG A.
+			//The only time this case occurs is when we are sending an MPDU in response to
+			//a CTS. We don't need to update any fields here since reporting of the MPDU Tx
+			//is the responsibility of the frame_transmit context.
+		break;
+		case TX_PENDING_B:
+			do{
+				mac_hw_status = wlan_mac_get_status();
+
+				if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DONE){
+					if( (wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_B_RESULT) != WLAN_MAC_STATUS_TX_B_RESULT_NO_TX ){
+						mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
+						break;
+					}
+				} else if((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DO_TX) {
+					mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
+					break;
+				}
+			} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
+		break;
+	}
+
+	if( mpdu_info->flags & RX_MPDU_FLAGS_FORMED_RESPONSE ){
+		//We let "timestamp_offset" be equal to the amount of time after an RX start that an CTRL TX start begins.
+		if(phy_details->phy_mode != PHY_RX_DETAILS_MODE_DSSS){
+			mpdu_info->resp_low_tx_details.timestamp_offset = (u32)(get_tx_start_timestamp() - mpdu_info->timestamp);
+		} else {
+			mpdu_info->resp_low_tx_details.timestamp_offset = 0; //FIXME for DSSS. Do we need a calc_dsss_time
+		}
+	}
+
 	if(report_to_mac_high) {
 		//This packet should be passed up to CPU_high for further processing
 
@@ -663,10 +684,10 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	//Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
 	wlan_mac_dcf_hw_unblock_rx_phy();
 
-	//If auto-tx ACK is currently transmitting, wait for it to finish before returning
-    do{
-    	mac_hw_status = wlan_mac_get_status();
-    } while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
+//	//If auto-tx ACK is currently transmitting, wait for it to finish before returning
+//    do{
+//    	mac_hw_status = wlan_mac_get_status();
+//    } while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
 
 
 	return return_value;
@@ -857,14 +878,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 			//to the operation of the DCF, but is critical for the logging framework.
 			low_tx_details[(mpdu_info->num_tx_attempts)-1].duration = rts_header_duration;
 
-			//We let "timestamp_offset" be equal to the amount of time after an RTS start that an MPDU start begins. This allows
-			//CPU_HIGH to calculate the timestamp of the transmission of the MPDU given the timestamp of the transmission
-			//of the RTS.
-			//FIXME, the RTS ofdm_tx_time shouldn't use CTS_N_DBPS, but in our implementation an RTS_N_DBPS will be the same
-			low_tx_details[(mpdu_info->num_tx_attempts)-1].timestamp_offset = wlan_ofdm_txtime(sizeof(mac_header_80211_RTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
-																	   	   	  (T_SIFS) +
-																	   	   	  wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, CTS_N_DBPS) +
-																	   	   	  (T_SIFS);
+
 
 			//Construct the RTS frame in the dedicated Tx pkt buf for control frames
 			mac_cfg_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
@@ -943,6 +957,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 			//Configure the DCF core Tx state machine for this transmission
 			//wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
 			wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout);
+			n_slots = 0; //FIXME
 		} else {
 			//This is a retry. We will inherit whatever backoff that is currently running.
 			//Configure the DCF core Tx state machine for this transmission
@@ -1005,6 +1020,9 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 					//Second note: we won't update the tx_start_delta field in this case. We already wrote it
 					//in the RTS_ONLY state. We'll let CPU_HIGH figure out the tx_start timestamp of this MPDU
 					//based on the start time of the RTS and everything else it knows about the MPDU.
+
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].timestamp_offset = (u32)(get_tx_start_timestamp() - last_tx_timestamp);
+
 				} else {
 					//This is a non-RTS/CTS-protected MPDU transmission
 					low_tx_details[(mpdu_info->num_tx_attempts)-1].tx_details_type = TX_DETAILS_MPDU;

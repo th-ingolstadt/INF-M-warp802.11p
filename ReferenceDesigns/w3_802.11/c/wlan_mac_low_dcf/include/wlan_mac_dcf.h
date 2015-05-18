@@ -33,6 +33,8 @@
 
 
 typedef enum {RX_FINISH_SEND_NONE, RX_FINISH_SEND_A, RX_FINISH_SEND_B} rx_finish_state_t;
+typedef enum {TX_PENDING_NONE, TX_PENDING_A, TX_PENDING_B} tx_pending_state_t;
+
 typedef enum {TX_WAIT_NONE, TX_WAIT_ACK, TX_WAIT_CTS} tx_wait_state_t;
 typedef enum {TX_MODE_SHORT, TX_MODE_LONG} tx_mode_t;
 
