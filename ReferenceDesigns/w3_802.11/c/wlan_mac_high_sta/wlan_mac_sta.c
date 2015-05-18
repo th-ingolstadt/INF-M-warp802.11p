@@ -131,7 +131,7 @@ int main() {
 	max_queue_size = MAX_TX_QUEUE_LEN;
 
     // Do not allow timebase updates from beacons
-	allow_beacon_ts_update = 0;
+	allow_beacon_ts_update = 0; //TODO: Debate.
 
 	// Unpause the queue
 	pause_data_queue = 0;
