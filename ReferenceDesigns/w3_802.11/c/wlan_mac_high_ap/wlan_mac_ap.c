@@ -874,7 +874,7 @@ void beacon_transmit() {
  		wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
  										curr_tx_queue_element,
  										tx_length,
- 										(TX_MPDU_FLAGS_FILL_DURATION),
+ 										(TX_MPDU_FLAGS_FILL_TIMESTAMP),
  										MANAGEMENT_QID );
 
 		// Set the information in the TX queue buffer
