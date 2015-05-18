@@ -554,6 +554,8 @@ inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS){
 	//18.4.3 of IEEE 802.11-2012
 	//Returns duration of transmission in microseconds
 
+	#define T_SIG_EXT 6
+
 	u16 txTime;
 	u16 n_sym, n_b;
 
@@ -571,7 +573,7 @@ inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS){
 	// This is effectively ceil(n_b / n_DBPS)
 	if(n_sym*n_DBPS < n_b) n_sym++;
 
-	txTime = TXTIME_T_PREAMBLE + TXTIME_T_SIGNAL + TXTIME_T_SYM * n_sym;
+	txTime = TXTIME_T_PREAMBLE + TXTIME_T_SIGNAL + TXTIME_T_SYM * n_sym + T_SIG_EXT;
 
 	return txTime;
 }
