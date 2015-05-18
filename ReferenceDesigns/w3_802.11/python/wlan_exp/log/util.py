@@ -650,8 +650,9 @@ def calc_tx_time(rate, payload_length):
     # Rate entry encodes data bits per symbol
     bytes_per_sym = (r/8.0)
 
-    # 6 = LEN_SERVICE (2) + LEN_FCS (4)
-    num_syms = np.ceil((6.0 + payload_length) / bytes_per_sym)
+    # 2 = LEN_SERVICE (2)
+    # Assumes that the length argument includes FCS
+    num_syms = np.ceil((2.0 + payload_length) / bytes_per_sym)
 
     T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
 
