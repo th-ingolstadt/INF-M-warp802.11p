@@ -274,6 +274,7 @@
 #define WLAN_MAC_MCS_DSSS	0x3F
 
 #define T_DIFS (T_SIFS + 2*T_SLOT)
+
 #define T_EIFS 88
 #define T_PHY_RX_START_DLY 25
 #define T_TIMEOUT (T_SIFS+T_SLOT+T_PHY_RX_START_DLY)

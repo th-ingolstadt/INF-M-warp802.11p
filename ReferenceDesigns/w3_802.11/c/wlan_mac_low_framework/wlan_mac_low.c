@@ -299,6 +299,7 @@ void wlan_mac_low_dcf_init(){
 
 	//MAC timing parameters are in terms of units of 100 nanoseconds
 	wlan_mac_set_slot(T_SLOT*10);
+
 	wlan_mac_set_DIFS((T_DIFS)*10);
 	wlan_mac_set_TxDIFS(((T_DIFS)*10) - (TX_PHY_DLY_100NSEC));
 
@@ -740,7 +741,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 				// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
 
+
 				status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
+
 
 				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
 					//The Tx logic automatically inserted the timestamp at the time that the bytes
@@ -1289,7 +1292,11 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
 		power_railed = power;
 	}
 
-	return_value = (u8)(2*power_railed + 20);
+	//return_value = (u8)(2*power_railed + 20);
+
+	//This is only save because 'power' is constrained to less
+	//than half the dynamic range of an s8 type
+	return_value = (u8)((power_railed << 1) + 20);
 
 	return return_value;
 }

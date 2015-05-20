@@ -73,6 +73,21 @@
 #define N_DBPS_R48	192
 #define N_DBPS_R54	216
 
+//Fast Divide
+#define U16REC1(A, M, S) (u16)((((u32)(A) * (u32)(M)) >> 16u) >> (S))
+#define U16REC2(A, M, S) (u16)((((((u32)(A) * (u32)(M)) >> 16u) + (A)) >> 1u) >> (S))
+
+#define U16DIVBY24(A)    U16REC1(A, 0xAAABu, 4u)
+#define U16DIVBY36(A)    U16REC1(A, 0xE38Fu, 5u)
+#define U16DIVBY48(A)    U16REC1(A, 0xAAABu, 5u)
+#define U16DIVBY72(A)    U16REC1(A, 0xE38Fu, 6u)
+#define U16DIVBY96(A)    U16REC1(A, 0xAAABu, 6u)
+#define U16DIVBY144(A)    U16REC1(A, 0xE38Fu, 7u)
+#define U16DIVBY192(A)    U16REC1(A, 0xAAABu, 7u)
+#define U16DIVBY216(A)    U16REC2(A, 0x2F69u, 7u)
+
+
+
 /* PHY Register Bit Masks */
 
 //RX CONTROL
@@ -343,6 +358,7 @@ inline void wlan_tx_start();
 inline void wlan_tx_buffer_sel(u8 n);
 inline int wlan_tx_isrunning();
 inline u16 wlan_ofdm_txtime(u16 length,u16 n_DBPS);
+inline u16 wlan_ofdm_txtime_fast(u16 length,u16 n_DBPS);
 void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length);
 void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx);
 void process_config_phy_tx(ipc_config_phy_tx* config_phy_tx);

@@ -578,6 +578,65 @@ inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS){
 	return txTime;
 }
 
+inline u16 wlan_ofdm_txtime_fast(u16 length, u16 n_DBPS){
+	//u16: length of PSDU (does not include FCS length)
+	//u16: n_DBPS: data bits per OFDM symbol
+
+	//18.4.3 of IEEE 802.11-2012
+	//Returns duration of transmission in microseconds
+
+	#define T_SIG_EXT 6
+
+	u16 txTime;
+	u16 n_sym, n_b;
+
+	//Calculate num bits:
+	// 16: SERVICE field
+	// 8*length: actual MAC payload
+	// 6: TAIL bits (zeros, required in all pkts to terminate FEC)
+	n_b = (16+(8*length)+6);
+
+	//Calculate num OFDM syms
+	// This integer divide is effectively floor(n_b / n_DBPS)
+	//n_sym = n_b / n_DBPS;
+	switch(n_DBPS){
+		default:
+		case N_DBPS_R6:
+			n_sym = U16DIVBY24(n_b);
+		break;
+		case N_DBPS_R9:
+			n_sym = U16DIVBY36(n_b);
+		break;
+		case N_DBPS_R12:
+			n_sym = U16DIVBY48(n_b);
+		break;
+		case N_DBPS_R18:
+			n_sym = U16DIVBY72(n_b);
+		break;
+		case N_DBPS_R24:
+			n_sym = U16DIVBY96(n_b);
+		break;
+		case N_DBPS_R36:
+			n_sym = U16DIVBY144(n_b);
+		break;
+		case N_DBPS_R48:
+			n_sym = U16DIVBY192(n_b);
+		break;
+		case N_DBPS_R54:
+			n_sym = U16DIVBY216(n_b);
+		break;
+	}
+
+
+	//If actual n_sym was non-integer, round up
+	// This is effectively ceil(n_b / n_DBPS)
+	if(n_sym*n_DBPS < n_b) n_sym++;
+
+	txTime = TXTIME_T_PREAMBLE + TXTIME_T_SIGNAL + TXTIME_T_SYM * n_sym + T_SIG_EXT;
+
+	return txTime;
+}
+
 inline void wlan_tx_buffer_sel(u8 n) {
 	//The register-selected Tx pkt buffer is only used for transmissions that
 	// are initiated via wlan_tx_start(); normal MAC transmissions will use
