@@ -31,6 +31,12 @@
 #define RAND_SLOT_REASON_STANDARD_ACCESS 0
 #define RAND_SLOT_REASON_IBSS_BEACON     1
 
+//These are hardcoded OFDM TX times for CTS frames of various rates
+//Since CTS is a fixed size, we can precompute these to save time
+#define TX_TIME_CTS_R6 50
+#define TX_TIME_CTS_R12 38
+#define TX_TIME_CTS_R24 34
+
 
 typedef enum {RX_FINISH_SEND_NONE, RX_FINISH_SEND_A, RX_FINISH_SEND_B} rx_finish_state_t;
 typedef enum {TX_PENDING_NONE, TX_PENDING_A, TX_PENDING_B} tx_pending_state_t;
