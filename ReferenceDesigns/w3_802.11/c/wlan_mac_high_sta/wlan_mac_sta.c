@@ -739,7 +739,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							// Calculate the difference between the beacon timestamp and the packet timestamp
 							//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
 
-							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET; //+ or - 2us //FIXME
 
 							// Set the timestamp
 							wlan_mac_high_set_timestamp_delta(timestamp_diff);
