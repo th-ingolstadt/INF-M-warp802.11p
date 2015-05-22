@@ -91,11 +91,11 @@ int main(){
 	gl_dot11ShortRetryLimit = 7;
 	gl_dot11LongRetryLimit = 4;
 
-	gl_dot11RTSThreshold = 2000; //FIXME: This should default to MTU (aka, disable RTS/CTS)
+	gl_dot11RTSThreshold = 0; //FIXME: This should default to MTU (aka, disable RTS/CTS)
 
 	gl_stationShortRetryCount = 0;
 	gl_stationLongRetryCount = 0;
-	gl_cw_exp = wlan_mac_low_get_cw_exp_min();
+
 
 	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
 
@@ -105,6 +105,8 @@ int main(){
 	userio_write_leds_red(USERIO_BASEADDR, (1<<gl_red_led_index));
 
 	wlan_mac_low_init(WARPNET_TYPE_80211_LOW);
+
+	gl_cw_exp = wlan_mac_low_get_cw_exp_min();
 
 	hw_info = wlan_mac_low_get_hw_info();
 	memcpy((void*)gl_eeprom_addr, hw_info->hw_addr_wlan, 6);
@@ -866,11 +868,10 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 				break;
 			}
 
-
 			rts_header_duration = (T_SIFS) +
 								  cts_header_duration +
 	   	   	   	   	   	   	   	  (T_SIFS) +
-	   	   	   	   	   	   	   	  wlan_ofdm_txtime_fast(mpdu_length, MPDU_N_DBPS) +
+	   	   	   	   	   	   	   	  wlan_ofdm_txtime(mpdu_length, MPDU_N_DBPS) +
 	   	   	   	   	   	   	   	  header->duration_id;
 
 
@@ -1393,16 +1394,19 @@ inline unsigned int rand_num_slots(u8 reason){
 // |	10		|	[0, 1023]	|
 	volatile u32 n_slots;
 
-	switch(reason) {
-		case RAND_SLOT_REASON_STANDARD_ACCESS:
-			n_slots = ((unsigned int)rand() >> (32-(gl_cw_exp+1)));
-		break;
+	do{
 
-		case RAND_SLOT_REASON_IBSS_BEACON:
-			//Section 10.1.3.3 of 802.11-2012: Backoffs prior to IBSS beacons are drawn from [0, 2*CWmin]
-			n_slots = ((unsigned int)rand() >> (32-(wlan_mac_low_get_cw_exp_min()+1+1)));
-		break;
-	}
+		switch(reason) {
+			case RAND_SLOT_REASON_STANDARD_ACCESS:
+				n_slots = ((unsigned int)rand() >> (32-(gl_cw_exp+1)));
+			break;
+
+			case RAND_SLOT_REASON_IBSS_BEACON:
+				//Section 10.1.3.3 of 802.11-2012: Backoffs prior to IBSS beacons are drawn from [0, 2*CWmin]
+				n_slots = ((unsigned int)rand() >> (32-(wlan_mac_low_get_cw_exp_min()+1+1)));
+			break;
+		}
+	} while(n_slots == 0);
 
 	return n_slots;
 }
