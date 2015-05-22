@@ -41,7 +41,11 @@
 #define TXTIME_T_SYM 4			//80 samples @ 20MHz
 
 #define PHY_RX_SIG_EXT_USEC 6
-#define PHY_TX_SIG_EXT_USEC 6
+//The extra 3 usec properly delays the assertion of TX END
+//to match the assertion of RX END at the receiving node.
+//#define PHY_TX_SIG_EXT_USEC (6+3) //TODO
+#define PHY_TX_SIG_EXT_SAMP_PERIODS (182) //TODO
+
 
 #define TX_RC_PHYSTART_DLY 0
 

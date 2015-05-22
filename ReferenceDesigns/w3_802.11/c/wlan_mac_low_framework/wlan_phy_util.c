@@ -366,7 +366,8 @@ void wlan_phy_init() {
 	REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);
 
 	//Set Tx duration extension, in units of sample periods
-	wlan_phy_tx_set_extension(PHY_TX_SIG_EXT_USEC*20);
+	//wlan_phy_tx_set_extension(PHY_TX_SIG_EXT_USEC*20);
+	wlan_phy_tx_set_extension(PHY_TX_SIG_EXT_SAMP_PERIODS);
 
 	//Set extension from last samp output to RF Tx -> Rx transition
 	// This delay allows the Tx pipeline to finish driving samples into DACs

@@ -76,7 +76,9 @@ int wlan_mac_low_init(u32 type){
 	cpu_low_status = 0;
 
 	cw_exp_min = 4;
+	//cw_exp_min = 1;
 	cw_exp_max = 10;
+	//cw_exp_max = 1;
 
 	//mac_param_rx_filter    = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
 	mac_param_rx_filter    = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
