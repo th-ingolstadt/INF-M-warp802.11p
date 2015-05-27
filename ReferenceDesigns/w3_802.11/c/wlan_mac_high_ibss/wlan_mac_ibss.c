@@ -714,6 +714,12 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	// Log the reception
 	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
 
+	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
+	// The only reason this occured was so that it could be logged in the line above.
+	if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_CTRL){
+		goto mpdu_rx_process_end;
+	}
+
 	// Determine destination of packet
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
