@@ -203,6 +203,7 @@ int wlan_lib_channel_verify (u32 mac_channel){
 		case 11:
 		//5GHz channels
 		case 36:
+		case 40:
 		case 44:
 		case 48:
 			return_value = 0;
