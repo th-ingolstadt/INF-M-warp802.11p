@@ -91,7 +91,7 @@ int main(){
 	gl_dot11ShortRetryLimit = 7;
 	gl_dot11LongRetryLimit = 4;
 
-	gl_dot11RTSThreshold = 0; //FIXME: This should default to MTU (aka, disable RTS/CTS)
+	gl_dot11RTSThreshold = 2000; //FIXME: This should default to MTU (aka, disable RTS/CTS)
 
 	gl_stationShortRetryCount = 0;
 	gl_stationLongRetryCount = 0;
@@ -440,7 +440,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		//We need to send a CTS
 		//Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
 		//wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
-		wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0); //FIXME: req_zeroNAV is borked
+		wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0);
 
 		//ACKs are transmitted with a nominal Tx power used for all control packets
 		ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
@@ -483,6 +483,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 				break;
 
 				case RX_FINISH_SEND_B:
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
 					tx_pending_state = TX_PENDING_B;
@@ -598,6 +599,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 				break;
 
 				case RX_FINISH_SEND_B:
+					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
 					tx_pending_state = TX_PENDING_B;
@@ -941,9 +943,8 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 			if (req_backoff == 0) {
 				//Normal packets don't require pre-Tx backoff; the pre-Tx backoff will only occur
 				// if the medium is busy at Tx time
-				REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 				n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
+
 			} else {
 				//IBSS beacon transmissions always require a pre-Tx backoff to dither Tx attempts
 				// by multiple IBSS peers
@@ -976,12 +977,9 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 			mac_hw_status = wlan_mac_get_status();
 		} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE);
 
-
-		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 		//Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
 		wlan_mac_tx_ctrl_A_start(1);
 		wlan_mac_tx_ctrl_A_start(0);
-		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 
 		//While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
 		//The phy_params (as opposed to phy_params2) element is used for the MPDU itself. If we are waiting for a CTS and we do not
@@ -1394,8 +1392,7 @@ inline unsigned int rand_num_slots(u8 reason){
 // |	10		|	[0, 1023]	|
 	volatile u32 n_slots;
 
-	do{
-
+//	do{ //FIXME REMOVE
 		switch(reason) {
 			case RAND_SLOT_REASON_STANDARD_ACCESS:
 				n_slots = ((unsigned int)rand() >> (32-(gl_cw_exp+1)));
@@ -1406,7 +1403,7 @@ inline unsigned int rand_num_slots(u8 reason){
 				n_slots = ((unsigned int)rand() >> (32-(wlan_mac_low_get_cw_exp_min()+1+1)));
 			break;
 		}
-	} while(n_slots == 0);
+//	} while(n_slots == 0);
 
 	return n_slots;
 }
