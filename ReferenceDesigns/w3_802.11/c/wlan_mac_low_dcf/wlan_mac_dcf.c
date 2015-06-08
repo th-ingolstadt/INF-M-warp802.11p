@@ -238,7 +238,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		//802.11a/g Rx
 		switch( phy_details->mcs ){
 			default:
-			case WLAN_MAC_MCS_DSSS:
+			case WLAN_MAC_MCS_1M:
 				tx_mcs = 0;
 				tx_phy_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
 				tx_N_DBPS = N_DBPS_R6;
@@ -825,49 +825,49 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 					mac_cfg_rate = WLAN_PHY_RATE_BPSK12;
 					cts_header_duration = TX_TIME_CTS_R6;
 					MPDU_N_DBPS = N_DBPS_R6;
-					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_RATE_6M;
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_MCS_6M;
 				break;
 				case WLAN_PHY_RATE_BPSK34:
 					mac_cfg_rate = WLAN_PHY_RATE_BPSK12;
 					cts_header_duration = TX_TIME_CTS_R6;
 					MPDU_N_DBPS = N_DBPS_R9;
-					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_RATE_6M;
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_MCS_6M;
 				break;
 				case WLAN_PHY_RATE_QPSK12:
 					mac_cfg_rate = WLAN_PHY_RATE_QPSK12;
 					cts_header_duration = TX_TIME_CTS_R12;
 					MPDU_N_DBPS = N_DBPS_R12;
-					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_RATE_12M;
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_MCS_12M;
 				break;
 				case WLAN_PHY_RATE_QPSK34:
 					mac_cfg_rate = WLAN_PHY_RATE_QPSK12;
 					cts_header_duration = TX_TIME_CTS_R12;
 					MPDU_N_DBPS = N_DBPS_R18;
-					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_RATE_12M;
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_MCS_12M;
 				break;
 				case WLAN_PHY_RATE_16QAM12:
 					mac_cfg_rate = WLAN_PHY_RATE_16QAM12;
 					cts_header_duration = TX_TIME_CTS_R24;
 					MPDU_N_DBPS = N_DBPS_R24;
-					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_RATE_24M;
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_MCS_24M;
 				break;
 				case WLAN_PHY_RATE_16QAM34:
 					mac_cfg_rate = WLAN_PHY_RATE_16QAM12;
 					cts_header_duration = TX_TIME_CTS_R24;
 					MPDU_N_DBPS = N_DBPS_R36;
-					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_RATE_24M;
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_MCS_24M;
 				break;
 				case WLAN_PHY_RATE_64QAM23:
 					mac_cfg_rate = WLAN_PHY_RATE_16QAM12;
 					cts_header_duration = TX_TIME_CTS_R24;
 					MPDU_N_DBPS = N_DBPS_R48;
-					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_RATE_24M;
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_MCS_24M;
 				break;
 				case WLAN_PHY_RATE_64QAM34:
 					mac_cfg_rate = WLAN_PHY_RATE_16QAM12;
 					cts_header_duration = TX_TIME_CTS_R24;
 					MPDU_N_DBPS = N_DBPS_R54;
-					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_RATE_24M;
+					low_tx_details[(mpdu_info->num_tx_attempts)-1].ctrl_phy_params.rate = WLAN_MAC_MCS_24M;
 				break;
 			}
 
