@@ -987,13 +987,9 @@ void association_timestamp_adjust(s64 timestamp_diff){
  *
  * @param  void * pkt_buf_addr
  *     - Packet buffer address;  Contains the contents of the MPDU as well as other packet information from CPU low
- * @param  u8 rate
- *     - Rate that the packet was transmitted
- * @param  u16 length
- *     - Length of the MPDU
  * @return None
  */
-void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
+void mpdu_rx_process(void* pkt_buf_addr) {
 
 	rx_frame_info*      mpdu_info                = (rx_frame_info*)pkt_buf_addr;
 	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
@@ -1017,6 +1013,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8                  allow_auth               = 0;
 
 	u8					pre_llc_offset			 = 0;
+
+	u8 					rate					 = mpdu_info->phy_details.mcs;
+	u16 				length					 = mpdu_info->phy_details.length;
 
 	// Set the additional info field to NULL
 	mpdu_info->additional_info = (u32)NULL;
