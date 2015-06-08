@@ -55,7 +55,7 @@
 #define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
 #define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                   4
+#define  WLAN_DEFAULT_CHANNEL                   1
 #define  WLAN_DEFAULT_TX_PWR		            15
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU        100
@@ -141,20 +141,20 @@ int main(){
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_RATE_18M;
+	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_18M;
 	default_unicast_data_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	default_unicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_unicast_mgmt_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_multicast_data_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	default_multicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_multicast_mgmt_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	// Setup the stats lists
@@ -1112,7 +1112,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 							// Check if this is a multicast packet
 							if(wlan_addr_mcast(rx_80211_header->address_3)){
-								//FIXME: Needs fix for QoS case to handle u16 offset of QoS Control
+								//TODO: Needs fix for QoS case to handle u16 offset of QoS Control
+								// CRH Note: I downgraded this to a TODO instead of a FIXME since QoS won't be supported in the 1.3 release
 
 								// Send the data packet over the wireless
 								curr_tx_queue_element = queue_checkout();
@@ -1149,7 +1150,8 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 								associated_station_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, rx_80211_header->address_3);
 
 								if(associated_station_entry != NULL){
-									//FIXME: Needs fix for QoS case to handle u16 offset of QoS Control
+									//TODO: Needs fix for QoS case to handle u16 offset of QoS Control
+									// CRH Note: I downgraded this to a TODO instead of a FIXME since QoS won't be supported in the 1.3 release
 									associated_station = (station_info*)(associated_station_entry->data);
 
 									// Send the data packet over the wireless to our station
