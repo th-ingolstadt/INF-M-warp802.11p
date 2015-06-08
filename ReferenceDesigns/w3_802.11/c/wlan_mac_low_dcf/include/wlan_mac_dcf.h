@@ -21,6 +21,11 @@
 #define TX_PKT_BUF_RTS	   6
 #define TX_PKT_BUF_ACK_CTS 7
 
+//Custom DCF Low Params
+#define LOW_PARAM_DCF_RTS_THRESH			0x10000001
+#define LOW_PARAM_DCF_DOT11SHORTRETRY		0x10000002
+#define LOW_PARAM_DCF_DOT11LONGRETRY		0x10000003
+
 //CW Update Reasons
 #define DCF_CW_UPDATE_MPDU_TX_ERR 0
 #define DCF_CW_UPDATE_MPDU_RX_ACK 1
@@ -55,6 +60,7 @@ inline void reset_slrc();
 //inline void update_cw(u8 reason, u8 pkt_buf);
 inline unsigned int rand_num_slots(u8 reason);
 void wlan_mac_dcf_hw_start_backoff(u16 num_slots);
+int wlan_dcf_process_low_param(u8 mode, u32* payload);
 int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra);
 int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration);
 int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u16 duration);

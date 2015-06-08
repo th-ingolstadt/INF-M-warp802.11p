@@ -46,7 +46,7 @@ volatile static u32                    gl_stationShortRetryCount;
 volatile static u32                    gl_stationLongRetryCount;
 volatile static u32                    gl_cw_exp;
 
-volatile static u16					   gl_dot11RTSThreshold; //TODO: Expose through wlan_exp
+volatile static u32					   gl_dot11RTSThreshold;
 
 volatile static u8                     gl_autocancel_en;
 volatile static u8                     gl_autocancel_match_type;
@@ -57,8 +57,8 @@ volatile static u8                     gl_eeprom_addr[6];
 
 volatile static u8					   gl_mpdu_pkt_buf;
 
-volatile static u8					   gl_dot11ShortRetryLimit; //TODO: Expose through wlan_exp
-volatile static u8					   gl_dot11LongRetryLimit;  //TODO: Expose through wlan_exp
+volatile static u32					   gl_dot11ShortRetryLimit;
+volatile static u32 				   gl_dot11LongRetryLimit;
 
 volatile u8                            gl_red_led_index;
 volatile u8                            gl_green_led_index;
@@ -91,7 +91,7 @@ int main(){
 	gl_dot11ShortRetryLimit = 7;
 	gl_dot11LongRetryLimit = 4;
 
-	gl_dot11RTSThreshold = 2000; //FIXME: This should default to MTU (aka, disable RTS/CTS)
+	gl_dot11RTSThreshold = 2000;
 
 	gl_stationShortRetryCount = 0;
 	gl_stationLongRetryCount = 0;
@@ -113,6 +113,7 @@ int main(){
 
 	wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
 	wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
+	wlan_mac_low_set_ipc_low_param_callback((void*)wlan_dcf_process_low_param);
 
 	if(lock_pkt_buf_tx(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
 		warp_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK_CTS);
@@ -732,7 +733,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 	u16 rts_header_duration;
 	u8 req_timeout;
 	u8 req_backoff;
-	u16 n_slots;
+	u16 n_slots = 0;
 	u32 rx_status;
 	u16 cts_header_duration;
 	u16 MPDU_N_DBPS;
@@ -1479,3 +1480,31 @@ int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u1
 	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
 	return (sizeof(mac_header_80211_RTS)+WLAN_PHY_FCS_NBYTES);
 }
+
+int wlan_dcf_process_low_param(u8 mode, u32* payload){
+	switch(mode){
+		default:
+		case IPC_REG_READ_MODE:
+			//Not currently implemented in wlan_mac_low.c
+		break;
+		case IPC_REG_WRITE_MODE:
+			switch(payload[0]){
+				default:
+					xil_printf("Unknown param 0x%08x\n", payload[0]);
+				break;
+				case LOW_PARAM_DCF_RTS_THRESH:
+					gl_dot11RTSThreshold = payload[1];
+				break;
+				case LOW_PARAM_DCF_DOT11SHORTRETRY:
+					gl_dot11ShortRetryLimit = payload[1];
+				break;
+				case LOW_PARAM_DCF_DOT11LONGRETRY:
+					gl_dot11LongRetryLimit = payload[1];
+				break;
+			}
+
+		break;
+	}
+	return 0;
+}
+
