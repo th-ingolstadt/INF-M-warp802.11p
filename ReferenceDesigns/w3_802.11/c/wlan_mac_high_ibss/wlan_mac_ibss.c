@@ -682,13 +682,9 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  *
  * @param  void * pkt_buf_addr
  *     - Packet buffer address;  Contains the contents of the MPDU as well as other packet information from CPU low
- * @param  u8 rate
- *     - Rate that the packet was transmitted
- * @param  u16 length
- *     - Length of the MPDU
  * @return None
  */
-void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
+void mpdu_rx_process(void* pkt_buf_addr) {
 
 	rx_frame_info*      mpdu_info                = (rx_frame_info*)pkt_buf_addr;
 	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
@@ -710,6 +706,9 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	u8					send_response			 = 0;
 	u32					tx_length;
 	u8					pre_llc_offset			 = 0;
+
+	u8 					rate					 = mpdu_info->phy_details.mcs;
+	u16 				length					 = mpdu_info->phy_details.length;
 
 	// Log the reception
 	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
