@@ -1903,8 +1903,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 			status  = CMD_PARAM_SUCCESS;
 
 			// Adjust the rate so that it falls in an acceptable range
-			if(rate < WLAN_MAC_RATE_6M ){ rate = WLAN_MAC_RATE_6M;  }
-			if(rate > WLAN_MAC_RATE_54M){ rate = WLAN_MAC_RATE_54M; }
+			if(rate < WLAN_MAC_MCS_6M ){ rate = WLAN_MAC_MCS_6M;  }
+			if(rate > WLAN_MAC_MCS_54M){ rate = WLAN_MAC_MCS_54M; }
 
 			// Process the command
 			if (type == CMD_PARAM_UNICAST_VAL) {
