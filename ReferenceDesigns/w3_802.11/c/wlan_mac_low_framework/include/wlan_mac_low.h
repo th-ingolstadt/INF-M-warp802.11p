@@ -270,9 +270,6 @@
 #define wlan_mac_get_rx_phy_mode() 			((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_MODE) >> 25)
 #define wlan_mac_get_rx_phy_params_valid() 	((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID))
 
-//Use invalid MCS (127) to indicate DSSS
-#define WLAN_MAC_MCS_DSSS	0x3F
-
 #define T_DIFS (T_SIFS + 2*T_SLOT)
 
 #define T_EIFS 88

@@ -169,7 +169,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			//Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
 			// function to treat OFDM and DSSS payloads the same
 			phy_details.length = wlan_mac_get_rx_phy_length() - 5;
-			phy_details.mcs = WLAN_MAC_MCS_DSSS;
+			phy_details.mcs = WLAN_MAC_MCS_1M;
 
 			if(DBG_PRINT) xil_printf("DSSS Rx callback: %d / %d / %d\n", phy_details.phy_mode, phy_details.length, phy_details.mcs);
 
@@ -667,42 +667,42 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				//ACK_N_DBPS is used to calculate duration of received ACKs.
 				//The selection of ACK rates given DATA rates is specified in 9.7.6.5.2 of 802.11-2012
 				switch(tx_mpdu->params.phy.rate){
-					case WLAN_MAC_RATE_1M:
+					case WLAN_MAC_MCS_1M:
 						warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
 
 						//Default to BPSK 1/2 if user requests DSSS Tx (should never happen - CPU High will catch this first)
 						rate = WLAN_PHY_RATE_BPSK12;
 						ACK_N_DBPS = N_DBPS_R6;
 					break;
-					case WLAN_MAC_RATE_6M:
+					case WLAN_MAC_MCS_6M:
 						rate = WLAN_PHY_RATE_BPSK12;
 						ACK_N_DBPS = N_DBPS_R6;
 					break;
-					case WLAN_MAC_RATE_9M:
+					case WLAN_MAC_MCS_9M:
 						rate = WLAN_PHY_RATE_BPSK34;
 						ACK_N_DBPS = N_DBPS_R6;
 					break;
-					case WLAN_MAC_RATE_12M:
+					case WLAN_MAC_MCS_12M:
 						rate = WLAN_PHY_RATE_QPSK12;
 						ACK_N_DBPS = N_DBPS_R12;
 					break;
-					case WLAN_MAC_RATE_18M:
+					case WLAN_MAC_MCS_18M:
 						rate = WLAN_PHY_RATE_QPSK34;
 						ACK_N_DBPS = N_DBPS_R12;
 					break;
-					case WLAN_MAC_RATE_24M:
+					case WLAN_MAC_MCS_24M:
 						rate = WLAN_PHY_RATE_16QAM12;
 						ACK_N_DBPS = N_DBPS_R24;
 					break;
-					case WLAN_MAC_RATE_36M:
+					case WLAN_MAC_MCS_36M:
 						rate = WLAN_PHY_RATE_16QAM34;
 						ACK_N_DBPS = N_DBPS_R24;
 					break;
-					case WLAN_MAC_RATE_48M:
+					case WLAN_MAC_MCS_48M:
 						rate = WLAN_PHY_RATE_64QAM23;
 						ACK_N_DBPS = N_DBPS_R24;
 					break;
-					case WLAN_MAC_RATE_54M:
+					case WLAN_MAC_MCS_54M:
 						rate = WLAN_PHY_RATE_64QAM34;
 						ACK_N_DBPS = N_DBPS_R24;
 					break;
