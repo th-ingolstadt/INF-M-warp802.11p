@@ -200,6 +200,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 				wlan_mac_dcf_hw_unblock_rx_phy();
 
 			} else {
+				REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 				//PHY is processing this Rx - read mcs/length/phy-mode
 				phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
 				phy_details.length = wlan_mac_get_rx_phy_length();
@@ -237,6 +238,8 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 				//Call the user callback to handle this Rx, capture return value
 				return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
+				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
+				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 
 				if(DBG_PRINT) xil_printf("OFDM Rx callback return: 0x%08x\n", return_status);
 			}
@@ -549,7 +552,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 							ipc_msg_to_high.num_payload_words = 0;
 							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
 
-							ipc_low_param_callback(IPC_REG_READ_MODE, ipc_msg_from_high_payload);
+							ipc_low_param_callback(IPC_REG_READ_MODE, ipc_msg_from_high_payload); //TODO: needs to have a return value?
 						break;
 					}
 
