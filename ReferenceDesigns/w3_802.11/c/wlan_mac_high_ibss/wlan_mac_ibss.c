@@ -147,20 +147,20 @@ int main() {
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_RATE_18M;
+	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_18M;
 	default_unicast_data_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	default_unicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_unicast_mgmt_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_multicast_data_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	default_multicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_multicast_mgmt_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 
@@ -950,7 +950,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	// Currently, asynchronous transmission of log entries is not supported
 	//
-	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_RATE_1M)) {
+	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_MCS_1M)) {
         wn_transmit_log_entry((void *)rx_event_log_entry);
 	}
 
