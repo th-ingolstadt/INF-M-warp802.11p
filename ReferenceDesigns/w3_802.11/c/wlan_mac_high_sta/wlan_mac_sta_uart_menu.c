@@ -112,10 +112,10 @@ void uart_rx(u8 rxByte){
 				break;
 
 				case ASCII_r:
-					if((default_unicast_data_tx_params.phy.rate) > WLAN_MAC_RATE_6M){
+					if((default_unicast_data_tx_params.phy.rate) > WLAN_MAC_MCS_6M){
 						(default_unicast_data_tx_params.phy.rate)--;
 					} else {
-						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_6M;
+						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_MCS_6M;
 					}
 
 					if(access_point != NULL) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
@@ -124,10 +124,10 @@ void uart_rx(u8 rxByte){
 					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
 				break;
 				case ASCII_R:
-					if((default_unicast_data_tx_params.phy.rate) < WLAN_MAC_RATE_54M){
+					if((default_unicast_data_tx_params.phy.rate) < WLAN_MAC_MCS_54M){
 						(default_unicast_data_tx_params.phy.rate)++;
 					} else {
-						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_RATE_54M;
+						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_MCS_54M;
 					}
 
 					if(access_point != NULL) access_point->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);

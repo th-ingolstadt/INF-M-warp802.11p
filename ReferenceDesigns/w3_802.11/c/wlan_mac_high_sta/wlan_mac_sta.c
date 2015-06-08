@@ -59,7 +59,7 @@
 #define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
 #define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
-#define  WLAN_DEFAULT_CHANNEL                    1
+#define  WLAN_DEFAULT_CHANNEL                    4
 #define  WLAN_DEFAULT_TX_PWR                     15
 
 
@@ -142,20 +142,20 @@ int main() {
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_RATE_18M;
+	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_18M;
 	default_unicast_data_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	default_unicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_unicast_mgmt_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_multicast_data_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 	default_multicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_RATE_6M;
+	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_multicast_mgmt_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
 
 
@@ -780,7 +780,7 @@ void mpdu_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 
 	// Currently, asynchronous transmission of log entries is not supported
 	//
-	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_RATE_1M)) {
+	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_MCS_1M)) {
         wn_transmit_log_entry((void *)rx_event_log_entry);
 	}
 
@@ -847,6 +847,10 @@ void ltg_event(u32 id, void* callback_arg){
 				min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS, id);
 				payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
 
+				//FIXME: DEBUG//
+				payload_length = sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES;
+				//FIXME: DEBUG//
+
 				// Finally prepare the 802.11 header
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID);
 
@@ -857,6 +861,7 @@ void ltg_event(u32 id, void* callback_arg){
 
 				// Submit the new packet to the appropriate queue
 				enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
+
 
 			}
 		}
