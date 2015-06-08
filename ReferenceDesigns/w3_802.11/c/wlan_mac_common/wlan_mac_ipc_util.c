@@ -153,31 +153,31 @@ void MailboxIntrHandler(void *CallbackRef){
 
 int wlan_lib_mac_rate_to_mbps (u8 rate) {
 	switch(rate){
-		case WLAN_MAC_RATE_1M:
+		case WLAN_MAC_MCS_1M:
 			return 1;
 		break;
-		case WLAN_MAC_RATE_6M:
+		case WLAN_MAC_MCS_6M:
 			return 6;
 		break;
-		case WLAN_MAC_RATE_9M:
+		case WLAN_MAC_MCS_9M:
 			return 9;
 		break;
-		case WLAN_MAC_RATE_12M:
+		case WLAN_MAC_MCS_12M:
 			return 12;
 		break;
-		case WLAN_MAC_RATE_18M:
+		case WLAN_MAC_MCS_18M:
 			return 18;
 		break;
-		case WLAN_MAC_RATE_24M:
+		case WLAN_MAC_MCS_24M:
 			return 24;
 		break;
-		case WLAN_MAC_RATE_36M:
+		case WLAN_MAC_MCS_36M:
 			return 36;
 		break;
-		case WLAN_MAC_RATE_48M:
+		case WLAN_MAC_MCS_48M:
 			return 48;
 		break;
-		case WLAN_MAC_RATE_54M:
+		case WLAN_MAC_MCS_54M:
 			return 54;
 		break;
 	}
