@@ -228,7 +228,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 		break;
 	}
 
-	mpdu_info->num_tx = 1;
+	mpdu_info->num_tx_attempts = 1;
 
 	curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
 
@@ -249,9 +249,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
 	//Wait for the MPDU Tx to finish
 	do{
 		if(low_tx_details != NULL){
-			low_tx_details[0].phy_params.rate = mpdu_info->params.phy.rate;
-			low_tx_details[0].phy_params.power = mpdu_info->params.phy.power;
-			low_tx_details[0].phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
+			low_tx_details[0].mpdu_phy_params.rate = mpdu_info->params.phy.rate;
+			low_tx_details[0].mpdu_phy_params.power = mpdu_info->params.phy.power;
+			low_tx_details[0].mpdu_phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
 			low_tx_details[0].chan_num = wlan_mac_low_get_active_channel();
 			low_tx_details[0].num_slots = 0;
 			low_tx_details[0].cw = 0;
