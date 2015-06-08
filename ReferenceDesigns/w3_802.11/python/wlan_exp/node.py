@@ -1058,6 +1058,30 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     #------------------------
     # Other commands
 
+    def set_dcf_rts_thresh(self, threshold):
+        """Sets the RTS length threshold of the node.
+        
+        Args:
+           threshold (int):  Value between [0, (2^32)-1] for the RTS length threshold
+        """
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, threshold)
+        
+    def set_dcf_short_retry_limit(self, limit):
+        """Sets the Short Retry Limit of the node.
+        
+        Args:
+           threshold (int):  Value between [0, (2^32)-1]
+        """
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, limit)
+        
+    def set_dcf_long_retry_limit(self, limit):
+        """Sets the Long Retry Limit of the node.
+        
+        Args:
+           threshold (int):  Value between [0, (2^32)-1]
+        """
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, limit)
+
     def set_phy_cs_thresh(self, threshold):
         """Sets the physical carrier sense threshold of the node.
         
