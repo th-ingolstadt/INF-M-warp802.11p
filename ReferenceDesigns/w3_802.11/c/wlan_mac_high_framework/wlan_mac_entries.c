@@ -282,7 +282,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 
 			// Set the flags in the log entry
 			if(((tx_low_count + 1) == (tx_mpdu->num_tx_attempts)) && (tx_mpdu->tx_result == TX_MPDU_RESULT_SUCCESS)){
-				//FIXME: Should we remove this flag once we explicitly create the ACK Tx entries? I vote yes.
+				//TODO: Should we remove this flag once we explicitly create the ACK Tx entries? I vote yes.
 				//That said, anyone using this flag in existing scripts could continue to if we just left it along for a
 				//couple of releases.
 				tx_low_event_log_entry->flags = TX_LOW_FLAGS_WAS_ACKED;
@@ -455,8 +455,6 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
 ******************************************************************************/
 rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channel_num, u8 rate){
 
-	//TODO: This needs to be extended to also write Tx entries for ACKs/CTS
-
 	rx_common_entry*  rx_event_log_entry      = NULL;
 	tx_low_entry*     tx_low_event_log_entry  = NULL; //This is for any inferred CTRL transmissions
 	void*             mpdu                    = (u8*)rx_mpdu + PHY_RX_PKT_BUF_MPDU_OFFSET;
@@ -565,7 +563,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 		rx_event_log_entry->power      = rx_mpdu->rx_power;
 		rx_event_log_entry->rf_gain    = rx_mpdu->rf_gain;
 		rx_event_log_entry->bb_gain    = rx_mpdu->bb_gain;
-		rx_event_log_entry->length     = rx_mpdu->phy_details.length; //FIXME
+		rx_event_log_entry->length     = rx_mpdu->phy_details.length;
 		rx_event_log_entry->rate       = rx_mpdu->phy_details.mcs;
 		rx_event_log_entry->pkt_type   = pkt_type;
 		rx_event_log_entry->chan_num   = channel_num;

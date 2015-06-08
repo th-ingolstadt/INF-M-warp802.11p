@@ -89,7 +89,7 @@ void             bss_info_init_finish();
 dl_entry       * bss_info_checkout();
 void             bss_info_checkin(dl_entry* bsi);
 
-inline void      bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length);
+inline void      bss_info_rx_process(void* pkt_buf_addr);
 
 void             print_bss_info();
 void             bss_info_timestamp_check();

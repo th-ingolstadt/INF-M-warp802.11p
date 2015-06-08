@@ -90,7 +90,7 @@ void bss_info_init_finish(){
 }
 
 
-inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
+inline void bss_info_rx_process(void* pkt_buf_addr) {
 
 	rx_frame_info*      mpdu_info                = (rx_frame_info*)pkt_buf_addr;
 	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
@@ -102,6 +102,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 	bss_info*			curr_bss_info;
 	u32 				i;
 
+	u16 				length					 = mpdu_info->phy_details.length;
 
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)){
 		switch(rx_80211_header->frame_control_1) {
@@ -213,7 +214,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr, u8 rate, u16 length) {
 							curr_bss_info->phy_mode = BSS_INFO_PHY_MODE_11N;
 						break;
 						//-------------------------------------------------
-						case TAG_HT_INFORMATION: //FIXME -- there is more to pull from HT information that a channel
+						case TAG_HT_INFORMATION: //TODO -- there is more to pull from HT information than a channel once we add HT support
 						case TAG_DS_PARAMS:
 							// DS Parameter set (e.g. channel)
 							//

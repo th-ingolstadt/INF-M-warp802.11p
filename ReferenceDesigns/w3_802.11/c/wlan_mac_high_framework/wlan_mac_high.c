@@ -1770,10 +1770,10 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
 				//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for
-				bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->phy_details.mcs, rx_mpdu->phy_details.length); //FIXME - remove extra args
+				bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
 				// Call the RX callback function to process the received packet
-				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), rx_mpdu->phy_details.mcs, rx_mpdu->phy_details.length); //FIXME - remove extra args
+				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
 				// Free up the rx_pkt_buf
 				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
