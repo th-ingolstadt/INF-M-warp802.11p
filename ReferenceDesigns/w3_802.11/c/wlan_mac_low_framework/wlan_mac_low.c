@@ -156,6 +156,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 	//Check if PHY is currently receiving or has finished receiving
 	if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
+		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
 
 		i = 0;
@@ -238,7 +239,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 				//Call the user callback to handle this Rx, capture return value
 				return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
-				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 
 				if(DBG_PRINT) xil_printf("OFDM Rx callback return: 0x%08x\n", return_status);
@@ -248,6 +248,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 		//Current frame_rx_callback() always unblocks PHY
 		// uncomment this unblock_rx_phy if custom frame_rx_callback does not wait to unblock the PHY
 		//wlan_mac_dcf_hw_unblock_rx_phy();
+		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 	}
 
 	return return_status;
@@ -746,9 +747,9 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 				// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
 
-
+				//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 				status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
-
+				//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
 				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
 					//The Tx logic automatically inserted the timestamp at the time that the bytes
