@@ -201,6 +201,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	u8 report_to_mac_high;
 	u8 ctrl_tx_gain;
 	unsigned char mpdu_tx_ant_mask = 0;
+	u8 num_resp_failures = 0;
 
 
 	rx_finish_state_t rx_finish_state = RX_FINISH_SEND_NONE;
@@ -637,6 +638,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	} //END else (FCS was bad)
 
 
+
+
 	//Wait for MAC CFG A or B to finish starting a response transmission
 	switch(tx_pending_state){
 		default:
@@ -652,12 +655,24 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 				if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DONE){
 					if( (wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_B_RESULT) != WLAN_MAC_STATUS_TX_B_RESULT_NO_TX ){
-						mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
+						mpdu_info->flags = mpdu_info->flags & ~RX_MPDU_FLAGS_FORMED_RESPONSE;
 						break;
 					}
-				} else if((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DO_TX) {
+				} else if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DO_TX ) {
 					mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
 					break;
+				} else if( ((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_PRE_TX_WAIT) &&
+						   ((mac_hw_status & WLAN_MAC_STATUS_MASK_POSTRX_TIMER1_RUNNING) == 0 )){
+					//This is potentially a bad state. It likely means we were late in processing this reception
+					//There is a slight race condition in detecting this state. There is a small 1 or 2 cycle window where this
+					//check can inaccurately deem a failed response transmission. As such, we'll require the condition to be met
+					//multiple times.
+					num_resp_failures++;
+					if(num_resp_failures > 2){
+						mpdu_info->flags = mpdu_info->flags & ~RX_MPDU_FLAGS_FORMED_RESPONSE;
+						//TODO: We should force TX_B back to an idle state here since it is still primed
+						break;
+					}
 				}
 			} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
 		break;
