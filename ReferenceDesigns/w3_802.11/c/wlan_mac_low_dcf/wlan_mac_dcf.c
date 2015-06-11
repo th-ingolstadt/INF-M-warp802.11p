@@ -131,10 +131,15 @@ int main(){
 
     xil_printf("Initialization Finished\n");
 
+    u32 poll_rx_return;
 
 	while(1){
 		//Poll PHY RX start
-		wlan_mac_low_poll_frame_rx();
+		poll_rx_return = wlan_mac_low_poll_frame_rx();
+
+		//if(poll_rx_return & POLL_MAC_STATUS_RECEIVED_PKT){
+		//	continue;
+		//}
 
 		//Poll IPC rx
 		wlan_mac_low_poll_ipc_rx();
@@ -484,7 +489,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 				break;
 
 				case RX_FINISH_SEND_B:
-					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
 					tx_pending_state = TX_PENDING_B;
@@ -600,7 +604,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 				break;
 
 				case RX_FINISH_SEND_B:
-					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 					wlan_mac_tx_ctrl_B_start(1);
 					wlan_mac_tx_ctrl_B_start(0);
 					tx_pending_state = TX_PENDING_B;
@@ -1222,10 +1225,6 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 				if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
 					rx_status = wlan_mac_low_poll_frame_rx();
 
-					if((rx_status & POLL_MAC_TYPE_ACK)){
-						xil_printf("unexpected ACK!\n");
-					}
-
 					//Check if the new reception met the conditions to cancel the already-submitted transmission
 					if((gl_autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
 						//The Rx handler killed this transmission already by resetting the MAC core
@@ -1235,7 +1234,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 					}
 				}
 			}//END if(Tx A state machine done)
-		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING ); //Potentally racey for short DATA post-RTS; maybe a local loop-condition variable?
+		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING ); //FIXME Potentially racey for short DATA post-RTS; maybe a local loop-condition variable?
 	} //end retransmission loop
 
 	return 0;
