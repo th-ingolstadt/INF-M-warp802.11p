@@ -131,15 +131,9 @@ int main(){
 
     xil_printf("Initialization Finished\n");
 
-    u32 poll_rx_return;
-
 	while(1){
 		//Poll PHY RX start
-		poll_rx_return = wlan_mac_low_poll_frame_rx();
-
-		//if(poll_rx_return & POLL_MAC_STATUS_RECEIVED_PKT){
-		//	continue;
-		//}
+		wlan_mac_low_poll_frame_rx();
 
 		//Poll IPC rx
 		wlan_mac_low_poll_ipc_rx();
@@ -233,110 +227,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		return return_value;
 	}
 
-	//FIXME: replace switch(rate) with array[rate] after checking rate<=max_supported_mcs
-
 	//Translate the rate index into the rate code used by the Tx PHY
 	// This translation is required in case this reception needs to send an ACK, as the ACK
 	// rate is a function of the rate of the received packet
 	//The mapping of Rx rate to ACK rate is given in 9.7.6.5.2 of 802.11-2012
-	//FIXME: I don't think this properly handles DSSS
-	if( phy_details->phy_mode == 1 ) { //FIXME
-		//802.11a/g Rx
-		switch( phy_details->mcs ){
-			default:
-			case WLAN_MAC_MCS_1M:
-				tx_mcs = 0;
-				tx_phy_rate = WLAN_PHY_RATE_BPSK12; //DSSS transmissions are not supported.
-				tx_N_DBPS = N_DBPS_R6;
-			break;
-			case 0:
-				tx_mcs = 0;
-				tx_phy_rate = WLAN_PHY_RATE_BPSK12;
-				tx_N_DBPS = N_DBPS_R6;
-			break;
-			case 1:
-				tx_mcs = 0;
-				tx_phy_rate = WLAN_PHY_RATE_BPSK12;
-				tx_N_DBPS = N_DBPS_R6;
-			break;
-			case 2:
-				tx_mcs = 2;
-				tx_phy_rate = WLAN_PHY_RATE_QPSK12;
-				tx_N_DBPS = N_DBPS_R12;
-			break;
-			case 3:
-				tx_mcs = 2;
-				tx_phy_rate = WLAN_PHY_RATE_QPSK12;
-				tx_N_DBPS = N_DBPS_R12;
-			break;
-			case 4:
-				tx_mcs = 4;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R24;
-			break;
-			case 5:
-				tx_mcs = 4;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R24;
-			break;
-			case 6:
-				tx_mcs = 4;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R24;
-			break;
-			case 7:
-				tx_mcs = 4;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R24;
-			break;
-		}
-	} else {
-		//802.11n or 802.11ac Rx
-		switch( phy_details->mcs ){
-			default:
-			case 0:
-				tx_mcs = 0;
-				tx_phy_rate = WLAN_PHY_RATE_BPSK12;
-				tx_N_DBPS = N_DBPS_R6;
-			break;
-			case 1:
-				tx_mcs = 0;
-				tx_phy_rate = WLAN_PHY_RATE_QPSK12;
-				tx_N_DBPS = N_DBPS_R6;
-			break;
-			case 2:
-				tx_mcs = 2;
-				tx_phy_rate = WLAN_PHY_RATE_QPSK12;
-				tx_N_DBPS = N_DBPS_R12;
-			break;
-			case 3:
-				tx_mcs = 2;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R12;
-			break;
-			case 4:
-				tx_mcs = 4;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R24;
-			break;
-			case 5:
-				tx_mcs = 4;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R24;
-			break;
-			case 6:
-				tx_mcs = 4;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R24;
-			break;
-			case 7:
-				tx_mcs = 4;
-				tx_phy_rate = WLAN_PHY_RATE_16QAM12;
-				tx_N_DBPS = N_DBPS_R24;
-			break;
-		}
-
-	}
+	tx_mcs = wlan_mac_mcs_to_ctrl_resp_mcs( phy_details->mcs );
+	tx_phy_rate = wlan_mac_mcs_to_phy_rate( tx_mcs );
+	tx_N_DBPS = wlan_mac_mcs_to_n_dbps( tx_mcs );
 
 	//Determine which antenna the ACK will be sent from
 	// The current implementation transmits ACKs from the same antenna over which the previous packet was received
@@ -1407,18 +1304,16 @@ inline unsigned int rand_num_slots(u8 reason){
 // |	10		|	[0, 1023]	|
 	volatile u32 n_slots;
 
-//	do{ //FIXME REMOVE
-		switch(reason) {
-			case RAND_SLOT_REASON_STANDARD_ACCESS:
-				n_slots = ((unsigned int)rand() >> (32-(gl_cw_exp+1)));
-			break;
+	switch(reason) {
+		case RAND_SLOT_REASON_STANDARD_ACCESS:
+			n_slots = ((unsigned int)rand() >> (32-(gl_cw_exp+1)));
+		break;
 
-			case RAND_SLOT_REASON_IBSS_BEACON:
-				//Section 10.1.3.3 of 802.11-2012: Backoffs prior to IBSS beacons are drawn from [0, 2*CWmin]
-				n_slots = ((unsigned int)rand() >> (32-(wlan_mac_low_get_cw_exp_min()+1+1)));
-			break;
-		}
-//	} while(n_slots == 0);
+		case RAND_SLOT_REASON_IBSS_BEACON:
+			//Section 10.1.3.3 of 802.11-2012: Backoffs prior to IBSS beacons are drawn from [0, 2*CWmin]
+			n_slots = ((unsigned int)rand() >> (32-(wlan_mac_low_get_cw_exp_min()+1+1)));
+		break;
+	}
 
 	return n_slots;
 }
