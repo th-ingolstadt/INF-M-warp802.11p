@@ -338,5 +338,8 @@ inline void wlan_mac_reset_backoff_counter();
 inline void wlan_mac_reset_NAV_counter();
 inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
 void wlan_mac_set_nav_check_addr(u8* addr);
+inline u8 wlan_mac_mcs_to_n_dbps(u8 mcs);
+inline u8 wlan_mac_mcs_to_phy_rate(u8 mcs);
+inline u8 wlan_mac_mcs_to_ctrl_resp_mcs(u8 mcs);
 
 #endif /* WLAN_MAC_LOW_H_ */

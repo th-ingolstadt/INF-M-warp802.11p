@@ -54,6 +54,34 @@ static function_ptr_t        ipc_low_param_callback;                            
 //dot11ShortRetryLimit+dot11LongRetryLimit-1
 static wlan_mac_low_tx_details low_tx_details[50]; //TODO make a #define
 
+//Constant LUTs for MCS
+const static u8 mcs_to_n_dbps_lut[64] = {N_DBPS_R6, N_DBPS_R9, N_DBPS_R12, N_DBPS_R18, N_DBPS_R24, N_DBPS_R36, N_DBPS_R48, N_DBPS_R54,
+										 0,         0,         0,          0,          0,          0,          0,          0,
+									     0,         0,         0,          0,          0,          0,          0,          0,
+										 0,         0,         0,          0,          0,          0,          0,          0,
+										 0,         0,         0,          0,          0,          0,          0,          0,
+										 0,         0,         0,          0,          0,          0,          0,          0,
+										 0,         0,         0,          0,          0,          0,          0,          0,
+										 0,         0,         0,          0,          0,          0,          0,          0 };
+
+const static u8 mcs_to_phy_rate_lut[64] = {WLAN_PHY_RATE_BPSK12, WLAN_PHY_RATE_BPSK34, WLAN_PHY_RATE_QPSK12, WLAN_PHY_RATE_QPSK34, WLAN_PHY_RATE_16QAM12, WLAN_PHY_RATE_16QAM34, WLAN_PHY_RATE_64QAM23, WLAN_PHY_RATE_64QAM34,
+										   0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
+										   0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
+										   0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
+										   0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
+										   0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
+										   0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
+										   0,                     0,                    0,                    0,                    0,                     0,                     0,                     WLAN_PHY_RATE_DSSS_1M };
+
+const static u8 mcs_to_resp_mcs[64] = {0, 0, 2, 2, 4, 4, 4, 4,
+									   0, 0, 0, 0, 0, 0, 0, 0,
+									   0, 0, 0, 0, 0, 0, 0, 0,
+									   0, 0, 0, 0, 0, 0, 0, 0,
+									   0, 0, 0, 0, 0, 0, 0, 0,
+									   0, 0, 0, 0, 0, 0, 0, 0,
+									   0, 0, 0, 0, 0, 0, 0, 0,
+									   0, 0, 0, 0, 0, 0, 0, 0 };
+
 
 /**
  * @brief Initialize MAC Low Framework
@@ -156,7 +184,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 
 	//Check if PHY is currently receiving or has finished receiving
 	if( mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) ) {
-		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 		return_status |= POLL_MAC_STATUS_RECEIVED_PKT; //We received something in this poll
 
 		i = 0;
@@ -190,7 +217,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			//Check if PHY is continuing Rx (11a: valid SIGNAL, 11n: valid+supported HT-SIG)
 			if( (mac_hw_phy_rx_params & (WLAN_MAC_PHY_RX_PARAMS_MASK_UNSUPPORTED | WLAN_MAC_PHY_RX_PARAMS_MASK_RX_ERROR))) {
 				//PHY is not processing this Rx - do not call user callback
-				return_status |= 0; //FIXME - how to communicate no-Rx result to caller?
+				return_status = return_status & ~POLL_MAC_STATUS_RECEIVED_PKT;
 
 				//Wait for PHY to finish, then clear block
 				do {
@@ -201,45 +228,17 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 				wlan_mac_dcf_hw_unblock_rx_phy();
 
 			} else {
-				REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 				//PHY is processing this Rx - read mcs/length/phy-mode
 				phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
 				phy_details.length = wlan_mac_get_rx_phy_length();
 				phy_details.mcs = wlan_mac_get_rx_phy_mcs();
 
-				switch(phy_details.mcs){
-				default:
-					case 0:
-						phy_details.N_DBPS = N_DBPS_R6;
-					break;
-					case 1:
-						phy_details.N_DBPS = N_DBPS_R9;
-					break;
-					case 2:
-						phy_details.N_DBPS = N_DBPS_R12;
-					break;
-					case 3:
-						phy_details.N_DBPS = N_DBPS_R18;
-					break;
-					case 4:
-						phy_details.N_DBPS = N_DBPS_R24;
-					break;
-					case 5:
-						phy_details.N_DBPS = N_DBPS_R36;
-					break;
-					case 6:
-						phy_details.N_DBPS = N_DBPS_R48;
-					break;
-					case 7:
-						phy_details.N_DBPS = N_DBPS_R54;
-					break;
-				}
+				phy_details.N_DBPS = wlan_mac_mcs_to_n_dbps(phy_details.mcs);
 
 				if(DBG_PRINT) xil_printf("OFDM Rx callback: %d / %d / %d\n", phy_details.phy_mode, phy_details.length, phy_details.mcs);
 
 				//Call the user callback to handle this Rx, capture return value
 				return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
-				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x40);
 
 				if(DBG_PRINT) xil_printf("OFDM Rx callback return: 0x%08x\n", return_status);
 			}
@@ -248,7 +247,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 		//Current frame_rx_callback() always unblocks PHY
 		// uncomment this unblock_rx_phy if custom frame_rx_callback does not wait to unblock the PHY
 		//wlan_mac_dcf_hw_unblock_rx_phy();
-		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 	}
 
 	return return_status;
@@ -661,61 +659,11 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 				tx_mpdu->delay_accept = (u32)(get_usec_timestamp() - tx_mpdu->timestamp_create);
 
-//					REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
-
-
 				//Convert rate index into rate code used in PHY's SIGNAL field
 				//ACK_N_DBPS is used to calculate duration of received ACKs.
 				//The selection of ACK rates given DATA rates is specified in 9.7.6.5.2 of 802.11-2012
-				switch(tx_mpdu->params.phy.rate){
-					case WLAN_MAC_MCS_1M:
-						warp_printf(PL_ERROR, "Error: DSSS rate was selected for transmission. Only OFDM transmissions are supported.\n");
-
-						//Default to BPSK 1/2 if user requests DSSS Tx (should never happen - CPU High will catch this first)
-						rate = WLAN_PHY_RATE_BPSK12;
-						ACK_N_DBPS = N_DBPS_R6;
-					break;
-					case WLAN_MAC_MCS_6M:
-						rate = WLAN_PHY_RATE_BPSK12;
-						ACK_N_DBPS = N_DBPS_R6;
-					break;
-					case WLAN_MAC_MCS_9M:
-						rate = WLAN_PHY_RATE_BPSK34;
-						ACK_N_DBPS = N_DBPS_R6;
-					break;
-					case WLAN_MAC_MCS_12M:
-						rate = WLAN_PHY_RATE_QPSK12;
-						ACK_N_DBPS = N_DBPS_R12;
-					break;
-					case WLAN_MAC_MCS_18M:
-						rate = WLAN_PHY_RATE_QPSK34;
-						ACK_N_DBPS = N_DBPS_R12;
-					break;
-					case WLAN_MAC_MCS_24M:
-						rate = WLAN_PHY_RATE_16QAM12;
-						ACK_N_DBPS = N_DBPS_R24;
-					break;
-					case WLAN_MAC_MCS_36M:
-						rate = WLAN_PHY_RATE_16QAM34;
-						ACK_N_DBPS = N_DBPS_R24;
-					break;
-					case WLAN_MAC_MCS_48M:
-						rate = WLAN_PHY_RATE_64QAM23;
-						ACK_N_DBPS = N_DBPS_R24;
-					break;
-					case WLAN_MAC_MCS_54M:
-						rate = WLAN_PHY_RATE_64QAM34;
-						ACK_N_DBPS = N_DBPS_R24;
-					break;
-					default:
-						//Default to BSPK 1/2 if CPU High requests invalid rate
-						rate = WLAN_PHY_RATE_BPSK12;
-						ACK_N_DBPS = N_DBPS_R6;
-
-						xil_printf("Invalid rate in Tx MPDU Info: %d\n", tx_mpdu->params.phy.rate);
-					break;
-				}
-
+				rate = wlan_mac_mcs_to_phy_rate(tx_mpdu->params.phy.rate);
+				ACK_N_DBPS = wlan_mac_mcs_to_n_dbps(wlan_mac_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.rate));
 
 				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
 					//Get pointer to start of MAC header in packet buffer
@@ -747,9 +695,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 				// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
 
-				//REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 				status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
-				//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
 				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
 					//The Tx logic automatically inserted the timestamp at the time that the bytes
@@ -765,8 +711,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
 
 				low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details);
-
-				//REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x80);
 
 				if(status == TX_MPDU_RESULT_SUCCESS){
 					tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
@@ -940,7 +884,7 @@ int wlan_mac_low_rx_power_to_rssi(s8 rx_pow){
 	//rx_pow must be in the range [-90,-30] inclusive
 
 	u8 band;
-	u16 rssi_val;
+	u16 rssi_val = 0;
 
 	band = mac_param_band;
 
@@ -976,7 +920,7 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 
 	u8 band;
 	int power = -100;
-	u16 adj_rssi;
+	u16 adj_rssi = 0;
 
 	band = mac_param_band;
 
@@ -1377,3 +1321,39 @@ void wlan_mac_set_nav_check_addr(u8* addr) {
 	Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_2, *((u32*)&(addr[4])) );
 	return;
 }
+
+inline u8 wlan_mac_mcs_to_n_dbps(u8 mcs){
+	if( ((mcs >=0) && (mcs < WLAN_MAC_NUM_MCS)) || (mcs == WLAN_MAC_MCS_1M)){
+		return mcs_to_n_dbps_lut[mcs];
+	} else {
+		xil_printf("Invalid MCS index %0x%x\n", mcs);
+		return mcs_to_n_dbps_lut[0];
+	}
+}
+
+inline u8 wlan_mac_mcs_to_phy_rate(u8 mcs){
+	if( ((mcs >=0) && (mcs < WLAN_MAC_NUM_MCS)) || (mcs == WLAN_MAC_MCS_1M)){
+		return mcs_to_phy_rate_lut[mcs];
+	} else {
+		xil_printf("Invalid MCS index %0x%x\n", mcs);
+		return mcs_to_phy_rate_lut[0];
+	}
+}
+
+inline u8 wlan_mac_mcs_to_ctrl_resp_mcs(u8 mcs){
+	//Returns the fastest half-rate MCS lower than the provided MCS and
+	//no larger that 24Mbps.
+
+	u8 return_value = mcs;
+	if(return_value > 4){
+		return_value = 4;
+	}
+
+	if(return_value%2){
+		return_value--;
+	}
+
+	return return_value;
+}
+
+
