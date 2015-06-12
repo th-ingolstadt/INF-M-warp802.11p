@@ -23,8 +23,10 @@ typedef int (*function_ptr_t)();
 #define min(A,B) (((A)<(B))?(A):(B))
 #define abs_64(A) (((A) < 0)?(-1*A):(A))
 
-#define sat_add16(a, b) ( (a > 0xFFFF - b) ? 0xFFFF : a + b )
-#define sat_add32(a, b) ( (a > 0xFFFFFFFF - b) ? 0xFFFFFFFF : a + b )
+#define sat_add16(a, b) ( ((a) > (0xFFFF - (b))) ? 0xFFFF : ((a) + (b)) )
+#define sat_add32(a, b) ( ((a) > (0xFFFFFFFF - (b))) ? 0xFFFFFFFF : ((a) + (b)) )
+
+#define sat_sub(a, b) ( ((a) > (b)) ? ((a) - (b)) : 0 )
 
 #define WLAN_PHY_FCS_NBYTES	4
 #define T_SIFS 10
