@@ -149,10 +149,12 @@ typedef struct{
 
 
 //Warning: DSSS rate is only valid for Rx. There is no DSSS transmitter.
-//0x66 is an arbitrary value which cannot be confused with another PHY rate
-#define WLAN_MAC_MCS_1M	0x3F
-#define WLAN_MAC_MCS_6M	0
-#define WLAN_MAC_MCS_9M	1
+//0x3F is an invalid MCS. We use it to convey the 1M DSSS rate.
+#define WLAN_MAC_NUM_MCS	8
+
+#define WLAN_MAC_MCS_1M		0x3F
+#define WLAN_MAC_MCS_6M		0
+#define WLAN_MAC_MCS_9M		1
 #define WLAN_MAC_MCS_12M	2
 #define WLAN_MAC_MCS_18M	3
 #define WLAN_MAC_MCS_24M	4
