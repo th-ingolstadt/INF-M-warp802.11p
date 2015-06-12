@@ -301,7 +301,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 	} else if( unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_CTS) ){
 		if( gl_mpdu_pkt_buf != PKT_BUF_INVALID ){
-			//FIXME: we need to re-organize when to finish phy receive
 			//We have an outgoing data frame we should send
 			//Configure the Tx antenna selection
 			//The frame_transmit() context already configured the SIGNAL field,
@@ -330,8 +329,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 			curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_mpdu_info->params.phy.power);
 			wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 			wlan_mac_tx_ctrl_A_params(gl_mpdu_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1); //Use postRx timer 1 and postTx_timer2
-			//wlan_mac_tx_ctrl_A_start(1);
-			//wlan_mac_tx_ctrl_A_start(0);
 
 			rx_finish_state = RX_FINISH_SEND_A;
 
@@ -350,7 +347,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
 		wlan_mac_tx_ctrl_B_gains(ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain);
 
-		cts_duration = (rx_header->duration_id)-((T_SIFS) + wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_N_DBPS)); //FIXME: this should be a saturating subtract that doesn't go less than 0
+		cts_duration = sat_sub(rx_header->duration_id, (T_SIFS) + wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_N_DBPS));
 
 		//Construct the ACK frame in the dedicated Tx pkt buf
 		tx_length = wlan_create_cts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
@@ -576,12 +573,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 	}
 
 	if( mpdu_info->flags & RX_MPDU_FLAGS_FORMED_RESPONSE ){
-		//We let "timestamp_offset" be equal to the amount of time after an RX start that an CTRL TX start begins.
-		if(phy_details->phy_mode != PHY_RX_DETAILS_MODE_DSSS){
-			mpdu_info->resp_low_tx_details.timestamp_offset = (u32)(get_tx_start_timestamp() - mpdu_info->timestamp);
-		} else {
-			mpdu_info->resp_low_tx_details.timestamp_offset = 0; //FIXME for DSSS. Do we need a calc_dsss_time
-		}
+		mpdu_info->resp_low_tx_details.timestamp_offset = (u32)(get_tx_start_timestamp() - mpdu_info->timestamp);
 	}
 
 	if(report_to_mac_high) {
@@ -877,7 +869,6 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 			//Configure the DCF core Tx state machine for this transmission
 			//wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
 			wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout);
-			n_slots = 0; //FIXME
 		} else {
 			//This is a retry. We will inherit whatever backoff that is currently running.
 			//Configure the DCF core Tx state machine for this transmission
@@ -992,10 +983,10 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 						gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 
 						//Check if the reception is an ACK addressed to this node, received with a valid checksum
-						if((rx_status & POLL_MAC_TYPE_ACK) && 
+						if( (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
+							(rx_status & POLL_MAC_TYPE_ACK) &&
 							(rx_status & POLL_MAC_STATUS_GOOD) && 
-							(rx_status & POLL_MAC_ADDR_MATCH) && 
-							(rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&  //FIXME: understand this
+							(rx_status & POLL_MAC_ADDR_MATCH) &&
 							(tx_wait_state == TX_WAIT_ACK)) {
 							//Update contention window
 							switch(tx_mode) {
@@ -1017,11 +1008,11 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 
 							return TX_MPDU_RESULT_SUCCESS;
 
-						} else if((rx_status & POLL_MAC_TYPE_CTS) && 
-							(rx_status & POLL_MAC_STATUS_GOOD) && 
-							(rx_status & POLL_MAC_ADDR_MATCH) && 
-							(rx_status & POLL_MAC_STATUS_RECEIVED_PKT) && 
-							(tx_wait_state == TX_WAIT_CTS)) {
+						} else if((rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
+								  (rx_status & POLL_MAC_TYPE_CTS) &&
+								  (rx_status & POLL_MAC_STATUS_GOOD) &&
+								  (rx_status & POLL_MAC_ADDR_MATCH) &&
+								  (tx_wait_state == TX_WAIT_CTS)) {
 
 							tx_wait_state = TX_WAIT_ACK;
 
