@@ -575,7 +575,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 			// Check if this was a duplicate reception
 			//   - Received seq num matched previously received seq num for this STA
-			if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) { //FIXME. Deal with wrap to 0
+			if( (associated_station->rx.last_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
 					rx_event_log_entry->flags |= RX_ENTRY_FLAGS_IS_DUPLICATE;
 				}
@@ -845,10 +845,6 @@ void ltg_event(u32 id, void* callback_arg){
 
 				min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS, id);
 				payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
-
-				//FIXME: DEBUG//
-				payload_length = sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES;
-				//FIXME: DEBUG//
 
 				// Finally prepare the 802.11 header
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID);
