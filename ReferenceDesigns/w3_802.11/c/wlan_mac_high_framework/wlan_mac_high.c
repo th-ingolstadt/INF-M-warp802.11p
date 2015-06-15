@@ -2595,6 +2595,10 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		station->hostname[0] = 0;
 		station->flags       = 0;
 
+		// Set the last received sequence number to something invalid so we don't accidentally
+		// de-duplicate the next reception if that sequency number is 0.
+		station->rx.last_seq = 0xFFFF; //Sequence numbers are only 12 bits long. This is intentionally invalid.
+
 		// Do not allow WARP nodes to time out
 		if(wlan_mac_addr_is_warp(addr)){
 			station->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
