@@ -748,7 +748,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 			// Check if this was a duplicate reception
 			//   - Received seq num matched previously received seq num for this STA
-			if( (associated_station->rx.last_seq != 0)  && (associated_station->rx.last_seq == rx_seq) ) {
+			if( (associated_station->rx.last_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
 					rx_event_log_entry->flags |= RX_ENTRY_FLAGS_IS_DUPLICATE;
 				}
