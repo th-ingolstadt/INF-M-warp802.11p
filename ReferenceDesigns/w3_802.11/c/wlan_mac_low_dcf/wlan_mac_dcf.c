@@ -983,36 +983,11 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 						gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 
 						//Check if the reception is an ACK addressed to this node, received with a valid checksum
-						if( (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
-							(rx_status & POLL_MAC_TYPE_ACK) &&
-							(rx_status & POLL_MAC_STATUS_GOOD) && 
-							(rx_status & POLL_MAC_ADDR_MATCH) &&
-							(tx_wait_state == TX_WAIT_ACK)) {
-							//Update contention window
-							switch(tx_mode) {
-								case TX_MODE_SHORT:
-									reset_ssrc();
-									reset_cw();
-								break;
-								case TX_MODE_LONG:
-									reset_slrc();
-									reset_cw();
-								break;
-							}
-							//Start a post-Tx backoff using the updated contention window
-							n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-							wlan_mac_dcf_hw_start_backoff(n_slots);
-
-							//Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
-							gl_autocancel_en = 0;
-
-							return TX_MPDU_RESULT_SUCCESS;
-
-						} else if((rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
+						if((tx_wait_state == TX_WAIT_CTS) &&
+								  (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
 								  (rx_status & POLL_MAC_TYPE_CTS) &&
 								  (rx_status & POLL_MAC_STATUS_GOOD) &&
-								  (rx_status & POLL_MAC_ADDR_MATCH) &&
-								  (tx_wait_state == TX_WAIT_CTS)) {
+								  (rx_status & POLL_MAC_ADDR_MATCH)) {
 
 							tx_wait_state = TX_WAIT_ACK;
 
@@ -1029,6 +1004,31 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 							//Note: the above assignment is better than re-reading wlan_mac_get_status() in the case of a short
 							//MPDU, where we may skip the PENDING state directly to DONE without this code context seeing it.
 							continue;
+
+						} else if( (tx_wait_state == TX_WAIT_ACK) &&
+								(rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
+								(rx_status & POLL_MAC_TYPE_ACK) &&
+								(rx_status & POLL_MAC_STATUS_GOOD) &&
+								(rx_status & POLL_MAC_ADDR_MATCH)) {
+								//Update contention window
+								switch(tx_mode) {
+									case TX_MODE_SHORT:
+										reset_ssrc();
+										reset_cw();
+									break;
+									case TX_MODE_LONG:
+										reset_slrc();
+										reset_cw();
+									break;
+								}
+								//Start a post-Tx backoff using the updated contention window
+								n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+								wlan_mac_dcf_hw_start_backoff(n_slots);
+
+								//Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
+								gl_autocancel_en = 0;
+
+								return TX_MPDU_RESULT_SUCCESS;
 
 						} else {
 							//Received a packet immediately after transmitting, but it wasn't the ACK we wanted
