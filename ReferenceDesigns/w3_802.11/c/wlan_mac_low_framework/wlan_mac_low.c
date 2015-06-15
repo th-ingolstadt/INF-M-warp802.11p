@@ -614,7 +614,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 		//Because the act of setting the delta timestamp takes time, we need to compensate for that time in the
 		//value we correct. The below value was verified with a WN experiment that fed the log visualizer. We
 		//iterated on this value until STAs align with the AP after the beacon.
-		#define SET_TIME_CALIB 5
+		//#define SET_TIME_CALIB 5
+		#define SET_TIME_CALIB 2
 			switch(msg->arg0){
 				default:
 				case 0:
