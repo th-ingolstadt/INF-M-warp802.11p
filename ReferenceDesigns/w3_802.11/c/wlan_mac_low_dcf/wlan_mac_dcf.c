@@ -3,7 +3,7 @@
  *
  *  This contains code to implement the 802.11 DCF.
  *
- *  @copyright Copyright 2014, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license
@@ -68,7 +68,7 @@ int main(){
 	wlan_mac_hw_info* hw_info;
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.2 ------------------------------\n");
+	xil_printf("----- v1.3 ------------------------------\n");
 	xil_printf("----- wlan_mac_dcf ----------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -1137,7 +1137,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 					}
 				}
 			}//END if(Tx A state machine done)
-		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING ); //FIXME Potentially racey for short DATA post-RTS; maybe a local loop-condition variable?
+		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING );
 	} //end retransmission loop
 
 	return 0;
