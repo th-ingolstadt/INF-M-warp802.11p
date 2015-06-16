@@ -1069,6 +1069,9 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     def set_dcf_short_retry_limit(self, limit):
         """Sets the Short Retry Limit of the node.
         
+        See http://warpproject.org/trac/wiki/802.11/MAC/Lower/Retransmissions for more information on 
+        retransmissions
+        
         Args:
            threshold (int):  Value between [0, (2^32)-1]
         """
@@ -1076,6 +1079,9 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         
     def set_dcf_long_retry_limit(self, limit):
         """Sets the Long Retry Limit of the node.
+        
+        See http://warpproject.org/trac/wiki/802.11/MAC/Lower/Retransmissions for more information on 
+        retransmissions
         
         Args:
            threshold (int):  Value between [0, (2^32)-1]
