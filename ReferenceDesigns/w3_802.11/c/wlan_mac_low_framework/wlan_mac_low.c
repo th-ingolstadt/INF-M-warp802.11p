@@ -13,6 +13,9 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
+#include <string.h>
+#include <stdlib.h>
+
 #include "xparameters.h"
 #include "w3_userio.h"
 #include "w3_ad_controller.h"
@@ -401,6 +404,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u8                       rate;
 	u16                      ACK_N_DBPS;
 	u32                      isLocked, owner;
+	u64                    * u_timestamp_ptr;
+	s64                    * s_timestamp_ptr;
 	u64                      new_timestamp;
 	u32                      low_tx_details_size;
 	u32*                     payload_to_write;
@@ -621,12 +626,14 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				case 0:
 					//This message contains a new timestamp that should completely replace
 					//the existing usec count
-					new_timestamp = *(u64*)ipc_msg_from_high_payload;
+					u_timestamp_ptr = (u64*)(ipc_msg_from_high_payload);
+					new_timestamp   = u_timestamp_ptr[0];
 				break;
 
 				case 1:
 					//This message contains a timestamp correction factor.
-					new_timestamp = get_usec_timestamp() + (*(s64*)ipc_msg_from_high_payload) + SET_TIME_CALIB;
+					s_timestamp_ptr = (s64*)(ipc_msg_from_high_payload);
+					new_timestamp   = get_usec_timestamp() + s_timestamp_ptr[0] + SET_TIME_CALIB;
 				break;
 			}
 			wlan_mac_low_set_time(new_timestamp);
