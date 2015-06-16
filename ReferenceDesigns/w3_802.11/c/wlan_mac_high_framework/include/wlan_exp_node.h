@@ -142,6 +142,8 @@
 #define CMD_PARAM_LOG_CONFIG_FLAG_WRAP                     0x00000002
 #define CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS                 0x00000004
 #define CMD_PARAM_LOG_CONFIG_FLAG_WN_CMDS                  0x00000008
+#define CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU                0x00000010
+#define CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL                0x00000020
 
 
 //-----------------------------------------------

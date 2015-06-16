@@ -41,6 +41,12 @@
 // Define Entry Constants
 //
 
+//-----------------------------------------------
+// Entry Enable Masks
+
+#define ENTRY_EN_MASK_TXRX_CTRL					  0x01
+#define ENTRY_EN_MASK_TXRX_MPDU					  0x02
+
 //------------------------------------------------------------------------
 // Entry Types
 
@@ -378,6 +384,9 @@ extern u32 mac_payload_log_len;
 
 
 /*************************** Function Prototypes *****************************/
+
+u8 wlan_exp_log_get_entry_en_mask();
+void wlan_exp_log_set_entry_en_mask(u8 mask);
 
 //-----------------------------------------------
 // Method to set the global variable mac_payload_log_len

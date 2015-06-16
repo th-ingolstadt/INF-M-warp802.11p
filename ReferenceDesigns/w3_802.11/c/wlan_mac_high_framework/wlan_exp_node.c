@@ -405,6 +405,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 
 	u8             mac_addr[6];
 
+	u8			   entry_mask;
+
     wlan_ipc_msg        ipc_msg_to_low;
     interrupt_state_t   prev_interrupt_state;
 
@@ -677,6 +679,8 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
             //   - respArgs32[0] - CMD_PARAM_SUCCESS
 			//                   - CMD_PARAM_ERROR
 
+			entry_mask = wlan_exp_log_get_entry_en_mask();
+
 			// Set the return value
 			status = CMD_PARAM_SUCCESS;
 
@@ -718,6 +722,24 @@ int node_processCmd(const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr,
 					wlan_exp_enable_logging = 0;
 				}
 			}
+
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU ) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU ) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU ) {
+					entry_mask |= ENTRY_EN_MASK_TXRX_MPDU;
+				} else {
+					entry_mask &= ~ENTRY_EN_MASK_TXRX_MPDU;
+				}
+			}
+
+			if ( ( temp2 & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL ) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL ) {
+				if ( ( temp & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL ) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL ) {
+					entry_mask |= ENTRY_EN_MASK_TXRX_CTRL;
+				} else {
+					entry_mask &= ~ENTRY_EN_MASK_TXRX_CTRL;
+				}
+			}
+
+			wlan_exp_log_set_entry_en_mask(entry_mask);
 
 			// Send response of status
             respArgs32[respIndex++] = Xil_Htonl( status );
@@ -2913,6 +2935,8 @@ int wlan_exp_node_init(u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_n
         node_info.fpga_dna[i]     = fpga_dna[i];
     }
 
+    // By default, enable all subtype logging
+    wlan_exp_log_set_entry_en_mask( ENTRY_EN_MASK_TXRX_CTRL|ENTRY_EN_MASK_TXRX_MPDU );
 
     // WLAN Exp Parameters are assumed to be initialize already
     //    node_info.wlan_hw_addr
