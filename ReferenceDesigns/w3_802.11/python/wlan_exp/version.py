@@ -6,7 +6,7 @@ WLAN Experiment Version
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014, Mango Communications. All rights reserved.
+License:   Copyright 2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 MODIFICATION HISTORY:
@@ -41,7 +41,7 @@ __all__ = ['wlan_exp_ver', 'wlan_exp_ver_check', 'wlan_exp_ver_str']
 
 # WLAN Exp Version defines
 WLAN_EXP_MAJOR          = 1
-WLAN_EXP_MINOR          = 2
+WLAN_EXP_MINOR          = 3
 WLAN_EXP_REVISION       = 0
 WLAN_EXP_XTRA           = str('')
 WLAN_EXP_RELEASE        = True

@@ -122,7 +122,8 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     # Log Commands
     #--------------------------------------------
     def log_configure(self, log_enable=None, log_wrap_enable=None, 
-                            log_full_payloads=None, log_warpnet_commands=None):
+                            log_full_payloads=None, log_warpnet_commands=None,
+                            log_txrx_mpdu=None, log_txrx_ctrl=None):
         """Configure log with the given flags.
 
         By default all attributes are set to None.  Only attributes that 
@@ -135,9 +136,12 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             log_wrap_enable (bool):      Enable event log wrapping (Default value on Node: FALSE)
             log_full_payloads (bool):    Record full Tx/Rx payloads in event log (Default value on Node: FALSE)
             log_warpnet_commands (bool): Record WARPNet commands in event log (Default value on Node: FALSE)        
+            log_txrx_mpdu (bool):        Enable Tx/Rx log entries for MPDU frames
+            log_txrx_ctrl (bool):        Enable Tx/Rx log entries for CTRL frames
         """
         self.send_cmd(cmds.LogConfigure(log_enable, log_wrap_enable, 
-                                        log_full_payloads, log_warpnet_commands))
+                                        log_full_payloads, log_warpnet_commands,
+                                        log_txrx_mpdu, log_txrx_ctrl))
 
 
     def log_get(self, size, offset=0, max_req_size=2**23):

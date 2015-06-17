@@ -176,6 +176,8 @@ CMD_PARAM_LOG_CONFIG_FLAG_LOGGING                = 0x00000001
 CMD_PARAM_LOG_CONFIG_FLAG_WRAP                   = 0x00000002
 CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS           = 0x00000004
 CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS            = 0x00000008
+CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU              = 0x00000010
+CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL              = 0x00000020
 
 
 # Statistics commands and defined values
@@ -282,10 +284,13 @@ class LogConfigure(wn_message.Cmd):
         log_enable           -- Enable the event log (TRUE/False)
         log_wrap_enable      -- Enable event log wrapping (True/FALSE)
         log_full_payloads    -- Record full Tx/Rx payloads in event log (True/FALSE)
-        log_warpnet_commands -- Record WARPNet commands in event log (True/FALSE)        
+        log_warpnet_commands -- Record WARPNet commands in event log (True/FALSE)   
+        log_txrx_mpdu        -- Enable Tx/Rx log entries for MPDU frames (True/FALSE)   
+        log_txrx_ctrl        -- Enable Tx/Rx log entries for CTRL frames (True/FALSE)   
     """
     def __init__(self, log_enable=None, log_wrap_enable=None, 
-                       log_full_payloads=None, log_warpnet_commands=None):
+                       log_full_payloads=None, log_warpnet_commands=None,
+                       log_txrx_mpdu=None, log_txrx_ctrl=None):
         super(LogConfigure, self).__init__()
         self.command = _CMD_GRPID_NODE + CMDID_LOG_CONFIG
 
@@ -311,6 +316,16 @@ class LogConfigure(wn_message.Cmd):
             mask += CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS
             if log_warpnet_commands:
                 flags += CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS
+                
+        if log_txrx_mpdu is not None:
+            mask += CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU
+            if log_txrx_mpdu:
+                flags += CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU
+                
+        if log_txrx_ctrl is not None:
+            mask += CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL
+            if log_txrx_ctrl:
+                flags += CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL
         
         self.add_args(flags)
         self.add_args(mask)
