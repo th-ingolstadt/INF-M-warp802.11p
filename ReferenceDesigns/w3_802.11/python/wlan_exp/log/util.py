@@ -44,11 +44,7 @@ __all__ = ['gen_raw_log_index',
 # -----------------------------------------------------------------------------
 # Top level check for memory configuration
 # -----------------------------------------------------------------------------
-import sys, os
-
-# The WARP server doesn't have numpy installed
-if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
-    import numpy as np
+import sys
 
 if (sys.maxsize <= 2**32):
     print("\n" + ("-" * 75))
@@ -633,8 +629,9 @@ def calc_tx_time(rate, payload_length):
 
     .. note:: This method does not check that both rate and payload_length are the same length
     """
-    from wlan_exp.util import wlan_rates
+    import numpy as np
     
+    from wlan_exp.util import wlan_rates
 
     # Times in microseconds
     T_PREAMBLE = 16
@@ -672,6 +669,7 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
         indexes (tuple):
             Tuple containing indexes into the provided arrays indicating which entries overlapped
     """
+    import numpy as np
 
     import wlan_exp.log.coll_util as collision_utility
 
