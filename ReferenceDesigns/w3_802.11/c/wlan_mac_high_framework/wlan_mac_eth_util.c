@@ -112,6 +112,13 @@ int wlan_eth_init() {
 
 		XAxiEthernet_SetOperatingSpeed(&ETH_A_MAC_Instance, ETH_A_LINK_SPEED);
 
+		// If the link speed is 1 Gbps, then only advertise and link to 1 Gbps connection
+		//     See Ethernet PHY specification for documentation on the values used
+		if (ETH_A_LINK_SPEED == 1000) {
+			XAxiEthernet_PhyWrite(&ETH_A_MAC_Instance, ETH_A_MDIO_PHYADDR, 0, 0x0140);
+			XAxiEthernet_PhyWrite(&ETH_A_MAC_Instance, ETH_A_MDIO_PHYADDR, 0, 0x8140);
+		}
+
 		//Initialize the axi_dma attached to the TEMAC
 		status = wlan_eth_dma_init();
 
