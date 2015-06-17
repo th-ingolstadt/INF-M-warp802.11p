@@ -103,7 +103,6 @@ u8 wlan_exp_log_get_entry_en_mask(){
 }
 
 void wlan_exp_log_set_entry_en_mask(u8 mask){
-	xil_printf("LOG ENTRY MASK = 0x%x\n", mask); //FIXME: remove
 	log_entry_en_mask = mask;
 }
 
@@ -499,7 +498,9 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 	typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
 	copy_order_t      copy_order;
 
-	if( ((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU) ){
+	if( (((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU)) ||
+		(((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_CTRL) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) ||
+		( (rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) ){
 
 		// Determine the type of the packet
 		pkt_type = wlan_mac_high_pkt_type(mpdu, packet_payload_size);
