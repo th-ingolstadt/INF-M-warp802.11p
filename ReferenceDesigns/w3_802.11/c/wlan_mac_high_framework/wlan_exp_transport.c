@@ -384,6 +384,7 @@ int transport_init( unsigned int   node,
 	XAxiEthernet_SetOperatingSpeed(mac_instance_ptr, wn_eth_devices[eth_dev_num].eth_speed);
 
 	// If the link speed is 1 Gbps, then only advertise and link to 1 Gbps connection
+	//     See Ethernet PHY specification for documentation on the values used
 	if (wn_eth_devices[eth_dev_num].eth_speed == 1000) {
 		XAxiEthernet_PhyWrite(mac_instance_ptr, wn_eth_devices[eth_dev_num].eth_mdio_phyaddr, 0, 0x0140);
 		XAxiEthernet_PhyWrite(mac_instance_ptr, wn_eth_devices[eth_dev_num].eth_mdio_phyaddr, 0, 0x8140);
