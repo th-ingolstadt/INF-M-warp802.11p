@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Two Node Throughput
 ------------------------------------------------------------------------------
-License:   Copyright 2014, Mango Communications. All rights reserved.
+License:   Copyright 2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This script uses the 802.11 ref design and WARPnet to measure throughput between
@@ -38,7 +38,7 @@ import wlan_exp.ltg as wlan_exp_ltg
 
 # NOTE: change these values to match your experiment setup
 NETWORK           = '10.0.0.0'
-NODE_SERIAL_LIST  = ['W3-a-00183', 'W3-a-00381']
+NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME        = 10
@@ -165,13 +165,17 @@ for experiment in experiment_params:
     #    Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
     #    Start the flow immediately
     if (experiment['node1_ltg_en']):
-        node1_ltg_id  = node1.ltg_configure(wlan_exp_ltg.FlowConfigCBR(node2.wlan_mac_address, 1400, 0, 0), auto_start=True)
+        node1_ltg_id  = node1.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=node2.wlan_mac_address,
+                                                                       payload_length=1400, 
+                                                                       interval=0), auto_start=True)
 
     # Start a flow from the STA's local traffic generator (LTG) to the AP
     #    Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
     #    Start the flow immediately
     if (experiment['node2_ltg_en']):
-        node2_ltg_id  = node2.ltg_configure(wlan_exp_ltg.FlowConfigCBR(node1.wlan_mac_address, 1400, 0, 0), auto_start=True)
+        node2_ltg_id  = node2.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=node1.wlan_mac_address,
+                                                                       payload_length=1400, 
+                                                                       interval=0), auto_start=True)
 
     # Record the initial Tx/Rx stats
     #   NOTE: Since these are RX statistics, we can only see those at the opposite node.  For example, to see the

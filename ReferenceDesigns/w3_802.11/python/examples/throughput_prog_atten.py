@@ -1,3 +1,32 @@
+"""
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design - Experiments Framework - Programmable Attenuator
+------------------------------------------------------------------------------
+License:   Copyright 2015, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
+This script uses the 802.11 ref design and WARPnet to measure throughput between
+an AP and an associated STA using the AP's local traffic generator (LTG).
+
+Hardware Setup:
+  - Requires two WARP v3 nodes
+    - One node configured as AP using 802.11 Reference Design v0.95 or later
+    - One node configured as STA using 802.11 Reference Design v0.95 or later
+  - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
+  - An Aeroflex USB 4205 Series programmable attenuator connected via USB
+
+Required Script Changes:
+  - Set NETWORK to the IP address of your host PC NIC network (eg X.Y.Z.0 for IP X.Y.Z.W)
+  - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
+
+Description:
+  This script initializes two WARP v3 nodes, one AP and one STA. It assumes the STA is
+already associated with the AP. The script then initiates a traffic flow from the AP to
+the STA, sets the AP Tx rate and measures throughput by counting the number of bytes
+received successfully at the STA. This process repeats for STA -> AP and head-to-head
+traffic flows.
+------------------------------------------------------------------------------
+"""
 import sys
 import time
 import wlan_exp.config as wlan_exp_config
@@ -100,12 +129,12 @@ print("\nRun Experiment:")
 # the main control variables so that we do not have repeated code for easier readability.
 #
 
-
-#attens = [45,46,47,48,49,50,51,52,53,54,55]
 attens = np.arange(49,56,0.5)
 xputs = [0]*len(attens)
 
-ap_ltg_id  = n_ap.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=False)
+ap_ltg_id  = n_ap.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n_sta.wlan_mac_address,
+                                                                       payload_length=1400, 
+                                                                       interval=0), auto_start=False)
 
 for idx,atten in enumerate(attens):
     pa.set_atten(atten)
