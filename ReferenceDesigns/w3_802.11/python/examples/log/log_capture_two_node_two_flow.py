@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Two Node Log capture
 ------------------------------------------------------------------------------
-License:   Copyright 2014, Mango Communications. All rights reserved.
+License:   Copyright 2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This script uses the 802.11 ref design and WARPnet to create a log
@@ -145,7 +145,9 @@ print("\nStart LTG - AP -> STA")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-ap_ltg_id  = n_ap.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_sta.wlan_mac_address, 1400, 0, 0), auto_start=True)
+ap_ltg_id  = n_ap.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n_sta.wlan_mac_address,
+                                                           payload_length=1400, 
+                                                           interval=0), auto_start=True)
 
 # Let the LTG flows run at the new rate
 time.sleep(TRIAL_TIME/3)
@@ -155,7 +157,9 @@ print("\nStart LTG - STA -> AP")
 # Start a flow from the STA's local traffic generator (LTG) to the AP
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-sta_ltg_id = n_sta.ltg_configure(wlan_exp_ltg.FlowConfigCBR(n_ap.wlan_mac_address, 1400, 0, 0), auto_start=True)
+sta_ltg_id = n_sta.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n_ap.wlan_mac_address,
+                                                            payload_length=1400, 
+                                                            interval=0), auto_start=True)
 
 # Let the LTG flows run at the new rate
 time.sleep(TRIAL_TIME/3)

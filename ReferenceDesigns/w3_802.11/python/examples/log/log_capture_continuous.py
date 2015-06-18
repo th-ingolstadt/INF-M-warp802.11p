@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Continuous Log capture
 ------------------------------------------------------------------------------
-License:   Copyright 2014, Mango Communications. All rights reserved.
+License:   Copyright 2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This script uses the 802.11 ref design and WARPnet to create a log
