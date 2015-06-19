@@ -8,7 +8,7 @@
  * supports both the use of the AXI FIFO as well as the AXI DMA in order
  * to transport packets to/from the Ethernet controller.
  *
- *  @copyright Copyright 2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license

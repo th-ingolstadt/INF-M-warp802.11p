@@ -1,6 +1,19 @@
+/** @file ascii_characters.h
+ *  @brief ASCII characters
+ *
+ *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *          Distributed under the Mango Communications Reference Design License
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
+ *
+ *  @author Chris Hunter (chunter [at] mangocomm.com)
+ *  @author Patrick Murphy (murphpo [at] mangocomm.com)
+ *  @author Erik Welsh (welsh [at] mangocomm.com)
+ */
 
 //Define shortcuts for the alphanumeric ASCII characters
 // These are useful when debugging the MAC/PHY interactive via the UART
+
 #define ASCII_A 0x41
 #define ASCII_B 0x42
 #define ASCII_C 0x43
