@@ -1112,8 +1112,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							// Check if this is a multicast packet
 							if(wlan_addr_mcast(rx_80211_header->address_3)){
 								//TODO: Needs fix for QoS case to handle u16 offset of QoS Control
-								// CRH Note: I downgraded this to a TODO instead of a FIXME since QoS won't be supported in the 1.3 release
-
 								// Send the data packet over the wireless
 								curr_tx_queue_element = queue_checkout();
 
