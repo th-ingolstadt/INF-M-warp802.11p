@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Interactive Node
 ------------------------------------------------------------------------------
-License:   Copyright 2014, Mango Communications. All rights reserved.
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This will initialize the nodes array to allow interactive use of WLAN Exp nodes.

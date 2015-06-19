@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Log File Tx Stats
 ------------------------------------------------------------------------------
-License:   Copyright 2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This example will process the TX statistics for a given log file.

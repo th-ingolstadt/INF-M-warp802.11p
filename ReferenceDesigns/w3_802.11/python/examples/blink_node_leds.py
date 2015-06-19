@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Identify Nodes Example
 ------------------------------------------------------------------------------
-License:   Copyright 2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This script blinks the right hex display of all nodes to ensure broadcast

@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Print Tx/Rx Stats
 ------------------------------------------------------------------------------
-License:   Copyright 2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This module provides a simple WARPNet example.
