@@ -285,8 +285,8 @@ class LogConfigure(wn_message.Cmd):
         log_wrap_enable      -- Enable event log wrapping (True/FALSE)
         log_full_payloads    -- Record full Tx/Rx payloads in event log (True/FALSE)
         log_warpnet_commands -- Record WARPNet commands in event log (True/FALSE)   
-        log_txrx_mpdu        -- Enable Tx/Rx log entries for MPDU frames (True/FALSE)   
-        log_txrx_ctrl        -- Enable Tx/Rx log entries for CTRL frames (True/FALSE)   
+        log_txrx_mpdu        -- Enable Tx/Rx log entries for MPDU frames (TRUE/False)   
+        log_txrx_ctrl        -- Enable Tx/Rx log entries for CTRL frames (TRUE/False)   
     """
     def __init__(self, log_enable=None, log_wrap_enable=None, 
                        log_full_payloads=None, log_warpnet_commands=None,
