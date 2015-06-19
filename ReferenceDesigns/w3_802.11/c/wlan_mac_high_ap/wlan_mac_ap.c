@@ -1148,7 +1148,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 								if(associated_station_entry != NULL){
 									//TODO: Needs fix for QoS case to handle u16 offset of QoS Control
-									// CRH Note: I downgraded this to a TODO instead of a FIXME since QoS won't be supported in the 1.3 release
 									associated_station = (station_info*)(associated_station_entry->data);
 
 									// Send the data packet over the wireless to our station
