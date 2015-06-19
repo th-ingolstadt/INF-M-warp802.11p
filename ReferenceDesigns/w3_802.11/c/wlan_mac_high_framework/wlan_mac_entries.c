@@ -684,6 +684,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 				memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.ctrl_phy_params), sizeof(phy_tx_params));
 
 				tx_low_event_log_entry->transmission_count        = 1;
+				tx_low_event_log_entry->unique_seq				  = 0;
 				tx_low_event_log_entry->chan_num                  = rx_mpdu->resp_low_tx_details.chan_num;
 				tx_low_event_log_entry->num_slots				  = rx_mpdu->resp_low_tx_details.num_slots;
 				tx_low_event_log_entry->cw						  = rx_mpdu->resp_low_tx_details.cw;
@@ -735,6 +736,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channe
 					memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.ctrl_phy_params), sizeof(phy_tx_params));
 
 					tx_low_event_log_entry->transmission_count        = 1;
+					tx_low_event_log_entry->unique_seq				  = 0;
 					tx_low_event_log_entry->chan_num                  = rx_mpdu->resp_low_tx_details.chan_num;
 					tx_low_event_log_entry->num_slots				  = rx_mpdu->resp_low_tx_details.num_slots;
 					tx_low_event_log_entry->cw						  = rx_mpdu->resp_low_tx_details.cw;
