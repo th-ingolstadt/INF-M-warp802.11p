@@ -3,7 +3,7 @@
  *
  *  This contains code for configuring low-level parameters in the PHY and hardware.
  *
- *  @copyright Copyright 2014, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license
@@ -113,7 +113,7 @@ int w3_node_init() {
 	if(status != XST_SUCCESS) {
 		xil_printf("w3_node_init: Error in radioController_initialize (%d)\n", status);
 		//Comment out allow boot even if an RF interfce doesn't lock (hack for debugging - not for reference release)
-		//ret = XST_FAILURE;
+		ret = XST_FAILURE;
 	}
 
 	//Initialize the EEPROM read/write core
