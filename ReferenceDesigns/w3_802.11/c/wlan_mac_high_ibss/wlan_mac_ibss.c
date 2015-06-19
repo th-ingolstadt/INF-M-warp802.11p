@@ -3,7 +3,7 @@
  *
  *  This contains code for the 802.11 IBSS node (ad hoc).
  *
- *  @copyright Copyright 2014, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *				See LICENSE.txt included in the design archive or
  *				at http://mangocomm.com/802.11/license
@@ -138,7 +138,7 @@ int main() {
 
 	// Set default behavior
 	pause_data_queue       = 0;
-	enable_beacon_tx       = 0;
+	enable_beacon_tx       = 1;
 	allow_beacon_ts_update = 1;
 
 	// Set my_bss_info to NULL (ie IBSS is not currently on a BSS)
