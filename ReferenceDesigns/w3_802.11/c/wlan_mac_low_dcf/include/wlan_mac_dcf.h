@@ -55,12 +55,14 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
 inline void increment_src_ssrc(u8* src_ptr);
 inline void increment_lrc_slrc(u8* lrc_ptr);
 inline void reset_cw();
+inline void reset_cons_cw_count(); //FIXME REMOVE
 inline void reset_ssrc();
 inline void reset_slrc();
 //inline void update_cw(u8 reason, u8 pkt_buf);
 inline unsigned int rand_num_slots(u8 reason);
 void wlan_mac_dcf_hw_start_backoff(u16 num_slots);
 int wlan_dcf_process_low_param(u8 mode, u32* payload);
+
 int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra);
 int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration);
 int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u16 duration);

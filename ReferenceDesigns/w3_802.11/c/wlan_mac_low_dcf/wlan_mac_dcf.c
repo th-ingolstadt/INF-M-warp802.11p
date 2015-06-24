@@ -63,6 +63,12 @@ volatile static u32 				   gl_dot11LongRetryLimit;
 volatile u8                            gl_red_led_index;
 volatile u8                            gl_green_led_index;
 
+#define RTS_EN_THRESH	5
+#define RTS_DIS_THRESH  100
+volatile u8							   en_adaptive_rts;
+volatile u32						   num_consecutive_cw_increases; //DEBUG
+volatile u32						   num_consecutive_cw_resets; //DEBUG
+
 
 int main(){
 	wlan_mac_hw_info* hw_info;
@@ -78,6 +84,10 @@ int main(){
 
 	gl_autocancel_en = 0;
 	gl_mpdu_pkt_buf = PKT_BUF_INVALID;
+
+	en_adaptive_rts = 0;
+	num_consecutive_cw_increases = 0;
+	num_consecutive_cw_resets = 0;
 
 	gl_autocancel_match_addr3[0] = 0x00;
 	gl_autocancel_match_addr3[1] = 0x00;
@@ -954,10 +964,12 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 
 						switch(tx_mode) {
 							case TX_MODE_SHORT:
+								reset_cons_cw_count();
 								reset_ssrc();
 								reset_cw();
 							break;
 							case TX_MODE_LONG:
+								reset_cons_cw_count();
 								reset_slrc();
 								reset_cw();
 							break;
@@ -1013,10 +1025,12 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 								//Update contention window
 								switch(tx_mode) {
 									case TX_MODE_SHORT:
+										reset_cons_cw_count();
 										reset_ssrc();
 										reset_cw();
 									break;
 									case TX_MODE_LONG:
+										reset_cons_cw_count();
 										reset_slrc();
 										reset_cw();
 									break;
@@ -1148,6 +1162,14 @@ inline void increment_src_ssrc(u8* src_ptr){
 	//Increment the Short Retry Count
 	(*src_ptr)++;
 
+	if(en_adaptive_rts){ //TODO: remove
+		num_consecutive_cw_increases++;
+		num_consecutive_cw_resets = 0;
+		if(num_consecutive_cw_increases >= RTS_EN_THRESH){
+			gl_dot11RTSThreshold = 0; //Too many CW increases. fall back on RTS/CTS
+		}
+	}
+
 	//Increment the Station Short Retry Count
 	//9.3.3 in 802.11-2012
 	gl_stationShortRetryCount = sat_add32(gl_stationShortRetryCount, 1);
@@ -1164,6 +1186,14 @@ inline void increment_src_ssrc(u8* src_ptr){
 inline void increment_lrc_slrc(u8* lrc_ptr){
 	//Increment the Long Retry Count
 	(*lrc_ptr)++;
+
+	if(en_adaptive_rts){ //TODO: remove
+		num_consecutive_cw_increases++;
+		num_consecutive_cw_resets = 0;
+		if(num_consecutive_cw_increases >= RTS_EN_THRESH){
+			gl_dot11RTSThreshold = 0; //Too many CW increases. fall back on RTS/CTS
+		}
+	}
 
 	//Increment the Station Long Retry Count
 	//9.3.3 in 802.11-2012
@@ -1194,82 +1224,15 @@ inline void reset_cw(){
 	return;
 }
 
-#if 0
-/**
- * @brief Updates the MAC's contention window
- *
- * This function is called by the Tx state machine to update the contention window, typically after each transmission attempt.
- * The contention window and one of the station retry counters (sort or long) are updated per call.
- *
- * Two station retry counters are maintained- long and short.
- *
- * The short station retry counter increments on every transmission failure. The counter is reset on any successful transmission.
- *
- * The contention window is reset to CW_min when either:
- *  a) A packet is transmitted successfully
- *  b) A station retry counter reaches its limit
- *
- * Notice that in the case of multiple consecutive failed transmissions the CW will reset after the first packet reaches its retry limit
- *  but not when subsequent packets reach their retry limits. This is the behavior intended by the standard, to avoid excessive medium usage
- *  by a node who is consistently unable to transmit successfully. For more details see:
- *   -IEEE 802.11-2012 9.3.3
- *   -IEEE doc 802.11-03/752r0
- *
- * @param u8 pkt_buf
- *  -Index of the Tx packet buffer containing the packet who's transmission attempt caused this CW update
- * @param u8 reason
- *  -Reason code for this CW update (Tx success, Tx failure, etc)
- */
-
-inline void update_cw(u8 reason, u8 pkt_buf) {
-	volatile u32* station_rc_ptr;
-	u8 retry_limit;
-	tx_frame_info* tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf);
-
-	mac_header_80211* tx_80211_header;
-
-	tx_80211_header = (mac_header_80211*)((void*)(TX_PKT_BUF_TO_ADDR(pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET));
-
-	//Decide which station retry counter to operate on
-	if(tx_mpdu->length > gl_dot11RTSThreshold){
-		station_rc_ptr = (u32*)&gl_stationLongRetryCount;
-	} else {
-		station_rc_ptr = (u32*)&gl_stationShortRetryCount;
+inline void reset_cons_cw_count(){
+	if(en_adaptive_rts){ //TODO: remove
+		num_consecutive_cw_increases = 0;
+		num_consecutive_cw_resets++;
+		if(num_consecutive_cw_resets >= RTS_DIS_THRESH){
+			gl_dot11RTSThreshold = 2000; //Turn off RTS/CTS
+		}
 	}
-
-	//Pull the retry limit for the current packet from its metadata
-	retry_limit = tx_mpdu->params.mac.num_tx_max;
-
-	switch(reason) {
-		case DCF_CW_UPDATE_MPDU_TX_ERR:
-
-			//Transmission error - update the station retry counter
-			(*station_rc_ptr)++;
-
-			//Reest the CW if the station retry counter is eactly the retry limit
-			if(*station_rc_ptr == retry_limit) {
-				gl_cw_exp = wlan_mac_low_get_cw_exp_min();
-			} else {
-				gl_cw_exp = min(gl_cw_exp+1, wlan_mac_low_get_cw_exp_max());
-			}
-
-			//Raise retry flag in the MAC header
-			tx_80211_header->frame_control_2 = (tx_80211_header->frame_control_2) | MAC_FRAME_CTRL2_FLAG_RETRY;
-		break;
-
-		case DCF_CW_UPDATE_BCAST_TX:
-		case DCF_CW_UPDATE_MPDU_RX_ACK:
-			//Transmission success
-
-			//Reset station retry counter and contention window
-			(*station_rc_ptr) = 0;
-			gl_cw_exp = wlan_mac_low_get_cw_exp_min();
-		break;
-	}
-
-	return;
 }
-#endif
 
 /**
  * @brief Generate a random number in the range set by the current contention window
@@ -1393,7 +1356,12 @@ int wlan_dcf_process_low_param(u8 mode, u32* payload){
 					xil_printf("Unknown param 0x%08x\n", payload[0]);
 				break;
 				case LOW_PARAM_DCF_RTS_THRESH:
-					gl_dot11RTSThreshold = payload[1];
+					if(payload[1] != 10000){
+						en_adaptive_rts = 0;
+						gl_dot11RTSThreshold = payload[1];
+					} else {
+						en_adaptive_rts = 1;
+					}
 				break;
 				case LOW_PARAM_DCF_DOT11SHORTRETRY:
 					gl_dot11ShortRetryLimit = payload[1];
@@ -1407,4 +1375,3 @@ int wlan_dcf_process_low_param(u8 mode, u32* payload){
 	}
 	return 0;
 }
-
