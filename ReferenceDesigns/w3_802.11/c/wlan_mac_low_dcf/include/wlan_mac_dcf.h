@@ -55,7 +55,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
 inline void increment_src_ssrc(u8* src_ptr);
 inline void increment_lrc_slrc(u8* lrc_ptr);
 inline void reset_cw();
-inline void reset_cons_cw_count(); //FIXME REMOVE
 inline void reset_ssrc();
 inline void reset_slrc();
 //inline void update_cw(u8 reason, u8 pkt_buf);

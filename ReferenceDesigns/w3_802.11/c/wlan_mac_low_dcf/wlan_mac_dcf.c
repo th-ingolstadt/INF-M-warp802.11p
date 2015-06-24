@@ -63,12 +63,6 @@ volatile static u32 				   gl_dot11LongRetryLimit;
 volatile u8                            gl_red_led_index;
 volatile u8                            gl_green_led_index;
 
-#define RTS_EN_THRESH	5
-#define RTS_DIS_THRESH  100
-volatile u8							   en_adaptive_rts;
-volatile u32						   num_consecutive_cw_increases; //DEBUG
-volatile u32						   num_consecutive_cw_resets; //DEBUG
-
 
 int main(){
 	wlan_mac_hw_info* hw_info;
@@ -84,10 +78,6 @@ int main(){
 
 	gl_autocancel_en = 0;
 	gl_mpdu_pkt_buf = PKT_BUF_INVALID;
-
-	en_adaptive_rts = 0;
-	num_consecutive_cw_increases = 0;
-	num_consecutive_cw_resets = 0;
 
 	gl_autocancel_match_addr3[0] = 0x00;
 	gl_autocancel_match_addr3[1] = 0x00;
@@ -964,12 +954,10 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 
 						switch(tx_mode) {
 							case TX_MODE_SHORT:
-								reset_cons_cw_count();
 								reset_ssrc();
 								reset_cw();
 							break;
 							case TX_MODE_LONG:
-								reset_cons_cw_count();
 								reset_slrc();
 								reset_cw();
 							break;
@@ -1025,12 +1013,10 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 								//Update contention window
 								switch(tx_mode) {
 									case TX_MODE_SHORT:
-										reset_cons_cw_count();
 										reset_ssrc();
 										reset_cw();
 									break;
 									case TX_MODE_LONG:
-										reset_cons_cw_count();
 										reset_slrc();
 										reset_cw();
 									break;
@@ -1162,14 +1148,6 @@ inline void increment_src_ssrc(u8* src_ptr){
 	//Increment the Short Retry Count
 	(*src_ptr)++;
 
-	if(en_adaptive_rts){ //TODO: remove
-		num_consecutive_cw_increases++;
-		num_consecutive_cw_resets = 0;
-		if(num_consecutive_cw_increases >= RTS_EN_THRESH){
-			gl_dot11RTSThreshold = 0; //Too many CW increases. fall back on RTS/CTS
-		}
-	}
-
 	//Increment the Station Short Retry Count
 	//9.3.3 in 802.11-2012
 	gl_stationShortRetryCount = sat_add32(gl_stationShortRetryCount, 1);
@@ -1186,14 +1164,6 @@ inline void increment_src_ssrc(u8* src_ptr){
 inline void increment_lrc_slrc(u8* lrc_ptr){
 	//Increment the Long Retry Count
 	(*lrc_ptr)++;
-
-	if(en_adaptive_rts){ //TODO: remove
-		num_consecutive_cw_increases++;
-		num_consecutive_cw_resets = 0;
-		if(num_consecutive_cw_increases >= RTS_EN_THRESH){
-			gl_dot11RTSThreshold = 0; //Too many CW increases. fall back on RTS/CTS
-		}
-	}
 
 	//Increment the Station Long Retry Count
 	//9.3.3 in 802.11-2012
@@ -1224,15 +1194,6 @@ inline void reset_cw(){
 	return;
 }
 
-inline void reset_cons_cw_count(){
-	if(en_adaptive_rts){ //TODO: remove
-		num_consecutive_cw_increases = 0;
-		num_consecutive_cw_resets++;
-		if(num_consecutive_cw_resets >= RTS_DIS_THRESH){
-			gl_dot11RTSThreshold = 2000; //Turn off RTS/CTS
-		}
-	}
-}
 
 /**
  * @brief Generate a random number in the range set by the current contention window
@@ -1356,12 +1317,7 @@ int wlan_dcf_process_low_param(u8 mode, u32* payload){
 					xil_printf("Unknown param 0x%08x\n", payload[0]);
 				break;
 				case LOW_PARAM_DCF_RTS_THRESH:
-					if(payload[1] != 10000){
-						en_adaptive_rts = 0;
-						gl_dot11RTSThreshold = payload[1];
-					} else {
-						en_adaptive_rts = 1;
-					}
+					gl_dot11RTSThreshold = payload[1];
 				break;
 				case LOW_PARAM_DCF_DOT11SHORTRETRY:
 					gl_dot11ShortRetryLimit = payload[1];
