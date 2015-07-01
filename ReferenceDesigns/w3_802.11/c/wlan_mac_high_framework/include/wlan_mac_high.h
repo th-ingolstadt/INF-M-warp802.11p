@@ -426,6 +426,10 @@ void               wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, st
 void               wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
 void               wlan_mac_high_print_associations(dl_list* assoc_tbl);
 
+///////// TOKEN MAC EXTENSION /////////
+void 			   wlan_mac_high_set_token_new_reservation_callback(function_ptr_t callback);
+
+///////// TOKEN MAC EXTENSION /////////
 
 // Common functions that must be implemented by users of the framework
 dl_list *          get_statistics();
