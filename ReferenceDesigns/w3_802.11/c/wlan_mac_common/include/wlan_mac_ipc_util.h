@@ -64,6 +64,25 @@
 #define IPC_MBOX_LOW_PARAM				16
 #define IPC_MBOX_LOW_RANDOM_SEED        17
 
+///////// TOKEN MAC EXTENSION /////////
+#define IPC_MBOX_TOKEN_NEW_RESERVATION  20
+#define IPC_MBOX_TOKEN_END_RESERVATION  21
+
+typedef struct{
+	u32 res_duration;
+	u8	addr[6];
+	u16 reserved;
+} ipc_token_new_reservation;
+
+typedef enum {TOKEN_DURATION_COMPLETE, TOKEN_TIMEOUT, TOKEN_OFFER_REJECTION} token_end_reservation_reason_t;
+
+typedef struct{
+	token_end_reservation_reason_t reason;
+	wlan_mac_low_tx_details low_tx_details;
+} ipc_token_end_reservation;
+
+///////// TOKEN MAC EXTENSION /////////
+
 typedef struct{
 	u32  baseaddr;
 	u32  num_words;
@@ -85,6 +104,8 @@ typedef struct{
 	u8 enable_dsss;
 	u8 reserved[3];
 } ipc_config_phy_rx;
+
+
 
 #define init_ipc_config(x,y,z) {										\
 									x = (z*)y;							\
