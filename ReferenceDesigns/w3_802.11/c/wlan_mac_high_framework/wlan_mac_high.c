@@ -1777,6 +1777,8 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 		case IPC_MBOX_TOKEN_END_RESERVATION:
 			token_new_reservation_callback();
 		break;
+		case IPC_MBOX_TOKEN_NEW_RESERVATION:
+		break;
 		///////// TOKEN MAC EXTENSION /////////
 
 		//---------------------------------------------------------------------
