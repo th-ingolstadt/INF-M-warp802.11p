@@ -153,6 +153,18 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 	u32 tx_length;
 	u32 return_value = 0;
 	u32 mac_hw_status;
+	wlan_ipc_msg       ipc_msg_to_high_start;
+	ipc_token_new_reservation ipc_payload_start;
+
+	ipc_msg_to_high_start.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TOKEN_NEW_RESERVATION);
+
+	if( (sizeof(u32)*(sizeof(ipc_token_new_reservation)/sizeof(u32))) ==  sizeof(ipc_token_new_reservation) ){
+		ipc_msg_to_high_start.num_payload_words = (sizeof(ipc_token_new_reservation)/sizeof(u32));
+	} else {
+		ipc_msg_to_high_start.num_payload_words = (sizeof(ipc_token_new_reservation)/sizeof(u32)) + 1;
+	}
+
+	ipc_msg_to_high_start.payload_ptr       = (u32*)(&ipc_payload_start);
 	///////// TOKEN MAC EXTENSION /////////
 
 	rx_frame_info* mpdu_info;
@@ -195,22 +207,27 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 		mpdu_info->state = wlan_mac_dcf_hw_rx_finish();
 
 		if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
+
+			memcpy( ipc_payload_start.addr, rx_token_frame->address_ra, 6 );
+			ipc_payload_start.res_duration = rx_token_frame->res_duration_usec;
+			ipc_mailbox_write_msg(&ipc_msg_to_high_start);
+
 			wlan_mac_tx_ctrl_B_start(1);
 			wlan_mac_tx_ctrl_B_start(0);
+
+			do{
+				mac_hw_status = wlan_mac_get_status();
+
+				if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DO_TX ) {
+					break;
+				}
+			} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
+
+			//Since this is our reservation period, we are now allowed to transmit
+			in_reservation = 1;
+			reservation_ts_end = get_usec_timestamp() + ((u64)rx_token_frame->res_duration_usec);
+			wlan_mac_low_enable_new_mpdu_tx();
 		}
-
-		do{
-			mac_hw_status = wlan_mac_get_status();
-
-			if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DO_TX ) {
-				break;
-			}
-		} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
-
-		//Since this is our reservation period, we are now allowed to transmit
-		in_reservation = 1;
-		reservation_ts_end = get_usec_timestamp() + ((u64)rx_token_frame->res_duration_usec);
-		wlan_mac_low_enable_new_mpdu_tx();
 	} else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_TOKEN_RESPONSE)) {
 		//Received a token offer
 		rx_token_frame = (mac_frame_custom_token*)rx_header;
@@ -376,18 +393,31 @@ void token_new_reservation(ipc_token_new_reservation* new_reservation){
 	u32 mac_hw_status;
 	u32 rx_status;
 
-	wlan_ipc_msg       ipc_msg_to_high;
-	ipc_token_end_reservation ipc_payload;
+	wlan_ipc_msg       ipc_msg_to_high_start;
+	ipc_token_new_reservation ipc_payload_start;
+	wlan_ipc_msg       ipc_msg_to_high_end;
+	ipc_token_end_reservation ipc_payload_end;
 
-	ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TOKEN_END_RESERVATION);
 
-	if( (sizeof(u32)*(sizeof(ipc_token_end_reservation)/sizeof(u32))) ==  sizeof(ipc_token_end_reservation) ){
-		ipc_msg_to_high.num_payload_words = (sizeof(ipc_token_end_reservation)/sizeof(u32));
+	ipc_msg_to_high_start.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TOKEN_NEW_RESERVATION);
+
+	if( (sizeof(u32)*(sizeof(ipc_token_new_reservation)/sizeof(u32))) ==  sizeof(ipc_token_new_reservation) ){
+		ipc_msg_to_high_start.num_payload_words = (sizeof(ipc_token_new_reservation)/sizeof(u32));
 	} else {
-		ipc_msg_to_high.num_payload_words = (sizeof(ipc_token_end_reservation)/sizeof(u32)) + 1;
+		ipc_msg_to_high_start.num_payload_words = (sizeof(ipc_token_new_reservation)/sizeof(u32)) + 1;
 	}
 
-	ipc_msg_to_high.payload_ptr       = (u32*)(&ipc_payload);
+	ipc_msg_to_high_start.payload_ptr       = (u32*)(&ipc_payload_start);
+
+	ipc_msg_to_high_end.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TOKEN_END_RESERVATION);
+
+	if( (sizeof(u32)*(sizeof(ipc_token_end_reservation)/sizeof(u32))) ==  sizeof(ipc_token_end_reservation) ){
+		ipc_msg_to_high_end.num_payload_words = (sizeof(ipc_token_end_reservation)/sizeof(u32));
+	} else {
+		ipc_msg_to_high_end.num_payload_words = (sizeof(ipc_token_end_reservation)/sizeof(u32)) + 1;
+	}
+
+	ipc_msg_to_high_end.payload_ptr       = (u32*)(&ipc_payload_end);
 
 	mac_cfg_rate = WLAN_PHY_RATE_BPSK12;
 
@@ -396,6 +426,11 @@ void token_new_reservation(ipc_token_new_reservation* new_reservation){
 		in_reservation = 1;
 		wlan_mac_low_enable_new_mpdu_tx();
 		reservation_ts_end = get_usec_timestamp() + ((u64)new_reservation->res_duration);
+
+		memcpy( ipc_payload_start.addr, new_reservation->addr, 6 );
+		ipc_payload_start.res_duration = new_reservation->res_duration;
+		ipc_mailbox_write_msg(&ipc_msg_to_high_start);
+
 	} else {
 		//This is someone else's reservation
 		mac_cfg_length = wlan_create_token_offer_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_TOKEN) + PHY_TX_PKT_BUF_MPDU_OFFSET),
@@ -428,6 +463,10 @@ void token_new_reservation(ipc_token_new_reservation* new_reservation){
 			if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE ) {
 				//Transmission is complete
 
+				memcpy( ipc_payload_start.addr, new_reservation->addr, 6 );
+				ipc_payload_start.res_duration = new_reservation->res_duration;
+				ipc_mailbox_write_msg(&ipc_msg_to_high_start);
+
 				//Switch on the result of the transmission attempt
 				switch( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT ) {
 					case WLAN_MAC_STATUS_TX_A_RESULT_RX_STARTED:
@@ -446,16 +485,16 @@ void token_new_reservation(ipc_token_new_reservation* new_reservation){
 							//Received a packet immediately after transmitting, but it wasn't the offer response we wanted
 							//This is equivalent to a timeout. Let CPU_HIGH know that this reservation period is over
 							in_reservation = 0;
-							ipc_payload.reason = TOKEN_TIMEOUT;
+							ipc_payload_end.reason = TOKEN_TIMEOUT;
 							//ipc_payload.low_tx_details; //TODO
-							ipc_mailbox_write_msg(&ipc_msg_to_high);
+							ipc_mailbox_write_msg(&ipc_msg_to_high_end);
 						}
 					break;
 					case WLAN_MAC_STATUS_TX_A_RESULT_TIMEOUT:
 						in_reservation = 0;
-						ipc_payload.reason = TOKEN_TIMEOUT;
+						ipc_payload_end.reason = TOKEN_TIMEOUT;
 						//ipc_payload.low_tx_details; //TODO
-						ipc_mailbox_write_msg(&ipc_msg_to_high);
+						ipc_mailbox_write_msg(&ipc_msg_to_high_end);
 					break;
 				}
 			} else { //else for if(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE)
