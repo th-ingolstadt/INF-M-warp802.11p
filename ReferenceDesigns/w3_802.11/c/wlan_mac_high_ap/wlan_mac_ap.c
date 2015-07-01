@@ -60,6 +60,7 @@
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU        100
 
+
 /*********************** Global Variable Definitions *************************/
 
 
@@ -247,7 +248,7 @@ int main(){
 	my_bss_info->state           = BSS_STATE_OWNED;
 	my_bss_info->beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
 	my_bss_info->capabilities    = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
-	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11A;
+	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11N;
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -299,6 +300,11 @@ int main(){
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
+	///////// TOKEN MAC EXTENSION /////////
+	wlan_mac_high_set_token_new_reservation_callback((function_ptr_t)set_new_reservation);
+	set_new_reservation();
+	///////// TOKEN MAC EXTENSION /////////
+
 	while(1) {
 #ifdef USE_WARPNET_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
@@ -311,6 +317,90 @@ int main(){
 	// Unreachable, but non-void return keeps the compiler happy
 	return -1;
 }
+
+///////// TOKEN MAC EXTENSION /////////
+void set_new_reservation(){
+
+#define DEFAULT_RESERVATION_DURATION_USEC 20000
+
+	interrupt_state_t curr_interrupt_state;
+
+	static dl_entry* next_station_info_entry = NULL;
+	dl_entry* curr_station_info_entry;
+
+	station_info* curr_station_info;
+
+	wlan_ipc_msg       ipc_msg_to_low;
+	ipc_token_new_reservation ipc_payload;
+
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TOKEN_NEW_RESERVATION);
+
+	if( (sizeof(u32)*(sizeof(ipc_token_new_reservation)/sizeof(u32))) ==  sizeof(ipc_token_new_reservation) ){
+		ipc_msg_to_low.num_payload_words = (sizeof(ipc_token_new_reservation)/sizeof(u32));
+	} else {
+		ipc_msg_to_low.num_payload_words = (sizeof(ipc_token_new_reservation)/sizeof(u32)) + 1;
+	}
+
+	ipc_msg_to_low.payload_ptr       = (u32*)(&ipc_payload);
+
+
+	curr_interrupt_state = wlan_mac_high_interrupt_stop();
+
+	// 1: Empty the MGMT queue
+
+	//TODO: We should empty the MGMT queue. Currently, poll_tx_queues()
+	//provides no arguments to bypass the round-robin. We don't want to send any
+	//unicast data frames right now, so should augment poll_tx_queues with an argument
+	//for a specific queue.
+
+	// 2: Send an IPC message down to CPU_LOW to let it know we are moving to a new
+	// reservation period.
+
+	curr_station_info_entry = next_station_info_entry;
+
+	// Loop through all associated stations' queues
+	if(curr_station_info_entry == NULL){
+		// It's the AP's reservation
+		next_station_info_entry = my_bss_info->associated_stations.first;
+
+		//SEND IPC for AP
+
+		memcpy( ipc_payload.addr, my_bss_info->bssid, 6 );
+		ipc_payload.res_duration = DEFAULT_RESERVATION_DURATION_USEC;
+		ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+		curr_station_info_entry = next_station_info_entry;
+
+	} else {
+		curr_station_info = (station_info*)(curr_station_info_entry->data);
+		if( wlan_mac_high_is_valid_association(&my_bss_info->associated_stations, curr_station_info) ){
+			if(curr_station_info_entry == my_bss_info->associated_stations.last){
+				// We've reached the end of the table, so we wrap around to the beginning
+				next_station_info_entry = NULL;
+			} else {
+				next_station_info_entry = dl_entry_next(curr_station_info_entry);
+			}
+
+			//SEND IPC for curr_station_info
+
+			memcpy( ipc_payload.addr, curr_station_info->addr, 6 );
+			ipc_payload.res_duration = DEFAULT_RESERVATION_DURATION_USEC;
+			ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+			curr_station_info_entry = next_station_info_entry;
+
+		} else {
+			// This curr_station_info is invalid. Perhaps it was removed from
+			// the association table before poll_tx_queues was called. We will
+			// start the round robin checking back at broadcast.
+			next_station_info_entry = NULL;
+		} // END if(is_valid_association)
+	}
+
+	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+
+}
+///////// TOKEN MAC EXTENSION /////////
 
 
 /**

@@ -127,4 +127,9 @@ int  qwerty_row_to_number(u8 rxByte);
 
 void ap_write_hex_display(u8 val);
 
+///////// TOKEN MAC EXTENSION /////////
+void set_new_reservation();
+
+///////// TOKEN MAC EXTENSION /////////
+
 #endif /* WLAN_MAC_AP_H_ */
