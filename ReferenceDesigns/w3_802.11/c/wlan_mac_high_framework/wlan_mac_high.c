@@ -93,6 +93,8 @@ volatile function_ptr_t      mpdu_tx_dequeue_callback;     ///< User callback fo
 
 ///////// TOKEN MAC EXTENSION /////////
 volatile function_ptr_t      token_new_reservation_callback;
+volatile function_ptr_t      token_stats_start_callback;
+volatile function_ptr_t      token_stats_end_callback;
 ///////// TOKEN MAC EXTENSION /////////
 
 // Node information
@@ -271,6 +273,8 @@ void wlan_mac_high_init(){
 
 	///////// TOKEN MAC EXTENSION /////////
 	token_new_reservation_callback = (function_ptr_t)nullCallback;
+	token_stats_start_callback = (function_ptr_t)nullCallback;
+	token_stats_end_callback = (function_ptr_t)nullCallback;
 	///////// TOKEN MAC EXTENSION /////////
 
 	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
@@ -722,6 +726,14 @@ u32 wlan_mac_high_get_user_io_state(){
 ///////// TOKEN MAC EXTENSION /////////
 void wlan_mac_high_set_token_new_reservation_callback(function_ptr_t callback){
 	token_new_reservation_callback = callback;
+}
+
+void wlan_mac_high_set_token_stats_start_callback(function_ptr_t callback){
+	token_stats_start_callback = callback;
+}
+
+void wlan_mac_high_set_token_stats_end_callback(function_ptr_t callback){
+	token_stats_end_callback = callback;
 }
 ///////// TOKEN MAC EXTENSION /////////
 
@@ -1775,9 +1787,12 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 		///////// TOKEN MAC EXTENSION /////////
 		case IPC_MBOX_TOKEN_END_RESERVATION:
+			token_stats_end_callback();
 			token_new_reservation_callback();
 		break;
 		case IPC_MBOX_TOKEN_NEW_RESERVATION:
+			token_stats_start_callback( ((ipc_token_new_reservation*)msg->payload_ptr)->addr,
+										((ipc_token_new_reservation*)msg->payload_ptr)->res_duration );
 		break;
 		///////// TOKEN MAC EXTENSION /////////
 
@@ -2601,6 +2616,11 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 			wlan_mac_high_free(station);
 			return NULL;
 		}
+
+		///////// TOKEN MAC EXTENSION /////////
+		station->token_res_div_factor = TOKEN_RES_DIV_FACTOR_MIN;
+		station->token_res_last_efficiency_metric = 0;
+		///////// TOKEN MAC EXTENSION /////////
 
 		bzero(&(station->rate_info),sizeof(rate_selection_info));
 		station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_STATIC;

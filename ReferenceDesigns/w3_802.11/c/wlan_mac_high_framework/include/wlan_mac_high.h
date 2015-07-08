@@ -284,6 +284,12 @@ typedef struct{
  */
 #define STATION_INFO_HOSTNAME_MAXLEN             19
 
+
+///////// TOKEN MAC EXTENSION /////////
+#define TOKEN_RES_DIV_FACTOR_MIN 1
+#define TOKEN_RES_DIV_FACTOR_MAX 10
+///////// TOKEN MAC EXTENSION /////////
+
 #define MY_STATION_INFO_COMMON_FIELDS 								   									\
 		u8          addr[6]; 									/* HW Address */ 						\
 		u16         AID; 										/* Association ID */	 				\
@@ -300,7 +306,10 @@ typedef struct{
                             								///< because statistics can survive outside of the context
                             								///< of associated station_info structs.
 	rate_selection_info rate_info;
-
+	///////// TOKEN MAC EXTENSION /////////
+	u8	token_res_div_factor;
+	u32 token_res_last_efficiency_metric;
+	///////// TOKEN MAC EXTENSION /////////
 } station_info;
 
 
@@ -428,6 +437,9 @@ void               wlan_mac_high_print_associations(dl_list* assoc_tbl);
 
 ///////// TOKEN MAC EXTENSION /////////
 void 			   wlan_mac_high_set_token_new_reservation_callback(function_ptr_t callback);
+void 			   wlan_mac_high_set_token_stats_start_callback(function_ptr_t callback);
+void 			   wlan_mac_high_set_token_stats_end_callback(function_ptr_t callback);
+
 
 ///////// TOKEN MAC EXTENSION /////////
 
