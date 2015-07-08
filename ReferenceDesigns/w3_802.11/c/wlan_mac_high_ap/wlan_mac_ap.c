@@ -63,6 +63,15 @@
 
 /*********************** Global Variable Definitions *************************/
 
+///////// TOKEN MAC EXTENSION /////////
+u8		token_addr[6];
+u32		token_ap_num_tx;
+u32		token_ap_last_efficiency_metric;
+u8		token_ap_res_div_factor;
+
+u32		token_sta_num_rx_start;
+///////// TOKEN MAC EXTENSION /////////
+
 
 /*************************** Variable Definitions ****************************/
 
@@ -301,6 +310,10 @@ int main(){
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 	///////// TOKEN MAC EXTENSION /////////
+	token_ap_last_efficiency_metric = 0;
+	token_ap_res_div_factor = TOKEN_RES_DIV_FACTOR_MIN;
+	wlan_mac_high_set_token_stats_start_callback((function_ptr_t)token_stats_start);
+	wlan_mac_high_set_token_stats_end_callback((function_ptr_t)token_stats_end);
 	wlan_mac_high_set_token_new_reservation_callback((function_ptr_t)set_new_reservation);
 	set_new_reservation();
 	///////// TOKEN MAC EXTENSION /////////
@@ -319,9 +332,86 @@ int main(){
 }
 
 ///////// TOKEN MAC EXTENSION /////////
+void token_stats_start( u8* addr, u16 res_duration ){
+	dl_entry*	      station_info_entry           = NULL;
+	station_info*     station                      = NULL;
+
+	memcpy(token_addr, addr, 6);
+
+	if(wlan_addr_eq(token_addr, my_bss_info->bssid)){
+		//This is the start of the AP's reservation
+		token_ap_num_tx = 0;
+	} else {
+		//This is the start of the a STA's reservation
+		station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, token_addr);
+
+		if(station_info_entry != NULL){
+			station = (station_info*)(station_info_entry->data);
+			token_sta_num_rx_start = station->stats->data.rx_num_packets;
+		}
+	}
+}
+
+void token_stats_end(){
+	u32 curr_efficiency_metric;
+	u32 token_sta_num_rx_end;
+	dl_entry*	      station_info_entry           = NULL;
+	station_info*     station                      = NULL;
+
+	if(wlan_addr_eq(token_addr, my_bss_info->bssid)){
+		//This is the start of the AP's reservation
+		curr_efficiency_metric = token_ap_num_tx * token_ap_res_div_factor;
+
+		if(curr_efficiency_metric > token_ap_last_efficiency_metric){
+			//Decrement the Div Factor
+			if(token_ap_res_div_factor > TOKEN_RES_DIV_FACTOR_MIN){
+				token_ap_res_div_factor--;
+			} else {
+				token_ap_res_div_factor = TOKEN_RES_DIV_FACTOR_MIN;
+			}
+		} else {
+			//Increment the Div Factor
+			if(token_ap_res_div_factor < TOKEN_RES_DIV_FACTOR_MAX){
+				token_ap_res_div_factor++;
+			} else {
+				token_ap_res_div_factor = TOKEN_RES_DIV_FACTOR_MAX;
+			}
+		}
+
+	} else {
+		//This is the start of the a STA's reservation
+		station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, token_addr);
+
+		if(station_info_entry != NULL){
+			station = (station_info*)(station_info_entry->data);
+			token_sta_num_rx_end = station->stats->data.rx_num_packets;
+			curr_efficiency_metric = (token_sta_num_rx_end - token_sta_num_rx_start) * station->token_res_div_factor;
+
+			if(curr_efficiency_metric > station->token_res_last_efficiency_metric){
+				//Decrement the Div Factor
+				if(station->token_res_div_factor > TOKEN_RES_DIV_FACTOR_MIN){
+					station->token_res_div_factor--;
+				} else {
+					station->token_res_div_factor = TOKEN_RES_DIV_FACTOR_MIN;
+				}
+			} else {
+				//Increment the Div Factor
+				if(station->token_res_div_factor < TOKEN_RES_DIV_FACTOR_MAX){
+					station->token_res_div_factor++;
+				} else {
+					station->token_res_div_factor = TOKEN_RES_DIV_FACTOR_MAX;
+				}
+			}
+
+		}
+	}
+
+
+}
+
 void set_new_reservation(){
 
-#define DEFAULT_RESERVATION_DURATION_USEC 20000
+#define DEFAULT_RESERVATION_DURATION_USEC 100000
 
 	interrupt_state_t curr_interrupt_state;
 
@@ -366,7 +456,7 @@ void set_new_reservation(){
 		//SEND IPC for AP
 
 		memcpy( ipc_payload.addr, my_bss_info->bssid, 6 );
-		ipc_payload.res_duration = DEFAULT_RESERVATION_DURATION_USEC;
+		ipc_payload.res_duration = DEFAULT_RESERVATION_DURATION_USEC / token_ap_res_div_factor;
 		ipc_mailbox_write_msg(&ipc_msg_to_low);
 
 		curr_station_info_entry = next_station_info_entry;
@@ -384,7 +474,7 @@ void set_new_reservation(){
 			//SEND IPC for curr_station_info
 
 			memcpy( ipc_payload.addr, curr_station_info->addr, 6 );
-			ipc_payload.res_duration = DEFAULT_RESERVATION_DURATION_USEC;
+			ipc_payload.res_duration = DEFAULT_RESERVATION_DURATION_USEC / curr_station_info->token_res_div_factor;
 			ipc_mailbox_write_msg(&ipc_msg_to_low);
 
 			curr_station_info_entry = next_station_info_entry;
@@ -589,6 +679,11 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	// Log all of the TX Low transmissions
 
 	//xil_printf("------------\n"); //DEBUG
+
+	///////// TOKEN MAC EXTENSION /////////
+	token_ap_num_tx++;
+	///////// TOKEN MAC EXTENSION /////////
+
 	for(i = 0; i < num_tx_low_details; i++) {
 
 		if( i==0 && (tx_low_details[i].tx_start_delta < T_SLOT) ){

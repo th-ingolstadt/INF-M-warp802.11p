@@ -128,6 +128,8 @@ int  qwerty_row_to_number(u8 rxByte);
 void ap_write_hex_display(u8 val);
 
 ///////// TOKEN MAC EXTENSION /////////
+void token_stats_start( u8* addr, u16 res_duration );
+void token_stats_end();
 void set_new_reservation();
 
 ///////// TOKEN MAC EXTENSION /////////
