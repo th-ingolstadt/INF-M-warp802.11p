@@ -215,14 +215,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 			wlan_mac_tx_ctrl_B_start(1);
 			wlan_mac_tx_ctrl_B_start(0);
 
-			do{
-				mac_hw_status = wlan_mac_get_status();
-
-				if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DO_TX ) {
-					break;
-				}
-			} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_PENDING);
-
 			//Since this is our reservation period, we are now allowed to transmit
 			in_reservation = 1;
 			reservation_ts_end = get_usec_timestamp() + ((u64)rx_token_frame->res_duration_usec);
