@@ -2618,8 +2618,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		}
 
 		///////// TOKEN MAC EXTENSION /////////
-		station->token_res_div_factor = TOKEN_RES_DIV_FACTOR_MIN;
-		station->token_res_last_efficiency_metric = 0;
+		station->token_res_mult_factor = TOKEN_RES_MULT_FACTOR_MIN;
 		///////// TOKEN MAC EXTENSION /////////
 
 		bzero(&(station->rate_info),sizeof(rate_selection_info));

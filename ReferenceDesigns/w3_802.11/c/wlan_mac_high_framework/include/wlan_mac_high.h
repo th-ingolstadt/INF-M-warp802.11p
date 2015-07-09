@@ -286,8 +286,18 @@ typedef struct{
 
 
 ///////// TOKEN MAC EXTENSION /////////
-#define TOKEN_RES_DIV_FACTOR_MIN 1
-#define TOKEN_RES_DIV_FACTOR_MAX 10
+#define TOKEN_RES_MULT_FACTOR_MIN 1
+#define TOKEN_RES_MULT_FACTOR_MAX 50
+
+#define DEFAULT_RESERVATION_DURATION_USEC 2000
+
+//Ignoring all overhead, a 6 Mbps PHY rate
+//could theoretically deliver (6e6*2000e-6) = 12 kBytes
+//in 2ms. Let's define our "success" threshold at (an arbitrary) 1/6 of that: 2000 bytes.
+//Delivering more than this threshold in 2ms will grant access to the larger
+//token reservation period
+#define TOKEN_RES_BYTES_EFFICIENCY_THRESH 2000
+
 ///////// TOKEN MAC EXTENSION /////////
 
 #define MY_STATION_INFO_COMMON_FIELDS 								   									\
@@ -307,8 +317,7 @@ typedef struct{
                             								///< of associated station_info structs.
 	rate_selection_info rate_info;
 	///////// TOKEN MAC EXTENSION /////////
-	u8	token_res_div_factor;
-	u32 token_res_last_efficiency_metric;
+	u8	token_res_mult_factor;
 	///////// TOKEN MAC EXTENSION /////////
 } station_info;
 
