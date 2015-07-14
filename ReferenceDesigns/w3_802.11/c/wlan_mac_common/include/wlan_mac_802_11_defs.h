@@ -95,12 +95,6 @@ typedef struct{
 #define MAC_FRAME_CTRL1_SUBTYPE_CF_END			(MAC_FRAME_CTRL1_TYPE_CTRL | 0xE0)
 #define MAC_FRAME_CTRL1_SUBTYPE_CF_END_CF_ACK	(MAC_FRAME_CTRL1_TYPE_CTRL | 0xF0)
 
-///////// TOKEN MAC EXTENSION /////////
-//These are intentionally invalid 802.11 types to improve interoperability with neighboring Wi-Fi clients
-#define MAC_FRAME_CTRL1_SUBTYPE_TOKEN_OFFER		(MAC_FRAME_CTRL1_TYPE_CTRL | 0x10)
-#define MAC_FRAME_CTRL1_SUBTYPE_TOKEN_RESPONSE	(MAC_FRAME_CTRL1_TYPE_CTRL | 0x20)
-///////// TOKEN MAC EXTENSION /////////
-
 //Data (MAC_FRAME_CTRL1_TYPE_DATA) sub-types
 
 #define MAC_FRAME_CTRL1_SUBTYPE_DATA			(MAC_FRAME_CTRL1_TYPE_DATA | 0x00)

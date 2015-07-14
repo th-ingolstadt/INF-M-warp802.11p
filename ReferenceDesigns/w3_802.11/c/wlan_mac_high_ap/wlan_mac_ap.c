@@ -60,16 +60,7 @@
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU        100
 
-
 /*********************** Global Variable Definitions *************************/
-
-///////// TOKEN MAC EXTENSION /////////
-u8		token_addr[6];
-u64		token_ap_num_tx_bytes;
-u8		token_ap_res_mult_factor;
-
-u64		token_sta_num_rx_bytes_start;
-///////// TOKEN MAC EXTENSION /////////
 
 
 /*************************** Variable Definitions ****************************/
@@ -256,7 +247,7 @@ int main(){
 	my_bss_info->state           = BSS_STATE_OWNED;
 	my_bss_info->beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
 	my_bss_info->capabilities    = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
-	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11N;
+	my_bss_info->phy_mode		 = BSS_INFO_PHY_MODE_11A;
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -308,14 +299,6 @@ int main(){
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
-	///////// TOKEN MAC EXTENSION /////////
-	token_ap_res_mult_factor = TOKEN_RES_MULT_FACTOR_MIN;
-	wlan_mac_high_set_token_stats_start_callback((function_ptr_t)token_stats_start);
-	wlan_mac_high_set_token_stats_end_callback((function_ptr_t)token_stats_end);
-	wlan_mac_high_set_token_new_reservation_callback((function_ptr_t)set_new_reservation);
-	set_new_reservation();
-	///////// TOKEN MAC EXTENSION /////////
-
 	while(1) {
 #ifdef USE_WARPNET_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
@@ -328,160 +311,6 @@ int main(){
 	// Unreachable, but non-void return keeps the compiler happy
 	return -1;
 }
-
-///////// TOKEN MAC EXTENSION /////////
-void token_stats_start( u8* addr, u16 res_duration ){
-	dl_entry*	      station_info_entry           = NULL;
-	station_info*     station                      = NULL;
-
-	memcpy(token_addr, addr, 6);
-
-	if(wlan_addr_eq(token_addr, my_bss_info->bssid)){
-		//This is the start of the AP's reservation
-		token_ap_num_tx_bytes = 0;
-	} else {
-		//This is the start of the a STA's reservation
-		station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, token_addr);
-
-		if(station_info_entry != NULL){
-			station = (station_info*)(station_info_entry->data);
-			token_sta_num_rx_bytes_start = station->stats->data.rx_num_bytes;
-		}
-	}
-}
-
-void token_stats_end(){
-	u64 efficiency_metric;
-	u32 token_sta_num_rx_bytes_end;
-	dl_entry*	      station_info_entry           = NULL;
-	station_info*     station                      = NULL;
-
-	if(wlan_addr_eq(token_addr, my_bss_info->bssid)){
-		//This is the start of the AP's reservation
-		efficiency_metric = token_ap_num_tx_bytes * token_ap_res_mult_factor;
-
-		if(efficiency_metric > TOKEN_RES_BYTES_EFFICIENCY_THRESH){
-			//Set the mult factor to max
-			token_ap_res_mult_factor = TOKEN_RES_MULT_FACTOR_MAX;
-		} else {
-			//Set the mult factor to min
-			token_ap_res_mult_factor = TOKEN_RES_MULT_FACTOR_MIN;
-		}
-
-	} else {
-		//This is the start of the a STA's reservation
-		station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, token_addr);
-
-		if(station_info_entry != NULL){
-			station = (station_info*)(station_info_entry->data);
-			token_sta_num_rx_bytes_end = station->stats->data.rx_num_bytes;
-
-			efficiency_metric = (token_sta_num_rx_bytes_end - token_sta_num_rx_bytes_start) * station->token_res_mult_factor;
-
-			if(efficiency_metric > TOKEN_RES_BYTES_EFFICIENCY_THRESH){
-				//Set the mult factor to max
-				station->token_res_mult_factor = TOKEN_RES_MULT_FACTOR_MAX;
-			} else {
-				//Set the mult factor to min
-				station->token_res_mult_factor = TOKEN_RES_MULT_FACTOR_MIN;
-			}
-
-		}
-	}
-
-
-}
-
-void set_new_reservation(){
-
-#define USE_ADAPTATION 0
-
-	interrupt_state_t curr_interrupt_state;
-
-	static dl_entry* next_station_info_entry = NULL;
-	dl_entry* curr_station_info_entry;
-
-	station_info* curr_station_info;
-
-	wlan_ipc_msg       ipc_msg_to_low;
-	ipc_token_new_reservation ipc_payload;
-
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TOKEN_NEW_RESERVATION);
-
-	if( (sizeof(u32)*(sizeof(ipc_token_new_reservation)/sizeof(u32))) ==  sizeof(ipc_token_new_reservation) ){
-		ipc_msg_to_low.num_payload_words = (sizeof(ipc_token_new_reservation)/sizeof(u32));
-	} else {
-		ipc_msg_to_low.num_payload_words = (sizeof(ipc_token_new_reservation)/sizeof(u32)) + 1;
-	}
-
-	ipc_msg_to_low.payload_ptr       = (u32*)(&ipc_payload);
-
-
-	curr_interrupt_state = wlan_mac_high_interrupt_stop();
-
-	// 1: Empty the MGMT queue
-
-	//TODO: We should empty the MGMT queue. Currently, poll_tx_queues()
-	//provides no arguments to bypass the round-robin. We don't want to send any
-	//unicast data frames right now, so should augment poll_tx_queues with an argument
-	//for a specific queue.
-
-	// 2: Send an IPC message down to CPU_LOW to let it know we are moving to a new
-	// reservation period.
-
-	curr_station_info_entry = next_station_info_entry;
-
-	// Loop through all associated stations' queues
-	if(curr_station_info_entry == NULL){
-		// It's the AP's reservation
-		next_station_info_entry = my_bss_info->associated_stations.first;
-
-		//SEND IPC for AP
-
-		memcpy( ipc_payload.addr, my_bss_info->bssid, 6 );
-#if USE_ADAPTATION
-		ipc_payload.res_duration = DEFAULT_RESERVATION_DURATION_USEC * token_ap_res_mult_factor;
-#else
-		ipc_payload.res_duration = 20000;
-#endif
-		ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-		curr_station_info_entry = next_station_info_entry;
-
-	} else {
-		curr_station_info = (station_info*)(curr_station_info_entry->data);
-		if( wlan_mac_high_is_valid_association(&my_bss_info->associated_stations, curr_station_info) ){
-			if(curr_station_info_entry == my_bss_info->associated_stations.last){
-				// We've reached the end of the table, so we wrap around to the beginning
-				next_station_info_entry = NULL;
-			} else {
-				next_station_info_entry = dl_entry_next(curr_station_info_entry);
-			}
-
-			//SEND IPC for curr_station_info
-
-			memcpy( ipc_payload.addr, curr_station_info->addr, 6 );
-#if USE_ADAPTATION
-			ipc_payload.res_duration = DEFAULT_RESERVATION_DURATION_USEC * curr_station_info->token_res_mult_factor;
-#else
-			ipc_payload.res_duration = 20000;
-#endif
-			ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-			curr_station_info_entry = next_station_info_entry;
-
-		} else {
-			// This curr_station_info is invalid. Perhaps it was removed from
-			// the association table before poll_tx_queues was called. We will
-			// start the round robin checking back at broadcast.
-			next_station_info_entry = NULL;
-		} // END if(is_valid_association)
-	}
-
-	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
-
-}
-///////// TOKEN MAC EXTENSION /////////
 
 
 /**
@@ -670,11 +499,6 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	// Log all of the TX Low transmissions
 
 	//xil_printf("------------\n"); //DEBUG
-
-	///////// TOKEN MAC EXTENSION /////////
-	token_ap_num_tx_bytes += (tx_mpdu->length);
-	///////// TOKEN MAC EXTENSION /////////
-
 	for(i = 0; i < num_tx_low_details; i++) {
 
 		if( i==0 && (tx_low_details[i].tx_start_delta < T_SLOT) ){

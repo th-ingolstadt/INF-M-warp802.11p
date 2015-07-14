@@ -282,10 +282,6 @@
 #define POLL_MAC_CANCEL_TX				0x00000008 //b[3]
 #define POLL_MAC_STATUS_TYPE			0x0000FF00 //b[15:8]
 
-///////// TOKEN MAC EXTENSION /////////
-#define POLL_MAC_STATUS_TOKEN_OFFER_ACCEPTED 0x10000000
-///////// TOKEN MAC EXTENSION /////////
-
 #define POLL_MAC_TYPE_DATA				(1<<8)
 #define POLL_MAC_TYPE_ACK				(1<<9)
 #define POLL_MAC_TYPE_CTS				(1<<10)
@@ -328,13 +324,6 @@ int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow);
 inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);
 inline u32 wlan_mac_low_poll_frame_rx();
 void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
-///////// TOKEN MAC EXTENSION /////////
-inline void wlan_mac_low_set_new_reservation_callback(function_ptr_t callback);
-inline void wlan_mac_low_set_adjust_reservation_ts_callback(function_ptr_t callback);
-void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf);
-void wlan_mac_low_disable_new_mpdu_tx();
-void wlan_mac_low_enable_new_mpdu_tx();
-///////// TOKEN MAC EXTENSION /////////
 void wlan_mac_low_set_frame_tx_callback(function_ptr_t callback);
 void wlan_mac_low_set_ipc_low_param_callback(function_ptr_t callback);
 void wlan_mac_low_frame_ipc_send();

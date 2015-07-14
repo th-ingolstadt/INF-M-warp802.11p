@@ -51,14 +51,6 @@ static u32                 	 ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS]
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
 static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
-///////// TOKEN MAC EXTENSION /////////
-static function_ptr_t		 new_reservation_callback;
-static function_ptr_t		 adjust_reservation_ts_callback;
-
-volatile static u8			 allow_new_mpdu_tx;
-volatile static s8			 pkt_buf_pending_tx;
-///////// TOKEN MAC EXTENSION /////////
-
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
 //Note: this statically allocated space should be larger than the maximum number of attempts
@@ -122,16 +114,9 @@ int wlan_mac_low_init(u32 type){
 	//mac_param_rx_filter    = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
 	mac_param_rx_filter    = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
-	frame_rx_callback	     = (function_ptr_t)nullCallback;
-	frame_tx_callback	     = (function_ptr_t)nullCallback;
-	ipc_low_param_callback   = (function_ptr_t)nullCallback;
-
-	///////// TOKEN MAC EXTENSION /////////
-	new_reservation_callback = (function_ptr_t)nullCallback;
-	adjust_reservation_ts_callback = (function_ptr_t)nullCallback;
-	allow_new_mpdu_tx        = 0;
-	pkt_buf_pending_tx       = -1;
-	///////// TOKEN MAC EXTENSION /////////
+	frame_rx_callback	   = (function_ptr_t)nullCallback;
+	frame_tx_callback	   = (function_ptr_t)nullCallback;
+	ipc_low_param_callback = (function_ptr_t)nullCallback;
 
 	status = w3_node_init();
 
@@ -140,7 +125,7 @@ int wlan_mac_low_init(u32 type){
 		return -1;
 	}
 
-	// TODO: This value should offset forward to the time when the timestamp bytes in the beacon are transmitted
+	// TODO: This value should offset forward to the time when the timestamp bytes in the beacon are transmitter
 	wlan_mac_set_timestamp_offset(0);
 
 	//Disable timestamp insertion by default (start>end == disabled)
@@ -225,7 +210,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			if(DBG_PRINT) xil_printf("DSSS Rx callback return: 0x%08x\n", return_status);
 
 		} else {
-
 			//OFDM Rx - must wait for PHY_RX_PARAMS to be valid before reading mcs/length
 			do {
 				mac_hw_phy_rx_params = wlan_mac_get_rx_params();
@@ -408,37 +392,32 @@ inline void wlan_mac_low_poll_ipc_rx(){
  * @return None
  */
 void process_ipc_msg_from_high(wlan_ipc_msg* msg){
-
+	u32                      status;
 	wlan_ipc_msg             ipc_msg_to_high;
+
+	tx_frame_info          * tx_mpdu;
+	mac_header_80211       * tx_80211_header;
 
 	u32                      temp1, temp2;
 
-
+	u16                      tx_pkt_buf;
+	u8                       rate;
+	u16                      ACK_N_DBPS;
+	u32                      isLocked, owner;
 	u64                    * u_timestamp_ptr;
 	s64                    * s_timestamp_ptr;
 	u64                      new_timestamp;
-
+	u32                      low_tx_details_size;
 	u32*                     payload_to_write;
 
-	///////// TOKEN MAC EXTENSION /////////
-	ipc_token_new_reservation* new_reservation;
-	///////// TOKEN MAC EXTENSION /////////
-
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
-
-	///////// TOKEN MAC EXTENSION /////////
-		case IPC_MBOX_TOKEN_NEW_RESERVATION:
-			new_reservation = (ipc_token_new_reservation*)msg->payload_ptr;
-			new_reservation_callback(new_reservation);
-		break;
-	///////// TOKEN MAC EXTENSION /////////
 
 		case IPC_MBOX_CPU_STATUS:
 			ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
 			ipc_msg_to_high.num_payload_words = 1;
 			ipc_msg_to_high.payload_ptr = &cpu_low_status;
 			ipc_mailbox_write_msg(&ipc_msg_to_high);
-		break;
+			break;
 
 		case IPC_MBOX_MEM_READ_WRITE:
 			switch(msg->arg0){
@@ -668,144 +647,112 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 		break;
 
 		case IPC_MBOX_TX_MPDU_READY:
-			///////// TOKEN MAC EXTENSION /////////
-			if(allow_new_mpdu_tx){
-				wlan_mac_low_proc_pkt_buf( msg->arg0 );
-			} else {
-				pkt_buf_pending_tx = msg->arg0;
-			}
-			///////// TOKEN MAC EXTENSION /////////
 
+			//Message is an indication that a Tx Pkt Buf needs processing
+			tx_pkt_buf = msg->arg0;
+			//TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
+
+
+			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				warp_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
+
+				status_pkt_buf_tx(tx_pkt_buf, &isLocked, &owner);
+
+				warp_printf(PL_ERROR, "	TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
+
+			} else {
+
+				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+
+				tx_mpdu->delay_accept = (u32)(get_usec_timestamp() - tx_mpdu->timestamp_create);
+
+				//Convert rate index into rate code used in PHY's SIGNAL field
+				//ACK_N_DBPS is used to calculate duration of received ACKs.
+				//The selection of ACK rates given DATA rates is specified in 9.7.6.5.2 of 802.11-2012
+				rate = wlan_mac_mcs_to_phy_rate(tx_mpdu->params.phy.rate);
+				ACK_N_DBPS = wlan_mac_mcs_to_n_dbps(wlan_mac_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.rate));
+
+				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
+					//Get pointer to start of MAC header in packet buffer
+					tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
+
+					//Compute and fill in the duration of any time-on-air following this packet's transmission
+					// For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
+					tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES, ACK_N_DBPS) + T_SIFS;
+				}
+
+				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+					//Some management packets contain the node's local 64-bit microsecond timer value
+					// The Tx hardware can insert this value into the outgoing byte stream automatically
+					// This ensures the timestamp value is not skewed by any pre-Tx deferrals
+
+					//The macros below set the first and last byte index where the Tx logic should insert
+					// the 8-byte timestamp.
+					//In the current implementation these indexes must span an 8-byte-aligned
+					// region of the packet buffer (i.e. (start_ind % 8)==0 )
+					wlan_phy_tx_timestamp_ins_start((24+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
+					wlan_phy_tx_timestamp_ins_end((31+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
+
+				} else {
+					//When start>end, the Tx logic will not insert any timestamp
+					wlan_phy_tx_timestamp_ins_start(1);
+					wlan_phy_tx_timestamp_ins_end(0);
+				}
+
+				//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
+				// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
+
+				status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
+
+				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+					//The Tx logic automatically inserted the timestamp at the time that the bytes
+					//were being fed out to the Tx PHY. We can go back and re-insert this time into the
+					//payload so that further processing (e.g. logging) sees the correct payload.
+
+					//First, calculate what the value should be
+
+					*((u64*)( (TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET + 24)) ) = (u64) ( (u64)get_tx_start_timestamp() + (s64)wlan_mac_get_timestamp_offset() );
+				}
+
+				//Record the total time this MPDU spent in the Tx state machine
+				tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
+
+				low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details);
+
+				if(status == TX_MPDU_RESULT_SUCCESS){
+					tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
+				} else {
+					tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
+				}
+
+				//Revert the state of the packet buffer and return control to CPU High
+				if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					warp_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
+					wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
+				} else {
+					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
+
+					//Add the per-Tx-event details to the IPC message so CPU High can add them to the log as TX_LOW entries
+					if(low_tx_details != NULL){
+						ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
+
+						//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
+						if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
+							ipc_msg_to_high.num_payload_words = ( low_tx_details_size ) >> 2; // # of u32 words
+						} else {
+							ipc_msg_to_high.num_payload_words = ( ((IPC_BUFFER_MAX_NUM_WORDS << 2)/sizeof(wlan_mac_low_tx_details)  )*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+						}
+					} else {
+						ipc_msg_to_high.num_payload_words = 0;
+						ipc_msg_to_high.payload_ptr = NULL;
+					}
+					ipc_msg_to_high.arg0 = tx_pkt_buf;
+					ipc_mailbox_write_msg(&ipc_msg_to_high);
+				}
+			}
 		break;
 	}
 }
-
-
-///////// TOKEN MAC EXTENSION /////////
-
-void wlan_mac_low_disable_new_mpdu_tx(){
-	allow_new_mpdu_tx = 0;
-}
-
-void wlan_mac_low_enable_new_mpdu_tx(){
-	if(allow_new_mpdu_tx == 0){
-		allow_new_mpdu_tx = 1;
-		if(pkt_buf_pending_tx != -1){
-			wlan_mac_low_proc_pkt_buf(pkt_buf_pending_tx);
-			pkt_buf_pending_tx = -1;
-		}
-	}
-}
-
-void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
-	u32                      status;
-	tx_frame_info          * tx_mpdu;
-	mac_header_80211       * tx_80211_header;
-	u8                       rate;
-	u16                      ACK_N_DBPS;
-	u32                      isLocked, owner;
-	u32                      low_tx_details_size;
-	wlan_ipc_msg             ipc_msg_to_high;
-
-	if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-		warp_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
-
-		status_pkt_buf_tx(tx_pkt_buf, &isLocked, &owner);
-
-		warp_printf(PL_ERROR, "	TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
-
-	} else {
-
-		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-
-		tx_mpdu->delay_accept = (u32)(get_usec_timestamp() - tx_mpdu->timestamp_create);
-
-		//Convert rate index into rate code used in PHY's SIGNAL field
-		//ACK_N_DBPS is used to calculate duration of received ACKs.
-		//The selection of ACK rates given DATA rates is specified in 9.7.6.5.2 of 802.11-2012
-		rate = wlan_mac_mcs_to_phy_rate(tx_mpdu->params.phy.rate);
-		ACK_N_DBPS = wlan_mac_mcs_to_n_dbps(wlan_mac_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.rate));
-
-		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
-			//Get pointer to start of MAC header in packet buffer
-			tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
-
-			//Compute and fill in the duration of any time-on-air following this packet's transmission
-			// For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
-			tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES, ACK_N_DBPS) + T_SIFS;
-		}
-
-		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-			//Some management packets contain the node's local 64-bit microsecond timer value
-			// The Tx hardware can insert this value into the outgoing byte stream automatically
-			// This ensures the timestamp value is not skewed by any pre-Tx deferrals
-
-			//The macros below set the first and last byte index where the Tx logic should insert
-			// the 8-byte timestamp.
-			//In the current implementation these indexes must span an 8-byte-aligned
-			// region of the packet buffer (i.e. (start_ind % 8)==0 )
-			wlan_phy_tx_timestamp_ins_start((24+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
-			wlan_phy_tx_timestamp_ins_end((31+PHY_TX_PKT_BUF_PHY_HDR_SIZE));
-
-		} else {
-			//When start>end, the Tx logic will not insert any timestamp
-			wlan_phy_tx_timestamp_ins_start(1);
-			wlan_phy_tx_timestamp_ins_end(0);
-		}
-
-		//Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
-		// complete (after all re-transmissions, ACK Rx, timeouts, etc.)
-
-		status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
-
-		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-			//The Tx logic automatically inserted the timestamp at the time that the bytes
-			//were being fed out to the Tx PHY. We can go back and re-insert this time into the
-			//payload so that further processing (e.g. logging) sees the correct payload.
-
-			//First, calculate what the value should be
-
-			*((u64*)( (TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET + 24)) ) = (u64) ( (u64)get_tx_start_timestamp() + (s64)wlan_mac_get_timestamp_offset() );
-		}
-
-		//Record the total time this MPDU spent in the Tx state machine
-		tx_mpdu->delay_done = (u32)(get_usec_timestamp() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
-
-		low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details);
-
-		if(status == TX_MPDU_RESULT_SUCCESS){
-			tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
-		} else {
-			tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
-		}
-
-		//Revert the state of the packet buffer and return control to CPU High
-		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			warp_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
-			wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
-		} else {
-			ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
-
-			//Add the per-Tx-event details to the IPC message so CPU High can add them to the log as TX_LOW entries
-			if(low_tx_details != NULL){
-				ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
-
-				//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
-				if(low_tx_details_size < (IPC_BUFFER_MAX_NUM_WORDS << 2)){
-					ipc_msg_to_high.num_payload_words = ( low_tx_details_size ) >> 2; // # of u32 words
-				} else {
-					ipc_msg_to_high.num_payload_words = ( ((IPC_BUFFER_MAX_NUM_WORDS << 2)/sizeof(wlan_mac_low_tx_details)  )*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
-				}
-			} else {
-				ipc_msg_to_high.num_payload_words = 0;
-				ipc_msg_to_high.payload_ptr = NULL;
-			}
-			ipc_msg_to_high.arg0 = tx_pkt_buf;
-			ipc_mailbox_write_msg(&ipc_msg_to_high);
-		}
-	}
-}
-///////// TOKEN MAC EXTENSION /////////
 
 /**
  * @brief Set MAC microsecond timer
@@ -820,17 +767,6 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
  * @return None
  */
 void wlan_mac_low_set_time(u64 new_time) {
-
-	///////// TOKEN MAC EXTENSION /////////
-	u64 curr_time = get_usec_timestamp();
-	if(curr_time > new_time){
-		adjust_reservation_ts_callback( -1*(s64)(curr_time - new_time) );
-	} else if(new_time > curr_time){
-		adjust_reservation_ts_callback( (new_time - curr_time) );
-	}
-
-	///////// TOKEN MAC EXTENSION /////////
-
 	Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_LSB, (u32)new_time);
 	Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_MSB, (u32)(new_time>>32));
 
@@ -1067,17 +1003,6 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
 	frame_rx_callback = callback;
 }
-
-
-///////// TOKEN MAC EXTENSION /////////
-inline void wlan_mac_low_set_new_reservation_callback(function_ptr_t callback){
-	new_reservation_callback = callback;
-}
-
-inline void wlan_mac_low_set_adjust_reservation_ts_callback(function_ptr_t callback){
-	adjust_reservation_ts_callback = callback;
-}
-///////// TOKEN MAC EXTENSION /////////
 
 /**
  * @brief Set Frame Transmission Callback

@@ -91,12 +91,6 @@ volatile function_ptr_t      mpdu_rx_callback;             ///< User callback fo
 volatile function_ptr_t      tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
 volatile function_ptr_t      mpdu_tx_dequeue_callback;     ///< User callback for higher-level framework dequeuing a packet
 
-///////// TOKEN MAC EXTENSION /////////
-volatile function_ptr_t      token_new_reservation_callback;
-volatile function_ptr_t      token_stats_start_callback;
-volatile function_ptr_t      token_stats_end_callback;
-///////// TOKEN MAC EXTENSION /////////
-
 // Node information
 wlan_mac_hw_info             hw_info;                      ///< Information about hardware
 volatile u8                  dram_present;                 ///< Indication variable for whether DRAM SODIMM is present on this hardware
@@ -270,12 +264,6 @@ void wlan_mac_high_init(){
 	mpdu_tx_done_callback    = (function_ptr_t)nullCallback;
 	tx_poll_callback	     = (function_ptr_t)nullCallback;
 	mpdu_tx_dequeue_callback = (function_ptr_t)nullCallback;
-
-	///////// TOKEN MAC EXTENSION /////////
-	token_new_reservation_callback = (function_ptr_t)nullCallback;
-	token_stats_start_callback = (function_ptr_t)nullCallback;
-	token_stats_end_callback = (function_ptr_t)nullCallback;
-	///////// TOKEN MAC EXTENSION /////////
 
 	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
@@ -721,21 +709,6 @@ void wlan_mac_high_gpio_handler(void *InstancePtr){
 u32 wlan_mac_high_get_user_io_state(){
 	return XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL);
 }
-
-
-///////// TOKEN MAC EXTENSION /////////
-void wlan_mac_high_set_token_new_reservation_callback(function_ptr_t callback){
-	token_new_reservation_callback = callback;
-}
-
-void wlan_mac_high_set_token_stats_start_callback(function_ptr_t callback){
-	token_stats_start_callback = callback;
-}
-
-void wlan_mac_high_set_token_stats_end_callback(function_ptr_t callback){
-	token_stats_end_callback = callback;
-}
-///////// TOKEN MAC EXTENSION /////////
 
 
 
@@ -1784,18 +1757,6 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
     // Determine what type of message this is
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
 
-
-		///////// TOKEN MAC EXTENSION /////////
-		case IPC_MBOX_TOKEN_END_RESERVATION:
-			token_stats_end_callback();
-			token_new_reservation_callback();
-		break;
-		case IPC_MBOX_TOKEN_NEW_RESERVATION:
-			token_stats_start_callback( ((ipc_token_new_reservation*)msg->payload_ptr)->addr,
-										((ipc_token_new_reservation*)msg->payload_ptr)->res_duration );
-		break;
-		///////// TOKEN MAC EXTENSION /////////
-
 		//---------------------------------------------------------------------
 		case IPC_MBOX_RX_MPDU_READY:
 			// CPU Low has received an MPDU addressed to this node or to the broadcast address
@@ -2616,10 +2577,6 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 			wlan_mac_high_free(station);
 			return NULL;
 		}
-
-		///////// TOKEN MAC EXTENSION /////////
-		station->token_res_mult_factor = TOKEN_RES_MULT_FACTOR_MIN;
-		///////// TOKEN MAC EXTENSION /////////
 
 		bzero(&(station->rate_info),sizeof(rate_selection_info));
 		station->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_STATIC;
