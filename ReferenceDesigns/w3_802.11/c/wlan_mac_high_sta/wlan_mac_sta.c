@@ -56,11 +56,13 @@
 /*************************** Constant Definitions ****************************/
 
 #define  WLAN_EXP_ETH                            WN_ETH_B
-#define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
-#define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
+#define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
+#define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
 #define  WLAN_DEFAULT_CHANNEL                    4
 #define  WLAN_DEFAULT_TX_PWR                     15
+#define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
 
 
 /*********************** Global Variable Definitions *************************/
@@ -141,22 +143,22 @@ int main() {
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_18M;
-	default_unicast_data_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
+	default_unicast_data_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
+	default_unicast_data_tx_params.phy.rate                = WLAN_MAC_MCS_18M;
+	default_unicast_data_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_unicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_unicast_mgmt_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
+	default_unicast_mgmt_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
+	default_unicast_mgmt_tx_params.phy.rate                = WLAN_MAC_MCS_6M;
+	default_unicast_mgmt_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
 	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_multicast_data_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
+	default_multicast_data_tx_params.phy.antenna_mode      = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_multicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
 	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_multicast_mgmt_tx_params.phy.antenna_mode      = TX_ANTMODE_SISO_ANTA;
+	default_multicast_mgmt_tx_params.phy.antenna_mode      = WLAN_DEFAULT_TX_ANTENNA;
 
 
 
@@ -233,7 +235,7 @@ int main() {
 	wlan_mac_high_set_channel( mac_param_chan );
 
 	// Set the other CPU low parameters
-	wlan_mac_high_set_rx_ant_mode(RX_ANTMODE_SISO_ANTA);
+	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
 	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
 
 	// Configure CPU Low's filter for passing Rx packets up to CPU High
