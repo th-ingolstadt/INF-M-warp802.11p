@@ -455,7 +455,7 @@ void wlan_radio_init() {
     // 40MHz ADC, 2x decimate in AD9963
     clk_config_dividers(CLK_BASEADDR, 1, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
 
-    ad_config_clocks(AD_BASEADDR, AD_ALL_RF, AD_DACCLKSRC_EXT, AD_DACCLKSRC_EXT, AD_ADCCLKDIV_2, AD_DCS_OFF);
+    ad_config_clocks(AD_BASEADDR, AD_ALL_RF, AD_DACCLKSRC_EXT, AD_ADCCLKSRC_EXT, AD_ADCCLKDIV_2, AD_DCS_OFF);
 
     ad_config_filters(AD_BASEADDR, AD_ALL_RF, 4, 2);
 #endif
