@@ -301,6 +301,8 @@ int main(){
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
+	enable_hopping();
+
 	while(1) {
 #ifdef USE_WARPNET_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
@@ -569,6 +571,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
  * @return None
  */
 void up_button(){
+	toggle_hop_seq();
 	return;
 }
 
