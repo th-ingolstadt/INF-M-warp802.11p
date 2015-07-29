@@ -63,6 +63,8 @@
 #define IPC_MBOX_MEM_READ_WRITE     	15
 #define IPC_MBOX_LOW_PARAM				16
 #define IPC_MBOX_LOW_RANDOM_SEED        17
+#define IPC_MBOX_CONFIG_HOPPING			50
+#define IPC_MBOX_TOGGLE_HOPPING			51
 
 typedef struct{
 	u32  baseaddr;
