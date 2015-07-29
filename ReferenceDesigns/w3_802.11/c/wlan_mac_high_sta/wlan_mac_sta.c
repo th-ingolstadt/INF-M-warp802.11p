@@ -56,8 +56,8 @@
 /*************************** Constant Definitions ****************************/
 
 #define  WLAN_EXP_ETH                            WN_ETH_B
-#define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
-#define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
+#define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
+#define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
 
 #define  WLAN_DEFAULT_CHANNEL                    4
 #define  WLAN_DEFAULT_TX_PWR                     15
@@ -110,6 +110,11 @@ volatile u8	                      allow_beacon_ts_update;            // Allow ti
 
 /******************************** Functions **********************************/
 
+
+void up_button(){
+	toggle_hop_seq();
+}
+
 int main() {
 	wlan_mac_hw_info *       hw_info;
 
@@ -143,12 +148,12 @@ int main() {
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate                = WLAN_MAC_MCS_18M;
+	default_unicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
+	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_36M;
 	default_unicast_data_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_unicast_mgmt_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate                = WLAN_MAC_MCS_6M;
+	default_unicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
+	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
 	default_unicast_mgmt_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
@@ -173,6 +178,8 @@ int main() {
 	wlan_mac_high_set_uart_rx_callback(      	(void*)uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
 	wlan_mac_ltg_sched_set_callback(         	(void*)ltg_event);
+	wlan_mac_high_set_pb_u_callback(            (void*)up_button);
+
 
 	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
@@ -272,7 +279,7 @@ int main() {
 	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
 		wlan_mac_sta_scan_and_join(access_point_ssid, 0);
 	}
-
+	disable_hopping();
 	while(1){
 #ifdef USE_WARPNET_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
@@ -1039,6 +1046,8 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
 	xil_printf("AID:   %d\n", aid);
 	xil_printf("BSSID: %02x-%02x-%02x-%02x-%02x-%02x\n", new_bss_info->bssid[0],new_bss_info->bssid[1],new_bss_info->bssid[2],new_bss_info->bssid[3],new_bss_info->bssid[4],new_bss_info->bssid[5]);
 	xil_printf("State: %d\n", new_bss_info->state);
+
+	enable_hopping();
 
 	// Disassociate from any currently associated APs
 	status = sta_disassociate();

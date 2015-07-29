@@ -70,7 +70,7 @@
 
 /*************************** Function Prototypes *****************************/
 int main();
-
+void up_button();
 void ltg_event(u32 id, void* callback_arg);
 
 int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
