@@ -51,6 +51,10 @@ static u32                 	 ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS]
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
 static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
+static function_ptr_t        enable_hopping_callback;
+static function_ptr_t        disable_hopping_callback;
+static function_ptr_t		 hop_seq_toggle;
+
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
 //Note: this statically allocated space should be larger than the maximum number of attempts
@@ -116,6 +120,8 @@ int wlan_mac_low_init(u32 type){
 
 	frame_rx_callback	   = (function_ptr_t)nullCallback;
 	frame_tx_callback	   = (function_ptr_t)nullCallback;
+	enable_hopping_callback = (function_ptr_t)nullCallback;
+	disable_hopping_callback = (function_ptr_t)nullCallback;
 	ipc_low_param_callback = (function_ptr_t)nullCallback;
 
 	status = w3_node_init();
@@ -366,6 +372,71 @@ inline void wlan_mac_low_send_exception(u32 reason){
 	}
 }
 
+u8   sevenSegmentMap(u8 hex_value) {
+    switch(hex_value) {
+        case(0x0) : return 0x3F;
+        case(0x1) : return 0x06;
+        case(0x2) : return 0x5B;
+        case(0x3) : return 0x4F;
+        case(0x4) : return 0x66;
+        case(0x5) : return 0x6D;
+        case(0x6) : return 0x7D;
+        case(0x7) : return 0x07;
+        case(0x8) : return 0x7F;
+        case(0x9) : return 0x6F;
+
+        case(0xA) : return 0x77;
+        case(0xB) : return 0x7C;
+        case(0xC) : return 0x39;
+        case(0xD) : return 0x5E;
+        case(0xE) : return 0x79;
+        case(0xF) : return 0x71;
+        default   : return 0x00;
+    }
+}
+
+
+void write_hex_display_dec(u8 val){
+	u32 hw_control;
+	u32 temp_control;
+    u32 right_dp;
+    u8  left_val;
+    u8  right_val;
+    u32 pwm_val;
+
+	// Need to retain the value of the right decimal point
+	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+
+	if ( val < 10 ) {
+		left_val  = 0;
+		right_val = sevenSegmentMap(val);
+	} else {
+		left_val  = sevenSegmentMap(((val/10)%10));
+		right_val = sevenSegmentMap((val%10));
+	}
+
+    // Store the original value of what is under HW control
+	hw_control   = userio_read_control(USERIO_BASEADDR);
+
+	// Need to zero out all of the HW control of the hex displays; Change to raw hex mode
+	temp_control = (hw_control & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE | W3_USERIO_CTRLSRC_HEXDISP_R | W3_USERIO_CTRLSRC_HEXDISP_L )));
+
+	// Set the hex display mode to raw bits
+    userio_write_control( USERIO_BASEADDR, temp_control );
+
+    // Write the display
+	userio_write_hexdisp_left(USERIO_BASEADDR, left_val);
+	userio_write_hexdisp_right(USERIO_BASEADDR, (right_val | right_dp));
+
+	pwm_val   = (right_val << 8) + left_val;
+
+	// Set the HW / SW control of the user io (raw mode w/ the new display value)
+    userio_write_control( USERIO_BASEADDR, ( temp_control | pwm_val ) );
+
+    // Set the pins that are using PWM mode
+	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, pwm_val);
+}
+
 /**
  * @brief Poll for IPC Receptions
  *
@@ -584,6 +655,18 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			}
 
 
+		break;
+
+		case IPC_MBOX_TOGGLE_HOPPING:
+			hop_seq_toggle();
+		break;
+
+		case IPC_MBOX_CONFIG_HOPPING:
+			if(ipc_msg_from_high_payload[0]){
+				enable_hopping_callback(); //TODO make callback
+			} else {
+				disable_hopping_callback(); //TODO make callback
+			}
 		break;
 
 		case IPC_MBOX_LOW_RANDOM_SEED:
@@ -1003,6 +1086,20 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
 	frame_rx_callback = callback;
 }
+
+inline void wlan_mac_low_set_enable_hopping_callback(function_ptr_t callback){
+	enable_hopping_callback = callback;
+}
+
+inline void wlan_mac_low_set_disable_hopping_callback(function_ptr_t callback){
+	disable_hopping_callback = callback;
+}
+
+inline void wlan_mac_low_set_hop_seq_toggle(function_ptr_t callback){
+	hop_seq_toggle = callback;
+}
+
+
 
 /**
  * @brief Set Frame Transmission Callback
