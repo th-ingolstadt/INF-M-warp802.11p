@@ -173,7 +173,7 @@ u8 hop_vec2[HOP_SEQ_LEN] = {3, 1, 5, 10, 4, 10, 2, 4, 5, 3, 9, 3, 10, 4, 3, 8, 1
 		9, 2, 10, 5};
 
 u8* hop_vec;
-#define TS_USEC_SHIFT 11
+#define TS_USEC_SHIFT 12
 
 static u8 enable_hop;
 
