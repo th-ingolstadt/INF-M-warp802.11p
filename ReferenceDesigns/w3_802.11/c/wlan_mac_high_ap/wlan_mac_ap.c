@@ -62,6 +62,12 @@
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
 
+// 0 - No hop
+// 1 - Slow hop
+// 2 - Fast hop
+u8 HOP_MODE;
+#define HOP_INTERVAL_NUM_TBTT 100
+
 /*********************** Global Variable Definitions *************************/
 
 
@@ -123,6 +129,7 @@ int main(){
 	u8 disallow_filter[6] = {0x00,0x00,0x00,0x00,0x00,0x00};
 	u8 disallow_mask[6]   = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
+	HOP_MODE = 0;
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
@@ -301,7 +308,11 @@ int main(){
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
-	enable_hopping();
+	if(HOP_MODE == 2){
+		enable_hopping();
+	} else {
+		disable_hopping();
+	}
 
 	while(1) {
 #ifdef USE_WARPNET_WLAN_EXP
@@ -571,7 +582,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
  * @return None
  */
 void up_button(){
-	toggle_hop_seq();
+	//toggle_hop_seq();
+	HOP_MODE = 1;
 	return;
 }
 
@@ -860,6 +872,12 @@ void beacon_transmit() {
  	u16 tx_length;
  	tx_queue_element*	curr_tx_queue_element;
  	tx_queue_buffer* 	curr_tx_queue_buffer;
+ 	mgmt_tag_template* 	mgmt_tag_ptr;
+
+ 	//8.4.2.21 of 802.11-2012
+ 	static u8 channel_switch_count = HOP_INTERVAL_NUM_TBTT;
+ 	static u8 next_chan = 1;
+
 
  	// Create a beacon
  	curr_tx_queue_element = queue_checkout();
@@ -875,6 +893,37 @@ void beacon_transmit() {
 			(void*)(curr_tx_queue_buffer->frame),
 			&tx_header_common,
 			my_bss_info);
+
+        if(HOP_MODE == 1){
+
+        	if(channel_switch_count == HOP_INTERVAL_NUM_TBTT){
+        		mac_param_chan = next_chan;
+        		my_bss_info->chan = mac_param_chan;
+        		wlan_mac_high_set_channel( mac_param_chan );
+
+        		next_chan = (rand()%11)+1;
+        		//next_chan = 1;
+        	}
+
+        	mgmt_tag_ptr = (mgmt_tag_template*) ( ((u8*)(curr_tx_queue_buffer->frame)) + (tx_length - WLAN_PHY_FCS_NBYTES) );
+        	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_CHANNEL_SWITCH_ANNOUNCEMENT;
+        	mgmt_tag_ptr->header.tag_length = 3;
+
+        	mgmt_tag_ptr->data[0] = 0; //Channel Switch Mode - 0: No restrictions on Tx, 1: Stations should wait until switch
+        	mgmt_tag_ptr->data[1] =  next_chan; //New Channel Number
+        	mgmt_tag_ptr->data[2] =  channel_switch_count; //Channel Switch Count
+
+        	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+
+        	tx_length = ((u8*)mgmt_tag_ptr - (u8*)((curr_tx_queue_buffer->frame))) + WLAN_PHY_FCS_NBYTES;
+
+        	if(channel_switch_count > 1){
+        		channel_switch_count--;
+        	} else {
+        		channel_switch_count = HOP_INTERVAL_NUM_TBTT;
+        	}
+
+        }
 
  		wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
  										curr_tx_queue_element,
