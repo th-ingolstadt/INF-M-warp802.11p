@@ -66,10 +66,6 @@ int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra);
 int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration);
 int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u16 duration);
 
-void enable_hopping();
-void toggle_hop_vec();
-void disable_hopping();
-inline int poll_hop();
 
 
 
