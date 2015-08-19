@@ -51,10 +51,6 @@ static u32                 	 ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS]
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
 static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
-static function_ptr_t        enable_hopping_callback;
-static function_ptr_t        disable_hopping_callback;
-static function_ptr_t		 hop_seq_toggle;
-
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
 //Note: this statically allocated space should be larger than the maximum number of attempts
@@ -120,8 +116,6 @@ int wlan_mac_low_init(u32 type){
 
 	frame_rx_callback	   = (function_ptr_t)nullCallback;
 	frame_tx_callback	   = (function_ptr_t)nullCallback;
-	enable_hopping_callback = (function_ptr_t)nullCallback;
-	disable_hopping_callback = (function_ptr_t)nullCallback;
 	ipc_low_param_callback = (function_ptr_t)nullCallback;
 
 	status = w3_node_init();
@@ -657,18 +651,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 		break;
 
-		case IPC_MBOX_TOGGLE_HOPPING:
-			hop_seq_toggle();
-		break;
-
-		case IPC_MBOX_CONFIG_HOPPING:
-			if(ipc_msg_from_high_payload[0]){
-				enable_hopping_callback(); //TODO make callback
-			} else {
-				disable_hopping_callback(); //TODO make callback
-			}
-		break;
-
 		case IPC_MBOX_LOW_RANDOM_SEED:
 			srand(ipc_msg_from_high_payload[0]);
 		break;
@@ -1086,20 +1068,6 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
 	frame_rx_callback = callback;
 }
-
-inline void wlan_mac_low_set_enable_hopping_callback(function_ptr_t callback){
-	enable_hopping_callback = callback;
-}
-
-inline void wlan_mac_low_set_disable_hopping_callback(function_ptr_t callback){
-	disable_hopping_callback = callback;
-}
-
-inline void wlan_mac_low_set_hop_seq_toggle(function_ptr_t callback){
-	hop_seq_toggle = callback;
-}
-
-
 
 /**
  * @brief Set Frame Transmission Callback
