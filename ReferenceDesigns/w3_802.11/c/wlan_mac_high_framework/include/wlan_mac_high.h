@@ -391,8 +391,6 @@ void               wlan_mac_high_ipc_rx();
 void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
 void               wlan_mac_high_set_srand( unsigned int seed );
 void               wlan_mac_high_set_channel( unsigned int mac_channel );
-void			   enable_hopping();
-void			   disable_hopping();
 void toggle_hop_seq();
 void               wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
 void               wlan_mac_high_set_tx_ctrl_pow( s8 pow );

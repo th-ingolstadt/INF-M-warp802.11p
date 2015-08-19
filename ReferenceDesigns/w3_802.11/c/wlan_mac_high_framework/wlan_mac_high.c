@@ -1930,52 +1930,6 @@ void wlan_mac_high_set_channel( unsigned int mac_channel ) {
 	}
 }
 
-
-void enable_hopping(){
-
-	wlan_ipc_msg       ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload = 1;
-
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_HOPPING);
-	ipc_msg_to_low.num_payload_words = 1;
-	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
-
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-
-}
-
-void disable_hopping(){
-
-	wlan_ipc_msg       ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload = 0;
-
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_HOPPING);
-	ipc_msg_to_low.num_payload_words = 1;
-	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
-
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-
-}
-
-void toggle_hop_seq(){
-
-	wlan_ipc_msg       ipc_msg_to_low;
-
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TOGGLE_HOPPING);
-	ipc_msg_to_low.num_payload_words = 0;
-
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-
-}
-
-
-
 /**
  * @brief Set Rx Antenna Mode
  *
