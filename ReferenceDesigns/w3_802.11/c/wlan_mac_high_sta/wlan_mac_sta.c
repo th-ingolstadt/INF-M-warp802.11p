@@ -112,7 +112,6 @@ volatile u8	                      allow_beacon_ts_update;            // Allow ti
 
 
 void up_button(){
-	toggle_hop_seq();
 }
 
 int main() {
@@ -279,7 +278,6 @@ int main() {
 	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
 		wlan_mac_sta_scan_and_join(access_point_ssid, 0);
 	}
-	disable_hopping();
 	while(1){
 #ifdef USE_WARPNET_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
@@ -1046,8 +1044,6 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
 	xil_printf("AID:   %d\n", aid);
 	xil_printf("BSSID: %02x-%02x-%02x-%02x-%02x-%02x\n", new_bss_info->bssid[0],new_bss_info->bssid[1],new_bss_info->bssid[2],new_bss_info->bssid[3],new_bss_info->bssid[4],new_bss_info->bssid[5]);
 	xil_printf("State: %d\n", new_bss_info->state);
-
-	enable_hopping();
 
 	// Disassociate from any currently associated APs
 	status = sta_disassociate();
