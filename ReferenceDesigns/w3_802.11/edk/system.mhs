@@ -1,7 +1,7 @@
 
 # Mango 802.11 Reference Design
 # XPS Hardware Specification (system.mhs)
-# Copyright 2014 Mango Communications
+# Copyright 2015 Mango Communications
 # Distributed under the Mango Research License:
 # http://mangocomm.com/802.11/license
  PARAMETER VERSION = 2.1.0
@@ -51,36 +51,43 @@
  PORT usb_uart_rx = usb_uart_rx, DIR = I
  PORT usb_uart_tx = usb_uart_tx, DIR = O
 # AD9512 clock buffer control pins (RF reference & sampling clocks)
- PORT clk_rfref_spi_cs_n_pin = clk_rfref_spi_cs_n, DIR = O
- PORT clk_rfref_spi_mosi_pin = clk_rfref_spi_mosi, DIR = O
- PORT clk_rfref_spi_sclk_pin = clk_rfref_spi_sclk, DIR = O
- PORT clk_rfref_spi_miso_pin = clk_rfref_spi_miso, DIR = I
- PORT clk_rfref_func_pin = net_vcc, DIR = O
- PORT clk_samp_spi_cs_n_pin = clk_samp_spi_cs_n, DIR = O
- PORT clk_samp_spi_mosi_pin = clk_samp_spi_mosi, DIR = O
- PORT clk_samp_spi_sclk_pin = clk_samp_spi_sclk, DIR = O
- PORT clk_samp_spi_miso_pin = clk_samp_spi_miso, DIR = I
- PORT clk_samp_func_pin = net_vcc, DIR = O
+ PORT clk_rfref_spi_cs_n = clk_rfref_spi_cs_n, DIR = O
+ PORT clk_rfref_spi_mosi = clk_rfref_spi_mosi, DIR = O
+ PORT clk_rfref_spi_sclk = clk_rfref_spi_sclk, DIR = O
+ PORT clk_rfref_spi_miso = clk_rfref_spi_miso, DIR = I
+ PORT clk_rfref_func = net_vcc, DIR = O
+ PORT clk_samp_spi_cs_n = clk_samp_spi_cs_n, DIR = O
+ PORT clk_samp_spi_mosi = clk_samp_spi_mosi, DIR = O
+ PORT clk_samp_spi_sclk = clk_samp_spi_sclk, DIR = O
+ PORT clk_samp_spi_miso = clk_samp_spi_miso, DIR = I
+ PORT clk_samp_func = net_vcc, DIR = O
+# CM-PLL pins
+ PORT cm_spi_sclk = cm_spi_sclk, DIR = O
+ PORT cm_spi_mosi = cm_spi_mosi, DIR = O
+ PORT cm_spi_miso = cm_spi_miso, DIR = I
+ PORT cm_spi_cs_n = cm_spi_cs_n, DIR = O
+ PORT cm_pll_status = cm_pll_status, DIR = I
+ PORT cm_switch = cm_switch, DIR = I, VEC = [2:0]
+ PORT pll_refclk_p = pll_refclk, DIR = I, DIFFERENTIAL_POLARITY = P, SIGIS = CLK, CLK_FREQ = 80000000
+ PORT pll_refclk_n = pll_refclk, DIR = I, DIFFERENTIAL_POLARITY = N, SIGIS = CLK, CLK_FREQ = 80000000
 # IIC EEPROM pins on-board
- PORT iic_eeprom_onboard_scl_pin = iic_eeprom_onboard_scl_pin, DIR = IO
- PORT iic_eeprom_onboard_sda_pin = iic_eeprom_onboard_sda_pin, DIR = IO
-# Switches on CM-MMCX for clock src selection (ok if CM-MMCX is not installed)
- PORT cm_mmcx_sw = cm_mmcx_sw, DIR = I, VEC = [0:1]
+ PORT iic_eeprom_onboard_scl = iic_eeprom_onboard_scl, DIR = IO
+ PORT iic_eeprom_onboard_sda = iic_eeprom_onboard_sda, DIR = IO
 # 80MHz sampling clock from AD9512
- PORT samp_clk_p_pin = ad_refclk_in, DIR = I, DIFFERENTIAL_POLARITY = P, SIGIS = CLK, CLK_FREQ = 80000000
- PORT samp_clk_n_pin = ad_refclk_in, DIR = I, DIFFERENTIAL_POLARITY = N, SIGIS = CLK, CLK_FREQ = 80000000
+ PORT samp_clk_p = ad_refclk_in, DIR = I, DIFFERENTIAL_POLARITY = P, SIGIS = CLK, CLK_FREQ = 80000000
+ PORT samp_clk_n = ad_refclk_in, DIR = I, DIFFERENTIAL_POLARITY = N, SIGIS = CLK, CLK_FREQ = 80000000
 # 200MHz LVDS oscillator input
- PORT osc200_p_pin = osc200_in, DIR = I, DIFFERENTIAL_POLARITY = P, SIGIS = CLK, CLK_FREQ = 200000000
- PORT osc200_n_pin = osc200_in, DIR = I, DIFFERENTIAL_POLARITY = N, SIGIS = CLK, CLK_FREQ = 200000000
+ PORT osc200_p = osc200_in, DIR = I, DIFFERENTIAL_POLARITY = P, SIGIS = CLK, CLK_FREQ = 200000000
+ PORT osc200_n = osc200_in, DIR = I, DIFFERENTIAL_POLARITY = N, SIGIS = CLK, CLK_FREQ = 200000000
 # AD9963 ADC/DAC control pins (RFA & RFB)
- PORT RFA_AD_spi_cs_n_pin = RFA_AD_spi_cs_n, DIR = O
+ PORT RFA_AD_spi_cs_n = RFA_AD_spi_cs_n, DIR = O
  PORT RFA_AD_spi_sdio = RFA_AD_spi_sdio, DIR = IO
- PORT RFA_AD_spi_sclk_pin = RFA_AD_spi_sclk, DIR = O
- PORT RFA_AD_reset_n_pin = RFA_AD_reset_n, DIR = O
- PORT RFB_AD_spi_cs_n_pin = RFB_AD_spi_cs_n, DIR = O
+ PORT RFA_AD_spi_sclk = RFA_AD_spi_sclk, DIR = O
+ PORT RFA_AD_reset_n = RFA_AD_reset_n, DIR = O
+ PORT RFB_AD_spi_cs_n = RFB_AD_spi_cs_n, DIR = O
  PORT RFB_AD_spi_sdio = RFB_AD_spi_sdio, DIR = IO
- PORT RFB_AD_spi_sclk_pin = RFB_AD_spi_sclk, DIR = O
- PORT RFB_AD_reset_n_pin = RFB_AD_reset_n, DIR = O
+ PORT RFB_AD_spi_sclk = RFB_AD_spi_sclk, DIR = O
+ PORT RFB_AD_reset_n = RFB_AD_reset_n, DIR = O
 # RFA AD pins
  PORT RFA_AD_TRXD = rfa_trxd, DIR = I, VEC = [11:0]
  PORT RFA_AD_TRXCLK = rfa_trxclk, DIR = I
@@ -101,31 +108,31 @@
  PORT RF_RSSI_CLK = wlan_rssi_clk, DIR = O
  PORT RF_RSSI_PD = net_gnd, DIR = O
 # RFA transceiver and front-end
- PORT RFA_TxEn_pin = RFA_TxEn, DIR = O
- PORT RFA_RxEn_pin = RFA_RxEn, DIR = O
- PORT RFA_RxHP_pin = RFA_RxHP, DIR = O
- PORT RFA_SHDN_pin = RFA_SHDN, DIR = O
- PORT RFA_SPI_SCLK_pin = RFA_SPI_SCLK, DIR = O
- PORT RFA_SPI_MOSI_pin = RFA_SPI_MOSI, DIR = O
- PORT RFA_SPI_CSn_pin = RFA_SPI_CSn, DIR = O
- PORT RFA_B_pin = RFA_B, DIR = O, VEC = [0:6]
- PORT RFA_LD_pin = RFA_LD, DIR = I
- PORT RFA_PAEn_24_pin = RFA_PAEn_24, DIR = O
- PORT RFA_PAEn_5_pin = RFA_PAEn_5, DIR = O
- PORT RFA_AntSw_pin = RFA_AntSw, DIR = O, VEC = [0:1]
+ PORT RFA_TxEn = RFA_TxEn, DIR = O
+ PORT RFA_RxEn = RFA_RxEn, DIR = O
+ PORT RFA_RxHP = RFA_RxHP, DIR = O
+ PORT RFA_SHDN = RFA_SHDN, DIR = O
+ PORT RFA_SPI_SCLK = RFA_SPI_SCLK, DIR = O
+ PORT RFA_SPI_MOSI = RFA_SPI_MOSI, DIR = O
+ PORT RFA_SPI_CSn = RFA_SPI_CSn, DIR = O
+ PORT RFA_B = RFA_B, DIR = O, VEC = [0:6]
+ PORT RFA_LD = RFA_LD, DIR = I
+ PORT RFA_PAEn_24 = RFA_PAEn_24, DIR = O
+ PORT RFA_PAEn_5 = RFA_PAEn_5, DIR = O
+ PORT RFA_AntSw = RFA_AntSw, DIR = O, VEC = [0:1]
 # RFB transceiver and front-end
- PORT RFB_TxEn_pin = RFB_TxEn, DIR = O
- PORT RFB_RxEn_pin = RFB_RxEn, DIR = O
- PORT RFB_RxHP_pin = RFB_RxHP, DIR = O
- PORT RFB_SHDN_pin = RFB_SHDN, DIR = O
- PORT RFB_SPI_SCLK_pin = RFB_SPI_SCLK, DIR = O
- PORT RFB_SPI_MOSI_pin = RFB_SPI_MOSI, DIR = O
- PORT RFB_SPI_CSn_pin = RFB_SPI_CSn, DIR = O
- PORT RFB_B_pin = RFB_B, DIR = O, VEC = [0:6]
- PORT RFB_LD_pin = RFB_LD, DIR = I
- PORT RFB_PAEn_24_pin = RFB_PAEn_24, DIR = O
- PORT RFB_PAEn_5_pin = RFB_PAEn_5, DIR = O
- PORT RFB_AntSw_pin = RFB_AntSw, DIR = O, VEC = [0:1]
+ PORT RFB_TxEn = RFB_TxEn, DIR = O
+ PORT RFB_RxEn = RFB_RxEn, DIR = O
+ PORT RFB_RxHP = RFB_RxHP, DIR = O
+ PORT RFB_SHDN = RFB_SHDN, DIR = O
+ PORT RFB_SPI_SCLK = RFB_SPI_SCLK, DIR = O
+ PORT RFB_SPI_MOSI = RFB_SPI_MOSI, DIR = O
+ PORT RFB_SPI_CSn = RFB_SPI_CSn, DIR = O
+ PORT RFB_B = RFB_B, DIR = O, VEC = [0:6]
+ PORT RFB_LD = RFB_LD, DIR = I
+ PORT RFB_PAEn_24 = RFB_PAEn_24, DIR = O
+ PORT RFB_PAEn_5 = RFB_PAEn_5, DIR = O
+ PORT RFB_AntSw = RFB_AntSw, DIR = O, VEC = [0:1]
 # DDR3 SODIMM
  PORT ddr3_sodimm_ck_p = ddr3_sodimm_ck_p, DIR = O, SIGIS = CLK, VEC = [1:0]
  PORT ddr3_sodimm_ck_n = ddr3_sodimm_ck_n, DIR = O, SIGIS = CLK, VEC = [1:0]
@@ -143,8 +150,8 @@
  PORT ddr3_sodimm_dqs_p = ddr3_sodimm_dqs_p, DIR = IO, VEC = [7:0]
  PORT ddr3_sodimm_dqs_n = ddr3_sodimm_dqs_n, DIR = IO, VEC = [7:0]
 # Debug pins
- PORT debughdr = dbg_gpio_b2 & dbg_gpio_b1 & dbg_gpio_b0 & mac_nav_active & mac_backoff_active & mac_idle_for_difs & dbg_mpdu_tx_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running, DIR = O, VEC = [14:0]
- PORT wlan_phy_rx_pkt_det_in_pin = net_wlan_phy_rx_pkt_det_in_pin, DIR = I
+ PORT debughdr = dbg_gpio_b2 & dbg_gpio_b1 & dbg_gpio_b0 & mac_nav_active & mac_backoff_active & mac_idle_for_difs & dbg_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running, DIR = O, VEC = [14:0]
+ PORT wlan_phy_rx_pkt_det_in = net_wlan_phy_rx_pkt_det_in, DIR = I
 
 
 BEGIN wlan_phy_tx_pmd_axiw
@@ -191,7 +198,7 @@ END
 
 BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 2.04.i
+ PARAMETER HW_VER = 3.00.f
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -203,7 +210,7 @@ BEGIN wlan_phy_rx_pmd_axiw
  BUS_INTERFACE S_AXI = mb_low_axi_periph
  PORT axi_aclk = clk_160MHz
  PORT sysgen_clk = clk_160MHz
- PORT pkt_det_in = net_wlan_phy_rx_pkt_det_in_pin
+ PORT pkt_det_in = net_wlan_phy_rx_pkt_det_in
  PORT rx_sigs_invalid = rx_sigs_invalid
  PORT adc_rx_clk = agc_iq_valid_out
  PORT rfa_rx_i = agc_rfa_i
@@ -229,9 +236,12 @@ BEGIN wlan_phy_rx_pmd_axiw
  PORT phy_rx_end_ind = mac_phy_rx_end_ind
  PORT phy_rx_end_rxerror = mac_phy_rx_end_rxerror
  PORT phy_rx_fcs_good_ind = mac_phy_rx_fcs_good_ind
+ PORT phy_rx_params_ind = mac_phy_rx_params_ind
+ PORT phy_rx_params_length = mac_phy_rx_params_length
+ PORT phy_rx_params_mcs = mac_phy_rx_params_mcs
+ PORT phy_rx_params_phy_mode = mac_phy_rx_params_phy_mode
+ PORT phy_rx_params_unsupported = mac_phy_rx_params_unsupported
  PORT phy_rx_start_ind = mac_phy_rx_start_ind
- PORT phy_rx_start_sig_length = mac_phy_rx_start_sig_length
- PORT phy_rx_start_sig_rate = phy_rx_start_sig_rate
  PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
 # Debug ports
  PORT dbg_dsss_rx_active = dbg_dsss_rx_active
@@ -244,9 +254,9 @@ BEGIN wlan_phy_rx_pmd_axiw
  PORT dbg_signal_err_disp = dbg_signal_err_disp
 END
 
-BEGIN wlan_mac_dcf_hw_axiw
- PARAMETER INSTANCE = wlan_mac_dcf_hw
- PARAMETER HW_VER = 1.01.f
+BEGIN wlan_mac_hw_axiw
+ PARAMETER INSTANCE = wlan_mac_hw
+ PARAMETER HW_VER = 2.00.a
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -266,7 +276,12 @@ BEGIN wlan_mac_dcf_hw_axiw
  PORT phy_rx_end_rxerror = mac_phy_rx_end_rxerror
  PORT phy_rx_fcs_good_ind = mac_phy_rx_fcs_good_ind
  PORT phy_rx_start_ind = mac_phy_rx_start_ind
- PORT phy_rx_start_sig_length = mac_phy_rx_start_sig_length
+ PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
+ PORT phy_rx_params_ind = mac_phy_rx_params_ind
+ PORT phy_rx_params_length = mac_phy_rx_params_length
+ PORT phy_rx_params_mcs = mac_phy_rx_params_mcs
+ PORT phy_rx_params_phy_mode = mac_phy_rx_params_phy_mode
+ PORT phy_rx_params_unsupported = mac_phy_rx_params_unsupported
  PORT phy_tx_done = mac_phy_tx_done
  PORT phy_tx_started = mac_phy_tx_started
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
@@ -274,8 +289,6 @@ BEGIN wlan_mac_dcf_hw_axiw
  PORT phy_tx_gain_a = mac_phy_tx_gain_a
  PORT phy_tx_gain_b = mac_phy_tx_gain_b
  PORT phy_tx_ant_mask = mac_phy_tx_ant_mask
- PORT phy_rx_start_sig_rate = phy_rx_start_sig_rate
- PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
  PORT phy_rx_block_pktdet = phy_rx_block_pktdet
  PORT timestamp_lsb = mac_hw_timestamp_lsb
  PORT timestamp_msb = mac_hw_timestamp_msb
@@ -284,7 +297,7 @@ BEGIN wlan_mac_dcf_hw_axiw
  PORT dbg_backoff_active = mac_backoff_active
  PORT dbg_idle_for_difs = mac_idle_for_difs
  PORT dbg_nav_active = mac_nav_active
- PORT dbg_mpdu_tx_pending = dbg_mpdu_tx_pending
+ PORT dbg_tx_a_pending = dbg_tx_a_pending
 END
 
 BEGIN wlan_agc_axiw
@@ -327,7 +340,7 @@ END
 
 BEGIN w3_iic_eeprom_axi
  PARAMETER INSTANCE = w3_iic_eeprom_onBoard
- PARAMETER HW_VER = 1.00.b
+ PARAMETER HW_VER = 1.01.a
  PARAMETER C_BASEADDR = 0x70400000
  PARAMETER C_HIGHADDR = 0x7040ffff
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
@@ -337,13 +350,17 @@ BEGIN w3_iic_eeprom_axi
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 7
  BUS_INTERFACE S_AXI = mb_low_axi_periph
  PORT S_AXI_ACLK = clk_160MHz
- PORT iic_scl = iic_eeprom_onboard_scl_pin
- PORT iic_sda = iic_eeprom_onboard_sda_pin
+ PORT iic_scl_I = axi_iic_eeprom_scl_I
+ PORT iic_scl_O = axi_iic_eeprom_scl_O
+ PORT iic_scl_T = axi_iic_eeprom_scl_T
+ PORT iic_sda_I = axi_iic_eeprom_sda_I
+ PORT iic_sda_O = axi_iic_eeprom_sda_O
+ PORT iic_sda_T = axi_iic_eeprom_sda_T
 END
 
 BEGIN w3_clock_controller_axi
  PARAMETER INSTANCE = w3_clock_controller_0
- PARAMETER HW_VER = 3.01.b
+ PARAMETER HW_VER = 4.00.a
  PARAMETER C_DPHASE_TIMEOUT = 0
  PARAMETER C_BASEADDR = 0x70420000
  PARAMETER C_HIGHADDR = 0x7042ffff
@@ -354,19 +371,35 @@ BEGIN w3_clock_controller_axi
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 7
  BUS_INTERFACE S_AXI = mb_low_axi_periph
  PORT S_AXI_ACLK = clk_160MHz
- PORT rfref_spi_cs_n = clk_rfref_spi_cs_n
  PORT samp_spi_cs_n = clk_samp_spi_cs_n
  PORT samp_spi_mosi = clk_samp_spi_mosi
- PORT rfref_spi_mosi = clk_rfref_spi_mosi
- PORT samp_spi_sclk = clk_samp_spi_sclk
- PORT rfref_spi_sclk = clk_rfref_spi_sclk
  PORT samp_spi_miso = clk_samp_spi_miso
+ PORT samp_spi_sclk = clk_samp_spi_sclk
+ PORT samp_func = samp_func
+ PORT rfref_spi_cs_n = clk_rfref_spi_cs_n
+ PORT rfref_spi_mosi = clk_rfref_spi_mosi
  PORT rfref_spi_miso = clk_rfref_spi_miso
+ PORT rfref_spi_sclk = clk_rfref_spi_sclk
+ PORT rfref_func = rfref_func
+ PORT cm_spi_cs_n = cm_spi_cs_n
+ PORT cm_spi_mosi = cm_spi_mosi
+ PORT cm_spi_miso = cm_spi_miso
+ PORT cm_spi_sclk = cm_spi_sclk
+ PORT cm_pll_status = cm_pll_status
+ PORT pll_refclk = pll_refclk
  PORT usr_status = net_gnd
  PORT at_boot_clk_in = clk_200MHz
  PORT at_boot_clk_in_valid = clk_gen_async_clks_locked
- PORT at_boot_config_sw = cm_mmcx_sw
+ PORT at_boot_config_sw = cm_switch
  PORT at_boot_clkbuf_clocks_invalid = mmcm_inputs_invalid
+# Communication ports
+ PORT uart_tx = clk_cfg_uart_tx
+ PORT iic_eeprom_scl_I = clk_cfg_iic_eeprom_scl_I
+ PORT iic_eeprom_scl_T = clk_cfg_iic_eeprom_scl_T
+ PORT iic_eeprom_scl_O = clk_cfg_iic_eeprom_scl_O
+ PORT iic_eeprom_sda_I = clk_cfg_iic_eeprom_sda_I
+ PORT iic_eeprom_sda_T = clk_cfg_iic_eeprom_sda_T
+ PORT iic_eeprom_sda_O = clk_cfg_iic_eeprom_sda_O
 END
 
 BEGIN w3_ad_controller_axi
@@ -429,7 +462,7 @@ BEGIN uart_mux
  PARAMETER HW_VER = 1.00.a
  PARAMETER MIRROR_UART_RX = 0
  PORT uart_sel = userio_dipsw_b3
- PORT uart_tx = usb_uart_tx
+ PORT uart_tx = mb_uart_mux_tx
  PORT uart_rx = usb_uart_rx
  PORT uart_0_tx = mb_low_uart_TX
  PORT uart_0_rx = mb_low_uart_RX
@@ -753,6 +786,7 @@ BEGIN microblaze
  PARAMETER C_DCACHE_HIGHADDR = 0xffffffff
  PARAMETER C_DCACHE_ALWAYS_USED = 1
  PARAMETER C_USE_STACK_PROTECTION = 1
+ PARAMETER C_USE_DIV = 1
  BUS_INTERFACE M_AXI_DC = mb_shared_axi
  BUS_INTERFACE M_AXI_DP = mb_low_axi_periph
  BUS_INTERFACE DEBUG = mb_low_debug
@@ -1428,5 +1462,34 @@ BEGIN axi_sysmon_adc
  PORT VAUXP = net_gnd
  PORT VAUXN = net_gnd
  PORT CONVST = net_gnd
+END
+
+BEGIN w3_boot_io_mux
+ PARAMETER INSTANCE = boot_io_mux
+ PARAMETER HW_VER = 1.00.a
+# Mux Control
+ PORT iic_sel_a = mmcm_inputs_invalid
+ PORT uart_sel_a = mmcm_inputs_invalid
+# IOBs
+ PORT iic_scl = iic_eeprom_onboard_scl
+ PORT iic_sda = iic_eeprom_onboard_sda
+ PORT uart_tx = usb_uart_tx
+# IIC Port A
+ PORT iic_scl_I_a = clk_cfg_iic_eeprom_scl_I
+ PORT iic_scl_O_a = clk_cfg_iic_eeprom_scl_O
+ PORT iic_scl_T_a = clk_cfg_iic_eeprom_scl_T
+ PORT iic_sda_I_a = clk_cfg_iic_eeprom_sda_I
+ PORT iic_sda_O_a = clk_cfg_iic_eeprom_sda_O
+ PORT iic_sda_T_a = clk_cfg_iic_eeprom_sda_T
+# IIC Port B
+ PORT iic_scl_I_b = axi_iic_eeprom_scl_I
+ PORT iic_scl_O_b = axi_iic_eeprom_scl_O
+ PORT iic_scl_T_b = axi_iic_eeprom_scl_T
+ PORT iic_sda_I_b = axi_iic_eeprom_sda_I
+ PORT iic_sda_O_b = axi_iic_eeprom_sda_O
+ PORT iic_sda_T_b = axi_iic_eeprom_sda_T
+# UART Ports
+ PORT uart_tx_a = clk_cfg_uart_tx
+ PORT uart_tx_b = mb_uart_mux_tx
 END
 
