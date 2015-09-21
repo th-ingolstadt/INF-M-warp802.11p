@@ -72,7 +72,6 @@ const  u8                    bcast_addr[6]        = { 0xFF, 0xFF, 0xFF, 0xFF, 0x
 volatile static u32          max_num_associations = WLAN_MAC_HIGH_MAX_ASSOCIATONS;
 
 // HW structures
-static XGpio                 Gpio_timestamp;               ///< GPIO instance used for 64-bit usec timestamp
 static XGpio                 Gpio;                         ///< General-purpose GPIO instance
 XIntc       	             InterruptController;          ///< Interrupt Controller instance
 XUartLite                    UartLite;                     ///< UART Device instance
@@ -306,11 +305,6 @@ void wlan_mac_high_init(){
 
 	// Initialize the GPIO driver
 	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
-
-	// Initialize GPIO timestamp
-	XGpio_Initialize(&Gpio_timestamp, TIMESTAMP_GPIO_DEVICE_ID);
-	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_LSB_CHAN, 0xFFFFFFFF);
-	XGpio_SetDataDirection(&Gpio_timestamp, TIMESTAMP_GPIO_MSB_CHAN, 0xFFFFFFFF);
 
 	if (Status != XST_SUCCESS) {
 		warp_printf(PL_ERROR, "Error initializing GPIO\n");
@@ -872,21 +866,24 @@ void wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback){
  *
  */
 u64 get_usec_timestamp(){
+	//The MAC time core register interface is only 32-bit, so the 64-bit timestamp
+	// is read from two 32-bit registers and reconstructed here.
+
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
 
-	timestamp_high_u32 = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_MSB_CHAN);
-	timestamp_low_u32  = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_LSB_CHAN);
+	timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
+	timestamp_low_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
 
 	//Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
-	if( (timestamp_high_u32 & 0x1) != (XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_MSB_CHAN) & 0x1) ) {
+	if( (timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB) & 0x1) ) {
 		//32-LSB wrapped - start over
-		timestamp_high_u32 = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_MSB_CHAN);
-		timestamp_low_u32  = XGpio_DiscreteRead(&Gpio_timestamp,TIMESTAMP_GPIO_LSB_CHAN);
+		timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
+		timestamp_low_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
 	}
 
-	timestamp_u64      = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
 
 	return timestamp_u64;
 }

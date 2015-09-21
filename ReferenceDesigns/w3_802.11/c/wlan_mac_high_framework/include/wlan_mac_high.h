@@ -29,13 +29,7 @@
 
 #define INTC_DEVICE_ID                      XPAR_INTC_0_DEVICE_ID					///< XParameters rename of interrupt controller device ID
 #define ETH_A_MAC_DEVICE_ID                 XPAR_ETH_A_MAC_DEVICE_ID                ///< XParameters rename for ETH A
-#define TIMESTAMP_GPIO_DEVICE_ID            XPAR_MB_HIGH_TIMESTAMP_GPIO_DEVICE_ID   ///< XParameters rename for GPIO used as usec timestamp
 #define UARTLITE_DEVICE_ID                  XPAR_UARTLITE_0_DEVICE_ID               ///< XParameters rename for UART
-
-#define TIMESTAMP_GPIO_LSB_CHAN             1                                       ///< GPIO channel used for lower 32 bits of 64-bit timestamp
-#define TIMESTAMP_GPIO_MSB_CHAN             2                                       ///< GPIO channel used for upper 32 bits of 64-bit timestamp
-
-
 
 // Aux. BRAM and DRAM Memory Map
 
