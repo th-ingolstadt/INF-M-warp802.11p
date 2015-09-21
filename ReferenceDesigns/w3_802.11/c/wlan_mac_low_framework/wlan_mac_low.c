@@ -125,9 +125,6 @@ int wlan_mac_low_init(u32 type){
 		return -1;
 	}
 
-	// TODO: This value should offset forward to the time when the timestamp bytes in the beacon are transmitter
-	wlan_mac_set_timestamp_offset(0);
-
 	//Disable timestamp insertion by default (start>end == disabled)
 	wlan_phy_tx_timestamp_ins_start(1);
 	wlan_phy_tx_timestamp_ins_end(0);
@@ -535,10 +532,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 							cw_exp_max = ipc_msg_from_high_payload[1];
 						break;
 
-						case LOW_PARAM_TIMESTAMP_OFFSET:
-							wlan_mac_set_timestamp_offset((s32)(ipc_msg_from_high_payload[1]));
-						break;
-
 						case LOW_PARAM_BB_GAIN:
 							if(ipc_msg_from_high_payload[1] <= 3){
 								radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, ipc_msg_from_high_payload[1]);
@@ -605,12 +598,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 						break;
 						case LOW_PARAM_CW_EXP_MAX:
 							temp1 = cw_exp_max;
-
-							ipc_msg_to_high.num_payload_words = 1;
-							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
-						break;
-						case LOW_PARAM_TIMESTAMP_OFFSET:
-							temp1 = Xil_In32(WLAN_MAC_REG_SET_TIMESTAMP_OFFSET);
 
 							ipc_msg_to_high.num_payload_words = 1;
 							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
@@ -776,7 +763,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 					//First, calculate what the value should be
 
-					*((u64*)( (TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET + 24)) ) = (u64) ( (u64)get_tx_start_timestamp() + (s64)wlan_mac_get_timestamp_offset() );
+					*((u64*)( (TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET + 24)) ) = (u64)get_tx_start_timestamp();
 				}
 
 				//Record the total time this MPDU spent in the Tx state machine
@@ -832,12 +819,12 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
  * @return None
  */
 void wlan_mac_low_set_time(u64 new_time) {
-	Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_LSB, (u32)new_time);
-	Xil_Out32(WLAN_MAC_REG_SET_TIMESTAMP_MSB, (u32)(new_time>>32));
+	Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_LSB, (u32)new_time);
+	Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_MSB, (u32)(new_time>>32));
 
-	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
-	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
-	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP));
+	Xil_Out32(WLAN_MAC_TIME_REG_CONTROL, (Xil_In32(WLAN_MAC_TIME_REG_CONTROL) & ~WLAN_MAC_TIME_CTRL_REG_UPDATE_MAC_TIME));
+	Xil_Out32(WLAN_MAC_TIME_REG_CONTROL, (Xil_In32(WLAN_MAC_TIME_REG_CONTROL) | WLAN_MAC_TIME_CTRL_REG_UPDATE_MAC_TIME));
+	Xil_Out32(WLAN_MAC_TIME_REG_CONTROL, (Xil_In32(WLAN_MAC_TIME_REG_CONTROL) & ~WLAN_MAC_TIME_CTRL_REG_UPDATE_MAC_TIME));
 }
 
 
@@ -1170,21 +1157,21 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
  */
 inline u64 get_usec_timestamp(){
 
-	//The MAC core register interface is only 32-bit, so the 64-bit timestamp
+	//The MAC time core register interface is only 32-bit, so the 64-bit timestamp
 	// is read from two 32-bit registers and reconstructed here.
 
 	u32 timestamp_high_u32;
 	u32 timestamp_low_u32;
 	u64 timestamp_u64;
 
-	timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_MSB);
-	timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_LSB);
+	timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
+	timestamp_low_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
 
 	//Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
-	if( (timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_REG_TIMESTAMP_MSB) & 0x1) ) {
+	if( (timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB) & 0x1) ) {
 		//32-LSB wrapped - start over
-		timestamp_high_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_MSB);
-		timestamp_low_u32 = Xil_In32(WLAN_MAC_REG_TIMESTAMP_LSB);
+		timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
+		timestamp_low_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
 	}
 
 	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
