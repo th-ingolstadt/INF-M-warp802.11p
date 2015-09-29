@@ -24,7 +24,7 @@ Functions (see below for more information):
     WnNodeFactory() -- Base class for creating WARPNet nodes
 
 Integer constants:
-    NODE_TYPE, NODE_ID, NODE_HW_GEN, NODE_DESIGN_VER, NODE_SERIAL_NUM, 
+    NODE_TYPE, NODE_ID, NODE_HW_GEN, NODE_SERIAL_NUM, 
       NODE_FPGA_DNA -- Node hardware parameter constants 
 
 If additional hardware parameters are needed for sub-classes of WnNode, please
@@ -45,9 +45,8 @@ __all__ = ['WnNode', 'WnNodeFactory']
 NODE_TYPE               = 0
 NODE_ID                 = 1
 NODE_HW_GEN             = 2
-NODE_DESIGN_VER         = 3
+NODE_SERIAL_NUM         = 3
 NODE_FPGA_DNA           = 4
-NODE_SERIAL_NUM         = 5
 
 
 
@@ -303,17 +302,6 @@ class WnNode(object):
                 self.hw_ver = (values[0] & 0xFF)
             else:
                 raise wn_ex.ParameterError("NODE_HW_GEN", "Incorrect length")
-
-        elif (identifier == NODE_DESIGN_VER):
-            if (length == 1):                
-                self.wn_ver_major = (values[0] & 0xFF000000) >> 24
-                self.wn_ver_minor = (values[0] & 0x00FF0000) >> 16
-                self.wn_ver_revision = (values[0] & 0x0000FFFF)                
-                
-                # Check to see if there is a version mismatch
-                self.check_wn_ver()
-            else:
-                raise wn_ex.ParameterError("NODE_DESIGN_VER", "Incorrect length")
 
         elif (identifier == NODE_SERIAL_NUM):
             if (length == 1):

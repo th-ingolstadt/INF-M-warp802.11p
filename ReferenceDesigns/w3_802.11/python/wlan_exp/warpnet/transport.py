@@ -41,9 +41,9 @@ __all__ = ['Transport']
 TRANSPORT_TYPE          = 0
 TRANSPORT_HW_ADDR       = 1
 TRANSPORT_IP_ADDR       = 2
-TRANSPORT_UNICAST_PORT  = 3
-TRANSPORT_BCAST_PORT    = 4
-TRANSPORT_GRP_ID        = 5
+TRANSPORT_GRP_ID        = 3
+TRANSPORT_UNICAST_PORT  = 4
+TRANSPORT_BCAST_PORT    = 5
 
 # WARPNet Transport response types
 TRANSPORT_NO_RESP       = 0

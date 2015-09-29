@@ -257,6 +257,12 @@ class TransportEthUdp(tp.Transport):
             else:
                 raise wn_ex.ParameterError("TRANSPORT_IP_ADDR", "Incorrect length")
                 
+        elif (identifier == tp.TRANSPORT_GRP_ID):
+            if (length == 1):
+                self.group_id = values[0]
+            else:
+                raise wn_ex.ParameterError("TRANSPORT_GRP_ID", "Incorrect length")
+                
         elif (identifier == tp.TRANSPORT_UNICAST_PORT):
             if (length == 1):
                 self.unicast_port = values[0]
@@ -268,12 +274,6 @@ class TransportEthUdp(tp.Transport):
                 self.bcast_port = values[0]
             else:
                 raise wn_ex.ParameterError("TRANSPORT_BCAST_PORT", "Incorrect length")
-                
-        elif (identifier == tp.TRANSPORT_GRP_ID):
-            if (length == 1):
-                self.group_id = values[0]
-            else:
-                raise wn_ex.ParameterError("TRANSPORT_GRP_ID", "Incorrect length")
                 
         else:
             raise wn_ex.ParameterError(identifier, "Unknown transport parameter")

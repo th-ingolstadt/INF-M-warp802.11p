@@ -41,9 +41,9 @@ if sys.version[0]=="3": long=None
 # If additional hardware parameters are needed for sub-classes of WlanExpNode, 
 # please make sure that the values of these hardware parameters are not reused.
 #
-NODE_WLAN_EXP_DESIGN_VER               = 6
-NODE_WLAN_MAC_ADDR                     = 7
-NODE_WLAN_SCHEDULER_RESOLUTION         = 8
+NODE_WLAN_EXP_VERSION                  = 5
+NODE_WLAN_MAC_ADDR                     = 6
+NODE_WLAN_SCHEDULER_RESOLUTION         = 7
 
 
 class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
@@ -158,7 +158,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         
         
         .. note:: There is no guarentee that this will return data aligned to 
-           event boundaries.  Use llog_get_indexes() to get event aligned boundaries.
+           event boundaries.  Use log_get_indexes() to get event aligned boundaries.
         
         .. note:: Log reads are not destructive.  Log entries will only be
            destroyed by a log reset or if the log wraps.
@@ -1720,7 +1720,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     #-------------------------------------------------------------------------
     def process_parameter(self, identifier, length, values):
         """Extract values from the parameters"""
-        if (identifier == NODE_WLAN_EXP_DESIGN_VER):
+        if (identifier == NODE_WLAN_EXP_VERSION):
             if (length == 1):                
                 self.wlan_exp_ver_major = (values[0] & 0xFF000000) >> 24
                 self.wlan_exp_ver_minor = (values[0] & 0x00FF0000) >> 16

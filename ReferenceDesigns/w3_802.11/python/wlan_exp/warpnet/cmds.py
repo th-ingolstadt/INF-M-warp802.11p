@@ -89,11 +89,9 @@ CMDID_NODE_TEMPERATURE                           = 0x000005
 # WARPNet Transport Command IDs
 #   NOTE:  The C counterparts are found in *_transport.h
 CMDID_PING                                       = 0x000001
-CMDID_IP                                         = 0x000002
-CMDID_PORT                                       = 0x000003
-CMDID_PAYLOAD_SIZE_TEST                          = 0x000004
-CMDID_NODE_GRPID_ADD                             = 0x000005
-CMDID_NODE_GRPID_CLEAR                           = 0x000006
+CMDID_PAYLOAD_SIZE_TEST                          = 0x000002
+CMDID_NODE_GRPID_ADD                             = 0x000100
+CMDID_NODE_GRPID_CLEAR                           = 0x000101
 
 
 # Local Constants

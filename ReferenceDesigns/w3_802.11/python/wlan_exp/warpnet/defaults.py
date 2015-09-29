@@ -43,7 +43,7 @@ HOST_ID                           = 250
 UNICAST_PORT                      = 9500
 BCAST_PORT                        = 9750
 TRANSPORT_TYPE                    = 'python'
-JUMBO_FRAME_SUPPORT               = False
+JUMBO_FRAME_SUPPORT               = True
 TX_BUFFER_SIZE                    = 2**22
 RX_BUFFER_SIZE                    = 2**22
 

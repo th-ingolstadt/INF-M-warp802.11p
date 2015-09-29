@@ -876,7 +876,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_node_info.description = 'Details about the node hardware and its configuration. Node info values are static after boot.'
 
     _node_info_node_types =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
-    _node_info_node_types += ' b0: Always 0x00\n'
+    _node_info_node_types += ' b0: WARP hardware generation:  3 for WARP v3\n'
     _node_info_node_types += ' b1: Always 0x01 for 802.11 ref design nodes\n'
     _node_info_node_types += ' b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS\n'
     _node_info_node_types += ' b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC'
@@ -886,10 +886,9 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('node_type',              'I',      'uint32',  _node_info_node_types),
         ('node_id',                'I',      'uint32',  'Node ID, as set during wlan_exp init'),
         ('hw_generation',          'I',      'uint32',  'WARP hardware generation: 3 for WARP v3'),
-        ('wn_ver',                 'I',      'uint32',  'WARPnet version, as packed bytes [0 major minor rev]'),
-        ('fpga_dna',               'Q',      'uint64',  'DNA value of node FPGA'),
+        ('version',                'I',      'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
         ('serial_num',             'I',      'uint32',  'Serial number of WARP board'),
-        ('wlan_exp_ver',           'I',      'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
+        ('fpga_dna',               'Q',      'uint64',  'DNA value of node FPGA'),
         ('wlan_mac_addr',          'Q',      'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
         ('wlan_scheduler_resolution', 'I',   'uint32',  'Minimum interval in microseconds of the WLAN scheduler')])
 
