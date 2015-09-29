@@ -66,7 +66,7 @@
 #define ACTIVE_SCAN_UPDATE_RATE		  5000000
 
 // WLAN Exp defines
-#define  WLAN_EXP_STREAM_ASSOC_CHANGE            WN_NO_TRANSMIT
+#define  WLAN_EXP_STREAM_ASSOC_CHANGE            WLAN_EXP_NO_TRANSMIT
 
 /*************************** Function Prototypes *****************************/
 int main();

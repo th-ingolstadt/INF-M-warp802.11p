@@ -71,6 +71,18 @@ SECTIONS
    *(.gnu.linkonce.t.*)
 } > mb_high_ilmb_bram_cntlr_0_mb_high_dlmb_bram_cntlr_0
 
+/* NOTE:  The CPU High data section is located in DDR, which
+ *   cannot be loaded by the SDK.  Therefore, we inlucde the
+ *   (NOLOAD) directive for this section.  However, this means
+ *   that the initial value of the section will be random 
+ *   (ie whatever was last in DDR).  Therefore, this section
+ *   must be initialized by the CPU on boot to zero to assume
+ *   an initial value of zero.
+ */
+.cpu_high_data (NOLOAD) : {
+   *(.eth_data)
+} > ddr3_sodimm_S_AXI_BASEADDR
+
 .init : {
    KEEP (*(.init))
 } > mb_high_ilmb_bram_cntlr_0_mb_high_dlmb_bram_cntlr_0
@@ -166,6 +178,7 @@ SECTIONS
    *(.sdata)
    *(.sdata.*)
    *(.gnu.linkonce.s.*)
+   . += 16;                  /* fix for linker false error message */
    __sdata_end = .;
 } > mb_high_ilmb_bram_cntlr_1_mb_high_dlmb_bram_cntlr_1
 

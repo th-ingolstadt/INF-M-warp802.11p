@@ -55,9 +55,8 @@
 
 /*************************** Constant Definitions ****************************/
 
-#define  WLAN_EXP_ETH                            WN_ETH_B
-#define  WLAN_EXP_NODE_TYPE                      (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_STA)
-#define  WLAN_EXP_TYPE_MASK                      (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
+#define  WLAN_EXP_ETH                            WARP_ETH_B
+#define  WLAN_EXP_NODE_TYPE                      (WARP_TYPE_DESIGN_80211 + WARP_TYPE_DESIGN_80211_CPU_HIGH_STA)
 
 #define  WLAN_DEFAULT_CHANNEL                    4
 #define  WLAN_DEFAULT_TX_PWR                     15
@@ -115,11 +114,10 @@ void up_button(){
 }
 
 int main() {
-	wlan_mac_hw_info *       hw_info;
-
 	// This list of channels will be used by the active scan state machine. The STA will scan
 	//  each channel looking for a network with the default SSID
-	//u8                       channel_selections[11] = {1,2,3,4,5,6,7,8,9,10,11}; //Scan only 2.4GHz channels
+	//
+	// u8                       channel_selections[11] = {1,2,3,4,5,6,7,8,9,10,11}; //Scan only 2.4GHz channels
 	u8                       channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48}; //Scan 2.4GHz and 5GHz channels
 
 	// Print initial message to UART
@@ -147,12 +145,12 @@ int main() {
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_36M;
+	default_unicast_data_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
+	default_unicast_data_tx_params.phy.rate                = WLAN_MAC_MCS_36M;
 	default_unicast_data_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_unicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
+	default_unicast_mgmt_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
+	default_unicast_mgmt_tx_params.phy.rate                = WLAN_MAC_MCS_6M;
 	default_unicast_mgmt_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
@@ -198,32 +196,38 @@ int main() {
 		xil_printf("waiting on CPU_LOW to boot\n");
 	};
 
-#ifdef USE_WARPNET_WLAN_EXP
+#ifdef USE_WLAN_EXP
+    u32                node_type;
+    wlan_mac_hw_info * hw_info;
+
     // NOTE:  To use the WLAN Experiments Framework, it must be initialized after
-	//        CPU low has populated the hw_info structure in the MAC High framework.
+    //        CPU low has populated the hw_info structure in the MAC High framework.
 
-	// Reset all callbacks
-	wlan_exp_reset_all_callbacks();
+    // Reset all callbacks
+    wlan_exp_reset_all_callbacks();
 
-	// Set WLAN Exp callbacks
-	wlan_exp_set_init_callback(                     (void *)wlan_exp_node_sta_init);
-	wlan_exp_set_process_callback(                  (void *)wlan_exp_node_sta_processCmd);
-	wlan_exp_set_reset_station_statistics_callback( (void *)reset_station_statistics);
-	wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
-	wlan_exp_set_reset_all_associations_callback(   (void *)reset_all_associations);
-	wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
-	//   - Currently no timebase adjust needed; Use wlan_exp_set_timebase_adjust_callback();
+    // Set WLAN Exp callbacks
+    wlan_exp_set_init_callback(                     (void *)wlan_exp_node_sta_init);
+    wlan_exp_set_node_process_cmd_callback(         (void *)wlan_exp_node_sta_process_cmd);
+    wlan_exp_set_reset_station_statistics_callback( (void *)reset_station_statistics);
+    wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
+    wlan_exp_set_reset_all_associations_callback(   (void *)reset_all_associations);
+    wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
+    //   - Currently no timebase adjust needed; Use wlan_exp_set_timebase_adjust_callback();
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the STA
 
-	// Configure the wlan_exp framework
-	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_TYPE_MASK, WLAN_EXP_ETH);
+    // Get the hardware info that has been collected from CPU low
+    hw_info = wlan_mac_high_get_hw_info();
 
-	// Get the hardware info that has been collected from CPU low
-	hw_info = wlan_mac_high_get_hw_info();
+    // Set the node type
+    node_type = WLAN_EXP_NODE_TYPE + hw_info->cpu_low_type;
 
-	// Initialize WLAN Exp
-	wlan_exp_node_init(hw_info->type, hw_info->serial_number, hw_info->fpga_dna,
-			           hw_info->wn_eth_device, hw_info->hw_addr_wn, hw_info->hw_addr_wlan);
+    // Configure the wlan_exp framework
+    wlan_exp_init(node_type, WLAN_EXP_ETH);
+
+    // Initialize WLAN Exp
+    wlan_exp_node_init(node_type, hw_info->serial_number, hw_info->fpga_dna,
+                       WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
 #endif
 
 	// CPU Low will pass HW information to CPU High as part of the boot process
@@ -259,6 +263,7 @@ int main() {
 	event_log_reset();
 
 	// Print Station information to the terminal
+    xil_printf("------------------------\n");
     xil_printf("WLAN MAC Station boot complete: \n");
     xil_printf("  Default SSID : %s \n", access_point_ssid);
     xil_printf("  Channel      : %d \n", mac_param_chan);
@@ -279,11 +284,11 @@ int main() {
 		wlan_mac_sta_scan_and_join(access_point_ssid, 0);
 	}
 	while(1){
-#ifdef USE_WARPNET_WLAN_EXP
+#ifdef USE_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
 		//     transport are required to service new commands. All other node activity (wired/wireless Tx/Rx,
 		//     scheduled events, user interaction, etc) are handled via interrupt service routines
-		transport_poll( WLAN_EXP_ETH );
+		transport_poll(WLAN_EXP_ETH);
 #endif
 	}
 
@@ -785,9 +790,11 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	// Currently, asynchronous transmission of log entries is not supported
 	//
+#ifdef USE_WLAN_EXP
 	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_MCS_1M)) {
-        wn_transmit_log_entry((void *)rx_event_log_entry);
+        wlan_exp_transmit_log_entry((void *)rx_event_log_entry);
 	}
+#endif
 
     return;
 }
@@ -1090,7 +1097,7 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
  * @brief Write a Decimal Value to the Hex Display
  *
  * This function will write a decimal value to the board's two-digit hex displays.
- * For the STA, the display is right justified; WARPNet will indicate its connection
+ * For the STA, the display is right justified; WLAN Exp will indicate its connection
  * state using the right decimal point.
  *
  * @param u8 val
