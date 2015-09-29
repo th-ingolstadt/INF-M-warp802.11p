@@ -70,7 +70,7 @@
 #define LTG_ID_GRP_PYLD_RANDOM	  2
 
 // WLAN Exp defines
-#define  WLAN_EXP_STREAM_ASSOC_CHANGE            WN_TRANSMIT
+#define  WLAN_EXP_STREAM_ASSOC_CHANGE            WLAN_EXP_TRANSMIT
 
 
 typedef struct{

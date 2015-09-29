@@ -51,12 +51,11 @@
 
 
 /*************************** Constant Definitions ****************************/
-#define  WLAN_EXP_ETH                            WN_ETH_B
-#define  WLAN_EXP_NODE_TYPE                     (WARPNET_TYPE_80211_BASE + WARPNET_TYPE_80211_HIGH_AP)
-#define  WLAN_EXP_TYPE_MASK                     (WARPNET_TYPE_BASE_MASK + WARPNET_TYPE_80211_HIGH_MASK)
+#define  WLAN_EXP_ETH                            WARP_ETH_B
+#define  WLAN_EXP_NODE_TYPE                     (WARP_TYPE_DESIGN_80211 + WARP_TYPE_DESIGN_80211_CPU_HIGH_AP)
 
 #define  WLAN_DEFAULT_CHANNEL                    1
-#define  WLAN_DEFAULT_TX_PWR		             15
+#define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
 
@@ -68,7 +67,7 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char                       default_AP_SSID[] = "WARP-AP";
+static char                       default_AP_SSID[] = "WARP-AP-EJW";
 
 // Common TX header for 802.11 packets
 static mac_header_80211_common    tx_header_common;
@@ -119,7 +118,7 @@ u8   sevenSegmentMap(u8 x);
 /******************************** Functions **********************************/
 
 int main(){
-	wlan_mac_hw_info *hw_info;
+
 	u8 disallow_filter[6] = {0x00,0x00,0x00,0x00,0x00,0x00};
 	u8 disallow_mask[6]   = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
@@ -193,32 +192,38 @@ int main(){
 		xil_printf("waiting on CPU_LOW to boot\n");
 	}
 
-#ifdef USE_WARPNET_WLAN_EXP
+#ifdef USE_WLAN_EXP
+    u32                node_type;
+    wlan_mac_hw_info * hw_info;
+
     // NOTE:  To use the WLAN Experiments Framework, it must be initialized after
-	//        CPU low has populated the hw_info structure in the MAC High framework.
+    //        CPU low has populated the hw_info structure in the MAC High framework.
 
-	// Reset all callbacks
-	wlan_exp_reset_all_callbacks();
+    // Reset all callbacks
+    wlan_exp_reset_all_callbacks();
 
-	// Set WLAN Exp callbacks
-	//   - Currently no additional init needed; Use wlan_exp_set_init_callback();
-	wlan_exp_set_process_callback(                  (void *)wlan_exp_node_ap_processCmd);
-	wlan_exp_set_reset_station_statistics_callback( (void *)reset_station_statistics);
-	wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
-	wlan_exp_set_reset_all_associations_callback(   (void *)reset_all_associations);
-	wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
-	wlan_exp_set_timebase_adjust_callback(          (void *)association_timestamp_adjust);
+    // Set WLAN Exp callbacks
+    wlan_exp_set_init_callback(                    (void *) wlan_exp_node_ap_init);
+    wlan_exp_set_node_process_cmd_callback(        (void *) wlan_exp_node_ap_process_cmd);
+    wlan_exp_set_reset_station_statistics_callback((void *) reset_station_statistics);
+    wlan_exp_set_purge_all_data_tx_queue_callback( (void *) purge_all_data_tx_queue);
+    wlan_exp_set_reset_all_associations_callback(  (void *) reset_all_associations);
+    wlan_exp_set_reset_bss_info_callback(          (void *) reset_bss_info);
+    wlan_exp_set_timebase_adjust_callback(         (void *) association_timestamp_adjust);
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the AP
 
-	// Configure the wlan_exp framework
-	wlan_exp_configure(WLAN_EXP_NODE_TYPE, WLAN_EXP_TYPE_MASK, WLAN_EXP_ETH);
+    // Get the hardware info that has been collected from CPU low
+    hw_info = wlan_mac_high_get_hw_info();
 
-	// Get the hardware info that has been collected from CPU low
-	hw_info = wlan_mac_high_get_hw_info();
+    // Set the node type
+    node_type = WLAN_EXP_NODE_TYPE + hw_info->cpu_low_type;
 
-	// Initialize WLAN Exp
-	wlan_exp_node_init(hw_info->type, hw_info->serial_number, hw_info->fpga_dna,
-			           hw_info->wn_eth_device, hw_info->hw_addr_wn, hw_info->hw_addr_wlan);
+    // Configure the wlan_exp framework
+    wlan_exp_init(node_type, WLAN_EXP_ETH);
+
+    // Initialize WLAN Exp
+    wlan_exp_node_init(node_type, hw_info->serial_number, hw_info->fpga_dna,
+                       WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
 #endif
 
 
@@ -287,7 +292,8 @@ int main(){
 	}
 
 
-	// Print AP information to the terminal
+    // Print AP information to the terminal
+    xil_printf("------------------------\n");
     xil_printf("WLAN MAC AP boot complete: \n");
     xil_printf("  SSID    : %s \n", my_bss_info->ssid);
     xil_printf("  Channel : %d \n", my_bss_info->chan);
@@ -301,11 +307,11 @@ int main(){
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 	while(1) {
-#ifdef USE_WARPNET_WLAN_EXP
+#ifdef USE_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
 		//     transport are required to service new commands. All other node activity (wired/wireless Tx/Rx,
 		//     scheduled events, user interaction, etc) are handled via interrupt service routines
-		transport_poll( WLAN_EXP_ETH );
+		transport_poll(WLAN_EXP_ETH);
 #endif
 	}
 
@@ -1917,7 +1923,7 @@ u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
  * @brief Write a Decimal Value to the Hex Display
  *
  * This function will write a decimal value to the board's two-digit hex displays.
- * For the AP, the display is right justified and will blink; WARPNet will indicate
+ * For the AP, the display is right justified and will blink; WLAN Exp will indicate
  * its connection state using the right decimal point.
  *
  * @param u8 val
