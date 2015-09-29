@@ -340,6 +340,12 @@ void wlan_mac_high_init(){
 		}
 	}
 
+#ifdef USE_WLAN_EXP
+    if (CLEAR_DDR_ON_BOOT) {
+        clear_ddr(WLAN_EXP_VERBOSE);
+    }
+#endif
+
 
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
@@ -1564,7 +1570,7 @@ inline u64 wlan_mac_high_get_unique_seq(){
  *
  */
 wlan_mac_hw_info* wlan_mac_high_get_hw_info(){
-	return &hw_info;
+    return &hw_info;
 }
 
 
@@ -1580,7 +1586,7 @@ wlan_mac_hw_info* wlan_mac_high_get_hw_info(){
  *
  */
 u8* wlan_mac_high_get_eeprom_mac_addr(){
-	return (u8 *) &(hw_info.hw_addr_wlan);
+    return (u8 *) &(hw_info.hw_addr_wlan);
 }
 
 
@@ -1747,7 +1753,7 @@ void wlan_mac_high_ipc_rx(){
 void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 	u8                  rx_pkt_buf;
-    u32                 temp_1, temp_2;
+    u32                 temp_1;
 	rx_frame_info*      rx_mpdu;
 	tx_frame_info*      tx_mpdu;
 
@@ -1807,18 +1813,10 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 		case IPC_MBOX_HW_INFO:
 			// CPU low is passing up node hardware information that is only accessible by CPU low
 			//
-			temp_1 = hw_info.type;
-			temp_2 = hw_info.wn_eth_device;
+            //     NOTE:  This information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
+			//
+			memcpy((void*) &hw_info, (void*) &(ipc_msg_from_low_payload[0]), sizeof(wlan_mac_hw_info));
 
-			// CPU Low updated the node's HW information
-            //     NOTE:  this information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
-			memcpy((void*) &hw_info, (void*) &(ipc_msg_from_low_payload[0]), sizeof( wlan_mac_hw_info ) );
-
-			// Add type info from CPU low
-			hw_info.type          = (hw_info.type & WARPNET_TYPE_80211_CPU_LOW_MASK) + (temp_1 & ~WARPNET_TYPE_80211_CPU_LOW_MASK);
-
-			// Override value from CPU for Ethernet device
-			hw_info.wn_eth_device = temp_2;
 		break;
 
 
@@ -2726,7 +2724,7 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 			wlan_mac_high_print_associations(assoc_tbl);
 		} else {
 			xil_printf("Station not removed due to flags: %02x", addr[0]);
-			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", addr[i] ); } xil_printf("\n");
+			for ( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) { xil_printf(":%02x", addr[i] ); } xil_printf("\n");
 		}
 		return 0;
 	}
@@ -3106,23 +3104,22 @@ void wlan_mac_high_copy_comparison(){
  * @return None
  *
  */
-void wlan_mac_high_print_hw_info( wlan_mac_hw_info * info ) {
+void wlan_mac_high_print_hw_info(wlan_mac_hw_info * info) {
 	int i;
 
 	xil_printf("WLAN MAC HW INFO:  \n");
-	xil_printf("  Type             :  0x%8x\n", info->type);
+	xil_printf("  CPU Low Type     :  0x%8x\n", info->cpu_low_type);
 	xil_printf("  Serial Number    :  %d\n",    info->serial_number);
 	xil_printf("  FPGA DNA         :  0x%8x  0x%8x\n", info->fpga_dna[1], info->fpga_dna[0]);
-	xil_printf("  WLAN EXP ETH Dev :  %d\n",    info->wn_exp_eth_device);
+	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wlan_exp[0]);
 
-	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wn[0]);
-	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
-		xil_printf(":%02x", info->hw_addr_wn[i]);
+	for( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) {
+		xil_printf(":%02x", info->hw_addr_wlan_exp[i]);
 	}
 	xil_printf("\n");
 
 	xil_printf("  WLAN HW Addr     :  %02x",    info->hw_addr_wlan[0]);
-	for( i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++ ) {
+	for( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) {
 		xil_printf(":%02x", info->hw_addr_wlan[i]);
 	}
 	xil_printf("\n");

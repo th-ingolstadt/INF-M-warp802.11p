@@ -21,43 +21,13 @@
 //The struct definitions below are used to interpret packet payloads
 // The code never creates instances of these structs
 
-typedef struct{
-	u8  address_destination[6];
-	u8  address_source[6];
-	u16 type;
-} ethernet_header;
-
-typedef struct{
-	u8  ver_ihl;
-	u8  tos;
-	u16 length;
-	u16 id;
-	u16 flags_fragOffset;
-	u8  ttl;
-	u8  prot;
-	u16 checksum;
-	u8  ip_src[4];
-	u8  ip_dest[4];
-} ipv4_header;
-
-typedef struct{
-	u16 htype;
-	u16 ptype;
-	u8  hlen;
-	u8  plen;
-	u16 oper;
-	u8  eth_src[6];
-	u8  ip_src[4];
-	u8  eth_dst[6];
-	u8  ip_dst[4];
-} arp_packet;
-
-typedef struct{
-	u16 src_port;
-	u16 dest_port;
-	u16 length;
-	u16 checksum;
-} udp_header;
+//
+// See definitions in WARP_ip_udp.h for:
+//     ethernet_header
+//     ipv4_header
+//     udp_header
+//     arp_ipv4_packet
+//
 
 typedef struct{
 	u8  op;
@@ -111,7 +81,7 @@ typedef struct{
 #define LLC_TYPE_IP                                        0x0008
 #define LLC_TYPE_WLAN_LTG                                  0x9090              // Non-standard type for LTG packets
 
-#define ETH_A_DMA_DEV_ID	                               XPAR_MB_HIGH_ETH_DMA_DEVICE_ID
+#define ETH_A_DMA_DEV_ID	                               XPAR_ETH_A_DMA_DEVICE_ID
 
 // Ethernet MAC-PHY link speed - must match PHY's actual link speed, as auto-negotiated at run time
 #define ETH_A_LINK_SPEED	                               1000

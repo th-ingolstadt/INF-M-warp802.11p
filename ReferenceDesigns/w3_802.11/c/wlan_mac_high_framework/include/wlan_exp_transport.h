@@ -1,17 +1,13 @@
 /** @file wlan_exp_transport.h
  *  @brief Experiment Framework (Transport)
  *
- * Implements the WARPNet Transport protocol layer for the embedded processor
+ * Implements the WARP Transport protocol layer for the embedded processor
  * on the WARP Hardware.
- *
- * This implementation supports both WARP v2 and WARP v3 hardware and also
- * supports both the use of the AXI FIFO as well as the AXI DMA in order
- * to transport packets to/from the Ethernet controller.
  *
  *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *                See LICENSE.txt included in the design archive or
+ *                at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -20,12 +16,13 @@
 
 
 /***************************** Include Files *********************************/
-#include "wlan_exp_common.h"
-#include <xilnet_udp.h>
 
-#ifdef WARP_HW_VER_v3
-#include <xaxiethernet.h>	// defines Axi Ethernet APIs
-#endif
+// WLAN Exp includes
+#include "wlan_exp_common.h"
+
+// WARP UDP transport includes
+#include <WARP_ip_udp.h>
+#include <WARP_ip_udp_device.h>
 
 
 /*************************** Constant Definitions ****************************/
@@ -34,160 +31,233 @@
 
 
 // ****************************************************************************
-// Define Warpnet Transport Commands
+// Define Transport Commands
 //
-#define TRANS_PING_CMDID 			1
-#define TRANS_IP_CMDID 				2
-#define TRANS_PORT_CMDID 			3
-#define TRANS_PAYLOADSIZETEST_CMDID 4
-#define TRANS_NODEGRPID_ADD			5
-#define TRANS_NODEGRPID_CLEAR		6
-
+#define CMDID_TRANSPORT_PING                               0x001
+#define CMDID_TRANSPORT_PAYLOAD_SIZE_TEST                  0x002
+#define CMDID_TRANSPORT_NODE_GROUP_ID_ADD                  0x100
+#define CMDID_TRANSPORT_NODE_GROUP_ID_CLEAR                0x101
 
 
 // ****************************************************************************
-// Define Warpnet Transport Ethernet Information
+// Define Transport Tag Parameters
 //
-#define WN_NUM_ETH_DEVICES          XILNET_NUM_ETH_DEVICES
+//     NOTE:  To add another parameter, add the define before "TRANSPORT_PARAM_MAX_PARAMETER"
+//         and then change the value of "TRANSPORT_PARAM_MAX_PARAMETER" to be the largest value
+//         in the list so it is easy to iterate over all parameters
+//
+#define TRANSPORT_PARAM_TYPE                               0
+#define TRANSPORT_PARAM_HW_ADDR                            1
+#define TRANSPORT_PARAM_IP_ADDR                            2
+#define TRANSPORT_PARAM_GROUP_ID                           3
+#define TRANSPORT_PARAM_UNICAST_PORT                       4
+#define TRANSPORT_PARAM_BROADCAST_PORT                     5
 
-#ifdef WARP_HW_VER_v2
-#define WN_ETH_A                    TRIMODE_MAC_GMII
-#define WN_ETH_A_MAC_DEVICE_ID		XPAR_LLTEMAC_0_DEVICE_ID
-#define WN_ETH_A_SPEED              1000
-#define WN_ETH_A_MDIO_PHYADDR       0x0
+//
+// ADD NEW TAG PARAMETERS HERE
+//
 
-#define TEMAC_DEVICE_ID		        XPAR_LLTEMAC_0_DEVICE_ID
-#define FIFO_DEVICE_ID		        XPAR_LLFIFO_0_DEVICE_ID
-#endif
 
-#ifdef WARP_HW_VER_v3
-#define WN_ETH_A                    ETH_A_MAC
-#define WN_ETH_A_MAC_DEVICE_ID      XPAR_ETH_A_MAC_DEVICE_ID
-#define WN_ETH_A_SPEED              1000
-#define WN_ETH_A_MDIO_PHYADDR       0x6
+//
+// END ADD NEW TAG PARAMETERS HERE
+//
+//     NOTE:  Make sure that TRANSPORT_PARAM_MAX_PARAMETER is adjusted accordingly
+//
 
-#define WN_ETH_B                    ETH_B_MAC
-#define WN_ETH_B_MAC_DEVICE_ID      XPAR_ETH_B_MAC_DEVICE_ID
-#define WN_ETH_B_SPEED              1000
-#define WN_ETH_B_MDIO_PHYADDR       0x7
-#endif
+#define TRANSPORT_PARAM_MAX_PARAMETER                      6
 
-#define wn_conv_eth_dev_num(x)      (char)(((int)'A') + x)
 
-#define PAYLOAD_OFFSET              LINK_HDR_LEN+IP_HDR_LEN*4+UDP_HDR_LEN+PAYLOAD_PAD_NBYTES
-
-#define TRANSPORT_ROBUST_MASK       0x1
-
-#define ETHPHYREG_17_0_LINKUP       0x0400
-
-#define WAITDURATION_SEC            2
-
-#define ETHERTYPE_IP                0x0800
-#define IPPROTO_UDP                 0x11
-
-#define PKTTYPE_TRIGGER             0
-#define PKTTYPE_HTON_MSG            1
-#define PKTTYPE_NTOH_MSG            2
-#define PKTTPYE_NTOH_MSG_ASYNC      3
-
+// TRANSPORT_PARAM_TYPE values
+#define TRANSPORT_PARAM_TYPE_UDP                           0
 
 
 // ****************************************************************************
-// Define Transport Parameters
-//   - NOTE:  To add another parameter, add the define before "NODE_MAX_PARAMETER"
-//     and then change the value of "NODE_MAX_PARAMETER" to be the largest value
-//     in the list so it is easy to iterate over all parameters
+// Define Node Tag Parameter Field Lengths
 //
-#define TRANSPORT_TYPE              0
-#define TRANSPORT_HW_ADDR           1
-#define TRANSPORT_IP_ADDR           2
-#define TRANSPORT_UNICAST_PORT      3
-#define TRANSPORT_BCAST_PORT        4
-#define TRANSPORT_GRP_ID            5
-#define TRANSPORT_MAX_PARAMETER     6
+//     NOTE:  Tag Parameters must be 32 bit aligned.  The array below represents the number
+//         of 32 bit unsigned integers required for each field.  If another field is added
+//         to the Tag Parameters, then the TRANSPORT_PARAM_FIELD_LENGTHS array must be updated
+//         to represent the appropriate length of each new field.
+//
+#define TRANSPORT_PARAM_FIELD_LENGTHS                      {1, 2, 1, 1, 1, 1}
 
 
-// TRANSPORT_TYPE values
-#define TRANSPORT_TYPE_UDP          0
+// ****************************************************************************
+// Define Transport Ethernet Information
+//
+#define TRANSPORT_NUM_ETH_DEVICES                          WARP_IP_UDP_NUM_ETH_DEVICES
+#define TRANSPORT_ETH_DEV_INITIALIZED                      1
 
-  
+// Ethernet A constants
+#define WARP_ETH_A                                         ETH_A_MAC
+#define WARP_ETH_A_MDIO_PHYADDR                            0x6
+
+// Ethernet B constants
+#define WARP_ETH_B                                         ETH_B_MAC
+#define WARP_ETH_B_MDIO_PHYADDR                            0x7
+
+// Ethernet constants
+#define ETH_DO_NOT_WAIT_FOR_AUTO_NEGOTIATION               0
+#define ETH_WAIT_FOR_AUTO_NEGOTIATION                      1
+
+// Ethernet PHY constants
+#define ETH_PHY_CONTROL_REG                                0
+#define ETH_PHY_STATUS_REG                                 17
+
+#define ETH_PHY_REG_0_RESET                                0x8000
+#define ETH_PHY_REG_0_SPEED_LSB                            0x2000
+#define ETH_PHY_REG_0_AUTO_NEGOTIATION                     0x1000
+#define ETH_PHY_REG_0_SPEED_MSB                            0x0040
+
+#define ETH_PHY_REG_17_0_SPEED                             0xC000
+#define ETH_PHY_REG_17_0_SPEED_RESOLVED                    0x0800
+#define ETH_PHY_REG_17_0_LINKUP                            0x0400
+
+
+// NOTE:  These constants are for in place computation based on ETH_PHY_REG_17_0_SPEED (ie no bit shifting required)
+#define ETH_PHY_REG_17_0_SPEED_10_MBPS                     0x0000
+#define ETH_PHY_REG_17_0_SPEED_100_MBPS                    0x4000
+#define ETH_PHY_REG_17_0_SPEED_1000_MBPS                   0x8000
+#define ETH_PHY_REG_17_0_SPEED_RSVD                        0xC000
+
+
+// Ethernet PHY macros
+//     NOTE:  Speed is defined by the Ethernet hardware (xaxiethernet_hw.h and equivalent for WARP v2):
+//         #define XAE_SPEED_10_MBPS        10      /**< Speed of 10 Mbps */
+//         #define XAE_SPEED_100_MBPS       100     /**< Speed of 100 Mbps */
+//         #define XAE_SPEED_1000_MBPS      1000    /**< Speed of 1000 Mbps */
+//
+#define ETH_PHY_SPEED_10_MBPS                              10
+#define ETH_PHY_SPEED_100_MBPS                             100
+#define ETH_PHY_SPEED_1000_MBPS                            1000
+
+#define ETH_PHY_SPEED_TO_MBPS(speed)                       ((speed == ETH_PHY_REG_17_0_SPEED_1000_MBPS) ? ETH_PHY_SPEED_1000_MBPS : \
+                                                            (speed == ETH_PHY_REG_17_0_SPEED_100_MBPS)  ? ETH_PHY_SPEED_100_MBPS  : \
+                                                            (speed == ETH_PHY_REG_17_0_SPEED_10_MBPS)   ? ETH_PHY_SPEED_10_MBPS   : 0 )
+
+
+// Message types
+//     NOTE:
+//         HTON = Host TO Node  (ie a packet sent from the host to the node)
+//         NTOH = Node TO Host  (ie a packet sent from the node to the host)
+//
+#define PKT_TYPE_TRIGGER                                   0
+#define PKT_TYPE_HTON_MSG                                  1
+#define PKT_TYPE_NTOH_MSG                                  2
+#define PKT_TPYE_NTOH_MSG_ASYNC                            3
+
+// Transport status types
+#define LINK_READY                                         0
+#define LINK_NOT_READY                                    -1
+
+// Transport header flags (16 bits)
+#define TRANSPORT_HDR_ROBUST_FLAG                          0x0001
+#define TRANSPORT_HDR_NODE_NOT_READY_FLAG                  0x8000
+
+// Transport header dest_id values
+#define TRANSPORT_BROADCAST_DEST_ID                        0xFFFF
+
+
 
 /*********************** Global Structure Definitions ************************/
 
-// WARPNet Transport header
+// WARP Transport header
+//     NOTE:  This conforms to the WARP Transport Header Wire Format:
+//            http://warpproject.org/tra    /wiki/WARPLab/Reference    Architecture/WireFormat    
+//
 typedef struct {
-	u16 destID;
-	u16 srcID;
-	u8 reserved;
-	u8 pktType;
-	u16 length;
-	u16 seqNum;
-	u16 flags;
-} wn_transport_header;
-
-
-// WARPNet Ethernet device structure
-typedef struct  {
-
-	// Ethernet instances
-	unsigned int          mac_device_id;
-
-#ifdef WARP_HW_VER_v2
-	XLlTemac              mac_inst;
-	XLlTemac_Config     * mac_cfg_ptr;
-#endif
-
-#ifdef WARP_HW_VER_v3
-	XAxiEthernet          mac_inst;
-	XAxiEthernet_Config * mac_cfg_ptr;
-#endif
-
-	// Pointers to WARPNet specific offsets
-	wn_transport_header * wn_header_tx;
-	unsigned int        * wn_TX_payload_ptr32;
-
-	// Other Ethernet device specific fields
-	unsigned int          eth_mdio_phyaddr;
-	unsigned int          eth_speed;
-
-} wn_eth_device;
+    u16                      dest_id;                      // Destination ID
+    u16                      src_id;                       // Source ID
+    u8                       reserved;                     // Reserved
+    u8                       pkt_type;                     // Packet Type (see Message types above)
+    u16                      length;                       // Length of the Packet
+    u16                      seq_num;                      // Sequence Number
+    u16                      flags;                        // WARP transport flags
+} warp_transport_header;
 
 
 // Transport info structure for Tag parameter information
+//
+//     NOTE:  This structure has to have the same fields in the same order as the Transp    rt Parameters
+//         defined above.  Th    s structure will be used a     storage for the     ag Parameter values.
+//
 typedef struct {
+    u32                      type;                         // Transport Type
+    u32                      hw_addr[2];                   // HW Address (big endian as 2 u32 values with 16 bit padding)
+    u32                      ip_addr;                      // IP Address (big endian)
+    u32                      group_id;                     // Group ID
+    u32                      unicast_port;                 // Unicast port
+    u32                      broadcast_port;               // Broadcast port
 
-	u32  type;
-	u32  hw_addr[2];
-	u32  ip_addr;
-	u32  unicast_port;
-	u32  broadcast_port;
-	u32  group_id;
+    //
+    // ADD NEW TAG PARAMETERS HERE
+    //
+    //     NOTE:  The #defines above, both the field name and the field length, must be adjusted in order
+    //         for the new Tag Parameter to be populated.
+    //
+    //
 
-} wn_transport_info;
 
+
+    //
+    // END ADD NEW TAG PARAMETERS HERE
+    //
+
+} transport_info;
+
+
+// WARP Ethernet Device Information
+//
+//     NOTE:  This structure exists so that differences between Ethernet devices can be consolidated
+//
+typedef struct {
+    u32                      node_id;                      // Node ID (Only bits [15:0] are valid)
+                                                           //     NOTE:  This is replicated from node_id in wlan_exp_node_info
+    u32                      initialized;                  // Ethernet device initialized
+    u32                      default_speed;                // Default Ethernet speed
+    u32                      max_pkt_words;                // Largest supported packet size
+    u32                      phy_addr;                     // Address of the Ethernet PHY
+
+    int                      socket_unicast;               // Unicast receive socket index
+    int                      socket_broadcast;             // Broadcast receive socket index
+    int                      socket_async;                 // Asynchronous send socket index
+
+    struct sockaddr          async_sockaddr;               // Address structure for Asynchronous send socket
+    warp_cmd_resp            async_cmd_resp;               // Command / Response structure for Asynchronous send socket
+
+    transport_info           info;                         // Transport info structure
+
+} transport_eth_dev_info;
 
 
 /*************************** Function Prototypes *****************************/
 
-int  transport_init               ( unsigned int node, unsigned char *hw_addr, unsigned char *ip_addr, unsigned int unicast_port, unsigned int bcast_port, unsigned int eth_dev_num);
-int  transport_linkStatus         ( unsigned int eth_dev_num);
-int  transport_processCmd         ( const wn_cmdHdr*, const void*, wn_respHdr*, void*, void*, unsigned int eth_dev_num);
-void transport_receiveCallback    ( unsigned char* buff, unsigned int len, void* pktSrc, unsigned int eth_dev_num);
-int  transport_setReceiveCallback ( void(*handler) );
-void transport_poll               ( unsigned int eth_dev_num);
-void transport_send               ( int socket, wn_host_message* currMsg, pktSrcInfo* pktSrc, unsigned int eth_dev_num);
-void transport_close              ( unsigned int eth_dev_num);
+// Initialization Functions
+int  transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port);
 
-int  transport_set_hw_info        ( unsigned int eth_dev_num, unsigned char* ip_addr, unsigned char* hw_addr);
-int  transport_get_hw_addr        ( unsigned int eth_dev_num, unsigned char* hw_addr);
-int  transport_get_ip_addr        ( unsigned int eth_dev_num, unsigned char* ip_addr);
-int  transport_config_socket      ( unsigned int eth_dev_num, int * socket, struct sockaddr_in * addr, unsigned int port);
-int  transport_config_sockets     ( unsigned int eth_dev_num, unsigned int unicast_port, unsigned int bcast_port);
+int  transport_set_process_hton_msg_callback(void(*handler));
+int  transport_process_cmd(int socket_index, void* from, warp_cmd_resp* command, warp_cmd_resp* response);
 
-int transport_get_parameters      ( unsigned int eth_dev_num, u32* buffer, unsigned int max_words, unsigned char network );
+void transport_poll(u32 eth_dev_num);
+void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, warp_ip_udp_buffer * send_buffer);
+void transport_send(int socket_index, struct sockaddr* to, warp_ip_udp_buffer** buffers, u32 num_buffers);
+void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length);
+void transport_close(u32 eth_dev_num);
 
-// Helper methods to create message for asynchronous communication from the node
-wn_host_message * transport_create_async_msg      ( wn_transport_header* hdr, unsigned int length, unsigned char * payload );
-wn_host_message * transport_create_async_msg_w_cmd( wn_transport_header* hdr, wn_cmdHdr * cmd, unsigned int length, unsigned char * payload );
+int  transport_set_hw_addr(u32 eth_dev_num, u8* hw_addr);
+int  transport_get_hw_addr(u32 eth_dev_num, u8* hw_addr);
+int  transport_set_ip_addr(u32 eth_dev_num, u8* ip_addr);
+int  transport_get_ip_addr(u32 eth_dev_num, u8* ip_addr);
 
-#endif /* WLAN_EXP_TRANSPORT_H_ */
+int  transport_config_sockets(u32 eth_dev_num, u32 unicast_port, u32 broadcast_port);
+int  transport_config_socket(u32 eth_dev_num, int* socket_index, u32 udp_port);
+
+int  transport_link_status(u32 eth_dev_num);
+u32  transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation);
+u16  transport_get_ethernet_status(u32 eth_dev_num);
+
+int  transport_get_parameters(u32 eth_dev_num, u32* buffer, u32 max_words, u8 network);
+
+
+
+#endif /* TRANSPORT_H_ */

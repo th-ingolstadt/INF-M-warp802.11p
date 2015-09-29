@@ -5,8 +5,8 @@
  *
  *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -32,17 +32,17 @@
 //   '0' - Event logging is disabled on boot
 //   '1' - Event logging is enabled on boot
 //
-#define EVENT_LOG_DEFAULT_LOGGING      1
+#define EVENT_LOG_DEFAULT_LOGGING                          1
 
 
 // Define event logging enable / disable
-#define EVENT_LOG_LOGGING_ENABLE       1
-#define EVENT_LOG_LOGGING_DISABLE      2
+#define EVENT_LOG_LOGGING_ENABLE                           1
+#define EVENT_LOG_LOGGING_DISABLE                          2
 
 
 // Define event wrapping enable / disable
-#define EVENT_LOG_WRAP_ENABLE          1
-#define EVENT_LOG_WRAP_DISABLE         2
+#define EVENT_LOG_WRAP_ENABLE                              1
+#define EVENT_LOG_WRAP_DISABLE                             2
 
 
 // Define event wrap buffer
@@ -52,7 +52,7 @@
 //   will allow the head address to be incremented by an additional buffer so that
 //   the head pointer will not have to increment as often.  By default this is zero.
 //
-#define EVENT_LOG_WRAPPING_BUFFER      0
+#define EVENT_LOG_WRAPPING_BUFFER                          0
 
 
 // Maximum number of events to store in log
@@ -60,7 +60,7 @@
 //   should be used for logging events. If MAX_EVENT_LOG > 0, then that number of events
 //   will be the maximum.
 //
-#define MAX_EVENT_LOG                  -1
+#define MAX_EVENT_LOG                                     -1
 
 
 // Define magic number that will indicate the start of an event
@@ -68,13 +68,13 @@
 //       - It would not be in DDR address space
 //       - It is human readable
 //
-#define EVENT_LOG_MAGIC_NUMBER         0xACED0000
+#define EVENT_LOG_MAGIC_NUMBER                             0xACED0000
 
 
 // Define constants for function flags
 //   NOTE:  the transmit flag is defined in wlan_exp_common.h since it is used in multiple places
-#define EVENT_LOG_NO_STATS             0
-#define EVENT_LOG_STATS                1
+#define EVENT_LOG_NO_STATS                                 0
+#define EVENT_LOG_STATS                                    1
 
 
 /*********************** Global Structure Definitions ************************/
@@ -84,9 +84,9 @@
 //   - This is used by the event log but is not exposed to the user
 //
 typedef struct{
-	u32 entry_id;
-	u16 entry_type;
-	u16 entry_length;
+    u32 entry_id;
+    u16 entry_type;
+    u16 entry_length;
 } entry_header;
 
 
@@ -114,18 +114,5 @@ int       event_log_update_type( void * entry_ptr, u16 entry_type );
 
 void      print_event_log( u32 num_events );
 void      print_event_log_size();
-
-void      wn_transmit_log_entry(void * entry);
-
-void      add_node_info_entry(u8 transmit);
-
-u32       add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit);
-u32       add_all_txrx_statistics_to_log(u8 transmit);
-
-u32       add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit);
-u32       add_station_info_w_stats_to_log(station_info * info, u8 zero_aid, u8 transmit);
-u32       add_all_station_info_to_log(u8 stats, u8 zero_aid, u8 transmit);
-
-u32       add_temperature_to_log(u8 transmit);
 
 #endif /* WLAN_MAC_EVENT_LOG_H_ */

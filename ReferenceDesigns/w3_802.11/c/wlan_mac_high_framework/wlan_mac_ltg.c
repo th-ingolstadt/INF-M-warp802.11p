@@ -587,7 +587,7 @@ int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_
 }
 
 
-#ifdef USE_WARPNET_WLAN_EXP
+#ifdef USE_WLAN_EXP
 
 
 // NOTE:  The src information is from the network and must be byte swapped

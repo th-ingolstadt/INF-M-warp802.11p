@@ -92,9 +92,9 @@ const static u8 mcs_to_resp_mcs[64] = {0, 0, 2, 2, 4, 4, 4, 4,
  * This function initializes the MAC Low Framework by setting
  * up the hardware and other subsystems in the framework.
  *
- * @param type
+ * @param   type
  * 	- lower-level MAC type
- * @return int status
+ * @return  int status
  *  - initialization status (0 = success)
  */
 int wlan_mac_low_init(u32 type){
@@ -102,21 +102,19 @@ int wlan_mac_low_init(u32 type){
 	rx_frame_info* rx_mpdu;
 	wlan_ipc_msg ipc_msg_to_high;
 
-	mac_param_band = RC_24GHZ;
-	mac_param_ctrl_tx_pow = 10;
-	cpu_low_status = 0;
+	mac_param_band           = RC_24GHZ;
+	mac_param_ctrl_tx_pow    = 10;
+	cpu_low_status           = 0;
 
-	cw_exp_min = 4;
-	//cw_exp_min = 1;
-	cw_exp_max = 10;
-	//cw_exp_max = 1;
+	cw_exp_min               = 4;
+	cw_exp_max               = 10;
 
-	//mac_param_rx_filter    = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
-	mac_param_rx_filter    = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
+	// mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
+	mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
-	frame_rx_callback	   = (function_ptr_t)nullCallback;
-	frame_tx_callback	   = (function_ptr_t)nullCallback;
-	ipc_low_param_callback = (function_ptr_t)nullCallback;
+	frame_rx_callback	     = (function_ptr_t)nullCallback;
+	frame_tx_callback	     = (function_ptr_t)nullCallback;
+	ipc_low_param_callback   = (function_ptr_t)nullCallback;
 
 	status = w3_node_init();
 
@@ -125,16 +123,16 @@ int wlan_mac_low_init(u32 type){
 		return -1;
 	}
 
-	//Disable timestamp insertion by default (start>end == disabled)
+	// Disable timestamp insertion by default (start>end == disabled)
 	wlan_phy_tx_timestamp_ins_start(1);
 	wlan_phy_tx_timestamp_ins_end(0);
 
 	wlan_lib_init();
 
-	//create IPC message to receive into
+	// Create IPC message to receive into
 	ipc_msg_from_high.payload_ptr = &(ipc_msg_from_high_payload[0]);
 
-	//Begin by trying to lock packet buffer 0 for wireless receptions
+	// Begin by trying to lock packet buffer 0 for wireless receptions
 	rx_pkt_buf = 0;
 	if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		warp_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
@@ -147,8 +145,8 @@ int wlan_mac_low_init(u32 type){
 		wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
 	}
 
-	//Move the PHY's starting address into the packet buffers by PHY_XX_PKT_BUF_PHY_HDR_OFFSET.
-	//This accounts for the metadata located at the front of every packet buffer (Xx_mpdu_info)
+	// Move the PHY's starting address into the packet buffers by PHY_XX_PKT_BUF_PHY_HDR_OFFSET.
+	// This accounts for the metadata located at the front of every packet buffer (Xx_mpdu_info)
 	wlan_phy_rx_pkt_buf_phy_hdr_offset(PHY_RX_PKT_BUF_PHY_HDR_OFFSET);
 	wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
 
@@ -160,9 +158,9 @@ int wlan_mac_low_init(u32 type){
 	wlan_mac_low_init_hw_info(type);
 
 	// Send a message to other processor to identify hw info of cpu low
-	ipc_msg_to_high.msg_id = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
+	ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
 	ipc_msg_to_high.num_payload_words = 8;
-	ipc_msg_to_high.payload_ptr = (u32 *) &(hw_info);
+	ipc_msg_to_high.payload_ptr       = (u32 *) &(hw_info);
 
 	ipc_mailbox_write_msg(&ipc_msg_to_high);
 
@@ -836,14 +834,13 @@ void wlan_mac_low_set_time(u64 new_time) {
  * @param None
  * @return None
  */
-void wlan_mac_low_init_hw_info( u32 type ) {
+void wlan_mac_low_init_hw_info(u32 type) {
 
-	// Initialize the wlan_mac_hw_info structure to all zeros
-	//
-	memset( (void*)( &hw_info ), 0x0, sizeof( wlan_mac_hw_info ) );
+    // Initialize the wlan_mac_hw_info structure to all zeros
+    memset((void*)(&hw_info), 0x0, sizeof(wlan_mac_hw_info));
 
-	// Set General Node information
-	hw_info.type          = type;
+    // Set General Node information
+    hw_info.cpu_low_type  = type;
     hw_info.serial_number = w3_eeprom_readSerialNum(EEPROM_BASEADDR);
     hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
     hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);
@@ -852,15 +849,13 @@ void wlan_mac_low_init_hw_info( u32 type ) {
     //   - NOTE:  The w3_eeprom_readEthAddr() function handles the case when the WARP v3
     //     hardware does not have a valid Ethernet address
     //
-    // Use address 0 for the WLAN interface, address 1 for the Ethernet interface
-	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 0, hw_info.hw_addr_wlan);
-	w3_eeprom_readEthAddr(EEPROM_BASEADDR, 1, hw_info.hw_addr_wn);
-
-    // WARPNet will use ethernet device 1 (ETH_B) by default
-    hw_info.wn_eth_device = 1;
+    // Use address 0 for the WLAN interface, address 1 for the WLAN Exp interface
+    //
+    w3_eeprom_readEthAddr(EEPROM_BASEADDR, 0, hw_info.hw_addr_wlan);
+    w3_eeprom_readEthAddr(EEPROM_BASEADDR, 1, hw_info.hw_addr_wlan_exp);
 
     // Set the NAV ignore addr to this HW address
-    wlan_mac_set_nav_check_addr( hw_info.hw_addr_wlan );
+    wlan_mac_set_nav_check_addr(hw_info.hw_addr_wlan);
 }
 
 /**
