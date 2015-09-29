@@ -13,11 +13,11 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
+
+#define DBG_PRINT                                          0
+
+
 /***************************** Include Files *********************************/
-#define DBG_PRINT 0
-
-
-
 // Xilinx SDK includes
 #include "xparameters.h"
 #include <stdio.h>
@@ -41,14 +41,20 @@
 #include "math.h"
 
 
-#define WARPNET_TYPE_80211_LOW         WARPNET_TYPE_80211_LOW_DCF
-#define NUM_LEDS                       4
+/*************************** Constant Definitions ****************************/
+#define WARP_TYPE_DESIGN_80211_CPU_LOW                     WARP_TYPE_DESIGN_80211_CPU_LOW_DCF
 
+#define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
+
+#define NUM_LEDS                                           4
+
+
+/*********************** Global Variable Definitions *************************/
 volatile static u32                    gl_stationShortRetryCount;
 volatile static u32                    gl_stationLongRetryCount;
 volatile static u32                    gl_cw_exp;
 
-volatile static u32					   gl_dot11RTSThreshold;
+volatile static u32                    gl_dot11RTSThreshold;
 
 volatile static u8                     gl_autocancel_en;
 volatile static u8                     gl_autocancel_match_type;
@@ -57,18 +63,20 @@ volatile static u64                    gl_autocancel_last_rx_ts;
 
 volatile static u8                     gl_eeprom_addr[6];
 
-volatile static u8					   gl_mpdu_pkt_buf;
+volatile static u8                     gl_mpdu_pkt_buf;
 
-volatile static u32					   gl_dot11ShortRetryLimit;
-volatile static u32 				   gl_dot11LongRetryLimit;
+volatile static u32                    gl_dot11ShortRetryLimit;
+volatile static u32                    gl_dot11LongRetryLimit;
 
 volatile u8                            gl_red_led_index;
 volatile u8                            gl_green_led_index;
 
 
+/******************************** Functions **********************************/
 int main(){
 
 	wlan_mac_hw_info* hw_info;
+
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v1.3 ------------------------------\n");
@@ -89,25 +97,24 @@ int main(){
 	gl_autocancel_match_addr3[4] = 0x00;
 	gl_autocancel_match_addr3[5] = 0x00;
 	gl_autocancel_match_type     = 0x00;
-	gl_autocancel_last_rx_ts = 0;
+	gl_autocancel_last_rx_ts     = 0;
 
-	gl_dot11ShortRetryLimit = 7;
-	//gl_dot11ShortRetryLimit = 1;
-	gl_dot11LongRetryLimit = 4;
+	gl_dot11ShortRetryLimit      = 7;
+	gl_dot11LongRetryLimit       = 4;
 
-	gl_dot11RTSThreshold = 2000;
+	gl_dot11RTSThreshold         = 2000;
 
-	gl_stationShortRetryCount = 0;
-	gl_stationLongRetryCount = 0;
+	gl_stationShortRetryCount    = 0;
+	gl_stationLongRetryCount     = 0;
 
-	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+	wlan_tx_config_ant_mode(DEFAULT_TX_ANTENNA_MODE);
 
-	gl_red_led_index = 0;
-	gl_green_led_index = 0;
-	userio_write_leds_green(USERIO_BASEADDR, (1<<gl_green_led_index));
-	userio_write_leds_red(USERIO_BASEADDR, (1<<gl_red_led_index));
+	gl_red_led_index             = 0;
+	gl_green_led_index           = 0;
+	userio_write_leds_green(USERIO_BASEADDR, (1 << gl_green_led_index));
+	userio_write_leds_red(USERIO_BASEADDR, (1 << gl_red_led_index));
 
-	wlan_mac_low_init(WARPNET_TYPE_80211_LOW);
+	wlan_mac_low_init(WARP_TYPE_DESIGN_80211_CPU_LOW);
 
 	gl_cw_exp = wlan_mac_low_get_cw_exp_min();
 
@@ -141,8 +148,6 @@ int main(){
 
 		//Poll IPC rx
 		wlan_mac_low_poll_ipc_rx();
-
-
 	}
 	return 0;
 }
