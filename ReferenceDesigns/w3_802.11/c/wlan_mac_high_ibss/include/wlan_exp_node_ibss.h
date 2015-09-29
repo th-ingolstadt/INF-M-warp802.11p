@@ -1,12 +1,12 @@
 /** @file wlan_exp_node_sta.h
- *  @brief Station WARPNet Experiment
+ *  @brief Station WLAN Experiment
  *
- *  This contains code for the 802.11 Station's WARPNet experiment interface.
+ *  This contains code for the 802.11 Station's WLAN experiment interface.
  *
  *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -49,9 +49,9 @@
 
 /*************************** Function Prototypes *****************************/
 
-int wlan_exp_node_ibss_init( u32 type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *hw_addr );
+int  wlan_exp_node_ibss_init(u32 warp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
 
-int wlan_exp_node_ibss_processCmd( unsigned int cmdID, const wn_cmdHdr* cmdHdr, void* cmdArgs, wn_respHdr* respHdr, void* respArgs, void* pktSrc, unsigned int eth_dev_num);
+int  wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, warp_cmd_resp * command, warp_cmd_resp * response);
 
 void wlan_exp_ibss_tx_cmd_add_association( u8 *mac_addr);
 
