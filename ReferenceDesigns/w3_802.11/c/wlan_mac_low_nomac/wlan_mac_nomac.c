@@ -37,9 +37,12 @@
 
 
 /*************************** Constant Definitions ****************************/
+#define WARP_TYPE_DESIGN_80211_CPU_LOW                     WARP_TYPE_DESIGN_80211_CPU_LOW_NOMAC
 
-#define WARPNET_TYPE_80211_LOW         WARPNET_TYPE_80211_LOW_NOMAC
-#define NUM_LEDS                       4
+#define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
+
+#define NUM_LEDS                                           4
+
 
 /*********************** Global Variable Definitions *************************/
 
@@ -55,6 +58,7 @@ volatile u8                            green_led_index;
 int main(){
 
 	wlan_mac_hw_info* hw_info;
+
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
 	xil_printf("----- v1.3 ------------------------------\n");
@@ -65,18 +69,17 @@ int main(){
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled live while the design is running.\n\n");
 
-	wlan_tx_config_ant_mode(TX_ANTMODE_SISO_ANTA);
+	wlan_tx_config_ant_mode(DEFAULT_TX_ANTENNA_MODE);
 
 	red_led_index = 0;
 	green_led_index = 0;
-	userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
-	userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
+	userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
+	userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
 
-	wlan_mac_low_init(WARPNET_TYPE_80211_LOW);
+	wlan_mac_low_init(WARP_TYPE_DESIGN_80211_CPU_LOW);
 
 	hw_info = wlan_mac_low_get_hw_info();
-	memcpy(eeprom_addr,hw_info->hw_addr_wlan,6);
-
+	memcpy(eeprom_addr, hw_info->hw_addr_wlan, 6);
 
 	wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
 	wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
