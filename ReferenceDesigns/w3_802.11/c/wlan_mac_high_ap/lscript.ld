@@ -11,7 +11,8 @@
 /*******************************************************************/
 
 _STACK_SIZE = DEFINED(_STACK_SIZE) ? _STACK_SIZE : 0x1000;
-_HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x4000;
+_HEAP_SIZE  = DEFINED(_HEAP_SIZE)  ? _HEAP_SIZE  : 0x4000;
+
 
 /* Define Memories in the system */
 
@@ -19,12 +20,12 @@ MEMORY
 {
    mb_high_ilmb_bram_cntlr_0_mb_high_dlmb_bram_cntlr_0 : ORIGIN = 0x00000050, LENGTH = 0x0001FFB0
    mb_high_ilmb_bram_cntlr_1_mb_high_dlmb_bram_cntlr_1 : ORIGIN = 0x00020000, LENGTH = 0x00020000
-   mb_high_init_bram_ctrl_S_AXI_BASEADDR : ORIGIN = 0x50000000, LENGTH = 0x00001000
-   pkt_buff_tx_bram_ctrl_S_AXI_BASEADDR : ORIGIN = 0xBF570000, LENGTH = 0x00010000
-   pkt_buff_rx_bram_ctrl_S_AXI_BASEADDR : ORIGIN = 0xBF560000, LENGTH = 0x00010000
-   mac_log_bram_ctrl_S_AXI_BASEADDR : ORIGIN = 0x90000000, LENGTH = 0x00002000
-   mb_high_aux_bram_ctrl_S_AXI_BASEADDR : ORIGIN = 0xBF540000, LENGTH = 0x00010000
-   ddr3_sodimm_S_AXI_BASEADDR : ORIGIN = 0xC0000000, LENGTH = 0x40000000
+   mb_high_init_bram_ctrl_S_AXI_BASEADDR               : ORIGIN = 0x50000000, LENGTH = 0x00001000
+   pkt_buff_tx_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0xBF570000, LENGTH = 0x00010000
+   pkt_buff_rx_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0xBF560000, LENGTH = 0x00010000
+   mac_log_bram_ctrl_S_AXI_BASEADDR                    : ORIGIN = 0x90000000, LENGTH = 0x00002000
+   mb_high_aux_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0xBF540000, LENGTH = 0x00010000
+   ddr3_sodimm_S_AXI_BASEADDR                          : ORIGIN = 0xC0000000, LENGTH = 0x40000000
 }
 
 /* Specify the default entry point to the program */
@@ -51,15 +52,31 @@ SECTIONS
    KEEP (*(.vectors.hw_exception))
 } 
 
-/* NOTE:  Order matters in the linker file.  This section 
- *   must be above the .text section which will catch the 
- *   remaining code.
+/******************************************************************
+ * CPU High Code Sections
  *
- * The .text_bram_1 section can be modified to spread the 
- * code across the brams without further project modification.
- * Other options include:
+ * In order to make building the FPGA XPS project easier, the CPU High
+ * LMB memory was divided into two distict memories:
+ *     - mb_high_ilmb_bram_cntlr_0_mb_high_dlmb_bram_cntlr_0
+ *     - mb_high_ilmb_bram_cntlr_1_mb_high_dlmb_bram_cntlr_1
+ *
+ * However, this means that to use both memories, we need to specify
+ * which sections use each memory.  This can pose a challenge with the
+ * large code sections.  Therefore, the linker command file defines
+ * a .text_bram_1 which lives in mb_high_dlmb_bram_cntlr_1 and a 
+ * .text section which lives in mb_high_dlmb_bram_cntlr_0.
+ *
+ * The .text_bram_1 section can be modified to include other code by 
+ * adding other directives, without modifying any other files.  Some
+ * additional includes could be:
  *    *src*(.text)
- */
+ *    *wlan_mac_common*(.text)
+ *
+ * NOTE:  Order matters in the linker file.  The .text_bram_1 section 
+ *     come before the .text section which contains *(.text) and  
+ *     *(.text.*), which will catch the remaining code. 
+ *
+ ******************************************************************/
 .text_bram_1 : {
    *wlan_mac_high_framework*(.text)
 } > mb_high_ilmb_bram_cntlr_1_mb_high_dlmb_bram_cntlr_1
@@ -71,16 +88,27 @@ SECTIONS
    *(.gnu.linkonce.t.*)
 } > mb_high_ilmb_bram_cntlr_0_mb_high_dlmb_bram_cntlr_0
 
-/* NOTE:  The CPU High data section is located in DDR, which
- *   cannot be loaded by the SDK.  Therefore, we inlucde the
- *   (NOLOAD) directive for this section.  However, this means
- *   that the initial value of the section will be random 
- *   (ie whatever was last in DDR).  Therefore, this section
- *   must be initialized by the CPU on boot to zero to assume
- *   an initial value of zero.
- */
-.cpu_high_data (NOLOAD) : {
+/******************************************************************
+ * CPU High Linker Data in DDR
+ *
+ * Since on device BRAM is being used for many different things, it 
+ * becomes necessary to link data sections into DDR.  The section
+ * cpu_high_ddr_linker_data is used for this data.
+ *
+ * However, since this section is located in DDR, which cannot be 
+ * loaded by the SDK, we inlucde the (NOLOAD) directive for this 
+ * section.  This means that the initial value of the section will be 
+ * random (ie whatever was last in DDR).  
+ *
+ * If this section needs to be initialized, then the function
+ * wlan_mac_high_cpu_linker_data_init() must be updated in 
+ * wlan_mac_high.c.
+ *
+ ******************************************************************/
+.cpu_high_ddr_linker_data (NOLOAD) : {
+   __cpu_high_ddr_linker_data_start = .;
    *(.eth_data)
+   __cpu_high_ddr_linker_data_end = .;
 } > ddr3_sodimm_S_AXI_BASEADDR
 
 .init : {
@@ -219,7 +247,7 @@ SECTIONS
    __bss_end = .;
 } > mb_high_ilmb_bram_cntlr_1_mb_high_dlmb_bram_cntlr_1
 
-_SDA_BASE_ = __sdata_start + ((__sbss_end - __sdata_start) / 2 );
+_SDA_BASE_  = __sdata_start  + ((__sbss_end  - __sdata_start)  / 2 );
 
 _SDA2_BASE_ = __sdata2_start + ((__sbss2_end - __sdata2_start) / 2 );
 
