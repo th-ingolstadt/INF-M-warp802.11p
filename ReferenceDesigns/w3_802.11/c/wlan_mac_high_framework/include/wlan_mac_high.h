@@ -5,186 +5,277 @@
  *
  *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *                See LICENSE.txt included in the design archive or
+ *                at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
+
+/*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_HIGH_H_
 #define WLAN_MAC_HIGH_H_
 
+
+//-----------------------------------------------
+// Boot memory defines
+//
 #define INIT_DATA_BASEADDR                  XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_BASEADDR   ///< Base address of memory used for storing boot data
-#define INIT_DATA_DOTDATA_IDENTIFIER	    0x1234ABCD                                   ///< "Magic number" used as an identifier in boot data memory
-#define INIT_DATA_DOTDATA_START             (INIT_DATA_BASEADDR+0x200)                   ///< Offset into memory for boot data
-#define INIT_DATA_DOTDATA_SIZE              (4*(XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))  ///< Amount of space available in boot data memory
+#define INIT_DATA_DOTDATA_IDENTIFIER        0x1234ABCD                                   ///< "Magic number" used as an identifier in boot data memory
+#define INIT_DATA_DOTDATA_START            (INIT_DATA_BASEADDR+0x200)                    ///< Offset into memory for boot data
+#define INIT_DATA_DOTDATA_SIZE             (4*(XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))  ///< Amount of space available in boot data memory
 
-#define ENCAP_MODE_AP                       0                                       ///< Used as a flag for AP encapsulation and de-encapsulation
-#define ENCAP_MODE_STA                      1                                       ///< Used as a flag for STA encapsulation and de-encapsulation
-#define ENCAP_MODE_IBSS                     2                                       ///< Used as a flag for IBSS encapsulation and de-encapsulation
 
-#define TX_BUFFER_NUM                       2                                       ///< Number of PHY transmit buffers to use. This should remain 2 (ping/pong buffering).
 
-#define INTC_DEVICE_ID                      XPAR_INTC_0_DEVICE_ID					///< XParameters rename of interrupt controller device ID
-#define ETH_A_MAC_DEVICE_ID                 XPAR_ETH_A_MAC_DEVICE_ID                ///< XParameters rename for ETH A
-#define UARTLITE_DEVICE_ID                  XPAR_UARTLITE_0_DEVICE_ID               ///< XParameters rename for UART
-
-// Aux. BRAM and DRAM Memory Map
-
-#define AUX_BRAM_BASE					(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
-#define AUX_BRAM_SIZE					(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR - XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + 1)
-#define AUX_BRAM_HIGH					(XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR)
-#define	DRAM_BASE						(XPAR_DDR3_SODIMM_S_AXI_BASEADDR)
-#define DRAM_SIZE						(XPAR_DDR3_SODIMM_S_AXI_HIGHADDR - XPAR_DDR3_SODIMM_S_AXI_BASEADDR + 1)
-#define	DRAM_HIGH						(XPAR_DDR3_SODIMM_S_AXI_HIGHADDR)
-/*
-//     Aux. BRAM     |          DRAM
-//--------------------------------------------
+//-----------------------------------------------
+// Auxiliary (AUX) BRAM and DRAM (DDR) Memory Maps
 //
-// Tx Queue DL_ENTRY -> Tx Queue Buffer
-//
-//-------------------|
-//                   |
-// BSS Info DL_ENTRY |------------------------
-//                   ->
-//-------------------|  BSS Info Buffer
-// Eth Tx BD         |
-//-------------------|
-//                   |------------------------
-// Eth Rx BD         |
-//                   | User Scratch Space
-//-------------------|
-//                   |------------------------
-//                   |
-//                   |
-//                   | Event Log
-//                   |
-//                   |
-//                   |------------------------
-*/
+#define AUX_BRAM_BASE                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
+#define AUX_BRAM_SIZE                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR - XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + 1)
+#define AUX_BRAM_HIGH                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR)
 
-#define high_addr_calc(base, size)      ((base)+((size)-1))
+#define DRAM_BASE                          (XPAR_DDR3_SODIMM_S_AXI_BASEADDR)
+#define DRAM_SIZE                          (XPAR_DDR3_SODIMM_S_AXI_HIGHADDR - XPAR_DDR3_SODIMM_S_AXI_BASEADDR + 1)
+#define DRAM_HIGH                          (XPAR_DDR3_SODIMM_S_AXI_HIGHADDR)
 
 
-/* The Tx Queue consists of two pieces:
- *  (1) dl_entry structs that live in the aux. BRAM and
- *  (2) data buffers for the packets themselves than live in DRAM
+/********************************************************************
  *
- *	The below definitions carve out the sizes of memory for these two pieces.
- *	The default value of 40 kB do the dl_entry memory space was chosen. Because
- *	each dl_entry has a size of 12 bytes, this space allows for a potential
- *	of 3413 dl_entry structs describing Tx queue elements.
+ * --------------------------------------------------------
+ *      Aux. BRAM (64 KB)    |      DRAM (1048576 KB)
+ * --------------------------------------------------------
+ *                           |
+ *                           |  CPU High Data Linker Space
+ *                           |          (1024 KB)
+ *   Tx Queue DL_ENTRY       |-----------------------------
+ *        (40 KB)            |
+ *                          -->      Tx Queue Buffer
+ *                           |          (14000 KB)
+ * --------------------------|-----------------------------
+ *                           |
+ *   BSS Info DL_ENTRY      -->      BSS Info Buffer
+ *        ( 9 KB)            |          (60 KB)
+ * --------------------------|-----------------------------
+ *                           |
+ *       Eth Tx BD           |      User Scratch Space
+ *        (64 B)             |          (14336 KB)
+ * --------------------------|-----------------------------
+ *                           |
+ *       Eth Rx BD           |          Event Log
+ *        (Rest)             |          (Rest)
+ * --------------------------|-----------------------------
  *
- *	As far as the actual payload space in DRAM, 14000 kB was chosen because this
- *	is enough to store each of the 3413 Tx queue elements. Each queue element points
- *	to a unique 4KB-sized buffer.
- */
-#define TX_QUEUE_DL_ENTRY_MEM_BASE		(AUX_BRAM_BASE)
-#define TX_QUEUE_DL_ENTRY_MEM_SIZE		(40*1024)
-#define TX_QUEUE_DL_ENTRY_MEM_HIGH		high_addr_calc(TX_QUEUE_DL_ENTRY_MEM_BASE, TX_QUEUE_DL_ENTRY_MEM_SIZE)
-#define TX_QUEUE_BUFFER_BASE            (DRAM_BASE)
-#define TX_QUEUE_BUFFER_SIZE            (14000*1024)
-#define TX_QUEUE_BUFFER_HIGH            high_addr_calc(TX_QUEUE_BUFFER_BASE, TX_QUEUE_BUFFER_SIZE)
+ ********************************************************************/
 
-/* Like the Tx Queue, BSS Info consists of two pieces:
- *  (1) dl_entry structs that live in the aux. BRAM and
- *  (2) bss_info buffers with the actual content that live in DRAM
+#define high_addr_calc(base, size)         ((base)+((size)-1))
+
+
+
+/********************************************************************
+ * CPU High Linker Data Space
  *
- *	The below definitions carve out the sizes of memory for these two pieces.
- *	The default value of 9 kB for the dl_entry memory space was chosen. Because
- *	each dl_entry has a size of 12 bytes, this space allows for a potential
- *	of 768 dl_entry structs describing bss_info elements.
+ * In order for the linker to store data sections in the DDR, we must reserve the
+ * beginning of DDR.  You can see how this is used by looking for the .cpu_high_data
+ * section in the linker command file (lscript.ld).  By default, 1024 KB (ie 1 MB)
+ * of space is reserved for this section.
  *
- *	Each bss_info struct is a total of 80 bytes in size. So, 768 bss_info
- *	structs require 60 kB of memory. This is why BSS_INFO_BUFFER_SIZE
- *	is set to 60 kB.
- */
-#define BSS_INFO_DL_ENTRY_MEM_BASE		(TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
-#define	BSS_INFO_DL_ENTRY_MEM_SIZE		(9*1024)
-#define	BSS_INFO_DL_ENTRY_MEM_HIGH		high_addr_calc(BSS_INFO_DL_ENTRY_MEM_BASE, BSS_INFO_DL_ENTRY_MEM_SIZE)
-#define BSS_INFO_BUFFER_BASE			(TX_QUEUE_BUFFER_BASE + TX_QUEUE_BUFFER_SIZE)
-#define BSS_INFO_BUFFER_SIZE			(60*1024)
-#define BSS_INFO_BUFFER_HIGH			high_addr_calc(BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE)
+ * In the default reference design, only the WARP IP/UDP library is loaded in this
+ * section since it requires memory space to store buffers / information for sending /
+ * receiving packets.
+ *
+ * NOTE:  Please be aware that while the linker can link into this section, it cannot
+ *     be loaded by the SDK.  Therefore, the CPU must perform any necessary
+ *     initialization.
+ *
+ ********************************************************************/
+#define CPU_HIGH_DDR_LINKER_DATA_BASE      (DRAM_BASE)
+#define CPU_HIGH_DDR_LINKER_DATA_SIZE      (1024 * 1024)
+#define CPU_HIGH_DDR_LINKER_DATA_HIGH       high_addr_calc(CPU_HIGH_DDR_LINKER_DATA_BASE, CPU_HIGH_DDR_LINKER_DATA_HIGH)
 
-/* The current architecture blocks on Ethernet transmissions. As such, only a
- * single Eth DMA buffer descriptor (BD) is needed. Each BD is 64 bytes in
- * size (see XAXIDMA_BD_MINIMUM_ALIGNMENT), so we set ETH_TX_BD_SIZE to 64.
- */
-#define ETH_TX_BD_BASE					(BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
-#define ETH_TX_BD_SIZE					(64)
-#define ETH_TX_BD_HIGH					high_addr_calc(ETH_TX_BD_BASE, ETH_TX_BD_SIZE)
 
-/* Since it is the last section we are defining in the aux. BRAM, we allow
- * the ETH_RX to fill up the rest of the BRAM. This remaining space allows for
- * a total of 239 Eth Rx DMA BDs.
- */
-#define ETH_RX_BD_BASE					(ETH_TX_BD_BASE + ETH_TX_BD_SIZE)
-#define ETH_RX_BD_SIZE					(AUX_BRAM_SIZE - (TX_QUEUE_DL_ENTRY_MEM_SIZE + BSS_INFO_DL_ENTRY_MEM_SIZE + ETH_TX_BD_SIZE))
-#define ETH_RX_BD_HIGH					high_addr_calc(ETH_RX_BD_BASE, ETH_RX_BD_SIZE)
 
-/* We have set aside ~14MB of space for users to use the DRAM in their applications.
+/********************************************************************
+ * TX Queue
+ *
+ * The Tx Queue consists of two pieces:
+ *     (1) dl_entry structs that live in the AUX BRAM
+ *     (2) Data buffers for the packets themselves than live in DRAM
+ *
+ * The below definitions carve out the sizes of memory for these two pieces.  The default
+ * value of 40 kB do the dl_entry memory space was chosen. Because each dl_entry has a
+ * size of 12 bytes, this space allows for a potential of 3413 dl_entry structs describing
+ * Tx queue elements.
+ *
+ * As far as the actual payload space in DRAM, 14000 kB was chosen because this is enough
+ * to store each of the 3413 Tx queue elements. Each queue element points to a unique 4KB-sized
+ * buffer.
+ *
+ ********************************************************************/
+#define TX_QUEUE_DL_ENTRY_MEM_BASE         (AUX_BRAM_BASE)
+#define TX_QUEUE_DL_ENTRY_MEM_SIZE         (40 * 1024)
+#define TX_QUEUE_DL_ENTRY_MEM_HIGH          high_addr_calc(TX_QUEUE_DL_ENTRY_MEM_BASE, TX_QUEUE_DL_ENTRY_MEM_SIZE)
+
+#define TX_QUEUE_BUFFER_BASE               (CPU_HIGH_DDR_LINKER_DATA_BASE + CPU_HIGH_DDR_LINKER_DATA_SIZE)
+#define TX_QUEUE_BUFFER_SIZE               (14000 * 1024)
+#define TX_QUEUE_BUFFER_HIGH                high_addr_calc(TX_QUEUE_BUFFER_BASE, TX_QUEUE_BUFFER_SIZE)
+
+
+
+/********************************************************************
+ * BSS Info
+ *
+ * The BSS Info consists of two pieces:
+ *     (1) dl_entry structs that live in the aux. BRAM and
+ *     (2) bss_info buffers with the actual content that live in DRAM
+ *
+ * The below definitions carve out the sizes of memory for these two pieces. The default
+ * value of 9 kB for the dl_entry memory space was chosen. Because each dl_entry has a
+ * size of 12 bytes, this space allows for a potential of 768 dl_entry structs describing
+ * bss_info elements.
+ *
+ * Each bss_info struct is a total of 80 bytes in size. So, 768 bss_info structs require
+ * 60 kB of memory. This is why BSS_INFO_BUFFER_SIZE is set to 60 kB.
+ *
+ ********************************************************************/
+#define BSS_INFO_DL_ENTRY_MEM_BASE         (TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
+#define BSS_INFO_DL_ENTRY_MEM_SIZE         (9 * 1024)
+#define BSS_INFO_DL_ENTRY_MEM_HIGH          high_addr_calc(BSS_INFO_DL_ENTRY_MEM_BASE, BSS_INFO_DL_ENTRY_MEM_SIZE)
+
+#define BSS_INFO_BUFFER_BASE               (TX_QUEUE_BUFFER_BASE + TX_QUEUE_BUFFER_SIZE)
+#define BSS_INFO_BUFFER_SIZE               (60 * 1024)
+#define BSS_INFO_BUFFER_HIGH                high_addr_calc(BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE)
+
+
+
+/********************************************************************
+ * Ethernet TX Buffer Descriptors
+ *
+ * The current architecture blocks on Ethernet transmissions. As such, only a single
+ * Eth DMA buffer descriptor (BD) is needed. Each BD is 64 bytes in size (see
+ * XAXIDMA_BD_MINIMUM_ALIGNMENT), so we set ETH_TX_BD_SIZE to 64.
+ *
+ ********************************************************************/
+#define ETH_TX_BD_BASE                     (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
+#define ETH_TX_BD_SIZE                     (64)
+#define ETH_TX_BD_HIGH                      high_addr_calc(ETH_TX_BD_BASE, ETH_TX_BD_SIZE)
+
+
+
+/********************************************************************
+ * Ethernet RX Buffer Descriptors
+ *
+ * Since it is the last section we are defining in the aux. BRAM, we allow the ETH_RX
+ * to fill up the rest of the BRAM. This remaining space allows for a total of 239 Eth
+ * Rx DMA BDs.
+ *
+ ********************************************************************/
+#define ETH_RX_BD_BASE                     (ETH_TX_BD_BASE + ETH_TX_BD_SIZE)
+#define ETH_RX_BD_SIZE                     (AUX_BRAM_SIZE - (TX_QUEUE_DL_ENTRY_MEM_SIZE + BSS_INFO_DL_ENTRY_MEM_SIZE + ETH_TX_BD_SIZE))
+#define ETH_RX_BD_HIGH                      high_addr_calc(ETH_RX_BD_BASE, ETH_RX_BD_SIZE)
+
+
+
+/********************************************************************
+ * User Scratch Space
+ *
+ * We have set aside 14MB of space for users to use the DRAM in their applications.
  * We do not use the below definitions in any part of the reference design.
- */
-#define USER_SCRATCH_BASE				(BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
-#define USER_SCRATCH_SIZE				(14336*1024)
-#define USER_SCRATCH_HIGH				high_addr_calc(USER_SCRATCH_BASE, USER_SCRATCH_SIZE)
+ *
+ ********************************************************************/
+#define USER_SCRATCH_BASE                  (BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
+#define USER_SCRATCH_SIZE                  (14336 * 1024)
+#define USER_SCRATCH_HIGH                   high_addr_calc(USER_SCRATCH_BASE, USER_SCRATCH_SIZE)
 
 
-/* Finally, the remaining space in DRAM is used for the WLAN_EXP event log. The above sections in DRAM
- * are much smaller than the space set aside for the event log. In the current implementation, the
- * event log is ~996 MB.
- */
-#define EVENT_LOG_BASE					(USER_SCRATCH_BASE + USER_SCRATCH_SIZE)
-#define EVENT_LOG_SIZE					(DRAM_SIZE - (TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + USER_SCRATCH_SIZE))
-#define EVENT_LOG_HIGH					high_addr_calc(EVENT_LOG_BASE, EVENT_LOG_SIZE)
-
-// End Aux. BRAM and DRAM Memory Map
-
-
-#define USERIO_BASEADDR                     XPAR_W3_USERIO_BASEADDR            ///< XParameters rename of base address of User I/O
-
-#define GPIO_DEVICE_ID                      XPAR_MB_HIGH_SW_GPIO_DEVICE_ID     ///< XParameters rename of device ID of GPIO
-#define INTC_GPIO_INTERRUPT_ID              XPAR_INTC_0_GPIO_0_VEC_ID          ///< XParameters rename of GPIO interrupt ID
-#define UARTLITE_INT_IRQ_ID                 XPAR_INTC_0_UARTLITE_0_VEC_ID      ///< XParameters rename of UART interrupt ID
-#define TMRCTR_INTERRUPT_ID                 XPAR_INTC_0_TMRCTR_0_VEC_ID        ///< XParameters rename of timer interrupt ID
-
-#define GPIO_OUTPUT_CHANNEL                 1                                  ///< Channel used as output for GPIO
-#define GPIO_INPUT_CHANNEL                  2                                  ///< Channel used as input for GPIO
-#define GPIO_INPUT_INTERRUPT                XGPIO_IR_CH2_MASK                  ///< Mask for enabling interrupts on GPIO input
-
-#define GPIO_MASK_DRAM_INIT_DONE            0x00000100                         ///< Mask for GPIO -- DRAM initialization bit
-#define GPIO_MASK_PB_U                      0x00000040                         ///< Mask for GPIO -- "Up" Pushbutton
-#define GPIO_MASK_PB_M                      0x00000020                         ///< Mask for GPIO -- "Middle" Pushbutton
-#define GPIO_MASK_PB_D                      0x00000010                         ///< Mask for GPIO -- "Down" Pushbutton
-#define GPIO_MASK_DS_3                      0x00000008                         ///< Mask for GPIO -- MSB of Dip Switch
-
-#define UART_BUFFER_SIZE                     1                                 ///< UART is configured to read 1 byte at a time
-
-#define NUM_VALID_RATES                     12                                 ///< Number of supported rates
-
-#define PKT_TYPE_DATA_OTHER                  1                                 ///< Other Data
-#define PKT_TYPE_DATA_ENCAP_ETH	             2                                 ///< Encapsulated Ethernet Type
-#define PKT_TYPE_DATA_ENCAP_LTG	             3                                 ///< Encapsulated LTG Type
-#define PKT_TYPE_DATA_PROTECTED	             4                                 ///< Protected Data
-#define PKT_TYPE_MGMT                       11                                 ///< Management Type
-#define PKT_TYPE_CONTROL_ACK                21                                 ///< ACK Control Type
-#define PKT_TYPE_CONTROL_RTS                22                                 ///< RTS Control Type
-#define PKT_TYPE_CONTROL_CTS                23                                 ///< CTS Control Type
-
-#define ADD_ASSOCIATION_ANY_AID              0                                 ///< Special argument to function that adds associations
-
-#define WLAN_MAC_HIGH_MAX_PROMISC_STATS     50                                 ///< Maximum number of promiscuous statistics
-#define WLAN_MAC_HIGH_MAX_ASSOCIATONS       20                                 ///< Maximum number of associations
-
-#define SSID_LEN_MAX                        32                                 ///< Maximum SSID length
+/********************************************************************
+ * Event Log
+ *
+ * The remaining space in DRAM is used for the WLAN Experiment Framwork event log. The above
+ * sections in DRAM are much smaller than the space set aside for the event log. In the current
+ * implementation, the event log is ~995 MB.
+ *
+ ********************************************************************/
+#define EVENT_LOG_BASE                     (USER_SCRATCH_BASE + USER_SCRATCH_SIZE)
+#define EVENT_LOG_SIZE                     (DRAM_SIZE - (CPU_HIGH_DDR_LINKER_DATA_SIZE + TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + USER_SCRATCH_SIZE))
+#define EVENT_LOG_HIGH                      high_addr_calc(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
 
-/* Include other framework headers
- * Includes have to be after any #define
- * that are needed in the typedefs within the
- * includes. */
+
+//-----------------------------------------------
+// Device IDs
+//
+// NOTE:  These are re-definitions of xparameters.h #defines so that the name of the
+//     underlying hardware component can change and it will only require modifying
+//     one line of code in the SDK project.
+//
+#define INTC_DEVICE_ID                                     XPAR_INTC_0_DEVICE_ID              ///< XParameters rename of interrupt controller device ID
+#define ETH_A_MAC_DEVICE_ID                                XPAR_ETH_A_MAC_DEVICE_ID           ///< XParameters rename for ETH A
+#define UARTLITE_DEVICE_ID                                 XPAR_UARTLITE_0_DEVICE_ID          ///< XParameters rename for UART
+#define GPIO_DEVICE_ID                                     XPAR_MB_HIGH_SW_GPIO_DEVICE_ID     ///< XParameters rename of device ID of GPIO
+#define INTC_GPIO_INTERRUPT_ID                             XPAR_INTC_0_GPIO_0_VEC_ID          ///< XParameters rename of GPIO interrupt ID
+#define UARTLITE_INT_IRQ_ID                                XPAR_INTC_0_UARTLITE_0_VEC_ID      ///< XParameters rename of UART interrupt ID
+#define TMRCTR_INTERRUPT_ID                                XPAR_INTC_0_TMRCTR_0_VEC_ID        ///< XParameters rename of timer interrupt ID
+
+
+
+//-----------------------------------------------
+// Base Addresses
+//
+#define USERIO_BASEADDR                                    XPAR_W3_USERIO_BASEADDR            ///< XParameters rename of base address of User I/O
+
+
+
+//-----------------------------------------------
+// WLAN Constants
+//
+#define ENCAP_MODE_AP                                      0                                  ///< Used as a flag for AP encapsulation and de-encapsulation
+#define ENCAP_MODE_STA                                     1                                  ///< Used as a flag for STA encapsulation and de-encapsulation
+#define ENCAP_MODE_IBSS                                    2                                  ///< Used as a flag for IBSS encapsulation and de-encapsulation
+
+#define TX_BUFFER_NUM                                      2                                  ///< Number of PHY transmit buffers to use. This should remain 2 (ping/pong buffering).
+
+#define GPIO_OUTPUT_CHANNEL                                1                                  ///< Channel used as output for GPIO
+#define GPIO_INPUT_CHANNEL                                 2                                  ///< Channel used as input for GPIO
+#define GPIO_INPUT_INTERRUPT                               XGPIO_IR_CH2_MASK                  ///< Mask for enabling interrupts on GPIO input
+
+#define GPIO_MASK_DRAM_INIT_DONE                           0x00000100                         ///< Mask for GPIO -- DRAM initialization bit
+#define GPIO_MASK_PB_U                                     0x00000040                         ///< Mask for GPIO -- "Up" Pushbutton
+#define GPIO_MASK_PB_M                                     0x00000020                         ///< Mask for GPIO -- "Middle" Pushbutton
+#define GPIO_MASK_PB_D                                     0x00000010                         ///< Mask for GPIO -- "Down" Pushbutton
+#define GPIO_MASK_DS_3                                     0x00000008                         ///< Mask for GPIO -- MSB of Dip Switch
+
+#define UART_BUFFER_SIZE                                   1                                  ///< UART is configured to read 1 byte at a time
+
+#define NUM_VALID_RATES                                    12                                 ///< Number of supported rates
+
+#define PKT_TYPE_DATA_OTHER                                1                                  ///< Other Data
+#define PKT_TYPE_DATA_ENCAP_ETH                            2                                  ///< Encapsulated Ethernet Type
+#define PKT_TYPE_DATA_ENCAP_LTG                            3                                  ///< Encapsulated LTG Type
+#define PKT_TYPE_DATA_PROTECTED                            4                                  ///< Protected Data
+#define PKT_TYPE_MGMT                                      11                                 ///< Management Type
+#define PKT_TYPE_CONTROL_ACK                               21                                 ///< ACK Control Type
+#define PKT_TYPE_CONTROL_RTS                               22                                 ///< RTS Control Type
+#define PKT_TYPE_CONTROL_CTS                               23                                 ///< CTS Control Type
+
+#define ADD_ASSOCIATION_ANY_AID                            0                                  ///< Special argument to function that adds associations
+
+#define WLAN_MAC_HIGH_MAX_PROMISC_STATS                    50                                 ///< Maximum number of promiscuous statistics
+#define WLAN_MAC_HIGH_MAX_ASSOCIATONS                      20                                 ///< Maximum number of associations
+
+#define SSID_LEN_MAX                                       32                                 ///< Maximum SSID length
+
+
+
+/***************************** Include Files *********************************/
+
+/********************************************************************
+ * Include other framework headers
+ *
+ * NOTE:  Includes have to be after any #define that are needed in the typedefs within the includes.
+ *
+ ********************************************************************/
 #include "wlan_mac_queue.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_ipc_util.h"
@@ -192,142 +283,182 @@
 #include "wlan_mac_dl_list.h"
 
 
+
+/************************** Global Type Definitions **************************/
+
 typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 
-/**
+
+
+/*********************** Global Structure Definitions ************************/
+
+/********************************************************************
  * @brief Frame Statistics Structure
  *
  * This struct contains statistics about the communications link. It is intended to
  * be instantiated multiple times in the broader statistics_txrx struct so that
  * different packet types can be individually tracked.
- */
+ *
+ ********************************************************************/
 typedef struct{
-	u64		rx_num_bytes;				///< # of successfully received bytes (de-duplicated)
-	u64		tx_num_bytes_success;		///< # of successfully transmitted bytes (high-level MPDUs)
-	u64		tx_num_bytes_total;			///< Total # of transmitted bytes (high-level MPDUs)
-	u32		rx_num_packets;				///< # of successfully received packets (de-duplicated)
-	u32		tx_num_packets_success;		///< # of successfully transmitted packets (high-level MPDUs)
-	u32		tx_num_packets_total;		///< Total # of transmitted packets (high-level MPDUs)
-	u32		tx_num_packets_low;			///< # of low-level transmitted frames (including retransmissions)
+    u64        rx_num_bytes;                ///< # of successfully received bytes (de-duplicated)
+    u64        tx_num_bytes_success;        ///< # of successfully transmitted bytes (high-level MPDUs)
+    u64        tx_num_bytes_total;          ///< Total # of transmitted bytes (high-level MPDUs)
+    u32        rx_num_packets;              ///< # of successfully received packets (de-duplicated)
+    u32        tx_num_packets_success;      ///< # of successfully transmitted packets (high-level MPDUs)
+    u32        tx_num_packets_total;        ///< Total # of transmitted packets (high-level MPDUs)
+    u32        tx_num_packets_low;          ///< # of low-level transmitted frames (including retransmissions)
 } frame_statistics_txrx;
 
 
-/**
+
+/********************************************************************
  * @brief Statistics Structure
  *
- * This struct contains statistics about the communications link.
- * Additionally, statistics can be decoupled from station_info
- * structs entirely to enable promiscuous statistics about
- * unassociated devices seen in the network.
- */
+ * This struct contains statistics about the communications link.  Additionally,
+ * statistics can be decoupled from station_info structs entirely to enable promiscuous
+ * statistics about unassociated devices seen in the network.
+ *
+ * NOTE:  The reason that the reference design uses a #define for fields in
+ *     two different structs is so that fields that must be in two different
+ *     structs stay in sync and so there is not another level of indirection
+ *     by using nested structs.
+ *
+ ********************************************************************/
 #define MY_STATISTICS_TXRX_COMMON_FIELDS                                                                 \
-		u8                      addr[6];                        /* HW Address */ 						 \
-		u8                      is_associated;                  /* Is this device associated with me? */ \
-		u8                      padding;                                                                 \
-		frame_statistics_txrx	data;                           /* Statistics about data types */        \
-		frame_statistics_txrx	mgmt;                           /* Statistics about data types */
+        u8                      addr[6];                        /* HW Address */                         \
+        u8                      is_associated;                  /* Is this device associated with me? */ \
+        u8                      padding;                                                                 \
+        frame_statistics_txrx   data;                           /* Statistics about data types */        \
+        frame_statistics_txrx   mgmt;                           /* Statistics about data types */
+
 
 typedef struct{
-	MY_STATISTICS_TXRX_COMMON_FIELDS
-	u64     latest_txrx_timestamp;                              ///< Timestamp of the last frame reception
+
+    MY_STATISTICS_TXRX_COMMON_FIELDS
+
+    u64     latest_txrx_timestamp;                              ///< Timestamp of the last frame reception
+
 } statistics_txrx;
+
 CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
 
 
-/**
+
+/********************************************************************
  * @brief Base Statistics Structure
  *
- * This struct is a modification of the statistics_txrx struct that eliminates
- * pointers to other data.
- */
+ * This struct is a modification of the statistics_txrx struct that eliminates pointers to other data.  It
+ * is used primarily for logging.
+ *
+ ********************************************************************/
 typedef struct{
-	MY_STATISTICS_TXRX_COMMON_FIELDS
+
+    MY_STATISTICS_TXRX_COMMON_FIELDS
+
 } statistics_txrx_base;
 
 
-/**
+
+/********************************************************************
  * @brief Reception Information Structure
  *
  * This structure contains information about the previous reception. It is used in high
  * level MACs to de-duplicate incoming receptions.
- */
+ *
+ ********************************************************************/
 typedef struct{
-	u16     last_seq;       ///< Sequence number of the last MPDU reception
-	char    last_power;     ///< Power of last frame reception (in dBm)
-	u8      last_rate;      ///< Rate of last MPDU reception
+    u16     last_seq;       ///< Sequence number of the last MPDU reception
+    char    last_power;     ///< Power of last frame reception (in dBm)
+    u8      last_rate;      ///< Rate of last MPDU reception
 } rx_info;
 
 
-/**
+
+/********************************************************************
  * @brief Rate Selection Information
  *
  * This structure contains information about the rate selection scheme.
- */
+ *
+ ********************************************************************/
 typedef struct{
-	u16 rate_selection_scheme;
+    u16 rate_selection_scheme;
 } rate_selection_info;
 
-#define RATE_SELECTION_SCHEME_STATIC	         0
+#define RATE_SELECTION_SCHEME_STATIC                       0
 
 
-/**
+
+/********************************************************************
  * @brief Station Information Structure
  *
  * This struct contains information about associated stations (or, in the
  * case of a station, information about the associated access point).
- */
-#define STATION_INFO_HOSTNAME_MAXLEN             19
+ *
+ * NOTE:  The reason that the reference design uses a #define for fields in
+ *     two different structs is so that fields that must be in two different
+ *     structs stay in sync and so there is not another level of indirection
+ *     by using nested structs.
+ *
+ ********************************************************************/
+#define STATION_INFO_HOSTNAME_MAXLEN                       19
 
-#define MY_STATION_INFO_COMMON_FIELDS 								   									\
-		u8          addr[6]; 									/* HW Address */ 						\
-		u16         AID; 										/* Association ID */	 				\
-		char		hostname[STATION_INFO_HOSTNAME_MAXLEN+1]; 	/* Hostname from DHCP requests */		\
-		u32			flags;										/* 1-bit flags */						\
-		u64         latest_activity_timestamp;                  /* Timestamp of most recent activity */ \
-		rx_info     rx; 										/* Reception Information Structure */	\
-		tx_params   tx;											/* Transmission Parameters Structure */
+#define MY_STATION_INFO_COMMON_FIELDS                                                                    \
+        u8          addr[6];                                    /* HW Address */                         \
+        u16         AID;                                        /* Association ID */                     \
+        char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        \
+        u32         flags;                                      /* 1-bit flags */                        \
+        u64         latest_activity_timestamp;                  /* Timestamp of most recent activity */  \
+        rx_info     rx;                                         /* Reception Information Structure */    \
+        tx_params   tx;                                         /* Transmission Parameters Structure */
+
 
 typedef struct{
-	MY_STATION_INFO_COMMON_FIELDS
-	statistics_txrx* stats;									///< Statistics Information Structure
-															///< @note This is a pointer to the statistics structure
-                            								///< because statistics can survive outside of the context
-                            								///< of associated station_info structs.
-	rate_selection_info rate_info;
+
+    MY_STATION_INFO_COMMON_FIELDS
+
+    statistics_txrx* stats;                                     ///< Statistics Information Structure
+                                                                ///< @note This is a pointer to the statistics structure
+                                                                ///< because statistics can survive outside of the context
+                                                                ///< of associated station_info structs.
+    rate_selection_info rate_info;
 
 } station_info;
 
 
-/**
+
+/********************************************************************
  * @brief Base Station Information Structure
  *
- * This struct is a modification of the station_info struct that eliminates
- * pointers to other data.
- */
+ * This struct is a modification of the station_info struct that eliminates pointers to other data.  It
+ * is used primarily for logging.
+ *
+ ********************************************************************/
 typedef struct{
-	MY_STATION_INFO_COMMON_FIELDS
+
+    MY_STATION_INFO_COMMON_FIELDS
+
 } station_info_base;
 
 
-#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK    0x0001         ///< Mask for flag in station_info -- disable association check
-#define STATION_INFO_FLAG_DOZE                   0x0002         ///< Mask to sleeping stations (if STA supports PS)
-#define STATION_INFO_DO_NOT_REMOVE               0x80000000     ///< Mask to not remove station info from association table
+#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x0001              ///< Mask for flag in station_info -- disable association check
+#define STATION_INFO_FLAG_DOZE                             0x0002              ///< Mask to sleeping stations (if STA supports PS)
+#define STATION_INFO_DO_NOT_REMOVE                         0x80000000          ///< Mask to not remove station info from association table
 
 
 
-
-//////////// Global Constants ////////////
+/***************************** Global Constants ******************************/
 
 extern const  u8 bcast_addr[6];
 
 
 
-//////////// Initialization Functions ////////////
+/*************************** Function Prototypes *****************************/
 void               wlan_mac_high_init();
 void               wlan_mac_high_heap_init();
 
-int                         wlan_mac_high_interrupt_init();
-inline int                  wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
+int                          wlan_mac_high_interrupt_init();
+inline int                   wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
 inline interrupt_state_t     wlan_mac_high_interrupt_stop();
 
 void               wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
@@ -385,7 +516,6 @@ void               wlan_mac_high_ipc_rx();
 void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
 void               wlan_mac_high_set_srand( unsigned int seed );
 void               wlan_mac_high_set_channel( unsigned int mac_channel );
-void toggle_hop_seq();
 void               wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
 void               wlan_mac_high_set_tx_ctrl_pow( s8 pow );
 void               wlan_mac_high_set_rx_filter_mode( u32 filter_mode );

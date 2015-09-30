@@ -45,21 +45,27 @@
 /*********************** Global Variable Definitions *************************/
 
 //These variables are defined by the linker at compile time
-extern int __data_start; ///< Start address of the data secion
-extern int __data_end;	 ///< End address of the data section
-extern int __bss_start;	 ///< Start address of the bss section
-extern int __bss_end;	 ///< End address of the bss section
-extern int _heap_start;	 ///< Start address of the heap
-extern int _HEAP_SIZE;	 ///< Size of the heap
-extern int _stack_end;	 ///< Start of the stack (stack counts backwards)
-extern int __stack;	 	 ///< End of the stack
+extern int                   __data_start;                 ///< Start address of the data section
+extern int                   __data_end;                   ///< End address of the data section
+
+extern int                   __cpu_high_ddr_linker_data_start;  ///< Start address of the CPU High linker data section
+extern int                   __cpu_high_ddr_linker_data_end;    ///< End address of the CPU High linker data section
+
+extern int                   __bss_start;                  ///< Start address of the bss section
+extern int                   __bss_end;                    ///< End address of the bss section
+
+extern int                   _heap_start;                  ///< Start address of the heap
+extern int                   _HEAP_SIZE;                   ///< Size of the heap
+
+extern int                   _stack_end;                   ///< Start of the stack (stack counts backwards)
+extern int                   __stack;                      ///< End of the stack
 
 
 // Variables implemented in child classes (ie AP, STA, etc)
-extern tx_params default_unicast_mgmt_tx_params;
-extern tx_params default_unicast_data_tx_params;
-extern tx_params default_multicast_mgmt_tx_params;
-extern tx_params default_multicast_data_tx_params;
+extern tx_params             default_unicast_mgmt_tx_params;
+extern tx_params             default_unicast_data_tx_params;
+extern tx_params             default_multicast_mgmt_tx_params;
+extern tx_params             default_multicast_data_tx_params;
 
 
 
@@ -207,6 +213,63 @@ void wlan_mac_high_heap_init(){
 
 
 /**
+ * @brief Initialize CPU High DDR Linker Data Sections
+ *
+ * The linker command file defines the cpu_high_linker_data section that is used
+ * to link sections that need memory outside of what is provided by BRAM.  However,
+ * the SDK cannot load this section.  Therefore, any initialization of that section
+ * must be done in this function.
+ *
+ * @param   None
+ *
+ * @return  None
+ *
+ * @note    This function should be the first thing called after the DDR has been
+ *     detected. If it is called after other parts have the code have started
+ *     accessing this memory, there will be unpredictable results.
+ *
+ */
+void wlan_mac_high_cpu_ddr_linker_data_init(u8 dram_present) {
+    u32            data_size;
+    // volatile u32 * identifier;                             // Uncomment if needed
+
+    data_size  = 4 * (&__cpu_high_ddr_linker_data_end - &__cpu_high_ddr_linker_data_start);
+    // identifier = (u32 *)CPU_HIGH_DDR_LINKER_DATA_BASE;     // Uncomment if needed
+
+    // Check that the section has not exceeded the allocated size
+    if (data_size > CPU_HIGH_DDR_LINKER_DATA_SIZE) {
+        xil_printf("!!! ERROR: CPU High DDR linker data exceeds allocated size. !!!\n");
+        xil_printf("    Please allocate more space in wlan_mac_high.h by \n");
+        xil_printf("    updating CPU_HIGH_LINKER_DATA_SIZE.\n");
+    }
+
+
+#ifdef USE_WLAN_EXP
+    // Check if DRAM is present
+    if (!dram_present) {
+        xil_printf("!!! ERROR: WLAN Exp requires DDR for Ethernet communication. !!!\n");
+    }
+
+    // Perform any WLAN Exp initialization of the memory
+    if (CLEAR_DDR_ON_BOOT) {
+        clear_ddr(WLAN_EXP_VERBOSE);
+    }
+#endif
+
+    //-----------------------------------------------------
+    // Perform any User initialization of the memory
+    //-----------------------------------------------------
+
+
+
+    //-----------------------------------------------------
+    // End Perform any User initialization of the memory
+    //-----------------------------------------------------
+}
+
+
+
+/**
  * @brief Initialize MAC High Framework
  *
  * This function initializes the MAC High Framework by setting
@@ -340,11 +403,8 @@ void wlan_mac_high_init(){
 		}
 	}
 
-#ifdef USE_WLAN_EXP
-    if (CLEAR_DDR_ON_BOOT) {
-        clear_ddr(WLAN_EXP_VERBOSE);
-    }
-#endif
+    // Initialize the CPU High DDR linker data
+	wlan_mac_high_cpu_ddr_linker_data_init(dram_present);
 
 
 	// ***************************************************
