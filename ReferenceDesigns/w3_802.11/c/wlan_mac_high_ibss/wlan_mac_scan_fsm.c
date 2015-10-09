@@ -15,7 +15,7 @@
  */
 
 
-//Xilinx SDK includes
+// Xilinx SDK includes
 #include "xparameters.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -24,7 +24,7 @@
 #include "string.h"
 #include "xintc.h"
 
-//WARP includes
+// WLAN includes
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_schedule.h"

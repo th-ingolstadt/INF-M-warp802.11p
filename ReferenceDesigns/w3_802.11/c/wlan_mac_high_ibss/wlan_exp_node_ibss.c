@@ -33,7 +33,7 @@
 #include "string.h"
 #include "stdlib.h"
 
-//WARP includes
+// WLAN includes
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -58,7 +58,7 @@
 
 /*********************** Global Variable Definitions *************************/
 extern dl_list        association_table;
-extern dl_list        statistics_table;
+extern dl_list        counts_table;
 
 extern u8             pause_data_queue;
 extern u32            mac_param_chan;
@@ -93,18 +93,18 @@ void wlan_exp_ibss_join_success(bss_info* bss_description);
  *
  * @param   socket_index     - Index of the socket on which to send message
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
- * @param   command          - Pointer to WARPLab Command
- * @param   response         - Pointer to WARPLab Response
+ * @param   command          - Pointer to Command
+ * @param   response         - Pointer to Response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
  *
  * @note    See on-line documentation for more information about the Ethernet
- *          packet structure for WARPLab:  www.warpproject.org
+ *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, warp_cmd_resp * command, warp_cmd_resp * response) {
+int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -121,7 +121,7 @@ int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, wa
 
     u32               * cmd_args_32    = command->args;
 
-    warp_cmd_resp_hdr * resp_hdr       = response->header;
+    cmd_resp_hdr      * resp_hdr       = response->header;
     u32               * resp_args_32   = response->args;
     u32                 resp_index     = 0;
 
@@ -522,9 +522,9 @@ int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, wa
 /**
  * This will initialize the WLAN Exp IBSS specific items
  *
- * @param   warp_type        - WARP type of the WLAN Exp node
- * @param   serial_number    - Serial number of the WARP node
- * @param   fpga_dna         - FPGA DNA of the WARP node
+ * @param   wlan_exp_type    - WLAN Exp type of the node
+ * @param   serial_number    - Serial number of the node
+ * @param   fpga_dna         - FPGA DNA of the node
  * @param   eth_dev_num      - Ethernet device to use for WLAN Exp
  * @param   wlan_exp_hw_addr - WLAN Exp hardware address
  * @param   wlan_hw_addr     - WLAN hardware address
@@ -534,7 +534,7 @@ int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, wa
  *                                 XST_FAILURE - There was an error in the command
  *
  ******************************************************************************/
-int wlan_exp_node_ibss_init(u32 warp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
+int wlan_exp_node_ibss_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
 
     xil_printf("Configuring IBSS ...\n");
 
@@ -581,7 +581,7 @@ void wlan_exp_ibss_tx_cmd_add_association(u8* mac_addr) {
     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Adding association for:  ");
     wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, mac_addr); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
-    wlan_mac_high_add_association(&my_bss_info->associated_stations, &statistics_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
+    wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, mac_addr, ADD_ASSOCIATION_ANY_AID);
 }
 
 

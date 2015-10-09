@@ -92,16 +92,16 @@ void purge_all_data_tx_queue();
 
 void reset_bss_info();
 void leave_ibss();
-void reset_station_statistics();
+void reset_station_counts();
 
-dl_list * get_statistics();
+dl_list * get_counts();
 
 void uart_rx(u8 rxByte);
 
 void print_menu();
 void print_queue_status();
 void print_station_status(u8 manual_call);
-void print_all_observed_statistics();
+void print_all_observed_counts();
 
 void ibss_write_hex_display(u8 val);
 
