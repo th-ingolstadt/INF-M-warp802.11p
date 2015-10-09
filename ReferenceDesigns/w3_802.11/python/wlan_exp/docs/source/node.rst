@@ -41,22 +41,22 @@ entire payload of the wireless packets.  Both the log wrapping and logging of fu
 can be modified with the log_configure() command.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
-   :members: log_configure, log_get, log_get_all_new, log_get_size, log_get_capacity, log_get_indexes, log_get_flags, log_is_full, log_write_exp_info, log_write_time, log_write_txrx_stats
+   :members: log_configure, log_get, log_get_all_new, log_get_size, log_get_capacity, log_get_indexes, log_get_flags, log_is_full, log_write_exp_info, log_write_time, log_write_txrx_counts
 
 
-Statistics Commands
+Counts Commands
 ...................
 
-These WlanExpNode commands are used to to interact with the statistics framework.  Statistics are kept for for
-each association (the statistics that are kept can be found as part of the `log entry types
-<http://warpproject.org/trac/wiki/802.11/wlan_exp/log/entry_types>`_).  If promiscuous statistics are enabled, 
-then the node will keep statistics for every MAC address overheard (whether the node is associated or not).  In 
-order to keep the maximum number of statistics recorded on the node to a reasonable amount, there is a maximum number
-of statistics implemented in the C code.  When that maximum is reached, then the oldest statistics structure of an 
+These WlanExpNode commands are used to to interact with the counts framework.  Counts are kept for for
+each association (the counts that are kept can be found as part of the `log entry types
+<http://warpproject.org/trac/wiki/802.11/wlan_exp/log/entry_types>`_).  If promiscuous counts are enabled, 
+then the node will keep counts for every MAC address overheard (whether the node is associated or not).  In 
+order to keep the maximum number of counts recorded on the node to a reasonable amount, there is a maximum number
+of counts implemented in the C code.  When that maximum is reached, then the oldest counts structure of an 
 unassociated node will be overwritten.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
-   :members: stats_configure_txrx, stats_get_txrx
+   :members: counts_configure_txrx, counts_get_txrx
 
 
 Local Traffic Generator (LTG) Commands

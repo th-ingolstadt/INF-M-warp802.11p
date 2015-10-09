@@ -96,7 +96,7 @@ rate = wlan_exp_util.wlan_rates[3]
 # Put each node in a known, good state
 for node in nodes:
     node.set_tx_rate_unicast(rate, curr_assoc=True, new_assoc=True)
-    node.reset(log=True, txrx_stats=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
+    node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
 
     # Get some additional information about the experiment
     channel  = node.get_channel()
@@ -142,22 +142,22 @@ for idx,atten in enumerate(attens):
     
     n_ap.ltg_start(ap_ltg_id)
 
-    # Record the initial Tx/Rx stats
-    sta_rx_stats_start = n_sta.stats_get_txrx(n_ap)
-    ap_rx_stats_start  = n_ap.stats_get_txrx(n_sta)
+    # Record the initial Tx/Rx counts
+    sta_rx_counts_start = n_sta.counts_get_txrx(n_ap)
+    ap_rx_counts_start  = n_ap.counts_get_txrx(n_sta)
     
     # Wait for the TRIAL_TIME
     time.sleep(TRIAL_TIME)
     
-    # Record the ending Tx/Rx stats
-    sta_rx_stats_end = n_sta.stats_get_txrx(n_ap)
-    ap_rx_stats_end  = n_ap.stats_get_txrx(n_sta)
+    # Record the ending Tx/Rx counts
+    sta_rx_counts_end = n_sta.counts_get_txrx(n_ap)
+    ap_rx_counts_end  = n_ap.counts_get_txrx(n_sta)
     
     n_ap.ltg_stop(ap_ltg_id)
     n_ap.queue_tx_data_purge_all()
     
-    sta_num_bits  = float((sta_rx_stats_end['data_num_rx_bytes'] - sta_rx_stats_start['data_num_rx_bytes']) * 8)
-    sta_time_span = float(sta_rx_stats_end['timestamp'] - sta_rx_stats_start['timestamp'])
+    sta_num_bits  = float((sta_rx_counts_end['data_num_rx_bytes'] - sta_rx_counts_start['data_num_rx_bytes']) * 8)
+    sta_time_span = float(sta_rx_counts_end['timestamp'] - sta_rx_counts_start['timestamp'])
     sta_xput      = sta_num_bits / sta_time_span
     xputs[idx] = sta_xput
     

@@ -151,12 +151,12 @@ def log_anonymize(filename):
         print("        Time = {0:.3f}s".format(time.time() - start_time))
 
     #----------------------------------
-    # Tx/Rx Statistics entries
+    # Tx/Rx Counts entries
     #
     try:
-        print("    Anonmyizing {0} TXRX_STATS entries".format(len(log_index['TXRX_STATS'])))
+        print("    Anonmyizing {0} TXRX_COUNTS entries".format(len(log_index['TXRX_COUNTS'])))
 
-        for idx in log_index['TXRX_STATS']:
+        for idx in log_index['TXRX_COUNTS']:
             # 6-byte addresses at offsets 16
                 o = 16
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)

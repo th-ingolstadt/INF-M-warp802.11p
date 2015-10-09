@@ -29,9 +29,9 @@ import wlan_exp.warpnet.transport_eth_udp as wn_transport
 
 __all__ = [# Log command classes
            'LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity', 'LogAddExpInfoEntry', 
-           'LogAddStatsTxRx',
-           # Stats command classes
-           'StatsConfigure', 'StatsGetTxRx', 
+           'LogAddCountsTxRx',
+           # Counts command classes
+           'CountsConfigure', 'CountsGetTxRx', 
            # LTG classes
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove', 'LTGStatus',
            # Node command classes
@@ -88,7 +88,7 @@ CMD_PARAM_MULTICAST_MGMT                         = 0x00000002
 CMD_PARAM_NODE_CONFIG_ALL                        = 0xFFFFFFFF 
 
 CMD_PARAM_NODE_RESET_FLAG_LOG                    = 0x00000001
-CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS             = 0x00000002
+CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS            = 0x00000002
 CMD_PARAM_NODE_RESET_FLAG_LTG                    = 0x00000004
 CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE          = 0x00000008
 CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS           = 0x00000010
@@ -165,7 +165,7 @@ CMDID_LOG_GET_STATUS                             = 0x003001
 CMDID_LOG_GET_CAPACITY                           = 0x003002
 CMDID_LOG_GET_ENTRIES                            = 0x003003
 CMDID_LOG_ADD_EXP_INFO_ENTRY                     = 0x003004
-CMDID_LOG_ADD_STATS_TXRX                         = 0x003005
+CMDID_LOG_ADD_COUNTS_TXRX                        = 0x003005
 CMDID_LOG_ENABLE_ENTRY                           = 0x003006
 CMDID_LOG_STREAM_ENTRIES                         = 0x003007
 
@@ -180,13 +180,13 @@ CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU              = 0x00000010
 CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL              = 0x00000020
 
 
-# Statistics commands and defined values
-CMDID_STATS_CONFIG_TXRX                          = 0x004000
-CMDID_STATS_GET_TXRX                             = 0x004001
+# Counts commands and defined values
+CMDID_COUNTS_CONFIG_TXRX                         = 0x004000
+CMDID_COUNTS_GET_TXRX                            = 0x004001
 
-CMD_PARAM_STATS_CONFIG_FLAG_PROMISC              = 0x00000001
+CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC             = 0x00000001
 
-CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE            = 0x80000000
+CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE           = 0x80000000
 
 
 # Queue commands and defined values
@@ -428,11 +428,11 @@ class LogAddExpInfoEntry(wn_message.Cmd):
 # End Class
 
 
-class LogAddStatsTxRx(wn_message.Cmd):
-    """Command to add the current statistics to the Event log"""
+class LogAddCountsTxRx(wn_message.Cmd):
+    """Command to add the current counts to the Event log"""
     def __init__(self):
-        super(LogAddStatsTxRx, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LOG_ADD_STATS_TXRX
+        super(LogAddCountsTxRx, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_LOG_ADD_COUNTS_TXRX
     
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=1):
@@ -446,25 +446,25 @@ class LogAddStatsTxRx(wn_message.Cmd):
 
 
 #--------------------------------------------
-# Stats Commands
+# Counts Commands
 #--------------------------------------------
-class StatsConfigure(wn_message.Cmd):
-    """Command to configure the Statistics collection.
+class CountsConfigure(wn_message.Cmd):
+    """Command to configure the Counts collection.
     
     Attributes (default state on the node is in CAPS):
-        promisc_stats        -- Enable promiscuous statistics collection (TRUE/False)
+        promisc_counts       -- Enable promiscuous counts collection (TRUE/False)
     """
-    def __init__(self, promisc_stats=None):
-        super(StatsConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_STATS_CONFIG_TXRX
+    def __init__(self, promisc_counts=None):
+        super(CountsConfigure, self).__init__()
+        self.command = _CMD_GRPID_NODE + CMDID_COUNTS_CONFIG_TXRX
 
         flags = 0
         mask  = 0
 
-        if promisc_stats is not None:
-            mask += CMD_PARAM_STATS_CONFIG_FLAG_PROMISC
-            if promisc_stats:
-                flags += CMD_PARAM_STATS_CONFIG_FLAG_PROMISC
+        if promisc_counts is not None:
+            mask += CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC
+            if promisc_counts:
+                flags += CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC
                 
         self.add_args(flags)
         self.add_args(mask)
@@ -475,18 +475,18 @@ class StatsConfigure(wn_message.Cmd):
 # End Class
 
 
-class StatsGetTxRx(wn_message.BufferCmd):
-    """Command to get the statistics from the node for a given node."""
-    def __init__(self, node=None, return_zeroed_stats_if_none=False):
+class CountsGetTxRx(wn_message.BufferCmd):
+    """Command to get the counts from the node for a given node."""
+    def __init__(self, node=None, return_zeroed_counts_if_none=False):
         flags = 0
 
         # Compute the argument for the BufferCmd flags
-        if return_zeroed_stats_if_none:
-            flags += CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE
+        if return_zeroed_counts_if_none:
+            flags += CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE
 
         # Call parent initialziation
-        super(StatsGetTxRx, self).__init__(flags=flags)
-        self.command = _CMD_GRPID_NODE + CMDID_STATS_GET_TXRX
+        super(CountsGetTxRx, self).__init__(flags=flags)
+        self.command = _CMD_GRPID_NODE + CMDID_COUNTS_GET_TXRX
 
         if node is not None:
             mac_address = node.wlan_mac_address
@@ -497,16 +497,16 @@ class StatsGetTxRx(wn_message.BufferCmd):
 
 
     def process_resp(self, resp):
-        # Contains a WARPNet Buffer of all stats entries.  Need to convert to 
-        #   a list of statistics dictionaries.
+        # Contains a WARPNet Buffer of all counts entries.  Need to convert to 
+        #   a list of counts dictionaries.
         import wlan_exp.log.entry_types as entry_types
         
         index   = 0
         data    = resp.get_bytes()
-        ret_val = entry_types.entry_txrx_stats.deserialize(data[index:])
+        ret_val = entry_types.entry_txrx_counts.deserialize(data[index:])
 
         if (False):
-            msg = "Statistics Data buffer:"
+            msg = "Counts Data buffer:"
             for i, byte in enumerate(data[index:]):
                 if ((i % 16) == 0): msg += "\n    "
                 try:

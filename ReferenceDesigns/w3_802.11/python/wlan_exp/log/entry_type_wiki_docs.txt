@@ -1,4 +1,4 @@
-== WLAN Exp v1.2.0   Log Entry Types ==
+== WLAN Exp v1.5.0   Log Entry Types ==
 
 ----
 
@@ -9,15 +9,14 @@ Entry type ID: 1
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
-|| node_type ||  uint32  || Node type as 4 byte value: [b0 b1 b2 b3]:[[BR]] b0: Always 0x00[[BR]] b1: Always 0x01 for 802.11 ref design nodes[[BR]] b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS[[BR]] b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC ||
+|| node_type ||  uint32  || Node type as 4 byte value: [b0 b1 b2 b3]:[[BR]] b0: Always 0x00 for 802.11 ref design nodes[[BR]] b1: Always 0x01 for 802.11 ref design nodes[[BR]] b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS[[BR]] b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC ||
 || node_id ||  uint32  || Node ID, as set during wlan_exp init ||
 || hw_generation ||  uint32  || WARP hardware generation: 3 for WARP v3 ||
-|| wn_ver ||  uint32  || WARPnet version, as packed bytes [0 major minor rev] ||
-|| fpga_dna ||  uint64  || DNA value of node FPGA ||
 || serial_num ||  uint32  || Serial number of WARP board ||
-|| wlan_exp_ver ||  uint32  || wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev] ||
-|| wlan_mac_addr ||  uint64  || Node MAC address, 6 bytes in lower 48-bits of u64 ||
+|| fpga_dna ||  uint64  || DNA value of node FPGA ||
+|| version ||  uint32  || wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev] ||
 || wlan_scheduler_resolution ||  uint32  || Minimum interval in microseconds of the WLAN scheduler ||
+|| wlan_mac_addr ||  uint64  || Node MAC address, 6 bytes in lower 48-bits of u64 ||
 
 
 ----
@@ -215,9 +214,10 @@ Entry type ID: 20
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || result ||  uint8  || Tx result; 0 = ACK received or not required ||
 || pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| queue_id ||  uint16  || Tx queue ID from which the packet was retrieved ||
+|| queue_occupancy ||  uint16  || Occupancy of the Tx queue at the time the packet was created (value includes itself) ||
 || ant_mode ||  uint8  || PHY antenna mode of final Tx attempt ||
-|| queue_id ||  uint8  || Tx queue ID from which the packet was retrieved ||
-|| padding ||  2uint8  ||  ||
+|| padding ||  3uint8  ||  ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
 
@@ -250,9 +250,10 @@ Entry type ID: 21
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || result ||  uint8  || Tx result; 0 = ACK received or not required ||
 || pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| queue_id ||  uint16  || Tx queue ID from which the packet was retrieved ||
+|| queue_occupancy ||  uint16  || Occupancy of the Tx queue at the time the packet was created (value includes itself) ||
 || ant_mode ||  uint8  || PHY antenna mode of final Tx attempt ||
-|| queue_id ||  uint8  || Tx queue ID from which the packet was retrieved ||
-|| padding ||  2uint8  ||  ||
+|| padding ||  3uint8  ||  ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
 
@@ -344,8 +345,8 @@ The following fields are populated when the log entry is part of a numpy array g
 
 ----
 
-=== Entry Type TXRX_STATS ===
-Copy of the Tx/Rx statistics struct maintained by CPU High. If promiscuous statistics mode is Tx/Rx stats structs will be maintained for every unique source MAC address, up to the max_stats value. Otherwise statistics are maintaind only associated nodes.
+=== Entry Type TXRX_COUNTS ===
+Copy of the Tx/Rx counts struct maintained by CPU High. If promiscuous counts mode is enabled, Tx/Rx counts structs will be maintained for every unique source MAC address, up to the max_counts value. Otherwise counts are maintaind only associated nodes.
 
 Entry type ID: 30
 

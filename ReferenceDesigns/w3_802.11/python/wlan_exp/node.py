@@ -42,8 +42,8 @@ if sys.version[0]=="3": long=None
 # please make sure that the values of these hardware parameters are not reused.
 #
 NODE_WLAN_EXP_VERSION                  = 5
-NODE_WLAN_MAC_ADDR                     = 6
-NODE_WLAN_SCHEDULER_RESOLUTION         = 7
+NODE_WLAN_SCHEDULER_RESOLUTION         = 6
+NODE_WLAN_MAC_ADDR                     = 7
 
 
 class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
@@ -374,64 +374,64 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_TIME_ADD_TO_LOG, cmds.CMD_PARAM_RSVD_TIME, time_id))
 
 
-    def log_write_txrx_stats(self):
-        """Write the current statistics to the log."""
-        return self.send_cmd(cmds.LogAddStatsTxRx())
+    def log_write_txrx_counts(self):
+        """Write the current txrx counts to the log."""
+        return self.send_cmd(cmds.LogAddCountsTxRx())
 
 
     #--------------------------------------------
-    # Statistics Commands
+    # Counts Commands
     #--------------------------------------------
-    def stats_configure_txrx(self, promisc_stats=None):
-        """Configure statistics collection on the node.
+    def counts_configure_txrx(self, promisc_counts=None):
+        """Configure counts collection on the node.
 
         Args:
-            promisc_stats (bool, optional): Enable promiscuous statistics collection (TRUE/False)
+            promisc_counts (bool, optional): Enable promiscuous counts collection (TRUE/False)
         
         .. note:: By default all attributes are set to None.  Only attributes that 
             are given values will be updated on the node.  If an attribute is
             not specified, then that attribute will retain the same value on the node.
         """
-        self.send_cmd(cmds.StatsConfigure(promisc_stats))
+        self.send_cmd(cmds.CountsConfigure(promisc_counts))
 
 
-    def stats_get_txrx(self, device_list=None, return_zeroed_stats_if_none=False):
-        """Get the statistics from the node.
+    def counts_get_txrx(self, device_list=None, return_zeroed_counts_if_none=False):
+        """Get the counts from the node.
         
         Args:
             device_list (list of WlanExpNode, WlanExpNode, WlanDevice, optional): List of devices
-                for which to get statistics.  See note below for more information.
-            return_zeroed_stats_if_none(bool, optional):  If no statistics exist on the node for 
-                the specified device(s), return a zeroed statistics dictionary with proper timestamps
+                for which to get counts.  See note below for more information.
+            return_zeroed_counts_if_none(bool, optional):  If no counts exist on the node for 
+                the specified device(s), return a zeroed counts dictionary with proper timestamps
                 instead of None.
         
         Returns:
-            staticstics_dictionary (list of dictionaries, dictionary): Statistics for the device(s) specified. 
+            counts_dictionary (list of dictionaries, dictionary): Counts for the device(s) specified. 
 
         .. note:: If the device_list is a single device, then a single dictionary or 
             None is returned.  If the device_list is a list of devices, then a 
             list of dictionaries will be returned in the same order as the 
             devices in the list.  If any of the staistics are not there, 
             None will be inserted in the list.  If the device_list is not 
-            specified, then all the statistics on the node will be returned.
+            specified, then all the counts on the node will be returned.
         """
         ret_val = []
         if not device_list is None:
             if (type(device_list) is list):
                 for device in device_list:
-                    stats = self.send_cmd(cmds.StatsGetTxRx(device, return_zeroed_stats_if_none))
-                    if (len(stats) == 1):
-                        ret_val.append(stats)
+                    counts = self.send_cmd(cmds.CountsGetTxRx(device, return_zeroed_counts_if_none))
+                    if (len(counts) == 1):
+                        ret_val.append(counts)
                     else:
                         ret_val.append(None)
             else:
-                ret_val = self.send_cmd(cmds.StatsGetTxRx(device_list, return_zeroed_stats_if_none))
+                ret_val = self.send_cmd(cmds.CountsGetTxRx(device_list, return_zeroed_counts_if_none))
                 if (len(ret_val) == 1):
                     ret_val = ret_val[0]
                 else:
                     ret_val = None
         else:
-            ret_val = self.send_cmd(cmds.StatsGetTxRx())
+            ret_val = self.send_cmd(cmds.CountsGetTxRx())
         
         return ret_val
     
@@ -569,7 +569,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         
         This includes:  
           * Log
-          * Statistics
+          * Counts
           * LTG
           * Queues
           * Association State
@@ -579,7 +579,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         be reset.
         """
         status = self.reset(log=True, 
-                            txrx_stats=True, 
+                            txrx_counts=True, 
                             ltg=True, 
                             queue_data=True, 
                             associations=True,
@@ -589,13 +589,13 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             print("LTG ERROR: Could not stop all LTGs on '{0}'".format(self.description))
     
 
-    def reset(self, log=False, txrx_stats=False, ltg=False, queue_data=False, 
+    def reset(self, log=False, txrx_counts=False, ltg=False, queue_data=False, 
                    associations=False, bss_info=False ):
         """Resets the state of node depending on the attributes.
         
         Args:
             log (bool):          Reset the log
-            txrx_stats (bool):   Reset the TX/RX Statistics
+            txrx_counts (bool):  Reset the TX/RX Counts
             ltg (bool):          Remove all LTGs
             queue_data (bool):   Purge all TX queue data
             associations (bool): Remove all associations
@@ -609,7 +609,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             self.log_num_wraps        = 0
             self.log_next_read_index  = 0
 
-        if txrx_stats:       flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS        
+        if txrx_counts:      flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS
         if ltg:              flags += cmds.CMD_PARAM_NODE_RESET_FLAG_LTG        
         if queue_data:       flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE
         if associations:     flags += cmds.CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS

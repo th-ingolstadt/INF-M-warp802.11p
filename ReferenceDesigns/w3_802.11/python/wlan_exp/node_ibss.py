@@ -92,30 +92,30 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         return self.get_channel()
 
 
-    def stats_get_txrx(self, device_list=None, return_zeroed_stats_if_none=True):
-        """Get the statistics from the node.
+    def counts_get_txrx(self, device_list=None, return_zeroed_counts_if_none=True):
+        """Get the counts from the node.
 
         .. note:: This function has the same implementation as WlanExpNode but 
             different default values.
         
         Args:
             device_list (list of WlanExpNode, WlanExpNode, WlanDevice, optional): List of devices
-                for which to get statistics.  See note below for more information.
-            return_zeroed_stats_if_none(bool, optional):  If no statistics exist on the node for 
-                the specified device(s), return a zeroed statistics dictionary with proper timestamps
+                for which to get counts.  See note below for more information.
+            return_zeroed_counts_if_none(bool, optional):  If no counts exist on the node for 
+                the specified device(s), return a zeroed counts dictionary with proper timestamps
                 instead of None.
         
         Returns:
-            staticstics_dictionary (list of dictionaries, dictionary): Statistics for the device(s) specified. 
+            counts_dictionary (list of dictionaries, dictionary): Counts for the device(s) specified. 
 
         .. note:: If the device_list is a single device, then a single dictionary or 
             None is returned.  If the device_list is a list of devices, then a 
             list of dictionaries will be returned in the same order as the 
             devices in the list.  If any of the staistics are not there, 
             None will be inserted in the list.  If the device_list is not 
-            specified, then all the statistics on the node will be returned.
+            specified, then all the counts on the node will be returned.
         """
-        return super(WlanExpNodeIBSS, self).stats_get_txrx(device_list, return_zeroed_stats_if_none)
+        return super(WlanExpNodeIBSS, self).counts_get_txrx(device_list, return_zeroed_counts_if_none)
 
 
     def scan_start(self, time_per_channel=0.1, channel_list=None, ssid=None, bssid=None):

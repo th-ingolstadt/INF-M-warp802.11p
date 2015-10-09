@@ -23,7 +23,7 @@ Functions:
     TransportEthUdp() -- Base class for Ethernet UDP transports
     int_to_ip()       -- Convert 32 bit integer to 'w.x.y.z' IP address string
     ip_to_int()       -- Convert 'w.x.y.z' IP address string to 32 bit integer
-    mac_addr_to_str()      -- Convert 6 byte MAC address to 'uu:vv:ww:xx:yy:zz' string
+    mac_addr_to_str() -- Convert 6 byte MAC address to 'uu:vv:ww:xx:yy:zz' string
 
 """
 

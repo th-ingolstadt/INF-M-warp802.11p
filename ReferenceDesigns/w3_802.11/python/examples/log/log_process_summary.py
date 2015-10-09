@@ -116,7 +116,7 @@ print("Node Info:")
 print("  Node Type    : {0}".format(wlan_exp_util.node_type_to_str(log_node_info['node_type'])))
 print("  MAC Address  : {0}".format(wlan_exp_util.mac_addr_to_str(log_node_info['wlan_mac_addr'])))
 print("  Serial Number: {0}".format(wlan_exp_util.sn_to_str(log_node_info['hw_generation'], log_node_info['serial_num'])))
-print("  WLAN Exp Ver : {0}".format(wlan_exp_util.ver_code_to_str(log_node_info['wlan_exp_ver'])))
+print("  WLAN Exp Ver : {0}".format(wlan_exp_util.ver_code_to_str(log_node_info['version'])))
 print("")
 
 if(len(log_np['TIME_INFO']) > 0):

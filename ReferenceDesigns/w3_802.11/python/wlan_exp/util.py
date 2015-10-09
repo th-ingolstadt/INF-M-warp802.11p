@@ -929,7 +929,7 @@ def _get_nodes_by_type(nodes, mac_high=None, mac_low=None):
     """Returns all nodes in the list that have the given node_type."""
 
     # Check that these nodes are 802.11 nodes
-    tmp_nodes = [n for n in nodes if (n.node_type & 0xFFFF0000 == defaults.WLAN_EXP_BASE)]
+    tmp_nodes = [n for n in nodes if (n.node_type & 0xFFFF0000 == defaults.WLAN_EXP_80211_BASE)]
 
     # Filter the 8 bits for MAC High node type
     if mac_high is not None:

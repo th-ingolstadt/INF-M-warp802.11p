@@ -18,7 +18,7 @@ Required Script Changes:
 
 Description:
   This script initializes one WARP v3 node.  It will periodically log the
-Tx/Rx statistics and update information on the screen about the log.  The
+Tx/Rx counts and update information on the screen about the log.  The
 script will also read the log data every LOG_READ_TIME seconds, write it
 to the hdf5 file, HDF5_FILENAME, and continue until MAX_LOG_SIZE is reached
 or the user ends the experiment.
@@ -158,7 +158,7 @@ def init_experiment():
     # Set each node into the default state
     # for tmp_node in nodes:
     #     # Issue a reset command to stop current operation / initialize components
-    #     tmp_node.reset(log=True, txrx_stats=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
+    #     tmp_node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
     #
     #     # Configure the log
     #     tmp_node.log_configure(log_full_payloads=True)
@@ -193,8 +193,8 @@ def run_experiment():
     # Add the current time to all the nodes
     wlan_exp_util.broadcast_cmd_write_time_to_logs(network_config)
 
-    # Write Statistics to log
-    node.log_write_txrx_stats()
+    # Write Counts to log
+    node.log_write_txrx_counts()
 
     # Get the start time
     start_time = time.time()
@@ -211,8 +211,8 @@ def run_experiment():
             # Print the current state of the node
             print_node_state(start_time)
 
-            # Write Statistics to log
-            node.log_write_txrx_stats()
+            # Write Counts to log
+            node.log_write_txrx_counts()
 
             # Set the last_print time
             last_print = time.time()

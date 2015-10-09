@@ -17,7 +17,7 @@ Required Script Changes:
 
 Description:
   This script will initialize the given nodes; extract any APs from the initialized nodes;
-then for each AP, it will get the associations and statistics and display them.
+then for each AP, it will get the associations and counts and display them.
 ------------------------------------------------------------------------------
 """
 # Import Python modules
@@ -32,7 +32,7 @@ import wlan_exp.util as wlan_exp_util
 # TOP Level script variables
 NETWORK                = '10.0.0.0'
 NODE_SERIAL_LIST       = ['W3-a-00001']
-PROMISCUOUS_STATISTICS = True
+PROMISCUOUS_COUNTS     = True
 CHANNEL = 6
 
 nodes = []
@@ -61,10 +61,10 @@ def initialize_experiment():
     # Initialize the time on all nodes to zero
     wlan_exp_util.broadcast_cmd_set_time(0.0, network_config)
 
-    # Set the promiscuous statistics mode
+    # Set the promiscuous counts mode
     for node in nodes:
-        node.stats_configure_txrx(promisc_stats=PROMISCUOUS_STATISTICS)
-        node.reset(txrx_stats=True)
+        node.counts_configure_txrx(promisc_counts=PROMISCUOUS_COUNTS)
+        node.reset(txrx_counts=True)
         node.set_channel(CHANNEL)
         node.set_low_to_high_rx_filter(mac_header='ALL_MPDU', fcs='GOOD')
 
@@ -78,53 +78,53 @@ def run_experiment():
 
     while(True):
 
-        # For each of the APs, get the statistics
+        # For each of the APs, get the counts
         for node in nodes:
             station_info = node.get_station_info()
-            stats        = node.stats_get_txrx()
-            print_stats(node, stats, station_info)
+            counts       = node.counts_get_txrx()
+            print_counts(node, counts, station_info)
 
         print(92*"*")
         # Wait for 5 seconds
         time.sleep(5)
 
 
-def print_stats(node, stats, station_info=None):
-    """Helper method to print the statistics."""
+def print_counts(node, counts, station_info=None):
+    """Helper method to print the counts."""
     print("-------------------- ----------------------------------- ----------------------------------- ")
-    print("                                          Tx/Rx Stats from Node {0}".format(node.sn_str))
+    print("                                          Tx/Rx Counts from Node {0}".format(node.sn_str))
     print("                               Number of Packets                   Number of Bytes           ")
     print("ID                   Tx Data  Tx Mgmt  Rx Data  Rx Mgmt  Tx Data  Tx Mgmt  Rx Data  Rx Mgmt  ")
     print("-------------------- -------- -------- -------- -------- -------- -------- -------- -------- ")
 
     msg = ""
-    for stat in stats:
-        stat_id = stat['mac_addr']
+    for count in counts:
+        count_id = count['mac_addr']
 
         hostname = False
         if not station_info is None:
             for station in station_info:
-                if (stat['mac_addr'] == station['mac_addr']):
-                    stat_id  = station['host_name']
-                    stat_id  = stat_id.strip('\x00')
-                    if (stat_id == ''):
-                        stat_id  = stat['mac_addr']
+                if (count['mac_addr'] == station['mac_addr']):
+                    count_id  = station['host_name']
+                    count_id  = count_id.strip('\x00')
+                    if (count_id == ''):
+                        count_id = count['mac_addr']
                         hostname = False
                     else:
                         hostname = True
 
         if not hostname:
-            stat_id = ''.join('{0:02X}:'.format(ord(x)) for x in stat_id)[:-1]
+            count_id = ''.join('{0:02X}:'.format(ord(x)) for x in count_id)[:-1]
 
-        msg += "{0:<20} ".format(stat_id)
-        msg += "{0:8d} ".format(stat['data_num_tx_packets_success'])
-        msg += "{0:8d} ".format(stat['mgmt_num_tx_packets_success'])
-        msg += "{0:8d} ".format(stat['data_num_rx_packets'])
-        msg += "{0:8d} ".format(stat['mgmt_num_rx_packets'])
-        msg += "{0:8d} ".format(stat['data_num_tx_bytes_success'])
-        msg += "{0:8d} ".format(stat['mgmt_num_tx_bytes_success'])
-        msg += "{0:8d} ".format(stat['data_num_rx_bytes'])
-        msg += "{0:8d} ".format(stat['mgmt_num_rx_bytes'])
+        msg += "{0:<20} ".format(count_id)
+        msg += "{0:8d} ".format(count['data_num_tx_packets_success'])
+        msg += "{0:8d} ".format(count['mgmt_num_tx_packets_success'])
+        msg += "{0:8d} ".format(count['data_num_rx_packets'])
+        msg += "{0:8d} ".format(count['mgmt_num_rx_packets'])
+        msg += "{0:8d} ".format(count['data_num_tx_bytes_success'])
+        msg += "{0:8d} ".format(count['mgmt_num_tx_bytes_success'])
+        msg += "{0:8d} ".format(count['data_num_rx_bytes'])
+        msg += "{0:8d} ".format(count['mgmt_num_rx_bytes'])
         msg += "\n"
     print(msg)
 

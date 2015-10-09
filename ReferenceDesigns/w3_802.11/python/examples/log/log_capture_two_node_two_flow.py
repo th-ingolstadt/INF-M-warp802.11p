@@ -132,7 +132,7 @@ rate = wlan_exp_util.wlan_rates[3]
 for node in nodes:
     node.set_tx_rate_unicast(rate, curr_assoc=True, new_assoc=True)
     node.log_configure(log_full_payloads=False)
-    node.reset(log=True, txrx_stats=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
+    node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
     node.set_channel(CHANNEL)
 
 # Add the current time to all the nodes

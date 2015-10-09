@@ -92,7 +92,7 @@ ENTRY_TYPE_TX_LTG                 = 21
 ENTRY_TYPE_TX_LOW                 = 25
 ENTRY_TYPE_TX_LOW_LTG             = 26
 
-ENTRY_TYPE_TXRX_STATS             = 30
+ENTRY_TYPE_TXRX_COUNTS            = 30
 
 # -----------------------------------------------------------------------------
 # Log Entry Type Container
@@ -340,9 +340,10 @@ class WlanExpLogEntryType(object):
         for cb in self.gen_numpy_callbacks:
             field_descs = []
             try:
-                (cb_doc_str, cb_doc_fields) = cb(docs_only=True)
+                (cb_doc_str, cb_doc_fields) = cb(np_arr_orig=None, docs_only=True)
+                
                 for f in cb_doc_fields:
-                    field_descs.append( (f[0], f[1], f[2]) )
+                    field_descs.append((f[0], f[1], f[2]))
 
                 doc_str += '\n\n'
                 doc_str += cb_doc_str + '\n\n'
@@ -350,7 +351,7 @@ class WlanExpLogEntryType(object):
 
             except (TypeError, IndexError):
                 # Callback didn't implement suitable 'docs_only' output; fail quietly and return
-                #   print('Error generating callback field docs for {0}\n{1}'.format(cb, e))
+                #   print('Error generating callback field docs for {0}\n'.format(cb))
                 pass
 
         return doc_str
@@ -544,7 +545,6 @@ class WlanExpLogEntryType(object):
             msg  = "WARNING:  Definitions of struct {0} do not match.\n".format(self.name)
             msg += "    Struct size = {0}    Numpy size = {1}".format(struct_size, np_size)
             print(msg)
-
 
     def __eq__(self, other):
         """WlanExpLogEntryType are equal if their names are equal."""
@@ -830,9 +830,10 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
         ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+        ('queue_id',               'H',      'uint16',  'Tx queue ID from which the packet was retrieved'),
+        ('queue_occupancy',        'H',      'uint16',  'Occupancy of the Tx queue at the time the packet was created (value includes itself)'),
         ('ant_mode',               'B',      'uint8',   'PHY antenna mode of final Tx attempt'),
-        ('queue_id',               'B',      'uint8',   'Tx queue ID from which the packet was retrieved'),
-        ('padding',                '2x',     '2uint8',  '')])
+        ('padding',                '3x',     '3uint8',  '')])
 
     entry_tx_common.consts['SUCCESS'] = 0
 
@@ -875,22 +876,22 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_node_info.description = 'Details about the node hardware and its configuration. Node info values are static after boot.'
 
-    _node_info_node_types =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
-    _node_info_node_types += ' b0: WARP hardware generation:  3 for WARP v3\n'
-    _node_info_node_types += ' b1: Always 0x01 for 802.11 ref design nodes\n'
-    _node_info_node_types += ' b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS\n'
-    _node_info_node_types += ' b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC'
+    _node_info_node_type =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
+    _node_info_node_type += ' b0: Always 0x00 for 802.11 ref design nodes\n'
+    _node_info_node_type += ' b1: Always 0x01 for 802.11 ref design nodes\n'
+    _node_info_node_type += ' b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS\n'
+    _node_info_node_type += ' b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC'
 
     entry_node_info.append_field_defs([
-        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-        ('node_type',              'I',      'uint32',  _node_info_node_types),
-        ('node_id',                'I',      'uint32',  'Node ID, as set during wlan_exp init'),
-        ('hw_generation',          'I',      'uint32',  'WARP hardware generation: 3 for WARP v3'),
-        ('version',                'I',      'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
-        ('serial_num',             'I',      'uint32',  'Serial number of WARP board'),
-        ('fpga_dna',               'Q',      'uint64',  'DNA value of node FPGA'),
-        ('wlan_mac_addr',          'Q',      'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
-        ('wlan_scheduler_resolution', 'I',   'uint32',  'Minimum interval in microseconds of the WLAN scheduler')])
+        ('timestamp',                  'Q',  'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('node_type',                  'I',  'uint32',  _node_info_node_type),
+        ('node_id',                    'I',  'uint32',  'Node ID, as set during wlan_exp init'),
+        ('hw_generation',              'I',  'uint32',  'WARP hardware generation: 3 for WARP v3'),
+        ('serial_num',                 'I',  'uint32',  'Serial number of WARP board'),
+        ('fpga_dna',                   'Q',  'uint64',  'DNA value of node FPGA'),
+        ('version',                    'I',  'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
+        ('wlan_scheduler_resolution',  'I',  'uint32',  'Minimum interval in microseconds of the WLAN scheduler'),
+        ('wlan_mac_addr',              'Q',  'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64')])
 
 
     ###########################################################################
@@ -1138,15 +1139,15 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
 
     ###########################################################################
-    # Tx / Rx Statistics
+    # Tx / Rx Counts
     #
-    entry_txrx_stats = WlanExpLogEntryType(name='TXRX_STATS', entry_type_id=ENTRY_TYPE_TXRX_STATS)
+    entry_txrx_counts = WlanExpLogEntryType(name='TXRX_COUNTS', entry_type_id=ENTRY_TYPE_TXRX_COUNTS)
 
-    entry_txrx_stats.description  = 'Copy of the Tx/Rx statistics struct maintained by CPU High. If promiscuous statistics mode is Tx/Rx stats structs will '
-    entry_txrx_stats.description += 'be maintained for every unique source MAC address, up to the max_stats value. Otherwise statistics are maintaind only '
-    entry_txrx_stats.description += 'associated nodes.'
+    entry_txrx_counts.description  = 'Copy of the Tx/Rx counts struct maintained by CPU High. If promiscuous counts mode is enabled, Tx/Rx counts structs will '
+    entry_txrx_counts.description += 'be maintained for every unique source MAC address, up to the max_counts value. Otherwise counts are maintaind only '
+    entry_txrx_counts.description += 'associated nodes.'
 
-    entry_txrx_stats.append_field_defs([
+    entry_txrx_counts.append_field_defs([
         ('timestamp',                      'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
         ('mac_addr',                       '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
         ('associated',                     'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
