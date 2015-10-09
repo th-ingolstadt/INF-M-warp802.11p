@@ -26,7 +26,7 @@
 #include "xio.h"
 #include <string.h>
 
-// WARP includes
+// WLAN includes
 #include "wlan_mac_low.h"
 #include "w3_userio.h"
 #include "radio_controller.h"
@@ -42,7 +42,7 @@
 
 
 /*************************** Constant Definitions ****************************/
-#define WARP_TYPE_DESIGN_80211_CPU_LOW                     WARP_TYPE_DESIGN_80211_CPU_LOW_DCF
+#define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW                 WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_DCF
 
 #define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
 
@@ -114,7 +114,7 @@ int main(){
 	userio_write_leds_green(USERIO_BASEADDR, (1 << gl_green_led_index));
 	userio_write_leds_red(USERIO_BASEADDR, (1 << gl_red_led_index));
 
-	wlan_mac_low_init(WARP_TYPE_DESIGN_80211_CPU_LOW);
+	wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW);
 
 	gl_cw_exp = wlan_mac_low_get_cw_exp_min();
 
@@ -127,13 +127,13 @@ int main(){
 	wlan_mac_low_set_ipc_low_param_callback((void*)wlan_dcf_process_low_param);
 
 	if(lock_pkt_buf_tx(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
-		warp_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK_CTS);
+		wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK_CTS);
 		wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 		return -1;
 	}
 
 	if(lock_pkt_buf_tx(TX_PKT_BUF_RTS) != PKT_BUF_MUTEX_SUCCESS){
-		warp_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_RTS);
+		wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_RTS);
 		wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 		return -1;
 	}
@@ -232,7 +232,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 	//Sanity check length value - anything shorter than an ACK must be bogus
 	if( (phy_details->length) < ( sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES ) ){
-		//warp_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
+		// wlan_printf(PL_ERROR, "Error: received packet of length %d, which is not valid\n", length);
 		wlan_mac_dcf_hw_rx_finish();
 		wlan_mac_dcf_hw_unblock_rx_phy();
 		return return_value;
