@@ -21,7 +21,7 @@
 #include "xio.h"
 #include <string.h>
 
-// WARP includes
+// WLAN includes
 #include "wlan_mac_low.h"
 #include "w3_userio.h"
 #include "radio_controller.h"
@@ -37,7 +37,7 @@
 
 
 /*************************** Constant Definitions ****************************/
-#define WARP_TYPE_DESIGN_80211_CPU_LOW                     WARP_TYPE_DESIGN_80211_CPU_LOW_NOMAC
+#define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW                 WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_NOMAC
 
 #define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
 
@@ -76,7 +76,7 @@ int main(){
 	userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
 	userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
 
-	wlan_mac_low_init(WARP_TYPE_DESIGN_80211_CPU_LOW);
+	wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW);
 
 	hw_info = wlan_mac_low_get_hw_info();
 	memcpy(eeprom_addr, hw_info->hw_addr_wlan, 6);
