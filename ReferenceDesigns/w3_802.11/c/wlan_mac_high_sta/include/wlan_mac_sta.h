@@ -81,9 +81,9 @@ void poll_tx_queues();
 void purge_all_data_tx_queue();
 
 void reset_all_associations();
-void reset_station_statistics();
+void reset_station_counts();
 void reset_bss_info();
-dl_list * get_statistics();
+dl_list * get_counts();
 
 int  sta_set_association_state( bss_info* new_bss_info, u16 aid );
 int  sta_disassociate();
@@ -92,7 +92,7 @@ void print_menu();
 void print_ap_list();
 void print_station_status(u8 manual_call);
 void uart_rx(u8 rxByte);
-void print_all_observed_statistics();
+void print_all_observed_counts();
 
 void sta_write_hex_display(u8 val);
 void mpdu_dequeue(tx_queue_element* packet);

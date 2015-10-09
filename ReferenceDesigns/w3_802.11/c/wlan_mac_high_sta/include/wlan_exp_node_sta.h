@@ -49,9 +49,9 @@
 
 /*************************** Function Prototypes *****************************/
 
-int  wlan_exp_node_sta_init(u32 warp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
+int  wlan_exp_node_sta_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
 
-int  wlan_exp_node_sta_process_cmd(u32 cmd_id, int socket_index, void * from, warp_cmd_resp * command, warp_cmd_resp * response);
+int  wlan_exp_node_sta_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response);
 
 
 #endif /* WLAN_EXP_NODE_H_ */
