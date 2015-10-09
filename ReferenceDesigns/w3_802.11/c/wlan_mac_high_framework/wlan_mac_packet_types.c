@@ -13,7 +13,7 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
-//Xilinx SDK includes
+// Xilinx SDK includes
 #include "stdio.h"
 #include "stdlib.h"
 #include "xio.h"
@@ -21,7 +21,7 @@
 #include "xil_types.h"
 #include "xintc.h"
 
-//WARP includes
+// WLAN includes
 #include "wlan_mac_high.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"

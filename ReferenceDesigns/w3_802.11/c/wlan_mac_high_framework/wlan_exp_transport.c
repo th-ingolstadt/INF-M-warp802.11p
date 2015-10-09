@@ -1,8 +1,7 @@
 /** @file wlan_exp_transport.c
  *  @brief Experiment Framework (Transport)
  *
- * Implements the WARP Transport protocol layer for the embedded processor
- * on the WARP Hardware.
+ * Implements the Transport protocol layer for the embedded processor
  *
  *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
@@ -29,8 +28,11 @@
 #include "wlan_mac_high.h"
 
 
-// WLAN EXP includes
+// WARP includes
 #include "warp_hw_ver.h"
+
+
+// WLAN EXP includes
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_transport.h"
@@ -50,7 +52,7 @@
 
 // Transport information
 static transport_eth_dev_info     eth_devices[TRANSPORT_NUM_ETH_DEVICES];
-static warp_tag_parameter         transport_parameters[TRANSPORT_NUM_ETH_DEVICES][TRANSPORT_PARAM_MAX_PARAMETER];
+static wlan_exp_tag_parameter     transport_parameters[TRANSPORT_NUM_ETH_DEVICES][TRANSPORT_PARAM_MAX_PARAMETER];
 
 // Callbacks
 volatile wlan_exp_function_ptr_t  process_hton_msg_callback;
@@ -123,7 +125,7 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
     transport_eth_dev_info_init(eth_dev_num, (wlan_exp_node_info *)node_info, ip_addr, hw_addr, unicast_port, broadcast_port);
 
     // Set the Ethernet link speed
-    if (WARP_NEGOTIATE_ETH_LINK_SPEED) {
+    if (WLAN_EXP_NEGOTIATE_ETH_LINK_SPEED) {
         // Enable auto-negotiation in the Ethernet PHY
         transport_set_eth_phy_auto_negotiation(eth_dev_num, WLAN_EXP_ENABLE);
 
@@ -175,17 +177,17 @@ void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info * node_info
     eth_devices[eth_dev_num].node_id             = node_info->node_id;
     eth_devices[eth_dev_num].initialized         = TRANSPORT_ETH_DEV_INITIALIZED;
     eth_devices[eth_dev_num].default_speed       = WLAN_EXP_DEFAULT_SPEED;
-    eth_devices[eth_dev_num].max_pkt_words       = WARP_DEFAULT_MAX_PACKET_WORDS;
+    eth_devices[eth_dev_num].max_pkt_words       = WLAN_EXP_DEFAULT_MAX_PACKET_WORDS;
 
 
     // Initialize fields that depend on the Ethernet device
     switch (eth_dev_num) {
-        case WARP_ETH_A:
-            eth_devices[eth_dev_num].phy_addr    = WARP_ETH_A_MDIO_PHYADDR;
+        case TRANSPORT_ETH_A:
+            eth_devices[eth_dev_num].phy_addr    = TRANSPORT_ETH_A_MDIO_PHYADDR;
         break;
 
-        case WARP_ETH_B:
-            eth_devices[eth_dev_num].phy_addr    = WARP_ETH_B_MDIO_PHYADDR;
+        case TRANSPORT_ETH_B:
+            eth_devices[eth_dev_num].phy_addr    = TRANSPORT_ETH_B_MDIO_PHYADDR;
         break;
 
         default:
@@ -307,7 +309,7 @@ void transport_poll(u32 eth_dev_num) {
  *
  * @note    If this packet is a host to node message, then the  process_hton_msg_callback
  *          is used to further process the packet.  This method will strip off the
- *          WARP transport header for future packet processing.
+ *          Transport header for future packet processing.
  *
  *****************************************************************************/
 void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, warp_ip_udp_buffer * send_buffer) {
@@ -321,30 +323,30 @@ void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from
     u32                           group_id;
     u32                           recv_flags = 0;
 
-    warp_transport_header       * warp_header_rx = (warp_transport_header*)(recv_buffer->offset);   // Contains entire Ethernet frame; offset points to UDP payload
-    warp_transport_header       * warp_header_tx = (warp_transport_header*)(send_buffer->offset);   // New buffer for UDP payload
+    transport_header            * transport_header_rx = (transport_header*)(recv_buffer->offset);   // Contains entire Ethernet frame; offset points to UDP payload
+    transport_header            * transport_header_tx = (transport_header*)(send_buffer->offset);   // New buffer for UDP payload
 
     // Get the transport headers for the send / receive buffers
     //     NOTE:  For the receive buffer, offset points to UDP payload of the Ethernet frame
     //     NOTE:  For the send buffer, the offset points to the start of the buffer but since we will use the
     //            UDP header of the socket to transmit the frame, this is effectively the start of the UDP payload
     //
-    warp_header_rx           = (warp_transport_header*)(recv_buffer->offset);
-    warp_header_tx           = (warp_transport_header*)(send_buffer->offset);
+    transport_header_rx      = (transport_header*)(recv_buffer->offset);
+    transport_header_tx      = (transport_header*)(send_buffer->offset);
 
     // Update the buffers to account for the transport headers
-    recv_buffer->offset     += sizeof(warp_transport_header);
-    recv_buffer->length     -= sizeof(warp_transport_header);                    // Remaining bytes in receive buffer
+    recv_buffer->offset     += sizeof(transport_header);
+    recv_buffer->length     -= sizeof(transport_header);                    // Remaining bytes in receive buffer
 
-    send_buffer->offset     += sizeof(warp_transport_header);
-    send_buffer->length     += sizeof(warp_transport_header);                    // Adding bytes to the send buffer
-    send_buffer->size       += sizeof(warp_transport_header);                    // Keep size in sync
+    send_buffer->offset     += sizeof(transport_header);
+    send_buffer->length     += sizeof(transport_header);                    // Adding bytes to the send buffer
+    send_buffer->size       += sizeof(transport_header);                    // Keep size in sync
 
 
     // Process the data based on the packet type
     //     NOTE:  The pkt_type does not need to be endian swapped because it is a u8
     //
-    switch(warp_header_rx->pkt_type){
+    switch(transport_header_rx->pkt_type){
 
         //-------------------------------
         // Message from the Host to the Node
@@ -352,10 +354,10 @@ void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from
         case PKT_TYPE_HTON_MSG:
             // Extract values from the received transport header
             //
-            dest_id  = Xil_Ntohs(warp_header_rx->dest_id);
-            src_id   = Xil_Ntohs(warp_header_rx->src_id);
-            seq_num  = Xil_Ntohs(warp_header_rx->seq_num);
-            flags    = Xil_Ntohs(warp_header_rx->flags);
+            dest_id  = Xil_Ntohs(transport_header_rx->dest_id);
+            src_id   = Xil_Ntohs(transport_header_rx->src_id);
+            seq_num  = Xil_Ntohs(transport_header_rx->seq_num);
+            flags    = Xil_Ntohs(transport_header_rx->flags);
 
             node_id  = eth_devices[eth_dev_num].node_id;
             group_id = eth_devices[eth_dev_num].info.group_id;
@@ -370,16 +372,16 @@ void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from
                 recv_flags |= 0x00000001;
             }
 
-            // Form outgoing WARPLab header for any outgoing packet in response to this message
+            // Form outgoing Transport header for any outgoing packet in response to this message
             //     NOTE:  The u16/u32 fields here will be endian swapped in transport_send
             //     NOTE:  The length field of the header will be set in transport_send
             //
-            warp_header_tx->dest_id  = src_id;
-            warp_header_tx->src_id   = node_id;
-            warp_header_tx->pkt_type = PKT_TYPE_NTOH_MSG;
-            warp_header_tx->seq_num  = seq_num;
-            warp_header_tx->flags    = 0;
-            warp_header_tx->reserved = 0;
+            transport_header_tx->dest_id  = src_id;
+            transport_header_tx->src_id   = node_id;
+            transport_header_tx->pkt_type = PKT_TYPE_NTOH_MSG;
+            transport_header_tx->seq_num  = seq_num;
+            transport_header_tx->flags    = 0;
+            transport_header_tx->reserved = 0;
 
             // Call the callback to further process the recv_buffer
             status = process_hton_msg_callback(socket_index, from, recv_buffer, recv_flags, send_buffer);
@@ -399,7 +401,7 @@ void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from
                     if (flags & TRANSPORT_HDR_ROBUST_FLAG) {
 
                         // Check that the node has something to send to the host
-                        if ((send_buffer->length) > sizeof(warp_transport_header)) {
+                        if ((send_buffer->length) > sizeof(transport_header)) {
                             transport_send(socket_index, from, &send_buffer, 1);                        // Send the buffer of data
                         } else {
                             wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_transport, "Host requires response but node has nothing to send.\n");
@@ -421,7 +423,7 @@ void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from
         break;
 
         default:
-            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Received packet with unknown packet type: %d\n", (warp_header_rx->pkt_type));
+            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Received packet with unknown packet type: %d\n", (transport_header_rx->pkt_type));
         break;
     }
 }
@@ -440,14 +442,14 @@ void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from
  * @return  None
  *
  * @note    This function requires that the first transport buffer in the 'buffers'
- *          array contain the WARPLab transport header.
+ *          array contain the Transport header.
  *
  *****************************************************************************/
 void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer ** buffers, u32 num_buffers) {
 
     u32                      i;
     int                      status;
-    warp_transport_header  * wl_header_tx;
+    transport_header       * transport_header_tx;
     u16                      buffer_length = 0;
 	interrupt_state_t	     prev_interrupt_state;
 
@@ -460,7 +462,7 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
     // Initialize the header
     //     NOTE:  We require that the first warp_ip_udp_buffer always contain the wl_transport_header
     //
-    wl_header_tx = (warp_transport_header *)(buffers[0]->data);
+    transport_header_tx = (transport_header *)(buffers[0]->data);
 
     // Compute the length
     for (i = 0; i < num_buffers; i++) {
@@ -475,11 +477,11 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
     // Make the outgoing transport header endian safe for sending on the network
     //     NOTE:  Set the 'length' to the computed value above
     //
-    wl_header_tx->dest_id = Xil_Htons(wl_header_tx->dest_id);
-    wl_header_tx->src_id  = Xil_Htons(wl_header_tx->src_id);
-    wl_header_tx->length  = Xil_Htons(buffer_length + WARP_IP_UDP_DELIM_LEN);
-    wl_header_tx->seq_num = Xil_Htons(wl_header_tx->seq_num);
-    wl_header_tx->flags   = Xil_Htons(wl_header_tx->flags);
+    transport_header_tx->dest_id = Xil_Htons(transport_header_tx->dest_id);
+    transport_header_tx->src_id  = Xil_Htons(transport_header_tx->src_id);
+    transport_header_tx->length  = Xil_Htons(buffer_length + WARP_IP_UDP_DELIM_LEN);
+    transport_header_tx->seq_num = Xil_Htons(transport_header_tx->seq_num);
+    transport_header_tx->flags   = Xil_Htons(transport_header_tx->flags);
 
 	// Check the interrupt status; Disable interrupts if enabled
 	prev_interrupt_state = wlan_mac_high_interrupt_stop();
@@ -491,15 +493,15 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
 	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
     // Restore wl_header_tx
-    wl_header_tx->dest_id = Xil_Ntohs(wl_header_tx->dest_id);
-    wl_header_tx->src_id  = Xil_Ntohs(wl_header_tx->src_id);
-    wl_header_tx->length  = 0;
-    wl_header_tx->seq_num = Xil_Ntohs(wl_header_tx->seq_num);
-    wl_header_tx->flags   = Xil_Ntohs(wl_header_tx->flags);
+	transport_header_tx->dest_id = Xil_Ntohs(transport_header_tx->dest_id);
+	transport_header_tx->src_id  = Xil_Ntohs(transport_header_tx->src_id);
+	transport_header_tx->length  = 0;
+	transport_header_tx->seq_num = Xil_Ntohs(transport_header_tx->seq_num);
+	transport_header_tx->flags   = Xil_Ntohs(transport_header_tx->flags);
 
     // Check that the packet was sent correctly
     if (status == WARP_IP_UDP_FAILURE) {
-        wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_transport, "Issue sending packet %d to host.\n", wl_header_tx->seq_num);
+        wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_transport, "Issue sending packet %d to host.\n", transport_header_tx->seq_num);
     }
 }
 
@@ -515,7 +517,7 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
  * @return  None
  *
  * @note    This function requires that the first transport buffer in the 'buffers'
- *          array contain the WARPLab transport header.
+ *          array contain the Transport header.
  *
  *****************************************************************************/
 void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
@@ -525,16 +527,16 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
 
     // Get variables from the async command / response structure
     warp_ip_udp_buffer     * buffer       = (warp_ip_udp_buffer *) eth_devices[eth_dev_num].async_cmd_resp.buffer;
-    warp_cmd_resp_hdr      * cmd_header   = eth_devices[eth_dev_num].async_cmd_resp.header;
+    cmd_resp_hdr           * cmd_header   = eth_devices[eth_dev_num].async_cmd_resp.header;
     void                   * payload_dest = (void *) eth_devices[eth_dev_num].async_cmd_resp.args;
-    warp_transport_header  * tmp_header   = (warp_transport_header *) (buffer->offset);
+    transport_header       * tmp_header   = (transport_header *) (buffer->offset);
 
     // Set length fields
     initial_length = buffer->length;
     packet_length  = WARP_IP_UDP_HEADER_LEN + initial_length + length;
 
     // Makes sure packet stays under the maximum packet size
-    if (packet_length < WARP_TX_ASYNC_PACKET_BUFFER_SIZE) {
+    if (packet_length < WLAN_EXP_TX_ASYNC_PACKET_BUFFER_SIZE) {
 
         // Update the command header size
         cmd_header->length = length;
@@ -569,18 +571,18 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  *
  * @param   socket_index     - Index of the socket on which to send message
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
- * @param   command          - Pointer to WARP Command
- * @param   response         - Pointer to WARP Response
+ * @param   command          - Pointer to Command
+ * @param   response         - Pointer to Response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
  *
  * @note    See on-line documentation for more information about the Ethernet
- *          packet structure for WARPLab:  www.warpproject.org
+ *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int transport_process_cmd(int socket_index, void * from, warp_cmd_resp * command, warp_cmd_resp * response) {
+int transport_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -595,11 +597,11 @@ int transport_process_cmd(int socket_index, void * from, warp_cmd_resp * command
     // Standard variables
     u32                 resp_sent      = NO_RESP_SENT;
 
-    warp_cmd_resp_hdr * cmd_hdr        = command->header;
+    cmd_resp_hdr      * cmd_hdr        = command->header;
     u32               * cmd_args_32    = command->args;
-    u32                 cmd_id         = WARP_CMD_TO_CMDID(cmd_hdr->cmd);
+    u32                 cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
 
-    warp_cmd_resp_hdr * resp_hdr       = response->header;
+    cmd_resp_hdr      * resp_hdr       = response->header;
     u32               * resp_args_32   = response->args;
     u32                 resp_index     = 0;
 
@@ -642,8 +644,8 @@ int transport_process_cmd(int socket_index, void * from, warp_cmd_resp * command
             // 1472 and causes the transport to not behave correctly.  Therefore, we need to find the
             // last valid command argument and check that against the packet length.
             //
-            header_size        = (sizeof(warp_transport_header) + sizeof(warp_cmd_resp_hdr));                          // Transport / Command headers
-            payload_index      = (((warp_ip_udp_buffer *)(command->buffer))->length - sizeof(warp_cmd_resp_hdr)) / 4;  // Final index into command args (/4 truncates)
+            header_size        = (sizeof(transport_header) + sizeof(cmd_resp_hdr));                               // Transport / Command headers
+            payload_index      = (((warp_ip_udp_buffer *)(command->buffer))->length - sizeof(cmd_resp_hdr)) / 4;  // Final index into command args (/4 truncates)
 
             // Check the value in the command args to make sure it matches the size_index
             payload_num_words  = Xil_Htonl(cmd_args_32[payload_index - 1]) + 1;     // NOTE:  Add 1 since the payload is zero indexed
@@ -688,7 +690,7 @@ int transport_process_cmd(int socket_index, void * from, warp_cmd_resp * command
 
 /*****************************************************************************/
 /**
- * This function is the Transport callback that allows WARPLab to process
+ * This function is the Transport callback that allows framework to process
  * a received Ethernet packet
  *
  * @param   hander           - Pointer to the transport receive callback function
@@ -799,7 +801,7 @@ int transport_config_sockets(u32 eth_dev_num, u32 unicast_port, u32 broadcast_po
  *
  * @param   eth_dev_num      - Ethernet device number
  *
- * @return  u16              - Bits are defined for the WARP Ethernet chip.  See wl_transport.h
+ * @return  u16              - Bits are defined for the Ethernet chip.  See wl_transport.h
  *                             for defines for relevant fields
  *
  *****************************************************************************/
@@ -1103,11 +1105,11 @@ int  transport_init_parameters(u32 eth_dev_num, u32 * values) {
 
     u16    lengths[TRANSPORT_PARAM_MAX_PARAMETER] = TRANSPORT_PARAM_FIELD_LENGTHS;
 
-    return warp_init_parameters((warp_tag_parameter *) &transport_parameters[eth_dev_num][0],
-                                GROUP_TRANSPORT,
-                                TRANSPORT_PARAM_MAX_PARAMETER,
-                                values,
-                                lengths);
+    return wlan_exp_init_parameters((wlan_exp_tag_parameter *) &transport_parameters[eth_dev_num][0],
+                                    GROUP_TRANSPORT,
+                                    TRANSPORT_PARAM_MAX_PARAMETER,
+                                    values,
+                                    lengths);
 }
 
 
@@ -1132,12 +1134,12 @@ int  transport_init_parameters(u32 eth_dev_num, u32 * values) {
  *****************************************************************************/
 int transport_get_parameters(u32 eth_dev_num, u32 * buffer, u32 max_words, u8 transmit) {
 
-    return warp_get_parameters((warp_tag_parameter *) &transport_parameters[eth_dev_num][0],
-                               TRANSPORT_PARAM_MAX_PARAMETER,
-                               buffer,
-                               max_words,
-                               WLAN_EXP_FALSE,
-                               transmit);
+    return wlan_exp_get_parameters((wlan_exp_tag_parameter *) &transport_parameters[eth_dev_num][0],
+                                   TRANSPORT_PARAM_MAX_PARAMETER,
+                                   buffer,
+                                   max_words,
+                                   WLAN_EXP_FALSE,
+                                   transmit);
 
 }
 

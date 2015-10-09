@@ -135,7 +135,7 @@ int wlan_mac_low_init(u32 type){
 	// Begin by trying to lock packet buffer 0 for wireless receptions
 	rx_pkt_buf = 0;
 	if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-		warp_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
+		wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
 		wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 		return -1;
 	} else {
@@ -466,9 +466,11 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 	u32                      isLocked, owner;
 	u64                    * u_timestamp_ptr;
 	s64                    * s_timestamp_ptr;
+	u64                      temp_timestamp;
 	u64                      new_timestamp;
 	u32                      low_tx_details_size;
 	u32*                     payload_to_write;
+
 
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 
@@ -682,7 +684,8 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 				case 1:
 					//This message contains a timestamp correction factor.
 					s_timestamp_ptr = (s64*)(ipc_msg_from_high_payload);
-					new_timestamp   = get_usec_timestamp() + s_timestamp_ptr[0] + SET_TIME_CALIB;
+					temp_timestamp  = get_usec_timestamp();
+					new_timestamp   = temp_timestamp + s_timestamp_ptr[0] + SET_TIME_CALIB;
 				break;
 			}
 			wlan_mac_low_set_time(new_timestamp);
@@ -704,11 +707,11 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 
 			if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				warp_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
+				wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
 
 				status_pkt_buf_tx(tx_pkt_buf, &isLocked, &owner);
 
-				warp_printf(PL_ERROR, "	TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
+				wlan_printf(PL_ERROR, "	TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
 
 			} else {
 
@@ -777,7 +780,7 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 
 				//Revert the state of the packet buffer and return control to CPU High
 				if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-					warp_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
+					wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
 					wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
 				} else {
 					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
@@ -817,8 +820,17 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
  * @return None
  */
 void wlan_mac_low_set_time(u64 new_time) {
-	Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_LSB, (u32)new_time);
-	Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_MSB, (u32)(new_time>>32));
+
+	//
+	// NOTE:  We have run into an odd situation where the new time has to be put into
+	//     the time hardware word-swapped (ie the _MSB register gets the lower 32 bits
+	//     of the u64 value and the _LSB register gets the upper 32 bits of the u64 value).
+	//     However, we cannot see where the swap occurs in either the Sysgen model or the
+	//     header files.  Therefore, if you start seeing weird timestamp behavior when
+	//     updating from beacons, then this is the code that should be changed.
+	//
+	Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_MSB, (u32)new_time);
+	Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_LSB, (u32)(new_time >> 32));
 
 	Xil_Out32(WLAN_MAC_TIME_REG_CONTROL, (Xil_In32(WLAN_MAC_TIME_REG_CONTROL) & ~WLAN_MAC_TIME_CTRL_REG_UPDATE_MAC_TIME));
 	Xil_Out32(WLAN_MAC_TIME_REG_CONTROL, (Xil_In32(WLAN_MAC_TIME_REG_CONTROL) | WLAN_MAC_TIME_CTRL_REG_UPDATE_MAC_TIME));

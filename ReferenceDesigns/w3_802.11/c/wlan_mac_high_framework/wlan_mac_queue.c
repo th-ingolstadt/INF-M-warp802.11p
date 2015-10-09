@@ -142,7 +142,7 @@ void purge_queue(u16 queue_sel){
 void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
 	u32 i;
 
-	//Create queues up to and including queue_sel if they don't already exist
+	// Create queues up to and including queue_sel if they don't already exist
 	// Queue IDs are low-valued integers, allowing for fast lookup by indexing the queue_tx array
 	if((queue_sel+1) > num_queue_tx){
     	queue_tx = wlan_mac_high_realloc(queue_tx, (queue_sel+1)*sizeof(dl_list));
@@ -161,6 +161,15 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
 	//Insert the queue entry into the dl_list representing the selected queue
 	dl_entry_insertEnd(&(queue_tx[queue_sel]), (dl_entry*)tqe);
 
+	// Update the occupancy of the tx queue for the tx_queue_element
+	//     NOTE:  This is the best place to record this value since it will catch all cases.  However,
+	//         when populating the tx_frame_info, be careful to not overwrite this value.  Also, this
+	//         field is set after the current tx queue element has been added to the queue, so the
+	//         occupancy value includes itself.
+	//
+	((tx_queue_buffer*)(tqe->data))->frame_info.queue_info.occupancy = (queue_tx[queue_sel].length & 0xFFFF);
+
+    // Poll the TX queues to see if anything needs to be transmitted
 	tx_poll_callback();
 
 	return;

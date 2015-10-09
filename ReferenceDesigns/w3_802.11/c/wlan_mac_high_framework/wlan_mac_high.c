@@ -15,7 +15,7 @@
 
 /***************************** Include Files *********************************/
 
-//Xilinx Includes
+// Xilinx Includes
 #include "stdlib.h"
 #include "xparameters.h"
 #include "xgpio.h"
@@ -25,7 +25,7 @@
 #include "xaxicdma.h"
 #include "malloc.h"
 
-//WARP Includes
+// WLAN Includes
 #include "w3_userio.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_ipc_util.h"
@@ -133,8 +133,8 @@ volatile static u32          num_malloc;                   ///< Tracking variabl
 volatile static u32          num_free;                     ///< Tracking variable for number of times free has been called
 volatile static u32          num_realloc;                  ///< Tracking variable for number of times realloc has been called
 
-// Statistics Flags
-volatile u8                  promiscuous_stats_enabled;    ///< Are promiscuous statistics collected (1 = Yes / 0 = No)
+// Counts Flags
+volatile u8                  promiscuous_counts_enabled;   ///< Are promiscuous counts collected (1 = Yes / 0 = No)
 
 // Receive Antenna mode tracker
 volatile u8                  rx_ant_mode_tracker = 0;      ///< Tracking variable for RX Antenna mode for CPU Low
@@ -251,7 +251,7 @@ void wlan_mac_high_cpu_ddr_linker_data_init(u8 dram_present) {
     }
 
     // Perform any WLAN Exp initialization of the memory
-    if (CLEAR_DDR_ON_BOOT) {
+    if (WLAN_EXP_CLEAR_DDR_ON_BOOT) {
         clear_ddr(WLAN_EXP_VERBOSE);
     }
 #endif
@@ -339,8 +339,8 @@ void wlan_mac_high_init(){
 	cpu_low_param_read_buffer      = NULL;
 	cpu_low_param_read_buffer_size = 0;
 
-	// Enable promiscuous statistics by default
-	promiscuous_stats_enabled = 1;
+	// Enable promiscuous counts by default
+	promiscuous_counts_enabled     = 1;
 
 	unique_seq = 0;
 
@@ -362,7 +362,7 @@ void wlan_mac_high_init(){
 	cdma_cfg_ptr = XAxiCdma_LookupConfig(XPAR_AXI_CDMA_0_DEVICE_ID);
 	Status = XAxiCdma_CfgInitialize(&cdma_inst, cdma_cfg_ptr, cdma_cfg_ptr->BaseAddress);
 	if (Status != XST_SUCCESS) {
-		warp_printf(PL_ERROR,"Error initializing CDMA: %d\n", Status);
+		wlan_printf(PL_ERROR, "ERROR: Could not initialize CDMA: %d\n", Status);
 	}
 	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
 
@@ -370,7 +370,7 @@ void wlan_mac_high_init(){
 	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
 
 	if (Status != XST_SUCCESS) {
-		warp_printf(PL_ERROR, "Error initializing GPIO\n");
+		wlan_printf(PL_ERROR, "ERROR: Could not initialize GPIO\n");
 		return;
 	}
 	// Set direction of GPIO channels
@@ -383,7 +383,7 @@ void wlan_mac_high_init(){
 	// Initialize the UART driver
 	Status = XUartLite_Initialize(&UartLite, UARTLITE_DEVICE_ID);
 	if (Status != XST_SUCCESS) {
-		warp_printf(PL_ERROR, "Error initializing XUartLite\n");
+		wlan_printf(PL_ERROR, "ERROR: Could not initialize UART\n");
 		return;
 	}
 
@@ -465,7 +465,7 @@ int wlan_mac_high_interrupt_init(){
 	// ***************************************************
 	Result = XIntc_Connect(&InterruptController, INTC_GPIO_INTERRUPT_ID, (XInterruptHandler)wlan_mac_high_gpio_handler, &Gpio);
 	if (Result != XST_SUCCESS) {
-		warp_printf(PL_ERROR,"Failed to connect GPIO to XIntc\n");
+		wlan_printf(PL_ERROR, "Failed to set up GPIO interrupt\n");
 		return Result;
 	}
 	XIntc_Enable(&InterruptController, INTC_GPIO_INTERRUPT_ID);
@@ -474,7 +474,7 @@ int wlan_mac_high_interrupt_init(){
 
 	Result = XIntc_Connect(&InterruptController, UARTLITE_INT_IRQ_ID, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
 	if (Result != XST_SUCCESS) {
-		warp_printf(PL_ERROR,"Failed to connect XUartLite to XIntc\n");
+		wlan_printf(PL_ERROR, "Failed to set up UART interrupt\n");
 		return Result;
 	}
 	XIntc_Enable(&InterruptController, UARTLITE_INT_IRQ_ID);
@@ -486,19 +486,19 @@ int wlan_mac_high_interrupt_init(){
 	// ***************************************************
 	Result = wlan_mac_schedule_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
-		warp_printf(PL_ERROR,"Failed to set up scheduler interrupt\n");
+		wlan_printf(PL_ERROR, "Failed to set up scheduler interrupt\n");
 		return -1;
 	}
 
 	Result = wlan_lib_mailbox_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
-		warp_printf(PL_ERROR,"Failed to set up wlan_lib mailbox interrupt\n");
+		wlan_printf(PL_ERROR, "Failed to set up wlan_lib mailbox interrupt\n");
 		return -1;
 	}
 
 	Result = wlan_eth_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
-		warp_printf(PL_ERROR,"Failed to set up Ethernet interrupt\n");
+		wlan_printf(PL_ERROR,"Failed to set up Ethernet interrupt\n");
 		return Result;
 	}
 
@@ -676,47 +676,45 @@ dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
 
 
 /**
- * @brief Find Statistics within a doubly-linked list from an hardware address
+ * @brief Find Counts within a doubly-linked list from an hardware address
  *
- * Given a doubly-linked list of statistics structures, this function will return
+ * Given a doubly-linked list of counts structures, this function will return
  * the pointer to a particular entry whose hardware address matches the argument
  * to this function.
  *
  * @param dl_list* list
- *  - Doubly-linked list of statistics structures
+ *  - Doubly-linked list of counts structures
  * @param u8* addr
  *  - 6-byte hardware address to search for
  * @return dl_entry*
- *  - Returns the pointer to the entry in the doubly-linked list that has the
- *    provided hardware address.
- *  - Returns NULL if no statistics pointer is found that matches the search
- *    criteria
+ *  - Returns the pointer to the entry in the doubly-linked list that has the provided hardware address.
+ *  - Returns NULL if no counts pointer is found that matches the search criteria
  *
  */
-dl_entry* wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr){
-	dl_entry*		 curr_statistics_entry;
-	statistics_txrx* curr_statistics;
+dl_entry* wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr){
+	dl_entry*           curr_counts_entry;
+	counts_txrx*        curr_counts;
 
-	curr_statistics_entry = list->first;
+	curr_counts_entry = list->first;
 
-	while(curr_statistics_entry != NULL){
+	while(curr_counts_entry != NULL){
 
-		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
+		curr_counts = (counts_txrx*)(curr_counts_entry->data);
 
-		if(wlan_addr_eq(curr_statistics->addr, addr)){
-			//Move this statistics entry to the front of the list to increase
-			//the performance of finding it again.
-			//Note: this performance increase makes the basic assumption that
-			//finding a MAC address in this list will be tied to wanting to find
-			//it again in the future. Busy traffic will naturally float to the front
-			//of the list and make them easier to find again.
+		if(wlan_addr_eq(curr_counts->addr, addr)){
+			// Move this counts entry to the front of the list to increase the performance of finding it again.
+			//
+			// NOTE: this performance increase makes the basic assumption that finding a MAC address in
+			// this list will be tied to wanting to find it again in the future. Busy traffic will naturally
+			// float to the front of the list and make them easier to find again.
+			//
 
-			dl_entry_remove(list, curr_statistics_entry);
-			dl_entry_insertBeginning(list, curr_statistics_entry);
+			dl_entry_remove(list, curr_counts_entry);
+			dl_entry_insertBeginning(list, curr_counts_entry);
 
-			return curr_statistics_entry;
+			return curr_counts_entry;
 		} else {
-			curr_statistics_entry = dl_entry_next(curr_statistics_entry);
+			curr_counts_entry = dl_entry_next(curr_counts_entry);
 		}
 	}
 	return NULL;
@@ -1607,7 +1605,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	ipc_msg_to_low.num_payload_words = 0;
 
 	if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-		warp_printf(PL_ERROR,"Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
+		wlan_printf(PL_ERROR, "Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
 	} else {
 		tx_pkt_buf_busy_state |= (1 << tx_pkt_buf);
 		ipc_mailbox_write_msg(&ipc_msg_to_low);
@@ -1754,17 +1752,23 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  *     - Queue ID
  * @return None
  */
-void wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_queue_element * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID ) {
+void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID) {
+
+	u16 occupancy;
 
 	tx_queue_buffer* curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
+
+    // Get occupancy that was filled in during the enqueue_after_tail() call
+	occupancy = curr_tx_queue_buffer->frame_info.queue_info.occupancy;
 
 	bzero(&(curr_tx_queue_buffer->frame_info), sizeof(tx_frame_info));
 
 	// Set up frame info data
-	curr_tx_queue_buffer->frame_info.timestamp_create			 = get_usec_timestamp();
-	curr_tx_queue_buffer->frame_info.length          			 = tx_length;
+	curr_tx_queue_buffer->frame_info.timestamp_create            = get_usec_timestamp();
+	curr_tx_queue_buffer->frame_info.length                      = tx_length;
 	curr_tx_queue_buffer->frame_info.flags                       = flags;
-	curr_tx_queue_buffer->frame_info.QID                         = QID;
+	curr_tx_queue_buffer->frame_info.queue_info.QID              = QID;
+	curr_tx_queue_buffer->frame_info.queue_info.occupancy        = occupancy;
 
 }
 
@@ -1828,7 +1832,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 			// First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
 			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				warp_printf(PL_ERROR,"Error: unable to lock pkt_buf %d\n",rx_pkt_buf);
+				wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
 			} else {
 				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
@@ -1842,7 +1846,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 
 				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-					warp_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n",rx_pkt_buf);
+					wlan_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n", rx_pkt_buf);
 				}
 			}
 		break;
@@ -1887,8 +1891,8 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 			cpu_low_status = ipc_msg_from_low_payload[0];
 
 			if(cpu_low_status & CPU_STATUS_EXCEPTION){
-				warp_printf(PL_ERROR, "An unrecoverable exception has occurred in CPU_LOW, halting...\n");
-				warp_printf(PL_ERROR, "Reason code: %d\n", ipc_msg_from_low_payload[1]);
+				wlan_printf(PL_ERROR, "ERROR:  An unrecoverable exception has occurred in CPU_LOW, halting...\n");
+				wlan_printf(PL_ERROR, "    Reason code: %d\n", ipc_msg_from_low_payload[1]);
 				while(1){}
 			}
 		break;
@@ -1904,7 +1908,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				cpu_low_reg_read_buffer_status = CPU_LOW_REG_READ_BUFFER_STATUS_READY;
 
 			} else {
-				warp_printf(PL_ERROR, "Error: received low-level register buffer from CPU_LOW and was not expecting it\n");
+				wlan_printf(PL_ERROR, "ERROR: Received low-level register buffer from CPU_LOW and was not expecting it.\n");
 			}
 		break;
 
@@ -1920,14 +1924,14 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				cpu_low_param_read_buffer_status = CPU_LOW_PARAM_READ_BUFFER_STATUS_READY;
 
 			} else {
-				warp_printf(PL_ERROR, "Error: received low-level parameter buffer from CPU_LOW and was not expecting it\n");
+				wlan_printf(PL_ERROR, "ERROR: Received low-level parameter buffer from CPU_LOW and was not expecting it.\n");
 			}
 		break;
 
 
 		//---------------------------------------------------------------------
 		default:
-			warp_printf(PL_ERROR, "Unknown IPC message type %d\n",IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
+			wlan_printf(PL_ERROR, "ERROR: Unknown IPC message type %d\n", IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id));
 		break;
 	}
 }
@@ -2117,46 +2121,54 @@ int wlan_mac_high_write_low_mem( u32 num_words, u32* payload ){
  *
  * Send an IPC message to CPU Low to read the given data
  *
- * @param  u32 num_words
- *     - Number of words to read from CPU low
- * @param  u32 baseaddr
- *     - Base address of the data to read from CPU low
- * @param  u32 * payload
- *     - Pointer to the buffer to be populated with data
- * @return None
+ * @param  u32 num_words     - Number of words to read from CPU low
+ * @param  u32 baseaddr      - Base address of the data to read from CPU low
+ * @param  u32 * payload     - Pointer to the buffer to be populated with data
+ *
+ * @return int               - Status of command:  0 = Success; -1 = Failure
+ *
  */
-int wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload ){
+int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload){
 
-	wlan_ipc_msg	   ipc_msg_to_low;
-	ipc_reg_read_write ipc_msg_to_low_payload;
+    u64                start_time;
+    wlan_ipc_msg       ipc_msg_to_low;
+    ipc_reg_read_write ipc_msg_to_low_payload;
 
-	if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
-		// Send message to CPU Low
-		ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
-		ipc_msg_to_low.num_payload_words = sizeof(ipc_reg_read_write) / sizeof(u32);
-		ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
-		ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload));
+    if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
+        // Send message to CPU Low
+        ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
+        ipc_msg_to_low.num_payload_words = sizeof(ipc_reg_read_write) / sizeof(u32);
+        ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
+        ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload));
 
-		ipc_msg_to_low_payload.baseaddr  = baseaddr;
-		ipc_msg_to_low_payload.num_words = num_words;
+        ipc_msg_to_low_payload.baseaddr  = baseaddr;
+        ipc_msg_to_low_payload.num_words = num_words;
 
-		// Set the read buffer to the payload pointer
-		cpu_low_reg_read_buffer          = payload;
-		cpu_low_reg_read_buffer_status   = CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY;
+        // Set the read buffer to the payload pointer
+        cpu_low_reg_read_buffer          = payload;
+        cpu_low_reg_read_buffer_status   = CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY;
 
-		ipc_mailbox_write_msg(&ipc_msg_to_low);
+        ipc_mailbox_write_msg(&ipc_msg_to_low);
 
-		// Wait for CPU low to finish the read
-		while(cpu_low_reg_read_buffer_status != CPU_LOW_REG_READ_BUFFER_STATUS_READY){}
+        // Get start time
+        start_time = get_usec_timestamp();
 
-		// Reset the read buffer
-		cpu_low_reg_read_buffer          = NULL;
+        // Wait for CPU low to finish the read or timeout to occur
+        while(cpu_low_param_read_buffer_status != CPU_LOW_PARAM_READ_BUFFER_STATUS_READY){
+            if ((get_usec_timestamp() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
+                xil_printf("Error: Reading CPU_LOW memory timed out\n");
+                return -1;
+            }
+        }
 
-		return 0;
-	} else {
-		xil_printf("Error: Reading CPU_LOW memory requires interrupts being enabled");
-		return -1;
-	}
+        // Reset the read buffer
+        cpu_low_reg_read_buffer          = NULL;
+
+        return 0;
+    } else {
+        xil_printf("Error: Reading CPU_LOW memory requires interrupts being enabled\n");
+        return -1;
+    }
 }
 
 
@@ -2176,36 +2188,45 @@ int wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload ){
  */
 int wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload ){
 
-	wlan_ipc_msg	   ipc_msg_to_low;
+    u64                start_time;
+    wlan_ipc_msg       ipc_msg_to_low;
 
-	if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
-		// Send message to CPU Low
-		ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
-		ipc_msg_to_low.num_payload_words = 1;
-		ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
-		ipc_msg_to_low.payload_ptr       = (u32*)(&(param_id));
+    if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
+        // Send message to CPU Low
+        ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
+        ipc_msg_to_low.num_payload_words = 1;
+        ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
+        ipc_msg_to_low.payload_ptr       = (u32*)(&(param_id));
 
-		// Set the read buffer to the payload pointer
-		cpu_low_param_read_buffer        = payload;
-		cpu_low_param_read_buffer_status = CPU_LOW_PARAM_READ_BUFFER_STATUS_NOT_READY;
+        // Set the read buffer to the payload pointer
+        cpu_low_param_read_buffer        = payload;
+        cpu_low_param_read_buffer_status = CPU_LOW_PARAM_READ_BUFFER_STATUS_NOT_READY;
 
-		ipc_mailbox_write_msg(&ipc_msg_to_low);
+        ipc_mailbox_write_msg(&ipc_msg_to_low);
 
-		// Wait for CPU low to finish the read
-		while(cpu_low_param_read_buffer_status != CPU_LOW_PARAM_READ_BUFFER_STATUS_READY){}
+        // Get start time
+        start_time = get_usec_timestamp();
 
-		// Set the size
-		*(size) = cpu_low_param_read_buffer_size;
+        // Wait for CPU low to finish the read or timeout to occur
+        while(cpu_low_param_read_buffer_status != CPU_LOW_PARAM_READ_BUFFER_STATUS_READY){
+            if ((get_usec_timestamp() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
+                xil_printf("Error: Reading CPU_LOW parameters timed out\n");
+                return -1;
+            }
+        }
 
-		// Reset the read buffer
-		cpu_low_param_read_buffer        = NULL;
-		cpu_low_param_read_buffer_size   = 0;
+        // Set the size
+        *(size) = cpu_low_param_read_buffer_size;
 
-		return 0;
-	} else {
-		xil_printf("Error: Reading CPU_LOW parameters requires interrupts being enabled");
-		return -1;
-	}
+        // Reset the read buffer
+        cpu_low_param_read_buffer        = NULL;
+        cpu_low_param_read_buffer_size   = 0;
+
+        return 0;
+    } else {
+        xil_printf("Error: Reading CPU_LOW parameters requires interrupts being enabled\n");
+        return -1;
+    }
 }
 
 
@@ -2555,8 +2576,8 @@ void usleep(u64 delay){
  *
  * @param  dl_list* assoc_tbl
  *     - Association table pointer
- * @param  dl_list* stat_tbl
- *     - Statistics table pointer
+ * @param  dl_list* counts_tbl
+ *     - Counts table pointer
  * @param  u8* addr
  *     - Address of association to add to the association table
  * @param  u16 requested_AID
@@ -2567,14 +2588,14 @@ void usleep(u64 delay){
  *
  * @note   This function will not perform any filtering on the addr field
  */
-station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID){
-	dl_entry*	  entry;
-	station_info* station;
+station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8* addr, u16 requested_AID){
+	dl_entry     * entry;
+	station_info * station;
 
-	statistics_txrx*   station_stats;
-	dl_entry*	  curr_station_info_entry;
-	station_info* curr_station_info;
-	u16 curr_AID;
+	counts_txrx  * station_counts;
+	dl_entry     * curr_station_info_entry;
+	station_info * curr_station_info;
+	u16            curr_AID;
 
 	curr_AID = 0;
 
@@ -2623,9 +2644,9 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 			return NULL;
 		}
 
-        // Get the statistics for this address
-		station_stats = wlan_mac_high_add_statistics(stat_tbl, station, addr);
-		if(station_stats == NULL){
+        // Get the counts for this address
+		station_counts = wlan_mac_high_add_counts(counts_tbl, station, addr);
+		if(station_counts == NULL){
 			wlan_mac_high_free(entry);
 			wlan_mac_high_free(station);
 			return NULL;
@@ -2638,8 +2659,8 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
 		entry->data = (void*)station;
 
 		// Populate the station with information
-		station->stats = station_stats;
-		station->stats->is_associated = 1;
+		station->counts = station_counts;
+		station->counts->is_associated = 1;
 
 		memcpy(station->addr, addr, 6);
 
@@ -2740,20 +2761,19 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tb
  *
  * @param  dl_list* assoc_tbl
  *     - Association table pointer
- * @param  dl_list* stat_tbl
- *     - Statistics table pointer
+ * @param  dl_list* counts_tbl
+ *     - Counts table pointer
  * @param  u8* addr
  *     - Address of association to remove from the association table
  * @return int
  *     -  0  - Successfully removed the association
  *     - -1  - Failed to remove association
  */
-int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr){
-	u32 i;
-	dl_entry* entry;
-	station_info* station;
-
-	dl_entry* stats_entry;
+int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8* addr){
+	u32            i;
+	dl_entry     * entry;
+	station_info * station;
+	dl_entry     * counts_entry;
 
 	entry = wlan_mac_high_find_station_info_ADDR(assoc_tbl, addr);
 
@@ -2769,14 +2789,14 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* 
 			// Remove station from the association table;
 			dl_entry_remove(assoc_tbl, entry);
 
-			if (promiscuous_stats_enabled) {
-				station->stats->is_associated = 0;
+			if (promiscuous_counts_enabled) {
+				station->counts->is_associated = 0;
 			} else {
-				//Remove station's statistics from statistics table
-				stats_entry = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
-				dl_entry_remove(stat_tbl, stats_entry);
-				wlan_mac_high_free(stats_entry);
-				wlan_mac_high_free(station->stats);
+				//Remove station's counts from counts table
+				counts_entry = wlan_mac_high_find_counts_ADDR(counts_tbl, addr);
+				dl_entry_remove(counts_tbl, counts_entry);
+				wlan_mac_high_free(counts_entry);
+				wlan_mac_high_free(station->counts);
 			}
 
 			wlan_mac_high_free(entry);
@@ -2900,143 +2920,143 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl){
 
 
 /**
- * @brief Add statistics
+ * @brief Add counts
  *
- * Function will add a statistics structure to the statistics table for the given address
+ * Function will add a counts structure to the counts table for the given address
  *
- * @param  dl_list* stat_tbl
- *     - Statistics table pointer
+ * @param  dl_list* counts_tbl
+ *     - Counts table pointer
  * @param  station_info * station
  *     - Station info pointer
  * @param  u8* addr
- *     - Address of station for which we will add statistics
- * @return statistics_txrx *
- *     - Pointer to the statistics structure in the statistics table
+ *     - Address of station for which we will add counts
+ * @return counts_txrx *
+ *     - Pointer to the counts structure in the counts table
  *     - NULL
  */
-statistics_txrx* wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr){
-	dl_entry*	station_stats_entry;
-	dl_entry*	curr_statistics_entry;
-	dl_entry*   oldest_statistics_entry = NULL;
+counts_txrx* wlan_mac_high_add_counts(dl_list* counts_tbl, station_info* station, u8* addr){
+	dl_entry     * station_counts_entry;
+	dl_entry     * curr_counts_entry;
+	dl_entry     * oldest_counts_entry = NULL;
 
-	statistics_txrx* station_stats      = NULL;
-	statistics_txrx* curr_statistics    = NULL;
-	statistics_txrx* oldest_statistics  = NULL;
+	counts_txrx  * station_counts      = NULL;
+	counts_txrx  * curr_counts         = NULL;
+	counts_txrx  * oldest_counts       = NULL;
 
 	if(station == NULL){
-		if (!promiscuous_stats_enabled) {
-			// This statistics struct isn't being added to an associated station. Furthermore,
-			// Promiscuous statistics are now allowed, so we will return NULL to the calling function.
+		if (!promiscuous_counts_enabled) {
+			// This counts struct isn't being added to an associated station. Furthermore,
+			// Promiscuous counts are now allowed, so we will return NULL to the calling function.
 			return NULL;
 		}
 	}
 
-	station_stats_entry = wlan_mac_high_find_statistics_ADDR(stat_tbl, addr);
+	station_counts_entry = wlan_mac_high_find_counts_ADDR(counts_tbl, addr);
 
-	if(station_stats_entry == NULL){
+	if(station_counts_entry == NULL){
 		// Note: This memory allocation has no corresponding free. It is by definition a memory leak.
-		// The reason for this is that it allows the node to monitor statistics on surrounding devices.
-		// In a busy environment, this promiscuous statistics gathering can be disabled by commenting
-		// out the ALLOW_PROMISC_STATISTICS or disabled via the WLAN Exp framework.
+		// The reason for this is that it allows the node to monitor counts on surrounding devices.
+		// In a busy environment, this promiscuous counts gathering can be disabled by commenting
+		// out the ALLOW_PROMISC_COUNTS or disabled via the WLAN Exp framework.
 
-		if(stat_tbl->length >= WLAN_MAC_HIGH_MAX_PROMISC_STATS){
-			// There are too many statistics being tracked. We'll get rid of the oldest that isn't currently associated.
-			curr_statistics_entry = stat_tbl->first;
+		if(counts_tbl->length >= WLAN_MAC_HIGH_MAX_PROMISC_COUNTS){
+			// There are too many counts being tracked. We'll get rid of the oldest that isn't currently associated.
+			curr_counts_entry = counts_tbl->first;
 
-			while(curr_statistics_entry != NULL){
-				curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
+			while(curr_counts_entry != NULL){
+				curr_counts = (counts_txrx*)(curr_counts_entry->data);
 
-				if( (oldest_statistics_entry == NULL) ){
-					if(curr_statistics->is_associated == 0){
-						oldest_statistics_entry = curr_statistics_entry;
-						oldest_statistics = (statistics_txrx*)(oldest_statistics_entry->data);
+				if( (oldest_counts_entry == NULL) ){
+					if(curr_counts->is_associated == 0){
+						oldest_counts_entry = curr_counts_entry;
+						oldest_counts       = (counts_txrx*)(oldest_counts_entry->data);
 					}
-				} else if(( (curr_statistics->latest_txrx_timestamp) < (oldest_statistics->latest_txrx_timestamp)) ){
-					if(curr_statistics->is_associated == 0){
-						oldest_statistics_entry = curr_statistics_entry;
-						oldest_statistics = (statistics_txrx*)(oldest_statistics_entry->data);
+				} else if(((curr_counts->latest_txrx_timestamp) < (oldest_counts->latest_txrx_timestamp))){
+					if(curr_counts->is_associated == 0){
+						oldest_counts_entry = curr_counts_entry;
+						oldest_counts       = (counts_txrx*)(oldest_counts_entry->data);
 					}
 				}
-				curr_statistics_entry = dl_entry_next(curr_statistics_entry);
+				curr_counts_entry = dl_entry_next(curr_counts_entry);
 			}
 
-			if(oldest_statistics_entry == NULL){
-				xil_printf("ERROR: Could not find deletable oldest statistics.\n");
-				xil_printf("    Ensure that WLAN_MAC_HIGH_MAX_PROMISC_STATS > max_associations\n");
-				xil_printf("    if allowing promiscuous statistics\n");
+			if(oldest_counts_entry == NULL){
+				xil_printf("ERROR: Could not find deletable oldest counts.\n");
+				xil_printf("    Ensure that WLAN_MAC_HIGH_MAX_PROMISC_COUNTS > max_associations\n");
+				xil_printf("    if allowing promiscuous counts\n");
 			} else {
-				dl_entry_remove(stat_tbl, oldest_statistics_entry);
-				wlan_mac_high_free(oldest_statistics_entry);
-				wlan_mac_high_free(oldest_statistics);
+				dl_entry_remove(counts_tbl, oldest_counts_entry);
+				wlan_mac_high_free(oldest_counts_entry);
+				wlan_mac_high_free(oldest_counts);
 			}
 		}
 
-		station_stats_entry = wlan_mac_high_malloc(sizeof(dl_entry));
+		station_counts_entry = wlan_mac_high_malloc(sizeof(dl_entry));
 
-		if(station_stats_entry == NULL){
+		if(station_counts_entry == NULL){
 			return NULL;
 		}
 
-		station_stats = wlan_mac_high_calloc(sizeof(statistics_txrx));
+		station_counts = wlan_mac_high_calloc(sizeof(counts_txrx));
 
-		if(station_stats == NULL){
-			wlan_mac_high_free(station_stats_entry);
+		if(station_counts == NULL){
+			wlan_mac_high_free(station_counts_entry);
 			return NULL;
 		}
 
-		station_stats_entry->data = (void*)station_stats;
+		station_counts_entry->data = (void*)station_counts;
 
-		memcpy(station_stats->addr, addr, 6);
+		memcpy(station_counts->addr, addr, 6);
 
-		dl_entry_insertEnd(stat_tbl, station_stats_entry);
+		dl_entry_insertEnd(counts_tbl, station_counts_entry);
 
 	} else {
-		station_stats = (statistics_txrx*)(station_stats_entry->data);
+		station_counts = (counts_txrx*)(station_counts_entry->data);
 	}
 	if(station != NULL){
-		station->stats = station_stats;
+		station->counts = station_counts;
 	}
 
-	return station_stats;
+	return station_counts;
 }
 
 
 
 /**
- * @brief Reset statistics
+ * @brief Reset counts
  *
- * Function will remove all the statistics in the statistics table except those for associated nodes
+ * Function will remove all the counts in the counts table except those for associated nodes
  *
- * @param  dl_list* stat_tbl
- *     - Statistics table pointer
+ * @param  dl_list* counts_tbl
+ *     - Counts table pointer
  * @return None
  */
-void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
-	statistics_txrx* curr_statistics       = NULL;
-	dl_entry*        next_statistics_entry = NULL;
-	dl_entry*        curr_statistics_entry = NULL;
+void wlan_mac_high_reset_counts(dl_list* counts_tbl){
+	counts_txrx  * curr_counts       = NULL;
+	dl_entry     * next_counts_entry = NULL;
+	dl_entry     * curr_counts_entry = NULL;
 
-	next_statistics_entry = stat_tbl->first;
+	next_counts_entry = counts_tbl->first;
 
-	// Remove all statistics entries from the statistics table
+	// Remove all counts entries from the counts table
 	//
 	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
 	//   elements from the list.
-	while(next_statistics_entry != NULL){
+	while(next_counts_entry != NULL){
 
-		curr_statistics_entry = next_statistics_entry;
-		next_statistics_entry = dl_entry_next(curr_statistics_entry);
+		curr_counts_entry = next_counts_entry;
+		next_counts_entry = dl_entry_next(curr_counts_entry);
 
-		curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
+		curr_counts = (counts_txrx*)(curr_counts_entry->data);
 
-		bzero((void*)(&(curr_statistics->data)), sizeof(frame_statistics_txrx));
-		bzero((void*)(&(curr_statistics->mgmt)), sizeof(frame_statistics_txrx));
+		bzero((void*)(&(curr_counts->data)), sizeof(frame_counts_txrx));
+		bzero((void*)(&(curr_counts->mgmt)), sizeof(frame_counts_txrx));
 
 		// Do not remove the entry if it is associated
-		if(curr_statistics->is_associated == 0){
-			dl_entry_remove(stat_tbl, curr_statistics_entry);
-			wlan_mac_high_free(curr_statistics);
-			wlan_mac_high_free(curr_statistics_entry);
+		if(curr_counts->is_associated == 0){
+			dl_entry_remove(counts_tbl, curr_counts_entry);
+			wlan_mac_high_free(curr_counts);
+			wlan_mac_high_free(curr_counts_entry);
 		}
 	}
 }
@@ -3044,19 +3064,19 @@ void wlan_mac_high_reset_statistics(dl_list* stat_tbl){
 
 
 /**
- * @brief Update transmit statistics
+ * @brief Update transmit counts
  *
- * Function will update the transmit statistics for the given MPDU
+ * Function will update the transmit counts for the given MPDU
  *
  * @param  tx_frame_info * tx_mpdu
- *     - Pointer to the TX MPDU that we will use to update the statistics
+ *     - Pointer to the TX MPDU that we will use to update the counts
  * @return None
  */
-void wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* station) {
-	void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
-	frame_statistics_txrx* frame_stats             = NULL;
+void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* station) {
+	void              * mpdu           = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
+	frame_counts_txrx * frame_counts   = NULL;
 
-	u8 			           pkt_type;
+	u8                  pkt_type;
 
 	if(station != NULL){
 	    // Get the packet type
@@ -3065,25 +3085,25 @@ void wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* st
 		switch(pkt_type){
 			case PKT_TYPE_DATA_ENCAP_ETH:
 			case PKT_TYPE_DATA_ENCAP_LTG:
-				frame_stats = &(station->stats->data);
+				frame_counts = &(station->counts->data);
 			break;
 
 			case PKT_TYPE_MGMT:
-				frame_stats = &(station->stats->mgmt);
+				frame_counts = &(station->counts->mgmt);
 			break;
 		}
 
-		// Update Transmission Stats
-		if(frame_stats != NULL){
+		// Update transmission counts
+		if(frame_counts != NULL){
 
-			(frame_stats->tx_num_packets_total)++;
+			(frame_counts->tx_num_packets_total)++;
 
-			(frame_stats->tx_num_bytes_total) += (tx_mpdu->length);
-			(frame_stats->tx_num_packets_low) += (tx_mpdu->short_retry_count); //TODO: Needs to be fixed for short/long
+			(frame_counts->tx_num_bytes_total) += (tx_mpdu->length);
+			(frame_counts->tx_num_packets_low) += (tx_mpdu->short_retry_count); //TODO: Needs to be fixed for short/long
 
 			if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
-				(frame_stats->tx_num_packets_success)++;
-				(frame_stats->tx_num_bytes_success) += tx_mpdu->length;
+				(frame_counts->tx_num_packets_success)++;
+				(frame_counts->tx_num_bytes_success) += tx_mpdu->length;
 			}
 		}
 	}

@@ -82,9 +82,9 @@
 #define ENTRY_TYPE_TX_LOW_LTG                              26
 
 //-----------------------------------------------
-// Statistics Entries
+// Count Entries
 
-#define ENTRY_TYPE_TXRX_STATS                              30
+#define ENTRY_TYPE_TXRX_COUNTS                             30
 
 
 
@@ -113,7 +113,7 @@
 
 //-----------------------------------------------
 // Node Info Entry
-//   NOTE:  This structure was designed to work easily with the WARP Tag
+//   NOTE:  This structure was designed to work easily with the WLAN Exp Tag
 //       Parameters.  The order and size of the fields match the corresponding
 //       Tag Parameter so that population of this structure is easy.  Please see
 //       "Node Info Structure for Tag Parameter Information" in wlan_exp_node.h
@@ -126,14 +126,14 @@ typedef struct{
     u64                 timestamp;                         // Timestamp of the node info
                                                            //   - This will reflect the oldest time of an
                                                            //     entry for a given log wrap
-    u32                 warp_type;                         // WARP type
+    u32                 node_type;                         // Node type
     u32                 node_id;                           // Node ID
     u32                 hw_generation;                     // Node hardware generation
     u32                 serial_number;                     // Node serial number
     u64                 fpga_dna;                          // Node FPGA DNA
     u32                 wlan_exp_version;                  // WLAN Exp Version
-    u32                 wlan_mac_addr[2];                  // WLAN MAC Address
     u32                 wlan_scheduler_resolution;         // Minimum Scheduler resolution (microseconds)
+    u32                 wlan_mac_addr[2];                  // WLAN MAC Address
 } node_info_entry;
 
 
@@ -265,15 +265,15 @@ typedef struct{
 
 
 //-----------------------------------------------
-// Tx/Rx Statistics Entry
+// Tx/Rx Counts Entry
 //
-//   NOTE:  To add TxRx Statistics to the log, please use one of the methods provided
+//   NOTE:  To add TxRx Counts to the log, please use one of the methods provided
 //     in wlan_mac_event_log.*
 //
 typedef struct{
-    u64                      timestamp;          // Timestamp of the log entry
-    statistics_txrx_base     stats;              // Framework's statistics struct
-} txrx_stats_entry;
+    u64                 timestamp;               // Timestamp of the log entry
+    counts_txrx_base    counts;                  // Framework's counts struct
+} txrx_counts_entry;
 
 
 
@@ -364,9 +364,10 @@ typedef struct{
     u16                 length;                  // Length of the packet
     u8                  result;                  // Result of the transmission
     u8                  pkt_type;                // Type of packet
+    u16                 queue_id;                // Queue ID this packet was sent from
+    u16                 queue_occupancy;         // Occupancy of queue (includes itself)
     u8                  ant_mode;                // Antenna mode used for transmission
-    u8                  queue_id;                // Queue ID this packet was sent from
-    u8                  padding[2];              // Padding for alignment
+    u8                  padding[3];              // Padding for alignment
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_high_entry;
@@ -444,12 +445,12 @@ void               print_entry(u32 entry_number, u32 entry_type, void * entry);
 //
 void      add_node_info_entry(u8 transmit);
 
-u32       add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit);
-u32       add_all_txrx_statistics_to_log(u8 transmit);
+u32       add_txrx_counts_to_log(counts_txrx * counts, u8 transmit);
+u32       add_all_txrx_counts_to_log(u8 transmit);
 
 u32       add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit);
-u32       add_station_info_w_stats_to_log(station_info * info, u8 zero_aid, u8 transmit);
-u32       add_all_station_info_to_log(u8 stats, u8 zero_aid, u8 transmit);
+u32       add_station_info_w_counts_to_log(station_info * info, u8 zero_aid, u8 transmit);
+u32       add_all_station_info_to_log(u8 counts, u8 zero_aid, u8 transmit);
 
 u32       add_temperature_to_log(u8 transmit);
 

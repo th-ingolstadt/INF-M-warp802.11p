@@ -73,8 +73,8 @@
 
 // Define constants for function flags
 //   NOTE:  the transmit flag is defined in wlan_exp_common.h since it is used in multiple places
-#define EVENT_LOG_NO_STATS                                 0
-#define EVENT_LOG_STATS                                    1
+#define EVENT_LOG_NO_COUNTS                                0
+#define EVENT_LOG_COUNTS                                   1
 
 
 /*********************** Global Structure Definitions ************************/
@@ -100,7 +100,7 @@ void      event_log_reset();
 int       event_log_config_wrap( u32 enable );
 int       event_log_config_logging( u32 enable );
 
-u32       event_log_get_data( u32 start_address, u32 size, char * buffer );
+u32       event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data);
 u32       event_log_get_size( u32 start_index );
 u32       event_log_get_total_size( void );
 u32       event_log_get_capacity( void );

@@ -1,8 +1,7 @@
 /** @file wlan_exp_transport.h
  *  @brief Experiment Framework (Transport)
  *
- * Implements the WARP Transport protocol layer for the embedded processor
- * on the WARP Hardware.
+ * Implements the Transport protocol layer for the embedded processor.
  *
  *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
@@ -89,12 +88,12 @@
 #define TRANSPORT_ETH_DEV_INITIALIZED                      1
 
 // Ethernet A constants
-#define WARP_ETH_A                                         ETH_A_MAC
-#define WARP_ETH_A_MDIO_PHYADDR                            0x6
+#define TRANSPORT_ETH_A                                    ETH_A_MAC
+#define TRANSPORT_ETH_A_MDIO_PHYADDR                       0x6
 
 // Ethernet B constants
-#define WARP_ETH_B                                         ETH_B_MAC
-#define WARP_ETH_B_MDIO_PHYADDR                            0x7
+#define TRANSPORT_ETH_B                                    ETH_B_MAC
+#define TRANSPORT_ETH_B_MDIO_PHYADDR                       0x7
 
 // Ethernet constants
 #define ETH_DO_NOT_WAIT_FOR_AUTO_NEGOTIATION               0
@@ -122,7 +121,7 @@
 
 
 // Ethernet PHY macros
-//     NOTE:  Speed is defined by the Ethernet hardware (xaxiethernet_hw.h and equivalent for WARP v2):
+//     NOTE:  Speed is defined by the Ethernet hardware (xaxiethernet_hw.h):
 //         #define XAE_SPEED_10_MBPS        10      /**< Speed of 10 Mbps */
 //         #define XAE_SPEED_100_MBPS       100     /**< Speed of 100 Mbps */
 //         #define XAE_SPEED_1000_MBPS      1000    /**< Speed of 1000 Mbps */
@@ -161,9 +160,9 @@
 
 /*********************** Global Structure Definitions ************************/
 
-// WARP Transport header
-//     NOTE:  This conforms to the WARP Transport Header Wire Format:
-//            http://warpproject.org/tra    /wiki/WARPLab/Reference    Architecture/WireFormat    
+// Transport header
+//     NOTE:  This conforms to the Transport Header Wire Format:
+//            http://warpproject.org/trac/wiki/WARPLab/Reference/Architecture/WireFormat
 //
 typedef struct {
     u16                      dest_id;                      // Destination ID
@@ -172,8 +171,8 @@ typedef struct {
     u8                       pkt_type;                     // Packet Type (see Message types above)
     u16                      length;                       // Length of the Packet
     u16                      seq_num;                      // Sequence Number
-    u16                      flags;                        // WARP transport flags
-} warp_transport_header;
+    u16                      flags;                        // Transport flags
+} transport_header;
 
 
 // Transport info structure for Tag parameter information
@@ -206,7 +205,7 @@ typedef struct {
 } transport_info;
 
 
-// WARP Ethernet Device Information
+// Ethernet Device Information
 //
 //     NOTE:  This structure exists so that differences between Ethernet devices can be consolidated
 //
@@ -223,7 +222,7 @@ typedef struct {
     int                      socket_async;                 // Asynchronous send socket index
 
     struct sockaddr          async_sockaddr;               // Address structure for Asynchronous send socket
-    warp_cmd_resp            async_cmd_resp;               // Command / Response structure for Asynchronous send socket
+    cmd_resp                 async_cmd_resp;               // Command / Response structure for Asynchronous send socket
 
     transport_info           info;                         // Transport info structure
 
@@ -232,11 +231,11 @@ typedef struct {
 
 /*************************** Function Prototypes *****************************/
 
-// Initialization Functions
+// Transport functions
 int  transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port);
 
 int  transport_set_process_hton_msg_callback(void(*handler));
-int  transport_process_cmd(int socket_index, void* from, warp_cmd_resp* command, warp_cmd_resp* response);
+int  transport_process_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response);
 
 void transport_poll(u32 eth_dev_num);
 void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, warp_ip_udp_buffer * send_buffer);

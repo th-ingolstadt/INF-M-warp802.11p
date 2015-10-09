@@ -58,7 +58,7 @@
 /*********************** Global Variable Definitions *************************/
 
 // Declared in wlan_mac_high.c
-extern u8                  promiscuous_stats_enabled;
+extern u8                  promiscuous_counts_enabled;
 extern u8                  rx_ant_mode_tracker;
 
 
@@ -77,20 +77,21 @@ int           node_init_parameters(u32 *info);
 void          node_init_system_monitor(void);
 
 int           node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer);
-int           node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, warp_cmd_resp * response);
+void          node_send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer);
+int           node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response);
 
 void          node_ltg_cleanup(u32 id, void* callback_arg);
 
-void          create_wlan_exp_cmd_log_entry(warp_cmd_resp * command);
+void          create_wlan_exp_cmd_log_entry(cmd_resp * command);
 
 int           node_process_tx_power(u32 cmd, u32 aid, int tx_power);
 u8            node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate);
 u8            node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
 // WLAN Exp buffer functions
-u32           node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * command, warp_cmd_resp * response,
-                                       warp_cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
-                                       warp_cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
+u32           node_process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_resp * response,
+                                       cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
+                                       cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
                                        u32 eth_dev_num, u32 max_words,
                                        char * type, char * description, dl_list * source_list, u32 dest_size,
                                        u32 (*find_id)(u8 *),
@@ -102,15 +103,15 @@ dl_entry *    find_station_info_entry(u8 * mac_addr);
 void          zero_station_info_entry(void * dest);
 void          copy_station_info_to_dest_entry(void * source, void * dest, u64 time);
 
-dl_entry *    find_statistics_txrx_entry(u8 * mac_addr);
-void          zero_txrx_stats_entry(void * dest);
-void          copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time);
+dl_entry *    find_txrx_counts_entry(u8 * mac_addr);
+void          zero_txrx_counts_entry(void * dest);
+void          copy_txrx_counts_to_dest_entry(void * source, void * dest, u64 time);
 
 void          zero_bss_info_entry(void * dest);
 void          copy_bss_info_to_dest_entry(void * source, void * dest, u64 time);
 
 u32           wlan_exp_get_id_in_associated_stations(u8 * mac_addr);
-u32           wlan_exp_get_id_in_statistics(u8 * mac_addr);
+u32           wlan_exp_get_id_in_counts(u8 * mac_addr);
 u32           wlan_exp_get_id_in_bss_info(u8 * bssid);
 
 // Null callback function declarations
@@ -121,11 +122,11 @@ int           wlan_exp_null_node_process_cmd_callback(u32 cmd_id, void* param);
 /*************************** Variable Definitions ****************************/
 
 wlan_exp_node_info                node_info;
-static warp_tag_parameter         node_parameters[NODE_PARAM_MAX_PARAMETER];
+static wlan_exp_tag_parameter     node_parameters[NODE_PARAM_MAX_PARAMETER];
 
 static wlan_exp_function_ptr_t    wlan_exp_init_callback                     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 static wlan_exp_function_ptr_t    wlan_exp_node_process_cmd_callback         = (wlan_exp_function_ptr_t) wlan_exp_null_node_process_cmd_callback;
-static wlan_exp_function_ptr_t    wlan_exp_reset_station_statistics_callback = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+static wlan_exp_function_ptr_t    wlan_exp_reset_station_counts_callback     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_reset_bss_info_callback           = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
@@ -147,9 +148,9 @@ static u32                        wlan_exp_enable_logging = 0;
  * This will initialize the WLAN Exp node with the appropriate information
  * and set up the node to communicate with a host on the device.
  *
- * @param   warp_type        - WARP type of the WLAN Exp node
- * @param   serial_number    - Serial number of the WARP node
- * @param   fpga_dna         - FPGA DNA of the WARP node
+ * @param   wlan_exp_type    - WLAN Exp type of the node
+ * @param   serial_number    - Serial number of the node
+ * @param   fpga_dna         - FPGA DNA of the node
  * @param   eth_dev_num      - Ethernet device to use for WLAN Exp
  * @param   wlan_exp_hw_addr - WLAN Exp hardware address
  * @param   wlan_hw_addr     - WLAN hardware address
@@ -161,7 +162,7 @@ static u32                        wlan_exp_enable_logging = 0;
  * @note    This function will print to the terminal but is not able to control any of the LEDs
  *
  *****************************************************************************/
-int wlan_exp_node_init(u32 warp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
+int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
 
     int  i;
     int  status              = XST_SUCCESS;
@@ -178,9 +179,9 @@ int wlan_exp_node_init(u32 warp_type, u32 serial_number, u32 *fpga_dna, u32 eth_
     //   Node ID / Network information must be set using dynamic node configuration process
     //   Initial IP Address should be NODE_IP_ADDR_BASE for all nodes
     //
-    node_info.warp_type                     = warp_type;
+    node_info.node_type                     = wlan_exp_type;
     node_info.node_id                       = 0xFFFF;
-    node_info.hw_generation                 = WARP_TYPE_HW_VERSION;
+    node_info.hw_generation                 = WLAN_EXP_HW_VERSION;
     node_info.serial_number                 = serial_number;
 
     // Process both 32 bit arguments of the FPGA DNA
@@ -252,7 +253,7 @@ int wlan_exp_node_init(u32 warp_type, u32 serial_number, u32 *fpga_dna, u32 eth_
     // ------------------------------------------
     // Wait for Ethernet to finish initializing the link
     //
-    if (WARP_WAIT_FOR_ETH) {
+    if (WLAN_EXP_WAIT_FOR_ETH) {
         wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  Waiting for Ethernet link ... \n");
 
         while(link_status == LINK_NOT_READY) {
@@ -291,7 +292,7 @@ int wlan_exp_node_init(u32 warp_type, u32 serial_number, u32 *fpga_dna, u32 eth_
 
     // ------------------------------------------
     // Call child init function
-    status = wlan_exp_init_callback(warp_type, serial_number, fpga_dna, eth_dev_num, wlan_exp_hw_addr, wlan_hw_addr);
+    status = wlan_exp_init_callback(wlan_exp_type, serial_number, fpga_dna, eth_dev_num, wlan_exp_hw_addr, wlan_hw_addr);
 
 
     wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "WLAN EXP Initialization complete\n");
@@ -344,7 +345,7 @@ int wlan_exp_null_node_process_cmd_callback(u32 cmd_id, void * param){
  *
  * @note    If this packet is a host to node message, then the process_hton_msg_callback
  *          is used to further process the packet.  This method will strip off the
- *          WARP transport header for future packet processing.
+ *          Transport header for future packet processing.
  *
  *****************************************************************************/
 int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer) {
@@ -353,22 +354,22 @@ int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_ud
     u32                 resp_sent      = NO_RESP_SENT;
     u32                 resp_length;
 
-    warp_cmd_resp_hdr * cmd_hdr;
-    warp_cmd_resp       command;
-    warp_cmd_resp_hdr * resp_hdr;
-    warp_cmd_resp       response;
+    cmd_resp_hdr      * cmd_hdr;
+    cmd_resp            command;
+    cmd_resp_hdr      * resp_hdr;
+    cmd_resp            response;
 
     // Initialize the Command/Response structures
-    cmd_hdr             = (warp_cmd_resp_hdr *)(recv_buffer->offset);
+    cmd_hdr             = (cmd_resp_hdr *)(recv_buffer->offset);
     command.flags       = recv_flags;
     command.header      = cmd_hdr;
-    command.args        = (u32 *)((recv_buffer->offset) + sizeof(warp_cmd_resp_hdr));
+    command.args        = (u32 *)((recv_buffer->offset) + sizeof(cmd_resp_hdr));
     command.buffer      = (void *)(recv_buffer);
 
-    resp_hdr            = (warp_cmd_resp_hdr *)(send_buffer->offset);
+    resp_hdr            = (cmd_resp_hdr *)(send_buffer->offset);
     response.flags      = 0;
     response.header     = resp_hdr;
-    response.args       = (u32 *)((send_buffer->offset) + sizeof(warp_cmd_resp_hdr));
+    response.args       = (u32 *)((send_buffer->offset) + sizeof(cmd_resp_hdr));
     response.buffer     = (void *)(send_buffer);
 
     // Endian swap the command header so future processing can understand it
@@ -382,10 +383,10 @@ int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_ud
     }
 
     // Send command to appropriate processing sub-system
-    cmd_group           = WARP_CMD_TO_GRP(cmd_hdr->cmd);
+    cmd_group           = CMD_TO_GROUP(cmd_hdr->cmd);
 
     switch(cmd_group){
-        case GROUP_WARP:
+        case GROUP_GENERAL:
         case GROUP_NODE:
             resp_sent = node_process_cmd(socket_index, from, &command, &response);
         break;
@@ -401,7 +402,7 @@ int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_ud
     // response header
     //
     if(resp_sent == NO_RESP_SENT) {
-        resp_length = (resp_hdr->length + sizeof(warp_cmd_resp_hdr));
+        resp_length = (resp_hdr->length + sizeof(cmd_resp_hdr));
 
         // Keep the length and size of the response in sync since we are adding bytes to the buffer
         send_buffer->length += resp_length;
@@ -430,44 +431,62 @@ int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_ud
  *
  * @param   socket_index     - Index of the socket on which message was received
  * @param   to               - Pointer to socket address structure to which message will be sent
- * @param   resp_hdr         - Pointer to WARPLab Command / Response header for outgoing message
- * @param   buffers          - Pointer to array of IP/UDP buffers that contain the outgoing message
- * @param   num_buffers      - Number of IP/UDP buffers in the array
+ * @param   resp_hdr         - Pointer to Command / Response header for outgoing message
+ * @param   buffer           - Pointer to IP/UDP buffer that contains the outgoing message
+ * @param   length           - Length of response arguments in buffer
  *
  * @return  None
  *
- * @note    It is assumed that the message is ready to be sent except for the response header processing.
- *          This assumption includes that the size and length of all buffers are set correctly.
+ * @note    This function can only send one buffer at a time and will modify both the
+ *          response header and buffer length to create an appropriate outgoing message.
  *
  *****************************************************************************/
-void node_send_early_resp(int socket_index, void * to, warp_cmd_resp_hdr * resp_hdr, void ** buffers, u32 num_buffers) {
+void node_send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer) {
     //
-    // This function is used to send multiple responses back to the host under the broader
-    // umbrella of a single command exchange. The best example of this functionality is a
-    // 'log read' command where a single packet from the host results in many response packets
-    // returning from the board.
+    // This function is used to send a response back to the host outside the normal command processing
+    // (ie the response does not complete the steps in node_rx_from_transport() after distribution
+    // to the different group processing commands), this method must perform the necessary manipulation
+    // of the response header and the buffer size so that the message is ready to be sent and then
+    // restore the contents so that everything is ready to be used if additional responses are required.
     //
-    // Since, responses sent via this method do not go through the normal command processing
-    // (ie they do not complete the steps in node_rx_from_transport() after the distribution
-    // to the different group processing), this method must perform the necessary manipulation
-    // of the command / response header so that the message is ready to be sent and then restore
-    // the contents so that everything is ready to be used if additional responses are required
-    //
+    u32                      tmp_cmd;
+    u16                      tmp_length;
+    u16                      tmp_num_args;
+    u32                      tmp_buffer_length;
+    u32                      tmp_buffer_size;
 
-    // wlan_exp_printf(WLAN_EXP_PRINT_DEBUG, print_type_node, "Send early response:  cmd = 0x%08x   length = %d\n", resp_hdr->cmd, resp_hdr->length);
+    warp_ip_udp_buffer     * buffer_ptr;
+    u32                      resp_length;
+
+    // Cast the buffer pointer so it is easier to use
+    buffer_ptr               = (warp_ip_udp_buffer *) buffer;
+
+    // Get the current values in the buffer so we can restore them after transmission
+    tmp_cmd                  = resp_hdr->cmd;
+    tmp_length               = resp_hdr->length;
+    tmp_num_args             = resp_hdr->num_args;
+    tmp_buffer_length        = buffer_ptr->length;
+    tmp_buffer_size          = buffer_ptr->size;
+
+    // Adjust the length of the buffer
+    resp_length              = resp_hdr->length + sizeof(cmd_resp_hdr);
+    buffer_ptr->length      += resp_length;
+    buffer_ptr->size        += resp_length;
 
     // Endian swap the response header before before transport sends it
-    resp_hdr->cmd      = Xil_Ntohl(resp_hdr->cmd);
-    resp_hdr->length   = Xil_Ntohs(resp_hdr->length);
-    resp_hdr->num_args = Xil_Ntohs(resp_hdr->num_args);
+    resp_hdr->cmd            = Xil_Ntohl(tmp_cmd);
+    resp_hdr->length         = Xil_Ntohs(tmp_length);
+    resp_hdr->num_args       = Xil_Ntohs(tmp_num_args);
 
     // Send the packet
-    transport_send(socket_index, (struct sockaddr *) to, (warp_ip_udp_buffer **) buffers, num_buffers);
+    transport_send(socket_index, (struct sockaddr *)to, (warp_ip_udp_buffer **)&buffer, 0x1);
 
-    // Restore response header
-    resp_hdr->cmd      = Xil_Htonl(resp_hdr->cmd);
-    resp_hdr->length   = Xil_Htons(resp_hdr->length);
-    resp_hdr->num_args = Xil_Htons(resp_hdr->num_args);
+    // Restore the values in the buffer
+    resp_hdr->cmd      = tmp_cmd;
+    resp_hdr->length   = tmp_length;
+    resp_hdr->num_args = tmp_num_args;
+    buffer_ptr->length = tmp_buffer_length;
+    buffer_ptr->size   = tmp_buffer_size;
 }
 
 
@@ -481,18 +500,18 @@ void node_send_early_resp(int socket_index, void * to, warp_cmd_resp_hdr * resp_
  *
  * @param   socket_index     - Index of the socket on which to send message
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
- * @param   command          - Pointer to WARPLab Command
- * @param   response         - Pointer to WARPLab Response
+ * @param   command          - Pointer to Command
+ * @param   response         - Pointer to Response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
  *
  * @note    See on-line documentation for more information about the Ethernet
- *          packet structure for WARPLab:  www.warpproject.org
+ *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, warp_cmd_resp * response) {
+int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -505,24 +524,23 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
     //
 
     // Standard variables
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32                      resp_sent      = NO_RESP_SENT;
 
-    warp_cmd_resp_hdr * cmd_hdr        = command->header;
-    u32               * cmd_args_32    = command->args;
-    u32                 cmd_id         = WARP_CMD_TO_CMDID(cmd_hdr->cmd);
+    cmd_resp_hdr           * cmd_hdr        = command->header;
+    u32                    * cmd_args_32    = command->args;
+    u32                      cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
 
-    warp_cmd_resp_hdr * resp_hdr       = response->header;
-    u32               * resp_args_32   = response->args;
-    u32                 resp_index     = 0;
+    cmd_resp_hdr           * resp_hdr       = response->header;
+    u32                    * resp_args_32   = response->args;
+    u32                      resp_index     = 0;
 
-    u32                 eth_dev_num    = socket_get_eth_dev_num(socket_index);
-    u32                 max_words      = node_info.eth_dev->max_pkt_words;
+    u32                      eth_dev_num    = socket_get_eth_dev_num(socket_index);
+    u32                      max_words      = node_info.eth_dev->max_pkt_words;
 
     // Set up the response header
     resp_hdr->cmd       = cmd_hdr->cmd;
     resp_hdr->length    = 0;
     resp_hdr->num_args  = 0;
-
 
 
     // Variables for functions
@@ -552,7 +570,6 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
     u32                      evt_log_size;
     u32                      transfer_size;
     u32                      header_size;
-    u32                      response_size;
 
     u32                      bytes_per_pkt;
     u32                      num_bytes;
@@ -580,6 +597,9 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
     wlan_ipc_msg             ipc_msg_to_low;
     interrupt_state_t        prev_interrupt_state;
 
+    warp_ip_udp_buffer       data_buffer;
+    warp_ip_udp_buffer     * resp_array[2];
+
 
     // Finish any CDMA transfers that might be occurring
     wlan_mac_high_cdma_finish_transfer();
@@ -588,16 +608,16 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
     switch(cmd_id){
 
 //-----------------------------------------------------------------------------
-// WARP Commands
+// General Commands
 //-----------------------------------------------------------------------------
 
         //---------------------------------------------------------------------
-        case CMDID_WARP_TYPE:
-            // Return the WARP Type
-            resp_args_32[resp_index++] = Xil_Htonl(node_info.warp_type);
+        case CMDID_GENERAL_TYPE:
+            // Return the WLAN Exp Type
+            resp_args_32[resp_index++] = Xil_Htonl(node_info.node_type);
 
 #ifdef _DEBUG_
-            xil_printf("WARP Type = 0x%08x \n", node_info.warp_type);
+            xil_printf("WLAN Exp Type = 0x%08x \n", node_info.node_type);
 #endif
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
@@ -669,16 +689,16 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
                 ip_addr[3] = (transport_info->ip_addr      ) & 0xFF;
 
                 // Print Node information
-                xil_printf("    WARP Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node_id, ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+                xil_printf("    Node: %d    IP Address: %d.%d.%d.%d \n", node_info.node_id, ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
 
                 // Send the response early so that code does not time out while waiting for blinks
                 //   The host is responsible for waiting until the LED blinking is done before issuing the
                 //   node another command.
-                resp_args_32[resp_index++] = Xil_Htonl( CMD_PARAM_SUCCESS );
+                resp_args_32[resp_index++] = Xil_Htonl(CMD_PARAM_SUCCESS);
                 resp_hdr->length          += (resp_index * sizeof(resp_args_32));
                 resp_hdr->num_args         = resp_index;
 
-                node_send_early_resp(socket_index, from, response->header, &response->buffer, 0x1);
+                node_send_early_resp(socket_index, from, response->header, response->buffer);
 
                 resp_sent                  = RESP_SENT;
 
@@ -790,7 +810,7 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
             // needs to send a response before the IP address changes.
             //
             if (((command->flags) & 0x00000001) == WLAN_EXP_FALSE) {
-                node_send_early_resp(socket_index, from, response->header, &response->buffer, 0x1);
+                node_send_early_resp(socket_index, from, response->header, response->buffer);
                 resp_sent = RESP_SENT;
             }
             
@@ -1014,28 +1034,26 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
             //   only transfer those events.  It will not any new events that are added to the log while
             //   we are transferring the current log as well as transfer any events after a wrap.
             //
-
-            header_size       = ((warp_ip_udp_buffer *)response->buffer)->length + sizeof(warp_cmd_resp_hdr) + 20;     // Packet header + Response header + buffer header
-            id                = Xil_Ntohl(cmd_args_32[0]);
-            flags             = Xil_Ntohl(cmd_args_32[1]);
-            start_index       = Xil_Ntohl(cmd_args_32[2]);
-            size              = Xil_Ntohl(cmd_args_32[3]);
+            id               = Xil_Ntohl(cmd_args_32[0]);
+            flags            = Xil_Ntohl(cmd_args_32[1]);
+            start_index      = Xil_Ntohl(cmd_args_32[2]);
+            size             = Xil_Ntohl(cmd_args_32[3]);
 
             // Get the size of the log to the "end"
-            evt_log_size      = event_log_get_size(start_index);
+            evt_log_size     = event_log_get_size(start_index);
 
             // Check if we should transfer everything or if the request was larger than the current log
             if ((size == CMD_PARAM_LOG_GET_ALL_ENTRIES) || (size > evt_log_size)) {
                 size = evt_log_size;
             }
 
-            bytes_per_pkt     = ((max_words) * 4) - 20;                   // Subtract the bytes for the buffer header
-            num_pkts          = (size / bytes_per_pkt) + 1;
+            bytes_per_pkt    = ((max_words) * 4) - 20;                   // Subtract the bytes for the buffer header
+            num_pkts         = (size / bytes_per_pkt) + 1;
 
             if ((size % bytes_per_pkt) == 0){ num_pkts--; }               // Subtract the extra pkt if the division had no remainder
 
-            curr_index        = start_index;
-            bytes_remaining   = size;
+            curr_index       = start_index;
+            bytes_remaining  = size;
 
 #ifdef _DEBUG_
             // NOTE: The print statements are commented out b/c this command is used
@@ -1047,9 +1065,22 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
             xil_printf("    num_pkts         = %10d\n", num_pkts);
 #endif
 
-            // Initialize constant parameters
-            resp_args_32[0] = Xil_Htonl(id);
-            resp_args_32[1] = Xil_Htonl(flags);
+            // Initialize the response buffer array
+            resp_array[0]    = (warp_ip_udp_buffer *)(response->buffer);       // Contains all header information
+            resp_array[1]    = (warp_ip_udp_buffer *)&data_buffer;             // Contains log entry data
+
+            // Initialize constant header parameters
+            resp_args_32[0]  = Xil_Htonl(id);
+            resp_args_32[1]  = Xil_Htonl(flags);
+
+            resp_hdr->num_args    = 5;
+
+            // Set the header buffer size
+            //     NOTE: The header is a constant size for all transfers:  Response header + buffer header
+            //
+            header_size      = sizeof(cmd_resp_hdr) + 20;
+            ((warp_ip_udp_buffer *)response->buffer)->length += header_size;
+            ((warp_ip_udp_buffer *)response->buffer)->size   += header_size;
 
             // Iterate through all the packets
             for (i = 0; i < num_pkts; i++) {
@@ -1069,30 +1100,19 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
                 resp_args_32[3]        = Xil_Htonl(curr_index);
                 resp_args_32[4]        = Xil_Htonl(transfer_size);
 
-                // Unfortunately, due to the byte swapping that occurs in node_send_early_resp, we need to set all
-                //   three command parameters for each packet that is sent.
-                resp_hdr->cmd          = cmd_hdr->cmd;
+                // Set the response header fields that change per packet
                 resp_hdr->length       = 20 + transfer_size;
-                resp_hdr->num_args     = 5;
 
                 // Transfer data
+                //     NOTE:  This selects the "do not copy data" option and instead provides
+                //         a WARP IP/UDP buffer to transfer the data.
                 //
-                // TODO:  Change so that the data is directly transfered out of DDR vs being copied to the packet
-                //     buffer.
-                //
-                num_bytes = event_log_get_data(curr_index, transfer_size, (char *) &resp_args_32[5]);
+                num_bytes = event_log_get_data(curr_index, transfer_size, &data_buffer, 0);
 
                 // Check that we copied everything
                 if (num_bytes == transfer_size) {
-                    // Set the response size (header
-                    response_size = header_size + num_bytes;
-
-                    // Set the buffer size
-                    ((warp_ip_udp_buffer *)response->buffer)->length = response_size;
-                    ((warp_ip_udp_buffer *)response->buffer)->size   = response_size;
-
-                    // Send the packet
-                    node_send_early_resp(socket_index, from, response->header, &response->buffer, 0x1);
+                    // Send the buffers
+                    transport_send(socket_index, (struct sockaddr *)from, resp_array, 0x2);
 
                 } else {
                     wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log,
@@ -1154,14 +1174,14 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_ADD_STATS_TXRX:
-            // Add the current statistics to the log
-            // TODO:  Add parameter to command to transmit stats
-            temp = add_all_txrx_statistics_to_log(WLAN_EXP_NO_TRANSMIT);
+        case CMDID_LOG_ADD_COUNTS_TXRX:
+            // Add the current counts to the log
+            //     TODO:  Add parameter to command to transmit counts
+            temp = add_all_txrx_counts_to_log(WLAN_EXP_NO_TRANSMIT);
 
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Added %d statistics.\n", temp);
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Added %d counts.\n", temp);
 
-            // Send response of oldest index
+            // Send response of the number of counts added
             resp_args_32[resp_index++] = Xil_Htonl(temp);
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
@@ -1219,12 +1239,12 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
                 warp_ip_udp_buffer       * tmp_buffer = socket_alloc_send_buffer();
 
                 // Add transport header to the buffer
-                warp_transport_header    * tmp_header = (warp_transport_header *)(tmp_buffer->offset);
+                transport_header         * tmp_header = (transport_header *)(tmp_buffer->offset);
 
                 // Increment the tracking variables in the buffer
-                tmp_buffer->offset                   += sizeof(warp_transport_header);
-                tmp_buffer->length                   += sizeof(warp_transport_header);
-                tmp_buffer->size                     += sizeof(warp_transport_header);
+                tmp_buffer->offset                   += sizeof(transport_header);
+                tmp_buffer->length                   += sizeof(transport_header);
+                tmp_buffer->size                     += sizeof(transport_header);
 
                 // Populate the values for the transport header
                 tmp_header->dest_id                   = ((temp2 >> 16) & 0xFFFF);
@@ -1236,12 +1256,12 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
                 tmp_header->flags                     = 0;
 
                 // Add command header to the send buffer
-                warp_cmd_resp_hdr    * tmp_cmd_header = (warp_cmd_resp_hdr *)(tmp_buffer->offset);
+                cmd_resp_hdr         * tmp_cmd_header = (cmd_resp_hdr *)(tmp_buffer->offset);
 
                 // Increment the tracking variables in the buffer
-                tmp_buffer->offset                   += sizeof(warp_cmd_resp_hdr);
-                tmp_buffer->length                   += sizeof(warp_cmd_resp_hdr);
-                tmp_buffer->size                     += sizeof(warp_cmd_resp_hdr);
+                tmp_buffer->offset                   += sizeof(cmd_resp_hdr);
+                tmp_buffer->length                   += sizeof(cmd_resp_hdr);
+                tmp_buffer->size                     += sizeof(cmd_resp_hdr);
 
                 // Populate the values for the command header
                 tmp_cmd_header->cmd                   = Xil_Ntohl(CMDID_LOG_STREAM_ENTRIES);
@@ -1249,7 +1269,7 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
                 tmp_cmd_header->num_args              = 0;
 
                 // Create the Command / Response structure for the async socket
-                warp_cmd_resp        * async_cmd_resp = &(node_info.eth_dev->async_cmd_resp);
+                cmd_resp             * async_cmd_resp = &(node_info.eth_dev->async_cmd_resp);
 
                 async_cmd_resp->buffer                = (void *) tmp_buffer;
                 async_cmd_resp->header                = tmp_cmd_header;
@@ -1258,7 +1278,7 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
                 //
                 // NOTE:  At this point, the buffer is ready to have payload information added to
                 //     it for the CMDID_LOG_STREAM_ENTRIES command.  The fields that must be updated
-                //     in the warp_cmd_resp structure before this command can be sent are:
+                //     in the cmd_resp structure before this command can be sent are:
                 //         - header->length      - Final size of the command (use Xil_Ntohl() to byte swap for transfer)
                 //         - buffer->length      - Final size of the buffer
                 //         - buffer->size        - Final size of the buffer
@@ -1280,20 +1300,20 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
 
 
 //-----------------------------------------------------------------------------
-// Statistics Commands
+// Counts Commands
 //-----------------------------------------------------------------------------
 
 
         //---------------------------------------------------------------------
-        case CMDID_STATS_CONFIG_TXRX:
-            // NODE_STATS_CONFIG_TXRX Packet Format:
+        case CMDID_COUNTS_CONFIG_TXRX:
+            // NODE_COUNTS_CONFIG_TXRX Packet Format:
             //   - cmd_args_32[0]  - flags
-            //                     [ 0] - Promiscuous stats collected = 1
-            //                            Promiscuous stats not collected = 0
+            //                     [ 0] - Promiscuous counts collected = 1
+            //                            Promiscuous counts not collected = 0
             //   - cmd_args_32[1]  - mask for flags
             //
             //   - resp_args_32[0] - CMD_PARAM_SUCCESS
-            //                   - CMD_PARAM_ERROR
+            //                     - CMD_PARAM_ERROR
 
             // Set the return value
             status = CMD_PARAM_SUCCESS;
@@ -1302,14 +1322,14 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
             temp  = Xil_Ntohl(cmd_args_32[0]);
             temp2 = Xil_Ntohl(cmd_args_32[1]);
 
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_stats, "Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
 
             // Configure the LOG based on the flag bit / mask
-            if ((temp2 & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC) {
-                if ((temp & CMD_PARAM_STATS_CONFIG_FLAG_PROMISC) == CMD_PARAM_STATS_CONFIG_FLAG_PROMISC) {
-                    promiscuous_stats_enabled = 1;
+            if ((temp2 & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) == CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
+                if ((temp & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) == CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
+                    promiscuous_counts_enabled = 1;
                 } else {
-                    promiscuous_stats_enabled = 0;
+                    promiscuous_counts_enabled = 0;
                 }
             }
 
@@ -1322,13 +1342,13 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
 
 
         //---------------------------------------------------------------------
-        case CMDID_STATS_GET_TXRX:
-            // NODE_GET_STATS Packet Format:
+        case CMDID_COUNTS_GET_TXRX:
+            // NODE_GET_COUNTS Packet Format:
             //   - cmd_args_32[0]   - buffer id
             //   - cmd_args_32[1]   - flags
             //   - cmd_args_32[2]   - start_address of transfer
             //   - cmd_args_32[3]   - size of transfer (in bytes)
-            //   - cmd_args_32[4:5] - MAC Address (All 0xFF means all stats)
+            //   - cmd_args_32[4:5] - MAC Address (All 0xFF means all counts)
             // Always returns a valid WLAN Exp Buffer (either 1 or more packets)
             //   - buffer_id       - uint32  - buffer_id
             //   - flags           - uint32  - 0
@@ -1339,13 +1359,13 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
 
             resp_sent = node_process_buffer_cmds(socket_index, from, command, response,
                                                  cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
-                                                 print_type_stats, "statistics",
-                                                 get_statistics(),
-                                                 sizeof(txrx_stats_entry),
-                                                 &wlan_exp_get_id_in_statistics,
-                                                 &find_statistics_txrx_entry,
-                                                 &copy_statistics_txrx_to_dest_entry,
-                                                 &zero_txrx_stats_entry);
+                                                 print_type_counts, "counts",
+                                                 get_counts(),
+                                                 sizeof(txrx_counts_entry),
+                                                 &wlan_exp_get_id_in_counts,
+                                                 &find_txrx_counts_entry,
+                                                 &copy_txrx_counts_to_dest_entry,
+                                                 &zero_txrx_counts_entry);
 
         break;
 
@@ -1592,7 +1612,7 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
             // NODE_RESET_STATE Packet Format:
             //   - cmd_args_32[0]  - Flags
             //                     [0] - NODE_RESET_LOG
-            //                     [1] - NODE_RESET_TXRX_STATS
+            //                     [1] - NODE_RESET_TXRX_COUNTS
             //                     [2] - NODE_RESET_LTG
             //                     [3] - NODE_RESET_TX_DATA_QUEUE
             //                     [4] - NODE_RESET_ASSOCIATIONS
@@ -1609,9 +1629,9 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
                 event_log_reset();
             }
 
-            if ((temp & CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS) == CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS) {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_stats, "Reseting Statistics\n");
-                wlan_exp_reset_station_statistics_callback();
+            if ((temp & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) == CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
+                wlan_exp_reset_station_counts_callback();
             }
 
             if ((temp & CMD_PARAM_NODE_RESET_FLAG_LTG) == CMD_PARAM_NODE_RESET_FLAG_LTG) {
@@ -2585,7 +2605,7 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
             //     resp_args_32[0]     Status
             //
             // Read Message format:
-            //     cmd_args_32[0]      Command == NODE_READ_VAL
+            //     cmd_args_32[0]      Command == CMD_PARAM_READ_VAL
             //     cmd_args_32[1]      Address
             //     cmd_args_32[2]      Length (number of u32 words to read)
             // Response format:
@@ -2667,7 +2687,7 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
             // Read/write memory in CPU Low via IPC message
             //
             // Write Message format:
-            //     cmd_args_32[0]      Command == NODE_WRITE_VAL
+            //     cmd_args_32[0]      Command == CMD_PARAM_WRITE_VAL
             //     cmd_args_32[1]      Address
             //     cmd_args_32[2]      Length (number of u32 words to write)
             //     cmd_args_32[3:]     Values to write (integral number of u32 words)
@@ -2675,7 +2695,7 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
             //     resp_args_32[0]     Status
             //
             // Read Message format:
-            //     cmd_args_32[0]      Command == NODE_READ_VAL
+            //     cmd_args_32[0]      Command == CMD_PARAM_READ_VAL
             //     cmd_args_32[1]      Address
             //     cmd_args_32[2]      Length (number of u32 words to read)
             // Response format:
@@ -2765,6 +2785,33 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
         break;
 
 
+        //---------------------------------------------------------------------
+        case CMDID_DEV_EEPROM:
+            // Read/Write EEPROM Memory (in CPU Low)
+            //
+            // Write Message format:
+            //     cmd_args_32[0]      Command == CMD_PARAM_WRITE_VAL
+            //     cmd_args_32[1]      Address == CMD_PARAM_RSVD
+            //     cmd_args_32[2]      Length (number of u32 words to write)
+            //     cmd_args_32[3:]     Values to write (integral number of u32 words)
+            // Response format:
+            //     resp_args_32[0]     Status
+            //
+            // Read Message format:
+            //     cmd_args_32[0]      Command == CMD_PARAM_READ_VAL
+            //     cmd_args_32[1]      Address == CMD_PARAM_RSVD
+            //     cmd_args_32[2]      Length (number of u32 words to read)
+            // Response format:
+            //     resp_args_32[0]     Status
+            //     resp_args_32[1]     Length (number of u32 values)
+            //     resp_args_32[2:]    Memory values (length u32 values)
+            //
+#if 0
+        TBD
+#endif
+        break;
+
+
 //-----------------------------------------------------------------------------
 // Child Commands
 //-----------------------------------------------------------------------------
@@ -2785,7 +2832,7 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
 
 /*****************************************************************************/
 /**
- * Process buffer commands and return a valid WARP buffer with the requested information.
+ * Process buffer commands and return a valid buffer with the requested information.
  *
  * Terminology:
  *    "source" - the data to be transferred.
@@ -2798,9 +2845,9 @@ int node_process_cmd(int socket_index, void * from, warp_cmd_resp * command, war
  *           RESP_SENT
  *
  *****************************************************************************/
-u32 node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * command, warp_cmd_resp * response,
-                             warp_cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
-                             warp_cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
+u32 node_process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_resp * response,
+                             cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
+                             cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
                              u32 eth_dev_num, u32 max_words,
                              char * type, char * description, dl_list * source_list, u32 dest_size,
                              u32 (*find_id)(u8 *),
@@ -2808,7 +2855,7 @@ u32 node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * comm
                              void (*copy_source_to_dest)(void *, void *, u64),
                              void (*zero_dest)(void *)) {
 
-    u32            resp_index           = 5;                // There will always be 5 return args for a WARP buffer
+    u32            resp_index           = 5;                // There will always be 5 return args for a buffer
     u32            resp_sent            = NO_RESP_SENT;
 
     u32            i, j;
@@ -2845,7 +2892,7 @@ u32 node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * comm
     resp_args_32[4] = 0;
 
     if (id == WLAN_EXP_AID_NONE) {
-        if ((Xil_Ntohl(cmd_args_32[1]) & CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE) == CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE) {
+        if ((Xil_Ntohl(cmd_args_32[1]) & CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE) == CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE) {
 
             // Copy routine will fill in a zeroed entry if the source is NULL
             copy_source_to_dest(NULL, &resp_args_32[resp_index], get_usec_timestamp());
@@ -2918,6 +2965,9 @@ u32 node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * comm
                 curr_entry        = source_list->first;
                 time              = get_usec_timestamp();
 
+                // Set response header arguments that do not change per packet
+                resp_hdr->num_args = 5;
+
                 // Iterate through all the packets
                 for (i = 0; i < num_pkts; i++) {
 
@@ -2942,11 +2992,8 @@ u32 node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * comm
                     resp_args_32[3]    = Xil_Htonl(curr_index);
                     resp_args_32[4]    = Xil_Htonl(transfer_size);
 
-                    // Unfortunately, due to the byte swapping that occurs in node_send_early_resp, we need to set all
-                    //   three command parameters for each packet that is sent.
-                    resp_hdr->cmd      = cmd_hdr->cmd;
+                    // Set the response header fields that change per packet
                     resp_hdr->length   = 20 + transfer_size;
-                    resp_hdr->num_args = 5;
 
                     // Transfer data
                     curr_dest = (void *) &resp_args_32[resp_index];
@@ -2956,12 +3003,12 @@ u32 node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * comm
                         // removed (we will not handle the case that list elements are added and just ignore the new
                         // elements).
                         if (curr_entry != NULL) {
-                            // Copy the info to the log entry
+                            // Copy the info to the Ethernet packet
                             //   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
                             //          similar to the info structures in wlan_mac_high.h
                             copy_source_to_dest(curr_entry->data, curr_dest, time);
 
-                            // Increment the station info pointers
+                            // Increment the entry pointers
                             curr_entry = dl_entry_next(curr_entry);
 
                         } else {
@@ -2977,7 +3024,7 @@ u32 node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * comm
                     }
 
                     // Send the packet
-                    node_send_early_resp(socket_index, from, response->header, &response->buffer, 0x1);
+                    node_send_early_resp(socket_index, from, response->header, response->buffer);
 
                     // Update our current address and bytes remaining
                     curr_index       = next_index;
@@ -3004,7 +3051,7 @@ u32 node_process_buffer_cmds(int socket_index, void * from, warp_cmd_resp * comm
  * Helper functions for node_process_buffer_cmds
  *
  * For each type of structure (ie <> in the notation below) to be transferred
- * using a WARP buffer, you need to implement the following commands:
+ * using a buffer, you need to implement the following commands:
  *
  *     dl_entry * find_<>_entry(u8 * mac_addr)
  *     void       zero_<>_entry(void * dest);
@@ -3066,30 +3113,30 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u64 time) {
 }
 
 
-dl_entry * find_statistics_txrx_entry(u8 * mac_addr) {
-    dl_list * source_list = get_statistics();
+dl_entry * find_txrx_counts_entry(u8 * mac_addr) {
+    dl_list * source_list = get_counts();
 
     if( source_list != NULL){
-        return wlan_mac_high_find_statistics_ADDR(source_list, mac_addr);
+        return wlan_mac_high_find_counts_ADDR(source_list, mac_addr);
     } else {
         return NULL;
     }
 }
 
 
-void zero_txrx_stats_entry(void * dest) {
+void zero_txrx_counts_entry(void * dest) {
 
-    txrx_stats_entry * curr_entry = (txrx_stats_entry *)(dest);
+    txrx_counts_entry * curr_entry = (txrx_counts_entry *)(dest);
 
-    bzero((void *)(&curr_entry->stats), sizeof(statistics_txrx_base));
+    bzero((void *)(&curr_entry->counts), sizeof(counts_txrx_base));
 }
 
 
 
-void copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time) {
+void copy_txrx_counts_to_dest_entry(void * source, void * dest, u64 time) {
 
-    statistics_txrx    * curr_source   = (statistics_txrx *)(source);
-    txrx_stats_entry   * curr_dest     = (txrx_stats_entry *)(dest);
+    counts_txrx         * curr_source   = (counts_txrx *)(source);
+    txrx_counts_entry   * curr_dest     = (txrx_counts_entry *)(dest);
 
     // Set the timestamp for the station_info entry
     curr_dest->timestamp = time;
@@ -3097,10 +3144,10 @@ void copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time) {
     // Fill in zeroed entry if source is NULL
     //   - All fields are zero except last_txrx_timestamp which is CMD_PARAM_NODE_TIME_RSVD_VAL_64
     if (source == NULL) {
-        curr_source = wlan_mac_high_malloc(sizeof(statistics_txrx));
+        curr_source = wlan_mac_high_malloc(sizeof(counts_txrx));
 
         if (curr_source != NULL) {
-            bzero(curr_source, sizeof(statistics_txrx));
+            bzero(curr_source, sizeof(counts_txrx));
 
             curr_source->latest_txrx_timestamp = CMD_PARAM_NODE_TIME_RSVD_VAL_64;
         }
@@ -3110,9 +3157,9 @@ void copy_statistics_txrx_to_dest_entry(void * source, void * dest, u64 time) {
     //   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
     //          similar to the source information structure in wlan_mac_high.h
     if (curr_source != NULL) {
-        memcpy( (void *)(&curr_dest->stats), (void *)(curr_source), sizeof(statistics_txrx_base) );
+        memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(counts_txrx_base));
     } else {
-        wlan_exp_printf(WLAN_EXP_PRINT_WARNING, "STATS", "Could not copy statistics_txrx to entry\n");
+        wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_counts, "Could not copy counts_txrx to entry\n");
     }
 
     // Free curr_source if source was NULL
@@ -3177,7 +3224,7 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time) {
 void wlan_exp_reset_all_callbacks(){
     wlan_exp_init_callback                     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_node_process_cmd_callback         = (wlan_exp_function_ptr_t) wlan_exp_null_node_process_cmd_callback;
-    wlan_exp_reset_station_statistics_callback = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_reset_station_counts_callback     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_reset_bss_info_callback           = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
@@ -3196,8 +3243,8 @@ void wlan_exp_set_node_process_cmd_callback(void(*callback)()){
 }
 
 
-void wlan_exp_set_reset_station_statistics_callback(void(*callback)()){
-    wlan_exp_reset_station_statistics_callback = (wlan_exp_function_ptr_t) callback;
+void wlan_exp_set_reset_station_counts_callback(void(*callback)()){
+    wlan_exp_reset_station_counts_callback = (wlan_exp_function_ptr_t) callback;
 }
 
 
@@ -3297,11 +3344,11 @@ int  node_init_parameters(u32 * values) {
 
     u16    lengths[NODE_PARAM_MAX_PARAMETER] = NODE_PARAM_FIELD_LENGTHS;
 
-    return warp_init_parameters((warp_tag_parameter *) &node_parameters,
-                                GROUP_NODE,
-                                NODE_PARAM_MAX_PARAMETER,
-                                values,
-                                lengths);
+    return wlan_exp_init_parameters((wlan_exp_tag_parameter *) &node_parameters,
+                                    GROUP_NODE,
+                                    NODE_PARAM_MAX_PARAMETER,
+                                    values,
+                                    lengths);
 }
 
 
@@ -3325,12 +3372,12 @@ int  node_init_parameters(u32 * values) {
  *****************************************************************************/
 int node_get_parameters(u32 * buffer, u32 max_words, u8 transmit) {
 
-    return warp_get_parameters((warp_tag_parameter *) &node_parameters,
-                               NODE_PARAM_MAX_PARAMETER,
-                               buffer,
-                               max_words,
-                               WLAN_EXP_FALSE,
-                               transmit);
+    return wlan_exp_get_parameters((wlan_exp_tag_parameter *) &node_parameters,
+                                   NODE_PARAM_MAX_PARAMETER,
+                                   buffer,
+                                   max_words,
+                                   WLAN_EXP_FALSE,
+                                   transmit);
 }
 
 
@@ -3352,12 +3399,12 @@ int node_get_parameters(u32 * buffer, u32 max_words, u8 transmit) {
  *****************************************************************************/
 int node_get_parameter_values(u32 * buffer, u32 max_words) {
 
-    return warp_get_parameters((warp_tag_parameter *) &node_parameters,
-                               NODE_PARAM_MAX_PARAMETER,
-                               buffer,
-                               max_words,
-                               WLAN_EXP_TRUE,
-                               WLAN_EXP_NO_TRANSMIT);
+    return wlan_exp_get_parameters((wlan_exp_tag_parameter *) &node_parameters,
+                                   NODE_PARAM_MAX_PARAMETER,
+                                   buffer,
+                                   max_words,
+                                   WLAN_EXP_TRUE,
+                                   WLAN_EXP_NO_TRANSMIT);
 }
 
 
@@ -3408,7 +3455,7 @@ void node_ltg_cleanup(u32 id, void* callback_arg){
  *
  * This function contains the mapping of MAC address to ID within a node for
  *   - associated stations
- *   - statistics
+ *   - counts
  *   - bss infos
  *
  * @param   mac_addr         - MAC Address
@@ -3446,18 +3493,18 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
 }
 
 
-u32  wlan_exp_get_id_in_statistics(u8 * mac_addr) {
+u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
     u32            id;
-    dl_list*       stats;
-    dl_entry*       entry;
+    dl_list      * counts;
+    dl_entry     * entry;
 
     if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
         id = WLAN_EXP_AID_ALL;
     } else {
-        stats = get_statistics();
+        counts = get_counts();
 
-        if(stats != NULL){
-            entry = wlan_mac_high_find_statistics_ADDR(stats, mac_addr);
+        if(counts != NULL){
+            entry = wlan_mac_high_find_counts_ADDR(counts, mac_addr);
 
             if (entry != NULL) {
                 id = WLAN_EXP_AID_DEFAULT;            // Only returns the default AID if found
@@ -3498,22 +3545,22 @@ u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
 /**
  * Create WLAN Exp Command Log Entry
  *
- * @param   command          - Pointer to warp_cmd_resp structure
+ * @param   command          - Pointer to cmd_resp structure
  *
  * @return  None
  *
- * @note    This function assumes that the warp transport header is just before
+ * @note    This function assumes that the transport header is just before
  *     the command header in the buffer.
  *
  *****************************************************************************/
-void create_wlan_exp_cmd_log_entry(warp_cmd_resp * command) {
+void create_wlan_exp_cmd_log_entry(cmd_resp * command) {
 
     // Create a new log entry for each command and copy up to the first 10 args
     u32 i;
     wlan_exp_cmd_entry     * entry;
     u32                    * args       = command->args;
     u32                      num_args   = command->header->num_args;
-    warp_transport_header  * header     = (warp_transport_header *)((u32)(command->header) - sizeof(warp_transport_header));
+    transport_header       * header     = (transport_header *)((u32)(command->header) - sizeof(transport_header));
 
     // Create entry
     entry = (wlan_exp_cmd_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_WLAN_EXP_CMD, sizeof(wlan_exp_cmd_entry));
@@ -3856,7 +3903,7 @@ void print_wlan_exp_node_info(wlan_exp_node_info * info) {
     int i;
 
     xil_printf("Node Information: \n");
-    xil_printf("  WARP Type:          0x%08x\n", info->warp_type);
+    xil_printf("  WLAN Exp Type:      0x%08x\n", info->wlan_exp_type);
     xil_printf("  Node ID:            %d\n",     info->node_id);
     xil_printf("  Version:            %d\n",     info->version);
     xil_printf("  Serial Number:      0x%x\n",   info->serial_number);

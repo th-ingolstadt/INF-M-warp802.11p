@@ -261,7 +261,7 @@
 
 #define ADD_ASSOCIATION_ANY_AID                            0                                  ///< Special argument to function that adds associations
 
-#define WLAN_MAC_HIGH_MAX_PROMISC_STATS                    50                                 ///< Maximum number of promiscuous statistics
+#define WLAN_MAC_HIGH_MAX_PROMISC_COUNTS                   50                                 ///< Maximum number of promiscuous counts
 #define WLAN_MAC_HIGH_MAX_ASSOCIATONS                      20                                 ///< Maximum number of associations
 
 #define SSID_LEN_MAX                                       32                                 ///< Maximum SSID length
@@ -293,10 +293,10 @@ typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 /*********************** Global Structure Definitions ************************/
 
 /********************************************************************
- * @brief Frame Statistics Structure
+ * @brief Frame Counts Structure
  *
- * This struct contains statistics about the communications link. It is intended to
- * be instantiated multiple times in the broader statistics_txrx struct so that
+ * This struct contains counts about the communications link. It is intended to
+ * be instantiated multiple times in the broader counts_txrx struct so that
  * different packet types can be individually tracked.
  *
  ********************************************************************/
@@ -308,16 +308,17 @@ typedef struct{
     u32        tx_num_packets_success;      ///< # of successfully transmitted packets (high-level MPDUs)
     u32        tx_num_packets_total;        ///< Total # of transmitted packets (high-level MPDUs)
     u32        tx_num_packets_low;          ///< # of low-level transmitted frames (including retransmissions)
-} frame_statistics_txrx;
+} frame_counts_txrx;
 
 
 
 /********************************************************************
- * @brief Statistics Structure
+ * @brief Counts Structure
  *
- * This struct contains statistics about the communications link.  Additionally,
- * statistics can be decoupled from station_info structs entirely to enable promiscuous
- * statistics about unassociated devices seen in the network.
+ * This struct contains counts about the communications link.  Additionally,
+ * counting differnt parameters can be decoupled from station_info structs
+ * entirely to enable promiscuous counts about unassociated devices seen in
+ * the network.
  *
  * NOTE:  The reason that the reference design uses a #define for fields in
  *     two different structs is so that fields that must be in two different
@@ -325,38 +326,38 @@ typedef struct{
  *     by using nested structs.
  *
  ********************************************************************/
-#define MY_STATISTICS_TXRX_COMMON_FIELDS                                                                 \
-        u8                      addr[6];                        /* HW Address */                         \
-        u8                      is_associated;                  /* Is this device associated with me? */ \
-        u8                      padding;                                                                 \
-        frame_statistics_txrx   data;                           /* Statistics about data types */        \
-        frame_statistics_txrx   mgmt;                           /* Statistics about data types */
+#define WLAN_COUNTS_TXRX_COMMON_FIELDS                                                                \
+        u8                   addr[6];                        /* HW Address */                         \
+        u8                   is_associated;                  /* Is this device associated with me? */ \
+        u8                   padding;                                                                 \
+        frame_counts_txrx    data;                           /* Counts about data types */            \
+        frame_counts_txrx    mgmt;                           /* Counts about management types */
 
 
 typedef struct{
 
-    MY_STATISTICS_TXRX_COMMON_FIELDS
+    WLAN_COUNTS_TXRX_COMMON_FIELDS
 
     u64     latest_txrx_timestamp;                              ///< Timestamp of the last frame reception
 
-} statistics_txrx;
+} counts_txrx;
 
-CASSERT(sizeof(statistics_txrx) == 96, statistics_txrx_alignment_check);
+CASSERT(sizeof(counts_txrx) == 96, counts_txrx_alignment_check);
 
 
 
 /********************************************************************
- * @brief Base Statistics Structure
+ * @brief Counts Structure
  *
- * This struct is a modification of the statistics_txrx struct that eliminates pointers to other data.  It
- * is used primarily for logging.
+ * This struct is a modification of the counts_txrx struct that eliminates pointers
+ * to other data.  It is used primarily for the logging framework.
  *
  ********************************************************************/
 typedef struct{
 
-    MY_STATISTICS_TXRX_COMMON_FIELDS
+    WLAN_COUNTS_TXRX_COMMON_FIELDS
 
-} statistics_txrx_base;
+} counts_txrx_base;
 
 
 
@@ -403,7 +404,7 @@ typedef struct{
  ********************************************************************/
 #define STATION_INFO_HOSTNAME_MAXLEN                       19
 
-#define MY_STATION_INFO_COMMON_FIELDS                                                                    \
+#define WLAN_STATION_INFO_COMMON_FIELDS                                                                  \
         u8          addr[6];                                    /* HW Address */                         \
         u16         AID;                                        /* Association ID */                     \
         char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        \
@@ -415,11 +416,11 @@ typedef struct{
 
 typedef struct{
 
-    MY_STATION_INFO_COMMON_FIELDS
+    WLAN_STATION_INFO_COMMON_FIELDS
 
-    statistics_txrx* stats;                                     ///< Statistics Information Structure
-                                                                ///< @note This is a pointer to the statistics structure
-                                                                ///< because statistics can survive outside of the context
+    counts_txrx*        counts;                                 ///< Counts Information Structure
+                                                                ///< @note This is a pointer to the counts structure
+                                                                ///< because counts can survive outside of the context
                                                                 ///< of associated station_info structs.
     rate_selection_info rate_info;
 
@@ -436,7 +437,7 @@ typedef struct{
  ********************************************************************/
 typedef struct{
 
-    MY_STATION_INFO_COMMON_FIELDS
+    WLAN_STATION_INFO_COMMON_FIELDS
 
 } station_info_base;
 
@@ -466,7 +467,7 @@ void               wlan_mac_high_gpio_handler(void *InstancePtr);
 
 dl_entry*          wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
 dl_entry*          wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
-dl_entry*          wlan_mac_high_find_statistics_ADDR(dl_list* list, u8* addr);
+dl_entry*          wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr);
 
 u32                wlan_mac_high_get_user_io_state();
 
@@ -538,22 +539,22 @@ inline void        wlan_mac_high_clear_debug_gpio(u8 val);
 int                str2num(char* str);
 u8                 sevenSegmentMap(u8 hex_value);
 
-station_info*      wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr, u16 requested_AID);
-int                wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* stat_tbl, u8* addr);
+station_info *     wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8* addr, u16 requested_AID);
+int                wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8* addr);
 u8                 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
 u32                wlan_mac_high_set_max_associations(u32 num_associations);
 u32                wlan_mac_high_get_max_associations();
 
-statistics_txrx*   wlan_mac_high_add_statistics(dl_list* stat_tbl, station_info* station, u8* addr);
-void               wlan_mac_high_reset_statistics(dl_list* stat_tbl);
-void               wlan_mac_high_update_tx_statistics(tx_frame_info* tx_mpdu, station_info* station);
+counts_txrx *      wlan_mac_high_add_counts(dl_list* counts_tbl, station_info* station, u8* addr);
+void               wlan_mac_high_reset_counts(dl_list* counts_tbl);
+void               wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* station);
 
 void               wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
 void               wlan_mac_high_print_associations(dl_list* assoc_tbl);
 
 
 // Common functions that must be implemented by users of the framework
-dl_list *          get_statistics();
+dl_list *          get_counts();
 dl_list *          get_station_info_list();
 u8      *          get_wlan_mac_addr();
 

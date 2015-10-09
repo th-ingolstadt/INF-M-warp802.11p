@@ -60,7 +60,7 @@
 #include "wlan_mac_high.h"
 
 // WLAN Exp includes
-#include "wlan_exp_common.h"
+#include "wlan_exp_node.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -307,6 +307,9 @@ int event_log_config_logging( u32 enable ) {
  * @param   size             - Size in bytes of the buffer
  * @param   buffer           - Pointer to the buffer to be filled in with event data
  *                               (buffer must be pre-allocated and be at least size bytes)
+ * @param   copy_data        - Flag to copy the data:
+ *                                1 = Copy data to buffer
+ *                                0 = Do not copy data to buffer
  *
  * @return  u32              - The number of bytes filled in to the buffer
  *
@@ -315,7 +318,7 @@ int event_log_config_logging( u32 enable ) {
  *          the request will be truncated.
  *
  *****************************************************************************/
-u32  event_log_get_data(u32 start_index, u32 size, char * buffer) {
+u32  event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data) {
 
     u32 start_address;
     u64 end_address;
@@ -343,8 +346,16 @@ u32  event_log_get_data(u32 start_index, u32 size, char * buffer) {
         num_bytes = size;
     }
 
-    // Copy the data in to the buffer
-    memcpy((void *) buffer, (void *) start_address, num_bytes);
+    if (copy_data) {
+        // Copy the data in to the buffer
+        memcpy((void *) buffer, (void *) start_address, num_bytes);
+    } else {
+        // Assume that the buffer is a WARP IP/UDP buffer and populate the fields accordingly
+        ((warp_ip_udp_buffer *)buffer)->data   = (u8 *)start_address;
+        ((warp_ip_udp_buffer *)buffer)->offset = (u8 *)start_address;
+        ((warp_ip_udp_buffer *)buffer)->length = num_bytes;
+        ((warp_ip_udp_buffer *)buffer)->size   = num_bytes;
+    }
 
     return num_bytes;
 }

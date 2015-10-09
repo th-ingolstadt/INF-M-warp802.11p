@@ -415,7 +415,8 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
         // Populate the log entry
         bzero(tx_high_event_log_entry->padding , sizeof(tx_high_event_log_entry->padding));
         tx_high_event_log_entry->unique_seq               = tx_mpdu->unique_seq;
-        tx_high_event_log_entry->queue_id                 = tx_mpdu->QID;
+        tx_high_event_log_entry->queue_id                 = tx_mpdu->queue_info.QID;
+        tx_high_event_log_entry->queue_occupancy          = tx_mpdu->queue_info.occupancy;
         tx_high_event_log_entry->result                   = tx_mpdu->tx_result;
         tx_high_event_log_entry->power                    = tx_mpdu->params.phy.power;
         tx_high_event_log_entry->length                   = tx_mpdu->length;
@@ -881,7 +882,7 @@ void print_entry(u32 entry_number, u32 entry_type, void * entry){
     exp_info_entry     * exp_info_entry_log_item;
     wn_cmd_entry       * wn_cmd_entry_log_item;
     time_info_entry    * time_info_entry_log_item;
-    txrx_stats_entry   * txrx_stats_entry_log_item;
+    txrx_counts_entry  * txrx_counts_entry_log_item;
     rx_common_entry    * rx_common_log_item;
     tx_high_entry      * tx_high_entry_log_item;
     tx_low_entry       * tx_low_entry_log_item;
@@ -939,24 +940,28 @@ void print_entry(u32 entry_number, u32 entry_type, void * entry){
             xil_printf("   New time :  %d\n", (u32)(time_info_entry_log_item->new_time));
         break;
 
-        case ENTRY_TYPE_TXRX_STATS:
-            txrx_stats_entry_log_item = (txrx_stats_entry*) entry;
-            xil_printf("%d: - Statistics Event\n", entry_number );
-            xil_printf("   Last timestamp :        %d\n",        (u32)(txrx_stats_entry_log_item->stats.last_txrx_timestamp));
-            xil_printf("   Address        :        %02x",             (txrx_stats_entry_log_item->stats.addr)[0]);
-            for( i = 1; i < 6; i++) { xil_printf(":%02x",         (txrx_stats_entry_log_item->stats.addr)[i]); }
+        case ENTRY_TYPE_TXRX_COUNTS:
+            txrx_counts_entry_log_item = (txrx_counts_entry*) entry;
+            xil_printf("%d: - Counts entry\n", entry_number );
+            xil_printf("   Last timestamp :        %d\n", (u32)(txrx_counts_entry_log_item->counts.last_txrx_timestamp));
+            xil_printf("   Address        :        %02x", (txrx_counts_entry_log_item->counts.addr)[0]);
+            for( i = 1; i < 6; i++) { xil_printf(":%02x", (txrx_counts_entry_log_item->counts.addr)[i]); }
             xil_printf("\n");
-            xil_printf("   Is associated  :        %d\n",              txrx_stats_entry_log_item->stats.is_associated);
-            xil_printf("   # Tx High Data MPDUs:   %d (%d successful)\n", txrx_stats_entry_log_item->stats.data.tx_num_packets_total, txrx_stats_entry_log_item->stats.data.tx_num_packets_success);
-            xil_printf("   # Tx High Data bytes:   %d (%d successful)\n", (u32)(txrx_stats_entry_log_item->stats.data.tx_num_bytes_total), (u32)(txrx_stats_entry_log_item->stats.data.tx_num_bytes_success));
-            xil_printf("   # Tx Low Data MPDUs:    %d\n", txrx_stats_entry_log_item->stats.data.tx_num_packets_low);
-            xil_printf("   # Tx High Mgmt MPDUs:   %d (%d successful)\n", txrx_stats_entry_log_item->stats.mgmt.tx_num_packets_total, txrx_stats_entry_log_item->stats.mgmt.tx_num_packets_success);
-            xil_printf("   # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(txrx_stats_entry_log_item->stats.mgmt.tx_num_bytes_total), (u32)(txrx_stats_entry_log_item->stats.mgmt.tx_num_bytes_success));
-            xil_printf("   # Tx Low Mgmt MPDUs:    %d\n", txrx_stats_entry_log_item->stats.mgmt.tx_num_packets_low);
-            xil_printf("   # Rx Data MPDUs:        %d\n", txrx_stats_entry_log_item->stats.data.rx_num_packets);
-            xil_printf("   # Rx Data Bytes:        %d\n", txrx_stats_entry_log_item->stats.data.rx_num_bytes);
-            xil_printf("   # Rx Mgmt MPDUs:        %d\n", txrx_stats_entry_log_item->stats.mgmt.rx_num_packets);
-            xil_printf("   # Rx Mgmt Bytes:        %d\n", txrx_stats_entry_log_item->stats.mgmt.rx_num_bytes);
+            xil_printf("   Is associated  :        %d\n", txrx_counts_entry_log_item->counts.is_associated);
+            xil_printf("   # Tx High Data MPDUs:   %d (%d successful)\n", txrx_counts_entry_log_item->counts.data.tx_num_packets_total,
+                                                                          txrx_counts_entry_log_item->counts.data.tx_num_packets_success);
+            xil_printf("   # Tx High Data bytes:   %d (%d successful)\n", (u32)(txrx_counts_entry_log_item->counts.data.tx_num_bytes_total),
+                                                                          (u32)(txrx_counts_entry_log_item->counts.data.tx_num_bytes_success));
+            xil_printf("   # Tx Low Data MPDUs:    %d\n", txrx_counts_entry_log_item->counts.data.tx_num_packets_low);
+            xil_printf("   # Tx High Mgmt MPDUs:   %d (%d successful)\n", txrx_counts_entry_log_item->counts.mgmt.tx_num_packets_total,
+                                                                          txrx_counts_entry_log_item->counts.mgmt.tx_num_packets_success);
+            xil_printf("   # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(txrx_counts_entry_log_item->counts.mgmt.tx_num_bytes_total),
+                                                                          (u32)(txrx_counts_entry_log_item->counts.mgmt.tx_num_bytes_success));
+            xil_printf("   # Tx Low Mgmt MPDUs:    %d\n", txrx_counts_entry_log_item->counts.mgmt.tx_num_packets_low);
+            xil_printf("   # Rx Data MPDUs:        %d\n", txrx_counts_entry_log_item->counts.data.rx_num_packets);
+            xil_printf("   # Rx Data Bytes:        %d\n", txrx_counts_entry_log_item->counts.data.rx_num_bytes);
+            xil_printf("   # Rx Mgmt MPDUs:        %d\n", txrx_counts_entry_log_item->counts.mgmt.rx_num_packets);
+            xil_printf("   # Rx Mgmt Bytes:        %d\n", txrx_counts_entry_log_item->counts.mgmt.rx_num_bytes);
         break;
 
         case ENTRY_TYPE_RX_OFDM:
@@ -1079,7 +1084,7 @@ void add_node_info_entry(u8 transmit){
         entry->timestamp = get_usec_timestamp();
 
         // Add the node parameters
-        temp0 = node_get_parameter_values((u32 *)&(entry->warp_type), entry_words);
+        temp0 = node_get_parameter_values((u32 *)&(entry->node_type), entry_words);
 
         // Check to make sure that there was no mismatch in sizes
         //
@@ -1107,9 +1112,9 @@ void add_node_info_entry(u8 transmit){
 
 /*****************************************************************************/
 /**
- * Add the tx/rx statistics structure to the log
+ * Add the tx/rx counts structure to the log
  *
- * @param   stats            - Pointer to statistics structure
+ * @param   counts           - Pointer to counts structure
  * @param   transmit         - Asynchronously transmit the entry?
  *                                 - WLAN_EXP_TRANSMIT
  *                                 - WLAN_EXP_NO_TRANSMIT
@@ -1119,32 +1124,32 @@ void add_node_info_entry(u8 transmit){
  *                                 XST_FAILURE - There was an error in the command
  *
  *****************************************************************************/
-u32 add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit){
+u32 add_txrx_counts_to_log(counts_txrx * counts, u8 transmit){
 
-    txrx_stats_entry * entry;
-    u32                entry_size = sizeof(txrx_stats_entry);
-    u32                stats_size = sizeof(statistics_txrx_base);
+    txrx_counts_entry * entry;
+    u32                 entry_size  = sizeof(txrx_counts_entry);
+    u32                 counts_size = sizeof(counts_txrx_base);
 
-    // Check to see if we have valid statistics
-    if (stats == NULL) { return XST_FAILURE; }
+    // Check to see if we have valid counts
+    if (counts == NULL) { return XST_FAILURE; }
 
-    if ( stats_size >= entry_size ) {
-        // If the statistics structure in wlan_mac_high.h is bigger than the statistics
-        // entry, print a warning and return since there is a mismatch in the definition of
-        // statistics.
-        wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log, "Statistics log entry is too small to hold statistics structure.\n");
+    if (counts_size >= entry_size) {
+        // If the counts structure in wlan_mac_high.h is bigger than the counts entry, print a
+        // warning and return since there is a mismatch in the definition of the counts structures.
+        //
+        wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log, "Counts log entry is too small to hold counts structure.\n");
         return FAILURE;
     }
 
-    entry = (txrx_stats_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TXRX_STATS, entry_size );
+    entry = (txrx_counts_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_TXRX_COUNTS, entry_size);
 
     if ( entry != NULL ) {
         entry->timestamp = get_usec_timestamp();
 
-        // Copy the statistics to the log entry
-        //   NOTE:  This assumes that the statistics entry in wlan_mac_entries.h has a contiguous piece of memory
-        //          equivalent to the statistics structure in wlan_mac_high.h (without the dl_node)
-        memcpy( (void *)(&entry->stats), (void *)(stats), stats_size );
+        // Copy the counts to the log entry
+        //   NOTE:  This assumes that the counts entry in wlan_mac_entries.h has a contiguous piece of
+        //          memory equivalent to the counts structure in wlan_mac_high.h (without the dl_node)
+        memcpy((void *)(&entry->counts), (void *)(counts), counts_size);
 
 #ifdef USE_WLAN_EXP
         // Transmit the entry if requested
@@ -1163,48 +1168,48 @@ u32 add_txrx_statistics_to_log(statistics_txrx * stats, u8 transmit){
 
 /*****************************************************************************/
 /**
- * Add all the current tx/rx statistics to the log
+ * Add all the current tx/rx counts to the log
  *
  * @param   transmit         - Asynchronously transmit the entry?
  *                                 - WLAN_EXP_TRANSMIT
  *                                 - WLAN_EXP_NO_TRANSMIT
  *
- * @return  u32              - Number of statistics added to the log
+ * @return  u32              - Number of counts added to the log
  *
  *****************************************************************************/
-u32 add_all_txrx_statistics_to_log(u8 transmit){
+u32 add_all_txrx_counts_to_log(u8 transmit){
 
-    u32                status;
-    u32                num_stats;
-    dl_list          * list = get_statistics();
-    dl_entry         * curr_statistics_entry;
-    statistics_txrx  * curr_statistics;
+    u32                 status;
+    u32                 num_counts;
+    dl_list           * list = get_counts();
+    dl_entry          * curr_counts_entry;
+    counts_txrx       * curr_counts;
 
-    // Check to see if we have valid statistics
+    // Check to see if we have valid counts
     if (list == NULL) { return 0; }
 
-    // Get the first statistics structure
-    curr_statistics_entry = list->first;
+    // Get the first counts structure
+    curr_counts_entry = list->first;
 
-    // Set the count variable
-    num_stats = 0;
+    // Set the counter variable
+    num_counts = 0;
 
     // Iterate thru the list
-    while(curr_statistics_entry != NULL) {
+    while(curr_counts_entry != NULL) {
 
-        curr_statistics = (statistics_txrx*)(curr_statistics_entry->data);
+        curr_counts = (counts_txrx*)(curr_counts_entry->data);
 
-        status = add_txrx_statistics_to_log(curr_statistics, transmit);
+        status = add_txrx_counts_to_log(curr_counts, transmit);
 
         if (status == XST_SUCCESS) {
-            num_stats++;
-            curr_statistics_entry = dl_entry_next(curr_statistics_entry);
+            num_counts++;
+            curr_counts_entry = dl_entry_next(curr_counts_entry);
         } else {
             break;
         }
     }
 
-    return num_stats;
+    return num_counts;
 }
 
 
@@ -1212,7 +1217,7 @@ u32 add_all_txrx_statistics_to_log(u8 transmit){
 /*****************************************************************************/
 /**
  * Add the given station info to the log
- *   - Variant:  Add both the station info entry and associated statistics entry to the log
+ *   - Variant:  Add both the station info entry and associated counts entry to the log
  *
  * @param   info             - Pointer to station info structure
  * @param   zero_aid         - Set AID to zero?
@@ -1266,7 +1271,7 @@ u32 add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit){
 }
 
 
-u32 add_station_info_w_stats_to_log(station_info * info, u8 zero_aid, u8 transmit) {
+u32 add_station_info_w_counts_to_log(station_info * info, u8 zero_aid, u8 transmit) {
 
     u32 status;
 
@@ -1275,7 +1280,7 @@ u32 add_station_info_w_stats_to_log(station_info * info, u8 zero_aid, u8 transmi
     status = add_station_info_to_log(info, zero_aid, transmit);
 
     if (status == XST_SUCCESS) {
-        status = add_txrx_statistics_to_log(info->stats, transmit);
+        status = add_txrx_counts_to_log(info->counts, transmit);
     }
 
     return status;
@@ -1287,9 +1292,9 @@ u32 add_station_info_w_stats_to_log(station_info * info, u8 zero_aid, u8 transmi
 /**
  * Add all the current station_infos to the log
  *
- * @param   stats            - Log both station infos and statistics?
- *                                 - EVENT_LOG_STATS
- *                                 - EVENT_LOG_NO_STATS
+ * @param   counts           - Log both station infos and counts?
+ *                                 - EVENT_LOG_COUNTS
+ *                                 - EVENT_LOG_NO_COUNTS
  * @param   zero_aid         - Set AID to zero?
  *                                 - STATION_INFO_ENTRY_ZERO_AID
  *                                 - STATION_INFO_ENTRY_NO_CHANGE
@@ -1297,46 +1302,46 @@ u32 add_station_info_w_stats_to_log(station_info * info, u8 zero_aid, u8 transmi
  *                                 - WLAN_EXP_TRANSMIT
  *                                 - WLAN_EXP_NO_TRANSMIT
  *
- * @return  u32              - Number of statistics added to the log
+ * @return  u32              - Number of counts structures added to the log
  *
  *****************************************************************************/
-u32 add_all_station_info_to_log(u8 stats, u8 zero_aid, u8 transmit){
+u32 add_all_station_info_to_log(u8 counts, u8 zero_aid, u8 transmit){
 
     u32                status;
-    u32                num_stats;
+    u32                num_counts;
     dl_list          * list = get_station_info_list();
     dl_entry         * curr_station_info_entry;
     station_info     * curr_info;
 
-    // Check to see if we have valid statistics
+    // Check to see if we have valid station infos
     if (list == NULL) { return 0; }
 
-    // Get the first statistics structure
+    // Get the first station info structure
     curr_station_info_entry = list->first;
 
-    // Set the count variable
-    num_stats = 0;
+    // Set the counter variable
+    num_counts = 0;
 
     // Iterate thru the list
     while(curr_station_info_entry != NULL) {
 
         curr_info = (station_info*)(curr_station_info_entry->data);
 
-        if (stats == EVENT_LOG_STATS) {
-            status = add_station_info_w_stats_to_log(curr_info, zero_aid, transmit);
+        if (counts == EVENT_LOG_COUNTS) {
+            status = add_station_info_w_counts_to_log(curr_info, zero_aid, transmit);
         } else {
             status = add_station_info_to_log(curr_info, zero_aid, transmit);
         }
 
         if (status == XST_SUCCESS) {
-            num_stats++;
+            num_counts++;
             curr_station_info_entry = dl_entry_next(curr_station_info_entry);
         } else {
             break;
         }
     }
 
-    return num_stats;
+    return num_counts;
 }
 
 

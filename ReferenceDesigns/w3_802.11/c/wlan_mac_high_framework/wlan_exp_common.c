@@ -52,11 +52,11 @@
 * Debug Printing Functions
 *
 ******************************************************************************/
-u8       wlan_exp_print_level     = DEFAULT_DEBUG_PRINT_LEVEL;
+u8       wlan_exp_print_level     = WLAN_EXP_DEFAULT_DEBUG_PRINT_LEVEL;
 char   * print_type_node          = "NODE";
 char   * print_type_transport     = "TRANSPORT";
 char   * print_type_event_log     = "EVENT LOG";
-char   * print_type_stats         = "STATS";
+char   * print_type_counts        = "COUNTS";
 char   * print_type_ltg           = "LTG";
 char   * print_type_queue         = "QUEUE";
 
@@ -96,8 +96,17 @@ void print_mac_address(u8 * mac_address) {
     xil_printf("%02x", mac_address[0]);
 
     for ( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) {
-           xil_printf(":%02x", mac_address[i]);
+        xil_printf(":%02x", mac_address[i]);
     }
+}
+
+
+void print_timestamp() {
+    u64            timestamp;
+
+    timestamp = get_usec_timestamp();
+
+    xil_printf("0x%08x 0x%08x\n", (u32)(timestamp >> 32), (u32)(timestamp));
 }
 
 
@@ -143,7 +152,7 @@ void wlan_exp_set_print_level(u8 level) {
  *
  ********************************************************************/
 int wlan_exp_null_callback(void* param){
-    wlan_exp_printf(WLAN_EXP_PRINT_NONE, print_type_node, "WLAN Exp NULL callback\n");
+    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "WLAN Exp NULL callback\n");
     return XST_SUCCESS;
 }
 
@@ -155,7 +164,7 @@ int wlan_exp_null_callback(void* param){
 *
      This function will initialize     he wlan_mac_hw_info structure.
 *
-* @param    type          - WARP type
+* @param    type          - WLAN Exp type
 * @param    eth_dev_num   - WLAN Exp Ethernet device
 *
 * @return   None
@@ -288,16 +297,16 @@ void clear_ddr(u32 verbose) {
  *             maintain the same order    
  *
  ***********************    **********************    ***********    ******************/
-int  warp_init_parameters(warp_tag_parameter * parameters, u8 group, u32 num_parameters, u32 * values, u16 * lengths) {
+int  wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32 num_parameters, u32 * values, u16 * lengths) {
 
     u32                      i;
     u32                      offset;
     u32                      size;
-    warp_tag_parameter     * temp_param;
+    wlan_exp_tag_parameter * temp_param;
 
     // Initialize variables
     offset = 0;
-    size   = sizeof(warp_tag_parameter);
+    size   = sizeof(wlan_exp_tag_parameter);
 
     for(i = 0; i < num_parameters; i++) {
 
@@ -341,7 +350,7 @@ int  warp_init_parameters(warp_tag_parameter * parameters, u8 group, u32 num_par
  * @note    The tag parameters must be initialize     before this function is called.
  *
  **************************************************************************    **/
-int  warp_get_parameters(warp_tag_parameter * parameters, u32 num_parameters, u32 * buffer, u32 max_words, u8 values_only, u8 transmit) {
+int  wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 num_parameters, u32 * buffer, u32 max_words, u8 values_only, u8 transmit) {
 
     u32 i, j;
     u32 num_total_words;
@@ -430,7 +439,7 @@ int  warp_get_parameters(warp_tag_parameter * parameters, u32 num_parameters, u3
 * @note        None.
 *
 ******************************************************************************/
-void print_warp_parameters(warp_tag_parameter *param, int num_params) {
+void print_wlan_exp_parameters(wlan_exp_tag_parameter *param, int num_params) {
 
     int i, j;
 

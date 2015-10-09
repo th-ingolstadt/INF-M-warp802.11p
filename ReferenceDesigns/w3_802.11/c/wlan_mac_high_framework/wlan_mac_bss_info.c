@@ -461,7 +461,7 @@ void wlan_mac_high_clear_bss_info(bss_info * info){
 			curr_station_info_entry = next_station_info_entry;
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 			curr_station_info       = (station_info*)(curr_station_info_entry->data);
-			wlan_mac_high_remove_association( &info->associated_stations, get_statistics(), curr_station_info->addr );
+			wlan_mac_high_remove_association( &info->associated_stations, get_counts(), curr_station_info->addr );
 		}
 
 		// Clear the bss_info

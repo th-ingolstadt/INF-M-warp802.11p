@@ -45,6 +45,7 @@ extern bss_info*		       my_bss_info;
 
 dl_list   addr_filter;
 
+// Defines for WARP Hardware
 static u8 warp_range_mask[WHITELIST_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x00 };
 static u8 warp_range_compare[WHITELIST_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
 

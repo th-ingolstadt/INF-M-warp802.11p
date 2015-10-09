@@ -714,7 +714,7 @@ inline void wlan_poll_eth_rx() {
         return;
     }
 
-    //Update local stats variable (used to gauge high-water mark for ETH DMA activity)
+    //Update local count variable (used to gauge high-water mark for ETH DMA activity)
     if(bd_count > max_bd_count){
         max_bd_count = bd_count;
         //xil_printf("max_bd_count = %d\n",max_bd_count);

@@ -33,7 +33,7 @@
 //
 
 //-----------------------------------------------
-// WARP Node Commands
+// Node Commands
 //
 #define CMDID_NODE_INFO                                    0x000001
 #define CMDID_NODE_IDENTIFY                                0x000002
@@ -80,7 +80,7 @@
 #define CMD_PARAM_NODE_CONFIG_ALL                          0xFFFFFFFF
 
 #define CMD_PARAM_NODE_RESET_FLAG_LOG                      0x00000001
-#define CMD_PARAM_NODE_RESET_FLAG_TXRX_STATS               0x00000002
+#define CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS              0x00000002
 #define CMD_PARAM_NODE_RESET_FLAG_LTG                      0x00000004
 #define CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE            0x00000008
 #define CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS             0x00000010
@@ -130,7 +130,7 @@
 #define CMDID_LOG_GET_CAPACITY                             0x003002
 #define CMDID_LOG_GET_ENTRIES                              0x003003
 #define CMDID_LOG_ADD_EXP_INFO_ENTRY                       0x003004
-#define CMDID_LOG_ADD_STATS_TXRX                           0x003005
+#define CMDID_LOG_ADD_COUNTS_TXRX                          0x003005
 #define CMDID_LOG_ENABLE_ENTRY                             0x003006
 #define CMDID_LOG_STREAM_ENTRIES                           0x003007
 
@@ -145,13 +145,13 @@
 
 
 //-----------------------------------------------
-// Statistics Commands
+// Counts Commands
 //
-#define CMDID_STATS_CONFIG_TXRX                            0x004000
-#define CMDID_STATS_GET_TXRX                               0x004001
+#define CMDID_COUNTS_CONFIG_TXRX                           0x004000
+#define CMDID_COUNTS_GET_TXRX                              0x004001
 
-#define CMD_PARAM_STATS_CONFIG_FLAG_PROMISC                0x00000001
-#define CMD_PARAM_STATS_RETURN_ZEROED_IF_NONE              0x80000000
+#define CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC               0x00000001
+#define CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE             0x80000000
 
 
 //-----------------------------------------------
@@ -191,7 +191,7 @@
 //
 #define CMDID_DEV_MEM_HIGH                                 0xFFF000
 #define CMDID_DEV_MEM_LOW                                  0xFFF001
-
+#define CMDID_DEV_EEPROM                                   0xFFF002
 
 
 // ****************************************************************************
@@ -211,14 +211,14 @@
 //         and then change the value of "NODE_PARAM_MAX_PARAMETER" to be the largest value
 //         in the list so it is easy to iterate over all parameters
 //
-#define NODE_PARAM_WARP_TYPE                               0
+#define NODE_PARAM_NODE_TYPE                               0
 #define NODE_PARAM_NODE_ID                                 1
 #define NODE_PARAM_HW_GENERATION                           2
 #define NODE_PARAM_SERIAL_NUM                              3
 #define NODE_PARAM_FPGA_DNA                                4
 #define NODE_PARAM_WLAN_EXP_VERSION                        5
-#define NODE_PARAM_WLAN_MAC_ADDR                           6
-#define NODE_PARAM_WLAN_SCHEDULER_RESOLUTION               7
+#define NODE_PARAM_WLAN_SCHEDULER_RESOLUTION               6
+#define NODE_PARAM_WLAN_MAC_ADDR                           7
 
 //
 // ADD NEW TAG PARAMETERS HERE
@@ -242,7 +242,7 @@
 //         to the Tag Parameters, then the NODE_PARAM_FIELD_LENGTHS array must be updated
 //         to represent the appropriate length of each new field.
 //
-#define NODE_PARAM_FIELD_LENGTHS                           {1, 1, 1, 1, 2, 1, 2, 1}
+#define NODE_PARAM_FIELD_LENGTHS                           {1, 1, 1, 1, 2, 1, 1, 2}
 
 
 
@@ -256,7 +256,7 @@
 //
 typedef struct {
 
-    u32                      warp_type;                    // Type of WARP node
+    u32                      node_type;                    // Type of node
     u32                      node_id;                      // Node ID (Only bits [15:0] are valid)
     u32                      hw_generation;                // Node Hardware generation
 
@@ -264,8 +264,8 @@ typedef struct {
     u32                      fpga_dna[FPGA_DNA_LEN];       // Node FPGA DNA number
 
     u32                      wlan_exp_version;             // WLAN Exp Version
-    u32                      wlan_hw_addr[2];              // WLAN Exp - Wireless MAC address (ie ETH A MAC address)    u32                      wlan_scheduler_resolution;    // WLAN Exp - Minimum Scheduler resolution
-
+    u32                      wlan_scheduler_resolution;    // WLAN Exp - Minimum Scheduler resolution
+    u32                      wlan_hw_addr[2];              // WLAN Exp - Wireless MAC address (ie ETH A MAC address)
     //
     // ADD NEW TAG PARAMETERS HERE
     //
@@ -288,13 +288,13 @@ typedef struct {
 /*************************** Function Prototypes *****************************/
 
 // Initialization Commands
-int  wlan_exp_node_init           (u32 warp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
+int  wlan_exp_node_init           (u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
 
 // Callbacks
 void wlan_exp_reset_all_callbacks                     ();
 void wlan_exp_set_node_process_cmd_callback           (void(*callback)());
 void wlan_exp_set_init_callback                       (void(*callback)());
-void wlan_exp_set_reset_station_statistics_callback   (void(*callback)());
+void wlan_exp_set_reset_station_counts_callback       (void(*callback)());
 void wlan_exp_set_purge_all_data_tx_queue_callback    (void(*callback)());
 void wlan_exp_set_reset_all_associations_callback     (void(*callback)());
 void wlan_exp_set_reset_bss_info_callback             (void(*callback)());
@@ -303,7 +303,7 @@ void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 
 // WLAN Exp commands
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr);
-u32  wlan_exp_get_id_in_statistics(u8 * mac_addr);
+u32  wlan_exp_get_id_in_counts(u8 * mac_addr);
 u32  wlan_exp_get_id_in_bss_info(u8 * bssid);
 
 void wlan_exp_transmit_log_entry(void * entry);
@@ -312,10 +312,10 @@ void wlan_exp_transmit_log_entry(void * entry);
 int  node_get_parameters(u32 * buffer, u32 max_words, u8 transmit);
 int  node_get_parameter_values    (u32 * buffer, u32 max_words);
 
-void node_info_set_wlan_hw_addr   (u8 * hw_addr );
-void node_info_set_max_assn       (u32 max_assn );
-void node_info_set_event_log_size (u32 log_size );
-void node_info_set_max_stats      (u32 max_stats);
+void node_info_set_wlan_hw_addr   (u8 * hw_addr  );
+void node_info_set_max_assn       (u32 max_assn  );
+void node_info_set_event_log_size (u32 log_size  );
+void node_info_set_max_counts     (u32 max_counts);
 
 u32  node_get_node_id             (void);
 u32  node_get_serial_number       (void);
