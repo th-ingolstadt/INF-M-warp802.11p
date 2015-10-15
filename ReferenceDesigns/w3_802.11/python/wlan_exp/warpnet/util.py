@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Utilities
+Utilities
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,23 +17,23 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides WARPNet utility commands.
+This module provides utility commands.
 
 Functions (see below for more information):
-    wn_init_nodes()                  -- Initialize nodes
-    wn_identify_all_nodes()          -- Send the 'identify' command to all nodes
-    wn_reset_network_inf_all_nodes() -- Reset the network interface for all nodes
-    wn_get_serial_number()           -- Standard way to check / process serial numbers
+    init_nodes()                  -- Initialize nodes
+    identify_all_nodes()          -- Send the 'identify' command to all nodes
+    reset_network_inf_all_nodes() -- Reset the network interface for all nodes
+    get_serial_number()           -- Standard way to check / process serial numbers
 
 """
 
 import sys
 import re
 
-from . import exception as wn_ex
+from . import exception as ex
 
-__all__ = ['wn_init_nodes', 'wn_identify_all_nodes', 'wn_reset_network_inf_all_nodes', 
-           'wn_get_serial_number']
+__all__ = ['init_nodes', 'identify_all_nodes', 'reset_network_inf_all_nodes', 
+           'get_serial_number']
 
 
 # Fix to support Python 2.x and 3.x
@@ -41,27 +41,27 @@ if sys.version[0]=="3": raw_input=input
 
 
 # -----------------------------------------------------------------------------
-# WARPNet Node Utilities
+# Node Utilities
 # -----------------------------------------------------------------------------
 
-def wn_init_nodes(nodes_config, network_config=None, node_factory=None, 
-                  network_reset=True, output=False):
-    """Initalize WARPNet nodes.
+def init_nodes(nodes_config, network_config=None, node_factory=None, 
+               network_reset=True, output=False):
+    """Initalize nodes.
 
     Attributes:    
         nodes_config   -- A NodesConfiguration object describing the nodes
         network_config -- A NetworkConfiguration object describing the network configuration
-        node_factory   -- A NodeFactory or subclass to create nodes of a given WARPNet type
+        node_factory   -- A NodeFactory or subclass to create nodes of a given node type
         network_reset  -- Issue a network reset to all the nodes 
-        output         -- Print output about the WARPNet nodes
+        output         -- Print output about the nodes
     """
     nodes       = []
     error_nodes = []
 
     # Create a Network Configuration if there is none provided
     if network_config is None:
-        from . import config as wn_config
-        network_config = wn_config.NetworkConfiguration()
+        from . import config
+        network_config = config.NetworkConfiguration()
 
     host_id             = network_config.get_param('host_id')
     jumbo_frame_support = network_config.get_param('jumbo_frame_support')
@@ -69,23 +69,23 @@ def wn_init_nodes(nodes_config, network_config=None, node_factory=None,
     # Process the config to create nodes
     nodes_dict = nodes_config.get_nodes_dict()
 
-    # If node_factory is not defined, create a default WnNodeFactory
+    # If node_factory is not defined, create a default NodeFactory
     if node_factory is None:
-        from . import node as wn_node
-        node_factory = wn_node.WnNodeFactory(network_config)
+        from . import node
+        node_factory = node.WarpNodeFactory(network_config)
 
     if network_reset:
         # Send a broadcast network reset command to make sure all nodes are
         # in their default state.
-        wn_reset_network_inf_all_nodes(network_config=network_config)
+        reset_network_inf_all_nodes(network_config=network_config)
 
     # Create the nodes in the dictionary
     for node_dict in nodes_dict:
         if (host_id == node_dict['node_id']):
             msg = "Host id is set to {0} and must be unique.".format(host_id)
-            raise wn_ex.ConfigError(msg)
+            raise ex.ConfigError(msg)
 
-        # Set up the node_factory from the Node dictionary
+        # Set up the node_factory from the node dictionary
         node_factory.setup(node_dict)
 
         # Create the correct type of node; will return None and print a 
@@ -102,9 +102,9 @@ def wn_init_nodes(nodes_config, network_config=None, node_factory=None,
         msg  = "\n\nERROR:  Was not able to initialize all nodes.  The following \n"
         msg += "nodes were not able to be initialized:\n"
         for node_dict in error_nodes:
-            (_, sn_str) = wn_get_serial_number(node_dict['serial_number'], output=False)
+            (_, sn_str) = get_serial_number(node_dict['serial_number'], output=False)
             msg += "    {0}\n".format(sn_str)
-        raise wn_ex.ConfigError(msg)
+        raise ex.ConfigError(msg)
 
     if output:
         print("-" * 50)
@@ -117,11 +117,11 @@ def wn_init_nodes(nodes_config, network_config=None, node_factory=None,
 
     return nodes
 
-# End of wn_init_nodes()
+# End of init_nodes()
 
 
-def wn_identify_all_nodes(network_config):
-    """Issues a broadcast WARPNet command: Identify.
+def identify_all_nodes(network_config):
+    """Issues a broadcast command: Identify.
 
     Attributes:
       network_config  - One or more Network configurations
@@ -129,8 +129,8 @@ def wn_identify_all_nodes(network_config):
     All nodes should blink their Red LEDs for 10 seconds.    
     """
     import time
-    from . import cmds as wn_cmds
-    from . import transport_eth_udp_py_bcast as tp_bcast
+    from . import cmds
+    from . import transport_eth_ip_udp_py_broadcast as tp_broadcast
 
     if type(network_config) is list:
         my_network_config = network_config
@@ -147,25 +147,25 @@ def wn_identify_all_nodes(network_config):
         msg += "Please check the LEDs."
         print(msg)
 
-        transport = tp_bcast.TransportEthUdpPyBcast(network_config=network)
+        transport = tp_broadcast.TransportEthIpUdpPyBroadcast(network_config=network)
 
-        transport.wn_open(tx_buf_size, rx_buf_size)
+        transport.transport_open(tx_buf_size, rx_buf_size)
 
-        cmd = wn_cmds.NodeIdentify(wn_cmds.CMD_PARAM_IDENTIFY_ALL_NODES)
+        cmd = cmds.NodeIdentify(cmds.CMD_PARAM_NODE_IDENTIFY_ALL_NODES)
         payload = cmd.serialize()
         transport.send(payload=payload)
         
         # Wait IDENTIFY_WAIT_TIME seconds for blink to complete since 
         #   broadcast commands cannot wait for a response.
-        time.sleep(wn_cmds.CMD_PARAM_IDENTIFY_NUM_BLINKS * wn_cmds.CMD_PARAM_IDENTIFY_BLINK_TIME)
+        time.sleep(cmds.CMD_PARAM_NODE_IDENTIFY_NUM_BLINKS * cmds.CMD_PARAM_NODE_IDENTIFY_BLINK_TIME)
         
-        transport.wn_close()
+        transport.transport_close()
 
-# End of wn_identify_all_nodes()
+# End of identify_all_nodes()
 
 
-def wn_reset_network_inf_all_nodes(network_config):
-    """Issues a broadcast WARPNet command: NodeResetNetwork.
+def reset_network_inf_all_nodes(network_config):
+    """Issues a broadcast command: NodeResetNetwork.
 
     Attributes:
       network_config  - One or more Network configurations
@@ -173,8 +173,8 @@ def wn_reset_network_inf_all_nodes(network_config):
     This will issue a broadcast network interface reset for all nodes on 
     each of the networks.
     """
-    from . import cmds as wn_cmds
-    from . import transport_eth_udp_py_bcast as tp_bcast
+    from . import cmds
+    from . import transport_eth_ip_udp_py_broadcast as tp_broadcast
 
     if type(network_config) is list:
         my_network_config = network_config
@@ -190,24 +190,24 @@ def wn_reset_network_inf_all_nodes(network_config):
         msg  = "Resetting the network config for all nodes on network {0}.".format(network_addr)
         print(msg)
     
-        transport = tp_bcast.TransportEthUdpPyBcast(network_config=network)
+        transport = tp_broadcast.TransportEthIpUdpPyBroadcast(network_config=network)
 
-        transport.wn_open(tx_buf_size, rx_buf_size)
+        transport.transport_open(tx_buf_size, rx_buf_size)
 
-        cmd = wn_cmds.NodeResetNetwork(wn_cmds.CMD_PARAM_NETWORK_RESET_ALL_NODES)
+        cmd = cmds.NodeResetNetwork(cmds.CMD_PARAM_NODE_NETWORK_RESET_ALL_NODES)
         payload = cmd.serialize()
         transport.send(payload=payload)
         
-        transport.wn_close()
+        transport.transport_close()
 
-# End of wn_identify_all_nodes()
+# End of identify_all_nodes()
 
 
 # -----------------------------------------------------------------------------
-# WARPNet Misc Utilities
+# Misc Utilities
 # -----------------------------------------------------------------------------
-def wn_get_serial_number(serial_number, output=True):
-    """Function will check / convert the provided serial number to a WARPNet
+def get_serial_number(serial_number, output=True):
+    """Function will check / convert the provided serial number to a 
     compatible format.
     
     Acceptable inputs:
@@ -272,35 +272,35 @@ def wn_get_serial_number(serial_number, output=True):
 
 def mac_addr_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
-    from warpnet.transport_eth_udp import mac_addr_to_str
-    return mac_addr_to_str(mac_address)
+    from . import transport_eth_ip_udp as tp
+    return tp.mac_addr_to_str(mac_address)
 
 # End def
 
 
 
 # -----------------------------------------------------------------------------
-# WARPNet Setup Utilities
+# Setup Utilities
 # -----------------------------------------------------------------------------
-def wn_nodes_setup(ini_file=None):
-    """Create / Modify WARPNet Nodes ini file from user input."""    
+def nodes_setup(ini_file=None):
+    """Create / Modify Nodes ini file from user input."""    
     nodes_config = None
 
     print("-" * 70)
-    print("WARPNet Nodes Setup:")
+    print("Nodes Setup:")
     print("   NOTE:  Many values are populated automatically to ease setup.  Excessive")
     print("          editing using this menu can result in the 'Current Nodes' displayed") 
     print("          being out of sync with the final nodes configuration.  The final")
     print("          nodes configuration will be printed on exit.  Please check that")
-    print("          and re-run WARPNet Nodes Setup if necessary or manually edit the")
+    print("          and re-run Nodes Setup if necessary or manually edit the")
     print("          nodes_config ini file.")
     print("-" * 70)
 
     # base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     # config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
 
-    from . import config as wn_config
-    nodes_config = wn_config.NodesConfiguration(ini_file=ini_file)
+    from . import config
+    nodes_config = config.NodesConfiguration(ini_file=ini_file)
 
     # Actions Menu    
     actions = {0 : "Add node",
@@ -379,7 +379,7 @@ def wn_nodes_setup(ini_file=None):
     print("-" * 70)
 
     # Print final configuration
-    nodes_config = wn_config.NodesConfiguration(ini_file=ini_file)
+    nodes_config = config.NodesConfiguration(ini_file=ini_file)
     nodes_config.print_nodes()
 
     print("-" * 70)
@@ -387,7 +387,7 @@ def wn_nodes_setup(ini_file=None):
     print("-" * 70)
     print("\n")
 
-# End of wn_nodes_setup()
+# End of nodes_setup()
 
 
 
@@ -535,13 +535,13 @@ def _get_host_ip_addr_for_network(network):
     import socket
 
     # Get the broadcast address of the network
-    bcast_addr = network.get_param('bcast_address')
+    broadcast_addr = network.get_param('broadcast_address')
     
     try:
         # Create a temporary UDP socket to get the hostname
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.connect((bcast_addr, 1))
+        s.connect((broadcast_addr, 1))
         socket_name = s.getsockname()[0]
         s.close()
     except (socket.gaierror, socket.error):
@@ -606,13 +606,13 @@ def _get_ip_address_subnet(ip_address):
 # End of _get_ip_address_subnet()
 
 
-def _get_bcast_address(ip_address):
+def _get_broadcast_address(ip_address):
     """Get the broadcast address X.Y.Z.255 for ip_address X.Y.Z.W"""
-    ip_subnet  = _get_ip_address_subnet(ip_address)
-    bcast_addr = ip_subnet + ".255"
-    return bcast_addr
+    ip_subnet      = _get_ip_address_subnet(ip_address)
+    broadcast_addr = ip_subnet + ".255"
+    return broadcast_addr
     
-# End of _get_bcast_address()
+# End of _get_broadcast_address()
     
 
 def _check_ip_address_format(ip_address):

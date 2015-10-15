@@ -5,7 +5,7 @@ Mango 802.11 Reference Design - Experiments Framework - Programmable Attenuator
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the 802.11 ref design and WARPnet to measure throughput between
+This script uses the 802.11 ref design and WLAN Exp to measure throughput between
 an AP and an associated STA using the AP's local traffic generator (LTG).
 
 Hardware Setup:

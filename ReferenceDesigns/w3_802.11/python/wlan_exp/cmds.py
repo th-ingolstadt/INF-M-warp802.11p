@@ -21,9 +21,9 @@ This module provides class definitions for all WLAN Exp commands.
 
 """
 
-import wlan_exp.warpnet.cmds as wn_cmds
-import wlan_exp.warpnet.message as wn_message
-import wlan_exp.warpnet.transport_eth_udp as wn_transport
+import wlan_exp.warpnet.cmds as cmds
+import wlan_exp.warpnet.message as message
+import wlan_exp.warpnet.transport_eth_ip_udp as transport
 
 
 
@@ -54,7 +54,7 @@ __all__ = [# Log command classes
           ]
 
 
-# WLAN Exp Command IDs (Extension of WARPNet Command IDs)
+# WLAN Exp Command IDs
 #   NOTE:  The C counterparts are found in wlan_exp_node.h
 #   NOTE:  All Command IDs (CMDID_*) must be unique 24-bit numbers
 
@@ -175,7 +175,7 @@ CMD_PARAM_LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
 CMD_PARAM_LOG_CONFIG_FLAG_LOGGING                = 0x00000001
 CMD_PARAM_LOG_CONFIG_FLAG_WRAP                   = 0x00000002
 CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS           = 0x00000004
-CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS            = 0x00000008
+CMD_PARAM_LOG_CONFIG_FLAG_LOG_CMDS               = 0x00000008
 CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU              = 0x00000010
 CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL              = 0x00000020
 
@@ -250,7 +250,7 @@ CMDID_DEV_MEM_LOW                                = 0xFFF001
 
 
 # Local Constants
-_CMD_GRPID_NODE              = (wn_cmds.GRPID_NODE << 24)
+_CMD_GROUP_NODE                                  = (cmds.GROUP_NODE << 24)
 
 
 #-----------------------------------------------------------------------------
@@ -260,13 +260,13 @@ _CMD_GRPID_NODE              = (wn_cmds.GRPID_NODE << 24)
 #--------------------------------------------
 # Log Commands
 #--------------------------------------------
-class LogGetEvents(wn_message.BufferCmd):
+class LogGetEvents(message.BufferCmd):
     """Command to get the WLAN Exp log events of the node"""
     def __init__(self, size, start_byte=0):
-        command = _CMD_GRPID_NODE + CMDID_LOG_GET_ENTRIES
+        command = _CMD_GROUP_NODE + CMDID_LOG_GET_ENTRIES
         
         if (size == CMD_PARAM_LOG_GET_ALL_ENTRIES):
-            size = wn_message.CMD_BUFFER_GET_SIZE_FROM_DATA
+            size = message.CMD_BUFFER_GET_SIZE_FROM_DATA
         
         super(LogGetEvents, self).__init__(
                 command=command, buffer_id=0, flags=0, start_byte=start_byte, size=size)
@@ -277,22 +277,22 @@ class LogGetEvents(wn_message.BufferCmd):
 # End Class
 
 
-class LogConfigure(wn_message.Cmd):
+class LogConfigure(message.Cmd):
     """Command to configure the Event log.
     
     Attributes (default state on the node is in CAPS):
         log_enable           -- Enable the event log (TRUE/False)
         log_wrap_enable      -- Enable event log wrapping (True/FALSE)
         log_full_payloads    -- Record full Tx/Rx payloads in event log (True/FALSE)
-        log_warpnet_commands -- Record WARPNet commands in event log (True/FALSE)   
+        log_commands         -- Record commands in event log (True/FALSE)   
         log_txrx_mpdu        -- Enable Tx/Rx log entries for MPDU frames (TRUE/False)   
         log_txrx_ctrl        -- Enable Tx/Rx log entries for CTRL frames (TRUE/False)   
     """
     def __init__(self, log_enable=None, log_wrap_enable=None, 
-                       log_full_payloads=None, log_warpnet_commands=None,
+                       log_full_payloads=None, log_commands=None,
                        log_txrx_mpdu=None, log_txrx_ctrl=None):
         super(LogConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LOG_CONFIG
+        self.command = _CMD_GROUP_NODE + CMDID_LOG_CONFIG
 
         flags = 0
         mask  = 0
@@ -312,10 +312,10 @@ class LogConfigure(wn_message.Cmd):
             if log_full_payloads:
                 flags += CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS
 
-        if log_warpnet_commands is not None:
-            mask += CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS
-            if log_warpnet_commands:
-                flags += CMD_PARAM_LOG_CONFIG_FLAG_LOG_WN_CMDS
+        if log_commands is not None:
+            mask += CMD_PARAM_LOG_CONFIG_FLAG_LOG_CMDS
+            if log_commands:
+                flags += CMD_PARAM_LOG_CONFIG_FLAG_LOG_CMDS
                 
         if log_txrx_mpdu is not None:
             mask += CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU
@@ -336,11 +336,11 @@ class LogConfigure(wn_message.Cmd):
 # End Class
 
 
-class LogGetStatus(wn_message.Cmd):
+class LogGetStatus(message.Cmd):
     """Command to get the state information about the log."""
     def __init__(self):
         super(LogGetStatus, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LOG_GET_STATUS
+        self.command = _CMD_GROUP_NODE + CMDID_LOG_GET_STATUS
     
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=4):
@@ -352,11 +352,11 @@ class LogGetStatus(wn_message.Cmd):
 # End Class
 
 
-class LogGetCapacity(wn_message.Cmd):
+class LogGetCapacity(message.Cmd):
     """Command to get the log capacity and current use."""
     def __init__(self):
         super(LogGetCapacity, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LOG_GET_CAPACITY
+        self.command = _CMD_GROUP_NODE + CMDID_LOG_GET_CAPACITY
     
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=2):
@@ -368,14 +368,14 @@ class LogGetCapacity(wn_message.Cmd):
 # End Class
 
 
-class LogStreamEntries(wn_message.Cmd):
+class LogStreamEntries(message.Cmd):
     """Command to configure the node log streaming."""
     def __init__(self, enable, host_id, ip_address, port):
         super(LogStreamEntries, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LOG_STREAM_ENTRIES
+        self.command = _CMD_GROUP_NODE + CMDID_LOG_STREAM_ENTRIES
         
         if (type(ip_address) is str):
-            addr = wn_transport.ip_to_int(ip_address)
+            addr = transport.ip_to_int(ip_address)
         elif (type(ip_address) is int):
             addr = ip_address
         else:
@@ -393,11 +393,11 @@ class LogStreamEntries(wn_message.Cmd):
 # End Class
 
 
-class LogAddExpInfoEntry(wn_message.Cmd):
+class LogAddExpInfoEntry(message.Cmd):
     """Command to write a EXP_INFO Log Entry to the node."""
     def __init__(self, info_type, message):
         super(LogAddExpInfoEntry, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LOG_ADD_EXP_INFO_ENTRY
+        self.command = _CMD_GROUP_NODE + CMDID_LOG_ADD_EXP_INFO_ENTRY
 
         self.add_args(info_type)
 
@@ -428,11 +428,11 @@ class LogAddExpInfoEntry(wn_message.Cmd):
 # End Class
 
 
-class LogAddCountsTxRx(wn_message.Cmd):
+class LogAddCountsTxRx(message.Cmd):
     """Command to add the current counts to the Event log"""
     def __init__(self):
         super(LogAddCountsTxRx, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LOG_ADD_COUNTS_TXRX
+        self.command = _CMD_GROUP_NODE + CMDID_LOG_ADD_COUNTS_TXRX
     
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=1):
@@ -448,7 +448,7 @@ class LogAddCountsTxRx(wn_message.Cmd):
 #--------------------------------------------
 # Counts Commands
 #--------------------------------------------
-class CountsConfigure(wn_message.Cmd):
+class CountsConfigure(message.Cmd):
     """Command to configure the Counts collection.
     
     Attributes (default state on the node is in CAPS):
@@ -456,7 +456,7 @@ class CountsConfigure(wn_message.Cmd):
     """
     def __init__(self, promisc_counts=None):
         super(CountsConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_COUNTS_CONFIG_TXRX
+        self.command = _CMD_GROUP_NODE + CMDID_COUNTS_CONFIG_TXRX
 
         flags = 0
         mask  = 0
@@ -475,7 +475,7 @@ class CountsConfigure(wn_message.Cmd):
 # End Class
 
 
-class CountsGetTxRx(wn_message.BufferCmd):
+class CountsGetTxRx(message.BufferCmd):
     """Command to get the counts from the node for a given node."""
     def __init__(self, node=None, return_zeroed_counts_if_none=False):
         flags = 0
@@ -486,7 +486,7 @@ class CountsGetTxRx(wn_message.BufferCmd):
 
         # Call parent initialziation
         super(CountsGetTxRx, self).__init__(flags=flags)
-        self.command = _CMD_GRPID_NODE + CMDID_COUNTS_GET_TXRX
+        self.command = _CMD_GROUP_NODE + CMDID_COUNTS_GET_TXRX
 
         if node is not None:
             mac_address = node.wlan_mac_address
@@ -497,8 +497,8 @@ class CountsGetTxRx(wn_message.BufferCmd):
 
 
     def process_resp(self, resp):
-        # Contains a WARPNet Buffer of all counts entries.  Need to convert to 
-        #   a list of counts dictionaries.
+        # Contains a Buffer of all counts entries.  Need to convert to a list
+        #   of counts dictionaries.
         import wlan_exp.log.entry_types as entry_types
         
         index   = 0
@@ -524,7 +524,7 @@ class CountsGetTxRx(wn_message.BufferCmd):
 #--------------------------------------------
 # Local Traffic Generation (LTG) Commands
 #--------------------------------------------
-class LTGCommon(wn_message.Cmd):
+class LTGCommon(message.Cmd):
     """Common code for LTG Commands."""
     name = None
     
@@ -554,7 +554,7 @@ class LTGCommon(wn_message.Cmd):
 # End Class
 
 
-class LTGConfigure(wn_message.Cmd):
+class LTGConfigure(message.Cmd):
     """Command to configure an LTG with the given traffic flow to the 
     specified node.
     """
@@ -562,7 +562,7 @@ class LTGConfigure(wn_message.Cmd):
 
     def __init__(self, traffic_flow, auto_start=False):
         super(LTGConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LTG_CONFIG
+        self.command = _CMD_GROUP_NODE + CMDID_LTG_CONFIG
 
         flags = 0
         
@@ -600,7 +600,7 @@ class LTGStart(LTGCommon):
 
     def __init__(self, ltg_id=None):
         super(LTGStart, self).__init__(ltg_id)
-        self.command = _CMD_GRPID_NODE + CMDID_LTG_START
+        self.command = _CMD_GROUP_NODE + CMDID_LTG_START
 
 # End Class
 
@@ -615,7 +615,7 @@ class LTGStop(LTGCommon):
 
     def __init__(self, ltg_id=None):
         super(LTGStop, self).__init__(ltg_id)
-        self.command = _CMD_GRPID_NODE + CMDID_LTG_STOP
+        self.command = _CMD_GROUP_NODE + CMDID_LTG_STOP
     
 # End Class
 
@@ -630,19 +630,19 @@ class LTGRemove(LTGCommon):
 
     def __init__(self, ltg_id=None):
         super(LTGRemove, self).__init__(ltg_id)
-        self.command = _CMD_GRPID_NODE + CMDID_LTG_REMOVE
+        self.command = _CMD_GROUP_NODE + CMDID_LTG_REMOVE
     
 # End Class
 
 
-class LTGStatus(wn_message.Cmd):
+class LTGStatus(message.Cmd):
     """Command to get the status of the LTG."""
     time_factor = 6
     name        = 'status'
 
     def __init__(self, ltg_id):
         super(LTGStatus, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_LTG_STATUS
+        self.command = _CMD_GROUP_NODE + CMDID_LTG_STATUS
 
         if type(ltg_id) is not int:
             raise TypeError("LTG ID must be an integer.")
@@ -671,7 +671,7 @@ class LTGStatus(wn_message.Cmd):
 #--------------------------------------------
 # Configure Node Attribute Commands
 #--------------------------------------------
-class NodeResetState(wn_message.Cmd):
+class NodeResetState(message.Cmd):
     """Command to reset the state of a portion of the node defined by the flags.
     
     Attributes:
@@ -684,7 +684,7 @@ class NodeResetState(wn_message.Cmd):
     """
     def __init__(self, flags):
         super(NodeResetState, self).__init__()
-        self.command = _CMD_GRPID_NODE +  CMDID_NODE_RESET_STATE        
+        self.command = _CMD_GROUP_NODE +  CMDID_NODE_RESET_STATE        
         self.add_args(flags)
     
     def process_resp(self, resp):
@@ -693,7 +693,7 @@ class NodeResetState(wn_message.Cmd):
 # End Class
 
 
-class NodeConfigure(wn_message.Cmd):
+class NodeConfigure(message.Cmd):
     """Command to configure flag parameters on the node
     
     Attributes:
@@ -701,7 +701,7 @@ class NodeConfigure(wn_message.Cmd):
     """
     def __init__(self, dsss_enable=None, print_level=None):
         super(NodeConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_CONFIGURE
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_CONFIGURE
         
         flags = 0
         mask  = 0
@@ -725,18 +725,18 @@ class NodeConfigure(wn_message.Cmd):
 # End Class
 
 
-class NodeProcWLANMACAddr(wn_message.Cmd):
+class NodeProcWLANMACAddr(message.Cmd):
     """Command to get / set the WLAN MAC Address on the node.
     
     Attributes:
-        cmd           -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd           -- Sub-command to send over the command.  Valid values are:
                            CMD_PARAM_READ
                            CMD_PARAM_WRITE
         wlan_mac_addr -- 48-bit MAC address to write (optional)
     """
     def __init__(self, cmd, wlan_mac_address=None):
         super(NodeProcWLANMACAddr, self).__init__()
-        self.command  = _CMD_GRPID_NODE + CMDID_NODE_WLAN_MAC_ADDR
+        self.command  = _CMD_GROUP_NODE + CMDID_NODE_WLAN_MAC_ADDR
 
         if (cmd == CMD_PARAM_WRITE):
             self.add_args(cmd)
@@ -766,17 +766,17 @@ class NodeProcWLANMACAddr(wn_message.Cmd):
 # End Class
 
 
-class NodeProcTime(wn_message.Cmd):
+class NodeProcTime(message.Cmd):
     """Command to get / set the time on the node.
     
     NOTE:  Python time functions operate on floating point numbers in 
-        seconds, while the WnNode operates on microseconds.  In order
+        seconds, while the WarpNode operates on microseconds.  In order
         to be more flexible, this class can be initialized with either
         type of input.  However, it will only return an integer number
         of microseconds.
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
                        TIME_ADD_TO_LOG
@@ -789,7 +789,7 @@ class NodeProcTime(wn_message.Cmd):
     
     def __init__(self, cmd, node_time, time_id=None):
         super(NodeProcTime, self).__init__()
-        self.command  = _CMD_GRPID_NODE + CMDID_NODE_TIME
+        self.command  = _CMD_GROUP_NODE + CMDID_NODE_TIME
 
         # Read the time as a float
         if (cmd == CMD_PARAM_READ):
@@ -848,7 +848,7 @@ class NodeProcTime(wn_message.Cmd):
 # End Class
 
 
-class NodeSetLowToHighFilter(wn_message.Cmd):
+class NodeSetLowToHighFilter(message.Cmd):
     """Command to set the low to high filter on the node.
     
     Attributes:
@@ -863,7 +863,7 @@ class NodeSetLowToHighFilter(wn_message.Cmd):
     """    
     def __init__(self, cmd, mac_header=None, fcs=None):
         super(NodeSetLowToHighFilter, self).__init__()
-        self.command  = _CMD_GRPID_NODE + CMDID_NODE_LOW_TO_HIGH_FILTER
+        self.command  = _CMD_GROUP_NODE + CMDID_NODE_LOW_TO_HIGH_FILTER
 
         self.add_args(cmd)
 
@@ -914,11 +914,11 @@ class NodeSetLowToHighFilter(wn_message.Cmd):
 # End Class
 
 
-class NodeProcChannel(wn_message.Cmd):
+class NodeProcChannel(message.Cmd):
     """Command to get / set the channel of the node.
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
         channel   -- 802.11 Channel for the node.  Should be a valid channel defined
@@ -928,7 +928,7 @@ class NodeProcChannel(wn_message.Cmd):
 
     def __init__(self, cmd, channel=None):
         super(NodeProcChannel, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_CHANNEL
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_CHANNEL
 
         self.add_args(cmd)
         
@@ -962,11 +962,11 @@ class NodeProcChannel(wn_message.Cmd):
 # End Class
 
 
-class NodeProcRandomSeed(wn_message.Cmd):
+class NodeProcRandomSeed(message.Cmd):
     """Command to set the random seed of the node.
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ   (Not supported)
                        CMD_PARAM_WRITE
         high_seed -- Random number generator seed for CPU high
@@ -978,7 +978,7 @@ class NodeProcRandomSeed(wn_message.Cmd):
     """
     def __init__(self, cmd, high_seed=None, low_seed=None):
         super(NodeProcRandomSeed, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_RANDOM_SEED
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_RANDOM_SEED
 
         if (cmd == CMD_PARAM_READ):
             raise AttributeError("Read not supported for NodeProcRandomSeed.")
@@ -1005,11 +1005,11 @@ class NodeProcRandomSeed(wn_message.Cmd):
 # End Class
 
 
-class NodeLowParam(wn_message.Cmd):
+class NodeLowParam(message.Cmd):
     """Command to set parameter in CPU Low
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_WRITE
                        CMD_PARAM_READ
 
@@ -1024,7 +1024,7 @@ class NodeLowParam(wn_message.Cmd):
     def __init__(self, cmd, param, values=None):
         super(NodeLowParam, self).__init__()        
         
-        self.command    = _CMD_GRPID_NODE + CMDID_NODE_LOW_PARAM
+        self.command    = _CMD_GROUP_NODE + CMDID_NODE_LOW_PARAM
         self.read_write = cmd
 
         # Caluculate the size of the entire message to CPU Low [PARAM_ID, ARGS[]]
@@ -1072,11 +1072,11 @@ class NodeLowParam(wn_message.Cmd):
 # End Class
         
 
-class NodeProcTxPower(wn_message.Cmd):
+class NodeProcTxPower(message.Cmd):
     """Command to get / set the transmit power of the node.
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
                        CMD_PARAM_WRITE_DEFAULT
@@ -1095,7 +1095,7 @@ class NodeProcTxPower(wn_message.Cmd):
     
     def __init__(self, cmd, tx_type, power=None, device=None):
         super(NodeProcTxPower, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_POWER
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_POWER
         mac_address  = None
 
         self.add_args(cmd)
@@ -1174,11 +1174,11 @@ class NodeProcTxPower(wn_message.Cmd):
 # End Class
 
 
-class NodeProcTxRate(wn_message.Cmd):
+class NodeProcTxRate(message.Cmd):
     """Command to get / set the transmit rate of the node.
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
                        CMD_PARAM_WRITE_DEFAULT
@@ -1195,7 +1195,7 @@ class NodeProcTxRate(wn_message.Cmd):
     """
     def __init__(self, cmd, tx_type, rate=None, device=None):
         super(NodeProcTxRate, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_RATE
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_RATE
         mac_address  = None
 
         self.add_args(cmd)
@@ -1260,11 +1260,11 @@ class NodeProcTxRate(wn_message.Cmd):
 # End Class
 
 
-class NodeProcTxAntMode(wn_message.Cmd):
+class NodeProcTxAntMode(message.Cmd):
     """Command to get / set the transmit antenna mode of the node.
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
                        CMD_PARAM_WRITE_DEFAULT
@@ -1280,7 +1280,7 @@ class NodeProcTxAntMode(wn_message.Cmd):
     """
     def __init__(self, cmd, tx_type, ant_mode=None, device=None):
         super(NodeProcTxAntMode, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_TX_ANT_MODE
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_ANT_MODE
         mac_address  = None
 
         self.add_args(cmd)
@@ -1345,11 +1345,11 @@ class NodeProcTxAntMode(wn_message.Cmd):
 # End Class
 
 
-class NodeProcRxAntMode(wn_message.Cmd):
+class NodeProcRxAntMode(message.Cmd):
     """Command to get / set the receive antenna mode of the node.
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
         ant_mode  -- Receive antenna mode for the node.  Checking is
@@ -1358,7 +1358,7 @@ class NodeProcRxAntMode(wn_message.Cmd):
     """
     def __init__(self, cmd, ant_mode=None):
         super(NodeProcRxAntMode, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_RX_ANT_MODE
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_RX_ANT_MODE
         
         self.add_args(cmd)
         if ant_mode is not None:
@@ -1396,13 +1396,13 @@ class NodeProcRxAntMode(wn_message.Cmd):
 #--------------------------------------------
 # Association Commands
 #--------------------------------------------
-class NodeGetSSID(wn_message.Cmd):
+class NodeGetSSID(message.Cmd):
     """Command to get the SSID of the node."""
     ssid = None
 
     def __init__(self):
         super(NodeGetSSID, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_GET_SSID
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_GET_SSID
 
 
     def process_resp(self, resp):
@@ -1415,13 +1415,13 @@ class NodeGetSSID(wn_message.Cmd):
 # End Class
 
 
-class NodeDisassociate(wn_message.Cmd):
+class NodeDisassociate(message.Cmd):
     """Command to remove associations from the association table."""
     description = None
 
     def __init__(self, device=None):
         super(NodeDisassociate, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_DISASSOCIATE
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_DISASSOCIATE
 
         if device is not None:
             self.description = device.description
@@ -1444,11 +1444,11 @@ class NodeDisassociate(wn_message.Cmd):
 # End Class
 
 
-class NodeGetStationInfo(wn_message.BufferCmd):
+class NodeGetStationInfo(message.BufferCmd):
     """Command to get the station info for a given node."""
     def __init__(self, node=None):
         super(NodeGetStationInfo, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_GET_STATION_INFO
+        self.command = _CMD_GROUP_NODE + CMDID_GET_STATION_INFO
 
         if node is not None:
             mac_address = node.wlan_mac_address
@@ -1459,8 +1459,8 @@ class NodeGetStationInfo(wn_message.BufferCmd):
 
 
     def process_resp(self, resp):
-        # Contains a WWARPNet Buffer of all station info entries.  Need to 
-        #   convert to a list of station info dictionaries.
+        # Contains a Buffer of all station info entries.  Need to convert to
+        #   a list of station info dictionaries.
         import wlan_exp.log.entry_types as entry_types
 
         index   = 0
@@ -1490,11 +1490,11 @@ class NodeGetStationInfo(wn_message.BufferCmd):
 # End Class
 
 
-class NodeGetBSSInfo(wn_message.BufferCmd):
+class NodeGetBSSInfo(message.BufferCmd):
     """Command to get the BSS info for a given BSS ID."""
     def __init__(self, bssid=None):
         super(NodeGetBSSInfo, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_GET_BSS_INFO
+        self.command = _CMD_GROUP_NODE + CMDID_GET_BSS_INFO
 
         if bssid is None:
             bssid = 0x0000000000000000
@@ -1505,8 +1505,8 @@ class NodeGetBSSInfo(wn_message.BufferCmd):
 
 
     def process_resp(self, resp):
-        # Contains a WWARPNet Buffer of all station info entries.  Need to 
-        #   convert to a list of station info dictionaries.
+        # Contains a Buffer of all station info entries.  Need to convert to
+        #   a list of station info dictionaries.
         import wlan_exp.log.entry_types as entry_types
 
         index   = 0
@@ -1549,11 +1549,11 @@ class NodeGetBSSInfo(wn_message.BufferCmd):
 #--------------------------------------------
 # Queue Commands
 #--------------------------------------------
-class QueueTxDataPurgeAll(wn_message.Cmd):
+class QueueTxDataPurgeAll(message.Cmd):
     """Command to purge all data transmit queues on the node."""
     def __init__(self):
         super(QueueTxDataPurgeAll, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_QUEUE_TX_DATA_PURGE_ALL
+        self.command = _CMD_GROUP_NODE + CMDID_QUEUE_TX_DATA_PURGE_ALL
         
     def process_resp(self, resp):
         pass
@@ -1565,7 +1565,7 @@ class QueueTxDataPurgeAll(wn_message.Cmd):
 #--------------------------------------------
 # AP Specific Commands
 #--------------------------------------------
-class NodeAPConfigure(wn_message.Cmd):
+class NodeAPConfigure(message.Cmd):
     """Command to configure the AP.
     
     Attributes (default state on the node is in CAPS):
@@ -1573,7 +1573,7 @@ class NodeAPConfigure(wn_message.Cmd):
     """
     def __init__(self, support_power_savings=None):
         super(NodeAPConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_CONFIG
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_CONFIG
 
         flags = 0
         mask  = 0
@@ -1592,18 +1592,18 @@ class NodeAPConfigure(wn_message.Cmd):
 # End Class
 
 
-class NodeAPProcDTIMPeriod(wn_message.Cmd):
+class NodeAPProcDTIMPeriod(message.Cmd):
     """Command to get / set the number of beacon intervals between DTIM beacons
     
     Attributes:
-        cmd         -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd         -- Sub-command to send over the command.  Valid values are:
                          CMD_PARAM_READ
                          CMD_PARAM_WRITE
         num_beacons -- Number of beacon intervals between DTIM beacons (0 - 255)
     """
     def __init__(self, cmd, num_beacons=None):
         super(NodeAPProcDTIMPeriod, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_DTIM_PERIOD
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_DTIM_PERIOD
 
         if (cmd == CMD_PARAM_WRITE):
             self.add_args(cmd)
@@ -1639,7 +1639,7 @@ class NodeAPProcDTIMPeriod(wn_message.Cmd):
 # End Class
 
 
-class NodeAPAddAssociation(wn_message.Cmd):
+class NodeAPAddAssociation(message.Cmd):
     """Command to add the association to the association table on the AP.
     
     Attributes:
@@ -1654,7 +1654,7 @@ class NodeAPAddAssociation(wn_message.Cmd):
 
     def __init__(self, device, allow_timeout=None):
         super(NodeAPAddAssociation, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_ADD_ASSOCIATION
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_ADD_ASSOCIATION
 
         flags = 0
         mask  = 0
@@ -1688,13 +1688,13 @@ class NodeAPAddAssociation(wn_message.Cmd):
 # End Class
 
 
-class NodeAPSetSSID(wn_message.Cmd):
+class NodeAPSetSSID(message.Cmd):
     """Command to set the SSID of the AP."""
     ssid = None
 
     def __init__(self, ssid):
         super(NodeAPSetSSID, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SET_SSID
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_SET_SSID
         
         self.ssid = ssid            
         self.add_args(CMD_PARAM_WRITE)
@@ -1720,7 +1720,7 @@ class NodeAPSetSSID(wn_message.Cmd):
 # End Class
 
 
-class NodeAPSetAuthAddrFilter(wn_message.Cmd):
+class NodeAPSetAuthAddrFilter(message.Cmd):
     """Command to set the authentication address filter on the node.
     
     Attributes:
@@ -1733,7 +1733,7 @@ class NodeAPSetAuthAddrFilter(wn_message.Cmd):
     """
     def __init__(self, allow):
         super(NodeAPSetAuthAddrFilter, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER
 
         length = len(allow)
 
@@ -1763,18 +1763,18 @@ class NodeAPSetAuthAddrFilter(wn_message.Cmd):
 # End Class
 
 
-class NodeAPProcBeaconInterval(wn_message.Cmd):
+class NodeAPProcBeaconInterval(message.Cmd):
     """Command to get / set the time interval between beacons
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
         interval -- Number of Time Units (TU) between beacons [1, 65535]
     """
     def __init__(self, cmd, interval=None):
         super(NodeAPProcBeaconInterval, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_AP_BEACON_INTERVAL
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_BEACON_INTERVAL
 
         if (cmd == CMD_PARAM_WRITE):
             self.add_args(cmd)
@@ -1814,7 +1814,7 @@ class NodeAPProcBeaconInterval(wn_message.Cmd):
 #--------------------------------------------
 # STA Specific Commands
 #--------------------------------------------
-class NodeSTAConfigure(wn_message.Cmd):
+class NodeSTAConfigure(message.Cmd):
     """Command to configure the STA.
     
     Attributes (default state on the node is in CAPS):
@@ -1822,7 +1822,7 @@ class NodeSTAConfigure(wn_message.Cmd):
     """
     def __init__(self, beacon_ts_update=None):
         super(NodeSTAConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_STA_CONFIG
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_STA_CONFIG
 
         flags = 0
         mask  = 0
@@ -1841,7 +1841,7 @@ class NodeSTAConfigure(wn_message.Cmd):
 # End Class
 
 
-class NodeSTAAddAssociation(wn_message.Cmd):
+class NodeSTAAddAssociation(message.Cmd):
     """Command to add the association to the association table on the STA.
     
     Attributes:
@@ -1856,7 +1856,7 @@ class NodeSTAAddAssociation(wn_message.Cmd):
 
     def __init__(self, device, aid, channel, ssid):
         super(NodeSTAAddAssociation, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_ADD_ASSOCIATION
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_ADD_ASSOCIATION
 
         flags = 0
         mask  = 0
@@ -1902,7 +1902,7 @@ class NodeSTAAddAssociation(wn_message.Cmd):
 #--------------------------------------------
 # IBSS Specific Commands
 #--------------------------------------------
-class NodeIBSSConfigure(wn_message.Cmd):
+class NodeIBSSConfigure(message.Cmd):
     """Command to configure the IBSS.
     
     Attributes (default state on the node is in CAPS):
@@ -1916,7 +1916,7 @@ class NodeIBSSConfigure(wn_message.Cmd):
     """
     def __init__(self, beacon_ts_update=None, beacon_transmit=None):
         super(NodeIBSSConfigure, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_IBSS_CONFIG
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_IBSS_CONFIG
 
         flags = 0
         mask  = 0
@@ -1961,7 +1961,7 @@ class NodeIBSSConfigure(wn_message.Cmd):
 #--------------------------------------------
 # STA / IBSS Common Commands
 #--------------------------------------------
-class NodeProcScanParam(wn_message.Cmd):
+class NodeProcScanParam(message.Cmd):
     """Command to configure the scan parameters
     
     Attributes:
@@ -1980,7 +1980,7 @@ class NodeProcScanParam(wn_message.Cmd):
 
     def __init__(self, cmd, time_per_channel=None, idle_time_per_loop=None, channel_list=None):
         super(NodeProcScanParam, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_SCAN_PARAM
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN_PARAM
 
         if (cmd == CMD_PARAM_WRITE):
             self.add_args(cmd)
@@ -2043,7 +2043,7 @@ class NodeProcScanParam(wn_message.Cmd):
 # End Class
 
 
-class NodeProcScan(wn_message.Cmd):
+class NodeProcScan(message.Cmd):
     """Command to enable / disable active scan
     
     Attributes:
@@ -2055,7 +2055,7 @@ class NodeProcScan(wn_message.Cmd):
     """
     def __init__(self, enable, ssid=None, bssid=None):
         super(NodeProcScan, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_SCAN
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN
 
         if enable:
             self.add_args(CMD_PARAM_NODE_SCAN_ENABLE)
@@ -2076,7 +2076,7 @@ class NodeProcScan(wn_message.Cmd):
 # End Class
 
 
-class NodeProcJoin(wn_message.Cmd):
+class NodeProcJoin(message.Cmd):
     """Command to join a given BSS
     
     Attributes:
@@ -2088,7 +2088,7 @@ class NodeProcJoin(wn_message.Cmd):
     
     def __init__(self, bss_info, timeout=None):
         super(NodeProcJoin, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_JOIN
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_JOIN
 
         _add_time_to_cmd32(self, timeout, self.time_factor)
 
@@ -2135,7 +2135,7 @@ class NodeProcJoin(wn_message.Cmd):
 # End Class
 
 
-class NodeProcScanAndJoin(wn_message.Cmd):
+class NodeProcScanAndJoin(message.Cmd):
     """Command to scan for the given network and join it if present
     
     Attributes:
@@ -2150,7 +2150,7 @@ class NodeProcScanAndJoin(wn_message.Cmd):
     
     def __init__(self, ssid, bssid=None, timeout=5.0):
         super(NodeProcScanAndJoin, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_SCAN_AND_JOIN
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN_AND_JOIN
 
         _add_time_to_cmd32(self, timeout, self.time_factor)
 
@@ -2183,11 +2183,11 @@ class NodeProcScanAndJoin(wn_message.Cmd):
 #--------------------------------------------
 # Memory Access Commands - For developer use only
 #--------------------------------------------
-class NodeMemAccess(wn_message.Cmd):
+class NodeMemAccess(message.Cmd):
     """Command to read/write memory in CPU High / CPU Low
     
     Attributes:
-        cmd       -- Sub-command to send over the WARPNet command.  Valid values are:
+        cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
         high      -- True for CPU_High access, False for CPU_Low
@@ -2205,9 +2205,9 @@ class NodeMemAccess(wn_message.Cmd):
     def __init__(self, cmd, high, address, values=None, length=None):
         super(NodeMemAccess, self).__init__()
         if(high):
-            self.command = _CMD_GRPID_NODE + CMDID_DEV_MEM_HIGH
+            self.command = _CMD_GROUP_NODE + CMDID_DEV_MEM_HIGH
         else:
-            self.command = _CMD_GRPID_NODE + CMDID_DEV_MEM_LOW
+            self.command = _CMD_GROUP_NODE + CMDID_DEV_MEM_LOW
 
         if(cmd == CMD_PARAM_READ):
             self.add_args(cmd)

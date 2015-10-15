@@ -25,7 +25,7 @@ This module provides WLAN Exp default constants.
 PACKAGE_NAME                      = 'wlan_exp'
 
 
-# WARPNet Node Types
+# WLAN Exp Node Types
 #   NOTE:  The C counterparts are found in wlan_exp_common.h
 WLAN_EXP_80211_BASE               = 0x00010000
 

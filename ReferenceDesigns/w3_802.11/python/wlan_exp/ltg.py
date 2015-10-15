@@ -102,7 +102,7 @@ class Schedule(object):
         raise NotImplementedError
 
     def serialize(self):
-        """Returns a list of 32 bit intergers that can be added as arguments to a WnCmd.
+        """Returns a list of 32 bit intergers that can be added as arguments to a Cmd.
 
         Returns:
             words (list of int):  List of 32-bit words representing the Schedule
@@ -253,7 +253,7 @@ class Payload(object):
         raise NotImplementedError
 
     def serialize(self):
-        """Returns a list of 32 bit intergers that can be added as arguments to a WnCmd.
+        """Returns a list of 32 bit intergers that can be added as arguments to a Cmd.
 
         Returns:
             words (list of int):  List of 32-bit words representing the Schedule
@@ -389,7 +389,7 @@ class FlowConfig(object):
     def get_payload(self):   return self.ltg_payload
 
     def serialize(self):
-        """Returns a list of 32 bit intergers that can be added as arguments to a WnCmd.
+        """Returns a list of 32 bit intergers that can be added as arguments to a Cmd.
 
         Returns:
             words (list of int):  List of 32-bit words representing the FlowConfig

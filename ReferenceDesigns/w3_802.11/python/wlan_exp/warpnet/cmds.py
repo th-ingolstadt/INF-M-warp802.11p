@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Commands
+Transport / Network / Basic Node Commands
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,10 +17,11 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides class definitions for all WARPNet commands.  
+This module provides class definitions for transport, network, and basic node 
+commands.  
 
 Functions (see below for more information):
-    GetWarpNetNodeType()
+    GetType()
     Identify()
     GetHwInfo() 
     SetupNetwork()
@@ -31,133 +32,122 @@ Functions (see below for more information):
     ClearNodeGrpId()
 
 Integer constants:
-    GRPID_WARPNET, GRPID_NODE, GRPID_TRANS - WARPNet Command Groups
-    GRP_WARPNET, GRP_NODE, GRP_TRANSPORT - WARPNet Command Group Names
+    GRPID_NODE, GRPID_TRANS - Command Groups
+    GRP_NODE, GRP_TRANSPORT - Command Group Names
 
 Many other constants may be defined; please do not use these values when 
-defining other sub-classes of WARPNet Cmd and BufferCmd.
+defining other sub-classes of CmdResp and BufferCmd.
 
 """
 
 
-from . import message as wn_message
+from . import message
 
 
-__all__ = ['NodeGetWarpNetType', 'NodeIdentify', 'NodeGetHwInfo', 
+__all__ = ['NodeGetType', 'NodeIdentify', 'NodeGetHwInfo', 
            'NodeSetupNetwork', 'NodeResetNetwork', 'NodeGetTemperature', 
-           'Ping', 'TestPayloadSize', 'AddNodeGrpId', 'ClearNodeGrpId']
+           'TransportPing', 'TransportTestPayloadSize', 
+           'TransportAddNodeGroupId', 'TransportClearNodeGroupId']
 
 
-# Reserved WARPNet Type
-WARPNET_RSVD_TYPE                                = 0xFFFFFFFF
+# Command Groups
+GROUP_NODE                                       = 0x00
+GROUP_TRANSPORT                                  = 0x10
 
 
-# WARPNet Command Groups
-GRPID_WARPNET                                    = 0xFF
-GRPID_NODE                                       = 0x00
-GRPID_TRANS                                      = 0x10
+# Command Group names
+GROUP_NAME_NODE                                  = 'node'
+GROUP_NAME_TRANSPORT                             = 'transport'
 
 
-# WARPNet Command Group names
-GRP_WARPNET                                      = 'warpnet'
-GRP_NODE                                         = 'node'
-GRP_TRANSPORT                                    = 'transport'
-
-
-# WARPNet Command IDs
+# Node Command IDs
 #   NOTE:  The C counterparts are found in *_node.h
-CMDID_WARPNET_TYPE                               = 0xFFFFFF
+CMDID_NODE_TYPE                                  = 0x000000
 
+CMD_PARAM_NODE_TYPE_RSVD                         = 0xFFFFFFFF
 
-# WARPNet Node Command IDs
-#   NOTE:  The C counterparts are found in *_node.h
-CMDID_INFO                                       = 0x000001
-CMDID_IDENTIFY                                   = 0x000002
+CMDID_NODE_INFO                                  = 0x000001
+CMDID_NODE_IDENTIFY                              = 0x000002
 
-CMD_PARAM_IDENTIFY_ALL_NODES                     = 0xFFFFFFFF
-CMD_PARAM_IDENTIFY_NUM_BLINKS                    = 25
-CMD_PARAM_IDENTIFY_BLINK_TIME                    = 0.4
+CMD_PARAM_NODE_IDENTIFY_ALL_NODES                = 0xFFFFFFFF
+CMD_PARAM_NODE_IDENTIFY_NUM_BLINKS               = 25
+CMD_PARAM_NODE_IDENTIFY_BLINK_TIME               = 0.4
 
 CMDID_NODE_NETWORK_SETUP                         = 0x000003
 CMDID_NODE_NETWORK_RESET                         = 0x000004
 
-CMD_PARAM_NETWORK_RESET_ALL_NODES                = 0xFFFFFFFF
+CMD_PARAM_NODE_NETWORK_RESET_ALL_NODES           = 0xFFFFFFFF
 
 CMDID_NODE_TEMPERATURE                           = 0x000005
 
 
-# WARPNet Transport Command IDs
+# Transport Command IDs
 #   NOTE:  The C counterparts are found in *_transport.h
-CMDID_PING                                       = 0x000001
-CMDID_PAYLOAD_SIZE_TEST                          = 0x000002
-CMDID_NODE_GRPID_ADD                             = 0x000100
-CMDID_NODE_GRPID_CLEAR                           = 0x000101
+CMDID_TRANSPORT_PING                             = 0x000001
+CMDID_TRANSPORT_PAYLOAD_SIZE_TEST                = 0x000002
+CMDID_TRANSPORT_NODE_GROUP_ID_ADD                = 0x000100
+CMDID_TRANSPORT_NODE_GROUP_ID_CLEAR              = 0x000101
 
 
 # Local Constants
-_CMD_GRPID_WARPNET                               = (GRPID_WARPNET << 24)
-_CMD_GRPID_NODE                                  = (GRPID_NODE << 24)
-_CMD_GRPID_TRANS                                 = (GRPID_TRANS << 24)
-
-
-# -----------------------------------------------------------------------------
-# Class Definitions for WARPNet Commands
-# -----------------------------------------------------------------------------
-
-class NodeGetWarpNetType(wn_message.Cmd):
-    """Command to get the WARPNet Node Type of the node"""
-    def __init__(self):
-        super(NodeGetWarpNetType, self).__init__()
-        self.command = _CMD_GRPID_WARPNET + CMDID_WARPNET_TYPE
-    
-    def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=1):
-            args = resp.get_args()
-            return args[0]
-        else:
-            return WARPNET_RSVD_TYPE
-
-# End Class
+_CMD_GROUP_NODE                                  = (GROUP_NODE << 24)
+_CMD_GROUP_TRANSPORT                             = (GROUP_TRANSPORT << 24)
 
 
 # -----------------------------------------------------------------------------
 # Node Commands
 # -----------------------------------------------------------------------------
 
-class NodeIdentify(wn_message.Cmd):
-    """Command to blink the WARPNet Node LEDs."""
+class NodeGetType(message.Cmd):
+    """Command to get the Type of the node"""
+    def __init__(self):
+        super(NodeGetType, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_TYPE
+    
+    def process_resp(self, resp):
+        if resp.resp_is_valid(num_args=1):
+            args = resp.get_args()
+            return args[0]
+        else:
+            return CMD_PARAM_NODE_TYPE_RSVD
+
+# End Class
+
+
+class NodeIdentify(message.Cmd):
+    """Command to blink the Node LEDs."""
     def __init__(self, serial_number):
         super(NodeIdentify, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_IDENTIFY
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_IDENTIFY
 
-        if (serial_number == CMD_PARAM_IDENTIFY_ALL_NODES):
-            (sn, sn_str) = (CMD_PARAM_IDENTIFY_ALL_NODES, "All nodes")
+        if (serial_number == CMD_PARAM_NODE_IDENTIFY_ALL_NODES):
+            (sn, sn_str) = (CMD_PARAM_NODE_IDENTIFY_ALL_NODES, "All nodes")
         else:
-            from . import util as wn_util
+            from . import util
 
-            (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
+            (sn, sn_str) = util.get_serial_number(serial_number, output=False)
 
         time_factor    = 6             # Time on node is microseconds
-        time_to_send   = int(round(CMD_PARAM_IDENTIFY_BLINK_TIME, time_factor) * (10**time_factor))
+        time_to_send   = int(round(CMD_PARAM_NODE_IDENTIFY_BLINK_TIME, time_factor) * (10**time_factor))
 
         self.id = sn_str
         self.add_args(sn)
-        self.add_args(CMD_PARAM_IDENTIFY_NUM_BLINKS)
+        self.add_args(CMD_PARAM_NODE_IDENTIFY_NUM_BLINKS)
         self.add_args(time_to_send)
              
     def process_resp(self, resp):
         import time
         print("Blinking LEDs of node: {0}".format(self.id))
-        time.sleep(CMD_PARAM_IDENTIFY_NUM_BLINKS * CMD_PARAM_IDENTIFY_BLINK_TIME)
+        time.sleep(CMD_PARAM_NODE_IDENTIFY_NUM_BLINKS * CMD_PARAM_NODE_IDENTIFY_BLINK_TIME)
 
 # End Class
 
 
-class NodeGetHwInfo(wn_message.Cmd):
+class NodeGetHwInfo(message.Cmd):
     """Command to get the hardware parameters from the node."""
     def __init__(self):
         super(NodeGetHwInfo, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_INFO
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_INFO
     
     def process_resp(self, resp):
         return resp.get_args()
@@ -165,16 +155,16 @@ class NodeGetHwInfo(wn_message.Cmd):
 # End Class
 
 
-class NodeSetupNetwork(wn_message.Cmd):
+class NodeSetupNetwork(message.Cmd):
     """Command to perform initial network setup of a node."""
     def __init__(self, node):
         super(NodeSetupNetwork, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_NETWORK_SETUP
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_NETWORK_SETUP
         self.add_args(node.serial_number)
         self.add_args(node.node_id)
         self.add_args(node.transport.ip_to_int(node.transport.ip_address))
         self.add_args(node.transport.unicast_port)
-        self.add_args(node.transport.bcast_port)
+        self.add_args(node.transport.broadcast_port)
     
     def process_resp(self, resp):
         pass
@@ -182,19 +172,19 @@ class NodeSetupNetwork(wn_message.Cmd):
 # End Class
 
 
-class NodeResetNetwork(wn_message.Cmd):
+class NodeResetNetwork(message.Cmd):
     """Command to reset the network configuration of a node."""
     def __init__(self, serial_number, output=False):
         super(NodeResetNetwork, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_NETWORK_RESET
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_NETWORK_RESET
         self.output = output
         
-        if (serial_number == CMD_PARAM_NETWORK_RESET_ALL_NODES):
-            (sn, sn_str) = (CMD_PARAM_NETWORK_RESET_ALL_NODES, "All nodes")
+        if (serial_number == CMD_PARAM_NODE_NETWORK_RESET_ALL_NODES):
+            (sn, sn_str) = (CMD_PARAM_NODE_NETWORK_RESET_ALL_NODES, "All nodes")
         else:
-            from . import util as wn_util
+            from . import util
 
-            (sn, sn_str) = wn_util.wn_get_serial_number(serial_number, output=False)
+            (sn, sn_str) = util.get_serial_number(serial_number, output=False)
         
         self.id = sn_str
         self.add_args(sn)
@@ -206,7 +196,7 @@ class NodeResetNetwork(wn_message.Cmd):
 # End Class
 
 
-class NodeGetTemperature(wn_message.Cmd):
+class NodeGetTemperature(message.Cmd):
     """Command to get the temperature of a node.
     
     NOTE:  The response must be converted to Celsius with the given formula:
@@ -216,7 +206,7 @@ class NodeGetTemperature(wn_message.Cmd):
     """
     def __init__(self):
         super(NodeGetTemperature, self).__init__()
-        self.command = _CMD_GRPID_NODE + CMDID_NODE_TEMPERATURE
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_TEMPERATURE
     
     def process_resp(self, resp):
         if resp.resp_is_valid(num_args=3):
@@ -234,11 +224,11 @@ class NodeGetTemperature(wn_message.Cmd):
 # -----------------------------------------------------------------------------
 # Transport Commands
 # -----------------------------------------------------------------------------
-class Ping(wn_message.Cmd):
+class TransportPing(message.Cmd):
     """Command to ping the node."""
     def __init__(self):
-        super(Ping, self).__init__()
-        self.command = _CMD_GRPID_TRANS + CMDID_PING
+        super(TransportPing, self).__init__()
+        self.command = _CMD_GROUP_TRANSPORT + CMDID_TRANSPORT_PING
     
     def process_resp(self, resp):
         pass
@@ -246,11 +236,11 @@ class Ping(wn_message.Cmd):
 # End Class
 
 
-class TestPayloadSize(wn_message.Cmd):
+class TransportTestPayloadSize(message.Cmd):
     """Command to perform a payload size test on a node."""
     def __init__(self, size):
-        super(TestPayloadSize, self).__init__()
-        self.command = _CMD_GRPID_TRANS + CMDID_PAYLOAD_SIZE_TEST
+        super(TransportTestPayloadSize, self).__init__()
+        self.command = _CMD_GROUP_TRANSPORT + CMDID_TRANSPORT_PAYLOAD_SIZE_TEST
         
         for i in range(size):
             self.add_args(i)
@@ -265,12 +255,12 @@ class TestPayloadSize(wn_message.Cmd):
 # End Class
 
 
-class AddNodeGrpId(wn_message.Cmd):
+class TransportAddNodeGroupId(message.Cmd):
     """Command to add a Node Group ID to the node so that it can process
     broadcast commands that are received from that node group."""
     def __init__(self, group):
-        super(AddNodeGrpId, self).__init__()
-        self.command = _CMD_GRPID_TRANS + CMDID_NODE_GRPID_ADD
+        super(TransportAddNodeGroupId, self).__init__()
+        self.command = _CMD_GROUP_TRANSPORT + CMDID_TRANSPORT_NODE_GROUP_ID_ADD
         self.add_args(group)
     
     def process_resp(self, resp):
@@ -279,12 +269,12 @@ class AddNodeGrpId(wn_message.Cmd):
 # End Class
 
 
-class ClearNodeGrpId(wn_message.Cmd):
+class TransportClearNodeGroupId(message.Cmd):
     """Command to clear a Node Group ID to the node so that it can ignore
     broadcast commands that are received from that node group."""
     def __init__(self, group):
-        super(ClearNodeGrpId, self).__init__()
-        self.command = _CMD_GRPID_TRANS + CMDID_NODE_GRPID_CLEAR
+        super(TransportClearNodeGroupId, self).__init__()
+        self.command = _CMD_GROUP_TRANSPORT + CMDID_TRANSPORT_NODE_GROUP_ID_CLEAR
         self.add_args(group)
     
     def process_resp(self, resp):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Default Constants
+Transport Default Constants
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,35 +17,35 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides WARPNet default constants.
+This module provides Transport default constants.
 
 """
 
 # Default Variables
-PACKAGE_NAME                      = 'warpnet'
+PACKAGE_NAME                      = 'warp_transport'
 
 
-# WARPNet INI Files
+# Nodes Configuration INI Files
 NODES_CONFIG_INI_FILE             = 'nodes_config.ini'
 
 
-# WARPNet Node Types
-WN_NODE_TYPE                      = 0
-WN_NODE_CLASS                     = 'WnNode(network_config)'
-WN_NODE_DESCRIPTION               = 'WARPNet Node'
+# Node Types
+DEFAULT_NODE_TYPE                 = 0
+DEFAULT_NODE_CLASS                = 'Node(network_config)'
+DEFAULT_NODE_DESCRIPTION          = 'Default Node'
 
 
-# WARPNet Default values
+# Transport Default values
 #   NOTE:  All defaults are strings; Numerical values will be evaluated and
 #          converted to integers before being used
 NETWORK                           = '10.0.0.0'
 HOST_ID                           = 250
 UNICAST_PORT                      = 9500
-BCAST_PORT                        = 9750
+BROADCAST_PORT                    = 9750
 TRANSPORT_TYPE                    = 'python'
 JUMBO_FRAME_SUPPORT               = True
-TX_BUFFER_SIZE                    = 2**22
-RX_BUFFER_SIZE                    = 2**22
+TX_BUFFER_SIZE                    = 2**22        # 4 MB buffer
+RX_BUFFER_SIZE                    = 2**22        # 4 MB buffer
 
 
 

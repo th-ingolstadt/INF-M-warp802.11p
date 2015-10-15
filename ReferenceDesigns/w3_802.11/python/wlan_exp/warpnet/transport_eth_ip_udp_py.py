@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Transport - Unicast Ethernet UDP Python Socket Implementation
+Transport - Unicast Ethernet IP/UDP Python Socket Implementation
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,16 +17,12 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides the WARPNet unicast Ethernet UDP transport based on 
-the python socket class.
+This module provides the unicast Ethernet IP/UDP transport based on the python 
+socket class.
 
 Functions:
-    TransportEthUdpPy() -- Unicast Ethernet UDP transport based on python
+    TransportEthIpUdpPy() -- Unicast Ethernet UDP transport based on python
         sockets
-
-Integer constants:
-    REQUESTED_BUF_SIZE -- Size of TX/RX buffer that will requested from the 
-        operating system.
 
 """
 
@@ -34,21 +30,21 @@ import re
 import time
 import socket
 
-from . import transport_eth_udp as tp
-from . import exception as wn_ex
+from . import transport_eth_ip_udp as tp
+from . import exception as ex
 
 
-__all__ = ['TransportEthUdpPy']
+__all__ = ['TransportEthIpUdpPy']
 
 
-class TransportEthUdpPy(tp.TransportEthUdp):
-    """Class for WARPNet Ethernet UDP Transport class using Python libraries.
+class TransportEthIpUdpPy(tp.TransportEthIpUdp):
+    """Class for Ethernet IP/UDP Transport class using Python libraries.
        
     Attributes:
-        See WnTransportEthUdp for all attributes
+        See TransportEthIpUdp for all attributes
     """
     def __init__(self):
-        super(TransportEthUdpPy, self).__init__()
+        super(TransportEthIpUdpPy, self).__init__()
     
     
     def send(self, payload, robust=True, pkt_type=None):
@@ -90,7 +86,7 @@ class TransportEthUdpPy(tp.TransportEthUdp):
                         transport timeout (self.timeout)
         
         NOTE:  This function will block until a response is received or a
-        timeout occurs.  If a timeout occurs, it will raise a WnTransportError
+        timeout occurs.  If a timeout occurs, it will raise a TransportError
         exception.
         """
         reply = b''
@@ -122,7 +118,7 @@ class TransportEthUdpPy(tp.TransportEthUdp):
                     received_resp = 1
             
             if ((time.time() - start_time) > timeout ) and (received_resp == 0):
-                raise wn_ex.TransportError(self, "Transport receive timed out.")
+                raise ex.TransportError(self, "Transport receive timed out.")
 
         return reply
 

@@ -373,9 +373,9 @@ def get_node_min_tx_power():
 # WLAN Exp Node Utilities
 # -----------------------------------------------------------------------------
 
-# WARPNet Type Dictionary
+# Node Type Dictionary
 #   This variable is not valid until init_nodes has been run.
-warpnet_type_dict = None
+node_type_dict = None
 
 
 
@@ -404,34 +404,34 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
         network_config (NetworkConfiguration, optional): A NetworkConfiguration object 
             describing the network configuration
         node_factory (WlanExpNodeFactory, optional):  A WlanExpNodeFactory or subclass 
-            to create nodes of a given WARPNet type
+            to create nodes of a given node type
         network_reset (bool, optional):  Issue a network reset command to the nodes to 
             initialize / re-initialize their network interface.
-        output (bool, optional):         Print output about the WARPNet nodes
+        output (bool, optional):         Print output about the nodes
     
     Returns:
         nodes (list of WlanExpNode):  
             Initialized list of WlanExpNode / sub-classes of WlanExpNode depending on the 
             hardware configuration of the WARP nodes.
     """
-    global warpnet_type_dict
+    global node_type_dict
 
     # Create a Host Configuration if there is none provided
     if network_config is None:
-        import wlan_exp.warpnet.config as wn_config
-        network_config = wn_config.NetworkConfiguration()
+        import wlan_exp.warpnet.config as config
+        network_config = config.NetworkConfiguration()
 
     # If node_factory is not defined, create a default WlanExpNodeFactory
     if node_factory is None:
         import wlan_exp.node as node
         node_factory = node.WlanExpNodeFactory(network_config)
 
-    # Record the WARPNet type dictionary from the NodeFactory for later use
-    warpnet_type_dict = node_factory.get_wn_type_dict()
+    # Record the node type dictionary from the NodeFactory for later use
+    node_type_dict = node_factory.get_type_dict()
 
-    # Use the WARPNet utility, wn_init_nodes, to initialize the nodes
-    import wlan_exp.warpnet.util as wn_util
-    return wn_util.wn_init_nodes(nodes_config, network_config, node_factory, network_reset, output)
+    # Use the utility, init_nodes, to initialize the nodes
+    import wlan_exp.warpnet.util as util
+    return util.init_nodes(nodes_config, network_config, node_factory, network_reset, output)
 
 # End def
 
@@ -511,14 +511,14 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
     Args:
         nodes (list of WlanExpNode):  List of WlanExpNode / sub-classes of WlanExpNode
         mac_high (str, int, optional):  Filter for CPU High functionality.  This value must be either
-            an integer corresponding to a WARPNet type (see wlan_exp/defaults.py for WARPNet types) 
+            an integer corresponding to a node type (see wlan_exp/defaults.py for node types) 
             or the following strings:
                 * **'AP'**   (equivalent to WLAN_EXP_HIGH_AP); 
                 * **'STA'**  (equivalent to WLAN_EXP_HIGH_STA);
                 * **'IBSS'** (equivalent to WLAN_EXP_HIGH_IBSS).
             A value of None means that no filtering will occur for CPU High Functionality
         mac_low (str, int, optional): Filter for CPU Low functionality.  This value must be either
-            an integer corresponding to a WARPNet type (see wlan_exp/defaults.py for WARPNet types) 
+            an integer corresponding to a node type (see wlan_exp/defaults.py for node types) 
             or the following strings:
                 * **'DCF'**   (equivalent to WLAN_EXP_LOW_DCF);
                 * **'NOMAC'** (equivalent to WLAN_EXP_LOW_NOMAC).
@@ -591,7 +591,7 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
 
     # Create Serial Number Filter
     if serial_number is not None:
-        import wlan_exp.warpnet.util as wn_util
+        import wlan_exp.warpnet.util as util
 
         if type(serial_number) is not list:
             serial_number = [serial_number]
@@ -600,7 +600,7 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
 
         for value in serial_number:
             try:
-                (sn, _) = wn_util.wn_get_serial_number(value)
+                (sn, _) = util.get_serial_number(value)
                 tmp_serial_number.append(sn)
             except TypeError as err:
                 print(err)
@@ -743,8 +743,8 @@ def int_to_ip(ip_address):
     Returns:
         ip_address (str):  String version of an IP address of the form W.X.Y.Z        
     """
-    import wlan_exp.warpnet.transport_eth_udp as tport
-    return tport.int_to_ip(ip_address)
+    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    return transport.int_to_ip(ip_address)
 
 # End def
 
@@ -758,8 +758,8 @@ def ip_to_int(ip_address):
     Returns:
         ip_address (int):  Unsigned 32-bit integer representation of the IP address
     """
-    import wlan_exp.warpnet.transport_eth_udp as tport
-    return tport.ip_to_int(ip_address)
+    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    return transport.ip_to_int(ip_address)
 
 # End def
 
@@ -773,8 +773,8 @@ def mac_addr_to_str(mac_address):
     Returns:
         mac_address (str):  String version of an MAC address of the form XX:XX:XX:XX:XX:XX        
     """
-    import wlan_exp.warpnet.transport_eth_udp as tport
-    return tport.mac_addr_to_str(mac_address)
+    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    return transport.mac_addr_to_str(mac_address)
 
 # End def
 
@@ -806,43 +806,43 @@ def ver_code_to_str(ver_code):
 
 
 def node_type_to_str(node_type, node_factory=None):
-    """Convert the Node WARPNet Type to a string description.
+    """Convert the Node Type to a string description.
 
     Args:
-        node_type (int):  WARPNet node type code (u32)
+        node_type (int):  node type ID (u32)
         node_factory (WlanExpNodeFactory): A WlanExpNodeFactory or subclass to 
-            create nodes of a given WARPNet type
+            create nodes of a given type
     
     Returns:
-        node_type (str):  String representation of the WARPNet node type
+        node_type (str):  String representation of the node type
 
-    By default, a dictionary of WARPNet types is built dynamically during init_nodes().  
-    If init_nodes() has not been run, then the method will try to create a WARPNet 
+    By default, a dictionary of node types is built dynamically during init_nodes().  
+    If init_nodes() has not been run, then the method will try to create a node
     type dictionary.  If a node_factory is not provided then a default WlanExpNodeFactory 
-    will be used to determine the WARPNet type.  If a default WlanExpNodeFactory is used, 
-    then only framework WARPNet types will be known and custom WARPNet types will return:  
-    "Unknown WARPNet type: <value>"
+    will be used to determine the node type.  If a default WlanExpNodeFactory is used, 
+    then only framework node types will be known and custom node types will return:  
+    "Unknown node type: <value>"
     """
-    global warpnet_type_dict
+    global node_type_dict
 
-    # Build a warpnet_type_dict if it is not present
-    if warpnet_type_dict is None:
+    # Build a node_type_dict if it is not present
+    if node_type_dict is None:
 
         # Build a default node_factory if it is not present
         if node_factory is None:
             import wlan_exp.node as node
-            import wlan_exp.warpnet.config as wn_config
+            import wlan_exp.warpnet.config as config
 
-            network_config = wn_config.NetworkConfiguration()
+            network_config = config.NetworkConfiguration()
             node_factory   = node.WlanExpNodeFactory(network_config)
 
-        # Record the WARPNet type dictionary from the NodeFactory for later use
-        warpnet_type_dict = node_factory.get_wn_type_dict()
+        # Record the node type dictionary from the NodeFactory for later use
+        node_type_dict = node_factory.get_type_dict()
 
-    if (node_type in warpnet_type_dict.keys()):
-        return warpnet_type_dict[node_type]['description']
+    if (node_type in node_type_dict.keys()):
+        return node_type_dict[node_type]['description']
     else:
-        return "Unknown WARPNet type: 0x{0:8x}".format(node_type)
+        return "Unknown node type: 0x{0:8x}".format(node_type)
 
 # End def
 
@@ -1036,22 +1036,22 @@ def _broadcast_cmd_to_nodes_helper(cmd, network_config):
 
     Attributes:
         network_config -- A NetworkConfiguration object
-        cmd            -- A wn_message.Cmd object describing the command
+        cmd            -- A message.Cmd object describing the command
     """
-    import wlan_exp.warpnet.transport_eth_udp_py_bcast as bcast
+    import wlan_exp.warpnet.transport_eth_ip_udp_py_broadcast as broadcast
 
     # Get information out of the NetworkConfiguration
     tx_buf_size  = network_config.get_param('tx_buffer_size')
     rx_buf_size  = network_config.get_param('rx_buffer_size')
 
     # Create broadcast transport and send message
-    transport_bcast = bcast.TransportEthUdpPyBcast(network_config);
+    transport_broadcast = broadcast.TransportEthIpUdpPyBroadcast(network_config);
 
-    transport_bcast.wn_open(tx_buf_size, rx_buf_size)
+    transport_broadcast.transport_open(tx_buf_size, rx_buf_size)
 
-    transport_bcast.send(payload=cmd.serialize())
+    transport_broadcast.send(payload=cmd.serialize())
 
-    transport_bcast.wn_close()
+    transport_broadcast.transport_close()
 
 # End def
 

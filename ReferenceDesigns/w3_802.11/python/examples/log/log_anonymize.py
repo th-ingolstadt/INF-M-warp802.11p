@@ -7,7 +7,7 @@ License:   Copyright 2014-2015, Mango Communications. All rights reserved.
 ------------------------------------------------------------------------------
 This script uses the WLAN Exp Log framework to anonymize a given hdf5
 log file that contains data assocated with an experiment utilizing the
-802.11 reference design and WARPNet.
+802.11 reference design and WLAN Exp.
 
 Hardware Setup:
     - None.  Anonymizing log data can be done completely off-line
@@ -26,7 +26,7 @@ Description:
             - IP v6 Multicast Address (33-33-xx-xx-xx-xx)
             - WARP node (40-D8-55-04-2x-xx-xx)
         - Any payloads from transmissions / receptions
-        - Any WARPNet commands
+        - Any commands
         - Hostnames in the station info
 ------------------------------------------------------------------------------
 """
@@ -293,12 +293,12 @@ def log_anonymize(filename):
     except KeyError:
         pass
 
-    print("    Remove all WN_CMD_INFO entries")
+    print("    Remove all CMD_INFO entries")
 
-    # WARPNet Command info entries contain command arguments that could possibly
+    # Command info entries contain command arguments that could possibly
     #   contain sensitive information.  Replace with NULL entries.
     try:
-        log_util.overwrite_entries_with_null_entry(log_bytes, log_index['WN_CMD_INFO'])
+        log_util.overwrite_entries_with_null_entry(log_bytes, log_index['CMD_INFO'])
     except:
         pass
 

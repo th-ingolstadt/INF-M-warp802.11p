@@ -5,7 +5,7 @@ Mango 802.11 Reference Design - Experiments Framework - Print Tx/Rx Stats
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This module provides a simple WARPNet example.
+This module provides a simple WLAN Exp example.
 
 Hardware Setup:
   - Requires 1+ WARP v3 node running 802.11 Reference Design v0.895 or later
@@ -23,11 +23,9 @@ then for each AP, it will get the associations and counts and display them.
 # Import Python modules
 import time
 
-# Import WARPNet Framework
-import wlan_exp.config as config
-
 # Import WLAN Exp Framework
-import wlan_exp.util as wlan_exp_util
+import wlan_exp.config as config
+import wlan_exp.util as util
 
 # TOP Level script variables
 NETWORK                = '10.0.0.0'
@@ -48,7 +46,7 @@ def initialize_experiment():
     #   This describes the netwokr configuration.
     network_config = config.WlanExpNetworkConfiguration(network=NETWORK)
 
-    # Create a WnNodesConfiguration
+    # Create a NodesConfiguration
     #   This describes each node to be initialized
     nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
                                                       serial_numbers=NODE_SERIAL_LIST)
@@ -56,10 +54,10 @@ def initialize_experiment():
     # Initialize the Nodes
     #   This will initialize all of the networking and gather the necessary
     #   information to control and communicate with the nodes
-    nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
+    nodes = util.init_nodes(nodes_config, network_config)
 
     # Initialize the time on all nodes to zero
-    wlan_exp_util.broadcast_cmd_set_time(0.0, network_config)
+    util.broadcast_cmd_set_time(0.0, network_config)
 
     # Set the promiscuous counts mode
     for node in nodes:

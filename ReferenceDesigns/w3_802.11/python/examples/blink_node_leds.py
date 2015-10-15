@@ -25,14 +25,14 @@ network.  This is useful to test connectivity regardless of further network
 segmentation during the experiment.
 ------------------------------------------------------------------------------
 """
-import wlan_exp.warpnet.config as wn_config
-import wlan_exp.warpnet.util as wn_util
+import wlan_exp.warpnet.config as config
+import wlan_exp.warpnet.util as util
 
 # NOTE: change these values to match your experiment setup
 NETWORK = '10.0.0.0'
 
 # Create the network configuration
-network_config = wn_config.NetworkConfiguration(network=NETWORK)
+network_config = config.NetworkConfiguration(network=NETWORK)
 
 # Issue identify all command on the network
-wn_util.wn_identify_all_nodes(network_config)
+util.identify_all_nodes(network_config)

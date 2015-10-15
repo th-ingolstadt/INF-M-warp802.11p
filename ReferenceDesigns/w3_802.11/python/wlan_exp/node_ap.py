@@ -29,8 +29,8 @@ class WlanExpNodeAp(node.WlanExpNode):
     """802.11 Access Point (AP) functionality for a WLAN Experiment node.
     
     Args:
-        network_config (warpnet.NetworkConfiguration): Network configuration of the node
-        mac_type (int):                                CPU Low MAC type
+        network_config (transport.NetworkConfiguration) : Network configuration of the node
+        mac_type (int)                                  : CPU Low MAC type
     """
 
     #-------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Transport - Ethernet UDP base class
+Transport - Ethernet IP/UDP base class
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,7 +17,7 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides the base class for WARPNet Ethernet UDP transports.
+This module provides the base class for Ethernet IP/UDP transports.
 
 Functions:
     TransportEthUdp() -- Base class for Ethernet UDP transports
@@ -33,29 +33,29 @@ import errno
 import socket
 from socket import error as socket_error
 
-from . import message as wn_message
-from . import exception as wn_ex
+from . import message
+from . import exception as ex
 from . import transport as tp
 
 
-__all__ = ['TransportEthUdp']
+__all__ = ['TransportEthIpUdp']
 
 
-class TransportEthUdp(tp.Transport):
-    """Base Class for WARPNet Ethernet UDP Transport class.
+class TransportEthIpUdp(tp.Transport):
+    """Base Class for Ethernet IP/UDP Transport class.
        
     Attributes:
-        timeout-- Maximum time spent waiting before retransmission
-        transport_type -- Unique type of the WARPNet transport
-        sock -- UDP socket
-        status -- Status of the UDP socket
-        max_payload -- Maximum payload size (eg. MTU - ETH/IP/UDP headers)
+        timeout        -- Maximum time spent waiting before retransmission
+        transport_type -- Unique type of the transport
+        sock           -- UDP socket
+        status         -- Status of the UDP socket
+        max_payload    -- Maximum payload size (eg. MTU - ETH/IP/UDP headers)
         
-        mac_address -- Node's MAC address
-        ip_address -- IP address of destination
-        unicast_port -- Unicast port of destination
-        bcast_port -- Broadcast port of destination
-        group_id -- Group ID of the node attached to the transport
+        mac_address    -- Node's MAC address
+        ip_address     -- IP address of destination
+        unicast_port   -- Unicast port of destination
+        broadcast_port -- Broadcast port of destination
+        group_id       -- Group ID of the node attached to the transport
         rx_buffer_size -- OS's receive buffer size (in bytes)        
         tx_buffer_size -- OS's transmit buffer size (in bytes)        
     """
@@ -68,13 +68,13 @@ class TransportEthUdp(tp.Transport):
     mac_address     = None
     ip_address      = None
     unicast_port    = None
-    bcast_port      = None
+    broadcast_port  = None
     group_id        = None
     rx_buffer_size  = None
     tx_buffer_size  = None
     
     def __init__(self):
-        self.hdr = wn_message.TransportHeader()
+        self.hdr = message.TransportHeader()
         self.status = 0
         self.timeout = 1
         self.max_payload = 1000   # Sane default.  Overwritten by payload test.
@@ -83,7 +83,7 @@ class TransportEthUdp(tp.Transport):
 
     def __del__(self):
         """Closes any open sockets"""
-        self.wn_close()
+        self.transport_close()
 
     def __repr__(self):
         """Return transport IP address and Ethernet MAC address"""
@@ -95,25 +95,25 @@ class TransportEthUdp(tp.Transport):
         """Check the setup of the transport."""
         pass
 
-    def set_max_payload(self, value):  self.max_payload = value
-    def set_ip_address(self, value):   self.ip_address = value
-    def set_mac_address(self, value):  self.mac_address = value
-    def set_unicast_port(self, value): self.unicast_port = value
-    def set_bcast_port(self, value):   self.bcast_port = value
-    def set_src_id(self, value):       self.hdr.set_src_id(value)
-    def set_dest_id(self, value):      self.hdr.set_dest_id(value)
+    def set_max_payload(self, value):    self.max_payload = value
+    def set_ip_address(self, value):     self.ip_address = value
+    def set_mac_address(self, value):    self.mac_address = value
+    def set_unicast_port(self, value):   self.unicast_port = value
+    def set_broadcast_port(self, value): self.broadcast_port = value
+    def set_src_id(self, value):         self.hdr.set_src_id(value)
+    def set_dest_id(self, value):        self.hdr.set_dest_id(value)
 
-    def get_max_payload(self):         return self.max_payload
-    def get_ip_address(self):          return self.ip_address
-    def get_mac_address(self):         return self.mac_address
-    def get_unicast_port(self):        return self.unicast_port
-    def get_bcast_port(self):          return self.bcast_port
-    def get_src_id(self):              return self.hdr.get_src_id()
-    def get_dest_id(self):             return self.hdr.get_dest_id()
+    def get_max_payload(self):           return self.max_payload
+    def get_ip_address(self):            return self.ip_address
+    def get_mac_address(self):           return self.mac_address
+    def get_unicast_port(self):          return self.unicast_port
+    def get_broadcast_port(self):        return self.broadcast_port
+    def get_src_id(self):                return self.hdr.get_src_id()
+    def get_dest_id(self):               return self.hdr.get_dest_id()
 
 
-    def wn_open(self, tx_buf_size=None, rx_buf_size=None):
-        """Opens an Ethernet UDP socket.""" 
+    def transport_open(self, tx_buf_size=None, rx_buf_size=None):
+        """Opens an Ethernet IP/UDP socket.""" 
         self.sock = socket.socket(socket.AF_INET,       # Internet
                                   socket.SOCK_DGRAM);   # UDP
         
@@ -152,8 +152,8 @@ class TransportEthUdp(tp.Transport):
             print(msg)
 
 
-    def wn_close(self):
-        """Closes an Ethernet UDP socket."""
+    def transport_close(self):
+        """Closes an Ethernet IP/UDP socket."""
         if self.sock:
             try:
                 self.sock.close()
@@ -176,17 +176,17 @@ class TransportEthUdp(tp.Transport):
 
 
     # -------------------------------------------------------------------------
-    # WARPNet Commands for the Transport
+    # Commands for the Transport
     # -------------------------------------------------------------------------
     def ping(self, node, output=False):
         """Issues a ping command to the given node.
         
         Will optionally print the result of the ping.
         """
-        from . import cmds as wn_cmds
+        from . import cmds
 
         start_time = time.clock()
-        node.send_cmd(wn_cmds.Ping())
+        node.send_cmd(cmds.TransportPing())
         end_time = time.clock()
         
         if output:
@@ -197,7 +197,7 @@ class TransportEthUdp(tp.Transport):
     
     def test_payload_size(self, node, jumbo_frame_support=False):
         """Determines the object's max_payload parameter."""
-        from . import cmds as wn_cmds
+        from . import cmds
 
         if jumbo_frame_support:
             payload_test_sizes = [1000, 1470, 5000, 8966]
@@ -205,35 +205,35 @@ class TransportEthUdp(tp.Transport):
             payload_test_sizes = [1000, 1470]
         
         for size in payload_test_sizes:
-            cmd_size    = wn_message.Cmd().sizeof()
+            cmd_size    = message.Cmd().sizeof()
             my_arg_size = (size - (self.hdr.sizeof() + cmd_size + 4)) // 4
  
             try:
-                resp = node.send_cmd(wn_cmds.TestPayloadSize(my_arg_size))
+                resp = node.send_cmd(cmds.TransportTestPayloadSize(my_arg_size))
                 self.set_max_payload(resp)
                 
                 if (self.get_max_payload() < (4*my_arg_size)):
                     # If the node received a smaller payload, then break
                     break
-            except wn_ex.TransportError:
+            except ex.TransportError:
                 # If there was a transmission error, then break
                 break
 
     
     def add_node_group_id(self, node, group):
-        from . import cmds as wn_cmds
+        from . import cmds
 
-        node.send_cmd(wn_cmds.AddNodeGrpId(group))
+        node.send_cmd(cmds.TransportAddNodeGroupId(group))
 
     
     def clear_node_group_id(self, node, group):
-        from . import cmds as wn_cmds
+        from . import cmds
 
-        node.send_cmd(wn_cmds.ClearNodeGrpId(group))
+        node.send_cmd(cmds.TransportClearNodeGroupId(group))
 
 
     # -------------------------------------------------------------------------
-    # WARPNet Parameter Framework
+    # Transport Parameter Framework
     #   Allows for processing of hardware parameters
     # -------------------------------------------------------------------------
     def process_parameter(self, identifier, length, values):
@@ -243,40 +243,40 @@ class TransportEthUdp(tp.Transport):
                 self.transport_type  = (values[0] & 0xFFFF)
                 self.node_eth_device = node_eth_device_to_str((values[0] >> 16) & 0xFFFF)
             else:
-                raise wn_ex.ParameterError("TRANSPORT_TYPE", "Incorrect length")
+                raise ex.ParameterError("TRANSPORT_TYPE", "Incorrect length")
                 
         elif (identifier == tp.TRANSPORT_HW_ADDR):
             if (length == 2):
                 self.mac_address = ((2**32) * (values[0] & 0xFFFF) + values[1])
             else:
-                raise wn_ex.ParameterError("TRANSPORT_HW_ADDR", "Incorrect length")
+                raise ex.ParameterError("TRANSPORT_HW_ADDR", "Incorrect length")
                 
         elif (identifier == tp.TRANSPORT_IP_ADDR):
             if (length == 1):
                 self.ip_address = self.int_to_ip(values[0])
             else:
-                raise wn_ex.ParameterError("TRANSPORT_IP_ADDR", "Incorrect length")
+                raise ex.ParameterError("TRANSPORT_IP_ADDR", "Incorrect length")
                 
-        elif (identifier == tp.TRANSPORT_GRP_ID):
+        elif (identifier == tp.TRANSPORT_GROUP_ID):
             if (length == 1):
                 self.group_id = values[0]
             else:
-                raise wn_ex.ParameterError("TRANSPORT_GRP_ID", "Incorrect length")
+                raise ex.ParameterError("TRANSPORT_GROUP_ID", "Incorrect length")
                 
         elif (identifier == tp.TRANSPORT_UNICAST_PORT):
             if (length == 1):
                 self.unicast_port = values[0]
             else:
-                raise wn_ex.ParameterError("TRANSPORT_UNICAST_PORT", "Incorrect length")
+                raise ex.ParameterError("TRANSPORT_UNICAST_PORT", "Incorrect length")
                 
-        elif (identifier == tp.TRANSPORT_BCAST_PORT):
+        elif (identifier == tp.TRANSPORT_BROADCAST_PORT):
             if (length == 1):
-                self.bcast_port = values[0]
+                self.broadcast_port = values[0]
             else:
-                raise wn_ex.ParameterError("TRANSPORT_BCAST_PORT", "Incorrect length")
+                raise ex.ParameterError("TRANSPORT_BROADCAST_PORT", "Incorrect length")
                 
         else:
-            raise wn_ex.ParameterError(identifier, "Unknown transport parameter")
+            raise ex.ParameterError(identifier, "Unknown transport parameter")
 
 
     # -------------------------------------------------------------------------
@@ -297,7 +297,7 @@ class TransportEthUdp(tp.Transport):
             msg += "    MAC address   :  {0}\n".format(self.mac_addr_to_str(self.mac_address)) 
             msg += "    Max payload   :  {0}\n".format(self.max_payload)
             msg += "    Unicast port  :  {0}\n".format(self.unicast_port)
-            msg += "    Broadcast port:  {0}\n".format(self.bcast_port)
+            msg += "    Broadcast port:  {0}\n".format(self.broadcast_port)
             msg += "    Timeout       :  {0}\n".format(self.timeout)
             msg += "    Rx Buffer Size:  {0}\n".format(self.rx_buffer_size)
             msg += "    Tx Buffer Size:  {0}\n".format(self.tx_buffer_size)
@@ -360,8 +360,8 @@ def mac_addr_to_str(mac_address):
 
 
 def transport_type_to_str(transport_type):
-    if (transport_type == tp.TRANSPORT_TYPE_UDP):
-        return "UDP"
+    if (transport_type == tp.TRANSPORT_TYPE_IP_UDP):
+        return "IP/UDP"
     else:
         return "Type Undefined"
     

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Transport - Broadcast Ethernet UDP Python Socket Implementation
+Transport - Broadcast Ethernet IP/UDP Python Socket Implementation
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,63 +17,59 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides the WARPNet broadcast Ethernet UDP transport based on 
-the python socket class.
+This module provides the broadcast Ethernet IP/UDP transport based on the 
+python socket class.
 
 Functions:
     TransportEthUdpPyBcast() -- Broadcast Ethernet UDP transport based on 
         python sockets
 
-Integer constants:
-    REQUESTED_BUF_SIZE -- Size of TX/RX buffer that will requested from the 
-        operating system.
-
 """
 
 import re
 
-from . import transport_eth_udp as tp
+from . import transport_eth_ip_udp as tp
 
 
-__all__ = ['TransportEthUdpPyBcast']
+__all__ = ['TransportEthIpUdpPyBroadcast']
 
 
-class TransportEthUdpPyBcast(tp.TransportEthUdp):
-    """Class for WARPNet Ethernet UDP Broadcast Transport class using Python libraries.
+class TransportEthIpUdpPyBroadcast(tp.TransportEthIpUdp):
+    """Class for Ethernet IP/UDP Broadcast Transport class using Python libraries.
        
     Attributes:
-        See TransportEthUdp for attributes
+        See TransportEthIpUdp for attributes
         network_config -- A NetworkConfiguration that describes the transport configuration.
     
-    The transport will send packets to 
-    of the first host interface as the subnet for the broadcast address.
+    The transport will send packets to the first host interface as the subnet 
+    for the broadcast address.
     """
     network_config = None
     
     def __init__(self, network_config=None):
-        super(TransportEthUdpPyBcast, self).__init__()
+        super(TransportEthIpUdpPyBroadcast, self).__init__()
 
         if network_config is not None:
             self.network_config = network_config
         else:
-            from . import config as wn_config
+            from . import config
 
-            self.network_config = wn_config.NetworkConfiguration()
+            self.network_config = config.NetworkConfiguration()
         
         self.set_default_config()
 
         
     def set_default_config(self):
         """Set the default configuration of a Broadcast transport."""
-        unicast_port = self.network_config.get_param('unicast_port')
-        bcast_port   = self.network_config.get_param('bcast_port')
-        host_id      = self.network_config.get_param('host_id')
-        bcast_addr   = self.network_config.get_param('bcast_address')
+        unicast_port   = self.network_config.get_param('unicast_port')
+        broadcast_port = self.network_config.get_param('broadcast_port')
+        host_id        = self.network_config.get_param('host_id')
+        broadcast_addr = self.network_config.get_param('broadcast_address')
         
         # Set default values of the Transport
-        self.set_ip_address(bcast_addr)
+        self.set_ip_address(broadcast_addr)
         self.set_unicast_port(unicast_port)
-        self.set_bcast_port(bcast_port)
+        self.set_broadcast_port(broadcast_port)
         self.set_src_id(host_id)
         self.set_dest_id(0xFFFF)
         self.timeout = 1
@@ -109,7 +105,7 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
 
         data = bytes(b'\x00\x00' + self.hdr.serialize() + payload)
         
-        size = self.sock.sendto(data, (self.ip_address, self.bcast_port))
+        size = self.sock.sendto(data, (self.ip_address, self.broadcast_port))
         
         if size != len(data):
             print("Only {} of {} bytes of data sent".format(size, len(data)))
@@ -117,7 +113,7 @@ class TransportEthUdpPyBcast(tp.TransportEthUdp):
 
     def receive(self, timeout=None):
         """Not used on a broadcast transport"""
-        super(TransportEthUdpPyBcast, self).receive()
+        super(TransportEthIpUdpPyBroadcast, self).receive()
 
 
 # End Class

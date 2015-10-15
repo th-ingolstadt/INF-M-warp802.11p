@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Messages
+Messages
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,33 +17,37 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides class definitions for all WARPNet over-the-wire 
-messages.
+This module provides class definitions for all over-the-wire messages.
 
 Functions (see below for more information):
-    TransportHeader() -- WARPNet Transport Header
-    Cmd() -- Base class for WARPNet Commands the require WnResp responses
-    BufferCmd() -- Base class for WARPNet Commands that require WnBuffer responses
-    Resp() -- WARPNet responses (single packet)
-    Buffer() -- WARPNet responses (multiple packets)
+    TransportHeader() -- Transport Header to describe message contents
+    Cmd()             -- Base class for commands the require responses
+    BufferCmd()       -- Base class for commands that require buffer responses
+    Resp()            -- Base class for responses (single packet)
+    Buffer()          -- Base class for responses (multiple packets)
 
 Integer constants:
-    PKTTYPE_TRIGGER, PKTTYPE_HTON_MSG, PKTTYPE_NTOH_MSG, PKTTYPE_NTOH_MSG_ASYNC
-      - Transport Header Packet Types
+    PKT_TYPE_TRIGGER, PKT_TYPE_HTON_MSG, PKT_TYPE_NTOH_MSG, 
+        PKT_TYPE_NTOH_MSG_ASYNC   -- Transport Header Packet Types
 
 """
 
 import struct
 
-from . import transport as wn_transport
+from . import transport
 
 __all__ = ['TransportHeader', 'Cmd', 'BufferCmd', 'Resp', 'Buffer']
 
 # Transport Header defines
-PKTTYPE_TRIGGER                        = 0
-PKTTYPE_HTON_MSG                       = 1
-PKTTYPE_NTOH_MSG                       = 2
-PKTTYPE_NTOH_MSG_ASYNC                 = 3
+#   NOTE:  The C counterparts are found in *_transport.h
+#   NOTE:  For brevity, "HTON" stands for "Host to Node" and "NTOH" stands
+#       for "Node to Host", where the node is the WARP hardware and the host
+#       is the computer running the WLAN Exp Python framework.
+#
+PKT_TYPE_TRIGGER                       = 0
+PKT_TYPE_HTON_MSG                      = 1
+PKT_TYPE_NTOH_MSG                      = 2
+PKT_TYPE_NTOH_MSG_ASYNC                = 3
 
 
 # Buffer Command defines
@@ -52,7 +56,7 @@ CMD_BUFFER_GET_SIZE_FROM_DATA          = 0xFFFFFFFF
 
 
 class Message(object):
-    """Base class for WARPNet messages.
+    """Base class for messages to / from WARP hardware.
     
     Attributes:
         const   -- Dictionary of constants
@@ -85,7 +89,7 @@ class Message(object):
 
 
 class TransportHeader(Message):
-    """Class for WARPNet transport header.
+    """Class for Transport Header describing message contents.
     
     Attributes:
         dest_id  -- (uint16) Destination ID of the message
@@ -98,7 +102,7 @@ class TransportHeader(Message):
     """
     
     def __init__(self, dest_id=0, src_id=0, reserved=0, 
-                 pkt_type=PKTTYPE_HTON_MSG, length=0, seq_num=0, flags=0):
+                 pkt_type=PKT_TYPE_HTON_MSG, length=0, seq_num=0, flags=0):
         super(TransportHeader, self).__init__()
         self.dest_id = dest_id
         self.src_id = src_id
@@ -138,19 +142,19 @@ class TransportHeader(Message):
         pkt_type = pkt_type.lower()
 
         if   (pkt_type == 'trigger'):
-            self.pkt_type = PKTTYPE_TRIGGER
+            self.pkt_type = PKT_TYPE_TRIGGER
         elif (pkt_type == 'message'):
-            self.pkt_type = PKTTYPE_HTON_MSG
+            self.pkt_type = PKT_TYPE_HTON_MSG
         else:
             print("Uknown packet type: {}".format(pkt_type))
 
-    def set_length(self, value):    self.length = value        
-    def set_src_id(self, value):    self.src_id = value
-    def set_dest_id(self, value):   self.dest_id = value
+    def set_length(self, value):  self.length = value        
+    def set_src_id(self, value):  self.src_id = value
+    def set_dest_id(self, value): self.dest_id = value
 
-    def get_length(self):            return self.length
-    def get_src_id(self):            return self.src_id
-    def get_dest_id(self):           return self.dest_id
+    def get_length(self):         return self.length
+    def get_src_id(self):         return self.src_id
+    def get_dest_id(self):        return self.dest_id
         
     def response_required(self):
         """Sets bit 0 of the flags since a response is required."""
@@ -190,20 +194,20 @@ class TransportHeader(Message):
             else:
                 return True
         else:
-            raise TypeError(str("WnTransportHeader:  length of header " +
+            raise TypeError(str("TransportHeader:  length of header " +
                                 "did not match size of transport header"))
 
 # End Class
 
 
 class CmdRespMessage(Message):
-    """Base class for WARPNet command / response messages.
+    """Base class for command / response messages.
     
     Attributes:
-        command -- (uint32) WARPNet command / response
-        length -- (uint16) Length of the cmd / resp args in bytes
+        command  -- (uint32) ID of the command / response
+        length   -- (uint16) Length of the cmd / resp arguments (args) in bytes
         num_args -- (uint16) Number of uint32 arguments
-        args -- (list of uint32) Arguments of the command / reponse
+        args     -- (list of uint32) Arguments of the command / reponse
     """
     command   = None
     length    = None
@@ -235,7 +239,7 @@ class CmdRespMessage(Message):
                                
 
     def deserialize(self, data_buffer):
-        """Populate the fields of a WnCmdResp from a buffer."""
+        """Populate the fields of a CmdRespMessage from a buffer."""
         try:
             dataTuple = struct.unpack('!I 2H', data_buffer[0:8])
             self.command = dataTuple[0]
@@ -247,7 +251,7 @@ class CmdRespMessage(Message):
         except struct.error as err:
             # Reset Cmd/Resp.  We want predictable behavior on error
             self.reset()
-            print("Error unpacking WARPNet cmd/resp: {0}".format(err))
+            print("Error unpacking cmd/resp: {0}".format(err))
     
     def get_bytes(self):
         """Returns the data buffer as bytes."""
@@ -261,7 +265,7 @@ class CmdRespMessage(Message):
             return struct.calcsize('!I 2H %dI' % self.num_args)
 
     def reset(self):
-        """Reset the WnCmdResp object to a default state (all zeros)"""
+        """Reset the CmdRespMessage object to a default state (all zeros)"""
         self.command = 0
         self.length = 0
         self.num_args = 0
@@ -271,21 +275,21 @@ class CmdRespMessage(Message):
 
 
 class Cmd(CmdRespMessage):
-    """Base Class for WARPNet commands.
+    """Base class for commands.
 
     Attributes:
-        resp_type -- Response type of the command.  See WARPNet transport
-            for defined response types.  By default, a WnCmd will require
-            a WnResp as a response.
+        resp_type -- Response type of the command.  See transport documentation
+            for defined response types.  By default, a Cmd will require a Resp 
+            as a response.
 
-    See documentation of WnCmdResp for additional attributes
+    See documentation of CmdRespMessage for additional attributes
     """
     resp_type = None
     
     def __init__(self, command=0, length=0, num_args=0, 
                  args=None, resp_type=None):
         super(Cmd, self).__init__(command, length, num_args, args)
-        self.resp_type = resp_type or wn_transport.TRANSPORT_WN_RESP
+        self.resp_type = resp_type or transport.TRANSPORT_RESP
     
     def set_args(self, *args):
         """Set the command arguments."""
@@ -296,8 +300,8 @@ class Cmd(CmdRespMessage):
     def add_args(self, *args):
         """Append arguments to current command argument list.
         
-        NOTE: since the transport only operates on unsigned 32 bit integers, we 
-        will convert all values to 32 bit unsigned integers.        
+        NOTE: Since the transport only operates on unsigned 32 bit integers, 
+        the command will convert all values to 32 bit unsigned integers.        
         """
         import ctypes
 
@@ -313,14 +317,14 @@ class Cmd(CmdRespMessage):
         return self.resp_type
 
     def process_resp(self, resp):
-        """Process the response of the WARPNet command."""
+        """Process the response of the command."""
         raise NotImplementedError
 
     def __str__(self):
-        """Pretty print the WnCommand"""
+        """Pretty print the Command"""
         msg = ""
         if self.command is not None:
-            msg += "WARPNet Command [{0:d}] ".format(self.command)
+            msg += "Command [{0:d}] ".format(self.command)
             msg += "({0:d} bytes): \n".format(self.length)
             
             if (self.num_args > 0):
@@ -333,7 +337,7 @@ class Cmd(CmdRespMessage):
 
 
 class BufferCmd(CmdRespMessage):
-    """Base Class for WARPNet Buffer commands.
+    """Base Class for Buffer commands.
 
     Arguments:
         buffer_id  -- (uint32) ID of buffer for this message.
@@ -343,9 +347,9 @@ class BufferCmd(CmdRespMessage):
                           - Reserved value:  CMD_BUFFER_GET_SIZE_FROM_DATA
 
     Attributes:
-        resp_type -- Response type of the command.  See WARPNet transport
+        resp_type -- Response type of the command.  See transport documentation
             for defined response types.  By default, a BufferCmd will require
-            a WnBuffer as a repsonse.
+            a Buffer as a repsonse.
 
     Note:  The wire format of a Buffer command is:
         Word[0]     -- buffer id
@@ -356,7 +360,7 @@ class BufferCmd(CmdRespMessage):
     
     To add additional arguments to a BufferCmd, use the add_args() method.
 
-    See documentation of WnCmdResp for additional attributes
+    See documentation of CmdRespMessage for additional attributes
     """
     resp_type  = None
     buffer_id  = None
@@ -368,7 +372,7 @@ class BufferCmd(CmdRespMessage):
         super(BufferCmd, self).__init__(command=command, length=16, num_args=4,
                                         args=[buffer_id, flags, start_byte, size])
 
-        self.resp_type  = wn_transport.TRANSPORT_WN_BUFFER
+        self.resp_type  = transport.TRANSPORT_BUFFER
         self.buffer_id  = buffer_id
         self.flags      = flags
         self.start_byte = start_byte
@@ -394,8 +398,8 @@ class BufferCmd(CmdRespMessage):
     def add_args(self, *args):
         """Append arguments to current command argument list.
         
-        NOTE: since the transport only operates on unsigned 32 bit integers, we 
-        will convert all values to 32 bit unsigned integers.        
+        NOTE: Since the transport only operates on unsigned 32 bit integers, 
+        the command will convert all values to 32 bit unsigned integers.        
         """
         import ctypes
 
@@ -408,14 +412,14 @@ class BufferCmd(CmdRespMessage):
         self.length += len(args) * 4
 
     def process_resp(self, resp):
-        """Process the response of the WARPNet command."""
+        """Process the response of the command."""
         raise NotImplementedError
 
     def __str__(self):
-        """Pretty print the WnCommand"""
+        """Pretty print the Command"""
         msg = ""
         if self.command is not None:
-            msg += "WARPNet Buffer Command [{0:d}] ".format(self.command)
+            msg += "Buffer Command [{0:d}] ".format(self.command)
             msg += "({0:d} bytes): \n".format(self.length)
             
             if (self.num_args > 0):
@@ -428,9 +432,12 @@ class BufferCmd(CmdRespMessage):
 
 
 class Resp(CmdRespMessage):
-    """Class for WARPNet responses.
+    """Class for responses.
+
+    This class is used if a command will return at most a single Ethernet 
+    packet of data from the node.
     
-    See documentation of WnCmdResp for attributes
+    See documentation of CmdRespMessage for attributes
     """
     def get_args(self):
         """Return the response arguments."""
@@ -484,10 +491,10 @@ class Resp(CmdRespMessage):
                 
 
     def __str__(self):
-        """Pretty print the WnResponse"""
+        """Pretty print the Response"""
         msg = ""
         if self.command is not None:
-            msg += "WARPNet Response [{0:d}] ".format(self.command)
+            msg += "Response [{0:d}] ".format(self.command)
             msg += "({0:d} bytes): \n".format(self.length)
             
             if (self.num_args > 0):
@@ -500,10 +507,11 @@ class Resp(CmdRespMessage):
 
 
 class Buffer(Message):
-    """Class for WARPNet buffer for transferring generic information.
+    """Class for buffer for transferring generic information.
     
-    This object provides a container to transfer information that will be
-    decoded by higher level functions.
+    This class is used if a command will return one or more Ethernet packets
+    of data from the node.  This object provides a container to transfer 
+    information that will be decoded by higher level functions.
 
     Attributes:
         complete   -- Flag to indicate if buffer contains all of the bytes
@@ -512,7 +520,7 @@ class Buffer(Message):
         num_bytes  -- Number of bytes currently contained within the buffer
 
     Wire Data Format:
-        command         -- (uint32) WARPNet command / response
+        command         -- (uint32) command / response ID
         length          -- (uint16) Length of the cmd / resp args in bytes
         num_args        -- (uint16) Number of uint32 arguments
         buffer_id       -- (uint32) ID of buffer for this message.
@@ -566,7 +574,7 @@ class Buffer(Message):
 
 
     def deserialize(self, data_buffer):
-        """Populate the fields of a WnBuffer with a message raw_data."""
+        """Populate the fields of a Buffer with a message raw_data."""
         (args, data) = self._unpack_data(data_buffer) 
                 
         self.buffer_id  = args[3]
@@ -582,8 +590,8 @@ class Buffer(Message):
 
 
     def add_data_to_buffer(self, raw_data):
-        """Add the raw data (with the format of a WnBuffer) to the current
-        WnBuffer.
+        """Add the raw data (with the format of a Buffer) to the current
+        Buffer.
         
         Note:  This will check to make sure that data is for the given buffer
         as well as place it in the appropriate place indicated by the
@@ -606,37 +614,37 @@ class Buffer(Message):
             self.set_flags(flags)
             
         else:
-            print("Data not intended for given WARPNet buffer.  Ignoring.")
+            print("Data not intended for given Buffer.  Ignoring.")
 
 
-    def append(self, wn_buffer):
-        """Append the contents of the provided WnBuffer to the current WnBuffer."""
+    def append(self, buffer):
+        """Append the contents of the provided Buffer to the current Buffer."""
         curr_size = self.size
-        new_size = curr_size + wn_buffer.get_buffer_size()
+        new_size = curr_size + buffer.get_buffer_size()
         
         self._update_buffer_size(new_size, force=1)
-        self._add_buffer_data(curr_size, wn_buffer.get_bytes())
+        self._add_buffer_data(curr_size, buffer.get_bytes())
         self._set_buffer_complete()
 
 
-    def merge(self, wn_buffer):
-        """Merge the contents of the provided WnBuffer to the current WnBuffer."""
-        start_byte = wn_buffer.get_start_byte()
+    def merge(self, buffer):
+        """Merge the contents of the provided Buffer to the current Buffer."""
+        start_byte = buffer.get_start_byte()
         offset     = (start_byte - self.start_byte)
-        size       = wn_buffer.get_buffer_size()
+        size       = buffer.get_buffer_size()
         end_byte   = offset + size
         
         if (end_byte > self.size):
             # Need to update the buffer to allocate more memory first
             self._update_buffer_size(end_byte, force=1)
 
-        self._add_buffer_data(offset, wn_buffer.get_bytes())
+        self._add_buffer_data(offset, buffer.get_bytes())
         self._set_buffer_complete()
             
 
 
     def trim(self):
-        """Trim the buffer to the largest contiguous number of bytes received."""
+        """Trim the Buffer to the largest contiguous number of bytes received."""
         locations = self.get_missing_byte_locations()
         
         if locations:
@@ -652,7 +660,7 @@ class Buffer(Message):
 
 
     def sizeof(self):
-        """Return the size of the buffer including all attributes."""
+        """Return the size of the Buffer including all attributes."""
         return struct.calcsize('!5I %dB' % self.size)
 
     def get_buffer_id(self):           return self.buffer_id
@@ -671,13 +679,13 @@ class Buffer(Message):
         self.flags = self.flags & ~flags
 
     def set_bytes(self, data_buffer):
-        """Set the message bytes of the buffer."""
+        """Set the message bytes of the Buffer."""
         self._update_buffer_size(len(data_buffer), force=1)
         self._add_buffer_data(0, data_buffer)
         self._set_buffer_complete()
 
     def get_bytes(self):
-        """Return the message bytes of the buffer."""
+        """Return the message bytes of the Buffer."""
         return self.buffer
 
     def get_missing_byte_locations(self):
@@ -690,21 +698,21 @@ class Buffer(Message):
             return []
 
     def is_buffer_complete(self):
-        """Return if the buffer is complete."""
+        """Return if the Buffer is complete."""
         return self.complete
 
     def reset(self):
-        """Reset the WnBuffer object to a default state (all zeros)"""
+        """Reset the Buffer object to a default state (all zeros)"""
         self.buffer_id = 0
         self.flags     = 0
         self.size      = 0
         self.buffer    = bytearray(self.size)
 
     def __str__(self):
-        """Pretty print the WnBuffer"""
+        """Pretty print the Buffer"""
         msg = ""
         if self.buffer is not None:
-            msg += "WARPNet Buffer [{0:d}] ".format(self.buffer_id)
+            msg += "Buffer [{0:d}] ".format(self.buffer_id)
             msg += "({0:d} bytes): \n".format(self.size)
             msg += "    Flags    : 0x{0:08x} \n".format(self.flags)
             msg += "    Start    : {0:d}\n".format(self.start_byte)
@@ -735,7 +743,7 @@ class Buffer(Message):
             data = struct.unpack_from('!%dB' % size, raw_data, offset=28)
         except struct.error as err:
             # Ignore the data.  We want predictable behavior on error
-            print("Error unpacking WARPNet buffer: {0}\n".format(err),
+            print("Error unpacking buffer: {0}\n".format(err),
                   "    Ignorning data.")
         
         return (args, data)
@@ -759,14 +767,14 @@ class Buffer(Message):
 
 
     def _add_buffer_data(self, buffer_offset, data_buffer):
-        """Internal method to add data to the buffer
+        """Internal method to add data to the Buffer
         
-        Only self.size bytes were allocated for the buffer.  Therefore, we 
+        Only self.size bytes were allocated for the Buffer.  Therefore, we 
         will only take an offset from the start_byte (ie a relative address)
-        for where to store the data in the buffer.
+        for where to store the data in the Buffer.
         
-        NOTE:  If the provided buffer data is greater than specified buffer
-            size, then the data will be truncated.
+        NOTE:  If the provided data is greater than specified Buffer size,
+            then the data will be truncated.
         """
         data_to_add_size = len(data_buffer)
         buffer_end_byte  = buffer_offset + data_to_add_size
@@ -792,17 +800,17 @@ class Buffer(Message):
 
 
     def _set_buffer_complete(self):
-        """Internal method to set the complete flag on the buffer."""
+        """Internal method to set the complete flag on the Buffer."""
         if   (self.num_bytes == self.size):
             self.complete = True
         elif (self.num_bytes < self.size):
             self.complete = False
         else:
-            print("WARNING: WnBuffer out of sync.  Should never reach here.")
+            print("WARNING: Buffer out of sync.  Should never reach here.")
 
 
     def _tracker_size(self):
-        """Internal method to get the buffer size via the tracker."""
+        """Internal method to get the Buffer size via the tracker."""
         size = 0
         for item in self.tracker:
             size += item[2]

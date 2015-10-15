@@ -5,7 +5,7 @@ structure for interacting with 802.11 nodes running on WARP hardware.  The
 The basic file structure:
 
   - node.py 
-      - WLAN Experiment Node (WlanExpNode) is a sub-class of WARPNet Node and
+      - WLAN Experiment Node (WlanExpNode) is a sub-class of a WARP Node and
         provides the base class for a single WARP node running a version of
         the 802.11 reference design (either Access Point (AP), or Station (STA))
   - node_*.py
@@ -28,7 +28,7 @@ Notes:
 design for WARP hardware:  https://warpproject.org/trac/wiki/802.11  to 
 allow users to interact with nodes.
 
-    It also utilize the warpnet framework for communicating with WARP 
+    It also utilize the transport framework for communicating with WARP 
 nodes.  You can find the WARP documentation, binaries and toolchains on our 
 website at http://warpproject.org/. 
  

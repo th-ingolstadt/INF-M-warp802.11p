@@ -5,7 +5,7 @@ Mango 802.11 Reference Design - Experiments Framework - Association Addr Filt
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the 802.11 ref design and WARPnet to create a closed network
+This script uses the 802.11 ref design and WLAN Exp to create a closed network
 between the AP and the specified devices.  Than allows the user to explore this
 network.
 

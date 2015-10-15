@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Config
+Network / Node Configurations
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,11 +17,12 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides class definitions to manage the WARPNet configuration.
+This module provides class definitions to manage the Network and Nodes 
+configurations.
 
 Functions (see below for more information):
     NetworkConfiguration() -- Specifies Network information for setup
-    NodesConfiguration() -- Specifies Node information for setup
+    NodesConfiguration()   -- Specifies Node information for setup
 
 """
 
@@ -33,9 +34,9 @@ except ImportError:  # Python 2
     import ConfigParser as configparser
 
 
-from . import defaults as wn_defaults
-from . import util as wn_util
-from . import exception as wn_ex
+from . import defaults
+from . import util
+from . import exception as ex
 
 
 __all__ = ['NetworkConfiguration', 'NodesConfiguration']
@@ -43,16 +44,16 @@ __all__ = ['NetworkConfiguration', 'NodesConfiguration']
 
 
 class NetworkConfiguration(object):
-    """Class for WARPNet Network configuration.
+    """Class for Network configuration.
     
-    This class contains a WARPNet network configuration using default values 
-    in wn_defaults combined with parameters that are passed in.
+    This class contains a network configuration using default values 
+    in defaults.py combined with parameters that are passed in.
     
     Config Structure:
         { 'network'              str,
           'host_id'              int,
           'unicast_port'         int,
-          'bcast_port'           int,
+          'broadcast_port'       int,
           'tx_buf_size'          int,
           'rx_buf_size'          int,
           'transport_type'       str,
@@ -62,7 +63,7 @@ class NetworkConfiguration(object):
     config              = None
     
     def __init__(self, network=None, host_id=None, unicast_port=None,
-                 bcast_port=None, tx_buffer_size=None, rx_buffer_size=None,
+                 broadcast_port=None, tx_buffer_size=None, rx_buffer_size=None,
                  transport_type=None, jumbo_frame_support=None, quiet=False):
         """Initialize a NetworkConfiguration
         
@@ -70,7 +71,7 @@ class NetworkConfiguration(object):
             network             -- Network interface
             host_id             -- Host ID
             unicast_port        -- Port for unicast traffic
-            bcast_port          -- Port for broadcast traffic
+            broadcast_port      -- Port for broadcast traffic
             tx_buf_size         -- TX buffer size
             rx_buf_size         -- RX buffer size
             transport_type      -- Transport type
@@ -81,25 +82,25 @@ class NetworkConfiguration(object):
         
         """
         # Set initial values
-        my_network             = wn_defaults.NETWORK
-        my_host_id             = wn_defaults.HOST_ID
-        my_unicast_port        = wn_defaults.UNICAST_PORT
-        my_bcast_port          = wn_defaults.BCAST_PORT
-        my_transport_type      = wn_defaults.TRANSPORT_TYPE
-        my_jumbo_frame_support = wn_defaults.JUMBO_FRAME_SUPPORT
+        my_network             = defaults.NETWORK
+        my_host_id             = defaults.HOST_ID
+        my_unicast_port        = defaults.UNICAST_PORT
+        my_broadcast_port      = defaults.BROADCAST_PORT
+        my_transport_type      = defaults.TRANSPORT_TYPE
+        my_jumbo_frame_support = defaults.JUMBO_FRAME_SUPPORT
 
         (my_tx_buffer_size, 
-         my_rx_buffer_size)    = wn_util._get_os_socket_buffer_size(
-                                                 wn_defaults.TX_BUFFER_SIZE, 
-                                                 wn_defaults.RX_BUFFER_SIZE)
+         my_rx_buffer_size)    = util._get_os_socket_buffer_size(
+                                                 defaults.TX_BUFFER_SIZE, 
+                                                 defaults.RX_BUFFER_SIZE)
 
         # Process input arguments        
         if host_id is not None:
-            if (wn_util._check_host_id(host_id)):
+            if (util._check_host_id(host_id)):
                 my_host_id = host_id            
                 
         if unicast_port   is not None:  my_unicast_port   = unicast_port
-        if bcast_port     is not None:  my_bcast_port     = bcast_port
+        if broadcast_port is not None:  my_broadcast_port = broadcast_port
         if tx_buffer_size is not None:  my_tx_buffer_size = tx_buffer_size
         if rx_buffer_size is not None:  my_rx_buffer_size = rx_buffer_size
         if transport_type is not None:  my_transport_type = transport_type
@@ -111,26 +112,26 @@ class NetworkConfiguration(object):
                 msg  = "Jumbo Frame Support must be a boolean.  Using {0}.".format(my_jumbo_frame_support) 
                 print(msg)
 
-        # Check host_interfaces last b/c you need the resolved bcast_port
+        # Check host_interfaces last b/c you need the resolved broadcast_port
         if network is not None:
-            my_network = wn_util._check_network_interface(network, quiet)
+            my_network = util._check_network_interface(network, quiet)
 
         self.set_config(my_network, my_host_id, my_unicast_port, 
-                        my_bcast_port, my_tx_buffer_size, my_rx_buffer_size, 
+                        my_broadcast_port, my_tx_buffer_size, my_rx_buffer_size, 
                         my_transport_type, my_jumbo_frame_support)
 
 
-    def set_config(self, network, host_id, unicast_port, bcast_port,
+    def set_config(self, network, host_id, unicast_port, broadcast_port,
                    tx_buffer_size, rx_buffer_size, transport_type, 
                    jumbo_frame_support):
         """Sets the config based on the parameters."""
         self.config = {}
         
         self.config['network']             = network
-        self.config['bcast_address']       = wn_util._get_bcast_address(network)
+        self.config['broadcast_address']   = util._get_broadcast_address(network)
         self.config['host_id']             = host_id
         self.config['unicast_port']        = unicast_port
-        self.config['bcast_port']          = bcast_port
+        self.config['broadcast_port']      = broadcast_port
         self.config['tx_buffer_size']      = tx_buffer_size
         self.config['rx_buffer_size']      = rx_buffer_size
         self.config['transport_type']      = transport_type
@@ -172,18 +173,18 @@ class NetworkConfiguration(object):
 
 
 class NodesConfiguration(object):
-    """Class for WARPNet Node Configuration.
+    """Class for Nodes Configuration.
     
-    This class can load and store WARPNet Node configurations
+    This class can load and store Nodes configuration
     
     Attributes of a node:
         Node serial number
-            node_id      -- Node ID
-            node_name    -- Node Name
-            ip_address   -- IP address of the Node
-            unicast_port -- Unicast port of the Node
-            bcast_port   -- Broadcast port of the Node
-            use_node     -- Is this node part of the network
+            node_id          -- Node ID
+            node_name        -- Node Name
+            ip_address       -- IP address of the Node
+            unicast_port     -- Unicast port of the Node
+            broadcast_port   -- Broadcast port of the Node
+            use_node         -- Is this node part of the network
     
     Any parameter can be overridden by including it in the INI file.  
     
@@ -192,14 +193,14 @@ class NodesConfiguration(object):
     file, while the shadow_config has all values populated.  If values
     are not specified in the INI, they will get auto-populated defaults:
     
-        node_id      - Monotonic counter starting at 0
-        node_name    - None (unless specified by the user)
-        ip_address   - wn_config.ini get_param('network', 'host_address') for 
-                       the first three octets and "node_id + 1" for the last 
-                       octet
-        unicast_port - wn_config.ini get_param('network', 'unicast_port')
-        bcast_port   - wn_config.ini get_param('network', 'bcast_port')
-        use_node     - "True"
+        node_id         - Monotonic counter starting at 0
+        node_name       - None (unless specified by the user)
+        ip_address      - config.ini get_param('network', 'host_address') for 
+                          the first three octets and "node_id + 1" for the last 
+                          octet
+        unicast_port    - config.ini get_param('network', 'unicast_port')
+        broadcast_port  - config.ini get_param('network', 'broadcast_port')
+        use_node        - "True"
 
     NOTE:  In order to be as consistent as possible, all nodes in the 
     configuration file get a node id regardless of whether they are used.
@@ -216,7 +217,7 @@ class NodesConfiguration(object):
     shadow_config       = None
 
     def __init__(self, ini_file=None, serial_numbers=None, network_config=None):
-        """Initialize a WnNodesConfiguration
+        """Initialize a NodesConfiguration
         
         Attributes:
             ini_file -- An INI file name that specified a nodes configuration
@@ -232,23 +233,23 @@ class NodesConfiguration(object):
         numbers must be of the form:  "W3-a-XXXXX" where XXXXX is the 5 
         digit, zero-padded serial number printed on the WARPv3 board.
         
-        For an INI file, you can create an INI file using the wn_nodes_setup()
-        method in warpnet.wn_util.  In the INI file, you can specify as little
+        For an INI file, you can create an INI file using the nodes_setup()
+        method in transport.util.  In the INI file, you can specify as little
         as the serial numbers, up to a fully explicit configuration.
         
         If neither an ini_file nor serial_numbers are provided, the method
         will check for the NODES_CONFIG_INI_FILE specified in 
-        warpnet.wn_defaults
+        transport.defaults
         
         If both serial_numbers and an ini_file are provided, the ini_file 
         will be ignored.
         
-        If not provided, the class will use the default WnHostConfiguration
-        specified in wn_defaults.  Since there can be multiple host 
-        interfaces as part of the WnHostConfiguration, the WnNodesConfiguration
-        will only auto-populate IP address on the first host interface, ie
-        host interface 0.  Therefore, if only serial_numbers are provided
-        then all of those nodes will receive IP addresses on host interface 0.
+        If not provided, the class will use the default NetworkConfiguration
+        specified in defaults.  Since there can be multiple network interfaces
+        as part of the NetworkConfiguration, the NodesConfiguration will only
+        auto-populate IP address on the first network interface, ie network
+        interface 0.  Therefore, if only serial_numbers are provided then all
+        of those nodes will receive IP addresses on network interface 0.
         
         """
         self.node_id_counter = 0
@@ -262,10 +263,10 @@ class NodesConfiguration(object):
         
         network_addr = network_config.get_param('network')
         u_port       = network_config.get_param('unicast_port')
-        b_port       = network_config.get_param('bcast_port')
+        b_port       = network_config.get_param('broadcast_port')
 
         # Compute the base IP address to auto-assign IP addresses 
-        base_ip_address = wn_util._get_ip_address_subnet(network_addr) + ".{0}"
+        base_ip_address = util._get_ip_address_subnet(network_addr) + ".{0}"
 
         # Initialize the shadow config
         self.init_shadow_config(base_ip_address, u_port, b_port)
@@ -274,7 +275,7 @@ class NodesConfiguration(object):
         #   NOTE:  This can raise exceptions if there are issues.
         if serial_numbers is None:            
             if ini_file is None:
-                ini_file = wn_defaults.NODES_CONFIG_INI_FILE
+                ini_file = defaults.NODES_CONFIG_INI_FILE
                 
             self.load_config(ini_file)
 
@@ -299,15 +300,15 @@ class NodesConfiguration(object):
 
 
     def add_node(self, serial_number, ip_address=None, 
-                 node_id=None, unicast_port=None, bcast_port=None, 
+                 node_id=None, unicast_port=None, broadcast_port=None, 
                  node_name=None, use_node=None):
-        """Add a node to the NodesConfig structure.
+        """Add a node to the NodesConfiguration structure.
         
         Only serial_number and ip_address are required in the ini file.  Other
         fields will not be populated in the ini file unless they require a 
         non-default value.  
         """
-        (_, sn_str) = wn_util.wn_get_serial_number(serial_number)
+        (_, sn_str) = util.get_serial_number(serial_number)
         
         if (sn_str in self.config.sections()):
             print("Node {0} exists.  Please use set_param to modify the node.".format(sn_str))
@@ -315,20 +316,20 @@ class NodesConfiguration(object):
             self.config.add_section(sn_str)
 
             # Populate optional parameters
-            if ip_address   is not None: self.config.set(sn_str, 'ip_address', ip_address)
-            if node_id      is not None: self.config.set(sn_str, 'node_id', node_id)
-            if unicast_port is not None: self.config.set(sn_str, 'unicast_port', unicast_port)
-            if bcast_port   is not None: self.config.set(sn_str, 'bcast_port', bcast_port)
-            if node_name    is not None: self.config.set(sn_str, 'node_name', node_name)
-            if use_node     is not None: self.config.set(sn_str, 'use_node', use_node)
+            if ip_address     is not None: self.config.set(sn_str, 'ip_address', ip_address)
+            if node_id        is not None: self.config.set(sn_str, 'node_id', node_id)
+            if unicast_port   is not None: self.config.set(sn_str, 'unicast_port', unicast_port)
+            if broadcast_port is not None: self.config.set(sn_str, 'broadcast_port', broadcast_port)
+            if node_name      is not None: self.config.set(sn_str, 'node_name', node_name)
+            if use_node       is not None: self.config.set(sn_str, 'use_node', use_node)
 
         # Add node to shadow_config
         self.add_shadow_node(sn_str)
 
 
     def remove_node(self, serial_number):
-        """Remove a node from the NodesConfig structure."""
-        (_, sn_str) = wn_util.wn_get_serial_number(serial_number)
+        """Remove a node from the NodesConfiguration structure."""
+        (_, sn_str) = util.get_serial_number(serial_number)
 
         if (not self.config.remove_section(sn_str)):
             print("Node {0} not in nodes configuration.".format(sn_str))
@@ -337,14 +338,14 @@ class NodesConfiguration(object):
         
 
     def get_param(self, section, parameter):
-        """Returns the value of the parameter within the config for the node."""        
-        (_, sn_str) = wn_util.wn_get_serial_number(section)
+        """Returns the value of the parameter within the configuration for the node."""        
+        (_, sn_str) = util.get_serial_number(section)
 
         return self.get_param_helper(sn_str, parameter)
 
 
     def get_param_helper(self, section, parameter):
-        """Returns the value of the parameter within the config section."""
+        """Returns the value of the parameter within the configuration section."""
         if (section in self.config.sections()):
             if (parameter in self.config.options(section)):
                 return self._get_param_hack(section, parameter)
@@ -358,7 +359,7 @@ class NodesConfiguration(object):
 
     def set_param(self, section, parameter, value):
         """Sets the parameter to the given value."""
-        (_, sn_str) = wn_util.wn_get_serial_number(section)
+        (_, sn_str) = util.get_serial_number(section)
         
         if (sn_str in self.config.sections()):
             if (parameter in self.config.options(sn_str)):
@@ -376,7 +377,7 @@ class NodesConfiguration(object):
 
     def remove_param(self, section, parameter):
         """Removes the parameter from the config."""
-        (_, sn_str) = wn_util.wn_get_serial_number(section)
+        (_, sn_str) = util.get_serial_number(section)
         
         if (sn_str in self.config.sections()):
             if (parameter in self.config.options(sn_str)):
@@ -395,18 +396,18 @@ class NodesConfiguration(object):
 
     def get_nodes_dict(self):
         """Returns a list of dictionaries that contain the parameters of each
-        WnNode specified in the config."""
+        WarpNode specified in the config."""
         output = []
 
         if not self.config.sections():        
-            raise wn_ex.ConfigError("No Nodes in {0}".format(self.config_file))
+            raise ex.ConfigError("No Nodes in {0}".format(self.config_file))
         
         for node_config in self.config.sections():
             if (self.get_param_helper(node_config, 'use_node')):
                 add_node = True
 
                 try:
-                    (sn, _) = wn_util.wn_get_serial_number(node_config)
+                    (sn, _) = util.get_serial_number(node_config)
                 except TypeError as err:
                     print(err)
                     add_node = False
@@ -414,18 +415,18 @@ class NodesConfiguration(object):
                 if add_node:
                     node_dict = {
                         'serial_number': sn,
-                        'node_id'      : self.get_param_helper(node_config, 'node_id'),
-                        'node_name'    : self.get_param_helper(node_config, 'node_name'),
-                        'ip_address'   : self.get_param_helper(node_config, 'ip_address'),
-                        'unicast_port' : self.get_param_helper(node_config, 'unicast_port'),
-                        'bcast_port'   : self.get_param_helper(node_config, 'bcast_port') }
+                        'node_id'        : self.get_param_helper(node_config, 'node_id'),
+                        'node_name'      : self.get_param_helper(node_config, 'node_name'),
+                        'ip_address'     : self.get_param_helper(node_config, 'ip_address'),
+                        'unicast_port'   : self.get_param_helper(node_config, 'unicast_port'),
+                        'broadcast_port' : self.get_param_helper(node_config, 'broadcast_port') }
                     output.append(node_dict)
         
         return output
 
 
     def load_config(self, config_file):
-        """Loads the WARPNet config from the provided file."""
+        """Loads the nodes configuration from the provided file."""
         self.config_file = os.path.normpath(config_file)
         
         # TODO: allow relative paths
@@ -435,18 +436,18 @@ class NodesConfiguration(object):
 
         if len(dataset) != 1:
             msg = str("Error reading config file:\n" + self.config_file)
-            raise wn_ex.ConfigError(msg)
+            raise ex.ConfigError(msg)
         else:
             self.init_used_node_lists()
             self.load_shadow_config()
 
 
     def save_config(self, config_file=None, output=False):
-        """Saves the WARPNet config to the provided file."""
+        """Saves the nodes configuration to the provided file."""
         if config_file is not None:
             self.config_file = os.path.normpath(config_file)
         else:
-            self.config_file = wn_defaults.NODES_CONFIG_INI_FILE
+            self.config_file = defaults.NODES_CONFIG_INI_FILE
         
         if output:
             print("Saving config to: \n    {0}".format(self.config_file))
@@ -461,21 +462,19 @@ class NodesConfiguration(object):
     # -------------------------------------------------------------------------
     # Methods for Shadow Config
     # -------------------------------------------------------------------------
-    def init_shadow_config(self, ip_addr_base, unicast_port, bcast_port):
+    def init_shadow_config(self, ip_addr_base, unicast_port, broadcast_port):
         """Initialize the 'default' section of the shadow_config."""
-        self.shadow_config['default'] = {'node_id'     : 'auto',
-                                         'node_name'   : None,
-                                         'ip_address'  : ip_addr_base,
-                                         'unicast_port': unicast_port,
-                                         'bcast_port'  : bcast_port, 
-                                         'use_node'    : True}
+        self.shadow_config['default'] = {'node_id'        : 'auto',
+                                         'node_name'      : None,
+                                         'ip_address'     : ip_addr_base,
+                                         'unicast_port'   : unicast_port,
+                                         'broadcast_port' : broadcast_port, 
+                                         'use_node'       : True}
 
     def init_used_node_lists(self):
-        """Initialize the lists used to keep track of fields that must 
-        be unique.
-        """
+        """Initialize the lists used to keep track of fields that must be unique."""
         self.used_node_ids = []
-        self.used_node_ips = wn_util._get_all_host_ip_addrs()
+        self.used_node_ips = util._get_all_host_ip_addrs()
 
         if self.config is not None:
             for section in self.config.sections():
@@ -505,16 +504,16 @@ class NodesConfiguration(object):
         # Mirror any fields in the config and populate any missing fields 
         # with default values
         for section in sections:
-            my_node_id      = self._get_node_id(section)
-            my_node_name    = self._get_node_name(section, my_node_id)
-            my_ip_address   = self._get_ip_address(section, my_node_id)
-            my_unicast_port = self._get_unicast_port(section)
-            my_bcast_port   = self._get_bcast_port(section)
-            my_use_node     = self._get_use_node(section)
+            my_node_id        = self._get_node_id(section)
+            my_node_name      = self._get_node_name(section, my_node_id)
+            my_ip_address     = self._get_ip_address(section, my_node_id)
+            my_unicast_port   = self._get_unicast_port(section)
+            my_broadcast_port = self._get_broadcast_port(section)
+            my_use_node       = self._get_use_node(section)
             
             # Set the node in the shadow_config
             self.set_shadow_node(section, my_ip_address, my_node_id, 
-                                 my_unicast_port, my_bcast_port, 
+                                 my_unicast_port, my_broadcast_port, 
                                  my_node_name, my_use_node)
 
         # TODO: Sanity check to make sure there a no duplicate Node IDs or IP Addresses
@@ -527,30 +526,30 @@ class NodesConfiguration(object):
 
     def add_shadow_node(self, serial_number):
         """Add the given node to the shadow_config."""
-        my_node_id      = self._get_node_id(serial_number)
-        my_node_name    = self._get_node_name(serial_number, my_node_id)
-        my_ip_address   = self._get_ip_address(serial_number, my_node_id)
-        my_unicast_port = self._get_unicast_port(serial_number)
-        my_bcast_port   = self._get_bcast_port(serial_number)
-        my_use_node     = self._get_use_node(serial_number)
+        my_node_id        = self._get_node_id(serial_number)
+        my_node_name      = self._get_node_name(serial_number, my_node_id)
+        my_ip_address     = self._get_ip_address(serial_number, my_node_id)
+        my_unicast_port   = self._get_unicast_port(serial_number)
+        my_broadcast_port = self._get_broadcast_port(serial_number)
+        my_use_node       = self._get_use_node(serial_number)
 
         # Set the node in the shadow_config
         self.set_shadow_node(serial_number, my_ip_address, my_node_id, 
-                             my_unicast_port, my_bcast_port, 
+                             my_unicast_port, my_broadcast_port, 
                              my_node_name, my_use_node)
 
         
 
     def set_shadow_node(self, serial_number, ip_address, node_id, 
-                        unicast_port, bcast_port, node_name, use_node):
+                        unicast_port, broadcast_port, node_name, use_node):
         """Set the given node in the shadow_config."""
         self.shadow_config[serial_number] = {
-            'node_id'      : node_id,
-            'node_name'    : node_name,
-            'ip_address'   : ip_address,
-            'unicast_port' : unicast_port,
-            'bcast_port'   : bcast_port,
-            'use_node'     : use_node}
+            'node_id'        : node_id,
+            'node_name'      : node_name,
+            'ip_address'     : ip_address,
+            'unicast_port'   : unicast_port,
+            'broadcast_port' : broadcast_port,
+            'use_node'       : use_node}
 
         self.used_node_ids.append(node_id)
         self.used_node_ips.append(ip_address)
@@ -628,11 +627,11 @@ class NodesConfiguration(object):
             return self.shadow_config['default']['unicast_port']
 
 
-    def _get_bcast_port(self, section):
-        if ('bcast_port' in self.config.options(section)):
-            return self._get_param_hack(section, 'bcast_port')
+    def _get_broadcast_port(self, section):
+        if ('broadcast_port' in self.config.options(section)):
+            return self._get_param_hack(section, 'broadcast_port')
         else:
-            return self.shadow_config['default']['bcast_port']
+            return self.shadow_config['default']['broadcast_port']
 
 
     def _get_use_node(self, section):

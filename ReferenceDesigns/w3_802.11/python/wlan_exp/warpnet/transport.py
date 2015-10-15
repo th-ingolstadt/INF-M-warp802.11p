@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Transport
+Transport
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,17 +17,17 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides the base class for WARPNet transports.
+This module provides the base class for transports.
 
 Integer constants:
     TRANSPORT_TYPE, TRANSPORT_HW_ADDR, TRANSPORT_IP_ADDR, 
-      TRANSPORT_UNICAST_PORT, TRANSPORT_BCAST_PORT, TRANSPORT_GRP_ID
+    TRANSPORT_GROUP_ID, TRANSPORT_UNICAST_PORT, TRANSPORT_BROADCAST_PORT
       -- Transport hardware parameter constants 
 
-    TRANSPORT_NO_RESP, TRANSPORT_WN_RESP, TRANSPORT_WN_BUFFER
+    TRANSPORT_NO_RESP, TRANSPORT_RESP, TRANSPORT_BUFFER
       -- Transport response types
 
-If additional hardware parameters are needed for sub-classes of WnNode, please
+If additional hardware parameters are needed for sub-classes of Node, please
 make sure that the values of these hardware parameters are not reused.
 """
 
@@ -35,27 +35,26 @@ make sure that the values of these hardware parameters are not reused.
 __all__ = ['Transport']
 
 
-# WARPNet Command Group Names
-# WARPNet Transport Parameter Identifiers
+# Transport Parameter Identifiers
 #   NOTE:  The C counterparts are found in *_transport.h
-TRANSPORT_TYPE          = 0
-TRANSPORT_HW_ADDR       = 1
-TRANSPORT_IP_ADDR       = 2
-TRANSPORT_GRP_ID        = 3
-TRANSPORT_UNICAST_PORT  = 4
-TRANSPORT_BCAST_PORT    = 5
+TRANSPORT_TYPE                                   = 0
+TRANSPORT_HW_ADDR                                = 1
+TRANSPORT_IP_ADDR                                = 2
+TRANSPORT_GROUP_ID                               = 3
+TRANSPORT_UNICAST_PORT                           = 4
+TRANSPORT_BROADCAST_PORT                         = 5
 
-# WARPNet Transport response types
-TRANSPORT_NO_RESP       = 0
-TRANSPORT_WN_RESP       = 1
-TRANSPORT_WN_BUFFER     = 2
+# Transport response types
+TRANSPORT_NO_RESP                                = 0
+TRANSPORT_RESP                                   = 1
+TRANSPORT_BUFFER                                 = 2
 
-# WARPNet Transport Types
-TRANSPORT_TYPE_UDP      = 0
+# Transport Types
+TRANSPORT_TYPE_IP_UDP                            = 0
 
 
 class Transport(object):
-    """Base class for WARPNet transports.
+    """Base class for transports.
 
     Attributes:
         hdr -- Transport header object

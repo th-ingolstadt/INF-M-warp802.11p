@@ -77,7 +77,7 @@ ENTRY_TYPE_NODE_INFO              = 1
 ENTRY_TYPE_EXP_INFO               = 2
 ENTRY_TYPE_STATION_INFO           = 3
 ENTRY_TYPE_NODE_TEMPERATURE       = 4
-ENTRY_TYPE_WN_CMD_INFO            = 5
+ENTRY_TYPE_CMD_INFO               = 5
 ENTRY_TYPE_TIME_INFO              = 6
 ENTRY_TYPE_BSS_INFO               = 7
 
@@ -153,10 +153,10 @@ class WlanExpLogEntryType(object):
         self.gen_numpy_callbacks = []
 
         # Initialize dictionary to contain constants specific to each entry type
-        self.consts = dict()
+        self.consts              = dict()
 
         # Initialize variable that contains field names and byte offsets
-        self._field_offsets       = {}
+        self._field_offsets      = {}
 
 
     # -------------------------------------------------------------------------
@@ -970,16 +970,16 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
 
     ###########################################################################
-    # WARPNet Command Info
+    # Command Info
     #
-    entry_wn_cmd_info = WlanExpLogEntryType(name='WN_CMD_INFO', entry_type_id=ENTRY_TYPE_WN_CMD_INFO)
+    entry_cmd_info = WlanExpLogEntryType(name='CMD_INFO', entry_type_id=ENTRY_TYPE_CMD_INFO)
 
-    entry_wn_cmd_info.description  = 'Record of a WARPnet / wlan_exp command received by the node. The full command payload '
-    entry_wn_cmd_info.description += 'is logged, including any (possibly personal-info-carrying) parameters like MAC addresses.'
+    entry_cmd_info.description  = 'Record of a command received by the node. The full command payload is logged, '
+    entry_cmd_info.description += 'including any (possibly personal-info-carrying) parameters like MAC addresses.'
 
-    entry_wn_cmd_info.append_field_defs([
+    entry_cmd_info.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-        ('command',                'I',      'uint32',  'WARPnet / wlan_exp command ID'),
+        ('command',                'I',      'uint32',  'Command ID'),
         ('src_id',                 'H',      'uint16',  'Node ID of device sending command'),
         ('num_args',               'H',      'uint16',  'Number of arguments supplied in command'),
         ('args',                   '10I',    '10uint32','Command arguments')])

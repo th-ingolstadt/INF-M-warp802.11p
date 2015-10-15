@@ -77,14 +77,14 @@ Entry type ID: 4
 
 ----
 
-=== Entry Type WN_CMD_INFO ===
-Record of a WARPnet / wlan_exp command received by the node. The full command payload is logged, including any (possibly personal-info-carrying) parameters like MAC addresses.
+=== Entry Type CMD_INFO ===
+Record of a command received by the node. The full command payload is logged, including any (possibly personal-info-carrying) parameters like MAC addresses.
 
 Entry type ID: 5
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
-|| command ||  uint32  || WARPnet / wlan_exp command ID ||
+|| command ||  uint32  || Command ID ||
 || src_id ||  uint16  || Node ID of device sending command ||
 || num_args ||  uint16  || Number of arguments supplied in command ||
 || args ||  10uint32  || Command arguments ||
@@ -126,6 +126,39 @@ Entry type ID: 7
 || num_basic_rates ||  uint8  || Number of basic rates supported ||
 || basic_rates ||  10uint8  || Supported basic rates ||
 || padding1 ||  2uint8  ||  ||
+
+
+----
+
+=== Entry Type RX_OFDM ===
+Rx events from OFDM PHY. These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-level MAC filter is configured to pass all receptions up to CPU High.
+
+Entry type ID: 10
+
+||=  Field Name  =||=  Data Type  =||=  Description  =||
+|| timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
+|| length ||  uint16  || Length of payload in bytes ||
+|| rate ||  uint8  || PHY rate index, in ![1:8] ||
+|| power ||  int8  || Rx power in dBm ||
+|| fcs_result ||  uint8  || Checksum status, 0 = no errors ||
+|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| chan_num ||  uint8  || Channel (center frequency) index ||
+|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
+|| rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
+|| bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
+|| flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
+|| chan_est ||  (64,2)i2  || OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier ||
+|| mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
+|| mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
+
+
+The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
+
+||=  Field Name  =||=  Data Type  =||=  Description  =||
+|| addr1 ||  uint64  || MAC Header Address 1 ||
+|| addr2 ||  uint64  || MAC Header Address 2 ||
+|| addr3 ||  uint64  || MAC Header Address 3 ||
+|| mac_seq ||  uint16  || MAC Header Sequence Number ||
 
 
 ----
@@ -369,37 +402,4 @@ Entry type ID: 30
 || mgmt_num_tx_packets_success ||  uint32  || Total number of management packets successfully transmitted to remote node ||
 || mgmt_num_tx_packets_total ||  uint32  || Total number of management packets transmitted (successfully or not) to remote node ||
 || mgmt_num_tx_packets_low ||  uint32  || Total number of PHY transmissions of management packets to remote node (includes re-transmissions) ||
-
-
-----
-
-=== Entry Type RX_OFDM ===
-Rx events from OFDM PHY. These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-level MAC filter is configured to pass all receptions up to CPU High.
-
-Entry type ID: 10
-
-||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
-|| length ||  uint16  || Length of payload in bytes ||
-|| rate ||  uint8  || PHY rate index, in ![1:8] ||
-|| power ||  int8  || Rx power in dBm ||
-|| fcs_result ||  uint8  || Checksum status, 0 = no errors ||
-|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
-|| chan_num ||  uint8  || Channel (center frequency) index ||
-|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
-|| rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
-|| bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
-|| flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
-|| chan_est ||  (64,2)i2  || OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier ||
-|| mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
-|| mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
-
-
-The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
-
-||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| addr1 ||  uint64  || MAC Header Address 1 ||
-|| addr2 ||  uint64  || MAC Header Address 2 ||
-|| addr3 ||  uint64  || MAC Header Address 3 ||
-|| mac_seq ||  uint16  || MAC Header Sequence Number ||
 

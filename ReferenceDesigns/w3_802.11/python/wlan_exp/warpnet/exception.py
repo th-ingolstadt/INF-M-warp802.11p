@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Exceptions
+Exceptions
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,10 +17,9 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides class definitions for all WARPNet exceptions.
+This module provides class definitions for exceptions.
 
 Functions (see below for more information):
-    VersionError()
     ConfigError()
     ParameterError()
     NodeError()
@@ -28,32 +27,23 @@ Functions (see below for more information):
 
 """
 
-__all__ = ['VersionError', 'ConfigError', 'ParameterError',
-           'NodeError', 'TransportError']
+__all__ = ['ConfigError', 'ParameterError', 'NodeError', 'TransportError']
+
+
+# -----------------------------------------------------------------------------
+# Exception base class
+# -----------------------------------------------------------------------------
 
 class Error(Exception):
-    """Base class for Wn exceptions."""
+    """Base class for exceptions."""
     pass
 
 # End Class
 
 
-class VersionError(Error):
-    """Exception for version errors.
-    
-    Attributes:
-        message -- explanation message of the error
-    """
-    def __init__(self, message):
-        self.message = message
-
-    def __str__(self):
-        msg  = "Version Error:"
-        msg += "    {0} \n".format(self.message)
-        return msg
-        
-# End Class
-
+# -----------------------------------------------------------------------------
+# Types of exceptions
+# -----------------------------------------------------------------------------
 
 class ConfigError(Error):
     """Exception for configuration file errors.
@@ -76,7 +66,7 @@ class ParameterError(Error):
     """Exception for parameter errors.
     
     Attributes:
-        name -- name of the parameter
+        name    -- name of the parameter
         message -- explanation message of the error
     """
     def __init__(self, parameter, message):
@@ -94,10 +84,10 @@ class ParameterError(Error):
 
 
 class NodeError(Error):
-    """Exception for WARPNet nodes.
+    """Exception for nodes.
     
     Attributes:
-        node -- WARPNet node in which the error occurred.
+        node    -- node in which the error occurred.
         message -- explanation message of the error
     """
     def __init__(self, node, message):
@@ -115,11 +105,11 @@ class NodeError(Error):
 
 
 class TransportError(Error):
-    """Exception for WARPNet transports.
+    """Exception for transports.
     
     Attributes:
-        transport -- WARPNet transport in which the error occurred.
-        message -- explanation message of the error
+        transport -- transport in which the error occurred.
+        message   -- explanation message of the error
     """
     
     def __init__(self, transport, message):

@@ -5,7 +5,7 @@ Mango 802.11 Reference Design - Experiments Framework - Two Node Log capture
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the 802.11 ref design and WARPnet to create a log
+This script uses the 802.11 ref design and WLAN Exp to create a log
 file that contains all data assocated with an experiment of head-to-head
 backlogged data transfer using the local traffic generators.
 
@@ -65,7 +65,7 @@ def write_log_file(filename, node, exp_name):
     try:
         print("    {0}".format(filename))
 
-        # Get the byte log_data out of the WARPNet buffer
+        # Get the byte log_data out of the Buffer
         data = data_buffer.get_bytes()
 
         # Example Attribute Dictionary for the HDF5 file

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARPNet Config
+WLAN Exp Newtork / Node Configurations
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,28 +17,28 @@ Ver   Who  Date     Changes
 
 ------------------------------------------------------------------------------
 
-This module provides class definitions to manage the WARPNet configuration.
+This module provides class definitions to manage the WLAN Exp configurations.
 
 Functions (see below for more information):
-    WlanExpNetworkConfiguration()  -- Specifies Network information for setup
-    WlanExpNodesConfiguration() -- Specifies Node information for setup
+    WlanExpNetworkConfiguration() -- Specifies Network information for setup
+    WlanExpNodesConfiguration()   -- Specifies Node information for setup
 
 """
 
-import wlan_exp.warpnet.config as wn_config
+import wlan_exp.warpnet.config as config
 
 
 __all__ = ['WlanExpNetworkConfiguration', 'WlanExpNodesConfiguration']
 
 
 
-class WlanExpNetworkConfiguration(wn_config.NetworkConfiguration):
-    """Class for WLAN Exp Host configuration.
+class WlanExpNetworkConfiguration(config.NetworkConfiguration):
+    """Class for WLAN Exp Network configuration.
 
-    This class is a child of the WARPNet host configuration.
+    This class is a child of the transport network configuration.
     """
     def __init__(self, network=None, host_id=None, unicast_port=None,
-                 bcast_port=None, tx_buffer_size=None, rx_buffer_size=None,
+                 broadcast_port=None, tx_buffer_size=None, rx_buffer_size=None,
                  transport_type=None, jumbo_frame_support=None):
         """Initialize a WlanExpHostConfiguration
         
@@ -46,7 +46,7 @@ class WlanExpNetworkConfiguration(wn_config.NetworkConfiguration):
             network             -- Network interface
             host_id             -- Host ID
             unicast_port        -- Host port for unicast traffic
-            bcast_port          -- Host port for broadcast traffic
+            broadcast_port      -- Host port for broadcast traffic
             tx_buf_size         -- Host TX buffer size
             rx_buf_size         -- Host RX buffer size
             transport_type      -- Host transport type
@@ -56,7 +56,7 @@ class WlanExpNetworkConfiguration(wn_config.NetworkConfiguration):
         super(WlanExpNetworkConfiguration, self).__init__(network=network, 
                                                           host_id=host_id, 
                                                           unicast_port=unicast_port,
-                                                          bcast_port=bcast_port, 
+                                                          broadcast_port=broadcast_port, 
                                                           tx_buffer_size=tx_buffer_size, 
                                                           rx_buffer_size=rx_buffer_size,
                                                           transport_type=transport_type, 
@@ -66,10 +66,10 @@ class WlanExpNetworkConfiguration(wn_config.NetworkConfiguration):
 
 
 
-class WlanExpNodesConfiguration(wn_config.NodesConfiguration):
+class WlanExpNodesConfiguration(config.NodesConfiguration):
     """Class for WLAN Exp Node Configuration.
     
-    This class is a child of the WARPNet Node configuration.
+    This class is a child of the transport node configuration.
     """
     def __init__(self, ini_file=None, serial_numbers=None, network_config=None):
         """Initialize a WlanExpNodesConfiguration

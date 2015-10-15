@@ -5,7 +5,7 @@ Mango 802.11 Reference Design - Experiments Framework - Continuous Log capture
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the 802.11 ref design and WARPnet to create a log
+This script uses the 802.11 ref design and WLAN Exp to create a log
 file that contains all data assocated with an interactive experiment.
 
 Hardware Setup:
@@ -81,8 +81,8 @@ def add_data_to_log(log_tail_pad=500):
     global node
     global log_container
 
-    wn_buffer = node.log_get_all_new(log_tail_pad=log_tail_pad)
-    data      = wn_buffer.get_bytes()
+    buffer = node.log_get_all_new(log_tail_pad=log_tail_pad)
+    data   = buffer.get_bytes()
 
     # Write Log Files for processing by other scripts
     print("\nWriting {0:15,d} bytes of data to log file {1}...".format(len(data), h5_file.filename))

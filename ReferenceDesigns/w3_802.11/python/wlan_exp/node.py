@@ -19,8 +19,8 @@
 """
 import sys
 
-import wlan_exp.warpnet.node as wn_node
-import wlan_exp.warpnet.exception as wn_ex
+import wlan_exp.warpnet.node as node
+import wlan_exp.warpnet.exception as ex
 
 import wlan_exp.version as version
 import wlan_exp.defaults as defaults
@@ -35,7 +35,7 @@ __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
 if sys.version[0]=="3": long=None
 
 
-# WLAN Exp Node Parameter Identifiers (Extension of WARPNet Parameter Identifiers)
+# WLAN Exp Node Parameter Identifiers
 #   NOTE:  The C counterparts are found in *_node.h
 #
 # If additional hardware parameters are needed for sub-classes of WlanExpNode, 
@@ -46,42 +46,39 @@ NODE_WLAN_SCHEDULER_RESOLUTION         = 6
 NODE_WLAN_MAC_ADDR                     = 7
 
 
-class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
+class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     """Class for WLAN Experiment node.
         
     Args:
-        network_config (warpnet.NetworkConfiguration): Network configuration of the node
-        mac_type (int):                                CPU Low MAC type
+        network_config (transport.NetworkConfiguration)    : Network configuration of the node
+        mac_type (int)                                     : CPU Low MAC type
 
 
-    .. Inherited Attributes from WnNode:
-        node_type (int)                     : Unique type of the WARPNet node
-        node_id (int)                       : Unique identification for this node
-        name (str)                          : User specified name for this node (supplied by user scripts)
-        description (str)                   : String description of this node (auto-generated)
-        serial_number (int)                 : Node's serial number, read from EEPROM on hardware
-        fpga_dna (int)                      : Node's FPGA'a unique identification (on select hardware)
-        hw_ver (int)                        : WARP hardware version of this node
-        wn_ver_major (int)                  : WARPNet Major version running on this node
-        wn_ver_minor (int)                  : WARPNet Minor version running on this node
-        wn_ver_revision (int)               : WARPNet Revision version running on this node
-        transport (warpnet.Transport)       : Node's transport object
-        transport_bcast (warpnet.Transport) : Node's broadcast transport object
+    .. Inherited Attributes from WarpNode:
+        node_type (int)                          : Unique type of the node
+        node_id (int)                            : Unique identification for this node
+        name (str)                               : User specified name for this node (supplied by user scripts)
+        description (str)                        : String description of this node (auto-generated)
+        serial_number (int)                      : Node's serial number, read from EEPROM on hardware
+        fpga_dna (int)                           : Node's FPGA'a unique identification (on select hardware)
+        hw_ver (int)                             : WARP hardware version of this node
+        transport (transport.Transport)          : Node's transport object
+        transport_broadcast (transport.Transport): Node's broadcast transport object
 
     .. Inherited Attributes from WlanDevice:
-        device_type (int)                   : Unique type of the Wlan Device
-        wlan_mac_address (int)              : Wireless MAC address of the node
+        device_type (int)                        : Unique type of the Wlan Device
+        wlan_mac_address (int)                   : Wireless MAC address of the node
 
     .. Module Attributes:
-        wlan_scheduler_resolution (int)     : Minimum resolution (in us) of the LTG
-        log_max_size (int)                  : Maximum size of event log (in bytes)
-        log_total_bytes_read (int)          : Number of bytes read from the event log
-        log_num_wraps (int)                 : Number of times the event log has wrapped
-        log_next_read_index (int)           : Index in to event log of next read
-        wlan_exp_ver_major (int)            : WLAN Exp Major version running on this node
-        wlan_exp_ver_minor (int)            : WLAN Exp Minor version running on this node
-        wlan_exp_ver_revision (int)         : WLAN Exp Revision version running on this node
-        mac_type (int)                      : Value of the MAC type (see wlan_exp.defaults for values)
+        wlan_scheduler_resolution (int)          : Minimum resolution (in us) of the LTG
+        log_max_size (int)                       : Maximum size of event log (in bytes)
+        log_total_bytes_read (int)               : Number of bytes read from the event log
+        log_num_wraps (int)                      : Number of times the event log has wrapped
+        log_next_read_index (int)                : Index in to event log of next read
+        wlan_exp_ver_major (int)                 : WLAN Exp Major version running on this node
+        wlan_exp_ver_minor (int)                 : WLAN Exp Minor version running on this node
+        wlan_exp_ver_revision (int)              : WLAN Exp Revision version running on this node
+        mac_type (int)                           : Value of the MAC type (see wlan_exp.defaults for values)
         
     """
     
@@ -122,7 +119,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
     # Log Commands
     #--------------------------------------------
     def log_configure(self, log_enable=None, log_wrap_enable=None, 
-                            log_full_payloads=None, log_warpnet_commands=None,
+                            log_full_payloads=None, log_commands=None,
                             log_txrx_mpdu=None, log_txrx_ctrl=None):
         """Configure log with the given flags.
 
@@ -135,17 +132,17 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
             log_enable (bool):           Enable the event log (Default value on Node: TRUE)
             log_wrap_enable (bool):      Enable event log wrapping (Default value on Node: FALSE)
             log_full_payloads (bool):    Record full Tx/Rx payloads in event log (Default value on Node: FALSE)
-            log_warpnet_commands (bool): Record WARPNet commands in event log (Default value on Node: FALSE)        
+            log_commands (bool):         Record commands in event log (Default value on Node: FALSE)        
             log_txrx_mpdu (bool):        Enable Tx/Rx log entries for MPDU frames
             log_txrx_ctrl (bool):        Enable Tx/Rx log entries for CTRL frames
         """
         self.send_cmd(cmds.LogConfigure(log_enable, log_wrap_enable, 
-                                        log_full_payloads, log_warpnet_commands,
+                                        log_full_payloads, log_commands,
                                         log_txrx_mpdu, log_txrx_ctrl))
 
 
     def log_get(self, size, offset=0, max_req_size=2**23):
-        """Low level method to get part of the log file as a WnBuffer.
+        """Low level method to get part of the log file as a Buffer.
         
         Args:
             size (int):                   Number of bytes to read from the log
@@ -154,7 +151,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                             the request into.
         
         Returns:
-            buffer (warpnet.Buffer):  Data from the log corresponding to the input parameters
+            buffer (transport.Buffer):  Data from the log corresponding to the input parameters
         
         
         .. note:: There is no guarentee that this will return data aligned to 
@@ -173,8 +170,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         
         .. note:: Some basic analysis shows that fragment sizes of 2**23 (8 MB)
            add about 2% overhead to the receive time and each command takes less
-           than 1 second (~0.9 sec), which is the default WARPNet transport 
-           timeout.
+           than 1 second (~0.9 sec), which is the default transport timeout. 
         """
         return self.send_cmd(cmds.LogGetEvents(size, offset), max_req_size=max_req_size)
 
@@ -189,11 +185,11 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                 and should not be read.
         
         Returns:
-            buffer (warpnet.Buffer): Data from the log that contains all entries since the last time the log was read.
+            buffer (transport.Buffer): Data from the log that contains all entries since the last time the log was read.
         """
-        import wlan_exp.warpnet.message as wn_message
+        import wlan_exp.warpnet.message as message
         
-        return_val = wn_message.Buffer()
+        return_val = message.Buffer()
         (next_index, _, num_wraps) = self.log_get_indexes()
 
         if ((self.log_next_read_index == 0) and (self.log_num_wraps == 0)):
@@ -324,15 +320,15 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         Args:
             port (int): Port number to stream the log entries.
             ip_address (int, str, optional):  IP address to stream the entries.
-            host_id (int, optional):  Host ID to be used in the WARPNet transport header for the streamed entries.
+            host_id (int, optional):  Host ID to be used in the transport header for the streamed entries.
         
         .. note:: If ip_address or host_id is not provided, then ip_address and host_id of the
             WLAN Exp host will be used.
         """
 
         if (ip_address is None):
-            import wlan_exp.warpnet.util as wn_util
-            ip_address = wn_util._get_host_ip_addr_for_network(self.network_config)
+            import wlan_exp.warpnet.util as util
+            ip_address = util._get_host_ip_addr_for_network(self.network_config)
             
         if (host_id is None):
             host_id = self.network_config.get_param('host_id')
@@ -1216,7 +1212,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Sets the unicast transmit param of the node.
         
         Args:
-            cmd (WnCmd)         Command to be used to set param
+            cmd (Cmd):          Command to be used to set param
             param (int):        Parameter to be set
             param_name (str):   Name of parameter for error messages
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
@@ -1252,7 +1248,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
         """Gets the unicast transmit param of the node.
 
         Args:
-            cmd (WnCmd)         Command to be used to set param
+            cmd (Cmd):          Command to be used to set param
             param_name (str):   Name of parameter for error messages
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices 
                 or single 802.11 device for which to get the Tx unicast param
@@ -1715,7 +1711,7 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
     #-------------------------------------------------------------------------
-    # WARPNet Parameter Framework
+    # Parameter Framework
     #   Allows for processing of hardware parameters
     #-------------------------------------------------------------------------
     def process_parameter(self, identifier, length, values):
@@ -1729,19 +1725,19 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
                 # Check to see if there is a version mismatch
                 self.check_wlan_exp_ver()
             else:
-                raise wn_ex.ParameterError("NODE_DESIGN_VER", "Incorrect length")
+                raise ex.ParameterError("NODE_DESIGN_VER", "Incorrect length")
 
         elif   (identifier == NODE_WLAN_MAC_ADDR):
             if (length == 2):
                 self.wlan_mac_address = ((2**32) * (values[1] & 0xFFFF) + values[0])
             else:
-                raise wn_ex.ParameterError("NODE_WLAN_MAC_ADDR", "Incorrect length")
+                raise ex.ParameterError("NODE_WLAN_MAC_ADDR", "Incorrect length")
 
         elif   (identifier == NODE_WLAN_SCHEDULER_RESOLUTION):
             if (length == 1):
                 self.wlan_scheduler_resolution = values[0]
             else:
-                raise wn_ex.ParameterError("NODE_LTG_RESOLUTION", "Incorrect length")
+                raise ex.ParameterError("NODE_LTG_RESOLUTION", "Incorrect length")
 
         else:
             super(WlanExpNode, self).process_parameter(identifier, length, values)
@@ -1781,12 +1777,9 @@ class WlanExpNode(wn_node.WnNode, wlan_device.WlanDevice):
 
 
 
-class WlanExpNodeFactory(wn_node.WnNodeFactory):
-    """Sub-class of WARPNet node factory used to help with node configuration 
+class WlanExpNodeFactory(node.WarpNodeFactory):
+    """Sub-class of WarpNodeFactory used to help with node configuration 
     and setup.
-        
-    Attributes:
-        wn_dict (dict):  Dictionary of WARPNet Node Types to class names
     """
     def __init__(self, network_config=None):
         super(WlanExpNodeFactory, self).__init__(network_config)

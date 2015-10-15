@@ -143,7 +143,7 @@ def gen_raw_log_index(log_data):
 
         # hdr = unpack(fmt_log_hdr, log_bytes[offset:offset+hdr_size])
         # ltk = hdr[1]
-        # if( (hdr[0] & wn_entries.WN_LOG_DELIM) != wn_entries.WN_LOG_DELIM):
+        # if( (hdr[0] & entries.WLAN_EXP_LOG_DELIM) != entries.WLAN_EXP_LOG_DELIM):
         #     raise Exception("ERROR: Log file didn't start with valid entry header!")
 
         # Use raw byte slicing for better performance
