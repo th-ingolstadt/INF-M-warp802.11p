@@ -35,6 +35,7 @@
 //-----------------------------------------------
 // Node Commands
 //
+#define CMDID_NODE_TYPE                                    0x000000
 #define CMDID_NODE_INFO                                    0x000001
 #define CMDID_NODE_IDENTIFY                                0x000002
 

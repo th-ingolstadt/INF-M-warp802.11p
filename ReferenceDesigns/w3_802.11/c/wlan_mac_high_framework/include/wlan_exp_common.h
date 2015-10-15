@@ -203,6 +203,16 @@ extern char   * print_type_queue;
 #define WLAN_EXP_SILENT                                    0
 #define WLAN_EXP_VERBOSE                                   1
 
+#define WLAN_EXP_BUFFER_NUM_ARGS                           5
+#define WLAN_EXP_BUFFER_HEADER_SIZE                        20
+
+
+// **********************************************************************
+// Command Group defines
+//
+#define GROUP_NODE                                         0x00
+#define GROUP_TRANSPORT                                    0x10
+
 
 
 /*********************** Global Structure Definitions ************************/

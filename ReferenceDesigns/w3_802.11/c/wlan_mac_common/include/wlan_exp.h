@@ -89,19 +89,6 @@
 
 
 
-// **********************************************************************
-// Command Group defines
-//
-#define GROUP_GENERAL                                      0xFF
-#define GROUP_NODE                                         0x00
-#define GROUP_TRANSPORT                                    0x10
-
-
-// Global Commands
-//
-#define CMDID_GENERAL_TYPE                                 0xFFFFFF
-
-
 /*********************** Global Structure Definitions ************************/
 
 

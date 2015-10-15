@@ -329,7 +329,7 @@ u32  event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data) 
 
     // Check that the start_address is less than the log_size
     if (start_index > log_size) {
-        xil_printf("EVENT LOG: WARNING: Index out of bounds: Request starts at %d; Log only has %d bytes\n", start_index, log_size);
+        xil_printf("EVENT LOG: WARNING: Index out of bounds: Request starts at 0x%08x; Log only has 0x%08x bytes\n", start_index, log_size);
         return num_bytes;
     }
 
