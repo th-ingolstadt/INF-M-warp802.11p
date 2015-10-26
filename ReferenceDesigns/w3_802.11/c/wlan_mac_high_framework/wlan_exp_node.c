@@ -464,7 +464,6 @@ int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_ud
  * @param   to               - Pointer to socket address structure to which message will be sent
  * @param   resp_hdr         - Pointer to Command / Response header for outgoing message
  * @param   buffer           - Pointer to IP/UDP buffer that contains the outgoing message
- * @param   length           - Length of response arguments in buffer
  *
  * @return  None
  *
