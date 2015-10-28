@@ -86,6 +86,7 @@ int main(){
 	xil_printf("Note: this UART is currently printing from CPU_LOW. To view prints from\n");
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled any time while the design is running.\n\n");
+    xil_printf("------------------------\n");
 
 	gl_autocancel_en = 0;
 	gl_mpdu_pkt_buf = PKT_BUF_INVALID;
@@ -140,7 +141,11 @@ int main(){
 
 	wlan_mac_low_finish_init();
 
-    xil_printf("Initialization Finished\n");
+    // Print DCF information to the terminal
+    xil_printf("------------------------\n");
+    xil_printf("WLAN MAC DCF boot complete: \n");
+    xil_printf("  Serial Number     : W3-a-%05d\n", hw_info->serial_number);
+	xil_printf("  Wireless MAC Addr : %02x:%02x:%02x:%02x:%02x:%02x\n\n", gl_eeprom_addr[0], gl_eeprom_addr[1], gl_eeprom_addr[2], gl_eeprom_addr[3], gl_eeprom_addr[4], gl_eeprom_addr[5]);
 
 	while(1){
 		//Poll PHY RX start
