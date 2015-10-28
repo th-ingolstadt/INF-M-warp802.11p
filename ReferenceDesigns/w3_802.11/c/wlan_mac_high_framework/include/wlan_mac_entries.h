@@ -429,7 +429,7 @@ void             * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
 tx_high_entry    * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_num);
 tx_low_entry     * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u64 timestamp_offset, u32 tx_low_count);
 
-rx_common_entry  * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 channel_num, u8 rate);
+rx_common_entry  * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate);
 
 
 //-----------------------------------------------
