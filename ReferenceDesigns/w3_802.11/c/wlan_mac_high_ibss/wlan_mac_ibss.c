@@ -718,7 +718,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	u16 				length					 = mpdu_info->phy_details.length;
 
 	// Log the reception
-	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, mac_param_chan, rate);
+	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, rate);
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
