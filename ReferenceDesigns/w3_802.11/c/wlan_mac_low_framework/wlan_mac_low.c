@@ -1132,13 +1132,14 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
 
 	while(1){
 		rx_pkt_buf = (rx_pkt_buf+1) % NUM_RX_PKT_BUFS;
-		rx_mpdu = (rx_frame_info*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+		rx_mpdu    = (rx_frame_info*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+
 		if((rx_mpdu->state) == RX_MPDU_STATE_EMPTY){
 			if(lock_pkt_buf_rx(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
 
-				//By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
-				// However zeroing out the pkt buffer can be helpful when debugging Rx PHY behaviors
-				//bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
+				// By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
+				//     However zeroing out the pkt buffer can be helpful when debugging Rx PHY behaviors
+				// bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
 
 				rx_mpdu->state = RX_MPDU_STATE_RX_PENDING;
 
@@ -1146,10 +1147,14 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
 				wlan_phy_rx_pkt_buf_ofdm(rx_pkt_buf);
 				wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
 
+				if (i > 1) { xil_printf("found in %d iterations.\n", i); }
+
 				return;
 			}
 		}
-		xil_printf("Searching for empty packet buff %d\n", i++);
+
+		if (i == 1) { xil_printf("Searching for empty packet buff ... "); }
+		i++;
 	}
 }
 
