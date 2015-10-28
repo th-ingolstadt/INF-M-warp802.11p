@@ -219,7 +219,7 @@ plt.xlim(min(plt_t), max(plt_t))
 plt.grid('on')
 
 plt.legend(loc='lower center')
-plt.xlabel('Time (usec)')
+plt.xlabel('Time (sec)')
 plt.ylabel('Throughput (Mb/sec)')
 
 plt.savefig('Two_Node_Througput_vs_Time.png')
