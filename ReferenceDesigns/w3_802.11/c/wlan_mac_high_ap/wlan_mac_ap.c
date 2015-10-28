@@ -291,13 +291,13 @@ int main(){
 		wlan_mac_addr_filter_add(disallow_mask, disallow_filter);
 	}
 
-
     // Print AP information to the terminal
     xil_printf("------------------------\n");
     xil_printf("WLAN MAC AP boot complete: \n");
-    xil_printf("  SSID    : %s \n", my_bss_info->ssid);
-    xil_printf("  Channel : %d \n", my_bss_info->chan);
-	xil_printf("  MAC Addr: %02x-%02x-%02x-%02x-%02x-%02x\n\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
+    xil_printf("  Serial Number : W3-a-%05d\n", hw_info->serial_number);
+    xil_printf("  SSID          : %s \n", my_bss_info->ssid);
+    xil_printf("  Channel       : %d \n", my_bss_info->chan);
+	xil_printf("  MAC Addr      : %02x:%02x:%02x:%02x:%02x:%02x\n\n", my_bss_info->bssid[0], my_bss_info->bssid[1], my_bss_info->bssid[2], my_bss_info->bssid[3], my_bss_info->bssid[4], my_bss_info->bssid[5]);
 
 #ifdef WLAN_USE_UART_MENU
 	xil_printf("\nPress the Esc key in your terminal to access the UART menu\n");
