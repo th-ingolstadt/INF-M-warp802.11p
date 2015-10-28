@@ -68,6 +68,7 @@ int main(){
 	xil_printf("Note: this UART is currently printing from CPU_LOW. To view prints from\n");
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled live while the design is running.\n\n");
+    xil_printf("------------------------\n");
 
 	wlan_tx_config_ant_mode(DEFAULT_TX_ANTENNA_MODE);
 
@@ -88,7 +89,11 @@ int main(){
 
 	REG_SET_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_CCA_IGNORE_PHY_CS | WLAN_MAC_CTRL_MASK_CCA_IGNORE_NAV));
 
-    xil_printf("Initialization Finished\n");
+    // Print NOMAC information to the terminal
+    xil_printf("------------------------\n");
+    xil_printf("WLAN MAC NOMAC boot complete: \n");
+    xil_printf("  Serial Number     : W3-a-%05d\n", hw_info->serial_number);
+	xil_printf("  Wireless MAC Addr : %02x:%02x:%02x:%02x:%02x:%02x\n\n", eeprom_addr[0], eeprom_addr[1], eeprom_addr[2], eeprom_addr[3], eeprom_addr[4], eeprom_addr[5]);
 
 	while(1){
 
