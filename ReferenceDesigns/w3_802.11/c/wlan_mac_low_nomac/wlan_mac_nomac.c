@@ -61,7 +61,7 @@ int main(){
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.3 ------------------------------\n");
+	xil_printf("----- v1.4 ------------------------------\n");
 	xil_printf("----- wlan_mac_nomac --------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -69,8 +69,6 @@ int main(){
 	xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
 	xil_printf("This switch can be toggled live while the design is running.\n\n");
     xil_printf("------------------------\n");
-
-	wlan_tx_config_ant_mode(DEFAULT_TX_ANTENNA_MODE);
 
 	red_led_index = 0;
 	green_led_index = 0;
