@@ -79,7 +79,7 @@ int main(){
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.3 ------------------------------\n");
+	xil_printf("----- v1.4 ------------------------------\n");
 	xil_printf("----- wlan_mac_dcf ----------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -107,8 +107,6 @@ int main(){
 
 	gl_stationShortRetryCount    = 0;
 	gl_stationLongRetryCount     = 0;
-
-	wlan_tx_config_ant_mode(DEFAULT_TX_ANTENNA_MODE);
 
 	gl_red_led_index             = 0;
 	gl_green_led_index           = 0;
