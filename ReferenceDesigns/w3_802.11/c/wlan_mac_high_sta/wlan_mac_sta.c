@@ -123,7 +123,7 @@ int main() {
 	// Print initial message to UART
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.3 ------------------------------\n");
+	xil_printf("----- v1.4 ------------------------------\n");
 	xil_printf("----- wlan_mac_sta ----------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -761,10 +761,8 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							// xil_printf("0x%08x 0x%08x\n", (u32)(timestamp_diff >> 32), (u32)(timestamp_diff));
 							// xil_printf("\n");
 
-
-							// Set the timestamp
+							// Update the system time
 							wlan_mac_high_set_timestamp_delta(timestamp_diff);
-							// wlan_mac_high_set_timestamp_delta(0);
 
 							// Move the packet pointer back to the start for the rest of the function
 							mpdu_ptr_u8 -= sizeof(mac_header_80211);

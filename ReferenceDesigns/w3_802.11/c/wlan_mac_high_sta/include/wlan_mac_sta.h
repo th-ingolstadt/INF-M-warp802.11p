@@ -28,52 +28,58 @@
 #define WLAN_USE_UART_MENU
 
 // Tx queue IDs
-#define MCAST_QID 		0
-#define MANAGEMENT_QID 	1
-#define UNICAST_QID 	2
+#define MCAST_QID                                          0
+#define MANAGEMENT_QID                                     1
+#define UNICAST_QID                                        2
 
 // Common Defines
-#define NUM_BASIC_RATES_MAX            10
+#define NUM_BASIC_RATES_MAX                                10
 
-#define MAX_TX_QUEUE_LEN	  150 ///max number of entries in any Tx queue
-#define MAX_NUM_ASSOC		  1   ///max number of associations the STA will attempt
+#define MAX_TX_QUEUE_LEN                                   150       /// Max number of entries in any Tx queue
+#define MAX_NUM_ASSOC                                      1         /// Max number of associations the STA will attempt
 
 // UART Menu Modes
-#define UART_MODE_MAIN                 0
-#define UART_MODE_INTERACTIVE          1
+#define UART_MODE_MAIN                                     0
+#define UART_MODE_INTERACTIVE                              1
+#define UART_MODE_JOIN                                     2
 
 // Timing Parameters
 
-//Timeout for association request-response handshake
-#define ASSOCIATION_TIMEOUT_US         100000
-#define ASSOCIATION_NUM_TRYS           5
+// Timeout for association request-response handshake
+#define ASSOCIATION_TIMEOUT_US                             100000
+#define ASSOCIATION_NUM_TRYS                               5
 
-//Timeout for authentication handshake
-#define AUTHENTICATION_TIMEOUT_US      100000
-#define AUTHENTICATION_NUM_TRYS        5
+// Timeout for authentication handshake
+#define AUTHENTICATION_TIMEOUT_US                          100000
+#define AUTHENTICATION_NUM_TRYS                            5
 
-//Number of probe requests to send per channel when active scanning
-#define NUM_PROBE_REQ                  5
+// Number of probe requests to send per channel when active scanning
+#define NUM_PROBE_REQ                                      5
 
-//Time the active scan procedure will dwell on each channel before
-//moving to the next channel (microseconds)
-#define ACTIVE_SCAN_DWELL			   100000
+// Time the active scan procedure will dwell on each channel before
+// moving to the next channel (microseconds)
+//
+#define ACTIVE_SCAN_DWELL                                  100000
 
-//The amount of time between full active scans when looking for a particular SSID
-//Note: This value must be larger than the maximum amount of time it takes for
-//a single active scan. For an active scan over 11 channels, this value must be larger
-//than 11*ACTIVE_SCAN_DWELL.
-#define ACTIVE_SCAN_UPDATE_RATE		  5000000
+// The amount of time between full active scans when looking for a particular SSID
+//
+// NOTE: This value must be larger than the maximum amount of time it takes for
+//     a single active scan. For an active scan over 11 channels, this value must be larger
+//     than 11*ACTIVE_SCAN_DWELL.
+//
+#define ACTIVE_SCAN_UPDATE_RATE                            5000000
 
 // WLAN Exp defines
-#define  WLAN_EXP_STREAM_ASSOC_CHANGE            WLAN_EXP_NO_TRANSMIT
+#define  WLAN_EXP_STREAM_ASSOC_CHANGE                      WLAN_EXP_NO_TRANSMIT
+
+
 
 /*************************** Function Prototypes *****************************/
-int main();
-void up_button();
+int  main();
+
 void ltg_event(u32 id, void* callback_arg);
 
-int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
+int  ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
 void mpdu_rx_process(void* pkt_buf_addr);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details);
@@ -91,12 +97,13 @@ int  sta_disassociate();
 void print_menu();
 void print_ap_list();
 void print_station_status(u8 manual_call);
-void uart_rx(u8 rxByte);
 void print_all_observed_counts();
+
+void up_button();
+void uart_rx(u8 rxByte);
 
 void sta_write_hex_display(u8 val);
 void mpdu_dequeue(tx_queue_element* packet);
-
 
 
 #endif /* WLAN_MAC_STA_H_ */
