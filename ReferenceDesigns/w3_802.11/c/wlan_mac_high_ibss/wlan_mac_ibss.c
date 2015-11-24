@@ -125,7 +125,7 @@ int main() {
 	// Print initial message to UART
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.3 ------------------------------\n");
+	xil_printf("----- v1.4 ------------------------------\n");
 	xil_printf("----- wlan_mac_ibss ---------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -904,6 +904,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 										association_timestamp_adjust(timestamp_diff);
 									}
 
+									// Update the system time
 									wlan_mac_high_set_timestamp_delta(timestamp_diff);
 								}
 
