@@ -124,7 +124,7 @@ int main(){
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.3 ------------------------------\n");
+	xil_printf("----- v1.4 ------------------------------\n");
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
@@ -1109,7 +1109,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					//   - Depending on the type and destination, transmit the packet wirelessly or over the wired network
 					//
 
-
 					if(associated_station != NULL){
 
 						// MPDU is flagged as destined to the DS
@@ -1132,7 +1131,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 									mpdu_ptr_u8  = curr_tx_queue_buffer->frame;
 									tx_length    = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 									mpdu_ptr_u8 += sizeof(mac_header_80211);
-									memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
+									// memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
+									wlan_mac_high_cdma_start_transfer(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
+
 
 									// Setup the TX frame info
 									wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
@@ -1144,6 +1145,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 									curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
 									curr_tx_queue_buffer->frame_info.AID         = 0;
+
+									// Make sure the DMA transfer is complete
+									wlan_mac_high_cdma_finish_transfer();
 
 									// Put the packet in the queue
 									enqueue_after_tail(MCAST_QID, curr_tx_queue_element);
@@ -1170,7 +1174,8 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 										mpdu_ptr_u8  = curr_tx_queue_buffer->frame;
 										tx_length    = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 										mpdu_ptr_u8 += sizeof(mac_header_80211);
-										memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
+										// memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
+										wlan_mac_high_cdma_start_transfer(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 
 										// Setup the TX frame info
 										wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
@@ -1185,9 +1190,11 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 										curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(associated_station);
 										curr_tx_queue_buffer->frame_info.AID         = associated_station->AID;
 
+										// Make sure the DMA transfer is complete
+										wlan_mac_high_cdma_finish_transfer();
+
 										// Put the packet in the queue
 										enqueue_after_tail(AID_TO_QID(associated_station->AID),  curr_tx_queue_element);
-
 
 										// Given we sent the packet wirelessly to our stations, if we do not allow Ethernet transmissions
 										//   of wireless transmissions, then do not send over Ethernet
@@ -1320,7 +1327,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 								// Put the packet in the queue
 								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
 							}
 
 							// Finish the function
@@ -1437,8 +1443,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					//
 
 					if(wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr)) {
-
-
 
 						// Check if we have authenticated this TA
 						if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
@@ -1846,55 +1850,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 			}
 		break;
 	}
-}
-
-
-
-/**
- * @brief Enqueue a channel switch announcement
- *
- * This function will create a channel switch announcement and enqueue it to the management
- * queue.  It simply enqueues the packet and does not poll the TX queues.
- *
- * @param  u8 channel
- *   - Channel to which AP is switching
- * @return int status
- *   - Return 0 on success; non-zero otherwise
- */
-int  send_channel_switch_announcement( u8 channel ) {
-	int                 status = 0;
- 	u16                 tx_length;
-	tx_queue_element*   curr_tx_queue_element;
-	tx_queue_buffer* 	curr_tx_queue_buffer;
-
-	// Checkout 1 element from the queue
-	curr_tx_queue_element = queue_checkout();
-
-	// There was at least 1 free queue element
-	if(curr_tx_queue_element != NULL){
-
-		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-		// Create Channel Switch Announcement packet
- 		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
-
-		tx_length = wlan_create_channel_switch_announcement_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, channel);
-
- 		wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
- 											curr_tx_queue_element,
- 											tx_length,
- 											0,
- 											MANAGEMENT_QID );
-
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-
-		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-	} else {
-		status = -1;
-	}
-
-	return status;
 }
 
 

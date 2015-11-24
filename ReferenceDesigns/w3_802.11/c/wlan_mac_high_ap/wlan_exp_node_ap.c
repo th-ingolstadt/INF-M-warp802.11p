@@ -236,12 +236,18 @@ int wlan_exp_node_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_
                 // Set the Channel
                 if (wlan_lib_channel_verify(temp) == 0){
                     //
-                    // Send Channel Switch Announcement
-                    //   NOTE:  We are not sending this at this time b/c it does not look like commercial
-                    //       devices honor this message; The WARP nodes do not currently honor this message
-                    //       and there are some timing issues that need to be sorted out.
+                    // NOTE:  This will only change the channel of the node.  It does not notify any associated
+                    //     clients of this channel change.  If you are using WARP nodes as part of the network, then
+                    //     you must set the channel on all nodes to actually switch the channel of the network.  If
+                    //     you are using non-WARP nodes, then you should implement the Beacon Channel Switch
+                    //     Announcement (CSA) detailed in the tutorial:
                     //
-                    // send_channel_switch_announcement(temp);
+                    //         http://warpproject.org/trac/wiki/802.11/wlan_exp/app_notes/tutorial_hop_mac/slow_hopping
+                    //
+                    //     This is not implemented in the reference design because the CSA is inherently best effort.
+                    //     There are no guarantees that a client actually hears the announcement and follows, so it
+                    //     is not good practice in a controlled experiment.
+                    //
 
                     mac_param_chan = temp;
 
