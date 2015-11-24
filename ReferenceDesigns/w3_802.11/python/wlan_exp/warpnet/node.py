@@ -410,6 +410,10 @@ class WarpNode(object):
             fragment_size = max_req_size
         else:
             fragment_size = total_size
+
+        # With the performance of the transport, we cannot request more than the RX buffer
+        if (fragment_size > self.transport.rx_buffer_size):
+            fragment_size = self.transport.rx_buffer_size
         
         # Allocate a complete response buffer        
         resp = message.Buffer(buffer_id, flags, start_byte, total_size)

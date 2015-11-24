@@ -88,7 +88,7 @@ elif len(n_ibss_l) == 2:
     node2 = n_ibss_l[1]
 
     # Create the BSS_INFO describing the ad-hoc network
-    bssid = wlan_exp_util.create_locally_administered_bssid(node1)
+    bssid = wlan_exp_util.create_locally_administered_bssid(node1.wlan_mac_address)
     bss_info = wlan_exp_util.create_bss_info(bssid=bssid, ssid='WARP Xput IBSS', channel=CHANNEL)
 
     # Add both nodes to the new IBSS

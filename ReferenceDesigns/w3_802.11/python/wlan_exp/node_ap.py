@@ -76,10 +76,25 @@ class WlanExpNodeAp(node.WlanExpNode):
             treated as "must equal".  For the address, locations of one bits in the mask 
             must match the incoming addresses to pass the filter.
         """
-        if (type(allow) is list):
-            self.send_cmd(cmds.NodeAPSetAuthAddrFilter(allow))
-        else:
-            self.send_cmd(cmds.NodeAPSetAuthAddrFilter([allow]))
+        filters = []
+
+        if (type(allow) is not list):
+            allow = [allow]
+        
+        for value in allow:
+            if type(value[0]) in [int, long]:
+                filters.append(value)
+            elif type(value[0]) is str:
+                try:
+                    import wlan_exp.util as util                    
+                    filters.append((util.str_to_mac_addr(value[0]), value[1]))
+                    
+                except TypeError:
+                    raise TypeError("MAC address is not valid")
+            else:
+                raise TypeError("MAC address is not valid")
+        
+        self.send_cmd(cmds.NodeAPSetAuthAddrFilter(filters))
 
 
     def set_ssid(self, ssid):

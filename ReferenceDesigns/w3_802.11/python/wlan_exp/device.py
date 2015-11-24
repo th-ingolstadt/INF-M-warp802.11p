@@ -31,6 +31,7 @@ class WlanDevice(object):
     
     Args:
         mac_address (int, str): Medium Access Control (MAC) address of the WLAN device (48-bits)
+             The mac_address should be of the format:  0x0123456789AB or '01:23:45:67:89:AB'
         name (string):          User generated description of the WLAN device
 
     **Class Members:**
@@ -55,12 +56,9 @@ class WlanDevice(object):
                 self.wlan_mac_address = mac_address
             elif type(mac_address) is str:
                 try:
-                    mac_addr_int = mac_address
-                    mac_addr_int = ''.join('{0:02X}:'.format(ord(x)) for x in mac_addr_int)[:-1]
-                    mac_addr_int = '0x' + mac_addr_int.replace(':', '')                
-                    mac_addr_int = int(mac_addr_int, 0)
+                    import wlan_exp.util as util                    
+                    self.wlan_mac_address = util.str_to_mac_addr(mac_address)
                     
-                    self.wlan_mac_address = mac_addr_int
                 except TypeError:
                     raise TypeError("MAC address is not valid")
             else:

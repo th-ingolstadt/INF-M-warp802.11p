@@ -287,6 +287,8 @@ class TransportEthIpUdp(tp.Transport):
     def ip_to_int(self, ip_address):    return ip_to_int(ip_address)
 
     def mac_addr_to_str(self, mac_address):  return mac_addr_to_str(mac_address)
+        
+    def str_to_mac_addr(self, mac_address):  return str_to_mac_addr(mac_address)
 
     def __str__(self):
         """Pretty print the Transport parameters"""
@@ -314,13 +316,15 @@ class TransportEthIpUdp(tp.Transport):
 
 def int_to_ip(ip_address):
     """Convert an integer to IP address string (dotted notation)."""
-    msg = ""
+    ret_val = ""
+    
     if ip_address is not None:
-        msg += "{0:d}.".format((ip_address >> 24) & 0xFF)
-        msg += "{0:d}.".format((ip_address >> 16) & 0xFF)
-        msg += "{0:d}.".format((ip_address >>  8) & 0xFF)
-        msg += "{0:d}".format(ip_address & 0xFF)
-    return msg
+        ret_val += "{0:d}.".format((ip_address >> 24) & 0xFF)
+        ret_val += "{0:d}.".format((ip_address >> 16) & 0xFF)
+        ret_val += "{0:d}.".format((ip_address >>  8) & 0xFF)
+        ret_val += "{0:d}".format(ip_address & 0xFF)
+        
+    return ret_val
 
 # End def
 
@@ -328,10 +332,12 @@ def int_to_ip(ip_address):
 def ip_to_int(ip_address):
     """Convert IP address string (dotted notation) to an integer."""
     ret_val = 0
+    
     if ip_address is not None:
         expr = re.compile('\.')
         tmp = [int(n) for n in expr.split(ip_address)]        
         ret_val = (tmp[3]) + (tmp[2] * 2**8) + (tmp[1] * 2**16) + (tmp[0] * 2**24)
+        
     return ret_val
 
 # End def
@@ -339,7 +345,8 @@ def ip_to_int(ip_address):
 
 def mac_addr_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string."""
-    msg = ""
+    ret_val = ""
+    
     if mac_address is not None:
 
         # Force the input address to a Python int
@@ -347,15 +354,91 @@ def mac_addr_to_str(mac_address):
         if(type(mac_address) is not int):
             mac_address = int(mac_address)
 
-        msg += "{0:02x}:".format((mac_address >> 40) & 0xFF)
-        msg += "{0:02x}:".format((mac_address >> 32) & 0xFF)
-        msg += "{0:02x}:".format((mac_address >> 24) & 0xFF)
-        msg += "{0:02x}:".format((mac_address >> 16) & 0xFF)
-        msg += "{0:02x}:".format((mac_address >>  8) & 0xFF)
-        msg += "{0:02x}".format(mac_address & 0xFF)
+        ret_val += "{0:02x}:".format((mac_address >> 40) & 0xFF)
+        ret_val += "{0:02x}:".format((mac_address >> 32) & 0xFF)
+        ret_val += "{0:02x}:".format((mac_address >> 24) & 0xFF)
+        ret_val += "{0:02x}:".format((mac_address >> 16) & 0xFF)
+        ret_val += "{0:02x}:".format((mac_address >>  8) & 0xFF)
+        ret_val += "{0:02x}".format(mac_address & 0xFF)
 
-    return msg
+    return ret_val
 
+# End def
+
+
+def str_to_mac_addr(mac_address):
+    """Convert a MAC Address (colon separated) to an integer."""
+    ret_val = 0
+    
+    if mac_address is not None:
+        
+        expr = re.compile(':')
+        tmp = [int('0x{0}'.format(n), base=16) for n in expr.split(mac_address)]
+        ret_val = (tmp[5]) + (tmp[4] * 2**8) + (tmp[3] * 2**16) + (tmp[2] * 2**24) + (tmp[1] * 2**32) + (tmp[0] * 2**40)
+
+        # Alternate Method:
+        #
+        # ret_val = mac_address
+        # ret_val = ''.join('{0:02X}:'.format(ord(x)) for x in ret_val)[:-1]
+        # ret_val = '0x' + ret_val.replace(':', '')
+        # mac_addr_int = int(ret_val, 0)
+        
+    return ret_val
+
+# End def
+
+
+def mac_addr_to_byte_str(mac_address):
+    """Convert an integer to a MAC address byte string."""
+    ret_val = ""
+    
+    if mac_address is not None:
+        ret_val = ''.join([chr((mac_address >> ((6 - i - 1) * 8)) % 256) for i in range(6)])
+        
+    return ret_val
+
+# End def
+
+
+def byte_str_to_mac_addr(mac_address):
+    """Convert a MAC Address (byte string) to an integer."""
+    ret_val = 0
+    
+    if mac_address is not None:
+        import sys
+        
+        # Fix to support Python 2.x and 3.x
+        if sys.version[0]=="2":
+            ret_val = sum([ord(b) << (8 * i) for i, b in enumerate(mac_address[::-1])])
+        elif sys.version[0]=="3":
+            ret_val = sum([b << (8 * i) for i, b in enumerate(mac_address[::-1])])
+        else:
+            msg  = "WARNING:  Cannot convert byte string to MAC Address:\n"
+            msg += "    Unsupported Python version."
+            print(msg)
+        
+    return ret_val
+
+# End def
+
+
+def buffer_to_str(buffer):
+    """Convert buffer of bytes to a formatted string of byte values."""
+    ret_val = "    "
+    
+    for i, byte in enumerate(buffer):
+        try:
+            ret_val += "0x{0:02X} ".format(ord(byte))
+        except TypeError:
+            ret_val += "0x{0:02X} ".format(byte)
+            
+        if (((i % 16) == 0) and (i != len(buffer))):
+            ret_val += "\n    "
+            
+    ret_val += "\n"
+
+    return ret_val
+    
 # End def
 
 

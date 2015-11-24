@@ -46,7 +46,7 @@ AP_SSID           = "WARP Device Example"
 # WLAN devices
 # Contains a list of tuples: (MAC Address, 'String description of device')
 #  MAC addresses must be expressed as uint64 values
-#  For example, use 0x0123456789AB for MAC address 01:23:45:67:89:AB
+#  For example, use 0x0123456789AB for MAC address '01:23:45:67:89:AB'
 WLAN_DEVICE_LIST  = [(0x000000000000, 'My Device')]
 
 #-----------------------------------------------------------------------------

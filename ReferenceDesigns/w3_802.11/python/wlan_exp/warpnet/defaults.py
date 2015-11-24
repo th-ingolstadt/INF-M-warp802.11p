@@ -44,8 +44,8 @@ UNICAST_PORT                      = 9500
 BROADCAST_PORT                    = 9750
 TRANSPORT_TYPE                    = 'python'
 JUMBO_FRAME_SUPPORT               = True
-TX_BUFFER_SIZE                    = 2**22        # 4 MB buffer
-RX_BUFFER_SIZE                    = 2**22        # 4 MB buffer
+TX_BUFFER_SIZE                    = 2**23        # 8 MB buffer
+RX_BUFFER_SIZE                    = 2**23        # 8 MB buffer
 
 
 

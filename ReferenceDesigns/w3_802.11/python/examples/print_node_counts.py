@@ -72,7 +72,7 @@ def run_experiment():
     global nodes
 
     # Print initial message
-    print("\nRunning experiment\n")
+    print("\nRunning experiment (Use Ctrl-C to exit)\n")
 
     while(True):
 
@@ -99,7 +99,6 @@ def print_counts(node, counts, station_info=None):
     for count in counts:
         count_id = count['mac_addr']
 
-        hostname = False
         if not station_info is None:
             for station in station_info:
                 if (count['mac_addr'] == station['mac_addr']):
@@ -107,12 +106,6 @@ def print_counts(node, counts, station_info=None):
                     count_id  = count_id.strip('\x00')
                     if (count_id == ''):
                         count_id = count['mac_addr']
-                        hostname = False
-                    else:
-                        hostname = True
-
-        if not hostname:
-            count_id = ''.join('{0:02X}:'.format(ord(x)) for x in count_id)[:-1]
 
         msg += "{0:<20} ".format(count_id)
         msg += "{0:8d} ".format(count['data_num_tx_packets_success'])

@@ -705,6 +705,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         
         Returns:
             channel (dict):  Channel dictionary (see util.wlan_channel) that was set on the node.
+            
+        .. note::  This will only change the channel of the node.  It does not notify any associated
+            clients of this channel change.  If you are using WARP nodes as part of the network, then
+            you must set the channel on all nodes to actually switch the channel of the network.  If 
+            you are using non-WARP nodes, then you should implement the Beacon Channel Switch 
+            Announcement (CSA) detailed in the tutorial: 
+            http://warpproject.org/trac/wiki/802.11/wlan_exp/app_notes/tutorial_hop_mac/slow_hopping
+            This is not implemented in the reference design because the CSA is inherently best effort.
+            There are no guarantees that a client actually hears the announcement and follows, so it
+            is not good practice in a controlled experiment.
         """
         return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
 
@@ -1510,6 +1520,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         ret_val  = [] 
         ret_list = True
         my_info  = self.get_bss_info()           # Get node's BSS info
+        
         my_bssid = my_info['bssid']
 
         if device_list is not None:            

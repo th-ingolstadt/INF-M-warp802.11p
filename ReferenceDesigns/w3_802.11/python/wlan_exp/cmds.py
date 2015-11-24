@@ -497,24 +497,14 @@ class CountsGetTxRx(message.BufferCmd):
 
 
     def process_resp(self, resp):
-        # Contains a Buffer of all counts entries.  Need to convert to a list
-        #   of counts dictionaries.
-        import wlan_exp.log.entry_types as entry_types
+        # Contains a Buffer of all Tx / Rx counts.  Need to convert to a list 
+        #   of TxRxCounts()
+        import wlan_exp.info as info
         
         index   = 0
         data    = resp.get_bytes()
-        ret_val = entry_types.entry_txrx_counts.deserialize(data[index:])
-
-        if (False):
-            msg = "Counts Data buffer:"
-            for i, byte in enumerate(data[index:]):
-                if ((i % 16) == 0): msg += "\n    "
-                try:
-                    msg += "0x{0:02X} ".format(ord(byte))
-                except TypeError:
-                    msg += "0x{0:02X} ".format(byte)
-            print(msg)
-
+        ret_val = info.deserialize_info_buffer(data[index:], "TxRxCounts()")
+        
         return ret_val
 
 # End Class
@@ -1459,32 +1449,14 @@ class NodeGetStationInfo(message.BufferCmd):
 
 
     def process_resp(self, resp):
-        # Contains a Buffer of all station info entries.  Need to convert to
-        #   a list of station info dictionaries.
-        import wlan_exp.log.entry_types as entry_types
-
+        # Contains a Buffer of all station infos.  Need to convert to a list 
+        #   of StationInfo()
+        import wlan_exp.info as info
+        
         index   = 0
         data    = resp.get_bytes()
-        ret_val = entry_types.entry_station_info.deserialize(data[index:])
-
-        if (False):
-            msg = "Station Info Data buffer:"
-            for i, byte in enumerate(data[index:]):
-                if ((i % 16) == 0): msg += "\n    "
-                try:
-                    msg += "0x{0:02X} ".format(ord(byte))
-                except TypeError:
-                    msg += "0x{0:02X} ".format(byte)
-            print(msg)
-
-        # Clean up the station info entries
-        for val in ret_val:
-            if (val['host_name'][0] == '\x00'):
-                val['host_name'] = '\x00'
-            else:
-                import ctypes
-                val['host_name'] = ctypes.c_char_p(val['host_name']).value
-
+        ret_val = info.deserialize_info_buffer(data[index:], "StationInfo()")
+        
         return ret_val
 
 # End Class
@@ -1505,41 +1477,13 @@ class NodeGetBSSInfo(message.BufferCmd):
 
 
     def process_resp(self, resp):
-        # Contains a Buffer of all station info entries.  Need to convert to
-        #   a list of station info dictionaries.
-        import wlan_exp.log.entry_types as entry_types
-
+        # Contains a Buffer of all BSS infos.  Need to convert to a list of BSSInfo()
+        import wlan_exp.info as info
+        
         index   = 0
         data    = resp.get_bytes()
-        ret_val = entry_types.entry_bss_info.deserialize(data[index:])
-
-        if (False):
-            msg = "BSS Info Data buffer:"
-            for i, byte in enumerate(data[index:]):
-                if ((i % 16) == 0): msg += "\n    "
-                try:
-                    msg += "0x{0:02X} ".format(ord(byte))
-                except TypeError:
-                    msg += "0x{0:02X} ".format(byte)
-            print(msg)
-
-        # Clean up the bss info entries
-        #   - Remove extra characters in the SSID
-        #   - Convert the BSS ID to an integer so it can be treated like a MAC address
-        for val in ret_val:
-            import sys
-            import ctypes
-            val['ssid']      = ctypes.c_char_p(val['ssid']).value
-
-            # Fix to support Python 2.x and 3.x
-            if sys.version[0]=="2":
-                val['bssid_int'] = sum([ord(b) << (8 * i) for i, b in enumerate(val['bssid'][::-1])])
-            elif sys.version[0]=="3":
-                val['bssid_int'] = sum([b << (8 * i) for i, b in enumerate(val['bssid'][::-1])])
-            else:
-                print("WARNING:  Unsupported python version.")
-                val['bssid_int'] = 0
-
+        ret_val = info.deserialize_info_buffer(data[index:], "BSSInfo()")
+        
         return ret_val
 
 # End Class
@@ -2092,12 +2036,13 @@ class NodeProcJoin(message.Cmd):
 
         _add_time_to_cmd32(self, timeout, self.time_factor)
 
-        if type(bss_info) is dict:
-            # Convert BSS info dictionary to bytes for transfer
+        import wlan_exp.info as info
+
+        if type(bss_info) is info.BSSInfo():
             import struct
-            import wlan_exp.log.entry_types as entry_types
-    
-            data_to_send = entry_types.entry_bss_info.serialize(bss_info)
+            
+            # Convert BSSInfo() to bytes for transfer
+            data_to_send = bss_info.serialize()
             data_len     = len(data_to_send)
 
             self.add_args(data_len)
@@ -2114,7 +2059,7 @@ class NodeProcJoin(message.Cmd):
                 self.add_args(arg[0])
                 idx += 4
         else:
-            msg = "BSS info parameter must be a bss_info dictionary."
+            msg = "BSS info parameter must be a BSSInfo()."
             raise TypeError(msg)
         
 

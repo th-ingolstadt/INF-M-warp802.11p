@@ -59,6 +59,7 @@
 """
 import sys, os
 from struct import pack, unpack, calcsize, error
+import wlan_exp.info as info
 
 
 # Fix to support Python 2.x and 3.x
@@ -922,23 +923,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_station_info.description += 'for each associated STA and is logged whenever the STA association state changes. '
     entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
 
-    entry_station_info.append_field_defs([
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-        ('mac_addr',                    '6s',     '6uint8',  'MAC address of associated device'),
-        ('aid',                         'H',      'uint16',  'Association ID (AID) of device'),
-        ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
-        ('flags',                       'I',      'uint32',  'Association state flags: ???'),
-        ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last successful Rx from device'),
-        ('rx_last_seq',                 'H',      'uint16',  'Sequence number of last packet received from device'),
-        ('rx_last_power',               'b',      'int8',    'Rx power in dBm of last packet received from device'),
-        ('rx_last_rate',                'B',      'uint8',   'PHY rate index in [1:8] of last packet received from device'),
-        ('tx_phy_rate',                 'B',      'uint8',   'Current PHY rate index in [1:8] for new transmissions to device'),
-        ('tx_phy_antenna_mode',         'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
-        ('tx_phy_power',                'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
-        ('tx_phy_flags',                'B',      'uint8',   'Flags for Tx PHY config for new transmissions to deivce'),
-        ('tx_mac_num_tx_max',           'B',      'uint8',   'Maximum number of transmissions (original Tx + re-Tx) per MPDU to device'),
-        ('tx_mac_flags',                'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
-        ('padding',                     '2x',     'uint16',  '')])
+    entry_station_info.append_field_defs(info.StationInfo().get_field_defs())
 
 
     ###########################################################################
@@ -948,25 +933,13 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
 
-    entry_bss_info.append_field_defs([
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-        ('bssid',                       '6s',     '6uint8',  'BSS ID'),
-        ('chan_num',                    'B',      'uint8',   'Channel (center frequency) index of transmission'),
-        ('flags',                       'B',      'uint8',   'BSS flags'),
-        ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
-        ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('state',                       'B',      'uint8',   'State of the BSS'),
-        ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
-        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
-        ('padding0',                    'x',      'uint8',   ''),
-        ('num_basic_rates',             'B',      'uint8',   'Number of basic rates supported'),
-        ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
-        ('padding1',                    '2x',     '2uint8',  '')])
+    tmp_bss_info        = info.BSSInfo()
+    tmp_bss_info_consts = tmp_bss_info.get_consts()
 
-    entry_bss_info.consts['BSS_STATE_UNAUTHENTICATED'] = 1
-    entry_bss_info.consts['BSS_STATE_AUTHENTICATED']   = 2
-    entry_bss_info.consts['BSS_STATE_ASSOCIATED']      = 4
-    entry_bss_info.consts['BSS_STATE_OWNED']           = 5
+    entry_bss_info.append_field_defs(tmp_bss_info.get_field_defs())
+    
+    for const in tmp_bss_info_consts.keys():
+        entry_bss_info.consts[const] = tmp_bss_info_consts[const]
 
 
     ###########################################################################
@@ -1147,23 +1120,4 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_txrx_counts.description += 'be maintained for every unique source MAC address, up to the max_counts value. Otherwise counts are maintaind only '
     entry_txrx_counts.description += 'associated nodes.'
 
-    entry_txrx_counts.append_field_defs([
-        ('timestamp',                      'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-        ('mac_addr',                       '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
-        ('associated',                     'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
-        ('padding',                        'x',      'uint8',   ''),
-        ('data_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in DATA packets from remote node'),
-        ('data_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in DATA packets to remote node'),
-        ('data_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in DATA packets to remote node'),
-        ('data_num_rx_packets',            'I',      'uint32',  'Total number of DATA packets received from remote node'),
-        ('data_num_tx_packets_success',    'I',      'uint32',  'Total number of DATA packets successfully transmitted to remote node'),
-        ('data_num_tx_packets_total',      'I',      'uint32',  'Total number of DATA packets transmitted (successfully or not) to remote node'),
-        ('data_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)'),
-        ('mgmt_num_rx_bytes',              'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),
-        ('mgmt_num_tx_bytes_success',      'Q',      'uint64',  'Total number of bytes successfully transmitted in management packets to remote node'),
-        ('mgmt_num_tx_bytes_total',        'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in management packets to remote node'),
-        ('mgmt_num_rx_packets',            'I',      'uint32',  'Total number of management packets received from remote node'),
-        ('mgmt_num_tx_packets_success',    'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
-        ('mgmt_num_tx_packets_total',      'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
-        ('mgmt_num_tx_packets_low',        'I',      'uint32',  'Total number of PHY transmissions of management packets to remote node (includes re-transmissions)')])
-
+    entry_txrx_counts.append_field_defs(info.TxRxCounts().get_field_defs())

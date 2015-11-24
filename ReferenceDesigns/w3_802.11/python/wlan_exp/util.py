@@ -622,117 +622,13 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Misc Utilities
+# WLAN Exp Replicated Misc Utilities
 # -----------------------------------------------------------------------------
 
-def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100):
-    """Create a Basic Service Set (BSS) information structure.
-
-    This method will create a dictionary that contains all necessary information
-    for a BSS for the device.  This is the same structure that is used by the
-    BSS_INFO log entry.
-
-    Args:
-        ssid (str):  SSID string (Must be 32 characters or less)
-        channel (int, dict in util.wlan_channel array): Channel on which the BSS operates
-            (either the channel number as an it or an entry in the wlan_channel array)
-        bssid (int):  40-bit ID of the BSS (Uses current wlan_mac_address if not specified)  
-        ibss_status (bool, optional): Status of the 
-            BSS: 
-                * **True**  --> Capabilities field = 0x2 (BSS_INFO is for IBSS)
-                * **False** --> Capabilities field = 0x1 (BSS_INFO is for BSS)
-        beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
-            (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
-    
-    Returns:
-        bss_info (dict):  BSS_INFO dictionary (defined in wlan_exp.log.entry_types)
-    """
-    channel_error = False
-    bss_dict      = {}
-
-    # Set default values for fields not set by this method
-    bss_dict['timestamp']       = 0
-    bss_dict['last_timestamp']  = 0
-    bss_dict['flags']           = 0
-    bss_dict['state']           = 5              # BSS_STATE_OWNED
-    bss_dict['num_basic_rates'] = 0
-    bss_dict['basic_rates']     = bytes()
-
-    # Check SSID
-    if type(ssid) is not str:
-        raise ValueError("The SSID must be a string.")
-
-    if len(ssid) > 32:
-        ssid = ssid[:32]
-        print("WARNING:  SSID must be 32 characters or less.  Trucating to {0}".format(ssid))
-
-    bss_dict['ssid'] = ssid
-
-    # Check Channel
-    #   - Make sure it is a valid channel; only store channel
-    if type(channel) is int:
-        channel = find_channel_by_channel_number(channel)
-
-        if channel is None: channel_error = True
-
-    elif type(channel) is dict:
-        pass
-    else:
-        channel_error = True
-
-    if not channel_error:
-        bss_dict['chan_num'] = channel['channel']
-    else:
-        msg  = "The channel must either be a valid channel number or a wlan_exp.util.wlan_channel entry."
-        raise ValueError(msg)
-
-    # Check beacon interval
-    if type(beacon_interval) is not int:
-        beacon_interval = int(beacon_interval)
-        print("WARNING:  Beacon interval must be an interger number of time units rounding to {0}".format(beacon_interval))
-
-    if not ((beacon_interval > 0) and (beacon_interval < 2**16)):
-        msg  = "The beacon interval must be in [1, 65535] (ie 16-bit positive integer)."
-        raise ValueError(msg)
-
-    bss_dict['beacon_interval'] = beacon_interval
-
-    # Check IBSS status
-    if type(ibss_status) is not bool:
-        raise ValueError("The ibss_status must be a boolean.")
-
-    # Set BSSID, capabilities
-    #   - If this is an IBSS, then set local bit to '1' and mcast bit to '0'
-    if ibss_status:
-        bss_dict['bssid_int']    = (bssid | mac_addr_local_mask) & (mac_addr_broadcast - mac_addr_mcast_mask)
-        bss_dict['capabilities'] = 0x2
-    else:
-        bss_dict['bssid_int']    = bssid
-        bss_dict['capabilities'] = 0x1
-
-    # Convert bssid_int to string for bssid
-    bss_dict['bssid'] = ''.join([chr((bss_dict['bssid_int'] >> ((6 - i - 1) * 8)) % 256) for i in range(6)])
-
-    return bss_dict
-
-# End def
-
-
-def create_locally_administered_bssid(node):
-    """Create a locally administered BSSID based on the wireless MAC address of the node.
-    
-    Args:
-        node (WlanExpNode):  WlanExpNode or sub-class of WlanExpNode
-    
-    Returns:
-        bssid (int):  
-            BSSID with the "locally administerd" bit set to '1' and the "multicast" bit set to '0'    
-    """
-
-    return (node.wlan_mac_address | mac_addr_local_mask) & (mac_addr_broadcast - mac_addr_mcast_mask)
-
-# End def
-
+#
+# NOTE:  These utilities are replicated versions of other functions in WLAN Exp.
+#     They are consolidated in util to ease import of WLAN Exp for scripts.
+#
 
 def int_to_ip(ip_address):
     """Convert an integer to IP address string (dotted notation).
@@ -768,13 +664,146 @@ def mac_addr_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string.
 
     Args:
-        mac_address (int):  Unsigned 40-bit integer representation of the MAC address    
+        mac_address (int):  Unsigned 40-bit integer representation of the MAC address
 
     Returns:
-        mac_address (str):  String version of an MAC address of the form XX:XX:XX:XX:XX:XX        
+        mac_address (str):  String version of an MAC address of the form XX:XX:XX:XX:XX:XX
     """
     import wlan_exp.warpnet.transport_eth_ip_udp as transport
     return transport.mac_addr_to_str(mac_address)
+
+# End def
+
+
+def str_to_mac_addr(mac_address):
+    """Convert a colon separated MAC address string to an integer.
+
+    Args:
+        mac_address (str):  String version of an MAC address of the form XX:XX:XX:XX:XX:XX
+
+    Returns:
+        mac_address (int):  Unsigned 40-bit integer representation of the MAC address
+    """
+    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    return transport.str_to_mac_addr(mac_address)
+
+# End def
+
+
+def mac_addr_to_byte_str(mac_address):
+    """Convert an integer to a MAC address byte string.
+
+    Args:
+        mac_address (int):  Unsigned 40-bit integer representation of the MAC address    
+
+    Returns:
+        mac_address (str):  Byte string version of an MAC address 
+    """
+    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    return transport.mac_addr_to_byte_str(mac_address)
+
+# End def
+
+
+def byte_str_to_mac_addr(mac_address):
+    """Convert a MAC address byte string to an integer.
+
+    Args:
+        mac_address (str):  Byte string version of an MAC address 
+
+    Returns:
+        mac_address (int):  Unsigned 40-bit integer representation of the MAC address    
+    """
+    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    return transport.byte_str_to_mac_addr(mac_address)
+
+# End def
+
+
+def buffer_to_str(buffer):
+    """Convert a buffer of bytes to a formatted string.
+
+    Args:
+        buffer (bytes):  Buffer of bytes
+
+    Returns:
+        output (str):  Formatted string of the buffer byte values
+    """
+    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    return transport.buffer_to_str(buffer)
+
+# End def
+
+
+def ver_code_to_str(ver_code):
+    """Convert a WLAN Exp version code to a string."""
+    import wlan_exp.version as version
+    return version.wlan_exp_ver_code_to_str(ver_code)
+
+# End def
+
+
+def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100):
+    """Create a Basic Service Set (BSS) information structure.
+
+    This method will create a dictionary that contains all necessary information
+    for a BSS for the device.  This is the same structure that is used by the
+    BSS_INFO log entry.
+
+    Args:
+        ssid (str):  SSID string (Must be 32 characters or less)
+        channel (int, dict in util.wlan_channel array): Channel on which the BSS operates
+            (either the channel number as an it or an entry in the wlan_channel array)
+        bssid (int, str):  40-bit ID of the BSS either as a integer or colon delimited 
+            string of the form:  XX:XX:XX:XX:XX:XX
+        ibss_status (bool, optional): Status of the 
+            BSS: 
+                * **True**  --> Capabilities field = 0x2 (BSS_INFO is for IBSS)
+                * **False** --> Capabilities field = 0x1 (BSS_INFO is for BSS)
+        beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
+            (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
+    
+    Returns:
+        bss_info (BSSInfo()):  A BSS Information object (defined in wlan_exp.info)
+    """
+    import wlan_exp.info as info
+    
+    return info.BSSInfo(bssid, ssid, channel, ibss_status, beacon_interval)
+
+# End def
+
+
+# -----------------------------------------------------------------------------
+# WLAN Exp Misc Utilities
+# -----------------------------------------------------------------------------
+
+def create_locally_administered_bssid(mac_address):
+    """Create a locally administered BSSID.
+    
+    Set "locally administered" bit to '1' and "multicast" bit to '0'
+    
+    Args:
+        mac_address (int, str):  MAC address to be used as the base for the BSSID 
+            either as a 40-bit integer or a colon delimited string of the form:  
+            XX:XX:XX:XX:XX:XX
+    
+    Returns:
+        bssid (int):  
+            BSSID with the "locally administerd" bit set to '1' and the "multicast" bit set to '0'    
+    """
+    if type(mac_address) is str:
+        type_is_str     = True
+        tmp_mac_address = str_to_mac_addr(mac_address)
+    else:
+        type_is_str     = False
+        tmp_mac_address = mac_address
+
+    tmp_mac_address = (tmp_mac_address | mac_addr_local_mask) & (mac_addr_broadcast - mac_addr_mcast_mask)
+
+    if type_is_str:
+        return mac_addr_to_str(tmp_mac_address)
+    else:
+        return tmp_mac_address
 
 # End def
 
@@ -793,14 +822,6 @@ def sn_to_str(hw_generation, serial_number):
         return ('W3-a-{0:05d}'.format(int(serial_number)))
     else:
         print("ERROR:  Not valid Hardware Generation: {0}".format(hw_generation))
-
-# End def
-
-
-def ver_code_to_str(ver_code):
-    """Convert a WLAN Exp version code to a string."""
-    import wlan_exp.version as version
-    return version.wlan_exp_ver_code_to_str(ver_code)
 
 # End def
 

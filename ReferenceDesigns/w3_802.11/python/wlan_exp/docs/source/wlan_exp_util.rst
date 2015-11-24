@@ -140,6 +140,12 @@ Misc Utility Functions
 
 .. autofunction:: wlan_exp.util.mac_addr_to_str
 
+.. autofunction:: wlan_exp.util.str_to_mac_addr
+
+.. autofunction:: wlan_exp.util.mac_addr_to_byte_str
+
+.. autofunction:: wlan_exp.util.byte_str_to_mac_addr
+
 .. autofunction:: wlan_exp.util.sn_to_str
 
 .. autofunction:: wlan_exp.util.node_type_to_str
