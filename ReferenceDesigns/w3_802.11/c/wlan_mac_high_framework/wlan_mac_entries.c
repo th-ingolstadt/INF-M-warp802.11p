@@ -54,6 +54,7 @@
 /*********************** Global Variable Definitions *************************/
 
 static u8    log_entry_en_mask;
+static u32   system_time_id;
 
 
 //-----------------------------------------------
@@ -103,6 +104,24 @@ u8 wlan_exp_log_get_entry_en_mask(){
 void wlan_exp_log_set_entry_en_mask(u8 mask){
     log_entry_en_mask = mask;
 }
+
+
+
+/*****************************************************************************/
+/**
+ * Reset system time ID
+ *
+ * Resets the system time ID to the TIME_INFO_ENTRY_BASE_SYSTEM_TIME_ID constant
+ *
+ * @param   None
+ * @return  None
+ *
+ *****************************************************************************/
+void wlan_exp_log_reset_system_time_id(){
+    system_time_id = TIME_INFO_ENTRY_BASE_SYSTEM_TIME_ID;
+}
+
+
 
 /*****************************************************************************/
 /**
@@ -199,21 +218,21 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
     mpdu_ptr_u8             = (u8*)mpdu;
     tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
 
-    if( ((tx_low_details->tx_details_type == TX_DETAILS_RTS_ONLY) || (tx_low_details->tx_details_type == TX_DETAILS_RTS_MPDU)) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL) ){
+    // Create RTS log entry
+    if (((tx_low_details->tx_details_type == TX_DETAILS_RTS_ONLY) || (tx_low_details->tx_details_type == TX_DETAILS_RTS_MPDU)) &&
+        (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) {
 
-
-        //CREATE RTS LOG ENTRY
         entry_type = ENTRY_TYPE_TX_LOW;
 
-        packet_payload_size = sizeof(mac_header_80211_RTS)+WLAN_PHY_FCS_NBYTES;
+        packet_payload_size = sizeof(mac_header_80211_RTS) + WLAN_PHY_FCS_NBYTES;
 
         // Get all the necessary sizes to log the packet
-        wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
+        wlan_exp_log_get_txrx_entry_sizes(entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size);
 
         // Request space for a TX_LOW log entry
-        tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( entry_type, entry_size );
+        tx_low_event_log_entry = (tx_low_entry *) wlan_exp_log_create_entry(entry_type, entry_size);
 
-        if(tx_low_event_log_entry != NULL){
+        if (tx_low_event_log_entry != NULL) {
             // Store the payload size in the log entry
             tx_low_event_log_entry->mac_payload_log_len = entry_payload_size;
 
@@ -239,23 +258,23 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 
             pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
-            tx_low_event_log_entry->unique_seq                = tx_mpdu->unique_seq; //Note: RTS frames don't have sequence numbers. However, for easier processing
-                                                                                     //we'll include the MPDU's unique sequence number in this RTS TX LOW entry
+            tx_low_event_log_entry->unique_seq                = tx_mpdu->unique_seq; // NOTE: RTS frames don't have sequence numbers. However, for easier processing
+                                                                                     //     we'll include the MPDU's unique sequence number in this RTS TX LOW entry
             tx_low_event_log_entry->transmission_count        = tx_low_count + 1;
             tx_low_event_log_entry->chan_num                  = tx_low_details->chan_num;
             tx_low_event_log_entry->num_slots                 = tx_low_details->num_slots;
             tx_low_event_log_entry->cw                        = tx_low_details->cw;
+
             memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->ctrl_phy_params), sizeof(phy_tx_params));
 
             tx_low_event_log_entry->length                    = packet_payload_size;
             tx_low_event_log_entry->pkt_type                  = pkt_type;
-
         }
-
     }
 
-    if( ((tx_low_details->tx_details_type == TX_DETAILS_MPDU) || (tx_low_details->tx_details_type == TX_DETAILS_RTS_MPDU)) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU)){
-        //CREATE MPDU LOG ENTRY
+    // Create MPDU log entry
+    if (((tx_low_details->tx_details_type == TX_DETAILS_MPDU) || (tx_low_details->tx_details_type == TX_DETAILS_RTS_MPDU)) &&
+        (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU)) {
 
         packet_payload_size     = tx_mpdu->length;
 
@@ -270,10 +289,10 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
         }
 
         // Get all the necessary sizes to log the packet
-        wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
+        wlan_exp_log_get_txrx_entry_sizes(entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size);
 
         // Request space for a TX_LOW log entry
-        tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( entry_type, entry_size );
+        tx_low_event_log_entry = (tx_low_entry *) wlan_exp_log_create_entry(entry_type, entry_size);
 
         if(tx_low_event_log_entry != NULL){
 
@@ -295,13 +314,12 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
                 tx_low_event_log_entry->flags = 0;
             }
 
-            if((tx_low_details->tx_details_type == TX_DETAILS_MPDU)){
             // Compute the timestamp of the actual Tx event
             //   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
-                tx_low_event_log_entry->timestamp_send            = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset);
-            }
-            else{
-                tx_low_event_log_entry->timestamp_send            = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset + (u64)(tx_low_details->timestamp_offset));
+            if((tx_low_details->tx_details_type == TX_DETAILS_MPDU)){
+                tx_low_event_log_entry->timestamp_send       = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset);
+            } else{
+                tx_low_event_log_entry->timestamp_send       = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset + (u64)(tx_low_details->timestamp_offset));
             }
 
             tx_low_event_log_entry->unique_seq                = tx_mpdu->unique_seq;
@@ -309,18 +327,21 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             tx_low_event_log_entry->chan_num                  = tx_low_details->chan_num;
             tx_low_event_log_entry->num_slots                 = tx_low_details->num_slots;
             tx_low_event_log_entry->cw                        = tx_low_details->cw;
+
             memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->mpdu_phy_params), sizeof(phy_tx_params));
+
             tx_low_event_log_entry->length                    = tx_mpdu->length;
             tx_low_event_log_entry->pkt_type                  = pkt_type;
+
             wlan_mac_high_cdma_finish_transfer();
 
-            //CPU Low updates the retry flag in the header for any re-transmissions
-            // Re-create the original header for the first TX_LOW by de-asserting the flag
+            // CPU Low updates the retry flag in the header for any re-transmissions
+            //   Re-create the original header for the first TX_LOW by de-asserting the flag
             if(tx_low_count == 0) {
-                //This is the first transmission
+                // This is the first transmission
                 ((mac_header_80211*)(tx_low_event_log_entry->mac_payload))->frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_RETRY;
             } else {
-                //This is all subsequent transmissions
+                // This is all subsequent transmissions
                 ((mac_header_80211*)(tx_low_event_log_entry->mac_payload))->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_RETRY;
             }
 
@@ -329,11 +350,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             print_buf((u8 *)((u32)tx_low_event_log_entry - 8), sizeof(tx_low_entry) + 12);
     #endif
         }
-
-
     }
-
-
 
     return tx_low_event_log_entry;
 }
@@ -365,8 +382,8 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
     u32               min_entry_payload_size;
     u32               transfer_len;
 
-    if( (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU) == 0 ){
-        //MPDU logging is disabled
+    // MPDU logging is disabled
+    if((log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU) == 0){
         return NULL;
     }
 
@@ -414,6 +431,7 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
 
         // Populate the log entry
         bzero(tx_high_event_log_entry->padding , sizeof(tx_high_event_log_entry->padding));
+
         tx_high_event_log_entry->unique_seq               = tx_mpdu->unique_seq;
         tx_high_event_log_entry->queue_id                 = tx_mpdu->queue_info.QID;
         tx_high_event_log_entry->queue_occupancy          = tx_mpdu->queue_info.occupancy;
@@ -428,7 +446,6 @@ tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_
         tx_high_event_log_entry->delay_accept             = tx_mpdu->delay_accept;
         tx_high_event_log_entry->delay_done               = tx_mpdu->delay_done;
         tx_high_event_log_entry->ant_mode                 = tx_mpdu->params.phy.antenna_mode;
-
 
 #ifdef _DEBUG_
         xil_printf("TX HIGH : %8d    %8d    %8d    %8d    %8d\n", transfer_len, MIN_MAC_PAYLOAD_LOG_LEN, total_payload_len, extra_payload, payload_log_len);
@@ -470,9 +487,9 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
     typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
     copy_order_t      copy_order;
 
-    if( (((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU)) ||
+    if ((((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU)) ||
         (((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_CTRL) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) ||
-        ( (rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) ){
+        ( (rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT)) {
 
         // Determine the type of the packet
         pkt_type = wlan_mac_high_pkt_type(mpdu, packet_payload_size);
@@ -489,27 +506,26 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
         }
 
         // Get all the necessary sizes to log the packet
-        wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
-
+        wlan_exp_log_get_txrx_entry_sizes(entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size);
 
         // Create the log entry
-        rx_event_log_entry = (rx_common_entry*)wlan_exp_log_create_entry( entry_type, entry_size );
+        rx_event_log_entry = (rx_common_entry*) wlan_exp_log_create_entry(entry_type, entry_size);
 
         // Populate the log entry
-        if(rx_event_log_entry != NULL){
+        if (rx_event_log_entry != NULL) {
 
             // For maximum pipelining, we'll break up the two major log copy operations (packet payload + [optional] channel estimates)
             // We will start the CDMA operation for whichever of those copies is shorter, then fill in the rest of the log entry
             // while that copy is under way, and then start the CDMA operation for the larger (which will first block on the shorter if
             // it is still going).
 
-            if(rate == WLAN_MAC_MCS_1M){
+            if (rate == WLAN_MAC_MCS_1M) {
                 // This is a DSSS packet that has no channel estimates
                 copy_order = PAYLOAD_FIRST;
             } else {
                 // This is an OFDM packet that contains channel estimates
     #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-                if( sizeof(rx_mpdu->channel_est) < packet_payload_size ){
+                if (sizeof(rx_mpdu->channel_est) < packet_payload_size) {
                     copy_order = CHAN_EST_FIRST;
                 } else {
                     copy_order = PAYLOAD_FIRST;
@@ -533,14 +549,14 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
             transfer_len = min(entry_payload_size, packet_payload_size);
 
             // Start copy based on the copy order
-            switch(copy_order){
+            switch (copy_order) {
                 case PAYLOAD_FIRST:
-                    if( rate != WLAN_MAC_MCS_1M ){
+                    if (rate != WLAN_MAC_MCS_1M) {
                         ((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = entry_payload_size;
                         wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
                         // Zero pad log entry if transfer_len was less than the allocated space in the log (ie entry_payload_size)
-                        if(transfer_len < entry_payload_size){
+                        if (transfer_len < entry_payload_size) {
                             bzero((u8*)(((u32)((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len), (entry_payload_size - transfer_len));
                         }
                     } else {
@@ -548,7 +564,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                         wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
                         // Zero pad log entry if transfer_len was less than the allocated space in the log (ie entry_payload_size)
-                        if(transfer_len < entry_payload_size){
+                        if (transfer_len < entry_payload_size) {
                             bzero((u8*)(((u32)((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len), (entry_payload_size - transfer_len));
                         }
                     }
@@ -556,7 +572,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
 
                 case CHAN_EST_FIRST:
     #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-                    if(rate != WLAN_MAC_MCS_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, rx_mpdu->channel_est, sizeof(rx_mpdu->channel_est));
+                    if (rate != WLAN_MAC_MCS_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, rx_mpdu->channel_est, sizeof(rx_mpdu->channel_est));
     #endif
                 break;
             }
@@ -574,7 +590,6 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
             rx_event_log_entry->ant_mode   = rx_mpdu->ant_mode;
             rx_event_log_entry->flags      = 0;
 
-
             // Start second copy based on the copy order
             switch(copy_order){
                 case PAYLOAD_FIRST:
@@ -584,12 +599,12 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 break;
 
                 case CHAN_EST_FIRST:
-                    if( rate != WLAN_MAC_MCS_1M ){
+                    if (rate != WLAN_MAC_MCS_1M) {
                         ((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = entry_payload_size;
                         wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
                         // Zero pad log entry if transfer_len was less than the allocated space in the log (ie entry_payload_size)
-                        if(transfer_len < entry_payload_size){
+                        if (transfer_len < entry_payload_size) {
                             bzero((u8*)(((u32)((rx_ofdm_entry*)rx_event_log_entry)->mac_payload) + transfer_len), (entry_payload_size - transfer_len));
                         }
                     } else {
@@ -597,7 +612,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                         wlan_mac_high_cdma_start_transfer((((rx_dsss_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
                         // Zero pad log entry if transfer_len was less than the allocated space in the log (ie entry_payload_size)
-                        if(transfer_len < entry_payload_size){
+                        if (transfer_len < entry_payload_size) {
                             bzero((u8*)(((u32)((rx_dsss_entry*)rx_event_log_entry)->mac_payload) + transfer_len), (entry_payload_size - transfer_len));
                         }
                     }
@@ -611,21 +626,22 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
         }
     }
 
-    if((rx_mpdu->flags & RX_MPDU_FLAGS_FORMED_RESPONSE) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) {
+    if ((rx_mpdu->flags & RX_MPDU_FLAGS_FORMED_RESPONSE) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) {
 
-        if(rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_RTS){
-            // CREATE CTS LOG ENTRY
+        // Create CTS log entry
+        if (rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_RTS) {
+
             entry_type = ENTRY_TYPE_TX_LOW;
 
             packet_payload_size = sizeof(mac_header_80211_CTS)+WLAN_PHY_FCS_NBYTES;
 
             // Get all the necessary sizes to log the packet
-            wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
+            wlan_exp_log_get_txrx_entry_sizes(entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size);
 
             // Request space for a TX_LOW log entry
-            tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( entry_type, entry_size );
+            tx_low_event_log_entry = (tx_low_entry *) wlan_exp_log_create_entry(entry_type, entry_size);
 
-            if(tx_low_event_log_entry != NULL){
+            if (tx_low_event_log_entry != NULL) {
                 // Store the payload size in the log entry
                 tx_low_event_log_entry->mac_payload_log_len = entry_payload_size;
 
@@ -640,7 +656,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 // Because a CTS is smaller than a typical 24-byte 802.11 header, we need to be sure to zero pad out the rest of the payload
                 // There is no good way to get a valid FCS for CTRL transmissions since the packet buffer is long gone.
                 // Instead, we'll explicitly zero out those bytes as well.
-                if((packet_payload_size-WLAN_PHY_FCS_NBYTES) < entry_payload_size){
+                if ((packet_payload_size-WLAN_PHY_FCS_NBYTES) < entry_payload_size) {
                     bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + (packet_payload_size-WLAN_PHY_FCS_NBYTES)),
                           (entry_payload_size -(packet_payload_size-WLAN_PHY_FCS_NBYTES)));
                 }
@@ -664,19 +680,22 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 tx_low_event_log_entry->pkt_type                    = pkt_type;
             }
 
-        } else if((rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_DATA) || (rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_QOSDATA)){
-            // CREATE ACK LOG ENTRY
+
+        // Create ACK log entry
+        } else if ((rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_DATA   ) ||
+                   (rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_QOSDATA)) {
+
             entry_type = ENTRY_TYPE_TX_LOW;
 
             packet_payload_size = sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES;
 
             // Get all the necessary sizes to log the packet
-            wlan_exp_log_get_txrx_entry_sizes( entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size );
+            wlan_exp_log_get_txrx_entry_sizes(entry_type, packet_payload_size, &entry_size, &entry_payload_size, &min_entry_payload_size);
 
             // Request space for a TX_LOW log entry
-            tx_low_event_log_entry = (tx_low_entry *)wlan_exp_log_create_entry( entry_type, entry_size );
+            tx_low_event_log_entry = (tx_low_entry *) wlan_exp_log_create_entry(entry_type, entry_size);
 
-            if(tx_low_event_log_entry != NULL){
+            if (tx_low_event_log_entry != NULL) {
                 // Store the payload size in the log entry
                 tx_low_event_log_entry->mac_payload_log_len = entry_payload_size;
 
@@ -690,7 +709,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 // Because an ACK is smaller than a typical 24-byte 802.11 header, we need to be sure to zero pad out the rest of the payload
                 // TODO: There is no good way to get a valid FCS for CTRL transmissions since the packet buffer is long gone.
                 // Instead, we'll explicitly zero out those bytes as well.
-                if((packet_payload_size-WLAN_PHY_FCS_NBYTES) < entry_payload_size){
+                if ((packet_payload_size-WLAN_PHY_FCS_NBYTES) < entry_payload_size) {
                     bzero((u8*)(((u32)((tx_low_entry*)tx_low_event_log_entry)->mac_payload) + (packet_payload_size-WLAN_PHY_FCS_NBYTES)),
                           (entry_payload_size -(packet_payload_size-WLAN_PHY_FCS_NBYTES)));
                 }
@@ -745,7 +764,7 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
     u32  tmp_min_entry_payload_size;
 
     // Set the base entry size based on the entry type
-    switch( entry_type ) {
+    switch (entry_type) {
         case ENTRY_TYPE_RX_OFDM:
         case ENTRY_TYPE_RX_OFDM_LTG:   base_entry_size = sizeof(rx_ofdm_entry);  break;
 
@@ -761,7 +780,7 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
     }
 
     // Determine the minimum entry payload size based on entry type
-    switch( entry_type ) {
+    switch (entry_type) {
         // Non-LTG TX/RX Entry types
         case ENTRY_TYPE_RX_DSSS:
         case ENTRY_TYPE_RX_OFDM:
@@ -783,7 +802,7 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
     }
 
     // Determine the entry size and payload size based on the entry type
-    switch( entry_type ) {
+    switch (entry_type) {
 
         // Determine length required for RX / TX high log entry:
         //
@@ -853,7 +872,6 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
     *entry_payload_size     = tmp_entry_payload_size;
     *min_entry_payload_size = tmp_min_entry_payload_size;
 }
-
 
 
 
@@ -1103,6 +1121,48 @@ void add_node_info_entry(u8 transmit){
         }
     }
 #endif
+}
+
+
+
+/*****************************************************************************/
+/**
+ * Create a Time Info log entry
+ *
+ * @param   timestamp          - Timestamp to use for the log entry
+ * @param   new_time           - New time for the system
+ * @param   abs_time           - Absolute time
+ * @param   reason             - Reason the time info entry was created
+ * @param   time_id            - ID to use for the time info entry
+ * @param   use_time_id        - Use the provided time_id or system_time_id
+ *                                 0 = Use system_time_id
+ *                                 1 = Use provided time_id
+ *
+ * @return  time_info_entry *  - Pointer to the time_info_entry log entry
+ *                                 NOTE: This can be NULL if an entry was not allocated
+ *
+ *****************************************************************************/
+void add_time_info_entry(u64 timestamp, u64 new_time, u64 abs_time, u32 reason, u32 time_id, u8 use_time_id) {
+
+	time_info_entry * time_entry;
+
+    // Create a time info log entry
+    time_entry = (time_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry));
+
+    if (time_entry != NULL) {
+        time_entry->timestamp     = timestamp;
+
+        if (use_time_id) {
+            time_entry->time_id   = time_id;
+        } else {
+            time_entry->time_id   = system_time_id;
+            system_time_id++;
+        }
+
+        time_entry->reason        = reason;
+        time_entry->new_time      = new_time;
+        time_entry->abs_time      = abs_time;
+    }
 }
 
 

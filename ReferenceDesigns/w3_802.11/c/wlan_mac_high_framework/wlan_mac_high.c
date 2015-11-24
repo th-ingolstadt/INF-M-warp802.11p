@@ -35,6 +35,7 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_ltg.h"
+#include "wlan_mac_entries.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_addr_filter.h"
@@ -921,13 +922,12 @@ void wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback){
  *
  * The Reference Design includes a 64-bit counter that increments with
  * every microsecond. This function returns this value and is used
- * throughout the framework as a timestamp.
+ * throughout the framework as a timestamp.  This timestamp can be updated
+ * by various sources and is the network time.
  *
  * @param None
  * @return u64
- *  - Current number of microseconds that have elapsed since the hardware
- *  has booted.
- *
+ *  - Current number of microseconds of network time.
  */
 u64 get_usec_timestamp(){
 	//The MAC time core register interface is only 32-bit, so the 64-bit timestamp
@@ -938,13 +938,52 @@ u64 get_usec_timestamp(){
 	u64 timestamp_u64;
 
 	timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
-	timestamp_low_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
+	timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
 
-	//Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
-	if( (timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB) & 0x1) ) {
+	// Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
+	if((timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB) & 0x1)) {
 		//32-LSB wrapped - start over
 		timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
-		timestamp_low_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
+		timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
+	}
+
+	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+
+	return timestamp_u64;
+}
+
+
+
+/**
+ * @brief Get System Microsecond Counter Timestamp
+ *
+ * The Reference Design includes a 64-bit counter that increments with
+ * every microsecond. This function returns this value and is used
+ * throughout the framework as a timestamp.  This timestamp cannot be
+ * updated and reflects the number of microseconds that has past since
+ * the hardware booted.
+ *
+ * @param None
+ * @return u64
+ *  - Current number of microseconds that have elapsed since the hardware
+ *  has booted.
+ */
+u64 get_usec_system_timestamp(){
+	// The MAC time core register interface is only 32-bit, so the 64-bit timestamp
+	// is read from two 32-bit registers and reconstructed here.
+
+	u32 timestamp_high_u32;
+	u32 timestamp_low_u32;
+	u64 timestamp_u64;
+
+	timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
+	timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
+
+	// Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
+	if((timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB) & 0x1) ) {
+		// 32-LSB wrapped - start over
+		timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
+		timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
 	}
 
 	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
@@ -2264,15 +2303,20 @@ void wlan_mac_high_set_dsss( unsigned int dsss_value ) {
 /**
  * @brief Set the timestamp for CPU low
  *
- * Send an IPC message to CPU Low to set the timestamp
+ * Send an IPC message to CPU Low to set the timestamp.
  *
- * @param  u64 timestamp
- *     - Value for CPU low to set the timestamp
- * @return None
+ * @note    This function will create a time_info log entry to record the time change.
+ *
+ * @param   timestamp        - Value for CPU low to set the timestamp
+ *
+ * @return  None
  */
-void wlan_mac_high_set_timestamp( u64 timestamp ){
+void wlan_mac_high_set_timestamp(u64 timestamp) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
+
+	u64                abs_time;
+	u64                curr_time     = get_usec_timestamp();
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
@@ -2281,6 +2325,18 @@ void wlan_mac_high_set_timestamp( u64 timestamp ){
 	ipc_msg_to_low.payload_ptr       = (u32*)(&(timestamp));
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+	// Add log entry for time change
+	//
+	// NOTE:  Use the system_time_id for these time info entries
+    //
+	// NOTE:  The current time must be recorded before the IPC message to low.  However, to
+	//     reduce the amount of time between calling the function and having the time changed,
+	//     only the current time is recorded before the IPC message.
+	//
+	abs_time  = get_usec_system_timestamp();
+
+	add_time_info_entry(curr_time, timestamp, abs_time, TIME_INFO_ENTRY_SYSTEM, 0, 0);
 }
 
 
@@ -2290,13 +2346,19 @@ void wlan_mac_high_set_timestamp( u64 timestamp ){
  *
  * Send an IPC message to CPU Low to modify the timestamp
  *
- * @param  s64 timestamp
- *     - Value to add to the current timestamp
- * @return None
+ * @note    This function will create a time_info log entry to record the time change.
+ *
+ * @param   timestamp        - Value to add to the current timestamp
+ *
+ * @return  None
  */
-void wlan_mac_high_set_timestamp_delta( s64 timestamp ){
+void wlan_mac_high_set_timestamp_delta(s64 timestamp) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
+
+	u64                new_time;
+	u64                abs_time;
+	u64                curr_time     = get_usec_timestamp();
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
@@ -2305,6 +2367,19 @@ void wlan_mac_high_set_timestamp_delta( s64 timestamp ){
 	ipc_msg_to_low.payload_ptr       = (u32*)(&(timestamp));
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+	// Add log entry for time change
+	//
+	// NOTE:  Use the system_time_id for these time info entries
+    //
+	// NOTE:  The current time must be recorded before the IPC message to low.  However, to
+	//     reduce the amount of time between calling the function and having the time changed,
+	//     only the current time is recorded before the IPC message.
+	//
+	abs_time  = get_usec_system_timestamp();
+	new_time  = get_usec_timestamp();
+
+	add_time_info_entry(curr_time, new_time, abs_time, TIME_INFO_ENTRY_SYSTEM, 0, 0);
 }
 
 

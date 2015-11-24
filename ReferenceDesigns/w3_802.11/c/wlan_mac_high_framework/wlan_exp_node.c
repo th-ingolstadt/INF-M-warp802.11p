@@ -200,6 +200,9 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
     int  status              = XST_SUCCESS;
     int  link_status;
 
+    u64  curr_time;
+    u64  abs_time;
+
     u8   default_ip_addr[IP_ADDR_LEN];
 
     xil_printf("------------------------\n");
@@ -243,6 +246,19 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
     // ------------------------------------------
     // By default, enable all subtype logging
     wlan_exp_log_set_entry_en_mask(ENTRY_EN_MASK_TXRX_CTRL | ENTRY_EN_MASK_TXRX_MPDU);
+
+
+    // ------------------------------------------
+    // Reset the System Time ID
+    wlan_exp_log_reset_system_time_id();
+
+
+    // ------------------------------------------
+    // Add a time info entry to the log to record the initial timestamp and system timestamp
+    curr_time = get_usec_timestamp();
+	abs_time  = get_usec_system_timestamp();
+
+	add_time_info_entry(curr_time, curr_time, abs_time, TIME_INFO_ENTRY_SYSTEM, 0, 0);
 
 
     // ------------------------------------------
@@ -1736,44 +1752,37 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             time    = get_usec_timestamp();
             status  = CMD_PARAM_SUCCESS;
 
-            time_info_entry * time_entry;
-
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
                 case CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL:
                     // Get the new time
                     temp     = Xil_Ntohl(cmd_args_32[2]);
                     temp2    = Xil_Ntohl(cmd_args_32[3]);
-                    new_time = (((u64)temp2)<<32) + ((u64)temp);
+                    new_time = (((u64)temp2) << 32) + ((u64)temp);
 
                     // If this is a write, then update the time on the node
                     if (msg_cmd == CMD_PARAM_WRITE_VAL){
                         timebase_diff = (s64)new_time - (s64)get_usec_timestamp();
-                        wlan_exp_adjust_timebase_callback( timebase_diff );
-                        wlan_mac_high_set_timestamp( new_time );
+                        wlan_exp_adjust_timebase_callback(timebase_diff);
+                        wlan_mac_high_set_timestamp(new_time);
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set time = 0x%08x 0x%08x\n", temp2, temp);
                     }
 
                     // Get the absolute time
                     temp     = Xil_Ntohl(cmd_args_32[4]);
                     temp2    = Xil_Ntohl(cmd_args_32[5]);
-                    abs_time = (((u64)temp2)<<32) + ((u64)temp);
+                    abs_time = (((u64)temp2) << 32) + ((u64)temp);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Absolute time = 0x%08x 0x%08x\n", temp2, temp);
 
-                    // Create a time info log entry
-                    time_entry = (time_info_entry *)wlan_exp_log_create_entry( ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry) );
-
-                    if (time_entry != NULL) {
-                        time_entry->timestamp  = time;
-                        time_entry->time_id    = id;
-                        if ( msg_cmd == CMD_PARAM_WRITE_VAL) {
-                            time_entry->reason = TIME_INFO_ENTRY_WN_SET_TIME;
-                        } else {
-                            time_entry->reason = TIME_INFO_ENTRY_WN_ADD_LOG;
-                        }
-                        time_entry->new_time   = new_time;
-                        time_entry->abs_time   = abs_time;
+                    // Add a time info log entry
+                    //
+                    // NOTE:  We add an additional time info entry to capture the other information from the host.
+                    //
+                    if (msg_cmd == CMD_PARAM_WRITE_VAL) {
+                        add_time_info_entry(time, new_time, abs_time, TIME_INFO_ENTRY_WLAN_EXP_SET_TIME, id, WLAN_EXP_TRUE);
+                    } else {
+                        add_time_info_entry(time, new_time, abs_time, TIME_INFO_ENTRY_WLAN_EXP_ADD_LOG, id, WLAN_EXP_TRUE);
                     }
 
                     // If this was a write, then update the time value so we can return it to the host

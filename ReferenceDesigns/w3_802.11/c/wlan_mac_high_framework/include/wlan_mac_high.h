@@ -481,6 +481,7 @@ void               wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t call
 void               wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);
 
 u64                get_usec_timestamp();
+u64                get_usec_system_timestamp();
 void               usleep(u64 delay);
 
 void*              wlan_mac_high_malloc(u32 size);
@@ -524,8 +525,8 @@ int                wlan_mac_high_write_low_mem( u32 num_words, u32* payload );
 int                wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload );
 int                wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload );
 void               wlan_mac_high_set_dsss( unsigned int dsss_value );
-void               wlan_mac_high_set_timestamp( u64 timestamp );
-void               wlan_mac_high_set_timestamp_delta( s64 timestamp );
+void               wlan_mac_high_set_timestamp(u64 timestamp);
+void               wlan_mac_high_set_timestamp_delta(s64 timestamp);
 void               wlan_mac_high_request_low_state();
 int                wlan_mac_high_is_cpu_low_initialized();
 int                wlan_mac_high_is_ready_for_tx();

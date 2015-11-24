@@ -645,8 +645,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			} else {
 				xil_printf("Invalid channel selection %d\n", mac_param_chan);
 			}
-
-
 		break;
 
 		case IPC_MBOX_LOW_RANDOM_SEED:
@@ -679,26 +677,29 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 		break;
 
 		case IPC_MBOX_SET_TIME:
-		//Because the act of setting the delta timestamp takes time, we need to compensate for that time in the
-		//value we correct. The below value was verified with a WN experiment that fed the log visualizer. We
-		//iterated on this value until STAs align with the AP after the beacon.
-		#define SET_TIME_CALIB 2
+			//
+		    // Because the act of setting the delta timestamp takes time, we need to compensate for that time in the
+		    // value we correct. The below value was verified with a WLAN Exp experiment that fed the log visualizer.
+		    // We iterated on this value until STAs align with the AP after the beacon.
+			//
+		    #define SET_TIME_CALIB 2
+
 			switch(msg->arg0){
 				default:
 				case 0:
-					//This message contains a new timestamp that should completely replace
-					//the existing usec count
+					// This message contains a new timestamp that should completely replace the existing usec count
 					u_timestamp_ptr = (u64*)(ipc_msg_from_high_payload);
 					new_timestamp   = u_timestamp_ptr[0];
 				break;
 
 				case 1:
-					//This message contains a timestamp correction factor.
+					// This message contains a timestamp correction factor.
 					s_timestamp_ptr = (s64*)(ipc_msg_from_high_payload);
 					temp_timestamp  = get_usec_timestamp();
 					new_timestamp   = temp_timestamp + s_timestamp_ptr[0] + SET_TIME_CALIB;
 				break;
 			}
+
 			wlan_mac_low_set_time(new_timestamp);
 		break;
 
