@@ -290,7 +290,6 @@
 // WN Low Params
 //     NOTE:  Need to make sure that these values do not conflict with any of the LOW PARAM
 //     callback defines
-#define LOW_PARAM_PHYSICAL_CS_THRESH	0x00000001
 #define LOW_PARAM_BB_GAIN				0x00000005
 #define LOW_PARAM_LINEARITY_PA			0x00000006
 #define LOW_PARAM_LINEARITY_VGA			0x00000007

@@ -515,13 +515,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 			switch(msg->arg0){
 				case IPC_REG_WRITE_MODE:
 					switch(ipc_msg_from_high_payload[0]){
-						case LOW_PARAM_PHYSICAL_CS_THRESH:
-							if(ipc_msg_from_high_payload[1] < 1023){
-								wlan_phy_rx_set_cca_thresh(ipc_msg_from_high_payload[1] * PHY_RX_RSSI_SUM_LEN);
-							} else {
-								wlan_phy_rx_set_cca_thresh(0xFFFF);
-							}
-						break;
 						case LOW_PARAM_BB_GAIN:
 							if(ipc_msg_from_high_payload[1] <= 3){
 								radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, ipc_msg_from_high_payload[1]);
@@ -574,12 +567,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
 
 					switch(ipc_msg_from_high_payload[0]){
-						case LOW_PARAM_PHYSICAL_CS_THRESH:
-							temp1 = ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0x0000FFFF) / 8);
-
-							ipc_msg_to_high.num_payload_words = 1;
-							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
-						break;
 						default:
 							// Set a Null response before executing the callback
 							temp1                             = 0;
