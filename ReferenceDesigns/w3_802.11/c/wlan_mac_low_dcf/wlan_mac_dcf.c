@@ -53,6 +53,8 @@
 volatile static u32                    gl_stationShortRetryCount;
 volatile static u32                    gl_stationLongRetryCount;
 volatile static u32                    gl_cw_exp;
+volatile static u8           		   gl_cw_exp_min;
+volatile static u8           		   gl_cw_exp_max;
 
 volatile static u32                    gl_dot11RTSThreshold;
 
@@ -103,6 +105,9 @@ int main(){
 	gl_dot11ShortRetryLimit      = 7;
 	gl_dot11LongRetryLimit       = 4;
 
+	gl_cw_exp_min               = 4;
+	gl_cw_exp_max               = 10;
+
 	gl_dot11RTSThreshold         = 2000;
 
 	gl_stationShortRetryCount    = 0;
@@ -115,7 +120,7 @@ int main(){
 
 	wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW);
 
-	gl_cw_exp = wlan_mac_low_get_cw_exp_min();
+	gl_cw_exp = gl_cw_exp_min;
 
 	hw_info = wlan_mac_low_get_hw_info();
 	memcpy((void*)gl_eeprom_addr, hw_info->hw_addr_wlan, 6);
@@ -1169,7 +1174,7 @@ inline void increment_src_ssrc(u8* src_ptr){
 	if(gl_stationShortRetryCount == gl_dot11ShortRetryLimit){
 		reset_cw();
 	} else {
-		gl_cw_exp = min(gl_cw_exp+1, wlan_mac_low_get_cw_exp_max());
+		gl_cw_exp = min(gl_cw_exp+1, gl_cw_exp_max);
 	}
 
 	return;
@@ -1186,7 +1191,7 @@ inline void increment_lrc_slrc(u8* lrc_ptr){
 	if(gl_stationLongRetryCount == gl_dot11LongRetryLimit){
 		reset_cw();
 	} else {
-		gl_cw_exp = min(gl_cw_exp+1, wlan_mac_low_get_cw_exp_max());
+		gl_cw_exp = min(gl_cw_exp+1, gl_cw_exp_max);
 	}
 
 	return;
@@ -1204,7 +1209,7 @@ inline void reset_slrc(){
 }
 
 inline void reset_cw(){
-	gl_cw_exp = wlan_mac_low_get_cw_exp_min();
+	gl_cw_exp = gl_cw_exp_min;
 	return;
 }
 
@@ -1240,7 +1245,7 @@ inline unsigned int rand_num_slots(u8 reason){
 
 		case RAND_SLOT_REASON_IBSS_BEACON:
 			//Section 10.1.3.3 of 802.11-2012: Backoffs prior to IBSS beacons are drawn from [0, 2*CWmin]
-			n_slots = ((unsigned int)rand() >> (32-(wlan_mac_low_get_cw_exp_min()+1+1)));
+			n_slots = ((unsigned int)rand() >> (32-(gl_cw_exp_min+1+1)));
 		break;
 	}
 
@@ -1338,6 +1343,12 @@ int wlan_dcf_process_low_param(u8 mode, u32* payload){
 				break;
 				case LOW_PARAM_DCF_DOT11LONGRETRY:
 					gl_dot11LongRetryLimit = payload[1];
+				break;
+				case LOW_PARAM_DCF_CW_EXP_MIN:
+					gl_cw_exp_min = payload[1];
+				break;
+				case LOW_PARAM_DCF_CW_EXP_MAX:
+					gl_cw_exp_max = payload[1];
 				break;
 			}
 

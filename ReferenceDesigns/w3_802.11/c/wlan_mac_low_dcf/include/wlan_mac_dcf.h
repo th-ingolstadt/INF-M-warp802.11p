@@ -25,6 +25,8 @@
 #define LOW_PARAM_DCF_RTS_THRESH			0x10000001
 #define LOW_PARAM_DCF_DOT11SHORTRETRY		0x10000002
 #define LOW_PARAM_DCF_DOT11LONGRETRY		0x10000003
+#define	LOW_PARAM_DCF_CW_EXP_MIN			0x00000002 //TODO: | 0x10000000 and make corresponding change to Python
+#define LOW_PARAM_DCF_CW_EXP_MAX			0x00000003 //TODO: | 0x10000000 and make corresponding change to Python
 
 //CW Update Reasons
 #define DCF_CW_UPDATE_MPDU_TX_ERR 0
