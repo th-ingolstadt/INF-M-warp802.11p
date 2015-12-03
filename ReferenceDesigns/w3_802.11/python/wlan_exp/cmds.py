@@ -125,9 +125,6 @@ CMD_PARAM_RANDOM_SEED_VALID                      = 0x00000001
 CMD_PARAM_RANDOM_SEED_RSVD                       = 0xFFFFFFFF
 
 # Low Param IDs -- in sync with wlan_mac_low.h
-CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH           = 0x00000001
-CMD_PARAM_LOW_PARAM_CW_EXP_MIN                   = 0x00000002
-CMD_PARAM_LOW_PARAM_CW_EXP_MAX                   = 0x00000003
 CMD_PARAM_LOW_PARAM_TS_OFFSET                    = 0x00000004
 CMD_PARAM_LOW_PARAM_BB_GAIN                      = 0x00000005
 CMD_PARAM_LOW_PARAM_LINEARITY_PA                 = 0x00000006
@@ -138,6 +135,9 @@ CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER            = 0x0000000A
 CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH               = 0x10000001
 CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY          = 0x10000002
 CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY           = 0x10000003
+CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH       = 0x10000004
+CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN               = 0x10000005
+CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX               = 0x10000006
 
 CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM         = -90
 CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM         = -30
@@ -1040,9 +1040,9 @@ class NodeLowParam(message.Cmd):
                 respArgs32[2]   PARAM_ID
                 respArgs32[3:N] PARAM ARGS
         """
-        error_code_cs_thresh    = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH
-        error_code_cw_min       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_CW_EXP_MIN
-        error_code_cw_max       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_CW_EXP_MAX
+        error_code_cs_thresh    = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH
+        error_code_cw_min       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN
+        error_code_cw_max       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX
         error_code_ts_offset    = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_TS_OFFSET
 
         status_errors = { error_code_cs_thresh : "Could not get / set carrier sense threshold",

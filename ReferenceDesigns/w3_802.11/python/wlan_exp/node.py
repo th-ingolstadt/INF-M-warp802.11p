@@ -1104,7 +1104,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Args:
            threshold (int):  Value between [0, 1023] for the physical carrier sense threshold
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH, threshold)
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, threshold)
 
 
     def set_timestamp_offset(self, offset):
@@ -1122,7 +1122,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Args:
             cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN, cw_exp)       
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, cw_exp)       
 
 
     def set_cw_exp_max(self, cw_exp):
@@ -1131,7 +1131,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Args:
             cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX, cw_exp)
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, cw_exp)
 
 
     def configure_pkt_det_min_power(self, enable, power_level=None): 
@@ -1330,10 +1330,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             phy_cs_thresh (int):  Value for the physical carrier sense threshold on the node
         """
-        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH))
+        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH))
         
         if ret_val is not None:
-            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_PHYSICAL_CS_THRESH)):
+            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH)):
                 return ret_val[2]
             else:
                 print("WARNING:  CS Thresh:  Unexpected return value: {0}".format(ret_val))
@@ -1370,10 +1370,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 #. cw_exp_min (int):  Exponent of the minimum contention window
                 #. cw_exp_max (int):  Exponent of the maximum contention window
         """
-        cw_max = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX))
+        cw_max = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX))
         
         if cw_max is not None:
-            if ((cw_max[0] == 1) and (cw_max[1] == cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MAX)):
+            if ((cw_max[0] == 1) and (cw_max[1] == cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX)):
                 cw_max = cw_max[2]
             else:
                 print("WARNING:  CW Max:  Unexpected return value: {0}".format(cw_max))
@@ -1382,10 +1382,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             print("WARNING:  CW Max:  Could not get cw exponent.")
             cw_max = None
 
-        cw_min = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN))
+        cw_min = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN))
 
         if cw_min is not None:
-            if ((cw_min[0] == 1) and (cw_min[1] == cmds.CMD_PARAM_LOW_PARAM_CW_EXP_MIN)):
+            if ((cw_min[0] == 1) and (cw_min[1] == cmds.CMD_PARAM_LOW_DCF_PARAM_CW_EXP_MIN)):
                 cw_min = cw_min[2]
             else:
                 print("WARNING:  CW Min:  Unexpected return value: {0}".format(cw_min))
