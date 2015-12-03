@@ -291,8 +291,6 @@
 //     NOTE:  Need to make sure that these values do not conflict with any of the LOW PARAM
 //     callback defines
 #define LOW_PARAM_PHYSICAL_CS_THRESH	0x00000001
-#define	LOW_PARAM_CW_EXP_MIN			0x00000002
-#define LOW_PARAM_CW_EXP_MAX			0x00000003
 #define LOW_PARAM_BB_GAIN				0x00000005
 #define LOW_PARAM_LINEARITY_PA			0x00000006
 #define LOW_PARAM_LINEARITY_VGA			0x00000007
@@ -305,8 +303,6 @@
 
 
 int wlan_mac_low_init(u32 type);
-u8 wlan_mac_low_get_cw_exp_min();
-u8 wlan_mac_low_get_cw_exp_max();
 void wlan_mac_low_finish_init();
 void wlan_mac_low_dcf_init();
 inline void wlan_mac_low_send_exception(u32 reason);

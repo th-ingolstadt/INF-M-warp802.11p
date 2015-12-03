@@ -38,9 +38,6 @@ volatile static u8           mac_param_band;                                    
 volatile static s8           mac_param_ctrl_tx_pow;                                 ///< Current transmit power (dBm) for control packets
 volatile static u32          mac_param_rx_filter;                                   ///< Current filter applied to packet receptions
 volatile static u8           rx_pkt_buf;                                            ///< Current receive buffer of the lower-level MAC
-volatile static u8           cw_exp_min;											///< Current minimum contention window exponent
-volatile static u8           cw_exp_max;											///< Current maximum contention window exponent
-
 static u32  				 cpu_low_status;                                        ///< Status flags that are reported to upper-level MAC
 
 static wlan_mac_hw_info    	 hw_info;                                               ///< Information about the hardware reported to upper-level MAC
@@ -105,9 +102,6 @@ int wlan_mac_low_init(u32 type){
 	mac_param_band           = RC_24GHZ;
 	mac_param_ctrl_tx_pow    = 10;
 	cpu_low_status           = 0;
-
-	cw_exp_min               = 4;
-	cw_exp_max               = 10;
 
 	// mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
 	mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
@@ -248,14 +242,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 	}
 
 	return return_status;
-}
-
-
-u8 wlan_mac_low_get_cw_exp_min(){
-	return cw_exp_min;
-}
-u8 wlan_mac_low_get_cw_exp_max(){
-	return cw_exp_max;
 }
 
 /**
@@ -536,13 +522,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 								wlan_phy_rx_set_cca_thresh(0xFFFF);
 							}
 						break;
-						case LOW_PARAM_CW_EXP_MIN:
-							cw_exp_min = ipc_msg_from_high_payload[1];
-						break;
-						case LOW_PARAM_CW_EXP_MAX:
-							cw_exp_max = ipc_msg_from_high_payload[1];
-						break;
-
 						case LOW_PARAM_BB_GAIN:
 							if(ipc_msg_from_high_payload[1] <= 3){
 								radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, ipc_msg_from_high_payload[1]);
@@ -597,18 +576,6 @@ void process_ipc_msg_from_high(wlan_ipc_msg* msg){
 					switch(ipc_msg_from_high_payload[0]){
 						case LOW_PARAM_PHYSICAL_CS_THRESH:
 							temp1 = ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0x0000FFFF) / 8);
-
-							ipc_msg_to_high.num_payload_words = 1;
-							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
-						break;
-						case LOW_PARAM_CW_EXP_MIN:
-							temp1 = cw_exp_min;
-
-							ipc_msg_to_high.num_payload_words = 1;
-							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
-						break;
-						case LOW_PARAM_CW_EXP_MAX:
-							temp1 = cw_exp_max;
 
 							ipc_msg_to_high.num_payload_words = 1;
 							ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
