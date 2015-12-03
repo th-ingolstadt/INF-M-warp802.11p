@@ -1335,6 +1335,13 @@ int wlan_dcf_process_low_param(u8 mode, u32* payload){
 				default:
 					xil_printf("Unknown param 0x%08x\n", payload[0]);
 				break;
+				case LOW_PARAM_DCF_PHYSICAL_CS_THRESH:
+					if(payload[1] < 1023){
+						wlan_phy_rx_set_cca_thresh(payload[1] * PHY_RX_RSSI_SUM_LEN);
+					} else {
+						wlan_phy_rx_set_cca_thresh(0xFFFF);
+					}
+				break;
 				case LOW_PARAM_DCF_RTS_THRESH:
 					gl_dot11RTSThreshold = payload[1];
 				break;
