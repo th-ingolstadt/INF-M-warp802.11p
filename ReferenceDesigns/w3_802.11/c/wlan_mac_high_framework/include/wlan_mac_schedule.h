@@ -30,9 +30,9 @@
 //to cast back and forth between the wlan_sched and dl_entry.
 typedef struct {
 	u32 id;
-	u32 delay;
+	u32 delay_us;
 	u32 num_calls;
-	u64 target;
+	u64 target_us;
 	function_ptr_t callback;
 } wlan_sched;
 

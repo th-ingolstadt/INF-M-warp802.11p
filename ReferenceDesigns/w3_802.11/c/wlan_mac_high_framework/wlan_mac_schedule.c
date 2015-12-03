@@ -17,7 +17,6 @@
 
 /***************************** Include Files *********************************/
 #include "xparameters.h"
-//#include "stdlib.h"
 #include "xil_types.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_schedule.h"
@@ -30,9 +29,6 @@ static XTmrCtr               TimerCounterInst;
 static XIntc*                InterruptController_ptr;
 
 volatile static u32          schedule_count;
-
-volatile static u64          num_coarse_checks;
-volatile static u64          num_fine_checks;
 
 static dl_list               wlan_sched_coarse;
 static dl_list               wlan_sched_fine;
@@ -55,8 +51,6 @@ int wlan_mac_schedule_init(){
 
 	//Initialize internal variables
 	schedule_count    = 0;
-	num_coarse_checks = 0;
-	num_fine_checks   = 0;
 	dl_list_init(&wlan_sched_coarse);
 	dl_list_init(&wlan_sched_fine);
 
@@ -147,8 +141,8 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
-			sched_ptr->delay = delay/SLOW_TIMER_DUR_US;
-			sched_ptr->target = num_coarse_checks + (u64)(sched_ptr->delay);
+			sched_ptr->delay_us = delay;
+			sched_ptr->target_us = get_usec_system_timestamp() + (u64)(sched_ptr->delay_us);
 
 			if(wlan_sched_coarse.length == 0){
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_SLOW, SLOW_TIMER_DUR_US*(TIMER_FREQ/1000000));
@@ -157,8 +151,8 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 			dl_entry_insertEnd(&wlan_sched_coarse, entry_ptr);
 		break;
 		case SCHEDULE_FINE:
-			sched_ptr->delay = delay/FAST_TIMER_DUR_US;
-			sched_ptr->target = num_fine_checks + (u64)(sched_ptr->delay);
+			sched_ptr->delay_us = delay;
+			sched_ptr->target_us = get_usec_system_timestamp() + (u64)(sched_ptr->delay_us);
 
 			if(wlan_sched_fine.length == 0){
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_FAST, FAST_TIMER_DUR_US*(TIMER_FREQ/1000000));
@@ -261,7 +255,6 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 	switch(TmrCtrNumber){
 		case TIMER_CNTR_FAST:
-			num_fine_checks++;
 			next_entry_ptr = wlan_sched_fine.first;
 
 			//for(i=0; i<(wlan_sched_fine.length); i++){
@@ -271,9 +264,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 				curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
-				if(num_fine_checks >= (curr_sched_ptr->target)){
-				//	xil_printf("%d: FINE:   %d > %d\n", curr_sched_ptr->id, (u32)num_fine_checks, (u32)(curr_sched_ptr->target));
-					// curr_sched_ptr->callback(curr_sched_ptr->id);
+				if(get_usec_system_timestamp() >= (curr_sched_ptr->target_us)){
 					fine_id       = curr_sched_ptr->id;
 					fine_callback = curr_sched_ptr->callback;
 
@@ -285,25 +276,16 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 						wlan_mac_high_free(curr_entry_ptr);
 						wlan_mac_high_free(curr_sched_ptr);
 					} else {
-						curr_sched_ptr->target = num_fine_checks + (u64)(curr_sched_ptr->delay);
+						curr_sched_ptr->target_us = get_usec_system_timestamp() + (u64)(curr_sched_ptr->delay_us);
 					}
 
 					fine_callback(fine_id);
 				}
 			}
-			/*
-			if(wlan_sched_fine.length > 0){
-				//There are still schedules pending. Restart the timer.
-				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_FAST, FAST_TIMER_DUR_US*(TIMER_FREQ/1000000));
-				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_FAST);
-			}
-			*/
-
 
 		break;
 
 		case TIMER_CNTR_SLOW:
-			num_coarse_checks++;
 			next_entry_ptr = wlan_sched_coarse.first;
 
 			while(next_entry_ptr != NULL){
@@ -312,8 +294,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 				curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
-				if(num_coarse_checks >= (curr_sched_ptr->target)){
-					// curr_sched_ptr->callback(curr_sched_ptr->id);
+				if(get_usec_system_timestamp() >= (curr_sched_ptr->target_us)){
 					coarse_id       = curr_sched_ptr->id;
 					coarse_callback = curr_sched_ptr->callback;
 
@@ -325,19 +306,12 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 						wlan_mac_high_free(curr_entry_ptr);
 						wlan_mac_high_free(curr_sched_ptr);
 					} else {
-						curr_sched_ptr->target = num_coarse_checks + (u64)(curr_sched_ptr->delay);
+						curr_sched_ptr->target_us = get_usec_system_timestamp() + (u64)(curr_sched_ptr->delay_us);
 					}
 
 					coarse_callback(coarse_id);
 				}
 			}
-			/*
-			if(wlan_sched_coarse.length > 0){
-				//There are still schedules pending. Restart the timer.
-				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_SLOW, SLOW_TIMER_DUR_US*(TIMER_FREQ/1000000));
-				XTmrCtr_Start(&TimerCounterInst, TIMER_CNTR_SLOW);
-			}
-			*/
 
 		break;
 	}
