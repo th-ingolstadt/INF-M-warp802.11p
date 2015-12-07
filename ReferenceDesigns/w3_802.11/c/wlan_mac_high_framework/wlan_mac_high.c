@@ -1535,6 +1535,11 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 		out_of_range = 1;
 	}
 
+	if( size == 0 ){
+		xil_printf("CDMA Error: size argument must be >0\n");
+		return -1;
+	}
+
 
 	if(out_of_range == 0){
 		wlan_mac_high_cdma_finish_transfer();
