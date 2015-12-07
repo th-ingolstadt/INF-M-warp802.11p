@@ -761,7 +761,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							// xil_printf("0x%08x 0x%08x\n", (u32)(timestamp_diff >> 32), (u32)(timestamp_diff));
 							// xil_printf("\n");
 
-							// Update the system time
+							// Update the MAC time
 							wlan_mac_high_set_timestamp_delta(timestamp_diff);
 
 							// Move the packet pointer back to the start for the rest of the function
