@@ -904,7 +904,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 										association_timestamp_adjust(timestamp_diff);
 									}
 
-									// Update the system time
+									// Update the MAC time
 									wlan_mac_high_set_timestamp_delta(timestamp_diff);
 								}
 
