@@ -664,7 +664,7 @@ def mac_addr_to_str(mac_address):
     """Convert an integer to a colon separated MAC address string.
 
     Args:
-        mac_address (int):  Unsigned 40-bit integer representation of the MAC address
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC address
 
     Returns:
         mac_address (str):  String version of an MAC address of the form XX:XX:XX:XX:XX:XX
@@ -682,7 +682,7 @@ def str_to_mac_addr(mac_address):
         mac_address (str):  String version of an MAC address of the form XX:XX:XX:XX:XX:XX
 
     Returns:
-        mac_address (int):  Unsigned 40-bit integer representation of the MAC address
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC address
     """
     import wlan_exp.warpnet.transport_eth_ip_udp as transport
     return transport.str_to_mac_addr(mac_address)
@@ -694,7 +694,7 @@ def mac_addr_to_byte_str(mac_address):
     """Convert an integer to a MAC address byte string.
 
     Args:
-        mac_address (int):  Unsigned 40-bit integer representation of the MAC address    
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC address    
 
     Returns:
         mac_address (str):  Byte string version of an MAC address 
@@ -712,7 +712,7 @@ def byte_str_to_mac_addr(mac_address):
         mac_address (str):  Byte string version of an MAC address 
 
     Returns:
-        mac_address (int):  Unsigned 40-bit integer representation of the MAC address    
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC address    
     """
     import wlan_exp.warpnet.transport_eth_ip_udp as transport
     return transport.byte_str_to_mac_addr(mac_address)
@@ -754,7 +754,7 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
         ssid (str):  SSID string (Must be 32 characters or less)
         channel (int, dict in util.wlan_channel array): Channel on which the BSS operates
             (either the channel number as an it or an entry in the wlan_channel array)
-        bssid (int, str):  40-bit ID of the BSS either as a integer or colon delimited 
+        bssid (int, str):  48-bit ID of the BSS either as a integer or colon delimited 
             string of the form:  XX:XX:XX:XX:XX:XX
         ibss_status (bool, optional): Status of the 
             BSS: 
@@ -784,7 +784,7 @@ def create_locally_administered_bssid(mac_address):
     
     Args:
         mac_address (int, str):  MAC address to be used as the base for the BSSID 
-            either as a 40-bit integer or a colon delimited string of the form:  
+            either as a 48-bit integer or a colon delimited string of the form:  
             XX:XX:XX:XX:XX:XX
     
     Returns:
@@ -872,7 +872,7 @@ def mac_addr_desc(mac_addr, desc_map=None):
     """Returns a string description of a MAC address.
 
     Args:
-        mac_address (int):  Unsigned 40-bit integer representation of the MAC address        
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC address        
         desc_map (list of tuple, optional): list of tuple or tuple of the form
             (addr_mask, addr_value, descritpion)
 

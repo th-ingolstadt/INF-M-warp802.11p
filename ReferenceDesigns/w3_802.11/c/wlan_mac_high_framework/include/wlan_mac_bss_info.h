@@ -29,7 +29,7 @@
 
 // TODO: Update Python with new phy_mode
 #define MY_BSS_INFO_COMMON_FIELDS                                                                       \
-        u8         bssid[6];                          /* BSS ID - 40 bit HW address */                  \
+        u8         bssid[6];                          /* BSS ID - 48 bit HW address */                  \
         u8         chan;                              /* Channel */                                     \
         u8         flags;                             /* BSS Flags - Each flag is 1 bit */              \
         u64        latest_activity_timestamp;         /* Timestamp - Last interaction with BSS */       \
