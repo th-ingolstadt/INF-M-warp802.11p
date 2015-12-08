@@ -417,7 +417,7 @@ int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cm
                 //          need to be modified if the parameters in the bss_info change.
                 //
                 memcpy((void *)(temp_bss_info), (void *)(&temp_bss_info_entry->info), sizeof(bss_info_base));
-                temp_bss_info->latest_activity_timestamp = get_usec_timestamp();
+                temp_bss_info->latest_activity_timestamp = get_system_timestamp_usec();
 
                 // Enforce ownership over this bss_info so that the framework cannot purge it
                 temp_bss_info->state = BSS_STATE_OWNED;
@@ -476,7 +476,7 @@ int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cm
             }
 
             join_success = WLAN_EXP_IBSS_JOIN_RUN;
-            curr_time    = get_usec_timestamp();
+            curr_time    = get_system_timestamp_usec();
             end_time     = curr_time + (timeout * 1000000);         // Convert to microseconds for the usec timer
 
             wlan_mac_ibss_scan_and_join(ssid, timeout);
@@ -488,7 +488,7 @@ int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cm
                 }
                 // Sleep for 0.1 seconds before next check
                 usleep(100000);
-                curr_time = get_usec_timestamp();
+                curr_time = get_system_timestamp_usec();
             }
 
             // Indicate on the UART if we were successful in joining the network

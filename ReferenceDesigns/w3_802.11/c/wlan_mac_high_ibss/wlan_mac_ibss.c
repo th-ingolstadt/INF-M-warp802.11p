@@ -25,7 +25,6 @@
 #include "xintc.h"
 
 // WLAN includes
-#include "w3_userio.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -252,7 +251,7 @@ int main() {
 	wlan_mac_high_interrupt_init();
 
 	// Set the hex display initial value
-	ibss_write_hex_display(0);
+	ibss_update_hex_display(0);
 
 	// Reset the event log
 	event_log_reset();
@@ -277,8 +276,8 @@ int main() {
 	// If there is a default SSID and the DIP switch allows it, initiate a probe request
 	if( (strlen(default_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
 		wlan_mac_ibss_scan_and_join(default_ssid, SCAN_TIMEOUT_SEC);
-		scan_start_timestamp = get_usec_timestamp();
-		while((get_usec_timestamp() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
+		scan_start_timestamp = get_system_timestamp_usec();
+		while((get_system_timestamp_usec() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
 			if(my_bss_info != NULL){
 				break;
 			}
@@ -640,7 +639,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				curr_tx_queue_buffer->frame_info.AID         = 0;
 		} else {
 			associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, eth_dest, ADD_ASSOCIATION_ANY_AID);
-			ibss_write_hex_display(my_bss_info->associated_stations.length);
+			ibss_update_hex_display(my_bss_info->associated_stations.length);
 			//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
 
 			if(associated_station == NULL){
@@ -655,7 +654,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				queue_sel = AID_TO_QID(associated_station->AID);
 				// Setup the TX frame info
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
-				associated_station->latest_activity_timestamp = get_usec_timestamp();
+				associated_station->latest_activity_timestamp = get_system_timestamp_usec();
 				curr_tx_queue_buffer->metadata.metadata_type  = QUEUE_METADATA_TYPE_STATION_INFO;
 				curr_tx_queue_buffer->metadata.metadata_ptr   = (u32)associated_station;
 				curr_tx_queue_buffer->frame_info.AID          = associated_station->AID;
@@ -738,7 +737,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 		if(my_bss_info != NULL){
 			if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)){
 				associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
-				ibss_write_hex_display(my_bss_info->associated_stations.length);
+				ibss_update_hex_display(my_bss_info->associated_stations.length);
 			}
 		} else {
 			associated_station = NULL;
@@ -747,7 +746,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 		if(associated_station != NULL) {
 
 			// Update station information
-			associated_station->latest_activity_timestamp = get_usec_timestamp();
+			associated_station->latest_activity_timestamp = get_system_timestamp_usec();
 			associated_station->rx.last_power             = mpdu_info->rx_power;
 			associated_station->rx.last_rate              = rate;
 
@@ -772,7 +771,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
         // Update receive counts
 		if(station_counts != NULL){
-			station_counts->latest_txrx_timestamp = get_usec_timestamp();
+			station_counts->latest_txrx_timestamp = get_system_timestamp_usec();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_counts)->data.rx_num_packets)++;
 				((station_counts)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
@@ -911,7 +910,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
 								if(beacon_schedule_id != SCHEDULE_FAILURE){
 									wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_schedule_id);
-									timestamp_diff = get_usec_timestamp() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
+									timestamp_diff = get_mac_timestamp_usec() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
 									beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
 								}
 							}
@@ -989,13 +988,13 @@ void association_timestamp_check() {
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
 			curr_station_info        = (station_info*)(curr_station_info_entry->data);
-			time_since_last_activity = (get_usec_timestamp() - curr_station_info->latest_activity_timestamp);
+			time_since_last_activity = (get_system_timestamp_usec() - curr_station_info->latest_activity_timestamp);
 
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
                 purge_queue(AID_TO_QID(curr_station_info->AID));
 				wlan_mac_high_remove_association( &my_bss_info->associated_stations, &counts_table, curr_station_info->addr );
-				ibss_write_hex_display(my_bss_info->associated_stations.length);
+				ibss_update_hex_display(my_bss_info->associated_stations.length);
 			}
 		}
 	}
@@ -1128,7 +1127,7 @@ void ltg_event(u32 id, void* callback_arg){
 		if(is_multicast == 0){
 			wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, addr_da, ADD_ASSOCIATION_ANY_AID);
 			//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
-			ibss_write_hex_display(my_bss_info->associated_stations.length);
+			ibss_update_hex_display(my_bss_info->associated_stations.length);
 		}
 
 
@@ -1269,7 +1268,7 @@ void leave_ibss(){
 			curr_station_info = (station_info*)(curr_station_info_entry->data);
             purge_queue(AID_TO_QID(curr_station_info->AID));
 			wlan_mac_high_remove_association( &my_bss_info->associated_stations, &counts_table, curr_station_info->addr );
-			ibss_write_hex_display(my_bss_info->associated_stations.length);
+			ibss_update_hex_display(my_bss_info->associated_stations.length);
 		}
 
 		my_bss_info = NULL;
@@ -1300,37 +1299,23 @@ void mpdu_dequeue(tx_queue_element* packet){
 
 }
 
+
+
 /**
- * @brief Write a Decimal Value to the Hex Display
+ * @brief IBSS specific hex display update command
  *
- * This function will write a decimal value to the board's two-digit hex displays.
- * For the IBSS, the display is right justified; WLAN Exp will indicate its connection
- * state using the right decimal point.
+ * This function update the hex display for the IBSS.  In general, this function
+ * is a wrapper for standard hex display commands found in wlan_mac_misc_util.c.
+ * However, this wrapper was implemented so that it would be easy to do other
+ * actions when the IBSS needed to update the hex display.
  *
- * @param u8 val
- *  - Value to be displayed (between 0 and 99)
- * @return None
- *
+ * @param   val              - Value to be displayed (between 0 and 99)
+ * @return  None
  */
-void ibss_write_hex_display(u8 val){
-    u32 right_dp;
+void ibss_update_hex_display(u8 val) {
 
-	// Need to retain the value of the right decimal point
-	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
-
-	if ( val < 10 ) {
-		// Turn off hex mapping; turn off left hex display
-		userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE ) ) ) );
-		userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
-
-		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_R_MAPMODE));
-		userio_write_hexdisp_right(USERIO_BASEADDR, (val | right_dp));
-	} else {
-		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
-
-	    userio_write_hexdisp_left(USERIO_BASEADDR, ((val/10)%10));
-		userio_write_hexdisp_right(USERIO_BASEADDR, ((val%10) | right_dp));
-	}
+    // Use standard hex display write
+    write_hex_display(val);
 }
 
 
