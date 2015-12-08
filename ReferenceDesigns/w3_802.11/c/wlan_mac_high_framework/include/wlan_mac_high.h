@@ -221,13 +221,6 @@
 
 
 //-----------------------------------------------
-// Base Addresses
-//
-#define USERIO_BASEADDR                                    XPAR_W3_USERIO_BASEADDR            ///< XParameters rename of base address of User I/O
-
-
-
-//-----------------------------------------------
 // WLAN Constants
 //
 #define ENCAP_MODE_AP                                      0                                  ///< Used as a flag for AP encapsulation and de-encapsulation
@@ -480,21 +473,11 @@ void               wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);
 
-u64                get_usec_timestamp();
-u64                get_usec_system_timestamp();
-void               usleep(u64 delay);
-
 void*              wlan_mac_high_malloc(u32 size);
 void*              wlan_mac_high_calloc(u32 size);
 void*              wlan_mac_high_realloc(void* addr, u32 size);
 void               wlan_mac_high_free(void* addr);
 void               wlan_mac_high_display_mallinfo();
-
-void               wlan_mac_high_enable_hex_pwm();
-void               wlan_mac_high_disable_hex_pwm();
-void               wlan_mac_high_write_hex_display(u8 val);
-void               wlan_mac_high_set_node_error_status(u8 status);
-void               wlan_mac_high_blink_hex_display(u32 num_blinks, u32 blink_time);
 
 int                wlan_mac_high_memory_test();
 int                wlan_mac_high_right_shift_test();
@@ -536,9 +519,6 @@ u8                 wlan_mac_high_pkt_type(void* mpdu, u16 length);
 
 inline void        wlan_mac_high_set_debug_gpio(u8 val);
 inline void        wlan_mac_high_clear_debug_gpio(u8 val);
-
-int                str2num(char* str);
-u8                 sevenSegmentMap(u8 hex_value);
 
 station_info *     wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8* addr, u16 requested_AID);
 int                wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8* addr);

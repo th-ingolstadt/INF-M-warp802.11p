@@ -21,6 +21,12 @@
 
 
 //-----------------------------------------------
+// Base Addresses
+//
+#define USERIO_BASEADDR                                    XPAR_W3_USERIO_BASEADDR            ///< XParameters rename of base address of User I/O
+
+
+//-----------------------------------------------
 // WLAN MAC TIME HW register definitions
 //
 // RO:
@@ -150,7 +156,7 @@
 
 
 //-----------------------------------------------
-// Recieve filter defines
+// Receive filter defines
 //     NOTE:  These filters allow the user to select the types of received packets to process
 //
 #define RX_FILTER_FCS_GOOD                                 0x1000    ///< Pass only packets with good checksum result
@@ -163,6 +169,15 @@
 #define RX_FILTER_HDR_ALL                                  0x0003    ///< Pass any packet (no type or address filters)
 #define RX_FILTER_HDR_MASK                                 0x0FFF
 #define RX_FILTER_HDR_NOCHANGE                             RX_FILTER_HDR_MASK
+
+
+//-----------------------------------------------
+// Node Error defines
+//
+#define ERROR_NODE_RIGHT_SHIFT                             0
+#define ERROR_NODE_INSUFFICIENT_SIZE_TX_BD                 1
+#define ERROR_NODE_DRAM_NOT_PRESENT                        2
+
 
 
 //-----------------------------------------------
@@ -336,6 +351,32 @@ typedef struct{
 #define RX_MPDU_STATE_RX_PENDING                           1
 #define RX_MPDU_STATE_FCS_GOOD                             2
 #define RX_MPDU_STATE_FCS_BAD                              3
+
+
+
+/*************************** Function Prototypes *****************************/
+u64                get_mac_timestamp_usec();
+u64                get_system_timestamp_usec();
+void               usleep(u64 delay);
+
+void               enable_hex_pwm();
+void               disable_hex_pwm();
+void               set_hex_pwm_period(u16 period);
+void               set_hex_pwm_min_max(u16 min, u16 max);
+
+void               write_hex_display(u8 val);
+void               write_hex_display_with_pwm(u8 val);
+void               blink_hex_display(u32 num_blinks, u32 blink_time);
+
+void               set_hex_display_right_dp(u8 val);
+void               set_hex_display_left_dp(u8 val);
+
+void               set_hex_display_error_status(u8 status);
+
+int                str2num(char* str);
+u8                 hex_to_seven_segment(u8 hex_value);
+
+
 
 
 #endif   // END WLAN_MAC_MISC_UTIL_H_

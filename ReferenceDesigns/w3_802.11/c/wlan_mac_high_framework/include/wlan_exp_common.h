@@ -212,6 +212,7 @@ extern char   * print_type_queue;
 //
 #define GROUP_NODE                                         0x00
 #define GROUP_TRANSPORT                                    0x10
+#define GROUP_USER                                         0x20
 
 
 

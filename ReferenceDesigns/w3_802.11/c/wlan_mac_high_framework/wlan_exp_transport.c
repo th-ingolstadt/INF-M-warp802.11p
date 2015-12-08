@@ -573,6 +573,7 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
+ * @param   max_words        - Maximum number of u32 words per packet
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
@@ -582,7 +583,7 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int transport_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response) {
+int transport_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -868,7 +869,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
     u32          negotiated       = 1;
     u16          speed            = 0;
 
-    u32          start_time       = get_usec_timestamp();
+    u32          start_time       = get_system_timestamp_usec();
     u32          end_time         = start_time;
 
     // Make sure the Ethernet device is initialized
@@ -886,7 +887,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
             }
 
             speed = ETH_PHY_SPEED_TO_MBPS((reg_val & ETH_PHY_REG_17_0_SPEED));
-            end_time = get_usec_timestamp();
+            end_time = get_system_timestamp_usec();
 
         } else {
             // Check to see if the Ethernet controller has auto-negotiated a speed

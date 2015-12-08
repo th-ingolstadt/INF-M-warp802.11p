@@ -17,13 +17,14 @@
 
 // Xilinx Includes
 #include "stdlib.h"
+#include "malloc.h"
+
 #include "xparameters.h"
 #include "xgpio.h"
 #include "xil_exception.h"
 #include "xintc.h"
 #include "xuartlite.h"
 #include "xaxicdma.h"
-#include "malloc.h"
 
 // WLAN Includes
 #include "w3_userio.h"
@@ -145,6 +146,9 @@ volatile static u64	         unique_seq;
 
 // Tx Packet Buffer Busy State
 volatile static u8           tx_pkt_buf_busy_state;
+
+// Time info entry flag
+volatile u8                  add_time_info_entry_on_change;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -290,8 +294,8 @@ void wlan_mac_high_init(){
 	// Check that right shift works correctly
 	//   Issue with -Os in Xilinx SDK 14.7
 	if (wlan_mac_high_right_shift_test() != 0) {
-		wlan_mac_high_set_node_error_status(0);
-		wlan_mac_high_blink_hex_display(0, 250000);
+		set_hex_display_error_status(ERROR_NODE_RIGHT_SHIFT);
+		blink_hex_display(0, 250000);
 	}
 
 	// Sanity check memory map of aux. BRAM and DRAM
@@ -343,6 +347,9 @@ void wlan_mac_high_init(){
 	// Enable promiscuous counts by default
 	promiscuous_counts_enabled     = 1;
 
+	// Disable adding time info entry to log by default
+	add_time_info_entry_on_change  = 0;
+
 	unique_seq = 0;
 
 	tx_pkt_buf_busy_state = 0;
@@ -390,9 +397,9 @@ void wlan_mac_high_init(){
 
 	// Test to see if DRAM SODIMM is connected to board
 	dram_present = 0;
-	timestamp = get_usec_timestamp();
+	timestamp = get_system_timestamp_usec();
 
-	while((get_usec_timestamp() - timestamp) < 100000){
+	while((get_system_timestamp_usec() - timestamp) < 100000){
 		if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
 			xil_printf("------------------------\nDRAM SODIMM Detected\n");
 			if(wlan_mac_high_memory_test()==0){
@@ -918,82 +925,6 @@ void wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback){
 
 
 /**
- * @brief Get Microsecond Counter Timestamp
- *
- * The Reference Design includes a 64-bit counter that increments with
- * every microsecond. This function returns this value and is used
- * throughout the framework as a timestamp.  This timestamp can be updated
- * by various sources and is the network time.
- *
- * @param None
- * @return u64
- *  - Current number of microseconds of network time.
- */
-u64 get_usec_timestamp(){
-	//The MAC time core register interface is only 32-bit, so the 64-bit timestamp
-	// is read from two 32-bit registers and reconstructed here.
-
-	u32 timestamp_high_u32;
-	u32 timestamp_low_u32;
-	u64 timestamp_u64;
-
-	timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
-	timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
-
-	// Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
-	if((timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB) & 0x1)) {
-		//32-LSB wrapped - start over
-		timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
-		timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
-	}
-
-	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
-
-	return timestamp_u64;
-}
-
-
-
-/**
- * @brief Get System Microsecond Counter Timestamp
- *
- * The Reference Design includes a 64-bit counter that increments with
- * every microsecond. This function returns this value and is used
- * throughout the framework as a timestamp.  This timestamp cannot be
- * updated and reflects the number of microseconds that has past since
- * the hardware booted.
- *
- * @param None
- * @return u64
- *  - Current number of microseconds that have elapsed since the hardware
- *  has booted.
- */
-u64 get_usec_system_timestamp(){
-	// The MAC time core register interface is only 32-bit, so the 64-bit timestamp
-	// is read from two 32-bit registers and reconstructed here.
-
-	u32 timestamp_high_u32;
-	u32 timestamp_low_u32;
-	u64 timestamp_u64;
-
-	timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
-	timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
-
-	// Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
-	if((timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB) & 0x1) ) {
-		// 32-LSB wrapped - start over
-		timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
-		timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
-	}
-
-	timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
-
-	return timestamp_u64;
-}
-
-
-
-/**
  * @brief Display Memory Allocation Information
  *
  * This function is a wrapper around a call to mallinfo(). It prints
@@ -1164,219 +1095,6 @@ void wlan_mac_high_free(void* addr){
 
 
 /**
- * @brief Enable the PWM functionality of the hex display
- *
- * This function will tell the User I/O to enable the PWM to blink the hex display.
- *
- * @param None
- * @return None
- *
- */
-void wlan_mac_high_enable_hex_pwm(){
-	userio_set_pwm_ramp_en(USERIO_BASEADDR, 1);
-}
-
-
-
-/**
- * @brief Disable the PWM functionality of the hex display
- *
- * This function will tell the User I/O to disable the PWM to blink the hex display.
- *
- * @param None
- * @return None
- *
- */
-void wlan_mac_high_disable_hex_pwm(){
-	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
-}
-
-
-
-/**
- * @brief Write a Decimal Value to the Hex Display
- *
- * This function will write a decimal value to the board's two-digit hex displays.
- *
- * @param u8 val
- *  - Value to be displayed (between 0 and 99)
- * @return None
- *
- */
-void wlan_mac_high_write_hex_display(u8 val){
-    u32 right_dp;
-    u8  left_val;
-    u8  right_val;
-
-	// Need to retain the value of the right decimal point
-	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
-
-	userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
-
-	if ( val < 10 ) {
-		left_val  = sevenSegmentMap(0);
-		right_val = sevenSegmentMap(val);
-	} else {
-		left_val  = sevenSegmentMap(((val/10)%10));
-		right_val = sevenSegmentMap((val%10));
-	}
-
-	userio_write_hexdisp_left(USERIO_BASEADDR, left_val);
-	userio_write_hexdisp_right(USERIO_BASEADDR, (right_val | right_dp));
-}
-
-
-
-/**
- * @brief Set Error Status for Node
- *
- * Function will set the hex display to be "Ex", where x is the value of the
- * status error
- *
- * @param  int status
- *     - Number from 0 - 0xF to indicate status error
- * @return None
- */
-void wlan_mac_high_set_node_error_status(u8 status) {
-    u32 right_dp;
-
-	// Need to retain the value of the right decimal point
-	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
-
-	userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE ) ) ) );
-
-	userio_write_hexdisp_left(USERIO_BASEADDR,  sevenSegmentMap(0xE));
-	userio_write_hexdisp_right(USERIO_BASEADDR, (sevenSegmentMap(status % 16) | right_dp));
-}
-
-
-/**
- * @brief Blink LEDs
- *
- * For WARP v3 Hardware, this function will blink the hex display.
- *
- * @param    num_blinks  - Number of blinks (0 means blink forever)
- *           blink_time  - Time in us between blinks
- *
- * @return	None.
- *
- * @note	None.
- *
- */
-void wlan_mac_high_blink_hex_display(u32 num_blinks, u32 blink_time) {
-	u32          i, j;
-	u32          hw_control;
-	u32          temp_control;
-    u8           right_val;
-    u8           left_val;
-
-    u32          blink_time_extended;
-    volatile u32 tmp_value;
-
-    // Get left / right values
-	left_val  = userio_read_hexdisp_left( USERIO_BASEADDR );
-	right_val = userio_read_hexdisp_right( USERIO_BASEADDR );
-
-	// Store the original value of what is under HW control
-	hw_control   = userio_read_control(USERIO_BASEADDR);
-
-	// Need to zero out all of the HW control of the hex displays; Change to raw hex mode
-	temp_control = (hw_control & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE | W3_USERIO_CTRLSRC_HEXDISP_R | W3_USERIO_CTRLSRC_HEXDISP_L )));
-
-	// Set the hex display mode to raw bits
-    userio_write_control( USERIO_BASEADDR, temp_control );
-
-    // Do we have interrupts enabled so we can use the usleep function?
-	if(InterruptController.IsReady && InterruptController.IsStarted == 0){
-		if ( num_blinks > 0 ) {
-	        // Perform standard blink
-			for( i = 0; i < num_blinks; i++ ) {
-				userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
-				userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
-				usleep( blink_time );
-			}
-		} else {
-			// Perform an infinite blink
-			i = 0;
-			while(1){
-				userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
-				userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
-				usleep( blink_time );
-				i++;
-			}
-		}
-	} else {
-		blink_time_extended = blink_time * 4;
-
-		if ( num_blinks > 0 ) {
-	        // Perform standard blink
-			for( i = 0; i < num_blinks; i++ ) {
-				userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
-				userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
-				for( j=0; j < blink_time_extended; j++){
-					tmp_value = Xil_In32(0xC0000000);
-					if (tmp_value == 0xDEADBEEF) {
-						break;
-					}
-				}
-			}
-		} else {
-			// Perform an infinite blink
-			i = 0;
-			while(1){
-				userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
-				userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
-				for( j=0; j < blink_time_extended; j++){
-					tmp_value = Xil_In32(0xC0000000);
-					if (tmp_value == 0xDEADBEEF) {
-						break;
-					}
-				}
-				i++;
-			}
-		}
-	}
-
-	// Set control back to original value
-    userio_write_control( USERIO_BASEADDR, hw_control );
-}
-
-
-
-/**
- * @brief Mapping of hexadecimal values to the 7-segment display
- *
- * @param  u8 hex_value
- *   - Hexadecimal value to be converted (between 0 and 15)
- * @return u8
- *   - LED map value of the 7-segment display
- */
-u8   sevenSegmentMap(u8 hex_value) {
-    switch(hex_value) {
-        case(0x0) : return 0x3F;
-        case(0x1) : return 0x06;
-        case(0x2) : return 0x5B;
-        case(0x3) : return 0x4F;
-        case(0x4) : return 0x66;
-        case(0x5) : return 0x6D;
-        case(0x6) : return 0x7D;
-        case(0x7) : return 0x07;
-        case(0x8) : return 0x7F;
-        case(0x9) : return 0x6F;
-
-        case(0xA) : return 0x77;
-        case(0xB) : return 0x7C;
-        case(0xC) : return 0x39;
-        case(0xD) : return 0x5E;
-        case(0xE) : return 0x79;
-        case(0xF) : return 0x71;
-        default   : return 0x00;
-    }
-}
-
-
-
-/**
  * @brief Test DDR3 SODIMM Memory Module
  *
  * This function tests the integrity of the DDR3 SODIMM module attached to the hardware
@@ -1536,10 +1254,9 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	}
 
 	if( size == 0 ){
-		xil_printf("CDMA Error: size argument must be >0\n");
-		return -1;
+		xil_printf("CDMA Error: size argument must be > 0\n");
+		return XST_FAILURE;
 	}
-
 
 	if(out_of_range == 0){
 		wlan_mac_high_cdma_finish_transfer();
@@ -1808,7 +1525,7 @@ void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queu
 	bzero(&(curr_tx_queue_buffer->frame_info), sizeof(tx_frame_info));
 
 	// Set up frame info data
-	curr_tx_queue_buffer->frame_info.timestamp_create            = get_usec_timestamp();
+	curr_tx_queue_buffer->frame_info.timestamp_create            = get_mac_timestamp_usec();
 	curr_tx_queue_buffer->frame_info.length                      = tx_length;
 	curr_tx_queue_buffer->frame_info.flags                       = flags;
 	curr_tx_queue_buffer->frame_info.queue_info.QID              = QID;
@@ -2195,12 +1912,16 @@ int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload){
         ipc_mailbox_write_msg(&ipc_msg_to_low);
 
         // Get start time
-        start_time = get_usec_timestamp();
+        start_time = get_system_timestamp_usec();
 
         // Wait for CPU low to finish the read or timeout to occur
         while(cpu_low_param_read_buffer_status != CPU_LOW_PARAM_READ_BUFFER_STATUS_READY){
-            if ((get_usec_timestamp() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
+            if ((get_system_timestamp_usec() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
                 xil_printf("Error: Reading CPU_LOW memory timed out\n");
+
+                // Reset the read buffer
+                cpu_low_reg_read_buffer          = NULL;
+
                 return -1;
             }
         }
@@ -2249,12 +1970,17 @@ int wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload ){
         ipc_mailbox_write_msg(&ipc_msg_to_low);
 
         // Get start time
-        start_time = get_usec_timestamp();
+        start_time = get_system_timestamp_usec();
 
         // Wait for CPU low to finish the read or timeout to occur
         while(cpu_low_param_read_buffer_status != CPU_LOW_PARAM_READ_BUFFER_STATUS_READY){
-            if ((get_usec_timestamp() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
+            if ((get_system_timestamp_usec() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
                 xil_printf("Error: Reading CPU_LOW parameters timed out\n");
+
+                // Reset the read buffer
+                cpu_low_param_read_buffer        = NULL;
+                cpu_low_param_read_buffer_size   = 0;
+
                 return -1;
             }
         }
@@ -2320,13 +2046,13 @@ void wlan_mac_high_set_timestamp(u64 timestamp) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 
-	u64                abs_time;
-	u64                curr_time     = get_usec_timestamp();
+	u64                system_time;
+	u64                mac_time      = get_mac_timestamp_usec();
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
 	ipc_msg_to_low.num_payload_words = sizeof(u64)/sizeof(u32);
-	ipc_msg_to_low.arg0				 = 0; // This means the u64 should replace the old timestamp
+	ipc_msg_to_low.arg0              = 0; // This means the u64 should replace the old timestamp
 	ipc_msg_to_low.payload_ptr       = (u32*)(&(timestamp));
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
@@ -2339,9 +2065,11 @@ void wlan_mac_high_set_timestamp(u64 timestamp) {
 	//     reduce the amount of time between calling the function and having the time changed,
 	//     only the current time is recorded before the IPC message.
 	//
-	abs_time  = get_usec_system_timestamp();
+	if (add_time_info_entry_on_change) {
+	    system_time = get_system_timestamp_usec();
 
-	add_time_info_entry(curr_time, timestamp, abs_time, TIME_INFO_ENTRY_SYSTEM, 0, 0);
+	    add_time_info_entry(mac_time, timestamp, system_time, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
+	}
 }
 
 
@@ -2361,9 +2089,9 @@ void wlan_mac_high_set_timestamp_delta(s64 timestamp) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 
-	u64                new_time;
-	u64                abs_time;
-	u64                curr_time     = get_usec_timestamp();
+	u64                mac_time      = get_mac_timestamp_usec();
+	u64                new_mac_time;
+	u64                system_time;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
@@ -2381,10 +2109,12 @@ void wlan_mac_high_set_timestamp_delta(s64 timestamp) {
 	//     reduce the amount of time between calling the function and having the time changed,
 	//     only the current time is recorded before the IPC message.
 	//
-	abs_time  = get_usec_system_timestamp();
-	new_time  = get_usec_timestamp();
+	if (add_time_info_entry_on_change) {
+	    system_time  = get_system_timestamp_usec();
+	    new_mac_time = get_mac_timestamp_usec();
 
-	add_time_info_entry(curr_time, new_time, abs_time, TIME_INFO_ENTRY_SYSTEM, 0, 0);
+	    add_time_info_entry(mac_time, new_mac_time, system_time, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
+	}
 }
 
 
@@ -2597,53 +2327,6 @@ inline void wlan_mac_high_set_debug_gpio(u8 val){
 inline void wlan_mac_high_clear_debug_gpio(u8 val){
 	debug_gpio_state &= ~(val & 0xF);
 	XGpio_DiscreteWrite(&Gpio, GPIO_OUTPUT_CHANNEL, debug_gpio_state);
-}
-
-
-
-/**
- * @brief Convert a string to a number
- *
- * @param  char * str
- *     - String to convert
- * @return int
- *     - Integer value of the string
- *
- * @note   For now this only works with non-negative values
- */
-int str2num(char* str){
-	u32 i;
-	u8  decade_index;
-	int multiplier;
-	int return_value  = 0;
-	u8  string_length = strlen(str);
-
-	for(decade_index = 0; decade_index < string_length; decade_index++){
-		multiplier = 1;
-		for(i = 0; i < (string_length - 1 - decade_index) ; i++){
-			multiplier = multiplier*10;
-		}
-		return_value += multiplier*(u8)(str[decade_index] - 48);
-	}
-
-	return return_value;
-}
-
-
-
-/**
- * @brief Sleep delay (in microseconds)
- *
- * Function will delay execution for the specified amount of time.
- *
- * @param  u64 delay
- *     - Time to sleep in microseconds
- * @return None
- */
-void usleep(u64 delay){
-	u64 timestamp = get_usec_timestamp();
-	while(get_usec_timestamp() < (timestamp+delay)){}
-	return;
 }
 
 
@@ -2975,7 +2658,7 @@ u32 wlan_mac_high_get_max_associations() {
  * @return None
  */
 void wlan_mac_high_print_associations(dl_list* assoc_tbl){
-	u64 timestamp = get_usec_timestamp();
+	u64 timestamp = get_mac_timestamp_usec();
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
 

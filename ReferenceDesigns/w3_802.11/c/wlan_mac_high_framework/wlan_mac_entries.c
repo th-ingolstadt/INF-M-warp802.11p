@@ -1096,7 +1096,7 @@ void add_node_info_entry(u8 transmit){
     entry = (node_info_entry *)event_log_get_next_empty_entry(ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry));
 
     if (entry != NULL) {
-        entry->timestamp = get_usec_timestamp();
+        entry->timestamp = get_mac_timestamp_usec();
 
         // Add the node parameters
         temp0 = node_get_parameter_values((u32 *)&(entry->node_type), entry_words);
@@ -1127,11 +1127,12 @@ void add_node_info_entry(u8 transmit){
 
 /*****************************************************************************/
 /**
- * Create a Time Info log entry
+ * Add a Time Info log entry to the log
  *
- * @param   timestamp          - Timestamp to use for the log entry
- * @param   new_time           - New time for the system
- * @param   abs_time           - Absolute time
+ * @param   timestamp          - Timestamp to use for the log entry (MAC time old timebase)
+ * @param   mac_time           - MAC time (new timebase)
+ * @param   system_time        - System time
+ * @param   host_time          - Host time
  * @param   reason             - Reason the time info entry was created
  * @param   time_id            - ID to use for the time info entry
  * @param   use_time_id        - Use the provided time_id or system_time_id
@@ -1142,7 +1143,7 @@ void add_node_info_entry(u8 transmit){
  *                                 NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-void add_time_info_entry(u64 timestamp, u64 new_time, u64 abs_time, u32 reason, u32 time_id, u8 use_time_id) {
+void add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_time, u32 reason, u32 time_id, u8 use_time_id) {
 
 	time_info_entry * time_entry;
 
@@ -1159,9 +1160,10 @@ void add_time_info_entry(u64 timestamp, u64 new_time, u64 abs_time, u32 reason, 
             system_time_id++;
         }
 
-        time_entry->reason        = reason;
-        time_entry->new_time      = new_time;
-        time_entry->abs_time      = abs_time;
+        time_entry->reason             = reason;
+        time_entry->mac_timestamp      = mac_time;
+        time_entry->system_timestamp   = system_time;
+        time_entry->host_timestamp     = host_time;
     }
 }
 
@@ -1201,7 +1203,7 @@ u32 add_txrx_counts_to_log(counts_txrx * counts, u8 transmit){
     entry = (txrx_counts_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_TXRX_COUNTS, entry_size);
 
     if ( entry != NULL ) {
-        entry->timestamp = get_usec_timestamp();
+        entry->timestamp = get_mac_timestamp_usec();
 
         // Copy the counts to the log entry
         //   NOTE:  This assumes that the counts entry in wlan_mac_entries.h has a contiguous piece of
@@ -1301,7 +1303,7 @@ u32 add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit){
     entry = (station_info_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_STATION_INFO, entry_size);
 
     if ( entry != NULL ) {
-        entry->timestamp = get_usec_timestamp();
+        entry->timestamp = get_mac_timestamp_usec();
 
         // Copy the station info to the log entry
         //   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
@@ -1425,7 +1427,7 @@ u32 add_temperature_to_log(u8 transmit){
     entry = (temperature_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_TEMPERATURE, entry_size);
 
     if (entry != NULL) {
-        entry->timestamp     = get_usec_timestamp();
+        entry->timestamp     = get_mac_timestamp_usec();
         entry->id            = node_get_node_id();
         entry->serial_number = node_get_serial_number();
         entry->curr_temp     = node_get_curr_temp();

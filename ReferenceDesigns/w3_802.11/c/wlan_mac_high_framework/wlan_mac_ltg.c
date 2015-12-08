@@ -220,7 +220,7 @@ int ltg_sched_start_all(){
 
 int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 	tg_schedule* curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
-	u64 timestamp        = get_usec_timestamp();
+	u64 timestamp        = get_system_timestamp_usec();
 	u64 random_timestamp;
 
 	switch(curr_tg->type){
@@ -360,7 +360,7 @@ int ltg_sched_stop_all(){
 int ltg_sched_stop_l(dl_entry* curr_tg_dl_entry){
 	tg_schedule* curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 
-	u64 timestamp = get_usec_timestamp();
+	u64 timestamp = get_system_timestamp_usec();
 
 	if ( ((ltg_sched_state_hdr*)(curr_tg->state))->enabled == 1 ) {
 		((ltg_sched_state_hdr*)(curr_tg->state))->enabled = 0;

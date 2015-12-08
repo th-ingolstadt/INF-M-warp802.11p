@@ -246,15 +246,16 @@ typedef struct{
 //     (time_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry))
 //
 typedef struct{
-    u64                 timestamp;               // Timestamp of the log entry (old timebase)
+    u64                 timestamp;               // Timestamp of the log entry (Timestamp of MAC time of old timebase)
     u32                 time_id;                 // ID of the time info entry so that these entries
                                                  //   can be synced across multiple nodes
     u32                 reason;                  // Reason code for log entry:
                                                  //     0 - SYSTEM (system added time info entry; eg beacon update)
                                                  //     1 - WLAN_EXP_SET_TIME
                                                  //     2 - WLAN_EXP_ADD_LOG
-    u64                 new_time;                // New timebase  (0xFFFFFFFF_FFFFFFFF if unchanged)
-    u64                 abs_time;                // Absolute time (0xFFFFFFFF_FFFFFFFF if not known)
+    u64                 mac_timestamp;           // Timestamp of MAC time (new timebase)
+    u64                 system_timestamp;        // Timestamp of System time
+    u64                 host_timestamp;          // Timestamp of Host time          (0xFFFFFFFF_FFFFFFFF if not known)
 } time_info_entry;
 
 
@@ -264,6 +265,7 @@ typedef struct{
 
 #define TIME_INFO_ENTRY_BASE_SYSTEM_TIME_ID      0x80000000
 
+#define TIME_INFO_ENTRY_TIME_RSVD_VAL_64         0xFFFFFFFFFFFFFFFF
 
 
 //-----------------------------------------------
@@ -448,7 +450,7 @@ void               print_entry(u32 entry_number, u32 entry_type, void * entry);
 //
 void      add_node_info_entry(u8 transmit);
 
-void      add_time_info_entry(u64 timestamp, u64 new_time, u64 abs_time, u32 reason, u32 time_id, u8 use_time_id);
+void      add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_time, u32 reason, u32 time_id, u8 use_time_id);
 
 u32       add_txrx_counts_to_log(counts_txrx * counts, u8 transmit);
 u32       add_all_txrx_counts_to_log(u8 transmit);

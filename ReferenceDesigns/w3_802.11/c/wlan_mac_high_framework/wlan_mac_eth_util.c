@@ -81,12 +81,13 @@ static u8                   eth_sta_mac_addr[6];
 int wlan_eth_init() {
         int status;
 
-        //Check to see if we were given enough room by wlan_mac_high.h for our 1 Tx BD
+        // Check to see if we were given enough room by wlan_mac_high.h for our 1 Tx BD
         if(ETH_TX_BD_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT){
             xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_TX_BD_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
-            wlan_mac_high_set_node_error_status(1);
-            wlan_mac_high_blink_hex_display(0, 250000);
+            set_hex_display_error_status(ERROR_NODE_INSUFFICIENT_SIZE_TX_BD);
+            blink_hex_display(0, 250000);
         }
+
         num_tx_bd = 1;
         xil_printf("%3d Eth Tx BDs placed in BRAM: using %d B\n", num_tx_bd, num_tx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT);
 

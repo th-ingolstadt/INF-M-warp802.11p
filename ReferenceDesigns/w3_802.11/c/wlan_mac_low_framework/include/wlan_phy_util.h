@@ -434,9 +434,6 @@ inline int         wlan_tx_isrunning();
 inline u16         wlan_ofdm_txtime(u16 length,u16 n_DBPS);
 inline u16         wlan_ofdm_txtime_fast(u16 length,u16 n_DBPS);
 
-// Misc functions
-void               usleep(u32 duration);
-
 // IPC message processing functions
 void               process_config_phy_rx(ipc_config_phy_rx* config_phy_rx);
 void               process_config_phy_tx(ipc_config_phy_tx* config_phy_tx);

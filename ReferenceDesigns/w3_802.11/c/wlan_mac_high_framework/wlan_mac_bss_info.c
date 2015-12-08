@@ -226,7 +226,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 					mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
 				}
 
-				curr_bss_info->latest_activity_timestamp = get_usec_timestamp();
+				curr_bss_info->latest_activity_timestamp = get_system_timestamp_usec();
 				dl_entry_insertEnd(&bss_info_list,curr_dl_entry);
 
 			break;
@@ -270,7 +270,7 @@ void print_bss_info(){
 		xil_printf("    Channel:       %d\n",curr_bss_info->chan);
 
 		if(curr_bss_info->state != BSS_STATE_OWNED){
-			xil_printf("    Last update:   %d msec ago\n", (u32)((get_usec_timestamp()-curr_bss_info->latest_activity_timestamp)/1000));
+			xil_printf("    Last update:   %d msec ago\n", (u32)((get_mac_timestamp_usec() - curr_bss_info->latest_activity_timestamp)/1000));
 		}
 		xil_printf("    Capabilities:  0x%04x\n", curr_bss_info->capabilities);
 		curr_dl_entry = dl_entry_prev(curr_dl_entry);
@@ -288,7 +288,7 @@ void bss_info_timestamp_check(){
 	while(curr_dl_entry != NULL){
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
-		if((get_usec_timestamp() - curr_bss_info->latest_activity_timestamp) > BSS_INFO_TIMEOUT_USEC){
+		if((get_system_timestamp_usec() - curr_bss_info->latest_activity_timestamp) > BSS_INFO_TIMEOUT_USEC){
 			// We won't remove this BSS info if we are associated with it or if we are trying to associate with it.
 			if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
 				wlan_mac_high_clear_bss_info(curr_bss_info);
@@ -434,7 +434,7 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 	// Update the fields of the BSS Info
 	strcpy(curr_bss_info->ssid,ssid);
 	curr_bss_info->chan                      = chan;
-	curr_bss_info->latest_activity_timestamp = get_usec_timestamp();
+	curr_bss_info->latest_activity_timestamp = get_system_timestamp_usec();
     curr_bss_info->state                     = BSS_STATE_UNAUTHENTICATED;
 
 	dl_entry_insertEnd(&bss_info_list, curr_dl_entry);

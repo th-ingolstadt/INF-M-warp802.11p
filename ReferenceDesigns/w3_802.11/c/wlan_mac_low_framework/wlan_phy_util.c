@@ -816,40 +816,6 @@ inline u16 wlan_ofdm_txtime_fast(u16 length, u16 n_DBPS){
 
 /*****************************************************************************/
 /**
- * Sleep (in microseconds)
- *
- * @param   duration         - Duration (in microseconds) to sleep
- *
- * @return  None
- *
- * @note    The Microblaze processor does not have a built-in timer.  Therefore,
- *     stdlib does not have usleep().  Therefore, this function uses the Timer
- *     defined above.
- *
- *****************************************************************************/
-void usleep(u32 duration) {
-
-    volatile u8    isExpired         = 0;
-    XTmrCtr      * TmrCtrInstancePtr = &TimerCounter;
-
-    // Reset the timer value and start the timer
-    XTmrCtr_SetResetValue(TmrCtrInstancePtr, 0, (duration * (TIMER_FREQ / 1000000)));
-    XTmrCtr_Start(TmrCtrInstancePtr, 0);
-
-    // Check if the timer has expired
-    while (isExpired != 1) {
-        isExpired = XTmrCtr_IsExpired(TmrCtrInstancePtr, 0);
-    }
-
-    // Reset the timer for the next use
-    XTmrCtr_Reset(TmrCtrInstancePtr, 0);
-
-    return;
-}
-
-
-/*****************************************************************************/
-/**
  * Process Rx PHY configuration IPC message
  *
  * @param   config_phy_rx    - Pointer to ipc_config_phy_rx from CPU High

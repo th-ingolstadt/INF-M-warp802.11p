@@ -706,7 +706,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 
                     // Update the node_info_entry timestamp
                     entry = (node_info_entry *)(log_start_address + sizeof(entry_header));
-                    entry->timestamp = get_usec_timestamp();
+                    entry->timestamp = get_mac_timestamp_usec();
 
                     // Set the log_soft_end_address and allocate the new entry from the beginning of the buffer
                     log_soft_end_address = log_next_address;
@@ -776,7 +776,7 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
 
                     // Update the node_info_entry timestamp
                     entry = (node_info_entry *)(log_start_address + sizeof(entry_header));
-                    entry->timestamp = get_usec_timestamp();
+                    entry->timestamp = get_mac_timestamp_usec();
 
                     // Set the log_soft_end_address and allocate the new entry from the beginning of the buffer
                     log_soft_end_address = log_next_address;
@@ -1008,7 +1008,7 @@ void print_event_log_size(){
     u64 timestamp;
 
     size      = event_log_get_total_size();
-    timestamp = get_usec_timestamp();
+    timestamp = get_mac_timestamp_usec();
 
     xil_printf("EVENT LOG: (%10d us) %10d of %10d bytes used\n", (u32)timestamp, size, log_size);
 }
