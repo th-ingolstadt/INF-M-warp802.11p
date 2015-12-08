@@ -1107,15 +1107,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, threshold)
 
 
-    def set_timestamp_offset(self, offset):
-        """Sets a usec offset that will be applied to beacon timestamps.
-        
-        Args:
-            offset (int):  Integer number of microseconds to adjust the beacon timestamps [-2^31, (2^31 - 1)].
-        """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET, offset)      
-
-
     def set_cw_exp_min(self, cw_exp):
         """Sets the the minimum contention window:
            
@@ -1301,7 +1292,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             param (int):          Parameter to be set
             values (list of int): Value(s) to set the parameter
         """
-        
         if(values is not None):
             try:
                 v0 = values[0]
@@ -1323,80 +1313,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     # Internal methods to view / configure node attributes
     #     NOTE:  These methods are not safe in all cases; therefore they are not part of the public API
     #--------------------------------------------
-
-    def _get_phy_cs_thresh(self):
-        """Gets the physical carrier sense threshold of the node.
-        
-        Returns:
-            phy_cs_thresh (int):  Value for the physical carrier sense threshold on the node
-        """
-        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH))
-        
-        if ret_val is not None:
-            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH)):
-                return ret_val[2]
-            else:
-                print("WARNING:  CS Thresh:  Unexpected return value: {0}".format(ret_val))
-                return None
-        else:
-            print("WARNING:  CS Thresh:  Could not get threshold.")
-            return None
-        
-
-    def _get_timestamp_offset(self):
-        """Gets a usec offset that will be applied to beacon timestamps.
-        
-        Returns:
-            offset (int):  Integer number of microseconds beacon timestamps are being adjusted.
-        """
-        ret_val = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET))
-        
-        if ret_val is not None:
-            if ((ret_val[0] == 1) and (ret_val[1] == cmds.CMD_PARAM_LOW_PARAM_TS_OFFSET)):
-                return ret_val[2]
-            else:
-                print("WARNING:  Timestamp offset:  Unexpected return value: {0}".format(ret_val))
-                return None
-        else:
-            print("WARNING:  Timestamp offset:  Could not get offset.")
-            return None
-
-
-    def _get_cw_exp_range(self):
-        """Gets the contention window range.
-        
-        Returns:
-            cw_exps (tuple):
-                #. cw_exp_min (int):  Exponent of the minimum contention window
-                #. cw_exp_max (int):  Exponent of the maximum contention window
-        """
-        cw_max = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX))
-        
-        if cw_max is not None:
-            if ((cw_max[0] == 1) and (cw_max[1] == cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX)):
-                cw_max = cw_max[2]
-            else:
-                print("WARNING:  CW Max:  Unexpected return value: {0}".format(cw_max))
-                cw_max = None
-        else:
-            print("WARNING:  CW Max:  Could not get cw exponent.")
-            cw_max = None
-
-        cw_min = self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_READ, param=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN))
-
-        if cw_min is not None:
-            if ((cw_min[0] == 1) and (cw_min[1] == cmds.CMD_PARAM_LOW_DCF_PARAM_CW_EXP_MIN)):
-                cw_min = cw_min[2]
-            else:
-                print("WARNING:  CW Min:  Unexpected return value: {0}".format(cw_min))
-                cw_min = None
-        else:
-            print("WARNING:  CW Min:  Could not get cw exponent.")
-            cw_min = None
-
-        return (cw_min, cw_max)
-
-
     def _set_bb_gain(self, bb_gain):
         """Sets the the baseband gain.
 

@@ -53,11 +53,13 @@ __all__ = ['NodeGetType', 'NodeIdentify', 'NodeGetHwInfo',
 # Command Groups
 GROUP_NODE                                       = 0x00
 GROUP_TRANSPORT                                  = 0x10
+GROUP_USER                                       = 0x20
 
 
 # Command Group names
 GROUP_NAME_NODE                                  = 'node'
 GROUP_NAME_TRANSPORT                             = 'transport'
+GROUP_NAME_USER                                  = 'user'
 
 
 # Node Command IDs
@@ -92,6 +94,8 @@ CMDID_TRANSPORT_NODE_GROUP_ID_CLEAR              = 0x000101
 # Local Constants
 _CMD_GROUP_NODE                                  = (GROUP_NODE << 24)
 _CMD_GROUP_TRANSPORT                             = (GROUP_TRANSPORT << 24)
+_CMD_GROUP_USER                                  = (GROUP_USER << 24)
+
 
 
 # -----------------------------------------------------------------------------

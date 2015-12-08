@@ -125,13 +125,13 @@ CMD_PARAM_RANDOM_SEED_VALID                      = 0x00000001
 CMD_PARAM_RANDOM_SEED_RSVD                       = 0xFFFFFFFF
 
 # Low Param IDs -- in sync with wlan_mac_low.h
-CMD_PARAM_LOW_PARAM_TS_OFFSET                    = 0x00000004
-CMD_PARAM_LOW_PARAM_BB_GAIN                      = 0x00000005
-CMD_PARAM_LOW_PARAM_LINEARITY_PA                 = 0x00000006
-CMD_PARAM_LOW_PARAM_LINEARITY_VGA                = 0x00000007
-CMD_PARAM_LOW_PARAM_LINEARITY_UPCONV             = 0x00000008
-CMD_PARAM_LOW_PARAM_AD_SCALING                   = 0x00000009
-CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER            = 0x0000000A
+CMD_PARAM_LOW_PARAM_BB_GAIN                      = 0x00000001
+CMD_PARAM_LOW_PARAM_LINEARITY_PA                 = 0x00000002
+CMD_PARAM_LOW_PARAM_LINEARITY_VGA                = 0x00000003
+CMD_PARAM_LOW_PARAM_LINEARITY_UPCONV             = 0x00000004
+CMD_PARAM_LOW_PARAM_AD_SCALING                   = 0x00000005
+CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER            = 0x00000006
+
 CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH               = 0x10000001
 CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY          = 0x10000002
 CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY           = 0x10000003
@@ -248,9 +248,9 @@ CMDID_DEV_MEM_HIGH                               = 0xFFF000
 CMDID_DEV_MEM_LOW                                = 0xFFF001
 
 
-
 # Local Constants
 _CMD_GROUP_NODE                                  = (cmds.GROUP_NODE << 24)
+_CMD_GROUP_USER                                  = (cmds.GROUP_USER << 24)
 
 
 #-----------------------------------------------------------------------------
@@ -1000,22 +1000,21 @@ class NodeLowParam(message.Cmd):
     
     Attributes:
         cmd       -- Sub-command to send over the command.  Valid values are:
+                       CMD_PARAM_READ   (Not supported)
                        CMD_PARAM_WRITE
-                       CMD_PARAM_READ
 
         param     -- ID of parameter to modify
 
-        values    -- When cmd==CMD_PARAM_WRITE, scalar or list of u32 values to write
-                     When cmd==CMD_PARAM_READ, None
-
+        values    -- Scalar or list of u32 values to write
+        
     """
-    read_write = None
-    
     def __init__(self, cmd, param, values=None):
         super(NodeLowParam, self).__init__()        
         
         self.command    = _CMD_GROUP_NODE + CMDID_NODE_LOW_PARAM
-        self.read_write = cmd
+
+        if (cmd == CMD_PARAM_READ):
+            raise AttributeError("Read not supported for NodeLowParam.")
 
         # Caluculate the size of the entire message to CPU Low [PARAM_ID, ARGS[]]
         size = 1
@@ -1036,28 +1035,8 @@ class NodeLowParam(message.Cmd):
     def process_resp(self, resp):
         """ Message format:
                 respArgs32[0]   Status
-                respArgs32[1]   Size in words of PARAM ARGS
-                respArgs32[2]   PARAM_ID
-                respArgs32[3:N] PARAM ARGS
         """
-        error_code_cs_thresh    = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH
-        error_code_cw_min       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN
-        error_code_cw_max       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX
-        error_code_ts_offset    = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_TS_OFFSET
-
-        status_errors = { error_code_cs_thresh : "Could not get / set carrier sense threshold",
-                          error_code_cw_min    : "Could not get / set minimum contention window",
-                          error_code_cw_max    : "Could not get / set maximum contention window", 
-                          error_code_ts_offset : "Could not get / set the timestamp offset"}
-
-        if (self.read_write == CMD_PARAM_READ):
-            args = resp.get_args()
-            if resp.resp_is_valid(num_args=(args[1] + 3), status_errors=status_errors, name='from Low Param command'):
-                return args[1:]
-            else:
-                return None
-        else:
-            return None
+        return None
 
 # End Class
         
@@ -2198,6 +2177,48 @@ class NodeMemAccess(message.Cmd):
 
 # End Class
 
+
+
+#--------------------------------------------
+# User Commands
+#--------------------------------------------
+class UserSendCmd(message.Cmd):
+    """Command to send User Command to the node
+    
+    Attributes:
+        cmdid     -- User-defined Command ID
+        values    -- Scalar or list of u32 values to write
+        
+    """
+    def __init__(self, cmd, param, values=None):
+        super(NodeLowParam, self).__init__()        
+        
+        self.command    = _CMD_GROUP_USER + CMDID_NODE_LOW_PARAM
+
+        # Caluculate the size of the entire message to CPU Low [PARAM_ID, ARGS[]]
+        size = 1
+        if values is not None:
+            size += len(values)
+
+        self.add_args(cmd)
+        self.add_args(size)
+        self.add_args(param)
+
+        if values is not None:
+            try:
+                for v in values:
+                    self.add_args(v)
+            except TypeError:
+                self.add_args(values)
+            
+    def process_resp(self, resp):
+        """ Message format:
+                respArgs32[0]   Status
+        """
+        return None
+
+# End Class
+        
 
 
 #--------------------------------------------
