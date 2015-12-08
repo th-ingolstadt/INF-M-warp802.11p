@@ -446,7 +446,7 @@ int wlan_exp_node_sta_process_cmd(u32 cmd_id, int socket_index, void * from, cmd
                 //          need to be modified if the parameters in the bss_info change.
                 //
                 memcpy((void *)(temp_bss_info), (void *)(&temp_bss_info_entry->info), sizeof(bss_info_base));
-                temp_bss_info->latest_activity_timestamp = get_usec_timestamp();
+                temp_bss_info->latest_activity_timestamp = get_system_timestamp_usec();
 
                 // Join the BSS
                 wlan_mac_sta_join(temp_bss_info, timeout);
@@ -501,7 +501,7 @@ int wlan_exp_node_sta_process_cmd(u32 cmd_id, int socket_index, void * from, cmd
             }
 
             join_success = WLAN_EXP_STA_JOIN_RUN;
-            curr_time    = get_usec_timestamp();
+            curr_time    = get_system_timestamp_usec();
             end_time     = curr_time + (timeout * 1000000);         // Convert to microseconds for the usec timer
 
             wlan_mac_sta_scan_and_join(ssid, timeout);
@@ -513,7 +513,7 @@ int wlan_exp_node_sta_process_cmd(u32 cmd_id, int socket_index, void * from, cmd
                 }
                 // Sleep for 0.1 seconds before next check
                 usleep(100000);
-                curr_time = get_usec_timestamp();
+                curr_time = get_system_timestamp_usec();
             }
 
             // Indicate on the UART if we were successful in joining the network

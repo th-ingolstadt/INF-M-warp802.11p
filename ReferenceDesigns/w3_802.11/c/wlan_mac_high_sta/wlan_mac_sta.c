@@ -238,7 +238,7 @@ int main() {
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
 
     // Initialize hex display
-	sta_write_hex_display(0);
+	sta_update_hex_display(0);
 
 	// Set up channel
 	mac_param_chan      = WLAN_DEFAULT_CHANNEL;
@@ -578,7 +578,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			associated_station = (station_info*)(associated_station_entry->data);
 
 			// Update station information
-			associated_station->latest_activity_timestamp = get_usec_timestamp();
+			associated_station->latest_activity_timestamp = get_system_timestamp_usec();
 			associated_station->rx.last_power             = mpdu_info->rx_power;
 			associated_station->rx.last_rate              = rate;
 
@@ -604,7 +604,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
         // Update receive counts
 		if(station_counts != NULL){
-			station_counts->latest_txrx_timestamp = get_usec_timestamp();
+			station_counts->latest_txrx_timestamp = get_system_timestamp_usec();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_counts)->data.rx_num_packets)++;
 				((station_counts)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
@@ -719,7 +719,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							purge_queue(UNICAST_QID);
 
 							// Update the hex display to show that we are no longer associated
-							sta_write_hex_display(0);
+							sta_update_hex_display(0);
 
 							my_bss_info->state = BSS_STATE_UNAUTHENTICATED;
 
@@ -1040,7 +1040,7 @@ int  sta_disassociate( void ) {
 	}
 
 	// Update the HEX display
-	sta_write_hex_display(0);
+	sta_update_hex_display(0);
 
 	return status;
 }
@@ -1081,7 +1081,7 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
 #endif
 
 			// Update the HEX display
-			sta_write_hex_display(associated_station->AID);
+			sta_update_hex_display(associated_station->AID);
 
 			pause_data_queue = 0;
 
@@ -1098,36 +1098,20 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
 
 
 /**
- * @brief Write a Decimal Value to the Hex Display
+ * @brief STA specific hex display update command
  *
- * This function will write a decimal value to the board's two-digit hex displays.
- * For the STA, the display is right justified; WLAN Exp will indicate its connection
- * state using the right decimal point.
+ * This function update the hex display for the STA.  In general, this function
+ * is a wrapper for standard hex display commands found in wlan_mac_misc_util.c.
+ * However, this wrapper was implemented so that it would be easy to do other
+ * actions when the STA needed to update the hex display.
  *
- * @param u8 val
- *  - Value to be displayed (between 0 and 99)
- * @return None
- *
+ * @param   val              - Value to be displayed (between 0 and 99)
+ * @return  None
  */
-void sta_write_hex_display(u8 val){
-    u32 right_dp;
+void sta_update_hex_display(u8 val) {
 
-	// Need to retain the value of the right decimal point
-	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
-
-	if ( val < 10 ) {
-		// Turn off hex mapping; turn off left hex display
-		userio_write_control( USERIO_BASEADDR, ( userio_read_control( USERIO_BASEADDR ) & ( ~( W3_USERIO_HEXDISP_L_MAPMODE ) ) ) );
-		userio_write_hexdisp_left(USERIO_BASEADDR, 0x00);
-
-		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_R_MAPMODE));
-		userio_write_hexdisp_right(USERIO_BASEADDR, (val | right_dp));
-	} else {
-		userio_write_control(USERIO_BASEADDR, userio_read_control(USERIO_BASEADDR) | (W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE));
-
-	    userio_write_hexdisp_left(USERIO_BASEADDR, ((val/10)%10));
-		userio_write_hexdisp_right(USERIO_BASEADDR, ((val%10) | right_dp));
-	}
+    // Use standard hex display write
+    write_hex_display(val);
 }
 
 

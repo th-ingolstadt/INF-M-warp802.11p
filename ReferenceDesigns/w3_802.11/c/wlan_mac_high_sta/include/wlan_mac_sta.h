@@ -24,25 +24,35 @@
 #ifndef WLAN_MAC_STA_H_
 #define WLAN_MAC_STA_H_
 
+
+//-----------------------------------------------
 // Enable the WLAN UART Menu
 #define WLAN_USE_UART_MENU
 
-// Tx queue IDs
-#define MCAST_QID                                          0
-#define MANAGEMENT_QID                                     1
-#define UNICAST_QID                                        2
 
+//-----------------------------------------------
+// UART Menu Modes
+#define UART_MODE_MAIN                                     0
+#define UART_MODE_INTERACTIVE                              1
+#define UART_MODE_JOIN                                     2
+
+
+//-----------------------------------------------
 // Common Defines
 #define NUM_BASIC_RATES_MAX                                10
 
 #define MAX_TX_QUEUE_LEN                                   150       /// Max number of entries in any Tx queue
 #define MAX_NUM_ASSOC                                      1         /// Max number of associations the STA will attempt
 
-// UART Menu Modes
-#define UART_MODE_MAIN                                     0
-#define UART_MODE_INTERACTIVE                              1
-#define UART_MODE_JOIN                                     2
 
+//-----------------------------------------------
+// Tx queue IDs
+#define MCAST_QID                                          0
+#define MANAGEMENT_QID                                     1
+#define UNICAST_QID                                        2
+
+
+//-----------------------------------------------
 // Timing Parameters
 
 // Timeout for association request-response handshake
@@ -69,6 +79,8 @@
 //
 #define ACTIVE_SCAN_UPDATE_RATE                            5000000
 
+
+//-----------------------------------------------
 // WLAN Exp defines
 #define  WLAN_EXP_STREAM_ASSOC_CHANGE                      WLAN_EXP_NO_TRANSMIT
 
@@ -83,6 +95,8 @@ int  ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8*
 
 void mpdu_rx_process(void* pkt_buf_addr);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details);
+void mpdu_dequeue(tx_queue_element* packet);
+
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 
@@ -102,8 +116,6 @@ void print_all_observed_counts();
 void up_button();
 void uart_rx(u8 rxByte);
 
-void sta_write_hex_display(u8 val);
-void mpdu_dequeue(tx_queue_element* packet);
-
+void sta_update_hex_display(u8 val);
 
 #endif /* WLAN_MAC_STA_H_ */

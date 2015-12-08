@@ -251,7 +251,7 @@ void print_station_status(u8 manual_call){
 
 
     if(uart_mode == UART_MODE_INTERACTIVE){
-        timestamp = get_usec_timestamp();
+        timestamp = get_mac_timestamp_usec();
         xil_printf("\f");
         xil_printf("---------------------------------------------------\n");
 
