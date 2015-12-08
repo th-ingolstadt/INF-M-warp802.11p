@@ -23,7 +23,6 @@
 #include "xparameters.h"
 
 //802.11 ref design includes
-#include "w3_userio.h"
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
@@ -114,6 +113,9 @@ volatile u32                      beacon_schedule_id = SCHEDULE_FAILURE;
 
 u8   sevenSegmentMap(u8 x);
 
+#ifdef USE_WLAN_EXP
+int  wlan_exp_user_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
+#endif
 
 /******************************** Functions **********************************/
 
@@ -211,6 +213,7 @@ int main(){
     wlan_exp_set_reset_bss_info_callback(          (void *) reset_bss_info);
     wlan_exp_set_timebase_adjust_callback(         (void *) association_timestamp_adjust);
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the AP
+    wlan_exp_set_user_process_cmd_callback(        (void *) wlan_exp_user_ap_process_cmd);
 
     // Get the hardware info that has been collected from CPU low
     hw_info = wlan_mac_high_get_hw_info();
@@ -235,7 +238,7 @@ int main(){
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
 
     // Initialize hex display
-	ap_write_hex_display(0);
+	ap_update_hex_display(0);
 
 	// Configure default radio and PHY params via messages to CPU Low
 	mac_param_chan = WLAN_DEFAULT_CHANNEL;
@@ -271,15 +274,10 @@ int main(){
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
 
-	//  Set Periodic blinking of hex display
-	userio_set_pwm_period(USERIO_BASEADDR, 500);
-
-	// Ramp must be disabled when changing ramp params
-	userio_set_pwm_ramp_en(USERIO_BASEADDR, 0);
-	userio_set_pwm_ramp_min(USERIO_BASEADDR, 2);
-	userio_set_pwm_ramp_max(USERIO_BASEADDR, 400);
-
-	wlan_mac_high_enable_hex_pwm();
+	// Set Periodic blinking of hex display (period of 500 with min of 2 and max of 400)
+	set_hex_pwm_period(500);
+	set_hex_pwm_min_max(2, 400);
+	enable_hex_pwm();
 
 	// Reset the event log
 	event_log_reset();
@@ -389,7 +387,7 @@ void poll_tx_queues(){
 							// Check the broadcast queue
 							next_station_info_entry = my_bss_info->associated_stations.first;
 
-							if((get_usec_timestamp() - power_save_configuration.dtim_timestamp) <= power_save_configuration.dtim_mcast_allow_window || (power_save_configuration.enable == 0)){
+							if((get_system_timestamp_usec() - power_save_configuration.dtim_timestamp) <= power_save_configuration.dtim_mcast_allow_window || (power_save_configuration.enable == 0)){
 								if(dequeue_transmit_checkin(MCAST_QID)){
 									// Found a not-empty queue, transmitted a packet
 									goto poll_cleanup;
@@ -922,7 +920,7 @@ void association_timestamp_check() {
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
 		curr_station_info        = (station_info*)(curr_station_info_entry->data);
-		time_since_last_activity = (get_usec_timestamp() - curr_station_info->latest_activity_timestamp);
+		time_since_last_activity = (get_system_timestamp_usec() - curr_station_info->latest_activity_timestamp);
 
 		// De-authenticate the station if we have timed out and we have not disabled this check for the station
 		if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
@@ -942,7 +940,7 @@ void association_timestamp_check() {
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
 		curr_station_info        = (station_info*)(curr_station_info_entry->data);
-		time_since_last_activity = (get_usec_timestamp() - curr_station_info->latest_activity_timestamp);
+		time_since_last_activity = (get_system_timestamp_usec() - curr_station_info->latest_activity_timestamp);
 
 		// De-authenticate the station if we have timed out and we have not disabled this check for the station
 		if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
@@ -1061,7 +1059,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			// Update station information
 			mpdu_info->additional_info                    = (u32)associated_station;
 
-			associated_station->latest_activity_timestamp = get_usec_timestamp();
+			associated_station->latest_activity_timestamp = get_system_timestamp_usec();
 
 			associated_station->rx.last_power             = mpdu_info->rx_power;
 			associated_station->rx.last_rate              = rate;
@@ -1087,7 +1085,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
         // Update receive counts
 		if(station_counts != NULL){
-			station_counts->latest_txrx_timestamp = get_usec_timestamp();
+			station_counts->latest_txrx_timestamp = get_system_timestamp_usec();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_counts)->data.rx_num_packets)++;
 				((station_counts)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
@@ -1456,7 +1454,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 							xil_printf("Authenticated, Associated Stations:\n");
 							associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
-							ap_write_hex_display(my_bss_info->associated_stations.length);
+							ap_update_hex_display(my_bss_info->associated_stations.length);
 						}
 
 						if(associated_station != NULL) {
@@ -1549,7 +1547,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					xil_printf("Authenticated, Associated Stations:\n");
 					wlan_mac_high_remove_association(&my_bss_info->associated_stations, &counts_table, rx_80211_header->address_2);
 
-					ap_write_hex_display(my_bss_info->associated_stations.length);
+					ap_update_hex_display(my_bss_info->associated_stations.length);
 				break;
 
 				case (MAC_FRAME_CTRL1_SUBTYPE_NULLDATA):
@@ -1709,7 +1707,7 @@ u32  deauthenticate_station( station_info* station ) {
 	xil_printf("Authenticated, Associated Stations:\n");
 	wlan_mac_high_remove_association(&my_bss_info->associated_stations, &counts_table, station->addr);
 
-	ap_write_hex_display(my_bss_info->associated_stations.length);
+	ap_update_hex_display(my_bss_info->associated_stations.length);
 
 	return aid;
 }
@@ -1842,7 +1840,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 					if(power_save_configuration.dtim_count > 0){
 						power_save_configuration.dtim_count--;
 					} else {
-						power_save_configuration.dtim_timestamp = get_usec_timestamp();
+						power_save_configuration.dtim_timestamp = get_system_timestamp_usec();
 						power_save_configuration.dtim_count = (power_save_configuration.dtim_period-1);
 					}
 				}
@@ -1875,57 +1873,149 @@ u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 
 
 /**
- * @brief Write a Decimal Value to the Hex Display
+ * @brief AP specific hex display update command
  *
- * This function will write a decimal value to the board's two-digit hex displays.
- * For the AP, the display is right justified and will blink; WLAN Exp will indicate
- * its connection state using the right decimal point.
+ * This function update the hex display for the AP.  In general, this function
+ * is a wrapper for standard hex display commands found in wlan_mac_misc_util.c.
+ * However, this wrapper was implemented so that it would be easy to do other
+ * actions when the AP needed to update the hex display.
  *
- * @param u8 val
- *   - Value to be displayed (between 0 and 99)
- * @return None
- *
+ * @param   val              - Value to be displayed (between 0 and 99)
+ * @return  None
  */
-void ap_write_hex_display(u8 val){
-	u32 hw_control;
-	u32 temp_control;
-    u32 right_dp;
-    u8  left_val;
-    u8  right_val;
-    u32 pwm_val;
+void ap_update_hex_display(u8 val) {
 
-	// Need to retain the value of the right decimal point
-	right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
-
-	if ( val < 10 ) {
-		left_val  = 0;
-		right_val = sevenSegmentMap(val);
-	} else {
-		left_val  = sevenSegmentMap(((val/10)%10));
-		right_val = sevenSegmentMap((val%10));
-	}
-
-    // Store the original value of what is under HW control
-	hw_control   = userio_read_control(USERIO_BASEADDR);
-
-	// Need to zero out all of the HW control of the hex displays; Change to raw hex mode
-	temp_control = (hw_control & ( ~( W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE | W3_USERIO_CTRLSRC_HEXDISP_R | W3_USERIO_CTRLSRC_HEXDISP_L )));
-
-	// Set the hex display mode to raw bits
-    userio_write_control( USERIO_BASEADDR, temp_control );
-
-    // Write the display
-	userio_write_hexdisp_left(USERIO_BASEADDR, left_val);
-	userio_write_hexdisp_right(USERIO_BASEADDR, (right_val | right_dp));
-
-	pwm_val   = (right_val << 8) + left_val;
-
-	// Set the HW / SW control of the user io (raw mode w/ the new display value)
-    userio_write_control( USERIO_BASEADDR, ( temp_control | pwm_val ) );
-
-    // Set the pins that are using PWM mode
-	userio_set_hw_ctrl_mode_pwm(USERIO_BASEADDR, pwm_val);
+    // Use standard hex display write with PWMs enabled
+    write_hex_display_with_pwm(val);
 }
 
 
+
+#ifdef USE_WLAN_EXP
+
+// ****************************************************************************
+// Define AP Specific User Commands
+//
+// NOTE:  All User Command IDs (CMDID_*) must be a 24 bit unique number
+//
+
+//-----------------------------------------------
+// AP Specific User Commands
+//
+#define CMDID_USER_ECHO_AP                                 0x100000
+
+
+//-----------------------------------------------
+// AP Specific User Command Parameters
+//
+// #define CMD_PARAM_<VALUE>                                  0x00000000
+
+
+
+/*****************************************************************************/
+/**
+ * Process Node Commands
+ *
+ * This function is part of the Ethernet processing system and will process the
+ * various node related commands.
+ *
+ * @param   socket_index     - Index of the socket on which to send message
+ * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
+ * @param   command          - Pointer to Command
+ * @param   response         - Pointer to Response
+ * @param   max_words        - Maximum number of u32 words per packet
+ *
+ * @return  int              - Status of the command:
+ *                                 NO_RESP_SENT - No response has been sent
+ *                                 RESP_SENT    - A response has been sent
+ *
+ * @note    See on-line documentation for more information about the Ethernet
+ *          packet structure:  www.warpproject.org
+ *
+ *****************************************************************************/
+int wlan_exp_user_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+
+    //
+    // IMPORTANT ENDIAN NOTES:
+    //     - command
+    //         - header - Already endian swapped by the framework (safe to access directly)
+    //         - args   - Must be endian swapped as necessary by code (framework does not know the contents of the command)
+    //     - response
+    //         - header - Will be endian swapped by the framework (safe to write directly)
+    //         - args   - Must be endian swapped as necessary by code (framework does not know the contents of the response)
+    //
+
+    // Standard variables
+    u32                 resp_sent      = NO_RESP_SENT;
+
+    u32               * cmd_args_32    = command->args;
+
+    cmd_resp_hdr      * resp_hdr       = response->header;
+    u32               * resp_args_32   = response->args;
+    u32                 resp_index     = 0;
+
+    //
+    // NOTE: Response header cmd, length, and num_args fields have already been initialized.
+    //
+
+    // Variables for functions
+    u32                 i;
+    int                 status;
+
+    u32                 size;
+
+
+    switch(cmd_id){
+
+//-----------------------------------------------------------------------------
+// AP Specific User Commands
+//-----------------------------------------------------------------------------
+
+        //---------------------------------------------------------------------
+        case CMDID_USER_ECHO_AP:
+            // Echo received information to the UART terminal
+            //
+            // NOTE:  Variables are declared above.
+            // NOTE:  Please take care of the endianness of the arguments (see comment above)
+            //
+            // Message format:
+            //     cmd_args_32[0]      Size in words of received values (N)
+            //     cmd_args_32[1:N]    Values
+            //
+            // Response format:
+            //     resp_args_32[0]     Status
+            //
+
+            // Set the return value
+            status      = CMD_PARAM_SUCCESS;
+            size        = Xil_Ntohl(cmd_args_32[0]);
+
+            // Print ECHO header
+            xil_printf("Node ECHO AP Commands (%d):\n", size);
+
+            // Print all values set in the command:
+            //     Byte swap all the value words in the message (in place)
+            for (i = 1; i < (size + 1); i++) {
+                xil_printf("    [%04d] = 0x%08x\n", Xil_Ntohl(cmd_args_32[i]));
+            }
+
+            // Send response of status
+            resp_args_32[resp_index++] = Xil_Htonl(status);
+
+            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->num_args = resp_index;
+        break;
+
+
+        //---------------------------------------------------------------------
+        default:
+            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown user command: 0x%x\n", cmd_id);
+        break;
+    }
+
+    return resp_sent;
+}
+
+
+#endif
 

@@ -86,6 +86,7 @@ extern u32          beacon_schedule_id;
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
+ * @param   max_words        - Maximum number of u32 words per packet
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
@@ -95,7 +96,7 @@ extern u32          beacon_schedule_id;
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int wlan_exp_node_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response) {
+int wlan_exp_node_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -623,7 +624,7 @@ int wlan_exp_node_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_
                     memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params));
 
                     // Update the hex display
-                    ap_write_hex_display(my_bss_info->associated_stations.length);
+                    ap_update_hex_display(my_bss_info->associated_stations.length);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associated with node: ");
                 } else {

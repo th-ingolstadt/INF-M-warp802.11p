@@ -22,33 +22,46 @@
 #ifndef WLAN_MAC_AP_H_
 #define WLAN_MAC_AP_H_
 
-#include "wlan_mac_dl_list.h"
 
+//-----------------------------------------------
 // Enable the WLAN UART Menu
 #define WLAN_USE_UART_MENU
 
+
+//-----------------------------------------------
 // Allow Ethernet transmission of packets received by an associated station
 // destined for another associated station
 //#define ALLOW_ETH_TX_OF_WIRELESS_TX
 
+
+//-----------------------------------------------
 // UART Menu Modes
 #define UART_MODE_MAIN                                     0
 #define UART_MODE_INTERACTIVE                              1
 #define UART_MODE_SSID_CHANGE                              2
 
+
+//-----------------------------------------------
 // Common Defines
 #define MAX_TX_QUEUE_LEN                                   150       /// Maximum number of entries in any Tx queue
-#define MAX_NUM_ASSOC                                      10        /// Maximum number of associations the AP will allow
+#define MAX_NUM_ASSOC                                      10        /// Maximum number of associations the allowed
 
+
+//-----------------------------------------------
+// Tx queue IDs
 #define MCAST_QID                                          0
 #define MANAGEMENT_QID                                     1
 #define AID_TO_QID(x)                                    ((x) + 1)   /// Map association ID to Tx queue ID; min AID is 1
 
-// Period for checking association table for stale STA associations
+
+//-----------------------------------------------
+// Timing Parameters
+
+// Period for checking association table for stale associations
 #define ASSOCIATION_CHECK_INTERVAL_MS                     (1000)
 #define ASSOCIATION_CHECK_INTERVAL_US                     (ASSOCIATION_CHECK_INTERVAL_MS * 1000)
 
-// Timeout for last reception for an association STA; timed-out STA's are subject to de-association
+// Timeout for last reception for an association; timed-out associations are subject to de-association
 #define ASSOCIATION_TIMEOUT_S                             (300)
 #define ASSOCIATION_TIMEOUT_US                            (ASSOCIATION_TIMEOUT_S * 1000000)
 
@@ -59,26 +72,18 @@
 // Blinking period for hex displays, when used to show association mode
 #define ANIMATION_RATE_US                                 (100000)
 
-// LTG helper macros and defines
-#define LTG_ID_TO_AID(ltg_id)                             (ltg_id)
-#define AID_TO_LTG_ID(aid)	                              (aid)
 
-#define LTG_ID_GRP_SCHED_CONSTANT                          1
-#define LTG_ID_GRP_SCHED_RANDOM                            2
-
-#define LTG_ID_GRP_PYLD_FIXED                              1
-#define LTG_ID_GRP_PYLD_RANDOM                             2
-
+//-----------------------------------------------
 // WLAN Exp defines
-#define WLAN_EXP_STREAM_ASSOC_CHANGE                       WLAN_EXP_TRANSMIT
+#define WLAN_EXP_STREAM_ASSOC_CHANGE                       WLAN_EXP_NO_TRANSMIT
 
 
 /*********************** Global Structure Definitions ************************/
 
 typedef struct{
-	u8 enable;
-	u8 dtim_period;
-	u8 dtim_count;
+	u8  enable;
+	u8  dtim_period;
+	u8  dtim_count;
 	u64 dtim_timestamp;
 	u64 dtim_mcast_allow_window;
 } ps_conf;
@@ -127,6 +132,6 @@ void stop_periodic_print();
 int  is_qwerty_row(u8 rxByte);
 int  qwerty_row_to_number(u8 rxByte);
 
-void ap_write_hex_display(u8 val);
+void ap_update_hex_display(u8 val);
 
 #endif /* WLAN_MAC_AP_H_ */
