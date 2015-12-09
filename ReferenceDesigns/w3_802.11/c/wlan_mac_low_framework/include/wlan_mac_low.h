@@ -29,6 +29,9 @@
 #define T_PHY_RX_START_DLY                                 25
 #define T_TIMEOUT                                         (T_SIFS + T_SLOT + T_PHY_RX_START_DLY)
 
+//-----------------------------------------------
+// MAC Header defines
+#define MAC_HW_LASTBYTE_ADDR1                             (13)
 
 
 //-----------------------------------------------
