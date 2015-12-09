@@ -1129,7 +1129,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 									mpdu_ptr_u8  = curr_tx_queue_buffer->frame;
 									tx_length    = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 									mpdu_ptr_u8 += sizeof(mac_header_80211);
-									// memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 									wlan_mac_high_cdma_start_transfer(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 
 
@@ -1172,7 +1171,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 										mpdu_ptr_u8  = curr_tx_queue_buffer->frame;
 										tx_length    = wlan_create_data_frame((void*)mpdu_ptr_u8, &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 										mpdu_ptr_u8 += sizeof(mac_header_80211);
-										// memcpy(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 										wlan_mac_high_cdma_start_transfer(mpdu_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 
 										// Setup the TX frame info
