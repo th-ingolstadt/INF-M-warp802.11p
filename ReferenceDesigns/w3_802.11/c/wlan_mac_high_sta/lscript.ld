@@ -20,11 +20,10 @@ MEMORY
 {
    mb_high_ilmb_bram_cntlr_0_mb_high_dlmb_bram_cntlr_0 : ORIGIN = 0x00000050, LENGTH = 0x0001FFB0
    mb_high_ilmb_bram_cntlr_1_mb_high_dlmb_bram_cntlr_1 : ORIGIN = 0x00020000, LENGTH = 0x00020000
-   mb_high_init_bram_ctrl_S_AXI_BASEADDR               : ORIGIN = 0x50000000, LENGTH = 0x00001000
-   pkt_buff_tx_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0xBF570000, LENGTH = 0x00010000
-   pkt_buff_rx_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0xBF560000, LENGTH = 0x00010000
-   mac_log_bram_ctrl_S_AXI_BASEADDR                    : ORIGIN = 0x90000000, LENGTH = 0x00002000
-   mb_high_aux_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0xBF540000, LENGTH = 0x00010000
+   mb_high_init_bram_ctrl_S_AXI_BASEADDR               : ORIGIN = 0x10000000, LENGTH = 0x00001000
+   pkt_buff_rx_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0x90000000, LENGTH = 0x00010000
+   pkt_buff_tx_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0x91000000, LENGTH = 0x00010000
+   mb_high_aux_bram_ctrl_S_AXI_BASEADDR                : ORIGIN = 0xA0000000, LENGTH = 0x00010000
    ddr3_sodimm_S_AXI_BASEADDR                          : ORIGIN = 0xC0000000, LENGTH = 0x40000000
 }
 
