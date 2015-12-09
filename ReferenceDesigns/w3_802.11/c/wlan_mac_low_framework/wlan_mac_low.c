@@ -729,6 +729,16 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
                     // In the current implementation these indexes must span an 8-byte-aligned
                     //     region of the packet buffer (i.e. (start_ind % 8)==0 )
                     //
+                	// TODO: This code is a little dangerous in its current form. It assumes that the next transmission
+                	// out of the PHY will be this packet. That's not strictly true. For example, this packet could be
+                	// MAC support core for Tx but defers transmission due to a medium busy event. During that deferral,
+                	// a reception may require an immediate Tx (e.g. an ACK or CTS transmission). So, the next transmission
+                	// may not actually be this packet. However, it's not actually a problem since the only two cases where
+                	// this behavior can occur (ACK & CTS), the transmissions are so short that the PHY doesn't get to the
+                	// point of incorrectly inserting a timestamp. We'll formalize this in a future release by letting the
+                	// MAC support core itself configure the timestamp insertion in much the same way that it configures
+                	// Tx gains.
+
                     wlan_phy_tx_timestamp_ins_start((24 + PHY_TX_PKT_BUF_PHY_HDR_SIZE));
                     wlan_phy_tx_timestamp_ins_end((31 + PHY_TX_PKT_BUF_PHY_HDR_SIZE));
 
