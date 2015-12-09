@@ -142,7 +142,7 @@ int main(){
 u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 
     void              * pkt_buf_addr        = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
-    rx_frame_info     * mpdu_info           = (rx_frame_info *) pkt_buf_addr;;
+    rx_frame_info     * mpdu_info           = (rx_frame_info *) pkt_buf_addr;
 
     // Fill in the MPDU info fields for the reception
     mpdu_info->flags       = 0;
@@ -155,6 +155,10 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     mpdu_info->rf_gain     = wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode);
     mpdu_info->bb_gain     = wlan_phy_rx_get_agc_BBG(mpdu_info->ant_mode);
     mpdu_info->rx_power    = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(mpdu_info->ant_mode), wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode));
+
+    // Wait until the PHY has written enough bytes so that the first address field can be processed
+    while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
+    };
 
     // Increment the LEDs based on the FCS status
     if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
