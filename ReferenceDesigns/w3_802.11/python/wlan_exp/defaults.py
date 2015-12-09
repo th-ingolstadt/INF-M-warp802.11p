@@ -27,12 +27,15 @@ PACKAGE_NAME                      = 'wlan_exp'
 
 # WLAN Exp Node Types
 #   NOTE:  The C counterparts are found in wlan_exp_common.h
+WLAN_EXP_MASK                     = 0xFFFF0000
 WLAN_EXP_80211_BASE               = 0x00010000
 
+WLAN_EXP_HIGH_MASK                = 0x0000FF00
 WLAN_EXP_HIGH_AP                  = 0x00000100
 WLAN_EXP_HIGH_STA                 = 0x00000200
 WLAN_EXP_HIGH_IBSS                = 0x00000300
 
+WLAN_EXP_LOW_MASK                 = 0x000000FF
 WLAN_EXP_LOW_DCF                  = 0x00000001
 WLAN_EXP_LOW_NOMAC                = 0x00000002
 

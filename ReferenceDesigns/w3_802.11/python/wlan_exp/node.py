@@ -1070,11 +1070,18 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def set_dcf_rts_thresh(self, threshold):
         """Sets the RTS length threshold of the node.
+
+        Requires CPU Low type:  WLAN_EXP_LOW_DCF
         
         Args:
            threshold (int):  Value between [0, (2^32)-1] for the RTS length threshold
+           
+        .. note:: Parameter is write only.
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, threshold)
+        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
+            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
+        else:
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, threshold)
         
     def set_dcf_short_retry_limit(self, limit):
         """Sets the Short Retry Limit of the node.
@@ -1082,10 +1089,17 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         See http://warpproject.org/trac/wiki/802.11/MAC/Lower/Retransmissions for more information on 
         retransmissions
         
+        Requires CPU Low type:  WLAN_EXP_LOW_DCF
+        
         Args:
            threshold (int):  Value between [0, (2^32)-1]
+           
+        .. note:: Parameter is write only.
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, limit)
+        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
+            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
+        else:
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, limit)
         
     def set_dcf_long_retry_limit(self, limit):
         """Sets the Long Retry Limit of the node.
@@ -1093,36 +1107,64 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         See http://warpproject.org/trac/wiki/802.11/MAC/Lower/Retransmissions for more information on 
         retransmissions
         
+        Requires CPU Low type:  WLAN_EXP_LOW_DCF
+        
         Args:
            threshold (int):  Value between [0, (2^32)-1]
+           
+        .. note:: Parameter is write only.
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, limit)
+        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
+            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
+        else:
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, limit)
 
-    def set_phy_cs_thresh(self, threshold):
+    def set_dcf_phy_cs_thresh(self, threshold):
         """Sets the physical carrier sense threshold of the node.
+        
+        Requires CPU Low type:  WLAN_EXP_LOW_DCF
         
         Args:
            threshold (int):  Value between [0, 1023] for the physical carrier sense threshold
+           
+        .. note:: Parameter is write only.
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, threshold)
+        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
+            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
+        else:
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, threshold)
 
 
-    def set_cw_exp_min(self, cw_exp):
+    def set_dcf_cw_exp_min(self, cw_exp):
         """Sets the the minimum contention window:
            
+        Requires CPU Low type:  WLAN_EXP_LOW_DCF
+        
         Args:
             cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
+           
+        .. note:: Parameter is write only.
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, cw_exp)       
+        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
+            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
+        else:
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, cw_exp)       
 
 
-    def set_cw_exp_max(self, cw_exp):
+    def set_dcf_cw_exp_max(self, cw_exp):
         """Sets the the maximum contention window.
 
+        Requires CPU Low type:  WLAN_EXP_LOW_DCF
+        
         Args:
             cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
+           
+        .. note:: Parameter is write only.
         """
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, cw_exp)
+        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
+            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
+        else:
+            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, cw_exp)
 
 
     def configure_pkt_det_min_power(self, enable, power_level=None): 
@@ -1677,7 +1719,20 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Set the node_type and keep the device_type in sync."""
         self.node_type   = node_type
         self.device_type = self.node_type
+
+    def _get_node_type_high(self):
+        """Get the node type of CPU High
+        
+        See defaults.py for a list of CPU High node types         
+        """
+        return (self.node_type & defaults.WLAN_EXP_HIGH_MASK)
     
+    def _get_node_type_low(self):
+        """Get the node type of CPU Low
+        
+        See defaults.py for a list of CPU Low node types
+        """
+        return (self.node_type & defaults.WLAN_EXP_LOW_MASK)
     
     def check_wlan_exp_ver(self):
         """Check the WLAN Exp version of the node against the current WLAN Exp version."""        
