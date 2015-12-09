@@ -499,17 +499,20 @@ void               wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * 
 
 void               wlan_mac_high_ipc_rx();
 void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
-void               wlan_mac_high_set_srand( unsigned int seed );
-void               wlan_mac_high_set_channel( unsigned int mac_channel );
-void               wlan_mac_high_set_rx_ant_mode( u8 ant_mode );
-void               wlan_mac_high_set_tx_ctrl_pow( s8 pow );
-void               wlan_mac_high_set_rx_filter_mode( u32 filter_mode );
-int                wlan_mac_high_write_low_mem( u32 num_words, u32* payload );
-int                wlan_mac_high_read_low_mem( u32 num_words, u32 baseaddr, u32* payload );
-int                wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload );
-void               wlan_mac_high_set_dsss( unsigned int dsss_value );
+
+void               wlan_mac_high_set_srand(u32 seed);
+void               wlan_mac_high_set_channel(u32 mac_channel);
+void               wlan_mac_high_set_rx_ant_mode(u8 ant_mode);
+void               wlan_mac_high_set_tx_ctrl_pow(s8 pow);
+void               wlan_mac_high_set_rx_filter_mode(u32 filter_mode);
+void               wlan_mac_high_set_dsss(u32 dsss_value);
 void               wlan_mac_high_set_timestamp(u64 timestamp);
 void               wlan_mac_high_set_timestamp_delta(s64 timestamp);
+
+int                wlan_mac_high_write_low_mem(u32 num_words, u32* payload);
+int                wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload);
+int                wlan_mac_high_write_low_param(u32 num_words, u32* payload);
+
 void               wlan_mac_high_request_low_state();
 int                wlan_mac_high_is_cpu_low_initialized();
 int                wlan_mac_high_is_ready_for_tx();

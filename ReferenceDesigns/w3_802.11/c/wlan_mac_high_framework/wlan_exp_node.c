@@ -637,7 +637,6 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
     u8                       ip_addr[IP_ADDR_LEN];
     u8                       mac_addr[ETH_MAC_ADDR_LEN];
 
-    wlan_ipc_msg             ipc_msg_to_low;
     interrupt_state_t        prev_interrupt_state;
 
 
@@ -1565,6 +1564,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             // Disable interrupts so no packets interrupt the reset
             prev_interrupt_state = wlan_mac_high_interrupt_stop();
+
             // Configure the LOG based on the flag bits
             if ((temp & CMD_PARAM_NODE_RESET_FLAG_LOG) == CMD_PARAM_NODE_RESET_FLAG_LOG) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Reset log\n");
@@ -1913,9 +1913,6 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //
             // Response format:
             //     resp_args_32[0]    Status
-            //     resp_args_32[1]    Size in words of PARAM ARGS
-            //     resp_args_32[2]    PARAM ID
-            //     resp_args_32[3:N]  PARAM ARGS
             //
             msg_cmd          = Xil_Ntohl(cmd_args_32[0]);
             size             = Xil_Ntohl(cmd_args_32[1]);
@@ -1931,43 +1928,12 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
-                    // Send message to CPU Low
-                    ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
-                    ipc_msg_to_low.num_payload_words = size;
-                    ipc_msg_to_low.arg0              = IPC_REG_WRITE_MODE;
-                    ipc_msg_to_low.payload_ptr       = &(cmd_args_32[2]);
-
-                    prev_interrupt_state = wlan_mac_high_interrupt_stop();
-                    ipc_mailbox_write_msg(&ipc_msg_to_low);
-                    wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+                    wlan_mac_high_write_low_param(size, &(cmd_args_32[2]));
                 break;
 
                 case CMD_PARAM_READ_VAL:
-                    temp2 = wlan_mac_high_read_low_param(id, &size, &(resp_args_32[3]));
-
-                    if(temp2 == 0) { //Success
-                        // Don't set the default response
-                        temp = 1;
-
-                        // Add length argument to response
-                        resp_args_32[resp_index++] = Xil_Htonl(status);
-                        resp_args_32[resp_index++] = Xil_Htonl(size);
-                        resp_args_32[resp_index++] = Xil_Htonl(id);
-                        resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-                        resp_hdr->num_args = resp_index;
-
-                        // Endian swap payload returned by CPU Low
-                        for(i = 0; i < size; i++) {
-                            resp_args_32[3 + i] = Xil_Htonl(resp_args_32[3 + i]);
-                        }
-
-                        resp_hdr->length   += (size * sizeof(u32));
-                        resp_hdr->num_args += size;
-
-                    } else { //failed
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Parameter read failed in CPU low.\n");
-                        status = CMD_PARAM_ERROR + id;
-                    }
+                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Parameter read not allowed.\n");
+                    status = CMD_PARAM_ERROR + id;
                 break;
 
                 default:

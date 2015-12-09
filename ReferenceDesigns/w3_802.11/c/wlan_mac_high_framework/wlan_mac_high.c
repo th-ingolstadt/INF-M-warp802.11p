@@ -81,7 +81,7 @@ volatile static u32          max_num_associations = WLAN_MAC_HIGH_MAX_ASSOCIATON
 
 // HW structures
 static XGpio                 Gpio;                         ///< General-purpose GPIO instance
-XIntc       	             InterruptController;          ///< Interrupt Controller instance
+XIntc                        InterruptController;          ///< Interrupt Controller instance
 XUartLite                    UartLite;                     ///< UART Device instance
 XAxiCdma                     cdma_inst;                    ///< Central DMA instance
 
@@ -106,19 +106,11 @@ volatile u8                  dram_present;                 ///< Indication varia
 volatile static u32          cpu_low_status;               ///< Tracking variable for lower-level CPU status
 
 // CPU Low Register Read Buffer
-volatile static u32*	     cpu_low_reg_read_buffer;
-volatile static u8		     cpu_low_reg_read_buffer_status;
+volatile static u32        * cpu_low_reg_read_buffer;
+volatile static u8           cpu_low_reg_read_buffer_status;
 
 #define CPU_LOW_REG_READ_BUFFER_STATUS_READY               1
 #define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY           0
-
-// CPU Low Parameter Read Buffer
-volatile static u32*	     cpu_low_param_read_buffer;
-volatile static u32          cpu_low_param_read_buffer_size;
-volatile static u8		     cpu_low_param_read_buffer_status;
-
-#define CPU_LOW_PARAM_READ_BUFFER_STATUS_READY             1
-#define CPU_LOW_PARAM_READ_BUFFER_STATUS_NOT_READY         0
 
 // Interrupt State
 volatile static interrupt_state_t interrupt_state;
@@ -341,8 +333,6 @@ void wlan_mac_high_init(){
 	num_free    = 0;
 
 	cpu_low_reg_read_buffer        = NULL;
-	cpu_low_param_read_buffer      = NULL;
-	cpu_low_param_read_buffer_size = 0;
 
 	// Enable promiscuous counts by default
 	promiscuous_counts_enabled     = 1;
@@ -1674,20 +1664,19 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 		break;
 
 
-		//---------------------------------------------------------------------
-		case IPC_MBOX_LOW_PARAM:
-			// Param Read / Write message
-			//   - Allows CPU High to read / write parameters in CPU low
-			//
-			if(cpu_low_param_read_buffer != NULL){
-				memcpy( (u8*)cpu_low_param_read_buffer, (u8*)ipc_msg_from_low_payload, (msg->num_payload_words) * sizeof(u32));
-				cpu_low_param_read_buffer_size   = msg->num_payload_words;
-				cpu_low_param_read_buffer_status = CPU_LOW_PARAM_READ_BUFFER_STATUS_READY;
-
-			} else {
-				wlan_printf(PL_ERROR, "ERROR: Received low-level parameter buffer from CPU_LOW and was not expecting it.\n");
-			}
-		break;
+        //---------------------------------------------------------------------
+        case IPC_MBOX_LOW_PARAM:
+            // CPU Low Parameter IPC message
+            //   - Processes any CPU Low Parameter IPC messages sent to CPU High
+            //   - This is an error condition.  CPU High should never expect this IPC message
+            //
+            // NOTE:  This is due to the fact that IPC messages in CPU low can take an infinitely long amount of
+            //     to return given that the sending and receiving of wireless data takes precedent.  Therefore,
+            //     it is not good to try to return values from CPU low since there is no guarantee when the values
+            //     will be available.
+            //
+            wlan_printf(PL_ERROR, "ERROR: Received low-level parameter buffer from CPU_LOW and was not expecting it.\n");
+        break;
 
 
 		//---------------------------------------------------------------------
@@ -1704,14 +1693,15 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
  *
  * Send an IPC message to CPU Low to set the Random Seed
  *
- * @param  unsigned int seed
+ * @param  u32 seed
  *     - Random number generator seed
  * @return None
  */
-void wlan_mac_high_set_srand( unsigned int seed ) {
+void wlan_mac_high_set_srand(u32 seed) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = seed;
+
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_RANDOM_SEED);
 	ipc_msg_to_low.num_payload_words = 1;
@@ -1727,11 +1717,11 @@ void wlan_mac_high_set_srand( unsigned int seed ) {
  *
  * Send an IPC message to CPU Low to set the MAC Channel
  *
- * @param  unsigned int mac_channel
+ * @param  u32 mac_channel
  *     - 802.11 Channel to set
  * @return None
  */
-void wlan_mac_high_set_channel( unsigned int mac_channel ) {
+void wlan_mac_high_set_channel(u32 mac_channel) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = mac_channel;
@@ -1759,7 +1749,7 @@ void wlan_mac_high_set_channel( unsigned int mac_channel ) {
  *     - Antenna mode selection
  * @return None
  */
-void wlan_mac_high_set_rx_ant_mode( u8 ant_mode ) {
+void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)ant_mode;
@@ -1798,7 +1788,7 @@ void wlan_mac_high_set_rx_ant_mode( u8 ant_mode ) {
  *     - Tx control packet power
  * @return None
  */
-void wlan_mac_high_set_tx_ctrl_pow( s8 pow ) {
+void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)pow;
@@ -1820,18 +1810,18 @@ void wlan_mac_high_set_tx_ctrl_pow( s8 pow ) {
  * allow or disallow different packets from being passed up to CPU_High
  *
  * @param    filter_mode
- * 				- RX_FILTER_FCS_GOOD
- * 				- RX_FILTER_FCS_ALL
- * 				- RX_FILTER_ADDR_STANDARD	(unicast to me or multicast)
- * 				- RX_FILTER_ADDR_ALL_MPDU	(all MPDU frames to any address)
- * 				- RX_FILTER_ADDR_ALL			(all observed frames, including control)
+ *              - RX_FILTER_FCS_GOOD
+ *              - RX_FILTER_FCS_ALL
+ *              - RX_FILTER_ADDR_STANDARD   (unicast to me or multicast)
+ *              - RX_FILTER_ADDR_ALL_MPDU   (all MPDU frames to any address)
+ *              - RX_FILTER_ADDR_ALL        (all observed frames, including control)
  *
- * @note	FCS and ADDR filter selections must be bit-wise ORed together. For example,
- * wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_ADDR_ALL)
+ * @note    FCS and ADDR filter selections must be bit-wise ORed together. For example,
+ *     wlan_mac_high_set_rx_filter_mode(RX_FILTER_FCS_ALL | RX_FILTER_ADDR_ALL)
  *
- * @return	None
+ * @return  None
  */
-void wlan_mac_high_set_rx_filter_mode( u32 filter_mode ) {
+void wlan_mac_high_set_rx_filter_mode(u32 filter_mode) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)filter_mode;
@@ -1851,23 +1841,22 @@ void wlan_mac_high_set_rx_filter_mode( u32 filter_mode ) {
  *
  * Send an IPC message to CPU Low to write the given data
  *
- * @param  u32 num_words
- *     - Number of words in the message payload
- * @param  u32 * payload
- *     - Pointer to the message payload
- * @return None
+ * @param   u32 num_words    - Number of words in the message payload
+ * @param   u32 * payload    - Pointer to the message payload
+ *
+ * @return  int              - Status of command:  0 = Success; -1 = Failure
  */
-int wlan_mac_high_write_low_mem( u32 num_words, u32* payload ){
-	wlan_ipc_msg	   ipc_msg_to_low;
+int wlan_mac_high_write_low_mem(u32 num_words, u32* payload) {
+	wlan_ipc_msg   ipc_msg_to_low;
 
-	if( num_words > IPC_BUFFER_MAX_NUM_WORDS ){
-		return -1;
+	if (num_words > IPC_BUFFER_MAX_NUM_WORDS) {
+	    return -1;
 	}
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
 	ipc_msg_to_low.num_payload_words = num_words;
-	ipc_msg_to_low.arg0				 = IPC_REG_WRITE_MODE;
+	ipc_msg_to_low.arg0              = IPC_REG_WRITE_MODE;
 	ipc_msg_to_low.payload_ptr       = payload;
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
@@ -1882,14 +1871,13 @@ int wlan_mac_high_write_low_mem( u32 num_words, u32* payload ){
  *
  * Send an IPC message to CPU Low to read the given data
  *
- * @param  u32 num_words     - Number of words to read from CPU low
- * @param  u32 baseaddr      - Base address of the data to read from CPU low
- * @param  u32 * payload     - Pointer to the buffer to be populated with data
+ * @param   u32 num_words    - Number of words to read from CPU low
+ * @param   u32 baseaddr     - Base address of the data to read from CPU low
+ * @param   u32 * payload    - Pointer to the buffer to be populated with data
  *
- * @return int               - Status of command:  0 = Success; -1 = Failure
- *
+ * @return  int              - Status of command:  0 = Success; -1 = Failure
  */
-int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload){
+int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload) {
 
     u64                start_time;
     wlan_ipc_msg       ipc_msg_to_low;
@@ -1899,7 +1887,7 @@ int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload){
         // Send message to CPU Low
         ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
         ipc_msg_to_low.num_payload_words = sizeof(ipc_reg_read_write) / sizeof(u32);
-        ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
+        ipc_msg_to_low.arg0              = IPC_REG_READ_MODE;
         ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload));
 
         ipc_msg_to_low_payload.baseaddr  = baseaddr;
@@ -1915,12 +1903,12 @@ int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload){
         start_time = get_system_timestamp_usec();
 
         // Wait for CPU low to finish the read or timeout to occur
-        while(cpu_low_param_read_buffer_status != CPU_LOW_PARAM_READ_BUFFER_STATUS_READY){
+        while(cpu_low_reg_read_buffer_status != CPU_LOW_REG_READ_BUFFER_STATUS_READY){
             if ((get_system_timestamp_usec() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
                 xil_printf("Error: Reading CPU_LOW memory timed out\n");
 
                 // Reset the read buffer
-                cpu_low_reg_read_buffer          = NULL;
+                cpu_low_reg_read_buffer  = NULL;
 
                 return -1;
             }
@@ -1929,74 +1917,42 @@ int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload){
         // Reset the read buffer
         cpu_low_reg_read_buffer          = NULL;
 
-        return 0;
     } else {
         xil_printf("Error: Reading CPU_LOW memory requires interrupts being enabled\n");
         return -1;
     }
+
+    return 0;
 }
 
 
 
 /**
- * @brief Read a parameter in CPU low
+ * @brief Write a parameter in CPU low
  *
- * Send an IPC message to CPU Low to read the given paramter
+ * Send an IPC message to CPU Low to write the given parameter
  *
- * @param  u32 num_words
- *     - Number of words to read from CPU low
- * @param  u32 baseaddr
- *     - Base address of the data to read from CPU low
- * @param  u32 * payload
- *     - Pointer to the buffer to be populated with data
- * @return None
+ * @param   u32 num_words    - Number of words in the message payload
+ * @param   u32 * payload    - Pointer to the message payload (includes parameter ID)
+ *
+ * @return  int              - Status of command:  0 = Success; -1 = Failure
  */
-int wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload ){
+int wlan_mac_high_write_low_param(u32 num_words, u32* payload) {
+    wlan_ipc_msg   ipc_msg_to_low;
 
-    u64                start_time;
-    wlan_ipc_msg       ipc_msg_to_low;
-
-    if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
-        // Send message to CPU Low
-        ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
-        ipc_msg_to_low.num_payload_words = 1;
-        ipc_msg_to_low.arg0				 = IPC_REG_READ_MODE;
-        ipc_msg_to_low.payload_ptr       = (u32*)(&(param_id));
-
-        // Set the read buffer to the payload pointer
-        cpu_low_param_read_buffer        = payload;
-        cpu_low_param_read_buffer_status = CPU_LOW_PARAM_READ_BUFFER_STATUS_NOT_READY;
-
-        ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-        // Get start time
-        start_time = get_system_timestamp_usec();
-
-        // Wait for CPU low to finish the read or timeout to occur
-        while(cpu_low_param_read_buffer_status != CPU_LOW_PARAM_READ_BUFFER_STATUS_READY){
-            if ((get_system_timestamp_usec() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
-                xil_printf("Error: Reading CPU_LOW parameters timed out\n");
-
-                // Reset the read buffer
-                cpu_low_param_read_buffer        = NULL;
-                cpu_low_param_read_buffer_size   = 0;
-
-                return -1;
-            }
-        }
-
-        // Set the size
-        *(size) = cpu_low_param_read_buffer_size;
-
-        // Reset the read buffer
-        cpu_low_param_read_buffer        = NULL;
-        cpu_low_param_read_buffer_size   = 0;
-
-        return 0;
-    } else {
-        xil_printf("Error: Reading CPU_LOW parameters requires interrupts being enabled\n");
+    if (num_words > IPC_BUFFER_MAX_NUM_WORDS) {
         return -1;
     }
+
+    // Send message to CPU Low
+    ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
+    ipc_msg_to_low.num_payload_words = num_words;
+    ipc_msg_to_low.arg0              = IPC_REG_WRITE_MODE;
+    ipc_msg_to_low.payload_ptr       = payload;
+
+    ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+    return 0;
 }
 
 
@@ -2006,11 +1962,11 @@ int wlan_mac_high_read_low_param( u32 param_id, u32* size, u32* payload ){
  *
  * Send an IPC message to CPU Low to set the DSSS value
  *
- * @param  unsigned int dsss_value
+ * @param  u32 dsss_value
  *     - DSSS Enable/Disable value
  * @return None
  */
-void wlan_mac_high_set_dsss( unsigned int dsss_value ) {
+void wlan_mac_high_set_dsss(u32 dsss_value) {
 
 	wlan_ipc_msg       ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload[1];
