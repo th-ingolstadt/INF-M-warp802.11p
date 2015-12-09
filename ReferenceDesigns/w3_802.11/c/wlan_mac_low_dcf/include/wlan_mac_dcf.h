@@ -29,11 +29,6 @@
 
 
 //-----------------------------------------------
-// MAC Header defines
-#define MAC_HW_LASTBYTE_ADDR1                             (13)
-
-
-//-----------------------------------------------
 // CW Update Reasons
 #define DCF_CW_UPDATE_MPDU_TX_ERR                          0
 #define DCF_CW_UPDATE_MPDU_RX_ACK                          1
