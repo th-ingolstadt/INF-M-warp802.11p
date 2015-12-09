@@ -30,15 +30,25 @@ PACKAGE_NAME                      = 'wlan_exp'
 WLAN_EXP_MASK                     = 0xFFFF0000
 WLAN_EXP_80211_BASE               = 0x00010000
 
+# CPU High Types
 WLAN_EXP_HIGH_MASK                = 0x0000FF00
 WLAN_EXP_HIGH_AP                  = 0x00000100
 WLAN_EXP_HIGH_STA                 = 0x00000200
 WLAN_EXP_HIGH_IBSS                = 0x00000300
 
+WLAN_EXP_HIGH_TYPES               = {WLAN_EXP_HIGH_AP   : "AP",
+                                     WLAN_EXP_HIGH_STA  : "STA", 
+                                     WLAN_EXP_HIGH_IBSS : "IBSS"}
+
+# CPU Low Types
 WLAN_EXP_LOW_MASK                 = 0x000000FF
 WLAN_EXP_LOW_DCF                  = 0x00000001
 WLAN_EXP_LOW_NOMAC                = 0x00000002
 
+WLAN_EXP_LOW_TYPES                = {WLAN_EXP_LOW_DCF   : "DCF",
+                                     WLAN_EXP_LOW_NOMAC : "NOMAC"}
+
+# Node Types (supported combinations of CPU High and CPU Low)
 WLAN_EXP_AP_DCF_TYPE              = WLAN_EXP_80211_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_DCF
 WLAN_EXP_AP_DCF_CLASS_INST        = 'node_ap.WlanExpNodeAp(network_config, defaults.WLAN_EXP_LOW_DCF)'
 WLAN_EXP_AP_DCF_DESCRIPTION       = 'WLAN Exp (AP/DCF) '

@@ -1078,10 +1078,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
            
         .. note:: Parameter is write only.
         """
-        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
-            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
-        else:
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, threshold)
+        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_rts_thresh")
+            
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, threshold)
+        
         
     def set_dcf_short_retry_limit(self, limit):
         """Sets the Short Retry Limit of the node.
@@ -1096,10 +1096,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
            
         .. note:: Parameter is write only.
         """
-        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
-            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
-        else:
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, limit)
+        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_short_retry_limit")
+            
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, limit)
+        
         
     def set_dcf_long_retry_limit(self, limit):
         """Sets the Long Retry Limit of the node.
@@ -1114,10 +1114,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
            
         .. note:: Parameter is write only.
         """
-        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
-            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
-        else:
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, limit)
+        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_long_retry_limit")
+            
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, limit)
+        
 
     def set_dcf_phy_cs_thresh(self, threshold):
         """Sets the physical carrier sense threshold of the node.
@@ -1129,10 +1129,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
            
         .. note:: Parameter is write only.
         """
-        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
-            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
-        else:
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, threshold)
+        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_phy_cs_thresh")
+            
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, threshold)
 
 
     def set_dcf_cw_exp_min(self, cw_exp):
@@ -1145,10 +1144,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
            
         .. note:: Parameter is write only.
         """
-        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
-            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
-        else:
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, cw_exp)       
+        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_cw_exp_min")
+            
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, cw_exp)       
 
 
     def set_dcf_cw_exp_max(self, cw_exp):
@@ -1161,10 +1159,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
            
         .. note:: Parameter is write only.
         """
-        if not (self._get_node_type_low == defaults.WLAN_EXP_LOW_DCF):
-            raise TypeError("Command requires CPU Low to be WLAN_EXP_LOW_DCF")
-        else:
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, cw_exp)
+        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_cw_exp_max")
+            
+        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, cw_exp)
 
 
     def configure_pkt_det_min_power(self, enable, power_level=None): 
@@ -1733,7 +1730,69 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         See defaults.py for a list of CPU Low node types
         """
         return (self.node_type & defaults.WLAN_EXP_LOW_MASK)
-    
+
+    def _check_cpu_high_type(self, high_type, command_name, raise_error=False):
+        """Check the node CPU High type against the high_type argument
+        
+        Args:
+            high_type (int):    Node type for CPU High (see defaults.py)
+            command_name (str): Name of command calling function
+            raise_error (bool): Raise an exception?
+        """
+        node_high_type = self._get_node_type_high()
+        
+        if (node_high_type != high_type):
+            msg  = "WARNING:  CPU High Type mismatch.\n"
+            msg += "    Command \'{0}()\' ".format(command_name)
+            
+            try:
+                msg += "expects {0}, ".format(defaults.WLAN_EXP_HIGH_TYPES[high_type])
+            except:
+                msg += "expects UNKNOWN TYPE, "
+
+            try:
+                msg += "node reports {0}\n".format(defaults.WLAN_EXP_HIGH_TYPES[node_high_type])
+            except:
+                msg += "reports UNKNOWN TYPE\n"
+                
+            msg += "    Command may have unintended effects.\n"
+            
+            if (raise_error):
+                raise TypeError(msg)
+            else:
+                print(msg)
+
+    def _check_cpu_low_type(self, low_type, command_name, raise_error=False):
+        """Check the node CPU Low type against the low_type argument
+        
+        Args:
+            low_type (int):     Node type for CPU Low (see defaults.py)
+            command_name (str): Name of command calling function
+            raise_error (bool): Raise an exception?
+        """
+        node_low_type = self._get_node_type_low()
+        
+        if (node_low_type != low_type):
+            msg  = "WARNING:  CPU Low Type mismatch:\n"
+            msg += "    Command \'{0}()\' ".format(command_name)
+            
+            try:
+                msg += "expects {0}, ".format(defaults.WLAN_EXP_LOW_TYPES[low_type])
+            except KeyError:
+                msg += "expects UNKNOWN TYPE, "
+            
+            try:
+                msg += "node reports {0}\n".format(defaults.WLAN_EXP_LOW_TYPES[node_low_type])
+            except KeyError:
+                msg += "reports UNKNOWN TYPE\n"
+            
+            msg += "    Command may have unintended effects.\n"
+            
+            if (raise_error):
+                raise TypeError(msg)
+            else:
+                print(msg)
+
     def check_wlan_exp_ver(self):
         """Check the WLAN Exp version of the node against the current WLAN Exp version."""        
         ver_str     = version.wlan_exp_ver_str(self.wlan_exp_ver_major, 
