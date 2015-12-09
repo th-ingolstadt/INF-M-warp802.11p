@@ -87,9 +87,9 @@ int main(){
     memcpy(eeprom_addr, hw_info->hw_addr_wlan, 6);
 
     // Set up the TX / RX callbacks
-    wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
-    wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
-    // wlan_mac_low_set_ipc_low_param_callback() is not used in the reference design
+    wlan_mac_low_set_frame_rx_callback(      (void *) frame_receive);
+    wlan_mac_low_set_frame_tx_callback(      (void *) frame_transmit);
+    wlan_mac_low_set_ipc_low_param_callback( (void *) wlan_nomac_process_low_param);
 
     // Finish Low Framework initialization
     wlan_mac_low_init_finish();
@@ -287,4 +287,47 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
     } while (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING);
 
     return -1;
+}
+
+
+
+/*****************************************************************************/
+/**
+ * @brief Process NOMAC Low Parameters
+ *
+ * This method is part of the IPC_MBOX_LOW_PARAM parameter processing in the low framework.  It
+ * will process NOMAC specific low parameters.
+ *
+ * @param   mode             - Mode to process parameter:  IPC_REG_WRITE_MODE or IPC_REG_READ_MODE
+ * @param   payload          - Pointer to parameter and arguments
+ * @return  int              - Status
+ */
+int wlan_nomac_process_low_param(u8 mode, u32* payload) {
+
+    switch(mode){
+        case IPC_REG_WRITE_MODE:
+            switch(payload[0]){
+
+                //---------------------------------------------------------------------
+                // case <Parameter #define in wlan_mac_nomac.h>:
+                //    <implementation of parameter write>
+                // break;
+
+                //---------------------------------------------------------------------
+                default:
+                    xil_printf("Unknown parameter 0x%08x\n", payload[0]);
+                break;
+            }
+        break;
+
+        case IPC_REG_READ_MODE:
+            // Not supported.  See comment in wlan_mac_low.c for IPC_REG_READ_MODE mode.
+        break;
+
+        default:
+            xil_printf("Unknown mode 0x%08x\n", mode);
+        break;
+    }
+
+    return 0;
 }
