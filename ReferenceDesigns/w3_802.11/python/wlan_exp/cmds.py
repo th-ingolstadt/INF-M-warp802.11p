@@ -1019,7 +1019,10 @@ class NodeLowParam(message.Cmd):
         # Caluculate the size of the entire message to CPU Low [PARAM_ID, ARGS[]]
         size = 1
         if values is not None:
-            size += len(values)
+            try:
+                size += len(values)
+            except TypeError:
+                pass
 
         self.add_args(cmd)
         self.add_args(size)
@@ -1036,6 +1039,18 @@ class NodeLowParam(message.Cmd):
         """ Message format:
                 respArgs32[0]   Status
         """
+        error_code_base         = CMD_PARAM_ERROR
+        error_code_cs_thresh    = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH
+        error_code_cw_min       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN
+        error_code_cw_max       = CMD_PARAM_ERROR + CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX
+
+        status_errors = {error_code_base      : "Error setting low parameter",
+                         error_code_cs_thresh : "Could not set carrier sense threshold",
+                         error_code_cw_min    : "Could not set minimum contention window",
+                         error_code_cw_max    : "Could not set maximum contention window"}
+
+        resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from Low Param command')
+        
         return None
 
 # End Class
