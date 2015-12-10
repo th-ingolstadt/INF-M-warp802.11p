@@ -373,6 +373,9 @@ inline u32         wlan_mac_low_poll_frame_rx();
 inline void        wlan_mac_low_poll_ipc_rx();
 
 void               wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg);
+void			   wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf);
+void			   wlan_mac_low_disable_new_mpdu_tx();
+void			   wlan_mac_low_enable_new_mpdu_tx();
 void               wlan_mac_low_frame_ipc_send();
 
 void               wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
