@@ -213,7 +213,6 @@ int main() {
     wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
     wlan_exp_set_reset_all_associations_callback(   (void *)reset_all_associations);
     wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
-    //   - Currently no timebase adjust needed; Use wlan_exp_set_timebase_adjust_callback();
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the STA
 
     // Get the hardware info that has been collected from CPU low
@@ -762,7 +761,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							// xil_printf("\n");
 
 							// Update the MAC time
-							wlan_mac_high_set_timestamp_delta(timestamp_diff);
+							wlan_mac_high_set_mac_timestamp_delta(timestamp_diff);
 
 							// Move the packet pointer back to the start for the rest of the function
 							mpdu_ptr_u8 -= sizeof(mac_header_80211);
