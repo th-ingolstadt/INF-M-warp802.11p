@@ -1949,36 +1949,39 @@ int wlan_exp_user_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_
         //     functions:  Xil_Ntohl() (Network to Host) and Xil_Htonl() (Host to Network) are
         //     used for this.
         //
-        // //---------------------------------------------------------------------
-        // case CMDID_USER_AP_<COMMAND_NAME>:
-        //     // Command Description
-        //     //
-        //     // Message format:
-        //     //     cmd_args_32[0:N]    Document command arguments from the host
-        //     //
-        //     // Response format:
-        //     //     resp_args_32[0:M]   Document response arguments from the node
-        //     // NOTE:  Variables are declared above.
-        //     // NOTE:  Please take care of the endianness of the arguments (see comment above)
-        //     //
-        //     //
-        //
-        //     // Set the return value
-        //     status      = CMD_PARAM_SUCCESS;
-        //     arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
-        //
-        //     // Do something with argument(s)
-        //     xil_printf("Command argument 0: 0x%08x\n", arg_0);
-        //
-        //     // Send response
-        //     //   NOTE:  It is good practice to send a status as the first argument of the response.
-        //     //       This way it is easy to determine if the other data in the response is valid.
-        //     //
-        //     resp_args_32[resp_index++] = Xil_Htonl(status);       // Swap endianness of response arguments
-        //
-        //     resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-        //     resp_hdr->num_args = resp_index;
-        // break;
+#if 0
+        //---------------------------------------------------------------------
+        case CMDID_USER_AP_<COMMAND_NAME>:
+            // Command Description
+            //
+            // Message format:
+            //     cmd_args_32[0:N]    Document command arguments from the host
+            //
+            // Response format:
+            //     resp_args_32[0:M]   Document response arguments from the node
+            //
+            // NOTE:  Variables are declared above.
+            // NOTE:  Please take care of the endianness of the arguments (see comment above)
+            //
+
+            // Initialize variables
+            status      = CMD_PARAM_SUCCESS;
+            arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
+
+            // Do something with argument(s)
+            xil_printf("Command argument 0: 0x%08x\n", arg_0);
+
+            // Send response
+            //   NOTE:  It is good practice to send a status as the first argument of the response.
+            //       This way it is easy to determine if the other data in the response is valid.
+            //       Predefined status values are:  CMD_PARAM_SUCCESS, CMD_PARAM_ERROR
+            //
+            resp_args_32[resp_index++] = Xil_Htonl(status);       // Swap endianness of response arguments
+
+            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->num_args = resp_index;
+        break;
+#endif
 
 
         //---------------------------------------------------------------------
