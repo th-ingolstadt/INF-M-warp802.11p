@@ -56,20 +56,24 @@ extern wlan_exp_function_ptr_t    wlan_exp_user_process_cmd_callback;
 /**
  * Process User Commands
  *
- * This function is part of the Ethernet processing system and will process the
- * various node related commands.
+ * This function is part of the WLAN Exp framework and will process the framework-
+ * level user commands.  This function intentionally does not implement any user
+ * commands and it is left to the user to implement any needed functionality.   By
+ * default, any commands not processed in this function will be passed to the
+ * application specific function through the callback: wlan_exp_user_process_cmd_callback
  *
  * @param   socket_index     - Index of the socket on which to send message
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
+ * @param   max_words        - Maximum number of u32 words allowed in response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
  *
- * @note    See on-line documentation for more information about the Ethernet
- *          packet structure:  www.warpproject.org
+ * @note    See on-line documentation for more information:
+ *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
  *
  *****************************************************************************/
 int user_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
