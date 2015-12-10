@@ -33,13 +33,13 @@
 //-----------------------------------------------
 // User Commands
 //
-#define CMDID_USER_ECHO                                    0x000000
+// #define CMDID_USER_<COMMAND_NAME>                          0x000000
 
 
 //-----------------------------------------------
 // AP Specific User Command Parameters
 //
-// #define CMD_PARAM_<VALUE>                                  0x00000000
+// #define CMD_PARAM_USER_<VALUE>                             0x00000000
 
 
 /*********************** Global Structure Definitions ************************/

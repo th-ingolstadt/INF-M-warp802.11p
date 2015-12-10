@@ -85,26 +85,28 @@ int user_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
     //
 
     // Standard variables
+    //     NOTE:  Some of the standard variables below have been commented out.  This was to remove
+    //         compiler warnings for "unused variables" since the default implemention is empty.  As
+    //         you add commands, you should un-comment the standard variables.
+    //
     u32                      resp_sent      = NO_RESP_SENT;
 
     cmd_resp_hdr           * cmd_hdr        = command->header;
-    u32                    * cmd_args_32    = command->args;
+    // u32                    * cmd_args_32    = command->args;
     u32                      cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
 
     cmd_resp_hdr           * resp_hdr       = response->header;
-    u32                    * resp_args_32   = response->args;
-    u32                      resp_index     = 0;
+    // u32                    * resp_args_32   = response->args;
+    // u32                      resp_index     = 0;
 
-    // Set up the response header
+    // Initialize the response header
     resp_hdr->cmd       = cmd_hdr->cmd;
     resp_hdr->length    = 0;
     resp_hdr->num_args  = 0;
 
     // Variables for functions
-    u32                      i;
-    int                      status;
-
-    u32                      size;
+    // int                 status;
+    // u32                 arg_0;
 
 
     // Process the command
@@ -114,44 +116,49 @@ int user_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 // Common User Commands
 //-----------------------------------------------------------------------------
 
-        //---------------------------------------------------------------------
-        case CMDID_USER_ECHO:
-            // Echo received information to the UART terminal
-            //
-            // NOTE:  Variables are declared above.
-            // NOTE:  Please take care of the endianness of the arguments (see comment above)
-            //
-            // Message format:
-            //     cmd_args_32[0]      Size in words of received values (N)
-            //     cmd_args_32[1:N]    Values
-            //
-            // Response format:
-            //     resp_args_32[0]     Status
-            //
-
-            // Set the return value
-            status      = CMD_PARAM_SUCCESS;
-            size        = Xil_Ntohl(cmd_args_32[0]);
-
-            // Print ECHO header
-            xil_printf("Node ECHO Commands (%d):\n", size);
-
-            // Print all values set in the command:
-            //     Byte swap all the value words in the message (in place)
-            for (i = 1; i < (size + 1); i++) {
-                xil_printf("    [%04d] = 0x%08x\n", Xil_Ntohl(cmd_args_32[i]));
-            }
-
-            // Send response of status
-            resp_args_32[resp_index++] = Xil_Htonl(status);
-
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-            resp_hdr->num_args = resp_index;
-        break;
+        // Template framework for a Command
+        //
+        // NOTE:  The WLAN Exp framework assumes that the Over-the-Wire format of the data is
+        //     big endian.  However, the node processes data using little endian.  Therefore,
+        //     any data received from the host must be properly endian-swapped and similarly,
+        //     any data sent to the host must be properly endian-swapped.  The built-in Xilinx
+        //     functions:  Xil_Ntohl() (Network to Host) and Xil_Htonl() (Host to Network) are
+        //     used for this.
+        //
+        // //---------------------------------------------------------------------
+        // case CMDID_USER_<COMMAND_NAME>:
+        //     // Command Description
+        //     //
+        //     // Message format:
+        //     //     cmd_args_32[0:N]    Document command arguments from the host
+        //     //
+        //     // Response format:
+        //     //     resp_args_32[0:M]   Document response arguments from the node
+        //     // NOTE:  Variables are declared above.
+        //     // NOTE:  Please take care of the endianness of the arguments (see comment above)
+        //     //
+        //     //
+        //
+        //     // Set the return value
+        //     status      = CMD_PARAM_SUCCESS;
+        //     arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
+        //
+        //     // Do something with argument(s)
+        //     xil_printf("Command argument 0: 0x%08x\n", arg_0);
+        //
+        //     // Send response
+        //     //   NOTE:  It is good practice to send a status as the first argument of the response.
+        //     //       This way it is easy to determine if the other data in the response is valid.
+        //     //
+        //     resp_args_32[resp_index++] = Xil_Htonl(status);       // Swap endianness of response arguments
+        //
+        //     resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+        //     resp_hdr->num_args = resp_index;
+        // break;
 
 
 //-----------------------------------------------------------------------------
-// Child Commands
+// Child Commands (Callback is implemented in each child project, eg. AP, STA, IBSS)
 //-----------------------------------------------------------------------------
 
         //---------------------------------------------------------------------
