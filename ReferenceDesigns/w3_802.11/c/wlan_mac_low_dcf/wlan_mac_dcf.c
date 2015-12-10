@@ -441,7 +441,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
          (phy_details->length) >= sizeof(mac_header_80211))) {
 
         if(gl_autocancel_en) {
-            // Clobber all state in the DCF core - this cancels deferrals and pending transmissions
+            // Reset all state in the DCF core - this cancels deferrals and pending transmissions
             wlan_mac_reset(1);
             wlan_mac_reset(0);
             return_value |= POLL_MAC_CANCEL_TX;
@@ -567,7 +567,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
                     if(num_resp_failures > 2){
                         mpdu_info->flags = mpdu_info->flags & ~RX_MPDU_FLAGS_FORMED_RESPONSE;
 
-                        // TODO: We should force TX_B back to an idle state here since it is still primed
+                        wlan_mac_reset_tx_ctrl_b(1);
+                        wlan_mac_reset_tx_ctrl_b(0);
 
                         break;
                     }
