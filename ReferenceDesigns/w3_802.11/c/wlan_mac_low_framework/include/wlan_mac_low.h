@@ -195,9 +195,14 @@
 #define WLAN_MAC_CTRL_MASK_RESET_NAV                       0x400
 #define WLAN_MAC_CTRL_MASK_RESET_BACKOFF                   0x800
 
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A			  	   0x00001000
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B				   0x00002000
+
 
 #define wlan_mac_set_backoff_reset(x)                      Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_BACKOFF : 0))
 #define wlan_mac_reset(x)                                  Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | (WLAN_MAC_CTRL_MASK_RESET & x))
+#define wlan_mac_reset_tx_ctrl_a(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A) | (WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A & x))
+#define wlan_mac_reset_tx_ctrl_b(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B) | (WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B & x))
 
 
 
