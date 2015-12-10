@@ -2204,21 +2204,11 @@ class UserSendCmd(message.Cmd):
     Attributes:
         cmdid     -- User-defined Command ID
         values    -- Scalar or list of u32 values to write
-        
     """
-    def __init__(self, cmd, param, values=None):
-        super(NodeLowParam, self).__init__()        
+    def __init__(self, cmd_id, values=None):
+        super(UserSendCmd, self).__init__()        
         
-        self.command    = _CMD_GROUP_USER + CMDID_NODE_LOW_PARAM
-
-        # Caluculate the size of the entire message to CPU Low [PARAM_ID, ARGS[]]
-        size = 1
-        if values is not None:
-            size += len(values)
-
-        self.add_args(cmd)
-        self.add_args(size)
-        self.add_args(param)
+        self.command    = _CMD_GROUP_USER + cmd_id
 
         if values is not None:
             try:
@@ -2226,12 +2216,18 @@ class UserSendCmd(message.Cmd):
                     self.add_args(v)
             except TypeError:
                 self.add_args(values)
-            
+
+   
     def process_resp(self, resp):
         """ Message format:
                 respArgs32[0]   Status
         """
-        return None
+        args = resp.get_args()
+
+        try:        
+            return args[0:]
+        except:
+            return None
 
 # End Class
         
