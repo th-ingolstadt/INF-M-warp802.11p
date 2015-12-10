@@ -109,6 +109,10 @@ volatile u8	                      allow_beacon_ts_update;            // Allow ti
 
 /*************************** Functions Prototypes ****************************/
 
+#ifdef USE_WLAN_EXP
+int  wlan_exp_user_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
+#endif
+
 
 /******************************** Functions **********************************/
 
@@ -211,6 +215,7 @@ int main() {
     wlan_exp_set_reset_all_associations_callback(   (void *)leave_ibss);
     wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
     wlan_exp_set_tx_cmd_add_association_callback(   (void *)wlan_exp_ibss_tx_cmd_add_association);
+    wlan_exp_set_user_process_cmd_callback(         (void *) wlan_exp_user_ibss_process_cmd);
 
     // Get the hardware info that has been collected from CPU low
     hw_info = wlan_mac_high_get_hw_info();
@@ -1304,4 +1309,145 @@ dl_list * get_counts()           { return &counts_table;   }
 u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 
 
+
+#ifdef USE_WLAN_EXP
+
+// ****************************************************************************
+// Define IBSS Specific User Commands
+//
+// NOTE:  All User Command IDs (CMDID_*) must be a 24 bit unique number
+//
+
+//-----------------------------------------------
+// IBSS Specific User Commands
+//
+// #define CMDID_USER_IBSS_<COMMAND_NAME>                     0x100000
+
+
+//-----------------------------------------------
+// IBSS Specific User Command Parameters
+//
+// #define CMD_PARAM_USER_IBSS_<PARAMETER_NAME>               0x00000000
+
+
+
+/*****************************************************************************/
+/**
+ * Process User Commands
+ *
+ * This function is part of the WLAN Exp framework and will process the framework-
+ * level user commands.  This function intentionally does not implement any user
+ * commands and it is left to the user to implement any needed functionality.   By
+ * default, any commands not processed in this function will print an error to the
+ * UART.
+ *
+ * @param   socket_index     - Index of the socket on which to send message
+ * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
+ * @param   command          - Pointer to Command
+ * @param   response         - Pointer to Response
+ * @param   max_words        - Maximum number of u32 words allowed in response
+ *
+ * @return  int              - Status of the command:
+ *                                 NO_RESP_SENT - No response has been sent
+ *                                 RESP_SENT    - A response has been sent
+ *
+ * @note    See on-line documentation for more information:
+ *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
+ *
+ *****************************************************************************/
+int wlan_exp_user_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+
+    //
+    // IMPORTANT ENDIAN NOTES:
+    //     - command
+    //         - header - Already endian swapped by the framework (safe to access directly)
+    //         - args   - Must be endian swapped as necessary by code (framework does not know the contents of the command)
+    //     - response
+    //         - header - Will be endian swapped by the framework (safe to write directly)
+    //         - args   - Must be endian swapped as necessary by code (framework does not know the contents of the response)
+    //
+
+    // Standard variables
+    //     NOTE:  Some of the standard variables below have been commented out.  This was to remove
+    //         compiler warnings for "unused variables" since the default implemention is empty.  As
+    //         you add commands, you should un-comment the standard variables.
+    //
+    u32                 resp_sent      = NO_RESP_SENT;
+
+    // u32               * cmd_args_32    = command->args;
+
+    // cmd_resp_hdr      * resp_hdr       = response->header;
+    // u32               * resp_args_32   = response->args;
+    // u32                 resp_index     = 0;
+
+    //
+    // NOTE: Response header has already been initialized.  (see wlan_exp_user.c)
+    //
+
+    // Variables for User Commands
+    // int                 status;
+    // u32                 arg_0;
+
+
+    switch(cmd_id){
+
+//-----------------------------------------------------------------------------
+// IBSS Specific User Commands
+//-----------------------------------------------------------------------------
+
+        // Template framework for a Command
+        //
+        // NOTE:  The WLAN Exp framework assumes that the Over-the-Wire format of the data is
+        //     big endian.  However, the node processes data using little endian.  Therefore,
+        //     any data received from the host must be properly endian-swapped and similarly,
+        //     any data sent to the host must be properly endian-swapped.  The built-in Xilinx
+        //     functions:  Xil_Ntohl() (Network to Host) and Xil_Htonl() (Host to Network) are
+        //     used for this.
+        //
+#if 0
+        //---------------------------------------------------------------------
+        case CMDID_USER_IBSS_<COMMAND_NAME>:
+            // Command Description
+            //
+            // Message format:
+            //     cmd_args_32[0:N]    Document command arguments from the host
+            //
+            // Response format:
+            //     resp_args_32[0:M]   Document response arguments from the node
+            //
+            // NOTE:  Variables are declared above.
+            // NOTE:  Please take care of the endianness of the arguments (see comment above)
+            //
+
+            // Initialize variables
+            status      = CMD_PARAM_SUCCESS;
+            arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
+
+            // Do something with argument(s)
+            xil_printf("Command argument 0: 0x%08x\n", arg_0);
+
+            // Send response
+            //   NOTE:  It is good practice to send a status as the first argument of the response.
+            //       This way it is easy to determine if the other data in the response is valid.
+            //       Predefined status values are:  CMD_PARAM_SUCCESS, CMD_PARAM_ERROR
+            //
+            resp_args_32[resp_index++] = Xil_Htonl(status);       // Swap endianness of response arguments
+
+            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->num_args = resp_index;
+        break;
+#endif
+
+
+        //---------------------------------------------------------------------
+        default:
+            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown IBSS user command: 0x%x\n", cmd_id);
+        break;
+    }
+
+    return resp_sent;
+}
+
+
+#endif
 
