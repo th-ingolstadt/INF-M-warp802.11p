@@ -118,7 +118,7 @@ Node Utility Functions
 
 .. autofunction:: wlan_exp.util.init_nodes
 
-.. autofunction:: wlan_exp.util.broadcast_cmd_set_time
+.. autofunction:: wlan_exp.util.broadcast_cmd_set_mac_time
 
 .. autofunction:: wlan_exp.util.broadcast_cmd_write_time_to_logs
 

@@ -760,10 +760,10 @@ class NodeProcTime(message.Cmd):
     """Command to get / set the time on the node.
     
     NOTE:  Python time functions operate on floating point numbers in 
-        seconds, while the WarpNode operates on microseconds.  In order
+        seconds, while the WARP Node operates on microseconds.  In order
         to be more flexible, this class can be initialized with either
-        type of input.  However, it will only return an integer number
-        of microseconds.
+        type of input.  It will return the time based on the type of the
+        input (either interger microseconds or float seconds).
     
     Attributes:
         cmd       -- Sub-command to send over the command.  Valid values are:
@@ -820,20 +820,21 @@ class NodeProcTime(message.Cmd):
         error_msg     = "Could not get / set the time on the node"
         status_errors = { error_code : error_msg }
 
-        if resp.resp_is_valid(num_args=3, status_errors=status_errors, name='from the Time command'):
+        if resp.resp_is_valid(num_args=5, status_errors=status_errors, name='from the Time command'):
             args = resp.get_args()
-            time = (2**32 * args[2]) + args[1]
+            mac_time = (2**32 * args[2]) + args[1]
+            sys_time = (2**32 * args[4]) + args[3]
         else:
-            time = 0
+            mac_time = 0
+            sys_time = 0
 
-        ret_val = 0
-        
-        if   (self.time_type == TIME_TYPE_FLOAT):
-            ret_val = float(time / (10**self.time_factor))
-        elif (self.time_type == TIME_TYPE_INT):
-            ret_val = time
+        if (self.time_type == TIME_TYPE_FLOAT):
+            mac_time = float(mac_time / (10**self.time_factor))
+            sys_time = float(sys_time / (10**self.time_factor))
             
-        return ret_val
+        # Use existing mac_time, sys_time if time_type is TIME_TYPE_INT
+        
+        return (mac_time, sys_time)
 
 # End Class
 

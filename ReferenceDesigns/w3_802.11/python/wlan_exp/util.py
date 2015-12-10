@@ -24,7 +24,7 @@ import time
 import wlan_exp.defaults as defaults
 
 
-__all__ = ['init_nodes', 'broadcast_cmd_set_time', 'broadcast_cmd_write_time_to_logs',
+__all__ = ['init_nodes', 'broadcast_cmd_set_mac_time', 'broadcast_cmd_write_time_to_logs',
            'filter_nodes']
 
 
@@ -436,18 +436,18 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
 # End def
 
 
-def broadcast_cmd_set_time(time, network_config, time_id=None):
-    """Initialize the timebase on all of the WLAN Exp nodes.
+def broadcast_cmd_set_mac_time(time, network_config, time_id=None):
+    """Initialize the MAC time on all of the WLAN Exp nodes.
 
     This method will iterate through all network configurations and issue a broadcast 
-    packet on each network that will set the timebase on the node to 'time'.  The 
+    packet on each network that will set the MAC time on the node to 'time'.  The 
     method keeps track of how long it takes to send each packet so that the time on all 
     nodes is as close as possible even across networks.
 
     Args:
         network_config (NetworkConfiguration): One or more NetworkConfiguration objects
            that define the networks on which the set_time command will be broadcast
-        time (float, int):       Time to which the node's timestamp will be set (either float in sec or int in us)
+        time (float, int):       Time to which the node's MAC timestamp will be set (either float in sec or int in us)
         time_id (int, optional): Identifier used as part of the TIME_INFO log entry created by this command.
             If not specified, then a random number will be used.
     """

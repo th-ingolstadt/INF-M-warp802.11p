@@ -653,8 +653,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return addr
 
 
-    def set_time(self, time, time_id=None):
-        """Sets the time in microseconds on the node.
+    def set_mac_time(self, time, time_id=None):
+        """Sets the MAC time on the node.
         
         Args:
             time (float, int):       Time to which the node's timestamp will be set (either float in sec or int in us)
@@ -664,13 +664,26 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_WRITE, time, time_id))
     
 
-    def get_time(self):
-        """Gets the time in microseconds from the node.
+    def get_mac_time(self):
+        """Gets the MAC time from the node.
         
         Returns:
-            Time (int):  Timestamp of the node in integer microseconds.        
+            Time (int):  MAC timestamp of the node in float seconds
         """
-        return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_RSVD_TIME))
+        node_time = self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_RSVD_TIME))
+        
+        return node_time[0]
+
+
+    def get_system_time(self):
+        """Gets the system time from the node.
+        
+        Returns:
+            Time (int):  System timestamp of the node in float seconds
+        """
+        node_time = self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_RSVD_TIME))
+        
+        return node_time[1]
 
 
     def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
