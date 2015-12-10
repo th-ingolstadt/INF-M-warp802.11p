@@ -111,11 +111,10 @@ volatile u32                      beacon_schedule_id = SCHEDULE_FAILURE;
 
 /*************************** Functions Prototypes ****************************/
 
-u8   sevenSegmentMap(u8 x);
-
 #ifdef USE_WLAN_EXP
 int  wlan_exp_user_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
 #endif
+
 
 /******************************** Functions **********************************/
 
@@ -1883,21 +1882,24 @@ void ap_update_hex_display(u8 val) {
 /**
  * Process User Commands
  *
- * This function is part of the Ethernet processing system and will process the
- * various node related commands.
+ * This function is part of the WLAN Exp framework and will process the framework-
+ * level user commands.  This function intentionally does not implement any user
+ * commands and it is left to the user to implement any needed functionality.   By
+ * default, any commands not processed in this function will print an error to the
+ * UART.
  *
  * @param   socket_index     - Index of the socket on which to send message
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
- * @param   max_words        - Maximum number of u32 words per packet
+ * @param   max_words        - Maximum number of u32 words allowed in response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
  *
- * @note    See on-line documentation for more information about the Ethernet
- *          packet structure:  www.warpproject.org
+ * @note    See on-line documentation for more information:
+ *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
  *
  *****************************************************************************/
 int wlan_exp_user_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
