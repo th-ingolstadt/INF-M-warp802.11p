@@ -336,6 +336,7 @@ typedef struct{
     s8                       rx_power;                     ///< Rx power, in dBm
 
     phy_rx_details           phy_details;                  ///< Details from PHY used in this reception
+    u8						 reserved[2];				   ///< Reserved bytes for alignment
 
     u8                       rf_gain;                      ///< Gain setting of radio Rx LNA, in [0,1,2]
     u8                       bb_gain;                      ///< Gain setting of radio Rx VGA, in [0,1,...31]
