@@ -1,4 +1,4 @@
-== WLAN Exp v1.5.0   Log Entry Types ==
+== WLAN Exp v1.4.0   Log Entry Types ==
 
 ----
 
@@ -56,7 +56,7 @@ Entry type ID: 3
 || tx_phy_flags ||  uint8  || Flags for Tx PHY config for new transmissions to deivce ||
 || tx_mac_num_tx_max ||  uint8  || Maximum number of transmissions (original Tx + re-Tx) per MPDU to device ||
 || tx_mac_flags ||  uint8  || Flags for Tx MAC config for new transmissions to device ||
-|| padding ||  uint16  ||  ||
+|| padding ||  2uint8  ||  ||
 
 
 ----
@@ -93,16 +93,17 @@ Entry type ID: 5
 ----
 
 === Entry Type TIME_INFO ===
-Record of a time base event at the node. This log entry is used to enable parsing of log data recored before and after changes to the node's microsecond timer. This entry also allows a wlan_exp controler to write the current absolute time to the node log without affecting the node's timer value. This enables adjustment of log entry timestamps to real timestamps in post-proessing.
+Record of a time base event at the node. This log entry is used to enable parsing of log data recorded before and after changes to the node's microsecond MAC timer. This entry also allows a wlan_exp controler to write the current host time to the node log without affecting the node's timer value. This enables adjustment of log entry timestamps to real timestamps in post-proessing.
 
 Entry type ID: 6
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
+|| timestamp ||  uint64  || Microsecond MAC timer value at time of log entry creation before any time change is applied ||
 || time_id ||  uint32  || Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes ||
 || reason ||  uint32  || Reason code for TIME_INFO log entry creation ||
-|| new_time ||  uint64  || New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed ||
-|| abs_time ||  uint64  || Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown ||
+|| mac_timestamp ||  uint64  || New value of microsecond MAC timer value ||
+|| system_timestamp ||  uint64  || Value of microsecond System timer value ||
+|| host_timestamp ||  uint64  || Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown ||
 
 
 ----

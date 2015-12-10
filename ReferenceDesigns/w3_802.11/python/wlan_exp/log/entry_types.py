@@ -964,16 +964,17 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_time_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
 
     entry_time_info.description  = 'Record of a time base event at the node. This log entry is used to enable parsing of log data '
-    entry_time_info.description += 'recored before and after changes to the node\'s microsecond timer. This entry also allows a wlan_exp controler to '
-    entry_time_info.description += 'write the current absolute time to the node log without affecting the node\'s timer value. This enables adjustment '
+    entry_time_info.description += 'recorded before and after changes to the node\'s microsecond MAC timer. This entry also allows a wlan_exp controler to '
+    entry_time_info.description += 'write the current host time to the node log without affecting the node\'s timer value. This enables adjustment '
     entry_time_info.description += 'of log entry timestamps to real timestamps in post-proessing.'
 
     entry_time_info.append_field_defs([
-        ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
+        ('timestamp',              'Q',      'uint64', 'Microsecond MAC timer value at time of log entry creation before any time change is applied'),
         ('time_id',                'I',      'uint32', 'Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes'),
         ('reason',                 'I',      'uint32', 'Reason code for TIME_INFO log entry creation'),
-        ('new_time',               'Q',      'uint64', 'New value of microsecond timer value; 0xFFFFFFFFFFFFFFFF if timer was not changed'),
-        ('abs_time',               'Q',      'uint64', 'Absolute time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
+        ('mac_timestamp',          'Q',      'uint64', 'New value of microsecond MAC timer value'),
+        ('system_timestamp',       'Q',      'uint64', 'Value of microsecond System timer value'),
+        ('host_timestamp',         'Q',      'uint64', 'Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
 
 
     ###########################################################################

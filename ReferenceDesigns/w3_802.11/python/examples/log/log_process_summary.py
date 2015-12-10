@@ -122,7 +122,7 @@ print("")
 if(len(log_np['TIME_INFO']) > 0):
     log_time_info = log_np['TIME_INFO'][0]
 
-    print("Experiment Started at: {0}".format(time.ctime(float(log_time_info['abs_time'] / 1E6))))
+    print("Experiment Started at: {0}".format(time.ctime(float(log_time_info['host_timestamp'] / 1E6))))
     print("")
 
 ###############################################################################
