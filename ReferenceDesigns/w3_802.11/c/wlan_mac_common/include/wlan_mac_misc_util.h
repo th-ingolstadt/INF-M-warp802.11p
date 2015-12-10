@@ -356,6 +356,7 @@ typedef struct{
 
 /*************************** Function Prototypes *****************************/
 u64                get_mac_timestamp_usec();
+void               set_mac_timestamp_usec(u64 new_time);
 u64                get_system_timestamp_usec();
 void               usleep(u64 delay);
 

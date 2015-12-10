@@ -139,9 +139,6 @@ volatile static u64	         unique_seq;
 // Tx Packet Buffer Busy State
 volatile static u8           tx_pkt_buf_busy_state;
 
-// Time info entry flag
-volatile u8                  add_time_info_entry_on_change;
-
 
 /*************************** Functions Prototypes ****************************/
 
@@ -334,15 +331,12 @@ void wlan_mac_high_init(){
 
 	cpu_low_reg_read_buffer        = NULL;
 
-	// Enable promiscuous counts by default
-	promiscuous_counts_enabled     = 1;
-
-	// Disable adding time info entry to log by default
-	add_time_info_entry_on_change  = 0;
-
 	unique_seq = 0;
 
 	tx_pkt_buf_busy_state = 0;
+
+	// Enable promiscuous counts by default
+	promiscuous_counts_enabled     = 1;
 
 	// ***************************************************
 	// Initialize Transmit Packet Buffers
@@ -1988,89 +1982,36 @@ void wlan_mac_high_set_dsss(u32 dsss_value) {
 
 
 /**
- * @brief Set the timestamp for CPU low
+ * @brief Set the MAC timestamp
  *
- * Send an IPC message to CPU Low to set the timestamp.
- *
- * @note    This function will create a time_info log entry to record the time change.
- *
- * @param   timestamp        - Value for CPU low to set the timestamp
+ * @param   timestamp        - Value to set the MAC timestamp
  *
  * @return  None
  */
-void wlan_mac_high_set_timestamp(u64 timestamp) {
+void wlan_mac_high_set_mac_timestamp(u64 timestamp) {
 
-	wlan_ipc_msg       ipc_msg_to_low;
-
-	u64                system_time;
-	u64                mac_time      = get_mac_timestamp_usec();
-
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
-	ipc_msg_to_low.num_payload_words = sizeof(u64)/sizeof(u32);
-	ipc_msg_to_low.arg0              = 0; // This means the u64 should replace the old timestamp
-	ipc_msg_to_low.payload_ptr       = (u32*)(&(timestamp));
-
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-	// Add log entry for time change
-	//
-	// NOTE:  Use the system_time_id for these time info entries
-    //
-	// NOTE:  The current time must be recorded before the IPC message to low.  However, to
-	//     reduce the amount of time between calling the function and having the time changed,
-	//     only the current time is recorded before the IPC message.
-	//
-	if (add_time_info_entry_on_change) {
-	    system_time = get_system_timestamp_usec();
-
-	    add_time_info_entry(mac_time, timestamp, system_time, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
-	}
+    // Update the time in the MAC Time HW core
+    set_mac_timestamp_usec(timestamp);
 }
 
 
 
 /**
- * @brief Modify the timestamp
+ * @brief Modify the MAC timestamp
  *
- * Send an IPC message to CPU Low to modify the timestamp
- *
- * @note    This function will create a time_info log entry to record the time change.
- *
- * @param   timestamp        - Value to add to the current timestamp
+ * @param   timestamp        - Value to add to the current MAC timestamp
  *
  * @return  None
  */
-void wlan_mac_high_set_timestamp_delta(s64 timestamp) {
+void wlan_mac_high_set_mac_timestamp_delta(s64 timestamp) {
 
-	wlan_ipc_msg       ipc_msg_to_low;
+    u64                new_mac_time;
 
-	u64                mac_time      = get_mac_timestamp_usec();
-	u64                new_mac_time;
-	u64                system_time;
+    // Compute the new MAC time based on the current MAC time and the timestamp
+    new_mac_time = get_mac_timestamp_usec() + timestamp;
 
-	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_TIME);
-	ipc_msg_to_low.num_payload_words = sizeof(u64)/sizeof(u32);
-	ipc_msg_to_low.arg0				 = 1; // This means the s64 should augment the old timestamp
-	ipc_msg_to_low.payload_ptr       = (u32*)(&(timestamp));
-
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
-
-	// Add log entry for time change
-	//
-	// NOTE:  Use the system_time_id for these time info entries
-    //
-	// NOTE:  The current time must be recorded before the IPC message to low.  However, to
-	//     reduce the amount of time between calling the function and having the time changed,
-	//     only the current time is recorded before the IPC message.
-	//
-	if (add_time_info_entry_on_change) {
-	    system_time  = get_system_timestamp_usec();
-	    new_mac_time = get_mac_timestamp_usec();
-
-	    add_time_info_entry(mac_time, new_mac_time, system_time, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
-	}
+    // Update the time in the MAC Time HW core
+    set_mac_timestamp_usec(new_mac_time);
 }
 
 
@@ -2089,7 +2030,7 @@ void wlan_mac_high_request_low_state(){
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
 	ipc_msg_to_low.num_payload_words = 0;
-	ipc_msg_to_low.arg0				 = 1; // This means a request for a status update
+	ipc_msg_to_low.arg0              = 1; // This means a request for a status update
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
 }
@@ -2387,6 +2328,11 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 		station->AID         = 0;
 		station->hostname[0] = 0;
 		station->flags       = 0;
+
+		// Initialize the latest activity timestamp
+		//     NOTE:  This is so we don't run into a race condition when we try to check the timeout
+		//
+		station->latest_activity_timestamp = get_system_timestamp_usec();
 
 		// Set the last received sequence number to something invalid so we don't accidentally
 		// de-duplicate the next reception if that sequency number is 0.

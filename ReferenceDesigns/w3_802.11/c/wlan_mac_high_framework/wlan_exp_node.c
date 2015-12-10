@@ -81,7 +81,6 @@
 // Declared in wlan_mac_high.c
 extern u8                  promiscuous_counts_enabled;
 extern u8                  rx_ant_mode_tracker;
-extern u8                  add_time_info_entry_on_change;
 
 // Declared in each of the AP / STA / IBSS
 extern bss_info*           my_bss_info;
@@ -155,7 +154,6 @@ static wlan_exp_function_ptr_t    wlan_exp_reset_station_counts_callback     = (
        wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_reset_bss_info_callback           = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-static wlan_exp_function_ptr_t    wlan_exp_adjust_timebase_callback          = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_user_process_cmd_callback         = (wlan_exp_function_ptr_t) wlan_exp_null_node_process_cmd_callback;
 
@@ -621,7 +619,6 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
     u64                      new_mac_time;
     u64                      system_time;
     u64                      host_time;
-    s64                      timebase_diff;
 
     int                      power;
     u32                      rate;
@@ -1745,9 +1742,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     // If this is a write, then update the time on the node
                     if (msg_cmd == CMD_PARAM_WRITE_VAL){
-                        timebase_diff = (s64)new_mac_time - (s64)get_mac_timestamp_usec();
-                        wlan_exp_adjust_timebase_callback(timebase_diff);
-                        wlan_mac_high_set_timestamp(new_mac_time);
+                        wlan_mac_high_set_mac_timestamp(new_mac_time);
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set time  = 0x%08x 0x%08x\n", temp2, temp);
                     }
 
@@ -1773,10 +1768,6 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     if (msg_cmd == CMD_PARAM_WRITE_VAL){
                         mac_time = new_mac_time;
                     }
-                break;
-
-                case CMD_PARAM_NODE_TIME_ADD_ON_CHANGE:
-                    add_time_info_entry_on_change = id;
                 break;
 
                 case CMD_PARAM_READ_VAL:
@@ -3431,7 +3422,6 @@ void wlan_exp_reset_all_callbacks(){
     wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_reset_bss_info_callback           = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_adjust_timebase_callback          = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_user_process_cmd_callback         = (wlan_exp_function_ptr_t) wlan_exp_null_node_process_cmd_callback;
 }
@@ -3464,11 +3454,6 @@ void wlan_exp_set_reset_all_associations_callback(void(*callback)()){
 
 void wlan_exp_set_reset_bss_info_callback(void(*callback)()){
     wlan_exp_reset_bss_info_callback = (wlan_exp_function_ptr_t) callback;
-}
-
-
-void wlan_exp_set_timebase_adjust_callback(void(*callback)()){
-    wlan_exp_adjust_timebase_callback = (wlan_exp_function_ptr_t) callback;
 }
 
 
