@@ -211,7 +211,6 @@ int main(){
     wlan_exp_set_purge_all_data_tx_queue_callback( (void *) purge_all_data_tx_queue);
     wlan_exp_set_reset_all_associations_callback(  (void *) reset_all_associations);
     wlan_exp_set_reset_bss_info_callback(          (void *) reset_bss_info);
-    wlan_exp_set_timebase_adjust_callback(         (void *) association_timestamp_adjust);
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the AP
     wlan_exp_set_user_process_cmd_callback(        (void *) wlan_exp_user_ap_process_cmd);
 
@@ -907,7 +906,7 @@ void beacon_transmit() {
 void association_timestamp_check() {
 
 	u32                 aid;
-	u64 				time_since_last_activity;
+	u64                 time_since_last_activity;
 	station_info*       curr_station_info;
 	dl_entry*           curr_station_info_entry;
 	dl_entry*           next_station_info_entry;
@@ -950,36 +949,6 @@ void association_timestamp_check() {
 			}
 		}
 	}
-}
-
-/**
- * @brief Update the last activity timestamps for all associated nodes
- *
- * In the current architecture, the last activity timestamps used the same usec counter than
- * can be modified by WLAN_EXP. This can lead to unexpected timeouts by 
- * association_timestamp_check(). This function should be called prior to large changes in
- * the underlying timebase to prevent this from occuring.
- *
- * @param  s64 timestamp_diff
- *  - number of usec that timestamps should be adjusted forward or backward
- * @return None
- */
-void association_timestamp_adjust(s64 timestamp_diff){
-    station_info*       curr_station_info;
-    dl_entry*           curr_station_info_entry;
-    dl_entry*           next_station_info_entry;
-    
-    if(my_bss_info != NULL){
-        next_station_info_entry = my_bss_info->associated_stations.first;
-        
-        while(next_station_info_entry != NULL) {
-            curr_station_info_entry = next_station_info_entry;
-            next_station_info_entry = dl_entry_next(curr_station_info_entry);
-            
-            curr_station_info        = (station_info*)(curr_station_info_entry->data);
-            (curr_station_info->latest_activity_timestamp) += timestamp_diff;
-        }
-    }
 }
 
 
