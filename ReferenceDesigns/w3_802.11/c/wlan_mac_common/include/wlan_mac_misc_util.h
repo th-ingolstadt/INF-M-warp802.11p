@@ -223,7 +223,12 @@ typedef struct{
 //     NOTE:  These types / structs contain information about the PHY and low-level MAC
 //         when transmitting packets.
 //
-typedef enum {TX_DETAILS_MPDU, TX_DETAILS_RTS_ONLY, TX_DETAILS_RTS_MPDU, TX_DETAILS_CTS, TX_DETAILS_ACK} tx_details_type_t;
+
+#define TX_DETAILS_MPDU		0
+#define TX_DETAILS_RTS_ONLY	1
+#define TX_DETAILS_RTS_MPDU 2
+#define TX_DETAILS_CTS		3
+#define TX_DETAILS_ACK		4
 
 
 // NOTE: This struct must be padded to be an integer number of u32 words.
@@ -233,7 +238,7 @@ typedef struct {
     s16                      num_slots;
     u16                      cw;
     u8                       chan_num;
-    tx_details_type_t        tx_details_type;
+    u8				         tx_details_type;
     u16                      duration;
     u16                      timestamp_offset;
     u16                      ssrc;
