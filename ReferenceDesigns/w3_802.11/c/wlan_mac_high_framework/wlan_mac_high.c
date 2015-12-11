@@ -381,9 +381,9 @@ void wlan_mac_high_init(){
 
 	// Test to see if DRAM SODIMM is connected to board
 	dram_present = 0;
-	timestamp = get_system_timestamp_usec();
+	timestamp = get_system_time_usec();
 
-	while((get_system_timestamp_usec() - timestamp) < 100000){
+	while((get_system_time_usec() - timestamp) < 100000){
 		if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
 			xil_printf("------------------------\nDRAM SODIMM Detected\n");
 			if(wlan_mac_high_memory_test()==0){
@@ -1509,7 +1509,7 @@ void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queu
 	bzero(&(curr_tx_queue_buffer->frame_info), sizeof(tx_frame_info));
 
 	// Set up frame info data
-	curr_tx_queue_buffer->frame_info.timestamp_create            = get_mac_timestamp_usec();
+	curr_tx_queue_buffer->frame_info.timestamp_create            = get_mac_time_usec();
 	curr_tx_queue_buffer->frame_info.length                      = tx_length;
 	curr_tx_queue_buffer->frame_info.flags                       = flags;
 	curr_tx_queue_buffer->frame_info.queue_info.QID              = QID;
@@ -1873,7 +1873,7 @@ int wlan_mac_high_write_low_mem(u32 num_words, u32* payload) {
  */
 int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload) {
 
-    u64                start_time;
+    u64                start_timestamp;
     wlan_ipc_msg       ipc_msg_to_low;
     ipc_reg_read_write ipc_msg_to_low_payload;
 
@@ -1894,11 +1894,11 @@ int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload) {
         ipc_mailbox_write_msg(&ipc_msg_to_low);
 
         // Get start time
-        start_time = get_system_timestamp_usec();
+        start_timestamp = get_system_time_usec();
 
         // Wait for CPU low to finish the read or timeout to occur
         while(cpu_low_reg_read_buffer_status != CPU_LOW_REG_READ_BUFFER_STATUS_READY){
-            if ((get_system_timestamp_usec() - start_time) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
+            if ((get_system_time_usec() - start_timestamp) > WLAN_EXP_CPU_LOW_DATA_REQ_TIMEOUT) {
                 xil_printf("Error: Reading CPU_LOW memory timed out\n");
 
                 // Reset the read buffer
@@ -1977,41 +1977,6 @@ void wlan_mac_high_set_dsss(u32 dsss_value) {
 	config_phy_rx->enable_dsss = dsss_value;
 
 	ipc_mailbox_write_msg(&ipc_msg_to_low);
-}
-
-
-
-/**
- * @brief Set the MAC timestamp
- *
- * @param   timestamp        - Value to set the MAC timestamp
- *
- * @return  None
- */
-void wlan_mac_high_set_mac_timestamp(u64 timestamp) {
-
-    // Update the time in the MAC Time HW core
-    set_mac_timestamp_usec(timestamp);
-}
-
-
-
-/**
- * @brief Modify the MAC timestamp
- *
- * @param   timestamp        - Value to add to the current MAC timestamp
- *
- * @return  None
- */
-void wlan_mac_high_set_mac_timestamp_delta(s64 timestamp) {
-
-    u64                new_mac_time;
-
-    // Compute the new MAC time based on the current MAC time and the timestamp
-    new_mac_time = get_mac_timestamp_usec() + timestamp;
-
-    // Update the time in the MAC Time HW core
-    set_mac_timestamp_usec(new_mac_time);
 }
 
 
@@ -2332,7 +2297,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 		// Initialize the latest activity timestamp
 		//     NOTE:  This is so we don't run into a race condition when we try to check the timeout
 		//
-		station->latest_activity_timestamp = get_system_timestamp_usec();
+		station->latest_activity_timestamp = get_system_time_usec();
 
 		// Set the last received sequence number to something invalid so we don't accidentally
 		// de-duplicate the next reception if that sequency number is 0.
@@ -2560,9 +2525,9 @@ u32 wlan_mac_high_get_max_associations() {
  * @return None
  */
 void wlan_mac_high_print_associations(dl_list* assoc_tbl){
-	u64 timestamp = get_mac_timestamp_usec();
-	dl_entry*	  curr_station_info_entry;
-	station_info* curr_station_info;
+	dl_entry     * curr_station_info_entry;
+	station_info * curr_station_info;
+	u64            timestamp           = get_mac_time_usec();
 
 	xil_printf("\n(MAC time = %d usec)\n",timestamp);
 	xil_printf("|-ID-|----- MAC ADDR ----|\n");

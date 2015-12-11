@@ -142,7 +142,7 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
 			sched_ptr->delay_us = delay;
-			sched_ptr->target_us = get_system_timestamp_usec() + (u64)(sched_ptr->delay_us);
+			sched_ptr->target_us = get_system_time_usec() + (u64)(sched_ptr->delay_us);
 
 			if(wlan_sched_coarse.length == 0){
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_SLOW, SLOW_TIMER_DUR_US*(TIMER_FREQ/1000000));
@@ -152,7 +152,7 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 		break;
 		case SCHEDULE_FINE:
 			sched_ptr->delay_us = delay;
-			sched_ptr->target_us = get_system_timestamp_usec() + (u64)(sched_ptr->delay_us);
+			sched_ptr->target_us = get_system_time_usec() + (u64)(sched_ptr->delay_us);
 
 			if(wlan_sched_fine.length == 0){
 				XTmrCtr_SetResetValue(&TimerCounterInst, TIMER_CNTR_FAST, FAST_TIMER_DUR_US*(TIMER_FREQ/1000000));
@@ -264,7 +264,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 				curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
-				if(get_system_timestamp_usec() >= (curr_sched_ptr->target_us)){
+				if(get_system_time_usec() >= (curr_sched_ptr->target_us)){
 					fine_id       = curr_sched_ptr->id;
 					fine_callback = curr_sched_ptr->callback;
 
@@ -276,7 +276,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 						wlan_mac_high_free(curr_entry_ptr);
 						wlan_mac_high_free(curr_sched_ptr);
 					} else {
-						curr_sched_ptr->target_us = get_system_timestamp_usec() + (u64)(curr_sched_ptr->delay_us);
+						curr_sched_ptr->target_us = get_system_time_usec() + (u64)(curr_sched_ptr->delay_us);
 					}
 
 					fine_callback(fine_id);
@@ -294,7 +294,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 
 				curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
-				if(get_system_timestamp_usec() >= (curr_sched_ptr->target_us)){
+				if(get_system_time_usec() >= (curr_sched_ptr->target_us)){
 					coarse_id       = curr_sched_ptr->id;
 					coarse_callback = curr_sched_ptr->callback;
 
@@ -306,7 +306,7 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 						wlan_mac_high_free(curr_entry_ptr);
 						wlan_mac_high_free(curr_sched_ptr);
 					} else {
-						curr_sched_ptr->target_us = get_system_timestamp_usec() + (u64)(curr_sched_ptr->delay_us);
+						curr_sched_ptr->target_us = get_system_time_usec() + (u64)(curr_sched_ptr->delay_us);
 					}
 
 					coarse_callback(coarse_id);

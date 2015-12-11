@@ -238,7 +238,7 @@ typedef struct {
     s16                      num_slots;
     u16                      cw;
     u8                       chan_num;
-    u8				         tx_details_type;
+    u8                       tx_details_type;
     u16                      duration;
     u16                      timestamp_offset;
     u16                      ssrc;
@@ -336,7 +336,7 @@ typedef struct{
     s8                       rx_power;                     ///< Rx power, in dBm
 
     phy_rx_details           phy_details;                  ///< Details from PHY used in this reception
-    u8						 reserved[2];				   ///< Reserved bytes for alignment
+    u8                       reserved[2];                  ///< Reserved bytes for alignment
 
     u8                       rf_gain;                      ///< Gain setting of radio Rx LNA, in [0,1,2]
     u8                       bb_gain;                      ///< Gain setting of radio Rx VGA, in [0,1,...31]
@@ -361,9 +361,10 @@ typedef struct{
 
 
 /*************************** Function Prototypes *****************************/
-u64                get_mac_timestamp_usec();
-void               set_mac_timestamp_usec(u64 new_time);
-u64                get_system_timestamp_usec();
+u64                get_mac_time_usec();
+void               set_mac_time_usec(u64 new_time);
+void               apply_mac_time_delta_usec(s64 time_delta);
+u64                get_system_time_usec();
 void               usleep(u64 delay);
 
 void               enable_hex_pwm();

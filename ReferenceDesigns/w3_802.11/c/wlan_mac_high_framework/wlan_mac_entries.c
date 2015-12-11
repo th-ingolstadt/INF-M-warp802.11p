@@ -1096,7 +1096,7 @@ void add_node_info_entry(u8 transmit){
     entry = (node_info_entry *)event_log_get_next_empty_entry(ENTRY_TYPE_NODE_INFO, sizeof(node_info_entry));
 
     if (entry != NULL) {
-        entry->timestamp = get_mac_timestamp_usec();
+        entry->timestamp = get_mac_time_usec();
 
         // Add the node parameters
         temp0 = node_get_parameter_values((u32 *)&(entry->node_type), entry_words);
@@ -1203,7 +1203,7 @@ u32 add_txrx_counts_to_log(counts_txrx * counts, u8 transmit){
     entry = (txrx_counts_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_TXRX_COUNTS, entry_size);
 
     if ( entry != NULL ) {
-        entry->timestamp = get_mac_timestamp_usec();
+        entry->timestamp = get_mac_time_usec();
 
         // Copy the counts to the log entry
         //   NOTE:  This assumes that the counts entry in wlan_mac_entries.h has a contiguous piece of
@@ -1303,7 +1303,7 @@ u32 add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit){
     entry = (station_info_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_STATION_INFO, entry_size);
 
     if ( entry != NULL ) {
-        entry->timestamp = get_mac_timestamp_usec();
+        entry->timestamp = get_mac_time_usec();
 
         // Copy the station info to the log entry
         //   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
@@ -1427,7 +1427,7 @@ u32 add_temperature_to_log(u8 transmit){
     entry = (temperature_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_TEMPERATURE, entry_size);
 
     if (entry != NULL) {
-        entry->timestamp     = get_mac_timestamp_usec();
+        entry->timestamp     = get_mac_time_usec();
         entry->id            = node_get_node_id();
         entry->serial_number = node_get_serial_number();
         entry->curr_temp     = node_get_curr_temp();

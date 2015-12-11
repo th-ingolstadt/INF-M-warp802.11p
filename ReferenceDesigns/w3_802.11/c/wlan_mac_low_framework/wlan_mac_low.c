@@ -758,7 +758,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 	} else {
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-		tx_mpdu->delay_accept = (u32)(get_mac_timestamp_usec() - tx_mpdu->timestamp_create);
+		tx_mpdu->delay_accept = (u32)(get_mac_time_usec() - tx_mpdu->timestamp_create);
 
 		// Convert rate index into rate code used in PHY's SIGNAL field
 		//     ACK_N_DBPS is used to calculate duration of received ACKs.
@@ -820,7 +820,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		}
 
 		//Record the total time this MPDU spent in the Tx state machine
-		tx_mpdu->delay_done = (u32)(get_mac_timestamp_usec() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
+		tx_mpdu->delay_done = (u32)(get_mac_time_usec() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
 
 		low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details);
 

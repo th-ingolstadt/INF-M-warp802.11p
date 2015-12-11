@@ -104,7 +104,7 @@ void print_mac_address(u8 * mac_address) {
 void print_mac_timestamp() {
     u64            timestamp;
 
-    timestamp = get_mac_timestamp_usec();
+    timestamp = get_mac_time_usec();
 
     xil_printf("0x%08x 0x%08x\n", (u32)(timestamp >> 32), (u32)(timestamp));
 }
@@ -230,14 +230,14 @@ void clear_ddr(u32 verbose) {
     u32 num_step;
     u32 step_size;
 
-    u64 start_time;
-    u64 end_time;
+    u64 start_timestamp;
+    u64 end_timestamp;
     u32 processing_time;
 
     u32 start_address = DRAM_BASE;
     u32 size          = DRAM_SIZE;
 
-    start_time = get_system_timestamp_usec();
+    start_timestamp = get_system_time_usec();
 
 #if 0
     // Implementation 1:
@@ -270,8 +270,8 @@ void clear_ddr(u32 verbose) {
     }
 #endif
 
-    end_time        = get_system_timestamp_usec();
-    processing_time = (end_time - start_time) & 0xFFFFFFFF;
+    end_timestamp   = get_system_time_usec();
+    processing_time = (end_timestamp - start_timestamp) & 0xFFFFFFFF;
 
     if (verbose == WLAN_EXP_VERBOSE) {
         wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  Contents cleared in %d (usec)\n", processing_time);

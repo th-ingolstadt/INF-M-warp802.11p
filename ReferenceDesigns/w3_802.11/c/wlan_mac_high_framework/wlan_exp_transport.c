@@ -869,8 +869,8 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
     u32          negotiated       = 1;
     u16          speed            = 0;
 
-    u32          start_time       = get_system_timestamp_usec();
-    u32          end_time         = start_time;
+    u32          start_timestamp  = get_system_time_usec();
+    u32          end_timestamp    = start_timestamp;
 
     // Make sure the Ethernet device is initialized
     if (eth_devices[eth_dev_num].initialized == TRANSPORT_ETH_DEV_INITIALIZED) {
@@ -887,7 +887,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
             }
 
             speed = ETH_PHY_SPEED_TO_MBPS((reg_val & ETH_PHY_REG_17_0_SPEED));
-            end_time = get_system_timestamp_usec();
+            end_timestamp = get_system_time_usec();
 
         } else {
             // Check to see if the Ethernet controller has auto-negotiated a speed
@@ -915,8 +915,8 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
     if (negotiated) {
         xil_printf("%d Mbps (auto-negotiated", speed);
 
-        if (start_time != end_time) {
-            xil_printf(" in %d usec)\n", (end_time - start_time));
+        if (start_timestamp != end_timestamp) {
+            xil_printf(" in %d usec)\n", (end_timestamp - start_timestamp));
         } else {
             xil_printf(")\n");
         }

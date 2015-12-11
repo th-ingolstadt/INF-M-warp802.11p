@@ -198,8 +198,8 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
     int  status              = XST_SUCCESS;
     int  link_status;
 
-    u64  mac_time;
-    u64  system_time;
+    u64  mac_timestamp;
+    u64  system_timestamp;
 
     u8   default_ip_addr[IP_ADDR_LEN];
 
@@ -253,10 +253,10 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
 
     // ------------------------------------------
     // Add a time info entry to the log to record the initial mac time and system time
-    mac_time    = get_mac_timestamp_usec();
-    system_time = get_system_timestamp_usec();
+    mac_timestamp    = get_mac_time_usec();
+    system_timestamp = get_system_time_usec();
 
-    add_time_info_entry(mac_time, mac_time, system_time, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
+    add_time_info_entry(mac_timestamp, mac_timestamp, system_timestamp, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
 
 
     // ------------------------------------------
@@ -615,10 +615,10 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
     u32                      size;
     u32                      evt_log_size;
 
-    u64                      mac_time;
+    u64                      mac_timestamp;
     u64                      new_mac_time;
-    u64                      system_time;
-    u64                      host_time;
+    u64                      system_timestamp;
+    u64                      host_timestamp;
 
     int                      power;
     u32                      rate;
@@ -1097,7 +1097,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log,
                                 "Adding EXP INFO entry with type %d to log (%d bytes)\n", type, size);
 
-                exp_info->timestamp   = get_mac_timestamp_usec();
+                exp_info->timestamp   = get_mac_time_usec();
                 exp_info->info_type   = type;
                 exp_info->info_length = size;
 
@@ -1726,11 +1726,11 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[3]  System Time on node in microseconds - lower 32 bits
             //     resp_args_32[4]  System Time on node in microseconds - upper 32 bits
             //
-            status      = CMD_PARAM_SUCCESS;
-            msg_cmd     = Xil_Ntohl(cmd_args_32[0]);
-            id          = Xil_Ntohl(cmd_args_32[1]);
-            mac_time    = get_mac_timestamp_usec();
-            system_time = get_system_timestamp_usec();
+            status           = CMD_PARAM_SUCCESS;
+            msg_cmd          = Xil_Ntohl(cmd_args_32[0]);
+            id               = Xil_Ntohl(cmd_args_32[1]);
+            mac_timestamp    = get_mac_time_usec();
+            system_timestamp = get_system_time_usec();
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
@@ -1742,14 +1742,14 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     // If this is a write, then update the time on the node
                     if (msg_cmd == CMD_PARAM_WRITE_VAL){
-                        wlan_mac_high_set_mac_timestamp(new_mac_time);
+                        set_mac_time_usec(new_mac_time);
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set time  = 0x%08x 0x%08x\n", temp2, temp);
                     }
 
                     // Get the Host time
-                    temp      = Xil_Ntohl(cmd_args_32[4]);
-                    temp2     = Xil_Ntohl(cmd_args_32[5]);
-                    host_time = (((u64)temp2) << 32) + ((u64)temp);
+                    temp           = Xil_Ntohl(cmd_args_32[4]);
+                    temp2          = Xil_Ntohl(cmd_args_32[5]);
+                    host_timestamp = (((u64)temp2) << 32) + ((u64)temp);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Host time = 0x%08x 0x%08x\n", temp2, temp);
 
@@ -1758,15 +1758,15 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     // NOTE:  We add an additional time info entry to capture the other information from the host.
                     //
                     if (msg_cmd == CMD_PARAM_WRITE_VAL) {
-                        add_time_info_entry(mac_time, new_mac_time, system_time, host_time, TIME_INFO_ENTRY_WLAN_EXP_SET_TIME, id, WLAN_EXP_TRUE);
+                        add_time_info_entry(mac_timestamp, new_mac_time, system_timestamp, host_timestamp, TIME_INFO_ENTRY_WLAN_EXP_SET_TIME, id, WLAN_EXP_TRUE);
                     } else {
-                        add_time_info_entry(mac_time, new_mac_time, system_time, host_time, TIME_INFO_ENTRY_WLAN_EXP_ADD_LOG, id, WLAN_EXP_TRUE);
+                        add_time_info_entry(mac_timestamp, new_mac_time, system_timestamp, host_timestamp, TIME_INFO_ENTRY_WLAN_EXP_ADD_LOG, id, WLAN_EXP_TRUE);
                     }
 
                     // If this was a write, then update the time value so we can return it to the host
                     //   This is done after the log entry to the fields are correct in the entry.
                     if (msg_cmd == CMD_PARAM_WRITE_VAL){
-                        mac_time = new_mac_time;
+                        mac_timestamp = new_mac_time;
                     }
                 break;
 
@@ -1783,15 +1783,15 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
             // Add the MAC time to the response
-            temp  = mac_time & 0xFFFFFFFF;
-            temp2 = (mac_time >> 32) & 0xFFFFFFFF;
+            temp  = mac_timestamp & 0xFFFFFFFF;
+            temp2 = (mac_timestamp >> 32) & 0xFFFFFFFF;
 
             resp_args_32[resp_index++] = Xil_Htonl(temp);
             resp_args_32[resp_index++] = Xil_Htonl(temp2);
 
             // Add the System time to the response
-            temp  = system_time & 0xFFFFFFFF;
-            temp2 = (system_time >> 32) & 0xFFFFFFFF;
+            temp  = system_timestamp & 0xFFFFFFFF;
+            temp2 = (system_timestamp >> 32) & 0xFFFFFFFF;
 
             resp_args_32[resp_index++] = Xil_Htonl(temp);
             resp_args_32[resp_index++] = Xil_Htonl(temp2);
@@ -2805,7 +2805,7 @@ u32 node_process_buffer_cmds(int socket_index, void * from, cmd_resp * command, 
         if ((Xil_Ntohl(cmd_args_32[1]) & CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE) == CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE) {
 
             // Copy routine will fill in a zeroed entry if the source is NULL
-            copy_source_to_dest(NULL, &resp_args_32[resp_index], get_mac_timestamp_usec());
+            copy_source_to_dest(NULL, &resp_args_32[resp_index], get_mac_time_usec());
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Returning zeroed %s entry for node: ", description);
             wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
@@ -2830,7 +2830,7 @@ u32 node_process_buffer_cmds(int socket_index, void * from, cmd_resp * command, 
                 // Copy the info to the entry
                 //   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
                 //          similar to the info structures in wlan_mac_high.h
-                copy_source_to_dest(curr_entry->data, &resp_args_32[resp_index], get_mac_timestamp_usec());
+                copy_source_to_dest(curr_entry->data, &resp_args_32[resp_index], get_mac_time_usec());
 
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Get %s entry for node: ", description);
                 wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
@@ -2873,7 +2873,7 @@ u32 node_process_buffer_cmds(int socket_index, void * from, cmd_resp * command, 
                 bytes_remaining   = size;
                 curr_index        = 0;
                 curr_entry        = source_list->first;
-                time              = get_mac_timestamp_usec();
+                time              = get_mac_time_usec();
 
                 // Set response header arguments that do not change per packet
                 resp_hdr->num_args = 5;
@@ -3766,7 +3766,7 @@ void create_wlan_exp_cmd_log_entry(cmd_resp * command) {
     }
 
     if (entry != NULL) {
-        entry->timestamp = get_mac_timestamp_usec();
+        entry->timestamp = get_mac_time_usec();
         entry->command   = command->header->cmd;
         entry->src_id    = header->src_id;
         entry->num_args  = num_args;

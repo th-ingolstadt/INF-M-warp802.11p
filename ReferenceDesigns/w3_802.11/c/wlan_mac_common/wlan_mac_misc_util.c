@@ -41,37 +41,38 @@
 
 /*****************************************************************************/
 /**
- * @brief Get MAC Timestamp (Microsecond Counter)
+ * @brief Get MAC Time
  *
- * The Reference Design includes a 64-bit counter that increments with
- * every microsecond. This function returns this value and is used
- * throughout the framework as a timestamp.  This timestamp can be updated
- * by various sources and is the MAC time.
+ * The Reference Design includes a 64-bit counter that increments every microsecond
+ * and can be updated (ie the MAC time).  This function returns the value of the
+ * counter at the time the function is called and is used throughout the framework
+ * as a timestamp.  The MAC time can be updated by the set_mac_time_usec() and
+ * apply_mac_time_delta_usec() methods.
  *
  * @param   None
  * @return  u64              - Current number of microseconds of MAC time.
  */
-u64 get_mac_timestamp_usec() {
-    //The MAC time core register interface is only 32-bit, so the 64-bit timestamp
+u64 get_mac_time_usec() {
+    //The MAC time core register interface is only 32-bit, so the 64-bit time
     // is read from two 32-bit registers and reconstructed here.
 
-    u32 timestamp_high_u32;
-    u32 timestamp_low_u32;
-    u64 timestamp_u64;
+    u32 time_high_u32;
+    u32 time_low_u32;
+    u64 time_u64;
 
-    timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
-    timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
+    time_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
+    time_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
 
     // Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
-    if((timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB) & 0x1)) {
+    if((time_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB) & 0x1)) {
         //32-LSB wrapped - start over
-        timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
-        timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
+        time_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
+        time_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
     }
 
-    timestamp_u64 = (((u64)timestamp_high_u32) << 32) + ((u64)timestamp_low_u32);
+    time_u64 = (((u64)time_high_u32) << 32) + ((u64)time_low_u32);
 
-    return timestamp_u64;
+    return time_u64;
 }
 
 
@@ -80,54 +81,54 @@ u64 get_mac_timestamp_usec() {
 /**
  * @brief Get System Timestamp (Microsecond Counter)
  *
- * The Reference Design includes a 64-bit counter that increments with
- * every microsecond. This function returns this value and is used
- * throughout the framework as a timestamp.  This timestamp cannot be
- * updated and reflects the number of microseconds that has past since
- * the hardware booted.
+ * The Reference Design includes a 64-bit counter that increments every microsecond
+ * and can not be updated (ie the system time).  This function returns the value of
+ * the counter at the time the function is called and is used throughout the framework
+ * as a timestamp.  The system time can not be updated and reflects the number of
+ * microseconds that has past since the hardware booted.
  *
  * @param   None
  * @return  u64              - Current number of microseconds that have elapsed
  *                             since the hardware has booted.
  */
-u64 get_system_timestamp_usec() {
-    // The MAC time core register interface is only 32-bit, so the 64-bit timestamp
+u64 get_system_time_usec() {
+    // The MAC time core register interface is only 32-bit, so the 64-bit time
     // is read from two 32-bit registers and reconstructed here.
 
-    u32 timestamp_high_u32;
-    u32 timestamp_low_u32;
-    u64 timestamp_u64;
+    u32 time_high_u32;
+    u32 time_low_u32;
+    u64 time_u64;
 
-    timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
-    timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
+    time_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
+    time_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
 
     // Catch very rare race when 32-LSB of 64-bit value wraps between the two 32-bit reads
-    if((timestamp_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB) & 0x1) ) {
+    if((time_high_u32 & 0x1) != (Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB) & 0x1) ) {
         // 32-LSB wrapped - start over
-        timestamp_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
-        timestamp_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
+        time_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
+        time_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
     }
 
-    timestamp_u64 = (((u64)timestamp_high_u32)<<32) + ((u64)timestamp_low_u32);
+    time_u64 = (((u64)time_high_u32)<<32) + ((u64)time_low_u32);
 
-    return timestamp_u64;
+    return time_u64;
 }
 
 
 
 /*****************************************************************************/
 /**
- * @brief Set MAC microsecond timer
+ * @brief Set MAC time
  *
- * The Reference Design includes a 64-bit counter that increments with every
- * microsecond. This function sets this value for use throughout the framework
- * as a timestamp.  Some 802.11 handshakes require updating the MAC time to
- * match a partner node's MAC time value (reception of a beacon, for example)
+ * The Reference Design includes a 64-bit counter that increments every microsecond
+ * and can be updated (ie the MAC time).  This function sets the counter value.
+ * Some 802.11 handshakes require updating the MAC time to match a partner node's
+ * MAC time value (reception of a beacon, for example)
  *
- * @param   new_time         - u64 of the new MAC time for the node
+ * @param   new_time         - u64 number of microseconds for the new MAC time of the node
  * @return  None
  */
-void set_mac_timestamp_usec(u64 new_time) {
+void set_mac_time_usec(u64 new_time) {
 
     //
     // NOTE:  We have run into an odd situation where the new time has to be put into
@@ -149,6 +150,32 @@ void set_mac_timestamp_usec(u64 new_time) {
 
 /*****************************************************************************/
 /**
+ * @brief Apply time delta to MAC time
+ *
+ * The Reference Design includes a 64-bit counter that increments every microsecond
+ * and can be updated (ie the MAC time).  This function updates the counter value
+ * by time_delta microseconds (note that the time delta is an s64 and can be positive
+ * or negative).  Some 802.11 handshakes require updating the MAC time to match a
+ * partner node's MAC time value (reception of a beacon, for example)
+ *
+ * @param   time_delta       - s64 number of microseconds to change the MAC time of the node
+ * @return  None
+ */
+void apply_mac_time_delta_usec(s64 time_delta) {
+
+    u64                new_mac_time;
+
+    // Compute the new MAC time based on the current MAC time and the time delta
+    new_mac_time = get_mac_time_usec() + time_delta;
+
+    // Update the time in the MAC Time HW core
+    set_mac_time_usec(new_mac_time);
+}
+
+
+
+/*****************************************************************************/
+/**
  * @brief Sleep delay (in microseconds)
  *
  * Function will delay execution for the specified amount of time.
@@ -160,8 +187,8 @@ void set_mac_timestamp_usec(u64 new_time) {
  * @return  None
  */
 void usleep(u64 delay) {
-    u64 timestamp = get_system_timestamp_usec();
-    while(get_system_timestamp_usec() < (timestamp + delay)){}
+    u64 timestamp = get_system_time_usec();
+    while (get_system_time_usec() < (timestamp + delay)) {}
     return;
 }
 
