@@ -385,7 +385,7 @@ void poll_tx_queues(){
 							// Check the broadcast queue
 							next_station_info_entry = my_bss_info->associated_stations.first;
 
-							if((get_system_timestamp_usec() - power_save_configuration.dtim_timestamp) <= power_save_configuration.dtim_mcast_allow_window || (power_save_configuration.enable == 0)){
+							if((get_system_time_usec() - power_save_configuration.dtim_timestamp) <= power_save_configuration.dtim_mcast_allow_window || (power_save_configuration.enable == 0)){
 								if(dequeue_transmit_checkin(MCAST_QID)){
 									// Found a not-empty queue, transmitted a packet
 									goto poll_cleanup;
@@ -918,7 +918,7 @@ void association_timestamp_check() {
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
 		curr_station_info        = (station_info*)(curr_station_info_entry->data);
-		time_since_last_activity = (get_system_timestamp_usec() - curr_station_info->latest_activity_timestamp);
+		time_since_last_activity = (get_system_time_usec() - curr_station_info->latest_activity_timestamp);
 
 		// De-authenticate the station if we have timed out and we have not disabled this check for the station
 		if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
@@ -938,7 +938,7 @@ void association_timestamp_check() {
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
 		curr_station_info        = (station_info*)(curr_station_info_entry->data);
-		time_since_last_activity = (get_system_timestamp_usec() - curr_station_info->latest_activity_timestamp);
+		time_since_last_activity = (get_system_time_usec() - curr_station_info->latest_activity_timestamp);
 
 		// De-authenticate the station if we have timed out and we have not disabled this check for the station
 		if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
@@ -1027,7 +1027,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			// Update station information
 			mpdu_info->additional_info                    = (u32)associated_station;
 
-			associated_station->latest_activity_timestamp = get_system_timestamp_usec();
+			associated_station->latest_activity_timestamp = get_system_time_usec();
 
 			associated_station->rx.last_power             = mpdu_info->rx_power;
 			associated_station->rx.last_rate              = rate;
@@ -1053,7 +1053,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
         // Update receive counts
 		if(station_counts != NULL){
-			station_counts->latest_txrx_timestamp = get_system_timestamp_usec();
+			station_counts->latest_txrx_timestamp = get_system_time_usec();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_counts)->data.rx_num_packets)++;
 				((station_counts)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
@@ -1806,7 +1806,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 					if(power_save_configuration.dtim_count > 0){
 						power_save_configuration.dtim_count--;
 					} else {
-						power_save_configuration.dtim_timestamp = get_system_timestamp_usec();
+						power_save_configuration.dtim_timestamp = get_system_time_usec();
 						power_save_configuration.dtim_count = (power_save_configuration.dtim_period-1);
 					}
 				}
