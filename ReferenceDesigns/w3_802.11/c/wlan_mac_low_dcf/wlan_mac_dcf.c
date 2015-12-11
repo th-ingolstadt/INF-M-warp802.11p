@@ -346,7 +346,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         //
         wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0);
 
-        // ACKs are transmitted with a nominal Tx power used for all control packets
+        // CTSs are transmitted with a nominal Tx power used for all control packets
         ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
         wlan_mac_tx_ctrl_B_gains(ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain);
 
@@ -536,10 +536,28 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     switch(tx_pending_state){
         default:
         case TX_PENDING_A:
-            // We don't need to do anything here for pending transmissions from CFG A.
-            // The only time this case occurs is when we are sending an MPDU in response to
-            // a CTS. We don't need to update any fields here since reporting of the MPDU Tx
-            // is the responsibility of the frame_transmit context.
+        	do{
+				mac_hw_status = wlan_mac_get_status();
+
+				if(((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_STATE) == WLAN_MAC_STATUS_TX_A_STATE_PRE_TX_WAIT) &&
+						  ((mac_hw_status & WLAN_MAC_STATUS_MASK_POSTRX_TIMER1_RUNNING) == 0)){
+					// This is potentially a bad state. It likely means we were late in processing this reception
+					//
+					// There is a slight race condition in detecting this state. There is a small 1 or 2 cycle window where this
+					// check can inaccurately deem a failed response transmission. As such, we'll require the condition to be met
+					// multiple times.
+					//
+					num_resp_failures++;
+
+					if(num_resp_failures > 2){
+						wlan_mac_reset_tx_ctrl_a(1);
+						wlan_mac_reset_tx_ctrl_a(0);
+
+						break;
+					}
+				}
+			} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING);
+
         break;
 
         case TX_PENDING_B:
@@ -547,13 +565,19 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
                 mac_hw_status = wlan_mac_get_status();
 
                 if ((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DONE) {
-                    if ((wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_B_RESULT) != WLAN_MAC_STATUS_TX_B_RESULT_NO_TX) {
+                    if ((wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_STATUS_TX_B_RESULT_NO_TX) {
+                    	// The MAC Support Core B has the capability of successfully not transmitting. This is not relevant
+                    	// for ACK transmissions, but it is relevant for CTS transmissions. A CTS will only be sent if the
+                    	// NAV is clear at the time of transmission. This code block handles the case the the support core
+                    	// elected not to transmit the frame.
+                    	//
                         mpdu_info->flags = mpdu_info->flags & ~RX_MPDU_FLAGS_FORMED_RESPONSE;
                         break;
                     }
-                } else if((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DO_TX) {
-                    mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
-                    break;
+                    if ((wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_STATUS_TX_B_RESULT_DID_TX) {
+                        mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
+                        break;
+                    }
                 } else if(((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_PRE_TX_WAIT) &&
                           ((mac_hw_status & WLAN_MAC_STATUS_MASK_POSTRX_TIMER1_RUNNING) == 0)){
                     // This is potentially a bad state. It likely means we were late in processing this reception
