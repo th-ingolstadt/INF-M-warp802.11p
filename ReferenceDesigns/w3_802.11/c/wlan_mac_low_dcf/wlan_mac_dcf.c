@@ -722,7 +722,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 
             memcpy((void*)gl_autocancel_match_addr3, header->address_3, 6);
 
-            autocancel_curr_timestamp = get_mac_timestamp_usec();
+            autocancel_curr_timestamp = get_mac_time_usec();
 
             if(autocancel_curr_timestamp >= gl_autocancel_last_rx_ts){
                 autocancel_timestamp_diff = autocancel_curr_timestamp - gl_autocancel_last_rx_ts;
