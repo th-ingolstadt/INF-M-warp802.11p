@@ -545,7 +545,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	u8                  unicast_to_me;
 	u8                  to_multicast;
-	s64                 timestamp_diff;
+	s64                 time_delta;
 	u8                  is_associated            = 0;
 	dl_entry*			bss_info_entry;
 	bss_info*			curr_bss_info;
@@ -582,7 +582,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			associated_station = (station_info*)(associated_station_entry->data);
 
 			// Update station information
-			associated_station->latest_activity_timestamp = get_system_timestamp_usec();
+			associated_station->latest_activity_timestamp = get_system_time_usec();
 			associated_station->rx.last_power             = mpdu_info->rx_power;
 			associated_station->rx.last_rate              = rate;
 
@@ -608,7 +608,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
         // Update receive counts
 		if(station_counts != NULL){
-			station_counts->latest_txrx_timestamp = get_system_timestamp_usec();
+			station_counts->latest_txrx_timestamp = get_system_time_usec();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_counts)->data.rx_num_packets)++;
 				((station_counts)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
@@ -758,7 +758,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 							// Calculate the difference between the beacon timestamp and the packet timestamp
 							//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
-							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+							time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
 
 							// xil_printf("0x%08x 0x%08x\n", (u32)((((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) >> 32), (u32)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp));
 							// xil_printf("0x%08x 0x%08x\n", (u32)((mpdu_info->timestamp) >> 32), (u32)(mpdu_info->timestamp));
@@ -766,7 +766,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							// xil_printf("\n");
 
 							// Update the MAC time
-							wlan_mac_high_set_mac_timestamp_delta(timestamp_diff);
+							apply_mac_time_delta_usec(time_delta);
 
 							// Move the packet pointer back to the start for the rest of the function
 							mpdu_ptr_u8 -= sizeof(mac_header_80211);
