@@ -57,7 +57,7 @@ def initialize_experiment():
     nodes = util.init_nodes(nodes_config, network_config)
 
     # Initialize the time on all nodes to zero
-    util.broadcast_cmd_set_time(0.0, network_config)
+    util.broadcast_cmd_set_mac_time(0.0, network_config)
 
     # Set the promiscuous counts mode
     for node in nodes:
