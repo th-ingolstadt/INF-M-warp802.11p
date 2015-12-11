@@ -280,8 +280,8 @@ int main() {
 	// If there is a default SSID and the DIP switch allows it, initiate a probe request
 	if( (strlen(default_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
 		wlan_mac_ibss_scan_and_join(default_ssid, SCAN_TIMEOUT_SEC);
-		scan_start_timestamp = get_system_timestamp_usec();
-		while((get_system_timestamp_usec() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
+		scan_start_timestamp = get_system_time_usec();
+		while((get_system_time_usec() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
 			if(my_bss_info != NULL){
 				break;
 			}
@@ -658,7 +658,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				queue_sel = AID_TO_QID(associated_station->AID);
 				// Setup the TX frame info
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
-				associated_station->latest_activity_timestamp = get_system_timestamp_usec();
+				associated_station->latest_activity_timestamp = get_system_time_usec();
 				curr_tx_queue_buffer->metadata.metadata_type  = QUEUE_METADATA_TYPE_STATION_INFO;
 				curr_tx_queue_buffer->metadata.metadata_ptr   = (u32)associated_station;
 				curr_tx_queue_buffer->frame_info.AID          = associated_station->AID;
@@ -713,7 +713,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	u8                  unicast_to_me;
 	u8                  to_multicast;
-	s64                 timestamp_diff;
+	s64                 time_delta;
 	u8					send_response			 = 0;
 	u32					tx_length;
 	u8					pre_llc_offset			 = 0;
@@ -750,7 +750,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 		if(associated_station != NULL) {
 
 			// Update station information
-			associated_station->latest_activity_timestamp = get_system_timestamp_usec();
+			associated_station->latest_activity_timestamp = get_system_time_usec();
 			associated_station->rx.last_power             = mpdu_info->rx_power;
 			associated_station->rx.last_rate              = rate;
 
@@ -775,7 +775,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
         // Update receive counts
 		if(station_counts != NULL){
-			station_counts->latest_txrx_timestamp = get_system_timestamp_usec();
+			station_counts->latest_txrx_timestamp = get_system_time_usec();
 			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
 				((station_counts)->data.rx_num_packets)++;
 				((station_counts)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
@@ -897,20 +897,20 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 							// Calculate the difference between the beacon timestamp and the packet timestamp
 							//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
-							timestamp_diff = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+							time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
 
 							// Set the timestamp
 							if (allow_beacon_ts_update == 1) {
-								if (timestamp_diff > 0) {
+								if (time_delta > 0) {
 									// Update the MAC time
-									wlan_mac_high_set_mac_timestamp_delta(timestamp_diff);
+									apply_mac_time_delta_usec(time_delta);
 								}
 
 								// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
 								if(beacon_schedule_id != SCHEDULE_FAILURE){
 									wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_schedule_id);
-									timestamp_diff = get_mac_timestamp_usec() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
-									beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - timestamp_diff, 1, (void*)beacon_transmit);
+									time_delta         = get_mac_time_usec() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
+									beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - time_delta, 1, (void*)beacon_transmit);
 								}
 							}
 							if(queue_num_queued(BEACON_QID)){
@@ -987,7 +987,7 @@ void association_timestamp_check() {
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
 			curr_station_info        = (station_info*)(curr_station_info_entry->data);
-			time_since_last_activity = (get_system_timestamp_usec() - curr_station_info->latest_activity_timestamp);
+			time_since_last_activity = (get_system_time_usec() - curr_station_info->latest_activity_timestamp);
 
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){

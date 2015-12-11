@@ -172,7 +172,7 @@ void print_station_status(u8 manual_call){
 	u64 timestamp;
 
 	if(uart_mode == UART_MODE_INTERACTIVE){
-		timestamp = get_mac_timestamp_usec();
+		timestamp = get_system_time_usec();
 		xil_printf("\f");
 		//xil_printf("next_free_assoc_index = %d\n", next_free_assoc_index);
 
