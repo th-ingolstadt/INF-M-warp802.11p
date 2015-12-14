@@ -109,22 +109,27 @@ void purge_queue(u16 queue_sel){
 	tx_queue_element* curr_tx_queue_element;
 	interrupt_state_t prev_interrupt_state;
 
-	// The queue purge is not interrupt safe
-	prev_interrupt_state = wlan_mac_high_interrupt_stop();
-
 	num_queued = queue_num_queued(queue_sel);
 
 	if( num_queued > 0 ){
 		wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging %d packets from queue %d\n", num_queued, queue_sel);
 
 		for(i = 0; i < num_queued; i++){
+			// The queue purge is not interrupt safe
+			//     NOTE:  Since there could be many elements in the queue, we need to toggle the interrupts
+			//         inside the for loop so that we do not block CPU High for an extended period of time.
+			//         This could result in CPU Low dropping a reception.
+			//
+			prev_interrupt_state = wlan_mac_high_interrupt_stop();
+
 			curr_tx_queue_element = dequeue_from_head(queue_sel);
 			queue_checkin(curr_tx_queue_element);
+
+			// Re-enable interrupts
+			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 		}
 	}
 
-	// Re-enable interrupts now that we are done
-	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 }
 
 /**
