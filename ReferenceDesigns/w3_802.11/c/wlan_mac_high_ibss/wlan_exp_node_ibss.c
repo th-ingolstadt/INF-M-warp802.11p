@@ -104,7 +104,7 @@ void wlan_exp_ibss_join_success(bss_info* bss_description);
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response) {
+int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -532,6 +532,8 @@ int wlan_exp_node_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cm
  * @return  int              - Status of the command:
  *                                 XST_SUCCESS - Command completed successfully
  *                                 XST_FAILURE - There was an error in the command
+ *
+ * @note    Function name must not collide with wlan_exp_node_init
  *
  ******************************************************************************/
 int wlan_exp_node_ibss_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {

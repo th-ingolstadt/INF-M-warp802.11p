@@ -49,6 +49,8 @@
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ibss.h"
 #include "wlan_exp_transport.h"
+#include "wlan_exp_user.h"
+
 
 /*************************** Constant Definitions ****************************/
 
@@ -110,7 +112,7 @@ volatile u8	                      allow_beacon_ts_update;            // Allow ti
 /*************************** Functions Prototypes ****************************/
 
 #ifdef USE_WLAN_EXP
-int  wlan_exp_user_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
+int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
 #endif
 
 
@@ -209,13 +211,13 @@ int main() {
 
     // Set WLAN Exp callbacks
     wlan_exp_set_init_callback(                     (void *)wlan_exp_node_ibss_init);
-    wlan_exp_set_node_process_cmd_callback(         (void *)wlan_exp_node_ibss_process_cmd);
+    wlan_exp_set_process_node_cmd_callback(         (void *)wlan_exp_process_node_cmd);
     wlan_exp_set_reset_station_counts_callback(     (void *)reset_station_counts);
     wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
     wlan_exp_set_reset_all_associations_callback(   (void *)leave_ibss);
     wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
     wlan_exp_set_tx_cmd_add_association_callback(   (void *)wlan_exp_ibss_tx_cmd_add_association);
-    wlan_exp_set_user_process_cmd_callback(         (void *) wlan_exp_user_ibss_process_cmd);
+    wlan_exp_set_process_user_cmd_callback(         (void *) wlan_exp_process_user_cmd);
 
     // Get the hardware info that has been collected from CPU low
     hw_info = wlan_mac_high_get_hw_info();
@@ -1321,13 +1323,13 @@ u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 //-----------------------------------------------
 // IBSS Specific User Commands
 //
-// #define CMDID_USER_IBSS_<COMMAND_NAME>                     0x100000
+// #define CMDID_USER_<COMMAND_NAME>                     0x100000
 
 
 //-----------------------------------------------
 // IBSS Specific User Command Parameters
 //
-// #define CMD_PARAM_USER_IBSS_<PARAMETER_NAME>               0x00000000
+// #define CMD_PARAM_USER_<PARAMETER_NAME>               0x00000000
 
 
 
@@ -1355,7 +1357,7 @@ u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
  *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
  *
  *****************************************************************************/
-int wlan_exp_user_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -1406,7 +1408,7 @@ int wlan_exp_user_ibss_process_cmd(u32 cmd_id, int socket_index, void * from, cm
         //
 #if 0
         //---------------------------------------------------------------------
-        case CMDID_USER_IBSS_<COMMAND_NAME>:
+        case CMDID_USER_<COMMAND_NAME>:
             // Command Description
             //
             // Message format:
