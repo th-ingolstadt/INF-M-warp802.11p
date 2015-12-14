@@ -661,7 +661,10 @@ class Buffer(Message):
 
     def sizeof(self):
         """Return the size of the Buffer including all attributes."""
-        return struct.calcsize('!5I %dB' % self.size)
+        # NOTE: Do not calculate the size of the buffer just using calcsize.
+        #     This is extremely memory inefficient for large buffers and can
+        #     cause memory issues.
+        return (struct.calcsize('!5I') + self.size)
 
     def get_buffer_id(self):           return self.buffer_id
     def get_flags(self):               return self.flags
@@ -743,8 +746,10 @@ class Buffer(Message):
             data = struct.unpack_from('!%dB' % size, raw_data, offset=28)
         except struct.error as err:
             # Ignore the data.  We want predictable behavior on error
-            print("Error unpacking buffer: {0}\n".format(err),
-                  "    Ignorning data.")
+            print("Error unpacking buffer:")
+            print("    {0}".format(err))
+            print("    Ignorning data.  This error could be caused by a mismatch between\n")
+            print("    the maximum packet size between the node and the host.\n")
         
         return (args, data)
 
