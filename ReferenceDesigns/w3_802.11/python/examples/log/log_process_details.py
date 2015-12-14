@@ -109,8 +109,7 @@ tx_rates = log_tx['rate']
 
 # Initialize an array to count number of Tx per PHY rate
 #   MAC uses rate_indexes 1:8 to encode OFDM rates
-tx_rate_counts = np.bincount(tx_rates, minlength=9)
-tx_rate_counts = tx_rate_counts[1:9] # only rate values 1:8 are valid
+tx_rate_counts = np.bincount(tx_rates, minlength=8)
 
 # Extract an array of just the 'time_to_done' timestamp offsets
 tx_done        = log_tx['time_to_done']
@@ -136,8 +135,8 @@ tx_low_rates = log_tx_low['rate']
 
 # Initialize an array to count number of Tx per PHY rate
 #   MAC uses rate_indexes 1:8 to encode OFDM rates
-tx_low_rate_counts = np.bincount(tx_low_rates, minlength=9)
-tx_low_rate_counts = tx_low_rate_counts[1:9] # only rate values 1:8 are valid
+tx_low_rate_counts = np.bincount(tx_low_rates, minlength=8)
+
 
 
 total_retrans = 0
