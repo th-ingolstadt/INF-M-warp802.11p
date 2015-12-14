@@ -172,7 +172,17 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
            add about 2% overhead to the receive time and each command takes less
            than 1 second (~0.9 sec), which is the default transport timeout. 
         """
-        return self.send_cmd(cmds.LogGetEvents(size, offset), max_req_size=max_req_size)
+        cmd_size = size
+        log_size = self.log_get_size()
+        
+        if ((size + offset) > log_size):
+            cmd_size = log_size - offset
+            
+            print("WARNING:  Trying to get {0} bytes from the log at offset {1}".format(size, offset))
+            print("    while log only has {0} bytes.".format(log_size))
+            print("    Truncating command to {0} bytes at offset {1}.".format(cmd_size, offset))
+        
+        return self.send_cmd(cmds.LogGetEvents(cmd_size, offset), max_req_size=max_req_size)
 
 
     def log_get_all_new(self, log_tail_pad=500, max_req_size=2**23):
