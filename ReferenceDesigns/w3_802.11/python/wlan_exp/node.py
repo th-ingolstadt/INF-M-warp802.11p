@@ -1644,23 +1644,23 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #--------------------------------------------
     # Node User Commands
     #--------------------------------------------
-    def send_user_command(self, cmd_id, values=None):
+    def send_user_command(self, cmd_id, args=None):
         """Send User defined command to the node
         
         See documentation on how-to add a WLAN Exp command:
             http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
     
         Attributes:
-            cmd_id    -- User-defined Command ID
-            values    -- Scalar or list of u32 values to send to the node
+            cmd_id  -- User-defined Command ID
+            args    -- Scalar or list of u32 command arguments to send to the node
             
         Returns:
-            values (list of u32):  List of u32 values received from the node
+            list of u32:  List of u32 command response values received from the node
         """
         if cmd_id is None:
             raise AttributeError("Command ID must be defined for a user command")
         
-        ret_val = self.send_cmd(cmds.UserSendCmd(cmd_id=cmd_id, values=values))
+        ret_val = self.send_cmd(cmds.UserSendCmd(cmd_id=cmd_id, args=args))
         
         if ret_val is not None:
             return ret_val

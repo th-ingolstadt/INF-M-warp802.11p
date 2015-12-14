@@ -2205,17 +2205,17 @@ class UserSendCmd(message.Cmd):
         cmdid     -- User-defined Command ID
         values    -- Scalar or list of u32 values to write
     """
-    def __init__(self, cmd_id, values=None):
+    def __init__(self, cmd_id, args=None):
         super(UserSendCmd, self).__init__()        
         
         self.command    = _CMD_GROUP_USER + cmd_id
 
         if values is not None:
             try:
-                for v in values:
-                    self.add_args(v)
+                for a in args:
+                    self.add_args(a)
             except TypeError:
-                self.add_args(values)
+                self.add_args(args)
 
    
     def process_resp(self, resp):
