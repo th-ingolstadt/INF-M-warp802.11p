@@ -113,7 +113,7 @@ volatile u32                      beacon_schedule_id = SCHEDULE_FAILURE;
 /*************************** Functions Prototypes ****************************/
 
 #ifdef USE_WLAN_EXP
-int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
+int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 #endif
 
 
@@ -1893,7 +1893,7 @@ void ap_update_hex_display(u8 val) {
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
- * @param   max_words        - Maximum number of u32 words allowed in response
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
@@ -1903,7 +1903,7 @@ void ap_update_hex_display(u8 val) {
  *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
  *
  *****************************************************************************/
-int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -1920,22 +1920,23 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //         compiler warnings for "unused variables" since the default implemention is empty.  As
     //         you add commands, you should un-comment the standard variables.
     //
-    u32                 resp_sent      = NO_RESP_SENT;
+	u32                 resp_sent      = NO_RESP_SENT;
 
-    // u32               * cmd_args_32    = command->args;
+#if 0
+	//Helper variables for accessing command arguments and constructing the command response header/payload
+	u32               * cmd_args_32    = command->args;
 
-    // cmd_resp_hdr      * resp_hdr       = response->header;
-    // u32               * resp_args_32   = response->args;
-    // u32                 resp_index     = 0;
+	cmd_resp_hdr      * resp_hdr       = response->header;
+	u32               * resp_args_32   = response->args;
+	u32                 resp_index     = 0;
+#endif
 
-    //
-    // NOTE: Response header has already been initialized.  (see wlan_exp_user.c)
-    //
+	interrupt_state_t curr_interrupt_state;
 
-    // Variables for User Commands
-    // int                 status;
-    // u32                 arg_0;
-
+	//Disable interrupts before processing user commands
+	// This is conservative - if you're certain your command handling is interrupt safe
+	//  you can safely disable this
+	curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
     switch(cmd_id){
 
@@ -1993,7 +1994,10 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
         break;
     }
 
-    return resp_sent;
+	//Re-enable interrupts before returning
+	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+
+	return resp_sent;
 }
 
 
