@@ -500,12 +500,14 @@ u32  event_log_get_num_wraps(void) {
  * @param   None
  *
  * @return  u32              - Flags:
- *                             [ 0] - log_wrap_enabled;
- *                             [ 1] - event_logging_enabled;
+ *                             [ 0] - event_logging_enabled;
+ *                             [ 1] - log_wrap_enabled;
+ *
+ * @note    Should match CMD_PARAM_LOG_CONFIG_FLAG_ in wlan_exp_node.h
  *
  *****************************************************************************/
 u32  event_log_get_flags(void) {
-    return ((event_logging_enabled & 0x1) << 1) + (log_wrap_enabled & 0x1);
+    return ((log_wrap_enabled & 0x1) << 1) + (event_logging_enabled & 0x1);
 }
 
 
