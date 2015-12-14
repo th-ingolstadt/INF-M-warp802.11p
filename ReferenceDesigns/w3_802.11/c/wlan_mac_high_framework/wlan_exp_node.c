@@ -852,6 +852,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     transport_set_ip_addr(eth_dev_num, ip_addr);
                     transport_config_sockets(eth_dev_num, transport_info->unicast_port, transport_info->broadcast_port);
+                    transport_reset_max_pkt_length(eth_dev_num);
 
                     // Update User IO
                     xil_printf("\n!!! Waiting for Network Configuration !!! \n\n");

@@ -248,6 +248,8 @@ int  transport_get_hw_addr(u32 eth_dev_num, u8* hw_addr);
 int  transport_set_ip_addr(u32 eth_dev_num, u8* ip_addr);
 int  transport_get_ip_addr(u32 eth_dev_num, u8* ip_addr);
 
+void transport_reset_max_pkt_length(u32 eth_dev_num);
+
 int  transport_config_sockets(u32 eth_dev_num, u32 unicast_port, u32 broadcast_port);
 int  transport_config_socket(u32 eth_dev_num, int* socket_index, u32 udp_port);
 

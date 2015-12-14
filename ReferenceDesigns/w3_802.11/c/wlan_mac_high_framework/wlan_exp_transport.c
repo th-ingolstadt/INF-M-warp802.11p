@@ -1046,7 +1046,7 @@ int transport_check_device(u32 eth_dev_num) {
  *****************************************************************************/
 int transport_set_hw_addr(u32 eth_dev_num, u8 * hw_addr) {
 
-    // Update the Tag Parameters
+    // Update the device information
     eth_devices[eth_dev_num].info.hw_addr[0]     = (hw_addr[0]<<8)  |  hw_addr[1];
     eth_devices[eth_dev_num].info.hw_addr[1]     = (hw_addr[2] << 24) | (hw_addr[3] << 16) | (hw_addr[4] << 8) | hw_addr[5];
 
@@ -1075,7 +1075,7 @@ int transport_get_hw_addr(u32 eth_dev_num, u8 * hw_addr) {
  *****************************************************************************/
 int transport_set_ip_addr(u32 eth_dev_num, u8 * ip_addr) {
 
-    // Update the Tag Parameters
+    // Update the device information
     eth_devices[eth_dev_num].info.ip_addr        = (ip_addr[0] << 24) | (ip_addr[1] << 16) | (ip_addr[2] << 8) | ip_addr[3];
 
     return eth_set_ip_addr(eth_dev_num, ip_addr);
@@ -1085,6 +1085,27 @@ int transport_set_ip_addr(u32 eth_dev_num, u8 * ip_addr) {
 int transport_get_ip_addr(u32 eth_dev_num, u8 * ip_addr) {
 
     return eth_set_ip_addr(eth_dev_num, ip_addr);
+}
+
+
+
+/*****************************************************************************/
+/**
+ * Reset the maximum packet length
+ *
+ * This function resets the maximum packet length.  This will be performed when a
+ * node receives a CONFIG_RESET so that a new maximum length can be established
+ * during the next initialization.
+ *
+ * @param   eth_dev_num      - Ethernet device number
+ *
+ * @return  None
+ *
+ *****************************************************************************/
+void transport_reset_max_pkt_length(u32 eth_dev_num) {
+
+    // Update the device information
+    eth_devices[eth_dev_num].max_pkt_words       = WLAN_EXP_DEFAULT_MAX_PACKET_WORDS;
 }
 
 
