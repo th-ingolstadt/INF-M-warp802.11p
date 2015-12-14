@@ -104,17 +104,20 @@ int queue_total_size(){
  *  -ID of the queue to purge
  */
 void purge_queue(u16 queue_sel){
-	u32             num_queued;
-	u32			    i;
-	tx_queue_element* curr_tx_queue_element;
-	interrupt_state_t prev_interrupt_state;
+	u32                        num_queued;
+	tx_queue_element         * curr_tx_queue_element;
+	volatile interrupt_state_t prev_interrupt_state;
 
 	num_queued = queue_num_queued(queue_sel);
 
-	if( num_queued > 0 ){
+	if (num_queued > 0) {
 		wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging %d packets from queue %d\n", num_queued, queue_sel);
 
-		for(i = 0; i < num_queued; i++){
+		// Need a while loop because the number of items in the queue is not fixed since interrupts
+		// are being enabled after each queue element is removed (ie the wireless TX process will
+		// transmit some of the queue entries).
+		//
+		while (queue_num_queued(queue_sel) > 0) {
 			// The queue purge is not interrupt safe
 			//     NOTE:  Since there could be many elements in the queue, we need to toggle the interrupts
 			//         inside the for loop so that we do not block CPU High for an extended period of time.
@@ -129,7 +132,6 @@ void purge_queue(u16 queue_sel){
 			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 		}
 	}
-
 }
 
 /**
