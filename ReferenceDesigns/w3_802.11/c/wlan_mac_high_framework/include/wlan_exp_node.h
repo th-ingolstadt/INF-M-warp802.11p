@@ -192,7 +192,6 @@
 //
 #define CMDID_DEV_MEM_HIGH                                 0xFFF000
 #define CMDID_DEV_MEM_LOW                                  0xFFF001
-#define CMDID_DEV_EEPROM                                   0xFFF002
 
 
 // ****************************************************************************
@@ -293,14 +292,14 @@ int  wlan_exp_node_init           (u32 wlan_exp_type, u32 serial_number, u32 *fp
 
 // Callbacks
 void wlan_exp_reset_all_callbacks                     ();
-void wlan_exp_set_node_process_cmd_callback           (void(*callback)());
+void wlan_exp_set_process_node_cmd_callback           (void(*callback)());
 void wlan_exp_set_init_callback                       (void(*callback)());
 void wlan_exp_set_reset_station_counts_callback       (void(*callback)());
 void wlan_exp_set_purge_all_data_tx_queue_callback    (void(*callback)());
 void wlan_exp_set_reset_all_associations_callback     (void(*callback)());
 void wlan_exp_set_reset_bss_info_callback             (void(*callback)());
 void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
-void wlan_exp_set_user_process_cmd_callback           (void(*callback)());
+void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
 
 // WLAN Exp commands
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr);

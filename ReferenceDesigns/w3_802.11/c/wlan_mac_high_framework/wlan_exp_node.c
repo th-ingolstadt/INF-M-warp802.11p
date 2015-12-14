@@ -96,32 +96,32 @@ extern tx_params           default_multicast_data_tx_params;
 int           node_init_parameters(u32 *info);
 void          node_init_system_monitor(void);
 
-int           node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer);
-void          node_send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer);
-int           node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
+int           process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer);
+void          send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer);
+int           process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
 
-void          node_ltg_cleanup(u32 id, void* callback_arg);
+void          ltg_cleanup(u32 id, void* callback_arg);
 
 void          create_wlan_exp_cmd_log_entry(cmd_resp * command);
 
-int           node_process_tx_power(u32 cmd, u32 aid, int tx_power);
-u8            node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate);
-u8            node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
+int           process_tx_power(u32 cmd, u32 aid, int tx_power);
+u8            process_tx_rate(u32 cmd, u32 aid, u8 tx_rate);
+u8            process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
 // WLAN Exp buffer functions
 void          transfer_log_data(u32 socket_index, void * from,
                                 void * resp_buffer_data, u32 eth_dev_num, u32 max_words,
                                 u32 id, u32 flags, u32 start_index, u32 size);
 
-u32           node_process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_resp * response,
-                                       cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
-                                       cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
-                                       u32 eth_dev_num, u32 max_words,
-                                       char * type, char * description, dl_list * source_list, u32 dest_size,
-                                       u32 (*find_id)(u8 *),
-                                       dl_entry * (*find_source_entry)(u8 *),
-                                       void (*copy_source_to_dest)(void *, void *, u64),
-                                       void (*zero_dest)(void *));
+u32           process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_resp * response,
+                                  cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
+                                  cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
+                                  u32 eth_dev_num, u32 max_words,
+                                  char * type, char * description, dl_list * source_list, u32 dest_size,
+                                  u32 (*find_id)(u8 *),
+                                  dl_entry * (*find_source_entry)(u8 *),
+                                  void (*copy_source_to_dest)(void *, void *, u64),
+                                  void (*zero_dest)(void *));
 
 dl_entry *    find_station_info_entry(u8 * mac_addr);
 void          zero_station_info_entry(void * dest);
@@ -134,12 +134,8 @@ void          copy_txrx_counts_to_dest_entry(void * source, void * dest, u64 tim
 void          zero_bss_info_entry(void * dest);
 void          copy_bss_info_to_dest_entry(void * source, void * dest, u64 time);
 
-u32           wlan_exp_get_id_in_associated_stations(u8 * mac_addr);
-u32           wlan_exp_get_id_in_counts(u8 * mac_addr);
-u32           wlan_exp_get_id_in_bss_info(u8 * bssid);
-
 // Null callback function declarations
-int           wlan_exp_null_node_process_cmd_callback(u32 cmd_id, void* param);
+int           null_process_cmd_callback(u32 cmd_id, void* param);
 
 
 
@@ -149,13 +145,13 @@ wlan_exp_node_info                node_info;
 static wlan_exp_tag_parameter     node_parameters[NODE_PARAM_MAX_PARAMETER];
 
 static wlan_exp_function_ptr_t    wlan_exp_init_callback                     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-static wlan_exp_function_ptr_t    wlan_exp_node_process_cmd_callback         = (wlan_exp_function_ptr_t) wlan_exp_null_node_process_cmd_callback;
+static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
 static wlan_exp_function_ptr_t    wlan_exp_reset_station_counts_callback     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_reset_bss_info_callback           = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-       wlan_exp_function_ptr_t    wlan_exp_user_process_cmd_callback         = (wlan_exp_function_ptr_t) wlan_exp_null_node_process_cmd_callback;
+       wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
 
 u32                               async_pkt_enable;
 u32                               async_eth_dev_num;
@@ -333,7 +329,7 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
     //
     //     IMPORTANT: Must be called after transport_init()
     //
-    transport_set_process_hton_msg_callback((void *)node_rx_from_transport);
+    transport_set_process_hton_msg_callback((void *)process_hton_msg);
 
 
     // ------------------------------------------
@@ -350,12 +346,12 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
 
 /*****************************************************************************/
 /**
- * Null Node Process Command Callback
+ * Null Process Command Callback
  *
- * This function is part of the callback system for processing node commands. If
+ * This function is part of the callback system for processing WLAN Exp commands. If
  * there are no additional node commands, then this will return an appropriate value.
  *
- * To processes additional node commands, please set the node_process_cmd_callback
+ * To processes additional node commands, please set the process_node_cmd_callback
  *
  * @param   cmd_id           - Command ID from node_process_cmd
  * @param   param            - Generic parameters for the callback
@@ -364,7 +360,7 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
  *                                 NO_RESP_SENT - No response has been sent
  *
  ******************************************************************************/
-int wlan_exp_null_node_process_cmd_callback(u32 cmd_id, void * param){
+int null_process_cmd_callback(u32 cmd_id, void * param){
 
     wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown node command: %d\n", cmd_id);
 
@@ -375,7 +371,7 @@ int wlan_exp_null_node_process_cmd_callback(u32 cmd_id, void * param){
 
 /*****************************************************************************/
 /**
- * Node Transport Processing
+ * Node Transport Processing (Host to Node)
  *
  * This function is how the node processes Ethernet frames from the Transport.  This
  * function will be used as the transport callback for Host-to-Node messages.  Based
@@ -394,7 +390,7 @@ int wlan_exp_null_node_process_cmd_callback(u32 cmd_id, void * param){
  *          Transport header for future packet processing.
  *
  *****************************************************************************/
-int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer) {
+int  process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer) {
 
     u8                  cmd_group;
     u32                 resp_sent      = NO_RESP_SENT;
@@ -435,13 +431,13 @@ int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_ud
 
     switch(cmd_group){
         case GROUP_NODE:
-            resp_sent = node_process_cmd(socket_index, from, &command, &response, max_words);
+            resp_sent = process_node_cmd(socket_index, from, &command, &response, max_words);
         break;
         case GROUP_TRANSPORT:
-            resp_sent = transport_process_cmd(socket_index, from, &command, &response, max_words);
+            resp_sent = process_transport_cmd(socket_index, from, &command, &response, max_words);
         break;
         case GROUP_USER:
-            resp_sent = user_process_cmd(socket_index, from, &command, &response, max_words);
+            resp_sent = process_user_cmd(socket_index, from, &command, &response, max_words);
         break;
         default:
             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command group: %d\n", cmd_group);
@@ -490,7 +486,7 @@ int  node_rx_from_transport(int socket_index, struct sockaddr * from, warp_ip_ud
  *          response header and buffer length to create an appropriate outgoing message.
  *
  *****************************************************************************/
-void node_send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer) {
+void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer) {
     //
     // This function is used to send a response back to the host outside the normal command processing
     // (ie the response does not complete the steps in node_rx_from_transport() after distribution
@@ -561,7 +557,7 @@ void node_send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, 
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -729,7 +725,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 resp_hdr->length          += (resp_index * sizeof(resp_args_32));
                 resp_hdr->num_args         = resp_index;
 
-                node_send_early_resp(socket_index, from, response->header, response->buffer);
+                send_early_resp(socket_index, from, response->header, response->buffer);
 
                 resp_sent                  = RESP_SENT;
 
@@ -819,7 +815,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // needs to send a response before the IP address changes.
             //
             if (((command->flags) & 0x00000001) == WLAN_EXP_FALSE) {
-                node_send_early_resp(socket_index, from, response->header, response->buffer);
+                send_early_resp(socket_index, from, response->header, response->buffer);
                 resp_sent = RESP_SENT;
             }
             
@@ -1296,15 +1292,15 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
 
-            resp_sent = node_process_buffer_cmds(socket_index, from, command, response,
-                                                 cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
-                                                 print_type_counts, "counts",
-                                                 get_counts(),
-                                                 sizeof(txrx_counts_entry),
-                                                 &wlan_exp_get_id_in_counts,
-                                                 &find_txrx_counts_entry,
-                                                 &copy_txrx_counts_to_dest_entry,
-                                                 &zero_txrx_counts_entry);
+            resp_sent = process_buffer_cmds(socket_index, from, command, response,
+                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
+                                            print_type_counts, "counts",
+                                            get_counts(),
+                                            sizeof(txrx_counts_entry),
+                                            &wlan_exp_get_id_in_counts,
+                                            &find_txrx_counts_entry,
+                                            &copy_txrx_counts_to_dest_entry,
+                                            &zero_txrx_counts_entry);
 
         break;
 
@@ -1338,7 +1334,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             // Get Schedule & Payload
             // NOTE:  This allocates memory for both the schedule and payload containers.
-            //   The payload is freed as part of the node_ltg_cleanup() callback
+            //   The payload is freed as part of the ltg_cleanup() callback
             //   The schedule is freed as part of this method
             params           = ltg_sched_deserialize( &(cmd_args_32[1]), &t1, &s1 );
             ltg_callback_arg = ltg_payload_deserialize( &(cmd_args_32[2 + s1]), &t2, &s2);
@@ -1346,7 +1342,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             if((ltg_callback_arg != NULL) && (params != NULL)) {
 
                 // Configure the LTG
-                id = ltg_sched_create(t1, params, ltg_callback_arg, &node_ltg_cleanup);
+                id = ltg_sched_create(t1, params, ltg_callback_arg, &ltg_cleanup);
 
                 if(id != LTG_ID_INVALID){
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Configured %d\n", id);
@@ -1981,7 +1977,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                         id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
-                        status = node_process_tx_power(msg_cmd, id, power);
+                        status = process_tx_power(msg_cmd, id, power);
                     break;
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
@@ -2083,7 +2079,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 wlan_mac_high_set_tx_ctrl_pow(power);
 
                 // Update the Tx power in each current association
-                status = node_process_tx_power(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, power);
+                status = process_tx_power(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, power);
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_RATE: %d\n", type);
                 status = CMD_PARAM_ERROR;
@@ -2135,7 +2131,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                         id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
-                        rate = node_process_tx_rate(msg_cmd, id, (rate & 0xFF));
+                        rate = process_tx_rate(msg_cmd, id, (rate & 0xFF));
 
                         if ( (rate << 24) == CMD_PARAM_ERROR ) {
                             status = CMD_PARAM_ERROR;
@@ -2248,7 +2244,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                         id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
-                        ant_mode = node_process_tx_ant_mode(msg_cmd, id, (ant_mode & 0xFF));
+                        ant_mode = process_tx_ant_mode(msg_cmd, id, (ant_mode & 0xFF));
 
                         if ( (ant_mode << 24) == CMD_PARAM_ERROR ) {
                             status = CMD_PARAM_ERROR;
@@ -2435,15 +2431,15 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
 
-            resp_sent = node_process_buffer_cmds(socket_index, from, command, response,
-                                                 cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
-                                                 print_type_node, "station info",
-                                                 get_station_info_list(),
-                                                 sizeof(station_info_entry),
-                                                 &wlan_exp_get_id_in_associated_stations,
-                                                 &find_station_info_entry,
-                                                 &copy_station_info_to_dest_entry,
-                                                 &zero_station_info_entry);
+            resp_sent = process_buffer_cmds(socket_index, from, command, response,
+                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
+                                            print_type_node, "station info",
+                                            get_station_info_list(),
+                                            sizeof(station_info_entry),
+                                            &wlan_exp_get_id_in_associated_stations,
+                                            &find_station_info_entry,
+                                            &copy_station_info_to_dest_entry,
+                                            &zero_station_info_entry);
         break;
 
 
@@ -2475,15 +2471,15 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 }
             }
 
-            resp_sent = node_process_buffer_cmds(socket_index, from, command, response,
-                                                 cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
-                                                 print_type_node, "bss info",
-                                                 wlan_mac_high_get_bss_info_list(),
-                                                 sizeof(bss_info_entry),
-                                                 &wlan_exp_get_id_in_bss_info,
-                                                 &wlan_mac_high_find_bss_info_BSSID,
-                                                 &copy_bss_info_to_dest_entry,
-                                                 &zero_bss_info_entry);
+            resp_sent = process_buffer_cmds(socket_index, from, command, response,
+                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
+                                            print_type_node, "bss info",
+                                            wlan_mac_high_get_bss_info_list(),
+                                            sizeof(bss_info_entry),
+                                            &wlan_exp_get_id_in_bss_info,
+                                            &wlan_mac_high_find_bss_info_BSSID,
+                                            &copy_bss_info_to_dest_entry,
+                                            &zero_bss_info_entry);
         break;
 
 
@@ -2696,33 +2692,6 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         break;
 
 
-        //---------------------------------------------------------------------
-        case CMDID_DEV_EEPROM:
-            // Read/Write EEPROM Memory (in CPU Low)
-            //
-            // Write Message format:
-            //     cmd_args_32[0]      Command == CMD_PARAM_WRITE_VAL
-            //     cmd_args_32[1]      Address == CMD_PARAM_RSVD
-            //     cmd_args_32[2]      Length (number of u32 words to write)
-            //     cmd_args_32[3:]     Values to write (integral number of u32 words)
-            // Response format:
-            //     resp_args_32[0]     Status
-            //
-            // Read Message format:
-            //     cmd_args_32[0]      Command == CMD_PARAM_READ_VAL
-            //     cmd_args_32[1]      Address == CMD_PARAM_RSVD
-            //     cmd_args_32[2]      Length (number of u32 words to read)
-            // Response format:
-            //     resp_args_32[0]     Status
-            //     resp_args_32[1]     Length (number of u32 values)
-            //     resp_args_32[2:]    Memory values (length u32 values)
-            //
-#if 0
-        TBD
-#endif
-        break;
-
-
 //-----------------------------------------------------------------------------
 // Child Commands
 //-----------------------------------------------------------------------------
@@ -2731,7 +2700,7 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         //---------------------------------------------------------------------
         default:
             // Call standard function in child class to parse parameters implemented there
-            resp_sent = wlan_exp_node_process_cmd_callback(cmd_id, socket_index, from, command, response, max_words);
+            resp_sent = wlan_exp_process_node_cmd_callback(cmd_id, socket_index, from, command, response, max_words);
         break;
     }
 
@@ -2756,15 +2725,15 @@ int node_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
  *           RESP_SENT
  *
  *****************************************************************************/
-u32 node_process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_resp * response,
-                             cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
-                             cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
-                             u32 eth_dev_num, u32 max_words,
-                             char * type, char * description, dl_list * source_list, u32 dest_size,
-                             u32 (*find_id)(u8 *),
-                             dl_entry * (*find_source_entry)(u8 *),
-                             void (*copy_source_to_dest)(void *, void *, u64),
-                             void (*zero_dest)(void *)) {
+u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_resp * response,
+                        cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
+                        cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
+                        u32 eth_dev_num, u32 max_words,
+                        char * type, char * description, dl_list * source_list, u32 dest_size,
+                        u32 (*find_id)(u8 *),
+                        dl_entry * (*find_source_entry)(u8 *),
+                        void (*copy_source_to_dest)(void *, void *, u64),
+                        void (*zero_dest)(void *)) {
 
     u32            resp_index           = 5;                // There will always be 5 return args for a buffer
     u32            resp_sent            = NO_RESP_SENT;
@@ -2935,7 +2904,7 @@ u32 node_process_buffer_cmds(int socket_index, void * from, cmd_resp * command, 
                     }
 
                     // Send the packet
-                    node_send_early_resp(socket_index, from, response->header, response->buffer);
+                    send_early_resp(socket_index, from, response->header, response->buffer);
 
                     // Update our current address and bytes remaining
                     curr_index       = next_index;
@@ -3418,13 +3387,13 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time) {
  *****************************************************************************/
 void wlan_exp_reset_all_callbacks(){
     wlan_exp_init_callback                     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_node_process_cmd_callback         = (wlan_exp_function_ptr_t) wlan_exp_null_node_process_cmd_callback;
+    wlan_exp_process_node_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
     wlan_exp_reset_station_counts_callback     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_reset_bss_info_callback           = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_user_process_cmd_callback         = (wlan_exp_function_ptr_t) wlan_exp_null_node_process_cmd_callback;
+    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
 }
 
 
@@ -3433,8 +3402,8 @@ void wlan_exp_set_init_callback(void(*callback)()){
 }
 
 
-void wlan_exp_set_node_process_cmd_callback(void(*callback)()){
-	wlan_exp_node_process_cmd_callback = (wlan_exp_function_ptr_t) callback;
+void wlan_exp_set_process_node_cmd_callback(void(*callback)()){
+	wlan_exp_process_node_cmd_callback = (wlan_exp_function_ptr_t) callback;
 }
 
 
@@ -3463,8 +3432,8 @@ void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)()){
 }
 
 
-void wlan_exp_set_user_process_cmd_callback(void(*callback)()){
-	wlan_exp_user_process_cmd_callback = (wlan_exp_function_ptr_t) callback;
+void wlan_exp_set_process_user_cmd_callback(void(*callback)()){
+	wlan_exp_process_user_cmd_callback = (wlan_exp_function_ptr_t) callback;
 }
 
 
@@ -3639,8 +3608,8 @@ u32  node_get_max_temp      ( void ) { return 0; }
  * @return  None
  *
  *****************************************************************************/
-void node_ltg_cleanup(u32 id, void* callback_arg){
-    wlan_mac_high_free( callback_arg );
+void ltg_cleanup(u32 id, void* callback_arg){
+    wlan_mac_high_free(callback_arg);
 }
 
 
@@ -3846,7 +3815,7 @@ void wlan_exp_transmit_log_entry(void * entry) {
  *                             - CMD_PARAM_ERROR on ERROR
  *
  *****************************************************************************/
-int node_process_tx_power(u32 cmd, u32 aid, int tx_power) {
+int process_tx_power(u32 cmd, u32 aid, int tx_power) {
 
     int           power;
     dl_list     * curr_list;
@@ -3929,7 +3898,7 @@ int node_process_tx_power(u32 cmd, u32 aid, int tx_power) {
  *                             - 0xFF on ERROR
  *
  *****************************************************************************/
-u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
+u8 process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 
     u8            rate;
     dl_list     * curr_list;
@@ -4012,7 +3981,7 @@ u8 node_process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
  *                             - 0xFF on ERROR
  *
  *****************************************************************************/
-u8 node_process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
+u8 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
     u8            mode;
     dl_list     * curr_list;

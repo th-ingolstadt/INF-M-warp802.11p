@@ -48,7 +48,7 @@
 /*************************** Function Prototypes *****************************/
 
 // User command processing
-int  user_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
+int  process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
 
 
 #endif

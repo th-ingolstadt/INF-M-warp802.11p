@@ -235,7 +235,7 @@ typedef struct {
 int  transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port);
 
 int  transport_set_process_hton_msg_callback(void(*handler));
-int  transport_process_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_words);
+int  process_transport_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_words);
 
 void transport_poll(u32 eth_dev_num);
 void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, warp_ip_udp_buffer * send_buffer);

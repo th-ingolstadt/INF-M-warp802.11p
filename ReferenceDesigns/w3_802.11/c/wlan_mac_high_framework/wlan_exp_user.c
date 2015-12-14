@@ -40,7 +40,7 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern wlan_exp_function_ptr_t    wlan_exp_user_process_cmd_callback;
+extern wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -76,7 +76,7 @@ extern wlan_exp_function_ptr_t    wlan_exp_user_process_cmd_callback;
  *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
  *
  *****************************************************************************/
-int user_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -171,7 +171,7 @@ int user_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         //---------------------------------------------------------------------
         default:
             // Call standard function in child class to parse parameters implemented there
-            resp_sent = wlan_exp_user_process_cmd_callback(cmd_id, socket_index, from, command, response, max_words);
+            resp_sent = wlan_exp_process_user_cmd_callback(cmd_id, socket_index, from, command, response, max_words);
         break;
     }
 

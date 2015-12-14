@@ -583,7 +583,7 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int transport_process_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
 
     //
     // IMPORTANT ENDIAN NOTES:
