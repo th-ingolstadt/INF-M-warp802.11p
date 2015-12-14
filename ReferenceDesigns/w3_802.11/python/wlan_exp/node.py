@@ -19,8 +19,8 @@
 """
 import sys
 
-import wlan_exp.warpnet.node as node
-import wlan_exp.warpnet.exception as ex
+import wlan_exp.transport.node as node
+import wlan_exp.transport.exception as ex
 
 import wlan_exp.version as version
 import wlan_exp.defaults as defaults
@@ -197,7 +197,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             buffer (transport.Buffer): Data from the log that contains all entries since the last time the log was read.
         """
-        import wlan_exp.warpnet.message as message
+        import wlan_exp.transport.message as message
         
         return_val = message.Buffer()
         (next_index, _, num_wraps) = self.log_get_indexes()
@@ -337,7 +337,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
 
         if (ip_address is None):
-            import wlan_exp.warpnet.util as util
+            import wlan_exp.transport.util as util
             ip_address = util._get_host_ip_addr_for_network(self.network_config)
             
         if (host_id is None):

@@ -25,8 +25,8 @@ network.  This is useful to test connectivity regardless of further network
 segmentation during the experiment.
 ------------------------------------------------------------------------------
 """
-import wlan_exp.warpnet.config as config
-import wlan_exp.warpnet.util as util
+import wlan_exp.transport.config as config
+import wlan_exp.transport.util as util
 
 # NOTE: change these values to match your experiment setup
 NETWORK = '10.0.0.0'

@@ -21,9 +21,9 @@ This module provides class definitions for all WLAN Exp commands.
 
 """
 
-import wlan_exp.warpnet.cmds as cmds
-import wlan_exp.warpnet.message as message
-import wlan_exp.warpnet.transport_eth_ip_udp as transport
+import wlan_exp.transport.cmds as cmds
+import wlan_exp.transport.message as message
+import wlan_exp.transport.transport_eth_ip_udp as transport
 
 
 

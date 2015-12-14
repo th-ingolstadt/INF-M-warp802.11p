@@ -418,7 +418,7 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
 
     # Create a Host Configuration if there is none provided
     if network_config is None:
-        import wlan_exp.warpnet.config as config
+        import wlan_exp.transport.config as config
         network_config = config.NetworkConfiguration()
 
     # If node_factory is not defined, create a default WlanExpNodeFactory
@@ -430,7 +430,7 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
     node_type_dict = node_factory.get_type_dict()
 
     # Use the utility, init_nodes, to initialize the nodes
-    import wlan_exp.warpnet.util as util
+    import wlan_exp.transport.util as util
     return util.init_nodes(nodes_config, network_config, node_factory, network_reset, output)
 
 # End def
@@ -591,7 +591,7 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
 
     # Create Serial Number Filter
     if serial_number is not None:
-        import wlan_exp.warpnet.util as util
+        import wlan_exp.transport.util as util
 
         if type(serial_number) is not list:
             serial_number = [serial_number]
@@ -639,7 +639,7 @@ def int_to_ip(ip_address):
     Returns:
         ip_address (str):  String version of an IP address of the form W.X.Y.Z        
     """
-    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.int_to_ip(ip_address)
 
 # End def
@@ -654,7 +654,7 @@ def ip_to_int(ip_address):
     Returns:
         ip_address (int):  Unsigned 32-bit integer representation of the IP address
     """
-    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.ip_to_int(ip_address)
 
 # End def
@@ -669,7 +669,7 @@ def mac_addr_to_str(mac_address):
     Returns:
         mac_address (str):  String version of an MAC address of the form XX:XX:XX:XX:XX:XX
     """
-    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.mac_addr_to_str(mac_address)
 
 # End def
@@ -684,7 +684,7 @@ def str_to_mac_addr(mac_address):
     Returns:
         mac_address (int):  Unsigned 48-bit integer representation of the MAC address
     """
-    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.str_to_mac_addr(mac_address)
 
 # End def
@@ -699,7 +699,7 @@ def mac_addr_to_byte_str(mac_address):
     Returns:
         mac_address (str):  Byte string version of an MAC address 
     """
-    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.mac_addr_to_byte_str(mac_address)
 
 # End def
@@ -714,7 +714,7 @@ def byte_str_to_mac_addr(mac_address):
     Returns:
         mac_address (int):  Unsigned 48-bit integer representation of the MAC address    
     """
-    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.byte_str_to_mac_addr(mac_address)
 
 # End def
@@ -729,7 +729,7 @@ def buffer_to_str(buffer):
     Returns:
         output (str):  Formatted string of the buffer byte values
     """
-    import wlan_exp.warpnet.transport_eth_ip_udp as transport
+    import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.buffer_to_str(buffer)
 
 # End def
@@ -852,7 +852,7 @@ def node_type_to_str(node_type, node_factory=None):
         # Build a default node_factory if it is not present
         if node_factory is None:
             import wlan_exp.node as node
-            import wlan_exp.warpnet.config as config
+            import wlan_exp.transport.config as config
 
             network_config = config.NetworkConfiguration()
             node_factory   = node.WlanExpNodeFactory(network_config)
@@ -1059,7 +1059,7 @@ def _broadcast_cmd_to_nodes_helper(cmd, network_config):
         network_config -- A NetworkConfiguration object
         cmd            -- A message.Cmd object describing the command
     """
-    import wlan_exp.warpnet.transport_eth_ip_udp_py_broadcast as broadcast
+    import wlan_exp.transport.transport_eth_ip_udp_py_broadcast as broadcast
 
     # Get information out of the NetworkConfiguration
     tx_buf_size  = network_config.get_param('tx_buffer_size')

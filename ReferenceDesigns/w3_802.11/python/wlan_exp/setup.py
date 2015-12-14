@@ -21,7 +21,7 @@ setup(
     author='Mango Communications, Inc.',
     author_email='info@mangocomm.com',
     package_dir = {'wlan_exp': '.'}, #setup.py lives at same level as wlan_exp modules
-    packages=['wlan_exp', 'wlan_exp.warpnet', 'wlan_exp.log'],
+    packages=['wlan_exp', 'wlan_exp.transport', 'wlan_exp.log'],
     include_package_data=True,
     zip_safe=False,
     classifiers=[
