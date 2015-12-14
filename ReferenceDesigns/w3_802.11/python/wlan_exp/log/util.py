@@ -419,7 +419,11 @@ def log_data_to_np_arrays(log_data, log_index):
     for k in log_index.keys():
         # Build a structured array with one element for each byte range enumerated above
         # Store each array in a dictionary indexed by the log entry type
-        entries_nd[k] = k.generate_numpy_array(log_data, log_index[k])
+        try:
+            entries_nd[k] = k.generate_numpy_array(log_data, log_index[k])
+        except IndexError:
+            # No entries of the given type
+            entries_nd[k] = []
 
     return entries_nd
 
