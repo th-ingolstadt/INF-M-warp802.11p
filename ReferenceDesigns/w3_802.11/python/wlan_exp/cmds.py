@@ -2210,7 +2210,7 @@ class UserSendCmd(message.Cmd):
         
         self.command    = _CMD_GROUP_USER + cmd_id
 
-        if values is not None:
+        if args is not None:
             try:
                 for a in args:
                     self.add_args(a)
