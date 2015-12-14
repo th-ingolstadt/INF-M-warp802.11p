@@ -47,6 +47,7 @@
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
 #include "wlan_exp_transport.h"
+#include "wlan_exp_user.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -112,7 +113,7 @@ volatile u32                      beacon_schedule_id = SCHEDULE_FAILURE;
 /*************************** Functions Prototypes ****************************/
 
 #ifdef USE_WLAN_EXP
-int  wlan_exp_user_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
+int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
 #endif
 
 
@@ -205,13 +206,13 @@ int main(){
 
     // Set WLAN Exp callbacks
     wlan_exp_set_init_callback(                    (void *) wlan_exp_node_ap_init);
-    wlan_exp_set_node_process_cmd_callback(        (void *) wlan_exp_node_ap_process_cmd);
+    wlan_exp_set_process_node_cmd_callback(        (void *) wlan_exp_process_node_cmd);
     wlan_exp_set_reset_station_counts_callback(    (void *) reset_station_counts);
     wlan_exp_set_purge_all_data_tx_queue_callback( (void *) purge_all_data_tx_queue);
     wlan_exp_set_reset_all_associations_callback(  (void *) reset_all_associations);
     wlan_exp_set_reset_bss_info_callback(          (void *) reset_bss_info);
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the AP
-    wlan_exp_set_user_process_cmd_callback(        (void *) wlan_exp_user_ap_process_cmd);
+    wlan_exp_set_process_user_cmd_callback(        (void *) wlan_exp_process_user_cmd);
 
     // Get the hardware info that has been collected from CPU low
     hw_info = wlan_mac_high_get_hw_info();
@@ -1868,13 +1869,13 @@ void ap_update_hex_display(u8 val) {
 //-----------------------------------------------
 // AP Specific User Commands
 //
-// #define CMDID_USER_AP_<COMMAND_NAME>                       0x100000
+// #define CMDID_USER_<COMMAND_NAME>                       0x100000
 
 
 //-----------------------------------------------
 // AP Specific User Command Parameters
 //
-// #define CMD_PARAM_USER_AP_<PARAMETER_NAME>                 0x00000000
+// #define CMD_PARAM_USER_<PARAMETER_NAME>                 0x00000000
 
 
 
@@ -1902,7 +1903,7 @@ void ap_update_hex_display(u8 val) {
  *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
  *
  *****************************************************************************/
-int wlan_exp_user_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -1953,7 +1954,7 @@ int wlan_exp_user_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_
         //
 #if 0
         //---------------------------------------------------------------------
-        case CMDID_USER_AP_<COMMAND_NAME>:
+        case CMDID_USER_<COMMAND_NAME>:
             // Command Description
             //
             // Message format:

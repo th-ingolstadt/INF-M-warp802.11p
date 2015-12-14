@@ -96,7 +96,7 @@ extern u32          beacon_schedule_id;
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int wlan_exp_node_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -677,6 +677,8 @@ int wlan_exp_node_ap_process_cmd(u32 cmd_id, int socket_index, void * from, cmd_
  * @return  int              - Status of the command:
  *                                 XST_SUCCESS - Command completed successfully
  *                                 XST_FAILURE - There was an error in the command
+ *
+ * @note    Function name must not collide with wlan_exp_node_init
  *
  ******************************************************************************/
 int wlan_exp_node_ap_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
