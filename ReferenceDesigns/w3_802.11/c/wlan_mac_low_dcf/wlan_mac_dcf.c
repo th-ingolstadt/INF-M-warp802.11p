@@ -564,8 +564,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
             do{
                 mac_hw_status = wlan_mac_get_status();
 
-                if ((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_DONE) {
-                    if ((wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_STATUS_TX_B_RESULT_NO_TX) {
+                if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_DONE ) {
+                    if ((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_STATUS_TX_B_RESULT_NO_TX) {
                     	// The MAC Support Core B has the capability of successfully not transmitting. This is not relevant
                     	// for ACK transmissions, but it is relevant for CTS transmissions. A CTS will only be sent if the
                     	// NAV is clear at the time of transmission. This code block handles the case the the support core
@@ -574,12 +574,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
                         mpdu_info->flags = mpdu_info->flags & ~RX_MPDU_FLAGS_FORMED_RESPONSE;
                         break;
                     }
-                    if ((wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_STATUS_TX_B_RESULT_DID_TX) {
+                    if ((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_STATUS_TX_B_RESULT_DID_TX) {
                         mpdu_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
                         break;
                     }
                 } else if(((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_B_STATE) == WLAN_MAC_STATUS_TX_B_STATE_PRE_TX_WAIT) &&
                           ((mac_hw_status & WLAN_MAC_STATUS_MASK_POSTRX_TIMER1_RUNNING) == 0)){
+
                     // This is potentially a bad state. It likely means we were late in processing this reception
                     //
                     // There is a slight race condition in detecting this state. There is a small 1 or 2 cycle window where this
@@ -593,7 +594,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
                         wlan_mac_reset_tx_ctrl_b(1);
                         wlan_mac_reset_tx_ctrl_b(0);
-
                         break;
                     }
                 }
