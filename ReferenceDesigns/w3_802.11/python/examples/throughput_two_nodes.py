@@ -36,13 +36,15 @@ import wlan_exp.ltg as wlan_exp_ltg
 #  Global experiment variables
 #
 
-# NOTE: change these values to match your experiment setup
-NETWORK           = '10.0.0.0'
-NODE_SERIAL_LIST  = ['W3-a-00001', 'W3-a-00002']
+# NOTE: change these values to match your experiment / network setup
+NETWORK             = '10.0.0.0'
+JUMBO_FRAME_SUPPORT = False
+NODE_SERIAL_LIST    = ['W3-a-00001', 'W3-a-00002']
+
+CHANNEL             = 1
 
 # Set the per-trial duration (in seconds)
-TRIAL_TIME        = 10
-CHANNEL           = 1
+TRIAL_TIME          = 10
 
 #-------------------------------------------------------------------------
 #  Initialization
@@ -50,7 +52,8 @@ CHANNEL           = 1
 print("\nInitializing experiment\n")
 
 # Create an object that describes the network configuration of the host PC
-network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK)
+network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
+                                                             jumbo_frame_support=JUMBO_FRAME_SUPPORT)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
 nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
