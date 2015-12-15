@@ -75,6 +75,11 @@ volatile u8                            gl_red_led_index;
 volatile u8                            gl_green_led_index;
 
 
+/*************************** Functions Prototypes ****************************/
+
+int process_low_param(u8 mode, u32* payload);
+
+
 /******************************** Functions **********************************/
 
 int main(){
@@ -130,7 +135,7 @@ int main(){
     wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
     wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
 
-    wlan_mac_low_set_ipc_low_param_callback((void*)wlan_dcf_process_low_param);
+    wlan_mac_low_set_ipc_low_param_callback((void*)process_low_param);
 
     if(lock_pkt_buf_tx(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
         wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK_CTS);
@@ -1431,7 +1436,7 @@ int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u1
  * @param   payload          - Pointer to parameter and arguments
  * @return  int              - Status
  */
-int wlan_dcf_process_low_param(u8 mode, u32* payload){
+int process_low_param(u8 mode, u32* payload){
 
     switch(mode){
         case IPC_REG_WRITE_MODE:
