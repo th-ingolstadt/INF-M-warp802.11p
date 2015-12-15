@@ -105,6 +105,7 @@ int queue_total_size(){
  */
 void purge_queue(u16 queue_sel){
 	u32                        num_queued;
+	u32                        i;
 	tx_queue_element         * curr_tx_queue_element;
 	volatile interrupt_state_t prev_interrupt_state;
 
@@ -113,11 +114,14 @@ void purge_queue(u16 queue_sel){
 	if (num_queued > 0) {
 		wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging %d packets from queue %d\n", num_queued, queue_sel);
 
-		// Need a while loop because the number of items in the queue is not fixed since interrupts
-		// are being enabled after each queue element is removed (ie the wireless TX process will
-		// transmit some of the queue entries).
+		// NOTE:  There is an interesting condition that can occur if an LTG is running (ie creating new TX queue
+		//     entries) and purge_queue is called.  In this case, you have one process removing elements from the
+		//     queue while another process is adding elements to the queue.  Therefore, purge_queue will only
+		//     remove a fixed number of elements from the queue (ie all queued elements at the time the function
+		//     is called).  If purge_queue used a while loop with no checking on the number of elements removed,
+		//     then it could conceivably run forever.
 		//
-		while (queue_num_queued(queue_sel) > 0) {
+		for(i = 0; i < num_queued; i++) {
 			// The queue purge is not interrupt safe
 			//     NOTE:  Since there could be many elements in the queue, we need to toggle the interrupts
 			//         inside the for loop so that we do not block CPU High for an extended period of time.
@@ -198,12 +202,12 @@ tx_queue_element* dequeue_from_head(u16 queue_sel){
 	dl_entry* curr_dl_entry;
 
 	if((queue_sel+1) > num_queue_tx){
-		//The specified queue does not exist; this can happen if a node has associated (has a valid AID=queue_sel)
-		// but no packet has ever been enqueued to it, as queues are created upon first insertion - see enqueue_after_tail()
+		// The specified queue does not exist; this can happen if a node has associated (has a valid AID=queue_sel)
+		//     but no packet has ever been enqueued to it, as queues are created upon first insertion - see enqueue_after_tail()
 		return NULL;
 	} else {
 		if(queue_tx[queue_sel].length == 0){
-			//Requested queue exists but is empty
+			// Requested queue exists but is empty
 			return NULL;
 		} else {
 			curr_dl_entry = (queue_tx[queue_sel].first);
@@ -262,13 +266,14 @@ tx_queue_element* queue_checkout(){
  * to the free pool. tqe must be a valid pointer to a queue entry which the MAC application no
  * longer needs. The application must not use the entry pointed to by tqe after calling this function.
  *
- * @param tx_queue_element* tqe Pointer to queue entry to be returned to free pool
+ * @param   tx_queue_element* tqe      - Pointer to queue entry to be returned to free pool
  *
- * @return New queue entry, NULL if none is available
+ * @return  None
  */
 void queue_checkin(tx_queue_element* tqe){
-	dl_entry_insertEnd(&queue_free,(dl_entry*)tqe);
-	return;
+	if (tqe != NULL) {
+	    dl_entry_insertEnd(&queue_free, (dl_entry*) tqe);
+	}
 }
 
 
@@ -299,13 +304,14 @@ int queue_checkout_list(dl_list* new_list, u16 num_tqe){
 	}
 
 	//Traverse the queue_free and update the pointers
-	for (i=0;i<num_checkout;i++){
+	for (i = 0; i < num_checkout; i++){
 		curr_dl_entry = (queue_free.first);
 
 		//Remove from free list
-		dl_entry_remove(&queue_free,curr_dl_entry);
+		dl_entry_remove(&queue_free, curr_dl_entry);
+
 		//Add to new checkout list
-		dl_entry_insertEnd(new_list,curr_dl_entry);
+		dl_entry_insertEnd(new_list, curr_dl_entry);
 	}
 	return num_checkout;
 }
