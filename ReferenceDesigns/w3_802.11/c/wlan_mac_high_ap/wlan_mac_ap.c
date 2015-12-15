@@ -1900,7 +1900,7 @@ void ap_update_hex_display(u8 val) {
  *                                 RESP_SENT    - A response has been sent
  *
  * @note    See on-line documentation for more information:
- *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
+ *          https://warpproject.org/trac/wiki/802.11/wlan_exp/Extending
  *
  *****************************************************************************/
 int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
