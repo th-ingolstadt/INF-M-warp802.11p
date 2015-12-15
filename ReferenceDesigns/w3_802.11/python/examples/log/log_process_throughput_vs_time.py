@@ -65,7 +65,7 @@ if logfile_error:
 else:
     print("Reading log files:")
     print(  "'{0}' ({1:5.1f} MB)".format(LOGFILE_AP, (os.path.getsize(LOGFILE_AP)/2**20)))
-    print(  "'{0}' ({1:5.1f} MB)".format(LOGFILE_STA, (os.path.getsize(LOGFILE_AP)/2**20)))
+    print(  "'{0}' ({1:5.1f} MB)".format(LOGFILE_STA, (os.path.getsize(LOGFILE_STA)/2**20)))
 
 #-----------------------------------------------------------------------------
 # Main script
