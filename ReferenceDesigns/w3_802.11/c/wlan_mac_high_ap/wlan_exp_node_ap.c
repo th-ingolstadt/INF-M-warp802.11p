@@ -86,7 +86,7 @@ extern u32          beacon_schedule_id;
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
- * @param   max_words        - Maximum number of u32 words per packet
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
@@ -96,7 +96,7 @@ extern u32          beacon_schedule_id;
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
 
     //
     // IMPORTANT ENDIAN NOTES:
