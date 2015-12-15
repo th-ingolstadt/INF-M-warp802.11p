@@ -536,6 +536,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     switch(tx_pending_state){
         default:
         case TX_PENDING_A:
+
         	do{
 				mac_hw_status = wlan_mac_get_status();
 
@@ -555,6 +556,10 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
 						break;
 					}
+				} else if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_STATE) == WLAN_MAC_STATUS_TX_A_STATE_DO_TX ){
+					// If the PHY is actively running, we can safely quit this context and get back to frame_transmit to get
+					// ready for an ACK reception.
+					break;
 				}
 			} while(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING);
 
