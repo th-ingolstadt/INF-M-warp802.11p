@@ -55,6 +55,12 @@ static u8                              eeprom_addr[6];
 volatile u8                            red_led_index;
 volatile u8                            green_led_index;
 
+
+/*************************** Functions Prototypes ****************************/
+
+int process_low_param(u8 mode, u32* payload);
+
+
 /******************************** Functions **********************************/
 
 int main(){
@@ -89,7 +95,7 @@ int main(){
     // Set up the TX / RX callbacks
     wlan_mac_low_set_frame_rx_callback(      (void *) frame_receive);
     wlan_mac_low_set_frame_tx_callback(      (void *) frame_transmit);
-    wlan_mac_low_set_ipc_low_param_callback( (void *) wlan_nomac_process_low_param);
+    wlan_mac_low_set_ipc_low_param_callback( (void *) process_low_param);
 
     // Finish Low Framework initialization
     wlan_mac_low_init_finish();
@@ -302,7 +308,7 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
  * @param   payload          - Pointer to parameter and arguments
  * @return  int              - Status
  */
-int wlan_nomac_process_low_param(u8 mode, u32* payload) {
+int process_low_param(u8 mode, u32* payload) {
 
     switch(mode){
         case IPC_REG_WRITE_MODE:
