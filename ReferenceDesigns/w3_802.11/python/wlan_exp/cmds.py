@@ -1004,12 +1004,12 @@ class NodeLowParam(message.Cmd):
                        CMD_PARAM_READ   (Not supported)
                        CMD_PARAM_WRITE
 
-        param     -- ID of parameter to modify
+        param_id  -- ID of parameter to modify
 
         values    -- Scalar or list of u32 values to write
         
     """
-    def __init__(self, cmd, param, values=None):
+    def __init__(self, cmd, param_id, values=None):
         super(NodeLowParam, self).__init__()        
         
         self.command    = _CMD_GROUP_NODE + CMDID_NODE_LOW_PARAM
@@ -1027,7 +1027,7 @@ class NodeLowParam(message.Cmd):
 
         self.add_args(cmd)
         self.add_args(size)
-        self.add_args(param)
+        self.add_args(param_id)
 
         if values is not None:
             try:

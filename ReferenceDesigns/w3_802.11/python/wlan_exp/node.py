@@ -1122,6 +1122,36 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #------------------------
     # Other commands
 
+    def set_low_param(self, param_id, values):
+        """Set a CPU Low parameter
+ 
+        This command provides a generic data pipe to set parameters in CPU Low.  See
+        CMD_PARAM_LOW_PARAM_* in cmds.py for currently supported parameter values.
+        
+        See http://warpproject.org/trac/wiki/802.11/wlan_exp/Extending
+        for more information.
+ 
+        Args:
+            param_id (int):        ID of parameter to be set 
+            values (list of int):  Value(s) to set the parameter
+        """
+        if(values is not None):
+            try:
+                v0 = values[0]
+            except TypeError:
+                v0 = values
+            
+            if((type(v0) is not int) and (type(v0) is not long)) or (v0 >= 2**32):
+                raise Exception('ERROR: values must be scalar or iterable of ints in [0,2^32-1]!')  
+                
+        try:
+            cmd_values = list(values)
+        except TypeError:
+            cmd_values = [values]
+
+        self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_WRITE, param_id=param_id, values=cmd_values))
+
+
     def set_dcf_rts_thresh(self, threshold):
         """Sets the RTS length threshold of the node.
 
@@ -1134,7 +1164,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_rts_thresh")
             
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, threshold)
+        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, values=threshold)
         
         
     def set_dcf_short_retry_limit(self, limit):
@@ -1152,7 +1182,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_short_retry_limit")
             
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, limit)
+        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, values=limit)
         
         
     def set_dcf_long_retry_limit(self, limit):
@@ -1170,7 +1200,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_long_retry_limit")
             
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, limit)
+        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, values=limit)
         
 
     def set_dcf_phy_cs_thresh(self, threshold):
@@ -1185,7 +1215,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_phy_cs_thresh")
             
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, threshold)
+        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, values=threshold)
 
 
     def set_dcf_cw_exp_min(self, cw_exp):
@@ -1200,7 +1230,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_cw_exp_min")
             
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, cw_exp)       
+        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, values=cw_exp)
 
 
     def set_dcf_cw_exp_max(self, cw_exp):
@@ -1215,7 +1245,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_cw_exp_max")
             
-        self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, cw_exp)
+        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, values=cw_exp)
 
 
     def configure_pkt_det_min_power(self, enable, power_level=None): 
@@ -1226,12 +1256,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             power_level (int):  [-90,-30] dBm  
         """                
         if enable is False:            
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, 0)
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, values=0)
         else:
             if power_level is not None:
                 if power_level >= cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM and power_level <= cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM:
                     param = (1 << 24) | ((power_level+cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM) & 0xFF)
-                    self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, param)
+                    self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, values=param)
                 else:
                     msg  = "\nPower level must be in the range of [{0},{1}]\n".format(cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM, cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM)
                     raise ValueError(msg)
@@ -1378,30 +1408,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return ret_val
 
 
-    def _set_low_param(self, param, values):
-        """Sets any number of CPU Low parameters
- 
-        Args:
-            param (int):          Parameter to be set
-            values (list of int): Value(s) to set the parameter
-        """
-        if(values is not None):
-            try:
-                v0 = values[0]
-            except TypeError:
-                v0 = values
-            
-            if((type(v0) is not int) and (type(v0) is not long)) or (v0 >= 2**32):
-                raise Exception('ERROR: values must be scalar or iterable of ints in [0,2^32-1]!')  
-                
-        try:
-            vals = list(values)
-        except TypeError:
-            vals = [values]
-
-        return self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_WRITE, param=param, values=vals))
-
-
     #--------------------------------------------
     # Internal methods to view / configure node attributes
     #     NOTE:  These methods are not safe in all cases; therefore they are not part of the public API
@@ -1414,7 +1420,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         if bb_gain is not None:
             if (bb_gain >= 0) and (bb_gain <=3):
-                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_BB_GAIN, bb_gain)                  
+                self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_BB_GAIN, values=bb_gain)                  
             else:
                 msg  = "\nBB Gain must be in the range [0,3]\n"                
                 raise ValueError(msg)
@@ -1428,7 +1434,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         if linearity_val is not None:
             if (linearity_val >= 0) and (linearity_val <=3):
-                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_PA, linearity_val)                  
+                self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_LINEARITY_PA, values=linearity_val)
             else:
                 msg  = "\nBB Linearity must be in the range [0,3]\n"                
                 raise ValueError(msg)
@@ -1444,7 +1450,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
     
         if (scale_int0 >= 0) and (scale_int0 <=31) and (scale_int1 >= 0) and (scale_int1 <=31) and (scale_srrc >= 0) and (scale_srrc <=31):
-            self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_AD_SCALING, [scale_int0,scale_int1,scale_srrc])                  
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_AD_SCALING, values=[scale_int0, scale_int1, scale_srrc])
         else:
             msg  = "\nInterp scalings must be in the range [0,31]\n"                
             raise ValueError(msg)
@@ -1458,7 +1464,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         if linearity_val is not None:
             if (linearity_val >= 0) and (linearity_val <=3):
-                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_VGA, linearity_val)                  
+                self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_LINEARITY_VGA, values=linearity_val)
             else:
                 msg  = "\nBB Linearity must be in the range [0,3]\n"                
                 raise ValueError(msg)
@@ -1472,7 +1478,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         if linearity_val is not None:
             if (linearity_val >= 0) and (linearity_val <=3):
-                self._set_low_param(cmds.CMD_PARAM_LOW_PARAM_LINEARITY_UPCONV, linearity_val)                  
+                self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_LINEARITY_UPCONV, values=linearity_val)
             else:
                 msg  = "\nBB Linearity must be in the range [0,3]\n"                
                 raise ValueError(msg)                        
