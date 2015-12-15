@@ -1937,7 +1937,7 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     // Variables for template command
     int                 status;
     u32                 arg_0;
-    // interrupt_state_t   curr_interrupt_state;
+    interrupt_state_t   curr_interrupt_state;
 #endif
 
 
@@ -1978,20 +1978,20 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Do something with argument(s)
             xil_printf("Command argument 0: 0x%08x\n", arg_0);
 
-            // If necessary, disable interrupts before processing user commands
-            // curr_interrupt_state = wlan_mac_high_interrupt_stop();
+            // If necessary, disable interrupts before processing the command
+            //  Interrupts must be disabled if the command implementation relies on any state that might
+            //  change during an interrupt service routine. See the user guide for more details
+            //  https://warpproject.org/trac/wiki/802.11/wlan_exp/Extending
+            curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
-            //
-            // Process Arguments
-            //     NOTE:  If disabling interrupts, please make sure there are no xil_printf functions or other
-            //         commands that take a "long time".  When interrupts are disabled, CPU High is unable to
+            // Process command arguments and generate any response payload
+            //     NOTE:  If interrupts were disabled above, take care to avoid any long-running code in this
+            //         block (i.e. avoid xil_printf()). When interrupts are disabled, CPU High is unable to
             //         respond to CPU Low (ie CPU High will not send / receive packets) and execute scheduled
-            //         tasks, such as LTGs.  While most operations are interrupt safe, some are not and require
-            //         interrupts to be disabled.
-            //
+            //         tasks, such as LTGs.
 
-            // If interrupts were disabled, re-enable interrupts before returning
-            // wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+            // Re-enable interrupts before returning (only do this if wlan_mac_high_interrupt_stop() is called above)
+            wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
 
             // Send response
             //   NOTE:  It is good practice to send a status as the first argument of the response.
