@@ -200,47 +200,78 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         import wlan_exp.transport.message as message
         
         return_val = message.Buffer()
-        (next_index, _, num_wraps) = self.log_get_indexes()
+        
+        # Check if the log is full so that we can interpret the indexes correctly
+        if (self.log_is_full()):
+            log_size  = self.log_get_size()
+            read_size = log_size - self.log_next_read_index - log_tail_pad
 
-        if ((self.log_next_read_index == 0) and (self.log_num_wraps == 0)):
-            # This is the first read of the log by this python object
-            if (num_wraps != 0):
-                # Need to advance the num_wraps to the current num_wraps so 
-                # that we don't get into a bad state with log reading.
-                msg  = "\nWARNING:  On first read, the log on the node has already wrapped.\n"
-                msg += "    Skipping the first {0} wraps of log data.\n".format(num_wraps)
-                print(msg)
-                self.log_num_wraps = num_wraps
-
-        if (num_wraps == self.log_num_wraps):
-            if (next_index > (self.log_next_read_index + log_tail_pad)):
-                # Get Log data from the node
+            # Read the data from the node
+            if (read_size > 0):
                 return_val = self.log_get(offset=self.log_next_read_index, 
-                                          size=(next_index - self.log_next_read_index - log_tail_pad),
+                                          size=read_size,
                                           max_req_size=max_req_size)
                                           
                 # Only increment index by how much was actually read
                 read_size  = return_val.get_buffer_size()
+                
                 if (read_size > 0):
                     self.log_next_read_index += read_size
                 else:
                     print("WARNING:  Not able to read data from node.")
+            else:
+                print("WARNING:  No new data on node.")
+        
+        # Log is not full
         else:
-            if ((next_index != 0) or self.log_is_full()):
-                # Get Log data from the node
-                return_val = self.log_get(offset=self.log_next_read_index, 
-                                          size=cmds.CMD_PARAM_LOG_GET_ALL_ENTRIES, 
-                                          max_req_size=max_req_size)
+            (next_index, _, num_wraps) = self.log_get_indexes()
+        
+            if ((self.log_next_read_index == 0) and (self.log_num_wraps == 0)):
+                # This is the first read of the log by this python object
+                if (num_wraps != 0):
+                    # Need to advance the num_wraps to the current num_wraps so 
+                    # that we don't get into a bad state with log reading.
+                    msg  = "\nWARNING:  On first read, the log on the node has already wrapped.\n"
+                    msg += "    Skipping the first {0} wraps of log data.\n".format(num_wraps)
+                    print(msg)
+                    self.log_num_wraps = num_wraps
 
-                # Unfortunately, we do not know how much data should have
-                # been returned from the node, but it should not be zero
-                read_size  = return_val.get_buffer_size()
-                if (read_size > 0):
-                    self.log_next_read_index = 0
-                    self.log_num_wraps       = num_wraps
+            # Check if log has wrapped    
+            if (num_wraps == self.log_num_wraps):
+                # Since log has not wrapped, then read to the (next_index - log_tail_pad)
+                if (next_index > (self.log_next_read_index + log_tail_pad)):
+                    
+                    return_val = self.log_get(offset=self.log_next_read_index, 
+                                              size=(next_index - self.log_next_read_index - log_tail_pad),
+                                              max_req_size=max_req_size)
+                                              
+                    # Only increment index by how much was actually read
+                    read_size  = return_val.get_buffer_size()
+                    if (read_size > 0):
+                        self.log_next_read_index += read_size
+                    else:
+                        print("WARNING:  Not able to read data from node.")
                 else:
-                    print("WARNING:  Not able to read data from node.")                
-
+                    print("WARNING:  No new data on node.")
+            else:
+                # Since log has wrapped, we need to get all the entries on the old wrap
+                if (next_index != 0):
+                    
+                    return_val = self.log_get(offset=self.log_next_read_index, 
+                                              size=cmds.CMD_PARAM_LOG_GET_ALL_ENTRIES, 
+                                              max_req_size=max_req_size)
+    
+                    # Unfortunately, we do not know how much data should have
+                    # been returned from the node, but it should not be zero
+                    read_size  = return_val.get_buffer_size()
+                    if (read_size > 0):
+                        self.log_next_read_index = 0
+                        self.log_num_wraps       = num_wraps
+                    else:
+                        print("WARNING:  Not able to read data from node.")                
+                else:
+                    print("WARNING:  No new data on node.")
+    
         return return_val
 
 
@@ -1655,7 +1686,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             args    -- Scalar or list of u32 command arguments to send to the node
             
         Returns:
-            list of u32:  List of u32 command response values received from the node
+            resp_args (list of u32):  List of u32 response arguments received from the node
         """
         if cmd_id is None:
             raise AttributeError("Command ID must be defined for a user command")
