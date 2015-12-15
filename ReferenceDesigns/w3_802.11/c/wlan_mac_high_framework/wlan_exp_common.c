@@ -339,7 +339,7 @@ int  wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32
  * @param   parameters       - Pointer to structure from which to get all the tag parameter information
  * @param   num_parameters   - Number of tag parameters to initialize
  * @param   buffer           - u32 array to place tag parameter information
- * @param   max_words        - Maximum number of u32 words available in the buffer
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  * @param   values_only      - Flag to populate all tag parameter information (WLAN_EXP_FALSE) or
  *                                 just the tag parameter values (WLAN_EXP_TRUE)
  * @param   transmit         - Flag to adjust the values for network transmission (WLAN_EXP_TRANSMIT) or
@@ -350,7 +350,7 @@ int  wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32
  * @note    The tag parameters must be initialize     before this function is called.
  *
  **************************************************************************    **/
-int  wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 num_parameters, u32 * buffer, u32 max_words, u8 values_only, u8 transmit) {
+int  wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 num_parameters, u32 * buffer, u32 max_resp_len, u8 values_only, u8 transmit) {
 
     u32 i, j;
     u32 num_total_words;
@@ -380,7 +380,7 @@ int  wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 num_parame
         num_param_words = length + num_param_header_words;
 
         // Make sure we have space in the buffer to put the parameter
-        if ((num_total_words + num_param_words) < max_words) {
+        if ((num_total_words + num_param_words) < max_resp_len) {
 
             // If we need to transmit these values, then we must convert for network transmission
             if (transmit == WLAN_EXP_TRANSMIT) {

@@ -235,7 +235,7 @@ typedef struct {
 int  transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port);
 
 int  transport_set_process_hton_msg_callback(void(*handler));
-int  process_transport_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_words);
+int  process_transport_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len);
 
 void transport_poll(u32 eth_dev_num);
 void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, warp_ip_udp_buffer * send_buffer);
@@ -257,7 +257,7 @@ int  transport_link_status(u32 eth_dev_num);
 u32  transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation);
 u16  transport_get_ethernet_status(u32 eth_dev_num);
 
-int  transport_get_parameters(u32 eth_dev_num, u32* buffer, u32 max_words, u8 network);
+int  transport_get_parameters(u32 eth_dev_num, u32* buffer, u32 max_resp_len, u8 network);
 
 
 

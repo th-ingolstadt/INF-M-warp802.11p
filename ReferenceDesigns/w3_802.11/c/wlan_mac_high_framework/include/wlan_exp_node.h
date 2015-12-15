@@ -309,8 +309,8 @@ u32  wlan_exp_get_id_in_bss_info(u8 * bssid);
 void wlan_exp_transmit_log_entry(void * entry);
 
 // Node commands
-int  node_get_parameters(u32 * buffer, u32 max_words, u8 transmit);
-int  node_get_parameter_values    (u32 * buffer, u32 max_words);
+int  node_get_parameters(u32 * buffer, u32 max_resp_len, u8 transmit);
+int  node_get_parameter_values    (u32 * buffer, u32 max_resp_len);
 
 void node_info_set_wlan_hw_addr   (u8 * hw_addr  );
 void node_info_set_max_assn       (u32 max_assn  );

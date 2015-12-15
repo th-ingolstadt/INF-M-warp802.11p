@@ -291,7 +291,7 @@ void          clear_ddr(u32 verbose);
 
 // Tag parameter functions
 int           wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32 num_parameters, u32 * values, u16 * lengths);
-int           wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 num_parameters, u32 * buffer, u32 max_words, u8 values_only, u8 transmit);
+int           wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 num_parameters, u32 * buffer, u32 max_resp_len, u8 values_only, u8 transmit);
 
 
 #ifdef _DEBUG_

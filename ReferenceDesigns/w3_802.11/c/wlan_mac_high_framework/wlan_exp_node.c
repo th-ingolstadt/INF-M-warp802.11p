@@ -98,7 +98,7 @@ void          node_init_system_monitor(void);
 
 int           process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer);
 void          send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer);
-int           process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words);
+int           process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 
 void          ltg_cleanup(u32 id, void* callback_arg);
 
@@ -110,13 +110,13 @@ u8            process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
 // WLAN Exp buffer functions
 void          transfer_log_data(u32 socket_index, void * from,
-                                void * resp_buffer_data, u32 eth_dev_num, u32 max_words,
+                                void * resp_buffer_data, u32 eth_dev_num, u32 max_resp_len,
                                 u32 id, u32 flags, u32 start_index, u32 size);
 
 u32           process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_resp * response,
                                   cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
                                   cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
-                                  u32 eth_dev_num, u32 max_words,
+                                  u32 eth_dev_num, u32 max_resp_len,
                                   char * type, char * description, dl_list * source_list, u32 dest_size,
                                   u32 (*find_id)(u8 *),
                                   dl_entry * (*find_source_entry)(u8 *),
@@ -395,7 +395,7 @@ int  process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buff
     u8                  cmd_group;
     u32                 resp_sent      = NO_RESP_SENT;
     u32                 resp_length;
-    u32                 max_words      = node_info.eth_dev->max_pkt_words;
+    u32                 max_resp_len   = node_info.eth_dev->max_pkt_words;
 
     cmd_resp_hdr      * cmd_hdr;
     cmd_resp            command;
@@ -431,13 +431,13 @@ int  process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buff
 
     switch(cmd_group){
         case GROUP_NODE:
-            resp_sent = process_node_cmd(socket_index, from, &command, &response, max_words);
+            resp_sent = process_node_cmd(socket_index, from, &command, &response, max_resp_len);
         break;
         case GROUP_TRANSPORT:
-            resp_sent = process_transport_cmd(socket_index, from, &command, &response, max_words);
+            resp_sent = process_transport_cmd(socket_index, from, &command, &response, max_resp_len);
         break;
         case GROUP_USER:
-            resp_sent = process_user_cmd(socket_index, from, &command, &response, max_words);
+            resp_sent = process_user_cmd(socket_index, from, &command, &response, max_resp_len);
         break;
         default:
             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command group: %d\n", cmd_group);
@@ -547,7 +547,7 @@ void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void 
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
- * @param   max_words        - Maximum number of u32 words per packet
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
@@ -557,7 +557,7 @@ void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void 
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -662,16 +662,16 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Return the info about the WLAN_EXP_NODE
             
             // Send node parameters
-            temp        = node_get_parameters(&resp_args_32[resp_index], max_words, WLAN_EXP_TRANSMIT);
-            resp_index += temp;
-            max_words  -= temp;
-            if ( max_words <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
+            temp          = node_get_parameters(&resp_args_32[resp_index], max_resp_len, WLAN_EXP_TRANSMIT);
+            resp_index   += temp;
+            max_resp_len -= temp;
+            if ( max_resp_len <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
             
             // Send transport parameters
-            temp        = transport_get_parameters(eth_dev_num, &resp_args_32[resp_index], max_words, WLAN_EXP_TRANSMIT);
-            resp_index += temp;
-            max_words  -= temp;
-            if ( max_words <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
+            temp          = transport_get_parameters(eth_dev_num, &resp_args_32[resp_index], max_resp_len, WLAN_EXP_TRANSMIT);
+            resp_index   += temp;
+            max_resp_len -= temp;
+            if ( max_resp_len <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
 
 #ifdef _DEBUG_
             xil_printf("NODE INFO: \n");
@@ -1056,7 +1056,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Transfer data to host
             transfer_log_data(socket_index, from,
                               (void *)(((warp_ip_udp_buffer *)(response->buffer))->data),
-                              eth_dev_num, max_words,
+                              eth_dev_num, max_resp_len,
                               id, flags, start_index, size);
 
             resp_sent = RESP_SENT;
@@ -1293,7 +1293,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - byte[]          - uint8[] - Array of payload bytes
 
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
-                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
+                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_counts, "counts",
                                             get_counts(),
                                             sizeof(txrx_counts_entry),
@@ -2432,7 +2432,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - byte[]          - uint8[] - Array of payload bytes
 
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
-                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
+                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_node, "station info",
                                             get_station_info_list(),
                                             sizeof(station_info_entry),
@@ -2472,7 +2472,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             }
 
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
-                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_words,
+                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_node, "bss info",
                                             wlan_mac_high_get_bss_info_list(),
                                             sizeof(bss_info_entry),
@@ -2533,7 +2533,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
                     // Don't bother if length is clearly bogus
-                    if(mem_length < max_words) {
+                    if(mem_length < max_resp_len) {
                         for(mem_idx = 0; mem_idx < mem_length; mem_idx++) {
                             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmd_args_32[3 + mem_idx]));
                             Xil_Out32((mem_addr + mem_idx*sizeof(u32)), Xil_Ntohl(cmd_args_32[3 + mem_idx]));
@@ -2550,7 +2550,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
                     // Add payload to response
-                    if(mem_length < max_words) {
+                    if(mem_length < max_resp_len) {
 
                         // Don't set the default response
                         temp = 1;
@@ -2623,7 +2623,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
                     // Don't bother if length is clearly bogus
-                    if(mem_length < max_words) {
+                    if(mem_length < max_resp_len) {
                         // Endian swap payload here - CPU Low requires payload that is ready to use as-is
                         for(mem_idx = 0; mem_idx < mem_length+2; mem_idx++) {
                             cmd_args_32[1 + mem_idx] = Xil_Ntohl(cmd_args_32[1 + mem_idx]);
@@ -2646,7 +2646,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", mem_addr);
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
-                    if(mem_length < max_words) {
+                    if(mem_length < max_resp_len) {
                         temp2 = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(resp_args_32[2]));
 
                         if(temp2 == 0) { //Success
@@ -2700,7 +2700,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         //---------------------------------------------------------------------
         default:
             // Call standard function in child class to parse parameters implemented there
-            resp_sent = wlan_exp_process_node_cmd_callback(cmd_id, socket_index, from, command, response, max_words);
+            resp_sent = wlan_exp_process_node_cmd_callback(cmd_id, socket_index, from, command, response, max_resp_len);
         break;
     }
 
@@ -2728,7 +2728,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_resp * response,
                         cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
                         cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
-                        u32 eth_dev_num, u32 max_words,
+                        u32 eth_dev_num, u32 max_resp_len,
                         char * type, char * description, dl_list * source_list, u32 dest_size,
                         u32 (*find_id)(u8 *),
                         dl_entry * (*find_source_entry)(u8 *),
@@ -2833,7 +2833,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                 // Send the entries as a series of WLAN Exp Buffers
 
                 // Set loop variables
-                entry_per_pkt     = (max_words * 4) / dest_size;
+                entry_per_pkt     = (max_resp_len * 4) / dest_size;
                 bytes_per_pkt     = entry_per_pkt * dest_size;
                 num_pkts          = size / bytes_per_pkt + 1;
 
@@ -2936,7 +2936,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
  * @param   from             -- Socket address structure of host from which command was received
  * @param   resp_buffer_data -- Address of the response data buffer (ie address of response transport header)
  * @param   eth_dev_num      -- Ethernet device number to send response
- * @param   max_words        -- Maximum number of words per packet
+ * @param   max_resp_len     -- Maximum number of u32 words allowed in response
  * @param   id               -- Buffer ID for transfer
  * @param   flags            -- Buffer flags for transfer
  * @param   start_index      -- Start index for transfer
@@ -2978,7 +2978,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
  *
  *****************************************************************************/
 void transfer_log_data(u32 socket_index, void * from,
-                       void * resp_buffer_data, u32 eth_dev_num, u32 max_words,
+                       void * resp_buffer_data, u32 eth_dev_num, u32 max_resp_len,
                        u32 id, u32 flags, u32 start_index, u32 size) {
 
     u32                      i;
@@ -3022,7 +3022,7 @@ void transfer_log_data(u32 socket_index, void * from,
     interrupt_state_t        prev_interrupt_state;
 
     // Set up control variables
-    bytes_per_pkt         = ((max_words) * 4) - WLAN_EXP_BUFFER_HEADER_SIZE;     // Subtract the bytes for the buffer header
+    bytes_per_pkt         = ((max_resp_len) * 4) - WLAN_EXP_BUFFER_HEADER_SIZE;     // Subtract the bytes for the buffer header
     num_pkts              = (size / bytes_per_pkt) + 1;
 
     if ((size % bytes_per_pkt) == 0){ num_pkts--; }                  // Subtract the extra pkt if the division had no remainder
@@ -3526,7 +3526,7 @@ int  node_init_parameters(u32 * values) {
  * node tag parameter structure.
  *
  * @param   buffer           - u32 array to place tag parameter information
- * @param   max_words        - Maximum number of u32 words available in the buffer
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  * @param   transmit         - Flag to adjust the values for network transmission (WLAN_EXP_TRANSMIT) or
  *                                 leave them alone (WLAN_EXP_NO_TRANSMIT)
  *
@@ -3535,12 +3535,12 @@ int  node_init_parameters(u32 * values) {
  * @note    The tag parameters must be initialized before this function is called.
  *
  *****************************************************************************/
-int node_get_parameters(u32 * buffer, u32 max_words, u8 transmit) {
+int node_get_parameters(u32 * buffer, u32 max_resp_len, u8 transmit) {
 
     return wlan_exp_get_parameters((wlan_exp_tag_parameter *) &node_parameters,
                                    NODE_PARAM_MAX_PARAMETER,
                                    buffer,
-                                   max_words,
+                                   max_resp_len,
                                    WLAN_EXP_FALSE,
                                    transmit);
 }
@@ -3555,19 +3555,19 @@ int node_get_parameters(u32 * buffer, u32 max_words, u8 transmit) {
  * node tag parameter structure.
  *
  * @param   buffer           - u32 array to place tag parameter information
- * @param   max_words        - Maximum number of u32 words available in the buffer
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  *
  * @return  int              - Total number of words placed in the buffer
  *
  * @note    The tag parameters must be initialized before this function is called.
  *
  *****************************************************************************/
-int node_get_parameter_values(u32 * buffer, u32 max_words) {
+int node_get_parameter_values(u32 * buffer, u32 max_resp_len) {
 
     return wlan_exp_get_parameters((wlan_exp_tag_parameter *) &node_parameters,
                                    NODE_PARAM_MAX_PARAMETER,
                                    buffer,
-                                   max_words,
+                                   max_resp_len,
                                    WLAN_EXP_TRUE,
                                    WLAN_EXP_NO_TRANSMIT);
 }

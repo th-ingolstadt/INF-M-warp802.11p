@@ -573,7 +573,7 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
- * @param   max_words        - Maximum number of u32 words per packet
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
@@ -583,7 +583,7 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
-int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -1145,7 +1145,7 @@ int  transport_init_parameters(u32 eth_dev_num, u32 * values) {
  *
  * @param   eth_dev_num      - Ethernet device to use
  * @param   buffer           - u32 array to place tag parameter information
- * @param   max_words        - Maximum number of u32 words available in the buffer
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  * @param   transmit         - Flag to adjust the values for network transmission (WLAN_EXP_TRANSMIT) or
  *                                 leave them alone (WLAN_EXP_NO_TRANSMIT)
  *
@@ -1154,12 +1154,12 @@ int  transport_init_parameters(u32 eth_dev_num, u32 * values) {
  * @note    The tag parameters must be initialized before this function is called.
  *
  *****************************************************************************/
-int transport_get_parameters(u32 eth_dev_num, u32 * buffer, u32 max_words, u8 transmit) {
+int transport_get_parameters(u32 eth_dev_num, u32 * buffer, u32 max_resp_len, u8 transmit) {
 
     return wlan_exp_get_parameters((wlan_exp_tag_parameter *) &transport_parameters[eth_dev_num][0],
                                    TRANSPORT_PARAM_MAX_PARAMETER,
                                    buffer,
-                                   max_words,
+                                   max_resp_len,
                                    WLAN_EXP_FALSE,
                                    transmit);
 

@@ -66,7 +66,7 @@ extern wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback;
  * @param   from             - Pointer to socket address structure (struct sockaddr *) where command is from
  * @param   command          - Pointer to Command
  * @param   response         - Pointer to Response
- * @param   max_words        - Maximum number of u32 words allowed in response
+ * @param   max_resp_len     - Maximum number of u32 words allowed in response
  *
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
@@ -76,7 +76,7 @@ extern wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback;
  *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
  *
  *****************************************************************************/
-int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_words) {
+int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -93,15 +93,15 @@ int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
     //         compiler warnings for "unused variables" since the default implemention is empty.  As
     //         you add commands, you should un-comment the standard variables.
     //
-    u32                      resp_sent      = NO_RESP_SENT;
+    u32                 resp_sent      = NO_RESP_SENT;
 
-    cmd_resp_hdr           * cmd_hdr        = command->header;
-    // u32                    * cmd_args_32    = command->args;
-    u32                      cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
+    cmd_resp_hdr      * cmd_hdr        = command->header;
+    // u32               * cmd_args_32    = command->args;
+    u32                 cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
 
-    cmd_resp_hdr           * resp_hdr       = response->header;
-    // u32                    * resp_args_32   = response->args;
-    // u32                      resp_index     = 0;
+    cmd_resp_hdr      * resp_hdr       = response->header;
+    // u32               * resp_args_32   = response->args;
+    // u32                 resp_index     = 0;
 
     // Initialize the response header
     resp_hdr->cmd       = cmd_hdr->cmd;
@@ -171,7 +171,7 @@ int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         //---------------------------------------------------------------------
         default:
             // Call standard function in child class to parse parameters implemented there
-            resp_sent = wlan_exp_process_user_cmd_callback(cmd_id, socket_index, from, command, response, max_words);
+            resp_sent = wlan_exp_process_user_cmd_callback(cmd_id, socket_index, from, command, response, max_resp_len);
         break;
     }
 
