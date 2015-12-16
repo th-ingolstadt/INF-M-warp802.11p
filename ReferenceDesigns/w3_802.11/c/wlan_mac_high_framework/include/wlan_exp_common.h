@@ -123,13 +123,13 @@
 
 //    e) Default maximum words supported by the packet
 //
-//   NOTE:  By default, the node will only use ~90% of a standard MTU packet when issuing buffer
+//   NOTE:  By default, the node will only use ~60% of a standard MTU packet when issuing buffer
 //       commands or other commands which require potentially large amounts of data.  The
 //       CMDID_TRANSPORT_PAYLOAD_SIZE_TEST command can be used to override the default value in
 //       the framework.  This value was chosen as a "sane default" in the case that the payload
 //       size test command is not run.
 //
-#define WLAN_EXP_DEFAULT_MAX_PACKET_WORDS                  320
+#define WLAN_EXP_DEFAULT_MAX_PACKET_WORDS                  240
 
 
 // 4) Timeouts
