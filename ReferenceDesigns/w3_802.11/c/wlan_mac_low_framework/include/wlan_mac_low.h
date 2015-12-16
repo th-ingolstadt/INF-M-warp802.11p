@@ -24,28 +24,28 @@
 //-----------------------------------------------
 // MAC timing parameter defines
 //
-#define T_DIFS                                            (T_SIFS + (2 * T_SLOT))
-#define T_EIFS                                             88
-#define T_PHY_RX_START_DLY                                 25
-#define T_TIMEOUT                                         (T_SIFS + T_SLOT + T_PHY_RX_START_DLY)
+#define T_DIFS				(T_SIFS + (2 * T_SLOT))
+#define T_EIFS              88
+#define T_PHY_RX_START_DLY  25
+#define T_TIMEOUT           (T_SIFS + T_SLOT + T_PHY_RX_START_DLY)
 
 //-----------------------------------------------
 // MAC Header defines
-#define MAC_HW_LASTBYTE_ADDR1                             (13)
+#define MAC_HW_LASTBYTE_ADDR1 (13)
 
 
 //-----------------------------------------------
 // Power defines
 //
-#define PKT_DET_MIN_POWER_MIN                             -90
-#define PKT_DET_MIN_POWER_MAX                             -30
+#define PKT_DET_MIN_POWER_MIN -90
+#define PKT_DET_MIN_POWER_MAX -30
 
 
 
 //-----------------------------------------------
 // Peripheral defines
 //
-#define USERIO_BASEADDR                                    XPAR_W3_USERIO_BASEADDR
+#define USERIO_BASEADDR  XPAR_W3_USERIO_BASEADDR
 
 
 
@@ -216,28 +216,28 @@
 //     b[15:0]: Num Slots
 //     b[31]  : Start
 //
-#define wlan_mac_set_backoff_num_slots(d)                  Xil_Out32(WLAN_MAC_REG_SW_BACKOFF_CTRL, ((Xil_In32(WLAN_MAC_REG_SW_BACKOFF_CTRL) & (~0x0000FFFF)) | ((d) & 0x0000FFFF)))
-#define wlan_mac_backoff_start(x)                          Xil_Out32(WLAN_MAC_REG_SW_BACKOFF_CTRL, ((Xil_In32(WLAN_MAC_REG_SW_BACKOFF_CTRL) & (~0x80000000)) | (((x) << 31) & 0x80000000)))
+#define wlan_mac_set_backoff_num_slots(d) Xil_Out32(WLAN_MAC_REG_SW_BACKOFF_CTRL, ((Xil_In32(WLAN_MAC_REG_SW_BACKOFF_CTRL) & (~0x0000FFFF)) | ((d) & 0x0000FFFF)))
+#define wlan_mac_backoff_start(x)         Xil_Out32(WLAN_MAC_REG_SW_BACKOFF_CTRL, ((Xil_In32(WLAN_MAC_REG_SW_BACKOFF_CTRL) & (~0x80000000)) | (((x) << 31) & 0x80000000)))
 
 // WLAN_MAC_IFS_1:
 //     b[9:0]  : Slot
 //     b[29:20]: DIFS
 //
-#define wlan_mac_set_slot(d)                               Xil_Out32(WLAN_MAC_REG_IFS_1, ((Xil_In32(WLAN_MAC_REG_IFS_1) & (~0x000003FF)) | ((d) & 0x000003FF)))
-#define wlan_mac_set_DIFS(d)                               Xil_Out32(WLAN_MAC_REG_IFS_1, ((Xil_In32(WLAN_MAC_REG_IFS_1) & (~0x3FF00000)) | (((d) << 20) & 0x3FF00000)))
+#define wlan_mac_set_slot(d) Xil_Out32(WLAN_MAC_REG_IFS_1, ((Xil_In32(WLAN_MAC_REG_IFS_1) & (~0x000003FF)) | ((d) & 0x000003FF)))
+#define wlan_mac_set_DIFS(d) Xil_Out32(WLAN_MAC_REG_IFS_1, ((Xil_In32(WLAN_MAC_REG_IFS_1) & (~0x3FF00000)) | (((d) << 20) & 0x3FF00000)))
 
 // WLAN_MAC_IFS_2:
 //     b[15:0] : EIFS
 //     b[31:16]: ACK Timeout
 //
-#define wlan_mac_set_EIFS(d)                               Xil_Out32(WLAN_MAC_REG_IFS_2, ((Xil_In32(WLAN_MAC_REG_IFS_2) & (~0x0000FFFF)) | ((d) & 0x0000FFFF)))
+#define wlan_mac_set_EIFS(d) Xil_Out32(WLAN_MAC_REG_IFS_2, ((Xil_In32(WLAN_MAC_REG_IFS_2) & (~0x0000FFFF)) | ((d) & 0x0000FFFF)))
 
 // WLAN_MAC_CALIB_TIMES:
 //     b[9:0]  : TxDIFS
 //     b[31:24]: NAV Adj (Fix8_0 - signed char!)
 //
-#define wlan_mac_set_TxDIFS(d)                             Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0x000003FF)) | ((d) & 0x000003FF)))
-#define wlan_mac_set_NAV_adj(d)                            Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0xFF000000)) | (((d) << 24) & 0xFF000000)))
+#define wlan_mac_set_TxDIFS(d)  Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0x000003FF)) | ((d) & 0x000003FF)))
+#define wlan_mac_set_NAV_adj(d) Xil_Out32(WLAN_MAC_REG_CALIB_TIMES, ((Xil_In32(WLAN_MAC_REG_CALIB_TIMES) & (~0xFF000000)) | (((d) << 24) & 0xFF000000)))
 
 // TX_CTRL_A_PARAMS:
 //     b[3:0] : Pkt buf
@@ -306,20 +306,20 @@
 // NOTE:  Intrepret non-zero (x) as Tx start enable, zero (x) as Tx start disable
 //     MAC core requires rising edge on either Tx start bit; software must set then clear for each Tx
 //
-#define wlan_mac_tx_ctrl_A_start(x)                        Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~0x1) | ((x) ? 0x1 : 0x0)))
-#define wlan_mac_tx_ctrl_B_start(x)                        Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~0x2) | ((x) ? 0x2 : 0x0)))
+#define wlan_mac_tx_ctrl_A_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~0x1) | ((x) ? 0x1 : 0x0)))
+#define wlan_mac_tx_ctrl_B_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~0x2) | ((x) ? 0x2 : 0x0)))
 
 // LATEST_RX_BYTE
 //     b[15:0] : Last byte index
 //     b[23:16]: Last byte
 //
-#define wlan_mac_get_last_byte_index()                    (Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFFFF)
-#define wlan_mac_get_last_byte()                         ((Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFF0000) >> 16)
+#define wlan_mac_get_last_byte_index() (Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFFFF)
+#define wlan_mac_get_last_byte()      ((Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFF0000) >> 16)
 
 // BACKOFF_COUNTER
 //     b[15:0]: Backoff count
 //
-#define wlan_mac_get_backoff_count()                      (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTER) & 0xFFFF)
+#define wlan_mac_get_backoff_count() (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTER) & 0xFFFF)
 
 // RX_PHY_PARAMS Register:
 //     b[15:0] : Length
@@ -330,41 +330,39 @@
 //     b[28]   : Rx params valid
 //     b[29]   : Rx PHY Sel (0=OFDM, 1=DSSS)
 //
-#define wlan_mac_get_rx_params()                          (Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS))
-#define wlan_mac_get_rx_phy_length()                      (Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_LENGTH)
-#define wlan_mac_get_rx_phy_mcs()                        ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_MCS) >> 16)
-#define wlan_mac_get_rx_phy_sel()                        ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_SEL))
-#define wlan_mac_get_rx_phy_mode()                       ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_MODE) >> 25)
-#define wlan_mac_get_rx_phy_params_valid()               ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID))
+#define wlan_mac_get_rx_params()            (Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS))
+#define wlan_mac_get_rx_phy_length()        (Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_LENGTH)
+#define wlan_mac_get_rx_phy_mcs()          ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_MCS) >> 16)
+#define wlan_mac_get_rx_phy_sel()          ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_SEL))
+#define wlan_mac_get_rx_phy_mode()         ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_MODE) >> 25)
+#define wlan_mac_get_rx_phy_params_valid() ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID))
 
 
 
 //-----------------------------------------------
 // MAC Polling defines
 //
-#define POLL_MAC_STATUS_RECEIVED_PKT                       0x00000001     // b[0]
-#define POLL_MAC_STATUS_GOOD                               0x00000002     // b[1]
-#define POLL_MAC_ADDR_MATCH                                0x00000004     // b[2]
-#define POLL_MAC_CANCEL_TX                                 0x00000008     // b[3]
-#define POLL_MAC_STATUS_TYPE                               0x0000FF00     // b[15:8]
+#define POLL_MAC_STATUS_RECEIVED_PKT 0x00000001     // b[0]
+#define POLL_MAC_STATUS_GOOD         0x00000002     // b[1]
+#define POLL_MAC_ADDR_MATCH          0x00000004     // b[2]
+#define POLL_MAC_CANCEL_TX           0x00000008     // b[3]
+#define POLL_MAC_STATUS_TYPE         0x0000FF00     // b[15:8]
 
-#define POLL_MAC_TYPE_DATA                                (1 <<  8)
-#define POLL_MAC_TYPE_ACK                                 (1 <<  9)
-#define POLL_MAC_TYPE_CTS                                 (1 << 10)
-#define POLL_MAC_TYPE_OTHER                               (1 << 11)
-
-
+#define POLL_MAC_TYPE_DATA  (1 <<  8)
+#define POLL_MAC_TYPE_ACK   (1 <<  9)
+#define POLL_MAC_TYPE_CTS   (1 << 10)
+#define POLL_MAC_TYPE_OTHER (1 << 11)
 
 //-----------------------------------------------
 // WLAN Exp low parameter defines
 //     NOTE:  Need to make sure that these values do not conflict with any of the LOW PARAM
 //     callback defines
-#define LOW_PARAM_BB_GAIN                                  0x00000001
-#define LOW_PARAM_LINEARITY_PA                             0x00000002
-#define LOW_PARAM_LINEARITY_VGA                            0x00000003
-#define LOW_PARAM_LINEARITY_UPCONV                         0x00000004
-#define LOW_PARAM_AD_SCALING                               0x00000005
-#define LOW_PARAM_PKT_DET_MIN_POWER                        0x00000006
+#define LOW_PARAM_BB_GAIN            0x00000001
+#define LOW_PARAM_LINEARITY_PA       0x00000002
+#define LOW_PARAM_LINEARITY_VGA      0x00000003
+#define LOW_PARAM_LINEARITY_UPCONV   0x00000004
+#define LOW_PARAM_AD_SCALING         0x00000005
+#define LOW_PARAM_PKT_DET_MIN_POWER  0x00000006
 
 
 

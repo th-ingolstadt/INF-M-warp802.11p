@@ -41,10 +41,10 @@
 
 /*************************** Constant Definitions ****************************/
 
-#define DBG_PRINT                                          0
+#define DBG_PRINT  0
 
 // Power / RSSI conversion
-#define POW_LOOKUP_SHIFT                                   3                   // Shift from 10 bit RSSI to 7 bit for lookup
+#define POW_LOOKUP_SHIFT  3                   // Shift from 10 bit RSSI to 7 bit for lookup
 
 
 /*********************** Global Variable Definitions *************************/
@@ -107,7 +107,6 @@ const static u8 mcs_to_resp_mcs[64] = {0, 0, 2, 2, 4, 4, 4, 4,
                                        0, 0, 0, 0, 0, 0, 0, 0,
                                        0, 0, 0, 0, 0, 0, 0, 0,
                                        0, 0, 0, 0, 0, 0, 0, 0 };
-
 
 /******************************** Functions **********************************/
 
