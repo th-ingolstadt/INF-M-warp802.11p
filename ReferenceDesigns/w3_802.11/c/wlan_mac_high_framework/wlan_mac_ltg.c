@@ -544,7 +544,7 @@ void ltg_sched_destroy_l(dl_entry* tg_dl_entry){
 dl_entry* ltg_sched_find_tg_schedule(u32 id){
 	dl_entry*	 curr_tg_dl_entry;
 	tg_schedule* curr_tg;
-	u32 		 iter;
+	int 		 iter;
 
 	curr_tg_dl_entry = tg_list.first;
 
