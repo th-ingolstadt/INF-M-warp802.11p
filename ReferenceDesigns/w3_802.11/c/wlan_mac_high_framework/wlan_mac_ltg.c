@@ -544,15 +544,20 @@ void ltg_sched_destroy_l(dl_entry* tg_dl_entry){
 dl_entry* ltg_sched_find_tg_schedule(u32 id){
 	dl_entry*	 curr_tg_dl_entry;
 	tg_schedule* curr_tg;
+	u32 		 i, max_iter;
 
 	curr_tg_dl_entry = tg_list.first;
 
-	while(curr_tg_dl_entry != NULL){
+	i = 0;
+	max_iter = tg_list.length;
+
+	while((curr_tg_dl_entry != NULL) && (i < max_iter)){
 		curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
 		if( (curr_tg->id)==id){
 			return curr_tg_dl_entry;
 		}
 		curr_tg_dl_entry = dl_entry_next(curr_tg_dl_entry);
+		i++;
 	}
 	return NULL;
 }
