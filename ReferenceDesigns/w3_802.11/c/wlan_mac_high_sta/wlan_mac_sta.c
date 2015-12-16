@@ -912,7 +912,7 @@ void reset_bss_info(){
 	dl_entry * next_dl_entry = bss_info_list->first;
 	dl_entry * curr_dl_entry;
     bss_info * curr_bss_info;
-    u32		   iter = bss_info_list->length;
+    int		   iter = bss_info_list->length;
 
 	while( (next_dl_entry != NULL) && (iter-- > 0) ){
 		curr_dl_entry = next_dl_entry;
