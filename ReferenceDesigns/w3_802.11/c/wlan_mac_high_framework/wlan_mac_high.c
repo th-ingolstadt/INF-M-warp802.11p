@@ -612,8 +612,9 @@ dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
 	station_info* curr_station_info;
 
 	curr_station_info_entry = list->first;
+	int iter = list->length;
 
-	while(curr_station_info_entry != NULL){
+	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 		if(curr_station_info->AID == aid){
@@ -649,10 +650,11 @@ dl_entry* wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid){
 dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
 	dl_entry* curr_station_info_entry;
 	station_info* curr_station_info;
+	int iter = list->length;
 
 	curr_station_info_entry = list->first;
 
-	while(curr_station_info_entry != NULL){
+	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 		if(wlan_addr_eq(curr_station_info->addr, addr)){
@@ -686,10 +688,12 @@ dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
 dl_entry* wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr){
 	dl_entry*           curr_counts_entry;
 	counts_txrx*        curr_counts;
+	int					iter = list->length;
 
 	curr_counts_entry = list->first;
 
-	while(curr_counts_entry != NULL){
+
+	while( (curr_counts_entry != NULL) && (iter-- > 0) ){
 
 		curr_counts = (counts_txrx*)(curr_counts_entry->data);
 
@@ -2221,6 +2225,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 	dl_entry     * curr_station_info_entry;
 	station_info * curr_station_info;
 	u16            curr_AID;
+	int			   iter;
 
 	curr_AID = 0;
 
@@ -2315,8 +2320,9 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 		if(requested_AID == ADD_ASSOCIATION_ANY_AID){
 			// Find the minimum AID that can be issued to this station.
 			curr_station_info_entry = assoc_tbl->first;
+			iter = assoc_tbl->length;
 
-			while(curr_station_info_entry != NULL){
+			while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
 
 				curr_station_info = (station_info*)(curr_station_info_entry->data);
 
@@ -2353,8 +2359,9 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 		} else {
 			// Find the right place in the dl_list to insert this station_info with the requested AID
 			curr_station_info_entry = assoc_tbl->first;
+			iter = assoc_tbl->length;
 
-			while(curr_station_info_entry != NULL){
+			while( (curr_station_info_entry != NULL) && (iter-- > 0)){
 
 				curr_station_info = (station_info*)(curr_station_info_entry->data);
 
@@ -2458,10 +2465,12 @@ int wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8
 u8 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station){
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
+	int			  iter = assoc_tbl->length;
 
 	curr_station_info_entry = assoc_tbl->first;
 
-	while(curr_station_info_entry != NULL){
+
+	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
 
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
 
@@ -2528,13 +2537,14 @@ void wlan_mac_high_print_associations(dl_list* assoc_tbl){
 	dl_entry     * curr_station_info_entry;
 	station_info * curr_station_info;
 	u64            timestamp           = get_mac_time_usec();
+	int			   iter = assoc_tbl->length;
 
 	xil_printf("\n(MAC time = %d usec)\n",timestamp);
 	xil_printf("|-ID-|----- MAC ADDR ----|\n");
 
 	curr_station_info_entry = assoc_tbl->first;
 
-	while(curr_station_info_entry != NULL){
+	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
 
 		curr_station_info       = (station_info*)(curr_station_info_entry->data);
 
@@ -2572,6 +2582,7 @@ counts_txrx* wlan_mac_high_add_counts(dl_list* counts_tbl, station_info* station
 	counts_txrx  * station_counts      = NULL;
 	counts_txrx  * curr_counts         = NULL;
 	counts_txrx  * oldest_counts       = NULL;
+	u32			   iter;
 
 	if(station == NULL){
 		if (!promiscuous_counts_enabled) {
@@ -2592,8 +2603,9 @@ counts_txrx* wlan_mac_high_add_counts(dl_list* counts_tbl, station_info* station
 		if(counts_tbl->length >= WLAN_MAC_HIGH_MAX_PROMISC_COUNTS){
 			// There are too many counts being tracked. We'll get rid of the oldest that isn't currently associated.
 			curr_counts_entry = counts_tbl->first;
+			iter = counts_tbl->length;
 
-			while(curr_counts_entry != NULL){
+			while( (curr_counts_entry != NULL) && (iter-- > 0) ){
 				curr_counts = (counts_txrx*)(curr_counts_entry->data);
 
 				if( (oldest_counts_entry == NULL) ){
@@ -2665,14 +2677,16 @@ void wlan_mac_high_reset_counts(dl_list* counts_tbl){
 	counts_txrx  * curr_counts       = NULL;
 	dl_entry     * next_counts_entry = NULL;
 	dl_entry     * curr_counts_entry = NULL;
+	u32			   iter;
 
 	next_counts_entry = counts_tbl->first;
+	iter = counts_tbl->length;
 
 	// Remove all counts entries from the counts table
 	//
 	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
 	//   elements from the list.
-	while(next_counts_entry != NULL){
+	while( (next_counts_entry != NULL) && (iter-- > 0) ){
 
 		curr_counts_entry = next_counts_entry;
 		next_counts_entry = dl_entry_next(curr_counts_entry);
