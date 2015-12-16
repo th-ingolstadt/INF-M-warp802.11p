@@ -453,12 +453,13 @@ void poll_tx_queues(){
 void purge_all_data_tx_queue(){
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
+	u32			  iter = my_bss_info->associated_stations.length;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
 	curr_station_info_entry = my_bss_info->associated_stations.first;
 
-	while(curr_station_info_entry != NULL){
+	while( (curr_station_info_entry != NULL) && (iter-- > 0)){
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
 		purge_queue(AID_TO_QID(curr_station_info->AID));       		// Each unicast queue
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -1577,8 +1578,9 @@ void reset_bss_info(){
 	dl_entry * next_dl_entry = bss_info_list->first;
 	dl_entry * curr_dl_entry;
     bss_info * curr_bss_info;
+    u32		   iter = bss_info_list->length;
 
-	while(next_dl_entry != NULL){
+	while( (next_dl_entry != NULL) && (iter-- > 0)){
 		curr_dl_entry = next_dl_entry;
 		next_dl_entry = dl_entry_next(curr_dl_entry);
 		curr_bss_info = (bss_info *)(curr_dl_entry->data);
@@ -1690,9 +1692,10 @@ u32  deauthenticate_station( station_info* station ) {
  * @return None
  */
 void deauthenticate_stations(){
-	station_info* curr_station_info;
-	dl_entry* next_station_info_entry;
-	dl_entry* curr_station_info_entry;
+	station_info*	curr_station_info;
+	dl_entry*		next_station_info_entry;
+	dl_entry*		curr_station_info_entry;
+	u32 			iter = my_bss_info->associated_stations.length;
 
 	next_station_info_entry = my_bss_info->associated_stations.first;
 
@@ -1700,7 +1703,7 @@ void deauthenticate_stations(){
 	//
 	// NOTE:  Cannot use a for loop for this iteration b/c we could remove
 	//   elements from the list.
-	while(next_station_info_entry != NULL){
+	while( (next_station_info_entry != NULL) && (iter-- > 0)){
 		curr_station_info_entry = next_station_info_entry;
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 		curr_station_info = (station_info*)(curr_station_info_entry->data);
