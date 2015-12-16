@@ -50,30 +50,30 @@ dl_entry* wlan_mac_high_find_bss_info_oldest_unowned();
 
 void bss_info_init(u8 dram_present){
 
-	u32 num_bss_info;
-	u32 i;
+	u32       i;
+	u32       num_bss_info;
+	dl_entry* dl_entry_base;
+
+	dl_list_init(&bss_info_free);
+	dl_list_init(&bss_info_list);
 
 	if(dram_present){
-		dl_list_init(&bss_info_free);
-		dl_list_init(&bss_info_list);
+		// Clear the memory in the dram used for bss_infos
 		bzero((void*)BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE);
 
-
-		//The number of BSS info elements we can initialize is limited by the smaller of two values:
-		//	(1) The number of dl_entry structs we can squeeze into BSS_INFO_DL_ENTRY_MEM_SIZE
-		//  (2) The number of bss_info structs we can squeeze into BSS_INFO_BUFFER_SIZE
+		// The number of BSS info elements we can initialize is limited by the smaller of two values:
+		//     (1) The number of dl_entry structs we can squeeze into BSS_INFO_DL_ENTRY_MEM_SIZE
+		//     (2) The number of bss_info structs we can squeeze into BSS_INFO_BUFFER_SIZE
 		num_bss_info = min(BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), BSS_INFO_BUFFER_SIZE/sizeof(bss_info));
 
-
-		//At boot, every dl_entry buffer descriptor is free
-		//To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
-		//This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
-		dl_entry* dl_entry_base;
+		// At boot, every dl_entry buffer descriptor is free
+		// To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
+		// This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
 		dl_entry_base = (dl_entry*)(BSS_INFO_DL_ENTRY_MEM_BASE);
 
-		for(i=0;i<num_bss_info;i++){
+		for (i = 0; i < num_bss_info; i++) {
 			dl_entry_base[i].data = (void*)(BSS_INFO_BUFFER_BASE + (i*sizeof(bss_info)));
-			dl_entry_insertEnd(&bss_info_free,&(dl_entry_base[i]));
+			dl_entry_insertEnd(&bss_info_free, &(dl_entry_base[i]));
 		}
 
 		xil_printf("BSS Info list (len %d) placed in DRAM: using %d kB\n", num_bss_info, (num_bss_info*sizeof(bss_info))/1024);
@@ -84,10 +84,12 @@ void bss_info_init(u8 dram_present){
 }
 
 
+
 void bss_info_init_finish(){
 	//Will be called after interrupts have been started. Safe to use scheduler now.
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)bss_info_timestamp_check);
 }
+
 
 
 inline void bss_info_rx_process(void* pkt_buf_addr) {
@@ -228,7 +230,6 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 
 				curr_bss_info->latest_activity_timestamp = get_system_time_usec();
 				dl_entry_insertEnd(&bss_info_list,curr_dl_entry);
-
 			break;
 
 
@@ -241,19 +242,23 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 	}
 }
 
+
+
 void print_bss_info(){
+	int       iter;
+	u32       i;
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
-	u32 i;
 
 
 	i = 0;
+	iter          = bss_info_list.length;
 	curr_dl_entry = bss_info_list.last;
 
 	// Print the header
 	xil_printf("************************ BSS Info *************************\n");
 
-	while(curr_dl_entry != NULL){
+	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
 		xil_printf("[%d] SSID:     %s ", i, curr_bss_info->ssid);
@@ -279,7 +284,8 @@ void print_bss_info(){
 }
 
 
-void bss_info_timestamp_check(){
+
+void bss_info_timestamp_check() {
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
 
@@ -305,6 +311,7 @@ void bss_info_timestamp_check(){
 }
 
 
+
 dl_entry* bss_info_checkout(){
 	dl_entry* bsi;
 	bss_info* curr_bss_info;
@@ -322,8 +329,9 @@ dl_entry* bss_info_checkout(){
 }
 
 
+
 void bss_info_checkin(dl_entry* bsi){
-	dl_entry_insertEnd(&bss_info_free,(dl_entry*)bsi);
+	dl_entry_insertEnd(&bss_info_free, (dl_entry*)bsi);
 	return;
 }
 
@@ -335,14 +343,17 @@ dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid){
 	//Instead, through WLAN_EXP, they would pull *all* the bss_info structs and do the search
 	//themselves prior to an explicit low-level join.
 
+    int       iter;
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
 
+	iter          = bss_info_list.length;
 	curr_dl_entry = bss_info_list.last;
-	while(curr_dl_entry != NULL){
+
+	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
-		if(strcmp(ssid,curr_bss_info->ssid)==0){
+		if (strcmp(ssid,curr_bss_info->ssid) == 0) {
 			return curr_dl_entry;
 		}
 
@@ -353,14 +364,17 @@ dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid){
 
 
 dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
+	int       iter;
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
 
+	iter          = bss_info_list.length;
 	curr_dl_entry = bss_info_list.last;
-	while(curr_dl_entry != NULL){
+
+	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
-		if(wlan_addr_eq(bssid,curr_bss_info->bssid)){
+		if (wlan_addr_eq(bssid,curr_bss_info->bssid)) {
 			return curr_dl_entry;
 		}
 
@@ -371,14 +385,17 @@ dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 
 
 dl_entry* wlan_mac_high_find_bss_info_oldest_unowned(){
+	int       iter;
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
 
+	iter          = bss_info_list.length;
 	curr_dl_entry = bss_info_list.first;
-	while(curr_dl_entry != NULL){
+
+	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
-		if(curr_bss_info->state != BSS_STATE_OWNED){
+		if (curr_bss_info->state != BSS_STATE_OWNED) {
 			return curr_dl_entry;
 		}
 
@@ -445,29 +462,32 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 
 
 void wlan_mac_high_clear_bss_info(bss_info * info){
+	int            iter;
 	station_info * curr_station_info;
 	dl_entry     * next_station_info_entry;
 	dl_entry     * curr_station_info_entry;
 
-	if(info != NULL){
+	if (info != NULL){
         // Remove any station infos
+		iter                    = info->associated_stations.length;
 		next_station_info_entry = info->associated_stations.first;
 
 		if ((info->state != BSS_STATE_OWNED) && (next_station_info_entry != NULL)) {
             xil_printf("WARNING:  BSS info was unowned but had station info entries.\n");
 		}
 
-		while(next_station_info_entry != NULL){
+		while ((next_station_info_entry != NULL) && (iter-- > 0)) {
 			curr_station_info_entry = next_station_info_entry;
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 			curr_station_info       = (station_info*)(curr_station_info_entry->data);
-			wlan_mac_high_remove_association( &info->associated_stations, get_counts(), curr_station_info->addr );
+			wlan_mac_high_remove_association(&info->associated_stations, get_counts(), curr_station_info->addr);
 		}
 
 		// Clear the bss_info
         bzero(info, sizeof(bss_info));
 	}
 }
+
 
 
 inline dl_list* wlan_mac_high_get_bss_info_list(){
