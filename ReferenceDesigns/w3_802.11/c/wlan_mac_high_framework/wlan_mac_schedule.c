@@ -341,15 +341,17 @@ void timer_handler(void *CallBackRef, u8 TmrCtrNumber){
 *
 ******************************************************************************/
 dl_entry* find_schedule(u8 scheduler_sel, u32 id){
-	dl_entry*	curr_dl_entry;
-	dl_entry*   next_dl_entry;
-	wlan_sched* curr_wlan_sched;
+	int            iter;
+	dl_entry     * curr_dl_entry;
+	dl_entry     * next_dl_entry;
+	wlan_sched   * curr_wlan_sched;
 
 	switch(scheduler_sel){
 		case SCHEDULE_COARSE:
+			iter          = wlan_sched_coarse.length;
 			next_dl_entry = wlan_sched_coarse.first;
 
-			while(next_dl_entry != NULL){
+			while ((next_dl_entry != NULL) && (iter-- > 0)) {
 				curr_dl_entry   = next_dl_entry;
 				next_dl_entry   = dl_entry_next(next_dl_entry);
 
@@ -360,10 +362,12 @@ dl_entry* find_schedule(u8 scheduler_sel, u32 id){
 				}
 			}
 		break;
+
 		case SCHEDULE_FINE:
+			iter          = wlan_sched_fine.length;
 			next_dl_entry = wlan_sched_fine.first;
 
-			while(next_dl_entry != NULL){
+			while ((next_dl_entry != NULL) && (iter-- > 0)) {
 				curr_dl_entry   = next_dl_entry;
 				next_dl_entry   = dl_entry_next(next_dl_entry);
 
@@ -375,6 +379,7 @@ dl_entry* find_schedule(u8 scheduler_sel, u32 id){
 			}
 		break;
 	}
+
 	return NULL;
 }
 
