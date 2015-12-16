@@ -81,32 +81,8 @@ static function_ptr_t        ipc_low_param_callback;                            
 static wlan_mac_low_tx_details low_tx_details[50]; //TODO make a #define
 
 // Constant LUTs for MCS
-const static u8 mcs_to_n_dbps_lut[64] = {N_DBPS_R6, N_DBPS_R9, N_DBPS_R12, N_DBPS_R18, N_DBPS_R24, N_DBPS_R36, N_DBPS_R48, N_DBPS_R54,
-                                         0,         0,         0,          0,          0,          0,          0,          0,
-                                         0,         0,         0,          0,          0,          0,          0,          0,
-                                         0,         0,         0,          0,          0,          0,          0,          0,
-                                         0,         0,         0,          0,          0,          0,          0,          0,
-                                         0,         0,         0,          0,          0,          0,          0,          0,
-                                         0,         0,         0,          0,          0,          0,          0,          0,
-                                         0,         0,         0,          0,          0,          0,          0,          0 };
-
-const static u8 mcs_to_phy_rate_lut[64] = {WLAN_PHY_RATE_BPSK12, WLAN_PHY_RATE_BPSK34, WLAN_PHY_RATE_QPSK12, WLAN_PHY_RATE_QPSK34, WLAN_PHY_RATE_16QAM12, WLAN_PHY_RATE_16QAM34, WLAN_PHY_RATE_64QAM23, WLAN_PHY_RATE_64QAM34,
-                                           0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
-                                           0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
-                                           0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
-                                           0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
-                                           0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
-                                           0,                     0,                    0,                    0,                    0,                     0,                     0,                     0,
-                                           0,                     0,                    0,                    0,                    0,                     0,                     0,                     WLAN_PHY_RATE_DSSS_1M };
-
-const static u8 mcs_to_resp_mcs[64] = {0, 0, 2, 2, 4, 4, 4, 4,
-                                       0, 0, 0, 0, 0, 0, 0, 0,
-                                       0, 0, 0, 0, 0, 0, 0, 0,
-                                       0, 0, 0, 0, 0, 0, 0, 0,
-                                       0, 0, 0, 0, 0, 0, 0, 0,
-                                       0, 0, 0, 0, 0, 0, 0, 0,
-                                       0, 0, 0, 0, 0, 0, 0, 0,
-                                       0, 0, 0, 0, 0, 0, 0, 0 };
+const static u8 mcs_to_n_dbps_lut[WLAN_MAC_NUM_MCS] = {N_DBPS_R6, N_DBPS_R9, N_DBPS_R12, N_DBPS_R18, N_DBPS_R24, N_DBPS_R36, N_DBPS_R48, N_DBPS_R54};
+const static u8 mcs_to_phy_rate_lut[WLAN_MAC_NUM_MCS] = {WLAN_PHY_RATE_BPSK12, WLAN_PHY_RATE_BPSK34, WLAN_PHY_RATE_QPSK12, WLAN_PHY_RATE_QPSK34, WLAN_PHY_RATE_16QAM12, WLAN_PHY_RATE_16QAM34, WLAN_PHY_RATE_64QAM23, WLAN_PHY_RATE_64QAM34};
 
 /******************************** Functions **********************************/
 
@@ -1406,11 +1382,16 @@ inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
 
 /*****************************************************************************/
 /**
- * @brief Convert MCS to number of data bits per second
+ * @brief Convert MCS to number of data bits per symbol
  */
 inline u8 wlan_mac_low_mcs_to_n_dbps(u8 mcs){
-    if( ((mcs >=0) && (mcs < WLAN_MAC_NUM_MCS)) || (mcs == WLAN_MAC_MCS_1M)){
+
+	if( (mcs >= 0) && (mcs < WLAN_MAC_NUM_MCS) ) {
+    	//Valid OFDM MCS - use the LUT
         return mcs_to_n_dbps_lut[mcs];
+    } else if(mcs == WLAN_MAC_MCS_1M) {
+    	//DSSS rate
+    	return 1; //1Mb/s PHY is DBPSK
     } else {
         xil_printf("Invalid MCS index %0x%x\n", mcs);
         return mcs_to_n_dbps_lut[0];
@@ -1421,17 +1402,20 @@ inline u8 wlan_mac_low_mcs_to_n_dbps(u8 mcs){
 
 /*****************************************************************************/
 /**
- * @brief Convert MCS to PHY rate
+ * @brief Convert MCS to PHY rate code
  */
-inline u8 wlan_mac_low_mcs_to_phy_rate(u8 mcs){
-    if( ((mcs >=0) && (mcs < WLAN_MAC_NUM_MCS)) || (mcs == WLAN_MAC_MCS_1M)){
+inline u8 wlan_mac_low_mcs_to_phy_rate(u8 mcs) {
+    if( (mcs >=0) && (mcs < WLAN_MAC_NUM_MCS) ) {
+    	//Valid OFDM MCS - use LUT
         return mcs_to_phy_rate_lut[mcs];
+    } else if(mcs == WLAN_MAC_MCS_1M) {
+    	//DSSS
+    	return WLAN_PHY_RATE_DSSS_1M;
     } else {
         xil_printf("Invalid MCS index %0x%x\n", mcs);
         return mcs_to_phy_rate_lut[0];
     }
 }
-
 
 
 /*****************************************************************************/
@@ -1440,6 +1424,7 @@ inline u8 wlan_mac_low_mcs_to_phy_rate(u8 mcs){
  */
 inline u8 wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs){
     // Returns the fastest half-rate MCS lower than the provided MCS and no larger that 24Mbps.
+	//  Valid return values are [0, 2, 4]
 
     u8 return_value = mcs;
 
@@ -1448,5 +1433,4 @@ inline u8 wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs){
 
     return return_value;
 }
-
 
