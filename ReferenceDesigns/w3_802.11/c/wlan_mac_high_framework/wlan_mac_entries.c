@@ -1238,6 +1238,7 @@ u32 add_txrx_counts_to_log(counts_txrx * counts, u8 transmit){
  *****************************************************************************/
 u32 add_all_txrx_counts_to_log(u8 transmit){
 
+    int                 iter;
     u32                 status;
     u32                 num_counts;
     dl_list           * list = get_counts();
@@ -1247,14 +1248,11 @@ u32 add_all_txrx_counts_to_log(u8 transmit){
     // Check to see if we have valid counts
     if (list == NULL) { return 0; }
 
-    // Get the first counts structure
+    num_counts        = 0;
+    iter              = list->length;
     curr_counts_entry = list->first;
 
-    // Set the counter variable
-    num_counts = 0;
-
-    // Iterate thru the list
-    while(curr_counts_entry != NULL) {
+    while ((curr_counts_entry != NULL) && (iter-- > 0)) {
 
         curr_counts = (counts_txrx*)(curr_counts_entry->data);
 
@@ -1366,6 +1364,7 @@ u32 add_station_info_w_counts_to_log(station_info * info, u8 zero_aid, u8 transm
  *****************************************************************************/
 u32 add_all_station_info_to_log(u8 counts, u8 zero_aid, u8 transmit){
 
+    int                iter;
     u32                status;
     u32                num_counts;
     dl_list          * list = get_station_info_list();
@@ -1375,14 +1374,11 @@ u32 add_all_station_info_to_log(u8 counts, u8 zero_aid, u8 transmit){
     // Check to see if we have valid station infos
     if (list == NULL) { return 0; }
 
-    // Get the first station info structure
+    num_counts              = 0;
+    iter                    = list->length;
     curr_station_info_entry = list->first;
 
-    // Set the counter variable
-    num_counts = 0;
-
-    // Iterate thru the list
-    while(curr_station_info_entry != NULL) {
+    while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
 
         curr_info = (station_info*)(curr_station_info_entry->data);
 
