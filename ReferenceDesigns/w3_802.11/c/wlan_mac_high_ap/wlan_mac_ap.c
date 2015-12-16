@@ -453,7 +453,7 @@ void poll_tx_queues(){
 void purge_all_data_tx_queue(){
 	dl_entry*	  curr_station_info_entry;
 	station_info* curr_station_info;
-	u32			  iter = my_bss_info->associated_stations.length;
+	int			  iter = my_bss_info->associated_stations.length;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
@@ -1578,7 +1578,7 @@ void reset_bss_info(){
 	dl_entry * next_dl_entry = bss_info_list->first;
 	dl_entry * curr_dl_entry;
     bss_info * curr_bss_info;
-    u32		   iter = bss_info_list->length;
+    int		   iter = bss_info_list->length;
 
 	while( (next_dl_entry != NULL) && (iter-- > 0)){
 		curr_dl_entry = next_dl_entry;
@@ -1695,7 +1695,7 @@ void deauthenticate_stations(){
 	station_info*	curr_station_info;
 	dl_entry*		next_station_info_entry;
 	dl_entry*		curr_station_info_entry;
-	u32 			iter = my_bss_info->associated_stations.length;
+	int 			iter = my_bss_info->associated_stations.length;
 
 	next_station_info_entry = my_bss_info->associated_stations.first;
 
