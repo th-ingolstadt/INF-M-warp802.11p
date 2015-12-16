@@ -3817,6 +3817,7 @@ void wlan_exp_transmit_log_entry(void * entry) {
  *****************************************************************************/
 int process_tx_power(u32 cmd, u32 aid, int tx_power) {
 
+    int           iter;
     int           power;
     dl_list     * curr_list;
     dl_entry    * curr_entry;
@@ -3825,24 +3826,25 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
     power = CMD_PARAM_ERROR;
 
     // For Writes
-    if ( cmd == CMD_PARAM_WRITE_VAL ) {
+    if (cmd == CMD_PARAM_WRITE_VAL) {
         curr_list  = get_station_info_list();
 
-        if(curr_list != NULL){
+        if (curr_list != NULL) {
             if (curr_list->length == 0) { return tx_power; }
 
+            iter       = curr_list->length;
             curr_entry = curr_list->first;
 
-            while(curr_entry != NULL) {
+            while ((curr_entry != NULL) && (iter-- > 0)) {
                 curr_station_info = (station_info*)(curr_entry->data);
 
-                if ( aid == WLAN_EXP_AID_ALL ) {
+                if (aid == WLAN_EXP_AID_ALL) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX power on AID %d = %d dBm\n", curr_station_info->AID, tx_power);
                     curr_station_info->tx.phy.power = tx_power;
                     power                           = tx_power;
 
-                } else if ( aid == curr_station_info->AID ) {
+                } else if (aid == curr_station_info->AID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX power on AID %d = %d dBm\n", aid, tx_power);
                     curr_station_info->tx.phy.power = tx_power;
@@ -3861,15 +3863,16 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
 
     // For Reads
     } else {
-        if ( aid != WLAN_EXP_AID_ALL ) {
+        if (aid != WLAN_EXP_AID_ALL) {
             curr_list  = get_station_info_list();
 
-            if (curr_list != NULL){
+            if (curr_list != NULL) {
+                iter       = curr_list->length;
                 curr_entry = curr_list->first;
 
-                while(curr_entry != NULL){
+                while ((curr_entry != NULL) && (iter-- > 0)) {
                     curr_station_info = (station_info*)(curr_entry->data);
-                    if ( aid == curr_station_info->AID ) {
+                    if (aid == curr_station_info->AID) {
                         power = curr_station_info->tx.phy.power;
                         break;
                     }
@@ -3900,6 +3903,7 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
  *****************************************************************************/
 u8 process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 
+    int           iter;
     u8            rate;
     dl_list     * curr_list;
     dl_entry    * curr_entry;
@@ -3908,24 +3912,25 @@ u8 process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
     rate = CMD_PARAM_ERROR >> 24;
 
     // For Writes
-    if ( cmd == CMD_PARAM_WRITE_VAL ) {
+    if (cmd == CMD_PARAM_WRITE_VAL) {
         curr_list  = get_station_info_list();
 
-        if(curr_list != NULL){
+        if (curr_list != NULL) {
             if (curr_list->length == 0) { return tx_rate; }
 
+            iter       = curr_list->length;
             curr_entry = curr_list->first;
 
-            while(curr_entry != NULL) {
+            while ((curr_entry != NULL) && (iter-- > 0)) {
                 curr_station_info = (station_info*)(curr_entry->data);
 
-                if ( aid == WLAN_EXP_AID_ALL ) {
+                if (aid == WLAN_EXP_AID_ALL) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
                     curr_station_info->tx.phy.rate = tx_rate;
                     rate                           = tx_rate;
 
-                } else if ( aid == curr_station_info->AID ) {
+                } else if (aid == curr_station_info->AID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX rate on AID %d = %d Mbps\n", aid, wlan_lib_mac_rate_to_mbps(tx_rate));
                     curr_station_info->tx.phy.rate = tx_rate;
@@ -3944,15 +3949,16 @@ u8 process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
 
     // For Reads
     } else {
-        if ( aid != WLAN_EXP_AID_ALL ) {
+        if (aid != WLAN_EXP_AID_ALL) {
             curr_list  = get_station_info_list();
 
-            if (curr_list != NULL){
+            if (curr_list != NULL) {
+                iter       = curr_list->length;
                 curr_entry = curr_list->first;
 
-                while(curr_entry != NULL){
+                while ((curr_entry != NULL) && (iter-- > 0)) {
                     curr_station_info = (station_info*)(curr_entry->data);
-                    if ( aid == curr_station_info->AID ) {
+                    if (aid == curr_station_info->AID) {
                         rate = curr_station_info->tx.phy.rate;
                         break;
                     }
@@ -3983,6 +3989,7 @@ u8 process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
  *****************************************************************************/
 u8 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
+    int           iter;
     u8            mode;
     dl_list     * curr_list;
     dl_entry    * curr_entry;
@@ -3991,24 +3998,25 @@ u8 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
     mode = CMD_PARAM_ERROR >> 24;
 
     // For Writes
-    if ( cmd == CMD_PARAM_WRITE_VAL ) {
+    if (cmd == CMD_PARAM_WRITE_VAL) {
         curr_list  = get_station_info_list();
 
-        if(curr_list != NULL){
+        if (curr_list != NULL) {
             if (curr_list->length == 0) { return ant_mode; }
 
+            iter       = curr_list->length;
             curr_entry = curr_list->first;
 
-            while(curr_entry != NULL) {
+            while ((curr_entry != NULL) && (iter-- > 0)) {
                 curr_station_info = (station_info*)(curr_entry->data);
 
-                if ( aid == WLAN_EXP_AID_ALL ) {
+                if (aid == WLAN_EXP_AID_ALL) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
                     curr_station_info->tx.phy.antenna_mode = ant_mode;
                     mode                                   = ant_mode;
 
-                } else if ( aid == curr_station_info->AID ) {
+                } else if (aid == curr_station_info->AID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
                     curr_station_info->tx.phy.antenna_mode = ant_mode;
@@ -4027,15 +4035,16 @@ u8 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
     // For Reads
     } else {
-        if ( aid != WLAN_EXP_AID_ALL ) {
+        if (aid != WLAN_EXP_AID_ALL) {
             curr_list  = get_station_info_list();
 
-            if(curr_list != NULL){
+            if (curr_list != NULL) {
+                iter       = curr_list->length;
                 curr_entry = curr_list->first;
 
-                while(curr_entry != NULL) {
+                while ((curr_entry != NULL) && (iter-- > 0)) {
                     curr_station_info = (station_info*)(curr_entry->data);
-                    if ( aid == curr_station_info->AID ) {
+                    if (aid == curr_station_info->AID) {
                         mode = curr_station_info->tx.phy.antenna_mode;
                         break;
                     }
