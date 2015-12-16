@@ -1191,7 +1191,16 @@ int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
 /**
  * @brief Search for and Lock Empty Packet Buffer (Blocking)
  *
- * This is a blocking function for finding and locking an empty rx packet buffer.
+ * This is a blocking function for finding and locking an empty rx packet buffer. The low framework
+ * calls this function after passing a new wireless reception up to CPU High for processing. CPU High
+ * must unlock Rx packet buffers after processing the received packet. This function loops over all Rx
+ * packet buffers until it finds one that has been unlocked by CPU High.
+ *
+ * By design this function prints a message if it fails to unlock the oldest packet buffer. When this
+ * occurs it indicates that CPU Low has outrun CPU High, a situation that leads to dropped wireless
+ * receptions with high probability. The node recovers gracefully from this condition and will
+ * continue processing new Rx events after CPU High catches up. But seeing this message in the UART
+ * for CPU Low is a strong indicator the CPU High code is not keeping up with wireless receptions.
  *
  * @param   None
  * @return  None
@@ -1201,17 +1210,21 @@ int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
 inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
     // This function blocks until it safely finds a packet buffer for the PHY RX to store a future reception
     rx_frame_info* rx_mpdu;
-    u32            i         = 1;
+    u32 i = 1;
 
-    while(1){
-        rx_pkt_buf = (rx_pkt_buf+1) % NUM_RX_PKT_BUFS;
+    while(1) {
+    	//rx_pkt_buf is the global shared by all contexts which deal with wireless Rx
+    	// Rx packet buffers are used in order. Thus incrementing rx_pkt_buf should
+    	// select the "oldest" packet buffer, the one that is most likely to have already
+    	// been processed and released by CPU High
+    	rx_pkt_buf = (rx_pkt_buf+1) % NUM_RX_PKT_BUFS;
         rx_mpdu    = (rx_frame_info*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
         if((rx_mpdu->state) == RX_MPDU_STATE_EMPTY){
             if(lock_pkt_buf_rx(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
 
                 // By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
-                //     However zeroing out the pkt buffer can be helpful when debugging Rx PHY behaviors
+                //     However zeroing out the pkt buffer can be helpful when debugging Rx MAC/PHY behaviors
                 // bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
 
                 rx_mpdu->state = RX_MPDU_STATE_RX_PENDING;
