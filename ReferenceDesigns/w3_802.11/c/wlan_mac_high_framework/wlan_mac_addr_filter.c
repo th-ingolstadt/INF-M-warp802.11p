@@ -5,8 +5,8 @@
  *
  *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -30,7 +30,7 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern bss_info*		       my_bss_info;
+extern bss_info            * my_bss_info;
 
 
 /*************************** Variable Definitions ****************************/
@@ -57,6 +57,7 @@ u8    addr_is_allowed(u8* addr, u8* mask, u8* compare);
 
 /******************************** Functions **********************************/
 
+/*****************************************************************************/
 /**
  * @brief Initialize the Address Filter
  *
@@ -66,11 +67,13 @@ u8    addr_is_allowed(u8* addr, u8* mask, u8* compare);
  * @return   None.
  */
 void  wlan_mac_addr_filter_init() {
-	// Setup the address filter
-	dl_list_init(&addr_filter);
+    // Setup the address filter
+    dl_list_init(&addr_filter);
 }
 
 
+
+/*****************************************************************************/
 /**
  * @brief Reset the Address Filter
  *
@@ -83,31 +86,36 @@ void  wlan_mac_addr_filter_init() {
  * @return   None.
  */
 void  wlan_mac_addr_filter_reset() {
-    whitelist_range* curr_range;
-	dl_entry* 	     next_range_dl_entry;
-	dl_entry* 	     curr_range_dl_entry;
+    int                 iter;
+    whitelist_range   * curr_range;
+    dl_entry          * next_range_dl_entry;
+    dl_entry          * curr_range_dl_entry;
 
-	next_range_dl_entry = addr_filter.first;
+    iter                = addr_filter.length;
+    next_range_dl_entry = addr_filter.first;
 
-	// Remove all ranges from the address filter
-	//
-	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
-	//   elements from the list.
-	while(next_range_dl_entry != NULL){
-		curr_range_dl_entry = next_range_dl_entry;
-		next_range_dl_entry = dl_entry_next(curr_range_dl_entry);
+    // Remove all ranges from the address filter
+    while ((next_range_dl_entry != NULL) && (iter-- > 0)) {
+        curr_range_dl_entry = next_range_dl_entry;
+        next_range_dl_entry = dl_entry_next(curr_range_dl_entry);
 
-		curr_range = (whitelist_range*)(curr_range_dl_entry->data);
+        curr_range = (whitelist_range*)(curr_range_dl_entry->data);
 
-		dl_entry_remove(&addr_filter, curr_range_dl_entry);
+        dl_entry_remove(&addr_filter, curr_range_dl_entry);
 
-		// Free allocated memory
-		wlan_mac_high_free(curr_range_dl_entry);
-		wlan_mac_high_free(curr_range);
-	}
+        // Free allocated memory
+        wlan_mac_high_free(curr_range_dl_entry);
+        wlan_mac_high_free(curr_range);
+    }
+
+    if (addr_filter.length != 0) {
+        xil_printf("ERROR:  Could not fully reset address filter.");
+    }
 }
 
 
+
+/*****************************************************************************/
 /**
  * @brief Add a white-list range to the Address Filter
  *
@@ -121,35 +129,37 @@ void  wlan_mac_addr_filter_reset() {
  */
 int   wlan_mac_addr_filter_add(u8* mask, u8* compare) {
     whitelist_range* range;
-	dl_entry* 	     entry;
+    dl_entry*          entry;
 
-	// Allocate memory for the entry and the white-list range
-	entry = wlan_mac_high_malloc(sizeof(dl_entry));
+    // Allocate memory for the entry and the white-list range
+    entry = wlan_mac_high_malloc(sizeof(dl_entry));
 
-	if(entry == NULL){
-		return -1;
-	}
+    if (entry == NULL) {
+        return -1;
+    }
 
-	range = wlan_mac_high_malloc(sizeof(whitelist_range));
+    range = wlan_mac_high_malloc(sizeof(whitelist_range));
 
-	if(range == NULL){
-		free(entry);
-		return -1;
-	}
+    if (range == NULL) {
+        free(entry);
+        return -1;
+    }
 
-	entry->data = (void*)range;
+    entry->data = (void*)range;
 
-	// Copy the mask and compare address to the new range
-	memcpy( &(range->mask[0]), mask, WHITELIST_ADDR_LEN);
-	memcpy( &(range->compare[0]), compare, WHITELIST_ADDR_LEN);
+    // Copy the mask and compare address to the new range
+    memcpy(&(range->mask[0]), mask, WHITELIST_ADDR_LEN);
+    memcpy(&(range->compare[0]), compare, WHITELIST_ADDR_LEN);
 
-	// Add this range at the end of the address filter
-	dl_entry_insertEnd(&addr_filter, entry);
+    // Add this range at the end of the address filter
+    dl_entry_insertEnd(&addr_filter, entry);
 
-	return 0;
+    return 0;
 }
 
 
+
+/*****************************************************************************/
 /**
  * @brief Is the given address allowed?
  *
@@ -162,43 +172,46 @@ int   wlan_mac_addr_filter_add(u8* mask, u8* compare) {
  *      - one  if address is allowed
  */
 u8    wlan_mac_addr_filter_is_allowed(u8* addr){
-	u32              list_len = addr_filter.length;
-    whitelist_range* curr_range;
-	dl_entry* 	     curr_range_dl_entry;
+    int                 iter;
+    u32                 list_len = addr_filter.length;
+    whitelist_range   * curr_range;
+    dl_entry*           curr_range_dl_entry;
 
 
-	// Check if the list is empty
-	//     NOTE: By default, we disallow all addresses
-	//
-	if (list_len == 0) { return 1; }
+    // Check if the list is empty
+    //     NOTE: By default, we disallow all addresses
+    //
+    if (list_len == 0) { return 1; }
 
 
-	// Check if you are currently in the association table
-	//    If you are 're-joining' you should be allowed
-	//
-	if(my_bss_info != NULL){
-		if ( wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), addr) != NULL) { return 1; }
-	}
+    // Check if you are currently in the association table
+    //    If you are 're-joining' you should be allowed
+    //
+    if(my_bss_info != NULL){
+        if (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), addr) != NULL) { return 1; }
+    }
 
 
-	// Check if the incoming address is within the allowable range of addresses
-	//
-	curr_range_dl_entry = addr_filter.first;
+    // Check if the incoming address is within the allowable range of addresses
+    iter                = addr_filter.length;
+    curr_range_dl_entry = addr_filter.first;
 
-	while(curr_range_dl_entry != NULL){
+    while ((curr_range_dl_entry != NULL) && (iter-- > 0)) {
 
-		curr_range = (whitelist_range*)(curr_range_dl_entry->data);
+        curr_range = (whitelist_range*)(curr_range_dl_entry->data);
 
-		if ( addr_is_allowed(addr, (curr_range->mask), (curr_range->compare)) == 1 ) return 1;
+        if (addr_is_allowed(addr, (curr_range->mask), (curr_range->compare)) == 1) return 1;
 
-		curr_range_dl_entry = dl_entry_next(curr_range_dl_entry);
-	}
+        curr_range_dl_entry = dl_entry_next(curr_range_dl_entry);
+    }
 
-	// If the code made it this far, we aren't allowing this address to join the network.
-	return 0;
+    // If the code made it this far, we aren't allowing this address to join the network.
+    return 0;
 }
 
 
+
+/*****************************************************************************/
 /**
  * @brief Is the given address a WARP node?
  *
@@ -210,11 +223,12 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
  *      - one  if address is a WARP address
  */
 u8    wlan_mac_addr_is_warp(u8* addr){
-	return addr_is_allowed(addr, warp_range_mask, warp_range_compare);
+    return addr_is_allowed(addr, warp_range_mask, warp_range_compare);
 }
 
 
 
+/*****************************************************************************/
 /**
  * @brief
  *
@@ -228,20 +242,20 @@ u8    wlan_mac_addr_is_warp(u8* addr){
  *      - one  if address is in the range
  */
 u8    addr_is_allowed(u8* addr, u8* mask, u8* compare){
-	u32       i;
-	u32       sum;
+    u32       i;
+    u32       sum;
 
-	sum = 0;
+    sum = 0;
 
-	for(i = 0; i < WHITELIST_ADDR_LEN; i++){
-		sum += (mask[i] & compare[i]) == (mask[i] & addr[i]);
-	}
+    for (i = 0; i < WHITELIST_ADDR_LEN; i++) {
+        sum += (mask[i] & compare[i]) == (mask[i] & addr[i]);
+    }
 
-	if(sum == WHITELIST_ADDR_LEN) {
-		return 1;
-	} else {
+    if (sum == WHITELIST_ADDR_LEN) {
+        return 1;
+    } else {
         return 0;
-	}
+    }
 }
 
 
