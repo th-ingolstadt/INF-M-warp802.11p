@@ -1439,56 +1439,66 @@ int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u1
 int process_low_param(u8 mode, u32* payload){
 
     switch(mode){
-        case IPC_REG_WRITE_MODE:
+        case IPC_REG_WRITE_MODE: {
             switch(payload[0]){
 
                 //---------------------------------------------------------------------
-                case LOW_PARAM_DCF_PHYSICAL_CS_THRESH:
+                case LOW_PARAM_DCF_PHYSICAL_CS_THRESH: {
                     if(payload[1] < 1023){
                         wlan_phy_rx_set_cca_thresh(payload[1] * PHY_RX_RSSI_SUM_LEN);
                     } else {
                         wlan_phy_rx_set_cca_thresh(0xFFFF);
                     }
+                }
                 break;
 
                 //---------------------------------------------------------------------
-                case LOW_PARAM_DCF_RTS_THRESH:
+                case LOW_PARAM_DCF_RTS_THRESH: {
                     gl_dot11RTSThreshold = payload[1];
+                }
                 break;
 
                 //---------------------------------------------------------------------
-                case LOW_PARAM_DCF_DOT11SHORTRETRY:
+                case LOW_PARAM_DCF_DOT11SHORTRETRY: {
                     gl_dot11ShortRetryLimit = payload[1];
+                }
                 break;
 
                 //---------------------------------------------------------------------
-                case LOW_PARAM_DCF_DOT11LONGRETRY:
+                case LOW_PARAM_DCF_DOT11LONGRETRY: {
                     gl_dot11LongRetryLimit = payload[1];
+                }
                 break;
 
                 //---------------------------------------------------------------------
-                case LOW_PARAM_DCF_CW_EXP_MIN:
+                case LOW_PARAM_DCF_CW_EXP_MIN: {
                     gl_cw_exp_min = payload[1];
+                }
                 break;
 
                 //---------------------------------------------------------------------
-                case LOW_PARAM_DCF_CW_EXP_MAX:
+                case LOW_PARAM_DCF_CW_EXP_MAX: {
                     gl_cw_exp_max = payload[1];
+                }
                 break;
 
                 //---------------------------------------------------------------------
-                default:
+                default: {
                     xil_printf("Unknown param 0x%08x\n", payload[0]);
+                }
                 break;
             }
+        }
         break;
 
-        case IPC_REG_READ_MODE:
+        case IPC_REG_READ_MODE: {
             // Not supported.  See comment in wlan_mac_low.c for IPC_REG_READ_MODE mode.
+        }
         break;
 
-        default:
+        default: {
             xil_printf("Unknown mode 0x%08x\n", mode);
+        }
         break;
     }
 
