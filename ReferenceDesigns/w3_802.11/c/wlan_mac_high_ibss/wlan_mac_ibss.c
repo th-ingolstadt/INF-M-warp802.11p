@@ -1320,21 +1320,21 @@ u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 #ifdef USE_WLAN_EXP
 
 // ****************************************************************************
-// Define IBSS Specific User Commands
+// Define MAC Specific User Commands
 //
 // NOTE:  All User Command IDs (CMDID_*) must be a 24 bit unique number
 //
 
 //-----------------------------------------------
-// IBSS Specific User Commands
+// MAC Specific User Commands
 //
-// #define CMDID_USER_<COMMAND_NAME>                     0x100000
+// #define CMDID_USER_<COMMAND_NAME>                       0x100000
 
 
 //-----------------------------------------------
-// IBSS Specific User Command Parameters
+// MAC Specific User Command Parameters
 //
-// #define CMD_PARAM_USER_<PARAMETER_NAME>               0x00000000
+// #define CMD_PARAM_USER_<PARAMETER_NAME>                 0x00000000
 
 
 
@@ -1359,7 +1359,7 @@ u8      * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
  *                                 RESP_SENT    - A response has been sent
  *
  * @note    See on-line documentation for more information:
- *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
+ *          https://warpproject.org/trac/wiki/802.11/wlan_exp/Extending
  *
  *****************************************************************************/
 int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
@@ -1375,31 +1375,29 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //
 
     // Standard variables
-    //     NOTE:  Some of the standard variables below have been commented out.  This was to remove
-    //         compiler warnings for "unused variables" since the default implemention is empty.  As
-    //         you add commands, you should un-comment the standard variables.
+    //
+    // Used for accessing command arguments and constructing the command response header/payload
+    //
+    // NOTE:  Some of the standard variables below have been commented out.  This was to remove
+    //     compiler warnings for "unused variables" since the default implementation is empty.  As
+    //     you add commands, you should un-comment the standard variables.
     //
     u32                 resp_sent      = NO_RESP_SENT;
 
-    // u32               * cmd_args_32    = command->args;
+#if 0
+    cmd_resp_hdr      * cmd_hdr        = command->header;
+    cmd_resp_hdr      * resp_hdr       = response->header;
 
-    // cmd_resp_hdr      * resp_hdr       = response->header;
-    // u32               * resp_args_32   = response->args;
-    // u32                 resp_index     = 0;
+    u32               * cmd_args_32    = command->args;
+    u32               * resp_args_32   = response->args;
 
-    //
-    // NOTE: Response header has already been initialized.  (see wlan_exp_user.c)
-    //
-
-    // Variables for User Commands
-    // int                 status;
-    // u32                 arg_0;
-
+    u32                 resp_index     = 0;
+#endif
 
     switch(cmd_id){
 
 //-----------------------------------------------------------------------------
-// IBSS Specific User Commands
+// MAC Specific User Commands
 //-----------------------------------------------------------------------------
 
         // Template framework for a Command
@@ -1413,7 +1411,7 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
         //
 #if 0
         //---------------------------------------------------------------------
-        case CMDID_USER_<COMMAND_NAME>:
+        case CMDID_USER_<COMMAND_NAME>: {
             // Command Description
             //
             // Message format:
@@ -1426,12 +1424,32 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // NOTE:  Please take care of the endianness of the arguments (see comment above)
             //
 
+            // Variables for template command
+            int                 status;
+            u32                 arg_0;
+            interrupt_state_t   curr_interrupt_state;
+
             // Initialize variables
             status      = CMD_PARAM_SUCCESS;
             arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
 
             // Do something with argument(s)
             xil_printf("Command argument 0: 0x%08x\n", arg_0);
+
+            // If necessary, disable interrupts before processing the command
+            //  Interrupts must be disabled if the command implementation relies on any state that might
+            //  change during an interrupt service routine. See the user guide for more details
+            //  https://warpproject.org/trac/wiki/802.11/wlan_exp/Extending
+            curr_interrupt_state = wlan_mac_high_interrupt_stop();
+
+            // Process command arguments and generate any response payload
+            //     NOTE:  If interrupts were disabled above, take care to avoid any long-running code in this
+            //         block (i.e. avoid xil_printf()). When interrupts are disabled, CPU High is unable to
+            //         respond to CPU Low (ie CPU High will not send / receive packets) and execute scheduled
+            //         tasks, such as LTGs.
+
+            // Re-enable interrupts before returning (only do this if wlan_mac_high_interrupt_stop() is called above)
+            wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
 
             // Send response
             //   NOTE:  It is good practice to send a status as the first argument of the response.
@@ -1442,19 +1460,20 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 #endif
 
 
         //---------------------------------------------------------------------
-        default:
+        default: {
             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown IBSS user command: 0x%x\n", cmd_id);
+        }
         break;
     }
 
     return resp_sent;
 }
-
 
 #endif
 
