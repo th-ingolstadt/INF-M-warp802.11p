@@ -48,7 +48,7 @@ extern tx_params             default_multicast_mgmt_tx_params;
 
 static u32                   num_scan_channels           = 0;
 static u32                   idle_timeout_usec           = 1000000;
-static u32                   dwell_timeout_usec          = 200000;
+static u32                   dwell_timeout_usec          = 150000;
 
 static u8                    channels[MAX_NUM_CHAN];
 static u8                    channel_save;
