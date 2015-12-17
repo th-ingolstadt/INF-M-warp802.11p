@@ -99,7 +99,7 @@ def get_log_size_str(nodes):
 
     for node in nodes:
         log_size  = node.log_get_size()
-        msg += "    {0:10s}  = {1:10d} bytes".format(node.name, log_size)
+        msg += "    {0:10d} bytes".format(log_size)
 
     return msg
 
