@@ -268,7 +268,11 @@ int main(){
 	power_save_configuration.dtim_count = 0;
 	power_save_configuration.dtim_mcast_allow_window = (WLAN_DEFAULT_BEACON_INTERVAL_TU * BSS_MICROSECONDS_IN_A_TU) / 4;
 
-	beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU), SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+	//Note: As of v1.5, the SCHEDULE_FINE scheduler is used by default for beacon transmissions. This serves two purposes:
+	//		1. Addresses a race condition where occasionally a beacon transmission would be skipped because its target transmission time
+	//		   was placed *just* after the scheduler's timer ISR.
+	//		2. Allows wlan_exp control over the parameter to be finer grained than units of a hardcoded 102.4 ms coarse timer interval.
+	beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU), SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
 
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);

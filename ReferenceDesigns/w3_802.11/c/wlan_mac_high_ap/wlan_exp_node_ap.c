@@ -515,10 +515,10 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     if (beacon_schedule_id != SCHEDULE_FAILURE) {
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Restarting beacon\n");
                         wlan_mac_remove_schedule(SCHEDULE_COARSE, beacon_schedule_id);
-                        beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, beacon_time, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+                        beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, beacon_time, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
                     } else {
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Starting beacon\n");
-                        beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, beacon_time, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+                        beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, beacon_time, SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
                     }
                 break;
 
