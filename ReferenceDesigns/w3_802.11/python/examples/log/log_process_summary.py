@@ -142,10 +142,9 @@ rx_rates = log_rx['rate']
 # Initialize an array to count number of Rx per PHY rate
 #   MAC uses rate_indexes 1:8 to encode OFDM rates
 tx_rate_counts = np.bincount(tx_rates, minlength=9)
-tx_rate_counts = tx_rate_counts[1:9] #only rate values 1:8 are valid
 
 rx_rate_counts = np.bincount(rx_rates, minlength=9)
-rx_rate_counts = rx_rate_counts[1:9] #only rate values 1:8 are valid
+
 
 print("Example 1: Pkts per Rate:")
 print("  Rate       {0:7} {1:7}".format("Tx","Rx"))
