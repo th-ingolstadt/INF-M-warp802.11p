@@ -121,25 +121,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     // NOTE: Response header cmd, length, and num_args fields have already been initialized.
     //
 
-
-    // Variables for functions
-    int                 status;
-
-    u32                 temp, temp2, i;
-    u32                 msg_cmd;
-    u32                 id;
-    u32                 flags;
-    u32                 beacon_time;
-
-    u8                  mac_addr[6];
-    u8                  mask[6];
-
-    dl_entry          * curr_entry;
-    station_info      * curr_station_info;
-    interrupt_state_t   prev_interrupt_state;
-
     switch(cmd_id){
-
 
 //-----------------------------------------------------------------------------
 // WLAN Exp Node Commands that must be implemented in child classes
@@ -147,7 +129,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_DISASSOCIATE:
+        case CMDID_NODE_DISASSOCIATE: {
             // Disassociate device from node
             //
             // Message format:
@@ -156,13 +138,18 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]       Status
             //
+            u32                   id;
+            u8                    mac_addr[6];
+            dl_entry            * curr_entry;
+            station_info        * curr_station_info;
+            interrupt_state_t     prev_interrupt_state;
+            u32                   status         = CMD_PARAM_SUCCESS;
+
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
             // Get MAC Address
             wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[0], &mac_addr[0]);
             id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
-
-            status  = CMD_PARAM_SUCCESS;
 
             if (id == WLAN_EXP_AID_NONE) {
                 // If we cannot find the MAC address, return status error
@@ -221,21 +208,22 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
         
         //---------------------------------------------------------------------
-        case CMDID_NODE_CHANNEL:
+        case CMDID_NODE_CHANNEL: {
             //   - cmd_args_32[0]      - Command
             //   - cmd_args_32[1]      - Channel
-
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            temp    = Xil_Ntohl(cmd_args_32[1]);
-            status  = CMD_PARAM_SUCCESS;
+            //
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    channel        = Xil_Ntohl(cmd_args_32[1]);
 
             if (msg_cmd == CMD_PARAM_WRITE_VAL) {
                 // Set the Channel
-                if (wlan_lib_channel_verify(temp) == 0){
+                if (wlan_lib_channel_verify(channel) == 0){
                     //
                     // NOTE:  This will only change the channel of the node.  It does not notify any associated
                     //     clients of this channel change.  If you are using WARP nodes as part of the network, then
@@ -249,8 +237,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     //     There are no guarantees that a client actually hears the announcement and follows, so it
                     //     is not good practice in a controlled experiment.
                     //
-
-                    mac_param_chan = temp;
+                    mac_param_chan = channel;
 
                     if(my_bss_info != NULL){
                         // The AP uses the value in my_bss_info->chan when constructing beacons and probe response,
@@ -269,7 +256,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 } else {
                     status  = CMD_PARAM_ERROR;
                     wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node,
-                                    "Channel %d is not supported by the node. Staying on Channel %d\n", temp, mac_param_chan);
+                                    "Channel %d is not supported by the node. Staying on Channel %d\n", channel, mac_param_chan);
                 }
             }
 
@@ -279,6 +266,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
@@ -288,7 +276,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_AP_CONFIG:
+        case CMDID_NODE_AP_CONFIG: {
             // Set AP configuration flags
             //
             // Message format:
@@ -299,19 +287,15 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]  Status (CMD_PARAM_SUCCESS/CMD_PARAM_ERROR)
             //
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    flags          = Xil_Ntohl(cmd_args_32[0]);
+            u32    mask           = Xil_Ntohl(cmd_args_32[1]);
 
-            // Set the return value
-            status = CMD_PARAM_SUCCESS;
-
-            // Get flags
-            temp  = Xil_Ntohl(cmd_args_32[0]);
-            temp2 = Xil_Ntohl(cmd_args_32[1]);
-
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
             // Configure based on the flag bit / mask
-            if ((temp2 & CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING) == CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING) {
-                if ((temp & CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING) == CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING) {
+            if ((mask & CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING) == CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING) {
+                if ((flags & CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING) == CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING) {
                     power_save_configuration.enable = 1;
                 } else {
                     power_save_configuration.enable = 0;
@@ -319,15 +303,16 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             }
 
             // Send response of status
-            resp_args_32[resp_index++] = Xil_Htonl( status );
+            resp_args_32[resp_index++] = Xil_Htonl(status);
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_AP_DTIM_PERIOD:
+        case CMDID_NODE_AP_DTIM_PERIOD: {
             // Command to get / set the number of beacon intervals between DTIM beacons
             //
             // Message format:
@@ -340,17 +325,17 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //     resp_args_32[0]  Status (CMD_PARAM_SUCCESS/CMD_PARAM_ERROR)
             //     resp_args_32[1]  Number of beacon intervals between DTIM beacons (0 - 255)
             //
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            temp    = Xil_Ntohl(cmd_args_32[1]);
-            status  = CMD_PARAM_SUCCESS;
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    dtim_period    = Xil_Ntohl(cmd_args_32[1]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
-                    power_save_configuration.dtim_period = (temp & 0xFF);
+                    power_save_configuration.dtim_period = (dtim_period & 0xFF);
                 break;
 
                 case CMD_PARAM_READ_VAL:
-                    temp = power_save_configuration.dtim_period;
+                    dtim_period = power_save_configuration.dtim_period;
                 break;
 
                 default:
@@ -361,15 +346,16 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
+            resp_args_32[resp_index++] = Xil_Htonl(dtim_period);
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER:
+        case CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER: {
             // Allow / Disallow wireless authentications
             //
             // Message format:
@@ -381,9 +367,13 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]  Status
             //
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            temp    = Xil_Ntohl(cmd_args_32[1]);
-            status  = CMD_PARAM_SUCCESS;
+            u32                   i;
+            u8                    mac_addr[6];
+            u8                    mask[6];
+            interrupt_state_t     prev_interrupt_state;
+            u32                   status         = CMD_PARAM_SUCCESS;
+            u32                   msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32                   num_ranges     = Xil_Ntohl(cmd_args_32[1]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
@@ -394,7 +384,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     wlan_mac_addr_filter_reset();
 
                     // Add all the address ranges to the filter
-                    for (i = 0; i < temp; i++) {
+                    for (i = 0; i < num_ranges; i++) {
                         // Extract the address and the mask
                         wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2 + (4*i)], &mac_addr[0]);
                         wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[4 + (4*i)], &mask[0]);
@@ -422,11 +412,12 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_AP_SET_SSID:
+        case CMDID_NODE_AP_SET_SSID: {
             // Set AP SSID
             //
             // NOTE:  This method does not force any maximum length on the SSID.  However,
@@ -447,11 +438,10 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //                               NOTE: The characters are copied with a straight strcpy
             //                                   and must be correctly processed on the host side
             //
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            temp    = Xil_Ntohl(cmd_args_32[1]);
-            status  = CMD_PARAM_SUCCESS;
-
             char * ssid;
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    ssid_len       = Xil_Ntohl(cmd_args_32[1]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
@@ -477,13 +467,13 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             // Return the size and current SSID
             if (my_bss_info->ssid != NULL) {
-                temp = strlen(my_bss_info->ssid);
+                ssid_len = strlen(my_bss_info->ssid);
 
-                resp_args_32[resp_index++] = Xil_Htonl(temp);
+                resp_args_32[resp_index++] = Xil_Htonl(ssid_len);
 
                 strcpy((char *)&resp_args_32[resp_index], my_bss_info->ssid);
 
-                resp_index += (temp / sizeof(resp_args_32)) + 1;
+                resp_index += (ssid_len / sizeof(resp_args_32)) + 1;
             } else {
                 // Return a zero length string
                 resp_args_32[resp_index++] = 0;
@@ -491,11 +481,12 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_AP_BEACON_INTERVAL:
+        case CMDID_NODE_AP_BEACON_INTERVAL: {
             // Command to get / set the time interval between beacons
             //
             // Message format:
@@ -508,14 +499,15 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //     resp_args_32[0]  Status (CMD_PARAM_SUCCESS/CMD_PARAM_ERROR)
             //     resp_args_32[1]  Number of Time Units (TU) between beacons [1, 65535]
             //
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            temp    = Xil_Ntohl(cmd_args_32[1]);
-            status  = CMD_PARAM_SUCCESS;
+            u32    beacon_time;
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    num_tu         = Xil_Ntohl(cmd_args_32[1]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
-                    beacon_time                  = (temp & 0xFFFF) * BSS_MICROSECONDS_IN_A_TU;
-                    my_bss_info->beacon_interval = (temp & 0xFFFF);
+                    beacon_time                  = (num_tu & 0xFFFF) * BSS_MICROSECONDS_IN_A_TU;
+                    my_bss_info->beacon_interval = (num_tu & 0xFFFF);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Beacon interval: %d microseconds\n", beacon_time);
 
@@ -531,7 +523,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 break;
 
                 case CMD_PARAM_READ_VAL:
-                    temp = my_bss_info->beacon_interval;
+                	num_tu = my_bss_info->beacon_interval;
                 break;
 
                 default:
@@ -542,10 +534,11 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
+            resp_args_32[resp_index++] = Xil_Htonl(num_tu);
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
@@ -555,7 +548,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_ASSOCIATE:
+        case CMDID_NODE_ASSOCIATE: {
             // Associate with the device
             //
             // Message format:
@@ -568,13 +561,15 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]       Status
             //
+            u32                   flags;
+            u32                   mask;
+            u8                    mac_addr[6];
+            interrupt_state_t     prev_interrupt_state;
+            u32                   status              = CMD_PARAM_SUCCESS;
+            station_info        * curr_station_info   = NULL;;
+            u32                   station_flags       = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
-
-            status            = CMD_PARAM_SUCCESS;
-            curr_station_info = NULL;
-
-            // Set default value for the flags
-            flags             = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 
             if (my_bss_info->associated_stations.length < wlan_mac_high_get_max_associations()) {
 
@@ -582,25 +577,25 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
 
                 // Get flags
-                temp  = Xil_Ntohl(cmd_args_32[0]);
-                temp2 = Xil_Ntohl(cmd_args_32[1]);
+                flags = Xil_Ntohl(cmd_args_32[0]);
+                mask  = Xil_Ntohl(cmd_args_32[1]);
 
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associate flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associate flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
                 // Configure based on the flag bit / mask
-                if ((temp2 & CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) == CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) {
-                    if ((temp & CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) == CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) {
-                        flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+                if ((mask & CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) == CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) {
+                    if ((flags & CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) == CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) {
+                        station_flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
                     } else {
-                        flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+                        station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
                     }
                 }
 
-                if ((temp2 & CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) == CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) {
-                    if ((temp & CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) == CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) {
-                        flags |= STATION_INFO_DO_NOT_REMOVE;
+                if ((mask & CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) == CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) {
+                    if ((flags & CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) == CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) {
+                        station_flags |= STATION_INFO_DO_NOT_REMOVE;
                     } else {
-                        flags &= ~STATION_INFO_DO_NOT_REMOVE;
+                        station_flags &= ~STATION_INFO_DO_NOT_REMOVE;
                     }
                 }
 
@@ -611,7 +606,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 curr_station_info = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, &mac_addr[0], ADD_ASSOCIATION_ANY_AID);
 
                 // Set the flags
-                curr_station_info->flags = flags;
+                curr_station_info->flags = station_flags;
 
                 // Re-enable interrupts
                 wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
@@ -649,12 +644,14 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        default:
+        default: {
             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown node command: 0x%x\n", cmd_id);
+        }
         break;
     }
 

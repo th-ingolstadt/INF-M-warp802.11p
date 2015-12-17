@@ -1864,19 +1864,19 @@ void ap_update_hex_display(u8 val) {
 #ifdef USE_WLAN_EXP
 
 // ****************************************************************************
-// Define AP Specific User Commands
+// Define MAC Specific User Commands
 //
 // NOTE:  All User Command IDs (CMDID_*) must be a 24 bit unique number
 //
 
 //-----------------------------------------------
-// AP Specific User Commands
+// MAC Specific User Commands
 //
 // #define CMDID_USER_<COMMAND_NAME>                       0x100000
 
 
 //-----------------------------------------------
-// AP Specific User Command Parameters
+// MAC Specific User Command Parameters
 //
 // #define CMD_PARAM_USER_<PARAMETER_NAME>                 0x00000000
 
@@ -1919,35 +1919,29 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //
 
     // Standard variables
-    //     NOTE:  Some of the standard variables below have been commented out.  This was to remove
-    //         compiler warnings for "unused variables" since the default implemention is empty.  As
-    //         you add commands, you should un-comment the standard variables.
     //
-	u32                 resp_sent      = NO_RESP_SENT;
+    // Used for accessing command arguments and constructing the command response header/payload
+    //
+    // NOTE:  Some of the standard variables below have been commented out.  This was to remove
+    //     compiler warnings for "unused variables" since the default implementation is empty.  As
+    //     you add commands, you should un-comment the standard variables.
+    //
+    u32                 resp_sent      = NO_RESP_SENT;
 
-    //Helper variables for accessing command arguments and constructing the command response header/payload
 #if 0
     cmd_resp_hdr      * cmd_hdr        = command->header;
-    u32               * cmd_args_32    = command->args;
-
     cmd_resp_hdr      * resp_hdr       = response->header;
+
+    u32               * cmd_args_32    = command->args;
     u32               * resp_args_32   = response->args;
+
     u32                 resp_index     = 0;
 #endif
-
-    // Variables for User Commands
-#if 0
-    // Variables for template command
-    int                 status;
-    u32                 arg_0;
-    interrupt_state_t   curr_interrupt_state;
-#endif
-
 
     switch(cmd_id){
 
 //-----------------------------------------------------------------------------
-// AP Specific User Commands
+// MAC Specific User Commands
 //-----------------------------------------------------------------------------
 
         // Template framework for a Command
@@ -1961,7 +1955,7 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
         //
 #if 0
         //---------------------------------------------------------------------
-        case CMDID_USER_<COMMAND_NAME>:
+        case CMDID_USER_<COMMAND_NAME>: {
             // Command Description
             //
             // Message format:
@@ -1973,6 +1967,11 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // NOTE:  Variables are declared above.
             // NOTE:  Please take care of the endianness of the arguments (see comment above)
             //
+
+            // Variables for template command
+            int                 status;
+            u32                 arg_0;
+            interrupt_state_t   curr_interrupt_state;
 
             // Initialize variables
             status      = CMD_PARAM_SUCCESS;
@@ -2005,13 +2004,15 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 #endif
 
 
         //---------------------------------------------------------------------
-        default:
+        default: {
             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown AP user command: 0x%x\n", cmd_id);
+        }
         break;
     }
 
