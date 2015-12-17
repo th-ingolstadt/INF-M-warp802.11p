@@ -42,6 +42,8 @@ typedef struct {
 #define SCHEDULE_FINE	0
 #define SCHEDULE_COARSE 1
 
+#define EXECUTE_EVERY_TIMER_INTERVAL 0
+
 #define TMRCTR_DEVICE_ID	XPAR_TMRCTR_0_DEVICE_ID
 
 #define TIMER_FREQ          XPAR_TMRCTR_0_CLOCK_FREQ_HZ
@@ -49,7 +51,7 @@ typedef struct {
 #define TIMER_CNTR_SLOW	 1
 
 #define	FAST_TIMER_DUR_US 64
-#define	SLOW_TIMER_DUR_US 102400
+#define	SLOW_TIMER_DUR_US 200000
 
 
 // Reserved Schedule ID range
