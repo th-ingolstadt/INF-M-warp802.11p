@@ -871,28 +871,29 @@ def node_type_to_str(node_type, node_factory=None):
 def mac_addr_desc(mac_addr, desc_map=None):
     """Returns a string description of a MAC address.
 
+    This is useful when printing a table of addresses.  Custom MAC address
+    descriptions can be provided via the desc_map argument.  In addition
+    to the provided desc_map, the global mac_addr_desc_map that describes mappings
+    of different MAC addresses will also be used.
+
     Args:
         mac_address (int):  Unsigned 48-bit integer representation of the MAC address        
         desc_map (list of tuple, optional): list of tuple or tuple of the form
             (addr_mask, addr_value, descritpion)
 
     Returns:
-        description (str):  
-            Description of the MAC address or '' if address does not match any descriptions        
-
-    This is useful when printing a table of addresses.  Custom MAC address
-    descriptions can be provided via the desc_map argument.  In addition
-    to the provided desc_map, the global mac_addr_desc_map that describes mappings
-    of different MAC addresses will also be used.
+        description (str):  Description of the MAC address or '' if address does 
+        not match any descriptions        
 
     .. note:: The mac_addr argument will be bitwise AND'd with each addr_mask, then compared to
-    addr_value. If the result is non-zero the corresponding descprition will be returned.  This
-    will only return the first description in the [desc_map, mac_addr_desc_map] list.
+      addr_value. If the result is non-zero the corresponding descprition will be returned.  This
+      will only return the first description in the [desc_map, mac_addr_desc_map] list.
     
     **Example**
     ::
         desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'),
                      (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]
+    
     """
     # Cast to python int in case input is still numpy uint64
     mac_addr = int(mac_addr)
