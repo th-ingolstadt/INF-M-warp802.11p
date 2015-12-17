@@ -188,7 +188,7 @@ int main(){
  *  (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs
  *  (2): Pass up MPDUs (FCS valid or invalid) to CPU_HIGH
  *
- * @param   rx_pkt_buf       - Index of the Rx packet buffer containing the newly recevied packet
+ * @param   rx_pkt_buf       - Index of the Rx packet buffer containing the newly received packet
  * @param   phy_details      - Pointer to phy_rx_details struct containing PHY mode, MCS, and Length
  * @return  u32              - Bit mask of flags indicating various results of the reception
  */
@@ -206,6 +206,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     // This structure handles any risk of response packets (e.g. an ACK) not being configured in time
     // for the hard SIFS boundary.
     //
+
     u32                 return_value             = 0;
     u32                 tx_length;
     u8                  tx_phy_rate;
