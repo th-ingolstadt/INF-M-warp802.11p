@@ -28,13 +28,13 @@ import wlan_exp.config as config
 import wlan_exp.util as util
 
 # NOTE: change these values to match your experiment / network setup
-NETWORK             = '10.0.0.0'
-JUMBO_FRAME_SUPPORT = False
-NODE_SERIAL_LIST    = ['W3-a-00001']
+NETWORK              = '10.0.0.0'
+USE_JUMBO_ETH_FRAMES = False
+NODE_SERIAL_LIST     = ['W3-a-00001']
 
 # TOP Level script variables
-PROMISCUOUS_COUNTS  = True
-CHANNEL             = 6
+PROMISCUOUS_COUNTS   = True
+CHANNEL              = 6
 
 
 nodes = []
@@ -49,7 +49,7 @@ def initialize_experiment():
 
     # Create an object that describes the network configuration of the host PC
     network_config = config.WlanExpNetworkConfiguration(network=NETWORK, 
-                                                        jumbo_frame_support=JUMBO_FRAME_SUPPORT)
+                                                        jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
     # Create an object that describes the WARP v3 nodes that will be used in this experiment
     nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,

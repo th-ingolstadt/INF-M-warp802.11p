@@ -43,19 +43,19 @@ if sys.version[0]=="3": raw_input=input
 # Experiment Variables
 #-----------------------------------------------------------------------------
 # Network / Node information
-NETWORK             = '10.0.0.0'
-JUMBO_FRAME_SUPPORT = False
-NODE_SERIAL_LIST    = ['W3-a-00001']
+NETWORK              = '10.0.0.0'
+USE_JUMBO_ETH_FRAMES = False
+NODE_SERIAL_LIST     = ['W3-a-00001']
 
 # HDF5 File to log information
-HDF5_FILENAME       = 'log_continuous_capture.hdf5'
+HDF5_FILENAME        = 'log_continuous_capture.hdf5'
 
 # Interval for printing
-PRINT_TIME          = 1
+PRINT_TIME           = 1
 
 # Logging variables
-LOG_READ_TIME       = 30
-MAX_LOG_SIZE        = 2**30             # Max size is 1GB
+LOG_READ_TIME        = 30
+MAX_LOG_SIZE         = 2**30             # Max size is 1GB
 
 
 #-----------------------------------------------------------------------------
@@ -143,7 +143,7 @@ def init_experiment():
 
     # Create an object that describes the network configuration of the host PC
     network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
-                                                                 jumbo_frame_support=JUMBO_FRAME_SUPPORT)
+                                                                 jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
     # Create an object that describes the WARP v3 nodes that will be used in this experiment
     nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,

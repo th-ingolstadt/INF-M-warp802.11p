@@ -42,12 +42,12 @@ from wlan_exp.prog_atten import ProgAttenController
 #
 
 # NOTE: change these values to match your experiment / network setup
-NETWORK             = '10.0.0.0'
-JUMBO_FRAME_SUPPORT = False
-NODE_SERIAL_LIST    = ['W3-a-00001', 'W3-a-00002']
+NETWORK              = '10.0.0.0'
+USE_JUMBO_ETH_FRAMES = False
+NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
 
 # Set the per-trial duration (in seconds)
-TRIAL_TIME        = 5
+TRIAL_TIME           = 5
 
 
 
@@ -60,7 +60,7 @@ pa = ProgAttenController()
 
 # Create an object that describes the network configuration of the host PC
 network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
-                                                             jumbo_frame_support=JUMBO_FRAME_SUPPORT)
+                                                             jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
 nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,

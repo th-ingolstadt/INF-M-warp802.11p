@@ -38,18 +38,18 @@ import wlan_exp.device as wlan_device
 # Top Level Script Variables
 #-----------------------------------------------------------------------------
 # NOTE: change these values to match your experiment / network setup
-NETWORK             = '10.0.0.0'
-JUMBO_FRAME_SUPPORT = False
-NODE_SERIAL_LIST    = ['W3-a-00001']
+NETWORK              = '10.0.0.0'
+USE_JUMBO_ETH_FRAMES = False
+NODE_SERIAL_LIST     = ['W3-a-00001']
 
-CHANNEL             = 1
-AP_SSID             = "WARP Device Example"
+CHANNEL              = 1
+AP_SSID              = "WARP Device Example"
 
 # WLAN devices
 # Contains a list of tuples: (MAC Address, 'String description of device')
 #  MAC addresses must be expressed as uint64 values
 #  For example, use 0x0123456789AB for MAC address '01:23:45:67:89:AB'
-WLAN_DEVICE_LIST  = [(0x000000000000, 'My Device')]
+WLAN_DEVICE_LIST     = [(0x000000000000, 'My Device')]
 
 #-----------------------------------------------------------------------------
 # Initialize the experiment
@@ -58,7 +58,7 @@ print("\nInitializing experiment\n")
 
 # Create an object that describes the configuration of the host PC
 network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
-                                                             jumbo_frame_support=JUMBO_FRAME_SUPPORT)
+                                                             jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
 nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
