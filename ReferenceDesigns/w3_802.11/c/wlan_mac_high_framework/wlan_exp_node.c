@@ -587,52 +587,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
     resp_hdr->length    = 0;
     resp_hdr->num_args  = 0;
 
-
-    // Variables for functions
-    u32                      i;
-    u32                      temp, temp2;
-    int                      status;
-
-    transport_info         * transport_info;
-
-    u32                      msg_cmd;
-    u32                      id;
-    u32                      type;
-    u32                      flags;
-
-    u32                      serial_number;
-    u32                      num_blinks;
-    u32                      time_per_blink;
-
-    u32                      start_index;
-
-    u32                      ip_address;
-
-    u32                      size;
-    u32                      evt_log_size;
-
-    u64                      mac_timestamp;
-    u64                      new_mac_time;
-    u64                      system_timestamp;
-    u64                      host_timestamp;
-
-    int                      power;
-    u32                      rate;
-    u32                      ant_mode;
-
-    u32                      mem_addr;
-    u32                      mem_length;
-    u32                      mem_idx;
-
-    u32                      entry_size;
-    u8                       entry_mask;
-
-    u8                       ip_addr[IP_ADDR_LEN];
-    u8                       mac_addr[ETH_MAC_ADDR_LEN];
-
-    interrupt_state_t        prev_interrupt_state;
-
-
     // Finish any CDMA transfers that might be occurring
     wlan_mac_high_cdma_finish_transfer();
 
@@ -644,7 +598,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 //-----------------------------------------------------------------------------
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_TYPE:
+        case CMDID_NODE_TYPE: {
             // Return the WLAN Exp Type
             resp_args_32[resp_index++] = Xil_Htonl(node_info.node_type);
 
@@ -654,24 +608,27 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
         
     
         //---------------------------------------------------------------------
-        case CMDID_NODE_INFO:
+        case CMDID_NODE_INFO: {
             // Return the info about the WLAN_EXP_NODE
+            //
+            u32    num_params;
             
             // Send node parameters
-            temp          = node_get_parameters(&resp_args_32[resp_index], max_resp_len, WLAN_EXP_TRANSMIT);
-            resp_index   += temp;
-            max_resp_len -= temp;
-            if ( max_resp_len <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
+            num_params    = node_get_parameters(&resp_args_32[resp_index], max_resp_len, WLAN_EXP_TRANSMIT);
+            resp_index   += num_params;
+            max_resp_len -= num_params;
+            if (max_resp_len <= 0) { xil_printf("No more space left in NODE_INFO packet \n"); };
             
             // Send transport parameters
-            temp          = transport_get_parameters(eth_dev_num, &resp_args_32[resp_index], max_resp_len, WLAN_EXP_TRANSMIT);
-            resp_index   += temp;
-            max_resp_len -= temp;
-            if ( max_resp_len <= 0 ) { xil_printf("No more space left in NODE_INFO packet \n"); };
+            num_params    = transport_get_parameters(eth_dev_num, &resp_args_32[resp_index], max_resp_len, WLAN_EXP_TRANSMIT);
+            resp_index   += num_params;
+            max_resp_len -= num_params;
+            if (max_resp_len <= 0) { xil_printf("No more space left in NODE_INFO packet \n"); };
 
 #ifdef _DEBUG_
             xil_printf("NODE INFO: \n");
@@ -688,16 +645,22 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Finalize response
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
         
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_IDENTIFY:
+        case CMDID_NODE_IDENTIFY: {
             // Blink the HEX display LEDs
             //   - cmd_args_32[0] - Serial Number
             //   - cmd_args_32[1] - Number of blinks
             //   - cmd_args_32[2] - Microseconds per blink (must be an even number)
             //
+            u32              serial_number;
+            u32              num_blinks;
+            u32              time_per_blink;
+            transport_info * transport_info;
+            u8               ip_addr[IP_ADDR_LEN];
 
             // Get command parameters
             serial_number  = Xil_Ntohl(cmd_args_32[0]);
@@ -736,11 +699,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 resp_hdr->length          += (resp_index * sizeof(resp_args_32));
                 resp_hdr->num_args         = resp_index;
             }
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_CONFIG_SETUP:
+        case CMDID_NODE_CONFIG_SETUP: {
             // NODE_CONFIG_SETUP Packet Format:
             //   - Note:  All u32 parameters in cmd_args_32 are byte swapped so use Xil_Ntohl()
             //
@@ -750,6 +714,10 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[3] - Unicast Port
             //   - cmd_args_32[4] - Broadcast Port
             // 
+            int              status;
+            u32              node_id;
+            transport_info * transport_info;
+            u8               ip_addr[IP_ADDR_LEN];
 
             // Only update the parameters if the serial numbers match
             if (node_info.serial_number ==  Xil_Ntohl(cmd_args_32[0])) {
@@ -761,9 +729,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     // Set Node ID
                     //   NOTE:  We need to set the node ID in both the node info and the eth_dev_info
                     //
-                    temp = Xil_Ntohl(cmd_args_32[1]) & 0xFFFF;
-                    node_info.node_id          = temp;
-                    node_info.eth_dev->node_id = temp;
+                    node_id = Xil_Ntohl(cmd_args_32[1]) & 0xFFFF;
+                    node_info.node_id          = node_id;
+                    node_info.eth_dev->node_id = node_id;
 
                     xil_printf("  New Node ID       : %d \n", node_info.node_id);
                     
@@ -800,16 +768,20 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             } else {
                 xil_printf("NODE_CONFIG_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmd_args_32[0]), node_info.serial_number);
             }
+        }
         break;
 
         
         //---------------------------------------------------------------------
-        case CMDID_NODE_CONFIG_RESET:
+        case CMDID_NODE_CONFIG_RESET: {
             // NODE_CONFIG_RESET Packet Format:
             //   - Note:  All u32 parameters in cmd_args_32 are byte swapped so use Xil_Ntohl()
             //
             //   - cmd_args_32[0] - Serial Number
             // 
+            u32              serial_number;
+            transport_info * transport_info;
+            u8               ip_addr[IP_ADDR_LEN];
             
             // If the command was sent directly to the node (ie not a broadcast packet), then the node
             // needs to send a response before the IP address changes.
@@ -861,11 +833,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             } else {
                 xil_printf("NODE_CONFIG_RESET Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmd_args_32[0]), node_info.serial_number);
             }
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_TEMPERATURE:
+        case CMDID_NODE_TEMPERATURE: {
             // NODE_TEMPERATURE
             //   - If the system monitor exists, return the current, min and max temperature of the node
             //
@@ -875,6 +848,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
@@ -884,7 +858,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_CONFIG:
+        case CMDID_LOG_CONFIG: {
             // NODE_LOG_CONFIG Packet Format:
             //   - cmd_args_32[0]  - flags
             //                     [ 0] - Logging Enabled = 1; Logging Disabled = 0;
@@ -894,62 +868,58 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[1]  - mask for flags
             //
             //   - resp_args_32[0] - CMD_PARAM_SUCCESS
-            //                   - CMD_PARAM_ERROR
+            //                     - CMD_PARAM_ERROR
+            //
+            int    status         = CMD_PARAM_SUCCESS;
+            u8     entry_mask     = wlan_exp_log_get_entry_en_mask();
+            u32    flags          = Xil_Ntohl(cmd_args_32[0]);
+            u32    mask           = Xil_Ntohl(cmd_args_32[1]);
 
-            entry_mask = wlan_exp_log_get_entry_en_mask();
-
-            // Set the return value
-            status = CMD_PARAM_SUCCESS;
-
-            // Get flags
-            temp  = Xil_Ntohl(cmd_args_32[0]);
-            temp2 = Xil_Ntohl(cmd_args_32[1]);
-
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
             // Configure the LOG based on the flag bit / mask
-            if ((temp2 & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) {
-                if ((temp & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) {
+            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) {
+                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) {
                     event_log_config_logging(EVENT_LOG_LOGGING_ENABLE);
                 } else {
                     event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
                 }
             }
 
-            if ((temp2 & CMD_PARAM_LOG_CONFIG_FLAG_WRAP) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP) {
-                if ((temp & CMD_PARAM_LOG_CONFIG_FLAG_WRAP) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP) {
+            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_WRAP) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP) {
+                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_WRAP) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP) {
                     event_log_config_wrap(EVENT_LOG_WRAP_ENABLE);
                 } else {
                     event_log_config_wrap(EVENT_LOG_WRAP_DISABLE);
                 }
             }
 
-            if ((temp2 & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) {
-                if ((temp & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) {
+            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) {
+                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) {
                     wlan_exp_log_set_mac_payload_len(MAX_MAC_PAYLOAD_LOG_LEN);
                 } else {
                     wlan_exp_log_set_mac_payload_len(MIN_MAC_PAYLOAD_LOG_LEN);
                 }
             }
 
-            if ((temp2 & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) == CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
-                if ((temp & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) == CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
+            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) == CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
+                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) == CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
                     wlan_exp_enable_logging = 1;
                 } else {
                     wlan_exp_enable_logging = 0;
                 }
             }
 
-            if ((temp2 & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
-                if ((temp & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
+            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
+                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
                     entry_mask |= ENTRY_EN_MASK_TXRX_MPDU;
                 } else {
                     entry_mask &= ~ENTRY_EN_MASK_TXRX_MPDU;
                 }
             }
 
-            if ((temp2 & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) {
-                if ((temp & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) {
+            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) {
+                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) {
                     entry_mask |= ENTRY_EN_MASK_TXRX_CTRL;
                 } else {
                     entry_mask &= ~ENTRY_EN_MASK_TXRX_CTRL;
@@ -963,55 +933,48 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_GET_STATUS:
+        case CMDID_LOG_GET_STATUS: {
             // NODE_LOG_GET_INFO Packet Format:
             //   - resp_args_32[0] - Next empty entry index
             //   - resp_args_32[1] - Oldest empty entry index
             //   - resp_args_32[2] - Number of wraps
             //   - resp_args_32[3] - Flags
             //
-            temp = event_log_get_next_entry_index();
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
-
-            temp = event_log_get_oldest_entry_index();
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
-
-            temp = event_log_get_num_wraps();
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
-
-            temp = event_log_get_flags();
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
+            resp_args_32[resp_index++] = Xil_Htonl(event_log_get_next_entry_index());
+            resp_args_32[resp_index++] = Xil_Htonl(event_log_get_oldest_entry_index());
+            resp_args_32[resp_index++] = Xil_Htonl(event_log_get_num_wraps());
+            resp_args_32[resp_index++] = Xil_Htonl(event_log_get_flags());
 
             // Send response of current info
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_GET_CAPACITY:
+        case CMDID_LOG_GET_CAPACITY: {
             // NODE_LOG_GET_CAPACITY Packet Format:
             //   - resp_args_32[0] - Max log size
             //   - resp_args_32[1] - Current log size
             //
-            temp = event_log_get_capacity();
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
-
-            temp = event_log_get_total_size();
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
+            resp_args_32[resp_index++] = Xil_Htonl(event_log_get_capacity());
+            resp_args_32[resp_index++] = Xil_Htonl(event_log_get_total_size());
 
             // Send response of current info
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_GET_ENTRIES:
+        case CMDID_LOG_GET_ENTRIES: {
             // NODE_LOG_GET_ENTRIES Packet Format:
             //   - Note:  All u32 parameters in cmd_args_32 are byte swapped so use Xil_Ntohl()
             //
@@ -1040,13 +1003,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   only transfer those events.  It will not any new events that are added to the log while
             //   we are transferring the current log as well as transfer any events after a wrap.
             //
-            id               = Xil_Ntohl(cmd_args_32[0]);
-            flags            = Xil_Ntohl(cmd_args_32[1]);
-            start_index      = Xil_Ntohl(cmd_args_32[2]);
-            size             = Xil_Ntohl(cmd_args_32[3]);
-
-            // Get the size of the log to the "end"
-            evt_log_size     = event_log_get_size(start_index);
+            u32    id                  = Xil_Ntohl(cmd_args_32[0]);
+            u32    flags               = Xil_Ntohl(cmd_args_32[1]);
+            u32    start_index         = Xil_Ntohl(cmd_args_32[2]);
+            u32    size                = Xil_Ntohl(cmd_args_32[3]);
+            u32    evt_log_size        = event_log_get_size(start_index);
 
             // Check if we should transfer everything or if the request was larger than the current log
             if ((size == CMD_PARAM_LOG_GET_ALL_ENTRIES) || (size > evt_log_size)) {
@@ -1060,11 +1021,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                               id, flags, start_index, size);
 
             resp_sent = RESP_SENT;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_ADD_EXP_INFO_ENTRY:
+        case CMDID_LOG_ADD_EXP_INFO_ENTRY: {
             // Add EXP_INFO entry to the log
             //
             // Message format:
@@ -1075,8 +1037,10 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // NOTE:  Entry data will be copied in to the log "as is" (ie it will not
             //     have any network to host order translation performed on it)
             //
-            type       = (Xil_Ntohl(cmd_args_32[0]) & 0xFFFF);
-            size       = (Xil_Ntohl(cmd_args_32[1]) & 0xFFFF);
+            exp_info_entry * exp_info;
+            u32              entry_size;
+            u32              type           = (Xil_Ntohl(cmd_args_32[0]) & 0xFFFF);
+            u32              size           = (Xil_Ntohl(cmd_args_32[1]) & 0xFFFF);
 
             // Get the entry size
             if (size == 0) {
@@ -1085,8 +1049,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 // 32-bit align size; EXP INFO structure already contains 4 bytes of the payload
                 entry_size = sizeof(exp_info_entry) + (((size - 1) / 4)*4);
             }
-
-            exp_info_entry * exp_info;
 
             exp_info = (exp_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_EXP_INFO, entry_size);
 
@@ -1105,34 +1067,37 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     memcpy((void *)(&exp_info->info_payload[0]), (void *)(&cmd_args_32[2]), size);
                 }
             }
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_ADD_COUNTS_TXRX:
+        case CMDID_LOG_ADD_COUNTS_TXRX: {
             // Add the current counts to the log
             //     TODO:  Add parameter to command to transmit counts
-            temp = add_all_txrx_counts_to_log(WLAN_EXP_NO_TRANSMIT);
+            u32    num_counts = add_all_txrx_counts_to_log(WLAN_EXP_NO_TRANSMIT);
 
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Added %d counts.\n", temp);
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Added %d counts.\n", num_counts);
 
             // Send response of the number of counts added
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
+            resp_args_32[resp_index++] = Xil_Htonl(num_counts);
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_ENABLE_ENTRY:
+        case CMDID_LOG_ENABLE_ENTRY: {
             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log, "Enable Event not supported\n");
             // TODO:  THIS FUNCTION IS NOT COMPLETE
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LOG_STREAM_ENTRIES:
+        case CMDID_LOG_STREAM_ENTRIES: {
             // Stream entries from the log
             //
             // Message format:
@@ -1140,41 +1105,48 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     cmd_args_32[1]   IP Address (32 bits)
             //     cmd_args_32[2]   Host ID (upper 16 bits); Port (lower 16 bits)
             //
-            temp       = Xil_Ntohl(cmd_args_32[0]);
-            ip_address = Xil_Ntohl(cmd_args_32[1]);
-            temp2      = Xil_Ntohl(cmd_args_32[2]);
+            int                   status;
+            struct sockaddr_in  * async_sockaddr;
+            warp_ip_udp_buffer  * tmp_buffer;
+            transport_header    * tmp_header;
+            cmd_resp_hdr        * tmp_cmd_header;
+            cmd_resp            * async_cmd_resp;
+            u32                   enable              =   Xil_Ntohl(cmd_args_32[0]);
+            u32                   ip_address          =   Xil_Ntohl(cmd_args_32[1]);
+            u32                   host_id             = ((Xil_Ntohl(cmd_args_32[2]) >> 16) & 0xFFFF);
+            u32                   port                =  (Xil_Ntohl(cmd_args_32[2]) & 0xFFFF);
 
             // Check the enable
-            if (temp == WLAN_EXP_DISABLE) {
+            if (enable == WLAN_EXP_DISABLE) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log,
-                                "Disable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF));
-                async_pkt_enable = temp;
+                                "Disable streaming to %08x (%d)\n", ip_address, port);
+                async_pkt_enable = enable;
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log,
-                                "Enable streaming to %08x (%d)\n", ip_address, (temp2 & 0xFFFF));
+                                "Enable streaming to %08x (%d)\n", ip_address, port);
 
-                // Initialize all of the global async packet variables
-                async_pkt_enable  = temp;
+                // Initialize global async packet variables
+                async_pkt_enable  = enable;
                 async_eth_dev_num = eth_dev_num;
 
                 // Configure the Asynchronous send socket
-                status = transport_config_socket(eth_dev_num, &(node_info.eth_dev->socket_async), (temp2 & 0xFFFF));
+                status = transport_config_socket(eth_dev_num, &(node_info.eth_dev->socket_async), port);
 
                 if (status == XST_FAILURE) {
                     wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log, "Failed to configure async socket.\n");
                 }
 
                 // Populate the socket address structure for the async socket
-                struct sockaddr_in   * async_sockaddr = (struct sockaddr_in *) &(node_info.eth_dev->async_sockaddr);
+                async_sockaddr = (struct sockaddr_in *) &(node_info.eth_dev->async_sockaddr);
 
-                async_sockaddr->sin_port              = (temp2 & 0xFFFF);      // Port
-                async_sockaddr->sin_addr.s_addr       = ip_address;            // IP Address (??? Endianess ???)
+                async_sockaddr->sin_port              = port;        // Port
+                async_sockaddr->sin_addr.s_addr       = ip_address;  // IP Address
 
                 // Get buffer from transport library
-                warp_ip_udp_buffer       * tmp_buffer = socket_alloc_send_buffer();
+                tmp_buffer = socket_alloc_send_buffer();
 
                 // Add transport header to the buffer
-                transport_header         * tmp_header = (transport_header *)(tmp_buffer->offset);
+                tmp_header = (transport_header *)(tmp_buffer->offset);
 
                 // Increment the tracking variables in the buffer
                 tmp_buffer->offset                   += sizeof(transport_header);
@@ -1182,7 +1154,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 tmp_buffer->size                     += sizeof(transport_header);
 
                 // Populate the values for the transport header
-                tmp_header->dest_id                   = ((temp2 >> 16) & 0xFFFF);
+                tmp_header->dest_id                   = host_id;
                 tmp_header->src_id                    = node_info.node_id;
                 tmp_header->reserved                  = 0;
                 tmp_header->pkt_type                  = PKT_TPYE_NTOH_MSG_ASYNC;
@@ -1191,7 +1163,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 tmp_header->flags                     = 0;
 
                 // Add command header to the send buffer
-                cmd_resp_hdr         * tmp_cmd_header = (cmd_resp_hdr *)(tmp_buffer->offset);
+                tmp_cmd_header = (cmd_resp_hdr *)(tmp_buffer->offset);
 
                 // Increment the tracking variables in the buffer
                 tmp_buffer->offset                   += sizeof(cmd_resp_hdr);
@@ -1204,7 +1176,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 tmp_cmd_header->num_args              = 0;
 
                 // Create the Command / Response structure for the async socket
-                cmd_resp             * async_cmd_resp = &(node_info.eth_dev->async_cmd_resp);
+                async_cmd_resp = &(node_info.eth_dev->async_cmd_resp);
 
                 async_cmd_resp->buffer                = (void *) tmp_buffer;
                 async_cmd_resp->header                = tmp_cmd_header;
@@ -1231,6 +1203,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
@@ -1240,7 +1213,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_COUNTS_CONFIG_TXRX:
+        case CMDID_COUNTS_CONFIG_TXRX: {
             // NODE_COUNTS_CONFIG_TXRX Packet Format:
             //   - cmd_args_32[0]  - flags
             //                     [ 0] - Promiscuous counts collected = 1
@@ -1249,19 +1222,15 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //
             //   - resp_args_32[0] - CMD_PARAM_SUCCESS
             //                     - CMD_PARAM_ERROR
+            u32    status    = CMD_PARAM_SUCCESS;
+            u32    flags     = Xil_Ntohl(cmd_args_32[0]);
+            u32    mask      = Xil_Ntohl(cmd_args_32[1]);
 
-            // Set the return value
-            status = CMD_PARAM_SUCCESS;
-
-            // Get flags
-            temp  = Xil_Ntohl(cmd_args_32[0]);
-            temp2 = Xil_Ntohl(cmd_args_32[1]);
-
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
             // Configure the LOG based on the flag bit / mask
-            if ((temp2 & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) == CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
-                if ((temp & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) == CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
+            if ((mask & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) == CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
+                if ((flags & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) == CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
                     promiscuous_counts_enabled = 1;
                 } else {
                     promiscuous_counts_enabled = 0;
@@ -1273,17 +1242,19 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_COUNTS_GET_TXRX:
+        case CMDID_COUNTS_GET_TXRX: {
             // NODE_GET_COUNTS Packet Format:
             //   - cmd_args_32[0]   - buffer id
             //   - cmd_args_32[1]   - flags
             //   - cmd_args_32[2]   - start_address of transfer
             //   - cmd_args_32[3]   - size of transfer (in bytes)
             //   - cmd_args_32[4:5] - MAC Address (All 0xFF means all counts)
+            //
             // Always returns a valid WLAN Exp Buffer (either 1 or more packets)
             //   - buffer_id       - uint32  - buffer_id
             //   - flags           - uint32  - 0
@@ -1291,7 +1262,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - start_byte      - uint32  - Byte index of the first byte in this packet
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
-
+            //
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_counts, "counts",
@@ -1301,7 +1272,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                             &find_txrx_counts_entry,
                                             &copy_txrx_counts_to_dest_entry,
                                             &zero_txrx_counts_entry);
-
+        }
         break;
 
 
@@ -1311,26 +1282,24 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_LTG_CONFIG:
+        case CMDID_LTG_CONFIG: {
             // NODE_LTG_START Packet Format:
             //   - cmd_args_32[0]      - Flags
-            //                         [0] - Auto-start the LTG flow
+            //                           [0] - Auto-start the LTG flow
             //   - cmd_args_32[1 - N]  - LTG Schedule (packed)
-            //                         [0] - [31:16] Type    [15:0] Length
+            //                           [0] - [31:16] Type    [15:0] Length
             //   - cmd_args_32[N+1 - M]- LTG Payload (packed)
-            //                         [0] - [31:16] Type    [15:0] Length
+            //                           [0] - [31:16] Type    [15:0] Length
             //
             //   - resp_args_32[0]     - CMD_PARAM_SUCCESS
-            //                       - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-
-            status = CMD_PARAM_SUCCESS;
-            id     = LTG_ID_INVALID;
-            flags  = Xil_Ntohl(cmd_args_32[0]);
-
-            // Local variables
-            u32            s1, s2, t1, t2;
-            void *         ltg_callback_arg;
-            void *         params;
+            //                         - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+            //
+            u32    s1, s2, t1, t2;
+            void * ltg_callback_arg;
+            void * params;
+            u32    status    = CMD_PARAM_SUCCESS;
+            u32    id        = LTG_ID_INVALID;
+            u32    flags     = Xil_Ntohl(cmd_args_32[0]);
 
             // Get Schedule & Payload
             // NOTE:  This allocates memory for both the schedule and payload containers.
@@ -1378,24 +1347,23 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LTG_START:
+        case CMDID_LTG_START: {
             // NODE_LTG_START Packet Format:
             //   - cmd_args_32[0]      - LTG ID
             //
             //   - resp_args_32[0]     - CMD_PARAM_SUCCESS
             //                         - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+            //
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    id             = Xil_Ntohl(cmd_args_32[0]);
+            int    ltg_status     = ltg_sched_start(id);
 
-            status = CMD_PARAM_SUCCESS;
-            id     = Xil_Ntohl(cmd_args_32[0]);
-
-            // Try to start the ID
-            temp2 = ltg_sched_start(id);
-
-            if (temp2 == 0) {
+            if (ltg_status == 0) {
                 if (id != CMD_PARAM_LTG_ALL_LTGS){
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Starting %d\n", id);
                 } else {
@@ -1415,24 +1383,23 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LTG_STOP:
+        case CMDID_LTG_STOP: {
             // NODE_LTG_STOP Packet Format:
             //   - cmd_args_32[0]      - LTG ID
             //
             //   - resp_args_32[0]     - CMD_PARAM_SUCCESS
             //                         - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+            //
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    id             = Xil_Ntohl(cmd_args_32[0]);
+            int    ltg_status     = ltg_sched_stop(id);
 
-            status = CMD_PARAM_SUCCESS;
-            id     = Xil_Ntohl(cmd_args_32[0]);
-
-            // Try to stop the ID
-            temp2 = ltg_sched_stop(id);
-
-            if (temp2 == 0) {
+            if (ltg_status == 0) {
                 if (id != CMD_PARAM_LTG_ALL_LTGS){
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Stopping %d\n", id);
                 } else {
@@ -1452,24 +1419,23 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LTG_REMOVE:
+        case CMDID_LTG_REMOVE: {
             // NODE_LTG_REMOVE Packet Format:
             //   - cmd_args_32[0]      - LTG ID
             //
             //   - resp_args_32[0]     - CMD_PARAM_SUCCESS
             //                         - CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+            //
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    id             = Xil_Ntohl(cmd_args_32[0]);
+            int    ltg_status     = ltg_sched_remove(id);
 
-            status = CMD_PARAM_SUCCESS;
-            id     = Xil_Ntohl(cmd_args_32[0]);
-
-            // Try to remove the ID
-            temp2 = ltg_sched_remove(id);
-
-            if (temp2 == 0) {
+            if (ltg_status == 0) {
                 if (id != CMD_PARAM_LTG_ALL_LTGS){
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Removing %d\n", id);
                 } else {
@@ -1489,11 +1455,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_LTG_STATUS:
+        case CMDID_LTG_STATUS: {
             // NODE_LTG_STATUS Packet Format:
             //   - cmd_args_32[0]      - LTG ID
             //
@@ -1504,12 +1471,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - resp_args_32[3:2]   - Last start timestamp
             //   - resp_args_32[5:4]   - Last stop timestamp
             //
-            status = CMD_PARAM_SUCCESS;
-            id     = Xil_Ntohl(cmd_args_32[0]);
-            temp   = sizeof(ltg_sched_state_hdr) / 4;      // Number of return args for the header
-
-            u32      * state;
-            dl_entry * curr_tg_dl_entry;
+            u32         i;
+            u32       * state;
+            dl_entry  * curr_tg_dl_entry;
+            u32        status          = CMD_PARAM_SUCCESS;
+            u32        id              = Xil_Ntohl(cmd_args_32[0]);
+            u32        max_args        = sizeof(ltg_sched_state_hdr) / 4;      // Maximum number of return args
 
             curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
 
@@ -1523,17 +1490,18 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
             if(curr_tg_dl_entry != NULL){
-                for (i = 0; i < temp; i++) {
-                    resp_args_32[resp_index++] = Xil_Htonl( state[i] );
+                for (i = 0; i < max_args; i++) {
+                    resp_args_32[resp_index++] = Xil_Htonl(state[i]);
                 }
             } else {
-                for (i = 0; i < temp; i++) {
+                for (i = 0; i < max_args; i++) {
                     resp_args_32[resp_index++] = 0xFFFFFFFF;
                 }
             }
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
@@ -1543,7 +1511,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_RESET_STATE:
+        case CMDID_NODE_RESET_STATE: {
             // NODE_RESET_STATE Packet Format:
             //   - cmd_args_32[0]  - Flags
             //                     [0] - NODE_RESET_LOG
@@ -1553,24 +1521,25 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //                     [4] - NODE_RESET_ASSOCIATIONS
             //                     [5] - NODE_RESET_BSS_INFO
             //
-            temp   = Xil_Ntohl(cmd_args_32[0]);
-            status = CMD_PARAM_SUCCESS;
+            interrupt_state_t     prev_interrupt_state;
+            u32                   status    = CMD_PARAM_SUCCESS;
+            u32                   flags     = Xil_Ntohl(cmd_args_32[0]);
 
             // Disable interrupts so no packets interrupt the reset
             prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
             // Configure the LOG based on the flag bits
-            if ((temp & CMD_PARAM_NODE_RESET_FLAG_LOG) == CMD_PARAM_NODE_RESET_FLAG_LOG) {
+            if ((flags & CMD_PARAM_NODE_RESET_FLAG_LOG) == CMD_PARAM_NODE_RESET_FLAG_LOG) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Reset log\n");
                 event_log_reset();
             }
 
-            if ((temp & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) == CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
+            if ((flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) == CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
                 wlan_exp_reset_station_counts_callback();
             }
 
-            if ((temp & CMD_PARAM_NODE_RESET_FLAG_LTG) == CMD_PARAM_NODE_RESET_FLAG_LTG) {
+            if ((flags & CMD_PARAM_NODE_RESET_FLAG_LTG) == CMD_PARAM_NODE_RESET_FLAG_LTG) {
                 status = ltg_sched_remove( LTG_REMOVE_ALL );
 
                 if (status != 0) {
@@ -1581,17 +1550,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 }
             }
 
-            if ((temp & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) == CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) {
+            if ((flags & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) == CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging all data transmit queues\n");
                 wlan_exp_purge_all_data_tx_queue_callback();
             }
 
-            if ((temp & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS) == CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS) {
+            if ((flags & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS) == CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting associations\n");
                 wlan_exp_reset_all_associations_callback();
             }
 
-            if ((temp & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) == CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) {
+            if ((flags & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) == CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting BSS info\n");
                 wlan_exp_reset_bss_info_callback();
             }
@@ -1604,11 +1573,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_CONFIGURE:
+        case CMDID_NODE_CONFIGURE: {
             // CMDID_NODE_CONFIGURE Packet Format:
             //   - cmd_args_32[0]  - Flags
             //                     [0] - NODE_CONFIG_FLAG_DSSS_ENABLE
@@ -1617,17 +1587,16 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //                     [31]  - Set debug level
             //                     [7:0] - Debug level
             //
-            status = CMD_PARAM_SUCCESS;
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    flags          = Xil_Ntohl(cmd_args_32[0]);
+            u32    mask           = Xil_Ntohl(cmd_args_32[1]);
+            u32    debug_level    = Xil_Ntohl(cmd_args_32[2]);
 
-            // Get flags
-            temp  = Xil_Ntohl(cmd_args_32[0]);
-            temp2 = Xil_Ntohl(cmd_args_32[1]);
-
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Configure flags = 0x%08x  mask = 0x%08x\n", temp, temp2);
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
             // Configure the Node based on the flag bit / mask
-            if ((temp2 & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
-                if ((temp & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
+            if ((mask & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
+                if ((flags & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
                     wlan_mac_high_set_dsss( 0x1 );
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Enabled DSSS\n");
                 } else {
@@ -1636,11 +1605,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 }
             }
 
-            temp  = Xil_Ntohl(cmd_args_32[2]);
-
             // Set debug print level
-            if ((temp & CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) == CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) {
-                wlan_exp_set_print_level(temp & 0xFF);
+            if ((debug_level & CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) == CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) {
+                wlan_exp_set_print_level(debug_level & 0xFF);
             }
 
             // Send response of status
@@ -1648,11 +1615,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_WLAN_MAC_ADDR:
+        case CMDID_NODE_WLAN_MAC_ADDR: {
             // Get / Set the wireless MAC address
             //
             // Message format:
@@ -1665,8 +1633,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[0]   Status
             //     resp_args_32[1:2] Current MAC Address
             //
-            status  = CMD_PARAM_SUCCESS;
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
+            u8     mac_addr[ETH_MAC_ADDR_LEN];
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
@@ -1697,11 +1666,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_TIME:
+        case CMDID_NODE_TIME: {
             // Set / Get node time
             //
             // Message format:
@@ -1723,32 +1693,36 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[3]  System Time on node in microseconds - lower 32 bits
             //     resp_args_32[4]  System Time on node in microseconds - upper 32 bits
             //
-            status           = CMD_PARAM_SUCCESS;
-            msg_cmd          = Xil_Ntohl(cmd_args_32[0]);
-            id               = Xil_Ntohl(cmd_args_32[1]);
-            mac_timestamp    = get_mac_time_usec();
-            system_timestamp = get_system_time_usec();
+            u32    temp_lo, temp_hi;
+            u32    status           = CMD_PARAM_SUCCESS;
+            u32    msg_cmd          = Xil_Ntohl(cmd_args_32[0]);
+            u32    id               = Xil_Ntohl(cmd_args_32[1]);
+
+            u64    new_mac_time;
+            u64    host_timestamp;
+            u64    mac_timestamp    = get_mac_time_usec();
+            u64    system_timestamp = get_system_time_usec();
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
                 case CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL:
                     // Get the new time
-                    temp         = Xil_Ntohl(cmd_args_32[2]);
-                    temp2        = Xil_Ntohl(cmd_args_32[3]);
-                    new_mac_time = (((u64)temp2) << 32) + ((u64)temp);
+                    temp_lo      = Xil_Ntohl(cmd_args_32[2]);
+                    temp_hi      = Xil_Ntohl(cmd_args_32[3]);
+                    new_mac_time = (((u64)temp_hi) << 32) + ((u64)temp_lo);
 
                     // If this is a write, then update the time on the node
                     if (msg_cmd == CMD_PARAM_WRITE_VAL){
                         set_mac_time_usec(new_mac_time);
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set time  = 0x%08x 0x%08x\n", temp2, temp);
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set time  = 0x%08x 0x%08x\n", temp_hi, temp_lo);
                     }
 
                     // Get the Host time
-                    temp           = Xil_Ntohl(cmd_args_32[4]);
-                    temp2          = Xil_Ntohl(cmd_args_32[5]);
-                    host_timestamp = (((u64)temp2) << 32) + ((u64)temp);
+                    temp_lo        = Xil_Ntohl(cmd_args_32[4]);
+                    temp_hi        = Xil_Ntohl(cmd_args_32[5]);
+                    host_timestamp = (((u64)temp_hi) << 32) + ((u64)temp_lo);
 
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Host time = 0x%08x 0x%08x\n", temp2, temp);
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Host time = 0x%08x 0x%08x\n", temp_hi, temp_lo);
 
                     // Add a time info log entry
                     //
@@ -1780,27 +1754,28 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
             // Add the MAC time to the response
-            temp  = mac_timestamp & 0xFFFFFFFF;
-            temp2 = (mac_timestamp >> 32) & 0xFFFFFFFF;
+            temp_lo = mac_timestamp & 0xFFFFFFFF;
+            temp_hi = (mac_timestamp >> 32) & 0xFFFFFFFF;
 
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
-            resp_args_32[resp_index++] = Xil_Htonl(temp2);
+            resp_args_32[resp_index++] = Xil_Htonl(temp_lo);
+            resp_args_32[resp_index++] = Xil_Htonl(temp_hi);
 
             // Add the System time to the response
-            temp  = system_timestamp & 0xFFFFFFFF;
-            temp2 = (system_timestamp >> 32) & 0xFFFFFFFF;
+            temp_lo = system_timestamp & 0xFFFFFFFF;
+            temp_hi = (system_timestamp >> 32) & 0xFFFFFFFF;
 
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
-            resp_args_32[resp_index++] = Xil_Htonl(temp2);
+            resp_args_32[resp_index++] = Xil_Htonl(temp_lo);
+            resp_args_32[resp_index++] = Xil_Htonl(temp_hi);
 
             // Complete the response
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_LOW_TO_HIGH_FILTER:
+        case CMDID_NODE_LOW_TO_HIGH_FILTER: {
             // Set node MAC low to high filter
             //
             // Message format:
@@ -1810,14 +1785,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Response format:
             //     resp_args_32[0]  Status
             //
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            temp    = Xil_Ntohl(cmd_args_32[1]);
-            status  = CMD_PARAM_SUCCESS;
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    filter_mode    = Xil_Ntohl(cmd_args_32[1]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set RX filter = 0x%08x\n", temp);
-                    wlan_mac_high_set_rx_filter_mode(temp);
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set RX filter = 0x%08x\n", filter_mode);
+                    wlan_mac_high_set_rx_filter_mode(filter_mode);
                 break;
 
                 default:
@@ -1831,6 +1806,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
@@ -1839,7 +1815,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_RANDOM_SEED:
+        case CMDID_NODE_RANDOM_SEED: {
             // Set the random seed for the random number generator for cpu high / low
             //
             // Message format:
@@ -1852,25 +1828,27 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Response format:
             //     resp_args_32[0]  Status
             //
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            status  = CMD_PARAM_SUCCESS;
+            u32    seed;
+            u32    seed_valid;
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
                     // Process the seed for CPU high
-                    temp    = Xil_Ntohl(cmd_args_32[1]);
-                    temp2   = Xil_Ntohl(cmd_args_32[2]);
-                    if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set CPU High random seed = 0x%08x\n", temp2);
-                        srand(temp2);
+                    seed_valid = Xil_Ntohl(cmd_args_32[1]);
+                    seed       = Xil_Ntohl(cmd_args_32[2]);
+                    if (seed_valid == CMD_PARAM_RANDOM_SEED_VALID) {
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set CPU High random seed = 0x%08x\n", seed);
+                        srand(seed);
                     }
 
                     // Process the seed for CPU low
-                    temp    = Xil_Ntohl(cmd_args_32[3]);
-                    temp2   = Xil_Ntohl(cmd_args_32[4]);
-                    if (temp == CMD_PARAM_RANDOM_SEED_VALID) {
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set CPU Low  random seed = 0x%08x\n", temp2);
-                        wlan_mac_high_set_srand(temp2);
+                    seed_valid = Xil_Ntohl(cmd_args_32[3]);
+                    seed       = Xil_Ntohl(cmd_args_32[4]);
+                    if (seed_valid == CMD_PARAM_RANDOM_SEED_VALID) {
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set CPU Low  random seed = 0x%08x\n", seed);
+                        wlan_mac_high_set_srand(seed);
                     }
                 break;
 
@@ -1885,11 +1863,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_LOW_PARAM:
+        case CMDID_NODE_LOW_PARAM: {
             // Set node MAC low to high filter
             //
             // Message format:
@@ -1902,9 +1881,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Response format:
             //     resp_args_32[0]    Status
             //
-            msg_cmd          = Xil_Ntohl(cmd_args_32[0]);
-            size             = Xil_Ntohl(cmd_args_32[1]);
-            temp             = 0;
+            u32    i;
+            u32    id;
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    size           = Xil_Ntohl(cmd_args_32[1]);
 
             // Byte swap all the payload words for the LOW_PARAM_MESSAGE
             for (i = 2; i < (size + 2); i++) {
@@ -1912,7 +1893,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             }
 
             id      = cmd_args_32[2];        // Already byte swapped in for loop above
-            status  = CMD_PARAM_SUCCESS;
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
@@ -1931,30 +1911,32 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             }
 
             // Send default response
-            if (temp == 0) {
-                resp_args_32[resp_index++] = Xil_Htonl(status);
+            resp_args_32[resp_index++] = Xil_Htonl(status);
 
-                resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-                resp_hdr->num_args = resp_index;
-            }
+            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_TX_POWER:
+        case CMDID_NODE_TX_POWER: {
             // CMDID_NODE_TX_POWER Packet Format:
             //   - cmd_args_32[0]      - Command
             //   - cmd_args_32[1]      - Type
             //   - cmd_args_32[2]      - Power (Shifted by TX_POWER_MIN_DBM)
             //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
-
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            type    = Xil_Ntohl(cmd_args_32[1]);
-            temp    = Xil_Ntohl(cmd_args_32[2]);
-            status  = CMD_PARAM_SUCCESS;
+            //
+            u32    id;
+            int    power;
+            u8     mac_addr[ETH_MAC_ADDR_LEN];
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    type           = Xil_Ntohl(cmd_args_32[1]);
+            u32    power_xmit     = Xil_Ntohl(cmd_args_32[2]);
 
             // Shift power value from transmission to get the power
-            power = temp + TX_POWER_MIN_DBM;
+            power = power_xmit + TX_POWER_MIN_DBM;
 
             // Adjust the power so that it falls in an acceptable range
             if(power < TX_POWER_MIN_DBM){ power = TX_POWER_MIN_DBM; }
@@ -2086,29 +2068,32 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             }
 
             // Shift power for transmission
-            temp = power - TX_POWER_MIN_DBM;
+            power_xmit = power - TX_POWER_MIN_DBM;
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_args_32[resp_index++] = Xil_Htonl(temp);
+            resp_args_32[resp_index++] = Xil_Htonl(power_xmit);
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_TX_RATE:
+        case CMDID_NODE_TX_RATE: {
             // NODE_TX_RATE Packet Format:
             //   - cmd_args_32[0]      - Command
             //   - cmd_args_32[1]      - Type
             //   - cmd_args_32[2]      - Rate
             //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
-
-            msg_cmd = Xil_Ntohl(cmd_args_32[0]);
-            type    = Xil_Ntohl(cmd_args_32[1]);
-            rate    = Xil_Ntohl(cmd_args_32[2]);
-            status  = CMD_PARAM_SUCCESS;
+            //
+            u32    id;
+            u8     mac_addr[ETH_MAC_ADDR_LEN];
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    type           = Xil_Ntohl(cmd_args_32[1]);
+            u32    rate           = Xil_Ntohl(cmd_args_32[2]);
 
             // Adjust the rate so that it falls in an acceptable range
             if(rate < WLAN_MAC_MCS_6M ){ rate = WLAN_MAC_MCS_6M;  }
@@ -2209,21 +2194,24 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_TX_ANT_MODE:
+        case CMDID_NODE_TX_ANT_MODE: {
             // NODE_TX_ANT_MODE Packet Format:
             //   - cmd_args_32[0]      - Command
             //   - cmd_args_32[1]      - Type
             //   - cmd_args_32[2]      - Antenna Mode
             //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
-
-            msg_cmd  = Xil_Ntohl(cmd_args_32[0]);
-            type     = Xil_Ntohl(cmd_args_32[1]);
-            ant_mode = Xil_Ntohl(cmd_args_32[2]);
-            status   = CMD_PARAM_SUCCESS;
+            //
+            u32    id;
+            u8     mac_addr[ETH_MAC_ADDR_LEN];
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    type           = Xil_Ntohl(cmd_args_32[1]);
+            u32    ant_mode       = Xil_Ntohl(cmd_args_32[2]);
 
             // NOTE:  This method assumes that the Antenna mode received is valid.
             // The checking will be done on either the host, in CPU Low or both.
@@ -2319,21 +2307,22 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_RX_ANT_MODE:
+        case CMDID_NODE_RX_ANT_MODE: {
             // NODE_RX_ANT_MODE Packet Format:
             //   - cmd_args_32[0]      - Command
             //   - cmd_args_32[1]      - Antenna Mode
             //
             // NOTE:  This method assumes that the Antenna mode received is valid.
             // The checking will be done on either the host, in CPU Low or both.
-
-            msg_cmd  = Xil_Ntohl(cmd_args_32[0]);
-            ant_mode = Xil_Ntohl(cmd_args_32[1]);
-            status  = CMD_PARAM_SUCCESS;
+            //
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    ant_mode       = Xil_Ntohl(cmd_args_32[1]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
@@ -2359,6 +2348,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
@@ -2368,7 +2358,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_GET_SSID:
+        case CMDID_NODE_GET_SSID: {
             // Get the SSID
             //
             // NOTE:  This method does not force any maximum length on the SSID.  However,
@@ -2385,6 +2375,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //                             NOTE: The characters are copied with a straight strcpy
             //                               and must be correctly processed on the host side
             //
+            u32    ssid_len;
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(CMD_PARAM_SUCCESS);
@@ -2393,13 +2384,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             if (my_bss_info->ssid != NULL) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "SSID = %s\n", my_bss_info->ssid);
 
-                temp = strlen(my_bss_info->ssid);
+                ssid_len = strlen(my_bss_info->ssid);
 
-                resp_args_32[resp_index++] = Xil_Htonl(temp);
+                resp_args_32[resp_index++] = Xil_Htonl(ssid_len);
 
                 strcpy((char *)&resp_args_32[resp_index], my_bss_info->ssid);
 
-                resp_index += (temp / sizeof(resp_args_32)) + 1;
+                resp_index += (ssid_len / sizeof(resp_args_32)) + 1;
             } else {
                 // Return a zero length string
                 resp_args_32[resp_index++] = 0;
@@ -2407,6 +2398,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 
 
@@ -2415,7 +2407,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_GET_STATION_INFO:
+        case CMDID_NODE_GET_STATION_INFO: {
             // NODE_GET_STATION_INFO Packet Format:
             //   - cmd_args_32[0]   - buffer id
             //   - cmd_args_32[1]   - flags
@@ -2430,7 +2422,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - start_byte      - uint32  - Byte index of the first byte in this packet
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
-
+            //
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_node, "station info",
@@ -2440,11 +2432,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                             &find_station_info_entry,
                                             &copy_station_info_to_dest_entry,
                                             &zero_station_info_entry);
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_GET_BSS_INFO:
+        case CMDID_NODE_GET_BSS_INFO: {
             // NODE_GET_BSS_INFO Packet Format:
             //   - cmd_args_32[0]   - buffer id
             //   - cmd_args_32[1]   - flags
@@ -2459,6 +2452,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - start_byte      - uint32  - Byte index of the first byte in this packet
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
+            //
 
             // If MAC address is all zeros, then return my_bss_info
             if ((cmd_args_32[4] == 0x0) && (cmd_args_32[5] == 0x0)) {
@@ -2480,6 +2474,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                             &wlan_mac_high_find_bss_info_BSSID,
                                             &copy_bss_info_to_dest_entry,
                                             &zero_bss_info_entry);
+        }
         break;
 
 
@@ -2489,8 +2484,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_QUEUE_TX_DATA_PURGE_ALL:
+        case CMDID_QUEUE_TX_DATA_PURGE_ALL: {
             wlan_exp_purge_all_data_tx_queue_callback();
+        }
         break;
 
 
@@ -2500,7 +2496,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_DEV_MEM_HIGH:
+        case CMDID_DEV_MEM_HIGH: {
             // Read/write memory in CPU High
             //
             // Write Message format:
@@ -2520,11 +2516,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[1]     Length (number of u32 values)
             //     resp_args_32[2:]    Memory values (length u32 values)
             //
-            msg_cmd    = Xil_Ntohl(cmd_args_32[0]);
-            mem_addr   = Xil_Ntohl(cmd_args_32[1]);
-            mem_length = Xil_Ntohl(cmd_args_32[2]);
-            status     = CMD_PARAM_SUCCESS;
-            temp       = 0;
+            u32    mem_idx;
+            u32    status              = CMD_PARAM_SUCCESS;
+            u32    msg_cmd             = Xil_Ntohl(cmd_args_32[0]);
+            u32    mem_addr            = Xil_Ntohl(cmd_args_32[1]);
+            u32    mem_length          = Xil_Ntohl(cmd_args_32[2]);
+            u32    use_default_resp    = WLAN_EXP_TRUE;
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
@@ -2534,7 +2531,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     // Don't bother if length is clearly bogus
                     if(mem_length < max_resp_len) {
-                        for(mem_idx = 0; mem_idx < mem_length; mem_idx++) {
+                        for (mem_idx = 0; mem_idx < mem_length; mem_idx++) {
                             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  W[%2d]: 0x%08x\n", mem_idx, Xil_Ntohl(cmd_args_32[3 + mem_idx]));
                             Xil_Out32((mem_addr + mem_idx*sizeof(u32)), Xil_Ntohl(cmd_args_32[3 + mem_idx]));
                         }
@@ -2553,7 +2550,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     if(mem_length < max_resp_len) {
 
                         // Don't set the default response
-                        temp = 1;
+                        use_default_resp = WLAN_EXP_FALSE;
 
                         // Add length argument to response
                         resp_args_32[resp_index++] = Xil_Htonl(status);
@@ -2580,17 +2577,18 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 break;
             }
 
-            if (temp == 0) {
+            if (use_default_resp) {
                 // Send default response
                 resp_args_32[resp_index++] = Xil_Htonl(status);
                 resp_hdr->length  += (resp_index * sizeof(resp_args_32));
                 resp_hdr->num_args = resp_index;
             }
+        }
         break;
 
 
         //---------------------------------------------------------------------
-        case CMDID_DEV_MEM_LOW:
+        case CMDID_DEV_MEM_LOW: {
             // Read/write memory in CPU Low via IPC message
             //
             // Write Message format:
@@ -2610,11 +2608,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[1]     Length (number of u32 values)
             //     resp_args_32[2:]    Memory values (length u32 values)
             //
-            msg_cmd    = Xil_Ntohl(cmd_args_32[0]);
-            mem_addr   = Xil_Ntohl(cmd_args_32[1]);
-            mem_length = Xil_Ntohl(cmd_args_32[2]);
-            status     = CMD_PARAM_SUCCESS;
-            temp       = 0;
+            u32    mem_idx;
+            int    mem_status;
+            u32    status              = CMD_PARAM_SUCCESS;
+            u32    msg_cmd             = Xil_Ntohl(cmd_args_32[0]);
+            u32    mem_addr            = Xil_Ntohl(cmd_args_32[1]);
+            u32    mem_length          = Xil_Ntohl(cmd_args_32[2]);
+            u32    use_default_resp    = WLAN_EXP_TRUE;
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
@@ -2625,13 +2625,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     // Don't bother if length is clearly bogus
                     if(mem_length < max_resp_len) {
                         // Endian swap payload here - CPU Low requires payload that is ready to use as-is
-                        for(mem_idx = 0; mem_idx < mem_length+2; mem_idx++) {
+                        for (mem_idx = 0; mem_idx < mem_length+2; mem_idx++) {
                             cmd_args_32[1 + mem_idx] = Xil_Ntohl(cmd_args_32[1 + mem_idx]);
                         }
 
-                        temp2 = wlan_mac_high_write_low_mem(mem_length + 2, &(cmd_args_32[1]));
+                        mem_status = wlan_mac_high_write_low_mem(mem_length + 2, &(cmd_args_32[1]));
 
-                        if (temp2 == -1) {
+                        if (mem_status == -1) {
                             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_MEM_LOW write failed\n");
                             status = CMD_PARAM_ERROR;
                         }
@@ -2647,11 +2647,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", mem_length);
 
                     if(mem_length < max_resp_len) {
-                        temp2 = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(resp_args_32[2]));
+                        mem_status = wlan_mac_high_read_low_mem(mem_length, mem_addr, &(resp_args_32[2]));
 
-                        if(temp2 == 0) { //Success
+                        if(mem_status == 0) { //Success
                             // Don't set the default response
-                            temp = 1;
+                            use_default_resp = WLAN_EXP_FALSE;
 
                             // Add length argument to response
                             resp_args_32[resp_index++] = Xil_Htonl(status);
@@ -2660,7 +2660,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                             resp_hdr->num_args = resp_index;
 
                             // Endian swap payload returned by CPU Low
-                            for(mem_idx = 0; mem_idx < mem_length; mem_idx++) {
+                            for (mem_idx = 0; mem_idx < mem_length; mem_idx++) {
                                 resp_args_32[2 + mem_idx] = Xil_Htonl(resp_args_32[2 + mem_idx]);
                             }
 
@@ -2683,12 +2683,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 break;
             }
 
-            if (temp == 0) {
+            if (use_default_resp) {
                 // Send default response
                 resp_args_32[resp_index++] = Xil_Htonl(status);
                 resp_hdr->length  += (resp_index * sizeof(resp_args_32));
                 resp_hdr->num_args = resp_index;
             }
+        }
         break;
 
 
@@ -2698,9 +2699,10 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        default:
+        default: {
             // Call standard function in child class to parse parameters implemented there
             resp_sent = wlan_exp_process_node_cmd_callback(cmd_id, socket_index, from, command, response, max_resp_len);
+        }
         break;
     }
 

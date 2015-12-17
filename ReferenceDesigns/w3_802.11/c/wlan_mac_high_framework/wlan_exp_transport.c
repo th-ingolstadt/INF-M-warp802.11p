@@ -608,12 +608,6 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
 
     u32                 eth_dev_num    = socket_get_eth_dev_num(socket_index);
 
-    // Specific command variables
-    u32                 temp;
-    u32                 payload_index;
-    u32                 payload_size;
-    u32                 payload_num_words;
-    u32                 header_size;
 
     // Set up the response header
     resp_hdr->cmd       = cmd_hdr->cmd;
@@ -630,21 +624,28 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
     switch(cmd_id){
 
         //---------------------------------------------------------------------
-        case CMDID_TRANSPORT_PING:
+        case CMDID_TRANSPORT_PING: {
             //
             // Nothing actually needs to be done when receiving the ping command. The framework is going
             // to respond regardless, which is all the host wants.
             //
+        }
         break;
 
         //---------------------------------------------------------------------
-        case CMDID_TRANSPORT_PAYLOAD_SIZE_TEST:
+        case CMDID_TRANSPORT_PAYLOAD_SIZE_TEST: {
             //
             // Due to packet fragmentation, it is not safe to just return the packet length.  We have seen
             // an issue where the host will send a 1514 byte fragment which results in a payload size of
             // 1472 and causes the transport to not behave correctly.  Therefore, we need to find the
             // last valid command argument and check that against the packet length.
             //
+            u32              temp;
+            u32              payload_index;
+            u32              payload_size;
+            u32              payload_num_words;
+            u32              header_size;
+
             header_size        = (sizeof(transport_header) + sizeof(cmd_resp_hdr));                               // Transport / Command headers
             payload_index      = (((warp_ip_udp_buffer *)(command->buffer))->length - sizeof(cmd_resp_hdr)) / 4;  // Final index into command args (/4 truncates)
 
@@ -666,21 +667,25 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = 1;
+        }
         break;
 
         //---------------------------------------------------------------------
-        case CMDID_TRANSPORT_NODE_GROUP_ID_ADD:
+        case CMDID_TRANSPORT_NODE_GROUP_ID_ADD: {
             eth_devices[eth_dev_num].info.group_id = (eth_devices[eth_dev_num].info.group_id | Xil_Htonl(cmd_args_32[0]));
+        }
         break;
 
         //---------------------------------------------------------------------
-        case CMDID_TRANSPORT_NODE_GROUP_ID_CLEAR:
+        case CMDID_TRANSPORT_NODE_GROUP_ID_CLEAR: {
             eth_devices[eth_dev_num].info.group_id = (eth_devices[eth_dev_num].info.group_id & ~Xil_Htonl(cmd_args_32[0]));
+        }
         break;
 
         //---------------------------------------------------------------------
-        default:
-        	wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Unknown user command ID: %d\n", cmd_id);
+        default: {
+            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Unknown user command ID: %d\n", cmd_id);
+        }
         break;
     }
 

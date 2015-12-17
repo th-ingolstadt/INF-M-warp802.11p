@@ -462,13 +462,11 @@ inline void wlan_mac_low_poll_ipc_rx(){
  */
 void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
     wlan_ipc_msg             ipc_msg_to_high;
-    u32                      temp1, temp2;
-    u32*                     payload_to_write;
 
     switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_CPU_STATUS:
+        case IPC_MBOX_CPU_STATUS: {
             // If CPU_HIGH just booted, we should re-inform it what our hardware details are.
             // Send a message to other processor to identify hw info of cpu low
             ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
@@ -481,13 +479,14 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
             ipc_msg_to_high.num_payload_words = 1;
             ipc_msg_to_high.payload_ptr       = &cpu_low_status;
             ipc_mailbox_write_msg(&ipc_msg_to_high);
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_MEM_READ_WRITE:
+        case IPC_MBOX_MEM_READ_WRITE: {
             switch(msg->arg0){
-                case IPC_REG_WRITE_MODE:
-                    payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write));
+                case IPC_REG_WRITE_MODE: {
+                    u32    * payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write));
 
                     // IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
                     //     Any byte swapping (i.e. for payloads that arrive over Ethernet) *must* be performed
@@ -495,9 +494,10 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
                     memcpy((u8*)(((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr),
                            (u8*)payload_to_write,
                            sizeof(u32)*((ipc_reg_read_write*)ipc_msg_from_high_payload)->num_words);
+                }
                 break;
 
-                case IPC_REG_READ_MODE:
+                case IPC_REG_READ_MODE: {
                     /*
                     xil_printf("\nCPU Low Read:\n");
                     xil_printf(" Addr: 0x%08x\n", (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr);
@@ -512,46 +512,53 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
                     ipc_msg_to_high.payload_ptr       = (u32*)((ipc_reg_read_write*)ipc_msg_from_high_payload)->baseaddr;
 
                     ipc_mailbox_write_msg(&ipc_msg_to_high);
+                }
                 break;
             }
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_LOW_PARAM:
+        case IPC_MBOX_LOW_PARAM: {
             switch(msg->arg0){
-                case IPC_REG_WRITE_MODE:
+                case IPC_REG_WRITE_MODE: {
                     switch(ipc_msg_from_high_payload[0]){
-                        case LOW_PARAM_BB_GAIN:
+                        case LOW_PARAM_BB_GAIN: {
                             if(ipc_msg_from_high_payload[1] <= 3){
                                 radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, ipc_msg_from_high_payload[1]);
                             }
+                        }
                         break;
 
-                        case LOW_PARAM_LINEARITY_PA:
+                        case LOW_PARAM_LINEARITY_PA: {
                             if(ipc_msg_from_high_payload[1] <= 3){
                                 radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_PADRIVER, ipc_msg_from_high_payload[1]);
                             }
+                        }
                         break;
 
-                        case LOW_PARAM_LINEARITY_VGA:
+                        case LOW_PARAM_LINEARITY_VGA: {
                             if(ipc_msg_from_high_payload[1] <= 3){
                                 radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_VGA, ipc_msg_from_high_payload[1]);
                             }
+                        }
                         break;
 
-                        case LOW_PARAM_LINEARITY_UPCONV:
+                        case LOW_PARAM_LINEARITY_UPCONV: {
                             if(ipc_msg_from_high_payload[1] <= 3){
                                 radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_UPCONV, ipc_msg_from_high_payload[1]);
                             }
+                        }
                         break;
 
-                        case LOW_PARAM_AD_SCALING:
+                        case LOW_PARAM_AD_SCALING: {
                             ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x36, (0x1F & ipc_msg_from_high_payload[1]));
                             ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x37, (0x1F & ipc_msg_from_high_payload[2]));
                             ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x35, (0x1F & ipc_msg_from_high_payload[3]));
+                        }
                         break;
 
-                        case LOW_PARAM_PKT_DET_MIN_POWER:
+                        case LOW_PARAM_PKT_DET_MIN_POWER: {
                             if( ipc_msg_from_high_payload[1]&0xFF000000 ){
                                 wlan_phy_enable_req_both_pkt_det();
                                 //The value sent from wlan_exp will be unsigned with 0 representing PKT_DET_MIN_POWER_MIN
@@ -560,15 +567,18 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
                             } else {
                                 wlan_phy_disable_req_both_pkt_det();
                             }
+                        }
                         break;
 
-                        default:
+                        default: {
                             ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
+                        }
                         break;
                     }
+                }
                 break;
 
-                case IPC_REG_READ_MODE:
+                case IPC_REG_READ_MODE: {
                     // Read Mode is not supported
                     //
                     // NOTE:  This is due to the fact that IPC messages in CPU low can take an infinitely long amount of
@@ -576,19 +586,21 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
                     //     it is not good to try to return values from CPU low since there is no guarantee when the values
                     //     will be available.
                     //
-                    temp1                             = 0;
+                    u32      ret_val                  = 0;
 
                     ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
                     ipc_msg_to_high.num_payload_words = 0;
-                    ipc_msg_to_high.payload_ptr       = (u32 *)&temp1;
+                    ipc_msg_to_high.payload_ptr       = (u32 *)&ret_val;
 
                     ipc_mailbox_write_msg(&ipc_msg_to_high);
+                }
                 break;
             }
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_CONFIG_CHANNEL:
+        case IPC_MBOX_CONFIG_CHANNEL: {
             mac_param_chan = ipc_msg_from_high_payload[0];
 
             if(wlan_lib_channel_verify(mac_param_chan) == 0){
@@ -604,64 +616,74 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
             } else {
                 xil_printf("Invalid channel selection %d\n", mac_param_chan);
             }
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_LOW_RANDOM_SEED:
+        case IPC_MBOX_LOW_RANDOM_SEED: {
             srand(ipc_msg_from_high_payload[0]);
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_CONFIG_TX_CTRL_POW:
+        case IPC_MBOX_CONFIG_TX_CTRL_POW: {
             mac_param_ctrl_tx_pow = (s8)ipc_msg_from_high_payload[0];
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_CONFIG_RX_FILTER:
-            temp1 = (u32)ipc_msg_from_high_payload[0];
-            temp2 = 0;
+        case IPC_MBOX_CONFIG_RX_FILTER: {
+            u32    filter_mode_hi = (u32)ipc_msg_from_high_payload[0];
+            u32    filter_mode_lo = 0;
 
-            if((temp1 & RX_FILTER_FCS_MASK) == RX_FILTER_FCS_NOCHANGE){
-                temp2 |= (mac_param_rx_filter & RX_FILTER_FCS_MASK);
+            if((filter_mode_hi & RX_FILTER_FCS_MASK) == RX_FILTER_FCS_NOCHANGE){
+                filter_mode_lo |= (mac_param_rx_filter & RX_FILTER_FCS_MASK);
             } else {
-                temp2 |= (temp1 & RX_FILTER_FCS_MASK);
+                filter_mode_lo |= (filter_mode_hi & RX_FILTER_FCS_MASK);
             }
 
-            if((temp1 & RX_FILTER_HDR_NOCHANGE) == RX_FILTER_HDR_NOCHANGE){
-                temp2 |= (mac_param_rx_filter & RX_FILTER_HDR_NOCHANGE);
+            if((filter_mode_hi & RX_FILTER_HDR_NOCHANGE) == RX_FILTER_HDR_NOCHANGE){
+                filter_mode_lo |= (mac_param_rx_filter & RX_FILTER_HDR_NOCHANGE);
             } else {
-                temp2 |= (temp1 & RX_FILTER_HDR_NOCHANGE);
+                filter_mode_lo |= (filter_mode_hi & RX_FILTER_HDR_NOCHANGE);
             }
 
-            mac_param_rx_filter = temp2;
+            mac_param_rx_filter = filter_mode_lo;
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_CONFIG_RX_ANT_MODE:
+        case IPC_MBOX_CONFIG_RX_ANT_MODE: {
             wlan_rx_config_ant_mode(ipc_msg_from_high_payload[0]);
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_CONFIG_PHY_TX:
+        case IPC_MBOX_CONFIG_PHY_TX: {
             process_config_phy_tx((ipc_config_phy_tx*)ipc_msg_from_high_payload);
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_CONFIG_PHY_RX:
+        case IPC_MBOX_CONFIG_PHY_RX: {
             process_config_phy_rx((ipc_config_phy_rx*)ipc_msg_from_high_payload);
+        }
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_TX_MPDU_READY:
+        case IPC_MBOX_TX_MPDU_READY: {
             // Message is an indication that a Tx Pkt Buf needs processing
             if(allow_new_mpdu_tx){
                 wlan_mac_low_proc_pkt_buf( msg->arg0 );
             } else {
                 pkt_buf_pending_tx = msg->arg0;
             }
+        }
         break;
     }
 }
+
+
 
 /*****************************************************************************/
 /**
@@ -677,6 +699,8 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
 void wlan_mac_low_disable_new_mpdu_tx(){
     allow_new_mpdu_tx = 0;
 }
+
+
 
 /*****************************************************************************/
 /**
@@ -698,6 +722,8 @@ void wlan_mac_low_enable_new_mpdu_tx(){
         }
     }
 }
+
+
 
 /*****************************************************************************/
 /**
@@ -832,6 +858,8 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 	}
 }
 
+
+
 /*****************************************************************************/
 /**
  * @brief Notify upper-level MAC of frame reception
@@ -932,6 +960,8 @@ inline u32 wlan_mac_low_get_current_rx_filter(){
 }
 
 
+
+/*****************************************************************************/
 /**
  * @brief Get the Rx Start Microsecond Timestamp
  *
@@ -954,6 +984,8 @@ inline u64 wlan_mac_low_get_rx_start_timestamp() {
 }
 
 
+
+/*****************************************************************************/
 /**
  * @brief Get the Tx Start Microsecond Timestamp
  *

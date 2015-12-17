@@ -89,29 +89,31 @@ int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
     //
 
     // Standard variables
-    //     NOTE:  Some of the standard variables below have been commented out.  This was to remove
-    //         compiler warnings for "unused variables" since the default implemention is empty.  As
-    //         you add commands, you should un-comment the standard variables.
+    //
+    // Used for accessing command arguments and constructing the command response header/payload
+    //
+    // NOTE:  Some of the standard variables below have been commented out.  This was to remove
+    //     compiler warnings for "unused variables" since the default implementation is empty.  As
+    //     you add commands, you should un-comment the standard variables.
     //
     u32                 resp_sent      = NO_RESP_SENT;
 
     cmd_resp_hdr      * cmd_hdr        = command->header;
-    // u32               * cmd_args_32    = command->args;
-    u32                 cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
-
     cmd_resp_hdr      * resp_hdr       = response->header;
-    // u32               * resp_args_32   = response->args;
-    // u32                 resp_index     = 0;
+
+#if 0
+    u32               * cmd_args_32    = command->args;
+    u32               * resp_args_32   = response->args;
+
+    u32                 resp_index     = 0;
+#endif
+
+    u32                 cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
 
     // Initialize the response header
     resp_hdr->cmd       = cmd_hdr->cmd;
     resp_hdr->length    = 0;
     resp_hdr->num_args  = 0;
-
-    // Variables for functions
-    // int                 status;
-    // u32                 arg_0;
-
 
     // Process the command
     switch(cmd_id){
@@ -131,7 +133,7 @@ int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         //
 #if 0
         //---------------------------------------------------------------------
-        case CMDID_USER_<COMMAND_NAME>:
+        case CMDID_USER_<COMMAND_NAME>: {
             // Command Description
             //
             // Message format:
@@ -144,12 +146,32 @@ int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // NOTE:  Please take care of the endianness of the arguments (see comment above)
             //
 
+            // Variables for template command
+            int                 status;
+            u32                 arg_0;
+            interrupt_state_t   curr_interrupt_state;
+
             // Initialize variables
             status      = CMD_PARAM_SUCCESS;
             arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
 
             // Do something with argument(s)
             xil_printf("Command argument 0: 0x%08x\n", arg_0);
+
+            // If necessary, disable interrupts before processing the command
+            //  Interrupts must be disabled if the command implementation relies on any state that might
+            //  change during an interrupt service routine. See the user guide for more details
+            //  https://warpproject.org/trac/wiki/802.11/wlan_exp/Extending
+            curr_interrupt_state = wlan_mac_high_interrupt_stop();
+
+            // Process command arguments and generate any response payload
+            //     NOTE:  If interrupts were disabled above, take care to avoid any long-running code in this
+            //         block (i.e. avoid xil_printf()). When interrupts are disabled, CPU High is unable to
+            //         respond to CPU Low (ie CPU High will not send / receive packets) and execute scheduled
+            //         tasks, such as LTGs.
+
+            // Re-enable interrupts before returning (only do this if wlan_mac_high_interrupt_stop() is called above)
+            wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
 
             // Send response
             //   NOTE:  It is good practice to send a status as the first argument of the response.
@@ -160,6 +182,7 @@ int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+        }
         break;
 #endif
 
@@ -169,9 +192,10 @@ int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 //-----------------------------------------------------------------------------
 
         //---------------------------------------------------------------------
-        default:
+        default: {
             // Call standard function in child class to parse parameters implemented there
             resp_sent = wlan_exp_process_user_cmd_callback(cmd_id, socket_index, from, command, response, max_resp_len);
+        }
         break;
     }
 
