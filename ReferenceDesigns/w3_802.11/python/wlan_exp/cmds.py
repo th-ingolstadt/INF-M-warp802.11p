@@ -1000,16 +1000,14 @@ class NodeLowParam(message.Cmd):
     """Command to set parameter in CPU Low
     
     Attributes:
-        cmd       -- Sub-command to send over the command.  Valid values are:
-                       CMD_PARAM_READ   (Not supported)
-                       CMD_PARAM_WRITE
-
-        param_id  -- ID of parameter to modify
-
-        values    -- Scalar or list of u32 values to write
+        cmd          -- Sub-command to send over the command.  Valid values are:
+                          CMD_PARAM_READ   (Not supported)
+                          CMD_PARAM_WRITE
+        param_id     -- ID of parameter to modify
+        param_values -- Scalar or list of u32 values to write
         
     """
-    def __init__(self, cmd, param_id, values=None):
+    def __init__(self, cmd, param_id, param_values=None):
         super(NodeLowParam, self).__init__()        
         
         self.command    = _CMD_GROUP_NODE + CMDID_NODE_LOW_PARAM
@@ -1019,9 +1017,9 @@ class NodeLowParam(message.Cmd):
 
         # Caluculate the size of the entire message to CPU Low [PARAM_ID, ARGS[]]
         size = 1
-        if values is not None:
+        if param_values is not None:
             try:
-                size += len(values)
+                size += len(param_values)
             except TypeError:
                 pass
 
@@ -1029,12 +1027,12 @@ class NodeLowParam(message.Cmd):
         self.add_args(size)
         self.add_args(param_id)
 
-        if values is not None:
+        if param_values is not None:
             try:
-                for v in values:
+                for v in param_values:
                     self.add_args(v)
             except TypeError:
-                self.add_args(values)
+                self.add_args(param_values)
             
     def process_resp(self, resp):
         """ Message format:
@@ -2203,7 +2201,7 @@ class UserSendCmd(message.Cmd):
     
     Attributes:
         cmdid     -- User-defined Command ID
-        values    -- Scalar or list of u32 values to write
+        args      -- Scalar or list of u32 arguments to write
     """
     def __init__(self, cmd_id, args=None):
         super(UserSendCmd, self).__init__()        
