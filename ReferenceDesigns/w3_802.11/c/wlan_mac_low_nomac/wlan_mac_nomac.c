@@ -314,24 +314,30 @@ int process_low_param(u8 mode, u32* payload) {
         case IPC_REG_WRITE_MODE:
             switch(payload[0]){
 
+#if 0
                 //---------------------------------------------------------------------
-                // case <Parameter #define in wlan_mac_nomac.h>:
-                //    <implementation of parameter write>
-                // break;
+                case <Parameter #define in wlan_mac_nomac.h>: {
+                    // Implementation of parameter write
+                }
+                break;
+#endif
 
                 //---------------------------------------------------------------------
-                default:
+                default: {
                     xil_printf("Unknown parameter 0x%08x\n", payload[0]);
+                }
                 break;
             }
         break;
 
-        case IPC_REG_READ_MODE:
+        case IPC_REG_READ_MODE: {
             // Not supported.  See comment in wlan_mac_low.c for IPC_REG_READ_MODE mode.
+        }
         break;
 
-        default:
+        default: {
             xil_printf("Unknown mode 0x%08x\n", mode);
+        }
         break;
     }
 
