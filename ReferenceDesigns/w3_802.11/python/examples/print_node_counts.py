@@ -107,8 +107,11 @@ def print_counts(node, counts, station_info=None):
             for station in station_info:
                 if (count['mac_addr'] == station['mac_addr']):
                     count_id  = station['host_name']
-                    count_id  = count_id.strip('\x00')
-                    if (count_id == ''):
+                    try:
+                        count_id  = count_id.strip('\x00')
+                    except:
+                        pass
+                    if ((count_id == '') or (count_id == b'')):
                         count_id = count['mac_addr']
 
         msg += "{0:<20} ".format(count_id)
