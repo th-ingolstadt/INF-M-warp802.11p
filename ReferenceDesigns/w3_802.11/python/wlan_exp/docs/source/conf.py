@@ -80,7 +80,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'mango_wlan_exp'
-copyright = u'2014, Mango Communications, Inc.'
+copyright = u'2014-2015, Mango Communications, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
