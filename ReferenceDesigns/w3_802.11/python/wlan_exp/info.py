@@ -239,8 +239,9 @@ class InfoStruct(dict):
             data (bytearray):  Bytearray of packed binary data
         """
         # Pack the object into a single data buffer
-        ret_val    = ""
+        ret_val    = b''
         fields     = []
+        field_type = []
         tmp_values = []
         used_field = []
 
@@ -253,16 +254,20 @@ class InfoStruct(dict):
                 fields.append(field[0])
                 try:
                     tmp_values.append(self.__dict__[field[0]])
+                    field_type.append(type(self.__dict__[field[0]]))
                     used_field.append(True)
                 except KeyError:
                     tmp_values.append(0)
+                    field_type.append(None)
                     used_field.append(False)
 
         if (False):
             print("Serialize Structure:")
             print(fields)
+            print(field_type)
             print(used_field)
             print(tmp_values)
+            print(self._fields_struct_fmt)
 
         ret_val += struct.pack(self._fields_struct_fmt, *tmp_values)
 
@@ -479,12 +484,12 @@ class BSSInfo(InfoStruct):
 
         if init_fields:
             # Set default values for fields not set by this method
-            self.__dict__['timestamp']       = 0
-            self.__dict__['last_timestamp']  = 0
-            self.__dict__['flags']           = 0
-            self.__dict__['state']           = self._consts['BSS_STATE_OWNED']
-            self.__dict__['num_basic_rates'] = 0
-            self.__dict__['basic_rates']     = bytes()
+            self.__dict__['timestamp']                  = 0
+            self.__dict__['latest_activity_timestamp']  = 0
+            self.__dict__['flags']                      = 0
+            self.__dict__['state']                      = self._consts['BSS_STATE_OWNED']
+            self.__dict__['num_basic_rates']            = 0
+            self.__dict__['basic_rates']                = bytes()
 
             # Set SSID
             if ssid is not None:
@@ -494,9 +499,12 @@ class BSSInfo(InfoStruct):
 
                 if len(ssid) > 32:
                     ssid = ssid[:32]
-                    print("WARNING:  SSID must be 32 characters or less.  Trucating to {0}".format(ssid))
+                    print("WARNING:  SSID must be 32 characters or less.  Truncating to {0}".format(ssid))
 
-                self.__dict__['ssid']         = ssid
+                try:
+                    self.__dict__['ssid']         = bytes(ssid, "UTF8")
+                except:
+                    self.__dict__['ssid']         = ssid
 
             # Set Channel
             if channel is not None:
@@ -555,7 +563,7 @@ class BSSInfo(InfoStruct):
 
     def serialize(self):
         # Convert bssid to byte string for transmit
-        bssid_tmp              = self.__dict['bssid']
+        bssid_tmp              = self.__dict__['bssid']
         self.__dict__['bssid'] = util.str_to_mac_addr(self.__dict__['bssid'])
         self.__dict__['bssid'] = util.mac_addr_to_byte_str(self.__dict__['bssid'])
 

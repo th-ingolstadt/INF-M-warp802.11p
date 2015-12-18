@@ -390,10 +390,10 @@ def str_to_mac_addr(mac_address):
 
 def mac_addr_to_byte_str(mac_address):
     """Convert an integer to a MAC address byte string."""
-    ret_val = ""
+    ret_val = b''
     
     if mac_address is not None:
-        ret_val = ''.join([chr((mac_address >> ((6 - i - 1) * 8)) % 256) for i in range(6)])
+        ret_val = bytes([((mac_address >> ((6 - i - 1) * 8)) % 256) for i in range(6)])
         
     return ret_val
 

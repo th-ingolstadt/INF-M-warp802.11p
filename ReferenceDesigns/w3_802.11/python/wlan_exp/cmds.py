@@ -2031,7 +2031,7 @@ class NodeProcJoin(message.Cmd):
 
         import wlan_exp.info as info
 
-        if type(bss_info) is info.BSSInfo():
+        if type(bss_info) is type(info.BSSInfo()):
             import struct
             
             # Convert BSSInfo() to bytes for transfer

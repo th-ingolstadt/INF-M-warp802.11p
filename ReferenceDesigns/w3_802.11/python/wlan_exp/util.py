@@ -768,7 +768,8 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
     """
     import wlan_exp.info as info
     
-    return info.BSSInfo(bssid, ssid, channel, ibss_status, beacon_interval)
+    return info.BSSInfo(init_fields=True, bssid=bssid, ssid=ssid, channel=channel, 
+                        ibss_status=ibss_status, beacon_interval=beacon_interval)
 
 # End def
 
