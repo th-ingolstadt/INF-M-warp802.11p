@@ -252,7 +252,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             tx_low_event_log_entry->flags = 0;
 
             tx_low_event_log_entry->timestamp_send			  = tx_low_details->tx_start_timestamp_ctrl;
-            //TODO: Add fractional timestamp
+            tx_low_event_log_entry->timestamp_send_frac		  = tx_low_details->tx_start_timestamp_frac_ctrl;
 
             pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
@@ -312,7 +312,8 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
                 tx_low_event_log_entry->flags = 0;
             }
 
-            tx_low_event_log_entry->timestamp_send = tx_low_details->tx_start_timestamp_mpdu;
+            tx_low_event_log_entry->timestamp_send 			  = tx_low_details->tx_start_timestamp_mpdu;
+            tx_low_event_log_entry->timestamp_send_frac		  = tx_low_details->tx_start_timestamp_frac_mpdu;
 
             tx_low_event_log_entry->unique_seq                = tx_mpdu->unique_seq;
             tx_low_event_log_entry->transmission_count        = tx_low_count + 1;
@@ -570,17 +571,18 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
             }
 
             // Fill in Log Entry
-            rx_event_log_entry->fcs_status = (rx_mpdu->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
-            rx_event_log_entry->timestamp  = rx_mpdu->timestamp;
-            rx_event_log_entry->power      = rx_mpdu->rx_power;
-            rx_event_log_entry->rf_gain    = rx_mpdu->rf_gain;
-            rx_event_log_entry->bb_gain    = rx_mpdu->bb_gain;
-            rx_event_log_entry->length     = rx_mpdu->phy_details.length;
-            rx_event_log_entry->rate       = rx_mpdu->phy_details.mcs;
-            rx_event_log_entry->pkt_type   = pkt_type;
-            rx_event_log_entry->chan_num   = rx_mpdu->channel;
-            rx_event_log_entry->ant_mode   = rx_mpdu->ant_mode;
-            rx_event_log_entry->flags      = 0;
+            rx_event_log_entry->fcs_status	   = (rx_mpdu->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
+            rx_event_log_entry->timestamp  	   = rx_mpdu->timestamp;
+            rx_event_log_entry->timestamp_frac = rx_mpdu->timestamp_frac;
+            rx_event_log_entry->power      	   = rx_mpdu->rx_power;
+            rx_event_log_entry->rf_gain    	   = rx_mpdu->rf_gain;
+            rx_event_log_entry->bb_gain        = rx_mpdu->bb_gain;
+            rx_event_log_entry->length         = rx_mpdu->phy_details.length;
+            rx_event_log_entry->rate           = rx_mpdu->phy_details.mcs;
+            rx_event_log_entry->pkt_type       = pkt_type;
+            rx_event_log_entry->chan_num       = rx_mpdu->channel;
+            rx_event_log_entry->ant_mode       = rx_mpdu->ant_mode;
+            rx_event_log_entry->flags          = 0;
 
             // Start second copy based on the copy order
             switch(copy_order){
@@ -658,6 +660,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
 
 
                 tx_low_event_log_entry->timestamp_send				= rx_mpdu->resp_low_tx_details.tx_start_timestamp_ctrl;
+                tx_low_event_log_entry->timestamp_send_frac		    = rx_mpdu->resp_low_tx_details.tx_start_timestamp_frac_ctrl;
 
                 pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
@@ -709,6 +712,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 tx_low_event_log_entry->flags = 0;
 
                 tx_low_event_log_entry->timestamp_send			  = rx_mpdu->resp_low_tx_details.tx_start_timestamp_ctrl;
+                tx_low_event_log_entry->timestamp_send_frac		  = rx_mpdu->resp_low_tx_details.tx_start_timestamp_frac_ctrl;
 
                 pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
