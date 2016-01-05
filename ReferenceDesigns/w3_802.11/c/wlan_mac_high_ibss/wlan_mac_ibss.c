@@ -547,7 +547,7 @@ void purge_all_data_tx_queue(){
 */
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details) {
 	u32                    i;
-	u64                    ts_old                  = 0;
+	u32					   first_tx_time_delta;
 	dl_entry*              entry                   = NULL;
 	station_info*          station 				   = NULL;
 
@@ -563,22 +563,27 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	// Log all of the TX Low transmissions
 	for(i = 0; i < num_tx_low_details; i++) {
 
-		if(i==0 && (tx_low_details[i].tx_start_delta < T_SLOT)){
-			//This captures a subtle effect in the DCF hardware. A random backoff is calculated on the
-			//first transmission of an MPDU in case a CCA_BUSY causes a deferral. If there is no deferral,
-			//this slot count is not used. We can sanitize this value here by seeing if the packet transmitted
-			//immediately (i.e. a time from start to accept that is less than a slot). In this case, we know
-			//there was no backoff needed for this transmission. We signify this event with a num_slots value
-			//of -1.
-			tx_low_details[i].num_slots = -1;
+		if( i == 0 ){
+			if( (tx_low_details[i].tx_details_type == TX_DETAILS_RTS_ONLY) || (tx_low_details[i].tx_details_type == TX_DETAILS_RTS_MPDU)){
+				first_tx_time_delta = (u32)(tx_low_details[i].tx_start_timestamp_ctrl - (tx_mpdu->timestamp_create + tx_mpdu->delay_accept));
+			} else {
+				first_tx_time_delta = (u32)(tx_low_details[i].tx_start_timestamp_mpdu - (tx_mpdu->timestamp_create + tx_mpdu->delay_accept));
+			}
+
+			if( (first_tx_time_delta < T_SLOT) ){
+				//This captures a subtle effect in the DCF hardware. A random backoff is calculated on the
+				//first transmission of an MPDU in case a CCA_BUSY causes a deferral. If there is no deferral,
+				//this slot count is not used. We can sanitize this value here by seeing if the packet transmitted
+				//immediately (i.e. a time from start to accept that is less than a slot). In this case, we know
+				//there was no backoff needed for this transmission. We signify this event with a num_slots value
+				//of -1.
+				tx_low_details[i].num_slots = -1;
+			}
 		}
 
-
 		// Log the TX low
-		wlan_exp_log_create_tx_low_entry(tx_mpdu, &tx_low_details[i], ts_old, i);
+		wlan_exp_log_create_tx_low_entry(tx_mpdu, &tx_low_details[i], i);
 
-		// Accumulate the time-between-transmissions, used to calculate absolute time of each TX_LOW event above
-		ts_old += tx_low_details[i].tx_start_delta;
 	}
 
 	// Log the TX MPDU
