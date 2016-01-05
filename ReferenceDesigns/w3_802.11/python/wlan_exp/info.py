@@ -72,9 +72,8 @@ info_field_defs = {
         ('tx_phy_antenna_mode',         'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
         ('tx_phy_power',                'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
         ('tx_phy_flags',                'B',      'uint8',   'Flags for Tx PHY config for new transmissions to deivce'),
-        ('tx_mac_num_tx_max',           'B',      'uint8',   'Maximum number of transmissions (original Tx + re-Tx) per MPDU to device'),
         ('tx_mac_flags',                'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
-        ('padding',                     '2x',     '2uint8',  '')],
+        ('padding',                     '3x',     '3uint8',  '')],
 
     'BSS_INFO' : [
         ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
@@ -89,7 +88,8 @@ info_field_defs = {
         ('padding0',                    'x',      'uint8',   ''),
         ('num_basic_rates',             'B',      'uint8',   'Number of basic rates supported'),
         ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
-        ('padding1',                    '2x',     '2uint8',  '')],
+        ('phy_mode',                    'B',      'uint8',   'PHY Mode (Legacy, HT, VHT)'),
+        ('padding1',                    'x',      'uint8',   '')],
 
     'TXRX_COUNTS' : [
         ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
@@ -114,6 +114,54 @@ info_field_defs = {
 }
 
 
+info_consts_defs = {
+    'STATION_INFO' : util.consts_dict({
+        'flags'         : util.consts_dict({
+            'DISABLE_ASSOC_CHECK'      : 0x00000001,
+            'DOZE'                     : 0x00000002,
+            'DO_NOT_REMOVE'            : 0x80000000
+        }),
+        'tx_phy_flags'  : util.consts_dict(),
+        'tx_mac_flags'  : util.consts_dict()
+    }),
+
+    'BSS_INFO'     : util.consts_dict({
+        'flags'         : util.consts_dict(),
+        'state'         : util.consts_dict({
+            'UNAUTHENTICATED'          : 0x0001,
+            'AUTHENTICATED'            : 0x0002,
+            'ASSOCIATED'               : 0x0004,
+            'OWNED'                    : 0x0005
+        }),
+        'capabilities'  : util.consts_dict({
+            'ESS'	                      : 0x0001,
+            'IBSS'                     : 0x0002,
+            'PRIVACY'                  : 0x0010,
+            'SHORT_PREAMBLE'           : 0x0020,
+            'PBCC'                     : 0x0040,
+            'CHAN_AGILITY'             : 0x0080,
+            'SPEC_MGMT'                : 0x0100,
+            'SHORT_TIMESLOT'           : 0x0400,
+            'APSD'                     : 0x0800,
+            'DSSS_OFDM'                : 0x2000,
+            'DELAYED_BLOCK_ACK'        : 0x4000,
+            'IMMEDIATE_BLOCK_ACK'      : 0x8000
+        }),
+        'phy_mode'      : util.consts_dict({
+            'LEGACY'                   : 0x01,
+            'HT'                       : 0x02, 
+            'VHT'                      : 0x04
+        })
+    }),
+
+    'TXRX_COUNTS'  : util.consts_dict()
+}
+
+
+
+# -----------------------------------------------------------------------------
+# Information Structure Base Class
+# -----------------------------------------------------------------------------
 
 class InfoStruct(dict):
     """Base class for structured information classes
@@ -141,13 +189,17 @@ class InfoStruct(dict):
         super(InfoStruct, self).__init__()
 
         if(field_name not in info_field_defs.keys()):
-            msg  = "Field name {0} does not exist in info_feild_defs.".format(field_name)
+            msg  = "Field name {0} does not exist in info_field_defs.".format(field_name)
+            raise AttributeError(msg)
+            
+        if(field_name not in info_consts_defs.keys()):
+            msg  = "Field name {0} does not exist in info_consts_defs.".format(field_name)
             raise AttributeError(msg)
 
         # Initialize variables
         self._field_name         = field_name
         self._fields_struct_fmt  = ''
-        self._consts             = dict()
+        self._consts             = info_consts_defs[field_name]
 
         # Add and initialize all the fields in the info_field_defs
         for field in info_field_defs[field_name]:
@@ -205,7 +257,7 @@ class InfoStruct(dict):
         Returns:
             values (dict):  All constant values in the object
         """
-        return self._consts
+        return self._consts.copy()
 
 
     def get_const(self, name):
@@ -346,6 +398,10 @@ class InfoStruct(dict):
 
 
 
+# -----------------------------------------------------------------------------
+# TX/RX Counts Class
+# -----------------------------------------------------------------------------
+
 class TxRxCounts(InfoStruct):
     """Class for TX/RX counts."""
 
@@ -397,6 +453,10 @@ class TxRxCounts(InfoStruct):
 # End Class
 
 
+
+# -----------------------------------------------------------------------------
+# Station Info Class
+# -----------------------------------------------------------------------------
 
 class StationInfo(InfoStruct):
     """Class for Station Information."""
@@ -457,6 +517,10 @@ class StationInfo(InfoStruct):
 
 
 
+# -----------------------------------------------------------------------------
+# BSS Info Class
+# -----------------------------------------------------------------------------
+
 class BSSInfo(InfoStruct):
     """Class for Basic Service Set (BSS) Information
 
@@ -476,18 +540,12 @@ class BSSInfo(InfoStruct):
     def __init__(self, init_fields=False, bssid=None, ssid=None, channel=None, ibss_status=False, beacon_interval=None):
         super(BSSInfo, self).__init__(field_name='BSS_INFO')
 
-        # Set BSS Info constants
-        self._consts['BSS_STATE_UNAUTHENTICATED'] = 1
-        self._consts['BSS_STATE_AUTHENTICATED']   = 2
-        self._consts['BSS_STATE_ASSOCIATED']      = 4
-        self._consts['BSS_STATE_OWNED']           = 5
-
         if init_fields:
             # Set default values for fields not set by this method
             self.__dict__['timestamp']                  = 0
             self.__dict__['latest_activity_timestamp']  = 0
             self.__dict__['flags']                      = 0
-            self.__dict__['state']                      = self._consts['BSS_STATE_OWNED']
+            self.__dict__['state']                      = self._consts.state.OWNED
             self.__dict__['num_basic_rates']            = 0
             self.__dict__['basic_rates']                = bytes()
 
@@ -549,12 +607,13 @@ class BSSInfo(InfoStruct):
 
                 # Set BSSID, capabilities
                 #   - If this is an IBSS, then set local bit to '1' and mcast bit to '0'
+                #   - Set the appropriate capabilities (NOTE:  the 802.11 reference design only supports short timeslots (ie short = 9us))
                 if ibss_status:
                     self.__dict__['bssid']        = util.create_locally_administered_bssid(bssid)
-                    self.__dict__['capabilities'] = 0x2
+                    self.__dict__['capabilities'] = (self._consts.capabilities.IBSS | self._consts.capabilities.SHORT_TIMESLOT)
                 else:
                     self.__dict__['bssid']        = bssid
-                    self.__dict__['capabilities'] = 0x1
+                    self.__dict__['capabilities'] = (self._consts.capabilities.ESS | self._consts.capabilities.SHORT_TIMESLOT)
 
                 # Convert BSSID to colon delimited string for internal storage
                 if type(bssid) is int:

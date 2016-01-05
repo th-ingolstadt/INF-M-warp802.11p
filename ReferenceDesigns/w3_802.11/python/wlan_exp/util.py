@@ -24,8 +24,45 @@ import time
 import wlan_exp.defaults as defaults
 
 
-__all__ = ['init_nodes', 'broadcast_cmd_set_mac_time', 'broadcast_cmd_write_time_to_logs',
+__all__ = ['consts_dict', 'init_nodes', 'broadcast_cmd_set_mac_time', 'broadcast_cmd_write_time_to_logs',
            'filter_nodes']
+
+
+
+# -----------------------------------------------------------------------------
+# Constants Dictionary Class
+# -----------------------------------------------------------------------------
+
+class consts_dict(dict):
+    """Contants Dictionary
+    
+    Sub-class of dictionary, with fields accessible as immutable properties.
+    """
+    def copy(self):
+        return consts_dict(self)
+    
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            raise AttributeError("No such attribute: " + name)
+
+    # Do not allow any attributes to be added or deleted            
+    def __setattr__(self, name, value):
+        pass
+    
+    def __delattr__(self, name):
+        pass
+
+    # Do not allow any items to be added or deleted
+    #     NOTE:  Can still access items with [] notation
+    def __setitem__(self, key, value):
+        pass
+
+    def __delitem__(self, key):
+        pass
+
+# End class    
 
 
 

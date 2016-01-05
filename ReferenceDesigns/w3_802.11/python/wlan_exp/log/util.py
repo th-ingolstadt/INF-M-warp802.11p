@@ -451,10 +451,33 @@ def _translate_log_index_keys(log_index):
 
 
 
-
 # -----------------------------------------------------------------------------
 # WLAN Exp Log Misc Utilities
 # -----------------------------------------------------------------------------
+def get_entry_constants(entry_type):
+    """Get a copy of constants for given log entry type
+    
+    Args:
+        entry_type (str):  String constant for log entry type
+        
+    Returns:
+        constants (consts_dict):  Constants data structure.  Fields are 
+            accessed via "." notation or "[]" notation as immutable properties.
+    """
+    from .entry_types import log_entry_types
+
+    consts = None
+    
+    try:
+        consts = log_entry_types[entry_type].consts.copy()
+    except:
+        print("WARNING:  Entry type '{0}' does not exist in log_entry_types.".format(entry_type))
+    
+    return consts
+    
+# End def
+
+
 def merge_log_indexes(dest_index, src_index, offset):
     """Merge log indexes.
 
@@ -484,7 +507,7 @@ def merge_log_indexes(dest_index, src_index, offset):
 
     return return_val
 
-# End merge_raw_log_indexes()
+# End def
 
 
 
@@ -522,7 +545,7 @@ def calc_next_entry_offset(log_data, raw_log_index):
 
     return next_entry_offset
 
-# End calc_next_entry_offset()
+# End def
 
 
 
@@ -550,7 +573,7 @@ def overwrite_entries_with_null_entry(log_data, byte_offsets):
         # Write over the log entry with zeros
         log_data[offset : offset + entry_size] = bytearray([0] * entry_size)
 
-# End overwrite_entries_with_null_entry()
+# End def
 
 
 
@@ -615,7 +638,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
         except KeyError:
             print("WARNING:  Unknown entry type id {0} at offset {1}".format(entry_type_id, offset))
 
-# End overwrite_payloads()
+# End def
 
 
 

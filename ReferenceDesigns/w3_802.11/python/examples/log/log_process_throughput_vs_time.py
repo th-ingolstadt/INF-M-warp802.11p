@@ -141,12 +141,20 @@ print('AP  Rx: {0:10d}, AP  Tx: {1:10d}'.format(len(rx_ap), len(tx_ap)))
 print('STA Rx: {0:10d}, STA Tx: {1:10d}'.format(len(rx_sta), len(tx_sta)))
 
 
+# Get RX_OFDM entry constants
+RX_CONSTS = log_util.get_entry_constants('RX_OFDM')
+
 # Resample docs: http://stackoverflow.com/questions/17001389/pandas-resample-documentation
 rs_interval = 1 #msec
 rolling_winow = 1000 #samples
 
 # Select non-duplicate packets from partner node
-rx_ap_idx      = (rx_ap['addr2'] == addr_sta) & ((rx_ap['flags'] & 0x1) == 0) & (rx_ap['fcs_result'] == 0) & ( (rx_ap['pkt_type'] == 2) | (rx_ap['pkt_type'] == 3) )
+rx_ap_idx      = ((rx_ap['addr2'] == addr_sta) & 
+                  ((rx_ap['flags'] & RX_CONSTS.flags.DUPLICATE) == 0) & 
+                   (rx_ap['fcs_result'] == RX_CONSTS.fcs_results.GOOD) & 
+                   ((rx_ap['pkt_type'] == RX_CONSTS.pkt_type.ENCAP_ETH) | 
+                    (rx_ap['pkt_type'] == RX_CONSTS.pkt_type.LTG)))
+
 rx_ap_from_sta = rx_ap[rx_ap_idx]
 
 if (len(rx_ap_from_sta) == 0):
@@ -156,7 +164,12 @@ rx_ap_t        = rx_ap_from_sta['timestamp']
 rx_ap_len      = rx_ap_from_sta['length']
 
 # Select non-duplicate packets from partner node
-rx_sta_idx     = (rx_sta['addr2'] == addr_ap) & ((rx_sta['flags'] & 0x1) == 0)  & (rx_sta['fcs_result'] == 0) & ( (rx_sta['pkt_type'] == 2) | (rx_sta['pkt_type'] == 3) )
+rx_sta_idx     = ((rx_sta['addr2'] == addr_ap) & 
+                  ((rx_sta['flags'] & RX_CONSTS.flags.DUPLICATE) == 0) & 
+                   (rx_sta['fcs_result'] == RX_CONSTS.fcs_results.GOOD) & 
+                   ((rx_sta['pkt_type'] == RX_CONSTS.pkt_type.ENCAP_ETH) | 
+                    (rx_sta['pkt_type'] == RX_CONSTS.pkt_type.LTG)))
+                    
 rx_sta_from_ap = rx_sta[rx_sta_idx]
 
 if (len(rx_sta_from_ap) == 0):

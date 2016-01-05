@@ -34,9 +34,6 @@ import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
 import wlan_exp.log.util_sample_data as sample_data_util
 
-from wlan_exp.log.entry_types import log_entry_types
-
-
 #-----------------------------------------------------------------------------
 # Process command line arguments
 #-----------------------------------------------------------------------------
@@ -204,15 +201,28 @@ if('RX_OFDM' in log_np.keys()):
     # Extract all receptions
     log_rx = log_np['RX_OFDM']
 
-    # For this experiment, only look at Good = 0  or Bad = 1 receptions
-    # Extract only Rx entries with good checksum (FCS = good)
-    rx_good_fcs = log_rx[log_rx['fcs_result'] == log_entry_types['RX_OFDM'].consts['FCS_GOOD']]
+    # Get RX_OFDM entry constants
+    RX_CONSTS = log_util.get_entry_constants('RX_OFDM')
+
+    # Extract only Rx entries with:
+    #   - Good checksum (FCS = good)
+    #   - Data / Management packets
+    #
+    rx_idx       = ((log_rx['fcs_result'] == RX_CONSTS.fcs_result.GOOD) & 
+                    ((log_rx['pkt_type'] == RX_CONSTS.pkt_type.DATA) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.ENCAP_ETH) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.LTG) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.DATA_PROTECTED) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.MGMT)))
+
+    rx_good_data_mgmt = log_rx[rx_idx]
 
     # Extract addr2 field from all good packets
-    rx_addrs_2 = rx_good_fcs['addr2']
+    rx_addrs_2 = rx_good_data_mgmt['addr2']
 
     # Build a dictionary using unique MAC addresses as keys
     rx_counts = dict()
+    
     for addr in np.unique(rx_addrs_2):
         # Find indexes of all instances where addresses match
         #   np.squeeze here flattens the result to a 1-D array
@@ -222,26 +232,35 @@ if('RX_OFDM' in log_np.keys()):
         rx_pkts_from_addr  = np.sum(addr_idx)
 
         # Count the number of bytes from this address
-        rx_bytes_from_addr = np.sum(rx_good_fcs['length'][addr_idx])
+        try:
+            # If addr_idx is greater than 1
+            rx_bytes_from_addr = np.sum(rx_good_data_mgmt['length'][addr_idx])
+        except:
+            # If addr_idx is one 
+            rx_bytes_from_addr = np.sum(rx_good_data_mgmt['length'])
 
         # Add the information about the address to the dictionary
         rx_counts[addr] = (rx_pkts_from_addr, rx_bytes_from_addr)
 
     # Print the results
-    print("\nExample 3: Rx Counts (including duplicates):");
-    print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-        "Src Addr",
-        "# Pkts",
-        "# Bytes",
-        "MAC Addr Type"))
-
-    for k in sorted(rx_counts.keys()):
-        # Use the string version of the MAC address as the key for readability
+    if (len(rx_counts) > 0):
+        print("\nExample 3: Rx Counts (including duplicates):");
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
-            wlan_exp_util.mac_addr_to_str(k),
-            rx_counts[k][0],
-            rx_counts[k][1],
-            wlan_exp_util.mac_addr_desc(k)))
+            "Src Addr",
+            "# Pkts",
+            "# Bytes",
+            "MAC Addr Type"))
+    
+        for k in sorted(rx_counts.keys()):
+            # Use the string version of the MAC address as the key for readability
+            print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
+                wlan_exp_util.mac_addr_to_str(k),
+                rx_counts[k][0],
+                rx_counts[k][1],
+                wlan_exp_util.mac_addr_desc(k)))
+    else:
+        print("\nExample 3: Rx Counts (including duplicates):");
+        print("\nNo Data or Management frames recevied with good FCS.");
 
 print('')
 

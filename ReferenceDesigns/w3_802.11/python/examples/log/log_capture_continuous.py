@@ -45,7 +45,7 @@ if sys.version[0]=="3": raw_input=input
 # Network / Node information
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
-NODE_SERIAL_LIST     = ['W3-a-00001']
+NODE_SERIAL_LIST     = ['W3-a-00006']
 
 # HDF5 File to log information
 HDF5_FILENAME        = 'log_continuous_capture.hdf5'

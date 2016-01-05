@@ -60,7 +60,7 @@
 import sys, os
 from struct import pack, unpack, calcsize, error
 import wlan_exp.info as info
-
+import wlan_exp.util as util
 
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": long=None
@@ -154,7 +154,7 @@ class WlanExpLogEntryType(object):
         self.gen_numpy_callbacks = []
 
         # Initialize dictionary to contain constants specific to each entry type
-        self.consts              = dict()
+        self.consts              = util.consts_dict()
 
         # Initialize variable that contains field names and byte offsets
         self._field_offsets      = {}
@@ -580,6 +580,10 @@ class WlanExpLogEntryType(object):
 # End class
 
 
+# -----------------------------------------------------------------------------
+# Log Entry Type Functions
+# -----------------------------------------------------------------------------
+
 def np_array_add_txrx_ltg_fields(np_arr_orig, docs_only=False):
     """Add 'virtual' fields to TX/RX LTG packets."""
     return np_array_add_fields(np_arr_orig, mac_addr=True, ltg=True, docs_only=docs_only)
@@ -758,12 +762,35 @@ def extend_np_dt(dt_orig, new_fields=None):
 
 # End def
 
+
+# -----------------------------------------------------------------------------
+# Log Entry Type Definitions
+# -----------------------------------------------------------------------------
+
 # The code below runs when this module is imported to define each log entry type implemented
 #  in the reference design. However the append_field_defs method depends on numpy, which is
 #  not avaiable on the warpproject.org server, so this code will break autodoc as-is
 # The server sets an environment variable BUILDING_DOCS_ON_SERVER when it runs post-svn-commit
 #  Skip all code below if this variable is set
 if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
+
+    # -----------------------------------------------------------------------------
+    # Common Log Entry Contants
+    # -----------------------------------------------------------------------------
+
+    # Packet Type
+    #     Matches definition in wlan_mac_high.h
+    common_pkt_type = util.consts_dict({
+        'UNDEFINED'      :  0,
+        'DATA'           :  1,
+        'ENCAP_ETH'      :  2,
+        'LTG'            :  3,
+        'DATA_PROTECTED' :  4,
+        'MGMT'           : 11,
+        'CONTROL_ACK'    : 21,
+        'CONTROL_RTS'    : 22,
+        'CONTROL_CTS'    : 23})
+
 
     # -----------------------------------------------------------------------------
     # NULL Log Entry Instance
@@ -799,17 +826,24 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
         ('power',                  'b',      'int8',    'Rx power in dBm'),
         ('fcs_result',             'B',      'uint8',   'Checksum status, 0 = no errors'),
-        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
         ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
         ('ant_mode',               'B',      'uint8',   'Antenna mode: [1,2,3,4] for SISO Rx on RF [A,B,C,D]'),
         ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
         ('bb_gain',                'B',      'uint8',   'AGC BB gain setting: [0:31] for approx [0:63]dB gain'),
         ('flags',                  'H',      'uint16',  'Bit OR\'d flags: 0x1 = Rx was duplicate of previous Rx')])
 
-    entry_rx_common.consts['FCS_GOOD'] = 0
-    entry_rx_common.consts['FCS_BAD']  = 1
-    entry_rx_common.consts['FLAG_DUP'] = 0x4
-
+    entry_rx_common.consts = util.consts_dict({
+        'fcs_result'    : util.consts_dict({
+            'GOOD'           : 0x00,
+            'BAD'            : 0x01 
+        }),
+        'pkt_type'      : common_pkt_type,
+        'flags'         : util.consts_dict({
+            'DUPLICATE'      : 0x0001
+        })
+    })
+    
 
     ###########################################################################
     # Tx CPU High Common
@@ -832,13 +866,19 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('rate',                   'B',      'uint8',   'PHY rate index in [1:8] of final Tx attempt'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
-        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
         ('queue_id',               'H',      'uint16',  'Tx queue ID from which the packet was retrieved'),
         ('queue_occupancy',        'H',      'uint16',  'Occupancy of the Tx queue at the time the packet was created (value includes itself)'),
         ('ant_mode',               'B',      'uint8',   'PHY antenna mode of final Tx attempt'),
         ('padding',                '3x',     '3uint8',  '')])
 
-    entry_tx_common.consts['SUCCESS'] = 0
+    entry_tx_common.consts = util.consts_dict({
+        'result'     : util.consts_dict({
+            'SUCCESS'        : 0x00,
+            'FAILURE'        : 0x01 
+        }),
+        'pkt_type'   : common_pkt_type
+    })
 
 
     ###########################################################################
@@ -862,10 +902,17 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
         ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
-        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
+        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
         ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
         ('padding',                'B',      'uint8',   '')])
+
+    entry_tx_low_common.consts = util.consts_dict({
+        'pkt_type'      : common_pkt_type,
+        'flags'         : util.consts_dict({
+            'ACKED'          : 0x01
+        })
+    })
 
 
     # -----------------------------------------------------------------------------
@@ -925,7 +972,11 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_station_info.description += 'for each associated STA and is logged whenever the STA association state changes. '
     entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
 
-    entry_station_info.append_field_defs(info.StationInfo().get_field_defs())
+    tmp_station_info                = info.StationInfo()
+
+    entry_station_info.consts       = tmp_station_info.get_consts()
+    
+    entry_station_info.append_field_defs(tmp_station_info.get_field_defs())
 
 
     ###########################################################################
@@ -935,14 +986,12 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
 
-    tmp_bss_info        = info.BSSInfo()
-    tmp_bss_info_consts = tmp_bss_info.get_consts()
+    tmp_bss_info                = info.BSSInfo()
+    
+    entry_bss_info.consts       = tmp_bss_info.get_consts()
 
     entry_bss_info.append_field_defs(tmp_bss_info.get_field_defs())
     
-    for const in tmp_bss_info_consts.keys():
-        entry_bss_info.consts[const] = tmp_bss_info_consts[const]
-
 
     ###########################################################################
     # Command Info
@@ -977,6 +1026,14 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('mac_timestamp',          'Q',      'uint64', 'New value of microsecond MAC timer value'),
         ('system_timestamp',       'Q',      'uint64', 'Value of microsecond System timer value'),
         ('host_timestamp',         'Q',      'uint64', 'Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
+
+    entry_time_info.consts = util.consts_dict({
+        'reason'        : util.consts_dict({
+            'SYSTEM'                   : 0x00000000,
+            'WLAN_EXP_SET_TIME'        : 0x00000001,
+            'WLAN_EXP_ADD_LOG'         : 0x00000002
+        })
+    })
 
 
     ###########################################################################
@@ -1098,6 +1155,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_tx_low.add_gen_numpy_array_callback(np_array_add_txrx_fields)
 
+    entry_tx_low.consts = entry_tx_low_common.consts.copy()
+
 
     ###########################################################################
     # Transmit from CPU Low LTG packet
@@ -1113,6 +1172,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_tx_low_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
 
+    entry_tx_low_ltg.consts = entry_tx_low_common.consts.copy()
+
 
     ###########################################################################
     # Tx / Rx Counts
@@ -1123,4 +1184,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_txrx_counts.description += 'be maintained for every unique source MAC address, up to the max_counts value. Otherwise counts are maintaind only '
     entry_txrx_counts.description += 'associated nodes.'
 
-    entry_txrx_counts.append_field_defs(info.TxRxCounts().get_field_defs())
+    tmp_txrx_counts                = info.TxRxCounts()
+    
+    entry_txrx_counts.consts       = tmp_txrx_counts.get_consts()
+
+    entry_txrx_counts.append_field_defs(tmp_txrx_counts.get_field_defs())
