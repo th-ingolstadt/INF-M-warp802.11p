@@ -148,11 +148,8 @@ typedef struct{
 } qos_control;
 
 
-//Warning: DSSS rate is only valid for Rx. There is no DSSS transmitter.
-//0x3F is an invalid MCS. We use it to convey the 1M DSSS rate.
 #define WLAN_MAC_NUM_MCS	8
 
-#define WLAN_MAC_MCS_1M		0x3F
 #define WLAN_MAC_MCS_6M		0
 #define WLAN_MAC_MCS_9M		1
 #define WLAN_MAC_MCS_12M	2
@@ -161,5 +158,9 @@ typedef struct{
 #define WLAN_MAC_MCS_36M	5
 #define WLAN_MAC_MCS_48M	6
 #define WLAN_MAC_MCS_54M	7
+
+//Warning: DSSS rate is only valid for Rx. There is no DSSS transmitter.
+//0x3F is an invalid MCS. We use it to convey the 1M DSSS rate.
+#define WLAN_MAC_MCS_1M		0x3F
 
 #endif /* WLAN_MAC_802_11_H */

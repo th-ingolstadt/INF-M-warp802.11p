@@ -233,25 +233,28 @@ typedef struct{
 
 // NOTE: This struct must be padded to be an integer number of u32 words.
 typedef struct {
-    u32                      tx_start_delta;
-    phy_tx_params            mpdu_phy_params;
+    u64                      tx_start_timestamp_mpdu;
+    u64                      tx_start_timestamp_ctrl;
+    phy_tx_params            phy_params_mpdu;
+    phy_tx_params            phy_params_ctrl;
     s16                      num_slots;
     u16                      cw;
     u8                       chan_num;
     u8                       tx_details_type;
     u16                      duration;
-    u16                      timestamp_offset;
+    u8						 tx_start_timestamp_frac_mpdu;
+    u8						 tx_start_timestamp_frac_ctrl;
     u16                      ssrc;
     u16                      slrc;
     u8                       src;
     u8                       lrc;
-    phy_tx_params            ctrl_phy_params;
 } wlan_mac_low_tx_details;
 
 
 typedef struct {
     u8                       phy_mode;
     u8                       mcs;
+    u8						 reserved[2];
     u16                      length;
     u16                      N_DBPS;                       ///< Number of data bits per OFDM symbol
 } phy_rx_details;
@@ -327,23 +330,25 @@ typedef struct{
 // RX frame information
 //     NOTE:  This structure defines the information passed in the packet buffer between
 //         CPU High and CPU Low as part of receiving packets.  The struct is padded to
-//         give space for the PHY to fill in channel estimates.
+//         give space for the PHY to fill in channel estimates. This struct must be
+//		   8-byte aligned
 //
 typedef struct{
     u8                       state;                        ///< Packet buffer state - RX_MPDU_STATE_EMPTY, RX_MPDU_STATE_RX_PENDING, RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD
     u8                       flags;                        ///< Bit flags
     u8                       ant_mode;                     ///< Rx antenna selection
     s8                       rx_power;                     ///< Rx power, in dBm
-
-    phy_rx_details           phy_details;                  ///< Details from PHY used in this reception
-    u8                       reserved[2];                  ///< Reserved bytes for alignment
-
     u8                       rf_gain;                      ///< Gain setting of radio Rx LNA, in [0,1,2]
     u8                       bb_gain;                      ///< Gain setting of radio Rx VGA, in [0,1,...31]
     u8                       channel;                      ///< Channel index
     u8                       padding1;                     ///< Used for alignment of fields (can be appropriated for any future use)
-
+    //----- 8-byte boundary ------
+    phy_rx_details           phy_details;                  ///< Details from PHY used in this reception
+    //----- 8-byte boundary ------
+    u8						 timestamp_frac;			   ///< Fractional timestamp beyond usec timestamp for time of reception
+    u8                       reserved[3];                  ///< Reserved bytes for alignment
     u32                      additional_info;              ///< Field to hold MAC-specific info, such as a pointer to a station_info
+    //----- 8-byte boundary ------
     wlan_mac_low_tx_details  resp_low_tx_details;
     u64                      timestamp;                    ///< MAC timestamp at time of reception
     u32                      channel_est[64];              ///< Rx PHY channel estimates
