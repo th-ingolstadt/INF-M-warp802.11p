@@ -305,7 +305,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         rx_finish_state = RX_FINISH_SEND_B;
 
         mpdu_info->resp_low_tx_details.tx_details_type      = TX_DETAILS_ACK;
-        mpdu_info->resp_low_tx_details.ctrl_phy_params.rate = tx_mcs;
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.rate = tx_mcs;
 
         // We let "duration" be equal to the duration field of an ACK. This value is provided explicitly to CPU_HIGH
         // in the low_tx_details struct such that CPU_HIGH has can reconstruct the RTS in its log. This isn't critical
@@ -314,8 +314,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         mpdu_info->resp_low_tx_details.duration = 0;
 
         // This element remains unused during MPDU-only transmissions
-        mpdu_info->resp_low_tx_details.ctrl_phy_params.power        = wlan_mac_low_get_current_ctrl_tx_pow();
-        mpdu_info->resp_low_tx_details.ctrl_phy_params.antenna_mode = active_rx_ant;
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.power        = wlan_mac_low_get_current_ctrl_tx_pow();
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.antenna_mode = active_rx_ant;
 
     } else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_CTS)){
         if(gl_mpdu_pkt_buf != PKT_BUF_INVALID) {
@@ -369,7 +369,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         rx_finish_state = RX_FINISH_SEND_B;
 
         mpdu_info->resp_low_tx_details.tx_details_type      = TX_DETAILS_CTS;
-        mpdu_info->resp_low_tx_details.ctrl_phy_params.rate = tx_mcs;
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.rate = tx_mcs;
 
         // We let "duration" be equal to the duration field of an CTS. This value is provided explicitly to CPU_HIGH
         // in the low_tx_details struct such that CPU_HIGH has can reconstruct the RTS in its log. This isn't critical
@@ -377,8 +377,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         mpdu_info->resp_low_tx_details.duration = cts_duration;
 
         // This element remains unused during MPDU-only transmissions
-        mpdu_info->resp_low_tx_details.ctrl_phy_params.power        = wlan_mac_low_get_current_ctrl_tx_pow();
-        mpdu_info->resp_low_tx_details.ctrl_phy_params.antenna_mode = active_rx_ant;
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.power        = wlan_mac_low_get_current_ctrl_tx_pow();
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.antenna_mode = active_rx_ant;
     }
 
     // Based on the RX length threshold, determine processing order
@@ -422,15 +422,16 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     }
 
     // Record information about the reception in the RX packet metadata
-    mpdu_info->channel   = wlan_mac_low_get_active_channel();
-    mpdu_info->timestamp = wlan_mac_low_get_rx_start_timestamp();
-    mpdu_info->ant_mode  = active_rx_ant;
-    mpdu_info->rf_gain   = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-    mpdu_info->bb_gain   = wlan_phy_rx_get_agc_BBG(active_rx_ant);
+    mpdu_info->channel        = wlan_mac_low_get_active_channel();
+    mpdu_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
+    mpdu_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
+    mpdu_info->ant_mode       = active_rx_ant;
+    mpdu_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
+    mpdu_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
 
-    lna_gain             = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-    rssi                 = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
-    mpdu_info->rx_power  = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
+    lna_gain                  = wlan_phy_rx_get_agc_RFG(active_rx_ant);
+    rssi                      = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
+    mpdu_info->rx_power       = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
 
     // Block until the reception is complete, storing the checksum status in the frame_info struct
     if ((phy_details->length) > RX_LEN_THRESH) {
@@ -613,7 +614,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     }
 
     if(mpdu_info->flags & RX_MPDU_FLAGS_FORMED_RESPONSE) {
-        mpdu_info->resp_low_tx_details.timestamp_offset = (u32)(wlan_mac_low_get_tx_start_timestamp() - mpdu_info->timestamp);
+        mpdu_info->resp_low_tx_details.tx_start_timestamp_ctrl 		= wlan_mac_low_get_tx_start_timestamp();
+        mpdu_info->resp_low_tx_details.tx_start_timestamp_frac_ctrl = wlan_mac_low_get_tx_start_timestamp_frac();
     }
 
     // This packet should be passed up to CPU_high for further processing
@@ -683,7 +685,6 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
     u32                 rx_status;
     u32                 mac_hw_status;
 
-    u64                 last_tx_timestamp;
     int                 curr_tx_pow;
 
     u32                 low_tx_details_num;
@@ -705,9 +706,6 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
     mpdu_info->short_retry_count = 0;
     mpdu_info->long_retry_count  = 0;
     mpdu_info->num_tx_attempts   = 0;
-
-    // Remember the starting time, used to calculate the actual timestamps of each Tx below
-    last_tx_timestamp = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
 
     // Compare the length of this frame to the RTS Threshold
     if(mpdu_length <= gl_dot11RTSThreshold) {
@@ -781,49 +779,49 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
                     mac_cfg_rate        = WLAN_PHY_RATE_BPSK12;
                     cts_header_duration = TX_TIME_CTS_R6;
                     MPDU_N_DBPS         = N_DBPS_R6;
-                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].ctrl_phy_params.rate = WLAN_MAC_MCS_6M;
+                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].phy_params_ctrl.rate = WLAN_MAC_MCS_6M;
                 break;
                 case WLAN_PHY_RATE_BPSK34:
                     mac_cfg_rate        = WLAN_PHY_RATE_BPSK12;
                     cts_header_duration = TX_TIME_CTS_R6;
                     MPDU_N_DBPS         = N_DBPS_R9;
-                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].ctrl_phy_params.rate = WLAN_MAC_MCS_6M;
+                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].phy_params_ctrl.rate = WLAN_MAC_MCS_6M;
                 break;
                 case WLAN_PHY_RATE_QPSK12:
                     mac_cfg_rate        = WLAN_PHY_RATE_QPSK12;
                     cts_header_duration = TX_TIME_CTS_R12;
                     MPDU_N_DBPS         = N_DBPS_R12;
-                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].ctrl_phy_params.rate = WLAN_MAC_MCS_12M;
+                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].phy_params_ctrl.rate = WLAN_MAC_MCS_12M;
                 break;
                 case WLAN_PHY_RATE_QPSK34:
                     mac_cfg_rate        = WLAN_PHY_RATE_QPSK12;
                     cts_header_duration = TX_TIME_CTS_R12;
                     MPDU_N_DBPS         = N_DBPS_R18;
-                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].ctrl_phy_params.rate = WLAN_MAC_MCS_12M;
+                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].phy_params_ctrl.rate = WLAN_MAC_MCS_12M;
                 break;
                 case WLAN_PHY_RATE_16QAM12:
                     mac_cfg_rate        = WLAN_PHY_RATE_16QAM12;
                     cts_header_duration = TX_TIME_CTS_R24;
                     MPDU_N_DBPS         = N_DBPS_R24;
-                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].ctrl_phy_params.rate = WLAN_MAC_MCS_24M;
+                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].phy_params_ctrl.rate = WLAN_MAC_MCS_24M;
                 break;
                 case WLAN_PHY_RATE_16QAM34:
                     mac_cfg_rate        = WLAN_PHY_RATE_16QAM12;
                     cts_header_duration = TX_TIME_CTS_R24;
                     MPDU_N_DBPS         = N_DBPS_R36;
-                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].ctrl_phy_params.rate = WLAN_MAC_MCS_24M;
+                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].phy_params_ctrl.rate = WLAN_MAC_MCS_24M;
                 break;
                 case WLAN_PHY_RATE_64QAM23:
                     mac_cfg_rate        = WLAN_PHY_RATE_16QAM12;
                     cts_header_duration = TX_TIME_CTS_R24;
                     MPDU_N_DBPS         = N_DBPS_R48;
-                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].ctrl_phy_params.rate = WLAN_MAC_MCS_24M;
+                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].phy_params_ctrl.rate = WLAN_MAC_MCS_24M;
                 break;
                 case WLAN_PHY_RATE_64QAM34:
                     mac_cfg_rate        = WLAN_PHY_RATE_16QAM12;
                     cts_header_duration = TX_TIME_CTS_R24;
                     MPDU_N_DBPS         = N_DBPS_R54;
-                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].ctrl_phy_params.rate = WLAN_MAC_MCS_24M;
+                    low_tx_details[(mpdu_info->num_tx_attempts) - 1].phy_params_ctrl.rate = WLAN_MAC_MCS_24M;
                 break;
             }
 
@@ -925,13 +923,13 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
         // receive one, CPU_HIGH will know to ignore this element of low_tx_details (since the MPDU will not be transmitted).
         low_tx_details_num = (mpdu_info->num_tx_attempts) - 1;
 
-        low_tx_details[low_tx_details_num].mpdu_phy_params.rate         = mpdu_info->params.phy.rate;
-        low_tx_details[low_tx_details_num].mpdu_phy_params.power        = mpdu_info->params.phy.power;
-        low_tx_details[low_tx_details_num].mpdu_phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
+        low_tx_details[low_tx_details_num].phy_params_mpdu.rate         = mpdu_info->params.phy.rate;
+        low_tx_details[low_tx_details_num].phy_params_mpdu.power        = mpdu_info->params.phy.power;
+        low_tx_details[low_tx_details_num].phy_params_mpdu.antenna_mode = mpdu_info->params.phy.antenna_mode;
 
         // If RTS/CTS isn't used, these fields should just be ignored
-        low_tx_details[low_tx_details_num].ctrl_phy_params.power        = mpdu_info->params.phy.power;
-        low_tx_details[low_tx_details_num].ctrl_phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
+        low_tx_details[low_tx_details_num].phy_params_ctrl.power        = mpdu_info->params.phy.power;
+        low_tx_details[low_tx_details_num].phy_params_ctrl.antenna_mode = mpdu_info->params.phy.antenna_mode;
 
         low_tx_details[low_tx_details_num].chan_num    = wlan_mac_low_get_active_channel();
         low_tx_details[low_tx_details_num].cw          = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
@@ -957,24 +955,20 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
                 if(tx_wait_state == TX_WAIT_CTS) {
                     // This will potentially be overwritten with TX_DETAILS_RTS_MPDU should we make it that far.
                     low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_RTS_ONLY;
-                    low_tx_details[low_tx_details_num].tx_start_delta   = (u32)(wlan_mac_low_get_tx_start_timestamp() - last_tx_timestamp);
-
-                    last_tx_timestamp = wlan_mac_low_get_tx_start_timestamp();
+                    low_tx_details[low_tx_details_num].tx_start_timestamp_ctrl = wlan_mac_low_get_tx_start_timestamp();
+                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_ctrl = wlan_mac_low_get_tx_start_timestamp_frac();
 
                 } else if ((tx_mode == TX_MODE_LONG) && (tx_wait_state == TX_WAIT_ACK)) {
                     // NOTE: this clause will overwrite the previous TX_DETAILS_RTS_ONLY state in the event a CTS is received.
                     low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_RTS_MPDU;
-
-                    // NOTE: We won't update the tx_start_delta field in this case. We already wrote it
-                    // in the RTS_ONLY state. We'll let CPU_HIGH figure out the tx_start timestamp of this MPDU
-                    // based on the start time of the RTS and everything else it knows about the MPDU.
-                    low_tx_details[low_tx_details_num].timestamp_offset = (u32)(wlan_mac_low_get_tx_start_timestamp() - last_tx_timestamp);
+                    low_tx_details[low_tx_details_num].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
+                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
 
                 } else {
                     // This is a non-RTS/CTS-protected MPDU transmission
                     low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_MPDU;
-                    low_tx_details[low_tx_details_num].tx_start_delta   = (u32)(wlan_mac_low_get_tx_start_timestamp() - last_tx_timestamp);
-                    last_tx_timestamp = wlan_mac_low_get_tx_start_timestamp();
+                    low_tx_details[low_tx_details_num].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
+                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
                 }
 
                 // Switch on the result of the transmission attempt
