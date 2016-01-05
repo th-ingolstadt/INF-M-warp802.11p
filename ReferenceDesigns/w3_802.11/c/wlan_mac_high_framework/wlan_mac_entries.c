@@ -194,14 +194,13 @@ void * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size){
  *
  * @param   tx_mpdu          - Pointer to TX MPDU of the associated TX low entry
  * @param   tx_low_details   - Pointer to specific information of the TX low transmission
- * @param   timestamp_offset - Offset of the TX low entry's timestamp
  * @param   tx_low_count     - Indicates which TX low this is for the TX MPDU (starts at zero)
  *
  * @return  tx_low_entry *   - Pointer to tx_low_entry log entry
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u64 timestamp_offset, u32 tx_low_count){
+tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u32 tx_low_count){
 
     tx_low_entry*     tx_low_event_log_entry  = NULL;
     void*             mpdu;
@@ -252,9 +251,8 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 
             tx_low_event_log_entry->flags = 0;
 
-            // Compute the timestamp of the actual Tx event
-            //   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
-            tx_low_event_log_entry->timestamp_send            = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset);
+            tx_low_event_log_entry->timestamp_send			  = tx_low_details->tx_start_timestamp_ctrl;
+            //TODO: Add fractional timestamp
 
             pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
@@ -265,7 +263,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             tx_low_event_log_entry->num_slots                 = tx_low_details->num_slots;
             tx_low_event_log_entry->cw                        = tx_low_details->cw;
 
-            memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->ctrl_phy_params), sizeof(phy_tx_params));
+            memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_ctrl), sizeof(phy_tx_params));
 
             tx_low_event_log_entry->length                    = packet_payload_size;
             tx_low_event_log_entry->pkt_type                  = pkt_type;
@@ -314,13 +312,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
                 tx_low_event_log_entry->flags = 0;
             }
 
-            // Compute the timestamp of the actual Tx event
-            //   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
-            if((tx_low_details->tx_details_type == TX_DETAILS_MPDU)){
-                tx_low_event_log_entry->timestamp_send       = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset);
-            } else{
-                tx_low_event_log_entry->timestamp_send       = (u64)(tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept) + (u64)(tx_low_details->tx_start_delta) + timestamp_offset + (u64)(tx_low_details->timestamp_offset));
-            }
+            tx_low_event_log_entry->timestamp_send = tx_low_details->tx_start_timestamp_mpdu;
 
             tx_low_event_log_entry->unique_seq                = tx_mpdu->unique_seq;
             tx_low_event_log_entry->transmission_count        = tx_low_count + 1;
@@ -328,7 +320,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             tx_low_event_log_entry->num_slots                 = tx_low_details->num_slots;
             tx_low_event_log_entry->cw                        = tx_low_details->cw;
 
-            memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->mpdu_phy_params), sizeof(phy_tx_params));
+            memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_mpdu), sizeof(phy_tx_params));
 
             tx_low_event_log_entry->length                    = tx_mpdu->length;
             tx_low_event_log_entry->pkt_type                  = pkt_type;
@@ -663,13 +655,13 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
 
                 tx_low_event_log_entry->flags = 0;
 
-                // Compute the timestamp of the actual Tx event
-                //   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
-                tx_low_event_log_entry->timestamp_send              = (rx_mpdu->timestamp) + (rx_mpdu->resp_low_tx_details.timestamp_offset);
+
+
+                tx_low_event_log_entry->timestamp_send				= rx_mpdu->resp_low_tx_details.tx_start_timestamp_ctrl;
 
                 pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
-                memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.ctrl_phy_params), sizeof(phy_tx_params));
+                memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.phy_params_ctrl), sizeof(phy_tx_params));
 
                 tx_low_event_log_entry->transmission_count          = 1;
                 tx_low_event_log_entry->unique_seq                  = 0;
@@ -716,13 +708,11 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
 
                 tx_low_event_log_entry->flags = 0;
 
-                // Compute the timestamp of the actual Tx event
-                //   CPU low accumulates time deltas relative to original enqueue time (easier to store u32 deltas vs u64 times)
-                tx_low_event_log_entry->timestamp_send            = (rx_mpdu->timestamp) + (rx_mpdu->resp_low_tx_details.timestamp_offset);
+                tx_low_event_log_entry->timestamp_send			  = rx_mpdu->resp_low_tx_details.tx_start_timestamp_ctrl;
 
                 pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
 
-                memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.ctrl_phy_params), sizeof(phy_tx_params));
+                memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.phy_params_ctrl), sizeof(phy_tx_params));
 
                 tx_low_event_log_entry->transmission_count        = 1;
                 tx_low_event_log_entry->unique_seq                = 0;
