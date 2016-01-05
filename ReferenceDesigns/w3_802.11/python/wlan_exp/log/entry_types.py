@@ -793,6 +793,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_rx_common.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
+        ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
+        ('padding',                '3x',     '3uint8',  ''),
         ('length',                 'H',      'uint16',  'Length of payload in bytes'),
         ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
         ('power',                  'b',      'int8',    'Rx power in dBm'),
@@ -862,8 +864,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
         ('pkt_type',               'B',      'uint8',   'Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control'),
         ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
-        ('padding0',               'B',      'uint8',   ''),
-        ('padding1',               'B',      'uint8',   '')])
+        ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
+        ('padding',                'B',      'uint8',   '')])
 
 
     # -----------------------------------------------------------------------------
