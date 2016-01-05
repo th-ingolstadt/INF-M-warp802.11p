@@ -151,16 +151,17 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     rx_frame_info     * mpdu_info           = (rx_frame_info *) pkt_buf_addr;
 
     // Fill in the MPDU info fields for the reception
-    mpdu_info->flags       = 0;
-    mpdu_info->phy_details = *phy_details;
-    mpdu_info->channel     = wlan_mac_low_get_active_channel();
-    mpdu_info->timestamp   = wlan_mac_low_get_rx_start_timestamp();
-    mpdu_info->state       = wlan_mac_dcf_hw_rx_finish();                 // Blocks until reception is complete
+    mpdu_info->flags          = 0;
+    mpdu_info->phy_details    = *phy_details;
+    mpdu_info->channel        = wlan_mac_low_get_active_channel();
+    mpdu_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
+    mpdu_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
+    mpdu_info->state          = wlan_mac_dcf_hw_rx_finish();                 // Blocks until reception is complete
 
-    mpdu_info->ant_mode    = wlan_phy_rx_get_active_rx_ant();
-    mpdu_info->rf_gain     = wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode);
-    mpdu_info->bb_gain     = wlan_phy_rx_get_agc_BBG(mpdu_info->ant_mode);
-    mpdu_info->rx_power    = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(mpdu_info->ant_mode), wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode));
+    mpdu_info->ant_mode       = wlan_phy_rx_get_active_rx_ant();
+    mpdu_info->rf_gain        = wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode);
+    mpdu_info->bb_gain        = wlan_phy_rx_get_agc_BBG(mpdu_info->ant_mode);
+    mpdu_info->rx_power       = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(mpdu_info->ant_mode), wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode));
 
     // Wait until the PHY has written enough bytes so that the first address field can be processed
     while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
@@ -225,7 +226,6 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
     int                 curr_tx_pow;
 
     tx_frame_info     * mpdu_info           = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
-    u64                 last_tx_timestamp   = (u64)(mpdu_info->delay_accept) + (u64)(mpdu_info->timestamp_create);
     u8                  mpdu_tx_ant_mask    = 0;
 
     // Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
@@ -265,9 +265,9 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
     do{
         // Fill in the Tx low details
         if (low_tx_details != NULL) {
-            low_tx_details[0].mpdu_phy_params.rate         = mpdu_info->params.phy.rate;
-            low_tx_details[0].mpdu_phy_params.power        = mpdu_info->params.phy.power;
-            low_tx_details[0].mpdu_phy_params.antenna_mode = mpdu_info->params.phy.antenna_mode;
+            low_tx_details[0].phy_params_mpdu.rate         = mpdu_info->params.phy.rate;
+            low_tx_details[0].phy_params_mpdu.power        = mpdu_info->params.phy.power;
+            low_tx_details[0].phy_params_mpdu.antenna_mode = mpdu_info->params.phy.antenna_mode;
             low_tx_details[0].chan_num                     = wlan_mac_low_get_active_channel();
             low_tx_details[0].num_slots                    = 0;
             low_tx_details[0].cw                           = 0;
@@ -279,9 +279,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
         // If the MAC HW is done, fill in the remaining Tx low details and return
         if (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE) {
             if (low_tx_details != NULL) {
-                low_tx_details[0].tx_start_delta = (u32)(wlan_mac_low_get_tx_start_timestamp() - last_tx_timestamp);
-
-                last_tx_timestamp = wlan_mac_low_get_tx_start_timestamp();
+                low_tx_details[0].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
+                low_tx_details[0].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
             }
 
             switch (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT) {
