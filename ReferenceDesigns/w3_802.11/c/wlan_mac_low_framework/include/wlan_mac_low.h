@@ -61,6 +61,7 @@
 #define WLAN_MAC_REG_RX_TIMESTAMP_MSB                      XPAR_WLAN_MAC_HW_MEMMAP_RX_START_TIMESTAMP_MSB
 #define WLAN_MAC_REG_TX_TIMESTAMP_LSB                      XPAR_WLAN_MAC_HW_MEMMAP_TX_START_TIMESTAMP_LSB
 #define WLAN_MAC_REG_TX_TIMESTAMP_MSB                      XPAR_WLAN_MAC_HW_MEMMAP_TX_START_TIMESTAMP_MSB
+#define WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC				   XPAR_WLAN_MAC_HW_MEMMAP_TXRX_START_TIMESTAMPS_FRAC
 #define WLAN_MAC_REG_NAV_VALUE                             XPAR_WLAN_MAC_HW_MEMMAP_NAV_VALUE
 
 // RW:
@@ -338,7 +339,11 @@
 #define wlan_mac_get_rx_phy_mode()         ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PHY_MODE) >> 25)
 #define wlan_mac_get_rx_phy_params_valid() ((Xil_In32(WLAN_MAC_REG_PHY_RX_PARAMS) & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID))
 
-
+// TXRX_TIMESTAMPS_FRAC register
+// b[15:8]: Fractional part of RX_START microsecond timestamp
+// b[ 7:0]: Fractional part of TX_START microsecond timestamp
+#define wlan_mac_low_get_rx_start_timestamp_frac() ((Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0xFF00) >> 8)
+#define wlan_mac_low_get_tx_start_timestamp_frac()  (Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0x00FF)
 
 //-----------------------------------------------
 // MAC Polling defines
