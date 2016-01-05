@@ -134,7 +134,7 @@ info_consts_defs = {
             'OWNED'                    : 0x0005
         }),
         'capabilities'  : util.consts_dict({
-            'ESS'	                      : 0x0001,
+            'ESS'                      : 0x0001,
             'IBSS'                     : 0x0002,
             'PRIVACY'                  : 0x0010,
             'SHORT_PREAMBLE'           : 0x0020,
@@ -313,15 +313,18 @@ class InfoStruct(dict):
                     field_type.append(None)
                     used_field.append(False)
 
-        if (False):
+        try:
+            ret_val += struct.pack(self._fields_struct_fmt, *tmp_values)
+        except struct.error as err:
+            print("Error serializing structure:\n\t{0}".format(err))
             print("Serialize Structure:")
             print(fields)
             print(field_type)
             print(used_field)
             print(tmp_values)
             print(self._fields_struct_fmt)
-
-        ret_val += struct.pack(self._fields_struct_fmt, *tmp_values)
+            raise RuntimeError("See above print statements to debug error.")
+            
 
         if (self.sizeof()) != len(ret_val):
             msg  = "WARNING: Sizes do not match.\n"
@@ -548,6 +551,7 @@ class BSSInfo(InfoStruct):
             self.__dict__['state']                      = self._consts.state.OWNED
             self.__dict__['num_basic_rates']            = 0
             self.__dict__['basic_rates']                = bytes()
+            self.__dict__['phy_mode']                   = 0
 
             # Set SSID
             if ssid is not None:
