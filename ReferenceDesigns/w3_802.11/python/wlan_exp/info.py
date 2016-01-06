@@ -88,7 +88,7 @@ info_field_defs = {
         ('padding0',                    'x',      'uint8',   ''),
         ('num_basic_rates',             'B',      'uint8',   'Number of basic rates supported'),
         ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
-        ('phy_mode',                    'B',      'uint8',   'PHY Mode (Legacy, HT, VHT)'),
+        ('phy_mode',                    'B',      'uint8',   'PHY Mode (Legacy, HT)'),
         ('padding1',                    'x',      'uint8',   '')],
 
     'TXRX_COUNTS' : [
@@ -149,8 +149,7 @@ info_consts_defs = {
         }),
         'phy_mode'      : util.consts_dict({
             'LEGACY'                   : 0x01,
-            'HT'                       : 0x02, 
-            'VHT'                      : 0x04
+            'HT'                       : 0x02
         })
     }),
 
