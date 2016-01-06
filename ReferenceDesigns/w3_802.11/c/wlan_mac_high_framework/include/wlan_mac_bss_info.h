@@ -37,15 +37,14 @@
         u8         state;                             /* State of the BSS */                            \
         u16        capabilities;                      /* Supported capabilities */                      \
         u16        beacon_interval;                   /* Beacon interval - In time units of 1024 us */  \
-        u8         padding0;                          /* Padding byte - for 32-bit alignment */      \
+        u8         padding0;                          /* Padding byte - for 32-bit alignment */         \
         u8         num_basic_rates;                   /* Number of basic rates supported */             \
         u8         basic_rates[NUM_BASIC_RATES_MAX];  /* Supported basic rates - 10 bytes */            \
-        u8		   phy_mode;						  /* PHY Mode (Legacy, HT, VHT)	*/					\
+        u8		   phy_mode;						  /* PHY Mode (Legacy, HT)	*/                      \
         u8         padding1;                          /* Padding byte - for 32-bit alignment */
 
 #define BSS_INFO_PHY_MODE_11A		0x01
 #define BSS_INFO_PHY_MODE_11N	 	0x02
-#define BSS_INFO_PHY_MODE_11AC	 	0x04
 
 /**
  * @brief Basic Service Set (BSS) Information Structure
