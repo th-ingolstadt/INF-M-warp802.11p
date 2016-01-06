@@ -76,7 +76,6 @@
 // PHY defines
 //
 #define WLAN_PHY_FCS_NBYTES                                4
-#define T_SIFS                                             10
 
 
 //-----------------------------------------------
