@@ -151,7 +151,7 @@ rolling_winow = 1000 #samples
 # Select non-duplicate packets from partner node
 rx_ap_idx      = ((rx_ap['addr2'] == addr_sta) & 
                   ((rx_ap['flags'] & RX_CONSTS.flags.DUPLICATE) == 0) & 
-                   (rx_ap['fcs_result'] == RX_CONSTS.fcs_results.GOOD) & 
+                   (rx_ap['fcs_result'] == RX_CONSTS.fcs_result.GOOD) & 
                    ((rx_ap['pkt_type'] == RX_CONSTS.pkt_type.ENCAP_ETH) | 
                     (rx_ap['pkt_type'] == RX_CONSTS.pkt_type.LTG)))
 
@@ -166,7 +166,7 @@ rx_ap_len      = rx_ap_from_sta['length']
 # Select non-duplicate packets from partner node
 rx_sta_idx     = ((rx_sta['addr2'] == addr_ap) & 
                   ((rx_sta['flags'] & RX_CONSTS.flags.DUPLICATE) == 0) & 
-                   (rx_sta['fcs_result'] == RX_CONSTS.fcs_results.GOOD) & 
+                   (rx_sta['fcs_result'] == RX_CONSTS.fcs_result.GOOD) & 
                    ((rx_sta['pkt_type'] == RX_CONSTS.pkt_type.ENCAP_ETH) | 
                     (rx_sta['pkt_type'] == RX_CONSTS.pkt_type.LTG)))
                     
