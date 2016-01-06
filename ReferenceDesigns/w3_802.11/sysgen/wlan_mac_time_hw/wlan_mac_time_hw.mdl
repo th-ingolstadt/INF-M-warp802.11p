@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.23"
+    ComputedModelVersion    "1.28"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -27,9 +27,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "murphpo"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Mon Jan 04 19:35:50 2016"
-  RTWModifiedTimeStamp	  373836727
-  ModelVersionFormat	  "1.%<AutoIncrement:23>"
+  LastModifiedDate	  "Wed Jan 06 12:52:12 2016"
+  RTWModifiedTimeStamp	  373985394
+  ModelVersionFormat	  "1.%<AutoIncrement:28>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -67,6 +67,7 @@ Model {
     $ObjectID		    1
     $ClassName		    "Simulink.SimulationData.ModelLoggingInfo"
     model_		    "wlan_mac_time_hw"
+    signals_		    []
     overrideMode_	    [0.0]
     Array {
       Type		      "Cell"
@@ -132,7 +133,7 @@ Model {
 	  $ObjectID		  3
 	  Version		  "1.11.1"
 	  StartTime		  "0.0"
-	  StopTime		  "10.0"
+	  StopTime		  "1e3"
 	  AbsTol		  "auto"
 	  FixedStep		  "auto"
 	  InitialStep		  "auto"
@@ -718,6 +719,23 @@ Model {
       InitialOutput	      "[]"
     }
     Block {
+      BlockType		      Scope
+      ModelBased	      off
+      TickLabels	      "OneTimeTick"
+      ZoomMode		      "on"
+      Grid		      "on"
+      TimeRange		      "auto"
+      YMin		      "-5"
+      YMax		      "5"
+      SaveToWorkspace	      off
+      SaveName		      "ScopeData"
+      LimitDataPoints	      on
+      MaxDataPoints	      "5000"
+      Decimation	      "1"
+      SampleInput	      off
+      SampleTime	      "-1"
+    }
+    Block {
       BlockType		      SubSystem
       ShowPortLabels	      "FromPortIcon"
       Permissions	      "ReadWrite"
@@ -776,7 +794,7 @@ Model {
     ShowPageBoundaries	    off
     ZoomFactor		    "125"
     ReportName		    "simulink-default.rpt"
-    SIDHighWatermark	    "219"
+    SIDHighWatermark	    "221"
     Block {
       BlockType		      Reference
       Name		      " System Generator"
@@ -798,7 +816,7 @@ Model {
       package		      "ff1156"
       synthesis_tool	      "XST"
       clock_wrapper	      "Clock Enables"
-      directory		      "./wlan_mac_time_v0"
+      directory		      "./wlan_mac_time_v1"
       proj_type		      "Project Navigator"
       Synth_file	      "XST Defaults"
       Impl_file		      "ISE Defaults"
@@ -972,11 +990,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Changelog"
 	Location		[2, 94, 1902, 1115]
@@ -995,7 +1008,7 @@ Model {
 	Annotation {
 	  Name			  "1.00.a:\nNew wlan_mac_time_hw core, with separate MAC and System usec counters\n\n1.00.b:\nFixed default "
 	  "value of control register\n\n1.00.c:\nAdded TIME_USEC_FRAC output, copy of count-to-160 counter that defines\n  mic"
-	  "rosecond boundary"
+	  "rosecond boundary\n\n1.00.d:\nAligned latencies for integer and fractional parts of time outputs"
 	  Position		  [23, 102]
 	  HorizontalAlignment	  "left"
 	  BackgroundColor	  "[0.898039, 0.898039, 0.898039]"
@@ -1189,6 +1202,11 @@ Model {
 	  SID			  "215:210"
 	  Position		  [20, 50, 40, 70]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1196,6 +1214,11 @@ Model {
 	  SID			  "215:212"
 	  Position		  [20, 115, 40, 135]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1203,6 +1226,11 @@ Model {
 	  SID			  "215:230"
 	  Position		  [20, 730, 40, 750]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1210,6 +1238,11 @@ Model {
 	  SID			  "215:232"
 	  Position		  [20, 795, 40, 815]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1217,6 +1250,11 @@ Model {
 	  SID			  "215:234"
 	  Position		  [20, 865, 40, 885]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1224,6 +1262,11 @@ Model {
 	  SID			  "215:236"
 	  Position		  [20, 935, 40, 955]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1231,6 +1274,11 @@ Model {
 	  SID			  "215:238"
 	  Position		  [20, 1000, 40, 1020]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1238,6 +1286,11 @@ Model {
 	  SID			  "215:240"
 	  Position		  [20, 1070, 40, 1090]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1245,6 +1298,11 @@ Model {
 	  SID			  "215:242"
 	  Position		  [20, 1135, 40, 1155]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1252,6 +1310,11 @@ Model {
 	  SID			  "215:244"
 	  Position		  [20, 1205, 40, 1225]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1259,6 +1322,11 @@ Model {
 	  SID			  "215:246"
 	  Position		  [20, 1275, 40, 1295]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1266,6 +1334,11 @@ Model {
 	  SID			  "215:248"
 	  Position		  [20, 1340, 40, 1360]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1273,6 +1346,11 @@ Model {
 	  SID			  "215:214"
 	  Position		  [20, 185, 40, 205]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1280,6 +1358,11 @@ Model {
 	  SID			  "215:250"
 	  Position		  [20, 1410, 40, 1430]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1287,6 +1370,11 @@ Model {
 	  SID			  "215:252"
 	  Position		  [20, 1475, 40, 1495]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1294,6 +1382,11 @@ Model {
 	  SID			  "215:254"
 	  Position		  [20, 1545, 40, 1565]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1301,6 +1394,11 @@ Model {
 	  SID			  "215:256"
 	  Position		  [20, 1615, 40, 1635]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1308,6 +1406,11 @@ Model {
 	  SID			  "215:258"
 	  Position		  [20, 1680, 40, 1700]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1315,6 +1418,11 @@ Model {
 	  SID			  "215:216"
 	  Position		  [20, 255, 40, 275]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1322,6 +1430,11 @@ Model {
 	  SID			  "215:218"
 	  Position		  [20, 320, 40, 340]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1329,6 +1442,11 @@ Model {
 	  SID			  "215:220"
 	  Position		  [20, 390, 40, 410]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1336,6 +1454,11 @@ Model {
 	  SID			  "215:222"
 	  Position		  [20, 455, 40, 475]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1343,6 +1466,11 @@ Model {
 	  SID			  "215:224"
 	  Position		  [20, 525, 40, 545]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1350,6 +1478,11 @@ Model {
 	  SID			  "215:226"
 	  Position		  [20, 595, 40, 615]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Constant
@@ -1357,6 +1490,11 @@ Model {
 	  SID			  "215:228"
 	  Position		  [20, 660, 40, 680]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -2958,6 +3096,11 @@ Model {
 	  SID			  "215:260"
 	  Position		  [820, 520, 840, 540]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -2965,6 +3108,11 @@ Model {
 	  SID			  "215:262"
 	  Position		  [820, 585, 840, 605]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -2972,6 +3120,11 @@ Model {
 	  SID			  "215:280"
 	  Position		  [820, 1200, 840, 1220]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -2979,6 +3132,11 @@ Model {
 	  SID			  "215:264"
 	  Position		  [820, 655, 840, 675]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -2986,6 +3144,11 @@ Model {
 	  SID			  "215:266"
 	  Position		  [820, 725, 840, 745]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -2993,6 +3156,11 @@ Model {
 	  SID			  "215:268"
 	  Position		  [820, 790, 840, 810]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -3000,6 +3168,11 @@ Model {
 	  SID			  "215:270"
 	  Position		  [820, 860, 840, 880]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -3007,6 +3180,11 @@ Model {
 	  SID			  "215:272"
 	  Position		  [820, 925, 840, 945]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -3014,6 +3192,11 @@ Model {
 	  SID			  "215:274"
 	  Position		  [820, 995, 840, 1015]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -3021,6 +3204,11 @@ Model {
 	  SID			  "215:276"
 	  Position		  [820, 1065, 840, 1085]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -3028,6 +3216,11 @@ Model {
 	  SID			  "215:278"
 	  Position		  [820, 1130, 840, 1150]
 	  ShowName		  off
+	  MaskIconFrame		  on
+	  MaskIconOpaque	  on
+	  MaskIconRotate	  "none"
+	  MaskPortRotate	  "default"
+	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -3961,11 +4154,6 @@ Model {
       ShowName		      off
       GotoTag		      "reg_New_MAC_Time_MSB"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      From
@@ -3976,11 +4164,6 @@ Model {
       ShowName		      off
       GotoTag		      "reg_New_MAC_Time_LSB"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      From
@@ -3991,11 +4174,6 @@ Model {
       ShowName		      off
       GotoTag		      "reg_Reset_System_Time"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      From
@@ -4006,11 +4184,6 @@ Model {
       ShowName		      off
       GotoTag		      "MAC_TIME_USEC"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      From
@@ -4021,11 +4194,6 @@ Model {
       ShowName		      off
       GotoTag		      "SYSTEM_TIME_USEC"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      From
@@ -4036,11 +4204,6 @@ Model {
       ShowName		      off
       GotoTag		      "reg_Load_MAC_Time"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Goto
@@ -4051,11 +4214,6 @@ Model {
       ShowName		      off
       GotoTag		      "SYSTEM_TIME_USEC"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Goto
@@ -4066,11 +4224,6 @@ Model {
       ShowName		      off
       GotoTag		      "MAC_TIME_USEC"
       TagVisibility	      "global"
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
     }
     Block {
       BlockType		      Reference
@@ -4230,11 +4383,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Posedge"
 	Location		[88, 301, 2330, 1301]
@@ -4256,11 +4404,6 @@ Model {
 	  SID			  "112"
 	  Position		  [200, 253, 230, 267]
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -4365,11 +4508,6 @@ Model {
 	  SID			  "116"
 	  Position		  [610, 173, 640, 187]
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "Delay"
@@ -4531,6 +4669,35 @@ Model {
       SID		      "219"
       Ports		      [1, 1]
       Position		      [965, 631, 995, 659]
+      ShowName		      off
+      LibraryVersion	      "1.2"
+      SourceBlock	      "xbsIndex_r4/Register"
+      SourceType	      "Xilinx Register Block"
+      init		      "0"
+      rst		      off
+      en		      off
+      dbl_ovrd		      off
+      xl_use_area	      off
+      xl_area		      "[0,0,0,0,0,0,0]"
+      has_advanced_control    "0"
+      sggui_pos		      "-1,-1,-1,-1"
+      block_type	      "register"
+      sg_icon_stat	      "30,28,1,1,white,blue,0,c80657c5,right,,[ ],[ ]"
+      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 30 30 0 0 ],[0 0 28 28 0 ],[0.77 0."
+      "82 0.91 ]);\nplot([0 30 30 0 0 ],[0 0 28 28 0 ]);\npatch([6.1 11.88 15.88 19.88 23.88 15.88 10.1 6.1 ],[18.44 18"
+      ".44 22.44 18.44 22.44 22.44 22.44 18.44 ],[1 1 1 ]);\npatch([10.1 15.88 11.88 6.1 10.1 ],[14.44 14.44 18.44 18.4"
+      "4 14.44 ],[0.931 0.946 0.973 ]);\npatch([6.1 11.88 15.88 10.1 6.1 ],[10.44 10.44 14.44 14.44 10.44 ],[1 1 1 ]);\n"
+      "patch([10.1 23.88 19.88 15.88 11.88 6.1 10.1 ],[6.44 6.44 10.44 6.44 10.44 10.44 6.44 ],[0.931 0.946 0.973 ]);\n"
+      "fprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('i"
+      "nput',1,'d');\ncolor('black');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprint"
+      "f('','COMMENT: end icon text');"
+    }
+    Block {
+      BlockType		      Reference
+      Name		      "Register13"
+      SID		      "221"
+      Ports		      [1, 1]
+      Position		      [830, 631, 860, 659]
       ShowName		      off
       LibraryVersion	      "1.2"
       SourceBlock	      "xbsIndex_r4/Register"
@@ -4828,11 +4995,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"Registers"
 	Location		[2, 94, 1918, 1115]
@@ -5155,11 +5317,6 @@ Model {
 	  Opaque		  off
 	  RequestExecContextInheritance	off
 	  MaskHideContents	  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	  System {
 	    Name		    "Ctrl Bits"
 	    Location		    [950, 345, 1480, 478]
@@ -5181,11 +5338,6 @@ Model {
 	      SID		      "156"
 	      Position		      [25, 83, 55, 97]
 	      IconDisplay	      "Port number"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -5195,11 +5347,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Reset_System_Time"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      Goto
@@ -5209,11 +5356,6 @@ Model {
 	      ShowName		      off
 	      GotoTag		      "reg_Load_MAC_Time"
 	      TagVisibility	      "global"
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	    }
 	    Block {
 	      BlockType		      SubSystem
@@ -5228,11 +5370,6 @@ Model {
 	      Opaque		      off
 	      RequestExecContextInheritance off
 	      MaskHideContents	      off
-	      MaskIconFrame	      on
-	      MaskIconOpaque	      on
-	      MaskIconRotate	      "none"
-	      MaskPortRotate	      "default"
-	      MaskIconUnits	      "autoscale"
 	      System {
 		Name			"Sim Reset"
 		Location		[347, 173, 617, 257]
@@ -5258,11 +5395,6 @@ Model {
 		  InputSameDT		  off
 		  OutDataTypeStr	  "Inherit: Inherit via internal rule"
 		  SaturateOnIntegerOverflow off
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -5301,11 +5433,6 @@ Model {
 		  Period		  "1e6"
 		  PulseWidth		  "2"
 		  PhaseDelay		  "1.25e4"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  DiscretePulseGenerator
@@ -5317,11 +5444,6 @@ Model {
 		  Period		  "1e6"
 		  PulseWidth		  "2"
 		  PhaseDelay		  "2.5e4"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Block {
 		  BlockType		  Reference
@@ -5374,11 +5496,6 @@ Model {
 		  SID			  "183"
 		  Position		  [255, 63, 285, 77]
 		  IconDisplay		  "Port number"
-		  MaskIconFrame		  on
-		  MaskIconOpaque	  on
-		  MaskIconRotate	  "none"
-		  MaskPortRotate	  "default"
-		  MaskIconUnits		  "autoscale"
 		}
 		Line {
 		  SrcBlock		  "Add"
@@ -5752,11 +5869,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MAC_TIME_USEC"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -5872,11 +5984,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "SYSTEM_TIME_USEC"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -5887,11 +5994,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_New_MAC_Time_LSB"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Goto
@@ -5902,11 +6004,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "reg_New_MAC_Time_MSB"
 	  TagVisibility		  "global"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -6059,11 +6156,6 @@ Model {
 	  SID			  "150"
 	  Position		  [1245, 345, 1255, 355]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -6071,11 +6163,6 @@ Model {
 	  SID			  "89"
 	  Position		  [1245, 130, 1255, 140]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -6083,11 +6170,6 @@ Model {
 	  SID			  "90"
 	  Position		  [1245, 225, 1255, 235]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Terminator
@@ -6095,11 +6177,6 @@ Model {
 	  SID			  "151"
 	  Position		  [1245, 440, 1255, 450]
 	  ShowName		  off
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Reference
@@ -6464,6 +6541,45 @@ Model {
       "printf('','COMMENT: end icon text');"
     }
     Block {
+      BlockType		      Scope
+      Name		      "Scope"
+      SID		      "220"
+      Ports		      [3]
+      Position		      [1245, 401, 1280, 519]
+      ZOrder		      -16
+      Floating		      off
+      Location		      [14, 559, 672, 1553]
+      Open		      off
+      NumInputPorts	      "3"
+      ZoomMode		      "xonly"
+      List {
+	ListType		AxesTitles
+	axes1			"%<SignalLabel>"
+	axes2			"%<SignalLabel>"
+	axes3			"%<SignalLabel>"
+      }
+      List {
+	ListType		ScopeGraphics
+	FigureColor		"[0.5 0.5 0.5]"
+	AxesColor		"[0 0 0]"
+	AxesTickColor		"[1 1 1]"
+	LineColors		"[1 1 0;1 0 1;0 1 1;1 0 0;0 1 0;0 0 1]"
+	LineStyles		"-|-|-|-|-|-"
+	LineWidths		"[0.5 0.5 0.5 0.5 0.5 0.5]"
+	MarkerStyles		"none|none|none|none|none|none"
+      }
+      YMin		      "-5~-5~-5"
+      YMax		      "5~5~5"
+      SaveName		      "ScopeData2"
+      DataFormat	      "StructureWithTime"
+      SampleTime	      "0"
+      MaskIconFrame	      on
+      MaskIconOpaque	      on
+      MaskIconRotate	      "none"
+      MaskPortRotate	      "default"
+      MaskIconUnits	      "autoscale"
+    }
+    Block {
       BlockType		      Reference
       Name		      "System Time\n64-bit Counter"
       SID		      "11"
@@ -6587,11 +6703,6 @@ Model {
       Opaque		      off
       RequestExecContextInheritance off
       MaskHideContents	      off
-      MaskIconFrame	      on
-      MaskIconOpaque	      on
-      MaskIconRotate	      "none"
-      MaskPortRotate	      "default"
-      MaskIconUnits	      "autoscale"
       System {
 	Name			"usec Pulse"
 	Location		[2, 94, 1918, 1115]
@@ -6726,11 +6837,6 @@ Model {
 	  SID			  "30"
 	  Position		  [530, 228, 560, 242]
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Block {
 	  BlockType		  Outport
@@ -6739,11 +6845,6 @@ Model {
 	  Position		  [535, 313, 565, 327]
 	  Port			  "2"
 	  IconDisplay		  "Port number"
-	  MaskIconFrame		  on
-	  MaskIconOpaque	  on
-	  MaskIconRotate	  "none"
-	  MaskPortRotate	  "default"
-	  MaskIconUnits		  "autoscale"
 	}
 	Line {
 	  SrcBlock		  "Clk->usec"
@@ -6993,7 +7094,7 @@ Model {
       SrcBlock		      "usec Pulse"
       SrcPort		      2
       Points		      [45, 0; 0, 515]
-      DstBlock		      "Register11"
+      DstBlock		      "Register13"
       DstPort		      1
     }
     Line {
@@ -7008,11 +7109,41 @@ Model {
       DstBlock		      "TIME_USEC_FRAC"
       DstPort		      1
     }
+    Line {
+      SrcBlock		      "MAC_TIME_LSB"
+      SrcPort		      1
+      DstBlock		      "Scope"
+      DstPort		      1
+    }
+    Line {
+      SrcBlock		      "MAC_TIME_MSB"
+      SrcPort		      1
+      DstBlock		      "Scope"
+      DstPort		      2
+    }
+    Line {
+      SrcBlock		      "TIME_USEC_FRAC"
+      SrcPort		      1
+      Points		      [55, 0; 0, -145]
+      DstBlock		      "Scope"
+      DstPort		      3
+    }
+    Line {
+      SrcBlock		      "Register13"
+      SrcPort		      1
+      DstBlock		      "Register11"
+      DstPort		      1
+    }
     Annotation {
       Name		      "Copyright (c) 2016 Mango Communications, Inc. All rights reserved.\n\nDistributed under the Mango R"
       "eference Design License:\nhttp://mangocomm.com/802.11/license"
       Position		      [257, 516]
       DropShadow	      on
+    }
+    Annotation {
+      Name		      "Critical that the fractional and integer parts of the timestamps\nhave the same latency. Otherwise "
+      "consumers will observe a fractional\npart that wraps at a different time than the integer part increments."
+      Position		      [956, 698]
     }
   }
 }
@@ -7119,7 +7250,7 @@ MatData {
     "     0         !0    @               $         $          .    ,     8    (    !          %    \"     $    #     0"
     "         0  , 6%-4  X    P    !@    @    $          4    (               !         !          #@   $     &    \"  "
     "   0         !0    @    !    #0    $         $     T   !#;&]C:R!%;F%B;&5S    #@   $@    &    \"     0         !0  "
-    "  @    !    $@    $         $    !(    N+W=L86Y?;6%C7W1I;65?=C         .    ,     8    (    !          %    \"    "
+    "  @    !    $@    $         $    !(    N+W=L86Y?;6%C7W1I;65?=C$        .    ,     8    (    !          %    \"    "
     "            0         0          X   !(    !@    @    $          4    (     0   !$    !         !     1    4')O:F5"
     "C=\"!.879I9V%T;W(         #@   #     &    \"     0         !0    @               $         $          .    0     8"
     "    (    !          %    \"     $    ,     0         0    #    %A35\"!$969A=6QT<P     .    ,     8    (    !      "
@@ -7165,10 +7296,10 @@ MatData {
     "                0         0          X   !     !@    @    $          4    (     0   !     !         !     0    =&%"
     "R9V5T7V1I<F5C=&]R>0X    P    !@    @    $          4    (               !         !          #@   #@    &    \"   "
     "  8         !0    @    !     0    $         \"0    @           #P/PX    X    !@    @    &          4    (     0   "
-    " $    !          D    (               .    ,     8    (    !          %    \"     $    !     0         0  $ 8P    "
+    " $    !          D    (               .    ,     8    (    !          %    \"     $    !     0         0  $ 9     "
     "X    X    !@    @    &          4    (     0    $    !          D    (            \\#\\.    .     8    (    !@    "
     "     %    \"     $    !     0         )    \"    *Y'X7H4KN\\_#@   #@    &    \"     8         !0    @    !     0  "
-    "  $         \"0    @          ,!80 X    X    !@    @    &          4    (     0    $    !          D    (         "
+    "  $         \"0    @           !90 X    X    !@    @    &          4    (     0    $    !          D    (         "
     "   \\#\\.    .     8    (    !@         %    \"     $    !     0         )    \"               #@   %@#   &    \" "
     "    (         !0    @    !     0    $         !0 $  4    !    \"@   &)I    <&]R=          .    @ $   8    (     @ "
     "        %    \"     $    !     0         %  0 !0    $    /    8V]L,0!C;VPR &-O;#,   X   !@    !@    @    !        "
@@ -7278,7 +7409,7 @@ MatData {
     "              0         0          X    P    !@    @    $          4    (     0    ,    !         !   P!84U0 #@   "
     "#     &    \"     0         !0    @               $         $          .    0     8    (    !          %    \"    "
     " $    -     0         0    #0   $-L;V-K($5N86)L97,    .    2     8    (    !          %    \"     $    2     0    "
-    "     0    $@   \"XO=VQA;E]M86-?=&EM95]V,         X    P    !@    @    $          4    (               !         ! "
+    "     0    $@   \"XO=VQA;E]M86-?=&EM95]V,0        X    P    !@    @    $          4    (               !         ! "
     "         #@   $@    &    \"     0         !0    @    !    $0    $         $    !$   !0<F]J96-T($YA=FEG871O<@      "
     "   .    ,     8    (    !          %    \"                0         0          X   !     !@    @    $          4  "
     "  (     0    P    !         !     ,    6%-4($1E9F%U;'1S      X    P    !@    @    $          4    (               "
@@ -7324,10 +7455,10 @@ MatData {
     "!          #@   $     &    \"     0         !0    @    !    $     $         $    !    !T87)G971?9&ER96-T;W)Y#@   #"
     "     &    \"     0         !0    @               $         $          .    .     8    (    !@         %    \"     "
     "$    !     0         )    \"            / _#@   #@    &    \"     8         !0    @    !     0    $         \"0   "
-    " @               X    P    !@    @    $          4    (     0    $    !         !   0!C    #@   #@    &    \"     "
+    " @               X    P    !@    @    $          4    (     0    $    !         !   0!D    #@   #@    &    \"     "
     "8         !0    @    !     0    $         \"0    @           #P/PX    X    !@    @    &          4    (     0    $"
     "    !          D    (    KD?A>A2N[S\\.    .     8    (    !@         %    \"     $    !     0         )    \"     "
-    "      P%A #@   #@    &    \"     8         !0    @    !     0    $         \"0    @           #P/PX    X    !@    "
+    "       %E #@   #@    &    \"     8         !0    @    !     0    $         \"0    @           #P/PX    X    !@    "
     "@    &          4    (     0    $    !          D    (               .    6 ,   8    (     @         %    \"     $"
     "    !     0         %  0 !0    $    *    8FD   !P;W)T          X   \"  0  !@    @    \"          4    (     0    $"
     "    !          4 !  %     0    \\   !C;VPQ &-O;#( 8V]L,P  #@   &     &    \"     $         !0    @    !     0    $"
