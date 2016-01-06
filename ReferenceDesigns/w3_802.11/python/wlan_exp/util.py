@@ -41,28 +41,33 @@ class consts_dict(dict):
     def copy(self):
         return consts_dict(self)
     
+    # Allow attribute (ie ".") notation to access contents of dictionary
     def __getattr__(self, name):
         if name in self:
             return self[name]
         else:
             raise AttributeError("No such attribute: " + name)
-
-    # Do not allow any attributes to be added or deleted            
-    def __setattr__(self, name, value):
-        pass
     
+    # Do not allow existing attributes or items to be modified or deleted
+    def __setattr__(self, name, value):
+        if name in self:
+            raise AttributeError("Cannot change existing entries in {0}".format(self.__class__.__name__))
+        else:
+            super(consts_dict, self).__setitem__(name, value)
+        
     def __delattr__(self, name):
         pass
-
-    # Do not allow any items to be added or deleted
-    #     NOTE:  Can still access items with [] notation
+    
     def __setitem__(self, key, value):
-        pass
-
+        if key in self:
+            raise AttributeError("Cannot change existing entries in {0}".format(self.__class__.__name__))
+        else:
+            super(consts_dict, self).__setitem__(key, value)
+    
     def __delitem__(self, key):
         pass
-
-# End class    
+    
+# End class
 
 
 
