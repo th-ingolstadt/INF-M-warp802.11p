@@ -136,7 +136,7 @@ int wlan_mac_low_init(u32 type){
     rx_pkt_buf = 0;
     if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
         wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
-        wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
+        wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
         return -1;
     } else {
         rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
