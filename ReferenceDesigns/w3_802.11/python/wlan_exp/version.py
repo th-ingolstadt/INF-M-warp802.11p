@@ -153,38 +153,35 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
         
     msg += "    Current wlan_exp package version: {0}".format(wlan_exp_ver_str())
 
-
+    # Given there might be changes that break things, always raise an 
+    # exception on version mismatch
     if (major == WLAN_EXP_MAJOR):
         if (minor == WLAN_EXP_MINOR):
             if (revision != WLAN_EXP_REVISION):
-                # Since MAJOR & MINOR versions match, only print a warning
                 if (revision < WLAN_EXP_REVISION):
-                    # Do nothing; Python must be the same or newer than C code                    
-                    # pass
-                    # TODO:  Need to move back to this after 1.0 release
-                    msg      += "WARNING: " + msg + " (newer)\n"
+                    msg      += " (newer)\n"
                     status    = WLAN_EXP_VERSION_NEWER
-                    print_msg = True
+                    raise_ex  = True
                 else:
-                    msg      += "WARNING: " + msg + " (older)\n"
+                    msg      += " (older)\n"
                     status    = WLAN_EXP_VERSION_OLDER
-                    print_msg = True
+                    raise_ex  = True
         else:
             if (minor < WLAN_EXP_MINOR):
-                msg      += "WARNING: " + msg + " (newer)\n"
+                msg      += " (newer)\n"
                 status    = WLAN_EXP_VERSION_NEWER
-                print_msg = True
+                raise_ex  = True
             else:
-                msg      += "ERROR: " + msg + " (older)\n"
+                msg      += " (older)\n"
                 status    = WLAN_EXP_VERSION_OLDER
                 raise_ex  = True
     else:
         if (major < WLAN_EXP_MAJOR):
-            msg      += "WARNING: " + msg + " (newer)\n"
+            msg      += " (newer)\n"
             status    = WLAN_EXP_VERSION_NEWER
-            print_msg = True
+            raise_ex  = True
         else:
-            msg      += "ERROR: " + msg + " (older)\n"
+            msg      += " (older)\n"
             status    = WLAN_EXP_VERSION_OLDER
             raise_ex  = True
 
