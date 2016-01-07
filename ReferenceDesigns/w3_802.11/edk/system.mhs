@@ -164,7 +164,7 @@
 # ##############################################################################
 BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 2.01.d
+ PARAMETER HW_VER = 2.01.f
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -264,7 +264,7 @@ END
 
 BEGIN wlan_mac_hw_axiw
  PARAMETER INSTANCE = wlan_mac_hw
- PARAMETER HW_VER = 2.00.c
+ PARAMETER HW_VER = 2.00.f
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -300,6 +300,7 @@ BEGIN wlan_mac_hw_axiw
  PORT phy_rx_block_pktdet = phy_rx_block_pktdet
  PORT mac_time_usec_lsb = mac_time_usec_lsb
  PORT mac_time_usec_msb = mac_time_usec_msb
+ PORT mac_time_usec_frac = mac_time_usec_frac
  PORT tx_start_timestamp_lsb = mac_tx_start_timestamp_lsb
  PORT tx_start_timestamp_msb = mac_tx_start_timestamp_msb
  PORT dbg_backoff_active = mac_backoff_active
@@ -643,7 +644,7 @@ BEGIN mailbox
  PARAMETER C_INTERCONNECT_PORT_0 = 2
  PARAMETER C_INTERCONNECT_PORT_1 = 2
  PARAMETER C_IMPL_STYLE = 1
- PARAMETER C_MAILBOX_DEPTH = 64
+ PARAMETER C_MAILBOX_DEPTH = 512
  PARAMETER C_S0_AXI_BASEADDR = 0x30000000
  PARAMETER C_S0_AXI_HIGHADDR = 0x3000FFFF
  PARAMETER C_S1_AXI_BASEADDR = 0x30000000
@@ -782,7 +783,7 @@ END
 
 BEGIN wlan_mac_time_hw_axiw
  PARAMETER INSTANCE = wlan_mac_time_hw
- PARAMETER HW_VER = 1.00.b
+ PARAMETER HW_VER = 1.00.d
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -796,6 +797,7 @@ BEGIN wlan_mac_time_hw_axiw
  PORT sysgen_clk = clk_160MHz
  PORT mac_time_lsb = mac_time_usec_lsb
  PORT mac_time_msb = mac_time_usec_msb
+ PORT time_usec_frac = mac_time_usec_frac
 END
 
 # ##############################################################################
