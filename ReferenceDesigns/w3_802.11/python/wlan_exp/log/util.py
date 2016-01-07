@@ -669,14 +669,15 @@ def calc_tx_time(rate, payload_length):
     try:
         r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
     except TypeError :
-        r = wlan_rates[rate-1]['NDBPS']
+        r = wlan_rates[rate]['NDBPS']
 
     # Rate entry encodes data bits per symbol
     bytes_per_sym = (r/8.0)
-
+	
     # 2 = LEN_SERVICE (2)
+    # (6.0/8) = LEN_TAIL (6 bits)
     # Assumes that the length argument includes FCS
-    num_syms = np.ceil((2.0 + payload_length) / bytes_per_sym)
+    num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
 
     T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
 
