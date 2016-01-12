@@ -661,10 +661,33 @@ def calc_tx_time(rate, payload_length):
     from wlan_exp.util import wlan_rates
 
     # Times in microseconds
-    T_PREAMBLE = 16
-    T_SIG = 4
-    T_SYM = 4
-    T_EXT = 6
+    #T_PREAMBLE = 16
+    #T_SIG = 4
+    #T_SYM = 4
+    #T_EXT = 6
+     
+    #try:
+    #    r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
+    #except TypeError :
+    #    r = wlan_rates[rate]['NDBPS']
+
+    # Rate entry encodes data bits per symbol
+    #bytes_per_sym = (r/8.0)
+	
+    # 2 = LEN_SERVICE (2)
+    # (6.0/8) = LEN_TAIL (6 bits)
+    # Assumes that the length argument includes FCS
+    #num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
+
+    #T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
+
+    #return T_TOT
+
+    # Below applies to the 2XCLK design
+    T_PREAMBLE = 8
+    T_SIG = 2
+    T_SYM = 2
+    T_EXT = 6.35
      
     try:
         r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])

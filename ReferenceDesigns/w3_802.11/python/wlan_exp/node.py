@@ -1412,6 +1412,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     # Internal methods to view / configure node attributes
     #     NOTE:  These methods are not safe in all cases; therefore they are not part of the public API
     #--------------------------------------------
+
     def _set_bb_gain(self, bb_gain):
         """Sets the the baseband gain.
 
