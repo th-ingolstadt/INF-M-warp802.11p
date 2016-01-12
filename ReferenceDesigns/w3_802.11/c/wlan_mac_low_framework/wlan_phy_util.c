@@ -194,7 +194,6 @@ int w3_node_init() {
     clk_config_dividers(CLK_BASEADDR, 2, CLK_RFREF_OUTSEL_FMC);
 #endif
 
-
     // Initialize the AD9963 ADCs/DACs for on-board RF interfaces
     ad_init(AD_BASEADDR, AD_ALL_RF, 3);
 
@@ -273,7 +272,8 @@ void wlan_phy_init() {
     // NOTE:  To disable DSSS Rx by default, substitute with the following line:
     //     wlan_phy_DSSS_rx_disable();
     //
-    wlan_phy_DSSS_rx_enable();
+
+    wlan_phy_DSSS_rx_disable(); //TODO: Needed in 2XCLK extension. Enable in next commit.
 
     // Set the max Tx/Rx packet sizes to 2KB (sane default for standard 802.11a/g links)
     wlan_phy_rx_set_max_pkt_len_kB(2);
@@ -317,7 +317,8 @@ void wlan_phy_init() {
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
 
     // FFT config
-    wlan_phy_rx_set_fft_window_offset(3);
+//    wlan_phy_rx_set_fft_window_offset(3);
+    wlan_phy_rx_set_fft_window_offset(6); //TODO: Needed in 2XCLK extension. Remove in next commit.
     wlan_phy_rx_set_fft_scaling(5);
 
     // Set LTS correlation threshold and timeout
@@ -337,7 +338,8 @@ void wlan_phy_init() {
     //
     // NOTE: wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
     //
-    wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
+     //wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
+     wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F); //TODO: Needed in 2XCLK extension. Remove in next commit.
 
     // Configure the default antenna selections as SISO Tx/Rx on RF A
     wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
@@ -349,7 +351,8 @@ void wlan_phy_init() {
     //    NOTE: Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long
     //        enough for decoding latency at 64QAM 3/4
     //
-    wlan_phy_rx_set_extension(PHY_RX_SIG_EXT_USEC*20);
+    //wlan_phy_rx_set_extension(PHY_RX_SIG_EXT_USEC*20);
+    wlan_phy_rx_set_extension(135); //TODO: Needed in 2XCLK extension. Remove in next commit.
 
     // Configure channel estimate capture (64 subcarriers, 4 bytes each)
     //     Chan ests start at sizeof(rx_frame_info) - sizeof(chan_est)
@@ -423,7 +426,10 @@ void wlan_radio_init() {
 #if 1
     // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
     clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-    ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+
+    //ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+    //2XCLK: set decimation/interpolation to 1x in AD9963
+    ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1); //TODO: Needed in 2XCLK extension. Remove in next commit.
 #else
     // Setup clocking and filtering:
     //     80MHz ref clk to AD9963
@@ -452,8 +458,12 @@ void wlan_radio_init() {
 
     // Filter bandwidths
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXHPF_HIGH_CUTOFF_EN, 1);
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
+    //radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
+    //radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
+
+    //2XCLK: Max bandwidths
+    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3); //TODO: Needed in 2XCLK extension. Remove in next commit.
+    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3); //TODO: Needed in 2XCLK extension. Remove in next commit.
 
 #if 0
     // To set the gains manually for all radios:
@@ -538,7 +548,8 @@ void wlan_agc_config(u32 ant_mode) {
     wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
 
     // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-    wlan_agc_set_AGC_timing(1, 30, 90, 96);
+    //wlan_agc_set_AGC_timing(1, 30, 90, 96);
+    wlan_agc_set_AGC_timing(10, 30, 90, 96); //TODO: Needed in 2XCLK extension. Enable in next commit.
 
     // AGC timing: start_dco, en_iir_filt
     wlan_agc_set_DCO_timing(100, (100 + 34));
@@ -549,15 +560,17 @@ void wlan_agc_config(u32 ant_mode) {
 #if 0
     // To set the gains manually:
 
-    xil_printf("Switching to MGC for ant %d\n", ant_id);
+    xil_printf("Switching to MGC\n");
     radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
     radio_controller_setRxHP(RC_BASEADDR, RC_ALL_RF, RC_RXHP_OFF);
     radio_controller_setRxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_SPI);
 
     // Set Rx gains
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_RF, 3);
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 8);
+    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 2);
 #endif
+
+
 
     return;
 }
