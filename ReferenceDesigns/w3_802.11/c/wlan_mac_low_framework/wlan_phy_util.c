@@ -276,7 +276,7 @@ void wlan_phy_init() {
     //
 
     switch(phy_bw){
-    	case BW40:
+    	case BW20_DBLCLK:
     		//DSSS Reception not supported in 40MHz mode
     		wlan_phy_DSSS_rx_disable();
     	break;
@@ -328,7 +328,7 @@ void wlan_phy_init() {
 
     // FFT config
     switch(phy_bw){
-    	case BW40:
+    	case BW20_DBLCLK:
     	case BW20:
     		wlan_phy_rx_set_fft_window_offset(3);
     	break;
@@ -353,7 +353,7 @@ void wlan_phy_init() {
     // NOTE: wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
     //
      switch(phy_bw){
-     	case BW40:
+     	case BW20_DBLCLK:
      		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
 		break;
      	case BW20:
@@ -372,7 +372,7 @@ void wlan_phy_init() {
     //        enough for decoding latency at 64QAM 3/4
     //
     switch(phy_bw){
-    	case BW40:
+    	case BW20_DBLCLK:
     		wlan_phy_rx_set_extension(135); //TODO: This should be raised to 2x the BW20 mode. At the moment it is smaller
     										//to align with the current maximum TX EXT.
 		break;
@@ -395,7 +395,7 @@ void wlan_phy_init() {
 
     // Set Tx duration extension, in units of sample periods
     switch(phy_bw){
-    	case BW40:
+    	case BW20_DBLCLK:
     		wlan_phy_tx_set_extension(254);
 		break;
     	case BW20:
@@ -468,7 +468,7 @@ void wlan_radio_init() {
     clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
 
     switch(phy_bw){
-    	case BW40:
+    	case BW20_DBLCLK:
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
 		break;
     	case BW20:
@@ -505,7 +505,7 @@ void wlan_radio_init() {
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXHPF_HIGH_CUTOFF_EN, 1);
 
     switch(phy_bw){
-    	case BW40:
+    	case BW20_DBLCLK:
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3);
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3);
 		break;
@@ -601,7 +601,7 @@ void wlan_agc_config(u32 ant_mode) {
 
     // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
     switch(phy_bw){
-    	case BW40:
+    	case BW20_DBLCLK:
     		wlan_agc_set_AGC_timing(10, 30, 90, 96);
 		break;
     	case BW20:
