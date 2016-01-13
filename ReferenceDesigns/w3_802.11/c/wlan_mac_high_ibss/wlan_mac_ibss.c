@@ -570,7 +570,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 				first_tx_time_delta = (u32)(tx_low_details[i].tx_start_timestamp_mpdu - (tx_mpdu->timestamp_create + tx_mpdu->delay_accept));
 			}
 
-			if( (first_tx_time_delta < T_SLOT) ){
+			if( (first_tx_time_delta < 9) ){
 				//This captures a subtle effect in the DCF hardware. A random backoff is calculated on the
 				//first transmission of an MPDU in case a CCA_BUSY causes a deferral. If there is no deferral,
 				//this slot count is not used. We can sanitize this value here by seeing if the packet transmitted
