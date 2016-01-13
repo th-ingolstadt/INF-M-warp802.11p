@@ -54,7 +54,8 @@
 
 
 /*************************** Variable Definitions ****************************/
-
+volatile static phy_bw_t	 phy_bw;												///< Current bandwidth selection
+volatile static mac_timing   mac_timing_values;										///< MAC Timing Constants
 volatile static u32          mac_param_chan;                                        ///< Current channel of the lower-level MAC
 volatile static u8           mac_param_band;                                        ///< Current band of the lower-level MAC
 volatile static s8           mac_param_ctrl_tx_pow;                                 ///< Current transmit power (dBm) for control packets
@@ -101,6 +102,20 @@ int wlan_mac_low_init(u32 type){
     u32 status;
     rx_frame_info* rx_mpdu;
     wlan_ipc_msg ipc_msg_to_high;
+
+    phy_bw = BW20;
+
+    switch(phy_bw){
+    	case BW40:
+    	case BW20:
+    		mac_timing_values.t_slot = 9;
+    		mac_timing_values.t_sifs = 10;
+    		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
+    		mac_timing_values.t_eifs = 88;
+    		mac_timing_values.t_phy_rx_start_dly = 25;
+    		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
+    	break;
+    }
 
     mac_param_band           = RC_24GHZ;
     mac_param_ctrl_tx_pow    = 10;
@@ -220,23 +235,23 @@ void wlan_mac_low_init_dcf(){
     REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_DISABLE_NAV));
 
     // MAC timing parameters are in terms of units of 100 nanoseconds
-    wlan_mac_set_slot(T_SLOT*10);
+    wlan_mac_set_slot(mac_timing_values.t_slot*10);
 
-    wlan_mac_set_DIFS((T_DIFS)*10);
-    wlan_mac_set_TxDIFS(((T_DIFS)*10) - (TX_PHY_DLY_100NSEC));
+    wlan_mac_set_DIFS((mac_timing_values.t_difs)*10);
+    wlan_mac_set_TxDIFS(((mac_timing_values.t_difs)*10) - (TX_PHY_DLY_100NSEC));
 
     // Use postTx timer 2 for ACK timeout
-    wlan_mac_set_postTx_timer2(T_TIMEOUT * 10);
+    wlan_mac_set_postTx_timer2(mac_timing_values.t_timeout * 10);
     wlan_mac_postTx_timer2_en(1);
 
     // Use postRx timer 1 for SIFS
-    wlan_mac_set_postRx_timer1((T_SIFS*10)-(TX_PHY_DLY_100NSEC));
+    wlan_mac_set_postRx_timer1((mac_timing_values.t_sifs*10)-(TX_PHY_DLY_100NSEC));
     wlan_mac_postRx_timer1_en(1);
 
     // TODO: NAV adjust needs verification
     //     NAV adjust time - signed char (Fix8_0) value
     wlan_mac_set_NAV_adj(0*10);
-    wlan_mac_set_EIFS(T_EIFS*10);
+    wlan_mac_set_EIFS(mac_timing_values.t_eifs*10);
 
     // Clear any stale Rx events
     wlan_mac_dcf_hw_unblock_rx_phy();
@@ -774,7 +789,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 
 			// Compute and fill in the duration of any time-on-air following this packet's transmission
 			//     For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
-			tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ACK_N_DBPS) + T_SIFS;
+			tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ACK_N_DBPS) + mac_timing_values.t_sifs;
 		}
 
 		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
@@ -1466,3 +1481,10 @@ inline u8 wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs){
     return return_value;
 }
 
+inline phy_bw_t	wlan_mac_low_get_phy_bw(){
+	return phy_bw;
+}
+
+inline mac_timing wlan_mac_low_get_mac_timing_values(){
+	return mac_timing_values;
+}

@@ -261,6 +261,8 @@ int w3_node_init() {
  *****************************************************************************/
 void wlan_phy_init() {
 
+	phy_bw_t phy_bw = wlan_mac_low_get_phy_bw();
+
     // Assert Tx and Rx resets
     REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
     REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
@@ -273,7 +275,15 @@ void wlan_phy_init() {
     //     wlan_phy_DSSS_rx_disable();
     //
 
-    wlan_phy_DSSS_rx_disable(); //TODO: Needed in 2XCLK extension. Enable in next commit.
+    switch(phy_bw){
+    	case BW40:
+    		//DSSS Reception not supported in 40MHz mode
+    		wlan_phy_DSSS_rx_disable();
+    	break;
+    	case BW20:
+    		wlan_phy_DSSS_rx_enable();
+    	break;
+    }
 
     // Set the max Tx/Rx packet sizes to 2KB (sane default for standard 802.11a/g links)
     wlan_phy_rx_set_max_pkt_len_kB(2);
@@ -317,8 +327,12 @@ void wlan_phy_init() {
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
 
     // FFT config
-//    wlan_phy_rx_set_fft_window_offset(3);
-    wlan_phy_rx_set_fft_window_offset(6); //TODO: Needed in 2XCLK extension. Remove in next commit.
+    switch(phy_bw){
+    	case BW40:
+    	case BW20:
+    		wlan_phy_rx_set_fft_window_offset(3);
+    	break;
+    }
     wlan_phy_rx_set_fft_scaling(5);
 
     // Set LTS correlation threshold and timeout
@@ -338,8 +352,14 @@ void wlan_phy_init() {
     //
     // NOTE: wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
     //
-     //wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
-     wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F); //TODO: Needed in 2XCLK extension. Remove in next commit.
+     switch(phy_bw){
+     	case BW40:
+     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
+		break;
+     	case BW20:
+     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
+     	break;
+     }
 
     // Configure the default antenna selections as SISO Tx/Rx on RF A
     wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
@@ -351,8 +371,17 @@ void wlan_phy_init() {
     //    NOTE: Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long
     //        enough for decoding latency at 64QAM 3/4
     //
-    //wlan_phy_rx_set_extension(PHY_RX_SIG_EXT_USEC*20);
-    wlan_phy_rx_set_extension(135); //TODO: Needed in 2XCLK extension. Remove in next commit.
+    switch(phy_bw){
+    	case BW40:
+    		wlan_phy_rx_set_extension(135); //TODO: This should be raised to 2x the BW20 mode. At the moment it is smaller
+    										//to align with the current maximum TX EXT.
+		break;
+    	case BW20:
+    		// 6us Extension
+    		wlan_phy_rx_set_extension(6*20);
+    	break;
+    }
+
 
     // Configure channel estimate capture (64 subcarriers, 4 bytes each)
     //     Chan ests start at sizeof(rx_frame_info) - sizeof(chan_est)
@@ -365,7 +394,16 @@ void wlan_phy_init() {
     REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);
 
     // Set Tx duration extension, in units of sample periods
-    wlan_phy_tx_set_extension(PHY_TX_SIG_EXT_SAMP_PERIODS);
+    switch(phy_bw){
+    	case BW40:
+    		wlan_phy_tx_set_extension(254);
+		break;
+    	case BW20:
+    		// 182 20MHz sample periods.
+    		// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
+    		wlan_phy_tx_set_extension(182);
+    	break;
+    }
 
     // Set extension from last samp output to RF Tx -> Rx transition
     //     This delay allows the Tx pipeline to finish driving samples into DACs
@@ -423,13 +461,20 @@ void wlan_phy_init() {
  *****************************************************************************/
 void wlan_radio_init() {
 
+	phy_bw_t phy_bw = wlan_mac_low_get_phy_bw();
+
 #if 1
     // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
     clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
 
-    //ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
-    //2XCLK: set decimation/interpolation to 1x in AD9963
-    ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1); //TODO: Needed in 2XCLK extension. Remove in next commit.
+    switch(phy_bw){
+    	case BW40:
+    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
+		break;
+    	case BW20:
+    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+    	break;
+    }
 #else
     // Setup clocking and filtering:
     //     80MHz ref clk to AD9963
@@ -458,12 +503,17 @@ void wlan_radio_init() {
 
     // Filter bandwidths
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXHPF_HIGH_CUTOFF_EN, 1);
-    //radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
-    //radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
 
-    //2XCLK: Max bandwidths
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3); //TODO: Needed in 2XCLK extension. Remove in next commit.
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3); //TODO: Needed in 2XCLK extension. Remove in next commit.
+    switch(phy_bw){
+    	case BW40:
+    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3);
+    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3);
+		break;
+    	case BW20:
+    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
+    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
+    	break;
+    }
 
 #if 0
     // To set the gains manually for all radios:
@@ -537,6 +587,8 @@ void wlan_agc_config(u32 ant_mode) {
     // response than on-board RF interfaces. Testing so far indicates the settings below
     // work fine for all RF interfaces
 
+	phy_bw_t phy_bw = wlan_mac_low_get_phy_bw();
+
     // Post Rx_done reset delays for [rxhp, g_rf, g_bb]
     wlan_agc_set_reset_timing(4, 250, 250);
 
@@ -548,8 +600,14 @@ void wlan_agc_config(u32 ant_mode) {
     wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
 
     // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-    //wlan_agc_set_AGC_timing(1, 30, 90, 96);
-    wlan_agc_set_AGC_timing(10, 30, 90, 96); //TODO: Needed in 2XCLK extension. Enable in next commit.
+    switch(phy_bw){
+    	case BW40:
+    		wlan_agc_set_AGC_timing(10, 30, 90, 96);
+		break;
+    	case BW20:
+    		wlan_agc_set_AGC_timing(1, 30, 90, 96);
+    	break;
+    }
 
     // AGC timing: start_dco, en_iir_filt
     wlan_agc_set_DCO_timing(100, (100 + 34));

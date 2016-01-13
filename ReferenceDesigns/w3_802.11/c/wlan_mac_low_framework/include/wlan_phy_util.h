@@ -60,18 +60,11 @@
 #define TXTIME_T_SIGNAL                                    4              //  80 samples @ 20MHz
 #define TXTIME_T_SYM                                       4              //  80 samples @ 20MHz
 
-// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
-//#define PHY_TX_SIG_EXT_SAMP_PERIODS                       (182)
-#define PHY_TX_SIG_EXT_SAMP_PERIODS                       (254) //2XCLK - max extension
-
 // Empirically measured a 2.2usec latency from RC PHY start to observable waveform
 #define TX_RC_PHYSTART_DLY                                 0
-#define TX_PHY_DLY_100NSEC                              (((TX_RC_PHYSTART_DLY)/4) + 22)
+#define TX_PHY_DLY_100NSEC                                (((TX_RC_PHYSTART_DLY)/4) + 22)
 
 // RX PHY-level constants
-//#define PHY_RX_SIG_EXT_USEC                                6
-#define PHY_RX_SIG_EXT_USEC                                12 //2XCLK - double
-
 #define PHY_RX_RSSI_SUM_LEN                                4
 #define PHY_RX_RSSI_SUM_LEN_BITS                           2              // LOG2(PHY_RX_RSSI_SUM_LEN)
 

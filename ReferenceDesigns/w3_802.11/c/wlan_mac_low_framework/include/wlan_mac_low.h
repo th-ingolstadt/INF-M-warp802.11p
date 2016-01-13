@@ -20,21 +20,24 @@
 
 #include "wlan_mac_ipc_util.h"
 
-
 //-----------------------------------------------
-// MAC timing parameter defines
-//
-
-#define T_SIFS              10
-#define T_DIFS				(T_SIFS + (2 * T_SLOT))
-#define T_EIFS              88
-#define T_PHY_RX_START_DLY  25
-#define T_TIMEOUT           (T_SIFS + T_SLOT + T_PHY_RX_START_DLY)
+// PHY Bandwidth Configuration
+typedef enum {BW20, BW40} phy_bw_t;
 
 //-----------------------------------------------
 // MAC Header defines
 #define MAC_HW_LASTBYTE_ADDR1 (13)
 
+//-----------------------------------------------
+// MAC Timing Structure
+typedef struct{
+	u16 t_slot;
+	u16 t_sifs;
+	u16 t_difs;
+	u16	t_eifs;
+	u16 t_phy_rx_start_dly;
+	u16 t_timeout;
+} mac_timing;
 
 //-----------------------------------------------
 // Power defines
@@ -421,6 +424,9 @@ inline u32         wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
 inline u8          wlan_mac_low_mcs_to_n_dbps(u8 mcs);
 inline u8          wlan_mac_low_mcs_to_phy_rate(u8 mcs);
 inline u8          wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs);
+
+inline phy_bw_t	   wlan_mac_low_get_phy_bw();
+inline mac_timing  wlan_mac_low_get_mac_timing_values();
 
 
 #endif /* WLAN_MAC_LOW_H_ */
