@@ -470,9 +470,11 @@ void wlan_radio_init() {
     switch(phy_bw){
     	case BW20_DBLCLK:
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x2F);
 		break;
     	case BW20:
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
     	break;
     }
 #else
