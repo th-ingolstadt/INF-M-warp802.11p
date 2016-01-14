@@ -582,6 +582,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
             rx_event_log_entry->pkt_type       = pkt_type;
             rx_event_log_entry->chan_num       = rx_mpdu->channel;
             rx_event_log_entry->ant_mode       = rx_mpdu->ant_mode;
+            rx_event_log_entry->cfo_est		   = rx_mpdu->cfo_est;
             rx_event_log_entry->flags          = 0;
 
             // Start second copy based on the copy order

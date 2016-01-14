@@ -288,6 +288,7 @@ typedef struct{
     u64                 timestamp;               // Timestamp of the log entry
     u8					timestamp_frac;			 // Additional fractional timestamp (160MHz clock units)
     u8					reserved[3];
+    u32					cfo_est;				 // CFO Estimate
     u16                 length;                  // Length of the received packet
     u8                  rate;                    // Rate at which the packet was received
     s8                  power;                   // Power of the received packet
