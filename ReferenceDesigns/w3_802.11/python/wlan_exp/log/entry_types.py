@@ -822,6 +822,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
         ('padding',                '3x',     '3uint8',  ''),
+        ('cfo_est',                'i',      'int32',   'CFO estimate (cycles per symbol)'),
         ('length',                 'H',      'uint16',  'Length of payload in bytes'),
         ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
         ('power',                  'b',      'int8',    'Rx power in dBm'),

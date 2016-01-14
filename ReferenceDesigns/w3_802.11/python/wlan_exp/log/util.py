@@ -687,7 +687,7 @@ def calc_tx_time(rate, payload_length):
     T_PREAMBLE = 8
     T_SIG = 2
     T_SYM = 2
-    T_EXT = 6.35
+    T_EXT = 6
      
     try:
         r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
