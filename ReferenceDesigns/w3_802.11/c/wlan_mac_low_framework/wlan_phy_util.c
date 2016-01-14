@@ -373,8 +373,8 @@ void wlan_phy_init() {
     //
     switch(phy_bw){
     	case BW20_DBLCLK:
-    		wlan_phy_rx_set_extension(135); //TODO: This should be raised to 2x the BW20 mode. At the moment it is smaller
-    										//to align with the current maximum TX EXT.
+    		// 6us Extension
+    		wlan_phy_rx_set_extension(6*40);
 		break;
     	case BW20:
     		// 6us Extension
@@ -396,22 +396,32 @@ void wlan_phy_init() {
     // Set Tx duration extension, in units of sample periods
     switch(phy_bw){
     	case BW20_DBLCLK:
-    		wlan_phy_tx_set_extension(254);
+    		// 364 20MHz sample periods.
+    		// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
+    		wlan_phy_tx_set_extension(364);
+
+    	    // Set extension from last samp output to RF Tx -> Rx transition
+    	    //     This delay allows the Tx pipeline to finish driving samples into DACs
+    	    //     and for DAC->RF frontend to finish output Tx waveform
+    	    wlan_phy_tx_set_txen_extension(100);
+
+    	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
+    	    wlan_phy_tx_set_rx_invalid_extension(300);
 		break;
     	case BW20:
     		// 182 20MHz sample periods.
     		// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
     		wlan_phy_tx_set_extension(182);
+
+    	    // Set extension from last samp output to RF Tx -> Rx transition
+    	    //     This delay allows the Tx pipeline to finish driving samples into DACs
+    	    //     and for DAC->RF frontend to finish output Tx waveform
+    	    wlan_phy_tx_set_txen_extension(50);
+
+    	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
+    	    wlan_phy_tx_set_rx_invalid_extension(150);
     	break;
     }
-
-    // Set extension from last samp output to RF Tx -> Rx transition
-    //     This delay allows the Tx pipeline to finish driving samples into DACs
-    //     and for DAC->RF frontend to finish output Tx waveform
-    wlan_phy_tx_set_txen_extension(50);
-
-    // Set extension from RF Rx -> Tx to un-blocking Rx samples
-    wlan_phy_tx_set_rx_invalid_extension(150);
 
     // Set digital scaling of preamble/payload signals before DACs (UFix12_0)
     //
@@ -471,10 +481,12 @@ void wlan_radio_init() {
     	case BW20_DBLCLK:
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x2F);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
 		break;
     	case BW20:
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
     	break;
     }
 #else
