@@ -88,7 +88,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.4.2 2XCLK ----------------------\n");
+    xil_printf("----- v1.4.3 2XCLK ----------------------\n");
     xil_printf("----- wlan_mac_dcf ----------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -428,6 +428,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     mpdu_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
     mpdu_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
     mpdu_info->ant_mode       = active_rx_ant;
+    mpdu_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
     mpdu_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
     mpdu_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
 
