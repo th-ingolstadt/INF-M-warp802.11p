@@ -132,6 +132,7 @@
 #define WLAN_RX_PKT_DET_OFDM_CFG                           XPAR_WLAN_PHY_RX_MEMMAP_PKTDET_AUTOCORR_CONFIG
 #define WLAN_RX_PKT_DET_DSSS_CFG                           XPAR_WLAN_PHY_RX_MEMMAP_PKTDET_DSSS_CONFIG
 #define WLAN_RX_PKT_BUF_MAXADDR                            XPAR_WLAN_PHY_RX_MEMMAP_PKTBUF_MAX_WRITE_ADDR
+#define WLAN_RX_CFO_EST_TIME_DOMAIN						   XPAR_WLAN_PHY_RX_MEMMAP_CFO_EST_TIME_DOMAIN
 
 #define WLAN_TX_REG_STATUS                                 XPAR_WLAN_PHY_TX_MEMMAP_STATUS
 #define WLAN_TX_REG_CFG                                    XPAR_WLAN_PHY_TX_MEMMAP_CONFIG
@@ -333,6 +334,10 @@
 #define wlan_phy_DSSS_rx_enable()                          Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) | WLAN_RX_REG_CFG_DSSS_RX_EN)
 #define wlan_phy_DSSS_rx_disable()                         Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_DSSS_RX_EN)
 
+// Rx PHY captures time-domain CFO est
+// Fix20_21 value, sign extended to Fix32_31 in this register
+#define wlan_phy_rx_get_cfo_est() Xil_In32(WLAN_RX_CFO_EST_TIME_DOMAIN)
+
 #define wlan_phy_rx_pktDet_RSSI_cfg(sum_len, sum_thresh, min_dur) \
     Xil_Out32(WLAN_RX_PKTDET_RSSI_CFG, ((sum_len & 0x1F) | ((sum_thresh & 0x7FFF) << 5) | ((min_dur & 0x1F) << 20)))
 
@@ -368,9 +373,13 @@
 #define wlan_phy_rx_lts_corr_config(snr_thresh, corr_timeout) \
     Xil_Out32(WLAN_RX_LTS_CFG, (corr_timeout & 0xFF) | ((snr_thresh & 0xFFFF) << 8))
 
-#define wlan_phy_tx_set_extension(d)                       Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFFFF00) | ((d) & 0xFF)))
-#define wlan_phy_tx_set_txen_extension(d)                  Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFF00FF) | (((d) & 0xFF) << 8)))
-#define wlan_phy_tx_set_rx_invalid_extension(d)            Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFF00FFFF) | (((d) & 0xFF) << 16)))
+//Tx PHY TIMING register:
+// [ 9: 0] Tx extension (time from last sample to TX_DONE)
+// [19:10] TxEn extension (time from last sample to de-assertion of radio TXEN)
+// [29:20] Rx invalid extension (time from last sample to de-assertion of RX_SIG_INVALID output)
+#define wlan_phy_tx_set_extension(d)                       Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFFFFC00) | ((d) & 0x3FF)))
+#define wlan_phy_tx_set_txen_extension(d)                  Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xFFF003FF) | (((d) & 0x3FF) << 10)))
+#define wlan_phy_tx_set_rx_invalid_extension(d)            Xil_Out32(WLAN_TX_REG_TIMING, ( (Xil_In32(WLAN_TX_REG_TIMING) & 0xC00FFFFF) | (((d) & 0x3FF) << 20)))
 
 #define wlan_phy_rx_set_cca_thresh(d)                      Xil_Out32(WLAN_RX_PHY_CCA_CFG, ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0xFFFF0000) | ((d) & 0xFFFF)))
 #define wlan_phy_rx_set_extension(d)                       Xil_Out32(WLAN_RX_PHY_CCA_CFG, ((Xil_In32(WLAN_RX_PHY_CCA_CFG) & 0xFF00FFFF) | (((d) << 16) & 0xFF0000)))
