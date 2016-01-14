@@ -342,10 +342,13 @@ typedef struct{
     u8                       channel;                      ///< Channel index
     u8                       padding1;                     ///< Used for alignment of fields (can be appropriated for any future use)
     //----- 8-byte boundary ------
+    u32						 cfo_est;					   ///< Carrier Frequency Offset Estimate
+    u32						 reserved0;
+    //----- 8-byte boundary ------
     phy_rx_details           phy_details;                  ///< Details from PHY used in this reception
     //----- 8-byte boundary ------
     u8						 timestamp_frac;			   ///< Fractional timestamp beyond usec timestamp for time of reception
-    u8                       reserved[3];                  ///< Reserved bytes for alignment
+    u8                       reserved2[3];                  ///< Reserved bytes for alignment
     u32                      additional_info;              ///< Field to hold MAC-specific info, such as a pointer to a station_info
     //----- 8-byte boundary ------
     wlan_mac_low_tx_details  resp_low_tx_details;
