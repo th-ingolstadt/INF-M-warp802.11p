@@ -1089,7 +1089,7 @@ int transport_set_ip_addr(u32 eth_dev_num, u8 * ip_addr) {
 
 int transport_get_ip_addr(u32 eth_dev_num, u8 * ip_addr) {
 
-    return eth_set_ip_addr(eth_dev_num, ip_addr);
+    return eth_get_ip_addr(eth_dev_num, ip_addr);
 }
 
 
