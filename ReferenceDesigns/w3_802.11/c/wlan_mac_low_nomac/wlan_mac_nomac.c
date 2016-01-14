@@ -69,7 +69,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.4.2 2XCLK ----------------------\n");
+    xil_printf("----- v1.4.3 2XCLK ----------------------\n");
     xil_printf("----- wlan_mac_nomac --------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -159,6 +159,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     mpdu_info->state          = wlan_mac_dcf_hw_rx_finish();                 // Blocks until reception is complete
 
     mpdu_info->ant_mode       = wlan_phy_rx_get_active_rx_ant();
+    mpdu_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
     mpdu_info->rf_gain        = wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode);
     mpdu_info->bb_gain        = wlan_phy_rx_get_agc_BBG(mpdu_info->ant_mode);
     mpdu_info->rx_power       = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(mpdu_info->ant_mode), wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode));
