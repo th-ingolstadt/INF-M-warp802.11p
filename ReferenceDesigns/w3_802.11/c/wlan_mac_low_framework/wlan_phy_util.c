@@ -276,7 +276,9 @@ void wlan_phy_init() {
     //
 
     switch(phy_bw){
-    	case BW20_DBLCLK:
+		case BW5:
+		case BW10:
+    	case BW20_OVRCLK:
     		//DSSS Reception not supported in 40MHz mode
     		wlan_phy_DSSS_rx_disable();
     	break;
@@ -327,12 +329,8 @@ void wlan_phy_init() {
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
 
     // FFT config
-    switch(phy_bw){
-    	case BW20_DBLCLK:
-    	case BW20:
-    		wlan_phy_rx_set_fft_window_offset(3);
-    	break;
-    }
+	wlan_phy_rx_set_fft_window_offset(3);
+
     wlan_phy_rx_set_fft_scaling(5);
 
     // Set LTS correlation threshold and timeout
@@ -353,9 +351,12 @@ void wlan_phy_init() {
     // NOTE: wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
     //
      switch(phy_bw){
-     	case BW20_DBLCLK:
+     	case BW20_OVRCLK:
+     		//TODO: The 2 value is suspiciously low
      		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
 		break;
+     	case BW5:
+     	case BW10:
      	case BW20:
      		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
      	break;
@@ -372,13 +373,21 @@ void wlan_phy_init() {
     //        enough for decoding latency at 64QAM 3/4
     //
     switch(phy_bw){
-    	case BW20_DBLCLK:
+    	case BW20_OVRCLK:
     		// 6us Extension
     		wlan_phy_rx_set_extension(6*40);
 		break;
     	case BW20:
     		// 6us Extension
     		wlan_phy_rx_set_extension(6*20);
+    	break;
+    	case BW10:
+    		// 6us Extension
+    		wlan_phy_rx_set_extension(6*10);
+    	break;
+    	case BW5:
+    		// 6us Extension
+    		wlan_phy_rx_set_extension(6*5);
     	break;
     }
 
@@ -395,7 +404,7 @@ void wlan_phy_init() {
 
     // Set Tx duration extension, in units of sample periods
     switch(phy_bw){
-    	case BW20_DBLCLK:
+    	case BW20_OVRCLK:
     		// 364 20MHz sample periods.
     		// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
     		wlan_phy_tx_set_extension(364);
@@ -420,6 +429,28 @@ void wlan_phy_init() {
 
     	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
     	    wlan_phy_tx_set_rx_invalid_extension(150);
+    	break;
+    	case BW10:
+    		wlan_phy_tx_set_extension(91);
+
+    	    // Set extension from last samp output to RF Tx -> Rx transition
+    	    //     This delay allows the Tx pipeline to finish driving samples into DACs
+    	    //     and for DAC->RF frontend to finish output Tx waveform
+    	    wlan_phy_tx_set_txen_extension(25);
+
+    	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
+    	    wlan_phy_tx_set_rx_invalid_extension(75);
+    	break;
+    	case BW5:
+    		wlan_phy_tx_set_extension(45);
+
+    	    // Set extension from last samp output to RF Tx -> Rx transition
+    	    //     This delay allows the Tx pipeline to finish driving samples into DACs
+    	    //     and for DAC->RF frontend to finish output Tx waveform
+    	    wlan_phy_tx_set_txen_extension(13);
+
+    	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
+    	    wlan_phy_tx_set_rx_invalid_extension(38);
     	break;
     }
 
@@ -474,16 +505,33 @@ void wlan_radio_init() {
 	phy_bw_t phy_bw = wlan_mac_low_get_phy_bw();
 
 #if 1
-    // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
-    clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+
 
     switch(phy_bw){
-    	case BW20_DBLCLK:
+    	case BW20_OVRCLK:
+    	    // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
+    	    clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x2F);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
 		break;
     	case BW20:
+    	    // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
+    	    clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
+    	break;
+    	case BW10:
+    		//10MHz bandwidth: 20MHz clock to AD9963, use 2x interpolation/decimation
+    		clk_config_dividers(CLK_BASEADDR, 4, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
+    	break;
+    	case BW5:
+    		//5MHz bandwidth: 10MHz clock to AD9963, use 2x interpolation/decimation
+    		clk_config_dividers(CLK_BASEADDR, 8, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
@@ -519,10 +567,12 @@ void wlan_radio_init() {
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXHPF_HIGH_CUTOFF_EN, 1);
 
     switch(phy_bw){
-    	case BW20_DBLCLK:
+    	case BW20_OVRCLK:
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3);
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3);
 		break;
+    	case BW5:
+    	case BW10:
     	case BW20:
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
@@ -615,9 +665,11 @@ void wlan_agc_config(u32 ant_mode) {
 
     // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
     switch(phy_bw){
-    	case BW20_DBLCLK:
+    	case BW20_OVRCLK:
     		wlan_agc_set_AGC_timing(10, 30, 90, 96);
 		break;
+    	case BW10:
+    	case BW5:
     	case BW20:
     		wlan_agc_set_AGC_timing(1, 30, 90, 96);
     	break;
