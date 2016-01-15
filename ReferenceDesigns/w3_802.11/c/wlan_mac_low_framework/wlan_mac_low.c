@@ -107,7 +107,7 @@ int wlan_mac_low_init(u32 type){
 
     switch(phy_bw){
     	default:
-    	case BW20_OVRCLK:
+    	case BW40_OVRCLK:
     	case BW20:
     		mac_timing_values.t_slot = 9;
     		mac_timing_values.t_sifs = 10;

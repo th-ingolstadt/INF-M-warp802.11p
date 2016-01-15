@@ -22,7 +22,7 @@
 
 //-----------------------------------------------
 // PHY Bandwidth Configuration
-typedef enum {BW5, BW10, BW20, BW20_OVRCLK} phy_bw_t;
+typedef enum {BW5, BW10, BW20, BW40_OVRCLK} phy_bw_t;
 
 //-----------------------------------------------
 // MAC Header defines
