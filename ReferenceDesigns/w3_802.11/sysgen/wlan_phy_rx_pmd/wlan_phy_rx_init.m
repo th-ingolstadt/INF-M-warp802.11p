@@ -13,61 +13,39 @@ PLCP_Preamble = PLCP_Preamble_gen;
 
 %% Define an input signal for simulation
 % Ensure previously-defined waveforms are cleared
-clear wlan_tx_out;
+%clear wlan_tx_out;
 clear tx_sig;
 clear ADC_I ADC_Q;
 
 %---------
 %PHY debugging with ChipScope captures of I/Q
 % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
-%xlLoadChipScopeData('cs_capt/good_rts_bad_mpdu.prn'); cs_interp = 1; cs_start = 3174; cs_end = 6300;%length(ADC_I);
-%rx_sim_sig_adc_IQ = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
-%rx_sim_sig_adc_IQ = [zeros(50,1); rx_sim_sig_adc_IQ; zeros(1000,1);];
+%xlLoadChipScopeData('cs_capt/goodDet_noCorr_v1.prn'); cs_interp = 8; cs_start = 500; cs_end = length(ADC_I) - 24;
+%WTF: observed H est and SIGNAL symbol weren't lined up; skipping a sample after the LTS (approx here, ~#1963) 
+% results in ugly-but-decoable SIGNAL then clean payload symbols...
+%FIRST_SAMP_ind = 960;
+%ADC_I = [ADC_I(1:FIRST_SAMP_ind+320); ADC_I(FIRST_SAMP_ind+322:end)];
+%ADC_Q = [ADC_Q(1:FIRST_SAMP_ind+320); ADC_Q(FIRST_SAMP_ind+322:end)];
+%rx_sim_sig_adc_IQ = 0.75*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
+%rx_sim_sig_adc_IQ = 0.75*complex(ADC_Q([cs_start:cs_interp:cs_end-8]), ADC_I(cs_start+8:cs_interp:cs_end)); %swap IQ, shift IvsQ
+%rx_sim_sig_adc_IQ = [zeros(50,1); rx_sim_sig_adc_IQ; zeros(500,1); rx_sim_sig_adc_IQ; zeros(500,1)];
 %rx_sim_sig_samp_time = 8;
 
 %Output of PHY Tx simulation
 % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-%load('rx_sigs/wlan_tx_sig_Null_Data_24Mbps.mat');wlan_tx_out = 2.*wlan_tx_out;
-%load('rx_sigs/wlan_tx_sig_Data_16Byte_Payload_6Mbps.mat');wlan_tx_out = 2*wlan_tx_out; %.mat too small for non-zero energy thresh
+load('rx_sigs/11n/wlan_tx_HTMM_CW20_MCS1_100B.mat');wlan_tx_out = 0.5*wlan_tx_out.';
 
-%load('rx_sigs/rts_24M.mat');wlan_tx_out = 1.*wlan_tx_out;
+%Test corrupt HT-SIG field
+%ht_sig = wlan_tx_out(320+80+1:320+80+160);
+%wlan_tx_out = [wlan_tx_out(1:320+80) ht_sig(81:end), ht_sig(1:80), wlan_tx_out(320+80+160+1:end)].';
 
-load('rx_sigs/rts_24M.mat');
-wvfm_rts = 1.*wlan_tx_out;
-clear wlan_tx_out
-
-load('rx_sigs/tx_sig_NON_HT_QPSK_12_100B_W_FCS.mat'); wlan_tx_out = 0.3.*tx_sig.';  
-wvfm_data = wlan_tx_out;
-clear wlan_tx_out
-
-wlan_tx_out = [wvfm_rts; zeros(500,1); wvfm_data; zeros(100,1)];
-
-%load('rx_sigs/tx_sig_HT_MM_QPSK_12_100B_W_FCS_v1.mat'); wlan_tx_out = 0.3.*sig(1:2100).'; 
-
-%load('rx_sigs/dsss_capt_v0.mat');wlan_tx_out = 4*rx_IQ(1.3e4:2:end);
-
-%Supported HT MCS's
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_01_bw_0_len_0100.mat'); wlan_tx_out = sig.';
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_03_bw_0_len_0100.mat'); wlan_tx_out = sig.';
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_07_bw_0_len_0100.mat'); wlan_tx_out = sig.';
-
-%Zero-length HT payload (NDP packet - not supported in our PHY)
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_06_bw_0_len_0000.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig.'];
-
-%Misc
-%load('rx_sigs/HT/wlan_tx_sig_NON_HT_mcs_04_bw_0_len_0014.mat'); wlan_tx_out = sig.';
-%load('rx_sigs/HT/wlan_tx_sig_NON_HT_mcs_04_bw_0_len_0014_ERR.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig.'];
-
-%Unsuported MCS's
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sum(sig).'; %Rx=Tx1+Tx2
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = sig(1,:).'; %Rx=Tx1
-%load('rx_sigs/HT/wlan_tx_sig_HT_mcs_08_bw_0_len_0100.mat'); wlan_tx_out = [wlan_tx_out; zeros(500,1); sig(1,:).']; %Append Rx=Tx1
+%Set sampling rate (8=20MHz, 4=40MHz)
+rx_sim_sig_samp_time = 8;
 
 tx_sig_t = [1:length(wlan_tx_out)];
-%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
-%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1);]; %Double sig
-rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1);]; %Triple sig
-rx_sim_sig_samp_time = 8;
+rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
+%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(5,1); wlan_tx_out(tx_sig_t); zeros(500,1);]; %Double sig
+%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1);]; %Triple sig
 
 %Apply CFO
 %cfo_vec = exp(1i*2*pi*1e-4*[0:length(rx_sim_sig_adc_IQ)-1]');
@@ -154,28 +132,28 @@ PHY_CONFIG_RSSI_SUM_LEN = 8;
 
 PHY_SIGNAL_MIN_LEN = 14;
 
-PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 10e3; %FIXME back to 10e3!
-PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 10e3; %FIXME back to 10e3!
+PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 12500; %FIXME back to 10e3!
+PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 12500; %FIXME back to 10e3!
 PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 
 %PHY_CONFIG_LTS_CORR_TIMEOUT = 250; %v1.2
 PHY_CONFIG_LTS_CORR_TIMEOUT = 175;
 
-PHY_CONFIG_PKT_DET_CORR_THRESH = (0.75) * 2^8; %UFix8_8 threshold
+PHY_CONFIG_PKT_DET_CORR_THRESH = 200;%(0.75) * 2^8; %UFix8_8 threshold - CLK2X
 
 PHY_CONFIG_PKT_DET_DSSS_MIN_ONES = 20;%30;
 PHY_CONFIG_PKT_DET_DSSS_MIN_ONES_TOT = 40;
 
 %Good defaults for hw
 PHY_CONFIG_PKT_DET_CORR_THRESH_DSSS = 1.0*2^6;%1.5 * 2^6;%hex2dec('FF');%(1) * 2^7;
-PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 2;%400;%hex2dec('3FF');%(20) * 2^4; %UFix10_0
+PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 1;%400;%hex2dec('3FF');%(20) * 2^4; %UFix10_0
 
 %For sim testing with signal captured post-AGC
 %PHY_CONFIG_PKT_DET_CORR_THRESH_DSSS = 1.0 * 2^6;%hex2dec('FF');%(1) * 2^7;
 %PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 0;%hex2dec('3FF');%(20) * 2^4; %UFix10_0
 
 
-PHY_CONFIG_PKT_DET_ENERGY_THRESH = 1; %UFix14_4 thresh; set to low non-zero value
+PHY_CONFIG_PKT_DET_ENERGY_THRESH = 1;%1; %UFix14_4 thresh; set to low non-zero value %CLK2X - changed from 1
 PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 
@@ -216,12 +194,12 @@ REG_RX_Control = ...
     0;
 
 REG_RX_Config = ...
-    2^0  * 1 + ... %DSSS RX EN
+    2^0  * 0 + ... %DSSS RX EN
     2^1  * 1 + ... %Block inputs on INVALID input
     2^2  * 1 + ... %Swap pkt buf byte order
     2^3  * 1 + ... %Swap order of chan est u32 writes
     2^4  * 1 + ... %Allow DSSS Rx to keep AGC locked
-    2^5  * 0 + ... %Bypass CFO est/correction
+    2^5  * 1 + ... %Bypass CFO est/correction
     2^6  * 1 + ... %Enable chan est recording to pkt buf
     2^7  * 0 + ... %Enable switching diversity
     2^8  * 1 + ... %Block DSSS Rx until AGC is settled
@@ -235,6 +213,8 @@ REG_RX_Config = ...
     2^17 * 2 + ... %Max SIGNAL.LENGTH value, in kB (UFix4_0)
     2^21 * 0 + ... %Require auto-corr and RSSI pkt det
     2^22 * 0 + ... %Rate-Length Busy holds pkt det high
+    2^23 * 1 + ... %DSSS asserts CCA busy
+    2^24 * 1 + ... %Enable 11n Rx support
     0;
 
 REG_RX_DSSS_RX_CONFIG = ...
