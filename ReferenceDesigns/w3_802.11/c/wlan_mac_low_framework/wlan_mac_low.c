@@ -103,7 +103,7 @@ int wlan_mac_low_init(u32 type){
     rx_frame_info* rx_mpdu;
     wlan_ipc_msg ipc_msg_to_high;
 
-    phy_bw = BW10;
+    phy_bw = BW5;
 
     switch(phy_bw){
     	default:
@@ -113,7 +113,23 @@ int wlan_mac_low_init(u32 type){
     		mac_timing_values.t_sifs = 10;
     		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
     		mac_timing_values.t_eifs = 88;
-    		mac_timing_values.t_phy_rx_start_dly = 25;
+    		mac_timing_values.t_phy_rx_start_dly = 25; //TODO: This is BW dependent. 20/25 is waveform time. This should scale with BW. 10:MHz 45
+    		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
+    	break;
+    	case BW10:
+    		mac_timing_values.t_slot = 9;
+    		mac_timing_values.t_sifs = 10;
+    		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
+    		mac_timing_values.t_eifs = 88;
+    		mac_timing_values.t_phy_rx_start_dly = 45;
+    		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
+    	break;
+    	case BW5:
+    		mac_timing_values.t_slot = 9;
+    		mac_timing_values.t_sifs = 10;
+    		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
+    		mac_timing_values.t_eifs = 88;
+    		mac_timing_values.t_phy_rx_start_dly = 85;
     		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
     	break;
     }
