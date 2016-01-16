@@ -56,6 +56,7 @@ MPDU_Null_Data = sscanf('48 11 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 5
 
 %Short pkt - 16 payload bytes
 MPDU_Data_short = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', [0:15]) ' 00 00 00 00'], '%02x');
+MPDU_Data_short = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', [0:18]) ' 00 00 00 00'], '%02x');
 
 %Long pkt - 1420 payload bytes
 MPDU_Data_long = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:1420], 256)) ' 00 00 00 00'], '%02x');
@@ -69,22 +70,22 @@ ControlFrame_ACK = sscanf('d4 00 00 00 40 d8 55 04 21 4a 00 00 00 00', '%02x');
 
 %Choose a payload for simulation
 %Pkt_Payload = MPDU_Null_Data;
-%Pkt_Payload = MPDU_Data_short;
-Pkt_Payload = MPDU_Data_long;
+Pkt_Payload = MPDU_Data_short;
+%Pkt_Payload = MPDU_Data_long;
 %Pkt_Payload = ControlFrame_ACK;
 
 Pkt_len = length(Pkt_Payload);
 
 %Reshape byte vector to u32 vector, necessary to initialize the 32-bit BRAM
 % in the simulation
-Pkt_Payload = [Pkt_Payload zeros(1,-mod(Pkt_len, -4))];
-Pkt_Payload4 = reshape(Pkt_Payload, 4, Pkt_len/4);
+Pkt_Payload = [Pkt_Payload; zeros(-mod(Pkt_len, -4),1)];
+Pkt_Payload4 = reshape(Pkt_Payload, 4, length(Pkt_Payload)/4);
 Pkt_Payload_words = sum(Pkt_Payload4 .* repmat(2.^[0:8:24]', 1, size(Pkt_Payload4,2)));
 
 PPDU_words = zeros(1, MAX_NUM_BYTES/4);
 
 %Select the Tx rate in Mbps - must be one of the supported rates
-Tx_Rate = 54;
+Tx_Rate = 6;
 
 %Choose a modulation/coding rate and insert SIGNAL field in first 3 bytes
 switch Tx_Rate
@@ -121,6 +122,8 @@ Sim_Tx_Start_Period = 1*(160 * Tx_Time_usec) + 2e3; %Padding, convert to 160MHz 
 
 %Set the simulation time as a multiple of whole packet durations (1 by default)
 Sim_Time = 1 * Sim_Tx_Start_Period;
+
+sim_samp_time = 8; %4=40MHz, 8=20MHz
 
 %%
 
@@ -175,6 +178,7 @@ REG_TX_Config = ...
     2^5  * 0 + ... %Enable Tx on RF D
     2^6  * 1 + ... %Use ant mask from MAC hw port
     2^8  * 2 + ... %Max pkt length (SIGNAL.LENGTH max) in kB (UFix4_0)
+    2^12 * 1 + ... %11a mode by default (only used by software-initated Tx; MAC core sets this normally)
     0;
 
 REG_TX_PKT_BUF_SEL = ...
@@ -184,7 +188,7 @@ REG_TX_PKT_BUF_SEL = ...
     2^16 * 0  + ... %b[23:16] pkt buf address offset
     0;
 
-REG_TX_Output_Scaling = (2.5 * 2^12) + (2^16 * 2.5 * 2^12); %UFix16_12 values
+REG_TX_Output_Scaling = (2.0 * 2^12) + (2^16 * 2.0 * 2^12); %UFix16_12 values
 
 
 %% Cyclic Redundancy Check parameters
