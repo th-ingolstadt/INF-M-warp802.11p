@@ -342,7 +342,7 @@ class WlanExpLogEntryType(object):
             field_descs = []
             try:
                 (cb_doc_str, cb_doc_fields) = cb(np_arr_orig=None, docs_only=True)
-                
+
                 for f in cb_doc_fields:
                     field_descs.append((f[0], f[1], f[2]))
 
@@ -822,7 +822,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
         ('padding',                '3x',     '3uint8',  ''),
-        ('cfo_est',                'i',      'int32',   'CFO estimate (cycles per symbol)'),
+        ('cfo_est',                'i',      'int32',   'Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency'),
         ('length',                 'H',      'uint16',  'Length of payload in bytes'),
         ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
         ('power',                  'b',      'int8',    'Rx power in dBm'),
@@ -837,14 +837,14 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_rx_common.consts = util.consts_dict({
         'fcs_result'    : util.consts_dict({
             'GOOD'           : 0x00,
-            'BAD'            : 0x01 
+            'BAD'            : 0x01
         }),
         'pkt_type'      : common_pkt_type,
         'flags'         : util.consts_dict({
             'DUPLICATE'      : 0x0001
         })
     })
-    
+
 
     ###########################################################################
     # Tx CPU High Common
@@ -876,7 +876,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_tx_common.consts = util.consts_dict({
         'result'     : util.consts_dict({
             'SUCCESS'        : 0x00,
-            'FAILURE'        : 0x01 
+            'FAILURE'        : 0x01
         }),
         'pkt_type'   : common_pkt_type
     })
@@ -976,7 +976,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     tmp_station_info                = info.StationInfo()
 
     entry_station_info.consts       = tmp_station_info.get_consts()
-    
+
     entry_station_info.append_field_defs(tmp_station_info.get_field_defs())
 
 
@@ -988,11 +988,11 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
 
     tmp_bss_info                = info.BSSInfo()
-    
+
     entry_bss_info.consts       = tmp_bss_info.get_consts()
 
     entry_bss_info.append_field_defs(tmp_bss_info.get_field_defs())
-    
+
 
     ###########################################################################
     # Command Info
@@ -1186,7 +1186,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_txrx_counts.description += 'associated nodes.'
 
     tmp_txrx_counts                = info.TxRxCounts()
-    
+
     entry_txrx_counts.consts       = tmp_txrx_counts.get_consts()
 
     entry_txrx_counts.append_field_defs(tmp_txrx_counts.get_field_defs())
