@@ -43,7 +43,7 @@
 //
 #define WLAN_EXP_VER_MAJOR                                 1
 #define WLAN_EXP_VER_MINOR                                 4
-#define WLAN_EXP_VER_REV                                   3
+#define WLAN_EXP_VER_REV                                   4
 
 #define REQ_WLAN_EXP_HW_VER                               (WLAN_EXP_VER_MAJOR << 24)|(WLAN_EXP_VER_MINOR << 16)|(WLAN_EXP_VER_REV)
 
