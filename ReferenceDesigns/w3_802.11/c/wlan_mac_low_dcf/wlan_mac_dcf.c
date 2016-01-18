@@ -88,7 +88,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.4.3 2XCLK ----------------------\n");
+    xil_printf("----- v1.4.3 ----------------------------\n");
     xil_printf("----- wlan_mac_dcf ----------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -280,6 +280,14 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
     // Wait until the PHY has written enough bytes so that the first address field can be processed
     while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
+
+    	//Invalid HT-SIG hack
+		mac_hw_status = wlan_mac_get_status();
+		if(((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0) && (wlan_mac_get_last_byte_index() == 0)) {
+			//Rx PHY is idle, but we're still waiting for bytes - bad MAC/PHY status, ignore Rx and return
+			return return_value;
+		}
+
         if (DBG_PRINT) { xil_printf("Waiting for Rx Bytes (%d < %d)\n", wlan_mac_get_last_byte_index(), MAC_HW_LASTBYTE_ADDR1); }
     };
 
