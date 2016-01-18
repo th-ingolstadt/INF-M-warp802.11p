@@ -103,7 +103,7 @@ int wlan_mac_low_init(u32 type){
     rx_frame_info* rx_mpdu;
     wlan_ipc_msg ipc_msg_to_high;
 
-    phy_bw = BW5;
+    phy_bw = BW20;
 
     switch(phy_bw){
     	default:

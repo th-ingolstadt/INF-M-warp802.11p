@@ -312,6 +312,7 @@ void wlan_phy_init() {
 
     // Enable LTS-based CFO correction
     REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS);
+    //REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS); //TODO: Remove
 
     // Enable byte order swap for payloads and chan ests
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP);
@@ -358,7 +359,8 @@ void wlan_phy_init() {
      	case BW5:
      	case BW10:
      	case BW20:
-     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
+     		//wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
+     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 4, 0x3F);
      	break;
      }
 
@@ -387,7 +389,7 @@ void wlan_phy_init() {
     	break;
     	case BW5:
     		// 6us Extension
-    		wlan_phy_rx_set_extension(6*5);
+    		wlan_phy_rx_set_extension(6*10);
     	break;
     }
 
@@ -442,15 +444,15 @@ void wlan_phy_init() {
     	    wlan_phy_tx_set_rx_invalid_extension(75);
     	break;
     	case BW5:
-    		wlan_phy_tx_set_extension(45);
+    		wlan_phy_tx_set_extension(91);
 
     	    // Set extension from last samp output to RF Tx -> Rx transition
     	    //     This delay allows the Tx pipeline to finish driving samples into DACs
     	    //     and for DAC->RF frontend to finish output Tx waveform
-    	    wlan_phy_tx_set_txen_extension(13);
+    	    wlan_phy_tx_set_txen_extension(25);
 
     	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
-    	    wlan_phy_tx_set_rx_invalid_extension(38);
+    	    wlan_phy_tx_set_rx_invalid_extension(75);
     	break;
     }
 
@@ -530,11 +532,29 @@ void wlan_radio_init() {
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
     	break;
     	case BW5:
+    		/*
     		//5MHz bandwidth: 10MHz clock to AD9963, use 2x interpolation/decimation
     		clk_config_dividers(CLK_BASEADDR, 8, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
+			*/
+
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
+    		//AD ref clock = 40MHz
+    		clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+
+    		//DAC Clock = 40MHz, ADC Clock = 10MHz
+    		ad_config_clocks(AD_BASEADDR, AD_ALL_RF, AD_DACCLKSRC_EXT, AD_ADCCLKSRC_EXT, AD_ADCCLKDIV_4, AD_DCS_OFF);
+
+    		//Tx interpolation = 8 (IQ @ 5MHz, DAC @ 40MHz)
+    		//Rx decimation = 2 (IQ @ 5MHz, ADC @ 10MHz)
+    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 8, 2);
+
+    		//Minimum Tx/Rx LPF bandwidths (Rx corner = 7.5MHz, Tx corner = 12MHz)
+    		radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 0);
+    		radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
     	break;
     }
 #else
@@ -681,7 +701,7 @@ void wlan_agc_config(u32 ant_mode) {
     // AGC target output power (log scale)
     wlan_agc_set_target((64 - 16));
 
-#if 0
+#if 1
     // To set the gains manually:
 
     xil_printf("Switching to MGC\n");
@@ -690,8 +710,8 @@ void wlan_agc_config(u32 ant_mode) {
     radio_controller_setRxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_SPI);
 
     // Set Rx gains
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_RF, 3);
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 2);
+    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_RF, 2);
+    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 6);
 #endif
 
 
