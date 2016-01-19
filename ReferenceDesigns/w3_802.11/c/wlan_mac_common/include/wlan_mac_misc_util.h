@@ -77,6 +77,9 @@
 //
 #define WLAN_PHY_FCS_NBYTES                                4
 
+//-----------------------------------------------
+// PHY Bandwidth Configuration
+typedef enum {BW5, BW10, BW20, BW40_OVRCLK} phy_bw_t;
 
 //-----------------------------------------------
 // Level Print function defines
@@ -298,7 +301,8 @@ typedef struct{
     u8                       num_tx_attempts;              ///< Number of transmission attempts for this frame
 
     u8                       flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
-    u8                       padding1[3];                  ///< Used for alignment of fields (can be appropriated for any future use)
+    u8						 phy_bw;					   ///< PHY Sampling Rate
+    u8                       padding1[2];                  ///< Used for alignment of fields (can be appropriated for any future use)
 
     u16                      length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
     u16                      AID;                          ///< Association ID of the node to which this packet is addressed
@@ -348,7 +352,8 @@ typedef struct{
     phy_rx_details           phy_details;                  ///< Details from PHY used in this reception
     //----- 8-byte boundary ------
     u8						 timestamp_frac;			   ///< Fractional timestamp beyond usec timestamp for time of reception
-    u8                       reserved2[3];                  ///< Reserved bytes for alignment
+    u8						 phy_bw;					   ///< PHY Sampling Rate
+    u8                       reserved1[2];                 ///< Reserved bytes for alignment
     u32                      additional_info;              ///< Field to hold MAC-specific info, such as a pointer to a station_info
     //----- 8-byte boundary ------
     wlan_mac_low_tx_details  resp_low_tx_details;
