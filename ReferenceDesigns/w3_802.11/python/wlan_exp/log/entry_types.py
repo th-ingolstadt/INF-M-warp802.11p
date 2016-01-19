@@ -790,6 +790,12 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         'CONTROL_ACK'    : 21,
         'CONTROL_RTS'    : 22,
         'CONTROL_CTS'    : 23})
+        
+    common_phy_sampling_mode = util.consts_dict({
+        'BW5'            :  0,
+        'BW10'           :  1,
+        'BW20'           :  2,
+        'BW40_OVRCLK'    :  3})
 
 
     # -----------------------------------------------------------------------------
@@ -821,7 +827,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_rx_common.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
-        ('padding',                '3x',     '3uint8',  ''),
+        ('phy_sampling_rate',      'B',      'uint8',   'PHY Sampling Rate Mode'),
+        ('padding',                '2x',     '2uint8',  ''),
         ('cfo_est',                'i',      'int32',   'Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency'),
         ('length',                 'H',      'uint16',  'Length of payload in bytes'),
         ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
@@ -839,7 +846,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
             'GOOD'           : 0x00,
             'BAD'            : 0x01
         }),
-        'pkt_type'      : common_pkt_type,
+        'pkt_type'              : common_pkt_type,
+        'phy_sampling_mode'     : common_phy_sampling_mode,
         'flags'         : util.consts_dict({
             'DUPLICATE'      : 0x0001
         })
@@ -906,11 +914,12 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
         ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
-        ('padding',                'B',      'uint8',   '')])
+        ('phy_sampling_rate',      'B',      'uint8',   'PHY Sampling Rate Mode')])
 
     entry_tx_low_common.consts = util.consts_dict({
-        'pkt_type'      : common_pkt_type,
-        'flags'         : util.consts_dict({
+        'pkt_type'              : common_pkt_type,
+        'phy_sampling_mode'     : common_phy_sampling_mode,
+        'flags'                 : util.consts_dict({
             'ACKED'          : 0x01
         })
     })
