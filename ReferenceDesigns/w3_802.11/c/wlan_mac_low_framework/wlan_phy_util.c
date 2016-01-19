@@ -701,7 +701,7 @@ void wlan_agc_config(u32 ant_mode) {
     // AGC target output power (log scale)
     wlan_agc_set_target((64 - 16));
 
-#if 1
+#if 0
     // To set the gains manually:
 
     xil_printf("Switching to MGC\n");

@@ -21,10 +21,6 @@
 #include "wlan_mac_ipc_util.h"
 
 //-----------------------------------------------
-// PHY Bandwidth Configuration
-typedef enum {BW5, BW10, BW20, BW40_OVRCLK} phy_bw_t;
-
-//-----------------------------------------------
 // MAC Header defines
 #define MAC_HW_LASTBYTE_ADDR1 (13)
 

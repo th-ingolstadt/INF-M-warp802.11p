@@ -102,8 +102,17 @@ int wlan_mac_low_init(u32 type){
     u32 status;
     rx_frame_info* rx_mpdu;
     wlan_ipc_msg ipc_msg_to_high;
+    u8 dipsw;
 
-    phy_bw = BW20;
+    dipsw = userio_read_inputs(USERIO_BASEADDR) & W3_USERIO_DIPSW;
+
+    if(dipsw & 2){
+    	phy_bw = BW40_OVRCLK;
+    	xil_printf("PHY Sampling Rate: 40 Msps\n");
+    } else {
+    	phy_bw = BW20;
+    	xil_printf("PHY Sampling Rate: 20 Msps\n");
+    }
 
     switch(phy_bw){
     	default:
