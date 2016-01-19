@@ -250,7 +250,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             }
 
             tx_low_event_log_entry->flags = 0;
-
+            tx_low_event_log_entry->phy_sampling_rate 		  = tx_mpdu->phy_bw;
             tx_low_event_log_entry->timestamp_send			  = tx_low_details->tx_start_timestamp_ctrl;
             tx_low_event_log_entry->timestamp_send_frac		  = tx_low_details->tx_start_timestamp_frac_ctrl;
 
@@ -296,6 +296,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 
             // Store the payload size in the log entry
             tx_low_event_log_entry->mac_payload_log_len = entry_payload_size;
+            tx_low_event_log_entry->phy_sampling_rate 		  = tx_mpdu->phy_bw;
 
             // Transfer the payload to the log entry
             wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_payload), tx_80211_header, entry_payload_size);
@@ -572,6 +573,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
 
             // Fill in Log Entry
             rx_event_log_entry->fcs_status	   = (rx_mpdu->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
+            rx_event_log_entry->phy_sampling_rate = rx_mpdu->phy_bw;
             rx_event_log_entry->timestamp  	   = rx_mpdu->timestamp;
             rx_event_log_entry->timestamp_frac = rx_mpdu->timestamp_frac;
             rx_event_log_entry->power      	   = rx_mpdu->rx_power;
@@ -656,8 +658,8 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                           (entry_payload_size -(packet_payload_size-WLAN_PHY_FCS_NBYTES)));
                 }
 
-                tx_low_event_log_entry->flags = 0;
-
+                tx_low_event_log_entry->flags 					  	= 0;
+                tx_low_event_log_entry->phy_sampling_rate 		  	= rx_mpdu->phy_bw; // TODO: Makes assumption that response uses same PHY BW as Rx
 
 
                 tx_low_event_log_entry->timestamp_send				= rx_mpdu->resp_low_tx_details.tx_start_timestamp_ctrl;
@@ -711,6 +713,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 }
 
                 tx_low_event_log_entry->flags = 0;
+                tx_low_event_log_entry->phy_sampling_rate 		  = rx_mpdu->phy_bw; // TODO: Makes assumption that response uses same PHY BW as Rx
 
                 tx_low_event_log_entry->timestamp_send			  = rx_mpdu->resp_low_tx_details.tx_start_timestamp_ctrl;
                 tx_low_event_log_entry->timestamp_send_frac		  = rx_mpdu->resp_low_tx_details.tx_start_timestamp_frac_ctrl;

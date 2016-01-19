@@ -287,7 +287,8 @@ typedef struct{
 typedef struct{
     u64                 timestamp;               // Timestamp of the log entry
     u8					timestamp_frac;			 // Additional fractional timestamp (160MHz clock units)
-    u8					reserved[3];
+    u8					phy_sampling_rate;		 // PHY Sampling Rate Mode
+    u8					reserved[2];
     u32					cfo_est;				 // CFO Estimate
     u16                 length;                  // Length of the received packet
     u8                  rate;                    // Rate at which the packet was received
@@ -404,7 +405,7 @@ typedef struct{
     u8                  pkt_type;                // Type of packet
     u8                  flags;                   // Misc. flags from CPU_HIGH
     u8					timestamp_send_frac;	 // Additional fractional timestamp (160MHz clock units)
-    u8                  reserved;	             //
+    u8                  phy_sampling_rate;       // PHY Sampling Rate Mode
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_low_entry;
