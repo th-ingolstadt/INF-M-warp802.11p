@@ -88,7 +88,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.4.3 ----------------------------\n");
+    xil_printf("----- v1.4.5 ----------------------------\n");
     xil_printf("----- wlan_mac_dcf ----------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -433,6 +433,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
     // Record information about the reception in the RX packet metadata
     mpdu_info->channel        = wlan_mac_low_get_active_channel();
+    mpdu_info->phy_bw		  = (u8)wlan_mac_low_get_phy_bw();
     mpdu_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
     mpdu_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
     mpdu_info->ant_mode       = active_rx_ant;
@@ -719,6 +720,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
     mpdu_info->short_retry_count = 0;
     mpdu_info->long_retry_count  = 0;
     mpdu_info->num_tx_attempts   = 0;
+    mpdu_info->phy_bw		     = (u8)wlan_mac_low_get_phy_bw();
 
     // Compare the length of this frame to the RTS Threshold
     if(mpdu_length <= gl_dot11RTSThreshold) {
