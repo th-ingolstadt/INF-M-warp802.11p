@@ -69,7 +69,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.4.3 ----------------------------\n");
+    xil_printf("----- v1.4.5 ----------------------------\n");
     xil_printf("----- wlan_mac_nomac --------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -155,6 +155,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     mpdu_info->flags          = 0;
     mpdu_info->phy_details    = *phy_details;
     mpdu_info->channel        = wlan_mac_low_get_active_channel();
+    mpdu_info->phy_bw		  = (u8)wlan_mac_low_get_phy_bw();
     mpdu_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
     mpdu_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
     mpdu_info->state          = wlan_mac_dcf_hw_rx_finish();                 // Blocks until reception is complete
@@ -248,7 +249,8 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
     }
 
     // Fill in the number of attempts to transmit the packet
-    mpdu_info->num_tx_attempts = 1;
+    mpdu_info->num_tx_attempts   = 1;
+    mpdu_info->phy_bw		     = (u8)wlan_mac_low_get_phy_bw();
 
     // Get the power to transmit the packet
     curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
