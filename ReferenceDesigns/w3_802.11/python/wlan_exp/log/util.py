@@ -642,7 +642,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 
 
 
-def calc_tx_time(rate, payload_length):
+def calc_tx_time(rate, payload_length, phy_sampling_mode):
     """Calculates the duration of an 802.11 transmission given its rate and payload length.
 
     Args:
@@ -657,54 +657,60 @@ def calc_tx_time(rate, payload_length):
     .. note:: This method does not check that both rate and payload_length are the same length
     """
     import numpy as np
+    import wlan_exp.log.util as log_util    
     
     from wlan_exp.util import wlan_rates
-
-    # Times in microseconds
-    T_PREAMBLE = 16
-    T_SIG = 4
-    T_SYM = 4
-    T_EXT = 6
-     
-    try:
-        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
-    except TypeError :
-        r = wlan_rates[rate]['NDBPS']
-
-    # Rate entry encodes data bits per symbol
-    bytes_per_sym = (r/8.0)
+    
+    
+    #TODO: Here I'm exploiting the fact that there are not different definitions of PHY
+    #sampling rate for Tx vs. Rx. This is messy and should be rethought.
+    RX_CONSTS = log_util.get_entry_constants('RX_OFDM')
+    
+    if phy_sampling_mode is RX_CONSTS.phy_sampling_mode.BW20:
+        # Below applies to the 2XCLK design
+        T_PREAMBLE = 8
+        T_SIG = 2
+        T_SYM = 2
+        T_EXT = 6
+         
+        try:
+            r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
+        except TypeError :
+            r = wlan_rates[rate]['NDBPS']
+    
+        # Rate entry encodes data bits per symbol
+        bytes_per_sym = (r/8.0)
 	
-    # 2 = LEN_SERVICE (2)
-    # (6.0/8) = LEN_TAIL (6 bits)
-    # Assumes that the length argument includes FCS
-    num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
+        # 2 = LEN_SERVICE (2)
+        # (6.0/8) = LEN_TAIL (6 bits)
+        # Assumes that the length argument includes FCS
+        num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
 
-    T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
+        T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
+    else:            
+        # Times in microseconds
+        T_PREAMBLE = 16
+        T_SIG = 4
+        T_SYM = 4
+        T_EXT = 6
+         
+        try:
+            r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
+        except TypeError :
+            r = wlan_rates[rate]['NDBPS']
+    
+        # Rate entry encodes data bits per symbol
+        bytes_per_sym = (r/8.0)
+    	
+        # 2 = LEN_SERVICE (2)
+        # (6.0/8) = LEN_TAIL (6 bits)
+        # Assumes that the length argument includes FCS
+        num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
+    
+        T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
+        
 
     return T_TOT
-
-    # Below applies to the 2XCLK design
-#    T_PREAMBLE = 8
-#    T_SIG = 2
-#    T_SYM = 2
-#    T_EXT = 6
-     
-#    try:
-#        r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
-#    except TypeError :
-#        r = wlan_rates[rate]['NDBPS']
-
-#    # Rate entry encodes data bits per symbol
-#    bytes_per_sym = (r/8.0)
-	
-    # 2 = LEN_SERVICE (2)
-    # (6.0/8) = LEN_TAIL (6 bits)
-    # Assumes that the length argument includes FCS
-#    num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
-
-#    T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
-
-#    return T_TOT
 
 # End def
 

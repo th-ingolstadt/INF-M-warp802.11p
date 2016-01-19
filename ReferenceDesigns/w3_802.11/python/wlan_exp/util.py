@@ -96,6 +96,7 @@ wlan_rates = [{'index' :  0, 'rate' :  6.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
               {'index' :  6, 'rate' : 48.0, 'desc' : '64-QAM 2/3', 'NDBPS': 192},
               {'index' :  7, 'rate' : 54.0, 'desc' : '64-QAM 3/4', 'NDBPS': 216}]
 
+#TODO: We need to make wlan_rates flexible for different PHY sampling modes
 #wlan_rates = [{'index' :  0, 'rate' :  12.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
 #              {'index' :  1, 'rate' :  18.0, 'desc' : 'BPSK 3/4',   'NDBPS': 36},
 #              {'index' :  2, 'rate' : 24.0, 'desc' : 'QPSK 1/2',   'NDBPS': 48},
