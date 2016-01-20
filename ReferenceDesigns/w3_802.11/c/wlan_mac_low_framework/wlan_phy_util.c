@@ -261,7 +261,7 @@ int w3_node_init() {
  *****************************************************************************/
 void wlan_phy_init() {
 
-	phy_bw_t phy_bw = wlan_mac_low_get_phy_bw();
+	phy_samp_rate_t phy_samp_rate = wlan_mac_low_get_phy_samp_rate();
 
     // Assert Tx and Rx resets
     REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
@@ -275,14 +275,14 @@ void wlan_phy_init() {
     //     wlan_phy_DSSS_rx_disable();
     //
 
-    switch(phy_bw){
-		case BW5:
-		case BW10:
-    	case BW40_OVRCLK:
+    switch(phy_samp_rate){
+		case PHY_5M:
+		case PHY_10M:
+    	case PHY_40M:
     		//DSSS Reception not supported in 40MHz mode
     		wlan_phy_DSSS_rx_disable();
     	break;
-    	case BW20:
+    	case PHY_20M:
     		wlan_phy_DSSS_rx_enable();
     	break;
     }
@@ -351,14 +351,14 @@ void wlan_phy_init() {
     //
     // NOTE: wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
     //
-     switch(phy_bw){
-     	case BW40_OVRCLK:
+     switch(phy_samp_rate){
+     	case PHY_40M:
      		//TODO: The 2 value is suspiciously low
      		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
 		break;
-     	case BW5:
-     	case BW10:
-     	case BW20:
+     	case PHY_5M:
+     	case PHY_10M:
+     	case PHY_20M:
      		//wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
      		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 4, 0x3F);
      	break;
@@ -374,20 +374,20 @@ void wlan_phy_init() {
     //    NOTE: Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long
     //        enough for decoding latency at 64QAM 3/4
     //
-    switch(phy_bw){
-    	case BW40_OVRCLK:
+    switch(phy_samp_rate){
+    	case PHY_40M:
     		// 6us Extension
     		wlan_phy_rx_set_extension(6*40);
 		break;
-    	case BW20:
+    	case PHY_20M:
     		// 6us Extension
     		wlan_phy_rx_set_extension(6*20);
     	break;
-    	case BW10:
+    	case PHY_10M:
     		// 6us Extension
     		wlan_phy_rx_set_extension(6*10);
     	break;
-    	case BW5:
+    	case PHY_5M:
     		// 6us Extension
     		wlan_phy_rx_set_extension(6*10);
     	break;
@@ -405,8 +405,8 @@ void wlan_phy_init() {
     REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);
 
     // Set Tx duration extension, in units of sample periods
-    switch(phy_bw){
-    	case BW40_OVRCLK:
+    switch(phy_samp_rate){
+    	case PHY_40M:
     		// 364 20MHz sample periods.
     		// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
     		wlan_phy_tx_set_extension(364);
@@ -419,7 +419,7 @@ void wlan_phy_init() {
     	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
     	    wlan_phy_tx_set_rx_invalid_extension(300);
 		break;
-    	case BW20:
+    	case PHY_20M:
     		// 182 20MHz sample periods.
     		// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
     		wlan_phy_tx_set_extension(182);
@@ -432,7 +432,7 @@ void wlan_phy_init() {
     	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
     	    wlan_phy_tx_set_rx_invalid_extension(150);
     	break;
-    	case BW10:
+    	case PHY_10M:
     		wlan_phy_tx_set_extension(91);
 
     	    // Set extension from last samp output to RF Tx -> Rx transition
@@ -443,7 +443,7 @@ void wlan_phy_init() {
     	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
     	    wlan_phy_tx_set_rx_invalid_extension(75);
     	break;
-    	case BW5:
+    	case PHY_5M:
     		wlan_phy_tx_set_extension(91);
 
     	    // Set extension from last samp output to RF Tx -> Rx transition
@@ -504,34 +504,34 @@ void wlan_phy_init() {
  *****************************************************************************/
 void wlan_radio_init() {
 
-	phy_bw_t phy_bw = wlan_mac_low_get_phy_bw();
+	phy_samp_rate_t phy_samp_rate = wlan_mac_low_get_phy_samp_rate();
 
 #if 1
 
 
-    switch(phy_bw){
-    	case BW40_OVRCLK:
+    switch(phy_samp_rate){
+    	case PHY_40M:
     	    // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
     	    clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x2F);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
 		break;
-    	case BW20:
+    	case PHY_20M:
     	    // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
     	    clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
     	break;
-    	case BW10:
+    	case PHY_10M:
     		//10MHz bandwidth: 20MHz clock to AD9963, use 2x interpolation/decimation
     		clk_config_dividers(CLK_BASEADDR, 4, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
     		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
     	break;
-    	case BW5:
+    	case PHY_5M:
     		/*
     		//5MHz bandwidth: 10MHz clock to AD9963, use 2x interpolation/decimation
     		clk_config_dividers(CLK_BASEADDR, 8, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
@@ -586,14 +586,14 @@ void wlan_radio_init() {
     // Filter bandwidths
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXHPF_HIGH_CUTOFF_EN, 1);
 
-    switch(phy_bw){
-    	case BW40_OVRCLK:
+    switch(phy_samp_rate){
+    	case PHY_40M:
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3);
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3);
 		break;
-    	case BW5:
-    	case BW10:
-    	case BW20:
+    	case PHY_5M:
+    	case PHY_10M:
+    	case PHY_20M:
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
     	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
     	break;
@@ -671,7 +671,7 @@ void wlan_agc_config(u32 ant_mode) {
     // response than on-board RF interfaces. Testing so far indicates the settings below
     // work fine for all RF interfaces
 
-	phy_bw_t phy_bw = wlan_mac_low_get_phy_bw();
+	phy_samp_rate_t phy_samp_rate = wlan_mac_low_get_phy_samp_rate();
 
     // Post Rx_done reset delays for [rxhp, g_rf, g_bb]
     wlan_agc_set_reset_timing(4, 250, 250);
@@ -684,13 +684,13 @@ void wlan_agc_config(u32 ant_mode) {
     wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
 
     // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-    switch(phy_bw){
-    	case BW40_OVRCLK:
+    switch(phy_samp_rate){
+    	case PHY_40M:
     		wlan_agc_set_AGC_timing(10, 30, 90, 96);
 		break;
-    	case BW10:
-    	case BW5:
-    	case BW20:
+    	case PHY_5M:
+    	case PHY_10M:
+    	case PHY_20M:
     		wlan_agc_set_AGC_timing(1, 30, 90, 96);
     	break;
     }
@@ -880,6 +880,7 @@ inline int wlan_tx_isrunning() {
  *
  * @param   length           - Length of OFDM transmission
  * @param   n_DBPS           - Number of data bits per OFDM symbol
+ * @param   phy_samp_rate	 - PHY sampling rate
  *
  * @return  u16              - Duration of transmission in microseconds
  *                             (See 18.4.3 of IEEE 802.11-2012)
@@ -888,12 +889,33 @@ inline int wlan_tx_isrunning() {
  *     and another that uses division macros to speed up execution.
  *
  *****************************************************************************/
-inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS){
+inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rate){
 
     #define T_SIG_EXT                                      6
 
     u16 txTime;
     u16 n_sym, n_b;
+
+    u32 t_preamble;
+    u32 t_sig;
+    u32 t_sym;
+    u32 t_ext;
+
+    switch(phy_samp_rate){
+    	default: //TODO: Generalize to 5MHz, 10MHz. Requires fractions.
+    	case PHY_20M:
+    	    t_preamble	= 8;
+    	    t_sig = 2;
+    	    t_sym = 2;
+    	    t_ext = 6;
+		break;
+    	case PHY_40M:
+    	    t_preamble	= 16;
+    	    t_sig = 4;
+    	    t_sym = 4;
+    	    t_ext = 6;
+		break;
+    }
 
     // Calculate num bits:
     //     16        : SERVICE field
@@ -909,18 +931,38 @@ inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS){
     //     This is effectively ceil(n_b / n_DBPS)
     if ((n_sym * n_DBPS) < n_b) n_sym++;
 
-    txTime = TXTIME_T_PREAMBLE + TXTIME_T_SIGNAL + TXTIME_T_SYM * n_sym + T_SIG_EXT;
+    txTime = t_preamble + t_sig + t_sym * n_sym + t_ext;
 
     return txTime;
 }
 
 
-inline u16 wlan_ofdm_txtime_fast(u16 length, u16 n_DBPS){
-
-    #define T_SIG_EXT                                      6
+inline u16 wlan_ofdm_txtime_fast(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rate){
 
     u16 txTime;
     u16 n_sym, n_b;
+
+    u32 t_preamble;
+	u32 t_sig;
+	u32 t_sym;
+	u32 t_ext;
+
+	switch(phy_samp_rate){
+		default: //TODO: Generalize to 5MHz, 10MHz. Requires fractions.
+		case PHY_20M:
+			t_preamble	= 8;
+			t_sig = 2;
+			t_sym = 2;
+			t_ext = 6;
+		break;
+		case PHY_40M:
+			t_preamble	= 16;
+			t_sig = 4;
+			t_sym = 4;
+			t_ext = 6;
+		break;
+	}
+
 
     // Calculate num bits:
     //     16        : SERVICE field
@@ -965,7 +1007,7 @@ inline u16 wlan_ofdm_txtime_fast(u16 length, u16 n_DBPS){
     //     This is effectively ceil(n_b / n_DBPS)
     if ((n_sym * n_DBPS) < n_b) n_sym++;
 
-    txTime = TXTIME_T_PREAMBLE + TXTIME_T_SIGNAL + TXTIME_T_SYM * n_sym + T_SIG_EXT;
+    txTime = t_preamble + t_sig + t_sym * n_sym + t_ext;
 
     return txTime;
 }

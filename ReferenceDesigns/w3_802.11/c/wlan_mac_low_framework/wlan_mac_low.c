@@ -54,15 +54,15 @@
 
 
 /*************************** Variable Definitions ****************************/
-volatile static phy_bw_t	 phy_bw;												///< Current bandwidth selection
-volatile static mac_timing   mac_timing_values;										///< MAC Timing Constants
-volatile static u32          mac_param_chan;                                        ///< Current channel of the lower-level MAC
-volatile static u8           mac_param_band;                                        ///< Current band of the lower-level MAC
-volatile static s8           mac_param_ctrl_tx_pow;                                 ///< Current transmit power (dBm) for control packets
-volatile static u32          mac_param_rx_filter;                                   ///< Current filter applied to packet receptions
-volatile static u8           rx_pkt_buf;                                            ///< Current receive buffer of the lower-level MAC
+volatile static phy_samp_rate_t	 phy_samp_rate;											///< Current bandwidth selection
+volatile static mac_timing   	 mac_timing_values;										///< MAC Timing Constants
+volatile static u32          	 mac_param_chan;                                        ///< Current channel of the lower-level MAC
+volatile static u8           	 mac_param_band;                                        ///< Current band of the lower-level MAC
+volatile static s8           	 mac_param_ctrl_tx_pow;                                 ///< Current transmit power (dBm) for control packets
+volatile static u32         	 mac_param_rx_filter;                                   ///< Current filter applied to packet receptions
+volatile static u8          	 rx_pkt_buf;                                            ///< Current receive buffer of the lower-level MAC
 
-static u32                   cpu_low_status;                                        ///< Status flags that are reported to upper-level MAC
+static u32                   	 cpu_low_status;                                        ///< Status flags that are reported to upper-level MAC
 
 static wlan_mac_hw_info      hw_info;                                               ///< Information about the hardware reported to upper-level MAC
 static wlan_ipc_msg          ipc_msg_from_high;                                     ///< Buffer for incoming IPC messages
@@ -107,17 +107,17 @@ int wlan_mac_low_init(u32 type){
     dipsw = userio_read_inputs(USERIO_BASEADDR) & W3_USERIO_DIPSW;
 
     if(dipsw & 2){
-    	phy_bw = BW40_OVRCLK;
-    	xil_printf("PHY Sampling Rate: 40 Msps\n");
+    	phy_samp_rate = PHY_40M;
+    	xil_printf("PHY Sampling Rate: 40 MHz\n");
     } else {
-    	phy_bw = BW20;
-    	xil_printf("PHY Sampling Rate: 20 Msps\n");
+    	phy_samp_rate = PHY_20M;
+    	xil_printf("PHY Sampling Rate: 20 MHz\n");
     }
 
-    switch(phy_bw){
+    switch(phy_samp_rate){
     	default:
-    	case BW40_OVRCLK:
-    	case BW20:
+    	case PHY_40M:
+    	case PHY_20M:
     		mac_timing_values.t_slot = 9;
     		mac_timing_values.t_sifs = 10;
     		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
@@ -125,7 +125,7 @@ int wlan_mac_low_init(u32 type){
     		mac_timing_values.t_phy_rx_start_dly = 25; //TODO: This is BW dependent. 20/25 is waveform time. This should scale with BW. 10:MHz 45
     		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
     	break;
-    	case BW10:
+    	case PHY_10M:
     		mac_timing_values.t_slot = 9;
     		mac_timing_values.t_sifs = 10;
     		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
@@ -133,7 +133,7 @@ int wlan_mac_low_init(u32 type){
     		mac_timing_values.t_phy_rx_start_dly = 45;
     		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
     	break;
-    	case BW5:
+    	case PHY_5M:
     		mac_timing_values.t_slot = 9;
     		mac_timing_values.t_sifs = 10;
     		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
@@ -815,7 +815,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 
 			// Compute and fill in the duration of any time-on-air following this packet's transmission
 			//     For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
-			tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ACK_N_DBPS) + mac_timing_values.t_sifs;
+			tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ACK_N_DBPS, phy_samp_rate) + mac_timing_values.t_sifs;
 		}
 
 		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
@@ -1507,8 +1507,8 @@ inline u8 wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs){
     return return_value;
 }
 
-inline phy_bw_t	wlan_mac_low_get_phy_bw(){
-	return phy_bw;
+inline phy_samp_rate_t	wlan_mac_low_get_phy_samp_rate(){
+	return phy_samp_rate;
 }
 
 inline mac_timing wlan_mac_low_get_mac_timing_values(){

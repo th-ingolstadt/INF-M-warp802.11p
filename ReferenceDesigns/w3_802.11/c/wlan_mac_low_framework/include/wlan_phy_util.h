@@ -54,12 +54,6 @@
 
 // ****************************************************************************
 // Timing Constants
-//
-// TX PHY-level constants
-#define TXTIME_T_PREAMBLE                                  16             // 320 samples @ 20MHz
-#define TXTIME_T_SIGNAL                                    4              //  80 samples @ 20MHz
-#define TXTIME_T_SYM                                       4              //  80 samples @ 20MHz
-
 // Empirically measured a 2.2usec latency from RC PHY start to observable waveform
 #define TX_RC_PHYSTART_DLY                                 0
 #define TX_PHY_DLY_100NSEC                                (((TX_RC_PHYSTART_DLY)/4) + 22)
@@ -435,8 +429,8 @@ inline void        wlan_tx_buffer_sel(u8 n);
 inline int         wlan_tx_isrunning();
 
 // Calculate transmit times
-inline u16         wlan_ofdm_txtime(u16 length,u16 n_DBPS);
-inline u16         wlan_ofdm_txtime_fast(u16 length,u16 n_DBPS);
+inline u16         wlan_ofdm_txtime(u16 length,u16 n_DBPS, phy_samp_rate_t phy_samp_rate);
+inline u16         wlan_ofdm_txtime_fast(u16 length,u16 n_DBPS, phy_samp_rate_t phy_samp_rate);
 
 // IPC message processing functions
 void               process_config_phy_rx(ipc_config_phy_rx* config_phy_rx);

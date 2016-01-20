@@ -421,8 +421,8 @@ inline u8          wlan_mac_low_mcs_to_n_dbps(u8 mcs);
 inline u8          wlan_mac_low_mcs_to_phy_rate(u8 mcs);
 inline u8          wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs);
 
-inline phy_bw_t	   wlan_mac_low_get_phy_bw();
-inline mac_timing  wlan_mac_low_get_mac_timing_values();
+inline phy_samp_rate_t	   wlan_mac_low_get_phy_samp_rate();
+inline mac_timing  		   wlan_mac_low_get_mac_timing_values();
 
 
 #endif /* WLAN_MAC_LOW_H_ */
