@@ -250,7 +250,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             }
 
             tx_low_event_log_entry->flags = 0;
-            tx_low_event_log_entry->phy_sampling_rate 		  = tx_mpdu->phy_bw;
+            tx_low_event_log_entry->phy_samp_rate 		  	  = tx_mpdu->phy_samp_rate;
             tx_low_event_log_entry->timestamp_send			  = tx_low_details->tx_start_timestamp_ctrl;
             tx_low_event_log_entry->timestamp_send_frac		  = tx_low_details->tx_start_timestamp_frac_ctrl;
 
@@ -296,7 +296,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 
             // Store the payload size in the log entry
             tx_low_event_log_entry->mac_payload_log_len = entry_payload_size;
-            tx_low_event_log_entry->phy_sampling_rate 		  = tx_mpdu->phy_bw;
+            tx_low_event_log_entry->phy_samp_rate 		  = tx_mpdu->phy_samp_rate;
 
             // Transfer the payload to the log entry
             wlan_mac_high_cdma_start_transfer((&((tx_low_entry*)tx_low_event_log_entry)->mac_payload), tx_80211_header, entry_payload_size);
@@ -469,14 +469,18 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
     tx_low_entry*     tx_low_event_log_entry  = NULL; //This is for any inferred CTRL transmissions
     void*             mpdu                    = (u8*)rx_mpdu + PHY_RX_PKT_BUF_MPDU_OFFSET;
     u8*               mpdu_ptr_u8             = (u8*)mpdu;
+    ltg_packet_id*    pkt_id;
     mac_header_80211* rx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
     u32               packet_payload_size     = rx_mpdu->phy_details.length;
     u8                pkt_type;
     u32               entry_type;
+    u8				  rx_is_ltg				  = 0;
     u32               entry_size;
     u32               entry_payload_size;
     u32               min_entry_payload_size;
     u32               transfer_len;
+
+	pkt_id = (ltg_packet_id*)(mpdu_ptr_u8 + sizeof(mac_header_80211));
 
     typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
     copy_order_t      copy_order;
@@ -492,8 +496,10 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
         if(rate != WLAN_MAC_MCS_1M){
             if (pkt_type == PKT_TYPE_DATA_ENCAP_LTG) {
                 entry_type = ENTRY_TYPE_RX_OFDM_LTG;
+                rx_is_ltg = 1;
             } else {
                 entry_type = ENTRY_TYPE_RX_OFDM;
+                rx_is_ltg = 0;
             }
         } else {
             entry_type = ENTRY_TYPE_RX_DSSS;
@@ -573,7 +579,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
 
             // Fill in Log Entry
             rx_event_log_entry->fcs_status	   = (rx_mpdu->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
-            rx_event_log_entry->phy_sampling_rate = rx_mpdu->phy_bw;
+            rx_event_log_entry->phy_samp_rate = rx_mpdu->phy_samp_rate;
             rx_event_log_entry->timestamp  	   = rx_mpdu->timestamp;
             rx_event_log_entry->timestamp_frac = rx_mpdu->timestamp_frac;
             rx_event_log_entry->power      	   = rx_mpdu->rx_power;
@@ -659,7 +665,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 }
 
                 tx_low_event_log_entry->flags 					  	= 0;
-                tx_low_event_log_entry->phy_sampling_rate 		  	= rx_mpdu->phy_bw; // TODO: Makes assumption that response uses same PHY BW as Rx
+                tx_low_event_log_entry->phy_samp_rate 		  	= rx_mpdu->phy_samp_rate; // TODO: Makes assumption that response uses same PHY BW as Rx
 
 
                 tx_low_event_log_entry->timestamp_send				= rx_mpdu->resp_low_tx_details.tx_start_timestamp_ctrl;
@@ -670,7 +676,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.phy_params_ctrl), sizeof(phy_tx_params));
 
                 tx_low_event_log_entry->transmission_count          = 1;
-                tx_low_event_log_entry->unique_seq                  = 0;
+                tx_low_event_log_entry->unique_seq                  = UNIQUE_SEQ_INVALID;
                 tx_low_event_log_entry->chan_num                    = rx_mpdu->resp_low_tx_details.chan_num;
                 tx_low_event_log_entry->num_slots                   = rx_mpdu->resp_low_tx_details.num_slots;
                 tx_low_event_log_entry->cw                          = rx_mpdu->resp_low_tx_details.cw;
@@ -713,7 +719,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 }
 
                 tx_low_event_log_entry->flags = 0;
-                tx_low_event_log_entry->phy_sampling_rate 		  = rx_mpdu->phy_bw; // TODO: Makes assumption that response uses same PHY BW as Rx
+                tx_low_event_log_entry->phy_samp_rate 		  = rx_mpdu->phy_samp_rate; // TODO: Makes assumption that response uses same PHY BW as Rx
 
                 tx_low_event_log_entry->timestamp_send			  = rx_mpdu->resp_low_tx_details.tx_start_timestamp_ctrl;
                 tx_low_event_log_entry->timestamp_send_frac		  = rx_mpdu->resp_low_tx_details.tx_start_timestamp_frac_ctrl;
@@ -723,7 +729,12 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* rx_mpdu, u8 rate){
                 memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(rx_mpdu->resp_low_tx_details.phy_params_ctrl), sizeof(phy_tx_params));
 
                 tx_low_event_log_entry->transmission_count        = 1;
-                tx_low_event_log_entry->unique_seq                = 0;
+                if(rx_is_ltg){
+                	//If the received MPDU is an LTG, we can mirror its unique seq into the Tx unique seq for the ACK
+                	tx_low_event_log_entry->unique_seq				  = pkt_id->unique_seq;
+                } else {
+                	tx_low_event_log_entry->unique_seq                = UNIQUE_SEQ_INVALID;
+                }
                 tx_low_event_log_entry->chan_num                  = rx_mpdu->resp_low_tx_details.chan_num;
                 tx_low_event_log_entry->num_slots                 = rx_mpdu->resp_low_tx_details.num_slots;
                 tx_low_event_log_entry->cw                        = rx_mpdu->resp_low_tx_details.cw;
