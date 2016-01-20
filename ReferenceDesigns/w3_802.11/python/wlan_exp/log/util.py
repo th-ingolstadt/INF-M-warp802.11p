@@ -642,7 +642,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 
 
 
-def calc_tx_time(rate, payload_length, phy_sampling_mode):
+def calc_tx_time(rate, payload_length, phy_samp_rate):
     """Calculates the duration of an 802.11 transmission given its rate and payload length.
 
     Args:
@@ -666,7 +666,7 @@ def calc_tx_time(rate, payload_length, phy_sampling_mode):
     #sampling rate for Tx vs. Rx. This is messy and should be rethought.
     RX_CONSTS = log_util.get_entry_constants('RX_OFDM')
     
-    if phy_sampling_mode is RX_CONSTS.phy_sampling_mode.BW20:
+    if phy_samp_rate is RX_CONSTS.phy_samp_rate.PHY_20M:
         # Below applies to the 2XCLK design
         T_PREAMBLE = 8
         T_SIG = 2
