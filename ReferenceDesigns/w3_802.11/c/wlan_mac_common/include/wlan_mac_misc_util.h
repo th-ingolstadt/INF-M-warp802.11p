@@ -79,7 +79,9 @@
 
 //-----------------------------------------------
 // PHY Bandwidth Configuration
-typedef enum {BW5, BW10, BW20, BW40_OVRCLK} phy_bw_t;
+typedef enum {PHY_5M = 5, PHY_10M = 10, PHY_20M = 20, PHY_40M = 40} phy_samp_rate_t;
+
+#define UNIQUE_SEQ_INVALID	0xFFFFFFFFFFFFFFFF
 
 //-----------------------------------------------
 // Level Print function defines
@@ -301,7 +303,7 @@ typedef struct{
     u8                       num_tx_attempts;              ///< Number of transmission attempts for this frame
 
     u8                       flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
-    u8						 phy_bw;					   ///< PHY Sampling Rate
+    u8						 phy_samp_rate;				   ///< PHY Sampling Rate
     u8                       padding1[2];                  ///< Used for alignment of fields (can be appropriated for any future use)
 
     u16                      length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
@@ -352,7 +354,7 @@ typedef struct{
     phy_rx_details           phy_details;                  ///< Details from PHY used in this reception
     //----- 8-byte boundary ------
     u8						 timestamp_frac;			   ///< Fractional timestamp beyond usec timestamp for time of reception
-    u8						 phy_bw;					   ///< PHY Sampling Rate
+    u8						 phy_samp_rate;					   ///< PHY Sampling Rate
     u8                       reserved1[2];                 ///< Reserved bytes for alignment
     u32                      additional_info;              ///< Field to hold MAC-specific info, such as a pointer to a station_info
     //----- 8-byte boundary ------
