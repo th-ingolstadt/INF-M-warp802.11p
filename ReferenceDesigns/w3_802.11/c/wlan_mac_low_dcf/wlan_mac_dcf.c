@@ -965,6 +965,18 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
             // Poll the DCF core status register
             mac_hw_status = wlan_mac_get_status();
 
+            if((mpdu_info->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+				if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE ){
+					// Insert the TX START timestamp
+					*((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
+					*((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
+
+
+					// The below u64 approach also works, but takes 100ns longer than just dealing with the LSB and MSB separately.
+					//*((u64*)((TX_PKT_BUF_TO_ADDR(mpdu_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET + 24))) = (u64)wlan_mac_low_get_tx_start_timestamp();
+				}
+            }
+
             // Transmission is complete
             if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE ) {
                 if(tx_wait_state == TX_WAIT_CTS) {
