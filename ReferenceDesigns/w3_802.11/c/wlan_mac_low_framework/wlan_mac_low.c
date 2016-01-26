@@ -818,48 +818,15 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 			tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ACK_N_DBPS, phy_samp_rate) + mac_timing_values.t_sifs;
 		}
 
-		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-			// Some management packets contain the node's local 64-bit microsecond timer value
-			//     The Tx hardware can insert this value into the outgoing byte stream automatically
-			//     This ensures the timestamp value is not skewed by any pre-Tx deferrals
-			//
-			// The macros below set the first and last byte index where the Tx logic should insert
-			//     the 8-byte timestamp.
-			//
-			// In the current implementation these indexes must span an 8-byte-aligned
-			//     region of the packet buffer (i.e. (start_ind % 8)==0 )
-			//
-			// TODO: This code is a little dangerous in its current form. It assumes that the next transmission
-			// out of the PHY will be this packet. That's not strictly true. For example, this packet could be
-			// MAC support core for Tx but defers transmission due to a medium busy event. During that deferral,
-			// a reception may require an immediate Tx (e.g. an ACK or CTS transmission). So, the next transmission
-			// may not actually be this packet. However, it's not actually a problem since the only two cases where
-			// this behavior can occur (ACK & CTS), the transmissions are so short that the PHY doesn't get to the
-			// point of incorrectly inserting a timestamp. We'll formalize this in a future release by letting the
-			// MAC support core itself configure the timestamp insertion in much the same way that it configures
-			// Tx gains.
 
-			wlan_phy_tx_timestamp_ins_start((24 + PHY_TX_PKT_BUF_PHY_HDR_SIZE));
-			wlan_phy_tx_timestamp_ins_end((31 + PHY_TX_PKT_BUF_PHY_HDR_SIZE));
-
-		} else {
-			// When start>end, the Tx logic will not insert any timestamp
-			wlan_phy_tx_timestamp_ins_start(1);
-			wlan_phy_tx_timestamp_ins_end(0);
-		}
+		// When start>end, the Tx logic will not insert any timestamp
+		wlan_phy_tx_timestamp_ins_start(1);
+		wlan_phy_tx_timestamp_ins_end(0);
 
 		// Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 		//     complete (after all re-transmissions, ACK Rx, timeouts, etc.)
 
 		status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
-
-		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-			// The Tx logic automatically inserted the timestamp at the time that the bytes
-			//     were being fed out to the Tx PHY. We can go back and re-insert this time into the
-			//     payload so that further processing (e.g. logging) sees the correct payload.
-			//
-			*((u64*)((TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET + 24))) = (u64)wlan_mac_low_get_tx_start_timestamp();
-		}
 
 		//Record the total time this MPDU spent in the Tx state machine
 		tx_mpdu->delay_done = (u32)(get_mac_time_usec() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
