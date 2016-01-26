@@ -465,6 +465,13 @@ void XTmrCtr_CustomInterruptHandler(void *InstancePtr){
 				 * register without changing any of the other
 				 * bits
 				 */
+
+				// Note: It's very important that this ack
+				// occurs after the handler call. This will
+				// prevent a scenario where a fine schedule
+				// callback can "crash" a node by taking longer
+				// than whatever the interval is of the fast
+				// timer.
 				XTmrCtr_WriteReg(TmrCtrPtr->BaseAddress,
 						 TmrCtrNumber,
 						 XTC_TCSR_OFFSET,
