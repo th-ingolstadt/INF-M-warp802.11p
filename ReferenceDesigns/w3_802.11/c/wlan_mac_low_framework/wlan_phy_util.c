@@ -220,7 +220,7 @@ int w3_node_init() {
 
 
     // Initialize the EEPROM read/write core
-    iic_eeprom_init(EEPROM_BASEADDR, 0x64);
+    iic_eeprom_init(EEPROM_BASEADDR, 0x64, XPAR_CPU_ID);
 
 #ifdef WLAN_4RF_EN
     iic_eeprom_init(FMC_EEPROM_BASEADDR, 0x64);
