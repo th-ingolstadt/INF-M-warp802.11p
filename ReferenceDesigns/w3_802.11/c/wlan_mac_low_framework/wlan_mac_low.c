@@ -306,7 +306,7 @@ void wlan_mac_low_init_hw_info(u32 type) {
 
     // Set General Node information
     hw_info.cpu_low_type  = type;
-    hw_info.serial_number = w3_eeprom_readSerialNum(EEPROM_BASEADDR);
+    hw_info.serial_number = w3_eeprom_read_serial_num(EEPROM_BASEADDR);
     hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
     hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);
 
@@ -316,8 +316,8 @@ void wlan_mac_low_init_hw_info(u32 type) {
     //
     // Use address 0 for the WLAN interface, address 1 for the WLAN Exp interface
     //
-    w3_eeprom_readEthAddr(EEPROM_BASEADDR, 0, hw_info.hw_addr_wlan);
-    w3_eeprom_readEthAddr(EEPROM_BASEADDR, 1, hw_info.hw_addr_wlan_exp);
+    w3_eeprom_read_eth_addr(EEPROM_BASEADDR, 0, hw_info.hw_addr_wlan);
+    w3_eeprom_read_eth_addr(EEPROM_BASEADDR, 1, hw_info.hw_addr_wlan_exp);
 
     // Set the NAV ignore addr to this HW address
     wlan_mac_low_set_nav_check_addr(hw_info.hw_addr_wlan);
