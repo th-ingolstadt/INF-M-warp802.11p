@@ -27,7 +27,6 @@
 #include "xaxicdma.h"
 
 // WLAN Includes
-#include "w3_userio.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -493,7 +492,12 @@ int wlan_mac_high_interrupt_init(){
 	// Enable MicroBlaze exceptions
 	// ***************************************************
 	Xil_ExceptionInit();
-	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,(Xil_ExceptionHandler)XIntc_InterruptHandler, &InterruptController);
+
+	// NOTE:  Replaces void XIntc_InterruptHandler(XIntc * InstancePtr) to improve execution time
+	Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT,
+	                             (Xil_ExceptionHandler) XIntc_DeviceInterruptHandler,
+	                             (void *)((u32)(InterruptController.CfgPtr->DeviceId)));
+
 	Xil_ExceptionEnable();
 
 
@@ -1294,16 +1298,19 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	void* src_addr;
 	u32 xfer_len;
 
-	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-
-	// Call user code to notify it of dequeue
-
-	if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
-
-
+    // Check that packet buffer is locked
+    if ((tx_pkt_buf_busy_state & (1 << tx_pkt_buf)) == 0) {
+        xil_printf("WARNING: Packet buffer %d not locked\n", tx_pkt_buf);
+		tx_pkt_buf_busy_state |= (1 << tx_pkt_buf);
+    }
+    
+	tx_mpdu   = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
 	xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
+
+	// Call user code to notify it of dequeue
+	if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
 
 	// Transfer the frame info
 	wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
@@ -1343,7 +1350,6 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		wlan_printf(PL_ERROR, "Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
 	} else {
-		tx_pkt_buf_busy_state |= (1 << tx_pkt_buf);
 		ipc_mailbox_write_msg(&ipc_msg_to_low);
 	}
 
@@ -2039,7 +2045,7 @@ int wlan_mac_high_lock_new_tx_packet_buffer(){
 			pkt_buf_sel = 0;
 			tx_pkt_buf_busy_state |= 1;
 		break;
-		case 3: //Ping: free, Pong: busy
+		case 3: //Ping: busy, Pong: busy
 			pkt_buf_sel = -1;
 		break;
 	}
