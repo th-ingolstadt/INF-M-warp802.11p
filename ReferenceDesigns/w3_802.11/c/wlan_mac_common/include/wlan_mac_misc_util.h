@@ -199,6 +199,21 @@ typedef enum {PHY_5M = 5, PHY_10M = 10, PHY_20M = 20, PHY_40M = 40} phy_samp_rat
 typedef int (*function_ptr_t)();
 
 
+typedef struct{
+	u8  dsap;
+	u8  ssap;
+	u8  control_field;
+	u8  org_code[3];
+	u16 type;
+} llc_header;
+
+//LTG Payload Contents
+typedef struct {
+	llc_header  llc_hdr;
+	u64         unique_seq;
+	u32         ltg_id;
+} ltg_packet_id;
+
 //-----------------------------------------------
 // TX parameters
 //
@@ -328,6 +343,7 @@ typedef struct{
 #define TX_MPDU_FLAGS_FILL_DURATION                        0x04
 #define TX_MPDU_FLAGS_REQ_BO                               0x08
 #define TX_MPDU_FLAGS_AUTOCANCEL                           0x10
+#define TX_MPDU_FLAGS_FILL_UNIQ_SEQ                        0x20
 
 
 
