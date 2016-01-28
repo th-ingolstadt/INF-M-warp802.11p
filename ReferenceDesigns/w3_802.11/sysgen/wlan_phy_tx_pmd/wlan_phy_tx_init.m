@@ -1,22 +1,17 @@
 % Mango 802.11 Reference Design
 % WLAN PHY Tx Init script
-% Copyright 2014 Mango Communications
+% Copyright 2016 Mango Communications
 % Distributed under the Mango Research License:
 % http://mangocomm.com/802.11/license
 
+%clear
 addpath('./util');
 addpath('./mcode_blocks');
+addpath('./blackboxes');
 
-%Call util scripts to generate the interleaving permutation arrays
-% and PHY preamble signals
-wifi_permute_calc
-PLCP_Preamble = PLCP_Preamble_gen;
 
-%Define the 64-QAM interleave pattern. This uses the pattern from the standard
-% modified to support the 1-to-8 aspect switch in the Tx interleaver dual-port
-% RAM for 64-QAM. This adaptation is not required for the other mod schemes as
-% their aspect switches are even powers of 2
-interleave_64QAM_addr = interleave_64QAM + 2*floor(interleave_64QAM/6);
+%Load the MCS info table
+[mcs_rom_11ag, mcs_rom_11n] = tx_mcs_info_rom_init();
 
 %Define sane values for maximum parameter values; these maximums define
 % the bit widths of various signals throughout the design. Increasing
@@ -26,6 +21,8 @@ MAX_NUM_SC = 64;
 MAX_CP_LEN = 32;
 MAX_NUM_SAMPS = 50e3;
 MAX_NUM_SYMS = 600;
+MAX_DATA_BITS_PER_SYM_PERIOD = 2*260; %64-QAM 5/6 rate N_SS=2
+MAX_NCBPS = 312; %Max coded bits per OFDM sym sets size of de-interleave RAM
 
 %%
 %Define a few interesting MPDU payloads. These byte sequences start with
@@ -56,7 +53,9 @@ MPDU_Null_Data = sscanf('48 11 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 5
 
 %Short pkt - 16 payload bytes
 MPDU_Data_short = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', [0:15]) ' 00 00 00 00'], '%02x');
-MPDU_Data_short = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', [0:18]) ' 00 00 00 00'], '%02x');
+
+%Mid-size pkt - 150 payload bytes
+MPDU_Data_mid = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:150], 256)) ' 00 00 00 00'], '%02x');
 
 %Long pkt - 1420 payload bytes
 MPDU_Data_long = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:1420], 256)) ' 00 00 00 00'], '%02x');
@@ -68,85 +67,84 @@ MPDU_Data_long = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 
 % FCS placeholder: 0x00000000
 ControlFrame_ACK = sscanf('d4 00 00 00 40 d8 55 04 21 4a 00 00 00 00', '%02x');
 
-%Choose a payload for simulation
-%Pkt_Payload = MPDU_Null_Data;
-Pkt_Payload = MPDU_Data_short;
-%Pkt_Payload = MPDU_Data_long;
-%Pkt_Payload = ControlFrame_ACK;
+%100-Byte random payload with valid FCS, used with IEEE waveform generator
+%wgen_pyld = sscanf(['26 bd 8e b7 f4 13 e7 5c 31 c6 a4 5b ac 95 e9 5c 7c dc 42 10 6d 73 0f 0c 82 8e d9 b2 c8 48 f3 e2 75 fe 92 20 f4 74 f1 fa e0 ae cb 06 55 70 ed 63 1a 9b e7 6e 2b 61 7a df f4 fc b6 20 ba d1 09 8f 31 ea 8b de 1d 77 ce 78 c3 0b dd 25 d2 55 63 23 7c 31 cd 35 f5 75 1e 08 b2 2e 5b a4 67 3f 95 26 a3 54 37 cd'], '%02x');
 
-Pkt_len = length(Pkt_Payload);
-
-%Reshape byte vector to u32 vector, necessary to initialize the 32-bit BRAM
-% in the simulation
-Pkt_Payload = [Pkt_Payload; zeros(-mod(Pkt_len, -4),1)];
-Pkt_Payload4 = reshape(Pkt_Payload, 4, length(Pkt_Payload)/4);
-Pkt_Payload_words = sum(Pkt_Payload4 .* repmat(2.^[0:8:24]', 1, size(Pkt_Payload4,2)));
-
-PPDU_words = zeros(1, MAX_NUM_BYTES/4);
-
-%Select the Tx rate in Mbps - must be one of the supported rates
-Tx_Rate = 6;
-
-%Choose a modulation/coding rate and insert SIGNAL field in first 3 bytes
-switch Tx_Rate
-    case 6
-        PPDU_words(1) = tx_signal_calc(Pkt_len, 1, 0); %BPSK 1/2
-    case 9
-        PPDU_words(1) = tx_signal_calc(Pkt_len, 1, 1); %BPSK 3/4
-    case 12
-        PPDU_words(1) = tx_signal_calc(Pkt_len, 2, 0); %QPSK 1/2
-    case 18
-        PPDU_words(1) = tx_signal_calc(Pkt_len, 2, 1); %QPSK 3/4
-    case 24
-        PPDU_words(1) = tx_signal_calc(Pkt_len, 4, 0); %16QAM 1/2
-    case 36
-        PPDU_words(1) = tx_signal_calc(Pkt_len, 4, 1); %16QAM 3/4
-    case 48
-        PPDU_words(1) = tx_signal_calc(Pkt_len, 6, 0); %64QAM 2/3
-    case 54
-        PPDU_words(1) = tx_signal_calc(Pkt_len, 6, 1); %64QAM 3/4
-    otherwise
-        error('Invalid value for Tx_Rate!')
+%Setup params for the sim
+% In hardware these params are set per packet by the MAC core/code
+% Bypass if running multiple sims via the gen_sim_waveforms script
+if(~exist('gen_waveform_mode', 'var'))
+    tx_sim = struct();
+    tx_sim.MAC_payload = MPDU_Data_short;
+    tx_sim.payload_len = length(tx_sim.MAC_payload);
+    tx_sim.PHY_mode = 2; %1=11a, 2=11n
+    tx_sim.mcs = 1;
+    tx_sim.samp_rate = 20; %Must be in [10 20 40]
+    tx_sim.num_pkts = 1;
 end
 
-%Insert SERVICE field (always 0)
-PPDU_words(2) = 0;
+%MCS6, length=57, HTSIG should be:
+% 06 39 00 07 E0 00 (per IEEE waveform gen)
+% instead, current sim is:
+% 06 39 00 07 48 00 - clearly CRC calc is wrong for some MCS/Length values
 
-%Populate payload after with the MPDU
-PPDU_words(2+[1:length(Pkt_Payload_words)]) = Pkt_Payload_words;
+%Construct the initial value for the simulated packet buffer
+% This code is only for sim - CPU Low handles the packet buffer
+%  init in the actual design
 
-%Calculate the approximate Tx duration and set the simulation time
-% Preamble time, SIGNAL field time, data time, 1 OFDM symbol padding
-Tx_Time_usec = ceil(16 + 4 + 32*length(Pkt_Payload_words) / Tx_Rate + 4);
-Sim_Tx_Start_Period = 1*(160 * Tx_Time_usec) + 2e3; %Padding, convert to 160MHz clock cycles
+%Tx packet buffer bytes (zero indexed):
+%11a Tx:
+% [ 0: 2] SIGNAL field
+% [ 3: 4] SERVICE field (always [0 0])
+% [ 5:15] Reserved (ignored by Tx PHY logic)
+% [16: N] MAC payload
+%
+%11n Tx:
+% [ 0: 2] L-SIG field
+% [ 3: 8] HT-SIG
+% [ 9:10] SERVICE field (always [0 0])
+% [11:15] Reserved (ignored by Tx PHY logic)
+% [16: N] MAC payload
 
-%Set the simulation time as a multiple of whole packet durations (1 by default)
-Sim_Time = 1 * Sim_Tx_Start_Period;
+PPDU_bytes = zeros(1, MAX_NUM_BYTES);
 
-sim_samp_time = 8; %4=40MHz, 8=20MHz
+[SIGNAL, HTSIG] = calc_phy_preamble(tx_sim.PHY_mode, tx_sim.mcs, tx_sim.payload_len);
 
-%%
+if(tx_sim.PHY_mode == 1) 
+    PPDU_bytes(1:3) = SIGNAL;
 
-%Define sane initial value for SIGNAL field register
-% The register takes this value on reset; it must be a valid SIGNAL value
-% to avoid asserting an error in between packet transmissions
-% Sysgen regs require init values of double data type
-TX_SIGNAL_INIT_VALUE = double(tx_signal_calc(24, 1, 0));
+    %Insert SERVICE field (always 0)
+    PPDU_bytes(4:5) = [0 0];
+    
+    %Reserved bytes
+    PPDU_bytes(6:16) = zeros(1,11);
+else
+    [SIGNAL, HTSIG] = calc_phy_preamble(2, tx_sim.mcs, tx_sim.payload_len);
+    
+    %11n mode - L-SIG contains rate=6Mbps, length corresponding to TX_TIME
+    PPDU_bytes(1:3) = SIGNAL;
+
+    %HT-SIG field
+    PPDU_bytes(4:9) = HTSIG;
+    
+    %Insert SERVICE field (always 0)
+    PPDU_bytes(10:11) = [0 0];
+    
+    %Reserved bytes
+    PPDU_bytes(12:16) = zeros(1, 5);
+end
+
+%Insert MAC payload - payload starts at byte index 16
+PPDU_bytes(16 + (1:numel(tx_sim.MAC_payload))) = tx_sim.MAC_payload;
+
+%Reshape byte vector to u32 vector, necessary to initialize the 32-bit BRAM in the simulation
+PPDU_bytes4 = reshape(PPDU_bytes, 4, numel(PPDU_bytes)/4);
+PPDU_words = sum(PPDU_bytes4 .* repmat(2.^[0:8:24]', 1, size(PPDU_bytes4,2)));
+
 
 %Define the complex-valued sequence for the preamble ROMs
+PLCP_Preamble = PLCP_Preamble_gen;
 Preamble_IQ = PLCP_Preamble.Preamble_t;
-
-%Define the data-bearing subcarriers
-sc_ind_data = [2:7 9:21 23:27 39:43 45:57 59:64];
-
-%Initialize a vector defining the subcarrier map
-% This vector is used by the interleaver control logic to select which
-% subcarriers carry data symbols. A value of MAX_NUM_SC tells the hardware to
-% not use the subcarrier for data. Any other value is a subcarrier index,
-% starting at 0, and will instruct the hardware to use that subcarrier for
-% a data symbol.
-sc_data_sym_map = MAX_NUM_SC*ones(1,64);
-sc_data_sym_map(sc_ind_data) = fftshift(0:length(sc_ind_data)-1);
 
 %% Register Init
 
@@ -157,10 +155,12 @@ PHY_CONFIG_CP_LEN = 16;
 PHY_CONFIG_FFT_SCALING = bin2dec('101010');
 PHY_TX_ACTIVE_EXTENSION = 120;
 PHY_TX_RF_EN_EXTENSION = 50;
+PHY_TX_RXSIG_INVALID_EXTENSION = 120;
 
 REG_Tx_Timing = ...
     2^0  * (PHY_TX_ACTIVE_EXTENSION) + ... %b[7:0]
     2^8  * (PHY_TX_RF_EN_EXTENSION) + ... %b[15:8]
+    2^16 * (PHY_TX_RXSIG_INVALID_EXTENSION) + ... %b[23:16]
     0;
 
 REG_TX_FFT_Config = ...
@@ -177,8 +177,8 @@ REG_TX_Config = ...
     2^4  * 0 + ... %Enable Tx on RF C
     2^5  * 0 + ... %Enable Tx on RF D
     2^6  * 1 + ... %Use ant mask from MAC hw port
-    2^8  * 2 + ... %Max pkt length (SIGNAL.LENGTH max) in kB (UFix4_0)
-    2^12 * 1 + ... %11a mode by default (only used by software-initated Tx; MAC core sets this normally)
+    2^7  * 0 + ... %Use un-delayed TX_ACTIVE signal on debug port
+    2^12 * 1 + ... %PHY mode (1=11a, 2=11n), only used for software-initiated Tx
     0;
 
 REG_TX_PKT_BUF_SEL = ...
@@ -192,10 +192,13 @@ REG_TX_Output_Scaling = (2.0 * 2^12) + (2^16 * 2.0 * 2^12); %UFix16_12 values
 
 
 %% Cyclic Redundancy Check parameters
-CRCPolynomial32 = hex2dec('04c11db7'); %CRC-32
+CRCPolynomial32 = hex2dec('04c11db7'); %CRC-32, for payload FCS
 CRC_Table32 = CRC_table_gen(CRCPolynomial32, 32);
 
-%% Constellation params
+CRCPolynomial8 = hex2dec('07'); %CRC-8, for HT-SIG
+CRC_Table8 = CRC_table_gen(CRCPolynomial8, 8);
+
+%% Constellation scaling
 
 %Common scaling for preamble and all constellations that keeps all points within
 % numeric range of Fix16_15 values at input to IFFT
@@ -221,4 +224,40 @@ Mod_Constellation_64QAM(5) = ALL_MOD_SCALING *  7/sqrt(42);
 Mod_Constellation_64QAM(6) = ALL_MOD_SCALING *  5/sqrt(42);
 Mod_Constellation_64QAM(7) = ALL_MOD_SCALING *  1/sqrt(42);
 Mod_Constellation_64QAM(8) = ALL_MOD_SCALING *  3/sqrt(42);
+
+
+%% HT preamble
+
+%Define the frequency domain 20MHz HT-STF (IEEE 802.11-2012 20.3.9.4.5)
+% Array indexes [0 ... 63] correspond to subcarriers [0 1 ... 31 -32 -31 ... -1]
+ht_stf_20_fd = zeros(1,64);
+ht_stf_20_fd(1:27) = [0 0 0 0 -1-1i 0 0 0 -1-1i 0 0 0 1+1i 0 0 0 1+1i 0 0 0 1+1i 0 0 0 1+1i 0 0];
+ht_stf_20_fd(39:64) = [0 0 1+1i 0 0 0 -1-1i 0 0 0 1+1i 0 0 0 -1-1i 0 0 0 -1-1i 0 0 0 1+1i 0 0 0];
+
+%Define the frequency domain 20MHz HT-LTF (IEEE 802.11-2012 20.3.9.4.6)
+% Array indexes [0 ... 63] correspond to subcarriers [0 1 ... 31 -32 -31 ... -1]
+ht_ltf_20_fd = [0 1 -1 -1 1 1 -1 1 -1 1 -1 -1 -1 -1 -1 1 1 -1 -1 1 -1 1 -1 1 1 1 1 -1 -1 0 0 0 0 0 0 0 1 1 1 1 -1 -1 1 1 -1 1 -1 1 1 1 1 1 1 -1 -1 1 1 -1 1 -1 1 1 1 1];
+
+%Define init vector for HT preamble ROM
+% 20MHz HT-STF and HT-LTF are concatenated
+ht_preamble_rom = ALL_MOD_SCALING .* [ht_stf_20_fd ht_ltf_20_fd];
+
+%% Interleaver and subcarrier maps
+
+% Use util script to generate interleaver address mapping ROM contents
+wlan_tx_interleave_rom = wlan_tx_interleave_rom_gen();
+
+%Initialize a vector defining the subcarrier map
+% This vector is used by the interleaver control logic to select which
+% subcarriers carry data symbols. A value of MAX_NUM_SC tells the hardware to
+% not use the subcarrier for data.
+sc_ind_data_11a = [2:7 9:21 23:27 39:43 45:57 59:64];
+sc_data_sym_map_11a = MAX_NUM_SC*ones(1,MAX_NUM_SC);
+sc_data_sym_map_11a(sc_ind_data_11a) = 0:length(sc_ind_data_11a)-1;
+sc_data_sym_map_11a_bool = double(sc_data_sym_map_11a ~= MAX_NUM_SC);
+
+sc_ind_data_11n = [2:7 9:21 23:29 37:43 45:57 59:64];
+sc_data_sym_map_11n = MAX_NUM_SC*ones(1,MAX_NUM_SC);
+sc_data_sym_map_11n(sc_ind_data_11n) = 0:length(sc_ind_data_11n)-1;
+sc_data_sym_map_11n_bool = double(sc_data_sym_map_11n ~= MAX_NUM_SC);
 
