@@ -13,13 +13,88 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
-#ifndef WLAN_MAC_ETH_UTIL_H_
-#define WLAN_MAC_ETH_UTIL_H_
+/***************************** Include Files *********************************/
 
 #include "xintc.h"
 
-//The struct definitions below are used to interpret packet payloads
-// The code never creates instances of these structs
+
+/*************************** Constant Definitions ****************************/
+#ifndef WLAN_MAC_ETH_UTIL_H_
+#define WLAN_MAC_ETH_UTIL_H_
+
+//-----------------------------------------------
+// xparameter.h definitions
+//
+// Ethernet A
+#define ETH_A_MAC_DEVICE_ID                                XPAR_ETH_A_MAC_DEVICE_ID
+#define ETH_A_DMA_DEVICE_ID                                XPAR_ETH_A_DMA_DEVICE_ID
+
+#define ETH_A_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
+#define ETH_A_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
+
+// Ethernet B
+#define ETH_B_MAC_DEVICE_ID                                XPAR_ETH_B_MAC_DEVICE_ID
+#define ETH_B_DMA_DEVICE_ID                                XPAR_ETH_B_DMA_DEVICE_ID
+
+#define ETH_B_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_1_S2MM_INTROUT_VEC_ID
+#define ETH_B_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_1_MM2S_INTROUT_VEC_ID
+
+
+//-----------------------------------------------
+// Ethernet PHY defines
+//
+#define ETH_A_MDIO_PHYADDR                                 0x6
+#define ETH_B_MDIO_PHYADDR                                 0x7
+
+
+//-----------------------------------------------
+// WLAN Ethernet defines
+//     NOTE:  Ethernet device associated with device ID must match Ethernet device associated
+//         with MDIO PHY address
+//
+#define WLAN_ETH_DEV_ID                                    ETH_A_MAC_DEVICE_ID
+#define WLAN_ETH_DMA_DEV_ID                                ETH_A_DMA_DEVICE_ID
+#define WLAN_ETH_MDIO_PHYADDR                              ETH_A_MDIO_PHYADDR
+#define WLAN_ETH_RX_INTR_ID                                ETH_A_RX_INTR_ID
+#define WLAN_ETH_TX_INTR_ID                                ETH_A_TX_INTR_ID
+#define WLAN_ETH_LINK_SPEED	                               1000
+#define WLAN_ETH_PKT_BUF_SIZE                              0x800               // 2KB - space allocated per pkt
+
+
+//-----------------------------------------------
+// Magic numbers used for Ethernet/IP/UDP/DHCP/ARP packet interpretation
+//
+#define DHCP_BOOTP_FLAGS_BROADCAST                         0x8000
+#define DHCP_MAGIC_COOKIE                                  0x63825363
+#define DHCP_OPTION_TAG_TYPE                               53
+#define DHCP_OPTION_TYPE_DISCOVER                          1
+#define DHCP_OPTION_TYPE_OFFER                             2
+#define DHCP_OPTION_TYPE_REQUEST                           3
+#define DHCP_OPTION_TYPE_ACK                               5
+#define DHCP_OPTION_TAG_IDENTIFIER                         61
+#define DHCP_OPTION_END                                    255
+#define DHCP_HOST_NAME                                     12
+
+#define IPV4_PROT_UDP                                      0x11
+
+#define UDP_SRC_PORT_BOOTPC                                68
+#define UDP_SRC_PORT_BOOTPS                                67
+
+#define ETH_TYPE_ARP                                       0x0608
+#define ETH_TYPE_IP                                        0x0008
+
+#define LLC_SNAP                                           0xAA
+#define LLC_CNTRL_UNNUMBERED                               0x03
+#define LLC_TYPE_ARP                                       0x0608
+#define LLC_TYPE_IP                                        0x0008
+#define LLC_TYPE_WLAN_LTG                                  0x9090              // Non-standard type for LTG packets
+
+
+
+/*********************** Global Structure Definitions ************************/
+
+// The struct definitions below are used to interpret packet payloads.  The
+// code never creates instances of these structs
 
 //
 // See definitions in WARP_ip_udp.h for:
@@ -47,59 +122,20 @@ typedef struct{
 	u32 magic_cookie;
 } dhcp_packet;
 
-//Magic numbers used for Ethernet/IP/UDP/DHCP/ARP packet interpretation
-#define DHCP_BOOTP_FLAGS_BROADCAST                         0x8000
-#define DHCP_MAGIC_COOKIE                                  0x63825363
-#define DHCP_OPTION_TAG_TYPE                               53
-#define DHCP_OPTION_TYPE_DISCOVER                          1
-#define DHCP_OPTION_TYPE_OFFER                             2
-#define DHCP_OPTION_TYPE_REQUEST                           3
-#define DHCP_OPTION_TYPE_ACK                               5
-#define DHCP_OPTION_TAG_IDENTIFIER                         61
-#define DHCP_OPTION_END                                    255
-#define DHCP_HOST_NAME                                     12
 
-#define IPV4_PROT_UDP                                      0x11
+/*************************** Function Prototypes *****************************/
 
-#define UDP_SRC_PORT_BOOTPC                                68
-#define UDP_SRC_PORT_BOOTPS                                67
+int           wlan_eth_init();
+int           wlan_eth_setup_interrupt(XIntc* intc);
 
-#define ETH_TYPE_ARP                                       0x0608
-#define ETH_TYPE_IP                                        0x0008
+void          wlan_mac_util_set_eth_rx_callback(void(*callback)());
+void          wlan_mac_util_set_eth_encap_mode(u8 mode);
 
-#define LLC_SNAP                                           0xAA
-#define LLC_CNTRL_UNNUMBERED                               0x03
-#define LLC_TYPE_ARP                                       0x0608
-#define LLC_TYPE_IP                                        0x0008
-#define LLC_TYPE_WLAN_LTG                                  0x9090              // Non-standard type for LTG packets
+inline int    eth_get_num_rx_bd();
 
-#define ETH_A_DMA_DEV_ID	                               XPAR_ETH_A_DMA_DEVICE_ID
+int           wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset);
 
-// Ethernet MAC-PHY link speed - must match PHY's actual link speed, as auto-negotiated at run time
-#define ETH_A_LINK_SPEED	                               1000
-#define ETH_A_MDIO_PHYADDR                                 0x6
+void          wlan_eth_dma_update();
 
-// Memory space allocated per Ethernet packet
-#define ETH_A_PKT_BUF_SIZE                                 0x800               // 2KB
-
-int  wlan_eth_init();
-int  wlan_eth_dma_init();
-
-void wlan_mac_util_set_eth_rx_callback(void(*callback)());
-void wlan_mac_util_set_eth_encap_mode(u8 mode);
-
-void wlan_eth_dma_update();
-int  wlan_eth_dma_send(u8* pkt_ptr, u32 length);
-
-inline int eth_get_num_rx_bd();
-
-int  wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset);
-
-int  wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len);
-
-inline void wlan_poll_eth_rx();
-
-int  wlan_eth_setup_interrupt(XIntc* intc);
-void eth_rx_interrupt_handler(void *callbarck_arg);
 
 #endif /* WLAN_MAC_ETH_UTIL_H_ */

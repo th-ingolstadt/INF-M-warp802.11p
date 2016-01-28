@@ -18,6 +18,7 @@
 #ifndef WLAN_MAC_HIGH_H_
 #define WLAN_MAC_HIGH_H_
 
+
 //-----------------------------------------------
 // Boot memory defines
 //
@@ -210,7 +211,6 @@
 //     one line of code in the SDK project.
 //
 #define INTC_DEVICE_ID                                     XPAR_INTC_0_DEVICE_ID              ///< XParameters rename of interrupt controller device ID
-#define ETH_A_MAC_DEVICE_ID                                XPAR_ETH_A_MAC_DEVICE_ID           ///< XParameters rename for ETH A
 #define UARTLITE_DEVICE_ID                                 XPAR_UARTLITE_0_DEVICE_ID          ///< XParameters rename for UART
 #define GPIO_DEVICE_ID                                     XPAR_MB_HIGH_SW_GPIO_DEVICE_ID     ///< XParameters rename of device ID of GPIO
 #define INTC_GPIO_INTERRUPT_ID                             XPAR_INTC_0_GPIO_0_VEC_ID          ///< XParameters rename of GPIO interrupt ID

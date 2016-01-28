@@ -77,11 +77,12 @@
 //
 #define WLAN_PHY_FCS_NBYTES                                4
 
-//-----------------------------------------------
-// PHY Bandwidth Configuration
-typedef enum {PHY_5M = 5, PHY_10M = 10, PHY_20M = 20, PHY_40M = 40} phy_samp_rate_t;
 
-#define UNIQUE_SEQ_INVALID	0xFFFFFFFFFFFFFFFF
+//-----------------------------------------------
+// Unique sequence number defines
+//
+#define UNIQUE_SEQ_INVALID	                               0xFFFFFFFFFFFFFFFF
+
 
 //-----------------------------------------------
 // Level Print function defines
@@ -179,7 +180,7 @@ typedef enum {PHY_5M = 5, PHY_10M = 10, PHY_20M = 20, PHY_40M = 40} phy_samp_rat
 // Node Error defines
 //
 #define ERROR_NODE_RIGHT_SHIFT                             0
-#define ERROR_NODE_INSUFFICIENT_SIZE_TX_BD                 1
+#define ERROR_NODE_INSUFFICIENT_BD_SIZE                    1
 #define ERROR_NODE_DRAM_NOT_PRESENT                        2
 
 
@@ -199,6 +200,20 @@ typedef enum {PHY_5M = 5, PHY_10M = 10, PHY_20M = 20, PHY_40M = 40} phy_samp_rat
 typedef int (*function_ptr_t)();
 
 
+//-----------------------------------------------
+// PHY Bandwidth Configuration
+//
+typedef enum {
+    PHY_5M    =  5, 
+    PHY_10M   = 10, 
+    PHY_20M   = 20, 
+    PHY_40M   = 40
+} phy_samp_rate_t;
+
+
+//-----------------------------------------------
+// LLC Header
+//
 typedef struct{
 	u8  dsap;
 	u8  ssap;
@@ -207,12 +222,16 @@ typedef struct{
 	u16 type;
 } llc_header;
 
-//LTG Payload Contents
+
+//-----------------------------------------------
+// LTG Payload Contents
+//
 typedef struct {
 	llc_header  llc_hdr;
 	u64         unique_seq;
 	u32         ltg_id;
 } ltg_packet_id;
+
 
 //-----------------------------------------------
 // TX parameters
