@@ -595,6 +595,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 			is_associated  = 1;
 			rx_seq         = ((rx_80211_header->sequence_control)>>4)&0xFFF;
+
 			station_counts = associated_station->counts;
 
 			// Check if this was a duplicate reception
@@ -875,7 +876,7 @@ void ltg_event(u32 id, void* callback_arg){
 				payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
 
 				// Finally prepare the 802.11 header
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), UNICAST_QID);
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO | TX_MPDU_FLAGS_FILL_UNIQ_SEQ), UNICAST_QID);
 
 				// Update the queue entry metadata to reflect the new new queue entry contents
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
@@ -956,7 +957,6 @@ void reset_all_associations(){
 void mpdu_dequeue(tx_queue_element* packet){
 	mac_header_80211* 	header;
 	tx_frame_info*		frame_info;
-	ltg_packet_id*      pkt_id;
 	u32 				packet_payload_size;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
@@ -964,13 +964,9 @@ void mpdu_dequeue(tx_queue_element* packet){
 	packet_payload_size	= frame_info->length;
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
-		case PKT_TYPE_DATA_ENCAP_LTG:
-			pkt_id		       = (ltg_packet_id*)((u8*)header + sizeof(mac_header_80211));
-			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
-			//do not break here
 		case PKT_TYPE_DATA_ENCAP_ETH:
 			// Overwrite addr1 of this packet with the currently associated AP. This will allow previously
-			// enqueued packets to seemlessly hand off if this STA joins a new AP
+			// enqueued packets to seamlessly hand off if this STA joins a new AP
 			if(my_bss_info != NULL){
 				memcpy(header->address_1, my_bss_info->bssid, 6);
 			} else {
