@@ -77,6 +77,9 @@ static function_ptr_t        frame_tx_callback;                                 
 
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
+// Unique transmit sequence number
+volatile static u64	         unique_seq;
+
 // NOTE: this statically allocated space should be larger than the maximum number of attempts
 //     dot11ShortRetryLimit+dot11LongRetryLimit-1
 static wlan_mac_low_tx_details low_tx_details[50]; //TODO make a #define
@@ -146,6 +149,8 @@ int wlan_mac_low_init(u32 type){
     mac_param_band           = RC_24GHZ;
     mac_param_ctrl_tx_pow    = 10;
     cpu_low_status           = 0;
+
+    unique_seq = 0;
 
     // mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
@@ -786,9 +791,9 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     u32                      isLocked, owner;
     u32                      low_tx_details_size;
     wlan_ipc_msg             ipc_msg_to_high;
+    ltg_packet_id*			 pkt_id;
 
     // TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
-
 
 	if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
@@ -808,15 +813,25 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		//
 		rate       = wlan_mac_low_mcs_to_phy_rate(tx_mpdu->params.phy.rate);
 		ACK_N_DBPS = wlan_mac_low_mcs_to_n_dbps(wlan_mac_low_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.rate));
+		// Get pointer to start of MAC header in packet buffer
+		tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
 
 		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
-			// Get pointer to start of MAC header in packet buffer
-			tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
-
 			// Compute and fill in the duration of any time-on-air following this packet's transmission
 			//     For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
 			tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ACK_N_DBPS, phy_samp_rate) + mac_timing_values.t_sifs;
 		}
+
+		// Insert sequence number here
+		tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
+
+		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_UNIQ_SEQ){
+			// Fill unique sequence number into LTG payload
+			pkt_id		       = (ltg_packet_id*)((u8*)tx_80211_header + sizeof(mac_header_80211));
+			pkt_id->unique_seq = unique_seq;
+		}
+
+		unique_seq++;
 
 
 		// When start>end, the Tx logic will not insert any timestamp
