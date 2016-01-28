@@ -175,7 +175,6 @@ int main() {
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(       	(void*)ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback( 	(void*)mpdu_transmit_done);
-	wlan_mac_high_set_mpdu_dequeue_callback( 	(void*)mpdu_dequeue);
 	wlan_mac_high_set_mpdu_rx_callback(      	(void*)mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(      	(void*)uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
@@ -1126,9 +1125,9 @@ void ltg_event(u32 id, void* callback_arg){
 
 					// Finally prepare the 802.11 header
 					if (is_multicast) {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION), queue_sel);
+						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_FILL_UNIQ_SEQ), queue_sel);
 					} else {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel);
+						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_FILL_UNIQ_SEQ | TX_MPDU_FLAGS_REQ_TO), queue_sel);
 					}
 
 					// Update the queue entry metadata to reflect the new new queue entry contents
@@ -1259,27 +1258,6 @@ void leave_ibss(){
 		}
 	}
 }
-
-
-void mpdu_dequeue(tx_queue_element* packet){
-	mac_header_80211* 	header;
-	tx_frame_info*		frame_info;
-	ltg_packet_id*      pkt_id;
-	u32 				packet_payload_size;
-
-	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
-	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
-	packet_payload_size	= frame_info->length;
-
-	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
-		case PKT_TYPE_DATA_ENCAP_LTG:
-			pkt_id		       = (ltg_packet_id*)((u8*)header + sizeof(mac_header_80211));
-			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
-		break;
-	}
-
-}
-
 
 
 /**
