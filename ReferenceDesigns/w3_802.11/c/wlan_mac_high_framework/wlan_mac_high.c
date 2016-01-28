@@ -133,9 +133,6 @@ volatile u8                  promiscuous_counts_enabled;   ///< Are promiscuous 
 // Receive Antenna mode tracker
 volatile u8                  rx_ant_mode_tracker = 0;      ///< Tracking variable for RX Antenna mode for CPU Low
 
-// Unique transmit sequence number
-volatile static u64	         unique_seq;
-
 // Tx Packet Buffer Busy State
 volatile static u8           tx_pkt_buf_busy_state;
 
@@ -330,8 +327,6 @@ void wlan_mac_high_init(){
 	num_free    = 0;
 
 	cpu_low_reg_read_buffer        = NULL;
-
-	unique_seq = 0;
 
 	tx_pkt_buf_busy_state = 0;
 
@@ -1295,17 +1290,11 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	wlan_ipc_msg ipc_msg_to_low;
 	tx_frame_info* tx_mpdu;
 	station_info* station;
-	mac_header_80211* header;
 	void* dest_addr;
 	void* src_addr;
 	u32 xfer_len;
 
 	tx_mpdu = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-
-	header 	  = (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
-
-	// Insert sequence number here
-	header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
 
 	// Call user code to notify it of dequeue
 
@@ -1322,10 +1311,8 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	// Wait for transfer to finish
 	wlan_mac_high_cdma_finish_transfer();
 
-	// Place the unique sequence number in the packet and increment
-	//   NOTE:  Adding to tx_mpdu must be done here due to the CDMA transfer
-	tx_mpdu->unique_seq = unique_seq;
-	unique_seq++;
+	// Unique_seq will be filled in by CPU_LOW
+	tx_mpdu->unique_seq = 0;
 
 	switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
 	    case QUEUE_METADATA_TYPE_IGNORE:
@@ -1360,10 +1347,6 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 		ipc_mailbox_write_msg(&ipc_msg_to_low);
 	}
 
-}
-
-inline u64 wlan_mac_high_get_unique_seq(){
-	return unique_seq;
 }
 
 /**

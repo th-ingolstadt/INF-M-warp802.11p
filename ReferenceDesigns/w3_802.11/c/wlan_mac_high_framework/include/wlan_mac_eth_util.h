@@ -47,14 +47,6 @@ typedef struct{
 	u32 magic_cookie;
 } dhcp_packet;
 
-typedef struct{
-	u8  dsap;
-	u8  ssap;
-	u8  control_field;
-	u8  org_code[3];
-	u16 type;
-} llc_header;
-
 //Magic numbers used for Ethernet/IP/UDP/DHCP/ARP packet interpretation
 #define DHCP_BOOTP_FLAGS_BROADCAST                         0x8000
 #define DHCP_MAGIC_COOKIE                                  0x63825363

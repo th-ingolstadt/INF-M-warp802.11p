@@ -18,7 +18,6 @@
 #ifndef WLAN_MAC_HIGH_H_
 #define WLAN_MAC_HIGH_H_
 
-
 //-----------------------------------------------
 // Boot memory defines
 //
@@ -489,7 +488,6 @@ void               wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_
 
 wlan_mac_hw_info*  wlan_mac_high_get_hw_info();
 u8*                wlan_mac_high_get_eeprom_mac_addr();
-inline u64         wlan_mac_high_get_unique_seq();
 
 u8                 wlan_mac_high_valid_tagged_rate(u8 rate);
 void               wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
