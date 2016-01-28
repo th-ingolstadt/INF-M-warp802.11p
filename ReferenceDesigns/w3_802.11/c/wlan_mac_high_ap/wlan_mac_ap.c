@@ -672,13 +672,13 @@ void ltg_event(u32 id, void* callback_arg){
 						wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
 															curr_tx_queue_element,
 															payload_length,
-															(TX_MPDU_FLAGS_FILL_DURATION),
+															(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_FILL_UNIQ_SEQ),
 															queue_sel );
 					} else {
 						wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
 															curr_tx_queue_element,
 															payload_length,
-															(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
+															(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO | TX_MPDU_FLAGS_FILL_UNIQ_SEQ),
 															queue_sel );
 					}
 
@@ -1702,7 +1702,6 @@ void deauthenticate_stations(){
 void mpdu_dequeue(tx_queue_element* packet){
 	mac_header_80211* 	header;
 	tx_frame_info*		frame_info;
-	ltg_packet_id*      pkt_id;
 	u32 				packet_payload_size;
 	u8                  tim_control;
 	u16 				tim_byte_idx           = 0;
@@ -1720,9 +1719,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
-		case PKT_TYPE_DATA_ENCAP_LTG:
-			pkt_id		       = (ltg_packet_id*)((u8*)header + sizeof(mac_header_80211));
-			pkt_id->unique_seq = wlan_mac_high_get_unique_seq();
 		case PKT_TYPE_DATA_ENCAP_ETH:
 			if(my_bss_info != NULL){
 				curr_station_entry = wlan_mac_high_find_station_info_AID(&(my_bss_info->associated_stations), frame_info->AID);
