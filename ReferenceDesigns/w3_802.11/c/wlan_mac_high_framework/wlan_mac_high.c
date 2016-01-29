@@ -1304,13 +1304,13 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 		tx_pkt_buf_busy_state |= (1 << tx_pkt_buf);
     }
     
+    // Call user code to notify it of dequeue
+	if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
+
 	tx_mpdu   = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
 	xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
-
-	// Call user code to notify it of dequeue
-	if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
 
 	// Transfer the frame info
 	wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
