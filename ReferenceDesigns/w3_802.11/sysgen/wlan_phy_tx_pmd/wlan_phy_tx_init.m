@@ -55,7 +55,7 @@ MPDU_Null_Data = sscanf('48 11 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 5
 MPDU_Data_short = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', [0:15]) ' 00 00 00 00'], '%02x');
 
 %Mid-size pkt - 150 payload bytes
-MPDU_Data_mid = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:150], 256)) ' 00 00 00 00'], '%02x');
+MPDU_Data_mid = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:64], 256)) ' 00 00 00 00'], '%02x');
 
 %Long pkt - 1420 payload bytes
 MPDU_Data_long = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:1420], 256)) ' 00 00 00 00'], '%02x');
@@ -75,12 +75,12 @@ ControlFrame_ACK = sscanf('d4 00 00 00 40 d8 55 04 21 4a 00 00 00 00', '%02x');
 % Bypass if running multiple sims via the gen_sim_waveforms script
 if(~exist('gen_waveform_mode', 'var'))
     tx_sim = struct();
-    tx_sim.MAC_payload = MPDU_Data_short;
+    tx_sim.MAC_payload = MPDU_Data_mid;
     tx_sim.payload_len = length(tx_sim.MAC_payload);
-    tx_sim.PHY_mode = 2; %1=11a, 2=11n
-    tx_sim.mcs = 1;
+    tx_sim.PHY_mode = 1; %1=11a, 2=11n
+    tx_sim.mcs = 6;
     tx_sim.samp_rate = 20; %Must be in [10 20 40]
-    tx_sim.num_pkts = 1;
+    tx_sim.num_pkts = 2;
 end
 
 %MCS6, length=57, HTSIG should be:
