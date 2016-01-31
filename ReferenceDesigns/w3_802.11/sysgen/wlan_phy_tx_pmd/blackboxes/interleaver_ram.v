@@ -12,16 +12,22 @@ module interleaver_ram(
 );
 
 //Sysgen blackboxes must have clk and ce ports
+// VHDL wrapper uses std_logic for these signals
 input clk;
 input ce;
 
-input dina;
-input wea;
+// Sysgen instantiates this module in a VHDL wrapper. The wrapper uses std_logic_vector(0:0) signals
+//  to connect to this module's ports. It's *very* important the scalar I/O below have dimensions [0:0].
+//  Without these XST bizarrely decides no connection is made and optimizes out the interleaver RAM.
+// Using Sysgen's "port.useHDLVector(false)" in the config.m would probably achieve the same thing.
+
+input [0:0] dina;
+input [0:0] wea;
 input [8:0] addra;
 output [7:0] douta;
 
-input dinb;
-input web;
+input [0:0] dinb;
+input [0:0] web;
 input [8:0] addrb;
 output [7:0] doutb;
 
