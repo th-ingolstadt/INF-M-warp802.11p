@@ -57,7 +57,7 @@ typedef struct{
 #define WLAN_MAC_REG_STATUS                                XPAR_WLAN_MAC_HW_MEMMAP_STATUS
 #define WLAN_MAC_REG_LATEST_RX_BYTE                        XPAR_WLAN_MAC_HW_MEMMAP_LATEST_RX_BYTE
 #define WLAN_MAC_REG_PHY_RX_PARAMS                         XPAR_WLAN_MAC_HW_MEMMAP_PHY_RX_PARAMS
-#define WLAN_MAC_REG_BACKOFF_COUNTER                       XPAR_WLAN_MAC_HW_MEMMAP_BACKOFF_COUNTER
+#define WLAN_MAC_REG_BACKOFF_COUNTERS                      XPAR_WLAN_MAC_HW_MEMMAP_BACKOFF_COUNTERS
 #define WLAN_MAC_REG_RX_TIMESTAMP_LSB                      XPAR_WLAN_MAC_HW_MEMMAP_RX_START_TIMESTAMP_LSB
 #define WLAN_MAC_REG_RX_TIMESTAMP_MSB                      XPAR_WLAN_MAC_HW_MEMMAP_RX_START_TIMESTAMP_MSB
 #define WLAN_MAC_REG_TX_TIMESTAMP_LSB                      XPAR_WLAN_MAC_HW_MEMMAP_TX_START_TIMESTAMP_LSB
@@ -76,6 +76,9 @@ typedef struct{
 #define WLAN_MAC_REG_TX_CTRL_A_GAINS                       XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_A_GAINS
 #define WLAN_MAC_REG_TX_CTRL_B_PARAMS                      XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_B_PARAMS
 #define WLAN_MAC_REG_TX_CTRL_B_GAINS                       XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_B_GAINS
+#define WLAN_MAC_REG_TX_CTRL_C_PARAMS                      XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_C_PARAMS
+#define WLAN_MAC_REG_TX_CTRL_C_GAINS                       XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_C_GAINS
+
 #define WLAN_MAC_REG_POST_TX_TIMERS                        XPAR_WLAN_MAC_HW_MEMMAP_POST_TX_TIMERS
 #define WLAN_MAC_REG_POST_RX_TIMERS                        XPAR_WLAN_MAC_HW_MEMMAP_POST_RX_TIMERS
 #define WLAN_MAC_REG_NAV_CHECK_ADDR_1                      XPAR_WLAN_MAC_HW_MEMMAP_NAV_MATCH_ADDR_1
@@ -184,32 +187,31 @@ typedef struct{
 //-----------------------------------------------
 // WLAN MAC HW - CONTROL bit masks / macros
 //
-#define WLAN_MAC_CTRL_MASK_RESET                           0x001
-#define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN                 0x002
-#define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET              0x004
-#define WLAN_MAC_CTRL_MASK_DISABLE_NAV                     0x008
-#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX                  0x010
-#define WLAN_MAC_CTRL_MASK_UPDATE_TIMESTAMP                0x020
-#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND         0x040          // Blocks Rx on bad FCS pkts, only for logging/analysis
-#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_PHY_CS               0x080
-#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_TX_BUSY              0x100
-#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_NAV                  0x200
-#define WLAN_MAC_CTRL_MASK_RESET_NAV                       0x400
-#define WLAN_MAC_CTRL_MASK_RESET_BACKOFF                   0x800
+#define WLAN_MAC_CTRL_MASK_RESET                           0x00000001
+#define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN                 0x00000002
+#define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET              0x00000004
+#define WLAN_MAC_CTRL_MASK_DISABLE_NAV                     0x00000008
+#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX                  0x00000010
 
-#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A			  	   0x00001000
-#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B				   0x00002000
-#define WLAN_MAC_CTRL_MASK_RESET_TXINH_LATCH			   0x00004000
-#define WLAN_MAC_CTRL_MASK_CCA_USE_TXINH				   0x00008000
+#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND         0x00000040          // Blocks Rx on bad FCS pkts, only for logging/analysis
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_PHY_CS               0x00000080
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_TX_BUSY              0x00000100
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_NAV                  0x00000200
+#define WLAN_MAC_CTRL_MASK_RESET_NAV                       0x00000400
+#define WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF                 0x00000800
+#define WLAN_MAC_CTRL_MASK_RESET_C_BACKOFF                 0x00001000
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A			  	   0x00002000
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B				   0x00004000
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C				   0x00008000
+#define WLAN_MAC_CTRL_MASK_FORCE_CCA_BUSY				   0x00010000
+#define WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF				   0x00020000
 
-
-#define wlan_mac_set_backoff_reset(x)                      Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_BACKOFF : 0))
+#define wlan_mac_set_A_backoff_reset(x)                      Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF : 0))
 
 #define wlan_mac_reset(x)                      			   Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | ((x) ? WLAN_MAC_CTRL_MASK_RESET : 0))
-#define wlan_mac_reset_tx_ctrl_a(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A : 0))
-#define wlan_mac_reset_tx_ctrl_b(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B : 0))
-
-
+#define wlan_mac_reset_tx_ctrl_A(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A : 0))
+#define wlan_mac_reset_tx_ctrl_B(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B : 0))
+#define wlan_mac_reset_tx_ctrl_C(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C : 0))
 
 //-----------------------------------------------
 // WLAN MAC HW - Macros
@@ -249,15 +251,17 @@ typedef struct{
 //     b[24]  : Pre-Wait for PostRx Timer 1
 //     b[25]  : Pre-Wait for PostTx Timer 1
 //     b[26]  : Post-Wait for PostTx Timer 2
+//     b[29:27]: PHY mode
 //
-#define wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2) \
+#define wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2, phy_mode) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_A_PARAMS, \
                     ((pktBuf                & 0xF   )        | \
                     ((antMask               & 0xF   ) <<  4) | \
                     ((preTx_backoff_slots   & 0xFFFF) <<  8) | \
                     ((preWait_postRxTimer1  & 0x1   ) << 24) | \
                     ((preWait_postTxTimer1  & 0x1   ) << 25) | \
-                    ((postWait_postTxTimer2 & 0x1   ) << 26)))
+                    ((postWait_postTxTimer2 & 0x1   ) << 26) | \
+                    ((phy_mode              & 0x7   ) << 27)))
 
 // TX_CTRL_A_GAINS
 //     b[0:5]  : RFA Tx gain
@@ -279,15 +283,17 @@ typedef struct{
 //     b[9]: Pre-Wait for PostRx Timer 2
 //     b[10]: Post-Wait for PostTx Timer 1
 //     b[11]: Require NAV=0 at Tx time (otherwise skip Tx)
+//     b[14:12]: PHY mode
 //
-#define wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1) \
+#define wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1, phy_mode) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_B_PARAMS, \
                     ((pktBuf                & 0xF)        | \
                     ((antMask               & 0xF) <<  4) | \
                     ((preWait_postRxTimer1  & 0x1) <<  8) | \
                     ((preWait_postRxTimer2  & 0x1) <<  9) | \
                     ((postWait_postTxTimer1 & 0x1) << 10) | \
-                    ((req_zeroNAV           & 0x1) << 11)))
+                    ((req_zeroNAV           & 0x1) << 11) | \
+                    ((phy_mode              & 0x7) << 12)))
 
 // TX_CTRL_B_GAINS
 //     b[0:5]  : RFA Tx gain
@@ -297,6 +303,34 @@ typedef struct{
 //
 #define wlan_mac_tx_ctrl_B_gains(rf_a, rf_b, rf_c, rf_d) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_B_GAINS, \
+                        ((rf_a & 0x3F)        | \
+                        ((rf_b & 0x3F) <<  6) | \
+                        ((rf_c & 0x3F) << 12) | \
+                        ((rf_d & 0x3F) << 18)))
+
+// TX_CTRL_C_PARAMS:
+//     b[3:0]: Pkt buf
+//     b[7:4]: Tx ant mask
+//     b[8]: Require pre-Tx backoff
+//     b[11:9]: PHY mode
+//     b[27:12]: Num backoff slots
+//
+#define wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots) \
+                Xil_Out32(WLAN_MAC_REG_TX_CTRL_C_PARAMS, \
+                    ((pktBuf           & 0xF)        | \
+                    ((antMask          & 0xF) <<  4) | \
+                    ((req_backoff      & 0x1) <<  8) | \
+                    ((phy_mode         & 0x7) <<  9) | \
+                    ((num_slots     & 0xFFFF) << 12)))
+
+// TX_CTRL_C_GAINS
+//     b[0:5]  : RFA Tx gain
+//     b[6:11] : RFB Tx gain
+//     b[12:17]: RFC Tx gain
+//     b[18:23]: RFD Tx gain
+//
+#define wlan_mac_tx_ctrl_C_gains(rf_a, rf_b, rf_c, rf_d) \
+                Xil_Out32(WLAN_MAC_REG_TX_CTRL_C_GAINS, \
                         ((rf_a & 0x3F)        | \
                         ((rf_b & 0x3F) <<  6) | \
                         ((rf_c & 0x3F) << 12) | \
@@ -320,8 +354,8 @@ typedef struct{
 #define wlan_mac_get_last_byte()      ((Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFF0000) >> 16)
 
 // BACKOFF_COUNTER
-//     b[15:0]: Backoff count
-//
+//     b[15:0]: A Backoff count
+//     b[31:16]: C Backoff count
 #define wlan_mac_get_backoff_count() (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTER) & 0xFFFF)
 
 // RX_PHY_PARAMS Register:
@@ -423,6 +457,11 @@ inline u8          wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs);
 
 inline phy_samp_rate_t	   wlan_mac_low_get_phy_samp_rate();
 inline mac_timing  		   wlan_mac_low_get_mac_timing_values();
+
+//FIXME: placeholders for actual runtime PHY mode variables
+#define TMP_A_PHY_MODE 0x1
+#define TMP_B_PHY_MODE 0x1
+#define TMP_C_PHY_MODE 0x1
 
 
 #endif /* WLAN_MAC_LOW_H_ */

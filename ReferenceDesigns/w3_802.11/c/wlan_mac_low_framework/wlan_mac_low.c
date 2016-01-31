@@ -169,10 +169,6 @@ int wlan_mac_low_init(u32 type){
         return -1;
     }
 
-    // Disable timestamp insertion by default (start>end == disabled)
-    wlan_phy_tx_timestamp_ins_start(1);
-    wlan_phy_tx_timestamp_ins_end(0);
-
     wlan_lib_init();
 
     // Create IPC message to receive into
@@ -831,12 +827,8 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 			pkt_id->unique_seq = unique_seq;
 		}
 
+		//Increment the global unique sequence number
 		unique_seq++;
-
-
-		// When start>end, the Tx logic will not insert any timestamp
-		wlan_phy_tx_timestamp_ins_start(1);
-		wlan_phy_tx_timestamp_ins_end(0);
 
 		// Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 		//     complete (after all re-transmissions, ACK Rx, timeouts, etc.)
@@ -1340,8 +1332,8 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
  * @brief Force reset backoff counter in MAC hardware
  */
 inline void wlan_mac_reset_backoff_counter() {
-    Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_RESET_BACKOFF);
-    Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_BACKOFF);
+    Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) | WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF);
+    Xil_Out32(WLAN_MAC_REG_CONTROL, Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF);
 }
 
 

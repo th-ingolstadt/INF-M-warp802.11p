@@ -3,7 +3,7 @@
  *
  *  This contains code for configuring low-level parameters in the PHY and hardware.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -35,19 +35,8 @@
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
 
-/*************************** Constant Definitions ****************************/
-
-
-/*********************** Global Variable Definitions *************************/
-
-
-/*************************** Functions Prototypes ****************************/
-
-
-/*************************** Variable Definitions ****************************/
-
 // LUT of number of ones in each byte (used to calculate PARITY in SIGNAL)
-const u8                     ones_in_chars[256] = {
+const u8 ones_in_chars[256] = {
          0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,   // 0x00 - 0x0F
          1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,   // 0x10 - 0x1F
          1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,   // 0x20 - 0x2F
@@ -67,10 +56,6 @@ const u8                     ones_in_chars[256] = {
 
 // Instance for Timer device
 static XTmrCtr               TimerCounter;
-
-
-/******************************** Functions **********************************/
-
 
 /*****************************************************************************/
 /**
@@ -209,12 +194,7 @@ int w3_node_init() {
     if(status != XST_SUCCESS) {
         xil_printf("ERROR: (w3_node_init) Radio controller initialization failed with error code: %d\n", status);
 
-        //
-        // NOTE:  If you have issues with one of the RF interface on a node not locking, the comment out
-        //     the following line to allow the node to finish booting.  The node will not be able to use
-        //     the RF interface that does not lock, but the node will be able to use any RF interfaces
-        //     that were able to lock.
-        //
+        // Comment out the line below to allow the node to boot even if a radio PLL is unlocked
         ret_val = XST_FAILURE;
     }
 
@@ -269,17 +249,11 @@ void wlan_phy_init() {
 
     /************ PHY Rx ************/
 
-    // Enable DSSS Rx by default
-    //
-    // NOTE:  To disable DSSS Rx by default, substitute with the following line:
-    //     wlan_phy_DSSS_rx_disable();
-    //
-
+    // DSSS Rx only supported at 20Msps
     switch(phy_samp_rate){
 		case PHY_5M:
 		case PHY_10M:
     	case PHY_40M:
-    		//DSSS Reception not supported in 40MHz mode
     		wlan_phy_DSSS_rx_disable();
     	break;
     	case PHY_20M:
@@ -289,22 +263,17 @@ void wlan_phy_init() {
 
     // Set the max Tx/Rx packet sizes to 2KB (sane default for standard 802.11a/g links)
     wlan_phy_rx_set_max_pkt_len_kB(2);
-    wlan_phy_tx_set_max_pkt_len_kB(2);
     wlan_phy_rx_set_max_pktbuf_addr( PKT_BUF_SIZE - sizeof(rx_frame_info) - PHY_RX_PKT_BUF_PHY_HDR_SIZE );
 
     // Configure the DSSS Rx pipeline
-    //
-    // NOTE:  wlan_phy_DSSS_rx_config(code_corr, despread_dly, sfd_timeout)
-    //
+    //  wlan_phy_DSSS_rx_config(code_corr, despread_dly, sfd_timeout)
     wlan_phy_DSSS_rx_config(0x30, 5, 140);
 
     // Configure the DSSS auto-correlation packet detector
+    //  wlan_phy_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh, timeout_ones, timeout_count)
     //
-    // NOTE:  wlan_phy_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh, timeout_ones, timeout_count)
-    //
-    // NOTE:  To effectively disable DSSS detection with high thresholds, substitute with the following line:
+    // To effectively disable DSSS detection with high thresholds, substitute with the following line:
     //     wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0xFF, 0x3FF, 30, 40);
-    //
     wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0x60, 400, 30, 40);
 
     // Configure DSSS Rx to wait for AGC lock, then hold AGC lock until Rx completes or times out
@@ -312,7 +281,6 @@ void wlan_phy_init() {
 
     // Enable LTS-based CFO correction
     REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS);
-    //REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS); //TODO: Remove
 
     // Enable byte order swap for payloads and chan ests
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP);
@@ -325,6 +293,9 @@ void wlan_phy_init() {
 
     // Block Rx inputs during Tx
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
+
+    // Enable 11n support in the PHY Rx
+    REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_ENABLE_HTMM_DET);
 
     // Keep CCA.BUSY asserted when DSSS Rx is active
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
@@ -348,9 +319,7 @@ void wlan_phy_init() {
      wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 1);
 
     // Configure auto-correlation packet detection
-    //
-    // NOTE: wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
-    //
+    //  wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
      switch(phy_samp_rate){
      	case PHY_40M:
      		//TODO: The 2 value is suspiciously low
@@ -360,7 +329,7 @@ void wlan_phy_init() {
      	case PHY_10M:
      	case PHY_20M:
      		//wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
-     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 4, 0x3F);
+     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
      	break;
      }
 
@@ -371,9 +340,8 @@ void wlan_phy_init() {
     wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * wlan_mac_low_rx_power_to_rssi(-62));     // -62dBm from 802.11-2012
 
     // Set post Rx extension
-    //    NOTE: Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long
-    //        enough for decoding latency at 64QAM 3/4
-    //
+    //  Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for worst-case
+    //   decoding latency and should result in RX_END asserting 6 usec after the last sample was received
     switch(phy_samp_rate){
     	case PHY_40M:
     		// 6us Extension
@@ -397,7 +365,6 @@ void wlan_phy_init() {
     // Configure channel estimate capture (64 subcarriers, 4 bytes each)
     //     Chan ests start at sizeof(rx_frame_info) - sizeof(chan_est)
     wlan_phy_rx_pkt_buf_h_est_offset((PHY_RX_PKT_BUF_PHY_HDR_OFFSET - (64*4)));
-
 
     /************ PHY Tx ************/
 
@@ -457,20 +424,18 @@ void wlan_phy_init() {
     }
 
     // Set digital scaling of preamble/payload signals before DACs (UFix12_0)
-    //
-    // NOTE:  To set a scaling of 2.5, use the following line:
-    //     wlan_phy_tx_set_scaling(0x2800, 0x2800); // Scaling of 2.5
-    //
     wlan_phy_tx_set_scaling(0x2000, 0x2000); // Scaling of 2.0
 
     // Enable the Tx PHY 4-bit TxEn port that captures the MAC's selection of active antennas per Tx
     REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_USE_MAC_ANT_MASKS);
 
+    // Configure the IFFT scaling and control logic
+    //  Current PHY design requires 64 subcarriers, 16-sample cyclic prefix
+    wlan_phy_tx_config_fft(0x2A, 64, 16);
 
     /*********** AGC ***************/
 
     wlan_agc_config(RX_ANTMODE_SISO_ANTA);
-
 
     /************ Wrap Up ************/
 
@@ -704,7 +669,7 @@ void wlan_agc_config(u32 ant_mode) {
 #if 0
     // To set the gains manually:
 
-    xil_printf("Switching to MGC\n");
+    //xil_printf("Switching to MGC\n");
     radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
     radio_controller_setRxHP(RC_BASEADDR, RC_ALL_RF, RC_RXHP_OFF);
     radio_controller_setRxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_SPI);
@@ -831,11 +796,55 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
  *****************************************************************************/
 inline void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length) {
 
+	bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+
     Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(rate, length));
 
     return;
 }
 
+#if 0 //FIXME: DCF .stack overflowed with this
+
+//FIXME: phy_mode type should be enum?
+inline void wlan_phy_write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
+
+	const u8 phy_rate_vals[8] = {WLAN_PHY_RATE_BPSK12, WLAN_PHY_RATE_BPSK34, WLAN_PHY_RATE_QPSK12, WLAN_PHY_RATE_QPSK34, WLAN_PHY_RATE_16QAM12, WLAN_PHY_RATE_16QAM34, WLAN_PHY_RATE_64QAM23, WLAN_PHY_RATE_64QAM34};
+	u8* htsig_ptr;
+
+	if(phy_mode == 0x1) {
+		//11a mode
+
+		//Zero-out any stale header, also properly sets SERVICE and reserved bytes to 0
+		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+
+		//Set SIGNAL with actual rate/length
+	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(phy_rate_vals[mcs], length));
+
+	} else if(phy_mode == 0x2) {
+		//11n mode
+
+		//Zero-out any stale header, also properly sets SERVICE, reserved bytes, and auto-filled bytes of HT-SIG to 0
+		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+
+		//FIXME: calculate appropriate length for 6Mbps Tx duration matching actual 11n Tx duration
+	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(phy_rate_vals[0], 100));
+
+		//Assign pointer to first byte of HTSIG (PHY header base + 3 for sizeof(L-SIG))
+	    htsig_ptr = (u8*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET + 3);
+
+		//Set HTSIG bytes
+	    // PHY logic fills in bytes 4 and 5; ok to ignore here
+	    // Going byte-by-byte for now - maybe optimize to (unaligned) 32-bit write later
+	    htsig_ptr[0] = mcs & 0x3F; //MSB is channel bandwidth; 0=20MHz
+	    htsig_ptr[1] = length & 0xFF;
+	    htsig_ptr[2] = (length >> 8) & 0xFF;
+	    htsig_ptr[3] = 0x7; //smoothing=1, not-sounding=1, reserved=1, aggregation=STBC=FEC=short_GI=0
+	}
+
+
+    return;
+}
+#endif
 
 /*****************************************************************************/
 /**
@@ -857,22 +866,6 @@ inline void wlan_tx_start() {
 
     return;
 }
-
-
-inline void wlan_tx_buffer_sel(u8 n) {
-    // The register-selected Tx pkt buffer is only used for transmissions that
-    //   are initiated via wlan_tx_start(); normal MAC transmissions will use
-    //   the mac_hw Tx functions, which override this pkt buf selection
-
-    Xil_Out32(WLAN_TX_REG_PKT_BUF_SEL, ((Xil_In32(WLAN_TX_REG_PKT_BUF_SEL) & ~0xF) | (n&0xF)) );
-    return;
-}
-
-
-inline int wlan_tx_isrunning() {
-    return (Xil_In32(WLAN_TX_REG_STATUS) & WLAN_TX_REG_STATUS_TX_RUNNING);
-}
-
 
 /*****************************************************************************/
 /**

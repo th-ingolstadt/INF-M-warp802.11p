@@ -126,21 +126,32 @@
 #define PKT_BUF_SIZE                                       4096
 
 // Tx and Rx packet buffers
-//     NOTE:  These definitions will need to be changed if the number of packet
-//         buffers increase.  Currently, the "& 0x7" limits the number of packet
-//         buffers to 8.
-//
+
+// Tx pkt buf byte indexes:
+// 11a:
+//  [ 2: 0] SIGNAL
+//  [ 4: 3] SERVICE (must be 0)
+//  [15: 5] Reserved (should be 0)
+//  [ N:16] MAC payload - first header byte at [16]
+// 11n:
+//  [ 2: 0] L-SIG (same format as 11a SIGNAL)
+//  [ 8: 3] HT-SIG
+//  [10: 9] SERVICE (must be 0)
+//  [15:11] Reserved (should be 0)
+//  [ N:16] MAC payload - first header byte at [16]
+
 #define TX_PKT_BUF_TO_ADDR(n)                             (XPAR_PKT_BUFF_TX_BRAM_CTRL_S_AXI_BASEADDR + ((n) & 0x7) * PKT_BUF_SIZE)
 #define RX_PKT_BUF_TO_ADDR(n)                             (XPAR_PKT_BUFF_RX_BRAM_CTRL_S_AXI_BASEADDR + ((n) & 0x7) * PKT_BUF_SIZE)
 
 #define PHY_RX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(rx_frame_info))
 #define PHY_TX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(tx_frame_info))
 
-#define PHY_RX_PKT_BUF_PHY_HDR_SIZE                        0x10      // Was 0x8 through release v1.2 / xps v48
-#define PHY_TX_PKT_BUF_PHY_HDR_SIZE                        0x8
+#define PHY_RX_PKT_BUF_PHY_HDR_SIZE                        0x10
+#define PHY_TX_PKT_BUF_PHY_HDR_SIZE                        0x10 //payload starts at byte 16
 
 #define PHY_RX_PKT_BUF_MPDU_OFFSET                        (PHY_RX_PKT_BUF_PHY_HDR_SIZE + PHY_RX_PKT_BUF_PHY_HDR_OFFSET)
 #define PHY_TX_PKT_BUF_MPDU_OFFSET                        (PHY_TX_PKT_BUF_PHY_HDR_SIZE + PHY_TX_PKT_BUF_PHY_HDR_OFFSET)
+
 
 
 //-----------------------------------------------
@@ -287,6 +298,7 @@ typedef struct {
     u8                       src;
     u8                       lrc;
 } wlan_mac_low_tx_details;
+//8,8,4,4,2,2,1,1,2,1,1,2,2,1,1
 
 
 typedef struct {

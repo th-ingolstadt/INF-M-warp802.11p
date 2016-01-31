@@ -45,6 +45,8 @@
 #define PKT_BUF_MUTEX_RX_BASE	16
 
 #define IPC_MBOX_MSG_ID_DELIM		0xF000
+
+//FIXME: v1.5 hardware has 512-word mailbox
 #define IPC_BUFFER_MAX_NUM_WORDS    100
 
 //IPC Messages
