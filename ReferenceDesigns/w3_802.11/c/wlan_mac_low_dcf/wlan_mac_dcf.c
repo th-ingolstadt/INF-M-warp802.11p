@@ -300,7 +300,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     if(unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header)) {
         // Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
         //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
-        wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 0, 1, 0, 0);
+        wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 0, 1, 0, 0, TMP_B_PHY_MODE);
 
         // ACKs are transmitted with a nominal Tx power used for all control packets
         ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
@@ -310,6 +310,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
         // Write the SIGNAL field for the ACK
+        //FIXME: replace with wlan_phy_write_phy_preamble(), using MCS instead of PHY rate code
         wlan_phy_set_tx_signal(TX_PKT_BUF_ACK_CTS, tx_phy_rate, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
@@ -347,7 +348,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
             // Configure the Tx power - update all antennas, even though only one will be used
             curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_mpdu_info->params.phy.power);
             wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
-            wlan_mac_tx_ctrl_A_params(gl_mpdu_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1); //Use postRx timer 1 and postTx_timer2
+            wlan_mac_tx_ctrl_A_params(gl_mpdu_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1, TMP_A_PHY_MODE); //Use postRx timer 1 and postTx_timer2
 
             rx_finish_state = RX_FINISH_SEND_A;
 
@@ -360,7 +361,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         //     Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
         //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
         //
-        wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0);
+        wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0, TMP_B_PHY_MODE);
 
         // CTSs are transmitted with a nominal Tx power used for all control packets
         ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
@@ -374,6 +375,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
                                           cts_duration);
 
         // Write the SIGNAL field for the CTS
+        //FIXME: replace with wlan_phy_write_phy_preamble(), using MCS instead of PHY rate code
         wlan_phy_set_tx_signal(TX_PKT_BUF_ACK_CTS, tx_phy_rate, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
@@ -570,8 +572,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 					num_resp_failures++;
 
 					if(num_resp_failures > 2){
-						wlan_mac_reset_tx_ctrl_a(1);
-						wlan_mac_reset_tx_ctrl_a(0);
+						wlan_mac_reset_tx_ctrl_A(1);
+						wlan_mac_reset_tx_ctrl_A(0);
 
 						break;
 					}
@@ -616,8 +618,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
                     if(num_resp_failures > 2){
                         mpdu_info->flags = mpdu_info->flags & ~RX_MPDU_FLAGS_FORMED_RESPONSE;
 
-                        wlan_mac_reset_tx_ctrl_b(1);
-                        wlan_mac_reset_tx_ctrl_b(0);
+                        wlan_mac_reset_tx_ctrl_B(1);
+                        wlan_mac_reset_tx_ctrl_B(0);
                         break;
                     }
                 }
@@ -766,6 +768,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
         // Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
         // This is the SIGNAL field for the MPDU we will eventually transmit. It's possible
         // the next waveform we send will be an RTS with its own independent SIGNAL
+        //FIXME: replace with wlan_phy_write_phy_preamble(), using MCS instead of PHY rate code
         wlan_phy_set_tx_signal(mpdu_pkt_buf, mpdu_rate, mpdu_length);
 
         if ((tx_mode == TX_MODE_LONG) && (req_timeout == 1)) {
@@ -856,6 +859,7 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
                                                    rts_header_duration);
 
             // Write SIGNAL for RTS
+            //FIXME: replace with wlan_phy_write_phy_preamble(), using MCS instead of PHY rate code
             wlan_phy_set_tx_signal(mac_cfg_pkt_buf, mac_cfg_rate, mac_cfg_length);
 
         } else if((tx_mode == TX_MODE_SHORT) && (req_timeout == 1)) {
@@ -904,8 +908,8 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
                 n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
 
                 // Force-reset the DCF core, to clear any previously-running backoffs
-                wlan_mac_set_backoff_reset(1);
-                wlan_mac_set_backoff_reset(0);
+                wlan_mac_set_A_backoff_reset(1);
+                wlan_mac_set_A_backoff_reset(0);
 
                 // Start the backoff
                 wlan_mac_dcf_hw_start_backoff(n_slots);
@@ -913,13 +917,13 @@ int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_
 
             // Configure the DCF core Tx state machine for this transmission
             // wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
-            wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout);
+            wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout, TMP_A_PHY_MODE);
 
         } else {
             // This is a retry. We will inherit whatever backoff that is currently running.
             // Configure the DCF core Tx state machine for this transmission
             // preTx_backoff_slots is 0 here, since the core will have started a post-timeout backoff automatically
-            wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout);
+            wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout, TMP_A_PHY_MODE);
         }
 
         // Wait for the Tx PHY to be idle
