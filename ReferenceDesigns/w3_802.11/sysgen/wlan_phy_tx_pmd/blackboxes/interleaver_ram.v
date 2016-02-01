@@ -21,22 +21,31 @@ input ce;
 //  Without these XST bizarrely decides no connection is made and optimizes out the interleaver RAM.
 // Using Sysgen's "port.useHDLVector(false)" in the config.m would probably achieve the same thing.
 
-input [0:0] dina;
-input [0:0] wea;
-input [8:0] addra;
+input  [0:0] dina;
+input  [0:0] wea;
+input  [8:0] addra;
 output [7:0] douta;
 
-input [0:0] dinb;
-input [0:0] web;
-input [8:0] addrb;
+input  [0:0] dinb;
+input  [0:0] web;
+input  [8:0] addrb;
 output [7:0] doutb;
 
-//Map sysgen clk/clk enable signals to BRAM clk/en
-wire clka, clkb, ena, enb;
+//Map sysgen clk to BRAM clks
+// This module does not use Sysgen's clock enbale (ce) signal
+// The Sysgen model must run this block at the system sample rate
+wire clka, clkb;
 assign clka = clk;
 assign clkb = clk;
-assign ena = ce;
-assign enb = ce;
+
+// dp_ram_wr_1b_rd_8b_512b is packaged as an ngc netlist cretaed with Coregen's Block Memory Generator
+//  The block memory is configured as:
+//   True dual port memory mode (required for different read/write widths)
+//   Write width A/B = 1 bit
+//   Write depth = 512 (512 bits total)
+//   Read width A/B = 8 bits
+//   Read depth = 64 (512 / 8)
+//   Always enbaled (no ena/enb ports)
 
 (* box_type = "black_box" *)
 dp_ram_wr_1b_rd_8b_512b ram_inst (
@@ -54,7 +63,7 @@ dp_ram_wr_1b_rd_8b_512b ram_inst (
 
 endmodule
 
-//Define module for RAM blackbox
+//Define module for RAM blackbox - ngdbuild will substitute dp_ram_wr_1b_rd_8b_512b.ngc during implementation
 // Code inside translate_off/translate_on only used for simulation
 // Implementation will use NGC netlist for RAM block
 module dp_ram_wr_1b_rd_8b_512b(
@@ -82,6 +91,7 @@ input [0 : 0] dinb;
 output [7 : 0] doutb;
 
 // synthesis translate_off
+//  BLK_MEM_GEN_V7_3 simulation model supplied by ISE - implementation will use coregen netlist
   BLK_MEM_GEN_V7_3 #(
     .C_ADDRA_WIDTH(9),
     .C_ADDRB_WIDTH(9),
