@@ -130,16 +130,8 @@ u64 get_system_time_usec() {
  */
 void set_mac_time_usec(u64 new_time) {
 
-    //
-    // NOTE:  We have run into an odd situation where the new time has to be put into
-    //     the time hardware word-swapped (ie the _MSB register gets the lower 32 bits
-    //     of the u64 value and the _LSB register gets the upper 32 bits of the u64 value).
-    //     However, we cannot see where the swap occurs in either the Sysgen model or the
-    //     header files.  Therefore, if you start seeing weird timestamp behavior when
-    //     updating from beacons, then this is the code that should be changed.
-    //
-    Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_MSB, (u32)new_time);
-    Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_LSB, (u32)(new_time >> 32));
+    Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_MSB, (u32)(new_time >> 32));
+    Xil_Out32(WLAN_MAC_TIME_REG_NEW_MAC_TIME_LSB, (u32)(new_time & 0xFFFFFFFF));
 
     Xil_Out32(WLAN_MAC_TIME_REG_CONTROL, (Xil_In32(WLAN_MAC_TIME_REG_CONTROL) & ~WLAN_MAC_TIME_CTRL_REG_UPDATE_MAC_TIME));
     Xil_Out32(WLAN_MAC_TIME_REG_CONTROL, (Xil_In32(WLAN_MAC_TIME_REG_CONTROL) | WLAN_MAC_TIME_CTRL_REG_UPDATE_MAC_TIME));
