@@ -1307,6 +1307,9 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
     // Call user code to notify it of dequeue
 	if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
 
+    // Set local variables
+    //     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
+    //         modify the packet contents.
 	tx_mpdu   = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
