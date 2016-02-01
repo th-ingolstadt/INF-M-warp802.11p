@@ -363,6 +363,10 @@ int queue_checkout_list(dl_list* list, u16 num_tqe){
 
 			if (curr_dl_entry == NULL) {
 				xil_printf("Free Queue list not in sync.\n");
+                
+                // Restore interrupts
+                wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+                
 				return 0;
 			}
 		}
