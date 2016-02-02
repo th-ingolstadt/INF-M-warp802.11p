@@ -419,7 +419,7 @@ void poll_tx_queues(){
 
 	station_info* curr_station_info;
 
-	if( wlan_mac_high_is_ready_for_tx() ){
+	if( wlan_mac_high_is_dequeue_allowed() ){
 		for(k = 0; k < NUM_QUEUE_GROUPS; k++){
 			curr_queue_group = next_queue_group;
 
