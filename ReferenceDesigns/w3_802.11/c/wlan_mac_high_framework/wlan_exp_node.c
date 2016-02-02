@@ -3021,7 +3021,7 @@ void transfer_log_data(u32 socket_index, void * from,
     u8                     * header_addr;
     u32                      header_buffer_size;
 
-    interrupt_state_t        prev_interrupt_state;
+    // interrupt_state_t        prev_interrupt_state;
 
     // Set up control variables
     bytes_per_pkt         = ((max_resp_len) * 4) - WLAN_EXP_BUFFER_HEADER_SIZE;     // Subtract the bytes for the buffer header
@@ -3178,7 +3178,8 @@ void transfer_log_data(u32 socket_index, void * from,
         if (num_bytes == transfer_length) {
 
             // Check the interrupt status; Disable interrupts if enabled
-            prev_interrupt_state = wlan_mac_high_interrupt_stop();
+            //     NOTE:  This is done inside the Eth send function
+            // prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
             // Send the Ethernet packet
             //   NOTE:  In an effort to reduce overhead (ie improve performance), the "raw"
@@ -3190,7 +3191,8 @@ void transfer_log_data(u32 socket_index, void * from,
             status = socket_sendto_raw(socket_index, resp_array, 0x2);
 
             // Restore interrupts
-            wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+            //     NOTE:  This is done inside the Eth send function
+            // wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
             // Check that the packet was sent correctly
             if (status == WARP_IP_UDP_FAILURE) {
