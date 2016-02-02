@@ -121,6 +121,13 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
         wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c initialization error\n", warp_conv_eth_dev_num(eth_dev_num));
     }
 
+    // Set interrupt callbacks
+    //     NOTE:  The WLAN project uses interrupts so we should make sure to disable
+    //         interrupts when sending Ethernet packets.  This step must be done after
+    //         the call to eth_init().
+    eth_set_interrupt_enable_callback((void *)wlan_mac_high_interrupt_restore_state);
+    eth_set_interrupt_disable_callback((void *)wlan_mac_high_interrupt_stop);
+
     // Initialize the transport_eth_dev_info structure for the Ethernet device
     transport_eth_dev_info_init(eth_dev_num, (wlan_exp_node_info *)node_info, ip_addr, hw_addr, unicast_port, broadcast_port);
 
@@ -451,7 +458,7 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
     int                      status;
     transport_header       * transport_header_tx;
     u16                      buffer_length = 0;
-	interrupt_state_t	     prev_interrupt_state;
+	// interrupt_state_t     prev_interrupt_state;
 
     // Check that we have a valid socket to send a message on
     if (socket_index == SOCKET_INVALID_SOCKET) {
@@ -484,13 +491,15 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
     transport_header_tx->flags   = Xil_Htons(transport_header_tx->flags);
 
 	// Check the interrupt status; Disable interrupts if enabled
-	prev_interrupt_state = wlan_mac_high_interrupt_stop();
+    //     NOTE:  This is done inside the Eth send function
+	// prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
     // Send the Ethernet packet
     status = socket_sendto(socket_index, to, buffers, num_buffers);
 
 	// Restore interrupts
-	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+    //     NOTE:  This is done inside the Eth send function
+	// wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
     // Restore wl_header_tx
 	transport_header_tx->dest_id = Xil_Ntohs(transport_header_tx->dest_id);
