@@ -273,6 +273,8 @@ typedef struct{
 //         when transmitting packets.
 //
 
+typedef enum __attribute__ ((__packed__)) {UNINITIALIZED = 0, EMPTY = 1, READY = 2, CURRENT = 3, DONE = 4} tx_pkt_buf_state_t;
+
 #define TX_DETAILS_MPDU		0
 #define TX_DETAILS_RTS_ONLY	1
 #define TX_DETAILS_RTS_MPDU 2
@@ -350,7 +352,8 @@ typedef struct{
 
     u8                       flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
     u8						 phy_samp_rate;				   ///< PHY Sampling Rate
-    u8                       padding1[2];                  ///< Used for alignment of fields (can be appropriated for any future use)
+    tx_pkt_buf_state_t		 tx_pkt_buf_state;			   ///< State of the Tx Packet Buffer
+    u8                       padding0;                  ///< Used for alignment of fields (can be appropriated for any future use)
 
     u16                      length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
     u16                      AID;                          ///< Association ID of the node to which this packet is addressed
@@ -361,6 +364,9 @@ typedef struct{
 
     tx_params                params;                       ///< Additional lower-level MAC and PHY parameters (8 bytes)
 } tx_frame_info;
+//Here, we are assuming that tx_pkt_buf_state_t is a u8 -- a decision that is architecture dependent. However, we can at least
+//check the assumption by producing a compile-time assertion should the assumption be invalid.
+CASSERT(sizeof(tx_frame_info) == 48, tx_frame_info_alignment_check);
 
 
 #define TX_POWER_MAX_DBM                                  (21)
