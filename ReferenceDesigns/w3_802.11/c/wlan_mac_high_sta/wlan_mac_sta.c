@@ -336,7 +336,7 @@ void poll_tx_queues(){
 		static u32 queue_index = 0;
 
 		// Is CPU low ready for a transmission?
-		if( wlan_mac_high_is_ready_for_tx() ) {
+		if( wlan_mac_high_is_dequeue_allowed() ) {
 
 			// Alternate between checking the management queue and the data queue
 			for(i = 0; i < MAX_NUM_QUEUE; i++) {
@@ -351,7 +351,7 @@ void poll_tx_queues(){
 	} else {
 		// We are only currently allowed to send management frames. Typically this is caused by an ongoing
 		// active scan
-		if( wlan_mac_high_is_ready_for_tx() ) {
+		if( wlan_mac_high_is_dequeue_allowed() ) {
 			dequeue_transmit_checkin(MANAGEMENT_QID);
 		}
 	}
