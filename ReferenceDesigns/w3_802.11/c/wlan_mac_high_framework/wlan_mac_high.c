@@ -132,9 +132,6 @@ volatile u8                  promiscuous_counts_enabled;   ///< Are promiscuous 
 // Receive Antenna mode tracker
 volatile u8                  rx_ant_mode_tracker = 0;      ///< Tracking variable for RX Antenna mode for CPU Low
 
-// Tx Packet Buffer Busy State
-volatile static u8           tx_pkt_buf_busy_state;
-
 
 /*************************** Functions Prototypes ****************************/
 
@@ -283,6 +280,12 @@ void wlan_mac_high_init(){
 		blink_hex_display(0, 250000);
 	}
 
+	// Force the MPDU packet buffers owned by CPU_HIGH into the empty state
+	//
+	for( i = 0; i < 3; i++ ){
+		((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state = EMPTY;
+	}
+
 	// Sanity check memory map of aux. BRAM and DRAM
 	//Aux. BRAM Check
 	Status = (AUX_BRAM_BASE <= TX_QUEUE_DL_ENTRY_MEM_BASE) && (TX_QUEUE_DL_ENTRY_MEM_HIGH < BSS_INFO_DL_ENTRY_MEM_BASE) && (BSS_INFO_DL_ENTRY_MEM_HIGH < ETH_TX_BD_BASE) && (ETH_TX_BD_HIGH < ETH_RX_BD_BASE) && (ETH_RX_BD_HIGH <= AUX_BRAM_HIGH);
@@ -326,8 +329,6 @@ void wlan_mac_high_init(){
 	num_free    = 0;
 
 	cpu_low_reg_read_buffer        = NULL;
-
-	tx_pkt_buf_busy_state = 0;
 
 	// Enable promiscuous counts by default
 	promiscuous_counts_enabled     = 1;
@@ -1298,10 +1299,13 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	void* src_addr;
 	u32 xfer_len;
 
+
+	tx_mpdu   = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+
     // Check that packet buffer is locked
-    if ((tx_pkt_buf_busy_state & (1 << tx_pkt_buf)) == 0) {
+    if (tx_mpdu->tx_pkt_buf_state != READY) {
         xil_printf("WARNING: Packet buffer %d not locked\n", tx_pkt_buf);
-		tx_pkt_buf_busy_state |= (1 << tx_pkt_buf);
+        tx_mpdu->tx_pkt_buf_state = READY;
     }
     
     // Call user code to notify it of dequeue
@@ -1310,7 +1314,6 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
     // Set local variables
     //     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
     //         modify the packet contents.
-	tx_mpdu   = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 	src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
 	xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
@@ -1604,13 +1607,15 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 				return;
 			}
 
+			//We can now attempt to dequeue any pending transmissions before we fully process
+			//this done message.
+			tx_poll_callback();
+
 			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
 			temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details);
 			mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details*)(msg->payload_ptr), temp_1);
 
 			wlan_mac_high_release_tx_packet_buffer(msg->arg0);
-
-			tx_poll_callback();
 		break;
 
 
@@ -2021,8 +2026,20 @@ int wlan_mac_high_is_cpu_low_initialized(){
  *     - 0 if CPU low is not ready to transmit
  *     - 1 if CPU low is ready to transmit
  */
-int wlan_mac_high_is_ready_for_tx(){
-	return (tx_pkt_buf_busy_state != 3);
+inline int wlan_mac_high_is_dequeue_allowed(){
+	u8 i, num_empty, num_done;
+
+	num_empty = 0;
+	num_done = 0;
+	for( i = 0; i < 3; i++ ){
+		if( ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == EMPTY ){
+			num_empty++;
+		} else if( ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == DONE ){
+			num_done++;
+		}
+	}
+
+	return (((num_empty + num_done) >= 2) && ((num_empty) > 0));
 }
 
 
@@ -2036,21 +2053,22 @@ int wlan_mac_high_is_ready_for_tx(){
  *     - -1 if there are no free Tx packet buffers
  */
 int wlan_mac_high_lock_new_tx_packet_buffer(){
+
+	//TODO: Debate: This function assumes that it is currently safe to take control
+	// of an empty Tx packet buffer. In other words, it is the responsibility of the
+	// the calling function to ensure that wlan_mac_high_is_dequeue_allowed() == 1.
+	// For extra safety, we could call wlan_mac_high_is_dequeue_allowed() here at the
+	// expensive of another search through the three packet buffers.
+
+	u8 i;
 	int pkt_buf_sel = -1;
 
-	switch(tx_pkt_buf_busy_state){
-		case 1: //Ping: busy, Pong: free
-			pkt_buf_sel = 1;
-			tx_pkt_buf_busy_state |= 2;
-		break;
-		case 0: //Ping: free, Pong: free
-		case 2: //Ping: free, Pong: busy
-			pkt_buf_sel = 0;
-			tx_pkt_buf_busy_state |= 1;
-		break;
-		case 3: //Ping: busy, Pong: busy
-			pkt_buf_sel = -1;
-		break;
+	for( i = 0; i < 3; i++ ){
+		if( ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == EMPTY ){
+			pkt_buf_sel = i;
+			((tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf_sel))->tx_pkt_buf_state = READY;
+			break;
+		}
 	}
 
 	if(pkt_buf_sel != -1){
@@ -2073,18 +2091,7 @@ int wlan_mac_high_lock_new_tx_packet_buffer(){
  */
 int wlan_mac_high_release_tx_packet_buffer(int pkt_buf){
 
-	switch(pkt_buf){
-		case 0:
-			tx_pkt_buf_busy_state &= (~1);
-		break;
-		case 1:
-			tx_pkt_buf_busy_state &= (~2);
-		break;
-		default:
-			xil_printf("Error: invalid pkt buf selection");
-			return -1;
-		break;
-	}
+	((tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf))->tx_pkt_buf_state = EMPTY;
 
 	if(unlock_pkt_buf_tx(pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unlock Tx Pkt Buf State Mismatch\n");

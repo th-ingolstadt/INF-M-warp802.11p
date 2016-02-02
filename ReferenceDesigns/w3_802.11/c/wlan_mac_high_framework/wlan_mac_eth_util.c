@@ -523,7 +523,7 @@ void wlan_process_all_eth_pkts() {
         bd_set_count--;
 
         // Check stop condition
-        if ((num_pkt_processed >= max_pkts) && (wlan_mac_high_is_ready_for_tx() == 0)) {
+        if ((num_pkt_processed >= max_pkts) && (wlan_mac_high_is_dequeue_allowed() == 0)) {
             // Processed enough packets in this call and the Tx PHY isn't waiting on an
             // Ethernet packet to transmit.  Leave this ISR to handle any other higher
             // priority interrupts, such as IPC messages, then come back later to process
