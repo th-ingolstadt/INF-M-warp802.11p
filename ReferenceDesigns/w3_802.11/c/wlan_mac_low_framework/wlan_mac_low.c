@@ -801,6 +801,8 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 	} else {
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
+		tx_mpdu->tx_pkt_buf_state = CURRENT;
+
 		tx_mpdu->delay_accept = (u32)(get_mac_time_usec() - tx_mpdu->timestamp_create);
 
 		// Convert rate index into rate code used in PHY's SIGNAL field
@@ -845,6 +847,8 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		} else {
 			tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
 		}
+
+		tx_mpdu->tx_pkt_buf_state = DONE;
 
 		//Revert the state of the packet buffer and return control to CPU High
 		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
