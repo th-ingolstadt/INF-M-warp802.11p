@@ -307,8 +307,10 @@ int main(){
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
+
 	while(1) {
 #ifdef USE_WLAN_EXP
+
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
 		//     transport are required to service new commands. All other node activity (wired/wireless Tx/Rx,
 		//     scheduled events, user interaction, etc) are handled via interrupt service routines
@@ -367,7 +369,7 @@ void poll_tx_queues(){
 
 	station_info* curr_station_info;
 
-	if( wlan_mac_high_is_ready_for_tx() ){
+	if( wlan_mac_high_is_dequeue_allowed() ){
 		for(k = 0; k < NUM_QUEUE_GROUPS; k++){
 			curr_queue_group = next_queue_group;
 
