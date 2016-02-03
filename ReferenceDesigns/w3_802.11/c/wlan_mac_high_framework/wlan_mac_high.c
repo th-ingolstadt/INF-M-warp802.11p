@@ -2752,6 +2752,70 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* statio
 	}
 }
 
+/**
+ * @brief Configure Beacon Transmissions
+ *
+ * This function will create a beacon and inform CPU_LOW to transmit it periodically.
+ *
+ * @param  None
+ * @return None
+ */
+int wlan_mac_high_configure_beacon_transmit(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params* tx_params_ptr) {
+	u16 tx_length;
+	wlan_ipc_msg ipc_msg_to_low;
+
+	// TODO: need to set the Tx Params independently with wlan_exp changes or any other updates
+
+	tx_frame_info*  tx_frame_info_ptr = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	if(lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+		xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");
+		return -1;
+	}
+
+	tx_frame_info_ptr->tx_pkt_buf_state = EMPTY;
+
+	// Fill in the data
+	tx_length = wlan_create_beacon_frame(
+		(void*)(tx_frame_info_ptr),
+		tx_header_common_ptr,
+		bss_info_ptr);
+
+	bzero(tx_frame_info_ptr, sizeof(tx_frame_info));
+
+	// Set up frame info data
+	tx_frame_info_ptr->timestamp_create            = get_mac_time_usec();
+	tx_frame_info_ptr->length                      = tx_length;
+	tx_frame_info_ptr->flags                       = TX_MPDU_FLAGS_FILL_TIMESTAMP;
+	tx_frame_info_ptr->queue_info.QID			   = 0xFF;
+	tx_frame_info_ptr->queue_info.occupancy 	   = 0;
+
+
+
+
+	// Unique_seq will be filled in by CPU_LOW
+	tx_frame_info_ptr->unique_seq = 0;
+
+	memcpy(&(tx_frame_info_ptr->params), tx_params_ptr, sizeof(tx_params));
+
+	tx_frame_info_ptr->short_retry_count = 0;
+	tx_frame_info_ptr->long_retry_count = 0;
+
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_CONFIGURE);
+	ipc_msg_to_low.arg0              = TX_PKT_BUF_BEACON;
+	ipc_msg_to_low.num_payload_words = 1;
+	ipc_msg_to_low.payload_ptr		 = (u32*)(&(bss_info_ptr->beacon_interval));
+
+
+	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+		xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");
+		return -1;
+	}
+	tx_frame_info_ptr->tx_pkt_buf_state = READY;
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	return 0;
+}
+
 
 
 #ifdef _DEBUG_
