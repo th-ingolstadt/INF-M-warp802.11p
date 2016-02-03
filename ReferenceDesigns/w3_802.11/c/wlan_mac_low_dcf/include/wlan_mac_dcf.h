@@ -18,13 +18,6 @@
 #ifndef WLAN_MAC_DCF_H_
 #define WLAN_MAC_DCF_H_
 
-
-
-//-----------------------------------------------
-// Packet Buffer defines
-#define TX_PKT_BUF_RTS                                     6
-#define TX_PKT_BUF_ACK_CTS                                 7
-
 #define PKT_BUF_INVALID                                    0xFF
 
 
@@ -68,6 +61,13 @@
 
 /*********************** Global Structure Definitions ************************/
 
+typedef struct {
+	u32 period_tu;
+	u32 period_us;
+	u8 	enable;
+	u8	tx_pkt_buf;
+} periodic_tx_details;
+
 typedef enum {
     RX_FINISH_SEND_NONE,
     RX_FINISH_SEND_A,
@@ -100,10 +100,14 @@ typedef enum {
 int                main();
 
 u32                frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
+void 			   configure_beacon_tx(u8 tx_pkt_buf, u32 interval_tu);
 int                frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_tx_details* low_tx_details);
 
 inline void        increment_src_ssrc(u8* src_ptr);
 inline void        increment_lrc_slrc(u8* lrc_ptr);
+
+inline void 		poll_timestamp();
+inline int 			send_beacon(u8 tx_pkt_buf);
 
 inline void        reset_cw();
 inline void        reset_ssrc();
