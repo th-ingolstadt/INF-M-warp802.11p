@@ -213,6 +213,8 @@ typedef struct{
 #define wlan_mac_reset_tx_ctrl_B(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B : 0))
 #define wlan_mac_reset_tx_ctrl_C(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C : 0))
 
+#define wlan_mac_pause_backoff_tx_ctrl_A(x)				   Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF : 0))
+
 //-----------------------------------------------
 // WLAN MAC HW - Macros
 //
@@ -336,6 +338,11 @@ typedef struct{
                         ((rf_c & 0x3F) << 12) | \
                         ((rf_d & 0x3F) << 18)))
 
+
+#define WLAN_MAC_START_REG_MASK_START_TX_A	0x1
+#define WLAN_MAC_START_REG_MASK_START_TX_B	0x2
+#define WLAN_MAC_START_REG_MASK_START_TX_C	0x4
+
 // TX_START
 //     b[0]: Tx CTRL A Start
 //     b[1]: Tx CTRL B Start
@@ -343,8 +350,9 @@ typedef struct{
 // NOTE:  Intrepret non-zero (x) as Tx start enable, zero (x) as Tx start disable
 //     MAC core requires rising edge on either Tx start bit; software must set then clear for each Tx
 //
-#define wlan_mac_tx_ctrl_A_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~0x1) | ((x) ? 0x1 : 0x0)))
-#define wlan_mac_tx_ctrl_B_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~0x2) | ((x) ? 0x2 : 0x0)))
+#define wlan_mac_tx_ctrl_A_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~WLAN_MAC_START_REG_MASK_START_TX_A) | ((x) ? WLAN_MAC_START_REG_MASK_START_TX_A : 0x0)))
+#define wlan_mac_tx_ctrl_B_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~WLAN_MAC_START_REG_MASK_START_TX_B) | ((x) ? WLAN_MAC_START_REG_MASK_START_TX_B : 0x0)))
+#define wlan_mac_tx_ctrl_C_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~WLAN_MAC_START_REG_MASK_START_TX_C) | ((x) ? WLAN_MAC_START_REG_MASK_START_TX_C : 0x0)))
 
 // LATEST_RX_BYTE
 //     b[15:0] : Last byte index
@@ -426,6 +434,7 @@ void               wlan_mac_low_frame_ipc_send();
 
 void               wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
 void               wlan_mac_low_set_frame_tx_callback(function_ptr_t callback);
+void 			   wlan_mac_low_set_beacon_tx_config_callback(function_ptr_t callback);
 void               wlan_mac_low_set_ipc_low_param_callback(function_ptr_t callback);
 
 wlan_mac_hw_info*  wlan_mac_low_get_hw_info();
