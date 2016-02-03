@@ -268,11 +268,13 @@ int main(){
 	power_save_configuration.dtim_count = 0;
 	power_save_configuration.dtim_mcast_allow_window = (WLAN_DEFAULT_BEACON_INTERVAL_TU * BSS_MICROSECONDS_IN_A_TU) / 4;
 
-	//Note: As of v1.5, the SCHEDULE_FINE scheduler is used by default for beacon transmissions. This serves two purposes:
-	//		1. Addresses a race condition where occasionally a beacon transmission would be skipped because its target transmission time
-	//		   was placed *just* after the scheduler's timer ISR.
-	//		2. Allows wlan_exp control over the parameter to be finer grained than units of a hardcoded 102.4 ms coarse timer interval.
+	// Set up beacon transmissions
+	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
+
+	//Original Beacon Structure
 	beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU), SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
+	//Beat Beacon Structure
+	//wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params );
 
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
@@ -322,6 +324,50 @@ int main(){
 	return -1;
 }
 
+/**
+ * @brief Transmit a beacon
+ *
+ * This function will create and enqueue a beacon.
+ *
+ * @param  None
+ * @return None
+ */
+void beacon_transmit() {
+	u16 tx_length;
+	tx_queue_element*	curr_tx_queue_element;
+	tx_queue_buffer* 	curr_tx_queue_buffer;
+
+	// Create a beacon
+	curr_tx_queue_element = queue_checkout();
+
+	if(curr_tx_queue_element != NULL){
+		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+		// Setup the TX header
+		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
+
+		// Fill in the data
+        tx_length = wlan_create_beacon_frame(
+			(void*)(curr_tx_queue_buffer->frame),
+			&tx_header_common,
+			my_bss_info);
+
+		wlan_mac_high_setup_tx_frame_info(&tx_header_common,
+										  curr_tx_queue_element,
+										  tx_length,
+										  (TX_MPDU_FLAGS_FILL_TIMESTAMP),
+										  MANAGEMENT_QID);
+
+		// Set the information in the TX queue buffer
+		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
+		curr_tx_queue_buffer->frame_info.AID         = 0;
+
+		// Put the packet in the queue
+		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+	}
+}
 
 /**
  * @brief Poll Tx queues to select next available packet to transmit
@@ -835,53 +881,10 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 	return 1;
 }
 
-
-
-/**
- * @brief Transmit a beacon
- *
- * This function will create and enqueue a beacon.
- *
- * @param  None
- * @return None
- */
-void beacon_transmit() {
-	u16 tx_length;
-	tx_queue_element*	curr_tx_queue_element;
-	tx_queue_buffer* 	curr_tx_queue_buffer;
-
-	// Create a beacon
-	curr_tx_queue_element = queue_checkout();
-
-	if(curr_tx_queue_element != NULL){
-		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-		// Setup the TX header
-		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
-
-		// Fill in the data
-        tx_length = wlan_create_beacon_frame(
-			(void*)(curr_tx_queue_buffer->frame),
-			&tx_header_common,
-			my_bss_info);
-
-		wlan_mac_high_setup_tx_frame_info(&tx_header_common,
-										  curr_tx_queue_element,
-										  tx_length,
-										  (TX_MPDU_FLAGS_FILL_TIMESTAMP),
-										  MANAGEMENT_QID);
-
-		// Set the information in the TX queue buffer
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->frame_info.AID         = 0;
-
-		// Put the packet in the queue
-		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-	}
-}
-
+//TODO: Create function to update beacon live fields (e.g. TIM bitmap)
+// We may need to formalize a beacon ping/pong handshake to avoid any races
+// created by CPU_HIGH modifying the beacon payload while the PHY is actively
+// reading bytes out of the packet buffer to create a waveform.
 
 
 /**

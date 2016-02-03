@@ -499,11 +499,12 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //     resp_args_32[0]  Status (CMD_PARAM_SUCCESS/CMD_PARAM_ERROR)
             //     resp_args_32[1]  Number of Time Units (TU) between beacons [1, 65535]
             //
-            u32    beacon_time;
+#if 0
+        	//TODO This functionality needs to be mapped onto the new CPU_LOW beacon structure
+        	u32    beacon_time;
             u32    status         = CMD_PARAM_SUCCESS;
             u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
             u32    num_tu         = Xil_Ntohl(cmd_args_32[1]);
-
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
                     beacon_time                  = (num_tu & 0xFFFF) * BSS_MICROSECONDS_IN_A_TU;
@@ -538,6 +539,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 
