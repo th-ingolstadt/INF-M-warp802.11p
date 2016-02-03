@@ -75,6 +75,8 @@ volatile static s8           pkt_buf_pending_tx;									///< Internal state var
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
 static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
+static function_ptr_t        beacon_tx_config_callback;
+
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
 // Unique transmit sequence number
@@ -155,9 +157,10 @@ int wlan_mac_low_init(u32 type){
     // mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
-    frame_rx_callback        = (function_ptr_t) nullCallback;
-    frame_tx_callback        = (function_ptr_t) nullCallback;
-    ipc_low_param_callback   = (function_ptr_t) nullCallback;
+    frame_rx_callback         = (function_ptr_t) nullCallback;
+    frame_tx_callback         = (function_ptr_t) nullCallback;
+    ipc_low_param_callback    = (function_ptr_t) nullCallback;
+    beacon_tx_config_callback = (function_ptr_t) nullCallback;
 
     allow_new_mpdu_tx        = 1;
     pkt_buf_pending_tx       = -1; // -1 is an invalid pkt_buf index
@@ -507,7 +510,13 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
 
     switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 
-        //---------------------------------------------------------------------
+    	//---------------------------------------------------------------------
+		case IPC_MBOX_TX_BEACON_CONFIGURE: {
+			beacon_tx_config_callback(msg->arg0, ipc_msg_from_high_payload[0]); //TODO: Need to specify an interval that will disable beacon Tx
+		}
+		break;
+
+		//---------------------------------------------------------------------
         case IPC_MBOX_CPU_STATUS: {
             // If CPU_HIGH just booted, we should re-inform it what our hardware details are.
             // Send a message to other processor to identify hw info of cpu low
@@ -914,6 +923,10 @@ void wlan_mac_low_frame_ipc_send(){
  */
 inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
     frame_rx_callback = callback;
+}
+
+inline void wlan_mac_low_set_beacon_tx_config_callback(function_ptr_t callback){
+	beacon_tx_config_callback = callback;
 }
 
 
