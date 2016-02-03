@@ -59,7 +59,7 @@ __all__ = ['StationInfo', 'BSSInfo', 'TxRxCounts']
 #-------------------------------------------------------------------------
 info_field_defs = {
     'STATION_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of associated device'),
         ('aid',                         'H',      'uint16',  'Association ID (AID) of device'),
         ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
@@ -76,7 +76,7 @@ info_field_defs = {
         ('padding',                     '3x',     '3uint8',  '')],
 
     'BSS_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('chan_num',                    'B',      'uint8',   'Channel (center frequency) index of transmission'),
         ('flags',                       'B',      'uint8',   'BSS flags'),
@@ -92,7 +92,7 @@ info_field_defs = {
         ('padding1',                    'x',      'uint8',   '')],
 
     'TXRX_COUNTS' : [
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
         ('associated',                  'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
         ('padding',                     'x',      'uint8',   ''),
@@ -109,7 +109,8 @@ info_field_defs = {
         ('mgmt_num_rx_packets',         'I',      'uint32',  'Total number of management packets received from remote node'),
         ('mgmt_num_tx_packets_success', 'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
         ('mgmt_num_tx_packets_total',   'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
-        ('mgmt_num_tx_packets_low',     'I',      'uint32',  'Total number of PHY transmissions of management packets to remote node (includes re-transmissions)')]
+        ('mgmt_num_tx_packets_low',     'I',      'uint32',  'Total number of PHY transmissions of management packets to remote node (includes re-transmissions)'),
+        ('latest_txrx_timestamp',       'Q',      'uint64',  'Microsecond timer value (system time) of last transmission / reception')]
 
 }
 
@@ -202,7 +203,8 @@ class InfoStruct(dict):
 
         # Add and initialize all the fields in the info_field_defs
         for field in info_field_defs[field_name]:
-            self.__dict__[field[0]] = None
+            if 'x' not in field[1]:
+                self[field[0]] = None
 
         # Update the meta-data about the fields
         self._update_field_defs()
@@ -243,7 +245,7 @@ class InfoStruct(dict):
         Returns:
             fields (list of tuple):  List of tuples that describe each field
         """
-        if(self._field_name in info_field_defs.keys()):
+        if(self._field_name in info_field_defs.keys()):            
             return info_field_defs[self._field_name]
         else:
             msg  = "Field name {0} does not exist in info_feild_defs.".format(self._field_name)
@@ -304,8 +306,8 @@ class InfoStruct(dict):
             if 'x' not in field[1]:
                 fields.append(field[0])
                 try:
-                    tmp_values.append(self.__dict__[field[0]])
-                    field_type.append(type(self.__dict__[field[0]]))
+                    tmp_values.append(self[field[0]])
+                    field_type.append(type(self[field[0]]))
                     used_field.append(True)
                 except KeyError:
                     tmp_values.append(0)
@@ -356,7 +358,7 @@ class InfoStruct(dict):
 
             # Populate object with data
             for i, name in enumerate(names):
-                self.__dict__[name] = data_tuple[i]
+                self[name] = data_tuple[i]
 
         except struct.error as err:
             print("Error unpacking {0} buffer with len {1}: {2}".format(self.name, len(buf), err))
@@ -376,24 +378,23 @@ class InfoStruct(dict):
         msg = "{0}\n".format(self.__class__.__name__)
 
         for field in info_field_defs[self._field_name]:
-            msg += "    {0:25s} = {1}\n".format(field[0], self.__dict__[field[0]])
+            if 'x' not in field[1]:
+                msg += "    {0:30s} = {1}\n".format(field[0], self[field[0]])
 
         return msg
 
-
-    def __repr__(self):
-        """Return info object class name"""
-        msg = "{0}".format(self.__class__.__name__)
-
-        return msg
-
-
-    def __getitem__(self, key):
-        return self.__dict__[key]
-
-
-    def __setitem__(self, key, value):
-        self.__dict__[key] = value
+    # Allow attribute (ie ".") notation to access contents of dictionary
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
+        else:
+            super(InfoStruct, self).__getattr__(name)
+    
+    def __setattr__(self, name, value):
+        if name in self:
+            self[name] = value
+        else:
+            super(InfoStruct, self).__setattr__(name, value)
 
 
 # End Class
@@ -426,14 +427,14 @@ class TxRxCounts(InfoStruct):
         #     TxRxCounts, below is the code to use:
         #
         # # Convert MAC address to byte string for transmit
-        # mac_addr_tmp              = self.__dict['mac_addr']
-        # self.__dict__['mac_addr'] = util.str_to_mac_addr(self.__dict__['mac_addr'])
-        # self.__dict__['mac_addr'] = util.mac_addr_to_byte_str(self.__dict__['mac_addr'])
+        # mac_addr_tmp     = self['mac_addr']
+        # self['mac_addr'] = util.str_to_mac_addr(self['mac_addr'])
+        # self['mac_addr'] = util.mac_addr_to_byte_str(self['mac_addr'])
         #
         # ret_val = super(TxRxCounts, self).serialize()
         #
         # # Revert MAC address to a colon delimited string
-        # self.__dict__['mac_addr'] = mac_addr_tmp
+        # self['mac_addr'] = mac_addr_tmp
         #
         # return ret_val
 
@@ -448,8 +449,8 @@ class TxRxCounts(InfoStruct):
 
         # Clean up the values
         #   - Convert the MAC Address to a colon delimited string
-        self.__dict__['mac_addr'] = util.byte_str_to_mac_addr(self.__dict__['mac_addr'])
-        self.__dict__['mac_addr'] = util.mac_addr_to_str(self.__dict__['mac_addr'])
+        self['mac_addr'] = util.byte_str_to_mac_addr(self['mac_addr'])
+        self['mac_addr'] = util.mac_addr_to_str(self['mac_addr'])
 
 
 # End Class
@@ -482,14 +483,14 @@ class StationInfo(InfoStruct):
         #     StationInfo, below is the code to use:
         #
         # # Convert MAC address to byte string for transmit
-        # mac_addr_tmp              = self.__dict['mac_addr']
-        # self.__dict__['mac_addr'] = util.str_to_mac_addr(self.__dict__['mac_addr'])
-        # self.__dict__['mac_addr'] = util.mac_addr_to_byte_str(self.__dict__['mac_addr'])
+        # mac_addr_tmp     = self['mac_addr']
+        # self['mac_addr'] = util.str_to_mac_addr(self['mac_addr'])
+        # self['mac_addr'] = util.mac_addr_to_byte_str(self['mac_addr'])
         #
         # ret_val = super(StationInfo, self).serialize()
         #
         # # Revert MAC address to a colon delimited string
-        # self.__dict__['mac_addr'] = mac_addr_tmp
+        # self['mac_addr'] = mac_addr_tmp
         #
         # return ret_val
 
@@ -505,14 +506,14 @@ class StationInfo(InfoStruct):
         # Clean up the values
         #   - Remove extra characters in the SSID
         #   - Convert the MAC Address to a colon delimited string
-        if (self.__dict__['host_name'][0] == '\x00'):
-            self.__dict__['host_name'] = '\x00'
+        if (self['host_name'][0] == '\x00'):
+            self['host_name'] = '\x00'
         else:
             import ctypes
-            self.__dict__['host_name'] = ctypes.c_char_p(self.__dict__['host_name']).value
+            self['host_name'] = ctypes.c_char_p(self['host_name']).value
 
-        self.__dict__['mac_addr'] = util.byte_str_to_mac_addr(self.__dict__['mac_addr'])
-        self.__dict__['mac_addr'] = util.mac_addr_to_str(self.__dict__['mac_addr'])
+        self['mac_addr'] = util.byte_str_to_mac_addr(self['mac_addr'])
+        self['mac_addr'] = util.mac_addr_to_str(self['mac_addr'])
 
 
 # End Class
@@ -544,13 +545,13 @@ class BSSInfo(InfoStruct):
 
         if init_fields:
             # Set default values for fields not set by this method
-            self.__dict__['timestamp']                  = 0
-            self.__dict__['latest_activity_timestamp']  = 0
-            self.__dict__['flags']                      = 0
-            self.__dict__['state']                      = self._consts.state.OWNED
-            self.__dict__['num_basic_rates']            = 0
-            self.__dict__['basic_rates']                = bytes()
-            self.__dict__['phy_mode']                   = 0
+            self['timestamp']                  = 0
+            self['latest_activity_timestamp']  = 0
+            self['flags']                      = 0
+            self['state']                      = self._consts.state.OWNED
+            self['num_basic_rates']            = 0
+            self['basic_rates']                = bytes()
+            self['phy_mode']                   = 0
 
             # Set SSID
             if ssid is not None:
@@ -563,9 +564,9 @@ class BSSInfo(InfoStruct):
                     print("WARNING:  SSID must be 32 characters or less.  Truncating to {0}".format(ssid))
 
                 try:
-                    self.__dict__['ssid']         = bytes(ssid, "UTF8")
+                    self['ssid']         = bytes(ssid, "UTF8")
                 except:
-                    self.__dict__['ssid']         = ssid
+                    self['ssid']         = ssid
 
             # Set Channel
             if channel is not None:
@@ -584,7 +585,7 @@ class BSSInfo(InfoStruct):
                     channel_error = True
 
                 if not channel_error:
-                    self.__dict__['chan_num']    = channel['channel']
+                    self['chan_num']    = channel['channel']
                 else:
                     msg  = "The channel must either be a valid channel number or a wlan_exp.util.wlan_channel entry."
                     raise ValueError(msg)
@@ -600,7 +601,7 @@ class BSSInfo(InfoStruct):
                     msg  = "The beacon interval must be in [1, 65535] (ie 16-bit positive integer)."
                     raise ValueError(msg)
 
-                self.__dict__['beacon_interval'] = beacon_interval
+                self['beacon_interval'] = beacon_interval
 
             # Set the BSSID
             if bssid is not None:
@@ -612,27 +613,27 @@ class BSSInfo(InfoStruct):
                 #   - If this is an IBSS, then set local bit to '1' and mcast bit to '0'
                 #   - Set the appropriate capabilities (NOTE:  the 802.11 reference design only supports short timeslots (ie short = 9us))
                 if ibss_status:
-                    self.__dict__['bssid']        = util.create_locally_administered_bssid(bssid)
-                    self.__dict__['capabilities'] = (self._consts.capabilities.IBSS | self._consts.capabilities.SHORT_TIMESLOT)
+                    self['bssid']        = util.create_locally_administered_bssid(bssid)
+                    self['capabilities'] = (self._consts.capabilities.IBSS | self._consts.capabilities.SHORT_TIMESLOT)
                 else:
-                    self.__dict__['bssid']        = bssid
-                    self.__dict__['capabilities'] = (self._consts.capabilities.ESS | self._consts.capabilities.SHORT_TIMESLOT)
+                    self['bssid']        = bssid
+                    self['capabilities'] = (self._consts.capabilities.ESS | self._consts.capabilities.SHORT_TIMESLOT)
 
                 # Convert BSSID to colon delimited string for internal storage
                 if type(bssid) is int:
-                    self.__dict__['bssid']        = util.mac_addr_to_str(self.__dict__['bssid'])
+                    self['bssid']        = util.mac_addr_to_str(self['bssid'])
 
 
     def serialize(self):
         # Convert bssid to byte string for transmit
-        bssid_tmp              = self.__dict__['bssid']
-        self.__dict__['bssid'] = util.str_to_mac_addr(self.__dict__['bssid'])
-        self.__dict__['bssid'] = util.mac_addr_to_byte_str(self.__dict__['bssid'])
+        bssid_tmp     = self['bssid']
+        self['bssid'] = util.str_to_mac_addr(self['bssid'])
+        self['bssid'] = util.mac_addr_to_byte_str(self['bssid'])
 
         ret_val = super(BSSInfo, self).serialize()
 
         # Revert bssid to colon delimited string
-        self.__dict__['bssid'] = bssid_tmp
+        self['bssid'] = bssid_tmp
 
         return ret_val
 
@@ -655,9 +656,9 @@ class BSSInfo(InfoStruct):
         #
         import ctypes
 
-        self.__dict__['ssid']  = ctypes.c_char_p(self.__dict__['ssid']).value
-        self.__dict__['bssid'] = util.byte_str_to_mac_addr(self.__dict__['bssid'])
-        self.__dict__['bssid'] = util.mac_addr_to_str(self.__dict__['bssid'])
+        self['ssid']  = ctypes.c_char_p(self['ssid']).value
+        self['bssid'] = util.byte_str_to_mac_addr(self['bssid'])
+        self['bssid'] = util.mac_addr_to_str(self['bssid'])
 
 
 # End Class
