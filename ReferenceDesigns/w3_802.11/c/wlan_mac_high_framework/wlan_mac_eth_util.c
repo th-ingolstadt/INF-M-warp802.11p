@@ -864,7 +864,14 @@ void wlan_eth_dma_update() {
     bd_count    = XAxiDma_BdRingGetFreeCnt(rx_ring_ptr);
 
     // If there are no BDs, then we are done
-    if (bd_count == 0) { return; }
+    if (bd_count == 0) {
+
+#if PERF_MON_ETH_UPDATE_DMA
+        wlan_mac_high_set_debug_gpio(0x2);
+#endif
+
+        return;
+    }
 
     // Initialize the list to checkout Tx queue entries
     dl_list_init(&checkout);
