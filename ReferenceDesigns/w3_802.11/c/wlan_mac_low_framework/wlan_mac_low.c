@@ -1505,3 +1505,12 @@ inline phy_samp_rate_t	wlan_mac_low_get_phy_samp_rate(){
 inline mac_timing wlan_mac_low_get_mac_timing_values(){
 	return mac_timing_values;
 }
+
+inline u64 wlan_mac_low_get_unique_seq(){
+	return unique_seq;
+}
+
+inline void wlan_mac_low_set_unique_seq(u64 curr_unique_seq){
+	unique_seq = curr_unique_seq;
+}
+

@@ -2776,7 +2776,7 @@ int wlan_mac_high_configure_beacon_transmit(mac_header_80211_common* tx_header_c
 
 	// Fill in the data
 	tx_length = wlan_create_beacon_frame(
-		(void*)(tx_frame_info_ptr),
+		(void*)(tx_frame_info_ptr)+PHY_TX_PKT_BUF_MPDU_OFFSET,
 		tx_header_common_ptr,
 		bss_info_ptr);
 

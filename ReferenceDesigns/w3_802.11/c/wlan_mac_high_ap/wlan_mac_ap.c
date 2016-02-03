@@ -273,7 +273,7 @@ int main(){
 
 	//Original Beacon Structure
 	beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU), SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
-	//Beat Beacon Structure
+	//Beta Beacon Structure
 	//wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params );
 
 	//  Periodic check for timed-out associations

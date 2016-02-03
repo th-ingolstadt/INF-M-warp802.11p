@@ -477,6 +477,8 @@ inline u8          wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs);
 
 inline phy_samp_rate_t	   wlan_mac_low_get_phy_samp_rate();
 inline mac_timing  		   wlan_mac_low_get_mac_timing_values();
+inline u64 wlan_mac_low_get_unique_seq();
+inline void wlan_mac_low_set_unique_seq(u64 curr_unique_seq);
 
 //FIXME: placeholders for actual runtime PHY mode variables
 #define TMP_A_PHY_MODE 0x1

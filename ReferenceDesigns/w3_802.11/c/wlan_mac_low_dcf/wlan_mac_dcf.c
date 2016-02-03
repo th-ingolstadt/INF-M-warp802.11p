@@ -214,7 +214,6 @@ inline void poll_timestamp(){
 }
 
 inline int send_beacon(u8 tx_pkt_buf){
-
 	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x02);
 
 	int return_status = -1;
@@ -224,18 +223,34 @@ inline int send_beacon(u8 tx_pkt_buf){
 	u16 n_slots;
 	int tx_gain;
 	u8 mpdu_tx_ant_mask;
-	tx_frame_info* tx_frame_info_ptr	= (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
+	tx_frame_info* tx_frame_info_ptr		= (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
+	mac_header_80211* header             	= (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	u32 rx_status;
+	u64 unique_seq;
 
+
+//	u32 i;
+//	xil_printf("0x%08x\n", (u32)header);
+//	for(i=0; i<69; i++){
+//		xil_printf("0x%02x ", *((u8*)header + i));
+//	}
+//	xil_printf("\n-------\n");
 
 	//Attempt to pause the backoff counter in MAC Support Core A
 	wlan_mac_pause_backoff_tx_ctrl_A(1);
 
 	mac_hw_status = wlan_mac_get_status();
-	if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) == 0 ){
+	if( ((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_STATE) == WLAN_MAC_STATUS_TX_A_STATE_DEFER) |
+		((mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_STATE) == WLAN_MAC_STATUS_TX_A_STATE_IDLE) ){
 		//If we were too late in attempting to pause the backoff, the PHY will
 		//already be active. We can only continue submitting the beacon transmission
 		//to MAC Support Core C is we successfully paused Core A.
 
+		unique_seq = wlan_mac_low_get_unique_seq();
+		wlan_mac_low_set_unique_seq(unique_seq+1);
+		tx_frame_info_ptr->unique_seq = unique_seq;
+
+		header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
 
         // Configure the Tx antenna selection
         mpdu_tx_ant_mask    = 0;
@@ -263,17 +278,16 @@ inline int send_beacon(u8 tx_pkt_buf){
         					   wlan_mac_low_mcs_to_phy_rate(tx_frame_info_ptr->params.phy.rate),
         					   tx_frame_info_ptr->length);
 
-
 		wlan_mac_tx_ctrl_C_start(1);
 		wlan_mac_tx_ctrl_C_start(0);
-#if 0
+
 		 // Wait for the MPDU Tx to finish
-		        do { // while(tx_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING)
+		        do { // while(tx_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING)
 
 		            // Poll the DCF core status register
 		            mac_hw_status = wlan_mac_get_status();
 
-		            if((mpdu_info->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+		            if((tx_frame_info_ptr->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
 						if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE ){
 							// Insert the TX START timestamp
 							*((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
@@ -287,239 +301,16 @@ inline int send_beacon(u8 tx_pkt_buf){
 
 		            // Transmission is complete
 		            if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE ) {
-		                if(tx_wait_state == TX_WAIT_CTS) {
-		                    // This will potentially be overwritten with TX_DETAILS_RTS_MPDU should we make it that far.
-		                    low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_RTS_ONLY;
-		                    low_tx_details[low_tx_details_num].tx_start_timestamp_ctrl = wlan_mac_low_get_tx_start_timestamp();
-		                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_ctrl = wlan_mac_low_get_tx_start_timestamp_frac();
-
-		                } else if ((tx_mode == TX_MODE_LONG) && (tx_wait_state == TX_WAIT_ACK)) {
-		                    // NOTE: this clause will overwrite the previous TX_DETAILS_RTS_ONLY state in the event a CTS is received.
-		                    low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_RTS_MPDU;
-		                    low_tx_details[low_tx_details_num].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
-		                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
-
-		                } else {
-		                    // This is a non-RTS/CTS-protected MPDU transmission
-		                    low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_MPDU;
-		                    low_tx_details[low_tx_details_num].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
-		                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
-		                }
-
-		                // Switch on the result of the transmission attempt
-		                switch (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT) {
-
-		                    //---------------------------------------------------------------------
-		                    case WLAN_MAC_STATUS_TX_A_RESULT_NONE:
-		                        // Transmission was immediately successful - this implies no post-Tx timeout was required,
-		                        // so the core didn't wait for any post-Tx receptions (i.e. multicast/broadcast transmission)
-		                        //
-		                        switch(tx_mode) {
-		                            case TX_MODE_SHORT:
-		                                reset_ssrc();
-		                                reset_cw();
-		                            break;
-		                            case TX_MODE_LONG:
-		                                reset_slrc();
-		                                reset_cw();
-		                            break;
-		                        }
-
-		                        // Start a post-Tx backoff using the updated contention window
-		                        n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-		                        wlan_mac_dcf_hw_start_backoff(n_slots);
-
-		                        // Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
-		                        gl_autocancel_en = 0;
-
-		                        return 0;
-		                    break;
-
-		                    //---------------------------------------------------------------------
-		                    case WLAN_MAC_STATUS_TX_A_RESULT_RX_STARTED:
-		                        // Transmission ended, followed by a new reception (hopefully a CTS or ACK)
-
-		                        // Handle the new reception
-		                        rx_status       = wlan_mac_low_poll_frame_rx();
-		                        gl_mpdu_pkt_buf = PKT_BUF_INVALID;
-
-		                        // Check if the reception is an ACK addressed to this node, received with a valid checksum
-		                        if ((tx_wait_state == TX_WAIT_CTS) &&
-		                            (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
-		                            (rx_status & POLL_MAC_TYPE_CTS) &&
-		                            (rx_status & POLL_MAC_STATUS_GOOD) &&
-		                            (rx_status & POLL_MAC_ADDR_MATCH)) {
-
-		                            tx_wait_state = TX_WAIT_ACK;
-
-		                            // We received the CTS, so we can reset our SSRC
-		                            //     NOTE: as per 9.3.3 of 802.11-2012, we do not reset our CW
-		                            //
-		                            reset_ssrc();
-
-		                            // At this point, the MAC tx state machine has started anew to send a the MPDU itself.
-		                            // This was triggered by the frame_receive() context.  We know that the frame_receive context
-		                            // has started the transmission of the MPDU.  This ensures we are not kicked out of the
-		                            // do-while loop.
-		                            //
-		                            // NOTE: This assignment is better than re-reading wlan_mac_get_status() in the case of a short
-		                            // MPDU, where we may skip the PENDING state directly to DONE without this code context seeing it.
-		                            //
-		                            mac_hw_status |= WLAN_MAC_STATUS_MASK_TX_A_PENDING;
-
-		                            continue;
-
-		                        } else if ((tx_wait_state == TX_WAIT_ACK) &&
-		                                   (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
-		                                   (rx_status & POLL_MAC_TYPE_ACK) &&
-		                                   (rx_status & POLL_MAC_STATUS_GOOD) &&
-		                                   (rx_status & POLL_MAC_ADDR_MATCH)) {
-
-		                                // Update contention window
-		                                switch(tx_mode) {
-		                                    case TX_MODE_SHORT:
-		                                        reset_ssrc();
-		                                        reset_cw();
-		                                    break;
-		                                    case TX_MODE_LONG:
-		                                        reset_slrc();
-		                                        reset_cw();
-		                                    break;
-		                                }
-
-		                                // Start a post-Tx backoff using the updated contention window
-		                                n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-		                                wlan_mac_dcf_hw_start_backoff(n_slots);
-
-		                                // Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
-		                                gl_autocancel_en = 0;
-
-		                                return TX_MPDU_RESULT_SUCCESS;
-
-		                        } else {
-		                            // Received a packet immediately after transmitting, but it wasn't the ACK we wanted
-		                            // It could have been our ACK with a bad checksum or a different packet altogether
-		                            switch(tx_wait_state) {
-		                                case TX_WAIT_ACK:
-		                                    // We were waiting for an ACK
-		                                    //   - Depending on the size of the MPDU, we will increment either the SRC or the LRC
-		                                    //
-		                                    header->frame_control_2 = (header->frame_control_2) | MAC_FRAME_CTRL2_FLAG_RETRY;
-
-		                                    switch(tx_mode) {
-		                                        case TX_MODE_SHORT:
-		                                            increment_src_ssrc(&(mpdu_info->short_retry_count));
-		                                        break;
-		                                        case TX_MODE_LONG:
-		                                            increment_lrc_slrc(&(mpdu_info->long_retry_count));
-		                                        break;
-		                                    }
-		                                break;
-
-		                                case TX_WAIT_CTS:
-		                                    // We were waiting for a CTS but did not get it.
-		                                    //     - Increment the SRC
-		                                    //
-		                                    increment_src_ssrc(&(mpdu_info->short_retry_count));
-		                                break;
-
-		                                case TX_WAIT_NONE:
-		                                    xil_printf("Error: unexpected state");
-		                                break;
-		                            }
-
-		                            // Start the post-Tx backoff
-		                            n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-		                            wlan_mac_dcf_hw_start_backoff(n_slots);
-
-		                            // Now we evaluate the SRC and LRC to see if either has reached its maximum
-		                            //     NOTE:  Use >= here to handle unlikely case of retryLimit values changing mid-Tx
-		                            if ((mpdu_info->short_retry_count >= gl_dot11ShortRetryLimit) ||
-		                                (mpdu_info->long_retry_count  >= gl_dot11LongRetryLimit )) {
-		                                // We are done transmitting. We now break out of the retry while loop
-		                                gl_autocancel_en = 0;
-
-		                                return TX_MPDU_RESULT_FAILURE;
-		                            }
-
-		                            // Jump to next loop iteration
-		                            continue;
-		                        }
-		                    break;
-
-		                    //---------------------------------------------------------------------
-		                    case WLAN_MAC_STATUS_TX_A_RESULT_TIMEOUT:
-		                        // Tx required timeout, timeout expired with no receptions
-
-		                        gl_mpdu_pkt_buf = PKT_BUF_INVALID;
-
-		                        switch (tx_wait_state) {
-		                            case TX_WAIT_ACK:
-		                                // We were waiting for an ACK
-		                                //     - Depending on the size of the MPDU, we will increment either the SRC or the LRC
-		                                //
-		                                header->frame_control_2 = (header->frame_control_2) | MAC_FRAME_CTRL2_FLAG_RETRY;
-
-		                                switch(tx_mode){
-		                                    case TX_MODE_SHORT:
-		                                        increment_src_ssrc(&(mpdu_info->short_retry_count));
-		                                    break;
-		                                    case TX_MODE_LONG:
-		                                        increment_lrc_slrc(&(mpdu_info->long_retry_count));
-		                                    break;
-		                                }
-		                            break;
-
-		                            case TX_WAIT_CTS:
-		                                // We were waiting for a CTS but did not get it.
-		                                //     - Increment the SRC
-		                                increment_src_ssrc(&(mpdu_info->short_retry_count));
-		                            break;
-
-		                            case TX_WAIT_NONE:
-		                                xil_printf("Error: unexpected state");
-		                            break;
-		                        }
-
-		                        // Start the post-Tx backoff
-		                        n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-		                        wlan_mac_dcf_hw_start_backoff(n_slots);
-
-		                        // Now we evaluate the SRC and LRC to see if either has reached its maximum
-		                        if ((mpdu_info->short_retry_count == gl_dot11ShortRetryLimit) ||
-		                            (mpdu_info->long_retry_count  == gl_dot11LongRetryLimit )) {
-		                            // We are done transmitting. We now break out of the retry while loop
-		                            gl_autocancel_en = 0;
-
-		                            return TX_MPDU_RESULT_FAILURE;
-		                        }
-
-		                        // Jump to next loop iteration
-		                        continue;
-		                    break;
-		                }
-
-		            // else for if(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE)
+		                //TODO: Fill a tx_details struct
+		            	//TODO: Send an IPC BEACON_DONE
 		            } else {
 		                // Poll the MAC Rx state to check if a packet was received while our Tx was deferring
 		                if (mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
 		                    rx_status = wlan_mac_low_poll_frame_rx();
-
-		                    // Check if the new reception met the conditions to cancel the already-submitted transmission
-		                    if ((gl_autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
-		                        // The Rx handler killed this transmission already by resetting the MAC core
-		                        //     - Reset the global gl_autocancel_en variable and return failure
-		                        gl_autocancel_en = 0;
-
-		                        return TX_MPDU_RESULT_FAILURE;
-		                    }
-		                } else {
-		                	poll_timestamp();
+		                    //TODO: Cancel Core C Tx is this was a beacon
 		                }
 		            } // END if(Tx A state machine done)
-		        } while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING );
-#endif
-
+		        } while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
 
 		return_status = 0;
 	}
@@ -917,7 +708,14 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
     // Wait for MAC CFG A or B to finish starting a response transmission
     switch(tx_pending_state){
-        default:
+    	case TX_PENDING_NONE:
+    		// With the new CPU_LOW beacon structure, it is possible to reach this point in the code
+    		// while MAC Support Core A is currently pending on an unrelated MPDU. We should not wait for this
+    		// pending state to clear if tx_pending_state is TX_PENDING_NONE because it never will. A previous
+    		// version of the code relied on the fact that it was impossible for MAC Support Core A to be pending
+    		// At this point
+    	break;
+
         case TX_PENDING_A:
 
         	do{
