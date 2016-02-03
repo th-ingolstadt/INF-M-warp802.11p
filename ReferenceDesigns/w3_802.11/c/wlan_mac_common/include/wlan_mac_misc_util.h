@@ -125,6 +125,17 @@
 // Packet buffer size (in bytes)
 #define PKT_BUF_SIZE                                       4096
 
+// Tx packet buffer assignments
+//   Note: the definitions for the MPDU packet buffers
+//   are not directly used. Instead, the actual packet
+//   buffer values are used to make iteration easier.
+#define TX_PKT_BUF_MPDU_1								   0
+#define TX_PKT_BUF_MPDU_2								   1
+#define TX_PKT_BUF_MPDU_3								   2
+#define TX_PKT_BUF_BEACON								   3
+#define TX_PKT_BUF_RTS                                     6
+#define TX_PKT_BUF_ACK_CTS                                 7
+
 // Tx and Rx packet buffers
 
 // Tx pkt buf byte indexes:
