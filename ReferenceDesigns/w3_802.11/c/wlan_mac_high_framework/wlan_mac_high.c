@@ -2738,9 +2738,9 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* statio
 
 		// Update transmission counts
 		if(frame_counts != NULL){
+			station->counts->latest_txrx_timestamp = get_system_time_usec();
 
 			(frame_counts->tx_num_packets_total)++;
-
 			(frame_counts->tx_num_bytes_total) += (tx_mpdu->length);
 			(frame_counts->tx_num_packets_low) += (tx_mpdu->short_retry_count); //TODO: Needs to be fixed for short/long
 

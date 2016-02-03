@@ -2802,7 +2802,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                 // Copy the info to the entry
                 //   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
                 //          similar to the info structures in wlan_mac_high.h
-                copy_source_to_dest(curr_entry->data, &resp_args_32[resp_index], get_mac_time_usec());
+                copy_source_to_dest(curr_entry->data, &resp_args_32[resp_index], get_system_time_usec());
 
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Get %s entry for node: ", description);
                 wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
@@ -3296,7 +3296,7 @@ void zero_txrx_counts_entry(void * dest) {
 
     txrx_counts_entry * curr_entry = (txrx_counts_entry *)(dest);
 
-    bzero((void *)(&curr_entry->counts), sizeof(counts_txrx_base));
+    bzero((void *)(&curr_entry->counts), sizeof(counts_txrx));
 }
 
 
@@ -3325,7 +3325,7 @@ void copy_txrx_counts_to_dest_entry(void * source, void * dest, u64 time) {
     //   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
     //          similar to the source information structure in wlan_mac_high.h
     if (curr_source != NULL) {
-        memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(counts_txrx_base));
+        memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(counts_txrx));
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_counts, "Could not copy counts_txrx to entry\n");
     }

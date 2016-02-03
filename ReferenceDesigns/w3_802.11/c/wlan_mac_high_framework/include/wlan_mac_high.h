@@ -318,38 +318,16 @@ typedef struct{
  *     by using nested structs.
  *
  ********************************************************************/
-#define WLAN_COUNTS_TXRX_COMMON_FIELDS                                                                \
-        u8                   addr[6];                        /* HW Address */                         \
-        u8                   is_associated;                  /* Is this device associated with me? */ \
-        u8                   padding;                                                                 \
-        frame_counts_txrx    data;                           /* Counts about data types */            \
-        frame_counts_txrx    mgmt;                           /* Counts about management types */
-
-
 typedef struct{
-
-    WLAN_COUNTS_TXRX_COMMON_FIELDS
-
-    u64     latest_txrx_timestamp;                              ///< Timestamp of the last frame reception
-
+    u8                  addr[6];                      ///< HW Address
+    u8                  is_associated;                ///< Is this device associated with me?
+    u8                  padding;
+    frame_counts_txrx   data;                         ///< Counts about data types
+    frame_counts_txrx   mgmt;                         ///< Counts about management types
+    u64                 latest_txrx_timestamp;        ///< Timestamp of the last frame reception
 } counts_txrx;
 
 CASSERT(sizeof(counts_txrx) == 96, counts_txrx_alignment_check);
-
-
-
-/********************************************************************
- * @brief Counts Structure
- *
- * This struct is a modification of the counts_txrx struct that eliminates pointers
- * to other data.  It is used primarily for the logging framework.
- *
- ********************************************************************/
-typedef struct{
-
-    WLAN_COUNTS_TXRX_COMMON_FIELDS
-
-} counts_txrx_base;
 
 
 

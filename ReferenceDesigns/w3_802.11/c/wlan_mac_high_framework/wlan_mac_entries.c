@@ -1196,7 +1196,7 @@ u32 add_txrx_counts_to_log(counts_txrx * counts, u8 transmit){
 
     txrx_counts_entry * entry;
     u32                 entry_size  = sizeof(txrx_counts_entry);
-    u32                 counts_size = sizeof(counts_txrx_base);
+    u32                 counts_size = sizeof(counts_txrx);
 
     // Check to see if we have valid counts
     if (counts == NULL) { return XST_FAILURE; }

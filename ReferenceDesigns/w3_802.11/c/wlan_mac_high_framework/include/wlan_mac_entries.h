@@ -276,7 +276,7 @@ typedef struct{
 //
 typedef struct{
     u64                 timestamp;               // Timestamp of the log entry
-    counts_txrx_base    counts;                  // Framework's counts struct
+    counts_txrx         counts;                  // Framework's counts struct
 } txrx_counts_entry;
 
 
