@@ -135,6 +135,10 @@ typedef struct{
 #define WLAN_MAC_STATUS_MASK_POSTTX_TIMER1_RUNNING         0x00800000     // b[23]
 #define WLAN_MAC_STATUS_MASK_POSTRX_TIMER2_RUNNING         0x01000000     // b[24]
 #define WLAN_MAC_STATUS_MASK_POSTRX_TIMER1_RUNNING         0x02000000     // b[25]
+#define WLAN_MAC_STATUS_MASK_TX_C_PENDING                  0x04000000     // b[26]
+#define WLAN_MAC_STATUS_MASK_TX_C_DONE                     0x08000000     // b[27]
+#define WLAN_MAC_STATUS_MASK_TX_C_STATE                    0x70000000     // b[30:28]
+
 
 #define WLAN_MAC_STATUS_TX_A_RESULT_NONE                  (0 << 2)        // FSM idle or still running
 #define WLAN_MAC_STATUS_TX_A_RESULT_TIMEOUT               (1 << 2)        // FSM completed with postTx timer expiration
@@ -158,6 +162,13 @@ typedef struct{
 #define WLAN_MAC_STATUS_TX_B_STATE_CHECK_NAV              (2 << 11)
 #define WLAN_MAC_STATUS_TX_B_STATE_DO_TX                  (3 << 11)
 #define WLAN_MAC_STATUS_TX_B_STATE_DONE                   (4 << 11)
+
+#define WLAN_MAC_STATUS_TX_C_STATE_IDLE        (0 << 28)
+#define WLAN_MAC_STATUS_TX_C_STATE_START_BO    (1 << 28) //Starting backoff counter - 1 cycle
+#define WLAN_MAC_STATUS_TX_C_STATE_DEFER       (2 << 28) //Waiting for zero backoff - unbounded time
+#define WLAN_MAC_STATUS_TX_C_STATE_DO_TX       (3 << 28) //PHY Tx started, waiting on TX_DONE - TX_TIME
+#define WLAN_MAC_STATUS_TX_C_STATE_DONE        (4 << 28) //TX_DONE occurred - 1 cycle
+
 
 
 #define wlan_mac_get_status()                             (Xil_In32(WLAN_MAC_REG_STATUS))
