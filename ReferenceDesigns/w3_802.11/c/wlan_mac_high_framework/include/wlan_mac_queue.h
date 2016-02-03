@@ -73,7 +73,7 @@ int                queue_checkin_list(dl_list * list);
 
 inline u32         queue_num_free();
 inline u32         queue_num_queued(u16 queue_sel);
-int                queue_total_size();
+u32                queue_total_size();
 
 void               purge_queue(u16 queue_sel);
 
