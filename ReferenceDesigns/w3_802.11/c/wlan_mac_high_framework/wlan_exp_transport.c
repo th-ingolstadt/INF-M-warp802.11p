@@ -64,7 +64,7 @@ volatile wlan_exp_function_ptr_t  process_hton_msg_callback;
 void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port);
 
 void transport_set_eth_phy_auto_negotiation(u32 eth_dev_num, u32 enable);
-void transport_set_eth_phy_speed(u32 eth_dev_num, u32 speed);
+void transport_set_phy_link_speed(u32 eth_dev_num, u32 speed);
 
 int  transport_check_device(u32 eth_dev_num);
 
@@ -914,10 +914,10 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
         }
 
         // Set the operating speed of the Ethernet controller
-        eth_set_operating_speed(eth_dev_num, speed);
+        eth_set_mac_operating_speed(eth_dev_num, speed);
 
         // Set the operating speed of the Ethernet PHY
-        transport_set_eth_phy_speed(eth_dev_num, speed);
+        transport_set_phy_link_speed(eth_dev_num, speed);
 
         // Sleep for a short period of time to let everything settle
         usleep(1 * 10000);
@@ -953,7 +953,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
  * @return  None
  *
  *****************************************************************************/
-void transport_set_eth_phy_speed(u32 eth_dev_num, u32 speed) {
+void transport_set_phy_link_speed(u32 eth_dev_num, u32 speed) {
 
     // See Ethernet PHY specification for documentation on the values used for PHY commands
     u16          phy_ctrl_reg_val;
