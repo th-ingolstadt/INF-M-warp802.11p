@@ -770,7 +770,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 							// xil_printf("0x%08x 0x%08x\n", (u32)((((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) >> 32), (u32)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp));
 							// xil_printf("0x%08x 0x%08x\n", (u32)((mpdu_info->timestamp) >> 32), (u32)(mpdu_info->timestamp));
-							// xil_printf("0x%08x 0x%08x\n", (u32)(timestamp_diff >> 32), (u32)(timestamp_diff));
+							// xil_printf("0x%08x 0x%08x\n", (u32)(time_delta >> 32), (u32)(time_delta));
 							// xil_printf("\n");
 
 							// Update the MAC time
