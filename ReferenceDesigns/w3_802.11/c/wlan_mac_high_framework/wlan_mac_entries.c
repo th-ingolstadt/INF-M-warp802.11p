@@ -31,6 +31,7 @@
 #include "xil_types.h"
 
 // WLAN includes
+#include "wlan_mac_sysmon_util.h"
 #include "wlan_exp_common.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
@@ -1435,9 +1436,9 @@ u32 add_temperature_to_log(u8 transmit){
         entry->timestamp     = get_mac_time_usec();
         entry->id            = node_get_node_id();
         entry->serial_number = node_get_serial_number();
-        entry->curr_temp     = node_get_curr_temp();
-        entry->min_temp      = node_get_min_temp();
-        entry->max_temp      = node_get_max_temp();
+        entry->curr_temp     = get_current_temp();
+        entry->min_temp      = get_min_temp();
+        entry->max_temp      = get_max_temp();
 
 #ifdef _DEBUG_
         xil_printf("[%d] Node %d (W3-a-%05d)= (%d %d %d)\n", (u32)entry->timestamp, entry->id, entry->serial_number,

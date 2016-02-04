@@ -319,9 +319,6 @@ void node_info_set_max_counts     (u32 max_counts);
 
 u32  node_get_node_id             (void);
 u32  node_get_serial_number       (void);
-u32  node_get_curr_temp           (void);
-u32  node_get_min_temp            (void);
-u32  node_get_max_temp            (void);
 
 
 #endif /* WLAN_EXP_NODE_H_ */

@@ -22,14 +22,10 @@
 #include <stdio.h>
 #include <string.h>
 
-// Hardware includes
-#ifdef XPAR_XSYSMON_NUM_INSTANCES
-#include <xsysmon_hw.h>
-#endif
-
 // WARP Includes
 
 // WLAN includes
+#include "wlan_mac_sysmon_util.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
@@ -48,10 +44,6 @@
 /*************************** Constant Definitions ****************************/
 
 // #define _DEBUG_
-
-#ifdef XPAR_XSYSMON_NUM_INSTANCES
-#define SYSMON_BASEADDR                                    XPAR_SYSMON_0_BASEADDR
-#endif
 
 
 // Define Ethernet Header Buffer Constants
@@ -94,7 +86,6 @@ extern tx_params           default_multicast_data_tx_params;
 /*************************** Functions Prototypes ****************************/
 
 int           node_init_parameters(u32 *info);
-void          node_init_system_monitor(void);
 
 int           process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer);
 void          send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer);
@@ -257,7 +248,7 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
 
     // ------------------------------------------
     // Initialize the System Monitor
-    node_init_system_monitor();
+    init_sysmon();
 
 
     // ------------------------------------------
@@ -842,9 +833,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // NODE_TEMPERATURE
             //   - If the system monitor exists, return the current, min and max temperature of the node
             //
-            resp_args_32[resp_index++] = Xil_Htonl(node_get_curr_temp());
-            resp_args_32[resp_index++] = Xil_Htonl(node_get_min_temp());
-            resp_args_32[resp_index++] = Xil_Htonl(node_get_max_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(get_current_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(get_min_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(get_max_temp());
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
@@ -3441,61 +3432,6 @@ void wlan_exp_set_process_user_cmd_callback(void(*callback)()){
 }
 
 
-/*****************************************************************************/
-/**
- * Initialize the System Monitor
- *
- * @param   None
- *
- * @return  None
- *
- *****************************************************************************/
-void node_init_system_monitor(void) {
-
-#ifdef XPAR_XSYSMON_NUM_INSTANCES
-    u32 RegValue;
-
-    // Reset the system monitor
-    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_SRR_OFFSET, XSM_SRR_IPRST_MASK);
-
-    // Disable the Channel Sequencer before configuring the Sequence registers.
-    RegValue = XSysMon_ReadReg(SYSMON_BASEADDR, XSM_CFR1_OFFSET) & (~ XSM_CFR1_SEQ_VALID_MASK);
-    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_CFR1_OFFSET,    RegValue | XSM_CFR1_SEQ_SINGCHAN_MASK);
-
-    // Setup the Averaging to be done for the channels in the Configuration 0
-    //   register as 16 samples:
-    RegValue = XSysMon_ReadReg(SYSMON_BASEADDR, XSM_CFR0_OFFSET) & (~XSM_CFR0_AVG_VALID_MASK);
-    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_CFR0_OFFSET, RegValue | XSM_CFR0_AVG16_MASK);
-
-    // Enable the averaging on the following channels in the Sequencer registers:
-    //  - On-chip Temperature
-    //  - On-chip VCCAUX supply sensor
-    XSysMon_WriteReg(SYSMON_BASEADDR,XSM_SEQ02_OFFSET, XSM_SEQ_CH_TEMP | XSM_SEQ_CH_VCCAUX);
-
-    // Enable the following channels in the Sequencer registers:
-    //  - On-chip Temperature
-    //  - On-chip VCCAUX supply sensor
-    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_SEQ00_OFFSET, XSM_SEQ_CH_TEMP | XSM_SEQ_CH_VCCAUX);
-
-    // Set the ADCCLK frequency equal to 1/32 of System clock for the System Monitor/ADC
-    //   in the Configuration Register 2.
-    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_CFR2_OFFSET, 32 << XSM_CFR2_CD_SHIFT);
-
-    // Enable the Channel Sequencer in continuous sequencer cycling mode.
-    RegValue = XSysMon_ReadReg(SYSMON_BASEADDR, XSM_CFR1_OFFSET) & (~ XSM_CFR1_SEQ_VALID_MASK);
-    XSysMon_WriteReg(SYSMON_BASEADDR, XSM_CFR1_OFFSET,    RegValue | XSM_CFR1_SEQ_CONTINPASS_MASK);
-
-    // Wait till the End of Sequence occurs
-    XSysMon_ReadReg(SYSMON_BASEADDR, XSM_SR_OFFSET); /* Clear the old status */
-    while (((XSysMon_ReadReg(SYSMON_BASEADDR, XSM_SR_OFFSET)) & XSM_SR_EOS_MASK) != XSM_SR_EOS_MASK);
-
-    // TODO:  Do we need a timeout for this while loop?
-
-#endif
-
-}
-
-
 
 /*****************************************************************************/
 /**
@@ -3589,16 +3525,6 @@ int node_get_parameter_values(u32 * buffer, u32 max_resp_len) {
  *****************************************************************************/
 u32  node_get_node_id       ( void ) { return node_info.node_id; }
 u32  node_get_serial_number ( void ) { return node_info.serial_number; }
-
-#ifdef XPAR_XSYSMON_NUM_INSTANCES
-u32  node_get_curr_temp     ( void ) { return XSysMon_ReadReg(SYSMON_BASEADDR, XSM_TEMP_OFFSET);     }
-u32  node_get_min_temp      ( void ) { return XSysMon_ReadReg(SYSMON_BASEADDR, XSM_MIN_TEMP_OFFSET); }
-u32  node_get_max_temp      ( void ) { return XSysMon_ReadReg(SYSMON_BASEADDR, XSM_MAX_TEMP_OFFSET); }
-#else
-u32  node_get_curr_temp     ( void ) { return 0; }
-u32  node_get_min_temp      ( void ) { return 0; }
-u32  node_get_max_temp      ( void ) { return 0; }
-#endif
 
 
 
