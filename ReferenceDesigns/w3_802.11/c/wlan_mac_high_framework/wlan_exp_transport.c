@@ -25,6 +25,7 @@
 
 
 // WLAN includes
+#include "wlan_mac_time_util.h"
 #include "wlan_mac_high.h"
 
 

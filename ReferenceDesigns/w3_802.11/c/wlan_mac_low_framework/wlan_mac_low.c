@@ -29,6 +29,7 @@
 #include "radio_controller.h"
 
 // WLAN includes
+#include "wlan_mac_time_util.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_misc_util.h"

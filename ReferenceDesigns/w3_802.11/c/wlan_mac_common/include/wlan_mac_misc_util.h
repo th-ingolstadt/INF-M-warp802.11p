@@ -4,7 +4,7 @@
  *  This contains miscellaneous definitions of required by both the upper and
  *  lower-level CPUs.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -24,25 +24,6 @@
 // Base Addresses
 //
 #define USERIO_BASEADDR                                    XPAR_W3_USERIO_BASEADDR            ///< XParameters rename of base address of User I/O
-
-
-//-----------------------------------------------
-// WLAN MAC TIME HW register definitions
-//
-// RO:
-#define WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB                  XPAR_WLAN_MAC_TIME_HW_MEMMAP_SYSTEM_TIME_USEC_MSB
-#define WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB                  XPAR_WLAN_MAC_TIME_HW_MEMMAP_SYSTEM_TIME_USEC_LSB
-#define WLAN_MAC_TIME_REG_MAC_TIME_MSB                     XPAR_WLAN_MAC_TIME_HW_MEMMAP_MAC_TIME_USEC_MSB
-#define WLAN_MAC_TIME_REG_MAC_TIME_LSB                     XPAR_WLAN_MAC_TIME_HW_MEMMAP_MAC_TIME_USEC_LSB
-
-// RW:
-#define WLAN_MAC_TIME_REG_NEW_MAC_TIME_MSB                 XPAR_WLAN_MAC_TIME_HW_MEMMAP_NEW_MAC_TIME_MSB
-#define WLAN_MAC_TIME_REG_NEW_MAC_TIME_LSB                 XPAR_WLAN_MAC_TIME_HW_MEMMAP_NEW_MAC_TIME_LSB
-#define WLAN_MAC_TIME_REG_CONTROL                          XPAR_WLAN_MAC_TIME_HW_MEMMAP_CONTROL
-
-// Control reg masks
-#define WLAN_MAC_TIME_CTRL_REG_RESET_SYSTEM_TIME           0x00000001
-#define WLAN_MAC_TIME_CTRL_REG_UPDATE_MAC_TIME             0x00000002
 
 
 //-----------------------------------------------
@@ -439,12 +420,6 @@ typedef struct{
 
 
 /*************************** Function Prototypes *****************************/
-u64                get_mac_time_usec();
-void               set_mac_time_usec(u64 new_time);
-void               apply_mac_time_delta_usec(s64 time_delta);
-u64                get_system_time_usec();
-void               usleep(u64 delay);
-
 void               enable_hex_pwm();
 void               disable_hex_pwm();
 void               set_hex_pwm_period(u16 period);

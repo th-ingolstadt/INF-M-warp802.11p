@@ -22,6 +22,7 @@
 #include "xparameters.h"
 #include "string.h"
 
+#include "wlan_mac_time_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_bss_info.h"
 #include "wlan_mac_dl_list.h"

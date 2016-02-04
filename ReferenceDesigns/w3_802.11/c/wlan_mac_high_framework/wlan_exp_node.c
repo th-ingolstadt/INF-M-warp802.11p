@@ -26,6 +26,7 @@
 
 // WLAN includes
 #include "wlan_mac_sysmon_util.h"
+#include "wlan_mac_time_util.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
