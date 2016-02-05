@@ -55,10 +55,11 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                     (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP)
 
-#define  WLAN_DEFAULT_CHANNEL                    1
-#define  WLAN_DEFAULT_TX_PWR                     15
-#define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_CHANNEL       1
+#define  WLAN_DEFAULT_TX_PWR       15
+#define  WLAN_DEFAULT_TX_PHY_MODE  PHY_MODE_HTMF
+#define  WLAN_DEFAULT_TX_ANTENNA   TX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_RX_ANTENNA   RX_ANTMODE_SISO_ANTA
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
 
@@ -68,16 +69,16 @@
 /*************************** Variable Definitions ****************************/
 
 // SSID variables
-static char                       default_AP_SSID[] = "WARP-AP";
+static char default_AP_SSID[] = "WARP-AP";
 
 // Common TX header for 802.11 packets
 static mac_header_80211_common    tx_header_common;
 
 // Default Transmission Parameters
-tx_params                         default_unicast_mgmt_tx_params;
-tx_params                         default_unicast_data_tx_params;
-tx_params                         default_multicast_mgmt_tx_params;
-tx_params                         default_multicast_data_tx_params;
+tx_params default_unicast_mgmt_tx_params;
+tx_params default_unicast_data_tx_params;
+tx_params default_multicast_mgmt_tx_params;
+tx_params default_multicast_data_tx_params;
 
 // "my_bss_info" is a pointer to the bss_info that describes this AP.
 // Inside this structure is a dl_list of station_info. This is a list
@@ -143,22 +144,26 @@ int main(){
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate                = WLAN_MAC_MCS_18M;
-	default_unicast_data_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
+	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
+	default_unicast_data_tx_params.phy.mcs            = WLAN_MAC_MCS_18M;
+	default_unicast_data_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_unicast_mgmt_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate                = WLAN_MAC_MCS_6M;
-	default_unicast_mgmt_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
+	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
+	default_unicast_mgmt_tx_params.phy.mcs            = WLAN_MAC_MCS_6M;
+	default_unicast_mgmt_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
-	default_multicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_multicast_data_tx_params.phy.antenna_mode      = WLAN_DEFAULT_TX_ANTENNA;
+	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
+	default_multicast_data_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
+	default_multicast_data_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_multicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_multicast_mgmt_tx_params.phy.antenna_mode      = WLAN_DEFAULT_TX_ANTENNA;
+	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
+	default_multicast_mgmt_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
+	default_multicast_mgmt_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 	// Setup the counts lists
 	dl_list_init(&counts_table);
@@ -959,7 +964,7 @@ void association_timestamp_check() {
  */
 void mpdu_rx_process(void* pkt_buf_addr) {
 
-	rx_frame_info*      mpdu_info                = (rx_frame_info*)pkt_buf_addr;
+	rx_frame_info*      frame_info               = (rx_frame_info*)pkt_buf_addr;
 	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8*                 mpdu_ptr_u8              = (u8*)mpdu;
 	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mpdu_ptr_u8);
@@ -982,14 +987,15 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	u8					pre_llc_offset			 = 0;
 
-	u8 					rate					 = mpdu_info->phy_details.mcs;
-	u16 				length					 = mpdu_info->phy_details.length;
+	u8 					mcs	     = frame_info->phy_details.mcs;
+	u8 					phy_mode = frame_info->phy_details.phy_mode;
+	u16 				length   = frame_info->phy_details.length;
 
 	// Set the additional info field to NULL
-	mpdu_info->additional_info = (u32)NULL;
+	frame_info->additional_info = (u32)NULL;
 
 	// Log the reception
-	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, rate);
+	rx_event_log_entry = wlan_exp_log_create_rx_entry(frame_info);
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
@@ -1002,7 +1008,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
-	if( mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
+	if( frame_info->state == RX_MPDU_STATE_FCS_GOOD){
 
 		// Update the association information
 		if(my_bss_info != NULL){
@@ -1020,15 +1026,17 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			}
 
 			// Update station information
-			mpdu_info->additional_info                    = (u32)associated_station;
+			frame_info->additional_info                    = (u32)associated_station;
 
 			associated_station->latest_activity_timestamp = get_system_time_usec();
+			associated_station->rx.last_power             = frame_info->rx_power;
+			associated_station->rx.last_mcs               = mcs;
+			//FIXME: need last phy_mode too? how does this interact with HT capabilities?
 
-			associated_station->rx.last_power             = mpdu_info->rx_power;
-			associated_station->rx.last_rate              = rate;
-
-			rx_seq         = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			station_counts = associated_station->counts;
+
+			// Sequence number is 12 MSB of seq_control field
+			rx_seq         = ((rx_80211_header->sequence_control) >> 4) & 0xFFF;
 
 			// Check if this was a duplicate reception
 			//   - Received seq num matched previously received seq num for this STA

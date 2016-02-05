@@ -60,10 +60,11 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA)
 
-#define  WLAN_DEFAULT_CHANNEL                    1
-#define  WLAN_DEFAULT_TX_PWR                     15
-#define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_CHANNEL       1
+#define  WLAN_DEFAULT_TX_PWR       15
+#define  WLAN_DEFAULT_TX_PHY_MODE  TX_PHY_MODE_NONHT
+#define  WLAN_DEFAULT_TX_ANTENNA   TX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_RX_ANTENNA   RX_ANTMODE_SISO_ANTA
 
 
 /*********************** Global Variable Definitions *************************/
@@ -151,23 +152,26 @@ int main() {
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate                = WLAN_MAC_MCS_36M;
-	default_unicast_data_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
+	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
+	default_unicast_data_tx_params.phy.mcs            = WLAN_MAC_MCS_18M;
+	default_unicast_data_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_unicast_mgmt_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate                = WLAN_MAC_MCS_6M;
-	default_unicast_mgmt_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
+	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
+	default_unicast_mgmt_tx_params.phy.mcs            = WLAN_MAC_MCS_6M;
+	default_unicast_mgmt_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
-	default_multicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_multicast_data_tx_params.phy.antenna_mode      = WLAN_DEFAULT_TX_ANTENNA;
+	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
+	default_multicast_data_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
+	default_multicast_data_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_multicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_multicast_mgmt_tx_params.phy.antenna_mode      = WLAN_DEFAULT_TX_ANTENNA;
-
+	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
+	default_multicast_mgmt_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
+	default_multicast_mgmt_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 
 	// Initialize the utility library
@@ -539,7 +543,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  */
 void mpdu_rx_process(void* pkt_buf_addr) {
 
-	rx_frame_info*      mpdu_info                = (rx_frame_info*)pkt_buf_addr;
+	rx_frame_info*      frame_info                = (rx_frame_info*)pkt_buf_addr;
 	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	u8*                 mpdu_ptr_u8              = (u8*)mpdu;
 	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mpdu_ptr_u8);
@@ -559,12 +563,13 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	bss_info*			curr_bss_info;
 	u8					pre_llc_offset			 = 0;
 
-	u8 					rate					 = mpdu_info->phy_details.mcs;
-	u16 				length					 = mpdu_info->phy_details.length;
+	u8 					mcs	     = frame_info->phy_details.mcs;
+	u8 					phy_mode = frame_info->phy_details.phy_mode;
+	u16 				length   = frame_info->phy_details.length;
 
 
 	// Log the reception
-	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, rate);
+	rx_event_log_entry = wlan_exp_log_create_rx_entry(frame_info);
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
@@ -577,7 +582,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
-	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)){
+	if( (frame_info->state == RX_MPDU_STATE_FCS_GOOD)){
 
 		// Update the association information
 		if(my_bss_info != NULL){
@@ -591,8 +596,8 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 			// Update station information
 			associated_station->latest_activity_timestamp = get_system_time_usec();
-			associated_station->rx.last_power             = mpdu_info->rx_power;
-			associated_station->rx.last_rate              = rate;
+			associated_station->rx.last_power             = frame_info->rx_power;
+			associated_station->rx.last_mcs               = mcs;
 
 			is_associated  = 1;
 			rx_seq         = ((rx_80211_header->sequence_control)>>4)&0xFFF;
@@ -767,10 +772,10 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 							// Calculate the difference between the beacon timestamp and the packet timestamp
 							//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
-							time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
+							time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(frame_info->timestamp) + PHY_T_OFFSET;
 
 							// xil_printf("0x%08x 0x%08x\n", (u32)((((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) >> 32), (u32)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp));
-							// xil_printf("0x%08x 0x%08x\n", (u32)((mpdu_info->timestamp) >> 32), (u32)(mpdu_info->timestamp));
+							// xil_printf("0x%08x 0x%08x\n", (u32)((frame_info->timestamp) >> 32), (u32)(frame_info->timestamp));
 							// xil_printf("0x%08x 0x%08x\n", (u32)(time_delta >> 32), (u32)(time_delta));
 							// xil_printf("\n");
 

@@ -162,6 +162,8 @@
 #define TX_ANTMODE_SISO_ANTC                               0x30
 #define TX_ANTMODE_SISO_ANTD                               0x40
 
+#define PHY_MODE_NONHT	0x1 //11a OFDM
+#define PHY_MODE_HTMF	0x2 //11n OFDM, HT mixed format
 
 //-----------------------------------------------
 // Receive filter defines
@@ -239,11 +241,12 @@ typedef struct {
 //-----------------------------------------------
 // TX parameters
 //
+
 typedef struct{
-    u8                       rate;                         ///< PHY rate index
-    u8                       antenna_mode;                 ///< Tx antenna selection
-    s8                       power;                        ///< Tx power (in dBm)
-    u8                       flags;                        ///< Flags affecting waveform construction
+    u8 mcs;          ///< MCS index
+    u8 phy_mode;     ///< PHY mode selection and flags
+    u8 antenna_mode; ///< Tx antenna selection
+    s8 power;        ///< Tx power (in dBm)
 } phy_tx_params;
 
 
@@ -292,17 +295,15 @@ typedef struct {
     u8                       src;
     u8                       lrc;
 } wlan_mac_low_tx_details;
-//8,8,4,4,2,2,1,1,2,1,1,2,2,1,1
-
 
 typedef struct {
-    u8                       phy_mode;
     u8                       mcs;
+    u8                       phy_mode;
     u8						 reserved[2];
     u16                      length;
     u16                      N_DBPS;                       ///< Number of data bits per OFDM symbol
 } phy_rx_details;
-
+//FIXME: why N_DBPS here? this can be calculated from phy_mode and mcs
 
 #define PHY_RX_DETAILS_MODE_DSSS                          (0)
 #define PHY_RX_DETAILS_MODE_11AG                          (WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11AG)
@@ -436,8 +437,5 @@ void               set_hex_display_error_status(u8 status);
 
 int                str2num(char* str);
 u8                 hex_to_seven_segment(u8 hex_value);
-
-
-
 
 #endif   // END WLAN_MAC_MISC_UTIL_H_

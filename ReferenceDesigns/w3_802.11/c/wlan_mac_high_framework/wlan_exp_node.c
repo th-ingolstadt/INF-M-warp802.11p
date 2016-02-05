@@ -2117,15 +2117,15 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default unicast data & management parameter
-                        default_unicast_data_tx_params.phy.rate = rate;
-                        default_unicast_mgmt_tx_params.phy.rate = rate;
+                        default_unicast_data_tx_params.phy.mcs = rate;
+                        default_unicast_mgmt_tx_params.phy.mcs = rate;
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                         "Set default unicast TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
                     break;
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default unicast data parameter
-                        rate = default_unicast_data_tx_params.phy.rate;
+                        rate = default_unicast_data_tx_params.phy.mcs;
                     break;
 
                     default:
@@ -2138,7 +2138,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast data parameter
-                        default_multicast_data_tx_params.phy.rate = rate;
+                        default_multicast_data_tx_params.phy.mcs = rate;
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                         "Set default multicast data TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
                     break;
@@ -2146,7 +2146,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast data parameter
-                        rate = default_multicast_data_tx_params.phy.rate;
+                        rate = default_multicast_data_tx_params.phy.mcs;
                     break;
 
                     default:
@@ -2159,7 +2159,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast management parameter
-                        default_multicast_mgmt_tx_params.phy.rate = rate;
+                        default_multicast_mgmt_tx_params.phy.mcs = rate;
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                         "Set default multicast mgmt TX rate = %d Mbps\n", wlan_lib_mac_rate_to_mbps(rate));
                     break;
@@ -2167,7 +2167,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast management parameter
-                        rate = default_multicast_mgmt_tx_params.phy.rate;
+                        rate = default_multicast_mgmt_tx_params.phy.mcs;
                     break;
 
                     default:
@@ -3858,13 +3858,13 @@ u8 process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
                 if (aid == WLAN_EXP_AID_ALL) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX rate on AID %d = %d Mbps\n", curr_station_info->AID, wlan_lib_mac_rate_to_mbps(tx_rate));
-                    curr_station_info->tx.phy.rate = tx_rate;
+                    curr_station_info->tx.phy.mcs = tx_rate;
                     rate                           = tx_rate;
 
                 } else if (aid == curr_station_info->AID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX rate on AID %d = %d Mbps\n", aid, wlan_lib_mac_rate_to_mbps(tx_rate));
-                    curr_station_info->tx.phy.rate = tx_rate;
+                    curr_station_info->tx.phy.mcs = tx_rate;
                     rate                           = tx_rate;
                     break;
                 }
@@ -3890,7 +3890,7 @@ u8 process_tx_rate(u32 cmd, u32 aid, u8 tx_rate) {
                 while ((curr_entry != NULL) && (iter-- > 0)) {
                     curr_station_info = (station_info*)(curr_entry->data);
                     if (aid == curr_station_info->AID) {
-                        rate = curr_station_info->tx.phy.rate;
+                        rate = curr_station_info->tx.phy.mcs;
                         break;
                     }
                     curr_entry = dl_entry_next(curr_entry);

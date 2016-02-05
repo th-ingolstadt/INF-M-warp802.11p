@@ -166,35 +166,35 @@ void uart_rx(u8 rxByte){
 
 				break;
 				case ASCII_r:
-					if((default_unicast_data_tx_params.phy.rate) > WLAN_MAC_MCS_6M){
-						(default_unicast_data_tx_params.phy.rate)--;
+					if((default_unicast_data_tx_params.phy.mcs) > WLAN_MAC_MCS_6M){
+						(default_unicast_data_tx_params.phy.mcs)--;
 					} else {
-						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_MCS_6M;
+						(default_unicast_data_tx_params.phy.mcs) = WLAN_MAC_MCS_6M;
 					}
 
 					curr_station_info_entry = my_bss_info->associated_stations.first;
 					while(curr_station_info_entry != NULL){
 						curr_station_info = (station_info*)(curr_station_info_entry->data);
-						curr_station_info->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
+						curr_station_info->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
 						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 					}
 
-					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
+					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.mcs)));
 				break;
 				case ASCII_R:
-					if((default_unicast_data_tx_params.phy.rate) < WLAN_MAC_MCS_54M){
-						(default_unicast_data_tx_params.phy.rate)++;
+					if((default_unicast_data_tx_params.phy.mcs) < WLAN_MAC_MCS_54M){
+						(default_unicast_data_tx_params.phy.mcs)++;
 					} else {
-						(default_unicast_data_tx_params.phy.rate) = WLAN_MAC_MCS_54M;
+						(default_unicast_data_tx_params.phy.mcs) = WLAN_MAC_MCS_54M;
 					}
 
 					curr_station_info_entry = my_bss_info->associated_stations.first;
 					while(curr_station_info_entry != NULL){
 						curr_station_info = (station_info*)(curr_station_info_entry->data);
-						curr_station_info->tx.phy.rate = (default_unicast_data_tx_params.phy.rate);
+						curr_station_info->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
 						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 					}
-					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.rate)));
+					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.mcs)));
 				break;
 				case ASCII_s:
 					uart_mode = UART_MODE_SSID_CHANGE;

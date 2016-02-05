@@ -295,7 +295,7 @@ void wlan_phy_init() {
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
 
     // Enable 11n support in the PHY Rx
-    REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_ENABLE_HTMM_DET);
+    REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_ENABLE_HTMF_DET);
 
     // Keep CCA.BUSY asserted when DSSS Rx is active
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
@@ -328,7 +328,6 @@ void wlan_phy_init() {
      	case PHY_5M:
      	case PHY_10M:
      	case PHY_20M:
-     		//wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
      		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
      	break;
      }
@@ -676,7 +675,7 @@ void wlan_agc_config(u32 ant_mode) {
 
     // Set Rx gains
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_RF, 2);
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 6);
+    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 8); //POMPHY
 #endif
 
 
@@ -782,52 +781,47 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
     return;
 }
 
-
 /*****************************************************************************/
 /**
- * Set the TX Signal field
+ * Calculates the PHY preamble (SIGNAL for 11a, L-SIG/HT-SIG for 11n) and writes
+ * the preamble bytes to the specified packet buffer. The PHY preamble must be
+ * written to the packet buffer for each transmission.
  *
  * @param   pkt_buf          - Packet buffer number
- * @param   rate             - Rate of the packet being transmitted
+ * @param   phy_mode         - Sets waveform format; must be PHY_MODE_NON_HT (11a) or PHY_MODE_HTMF (11n)
+ * @param   mcs              - MCS (modulation/coding scheme) index
  * @param   length           - Length of the packet being transmitted
  *
  * @return  None
  *
  *****************************************************************************/
-inline void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length) {
+void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 
-	bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
-
-    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(rate, length));
-
-    return;
-}
-
-#if 0 //FIXME: DCF .stack overflowed with this
-
-//FIXME: phy_mode type should be enum?
-inline void wlan_phy_write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
-
-	const u8 phy_rate_vals[8] = {WLAN_PHY_RATE_BPSK12, WLAN_PHY_RATE_BPSK34, WLAN_PHY_RATE_QPSK12, WLAN_PHY_RATE_QPSK34, WLAN_PHY_RATE_16QAM12, WLAN_PHY_RATE_16QAM34, WLAN_PHY_RATE_64QAM23, WLAN_PHY_RATE_64QAM34};
 	u8* htsig_ptr;
 
-	if(phy_mode == 0x1) {
-		//11a mode
+	// RATE field values for SIGNAL/L-SIG in PHY preamble (IEEE 802.11-2012 18.3.4.2)
+	//  RATE field in SIGNAL/L-SIG is one of 8 4-bit values indicating modulation scheme and coding rate
+	//  For 11a (NONHT) transmissions we map mcs index to SIGNAL.RATE directly
+	//  For 11n (HTMF) transmissions the L-SIG.RATE field is always the lowest (BSPK 1/2)
+	const u8 sig_rate_vals[8] = {0xB, 0xF, 0xA, 0xE, 0x9, 0xD, 0x8, 0xC};
+
+	if((phy_mode & PHY_MODE_NONHT) == PHY_MODE_NONHT) {
+		//11a mode - write SIGNAL (3 bytes)
 
 		//Zero-out any stale header, also properly sets SERVICE and reserved bytes to 0
 		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 
 		//Set SIGNAL with actual rate/length
-	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(phy_rate_vals[mcs], length));
+	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[mcs], length));
 
-	} else if(phy_mode == 0x2) {
-		//11n mode
+	} else if((phy_mode & PHY_MODE_HTMF) == PHY_MODE_HTMF) {
+		//11n mode - write L-SIG (3 bytes) and HT-SIG (6 bytes)
 
 		//Zero-out any stale header, also properly sets SERVICE, reserved bytes, and auto-filled bytes of HT-SIG to 0
 		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 
 		//FIXME: calculate appropriate length for 6Mbps Tx duration matching actual 11n Tx duration
-	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(phy_rate_vals[0], 100));
+	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], 100));
 
 		//Assign pointer to first byte of HTSIG (PHY header base + 3 for sizeof(L-SIG))
 	    htsig_ptr = (u8*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET + 3);
@@ -844,7 +838,6 @@ inline void wlan_phy_write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 len
 
     return;
 }
-#endif
 
 /*****************************************************************************/
 /**

@@ -148,23 +148,23 @@ int main(){
 u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
 
     void              * pkt_buf_addr        = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
-    rx_frame_info     * mpdu_info           = (rx_frame_info *) pkt_buf_addr;
+    rx_frame_info     * frame_info           = (rx_frame_info *) pkt_buf_addr;
     u32					mac_hw_status;
 
     // Fill in the MPDU info fields for the reception
-    mpdu_info->flags          = 0;
-    mpdu_info->phy_details    = *phy_details;
-    mpdu_info->channel        = wlan_mac_low_get_active_channel();
-    mpdu_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
-    mpdu_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
-    mpdu_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
-    mpdu_info->state          = wlan_mac_dcf_hw_rx_finish();                 // Blocks until reception is complete
+    frame_info->flags          = 0;
+    frame_info->phy_details    = *phy_details;
+    frame_info->channel        = wlan_mac_low_get_active_channel();
+    frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
+    frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
+    frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
+    frame_info->state          = wlan_mac_dcf_hw_rx_finish();                 // Blocks until reception is complete
 
-    mpdu_info->ant_mode       = wlan_phy_rx_get_active_rx_ant();
-    mpdu_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
-    mpdu_info->rf_gain        = wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode);
-    mpdu_info->bb_gain        = wlan_phy_rx_get_agc_BBG(mpdu_info->ant_mode);
-    mpdu_info->rx_power       = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(mpdu_info->ant_mode), wlan_phy_rx_get_agc_RFG(mpdu_info->ant_mode));
+    frame_info->ant_mode       = wlan_phy_rx_get_active_rx_ant();
+    frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
+    frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(frame_info->ant_mode);
+    frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(frame_info->ant_mode);
+    frame_info->rx_power       = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(frame_info->ant_mode));
 
     // Wait until the PHY has written enough bytes so that the first address field can be processed
     while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
@@ -176,7 +176,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     };
 
     // Increment the LEDs based on the FCS status
-    if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
+    if(frame_info->state == RX_MPDU_STATE_FCS_GOOD){
         green_led_index = (green_led_index + 1) % NUM_LEDS;
         userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
     } else {
@@ -217,30 +217,32 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
  * sent back to CPU High when this function returns.
  *
  * @param   pkt_buf          - Index of the Tx packet buffer containing the packet to transmit
- * @param   rate             - Index of PHY rate at which packet will be transmitted
- * @param   length           - Number of bytes in packet, including MAC header and FCS
  * @param   low_tx_details   - Pointer to array of metadata entries to be created for each PHY transmission of this packet
  *                             (eventually leading to TX_LOW log entries)
  * @return  int              - Transmission result
  */
-int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low_tx_details) {
+int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
     // The pkt_buf, rate, and length arguments provided to this function specifically relate to
     // the MPDU that the WLAN MAC LOW framework wants to send.
 
-    // To disable all transmissions, uncomment this line:
-    // return 0;
+    u32 mac_hw_status;
+    u8 tx_gain;
 
-    u32                 mac_hw_status;
-    int                 curr_tx_pow;
-
-    tx_frame_info     * mpdu_info           = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+    tx_frame_info     * frame_info           = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
     u8                  mpdu_tx_ant_mask    = 0;
 
-    // Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
-    wlan_phy_set_tx_signal(pkt_buf, rate, length);
+    // Extract waveform params from the tx_frame_info
+    u8  mcs      = frame_info->params.phy.mcs;
+    u8  phy_mode = (frame_info->params.phy.phy_mode & (PHY_MODE_HTMF | PHY_MODE_NONHT));
+    u16 length   = frame_info->length;
+
+    //FIXME: should this callback sanity-check mcs/phy_mode/length before submitting the Tx to the PHY? Or is that the framework's job?
+
+    // Write the PHY premable (SIGNAL or L-SIG/HT-SIG) to the packet buffer
+    write_phy_preamble(pkt_buf, phy_mode, mcs, length);
 
     // Set the antenna mode
-    switch(mpdu_info->params.phy.antenna_mode) {
+    switch(frame_info->params.phy.antenna_mode) {
         case TX_ANTMODE_SISO_ANTA:  mpdu_tx_ant_mask |= 0x1;  break;
         case TX_ANTMODE_SISO_ANTB:  mpdu_tx_ant_mask |= 0x2;  break;
         case TX_ANTMODE_SISO_ANTC:  mpdu_tx_ant_mask |= 0x4;  break;
@@ -249,35 +251,37 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
     }
 
     // Fill in the number of attempts to transmit the packet
-    mpdu_info->num_tx_attempts   = 1;
-    mpdu_info->phy_samp_rate		     = (u8)wlan_mac_low_get_phy_samp_rate();
+    frame_info->num_tx_attempts  = 1;
 
-    // Get the power to transmit the packet
-    curr_tx_pow = wlan_mac_low_dbm_to_gain_target(mpdu_info->params.phy.power);
+    // Update tx_frame_info with current PHY sampling rate
+    frame_info->phy_samp_rate	= (u8)wlan_mac_low_get_phy_samp_rate();
+
+    // Convert the requested Tx power (dBm) to a Tx gain setting for the radio
+    tx_gain = wlan_mac_low_dbm_to_gain_target(frame_info->params.phy.power);
 
     // Set the MAC HW control parameters
-    //     wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
-    wlan_mac_tx_ctrl_A_params(pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, 0, TMP_A_PHY_MODE);
+    //  args: (pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2, phy_mode)
+    wlan_mac_tx_ctrl_A_params(pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, 0, phy_mode);
 
-
-    // Set Tx Gains
-    wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
+    // Set Tx Gains - use same gain for all RF interfaces
+    wlan_mac_tx_ctrl_A_gains(tx_gain, tx_gain, tx_gain, tx_gain);
 
     // Before we mess with any PHY state, we need to make sure it isn't actively
-    // transmitting. For example, it may be sending an ACK when we get to this part of the code
+    //  transmitting. For example, it may be sending an ACK when we get to this part of the code
     while (wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) {}
 
     // Submit the MPDU for transmission - this starts the MAC hardware's MPDU Tx state machine
     wlan_mac_tx_ctrl_A_start(1);
     wlan_mac_tx_ctrl_A_start(0);
 
-    // Wait for the MPDU Tx to finish
+    // Wait for the PHY Tx to finish
     do{
         // Fill in the Tx low details
         if (low_tx_details != NULL) {
-            low_tx_details[0].phy_params_mpdu.rate         = mpdu_info->params.phy.rate;
-            low_tx_details[0].phy_params_mpdu.power        = mpdu_info->params.phy.power;
-            low_tx_details[0].phy_params_mpdu.antenna_mode = mpdu_info->params.phy.antenna_mode;
+            low_tx_details[0].phy_params_mpdu.mcs          = mcs;
+            low_tx_details[0].phy_params_mpdu.phy_mode     = phy_mode;
+            low_tx_details[0].phy_params_mpdu.power        = frame_info->params.phy.power;
+            low_tx_details[0].phy_params_mpdu.antenna_mode = frame_info->params.phy.antenna_mode;
             low_tx_details[0].chan_num                     = wlan_mac_low_get_active_channel();
             low_tx_details[0].num_slots                    = 0;
             low_tx_details[0].cw                           = 0;
@@ -293,8 +297,11 @@ int frame_transmit(u8 pkt_buf, u8 rate, u16 length, wlan_mac_low_tx_details* low
                 low_tx_details[0].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
             }
 
+            // Set return value based on Tx A result
+            //  This is easy for NoMAC - all transmissions are immediately successful
             switch (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT) {
                 case WLAN_MAC_STATUS_TX_A_RESULT_NONE:
+                default:
                     return 0;
                 break;
             }

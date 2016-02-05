@@ -66,15 +66,6 @@
 // RATE field values for SIGNAL/L-SIG in PHY preamble (IEEE 802.11-2012 18.3.4.2)
 //  DSSS 1M rate code is non-standard, used by our code to indicate DSSS Rx
 #define WLAN_PHY_RATE_DSSS_1M  0x1
-#define WLAN_PHY_RATE_BPSK12   0xB
-#define WLAN_PHY_RATE_BPSK34   0xF
-#define WLAN_PHY_RATE_QPSK12   0xA
-#define WLAN_PHY_RATE_QPSK34   0xE
-#define WLAN_PHY_RATE_16QAM12  0x9
-#define WLAN_PHY_RATE_16QAM34  0xD
-#define WLAN_PHY_RATE_64QAM23  0x8
-#define WLAN_PHY_RATE_64QAM34  0xC
-
 
 // ****************************************************************************
 // Data bytes per OFDM symbol
@@ -97,7 +88,6 @@
 #define RX_ACTIVE_ANTB  0x1
 #define RX_ACTIVE_ANTC  0x2
 #define RX_ACTIVE_ANTD  0x3
-
 
 // ****************************************************************************
 // PHY Register definitions
@@ -177,7 +167,7 @@
 #define WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET   0x00200000     // Requires both auto_corr and RSSI pkt det assertion to start Rx
 #define WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET  0x00400000     // Valid SIGNAL holds pkt det for rate*lengh duration, even if unsupported
 #define WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA   0x00800000     // DSSS active holds CCA busy
-#define WLAN_RX_REG_CFG_ENABLE_HTMM_DET	   0x01000000     // Enables 11n Rx support; when disabled all Rx are processed as 11a waveforms
+#define WLAN_RX_REG_CFG_ENABLE_HTMF_DET	   0x01000000     // Enables 11n Rx support; when disabled all Rx are processed as 11a waveforms
 //-----------------------------------------------
 // RX STATUS
 //
@@ -421,7 +411,7 @@ void wlan_agc_config(u32 ant_mode);
 void wlan_rx_config_ant_mode(u32 ant_mode);
 
 // PHY commands
-void wlan_phy_set_tx_signal(u8 pkt_buf, u8 rate, u16 length);
+void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length);
 
 // TX debug commands
 inline void wlan_tx_start();

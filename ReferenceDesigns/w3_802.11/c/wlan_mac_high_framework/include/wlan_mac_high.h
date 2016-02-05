@@ -339,9 +339,9 @@ CASSERT(sizeof(counts_txrx) == 96, counts_txrx_alignment_check);
  *
  ********************************************************************/
 typedef struct{
-    u16     last_seq;       ///< Sequence number of the last MPDU reception
-    char    last_power;     ///< Power of last frame reception (in dBm)
-    u8      last_rate;      ///< Rate of last MPDU reception
+    u16  last_seq;       ///< Sequence number of the last MPDU reception
+    s8   last_power;     ///< Power of last frame reception (in dBm)
+    u8   last_mcs;      ///< Rate of last MPDU reception
 } rx_info;
 
 

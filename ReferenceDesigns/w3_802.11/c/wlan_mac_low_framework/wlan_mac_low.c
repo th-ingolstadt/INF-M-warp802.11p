@@ -89,7 +89,6 @@ static wlan_mac_low_tx_details low_tx_details[50]; //TODO make a #define
 
 // Constant LUTs for MCS
 const static u8 mcs_to_n_dbps_lut[WLAN_MAC_NUM_MCS] = {N_DBPS_R6, N_DBPS_R9, N_DBPS_R12, N_DBPS_R18, N_DBPS_R24, N_DBPS_R36, N_DBPS_R48, N_DBPS_R54};
-const static u8 mcs_to_phy_rate_lut[WLAN_MAC_NUM_MCS] = {WLAN_PHY_RATE_BPSK12, WLAN_PHY_RATE_BPSK34, WLAN_PHY_RATE_QPSK12, WLAN_PHY_RATE_QPSK34, WLAN_PHY_RATE_16QAM12, WLAN_PHY_RATE_16QAM34, WLAN_PHY_RATE_64QAM23, WLAN_PHY_RATE_64QAM34};
 
 /******************************** Functions **********************************/
 
@@ -792,7 +791,6 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     u32                      status;
     tx_frame_info          * tx_mpdu;
     mac_header_80211       * tx_80211_header;
-    u8                       rate;
     u16                      ACK_N_DBPS;
     u32                      isLocked, owner;
     u32                      low_tx_details_size;
@@ -815,12 +813,11 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 
 		tx_mpdu->delay_accept = (u32)(get_mac_time_usec() - tx_mpdu->timestamp_create);
 
-		// Convert rate index into rate code used in PHY's SIGNAL field
-		//     ACK_N_DBPS is used to calculate duration of received ACKs.
-		//     The selection of ACK rates given DATA rates is specified in 9.7.6.5.2 of 802.11-2012
-		//
-		rate       = wlan_mac_low_mcs_to_phy_rate(tx_mpdu->params.phy.rate);
-		ACK_N_DBPS = wlan_mac_low_mcs_to_n_dbps(wlan_mac_low_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.rate));
+		// ACK_N_DBPS is used to calculate duration of the ACK waveform which might be received in response to this transmission
+		//  The ACK duration is used to calculate the DURATION field in the MAC header
+		//  The selection of ACK rate for a given DATA rate is specified in IEEE 802.11-2012 9.7.6.5.2
+		ACK_N_DBPS = wlan_mac_low_mcs_to_n_dbps(wlan_mac_low_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.mcs));
+
 		// Get pointer to start of MAC header in packet buffer
 		tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
 
@@ -845,7 +842,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		// Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 		//     complete (after all re-transmissions, ACK Rx, timeouts, etc.)
 
-		status = frame_tx_callback(tx_pkt_buf, rate, tx_mpdu->length, low_tx_details);
+		status = frame_tx_callback(tx_pkt_buf, low_tx_details);
 
 		//Record the total time this MPDU spent in the Tx state machine
 		tx_mpdu->delay_done = (u32)(get_mac_time_usec() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
@@ -1464,23 +1461,6 @@ inline u8 wlan_mac_low_mcs_to_n_dbps(u8 mcs){
 }
 
 
-
-/*****************************************************************************/
-/**
- * @brief Convert MCS to PHY rate code
- */
-inline u8 wlan_mac_low_mcs_to_phy_rate(u8 mcs) {
-    if( (mcs >=0) && (mcs < WLAN_MAC_NUM_MCS) ) {
-    	//Valid OFDM MCS - use LUT
-        return mcs_to_phy_rate_lut[mcs];
-    } else if(mcs == WLAN_MAC_MCS_1M) {
-    	//DSSS
-    	return WLAN_PHY_RATE_DSSS_1M;
-    } else {
-        xil_printf("Invalid MCS index %0x%x\n", mcs);
-        return mcs_to_phy_rate_lut[0];
-    }
-}
 
 
 /*****************************************************************************/

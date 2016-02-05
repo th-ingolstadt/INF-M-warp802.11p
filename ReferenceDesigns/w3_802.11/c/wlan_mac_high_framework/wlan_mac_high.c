@@ -2294,7 +2294,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 
 		memcpy(station->addr, addr, 6);
 
-		station->tx.phy.rate = 0;
+		station->tx.phy.mcs  = 0;
 		station->AID         = 0;
 		station->hostname[0] = 0;
 		station->flags       = 0;
