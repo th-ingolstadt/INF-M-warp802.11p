@@ -785,7 +785,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #------------------------
     # Tx Rate commands
 
-    def set_tx_rate_unicast(self, rate, device_list=None, curr_assoc=False, new_assoc=False):
+    def set_tx_rate_unicast(self, mcs, phy_mode, device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast packet transmit rate of the node.
 
         When using device_list or curr_assoc, this method will set the unicast data packet tx rate since
@@ -812,27 +812,28 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         .. note:: This will not affect the transmit antenna mode for control frames like ACKs that
             will be transmitted. The rate of control packets is determined by the 802.11 standard.
         """
-        self._node_set_tx_param_unicast(cmds.NodeProcTxRate, rate, 'rate', device_list, curr_assoc, new_assoc)
+        rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) >> 8)
+        self._node_set_tx_param_unicast(cmds.NodeProcTxRate, rate_info, 'rate', device_list, curr_assoc, new_assoc)
 
 
-    def set_tx_rate_multicast_data(self, rate):
+    def set_tx_rate_multicast_data(self, mcs, phy_mode):
         """Sets the multicast data packet transmit rate for a node.
 
         Args:
             rate (dict from util.wlan_rates):  Rate dictionary
                 (Dictionary from the wlan_rates list in wlan_exp.util)
         """
-        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, rate))
+        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, mcs, phy_mode))
 
 
-    def set_tx_rate_multicast_mgmt(self, rate):
+    def set_tx_rate_multicast_mgmt(self, mcs, phy_mode):
         """Sets the multicast management packet transmit rate for a node.
 
         Args:
             rate (dict from util.wlan_rates):  Rate dictionary
                 (Dictionary from the wlan_rates list in wlan_exp.util)
         """
-        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, rate))
+        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, mcs, phy_mode))
 
 
     def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
